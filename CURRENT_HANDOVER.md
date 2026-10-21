@@ -75,8 +75,11 @@ Alle execution-/training-porter er false; ingen fit/campaign følger av forslage
 
 Målt diagnosegap: eksisterende `_dynamic_m5_prefix_observations` har480
 prediksjoner/targets/masker i RAM, men lagrer bare koordinataggregater og hver
-sides modellvalgte horisont. Persistér de allerede materialiserte fulle
-per-entry-kurvene og egne masker i samme finalobserver, uten ekstra finalforwards.
+sides modellvalgte horisont. De allerede materialiserte fulle
+per-entry-kurvene og egne masker er lagt til i samme finalobserver, uten ekstra forwards.
+Fullkurve-serialisering og streng gjenkobling er nå implementert i eksisterende
+observer/validator;146 skal kjøre29syntetiske cases og måle faktisk trainclosure
+én gang. Ingen faktisk fullkurve-baseline er målt ennå.
 115 er faktisk paret aggregate/selected-horizon-baseline, ikke full480×512-baseline.
 En endring må få eksakt korrekt kilde-/baselinebinding. Hele ferske trainclosure
 mot115 er ennå ikke målt; ingen mismatch er påstått og ingen gate omgås.

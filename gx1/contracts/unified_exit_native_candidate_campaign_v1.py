@@ -1437,12 +1437,13 @@ def _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement):
 def _require_dynamic_m5_observation(observation, *, identity, cohort):
     """Validate the existing observer's independent components and exact Entry trace."""
     import math
+    import hashlib
     import numpy as np
     import pyarrow.parquet as pq
     from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
     from gx1.contracts.entry_model_native_aux_targets_v3 import (
         DYNAMIC_M5_POINTER_COLUMNS, MODEL_NATIVE_AUX_FORECAST_HORIZONS,
-        MODEL_NATIVE_FORECAST_OUTPUT_DIM, MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT,
+        MODEL_NATIVE_FORECAST_OUTPUT_DIM, MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT, MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT,
     )
     from gx1.contracts.entry_fitted_q_v1 import ENTRY_FITTED_Q_ACTION_ORDER
 
@@ -1541,13 +1542,44 @@ def _require_dynamic_m5_observation(observation, *, identity, cohort):
               "PAIRED_PATH_MASK_MISMATCH")
     traces = diagnostics["dynamic_entry_observations"]
     check(isinstance(traces, list) and len(traces) == len(parents) == 256, "TRACE_ROWS_INVALID")
+    def trace_component(cell, shape, *, action_order=None):
+        keys = {"prediction_bps", "target_bps", "observed"} | ({"action_order"} if action_order else set())
+        check(isinstance(cell, Mapping) and set(cell) == keys
+              and (action_order is None or cell["action_order"] == action_order), "FULL_CURVE_SCHEMA_INVALID")
+        prediction, target, mask = (np.asarray(cell[key], dtype=object) for key in ("prediction_bps", "target_bps", "observed"))
+        check(prediction.shape == target.shape == mask.shape == shape, "FULL_CURVE_SHAPE_INVALID")
+        check(all(number(value) for value in prediction.flat)
+              and all(type(value) is bool for value in mask.flat), "FULL_CURVE_DOMAIN_INVALID")
+        check(all(number(value) if valid else value is None for value, valid in zip(target.flat, mask.flat)),
+              "FULL_CURVE_TARGET_MASK_INVALID")
+        observed = mask.astype(np.bool_)
+        return prediction.astype(np.float64), np.where(observed, target, 0).astype(np.float64), observed
+    trace_values = {name: [] for name in names}
     actions = dict.fromkeys(ENTRY_FITTED_Q_ACTION_ORDER, 0)
     tied, abstained = 0, 0
     for index, trace in enumerate(traces):
         check(isinstance(trace, Mapping) and set(trace) == {"entry_row_index", "entry_time_ns", "predicted_candidate_quality_bps",
-              "diagnostic_action", "diagnostic_abstained", "side_diagnostics"}
+              "diagnostic_action", "diagnostic_abstained", "side_diagnostics", "full_query_curves", "forecast_support"}
               and type(trace["entry_row_index"]) is int and trace["entry_row_index"] == parents[index]
               and type(trace["entry_time_ns"]) is int and trace["entry_time_ns"] == times[index], "TRACE_IDENTITY_INVALID")
+        full = trace["full_query_curves"]
+        check(isinstance(full, Mapping) and set(full) == {"query_minutes", "components"}
+              and isinstance(full["query_minutes"], list) and all(type(value) is int for value in full["query_minutes"])
+              and full["query_minutes"] == queries and isinstance(full["components"], Mapping)
+              and set(full["components"]) == set(names[:5]), "FULL_CURVE_QUERY_INVALID")
+        for component_index, name in enumerate(names[:5]):
+            axes = list(ENTRY_FITTED_Q_ACTION_ORDER[:3 if component_index == 0 else 2])
+            trace_values[name].append(trace_component(full["components"][name], (len(queries), len(axes)), action_order=axes))
+        support = trace["forecast_support"]
+        check(isinstance(support, Mapping) and set(support) == {"output_layout", "prediction_bps", "target_bps", "observed"}
+              and support["output_layout"] == list(MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT), "FORECAST_TRACE_LAYOUT_INVALID")
+        trace_values["forecast_pred"].append(trace_component({key:value for key,value in support.items() if key != "output_layout"},
+                                                          (MODEL_NATIVE_FORECAST_OUTPUT_DIM,)))
+        p, target, mask = trace_values[names[0]][-1]
+        check(bool((p[:, 2] == 0).all()) and bool((target[:, 2] == 0).all())
+              and np.array_equal(mask[:, 2], mask[:, 0] & mask[:, 1]), "FULL_CURVE_FLAT_MASK_INVALID")
+        for first, second in ((names[1], names[2]), (names[3], names[4])):
+            check(np.array_equal(trace_values[first][-1][2], trace_values[second][-1][2]), "FULL_CURVE_PAIRED_MASK_INVALID")
         candidate = trace["predicted_candidate_quality_bps"]
         check(isinstance(candidate, list) and len(candidate) == 3 and all(number(value) for value in candidate)
               and candidate[2] == 0, "CANDIDATE_VALUES_INVALID")
@@ -1573,6 +1605,35 @@ def _require_dynamic_m5_observation(observation, *, identity, cohort):
                       and set(cell) == {"observed_cells", "predicted_mean_bps"} | ({"observed_target_mean_bps"} if cell["observed_cells"] else set())
                       and number(cell["predicted_mean_bps"])
                       and (not cell["observed_cells"] or number(cell["observed_target_mean_bps"])), "SIDE_COMPONENT_TRACE_INVALID")
+                prediction, target, mask = trace_values[name][-1]
+                selected = np.asarray(best, np.int64) - 1
+                valid = mask[selected, side]
+                check(cell["observed_cells"] == int(valid.sum())
+                      and cell["predicted_mean_bps"] == float(prediction[selected, side].mean())
+                      and (not valid.any() or cell["observed_target_mean_bps"] == float(target[selected, side][valid].mean())),
+                      "FULL_CURVE_SELECTED_TRACE_MISMATCH")
+    for component_index, name in enumerate(names):
+        shape = (MODEL_NATIVE_FORECAST_OUTPUT_DIM,) if component_index == 5 else (len(queries), 3 if component_index == 0 else 2)
+        counts = np.zeros(shape, np.int64)
+        squared, absolute = np.zeros(shape, np.float64), np.zeros(shape, np.float64)
+        mask_digest, observed_rows = hashlib.sha256(), 0
+        # Match the observer's exact batch16/F64 reduction order; no tolerance.
+        for offset in range(0, len(traces), 16):
+            prediction, target, mask = (np.stack([row[index] for row in trace_values[name][offset:offset + 16]]) for index in range(3))
+            mask_digest.update(np.asarray(mask, dtype=np.bool_, order="C").tobytes())
+            observed_rows += int(mask.reshape(len(mask), -1).any(axis=1).sum())
+            counts += mask.sum(axis=0)
+            difference = prediction - target
+            squared += np.where(mask, difference * difference, 0).sum(axis=0)
+            absolute += np.where(mask, np.abs(difference), 0).sum(axis=0)
+        suffix = "_by_forecast_coordinate" if component_index == 5 else "_by_horizon_and_side"
+        count_key = "observed_cells" + suffix
+        check(mask_digest.hexdigest() == components[name]["observed_mask_sha256"]
+              and observed_rows == components[name]["observed_rows"]
+              and np.array_equal(counts, np.asarray(components[name][count_key]))
+              and np.array_equal(squared, np.asarray(errors[name]["sum_squared_error" + suffix + "_bps2"]))
+              and np.array_equal(absolute, np.asarray(errors[name]["sum_absolute_error" + suffix + "_bps"])),
+              "FULL_CURVE_AGGREGATE_MISMATCH")
     statistics, coverage = diagnostics["dynamic_curve_statistics"], diagnostics["dynamic_candidate_diagnostic_coverage"]
     action_counts = [actions[name] for name in ENTRY_FITTED_Q_ACTION_ORDER]
     check(isinstance(statistics, Mapping) and type(statistics.get("curve_evaluation_rows")) is int

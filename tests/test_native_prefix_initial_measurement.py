@@ -789,7 +789,8 @@ def dynamic_observation_admission_case(dynamic_initial_observer):
 
 
 @pytest.mark.parametrize("fault", [None, "hash", "mask_pair", "counts", "row", "pointer", "horizon", "candidate",
-    "exit", "coverage", "error", "forwards"])
+    "exit", "coverage", "error", "forwards", "full_nonbest_prediction", "full_observed_target",
+    "full_unknown_target", "full_mask", "full_flat_joint", "full_axes", "full_query_grid", "support_target"])
 def test_dynamic_observation_admission_rejoins_actual_component_masks_and_trace(dynamic_observation_admission_case, fault):
     observation, cohort, identity = dynamic_observation_admission_case
     diagnostics = observation["diagnostics"]; frozen = diagnostics["dynamic_frozen_targets"]
@@ -805,8 +806,31 @@ def test_dynamic_observation_admission_rejoins_actual_component_masks_and_trace(
     elif fault == "coverage": diagnostics["dynamic_candidate_diagnostic_coverage"]["abstained_rows"] -= 1
     elif fault == "error": diagnostics["dynamic_component_errors"]["dynamic_mfe_bps"]["sum_squared_error_bps2"] = float("nan")
     elif fault == "forwards": diagnostics["entry_model_forward_count"] = 17
+    elif fault and fault.startswith("full_"):
+        trace = traces[0]
+        full = trace["full_query_curves"]
+        component = full["components"]["dynamic_mfe_bps"]
+        if fault in ("full_nonbest_prediction", "full_observed_target"):
+            trace = next(row for row in traces if row["full_query_curves"]["components"]["dynamic_mfe_bps"]["observed"][0][0])
+            # Preserve internally consistent selected-H2 summaries; poison observed H1.
+            for side, detail in enumerate(trace["side_diagnostics"]):
+                detail["predicted_best_horizon_minutes"] = [2]
+                for name, cell in trace["full_query_curves"]["components"].items():
+                    detail[name] = {"observed_cells":0,"predicted_mean_bps":cell["prediction_bps"][1][side]}
+            component = trace["full_query_curves"]["components"]["dynamic_mfe_bps"]
+            component["prediction_bps" if fault == "full_nonbest_prediction" else "target_bps"][0][0] += 1.
+        elif fault == "full_unknown_target": component["target_bps"][-1][0] = 0.
+        elif fault == "full_mask": component["observed"][-1][0] = True
+        elif fault == "full_flat_joint":
+            trace = next(row for row in traces if row["full_query_curves"]["components"]["dynamic_terminal_net_markout_bps"]["observed"][0][0])
+            terminal = trace["full_query_curves"]["components"]["dynamic_terminal_net_markout_bps"]
+            terminal["observed"][0][2] = False; terminal["target_bps"][0][2] = None
+        elif fault == "full_axes": component["action_order"].reverse()
+        elif fault == "full_query_grid": full["query_minutes"][-1] = 481
+    elif fault == "support_target": traces[0]["forecast_support"]["target_bps"][-1] = 0.
     if fault:
-        with pytest.raises(RuntimeError): native._require_dynamic_m5_observation(observation, identity=identity, cohort=cohort)
+        reason = "FULL_CURVE_AGGREGATE_MISMATCH" if fault in ("full_nonbest_prediction", "full_observed_target") else None
+        with pytest.raises(RuntimeError,match=reason): native._require_dynamic_m5_observation(observation, identity=identity, cohort=cohort)
     else:
         assert native._require_dynamic_m5_observation(observation, identity=identity, cohort=cohort) == observation
 
@@ -827,3 +851,107 @@ def test_dynamic_initial_scope_requires_same_loss_units_in_all_frozen_bindings(d
         native.require_chronological_initial_measurement(case["recipe"], execution_budget={
             "stop_after_optimizer_steps": 0, "expected_active_pointer_sha256": None,
             "stop_after_completed_val_epochs": None, "max_invocation_seconds": 12000})
+
+
+
+def test_dynamic_full_curve_trace_persists_every_cell_on_minute_grid_without_more_forwards(dynamic_initial_observer, monkeypatch):
+    import numpy as np
+    from tests.test_entry_observed_market_native import _dynamic_target_arrays
+    from gx1.contracts import entry_observed_market_v1 as observed
+    from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT
+    model, dataset, cohort, context = dynamic_initial_observer
+    original = model.forward
+    outputs = []
+    names = ("dynamic_terminal_net_markout_bps", "dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps",
+             "dynamic_closed_mfe_bps", "dynamic_closed_pre_mfe_mae_upper_bps")
+    def forward(*args, **kwargs):
+        out = original(*args, **kwargs)
+        # Distinct H1..H480 values expose accidental selection, truncation or broadcast.
+        step = torch.arange(480, dtype=torch.float32)[None, :, None] / 16
+        for name in ("dynamic_mfe_bps", "dynamic_closed_mfe_bps", "dynamic_closed_pre_mfe_mae_upper_bps"):
+            out[name] = out[name] + step
+        outputs.append({name:out[name].detach().cpu().numpy().copy() for name in (*names, "forecast_pred")})
+        return out
+    monkeypatch.setattr(model, "forward", forward)
+    result = runner._dynamic_m5_prefix_observations(model=model, dataset=dataset, cohort=cohort,
+        context=context, device=torch.device("cpu"), deadline=time.monotonic()+30)
+    traces = result["dynamic_entry_observations"]
+    target_keys = (observed.DYNAMIC_M5_MARKOUT_TARGET_KEY, observed.DYNAMIC_M5_MFE_TARGET_KEY,
+        observed.DYNAMIC_M5_MAE_TARGET_KEY, observed.DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, observed.DYNAMIC_M5_CLOSED_MAE_TARGET_KEY)
+    mask_keys = (observed.DYNAMIC_M5_MARKOUT_VALID_KEY, observed.DYNAMIC_M5_PATH_VALID_KEY,
+        observed.DYNAMIC_M5_PATH_VALID_KEY, observed.DYNAMIC_M5_CLOSED_PATH_VALID_KEY, observed.DYNAMIC_M5_CLOSED_PATH_VALID_KEY)
+    for position, trace in enumerate(traces):
+        assert trace["entry_time_ns"] == cohort["entry_time_ns"][position]
+        full = trace["full_query_curves"]
+        assert full["query_minutes"] == list(range(1,481)) and set(full["components"]) == set(names)
+        targets = _dynamic_target_arrays([trace["entry_row_index"]])
+        for index, (name, target_key, mask_key) in enumerate(zip(names,target_keys,mask_keys)):
+            cell = full["components"][name]
+            assert cell["action_order"] == (["LONG","SHORT","FLAT"] if index == 0 else ["LONG","SHORT"])
+            prediction = np.asarray(cell["prediction_bps"], np.float32)
+            mask, target = np.asarray(cell["observed"], bool), np.asarray(cell["target_bps"], object)
+            assert prediction.shape == mask.shape == target.shape == (480, 3 if index == 0 else 2)
+            assert np.array_equal(prediction,outputs[position//16][name][position%16])
+            assert np.array_equal(mask,targets[mask_key][0])
+            assert target[mask].tolist() == targets[target_key][0][mask].tolist()
+            assert all(value is None for value in target[~mask])
+        support = trace["forecast_support"]
+        assert support["output_layout"] == list(MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT)
+        assert support["prediction_bps"] == outputs[position//16]["forecast_pred"][position%16].tolist()
+        assert len(support["observed"]) == len(support["target_bps"]) == len(MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT)
+    # Parent decisions remain M5; this does not turn the 1-minute query axis into cadence.
+    assert traces[0]["entry_time_ns"] - traces[1]["entry_time_ns"] == 5*60*10**9
+    assert model.forwards == result["entry_model_forward_count"] == len(outputs) == 16
+    assert len(dataset._entry_dynamic_m5_target_provider.calls) == 16
+    assert result["dynamic_component_errors"][names[0]]["observed_cells"] == 384
+    assert result["dynamic_component_errors"][names[1]]["observed_cells"] == 256
+    json.dumps(result,allow_nan=False)
+
+
+def test_dynamic_full_curve_trace_preserves_independent_path_and_terminal_joint_masks(dynamic_initial_observer, monkeypatch):
+    from gx1.contracts import entry_observed_market_v1 as observed
+    model, dataset, cohort, context = dynamic_initial_observer
+    provider = dataset._entry_dynamic_m5_target_provider
+    original = provider.targets_for_rows
+    def targets(rows):
+        result = original(rows)
+        result[observed.DYNAMIC_M5_MARKOUT_VALID_KEY][:,0,1:] = False
+        result[observed.DYNAMIC_M5_MARKOUT_TARGET_KEY][:,0,1:] = 0
+        return result
+    monkeypatch.setattr(provider,"targets_for_rows",targets)
+    result = runner._dynamic_m5_prefix_observations(model=model,dataset=dataset,cohort=cohort,
+        context=context,device=torch.device("cpu"),deadline=time.monotonic()+30)
+    trace = next(row for row in result["dynamic_entry_observations"] if row["entry_row_index"]%2 == 0)
+    components = trace["full_query_curves"]["components"]
+    assert components["dynamic_terminal_net_markout_bps"]["observed"][0] == [True,False,False]
+    assert components["dynamic_terminal_net_markout_bps"]["target_bps"][0] == [4.,None,None]
+    assert components["dynamic_mfe_bps"]["observed"][0] == [True,True]
+    assert components["dynamic_closed_mfe_bps"]["observed"][0] == [False,False]
+    observation = {"target_model_role":"frozen_constructor_anchor_no_forward","exit_evaluation":False,
+        "native_launch_authorized":False,"diagnostics":result}
+    assert native._require_dynamic_m5_observation(observation,identity=context["entry_supervision_identity"],cohort=cohort) == observation
+    assert model.forwards == len(provider.calls) == 16
+
+
+def test_dynamic_full_curve_trace_nulls_unknown_targets_without_a_new_finite_storage_gate(dynamic_initial_observer, monkeypatch):
+    from gx1.contracts import entry_observed_market_v1 as observed
+    model, dataset, cohort, context = dynamic_initial_observer
+    original = trainer._validate_dynamic_m5_curves
+    def evaluate(model,loader,device,*,batch_observer):
+        def observer(*,batch,out):
+            # Serializer boundary only: the real evaluator already checked source storage.
+            # This proves the observer adds no finite-value requirement behind mask=false.
+            batch = dict(batch)
+            key, valid = observed.DYNAMIC_M5_MFE_TARGET_KEY, observed.DYNAMIC_M5_PATH_VALID_KEY
+            batch[key] = batch[key].clone(); batch[key][~batch[valid]] = float("nan")
+            batch_observer(batch=batch,out=out)
+        return original(model,loader,device,batch_observer=observer)
+    monkeypatch.setattr(trainer,"_validate_dynamic_m5_curves",evaluate)
+    result = runner._dynamic_m5_prefix_observations(model=model,dataset=dataset,cohort=cohort,
+        context=context,device=torch.device("cpu"),deadline=time.monotonic()+30)
+    assert all(row["full_query_curves"]["components"]["dynamic_mfe_bps"]["target_bps"][-1] == [None,None]
+               for row in result["dynamic_entry_observations"])
+    json.dumps(result,allow_nan=False)
+    observation = {"target_model_role":"frozen_constructor_anchor_no_forward","exit_evaluation":False,
+        "native_launch_authorized":False,"diagnostics":result}
+    assert native._require_dynamic_m5_observation(observation,identity=context["entry_supervision_identity"],cohort=cohort) == observation

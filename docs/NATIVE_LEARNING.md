@@ -437,3 +437,13 @@ vurderes først i neste bølge etter Entry-edge. Rapportér derfor
 `entry_timeframe=M5` atskilt fra `query_horizon_minutes` og `exit_evaluation=false`.
 Den tidligere108-observasjonen «alle512valgte1minutt» beskriver modellens
 valgte prognosehorisont, ikke at Entry-kadensen ble endret fra M5 til M1.
+
+Fullkurve-diagnostikk lagrer hver M5-entrys fem allerede beregnede
+1–480minuttkurver med egne observasjonsmasker og `null` for uobserverte mål.
+Base-/dagsprognoser har separat layout. Validatoren gjenkobler alle observerte
+celler til eksakte maskhasher, tellinger og batch16/F64-feilaggregater.
+Original rå target-storage-SHA beholdes separat; den rekonstrueres ikke fra
+nullable rapportverdier. Kurvene skrives én gang per TRAIN-/CONTROL-rapport;
+checkpoints beholder bare filreferanser med SHA. Ingen ekstra modellkall
+eller Exit-beregninger følger av dette.146 kvalifiserer koden syntetisk;
+fersk faktisk fullkurve-baseline krever egen korrekt binding.

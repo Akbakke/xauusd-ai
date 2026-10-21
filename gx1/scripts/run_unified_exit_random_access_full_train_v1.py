@@ -2659,7 +2659,9 @@ def _dynamic_m5_prefix_observations(*, model, dataset, cohort, context, device, 
     from gx1.contracts.entry_observed_market_horizons_v1 import (
         M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
     )
-    from gx1.contracts.entry_model_native_aux_targets_v3 import MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT
+    from gx1.contracts.entry_model_native_aux_targets_v3 import (
+        MODEL_NATIVE_SUPPORT_FORECAST_LAYOUT, MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT,
+    )
     phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     cohort = _require_dynamic_m5_measurement_source(model=model, dataset=dataset, cohort=cohort, context=context)
     parents = cohort["parent_entry_row_indices"]
@@ -2721,6 +2723,16 @@ def _dynamic_m5_prefix_observations(*, model, dataset, cohort, context, device, 
                 or horizon_values.detach().cpu().tolist() != list(queries)):
             raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_QUERY_INVALID")
         horizon_mask = horizon_mask.detach().cpu().numpy()
+        def serialize_component(name, position):
+            prediction, target, mask = values[name]
+            if (not np.isfinite(prediction[position]).all()
+                    or not np.isfinite(target[position][mask[position]]).all()):
+                raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_CURVE_NONFINITE")
+            # Null is absence of observation, including any underlying masked NaN/-0.
+            # The original F32 target-storage digest above remains a separate receipt.
+            return {"prediction_bps": prediction[position].tolist(),
+                "target_bps": np.where(mask[position], target[position], None).tolist(),
+                "observed": mask[position].tolist()}
         for i, parent in enumerate(rows):
             winners = np.flatnonzero(candidate[i] == candidate[i].max())
             action = ENTRY_FITTED_Q_ACTION_ORDER[int(winners[0])] if len(winners) == 1 else "TIED_FAIL_CLOSED"
@@ -2742,7 +2754,12 @@ def _dynamic_m5_prefix_observations(*, model, dataset, cohort, context, device, 
             traces.append({"entry_row_index": parent, "entry_time_ns": cohort["entry_time_ns"][start + i],
                 "predicted_candidate_quality_bps": candidate[i].tolist(), "diagnostic_action": action,
                 "diagnostic_abstained": action in ("FLAT", "TIED_FAIL_CLOSED"),
-                "side_diagnostics": sides})
+                "side_diagnostics": sides,
+                "full_query_curves": {"query_minutes": list(queries), "components": {
+                    name: {"action_order": list(ENTRY_FITTED_Q_ACTION_ORDER[:3 if index == 0 else 2]),
+                           **serialize_component(name, i)} for index, (name, _, _) in enumerate(specs)}},
+                "forecast_support": {"output_layout": list(MODEL_NATIVE_FORECAST_OUTPUT_LAYOUT),
+                                     **serialize_component("forecast_pred", i)}})
     if math.ceil(len(parents) / 16) > context["max_model_forwards"] or len(parents) > context["max_state_views"]:
         raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_COMPUTE_LIMIT")
     source_loader = torch.utils.data.DataLoader(dataset, batch_size=16, sampler=val._ExactSampler(parents),
