@@ -40,11 +40,16 @@ med alle åtte baseeiere i faktisk manifest og metadata-preflight førclaim.
 161 er nå COMPLETE121,641s: faktisk192-filsmanifest/source/policy bevart;
 ONLINE=TARGET=EMA2eaf88..., tomoptimizer/0EMA/0forwards/steg/refits.
 Samme118249TRAIN-populasjon,11filgeometri og111RMS; ingen vektadopsjon.
-160 innrømmer én full480-startmåling på TRAIN256/CONTROL256,32forwards og
-null optimizersteg. Signert tomgang34/42C/22,5W/78MiB ved160W og faktisk
-boot520 er bundet; fire uendrede Windows-eierscript er separat hashkontrollert.
-Kjøring krever først eksaktcampaign, aktuell maskinvare og ny fysisk Windowsboot
-etter maskinvid tomgangskontroll. Kilde/policy fryses før recipeseal til terminal.
+160-seal er bevart; ingen campaignclaim/nativekall startet. Førlaunch fant root
+at global `chronological_initial_measurement` manglet selv om stage160 var
+innrømmet. Canonicaleieren ville avvist dette. Ny162identitet retter bare
+den eksakte globalbindingen og flytter ubrukt outputmål160til162;161ferskstate,
+alle11physicalrefs/183roller og evalbudsjett gjenbrukes. Ingen data/vekter
+publiseres på nytt.162 innrømmer én full480-startmåling på TRAIN256/CONTROL256,
+32forwards og null optimizersteg. Signert34/42C/22,5W/78MiB ved160W, boot520
+og fire uendrede Windows-eierscript er bundet. Først kreves peer/canonicalseal,
+eksaktcampaign, aktuell maskinvare og ny maskinvidt tomgangsbundet fysisk boot.
+Kilde/policy fryses før recipeseal til terminal.
 Raw148funksjonsparitet/ferskstate og private4paritet/resume må bestås før ny trening.
 Design, sourcepeer, kontroller og falsifikasjonskriterier er bundet i policy.
 Målet er aktivt; initialparitet, retnings-/forløpskvalitet og senere bevis gjenstår.
@@ -156,11 +161,11 @@ Alle32Markdown-filer/4570linjer ved98068b67 er lest, også historiske design;
 lesebevis:154/`MARKDOWN_READ_REVIEW.json`. CLAUDEs foreldede én-agent-setning
 er justert til gjeldende18.10-regel; ingen modell-/treningskode er endret.
 
-Neste steg eies av160 og øverste aktive bestilling: forsegl fersk initialrecipe,
+Neste steg eies av162 og øverste aktive bestilling: forsegl fersk initialrecipe,
 materialiser/installér én canonicalcampaign og bruk eksisterende maskinvakter
 og ny tomgangsbundet fysisk boot.156-vitnet og158-designvalget er ferdige;
 ingen av155–159/161 eller eldre epoker skal relanseres. Opprinnelig151-adgang
-er konsumert.160 gir bare den nye nullstegsmålingen; trening krever senere
+er konsumert.162 gir bare den nye nullstegsmålingen; trening krever senere
 eksakt admission etter faktisk full480paritet/state og privat4paritet/resume.
 
 Læring, Entry-kvalitet/dekning, generalisering og økonomisk edge vurderes
