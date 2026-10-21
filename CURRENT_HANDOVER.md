@@ -195,13 +195,27 @@ har derfor FAILED_NO_ADMISSION, ikke et ferdig case-manifest. Originaler bevares
 de faktisk beståtte testene med rå XML/prosesskode og eksakte kildehasher:
 SHA 20f6e2363589324576b9b1502c57ac610dd44dbcb292f4fa704a5639eb6aadd8. Ingen nye tester kreves av uendret kilde.
 
-143 CPU-case-only er nå åpnet etter ren kildebinding: én 4G/512M-kjøring,
-1800 sekunder, som gjenbruker de 65 testene og 141-pakken uten nye testinvokasjoner.
-Aktuell CASE_MANIFEST_PLAN.json SHA ce9c526e8ba40c5917a6925d4c9c4c564d341a3cad559e84f0a42d961837793b.
-142 skal aldri relanseres. Alle 3446 eieretiketter beholdes med egne masker,
-fast vitnerekkefølge og familiehistoriens faktiske observasjoner. Native input-
-audit er kildeimplementert/testet for lukkede guards, men faktiske modellforwards,
-paritet/påvirkning og fersk hardwareadgang gjenstår. Ingen trening er åpnet.
+143 er COMPLETE/exit0 på 58,318 sekunder, med 229 kilder/policy bevart.
+De 65 beståtte testene ble gjenbrukt; ingen nye testinvokasjoner. Alle 3446
+unike eieretiketter er med: 3445 gyldige inngrep og én kildekonstant,
+`seq_d1.d1:session_change_flag=0`. Ingen ugyldige eller manglende vitnecaser.
+Fordeling: 881/882 numeriske, 2525 aliaser, 7 enum og 32 familie/TF-grupper
+kan varieres. Egne observasjonsmasker og fast tids-/parentrekkefølge styrer
+valget; ingen utfall, prediksjoner eller gradienter valgte caser.
+
+141-pakken på 1.280.070 byte ble lest/dekodet én gang, original B16-batch
+bevart bit-eksakt og 055-normalisering uendret. Ingen TRAIN/cache/rå/PT,
+modell, targets/provider, fit eller updates. Planen er konsumert/stengt.
+Case-manifest SHA a3e150fb32e8d5e206b7332474a1da83b7a7f4488a0e219e48cd4c84c14368a3;
+ACTUAL_REVIEW SHA e96304bf36938c85770b78b99e78037df967ccfcea8a26e17d30b0f760fb5370.
+Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143`.
+
+Neste native input-audit har eksakt budsjett: én gradient-forward, én
+batchparitet og 216 counterfactual-batcher = 218 forwards, samt 13 VJP.
+Dette er bare en ferdig caseplan, ingen målt modellpåvirkning. Bind en
+ny eksplisitt auditplan til ren kilde/policy, eksisterende 115 ONLINE-state,
+141/143-bevis og ferske uendrede maskinvarevakter før modellkjøring.
+Ingen ekstraepoke, fullVAL eller trening er åpnet. Ingen jobb kjører.
 136s gamle135PENDING-note overstyres av138s faktiske kvitteringer i policy.
 Full480trace, LONG/SHORT/FLAT-kvalitet/dekning forvalgte/avståtte ogsenere
 læring/generalisering er åpne krav. Ingen ny trening er åpnet. Ingen jobb kjører.

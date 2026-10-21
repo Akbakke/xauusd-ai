@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T09:24:36.310593+00:00",
-  "status": "143_CASE_ONLY_AUTHORIZED_REUSING_65_QUALIFIED_SOURCE_CASES",
+  "observed_utc": "2026-10-21T09:34:05.956936+00:00",
+  "status": "143_CASE_MANIFEST_COMPLETE_NATIVE_INPUT_INFLUENCE_UNMEASURED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Commit and bind clean source, then run the new capped 4G case-only plan once. Reuse 65 successful source tests; no source dataset or native model reads, no 142 relaunch and no training.",
+  "next_action": "Reuse qualified 141 input packet, 143 fixed 3445 valid cases and 65 source tests. Bind the explicit native input-influence plan to clean source/current ONLINE checkpoint and fresh existing hardware/CUDA-producer gates before any actual model audit. No new raw scan, source test rerun, training or extra epoch is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "143_CASE_ONLY_AUTHORIZED_PENDING_CLEAN_BINDING",
+    "current_activity": "143_CASE_MANIFEST_COMPLETE_NATIVE_INPUT_INFLUENCE_PLAN_AND_HARDWARE_ADMISSION_REQUIRED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -115,16 +115,16 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_NOT_COMPLETE_CURRENT_ALIAS_WITNESSES_COMPLETE_NATIVE_INPUT_INFLUENCE_PRIMARY_ENTRY_QUALITY_AND_GENERALIZATION_REMAIN",
+    "gc_goal_status": "ACTIVE_NOT_COMPLETE_INPUT_PACKET_AND_CASE_PLAN_QUALIFIED_NATIVE_INFLUENCE_ENTRY_QUALITY_AND_GENERALIZATION_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "142_SOURCE_TEST_REPORT_COUNT_GUARD",
+    "latest_terminal_role": "143_INPUT_ONLY_FIXED_CASE_MANIFEST",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_142/CASE_MANIFEST_TERMINAL.json",
-      "sha256": "60c141a0086b29411fae9887500a0f67fab335abde656c44e92148fa7eef87ce"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/CASE_MANIFEST_TERMINAL.json",
+      "sha256": "08ab41027f40e8c02586255ec3b4b92a1668462178c5ae4e1f94c477176576a3"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The external source-test counter stopped case construction despite all 65 test cases passing. Reuse exact tests and run only the still-unexecuted case builder under a fresh plan.",
+    "current_blocker": "Individual actual model influence/parity on the bound current ONLINE dynamic heads and fresh GPU hardware admission remain unmeasured. The source tests and case manifest have passed; no training or extra-epoch authority.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -20167,15 +20167,15 @@
     }
   },
   "latest_terminal_receipt": {
-    "schema_version": "gx1_initial_decision_trace_audit_terminal_v1",
+    "schema_version": "gx1_dynamic_compact_case_manifest_terminal_v1",
     "status": "COMPLETE",
     "exit_code": 0,
     "source_unchanged": true,
     "result": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_138/TRACE_AUDIT_RESULT.json",
-      "sha256": "7ff136ea19bbf1d35614afa0971ecaa2a47490b666cbf7284c4eecd56f62fd19"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/CASE_MANIFEST_RESULT.json",
+      "sha256": "471cd5594daeb5e7993c676cde07dc66831275ee4c506f0865ea4fc3c2440adf"
     },
-    "elapsed_seconds": 0.9322708740000962,
+    "elapsed_seconds": 58.31811029199889,
     "test_data_used": false,
     "training_enabled": false,
     "native_training_admitted": false,
@@ -21175,10 +21175,10 @@
     "elapsed_seconds": 10.448631403000036
   },
   "dynamic_compact_case_manifest_143": {
-    "status": "AUTHORIZED_ONE_CPU_CASE_ONLY_REUSE_SOURCE65",
-    "execution_authorized": true,
+    "status": "COMPLETE_PASS_FIXED_CASE_MANIFEST_NO_NATIVE_FORWARD",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/CASE_MANIFEST_PLAN.json",
@@ -21214,6 +21214,31 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "claimed_invocations": 1,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/CASE_MANIFEST_TERMINAL.json",
+      "sha256": "08ab41027f40e8c02586255ec3b4b92a1668462178c5ae4e1f94c477176576a3"
+    },
+    "actual_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/CASE_MANIFEST_RESULT.json",
+      "sha256": "471cd5594daeb5e7993c676cde07dc66831275ee4c506f0865ea4fc3c2440adf"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/ACTUAL_REVIEW.json",
+      "sha256": "e96304bf36938c85770b78b99e78037df967ccfcea8a26e17d30b0f760fb5370"
+    },
+    "case_manifest": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/CASE_MANIFEST_OUTPUT/CASE_MANIFEST.json",
+      "sha256": "a3e150fb32e8d5e206b7332474a1da83b7a7f4488a0e219e48cd4c84c14368a3"
+    },
+    "valid_cases": 3445,
+    "source_declared_constant_cases": 1,
+    "actual_model_forwards": 0,
+    "actual_optimizer_updates": 0,
+    "actual_new_source_test_invocations": 0,
+    "actual_TRAIN_cache_raw_or_PT_reads": 0,
+    "actual_input_packet_reads": 1,
+    "elapsed_seconds": 58.31811029199889
   }
 }
