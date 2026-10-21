@@ -234,9 +234,9 @@ checkpoints slettes bare gjennom retention-eieren. Ikke opprett nye historikkmap
 
 ## Grenser som gjenstår å bevise
 
-Individuell numerisk kontroll av alle genuine tekniske formler, uavhengig
-GC TF→lagret M5-context med beslutningsalder/masker, oppstrøms råevent→M1 og
-individuell modellnytte gjenstår.051rekonstruksjon,053liveness,055helTRAIN-inputnormalisering og115/117
+Individuell numerisk kontroll av øvrige genuine tekniske formler, oppstrøms
+råevent→M1 og individuell modellnytte gjenstår.126har nå kvalifisert alle1205
+GCverdier/masker TF→lagret M5-context med beslutningsalder og96historikk-radunion.051rekonstruksjon,053liveness,055helTRAIN-inputnormalisering og115/117
 initial-/paritets-/resumemekanikk er ferdige bevis med egne grenser.108fullførte
 én nativeepoke med blandet komponentlæring; Entry-kvalitet, generalisering og
 nettoøkonomi er ikke kvalifisert. Gjeldende terminal og adgang leses fra den
@@ -491,19 +491,28 @@ SHA49de00d10d3d861aae53e212bc41e179a99689f400fda06ff415cbcf69ca6406.
 1172varierende/33observerte konstanter;791nullavvik/414analytisk tillatte avrundinger.
 Finitt dekning3–227808 per felt er ikke lik læringsdekning.124s14-felts pending-
 inventar bevares som historisk bevis, ingen gjenværende M1→TF-verdi.
-Råevent→M1, uavhengig TF→lagret M5-beslutningsprojeksjon og individuell modellnytte
-har fortsatt egne ubeviste lag.051rekonstruksjon og055normalisering gjenbrukes;
-ingen ny sekvens-/PT-/råTB-lesing eller baseline er åpnet av dette PASS-et.
+Råevent→M1 og individuell modellnytte har fortsatt egne ubeviste lag.
+TF→lagret M5-projeksjon er nå kontrollert i126 nedenfor.051rekonstruksjon og
+055normalisering gjenbrukes; ingen ny sekvens-/PT-/råTB-lesing eller baseline
+følger av inputkontrollen.
 
-126supplerer dette med uavhengig GC TF→lagret M5-context-reference under
-kvalifisering.225kildecaser bestod på6,888s;182native117filer er uendret.
-Fysisk1205verdi-/1205maskekontroll er claimet, ennå ikkePASS. Den måler eksakt
-TRAIN+VAL96historikk-radunion fra tidskolonner, bruker beslutning=barstart+300s
-og selvstendig latestavailable/ownvalid/sourceclock/alder/f32.050s2410faktiske
-signal/contexthashpar og051s bit-identiske sekvens/snapshot gjenbrukes;
-ingen ny sekvens-/signal-/PT-payload, modell eller normaliseringsfit.
-GC-footerTESTbarrieren bruker barstart; siste partialH4/D1med senereavailable
-bevares og kan først velges når faktiskavailable<=beslutning.
+126 er fysiskCOMPLETE:1205GCverdier+1205masker stemmer bit-eksakt mot
+050M5-context på136149unike kilderader,328119090verdi-/maskeceller,0bitavvik.
+TRAIN118800+VAL17443kilderader overlapper94; eksakt96historikk-radunion er
+målt fra tidskolonner. Beslutning=barstart+300s, selvstendig latestavailable/
+ownvalid/sourceclock/alder/f32. Alle1205har observerbar TRAIN-/uniondekning;
+VAL1181/1205med24heltmaskertefelt (14D1OB+10retainedH1flow/CVD), korrekt0/0.
+Min36videreførte kontekstrader er ikke36uavhengige TF-observasjoner.
+225kildecaser bestod på6,888s; fysisk146,957s/exit0 og211kilder bevart.
+13filer24645265193byteSHA én gang,10GCprojeksjoner,136224ctx-rader/1419batcher,
+75ekstrarader. Fysisk disk-I/O er ikke målt.050s2410faktiske hashpar og051s
+bit-identiske sekvens/snapshot gjenbrukes; ingen ny sekvens-/signal-/PT-payload,
+modell eller normaliseringsfit.182native117filer er uendret.
+GC-footerTESTbarrieren bruker barstart; partialH4/D1bevares uten for tidligkonsum.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126/ACTUAL_NUMERIC_REVIEW.json`,
+724a4616cb4e11ca94a8fed1c4342e175927b835fb68c06cc8494f7b19c08abc.
+Råevent→M1, andre tekniske formler, individuell lært nytte, Entry-kvalitet og
+økonomisk edge bevises fortsatt ikke av denne inputkontrollen.
 
 Teknisk rapport beskriver WilderATR/RSI/ADX-seeding, EMA/SMA-seed og slope-lag,
 stack/stateage, quote-volumeVWAP, BBpopulationddof0, enheter og første gyldige

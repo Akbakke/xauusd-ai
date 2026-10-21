@@ -31,26 +31,42 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — uavhengig GC→M5-inputkontroll126
+## Gjeldende arbeid — GC-inputkjeden kontrollert; teknisk referanse neste
 
-126 er under implementasjon i eksisterende audit-/testeiere. Plan og design er
-publisert i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126`.
-Alle1205verdier+1205masker skal kontrolleres fra kvalifiserte024TF-tabeller til
-faktisk brukt050M5-context. GCbeslutning=barstart+300s; latestavailable beholdes
-også ved ugyldighet, uten eldre gyldig fallback. Begge aldre beregnes ved beslutning.
-Eksakt TRAIN+VAL96historikk-radunion måles fra tre tidskolonner; ingen sekvens-/
-PT-payload leses. Context dekodes i småbatcher.050s faktiske2410signal/context-
-hashpar og051s bit-identiske snapshot/historikk gjenbrukes. De tre store filene
-24454184350byte og ti dedupliserte GC-tabeller191080843byte skal førstSHA-
-kontrolleres én gang hver, aldri perbatch. Alle13parquetfootere sjekkes førpayload.
-Kode/tester er ferdige, AST og uavhengig kildepeer bestod. Tidligere helpers/
-tester er uendret. Ny GC-footer bruker barstart<TESTgrensen, slik at genuin
-siste partialH4/D1 med senere tilgjengelighet bevares uten å konsumeres for tidlig.
-Faktisk225fokuserte kildecaser bestod på6,888s/exit0,0fail/error/skip og211
-kilder/policy bevart. SOURCE_REVIEW.json binder XML og faktisk terminal.
-Én fysisk126kontroll er nå claimet etter dettePASS-et; sammenligningen er
-ennå ukvalifisert. Ingen ny modelljobb er startet. Trening og alle tidligere
-lukkede vakter er fortsatt stengt.
+126 er COMPLETE i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126`.
+Alle1205GCverdier+1205masker stemmer bit-eksakt fra publiserte024TF-tabeller
+mot faktisk brukt050M5-context:136149unike kilderader,328119090verdi-/maskeceller,
+0bitavvik. TRAINhistorikk118800rader ogVALhistorikk17443overlapper94rader.
+Dette er målt radunion for118249TRAIN-/17284VAL-beslutninger med96historikk,
+ikke en antatt normaliseringspopulasjon. Beslutningsklokkene er30.04.2024
+15:10→31.03.2026 23:55UTC, alltid M5barstart+300s. Latestinvalid/ownmask/
+kildeklokker og10dynamiske aldersfelt er kontrollert; ingen eldrevalidfallback.
+M5profile-snapshotalder er korrekt alltid0. Andre aldre har positivevitner.
+
+Fysisk audit gikk146,957s/exit0 med211kilder/policy bevart.13unike inputfiler
+24645265193byte bleSHA-kontrollert én gang hver; tiGC-tabeller lest uten
+aliasduplisering. Bare time fra de store TRAIN/VAL-filene;136224context-rader
+i1419batcher med256øvre batchgrense,75ekstrarader utenfor unionen. Ingen
+sekvens-/signal-/PT-payload eller modellforward.050s2410faktiske signal/context-
+hashpar og051s bit-identiske snapshot/96historikk gjenbrukes.055normalisering
+og native117s183roller/182filer er uendret. Dette er fil-/dekodertellere,
+ikke målt fysisk disk-I/O eller kontrollert hastighetsgevinst.
+
+TRAIN/union har finitt dekning for1205/1205felt, minst36kontekstrader/felt.
+VAL har1181/1205:14D1OB-felt og10retainedH1flow/CVD er helt maskert og korrekt
+lagret0/0. Ingen finitt VAL-kvalifisering eller nyttepåstand for disse24feltene.
+Videreførte TF-verdier er ikke uavhengige markedsobservasjoner.
+225kildecaser bestod på6,888s; kildereview og delvis H4/D1-sluttbarriere er bevart.
+ACTUAL_NUMERIC_REVIEW.json SHA724a4616cb4e11ca94a8fed1c4342e175927b835fb68c06cc8494f7b19c08abc.
+TERMINAL.json SHA5e354b0f7636462ce0871caef489312d91718249cec374a6c6f1bb1343a733ea.
+126 er konsumert og skal ikke relanseres. Ingen jobb kjører; trening er stengt.
+
+Neste avgrensede scope er uavhengig numerisk kontroll av tekniske23×5outputs.
+M5_ENRICHED er allerede varmuptrimmet; referansen må bruke ekte tidligere
+OHLCV-historikk fra de ferdige nativeårspartisjonene og må ikke reseedes ved
+første cache-rad. Ingen råMBP-/TB-scan, rebuild, modell/baseline eller nyepoke.
+Andre genuine formler, råevent→M1, individuell modellnytte og Entry-kvalitet/
+dekning/forklaringer/generaliseringsbevis har fortsatt egne åpne grenser.
 
 ## Ferdig — alle1205 GC-tallreferanser på M1→TF-laget
 
@@ -125,7 +141,7 @@ alle14 er nå kvalifisert i125 ovenfor.124og125er konsumert og skal ikke relanse
 121/122/123/124/125 er disjunkte;118klokkefasiten overlapper121 og telles ikke ekstra.
 Registrerte tidsramme-/observasjonsvarianter er felt, ikke1205uavhengige indikatorer.
 123D1 har bare bull/bear9/7opprettelser og1/2retouch;122strictH1-CVD har3bøtter.
-Raw-event→M1, uavhengig native TF→beslutning, tekniske numeriske formler,
+Raw-event→M1, øvrige tekniske numeriske formler,
 individuell modellsensitivitet/nytte og Entry-kvalitet/dekning/forklaringer har
 separate ubeviste grenser.051rekonstruksjon,053liveness,055normalisering og
 115/117aktuell modellmekanikk gjenbrukes. Originalkvitteringer/historikk bevares.
