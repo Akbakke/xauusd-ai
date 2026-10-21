@@ -31,23 +31,36 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — nativeSMC17/geometri7 i129
+## Gjeldende grense — nativeSMC17/geometri7 i129 bestått
 
-129kildepeer og24fokuserte caser bestod på3,805s/exit0:23nye håndcaser og
-én eksisterende CHOCH-kontroll.217kilder/policy er uendret.102gamlehelpers,
-281gamlecaser og182native117produksjonsfiler er bevart; ingen ny baseline.
-SOURCE_REVIEW.json i129 binder XML, terminal og kildepeer. Én fysisk129audit
-er nå claimet, ikke fullført:24felt/TF(cache70:94),120outputs/85kompaktaktive
-og35parkerte.14diskrete/10kontinuerlige perTF; pivotn3 bekreftes etter3høyrebarer,
-replay fra full2009prefix før outputwarmup. Bevar BOS/CHOCH/sweepidentitet,
-egneNaNførførsteevent og alle7geometriformler. Sammeindeks samtidigBOS er
-algebraisk umulig med gyldig OHLC; ulikeindekser har ekte dyadiske fasiter.
-Root `/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129`.
-Samme28guardedefiler/1,739GB, kun seksOHLCVkolonner og24cachekolonner.
-Kilde/policy fryses til faktisk terminal. Ingen råMBP-/TB-scan, rebuild,
-modell/normalisering/nyepoke/Exit/TEST/broker. Training_enabled=false.
+129 er COMPLETE i
+`/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129`.
+Alle120SMC-/geometrioutputs er verdi-/maske-kvalifisert:85kompaktaktive og
+35parkerte,24felt perTF.70diskrete outputs/23057426celler er eksakte;50
+kontinuerlige outputs ligger innen forhåndslåste analytiskeF32grenser, ingen
+bitidentitetspåstand.39527016finitecacheceller,0NaN ettertrim, alle120varierer.
+BOS/CHOCH/sweep begge retninger har positive hendelser på hverTF; dette er
+ikke handler. Egne sweepage/side-NaN førførsteevent er bevart i fullhistorien:
+M5felleswarmup19/førsteage49,H1 30/34,H4 29/43. Negative signerte felt finnes;
+positive+zero er ingen helcellepartisjon. Full2009prefix/right3/pivot-RN64-
+konvensjon/replayførwarmup og ingen gapreset er kontrollert.
+24fokusertecaser bestod på3,805s; fysisk audit56,688s/exit0.217kilder/policy
+og182nativeproduksjonsfiler er bevart. Samme28inputfiler/1739102302B hashet
+én gang, kun seksOHLCVkolonner og24cachekolonner70:94; ingen MBP-/sekvens-/
+PT-/M5_ENRICHEDpayload.158108064logiske featurebyte er ikke målt disk-I/O.
+ACTUAL_NUMERIC_REVIEW.json SHA197f28c8f5a536dde1ac6ad0497e4ac398a7685ace803e784d3e54dbdbc5f6e7.
+TERMINAL.json SHA48d003d24a55719de00c107a1934c318c043ef81c8c89e54557d66da4692261c.
 
-## Gjeldende grense — trend/state/kryss17×5 i128 bestått
+129/QUALIFIED_MTF_NUMERIC_INDEX.json binder127+128+129disjunkt:320outputs,
+64perTF,225aktive+95parkerte og105405376finiteceller. Rest189perTF består av
+94kompaktaktive og95parkerte felt. SHA8d2369460e368d9c5efa53419b3616b40aa27de30b08597bdeb714c3bd2de24b.
+Neste avgrensede arbeid er eksisterende formeleiere for swing20,level33,
+localgenuine24,generic3,crossTF14 aktivefelt perTF. Samle delte primitiver og
+leser før ny eksakt plan; ingen ny fysiskjobb er åpnet. RåMBP→M1, andre lokale
+formler, individuell lært nytte og Entry-kvalitet/dekning/forklaringer gjenstår.
+Ingen jobb kjører; training_enabled=false og øvrige vakter består.
+
+## Ferdig — trend/state/kryss17×5 i128 bestått
 
 128 er COMPLETE i
 `/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128`.
@@ -70,7 +83,7 @@ TERMINAL.json SHA9d347824ab62a6ab5b26da90604ff66899e6ff7a5c5b5e1cfe0a802e9126c8a
 QUALIFIED_MTF_NUMERIC_INDEX.json binder127+128disjunkt:200outputposter,
 140kompaktaktive+60parkerte,40perTF. Rest213perTF=111aktive+102parkerte.
 SHAdfc51dd4210cdca02cdd201baf8c3614bbb7cf09414045666eacc2d52b92f127.
-129nativeSMC17/geometri7 er nå kildeklar og venter fokusert kvalifisering. Råevent→M1, andre lokale formler,
+129nativeSMC17/geometri7 er nå fysisk kvalifisert ovenfor. Råevent→M1, andre lokale formler,
 individuell lært nytte og Entry-kvalitet/dekning/forklaringer gjenstår.
 Ingen jobb kjører; training_enabled=false og alle øvrige vakter består.
 

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T01:46:44.934644+00:00",
-  "status": "129_NATIVE_SMC_120_PHYSICAL_NUMERIC_AUDIT_CLAIMED",
+  "observed_utc": "2026-10-21T01:51:13.834606+00:00",
+  "status": "129_NATIVE_SMC_120_PASS_320_MTF_OUTPUTS_QUALIFIED_REMAINING_ACTIVE_OWNER_SCOPE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Run exactly one129physicalnativeSMC120-output audit with same28guardedinputs, full2009prefix and preservedprewarmup replay. No source/policy mutation until actual terminal. No rawMBP/model/refit/training/Exit/TEST/broker.",
+  "next_action": "Read only remaining active MTF owners: swing20,level33,localgenuine24,generic_scalar3,crossTF14 perTF. Consolidate shared primitives/readers before next exact plan. Reuse320qualifiedoutputs/1205GCprojection/current117mechanics; no source expansion without measuredgap. No rawTBscan/model/refit/newtraining/Exit/TEST/broker.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "129_NATIVE_SMC_PHYSICAL_NUMERIC_AUDIT",
+    "current_activity": "REMAINING_ACTIVE_MTF_FORMULA_OWNER_SCOPE_AFTER_129",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "126_actual_all1205_GC_TF_to_consumed_M5_context_numeric_reference",
+    "latest_terminal_role": "129_actual_native_SMC_and_geometry_numeric_reference",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/TERMINAL.json",
-      "sha256": "9d347824ab62a6ab5b26da90604ff66899e6ff7a5c5b5e1cfe0a802e9126c8a2"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129/TERMINAL.json",
+      "sha256": "48d003d24a55719de00c107a1934c318c043ef81c8c89e54557d66da4692261c"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Source24cases passed; one frozen120-output actual cache comparison claimed, terminal not yet observed.",
+    "current_blocker": "320MTFoutputsqualified; remaining189cachecolumnsperTF include94compactactive. RawMBPtoM1, otherlocalformulas, learneduse and Entryquality remain.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -16673,10 +16673,10 @@
       "sha256": "dfc51dd4210cdca02cdd201baf8c3614bbb7cf09414045666eacc2d52b92f127"
     },
     "native_smc_numeric_reference_129": {
-      "status": "EXECUTION_CLAIMED",
+      "status": "COMPLETE_SCOPED_120_NATIVE_SMC_GEOMETRY_OUTPUTS_ALL5TF",
       "execution_authorized": false,
       "claimed_invocations": 1,
-      "completed_invocations": 0,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "plan": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129/PLAN.json",
@@ -16706,7 +16706,24 @@
       "source_qualification": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129/SOURCE_REVIEW.json",
         "sha256": "3f7eee12297cbbc2ef821c5b5d2adac711bd8285cbc0d0b4cd6c5fa77ebfabd4"
-      }
+      },
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129/ACTUAL_NUMERIC_REVIEW.json",
+        "sha256": "197f28c8f5a536dde1ac6ad0497e4ac398a7685ace803e784d3e54dbdbc5f6e7"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129/TERMINAL.json",
+        "sha256": "48d003d24a55719de00c107a1934c318c043ef81c8c89e54557d66da4692261c"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129/NATIVE_SMC_NUMERIC_RESULTS/NATIVE_SMC_NUMERIC_RESULT.json",
+        "sha256": "4d34c75cfb0571832300c9447a537191f3c47ce83962aeefed6851c4986a8612"
+      },
+      "qualified_mtf_numeric_index": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129/QUALIFIED_MTF_NUMERIC_INDEX.json",
+        "sha256": "8d2369460e368d9c5efa53419b3616b40aa27de30b08597bdeb714c3bd2de24b"
+      },
+      "elapsed_seconds": 56.6884622639991
     }
   },
   "gc_order_flow_research_20261006": {
