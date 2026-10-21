@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T03:14:09.966655+00:00",
-  "status": "130_TIMEOUT_CLOSED_131_BOUNDED_PERFORMANCE_DIAGNOSTIC_PREPARATION",
+  "observed_utc": "2026-10-21T03:16:13.458940+00:00",
+  "status": "131_BOUNDED_CORE_PERFORMANCE_PROFILE_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Qualify and bind one fresh131 CPU profile of12000genuine2009M5rows,4existing reference owners,900s; locate130timeout before any measured value-preserving correction. No130relaunch/cachepayload/newtraining/Exit/TEST/broker.",
+  "next_action": "Execute exactly one claimed131 prefix12000M5 CPUprofile under900s/4G/512M; freeze source/policy to terminal. Observe sparsely. No130relaunch/productionchanges/cachepayload/training/Exit/TEST/broker.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "131_CORE_NUMERIC_PERFORMANCE_DIAGNOSTIC_PREPARATION",
+    "current_activity": "131_BOUNDED_CORE_PERFORMANCE_PROFILE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify and bind one fresh131 CPU profile of12000genuine2009M5rows,4existing reference owners,900s; locate130timeout before any measured value-preserving correction. No130relaunch/cachepayload/newtraining/Exit/TEST/broker.",
+    "next_action": "Execute exactly one claimed131 prefix12000M5 CPUprofile under900s/4G/512M; freeze source/policy to terminal. Observe sparsely. No130relaunch/productionchanges/cachepayload/training/Exit/TEST/broker.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16786,9 +16786,9 @@
       "physical_new_outputs_qualified": 0
     },
     "core_numeric_performance_131": {
-      "status": "DRAFT_NOT_LAUNCHED",
+      "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
-      "claimed_invocations": 0,
+      "claimed_invocations": 1,
       "completed_invocations": 0,
       "relaunch_allowed": false,
       "plan": {
@@ -16809,7 +16809,15 @@
       "normalization_fit_enabled": false,
       "test_data_used": false,
       "exit_evaluation": false,
-      "broker_access_allowed": false
+      "broker_access_allowed": false,
+      "source_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_NUMERIC_PERFORMANCE_20261021_131/SOURCE_REVIEW.json",
+        "sha256": "51e29f634f57efab48b67adc1dfb7739fe4a4fddd0fbf01acb1e6eb5fdc03284"
+      },
+      "profile_script": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_NUMERIC_PERFORMANCE_20261021_131/profile_core_prefix.py",
+        "sha256": "ba6ecc14354b8eb39817d1eb72ea4df96e0cadc731d4300f8c7675188de6b319"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19374,7 +19382,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T03:14:09.966655+00:00",
+  "updated_utc": "2026-10-21T03:16:13.458940+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,

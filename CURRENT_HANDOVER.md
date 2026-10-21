@@ -44,15 +44,16 @@ Kilde-PASS er bevart, men erstatter ingen fysisk tallkontroll.
 Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_130`.
 Se ACTUAL_NUMERIC_REVIEW.json og TERMINAL.json; bindinger står i policy.
 
-131 er en ny, avgrenset ytelsesdiagnose under forberedelse:
+131 er en ny, avgrenset ytelsesdiagnose, kildekontrollert og claimet:
 `/home/andre2/GX1_RUNS/NATIVE_M5_CORE_NUMERIC_PERFORMANCE_20261021_131`.
 Eksisterende referansekode skal måles på første12000ekte2009M5-rader,
 12nativekolonner,4096batcher,4eiere sekvensielt og delt ATR/n3 én gang.
 Én capped CPUaudit4G/512M med900s-grense; eierprogress skrives umiddelbart.
 Ingen cache-/råMBP-/sekvens-/PT-/modellpayload eller numerisk kvalifisering.
-Profilerkilde må først gjennomgås, bindes og fryses. Bare en målt årsak kan
+Profilerkilde/AST/uavhengig peer er bestått; eksakte bindinger fryses førstart. Bare en målt årsak kan
 begrunne en minste verdibevarende rettelse; ny fysisk kontroll trenger ny plan.
-Ingen jobb kjører ved denne overleveringen.
+Én131invokasjon er claimet. Faktiske prosesser og terminal styrer; kilde/policy
+fryses til terminal. Stabil jobb observeres sparsomt; ingen annen tungjobb.
 
 ## Bestått — gjenbruk uten omkjøring
 
