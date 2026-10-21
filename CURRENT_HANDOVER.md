@@ -56,44 +56,29 @@ SHAf5022afbdcde059440a327d8ea2b9b06cb5bc07a077b482b45b61302232a292f.
 på flere tidsrammer, ikke790uavhengige indikatorer eller bevist modellnytte.
 Ingen133relansering;130/131/132originaler og konsumerte planer bevares.
 
-Neste avgrensning134 er råMBP→M1: tidligere024kontroll bruker produksjonseiere
-og beviser replayparitet, ikke en uavhengig råfasit. Én planlagt fellespassering
-av66filer med alle20CSVfelt inkludert symbol skal dekke kvalitet/admission,
-trustedT/grid/størrelsesmomenter,BBO/tidsvekting/ordercounts og event/klokke.
-Perfilpartials må bindes til råSHA/kilde/state/sluttresultat og kunne gjenbrukes.
-001/024cacher kan bevise delkoblinger, men erstatter ikke rårecordreferansen.
-134SOURCE_SCOPE_DRAFT.json og66filinventaret er publisert som kun design.
-Råpayload er ikke åpnet/hashet; eksisterende filstat/66småkvitteringer er kontrollert.
-Faktisk EOF/råSHA og uavhengige formler/bounds må kvalifiseres før én ny jobb.
-Ingen ny råpayloadjobb eller trening er åpnet.
-134referansemodulen er nå implementert: uavhengige handler/kvalitet, bok/ordercounts,
-hendelser, roll/incidentmasker og én delt EOF/CRC/SHA-leser med typed sammenligning.
-134kildekvalifiseringen er COMPLETE:116hånd-/syntetiskeIO-caser PASS/0feil/
-0skips på2,848s;222kilder/policy bevart. Ingen ekte råpayload ble lest og
-ingen modell kjørt. SOURCE_REVIEW/TEST_RESULTS/terminal ligger i134root.
-Konsumert kildeplan er stengt. Neste er én eksaktbundet første ekte råfil med
-sluttvakter og immutable EOF/SHA-verifisert perfildelkvittering, som skal
-gjenbrukes ved de resterende65filene. Førstefil0/GCG5 er nå fysiskPASS:
-4621512rårecords,106239290komprimertebyte/604178370CSVbyte, actualEOF/CRC/SHA,
-86400M1-rader,1439valgteeventrader og122124pris/sidelevels. Én delt lesing/
-parse; controller14,527s, fryst222kilder/policy bevart. FIRST_FILE_ACTUAL_REVIEW
-ogouterterminal binder den gjenbrukbare FIRST_FILE_PARTIAL_000/RESULT.json.
-Førstefilplanen er konsumert/stengt, ingen relansering. Neste ferske plan skal
-lese kun resterende65råfiler og dele targetlesing/hash perkontrakt; fullroll,
-utenforfilvindu-zero/NaN og siste maskekobling gjenstår. Ingen ny trening.
-134remaining65 er COMPLETE/PASS/exit0 på2150,829s:65nye+1gjenbrukt råfil,
-alle892100712records og66EOF/CRC/SHA-kvitteringer. Totalt20,039GBkomprimert/
-118,260GBCSV, én faktisk lesing/parse perråfil.60targethash/decode i bulk,
-4pilotpass separat.222kilder/policy bevart; ingen modell/fit/råombygging.
-Uavhengige47M1felt,37eventfelt,7Tsizefelt ogpris/sidegrid bestod heltall/
-forhåndslåsteF64cellegrenser; alle0/NaN/null/dtype-domener utenforfilunion
-bestod. Alle66dagsvolumpartials ga eksakt selected_daily/basis_daily og
-00:01-minuttakse. REMAINING_FILES_ACTUAL_REVIEW+outerterminal binderalle
-66gjenbrukbarepartials; konsumertplan er stengt og relanseres aldri.
-Snapshot05:28 hadde memorymaxreclaim933/OOM0/kill0 ved4Gcap, ikke en
-helkjøringspeak-/eventpåstand. Ingenprosess igjen vedsluttkontroll.
-Neste: siste incident-/admissionmaskekobling på allerede kvalifiserteM1cacher,
-ingen ny rålesing. Modellbruk/Entry/dekning/sporbarhet gjenstår; ingen trening.
+134 råMBP→M1 er nå uavhengig PASS:66filer/892100712records og62783740
+trustedT, alle20CSVkolonner, actualEOF/CRC/SHA én gang perråfil.65nye filer
++gjenbrukt pilot tok2150,829s/exit0;222kilder/policy bevart.47råM1felt,
+37eventfelt,7Tsizefelt og12997937pris/sidelevels bestod.159399314koordinat-
+sammenligninger:74024631eksakteheltall,68066277finiteF64 innen forhåndslåste
+cellegrenser og17308406likeNaN-domener. Ingen globalepsilon eller bitidentitet
+foralleF64 påstås. Event-summer med stor avrunding er ikke fysiskutøvd her;
+syntetiske grenser har separat116casebevis. Alle60targeters utenforfilunion
+0/NaN/null/dtype bestod. Dagsvolum fraalle66 ga eksakt roll/basis/00:01akse.
+REMAINING_FILES_ACTUAL_REVIEW og uavhengig REMAINING_FILES_ACTUAL_PEER_REVIEW
+binder66gjenbrukbarepartials ogouterterminal. Råinventarets20,039GBgzip/
+118,260GBCSV ble lest/parset én gang hver; targetbulk60hash/decode,
+pilotens4targetpass separat. Modell/fit/dataombygging ble ikke kjørt.
+Konsumert source-/pilot-/bulkplan er stengt, ingen relansering/nyrålesing.
+Snapshot05:28 ved4G hadde memorymaxreclaim933/OOM0/kill0; ikke en helkjørings-
+peak-/eventpåstand. Ingen prosess gjenstår ved terminalkontroll.
+
+Neste er sluttkoblingen av valgte M1-rader og source-/incident-/recoverymasker
+mot024s publiserte tabeller. Bruk de allerede kvalifiserte001/024cachene og
+uendrede reference_masks134. FINAL_MASK_JOIN_BINDING_SCOPE er metadata/design,
+ingen ny kjøring er åpnet. Faktisk individuell modellbruk, LONG/SHORT/FLAT,
+Entry-kvalitet/dekning og beslutningssporbarhet har fortsatt åpne krav.
+Ingen ny trening er åpnet. Alle lag må fortsatt skilles fra generalisering/edge.
 121–126 og133skal gjenbrukes, ikke kjøres om. Individuelt modellkonsum og
 Entry-kvalitet/dekning/beslutningssporbarhet har fortsatt egne åpne krav.
 Ingen jobb kjører ved denne overleveringen.

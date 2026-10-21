@@ -595,31 +595,23 @@ cachevitner: egne warmup-/manglendemasker har fokusertehåndtestbevis.
 ikke uavhengigeindikatorer eller individuellelærenyttebevis. Tidligere320-
 outputflater ble ikke kjørt om; modell/normalisering/baseline er uendret.
 
-134SOURCE_SCOPE_DRAFT binder neste råMBP→M1-grense: én planlagt felles
-66filpassering med20CSVfeltinklusive symbol. UInt64tider/int64nanopriser,
-ekteF_LAST-/T-/incident-/rollregler og fire uavhengige reduksjonsgrupper.
-001/024cacher kan vise delkoblinger, ikke erstatte rårecordfasit. Perfildel-
-kvitteringer skal gjøre verifiserte delresultater gjenbrukbare. Det er kun
-design/inventar: ingen råpayload er åpnet, ingen scan/fit/trening er åpnet.
-Modellbruk og Entry-kvalitet/dekning/sporbarhet/generaliserings-/edgebevis er
-fortsatt åpne. CURRENT_HANDOVER/NEXT_RUN_POLICY eier faktisk status og bindinger.
+134 råMBP→M1 er nå uavhengigPASS påalle66filer/892100712records,
+62783740trustedT og28232decodedbatches; alle20kolonner/EOF/CRC/SHA.65nye
+filer+pilotgjenbruk tok2150,829s/exit0,222kilder/policy bevart.47råM1felt,
+37event/7Tsize og12997937pris/sidelevels bestod.159399314tallkoordinater=
+74024631eksaktheltall+68066277finiteF64 innen låste cellegrenser+
+17308406likeNaN-domener. Maksfeil4,5475e-13/maksradius9,5176e-10 er ikke
+nødvendigvis sammescelle. Ingen globalEPS/bitidentitetspåstand. Eventwide-sum-
+avrunding var ikke fysiskutøvd (maksmasse<2^53); syntetiskbevis separat.
+Alle60targeters storageutenforfilunion og66dagsledgernes roll/basis/00:01
+bestod.20,039GBgzip/118,260GBCSV ble lest/parset én gang hver, targetbulk60
+hash/decode og4pilotpass separat. Alleimmutablepartials +outerterminal og
+toACTUAL_REVIEW-kvitteringer står i134root. Korrigert gammel scopeprosa:
+11L1kvalitetstellere, ikke12. Originaldraft beholdes.
 
-134uavhengige referanser og deltleser er implementert i
-`gx1/scripts/audit_raw_gc_m1_reference_v1.py`; hånd-/syntetiskIO-fasiter i
-`tests/test_raw_gc_m1_reference_v1.py`. DESIGN/ERROR_SPEC låser heltall og
-analytiske cellegrenser før targets. 116capped kildecaser bestod på2,848s/0feil/0skips;222kilder/policy bevart.
-Ekte rårecords er fortsatt ikke uavhengig kvalifisert, ingen rawscan/trening.
-Korrigert scopeprosa: faktisk11L1kvalitetstellere, ikke12; originaldraft beholdes.
-
-134første ektefil er nå PASS:4621512records,actualEOF/gzipCRC/SHA,énparse;
-86400råM1/1439valgteeventrader og122124pris/sidelevels bestod uavhengig
-heltalls-/celleboundsfasit. Controller14,527s/exit0,222kilder/policy bevart.
-FIRST_FILE_ACTUAL_REVIEW ogouterterminal låser gjenbrukbarpartial;65filer,
-fullroll/utenforvinduer/finalmaskjoin og modell/Entry-bevis er fortsattåpne.
-
-134råinventaret er nå uavhengigPASS:66filer/892100712records, rawEOF/CRC/SHA
-én gang hver;65nye+pilotgjenbruk. Bulk2150,829s/exit0 og222kilder/policy
-bevart.47råM1/37event/7Tsizefelt ogpris/sidegrid bestod, alle60targeters
-utforfilunion0/NaN/null/dtype bestod. Uavhengig66fil-døgnvolum ga eksakt
-roll/basis/00:01akse. Sluttmaskekobling påkvalifiserteM1cacher gjenstår;
-ingen rawomkjøring eller nytt modell-/lærings-/Entrybevis.
+Sluttkoblingen av fullvalgtM1akse/source-/incident-/recoverymasker mot024-
+tabellene er fortsattåpen; bruk kvalifiserte001/024cacher utenråomkjøring.
+Uendrede reference_masks134 har116fokuserte kildecaser på2,848s/0feil/0skips.
+Dette er ikke bevis på faktiskindividuellmodellbruk, Entry-kvalitet/dekning,
+sporbarhet, generalisering ellerøkonomiskedge. CURRENT_HANDOVER/NEXT_RUN_POLICY
+eier aktuelle bindinger; ingen ny trening er åpnet.
