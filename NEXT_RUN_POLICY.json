@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T04:53:33.943427+00:00",
-  "status": "134_FIRST_RAW_FILE_4621512_RECORDS_PASS_REMAINING65_NOT_OPEN",
+  "observed_utc": "2026-10-21T05:08:56.353322+00:00",
+  "status": "134_REMAINING65_RAW_REFERENCE_READY_REUSE_FIRST_PASS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Bind one freshremaining65file reference plan, reuse firstfileEOFverifiedpartial without rereading raw0. Share4verifiedtargetloads percontract, perfiledurableparts, outsidewindowzero/NaNchecks andindependentwhole66dailyroll; finalincidentmaskjoin andmodeltrace/Entryquality remain. No morefirstfile/sourceplan invocation; no training.",
+  "next_action": "Execute exactlyone7200s/4Gcappedremaining65file reference with frozen9759bd39worker and unchanged116casequalifiedoracles. Reuse firstfile0PASSpartial; 4targethash/decode oncepercontract. Require66dailyroll/outsideunion storage/finalsourceguards; finalincidentmaskjoin/modeluse/Entryquality remain. No training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "134_REMAINING65_SHARED_REFERENCE_PREPARATION_FIRST_FILE_QUALIFIED",
+    "current_activity": "134_REMAINING65_RAW_REFERENCE_READY_FROZEN_ONE_JOB",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Firstphysicalfilepassed all47unfilteredM1/37selectedevent/7selectedTsize+gridchecks; remaining65, independentwholeinventoryroll/outsidewindow andfinalselectedincidentmaskjoin notyetqualified. Modeluse/Entryquality/depth/coverage/trace remain.",
+    "current_blocker": "Firstfile4.62mrecordsPASS. Remaining65finitejob nowexactlybound; independentwhole66roll/outsideunion notyetmeasured. Finalselectedincidentmaskjoin andmodeluse/Entryqualitycoverage/trace remain.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -19522,7 +19522,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T04:53:33.943427+00:00",
+  "updated_utc": "2026-10-21T05:08:56.353322+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20477,5 +20477,32 @@
       "sha256": "78dbc5e7820bf1d6ace5b56f428d00eec767f8bb2206046b83a16dcd6c7cf1bb"
     },
     "elapsed_seconds": 14.527062262000982
+  },
+  "raw_mbp_m1_remaining65_134": {
+    "status": "READY_EXACT_65_NEW_FILES_PLUS_1_REUSED",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/REMAINING_FILES_PLAN.json",
+      "sha256": "7dd242de2b68c26b235245c48b0e00c4006cac56c35415194997f1fb25a635b6"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/run_remaining_physical_files.py",
+      "sha256": "1ce50da2db623b4276058efae78438aa3521028820267e68e216cd29573ea645"
+    },
+    "preexecution_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/REMAINING_FILES_PREEXECUTION_REVIEW.json",
+      "sha256": "143cd62ebb264a7e8269b093abdf9c1090bc4d8f321293225b7763e2b60c9d43"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

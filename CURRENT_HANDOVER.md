@@ -81,6 +81,14 @@ ogouterterminal binder den gjenbrukbare FIRST_FILE_PARTIAL_000/RESULT.json.
 Førstefilplanen er konsumert/stengt, ingen relansering. Neste ferske plan skal
 lese kun resterende65råfiler og dele targetlesing/hash perkontrakt; fullroll,
 utenforfilvindu-zero/NaN og siste maskekobling gjenstår. Ingen ny trening.
+134REMAINING_FILES_PLAN åpner nå én fersk capped7200s/4G-kjøring for
+kun råindices1..65 (19,933GBkomprimert), med gjenbruk av førstefil0PASS.
+Firetargets leses/hasheres én gang perkontrakt; immutable FILE_NNN.json
+lagres etterhverfullførtfil. Slutt krever66EOF/SHA/counts, uavhengig
+døgnvolum-roll/basis/00:01akse og0/NaN/null/dtype utenforfilunion.
+Siste incident-/admissionmaskekobling ogmodell-/Entrybevis er fortsattåpne.
+Frystworker9759bd39, qualifiedoraclesuendret; ingen kilde-/policyendring
+underkjøring. Faktiskprosess/terminal overstyrer denne readyteksten.
 121–126 og133skal gjenbrukes, ikke kjøres om. Individuelt modellkonsum og
 Entry-kvalitet/dekning/beslutningssporbarhet har fortsatt egne åpne krav.
 Ingen jobb kjører ved denne overleveringen.
