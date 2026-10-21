@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T01:15:16.139836+00:00",
-  "status": "128_TREND_EVENT_SOURCE_QUALIFICATION_BOUND",
+  "observed_utc": "2026-10-21T01:16:21.021556+00:00",
+  "status": "128_TREND_EVENT_PHYSICAL_EXECUTION_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Run128onesourcequalification:18newtrendstate/cross/agehandcases+oneexistingtrendowner-paritynode. Reuse263oldfoundationcasesafter100helperAST/prefixpreservation. Physical85outputcomparisonunclaimed/closed. No BB/ADXrecompute/MBP/model/nativeepoch/refit/Exit/TEST/broker.",
+  "next_action": "Run128exactlyone85outputtrendstate/cross/agephysicalreference afteractual19sourcePASS. Reusefull2009EMA/resample/28fileguard,projectcache94:111;strictbranchambiguityfailsbeforecachecomparison;all85discretevalues/masksexact. No BB/ADXrecompute/MBP/model/refit/nativeepoch/Exit/TEST/broker. Freeze216sourcesandpolicy.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "128_TREND_EVENT_SOURCE_QUALIFICATION_BOUND",
+    "current_activity": "128_TREND_EVENT_PHYSICAL_EXECUTION_CLAIMED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -121,8 +121,8 @@
     "latest_terminal_role": "126_actual_all1205_GC_TF_to_consumed_M5_context_numeric_reference",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127/TERMINAL.json",
-      "sha256": "3ee50b4d2157624bdc22a9b1f55a19984e71987615a6e5c3d5427bfb84834c3a"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "ba6985b785cb0e6629ae4dc03504b68be98cd029b2e5a5dfdd7d7cac53227bc7"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "128sourcepeerPASS;18newcasesandactual85outputsnotyetqualified.",
+    "current_blocker": "Actual19sourcecasesPASS;85discretephysicaloutputsclaimedoncebutnotyetterminal.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -15743,7 +15743,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Run128onesourcequalification:18newtrendstate/cross/agehandcases+oneexistingtrendowner-paritynode. Reuse263oldfoundationcasesafter100helperAST/prefixpreservation. Physical85outputcomparisonunclaimed/closed. No BB/ADXrecompute/MBP/model/nativeepoch/refit/Exit/TEST/broker.",
+      "next_action": "Run128exactlyone85outputtrendstate/cross/agephysicalreference afteractual19sourcePASS. Reusefull2009EMA/resample/28fileguard,projectcache94:111;strictbranchambiguityfailsbeforecachecomparison;all85discretevalues/masksexact. No BB/ADXrecompute/MBP/model/refit/nativeepoch/Exit/TEST/broker. Freeze216sourcesandpolicy.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 1,
       "full_native_epoch_request_fulfilled": true,
@@ -16601,9 +16601,9 @@
       "individual_learned_use_proven": false
     },
     "trend_event_numeric_reference_128": {
-      "status": "SOURCE_QUALIFICATION_PENDING",
+      "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
-      "claimed_invocations": 0,
+      "claimed_invocations": 1,
       "completed_invocations": 0,
       "relaunch_allowed": false,
       "plan": {
@@ -16639,6 +16639,10 @@
       "design_cache_column_clarification": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/DESIGN_CACHE_COLUMN_CLARIFICATION.json",
         "sha256": "528be57ecf37a5c1575d11b618f173209cd59d6c8bd7c0657eb91e049f196a52"
+      },
+      "source_qualification": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/SOURCE_REVIEW.json",
+        "sha256": "4d6a404cd633da229feee3a6769f6b4457848d2038ad2aead04ec34bdb0d144d"
       }
     }
   },
@@ -19845,21 +19849,15 @@
     }
   },
   "latest_terminal_receipt": {
-    "schema_version": "gx1_technical_numeric_integrator_terminal_v1",
+    "schema_version": "gx1_trend_event_source_qualification_terminal_v1",
     "status": "COMPLETE",
     "exit_code": 0,
-    "source_head": "598e25a89024d4ab860233eb55183c69bcc37aaa",
     "source_unchanged": true,
-    "observed_utc": "2026-10-21T01:02:34.509427+00:00",
-    "actual_launch_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127/ACTUAL_NUMERIC_AUDIT_LAUNCH_TERMINAL.json",
-      "sha256": "48d01cba42df62620e46a0fcd33f1ab47b4cce9e8a047d35c9b3f54d25b251b5"
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/SOURCE_QUALIFICATION_RESULT.json",
+      "sha256": "15eb99992ceeac23ee8819654c1b51257b73c28950fecacb43bb245fbd42f747"
     },
-    "review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127/ACTUAL_NUMERIC_REVIEW.json",
-      "sha256": "0bd57598d5409f72bf05edc892e311bc978474c84e1d9ec67227fb619d172465"
-    },
-    "elapsed_seconds": 955.7558202449982,
+    "elapsed_seconds": 5.453417764001642,
     "test_data_used": false,
     "training_enabled": false,
     "native_training_admitted": false,
@@ -19867,10 +19865,10 @@
     "relaunch_allowed": false
   },
   "trend_event_numeric_source_128": {
-    "status": "SOURCE_QUALIFICATION_BOUND",
-    "execution_authorized": true,
+    "status": "COMPLETE_PASS",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/SOURCE_QUALIFICATION_PLAN.json",
@@ -19887,6 +19885,20 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/SOURCE_REVIEW.json",
+      "sha256": "4d6a404cd633da229feee3a6769f6b4457848d2038ad2aead04ec34bdb0d144d"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "ba6985b785cb0e6629ae4dc03504b68be98cd029b2e5a5dfdd7d7cac53227bc7"
+    },
+    "actual_tests": {
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
   }
 }

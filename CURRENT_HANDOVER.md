@@ -43,13 +43,14 @@ samme28fil-driver med eksplisitt128modus, ingen kopiert reader eller BB-omkjøri
 Alle85diskrete outputs krever eksakte verdier/masker; uavklart gren feiler
 før cachesammenligning. Likhet er falsebullstate, ikke strictdowncross i seg selv;
 alder teller observerte TF-rader uten sesjons-/gapreset eller metning.
-18nye håndfasiter og én eksisterende trendeiertest er nå kildebundet etter
-kildepeerPASS.263gamle foundationcaser/100hjelpere er bevart og gjenbrukes;
-kun eksisterende128modus i readeren er lagt til. Kildekvalifisering er bundet,
-fysisk128 er fortsatt uclaimet og stengt.
+Faktisk19fokuserte caser bestod på5,453s/exit0, inkludert18nye håndfasiter;
+kildepeer og216kilder/policy er bevart.263gamle foundationcaser/100hjelpere
+gjenbrukes; kun eksplisitt128modus i eksisterende reader er lagt til.
+Én fysisk128kontroll er nå claimet;85outputs er ennå ikke fysisk kvalifisert.
 128s DESIGN_CACHE_COLUMN_CLARIFICATION.json presiserer arvet127tekst:17felt
 i cache94:111 og111993212logiske featurebyte, samme28guardede filer.
-Ingen jobb kjører; ingen modell-/produksjonsendring eller ekstraepoke.
+Fysisk jobb skal startes fra denne bindingen; ingen modell-/produksjonsendring
+eller ekstraepoke.
 
 ## Gjeldende grense — teknisk23×5-kontroll127 bestått
 
