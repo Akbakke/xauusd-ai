@@ -31,28 +31,35 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — trend/state/kryss17×5 i128
+## Gjeldende grense — trend/state/kryss17×5 i128 bestått
 
-128design/ERROR_SPEC/plan og resterende feltinventar er publisert i
+128 er COMPLETE i
 `/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128`.
-Resterende230cachekolonner perTF er disjunkt fordelt på13eksisterende grupper:
-128aktive i kompaktprofilen og102parkerte. Neste avgrensede gruppe er17aktive
-EMA-/pris-kryss-, booltilstands- og råalderfelt på alle femTF,85outputs.
-Bruk full2009prefix og127s uendrede EMA-/resample-/feilgrenseeiere. Utvid
-samme28fil-driver med eksplisitt128modus, ingen kopiert reader eller BB-omkjøring.
-Alle85diskrete outputs krever eksakte verdier/masker; uavklart gren feiler
-før cachesammenligning. Likhet er falsebullstate, ikke strictdowncross i seg selv;
-alder teller observerte TF-rader uten sesjons-/gapreset eller metning.
-Faktisk19fokuserte caser bestod på5,453s/exit0, inkludert18nye håndfasiter;
-kildepeer og216kilder/policy er bevart.263gamle foundationcaser/100hjelpere
-gjenbrukes; kun eksplisitt128modus i eksisterende reader er lagt til.
-Én fysisk128kontroll er nå claimet;85outputs er ennå ikke fysisk kvalifisert.
-128s DESIGN_CACHE_COLUMN_CLARIFICATION.json presiserer arvet127tekst:17felt
-i cache94:111 og111993212logiske featurebyte, samme28guardede filer.
-Fysisk jobb skal startes fra denne bindingen; ingen modell-/produksjonsendring
-eller ekstraepoke.
+Alle85aktive trend/state/kryss/alderoutputs er eksakt verdi-/maske-kvalifisert:
+27998303finitecacheceller,0NaN etterwarmuptrim,0avvik,0uavklarte fortegn.
+Alle85varierer, alle10bruddretninger perTF har positive events og ekte0.
+Hendelser er ikke handler. Boolalder håndterer likhet somfalse; strictcross
+krever nåværende/forrigeobservasjon. Full2009prefix og observerte TF-rader
+bevares uten gap-/sesjonsreset. Alle100øvrigehjelpere og263gamlecaser er bevart;
+19fokusertecaser bestod på5,453s. Fysisk96,652s/exit0 med216kilder/policy bevart.
+Eksisterende28fil-reader/EMA/resample gjenbrukes; ingen BB-/ADX-omkjøring.
+28filer1739102302byteSHA én gang, kun seksnativekolonner og17cachekolonner94:111.
+111993212logiske featurebyte er ikke målt disk-I/O.182nativeproduksjonsfiler
+uendret; ingen modell/normalisering/baseline/ekstraepoke eller MBP-rålesing.
+Metadataavklaring og oppstartsformatfeil før første faktiske Popen er dokumentert;
+én fysisk invokasjon er brukt. Ingen konsumert plan relanseres.
+ACTUAL_NUMERIC_REVIEW.json SHAc8305715e44cf031e9bd27f4401a8c25d0a039883aba53a60fbc9199438fb1ff.
+TERMINAL.json SHA9d347824ab62a6ab5b26da90604ff66899e6ff7a5c5b5e1cfe0a802e9126c8a2.
 
-## Gjeldende grense — teknisk23×5-kontroll127 bestått
+QUALIFIED_MTF_NUMERIC_INDEX.json binder127+128disjunkt:200outputposter,
+140kompaktaktive+60parkerte,40perTF. Rest213perTF=111aktive+102parkerte.
+SHAdfc51dd4210cdca02cdd201baf8c3614bbb7cf09414045666eacc2d52b92f127.
+Neste avgrensede arbeid er read-onlykildescope for nativeSMC17 og samme
+eiers geometri før ny referanseplan. Råevent→M1, andre lokale formler,
+individuell lært nytte og Entry-kvalitet/dekning/forklaringer gjenstår.
+Ingen jobb kjører; training_enabled=false og alle øvrige vakter består.
+
+## Ferdig — teknisk23×5-kontroll127 bestått
 
 127 er COMPLETE i
 `/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127`.

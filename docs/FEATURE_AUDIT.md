@@ -553,3 +553,15 @@ uavhengig85feltPASS.128/REMAINING_MTF_SCOPE.json fordeler den øvrige230-
 kolonneflaten i13disjunkte eksisterende formelgrupper med128aktive/102parkerte.
 DESIGN_CACHE_COLUMN_CLARIFICATION.json presiserer arvet127-kolonnetekst og
 111993212logiske valgte17kolonnebyte; samme28guardede hele filer brukes.
+
+128bestod deretter fysisk85av85aktive trendfelt på femTF:27998303finiteceller,
+0NaN etterwarmuptrim,0verdi-/maskeavvik og0uavklarte signgrener. Allefeltvarierer;
+begge kryssretninger har positive hendelser og ekte0 påhverTF. Dette er ikke
+handler.19fokusertecaser/5,453s og fysisk96,652s/exit0 bevarte216kilder/policy.
+28inputfilerSHA én gang; ingen BB-/ADX-/MBP-råomkjøring eller modellendring.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/ACTUAL_NUMERIC_REVIEW.json`,
+c8305715e44cf031e9bd27f4401a8c25d0a039883aba53a60fbc9199438fb1ff.
+128/QUALIFIED_MTF_NUMERIC_INDEX.json binder200disjunkte127+128outputposter,
+140aktive+60parkerte. Rest213perTF=111aktive+102parkerte. SHA
+dfc51dd4210cdca02cdd201baf8c3614bbb7cf09414045666eacc2d52b92f127.
+Ingen individuell nytte-/Entry-/økonomi- eller rawMBP→M1-påstand følger av dette.
