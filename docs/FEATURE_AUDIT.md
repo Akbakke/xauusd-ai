@@ -579,9 +579,14 @@ ACTUAL_NUMERIC_REVIEW.json i129 SHA197f28c8f5a536dde1ac6ad0497e4ac398a7685ace803
 95parkerte. Rest189perTF=94aktive+95parkerte; ingen individuell lært nytte,
 Entry-kvalitet/generaliserings-/økonomi- eller råMBP→M1-påstand følger.
 
-130 samler alle94gjenstående kompaktaktive cachefelt/TF:20swing,27local/scalar,
-33level og14crossTF. Delte127/129primitiver, én28filpassering med seks genuine
-quoteekstrakolonner, fire sekvensielle eierblokker uten94×Nvalues/radii-merge.
-DESIGN/ERROR_SPEC binder nye fullprefixATRz/AVWAP/reaksjonsgrenser og F32-wires.
-Tre smale peerreviews bestod; bare ny fokusert kildejobb er åpnet. Ingen fysisk
-470feltPASS, modellrunde, normaliseringsfit eller ny nativeepoke er utført.
+130 dekker94gjenstående kompaktaktive cachefelt/TF:20swing,27local/scalar,
+33level og14crossTF. Delte127/129primitiver og sekvensielle eierblokker bevares.
+Tre smale kilde-/matematikkpeerreviews og66håndcaser bestod. Den ene fysiske
+470outputkontrollen traff1800s-grensen/exit124 uten modulresultat eller
+persistente eiermålinger. Ingen nye felt er kvalifisert;129indeksen på320
+outputs er gjeldende. Originalkvitteringer/staging bevares,130 er konsumert.
+Ingen formelfeil eller lokalisert ytelsesårsak er bevist av tidsavbruddet.
+Ny131diagnose måler fire eksisterende eiere på12000genuine2009M5-rader uten
+cachepayload før en eventuell minste verdibevarende rettelse. Ingen ny
+modellrunde, normaliseringsfit eller nativeepoke er åpnet. Se gjeldende
+CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json for eksakte scope-/bevisbindinger.
