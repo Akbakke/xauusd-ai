@@ -111,8 +111,14 @@ Målt canonicalproducer-IO:49.271.677.365rchar/45.800.828.928read_bytes over111,
 kun worker+ventede barn, ikke maskintotal. Ferdige fysiske inputs ble verifisert;
 ingen rå MBP-rebuild eller refit. Uavhengig metadata-peer bestod:
 `ACTUAL_PEER_REVIEW.json`, SHAde93e8236bd344dda4cb5f789d8a9b21a6c9feb280f9d3a7acb94302b406dbc6.
-148 har foreløpig bare en tilpasset
-materialiseringscontroller, ingen binding/campaign/nativeadgang.
+148 er bundet som ett optimizer0-workflow: reseptforsegling, én canonicalcampaign
+og deretter TRAIN256+CONTROL256/32forwards først etter eksakte maskinvare-/bootporter.
+Planroot: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148`.
+PLAN-SHAe06ff8f98d1c48f26b88e1c1c53aaeec41fbe9982ad2bfd6511ae7a4d5fdedac.
+Global training/full_epoch/fullVAL og alle Exit-/TEST-/brokerporter er fortsatt false.
+Kilde/policy fryses fra reseptforsegling gjennom hele terminalen; ingen automatisk
+relansering eller ekstra epoke. 147initial/filer og111skala gjenbrukes uendret.
+Campaign/install/reboot/nativejobb er ikke startet ved dette commitpunktet.
 148 skal følge eksisterende nativecampaign, signed guard og fersk fysisk boot.
 Fysisk160W-profil beholdes; native guardens300W er et øvre tak, ingen påkrevd
 effekt eller tillatelse til å endre keeperprofilen. Campaigninstall/clocklauncher
@@ -120,7 +126,8 @@ endrer ikke -pl. Bekreft keeperkonfig og signert telemetri før faktisklaunch.
 
 Deretter kreves ny eksplisitt beslutning om ekstra epoke og eksakt campaign/
 maskinvareadmission. Gjør dette konkrete arbeidet før treningsspørsmålet stilles.
-147 er terminal og konsumert; ingen jobb kjører nå. Ingen gammel plan relanseres.
+147 er terminal og konsumert.148 er forberedt, ikke startet ved dette commitpunktet;
+faktiske prosesser/terminaler overstyrer prosa. Ingen gammel plan relanseres.
 
 ## Bestått — gjenbruk uten omkjøring
 
