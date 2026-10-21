@@ -610,7 +610,12 @@ toACTUAL_REVIEW-kvitteringer står i134root. Korrigert gammel scopeprosa:
 11L1kvalitetstellere, ikke12. Originaldraft beholdes.
 
 Sluttkoblingen av fullvalgtM1akse/source-/incident-/recoverymasker mot024-
-tabellene er fortsattåpen; bruk kvalifiserte001/024cacher utenråomkjøring.
+tabellene er fortsatt fysiskåpen. FINAL_JOIN_PLAN binder nøyaktig én capped
+900s/4G/512M-kjøring, separat fra konsumert source/pilot/bulk. Adapter/controller
+og faktisk47/54/13/37/7-skjema har uavhengig statiskPASS.60cacheidentiteter
+gjenbrukes utenSHA;45mellomtabeller+5slutttabeller+001prior3kolonner leses
+én gang. Ingen rå-/ladder-/TF-/modellpayload. Ni literalrader førParquet og
+fysisk sluttjoin/ytrekildepolicyvakter må fortsatt bestå.
 Uendrede reference_masks134 har116fokuserte kildecaser på2,848s/0feil/0skips.
 Dette er ikke bevis på faktiskindividuellmodellbruk, Entry-kvalitet/dekning,
 sporbarhet, generalisering ellerøkonomiskedge. CURRENT_HANDOVER/NEXT_RUN_POLICY

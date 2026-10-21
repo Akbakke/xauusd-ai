@@ -73,15 +73,19 @@ Konsumert source-/pilot-/bulkplan er stengt, ingen relansering/nyrålesing.
 Snapshot05:28 ved4G hadde memorymaxreclaim933/OOM0/kill0; ikke en helkjørings-
 peak-/eventpåstand. Ingen prosess gjenstår ved terminalkontroll.
 
-Neste er sluttkoblingen av valgte M1-rader og source-/incident-/recoverymasker
-mot024s publiserte tabeller. Bruk de allerede kvalifiserte001/024cachene og
-uendrede reference_masks134. FINAL_MASK_JOIN_BINDING_SCOPE er metadata/design,
-ingen ny kjøring er åpnet. Faktisk individuell modellbruk, LONG/SHORT/FLAT,
+134sluttjoin er nå statisk kvalifisert og bundet for nøyaktig én capped
+900s/4G/512M-kjøring mot024s fem publiserte M1-tabeller. FINAL_JOIN_PLAN og
+FINAL_JOIN_STATIC_PEER_REVIEW binder adapter, controller og faktisk47/54/13-/
+37/7-feltskjema.116kildecaser og66råfilbevis gjenbrukes.60cacheidentiteter
+bevares uten nySHA;45mellomtabeller+5slutttabeller+001prior3kolonner leses
+én gang. Ingen rå-/ladder-/TF-/modellpayload eller trening. Ni literalrader
+kontrolleres førParquet; faktisk sluttmaskjoin og ytre222kilde-/policyvakter
+må fortsatt bestå. Konsumert pilot/bulk er stengt; denne planen er separat. Faktisk individuell modellbruk, LONG/SHORT/FLAT,
 Entry-kvalitet/dekning og beslutningssporbarhet har fortsatt åpne krav.
 Ingen ny trening er åpnet. Alle lag må fortsatt skilles fra generalisering/edge.
 121–126 og133skal gjenbrukes, ikke kjøres om. Individuelt modellkonsum og
 Entry-kvalitet/dekning/beslutningssporbarhet har fortsatt egne åpne krav.
-Ingen jobb kjører ved denne overleveringen.
+Ingen jobb kjører ved planpublisering; faktisk prosess/terminal styrer.
 
 ## Bestått — gjenbruk uten omkjøring
 
@@ -94,7 +98,7 @@ modell/normalisering/baseline er uendret og krever ingen omkjøring av auditkode
 126 kvalifiserer1205verdier+1205masker bit-eksakt mot faktisk bruktM5-context:
 328119090celler/136149unike kilderader,118249TRAIN-/17284VAL-beslutninger
 med96historikk. TRAIN dekker1205/1205;VAL1181/1205.14D1OB+10H1flow/CVD er
-korrekt maskert0/0 iVAL, ikke finitt kvalifisert der. RåMBP→M1 er ikke bevist.
+korrekt maskert0/0 iVAL, ikke finitt kvalifisert der. Råkomponentene er nå bevist av134; valgt sluttmaskjoin gjenstår.
 Tidligere kilde-/data-/normaliserings-/cachekvitteringer gjenbrukes.
 
 Den bestilte hele nativeepoken108 er FULLFØRT:118249TRAINrader,
