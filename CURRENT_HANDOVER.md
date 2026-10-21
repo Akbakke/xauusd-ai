@@ -83,23 +83,36 @@ Source/pilot/bulk/finaljoin-planer er konsumert/stengt; ingen relansering.
 Ingen jobb gjenstår. Uavhengig FINAL_JOIN_ACTUAL_PEER_REVIEW bekrefter
 alle157felt/masker/lesepass og ytrevakter; SHA55663fdb21e18fe26a0f0bcf1195f37cdcef9f747062b116e5e9bfb98e4c5ca2.
 
+138 er COMPLETE/exit0 på0,932s,222kilder/policy bevart. Alle512lagrede
+115initialbeslutninger/1024sidespor er revidert:1021singletonterminal−MAE-
+score er eksakteF32;3sidehorisontties er ikke rekonstruerbare fra means.
+Handlingsvalgene stemmer: TRAIN3LONG/0SHORT/253FLAT,CONTROL0/0/256,
+0actionties. Dette er optimizer0-startmodell, ikke108s trente modell eller
+bevist selektivitet. Egnekomponentnevnere/manglendeutfall bevares; like
+terminal-LONG/SHORT/FLAT-counts krever ikke fullobservasjon. Hele480argmax,
+individuelle fremtidsmasker og inputtensorer kan ikke rekonstrueres her.
+
+16småfil-lesinger=7JSONlineage/observation+6kilder+3auditmetadata,
+4466420byte;0nye forwards/updates/fits ogingen PT/Parquet/rå-/normaliserings-
+payload. ACTUAL_REVIEW SHA693122b9039a007c78296f40ed98e097c2ce5d61b3de750c0870f76a51b4e2ed.
+Uavhengig ACTUAL_PEER_REVIEW SHAcc5461e5c03f20f18e1314390b28c774da479f57333151309adb11217d0f0da4.
+Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_138`.
+135/137er konsumert/stengt etter to rettede revisjonsfeil (canonicalLF og
+ufundert fullFLATcoverage); originalkvitteringer bevares. Ingen produksjons-
+eller datafeil er påvist.138planen er også konsumert/stengt, ingen relansering.
+
 Neste er faktisk individuell modellpåvirkning på kompaktprofilens dynamiske
-hoder og beslutningsspor. Eksisterende legacyQ/fullfeature-influencehelper
-passer ikke denne fasen; bind minste audit-onlyadapter til aktive felt/ruter.
-135/137er konsumert/stengt etter to feil i den nye receipt-revisjonen:
-canonicalJSON manglet slutt-LF, og FLAT-fremtidsmasker ble feilaktig krevd
-fullt observerte. Kildeformelen krever like LONG/SHORT/FLAT-maskecounts,
-med genuine gap/sensurering. Begge kjøringer stoppet før fulltraceanalyse;
-222kilder/policy ble bevart. Originalkvitteringer og ACTUAL_FAILURE_REVIEW
-bevares i hverroot. Ingen produksjons-/datafeil er påvist og ingen modell
-ble kjørt.138retter bare kildeavledet maskecountkrav/literal/eierbinding.
-138har uavhengig eksaktdiffPASS,6bundne kildefiler/9funksjoner og én fersk
-900s/4G/512M-kjøring. Manglendeobservasjoner og ulikekomponentnevnere bevares.
-115s512initialspor gjenbrukes;1021singletonscore kan kontrolleres eksakt,
-3sidehorisontties/full480argmax kan ikke rekonstrueres fra lagrede means.
-LONG/SHORT/FLAT, kvalitet/dekning forvalgte/avståtte entries og
-senere generalisering har fortsatt åpne krav. Ingen ny trening er åpnet.
-121–126/133/134 og produksjonsbaseline/paritet gjenbrukes uten omkjøring.
+hoder. Eksisterende legacyQ/fullfeature-helper passer ikke denne fasen.
+136/DESIGN.json SHA dd6eb9bed6412e4fc88436267a70d8144e956aa2b52a6ef61b0d68b72e129a9c
+beskriver en audit-onlyadapter:882numeriske ruter,2525jointaliaser,7enum,
+32familie/TF-grupper,13VJP og høyst218forwards etter eksakt caseplan.
+Designet er IKKE implementert/kvalifisert/autorisasjon. Integratorreview,
+kausaleTRAIN-maskvitner, gyldig value↔mask/aliasmanifold, batchparitet,
+state/data/normalisering/cachebinding og fersk maskinvareadgang gjenstår.
+136s gamle135PENDING-note overstyres av138s faktiske kvitteringer i policy.
+Full480trace, LONG/SHORT/FLAT-kvalitet/dekning forvalgte/avståtte ogsenere
+læring/generalisering er åpne krav. Ingen ny trening er åpnet. Ingen jobb kjører.
+121–126/133/134/138 og produksjonsbaseline/paritet gjenbrukes uten omkjøring.
 
 ## Bestått — gjenbruk uten omkjøring
 
