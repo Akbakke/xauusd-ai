@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T13:02:53.945714+00:00",
-  "status": "150_CURRENT_BASELINE_QUALIFIED_NEW_TRAIN_RMS_EPOCH_OPERATOR_DECISION_PENDING",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "observed_utc": "2026-10-21T13:53:46.000878+00:00",
+  "status": "151_APPROVED_SINGLE_TRAIN_RMS_EPOCH_EXACT_CAMPAIGN_PREPARATION",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
-  "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "149actual savedstate/RNG/full480baselinequalification PASS. Present concrete150proposal for exactly1new111TRAIN-RMS M5 Entry epoch.108originalepochauthority consumed; do not compile/launch training or change trainingflags before new explicit userdecision. Reuse unchanged183source/input/norm/RMS/117mechanics proofs; exactnewrecipe/campaign/freshhardwareadmission stillrequired afterapproval.",
+  "rule": "Direct user approval Ja, kjør trening binds exactly one additional150 TRAIN-RMS M5 Entry epoch to151:118249TRAIN rows,7391updates,one12000s invocation. No extra epochs/HPO/fullVAL/Exit/TEST/broker; exact fresh campaign/hardware/physical reboot gates remain mandatory.",
+  "next_action": "Seal exact151recipe, materialize once, install canonical Windows task, qualify all-project idle state, prepare/confirm one required physical boot and run one guarded TRAIN-RMS M5 Entry epoch. Reuse qualified148/149baseline,055normalization and111RMS; no new raw scans or refits.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "150_CONCRETE_TRAIN_RMS_EPOCH_PROPOSAL_PENDING_OPERATOR_DECISION",
+    "current_activity": "151_APPROVED_ONE_TRAIN_RMS_M5_EPOCH_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Current147fresh/148full480initialbaseline qualified by149actualstate/RNG/canonicalfull480validator. Onlynewexplicit150epochdecision remains before exactnewtrainingrecipe/campaign/freshhardwareadmission; training_enabled=false persists.108originalepochauthority consumed; no extra technical probes needed for unchangedlearningmechanics.",
+    "current_blocker": "No operator approval blocker remains. Exact151recipe/campaign and fresh hardware/physicalboot admission must complete before native training.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Commit and bind clean source, then run the new capped 4G case-only plan once. Reuse 65 successful source tests; no source dataset or native model reads, no 142 relaunch and no training.",
+    "next_action": "Seal exact151recipe, materialize once, install canonical Windows task, qualify all-project idle state, prepare/confirm one required physical boot and run one guarded TRAIN-RMS M5 Entry epoch. Reuse qualified148/149baseline,055normalization and111RMS; no new raw scans or refits.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9501,7 +9501,7 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "Currentbaseline is qualified:148native32forwards/512M5probe rows/0updates plus149actualstate/RNG/currentfull480validator PASS. Reuse147fresh/111RMS/current183sourceproofs.150concreteadditionalepoch needsnewexplicituserdecision, thenexactrecipe/campaign/hardwarebinding; no automaticextraepoch.",
+        "Current148/149full480baseline is qualified. Direct user Ja, kjør trening approves150 exactly one TRAIN-RMS M5 Entry epoch now bound to151PLAN; exact151recipe/campaign/freshhardware/physicalboot gates remain before native start. No automatic extra epoch.",
         "108consumed originalfullnativeepoch; bothsidecandidate future horizons peakedat1minute on512M5proberows. Diagnostic116SHORT/396FLAT/0LONG, no nativeauthority and no M1Entry.111TRAIN-RMSlearning remainsunmeasured.",
         "121–126qualified1205activeGCvalues/fiveTF/actualM5context;127/128/129/133qualified139activecorefields perTF;134rawMBPparsedonce andjoinpassed;144functionalinputinfluencepassed. Reuse unchangedproofs, no newrawscan or4updateprobe.",
         "LONG/SHORT/FLAT quality/coverage for selectedandabstained, chronologicalgeneralization andeconomicedge remainunqualified; parkedfull-libraryfields are outsideactivecompactnumeric audit. M5Entryfirst; M1futurepricefasit now, M1Exitlater."
@@ -16969,6 +16969,17 @@
     "last_actual_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/ACTUAL_AUDIT_PEER_REVIEW.json",
       "sha256": "425eb8d1ec4db1d7aa9cfd7a0163155b12b897f1f8bc6a200d7b78620109c344"
+    },
+    "approved_train_rms_epoch_151": {
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/PLAN.json",
+        "sha256": "2b3a514364ad32ac7fa495d5b4f11de91efa7bb28e76eaf9d1dc87f1da109e68"
+      },
+      "operator_approval": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150/OPERATOR_APPROVAL.json",
+        "sha256": "1742277b20e2a46cc57c27a6a0036e3f4978b724006397eeb53764644f15c46a"
+      },
+      "native_job_started": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19533,7 +19544,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T13:02:53.945714+00:00",
+  "updated_utc": "2026-10-21T13:53:46.000878+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -21676,13 +21687,13 @@
     }
   },
   "dynamic_m5_train_rms_epoch_proposal_150": {
-    "status": "CONCRETE_OPERATOR_REVIEW_PENDING_NEW_EXPLICIT_EPOCH_DECISION",
+    "status": "APPROVED_BY_DIRECT_OPERATOR_REPLY_BOUND_TO_151_ONLY",
     "proposal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150/PROPOSAL.json",
       "sha256": "d65b07a4fa12d6b3812170f8fa81a3718a97e8871924348c76e403f2e4cc2cf8"
     },
     "execution_authorized": false,
-    "operator_approval_received": false,
+    "operator_approval_received": true,
     "training_enabled": false,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
@@ -21701,6 +21712,108 @@
     "proposal_peer_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150/PROPOSAL_PEER_REVIEW.json",
       "sha256": "645bb52a7aaaaf8964b4c063029b9c64efbe66bcd44794c7f5b75332ee425f4f"
+    },
+    "operator_approval": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150/OPERATOR_APPROVAL.json",
+      "sha256": "1742277b20e2a46cc57c27a6a0036e3f4978b724006397eeb53764644f15c46a"
     }
+  },
+  "entry_m5_path_single_epoch_run": {
+    "population_witness": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/WITNESS.json",
+      "sha256": "19b6b9a6c2167b3eb9795ceb1372a0b398e6fc0b2731a035db78b3e082d7f801"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/DESIGN.json",
+        "sha256": "4e8a027a9b8577bf6876601d0508bd7c376bf3620f6ee260ee4e399cc32568f5"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
+        "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
+      },
+      "native_coordinates": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/COORDINATES/NATIVE_COORDINATES.json",
+        "sha256": "79e0104bffeb457d33672062e28c9df7b428156b191e58fd75f2be4842d3d664"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
+        "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
+      }
+    },
+    "chronological_learning_measurement": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "b88aab0e0758d277b25a1d382060d8380e151d4cefa4bb631ef2494b61fcc573"
+    },
+    "run_id": "NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151",
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/BUNDLE",
+    "source_bindings_sha256": "27952ad6e1e669cd59d80c763ad0980a619e53725c06bef36b62d8791121b735",
+    "max_invocations": 1,
+    "optimizer_steps": 7391,
+    "maximum_trained_entry_rows": 118249,
+    "batch_size": 16,
+    "drop_last": false,
+    "epochs": 1,
+    "final_model_variant": "ONLINE",
+    "teacher_refresh_allowed": false,
+    "full_epoch_training_allowed": true,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "automatic_extension_allowed": false,
+    "entry_observed_market": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_EPOCH_GUARD_20261020_104/OBSERVED_MARKET_PLAN.json",
+      "sha256": "25019568903f1e64c09cc80e946dc579babbf8dcbb2b0cdb4b1fbf090681542d"
+    },
+    "dynamic_m5_loss_scales": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/LOSS_SCALES.json",
+      "sha256": "93fa60c423a4adebd888f7a905b31adc61a3094d8e7a04169f4049db540fc88d"
+    }
+  },
+  "dynamic_m5_train_rms_single_epoch_151": {
+    "status": "APPROVED_EXACT_RECIPE_AND_CAMPAIGN_PREPARATION",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/PLAN.json",
+      "sha256": "2b3a514364ad32ac7fa495d5b4f11de91efa7bb28e76eaf9d1dc87f1da109e68"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151",
+    "operator_approval": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150/OPERATOR_APPROVAL.json",
+      "sha256": "1742277b20e2a46cc57c27a6a0036e3f4978b724006397eeb53764644f15c46a"
+    },
+    "recipe_binding_authorized": true,
+    "sealer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/seal_train_rms_epoch_recipe.py",
+      "sha256": "1adf3877ff5b73d14c3315f84b19fbbaae4aaaa3daade53b4b2ef1c948a88127"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/run_materialize_campaign.py",
+      "sha256": "ddb2a83ff69de72c2480612cd74cfee4915cd41b1dab928fd9191f9b509ed978"
+    },
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "training_authorized_only_after_exact_campaign_hardware_and_fresh_boot": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "optimizer_steps": 7391,
+    "train_rows": 118249,
+    "batch_size": 16,
+    "final_batch_size": 9,
+    "source_bindings_sha256": "27952ad6e1e669cd59d80c763ad0980a619e53725c06bef36b62d8791121b735",
+    "physical_gpu_power_limit_w_to_preserve": 160,
+    "physical_reboot_authorized_only_after_all_project_jobs_and_locks_idle": true,
+    "prepared_windows_boot": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "aa3e6270ef49c9085460f63ef9b1aa1434e8eb721014266325e00a95a9a3f444"
+    },
+    "training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "full_val_allowed": false,
+    "normalization_fit_enabled": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

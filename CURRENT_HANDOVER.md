@@ -30,7 +30,7 @@ Separate modeller/stacking og M30 krever kronologisk OOF-merverdi.
 
 TRAIN [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
 utviklingsdata [2026-04-01,2026-07-01). Alle26måneder er gjenbrukt utvikling;
-TEST fra juli er forseglet. `training_enabled=false`, fullVAL/HPO/Exit/broker/
+TEST fra juli er forseglet. `training_enabled=true` bare for den eksplisitt godkjente151-epoken; fullVAL/HPO/Exit/broker/
 live/paper/ordre/spending/promotion er stengt. De to practice-leseoppslagene er konsumert.
 
 ## Siste native inputpåvirkningsmåling —144
@@ -66,8 +66,8 @@ Original34,37MB-resultat og alle bindinger er bevart.144 er konsumert/stengt.
 
 ## Neste konkrete arbeid
 
-Neste steg er operatørens beslutning om det konkrete150-forslaget nedenfor.
-Ingen trening er åpnet.
+Brukeren har svart **«Ja, kjør trening»** på det konkrete150-forslaget.
+151 binder nøyaktig én TRAIN-RMS M5 Entry-epoke; faktisk nativejobb er ennå ikke startet.
 
 Fullkurvene er nå lagt til i eksisterende `_dynamic_m5_prefix_observations`
 og gjenkoblet av eksisterende `_require_dynamic_m5_observation`. Hver entry
@@ -151,11 +151,17 @@ Dette avløser145s foreldede reviewforslag. M5beslutninger; M1prisfasit1–480mi
 M1Exit først senere. Gjenbruk ferdige inputs/targets/055normalisering/111RMS;
 ingen råscan, refit, HPO, fullVAL, Exit, TEST eller broker.
 
-Neste steg er operatørens nye eksplisitte beslutning om150.108konsumerte den
-opprinnelig bestilte epoken. Før ny eventuell launch må eksakt ny policy/recipe/
-campaign og ferske native maskinvare-/bootporter bindes gjennom eksisterende eiere.
-Ingen gammel plan relanseres. Alle execution/training/full_epoch/fullVAL/
-Exit/TEST/brokerporter er false. Godkjent baseline er ikke læring eller edge.
+151 er godkjent av direkte brukersvar «Ja, kjør trening», bundet til150s
+konkrete forslag i `OPERATOR_APPROVAL.json` (SHA
+1742277b20e2a46cc57c27a6a0036e3f4978b724006397eeb53764644f15c46a).
+Ny runroot: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151`.
+Policy åpner bare én ny epoke:118249TRAINrader, batch16/slutt9,7391updates,
+én nativeinvokasjon maks12000s/13800s ytre. Ingen ekstraepoke/HPO/fullVAL/
+Exit/TEST/broker.147fresh/148baseline/149audit og ferdige inputs/055/111 gjenbrukes.
+Nativejobben er ikke startet. Neste steg er eksakt ny recipe/campaign gjennom
+kanoniske eiere og fersk signert maskinvare-/fysiskboot-kvalifisering.
+Fysisk160W-profil bevares. Kilde/policy fryses etter sealing gjennom terminal.
+Ingen konsumert plan relanseres; oppdaterte bevis eies av151 og policy.
 
 ## Bestått — gjenbruk uten omkjøring
 
