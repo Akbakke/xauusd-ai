@@ -210,12 +210,38 @@ Case-manifest SHA a3e150fb32e8d5e206b7332474a1da83b7a7f4488a0e219e48cd4c84c14368
 ACTUAL_REVIEW SHA e96304bf36938c85770b78b99e78037df967ccfcea8a26e17d30b0f760fb5370.
 Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143`.
 
-Neste native input-audit har eksakt budsjett: én gradient-forward, én
-batchparitet og 216 counterfactual-batcher = 218 forwards, samt 13 VJP.
-Dette er bare en ferdig caseplan, ingen målt modellpåvirkning. Bind en
-ny eksplisitt auditplan til ren kilde/policy, eksisterende 115 ONLINE-state,
-141/143-bevis og ferske uendrede maskinvarevakter før modellkjøring.
-Ingen ekstraepoke, fullVAL eller trening er åpnet. Ingen jobb kjører.
+143s uavhengige ACTUAL_PEER_REVIEW er PASS, SHA
+828c38de8f4afff6e0e6930a94e96872485d7dc977e9892636f443472c6ff8b8.
+
+144 er autorisert til én read-only native inputkontroll, ikke trening.
+PLAN SHA f3f7ed090f45f1957053486a47b9a016083101319eb85af649b5a0a3d39a137b.
+Eksakt budsjett: én gradient-forward, én batchparitet og 216 counterfactual-
+batcher = 218 forwards, samt 13 VJP. Tre genuine TRAIN-vitner/13 uscorede
+kopier; 115 optimizer0 ONLINE, ordinær read-only checkpoint-eier, 055-input-
+normalisering og 111-loss-RMS som identitet, ingen loss/fit eller updates.
+65 tester og 141/143-inputs gjenbrukes. Ingen ny input-råscan eller rendering.
+
+Eksisterende allowlistede CUDA-producer bruker 20G/512M, én numerisk tråd,
+CPU0–7, native3500s/eksisterende guard3600s/outer3650s. Samme signerte
+nonce-/sertifikat-/UUID-bridge,65Ccore/80Cmemory/160Wgrense/170Wdraw/
+12288MiB. Ingen benchmarkoverride eller endring av vakter. Denne read-only
+producer-ruten krever ingen fysisk ny boot eller treningscampaign.
+
+Fersk første sensor viste 300Wgrense og stengte lansering. Eksisterende
+Install-GX1-HostTelemetry.ps1 uten -Install satte vedvarende160W; kun
+power_limit_w i konfigurasjonen endret seg. Original konfig/logg er bevart.
+Signert etterkontroll målte34Ccore/40Cmemory/23,99Wdraw/160Wgrense/78MiB.
+POWER_PROFILE_ACTUAL_REVIEW SHA
+8d4d7139b41774fd04c07d95976b6cc16ff280dccce1562f0e19092c7ad560b7.
+En ny signert måling kreves av controller før claim, deretter kontinuerlig vakt.
+
+144 PREEXECUTION_METADATA_REVIEW SHA
+fc463959f76c92799eaa9a08f502e7280504b0c112f8b08a046c8f6ca55c2076;
+PREEXECUTION_CONTROLLER_REVIEW SHA
+69155ccbec69fe7fae1dac30f9ccc8a3767a82f58c8cfc5909fc4b023caa2301.
+Ren kilde/policy må postcommit-bindes før én kjøring. Ingen faktisk144
+modellmåling er ennå gjort. Ingen ekstraepoke, fullVAL eller trening åpnes.
+Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_20261021_144`.
 136s gamle135PENDING-note overstyres av138s faktiske kvitteringer i policy.
 Full480trace, LONG/SHORT/FLAT-kvalitet/dekning forvalgte/avståtte ogsenere
 læring/generalisering er åpne krav. Ingen ny trening er åpnet. Ingen jobb kjører.

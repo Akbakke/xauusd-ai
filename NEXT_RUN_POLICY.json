@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T09:34:05.956936+00:00",
-  "status": "143_CASE_MANIFEST_COMPLETE_NATIVE_INPUT_INFLUENCE_UNMEASURED",
+  "observed_utc": "2026-10-21T09:52:14.156399+00:00",
+  "status": "144_AUTHORIZED_ONE_READ_ONLY_NATIVE_INPUT_AUDIT_PENDING_CLEAN_BINDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Reuse qualified 141 input packet, 143 fixed 3445 valid cases and 65 source tests. Bind the explicit native input-influence plan to clean source/current ONLINE checkpoint and fresh existing hardware/CUDA-producer gates before any actual model audit. No new raw scan, source test rerun, training or extra epoch is admitted.",
+  "next_action": "Bind clean current source and immutable144controller/native proofs after this commit, then invoke exactly one existing guarded CUDA producer audit. Reuse141packet/143cases/source65; no extra epoch, training, fullVAL, Exit, TEST or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "143_CASE_MANIFEST_COMPLETE_NATIVE_INPUT_INFLUENCE_PLAN_AND_HARDWARE_ADMISSION_REQUIRED",
+    "current_activity": "144_READ_ONLY_NATIVE_INPUT_AUDIT_AUTHORIZED_PENDING_CLEAN_POSTCOMMIT_BINDING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Individual actual model influence/parity on the bound current ONLINE dynamic heads and fresh GPU hardware admission remain unmeasured. The source tests and case manifest have passed; no training or extra-epoch authority.",
+    "current_blocker": "Actual individual model sensitivity and parity remain unmeasured.144plan and controller reviewed, existing160W keeper applied and signed observed; fresh launch query and existing continuous guards remain mandatory. No training admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -21239,6 +21239,68 @@
     "actual_new_source_test_invocations": 0,
     "actual_TRAIN_cache_raw_or_PT_reads": 0,
     "actual_input_packet_reads": 1,
-    "elapsed_seconds": 58.31811029199889
+    "elapsed_seconds": 58.31811029199889,
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_CASE_MANIFEST_20261021_143/ACTUAL_PEER_REVIEW.json",
+      "sha256": "828c38de8f4afff6e0e6930a94e96872485d7dc977e9892636f443472c6ff8b8"
+    }
+  },
+  "dynamic_compact_native_input_influence_144": {
+    "status": "AUTHORIZED_ONE_GUARDED_READ_ONLY_NATIVE_INPUT_AUDIT",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_20261021_144/PLAN.json",
+      "sha256": "f3f7ed090f45f1957053486a47b9a016083101319eb85af649b5a0a3d39a137b"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_20261021_144/run_native_input_audit.py",
+      "sha256": "3f8fc7d2ef33506baa2878b7369d64680a429a2adbc7fdaedb5523160502d27d"
+    },
+    "input_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_20261021_144/INPUT_SCOPE.json",
+      "sha256": "51bb6df1a5557e4a24a733656238351bc413a79735fc743f0a072bfe62e61d22"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_20261021_144/DESIGN_EXECUTION.json",
+      "sha256": "2d2c0f82821ff2c7d910a5b682ddac655710467cf7cd23f8706cc679f9a18602"
+    },
+    "preexecution_metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_20261021_144/PREEXECUTION_METADATA_REVIEW.json",
+      "sha256": "fc463959f76c92799eaa9a08f502e7280504b0c112f8b08a046c8f6ca55c2076"
+    },
+    "preexecution_controller_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_20261021_144/PREEXECUTION_CONTROLLER_REVIEW.json",
+      "sha256": "69155ccbec69fe7fae1dac30f9ccc8a3767a82f58c8cfc5909fc4b023caa2301"
+    },
+    "power_profile_actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_20261021_144/POWER_PROFILE_ACTUAL_REVIEW.json",
+      "sha256": "8d4d7139b41774fd04c07d95976b6cc16ff280dccce1562f0e19092c7ad560b7"
+    },
+    "source_tests_reused": 65,
+    "new_source_test_invocations_allowed": 0,
+    "genuine_rows": 3,
+    "padding_rows": 13,
+    "valid_case_count": 3445,
+    "maximum_model_forwards": 218,
+    "maximum_reverse_calls": 13,
+    "max_wall_seconds": 3500,
+    "class": "producer",
+    "cuda_producer": true,
+    "memory": "20G",
+    "swap": "512M",
+    "postcommit_binding_required": true,
+    "existing_signed_sensor_and_gpu_limits_unchanged": true,
+    "scope": "Fixed115optimizer0ONLINE sensitivity, full480 diagnostic outputs, actual batch parity, masked current counterfactuals and historical input VJPs only. No model update, loss/fit, new input rendering, raw/Parquet scan, Exit, TEST or action admission.",
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }
