@@ -616,3 +616,10 @@ Korrigert scopeprosa: faktisk11L1kvalitetstellere, ikke12; originaldraft beholde
 heltalls-/celleboundsfasit. Controller14,527s/exit0,222kilder/policy bevart.
 FIRST_FILE_ACTUAL_REVIEW ogouterterminal låser gjenbrukbarpartial;65filer,
 fullroll/utenforvinduer/finalmaskjoin og modell/Entry-bevis er fortsattåpne.
+
+134råinventaret er nå uavhengigPASS:66filer/892100712records, rawEOF/CRC/SHA
+én gang hver;65nye+pilotgjenbruk. Bulk2150,829s/exit0 og222kilder/policy
+bevart.47råM1/37event/7Tsizefelt ogpris/sidegrid bestod, alle60targeters
+utforfilunion0/NaN/null/dtype bestod. Uavhengig66fil-døgnvolum ga eksakt
+roll/basis/00:01akse. Sluttmaskekobling påkvalifiserteM1cacher gjenstår;
+ingen rawomkjøring eller nytt modell-/lærings-/Entrybevis.

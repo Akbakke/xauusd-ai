@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T05:08:56.353322+00:00",
-  "status": "134_REMAINING65_RAW_REFERENCE_READY_REUSE_FIRST_PASS",
+  "observed_utc": "2026-10-21T05:53:16.807544+00:00",
+  "status": "134_ALL_66_RAW_FILES_892100712_RECORDS_INDEPENDENT_M1_ROLL_PASS_FINAL_MASK_JOIN_REMAINS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactlyone7200s/4Gcappedremaining65file reference with frozen9759bd39worker and unchanged116casequalifiedoracles. Reuse firstfile0PASSpartial; 4targethash/decode oncepercontract. Require66dailyroll/outsideunion storage/finalsourceguards; finalincidentmaskjoin/modeluse/Entryquality remain. No training.",
+  "next_action": "Complete finalselectedincident/admissionmask/cachejoin using qualified001/024M1 caches and unchangedreference_masks134; no rawre-read and no121–126/133 rerun. Bindfreshfinitecappedjoinplan after exactfinalartifactscope+sourcequalification. Individualmodeluse/decisiontrace andEntryquality/depth/coverage remain; no training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "134_REMAINING65_RAW_REFERENCE_READY_FROZEN_ONE_JOB",
+    "current_activity": "134_FINAL_SELECTED_MASK_JOIN_PREPARATION_RAW_66_PASS",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "134_first_of66_actual_raw_EOF_numeric_reference_only",
+    "latest_terminal_role": "134_all66_actual_raw_independent_reference_roll_pending_final_mask_join",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FIRST_FILE_TERMINAL.json",
-      "sha256": "dc5a9cf87e0db0cf2ddf8da3b3811ad8a1520ce12700db152f20878460e83071"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/REMAINING_FILES_TERMINAL.json",
+      "sha256": "c8aa57c100fc32793178a1762d01286427a658b4e2f3f8f2f54d42cab8b4c502"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Firstfile4.62mrecordsPASS. Remaining65finitejob nowexactlybound; independentwhole66roll/outsideunion notyetmeasured. Finalselectedincidentmaskjoin andmodeluse/Entryqualitycoverage/trace remain.",
+    "current_blocker": "All66rawfiles/892100712records independentM1+grid+event/Tsize/outsideunion+dailyrollPASS. Finalselectedincident/admissionmaskjoin notyetqualified; actualindividualmodeluse/Entryquality/depth/coverage/trace remain. No trainingadmission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -19522,7 +19522,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T05:08:56.353322+00:00",
+  "updated_utc": "2026-10-21T05:53:16.807544+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20479,10 +20479,10 @@
     "elapsed_seconds": 14.527062262000982
   },
   "raw_mbp_m1_remaining65_134": {
-    "status": "READY_EXACT_65_NEW_FILES_PLUS_1_REUSED",
-    "execution_authorized": true,
+    "status": "COMPLETE_66_RAW_REFERENCE_AND_ROLL_PASS_FINAL_MASK_JOIN_PENDING",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/REMAINING_FILES_PLAN.json",
@@ -20503,6 +20503,23 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/REMAINING_FILES_RESULT.json",
+      "sha256": "5e5966c409c61821dee3b542a2782e13d2717caefb78b3b857ad8d098df746d0"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/REMAINING_FILES_TERMINAL.json",
+      "sha256": "c8aa57c100fc32793178a1762d01286427a658b4e2f3f8f2f54d42cab8b4c502"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/REMAINING_FILES_ACTUAL_REVIEW.json",
+      "sha256": "f9ad3fb2cb3d037413c640af798e6fa694b60be28f622ac5dfbbf6d2ef29756e"
+    },
+    "qualified_inventory": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/REMAINING_FILES_PARTIALS/RESULT.json",
+      "sha256": "b0641258702376bb85473dc34e4966f4d0f4ab6c67a7698998ae02a648f1454a"
+    },
+    "elapsed_seconds": 2150.828926654998
   }
 }

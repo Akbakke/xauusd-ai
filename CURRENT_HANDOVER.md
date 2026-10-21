@@ -81,14 +81,19 @@ ogouterterminal binder den gjenbrukbare FIRST_FILE_PARTIAL_000/RESULT.json.
 Førstefilplanen er konsumert/stengt, ingen relansering. Neste ferske plan skal
 lese kun resterende65råfiler og dele targetlesing/hash perkontrakt; fullroll,
 utenforfilvindu-zero/NaN og siste maskekobling gjenstår. Ingen ny trening.
-134REMAINING_FILES_PLAN åpner nå én fersk capped7200s/4G-kjøring for
-kun råindices1..65 (19,933GBkomprimert), med gjenbruk av førstefil0PASS.
-Firetargets leses/hasheres én gang perkontrakt; immutable FILE_NNN.json
-lagres etterhverfullførtfil. Slutt krever66EOF/SHA/counts, uavhengig
-døgnvolum-roll/basis/00:01akse og0/NaN/null/dtype utenforfilunion.
-Siste incident-/admissionmaskekobling ogmodell-/Entrybevis er fortsattåpne.
-Frystworker9759bd39, qualifiedoraclesuendret; ingen kilde-/policyendring
-underkjøring. Faktiskprosess/terminal overstyrer denne readyteksten.
+134remaining65 er COMPLETE/PASS/exit0 på2150,829s:65nye+1gjenbrukt råfil,
+alle892100712records og66EOF/CRC/SHA-kvitteringer. Totalt20,039GBkomprimert/
+118,260GBCSV, én faktisk lesing/parse perråfil.60targethash/decode i bulk,
+4pilotpass separat.222kilder/policy bevart; ingen modell/fit/råombygging.
+Uavhengige47M1felt,37eventfelt,7Tsizefelt ogpris/sidegrid bestod heltall/
+forhåndslåsteF64cellegrenser; alle0/NaN/null/dtype-domener utenforfilunion
+bestod. Alle66dagsvolumpartials ga eksakt selected_daily/basis_daily og
+00:01-minuttakse. REMAINING_FILES_ACTUAL_REVIEW+outerterminal binderalle
+66gjenbrukbarepartials; konsumertplan er stengt og relanseres aldri.
+Snapshot05:28 hadde memorymaxreclaim933/OOM0/kill0 ved4Gcap, ikke en
+helkjøringspeak-/eventpåstand. Ingenprosess igjen vedsluttkontroll.
+Neste: siste incident-/admissionmaskekobling på allerede kvalifiserteM1cacher,
+ingen ny rålesing. Modellbruk/Entry/dekning/sporbarhet gjenstår; ingen trening.
 121–126 og133skal gjenbrukes, ikke kjøres om. Individuelt modellkonsum og
 Entry-kvalitet/dekning/beslutningssporbarhet har fortsatt egne åpne krav.
 Ingen jobb kjører ved denne overleveringen.
