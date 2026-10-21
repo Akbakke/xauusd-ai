@@ -118,9 +118,34 @@ ble endret;0nativeforwards ogingen PT/Parquet/rå-/normaliseringspayload.
 ACTUAL_PEER_REVIEW SHAe1d13c9ebf5835160810ed7424903870ead45159e9692d47f32bd69f0556e59b.
 Bevisroot:`/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139`.
 139planen er konsumert/stengt. Dette er syntetisk mekanikk, ikke faktisk
-modellpåvirkning eller læring.140 velger høyst16ekte TRAIN-maskvitner fra
-kun time/ctx_cont; én fersk TRAIN-hash kreves av GX1_RULES92–96 før decode.
-117s gamle SHA/stat er kun lineage, ingen varig hashcache eller unntak.
+modellpåvirkning eller læring.
+
+140 er COMPLETE/exit0 på47,906s:118249TRAINrader, kun time/ctx_cont,
+2525/2525aktivecurrentalias-maskeiere dekket av3unikevitner,0udekkede.
+Parentrader[45713,14387,25188] gir nye eiergevinster[2465,40,20]; valget
+brukte kun tilgjengelighetsmasker, ingen utfall/prediksjoner. FrystB16 fyller
+13uscoredeplasser med FØRSTEvitne; de teller ikke som nye observasjoner.
+Alle2525eierne har36..118249gyldigecurrentTRAINrader. Én fersk TRAIN-hash
+på19146223003byte tok33,579s før eneste kolonneprojeksjon; ingen batchhash.
+117s SHA/stat er kun lineage, ingen varig cache/unntak.0nativeforwards,
+PT/rå/VAL/TEST/target/provider-/normaliseringspayload, fit ellerupdates.
+224kilder/policy og dataidentitet/klokke ble bevart.140ACTUAL_REVIEW
+SHA0d9d4dbc5ac3e53a2c48ba96cf1d27c3c7dd8c662cd476d3bd85d77cd54a81aa;
+ACTUAL_PEER_REVIEW SHAed415d69bae1d777a66d0d4c944ac11f015e11b43615279b0a8b4f632d14bf1a.
+Bevisroot:`/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140`.
+WITNESS_OUTPUT/WITNESSES.json SHA3eb5fbf35c895bde814de205b794978d71158cdafa906c0f81370dded3aed233.
+140planen er konsumert/stengt. Gamlecarry-scope/reviews er overstyrt førlaunch.
+Beviset gjelder currentaliasers masker, ikke komplette inputtensorer eller
+96historie/MTF/genericsnap/kategorisk påvirkning.
+
+141 lager minimal ekstern inputrenderer fra eksisterende
+_read_positioned_source_rows, load_m1_feature_surface_times og
+load_multi_tf_v4_cache/get_model_native_multi_tf_route_windows. Kun3TRAIN-
+rader og unionen av deres96M5historierader; ikke wholeDataset/__getitem__/
+targetprovider eller full22GBsignal-/contextdecode. MTFvinduer16/64/96/96/252
+må bindes fra faktisk constructor/phase, ikke defaults. Alle aktuelle filer,
+rowgroupgrenser og state/normaliseringsroller krever ny eksakt binding.
+Ingen renderer-/modellkjøring er åpnet.139/140 gjenbrukes uten omkjøring.
 KausaleTRAIN-maskvitner, eksaktcaseplan, gyldige value↔mask/aliasendringer,
 batchparitet, state/data/normalisering/cachebinding og fersk maskinvareadgang
 gjenstår før faktisk individuell modellpåvirkning. Ingen nativeadgang.

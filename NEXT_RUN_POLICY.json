@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T07:34:45.938440+00:00",
-  "status": "140_INPUT_ONLY_TRAIN_MASK_WITNESS_SCAN_READY",
+  "observed_utc": "2026-10-21T07:46:47.865355+00:00",
+  "status": "140_CURRENT_ALIAS_MASK_WITNESSES_COMPLETE_141_INPUT_RENDERING_SOURCE_PREPARATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactly one capped140input-onlyTRAIN currentaliaswitness scan: one fresh canonicalTRAINhash, then time+ctx_cont only; <=16inputmaskselectedwitnesses, no targets/model/PT/VAL/TEST. Inspect terminal and source/policy/dataidentity before any inputrendering/nativeinfluence; no training.",
+  "next_action": "Implement minimal external141input-only renderer using existing positioned-row/clock/MTF-cache-window owners for frozen140parents[45713,14387,25188], exact96M5history and constructor-bound16/64/96/96/252MTFwindows, paddingfirstrealwitness13times. No Dataset/targets/provider/model/PT read or native launch without new exactbinding. Reuse139source and140currentmask proof. Training remains disabled.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "140_INPUT_ONLY_TRAIN_MASK_WITNESS_SCAN_READY",
+    "current_activity": "141_INPUT_ONLY_RENDERER_SOURCE_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -115,14 +115,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
+    "gc_goal_status": "ACTIVE_NOT_COMPLETE_CURRENT_ALIAS_WITNESSES_COMPLETE_NATIVE_INPUT_INFLUENCE_PRIMARY_ENTRY_QUALITY_AND_GENERALIZATION_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "134_all66_actual_raw_independent_reference_roll_pending_final_mask_join",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139/SOURCE_QUALIFICATION_TERMINAL.json",
-      "sha256": "20fb2cb1c05a937447e4c05d05356e755bca4c9f16ce8d645287f8dcec5c09c1"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/WITNESS_AUDIT_TERMINAL.json",
+      "sha256": "1118d95c2fec188e7aeb0588490e96514750370c2c7a05f1f62e60e417a8353e"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "140actualTRAINwitness/coverage scan pending. Actual inputrendering and individualnativeinfluence, exactcaseplan/state/normalizer/cache/parity/hardware remain unadmitted.139sourcePASS is syntheticmechanics only.",
+    "current_blocker": "Full actualinput tensors/history/MTF/categorical witnesses not rendered. Need externalrenderer sourcequalification/exactdata-cache-normalization-state/caseplan/hardwarebinding before nativeinfluence; no trainingadmission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one capped140input-onlyTRAIN currentaliaswitness scan: one fresh canonicalTRAINhash, then time+ctx_cont only; <=16inputmaskselectedwitnesses, no targets/model/PT/VAL/TEST. Inspect terminal and source/policy/dataidentity before any inputrendering/nativeinfluence; no training.",
+    "next_action": "Implement minimal external141input-only renderer using existing positioned-row/clock/MTF-cache-window owners for frozen140parents[45713,14387,25188], exact96M5history and constructor-bound16/64/96/96/252MTFwindows, paddingfirstrealwitness13times. No Dataset/targets/provider/model/PT read or native launch without new exactbinding. Reuse139source and140currentmask proof. Training remains disabled.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16940,7 +16940,7 @@
     },
     "all_compact_active_MTF_cache_numeric_qualification_complete": true,
     "raw_mbp_m1_numeric_reference_134": {
-      "status": "SOURCE_SCOPE_DRAFT_ONLY",
+      "status": "COMPLETE_RAW66_TO_FINAL_SELECTED_M1_MASK_JOIN_PASS",
       "source_scope": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/SOURCE_SCOPE_DRAFT.json",
         "sha256": "cdf276b5389f257d4650be49eec10ed2bd051f0674bbc948e93acbde02729216"
@@ -16950,14 +16950,18 @@
         "sha256": "6af1532f2cda76111f6ea14a483a5cf01648ed947ee0ee20f48ba7566655cada"
       },
       "execution_authorized": false,
-      "claimed_invocations": 0,
-      "completed_invocations": 0,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "training_enabled": false,
       "native_training_admitted": false,
       "test_data_used": false,
       "exit_evaluation": false,
-      "broker_access_allowed": false
+      "broker_access_allowed": false,
+      "actual_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_ACTUAL_REVIEW.json",
+        "sha256": "1a43cb8fce38942bca7efc960ee2c139ba85776b43c518047fa644846bf16eef"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -20743,7 +20747,7 @@
       "model_forward_ceiling_only_after_exact_case_plan": 218
     },
     "pending": [
-      "causal_TRAIN_observation_mask_only_witnesses",
+      "full_input_rendering_and_history_MTF_generic_snapshot_categorical_witness_validation",
       "exact_predeclared_case_plan_and_SHA",
       "same_state_profile_normalization_dataset_cache_bindings",
       "batch_parity_and_current_hardware_admission"
@@ -20764,6 +20768,10 @@
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_SOURCE_QUALIFICATION_20261021_139/ACTUAL_REVIEW.json",
       "sha256": "36c5926c28dc8ba4d12f7400c4f73e362e8114b8cdcb86186da08bf62178eb75"
+    },
+    "current_alias_mask_witnesses": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/ACTUAL_REVIEW.json",
+      "sha256": "0d9d4dbc5ac3e53a2c48ba96cf1d27c3c7dd8c662cd476d3bd85d77cd54a81aa"
     }
   },
   "dynamic_compact_input_influence_source_139": {
@@ -20825,10 +20833,10 @@
     "elapsed_seconds": 9.391676851999364
   },
   "dynamic_compact_train_witnesses_140": {
-    "status": "READY_FOR_ONE_CAPPED_INPUT_ONLY_TRAIN_MASK_WITNESS_SCAN",
-    "execution_authorized": true,
+    "status": "COMPLETE_PASS_2525_CURRENT_ALIAS_MASK_OWNERS_COVERED_BY_3_TRAIN_WITNESSES",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/WITNESS_AUDIT_PLAN.json",
@@ -20866,6 +20874,67 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "claimed_invocations": 1,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/ACTUAL_REVIEW.json",
+      "sha256": "0d9d4dbc5ac3e53a2c48ba96cf1d27c3c7dd8c662cd476d3bd85d77cd54a81aa"
+    },
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/ACTUAL_PEER_REVIEW.json",
+      "sha256": "ed415d69bae1d777a66d0d4c944ac11f015e11b43615279b0a8b4f632d14bf1a"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/WITNESS_AUDIT_TERMINAL.json",
+      "sha256": "1118d95c2fec188e7aeb0588490e96514750370c2c7a05f1f62e60e417a8353e"
+    },
+    "actual_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/WITNESS_AUDIT_RESULT.json",
+      "sha256": "9fd50d37bab64df25454d1621c31f4e27bc67a760c05377c10f6827bdbe1065d"
+    },
+    "witnesses": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/WITNESS_OUTPUT/WITNESSES.json",
+      "sha256": "3eb5fbf35c895bde814de205b794978d71158cdafa906c0f81370dded3aed233"
+    },
+    "current_alias_owners_covered": 2525,
+    "uncovered_owners": 0,
+    "independent_witnesses": 3,
+    "padding_rows_not_independent": 13,
+    "selected_parent_rows": [
+      45713,
+      14387,
+      25188
+    ],
+    "newly_covered_owner_gains": [
+      2465,
+      40,
+      20
+    ],
+    "new_full_TRAIN_hash_passes": 1,
+    "hash_bytes_streamed": 19146223003,
+    "hash_elapsed_seconds": 33.578894384001615,
+    "elapsed_seconds": 47.90553423899837,
+    "prior_digest_carry_used": false
+  },
+  "input_only_render_141": {
+    "status": "MINIMAL_EXTERNAL_ADAPTER_SOURCE_PREPARATION_NOT_ADMITTED",
+    "execution_authorized": false,
+    "training_enabled": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "frozen_current_witnesses": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/WITNESS_OUTPUT/WITNESSES.json",
+      "sha256": "3eb5fbf35c895bde814de205b794978d71158cdafa906c0f81370dded3aed233"
+    },
+    "expected_independent_parent_rows": [
+      45713,
+      14387,
+      25188
+    ],
+    "baseline_padding_owner_index": 0,
+    "native_model_forwards_admitted": 0,
+    "dataset_constructor_or_target_provider_allowed": false
   }
 }
