@@ -631,12 +631,14 @@ Entry-kvalitet/dekning, LONG/SHORT/FLAT, sporbarhet, generalisering ogøkonomisk
 edge er fortsatt egne åpne krav. CURRENT_HANDOVER/NEXT_RUN_POLICY eier aktuell
 status; ingen ny trening er åpnet.
 
-135stoppet på0,829s før512traceanalysen: revisjonens canonicalJSON manglet
-sluttlinjeskiftet fra original canonical_bytes-eier.222kilder/policy bevart;
-ingen produksjons-/datafeil er påvist. Original135kvittering/worker bevares,
-planen er konsumert/stengt.137retter bare denne serialiseringen, literal-
-fixture og eierbinding; ingen ny modell-/data-/baseline-/normaliseringsrunde.
-1021singletonscore/3sidehorisontties/full480grenser står uendret.
-137har uavhengig eksaktdiffPASS og binder én ny900s/4G/512M-analyse med
-12literalcaser/5kilder/8funksjoner. Beggecohorthasher matcher kildens LF-format;
-faktisk137PASS mangler fortsatt.
+135/137receiptanalyser er stengt etter to revisjonsfeil: manglende canonical-
+slutt-LF og ufundert krav om256observerte FLATutfall på allehorisonter.
+Originalkilden propagerer faktisk terminalobservasjon til alle3actionlaner;
+likecounts0..256 er kravet, ikke fullobservasjon. Ingen data-/modellfeil er
+påvist;222kilder/policy og alleoriginaler bevares.138retter bare dette
+countkravet, missing/validliteral og kildeeierbinding. Ingen nye modell-
+forwards/fit eller PT/Parquet/rå-/normaliseringspayload. Full512traceanalyse,
+1021singletonscore og3sidehorisontties/full480grenser er fortsatt uavklart.
+138har uavhengig eksaktdiffPASS og én fersk900s/4G/512M-plan.6kildefiler/
+9funksjoner og valid/missing/lane-countliteral er bundet; ingen fullobservasjon
+eller monotonefuturecounts antas. Faktisk138PASS mangler før kjøringen.

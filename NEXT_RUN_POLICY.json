@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T06:35:54.773060+00:00",
-  "status": "137_SAVED_INITIAL_TRACE_AUDIT_READY_CANONICAL_REPAIR_135_CLOSED",
+  "observed_utc": "2026-10-21T06:43:18.285445+00:00",
+  "status": "138_SAVED_INITIAL_TRACE_AUDIT_READY_SOURCE_COUNT_REPAIR_135_137_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Runonefresh900s4G137receipt-onlyauditwithcanonicalLFfixtureandownerbinding. Neverrelaunch135. Preserve512initial/full480limits; no model/data/normalizationchange.136individualinfluence designstillunadmitted.",
+  "next_action": "Runonefresh900s4G138savedinitialtraceauditwithsame512cohorts andsource-derived3laneobservedcounts. Neverrelaunch135/137. No newmodel/data/normalization/baseline/training.136individualinfluence designunadmitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "137_SAVED_INITIAL_TRACE_AUDIT_READY",
+    "current_activity": "138_SAVED_INITIAL_TRACE_AUDIT_READY",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -121,8 +121,8 @@
     "latest_terminal_role": "134_all66_actual_raw_independent_reference_roll_pending_final_mask_join",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_135/TRACE_AUDIT_TERMINAL.json",
-      "sha256": "071cde99ce0d9d07ed76a5964dfe761d6f8dc44764231c0c2cbe9035e176f948"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_137/TRACE_AUDIT_TERMINAL.json",
+      "sha256": "e403389e70e1f27a9e9c21eb002821965f30db6c419fa7e24c6057e44a9feb36"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "135closedauditserializerbug;fresh137source/scopedpeerPASS andoneexactcappedreceiptanalysisbound. Original115cohorts and134dataproofs unchanged. Individualdynamicmodelinfluence/fullcurves/Entryquality remain.",
+    "current_blocker": "135/137closedauditguards;fresh138source-derivedterminalmask-countfixture andpeerPASS,oneexactcappedreceiptanalysisbound. Original115observations/134dataproofs unchanged. Individualinfluence/fullcurves/Entryquality remain.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -19522,7 +19522,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T06:35:54.773060+00:00",
+  "updated_utc": "2026-10-21T06:43:18.285445+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20168,10 +20168,10 @@
     "exit_code": 1,
     "source_unchanged": true,
     "result": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_135/TRACE_AUDIT_RESULT.json",
-      "sha256": "52af0d47ce5fbed8b63ab37b7e1b4e4d71e9c8560ecb334f8d58ae5c0bdf1a48"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_137/TRACE_AUDIT_RESULT.json",
+      "sha256": "177b993c7333216d403b727c3cc04015752b5e272648b88b746b4556f6dbb800"
     },
-    "elapsed_seconds": 0.8285981189983431,
+    "elapsed_seconds": 0.8838849040039349,
     "test_data_used": false,
     "training_enabled": false,
     "native_training_admitted": false,
@@ -20619,10 +20619,10 @@
     "elapsed_seconds": 0.8285981189983431
   },
   "initial_decision_trace_receipts_137": {
-    "status": "READY_ONE_FRESH_CAPPED_TRACE_AUDIT_AFTER_NEWLINE_REPAIR",
-    "execution_authorized": true,
+    "status": "FAILED_UNSUPPORTED_FULL_FLAT_OBSERVATION_COUNT_AUDIT_GUARD",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_137/TRACE_AUDIT_PLAN.json",
@@ -20643,6 +20643,54 @@
     "input_scope": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_137/INPUT_SCOPE.json",
       "sha256": "f2e3c07498be5f1fd87f954d2354ea94747bc4c73f898e85237b78f44c529565"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_137/TRACE_AUDIT_RESULT.json",
+      "sha256": "177b993c7333216d403b727c3cc04015752b5e272648b88b746b4556f6dbb800"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_137/TRACE_AUDIT_TERMINAL.json",
+      "sha256": "e403389e70e1f27a9e9c21eb002821965f30db6c419fa7e24c6057e44a9feb36"
+    },
+    "actual_failure_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_137/ACTUAL_FAILURE_REVIEW.json",
+      "sha256": "d2923c341a5a1a1cb9d8d661565c4da3a8dc5de05d4b2eb192e74f0d21dfde89"
+    },
+    "elapsed_seconds": 0.8838849040039349
+  },
+  "initial_decision_trace_receipts_138": {
+    "status": "READY_ONE_FRESH_CAPPED_TRACE_AUDIT_AFTER_SOURCE_COUNT_REPAIR",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_138/TRACE_AUDIT_PLAN.json",
+      "sha256": "f1df9c8ea012c8b94a14aeda9826fe2198280c8ed8f74cdc1b1f674e0ce7b946"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_138/run_initial_decision_trace_receipts.py",
+      "sha256": "50eb5d2adcbeed91e5deee65fffe01bd95b95186dad0f68c4ef2fc1dceb0696b"
+    },
+    "preexecution_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_138/PREEXECUTION_REVIEW.json",
+      "sha256": "fc0fb428451a931f6556d8a24f5bc0557a499b341b1dc9b2a4fd5881b93f2859"
+    },
+    "static_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_138/STATIC_PEER_REVIEW.json",
+      "sha256": "0bf28942dd0bf66816c396473edbcf93fb225a8c63b175784829a5e76673e7ad"
+    },
+    "input_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_DECISION_TRACE_RECEIPT_AUDIT_20261021_138/INPUT_SCOPE.json",
+      "sha256": "ac1fb590ef818e1302492c0632c20b6cdbd05c7be110135bcec1eea3f7be2601"
     },
     "training_enabled": false,
     "full_epoch_training_allowed": false,

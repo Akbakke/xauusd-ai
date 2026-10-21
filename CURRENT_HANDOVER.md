@@ -86,17 +86,18 @@ alle157felt/masker/lesepass og ytrevakter; SHA55663fdb21e18fe26a0f0bcf1195f37cdc
 Neste er faktisk individuell modellpåvirkning på kompaktprofilens dynamiske
 hoder og beslutningsspor. Eksisterende legacyQ/fullfeature-influencehelper
 passer ikke denne fasen; bind minste audit-onlyadapter til aktive felt/ruter.
-135er konsumert/FAILED på0,829s før traceanalysen: kontrollens canonicalJSON-
-hjelper manglet originaleierens sluttlinjeskift.222kilder/policy ble bevart;
-ingen produksjons-/datafeil er påvist. ACTUAL_FAILURE_REVIEW i135root binder
-årsaken og originalterminalen. Ny137retter bare serialisering, én literal-
-fixture og bindingen til canonical_bytes-eieren. Ingen135relansering.
-137har nå uavhengig eksaktdiffPASS og binder én ny900s/4G/512M-receiptanalyse.
-Beggecohorthasher matcher kildens LF-format;12literalcaser/5kilder/8funksjoner
-er bundet før faktisk kjøring.
-115s512lagredebeslutningsspor kan fortsatt gjenbrukes uten modellforwards;
-1021singletonscore er eksakt kontrollerbare,3sidehorisontties ogfull480argmax
-kan ikke rekonstrueres fra lagrede means. LONG/SHORT/FLAT, kvalitet/dekning forvalgte/avståtte entries og
+135/137er konsumert/stengt etter to feil i den nye receipt-revisjonen:
+canonicalJSON manglet slutt-LF, og FLAT-fremtidsmasker ble feilaktig krevd
+fullt observerte. Kildeformelen krever like LONG/SHORT/FLAT-maskecounts,
+med genuine gap/sensurering. Begge kjøringer stoppet før fulltraceanalyse;
+222kilder/policy ble bevart. Originalkvitteringer og ACTUAL_FAILURE_REVIEW
+bevares i hverroot. Ingen produksjons-/datafeil er påvist og ingen modell
+ble kjørt.138retter bare kildeavledet maskecountkrav/literal/eierbinding.
+138har uavhengig eksaktdiffPASS,6bundne kildefiler/9funksjoner og én fersk
+900s/4G/512M-kjøring. Manglendeobservasjoner og ulikekomponentnevnere bevares.
+115s512initialspor gjenbrukes;1021singletonscore kan kontrolleres eksakt,
+3sidehorisontties/full480argmax kan ikke rekonstrueres fra lagrede means.
+LONG/SHORT/FLAT, kvalitet/dekning forvalgte/avståtte entries og
 senere generalisering har fortsatt åpne krav. Ingen ny trening er åpnet.
 121–126/133/134 og produksjonsbaseline/paritet gjenbrukes uten omkjøring.
 
