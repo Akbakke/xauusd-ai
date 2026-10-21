@@ -31,7 +31,7 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — teknisk23×5-referanse127 under implementasjon
+## Gjeldende arbeid — teknisk23×5-referanse127, fysisk kontroll bundet
 
 127design, ERROR_SPEC og plan er publisert i
 `/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127`.
@@ -47,9 +47,10 @@ BB20Welforddrift/radius rundt uavhengige eksakte vindusmomenter; runtimepandas
 2.3.3/kernelfil er bundet. Ingen globalisclose/markedsepsilon eller tilpasning
 til faktiske cachefeil. Gjenbruk225PASS; kjør bare ny fokusert testklasse og
 relevante små håndfasiter. Kildepeer/AST/diffcheck er bestått; alle79tidligere
-hjelpere og225gamle caser er bevart.38nye caser er nå fryst og én capped
-kildekvalifisering er bundet; fysisk127 er uclaimet og stengt. Ingen jobb er
-startet ved denne kildecommitten.
+hjelpere og225gamle caser er bevart og gjenbrukes uten ny testkjøring. Faktisk
+49fokuserte caser bestod på5,701s/exit0, inkludert38nye.216kilder/policy var
+uendret. SOURCE_REVIEW.json binder faktisk XML og kildekvittering. Én fysisk
+127kontroll er nå claimet;115outputs er ennå ikke fysisk kvalifisert.
 Trening og alle tidligere lukkede vakter er fortsatt stengt.
 
 ## Ferdig — GC-inputkjeden kontrollert126
