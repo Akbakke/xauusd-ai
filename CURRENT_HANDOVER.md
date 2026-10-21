@@ -66,6 +66,12 @@ Perfilpartials må bindes til råSHA/kilde/state/sluttresultat og kunne gjenbruk
 Råpayload er ikke åpnet/hashet; eksisterende filstat/66småkvitteringer er kontrollert.
 Faktisk EOF/råSHA og uavhengige formler/bounds må kvalifiseres før én ny jobb.
 Ingen ny råpayloadjobb eller trening er åpnet.
+134referansemodulen er nå implementert: uavhengige handler/kvalitet, bok/ordercounts,
+hendelser, roll/incidentmasker og én delt EOF/CRC/SHA-leser med typed sammenligning.
+Én fersk capped kildekvalifisering av hånd-/syntetiskCSV-fasiter er åpnet i
+raw_mbp_m1_reference_source_134; den leser ingen ekte råpayload og gir ingen
+fullscan-/treningsadgang. Controller/PLAN/DESIGN/ERROR_SPEC ligger i134root.
+Faktisk66filkoordinator, sluttvakter og immutable perfildelkvitteringer gjenstår.
 121–126 og133skal gjenbrukes, ikke kjøres om. Individuelt modellkonsum og
 Entry-kvalitet/dekning/beslutningssporbarhet har fortsatt egne åpne krav.
 Ingen jobb kjører ved denne overleveringen.

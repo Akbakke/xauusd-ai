@@ -603,3 +603,10 @@ kvitteringer skal gjøre verifiserte delresultater gjenbrukbare. Det er kun
 design/inventar: ingen råpayload er åpnet, ingen scan/fit/trening er åpnet.
 Modellbruk og Entry-kvalitet/dekning/sporbarhet/generaliserings-/edgebevis er
 fortsatt åpne. CURRENT_HANDOVER/NEXT_RUN_POLICY eier faktisk status og bindinger.
+
+134uavhengige referanser og deltleser er implementert i
+`gx1/scripts/audit_raw_gc_m1_reference_v1.py`; hånd-/syntetiskIO-fasiter i
+`tests/test_raw_gc_m1_reference_v1.py`. DESIGN/ERROR_SPEC låser heltall og
+analytiske cellegrenser før targets. Én capped kildekvalifisering er åpnet;
+ekte rårecords er fortsatt ikke uavhengig kvalifisert, ingen rawscan/trening.
+Korrigert scopeprosa: faktisk11L1kvalitetstellere, ikke12; originaldraft beholdes.
