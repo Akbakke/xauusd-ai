@@ -610,3 +610,9 @@ fortsatt åpne. CURRENT_HANDOVER/NEXT_RUN_POLICY eier faktisk status og bindinge
 analytiske cellegrenser før targets. 116capped kildecaser bestod på2,848s/0feil/0skips;222kilder/policy bevart.
 Ekte rårecords er fortsatt ikke uavhengig kvalifisert, ingen rawscan/trening.
 Korrigert scopeprosa: faktisk11L1kvalitetstellere, ikke12; originaldraft beholdes.
+
+134første ektefil er nå PASS:4621512records,actualEOF/gzipCRC/SHA,énparse;
+86400råM1/1439valgteeventrader og122124pris/sidelevels bestod uavhengig
+heltalls-/celleboundsfasit. Controller14,527s/exit0,222kilder/policy bevart.
+FIRST_FILE_ACTUAL_REVIEW ogouterterminal låser gjenbrukbarpartial;65filer,
+fullroll/utenforvinduer/finalmaskjoin og modell/Entry-bevis er fortsattåpne.

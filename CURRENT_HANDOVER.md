@@ -73,11 +73,14 @@ hendelser, roll/incidentmasker og én delt EOF/CRC/SHA-leser med typed sammenlig
 ingen modell kjørt. SOURCE_REVIEW/TEST_RESULTS/terminal ligger i134root.
 Konsumert kildeplan er stengt. Neste er én eksaktbundet første ekte råfil med
 sluttvakter og immutable EOF/SHA-verifisert perfildelkvittering, som skal
-gjenbrukes ved de resterende65filene. Førstefil0/GCG5 er nå eksaktbundet i
-FIRST_FILE_PLAN og raw_mbp_m1_first_file_134: én capped1800s/4G-jobb,
-106239290komprimertebyte,86400M1-rader og1439valgteeventrader.
-Sluttstatus/EOF/verdier avgjøres av faktiskterminal; ingen full66filadgang
-eller trening følger av denne førstefilplanen.
+gjenbrukes ved de resterende65filene. Førstefil0/GCG5 er nå fysiskPASS:
+4621512rårecords,106239290komprimertebyte/604178370CSVbyte, actualEOF/CRC/SHA,
+86400M1-rader,1439valgteeventrader og122124pris/sidelevels. Én delt lesing/
+parse; controller14,527s, fryst222kilder/policy bevart. FIRST_FILE_ACTUAL_REVIEW
+ogouterterminal binder den gjenbrukbare FIRST_FILE_PARTIAL_000/RESULT.json.
+Førstefilplanen er konsumert/stengt, ingen relansering. Neste ferske plan skal
+lese kun resterende65råfiler og dele targetlesing/hash perkontrakt; fullroll,
+utenforfilvindu-zero/NaN og siste maskekobling gjenstår. Ingen ny trening.
 121–126 og133skal gjenbrukes, ikke kjøres om. Individuelt modellkonsum og
 Entry-kvalitet/dekning/beslutningssporbarhet har fortsatt egne åpne krav.
 Ingen jobb kjører ved denne overleveringen.
