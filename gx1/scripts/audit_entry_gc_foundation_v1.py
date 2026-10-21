@@ -3619,14 +3619,170 @@ def reference_trend_event_block(ohlcv):
         'ambiguous_branches':0,'BB_or_ADX_or_other_technical_formulas_recomputed':False}
 
 
-def run_technical_numeric(binding_path,*,trend_events=False):
-    prefix='TREND_EVENT_NUMERIC' if trend_events else 'TECHNICAL_NUMERIC'
-    plan_id=TREND_EVENT_NUMERIC_PLAN_ID if trend_events else TECHNICAL_NUMERIC_PLAN_ID
-    policy_key=TREND_EVENT_NUMERIC_POLICY_KEY if trend_events else TECHNICAL_NUMERIC_POLICY_KEY
-    schema='gx1_trend_event_numeric_audit_plan_v1' if trend_events else 'gx1_technical_numeric_audit_plan_v1'
-    fields=TREND_EVENT_NUMERIC_FIELDS if trend_events else TECHNICAL_NUMERIC_FIELDS
-    columns=tuple(range(94,111)) if trend_events else tuple(range(23))
-    active_count=17 if trend_events else 11
+NATIVE_SMC_NUMERIC_PLAN_ID='NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129'
+NATIVE_SMC_NUMERIC_POLICY_KEY='native_smc_numeric_reference_129'
+NATIVE_SMC_NUMERIC_FIELDS=('mtf_smc_structure_bias', 'mtf_smc_bos_up', 'mtf_smc_bos_down', 'mtf_smc_choch_up', 'mtf_smc_choch_down', 'mtf_smc_sweep_up_state', 'mtf_smc_sweep_down_state', 'mtf_smc_sweep_up_depth_atr', 'mtf_smc_sweep_down_depth_atr', 'mtf_smc_pivot_envelope_position', 'mtf_smc_range_width_atr', 'mtf_smc_bos_displacement_atr', 'mtf_smc_sweep_up_event', 'mtf_smc_sweep_down_event', 'mtf_smc_sweep_event_age_bars', 'mtf_smc_swing_state', 'mtf_smc_sweep_last_event_side', 'mtf_geometry_support_dist_atr', 'mtf_geometry_resistance_dist_atr', 'mtf_geometry_support_age_bars', 'mtf_geometry_resistance_age_bars', 'mtf_geometry_support_rail_slope_atr_per_bar', 'mtf_geometry_resistance_rail_slope_atr_per_bar', 'mtf_geometry_range_mid_dist_atr')
+NATIVE_SMC_DISCRETE_FIELDS=('mtf_smc_structure_bias', 'mtf_smc_bos_up', 'mtf_smc_bos_down', 'mtf_smc_choch_up', 'mtf_smc_choch_down', 'mtf_smc_sweep_up_state', 'mtf_smc_sweep_down_state', 'mtf_smc_sweep_up_event', 'mtf_smc_sweep_down_event', 'mtf_smc_sweep_event_age_bars', 'mtf_smc_swing_state', 'mtf_smc_sweep_last_event_side', 'mtf_geometry_support_age_bars', 'mtf_geometry_resistance_age_bars')
+NATIVE_SMC_PIVOT_TOLERANCE=1e-12  # smc_v1._detect_swing_pivots source502/504
+
+
+def reference_native_smc_replay(high,low,close,*,swing_lookback=3):
+    """Independent chronological native-price replay, before output warmup."""
+    from fractions import Fraction
+    h,l,c=(np.asarray(value) for value in (high,low,close));n=len(h)
+    if (isinstance(swing_lookback,bool) or not isinstance(swing_lookback,int) or swing_lookback<1
+            or n>=2**24 or any(a.dtype!=np.dtype('float64') or a.ndim!=1 or a.shape!=h.shape
+                or not np.isfinite(a).all() or np.any(a<=0.) for a in (h,l,c))
+            or np.any(h<l) or np.any(h<c) or np.any(l>c)):
+        raise RuntimeError('NATIVE_SMC_NUMERIC_REPLAY_SCHEMA')
+    k=swing_lookback;high_pivots=np.zeros(n,bool);low_pivots=np.zeros(n,bool)
+    if n>=2*k+1:
+        tolerance=Fraction.from_float(NATIVE_SMC_PIVOT_TOLERANCE)
+        for values,is_high,pivots in ((h,True,high_pivots),(l,False,low_pivots)):
+            windows=np.lib.stride_tricks.sliding_window_view(values,2*k+1)
+            extremes=windows.max(axis=1) if is_high else windows.min(axis=1)
+            unique,inverse=np.unique(extremes,return_inverse=True)
+            # Exact dyadic arithmetic followed by one RN64 conversion reproduces
+            # the source's represented max-minus/min-plus tolerance threshold.
+            thresholds=np.array([float(Fraction.from_float(float(v))+(-tolerance if is_high else tolerance))
+                for v in unique],dtype=np.float64)[inverse]
+            pivots[k:n-k]=(values[k:n-k]>=thresholds if is_high else values[k:n-k]<=thresholds)
+    indices=('last_high_idx','prev_high_idx','last_low_idx','prev_low_idx')
+    prices=('last_high_price','prev_high_price','last_low_price','prev_low_price')
+    roots=('structure_bias','structure_available','swing_state','bos_up','bos_down','choch_up','choch_down',
+        'sweep_up','sweep_down','sweep_up_event','sweep_down_event','sweep_event_age_bars','sweep_last_event_side')
+    out={name:np.full(n,-1,np.int64) for name in indices}
+    out.update({name:np.full(n,np.nan) for name in prices+roots})
+    last={'high':None,'low':None};previous={'high':None,'low':None}
+    consumed_bos={'high':None,'low':None};consumed_sweep={'high':None,'low':None}
+    regime=0;last_sweep=None;last_side=np.nan
+    for row in range(n):
+        candidate=row-k
+        if candidate>=k:
+            for side,values,pivots in (('high',h,high_pivots),('low',l,low_pivots)):
+                if pivots[candidate]:previous[side],last[side]=last[side],(candidate,float(values[candidate]))
+        for side in ('high','low'):
+            for prefix,entry in (('last',last[side]),('prev',previous[side])):
+                if entry is not None:
+                    out[prefix+'_'+side+'_idx'][row]=entry[0];out[prefix+'_'+side+'_price'][row]=entry[1]
+        signs=[]
+        for side in ('high','low'):
+            a,b=last[side],previous[side]
+            signs.append(0 if a is None or b is None else int(a[1]>b[1])-int(a[1]<b[1]))
+        hs,ls=signs;bias=(hs+ls)/2.;state={(1,1):0,(1,-1):1,(-1,1):2,(-1,-1):3}.get((hs,ls),4)
+        levels=[entry[1] for entry in (*last.values(),*previous.values()) if entry is not None]
+        structure_available=len(levels)==4 and max(levels)>min(levels)
+        out['structure_bias'][row]=bias;out['swing_state'][row]=state;out['structure_available'][row]=float(structure_available)
+        bos={}
+        for side in ('high','low'):
+            entry=last[side];identity=None if entry is None else entry[0]
+            fired=entry is not None and (c[row]>entry[1] if side=='high' else c[row]<entry[1]) and consumed_bos[side]!=identity
+            bos[side]=bool(fired)
+            if fired:consumed_bos[side]=identity
+            out['bos_'+('up' if side=='high' else 'down')][row]=float(fired)
+        choch_up=regime<0 and bos['high'];choch_down=regime>0 and bos['low']
+        if choch_up:regime=1
+        elif choch_down:regime=-1
+        elif regime==0 and structure_available and bias!=0.:regime=1 if bias>0 else -1
+        out['choch_up'][row]=float(choch_up);out['choch_down'][row]=float(choch_down)
+        events={}
+        for side,wick in (('high',h[row]),('low',l[row])):
+            entry=last[side];identity=None if entry is None else entry[0]
+            swept=entry is not None and consumed_bos[side]!=identity and (
+                wick>entry[1] and c[row]<=entry[1] if side=='high' else wick<entry[1] and c[row]>=entry[1])
+            event=swept and consumed_sweep[side]!=identity
+            if event:consumed_sweep[side]=identity
+            suffix='up' if side=='high' else 'down';out['sweep_'+suffix][row]=float(swept)
+            out['sweep_'+suffix+'_event'][row]=float(event);events[side]=bool(event)
+        if any(events.values()):
+            last_sweep=row;last_side=0. if all(events.values()) else 1. if events['high'] else -1.
+        out['sweep_event_age_bars'][row]=np.nan if last_sweep is None else row-last_sweep
+        out['sweep_last_event_side'][row]=last_side
+    return out
+
+
+def reference_native_smc_block(ohlcv):
+    """Independent native spot SMC17 plus its seven same-owner geometry roots."""
+    names=('bar_start_ns','open','high','low','close','volume')
+    if set(ohlcv)!=set(names):raise RuntimeError('NATIVE_SMC_NUMERIC_SOURCE_SCHEMA')
+    clock=_projection_integer_clock(ohlcv['bar_start_ns'],'NATIVE_SMC_NUMERIC_SOURCE_CLOCK');n=len(clock)
+    for name in names[1:]:
+        a=np.asarray(ohlcv[name]);dtype=np.dtype('int64') if name=='volume' else np.dtype('float64')
+        if a.dtype!=dtype or a.shape!=clock.shape or not np.isfinite(a).all() or np.any(a<=0):
+            raise RuntimeError('NATIVE_SMC_NUMERIC_SOURCE_SCHEMA')
+    high,low,close,open_=(ohlcv[key] for key in ('high','low','close','open'))
+    if np.any(high<np.maximum(close,open_)) or np.any(low>np.minimum(close,open_)) or np.any(high<low):
+        raise RuntimeError('NATIVE_SMC_NUMERIC_SOURCE_SCHEMA')
+    tr=high-low
+    if n>1:tr[1:]=np.maximum.reduce((tr[1:],np.abs(high[1:]-close[:-1]),np.abs(low[1:]-close[:-1])))
+    atr,ea=reference_technical_wilder(tr,14)
+    if np.any(atr[np.isfinite(atr)]<=0.):raise RuntimeError('NATIVE_SMC_NUMERIC_NONPOSITIVE_ATR')
+    replay=reference_native_smc_replay(high,low,close)
+    lh,ph,ll,pl=(replay[name] for name in ('last_high_price','prev_high_price','last_low_price','prev_low_price'))
+    hi,phi,li,pli=(replay[name] for name in ('last_high_idx','prev_high_idx','last_low_idx','prev_low_idx'))
+    available=(hi>=0)&(phi>=0)&(li>=0)&(pli>=0)&np.isfinite(atr)
+    top=np.maximum.reduce((lh,ph,ll,pl));bottom=np.minimum.reduce((lh,ph,ll,pl))
+    width,ew=_technical_sub(top,bottom);out={};radii={}
+    for suffix in ('structure_bias','bos_up','bos_down','choch_up','choch_down','sweep_up_event',
+            'sweep_down_event','sweep_event_age_bars','swing_state','sweep_last_event_side'):
+        out['mtf_smc_'+suffix]=replay[suffix]
+    for side in ('up','down'):out['mtf_smc_sweep_'+side+'_state']=replay['sweep_'+side]
+    def ratio(name,a,b,ea_=0.,eb_=0.):out[name],radii[name]=_technical_div(a,b,ea_,eb_)
+    for side,first,second in (('up',high,lh),('down',ll,low)):
+        diff,ed=_technical_sub(first,second);ratio('mtf_smc_sweep_'+side+'_depth_atr',diff,atr,ed,ea)
+        name='mtf_smc_sweep_'+side+'_depth_atr';inactive=replay['sweep_'+side]==0.
+        out[name][inactive]=0.;radii[name][inactive]=0.
+    diff,ed=_technical_sub(close,bottom)
+    ratio('mtf_smc_pivot_envelope_position',diff,np.where(available,width,np.nan),ed,ew)
+    collapsed=available&(width==0.)
+    out['mtf_smc_pivot_envelope_position'][collapsed]=0.;radii['mtf_smc_pivot_envelope_position'][collapsed]=0.
+    ratio('mtf_smc_range_width_atr',width,atr,ew,ea)
+    selected_high=(replay['bos_up']>0.)&((replay['bos_down']<=0.)|(hi>=li))
+    selected_low=(replay['bos_down']>0.)&~selected_high
+    displacement=np.zeros(n);edisplacement=np.zeros(n)
+    for selected,level in ((selected_high,lh),(selected_low,ll)):
+        diff,ed=_technical_sub(close,level);value,error=_technical_div(diff,atr,ed,ea)
+        displacement[selected]=value[selected];edisplacement[selected]=error[selected]
+    out['mtf_smc_bos_displacement_atr']=displacement;radii['mtf_smc_bos_displacement_atr']=edisplacement
+    for side,a,b,index,previous_index in (('support',ll,pl,li,pli),('resistance',lh,ph,hi,phi)):
+        diff,ed=_technical_sub(close,a) if side=='support' else _technical_sub(a,close)
+        ratio('mtf_geometry_'+side+'_dist_atr',diff,atr,ed,ea)
+        out['mtf_geometry_'+side+'_age_bars']=(np.arange(n,dtype=np.int64)-index).astype(np.float64)
+        span=(index-previous_index).astype(np.float64);valid=available&(span>0.)
+        denominator=np.full(n,np.nan);edenominator=denominator.copy()
+        denominator[valid]=span[valid]*atr[valid]
+        # ERROR_SPEC129: every positive uncertainty node rounds outward.
+        propagated=_technical_umul(span[valid],ea[valid])
+        edenominator[valid]=_technical_uadd(propagated,
+            _technical_rho(_technical_uadd(np.abs(denominator[valid]),propagated)),_technical_rho(denominator[valid]))
+        identity=valid&(span==1.);edenominator[identity]=ea[identity]
+        diff,ed=_technical_sub(a,b)
+        ratio('mtf_geometry_'+side+'_rail_slope_atr_per_bar',diff,denominator,ed,edenominator)
+    total,et=_technical_sub(top,-bottom);mid,em=_technical_scale(total,et,.5)
+    diff,ed=_technical_sub(close,mid,0.,em);ratio('mtf_geometry_range_mid_dist_atr',diff,atr,ed,ea)
+    for name in NATIVE_SMC_NUMERIC_FIELDS:
+        value=np.asarray(out[name],dtype=np.float64)
+        bound=np.where(np.isfinite(value),0.,np.nan) if name in NATIVE_SMC_DISCRETE_FIELDS else radii[name]
+        out[name]=np.where(available,value,np.nan);radii[name]=np.where(available,bound,np.nan)
+    out={name:out[name] for name in NATIVE_SMC_NUMERIC_FIELDS};radii={name:radii[name] for name in NATIVE_SMC_NUMERIC_FIELDS}
+    first={name:int(np.flatnonzero(np.isfinite(value))[0]) if np.isfinite(value).any() else None for name,value in out.items()}
+    return out,radii,{'source_rows':n,'first_valid_rows':first,
+        'common_first_valid_row':int(np.flatnonzero(available)[0]) if available.any() else None,
+        'full_history':True,'gap_or_session_reset':False,'swing_lookback':3,'pivot_comparison_tolerance':NATIVE_SMC_PIVOT_TOLERANCE,
+        'pivot_thresholds_use_exact_dyadic_then_RN64':True,'replay_before_output_warmup':True,
+        'positive_witnesses':{name:int(np.sum(value>0.)) for name,value in out.items()},
+        'BB_or_ADX_or_other_technical_formulas_recomputed':False}
+
+
+def run_technical_numeric(binding_path,*,trend_events=False,native_smc=False):
+    if trend_events and native_smc:raise RuntimeError('TECHNICAL_NUMERIC_MUTUALLY_EXCLUSIVE_MODES')
+    prefix='NATIVE_SMC_NUMERIC' if native_smc else 'TREND_EVENT_NUMERIC' if trend_events else 'TECHNICAL_NUMERIC'
+    plan_id=NATIVE_SMC_NUMERIC_PLAN_ID if native_smc else TREND_EVENT_NUMERIC_PLAN_ID if trend_events else TECHNICAL_NUMERIC_PLAN_ID
+    policy_key=NATIVE_SMC_NUMERIC_POLICY_KEY if native_smc else TREND_EVENT_NUMERIC_POLICY_KEY if trend_events else TECHNICAL_NUMERIC_POLICY_KEY
+    schema='gx1_native_smc_numeric_audit_plan_v1' if native_smc else 'gx1_trend_event_numeric_audit_plan_v1' if trend_events else 'gx1_technical_numeric_audit_plan_v1'
+    fields=NATIVE_SMC_NUMERIC_FIELDS if native_smc else TREND_EVENT_NUMERIC_FIELDS if trend_events else TECHNICAL_NUMERIC_FIELDS
+    columns=tuple(range(70,94)) if native_smc else tuple(range(94,111)) if trend_events else tuple(range(23))
+    active_count=17 if (trend_events or native_smc) else 11
     root=Path('/home/andre2/GX1_RUNS')/plan_id
     if binding_path!=root/(prefix+'_EXECUTION_BINDING.json'):raise RuntimeError(prefix+'_BINDING_PATH')
     io.require_regular_file(binding_path,prefix+'_BINDING');binding=io.read_json(binding_path);plan_path=root/'PLAN.json'
@@ -3660,8 +3816,10 @@ def run_technical_numeric(binding_path,*,trend_events=False):
     if (design['run_id']!=plan_id or spec['design']!=plan['design']
             or spec['frozen_before_any_cached_numeric_comparison'] is not True or design['references']!=plan['references']
             or tuple(design['audited_fields'])!=fields):raise RuntimeError(prefix+'_FROZEN_ERROR_SPEC')
-    if trend_events:
+    if trend_events or native_smc:
         inherited=metadata(spec['inherited_127_arithmetic_spec'])
+        if inherited['frozen_before_any_cached_numeric_comparison'] is not True:raise RuntimeError(prefix+'_INHERITED_ERROR_SPEC')
+    if trend_events:
         clarification=metadata(gate['design_cache_column_clarification'])
         if (inherited['frozen_before_any_cached_numeric_comparison'] is not True or clarification['design']!=plan['design']
                 or tuple(clarification['cache_column_indices'])!=columns or tuple(clarification['audited_fields'])!=fields
@@ -3673,7 +3831,7 @@ def run_technical_numeric(binding_path,*,trend_events=False):
     if seal_stamp.tzinfo is None or seal_stamp.value!=WINDOW_END_NS:raise RuntimeError(prefix+'_TEST_SEAL')
     seal=seal_stamp.value;refs=plan['references'];cache=metadata(refs['cache_manifest']);prebuilt=metadata(refs['prebuilt_manifest'])
     native=metadata(refs['native_m5_manifest']);profile=metadata(refs['compact_profile_proposal']);previous=metadata(refs['previous_native_context_review'])
-    if trend_events:
+    if trend_events or native_smc:
         prior=metadata(refs['previous_technical_numeric_review'])
         if (prior['status']!='PASS_SCOPED_115_TECHNICAL_OUTPUTS_ALL5TF' or prior['source_unchanged'] is not True
                 or prior['test_data_used'] is not False or prior['qualified_outputs']!=115
@@ -3681,6 +3839,15 @@ def run_technical_numeric(binding_path,*,trend_events=False):
             raise RuntimeError(prefix+'_PRIMITIVE_REUSE')
         if tuple(design['cache_column_indices'])!=columns or tuple(cache['feature_names'][j] for j in columns)!=fields:
             raise RuntimeError(prefix+'_CACHE_FIELD_ORDER')
+    if native_smc:
+        trend=metadata(refs['previous_trend_numeric_review']);index=metadata(refs['qualified_mtf_numeric_index'])
+        if (trend['status']!='PASS_SCOPED_85_EXACT_TREND_OUTPUTS_ALL5TF' or trend['source_unchanged'] is not True
+                or trend['test_data_used'] is not False or trend['qualified_outputs']!=85
+                or index['cache_manifest']!=refs['cache_manifest'] or index['qualified_output_records']!=200
+                or len(index['rows'])!=200 or any(row['name'] in fields for row in index['rows'])
+                or tuple(design['discrete_fields'])!=NATIVE_SMC_DISCRETE_FIELDS
+                or design['known_payload_bytes']['logical_24selected_feature_bytes']!=sum(design['expected_cache_rows'].values())*24*4):
+            raise RuntimeError(prefix+'_PRIOR_INDEX_OR_FIELD_CONTRACT')
     runtime=design['runtime_contract']
     for key in ('metadata','window_kernel'):
         path=verified(runtime[key],prefix+'_RUNTIME');runtime_files[str(path)]={'sha256':runtime[key]['sha256'],'bytes':path.stat().st_size}
@@ -3757,11 +3924,12 @@ def run_technical_numeric(binding_path,*,trend_events=False):
         raise RuntimeError(prefix+'_FULL_HISTORY_ORIGIN')
     active={tf:set(profile['active_execution']['per_timeframe_fields'][tf])&set(fields) for tf in design['timeframes']}
     if any(len(names)!=active_count for names in active.values()):
-        raise RuntimeError(prefix+('_COMPACT_85_SCOPE' if trend_events else '_COMPACT_55_SCOPE'))
+        raise RuntimeError(prefix+('_COMPACT_85_SCOPE' if trend_events or native_smc else '_COMPACT_55_SCOPE'))
     reports={};helper_reports={};selected_rows={}
     for tf in design['timeframes']:
         raw=native_resample_calendar_frame(m5,tf)
-        reference,bounds,helper=reference_trend_event_block(raw) if trend_events else reference_technical_block(raw)
+        reference,bounds,helper=(reference_native_smc_block(raw) if native_smc else
+            reference_trend_event_block(raw) if trend_events else reference_technical_block(raw))
         clock=timestamps[tf];positions=np.searchsorted(raw['bar_start_ns'],clock)
         if (np.any(positions>=len(raw['bar_start_ns'])) or not np.array_equal(raw['bar_start_ns'][positions],clock)
                 or not np.array_equal(raw['bar_start_ns'][(raw['bar_start_ns']>=clock[0])&(raw['bar_start_ns']<=clock[-1])],clock)):
@@ -3769,12 +3937,12 @@ def run_technical_numeric(binding_path,*,trend_events=False):
         info=cache['tfs'][tf];matrix=np.load(cache_root/info['feats_npy'],mmap_mode='r',allow_pickle=False)
         target={name:np.asarray(matrix[:,j]) for name,j in zip(fields,columns)}
         ref={name:value[positions] for name,value in reference.items()};radii={name:value[positions] for name,value in bounds.items()}
-        report=(compare_technical_reference(ref,target,radii,discrete_fields=fields) if trend_events
-            else compare_technical_reference(ref,target,radii))
+        report=(compare_technical_reference(ref,target,radii,discrete_fields=NATIVE_SMC_DISCRETE_FIELDS) if native_smc else
+            compare_technical_reference(ref,target,radii,discrete_fields=fields) if trend_events else compare_technical_reference(ref,target,radii))
         for name,stat in report.items():
             if not stat['numeric_reference_qualified']:raise RuntimeError(prefix+'_ACTIVE_LIBRARY_FIELD_UNOBSERVED:'+tf+':'+name)
             stat['compact_profile_active']=name in active[tf]
-            if trend_events:
+            if trend_events or native_smc:
                 stat['positive_reference_values']=int(np.sum(ref[name]>0.))
                 stat['zero_reference_values']=int(np.sum(ref[name]==0.))
         reports[tf]=report;helper_reports[tf]=helper;selected_rows[tf]=len(clock)
@@ -3787,8 +3955,8 @@ def run_technical_numeric(binding_path,*,trend_events=False):
     io.verify_digest(plan_path,binding['plan_sha256'],prefix+'_POST_PLAN');io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],prefix+'_POST_POLICY')
     if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):
         raise RuntimeError(prefix+'_POST_SOURCE_CHANGED')
-    result={'schema_version':'gx1_trend_event_numeric_result_v1' if trend_events else 'gx1_technical_numeric_result_v1',
-        'status':'COMPLETE_SCOPED_17_TREND_EVENT_FORMULAS_ALL5TF' if trend_events else 'COMPLETE_SCOPED_23_TECHNICAL_FORMULAS_ALL5TF',
+    result={'schema_version':'gx1_native_smc_numeric_result_v1' if native_smc else 'gx1_trend_event_numeric_result_v1' if trend_events else 'gx1_technical_numeric_result_v1',
+        'status':'COMPLETE_SCOPED_24_NATIVE_SMC_GEOMETRY_FORMULAS_ALL5TF' if native_smc else 'COMPLETE_SCOPED_17_TREND_EVENT_FORMULAS_ALL5TF' if trend_events else 'COMPLETE_SCOPED_23_TECHNICAL_FORMULAS_ALL5TF',
         'source_head':binding['source_head'],'source_unchanged':True,'plan_sha256':binding['plan_sha256'],'limits':proof,
         'design':plan['design'],'error_spec':plan['error_spec'],'references':refs,'runtime_files':runtime_files,
         'audited_formulas':len(fields),'timeframes':design['timeframes'],'qualified_output_fields':len(fields)*len(design['timeframes']),
@@ -3807,6 +3975,14 @@ def run_technical_numeric(binding_path,*,trend_events=False):
             'previous_technical_numeric_review':refs['previous_technical_numeric_review'],
             'all_outputs_discrete_exact':True,'branch_ambiguity_policy':'fail_before_cache_comparison',
             'BB_or_ADX_or_other_technical_formulas_recomputed':False})
+    if native_smc:
+        result.update({'inherited_127_arithmetic_spec':spec['inherited_127_arithmetic_spec'],
+            'qualified_mtf_numeric_index':refs['qualified_mtf_numeric_index'],
+            'previous_technical_numeric_review':refs['previous_technical_numeric_review'],
+            'previous_trend_numeric_review':refs['previous_trend_numeric_review'],
+            'logical_selected_feature_bytes':design['known_payload_bytes']['logical_24selected_feature_bytes'],
+            'discrete_fields':list(NATIVE_SMC_DISCRETE_FIELDS),'continuous_fields_per_TF':10,
+            'pivot_comparison_tolerance':NATIVE_SMC_PIVOT_TOLERANCE,'BB_or_ADX_or_other_technical_formulas_recomputed':False})
     output=staging/(prefix+'_RESULT.json');io.write_json(output,result)
     io.write_json(staging/(prefix+'_TERMINAL.json'),{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'test_data_used':False,
         'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(output)})
@@ -3824,8 +4000,10 @@ if __name__=='__main__':
     group.add_argument('--gc-native-projection-binding',type=Path)
     group.add_argument('--technical-numeric-binding',type=Path)
     group.add_argument('--trend-events-numeric-binding',type=Path)
+    group.add_argument('--native-smc-numeric-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.trend_events_numeric_binding is not None:run_technical_numeric(args.trend_events_numeric_binding,trend_events=True)
+    if args.native_smc_numeric_binding is not None:run_technical_numeric(args.native_smc_numeric_binding,native_smc=True)
+    elif args.trend_events_numeric_binding is not None:run_technical_numeric(args.trend_events_numeric_binding,trend_events=True)
     elif args.technical_numeric_binding is not None:run_technical_numeric(args.technical_numeric_binding)
     elif args.gc_native_projection_binding is not None:run_gc_native_projection_numeric(args.gc_native_projection_binding)
     elif args.gc_basis_numeric_binding is not None:run_gc_event_numeric(args.gc_basis_numeric_binding,basis=True)

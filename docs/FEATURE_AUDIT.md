@@ -565,3 +565,17 @@ c8305715e44cf031e9bd27f4401a8c25d0a039883aba53a60fbc9199438fb1ff.
 140aktive+60parkerte. Rest213perTF=111aktive+102parkerte. SHA
 dfc51dd4210cdca02cdd201baf8c3614bbb7cf09414045666eacc2d52b92f127.
 Ingen individuell nytte-/Entry-/økonomi- eller rawMBP→M1-påstand følger av dette.
+
+129avgrenser neste native spot-SMC-kontroll til24felt/cache70:94 påhverTF:
+17aktiveSMC og7parkerte geometrifelt,120outputs. Kildekjeden og dens faktiske
+n3/right3/representerte1e-12-pivotgrense er forhåndsbundet, uten nyEPS eller
+antattspot-tickgrid. Replay kjøres før felleswarmup og gjennom kalenderhull;
+SMC17/geometry7 deler firepivot+positivATR-maske, mens sweepalder/side har egen
+NaN-prefix.14diskrete og10kontinuerlige felt sammenlignes med eksakt tilstand/
+maske og127s forhåndslåste ATR-/aritmetikk-/F32grenser. Dette er en implementert
+planavgrensning, ingen fysisk120feltPASS. GC123s observed-SMC er et annet domene.
+
+129kildepeer er PASS før kjøring:102gamlehelpers og281gamlecaser bevart,
+23nye håndcaser klare. Kun én kildekvalifisering er åpnet; fysisk120outputs
+er fortsatt uclaimet/stengt. PREEXECUTION_SOURCE_REVIEW.json i129 binder
+prewarmup, pivotRN, masker og geometri; ingen faktisk numeric/learningPASS.

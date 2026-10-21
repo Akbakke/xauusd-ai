@@ -2358,3 +2358,261 @@ class TestTrendEventReference128:
         else: actual["price_vs_ema20_state_age_bars"][-1] += .25
         with pytest.raises(RuntimeError, match="TECHNICAL_NUMERIC_REFERENCE_(NAN_MASK|DISCRETE_MISMATCH)"):
             audit.compare_technical_reference(values, actual, bounds, discrete_fields=self._fields())
+
+
+
+class TestNativeSMCReference129:
+    """Literal native-spot replay and geometry witnesses; no producer oracle."""
+
+    @staticmethod
+    def _owner():
+        return TestTechnicalReference127._owner()
+
+    @staticmethod
+    def _frame(high, low, close):
+        return TestTechnicalReference127._frame(close, high=high, low=low)
+
+    @classmethod
+    def _literal(cls):
+        high, low, close = np.full(15, 105.), np.full(15, 95.), np.full(15, 100.)
+        high[[3, 10]] = [110., 112.]
+        low[[4, 11]] = [90., 92.]
+        return cls._frame(high, low, close)
+
+    @classmethod
+    def _extend(cls, frame, high, low, close):
+        return cls._frame(np.concatenate([frame["high"], high]),
+                          np.concatenate([frame["low"], low]),
+                          np.concatenate([frame["close"], close]))
+
+    @classmethod
+    def _raw(cls, frame, *, lookback=3):
+        return cls._owner().reference_native_smc_replay(
+            frame["high"], frame["low"], frame["close"], swing_lookback=lookback)
+
+    @staticmethod
+    def _encloses(values, radii, row, numerator, denominator=1):
+        TestTechnicalReference127._encloses(values, radii, row, numerator, denominator)
+
+    @staticmethod
+    def _fields():
+        return (
+            "mtf_smc_structure_bias", "mtf_smc_bos_up", "mtf_smc_bos_down",
+            "mtf_smc_choch_up", "mtf_smc_choch_down", "mtf_smc_sweep_up_state", "mtf_smc_sweep_down_state",
+            "mtf_smc_sweep_up_depth_atr", "mtf_smc_sweep_down_depth_atr",
+            "mtf_smc_pivot_envelope_position", "mtf_smc_range_width_atr", "mtf_smc_bos_displacement_atr",
+            "mtf_smc_sweep_up_event", "mtf_smc_sweep_down_event", "mtf_smc_sweep_event_age_bars",
+            "mtf_smc_swing_state", "mtf_smc_sweep_last_event_side", "mtf_geometry_support_dist_atr",
+            "mtf_geometry_resistance_dist_atr", "mtf_geometry_support_age_bars", "mtf_geometry_resistance_age_bars",
+            "mtf_geometry_support_rail_slope_atr_per_bar", "mtf_geometry_resistance_rail_slope_atr_per_bar",
+            "mtf_geometry_range_mid_dist_atr",
+        )
+
+    def test_fifteen_bar_literal_covers_all_twenty_four_fields_and_pre_warmup_event(self):
+        audit = self._owner()
+        frame = self._literal()
+        values, radii, report = audit.reference_native_smc_block(frame)
+        assert tuple(audit.NATIVE_SMC_NUMERIC_FIELDS) == self._fields()
+        assert tuple(values) == self._fields() and tuple(radii) == self._fields()
+        continuous = {"mtf_smc_sweep_up_depth_atr", "mtf_smc_sweep_down_depth_atr",
+                      "mtf_smc_pivot_envelope_position", "mtf_smc_range_width_atr", "mtf_smc_bos_displacement_atr",
+                      "mtf_geometry_support_dist_atr", "mtf_geometry_resistance_dist_atr",
+                      "mtf_geometry_support_rail_slope_atr_per_bar", "mtf_geometry_resistance_rail_slope_atr_per_bar",
+                      "mtf_geometry_range_mid_dist_atr"}
+        assert set(audit.NATIVE_SMC_DISCRETE_FIELDS) == set(self._fields())-continuous
+        assert report["source_rows"] == 15 and report["common_first_valid_row"] == 14
+        # Four pivots are3/10(high),4/11(low), visible6/13 and7/14.
+        # TR0..13 sums160: ATR13=80/7, ATR14=555/49.
+        expected = {
+            "mtf_smc_structure_bias": (1, 1), "mtf_smc_bos_up": (0, 1), "mtf_smc_bos_down": (0, 1),
+            "mtf_smc_choch_up": (0, 1), "mtf_smc_choch_down": (0, 1),
+            "mtf_smc_sweep_up_state": (0, 1), "mtf_smc_sweep_down_state": (0, 1),
+            "mtf_smc_sweep_up_depth_atr": (0, 1), "mtf_smc_sweep_down_depth_atr": (0, 1),
+            "mtf_smc_pivot_envelope_position": (5, 11), "mtf_smc_range_width_atr": (1078, 555),
+            "mtf_smc_bos_displacement_atr": (0, 1), "mtf_smc_sweep_up_event": (0, 1),
+            "mtf_smc_sweep_down_event": (0, 1), "mtf_smc_sweep_event_age_bars": (4, 1),
+            "mtf_smc_swing_state": (0, 1), "mtf_smc_sweep_last_event_side": (1, 1),
+            "mtf_geometry_support_dist_atr": (392, 555), "mtf_geometry_resistance_dist_atr": (588, 555),
+            "mtf_geometry_support_age_bars": (3, 1), "mtf_geometry_resistance_age_bars": (4, 1),
+            "mtf_geometry_support_rail_slope_atr_per_bar": (14, 555),
+            "mtf_geometry_resistance_rail_slope_atr_per_bar": (14, 555),
+            "mtf_geometry_range_mid_dist_atr": (-49, 555),
+        }
+        assert set(expected) == set(values)
+        for name, (num, den) in expected.items():
+            assert values[name].dtype == np.float64 and radii[name].dtype == np.float64
+            assert np.isnan(values[name][:14]).all() and np.isnan(radii[name][:14]).all(), name
+            self._encloses(values[name], radii[name], 14, num, den)
+            if name in audit.NATIVE_SMC_DISCRETE_FIELDS:
+                assert values[name][14] == num/den and radii[name][14] == 0
+        raw = self._raw(frame)
+        assert raw["sweep_up_event"][10] == 1
+        assert raw["last_high_idx"][13] == 10 and raw["last_low_idx"][14] == 11
+        assert values["mtf_smc_sweep_event_age_bars"][14] == 4  # Replay ran before output warmup.
+
+    def test_right_three_confirmation_accepts_all_equal_neighbours_causally(self):
+        frame = self._frame(np.full(10, 101.), np.full(10, 99.), np.full(10, 100.))
+        raw = self._raw(frame)
+        for side in ("high", "low"):
+            assert raw["last_"+side+"_idx"][5] == -1
+            assert raw["last_"+side+"_idx"][6] == 3
+            assert raw["prev_"+side+"_idx"][6] == -1
+            assert raw["last_"+side+"_idx"][7] == 4
+            assert raw["prev_"+side+"_idx"][7] == 3
+        assert raw["structure_available"][6] == 0 and raw["structure_available"][7] == 1
+
+    @pytest.mark.parametrize("side,accepted", [("high", True), ("high", False), ("low", True), ("low", False)])
+    def test_pivot_boundary_uses_the_existing_represented_tolerance(self, side, accepted):
+        high, low, close = np.full(7, 100.), np.full(7, 99.), np.full(7, 99.5)
+        if side == "high":
+            threshold = np.float64(100.)-np.float64(1e-12)
+            high[3] = threshold if accepted else np.nextafter(threshold, -np.inf)
+        else:
+            threshold = np.float64(99.)+np.float64(1e-12)
+            low[3] = threshold if accepted else np.nextafter(threshold, np.inf)
+        raw = self._raw(self._frame(high, low, close))
+        assert raw["last_"+side+"_idx"][6] == (3 if accepted else -1)
+
+    @pytest.mark.parametrize("mirror", [False, True])
+    def test_unmocked_opposing_close_break_and_mirror_have_literal_choch(self, mirror):
+        bars = np.array([
+            [105.,104.,104.5], [110.,106.,108.], [106.5,105.8,106.], [102.,100.,101.],
+            [107.,102.5,105.], [115.,107.,112.], [109.,106.,107.], [108.,105.,106.],
+            [110.,105.5,107.], [112.,106.,109.], [108.,103.,105.], [107.,103.5,105.], [104.,98.,99.],
+        ], np.float64)
+        high, low, close = bars.T.copy()
+        if mirror: high, low, close = 220-low, 220-high, 220-close
+        raw = self._raw(self._frame(high, low, close), lookback=1)
+        side, other = ("up", "down") if mirror else ("down", "up")
+        assert raw["choch_"+side][11] == 0
+        assert raw["bos_"+side][12] == 1 and raw["choch_"+side][12] == 1
+        assert raw["choch_"+side].sum() == 1 and raw["choch_"+other].sum() == 0
+        equal_close = close.copy();equal_close[12] = 117. if mirror else 103.
+        equal = self._raw(self._frame(high, low, equal_close), lookback=1)
+        assert equal["bos_"+side][12] == 0 and equal["choch_"+side][12] == 0
+
+    def test_equal_price_new_pivot_identity_rearms_the_sweep_once(self):
+        high = np.array([101.,105.,103.,106.,104.,105.,104.,106.,107.,107.])
+        close = np.array([100.,104.,102.,104.,103.,104.,103.,104.,106.,104.])
+        raw = self._raw(self._frame(high, np.full(10, 99.), close), lookback=1)
+        np.testing.assert_array_equal(raw["sweep_up_event"], [0,0,0,1,0,0,0,1,0,0])
+        assert raw["last_high_idx"][2] == 1 and raw["last_high_idx"][6] == 5
+        assert raw["last_high_price"][2] == raw["last_high_price"][6] == 105
+        assert raw["structure_bias"][4] == .5  # Higher high, equal low.
+        assert raw["bos_up"][8] == 1 and raw["sweep_up"][9] == 0
+
+    def test_repeated_wick_condition_after_false_gap_does_not_rearm_same_pivot(self):
+        frame = self._literal();frame["high"][12] = 111.
+        raw = self._raw(frame)
+        np.testing.assert_array_equal(raw["last_high_idx"][10:13], [3,3,3])
+        np.testing.assert_array_equal(raw["sweep_up"][10:13], [1,0,1])
+        np.testing.assert_array_equal(raw["sweep_up_event"][10:13], [1,0,0])
+        np.testing.assert_array_equal(raw["sweep_event_age_bars"][10:13], [0,1,2])
+
+    @pytest.mark.parametrize("boundary", ["wick_touch", "close_equal", "close_through"])
+    def test_wick_is_strict_closeback_inclusive_and_bos_consumes_first(self, boundary):
+        frame = self._literal()
+        if boundary == "wick_touch": frame["high"][10] = 110.
+        elif boundary == "close_equal": frame["close"][10] = frame["open"][10] = 110.
+        else: frame["close"][10] = frame["open"][10] = 111.
+        raw = self._raw(frame)
+        assert raw["bos_up"][10] == int(boundary == "close_through")
+        assert raw["sweep_up"][10] == int(boundary == "close_equal")
+        assert raw["sweep_up_event"][10] == int(boundary == "close_equal")
+
+    def test_double_sweep_has_two_depths_held_side_zero_and_raw_age(self):
+        frame = self._extend(self._literal(), [114.,105.,105.], [88.,95.,95.], [100.,100.,100.])
+        values, radii, _ = self._owner().reference_native_smc_block(frame)
+        # ATR15=(13*(555/49)+26)/14=8489/686. Both levels are new
+        # confirmed identities: high112 and low92, with wick114/88.
+        for side in ("up", "down"):
+            assert values["mtf_smc_sweep_"+side+"_state"][15] == 1
+            assert values["mtf_smc_sweep_"+side+"_event"][15] == 1
+        self._encloses(values["mtf_smc_sweep_up_depth_atr"], radii["mtf_smc_sweep_up_depth_atr"], 15, 1372, 8489)
+        self._encloses(values["mtf_smc_sweep_down_depth_atr"], radii["mtf_smc_sweep_down_depth_atr"], 15, 2744, 8489)
+        np.testing.assert_array_equal(values["mtf_smc_sweep_event_age_bars"][15:], [0,1,2])
+        np.testing.assert_array_equal(values["mtf_smc_sweep_last_event_side"][15:], [0,0,0])
+
+    def test_collapsed_envelope_keeps_true_zero_geometry_and_own_event_nan_prefix(self):
+        high, low, close = np.full(30, 100.), np.full(30, 100.), np.full(30, 100.)
+        high[:7] = 105.;low[:7] = 95.
+        values, _, _ = self._owner().reference_native_smc_block(self._frame(high, low, close))
+        for name in ("mtf_smc_pivot_envelope_position", "mtf_smc_range_width_atr",
+                     "mtf_geometry_support_dist_atr", "mtf_geometry_resistance_dist_atr",
+                     "mtf_geometry_support_rail_slope_atr_per_bar", "mtf_geometry_resistance_rail_slope_atr_per_bar",
+                     "mtf_geometry_range_mid_dist_atr"):
+            np.testing.assert_array_equal(values[name][14:], np.zeros(16))
+        np.testing.assert_array_equal(values["mtf_geometry_support_age_bars"][14:], np.full(16, 3.))
+        np.testing.assert_array_equal(values["mtf_geometry_resistance_age_bars"][14:], np.full(16, 3.))
+        assert np.isnan(values["mtf_smc_sweep_event_age_bars"]).all()
+        assert np.isnan(values["mtf_smc_sweep_last_event_side"]).all()
+
+    @pytest.mark.parametrize("side", ["above", "below"])
+    def test_outside_envelope_positions_remain_unclipped(self, side):
+        high, low, close = ([122.],[95.],[120.]) if side == "above" else ([105.],[78.],[80.])
+        frame = self._extend(self._literal(), high, low, close)
+        values, radii, _ = self._owner().reference_native_smc_block(frame)
+        target = 15 if side == "above" else -5
+        self._encloses(values["mtf_smc_pivot_envelope_position"], radii["mtf_smc_pivot_envelope_position"], 15, target, 11)
+        assert (values["mtf_smc_pivot_envelope_position"][15] > 1 if side == "above"
+                else values["mtf_smc_pivot_envelope_position"][15] < 0)
+
+    @pytest.mark.parametrize("mirror", [False, True])
+    def test_simultaneous_bos_selects_the_newest_pivot_with_real_tolerance_edge(self, mirror):
+        from fractions import Fraction
+        delta = 2.**-42
+        high, low, close = np.full(8, 100.+delta), np.full(8, 100.+delta), np.full(8, 100.+delta)
+        high[4] = low[4] = close[4] = 100.
+        high[7] = close[7] = 100.+delta/2
+        low[7] = 100.-2.**-38
+        frame = self._extend(self._literal(), high, low, close)
+        if mirror:
+            original_high = frame["high"].copy()
+            frame["high"] = 200-frame["low"]
+            frame["low"] = 200-original_high
+            frame["close"] = 200-frame["close"]
+            frame["open"] = frame["close"].copy()
+        raw = self._raw(frame)
+        assert raw["bos_up"][22] == raw["bos_down"][22] == 1
+        newest, older = ("low", "high") if mirror else ("high", "low")
+        assert raw["last_"+newest+"_idx"][22] == 19
+        assert raw["last_"+older+"_idx"][22] == 18
+        # Equal-index dual BOS cannot occur in valid OHLC: C>H and C<L
+        # would contradict H>=L. The valid unequal-index edge covers both
+        # reachable priority branches without inventing invalid market data.
+        atr = Fraction(555,49)
+        d = Fraction(1,2**42)
+        for true_range in (d,0,0,0,d,d,0,17*d): atr = (13*atr+true_range)/14
+        expected = (-d/2 if mirror else d/2)/atr
+        values, radii, _ = self._owner().reference_native_smc_block(frame)
+        self._encloses(values["mtf_smc_bos_displacement_atr"], radii["mtf_smc_bos_displacement_atr"], 22,
+                       expected.numerator, expected.denominator)
+        assert (values["mtf_smc_bos_displacement_atr"][22] < 0 if mirror
+                else values["mtf_smc_bos_displacement_atr"][22] > 0)
+
+    def test_calendar_holes_do_not_reset_and_future_cannot_rewrite_the_prefix(self):
+        frame = self._extend(self._literal(), [114.,105.,105.], [88.,95.,95.], [100.,100.,100.])
+        gapped = {name: a.copy() for name, a in frame.items()}
+        gapped["bar_start_ns"][10:] += 17*DAY
+        original, ob, _ = self._owner().reference_native_smc_block(frame)
+        gap, gb, _ = self._owner().reference_native_smc_block(gapped)
+        future = self._extend(frame, [121.,81.,121.,81.,121.], [119.,79.,119.,79.,119.], [120.,80.,120.,80.,120.])
+        extended, eb, _ = self._owner().reference_native_smc_block(future)
+        for name in self._fields():
+            np.testing.assert_array_equal(gap[name], original[name])
+            np.testing.assert_array_equal(gb[name], ob[name])
+            np.testing.assert_array_equal(extended[name][:18], original[name])
+            np.testing.assert_array_equal(eb[name][:18], ob[name])
+
+    @pytest.mark.parametrize("fault", ["wrong_value", "wrong_mask", "wrong_category"])
+    def test_comparison_rejects_wrong_continuous_value_mask_and_discrete_category(self, fault):
+        audit = self._owner()
+        values, radii, _ = audit.reference_native_smc_block(self._literal())
+        actual = {name: a.astype(np.float32) for name, a in values.items()}
+        valid = audit.compare_technical_reference(values, actual, radii, discrete_fields=audit.NATIVE_SMC_DISCRETE_FIELDS)
+        assert all(valid[name]["numeric_reference_qualified"] for name in self._fields())
+        if fault == "wrong_value": actual["mtf_geometry_support_dist_atr"][14] += 1
+        elif fault == "wrong_mask": actual["mtf_smc_structure_bias"][0] = 0
+        else: actual["mtf_smc_swing_state"][14] = 7
+        with pytest.raises(RuntimeError, match="TECHNICAL_NUMERIC_REFERENCE_(VALUE_MISMATCH|NAN_MASK|DISCRETE_MISMATCH)"):
+            audit.compare_technical_reference(values, actual, radii, discrete_fields=audit.NATIVE_SMC_DISCRETE_FIELDS)

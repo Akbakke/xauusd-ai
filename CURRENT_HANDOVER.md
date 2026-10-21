@@ -31,6 +31,21 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
+## Gjeldende arbeid — nativeSMC17/geometri7 i129
+
+129kilde og smal peerreview er ferdig:24felt perTF/cache70:94,120outputs,
+85kompaktaktive/35parkerte.14diskrete/10kontinuerlige perTF. Kausal pivotn3,
+prewarmup-replay, BOS/CHOCH/sweepidentitet, egne masker og7geometriformler
+har uavhengige håndfasiter. SamtidigBOS på samme pivotindeks er algebraisk
+umulig med gyldig OHLC; ulikeindeksersamtidigBOS har ekte dyadiske håndcaser.
+102av103gamlefunksjoner og281gamlefoundationcaser er uendret.182native117-
+produksjonsfiler er uendret; ingen normalisering/baseline/modell skal omkjøres.
+Én capped kildekvalifisering er nå åpnet:23nye småcaser+eksisterendeCHOCH-node.
+Faktisk testresultat er ennå ikke kjent. Fysisk129 er uclaimet og stengt.
+Root `/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129`.
+PREEXECUTION_SOURCE_REVIEW.json binder kildepeer og gjenbruk; dette er ingen
+fysisk PASS. Ingen råMBP-/TB-scan, rebuild, nyepoke, Exit eller TEST.
+
 ## Gjeldende grense — trend/state/kryss17×5 i128 bestått
 
 128 er COMPLETE i
@@ -54,8 +69,7 @@ TERMINAL.json SHA9d347824ab62a6ab5b26da90604ff66899e6ff7a5c5b5e1cfe0a802e9126c8a
 QUALIFIED_MTF_NUMERIC_INDEX.json binder127+128disjunkt:200outputposter,
 140kompaktaktive+60parkerte,40perTF. Rest213perTF=111aktive+102parkerte.
 SHAdfc51dd4210cdca02cdd201baf8c3614bbb7cf09414045666eacc2d52b92f127.
-Neste avgrensede arbeid er read-onlykildescope for nativeSMC17 og samme
-eiers geometri før ny referanseplan. Råevent→M1, andre lokale formler,
+129nativeSMC17/geometri7 er nå kildeklar og venter fokusert kvalifisering. Råevent→M1, andre lokale formler,
 individuell lært nytte og Entry-kvalitet/dekning/forklaringer gjenstår.
 Ingen jobb kjører; training_enabled=false og alle øvrige vakter består.
 
