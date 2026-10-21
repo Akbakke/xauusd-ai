@@ -79,10 +79,11 @@ Root: `/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153
 - `SUMMARY.json`:d1c4ace92788a0e843a34f78f84cfc1ca0192fcb0d4487c428bb57cbb93503c7
 - `ACTUAL_JOINT_REVIEW_PEER.json`:767f5f2bf40358716aec9a90e28aebf44828b9637306de1f8ab306c175a0f377
 
-Neste steg: undersøk terminalretningens korte horisontkalibrering,
-horisontkondisjonering og tapsfordeling i eksisterende eiere mot153-beviset.
-Velg deretter bare en konkret, målt begrunnet rettelse eller en eksplisitt ny
-treningsplan. Ingen ny score, terskel, horisontgrense, modellvariant eller trening
+Neste steg:154 er bundet som én capped CPUaudit av de fire lagrede148/151-
+kurvefilene. Mål terminalkalibrering, LONG−SHORT-kontrast og samme-rads
+horisontrespons på faste FINAL-grupper; gjenbruk153s identitets-/kurvevalidator.
+Null nye modellkall, optimizersteg, fits, PT-/Parquet-/råMBP-/pointerlesinger.
+Vurder deretter en konkret målt begrunnet rettelse eller eksplisitt treningsplan. Ingen ny score, terskel, horisontgrense, modellvariant eller trening
 har adgang nå. Opprinnelig én epoke og den nye TRAIN-RMS-epoken er begge konsumert.
 En ny agent starter med `bash scripts/gx1_handover.sh --check`, leser GX1_RULES
 og denne overleveringen, og fortsetter dette neste steget. Ingen råMBP-rescan.

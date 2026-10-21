@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T18:19:50.437833+00:00",
-  "status": "153_COMPLETE_ORIGINAL_GOAL_PINNED_HANDOVER_READY",
+  "observed_utc": "2026-10-21T18:34:50.199134+00:00",
+  "status": "154_PREPARED_SAVED_CURVE_DIRECTION_HORIZON_DIAGNOSIS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "151 consumed exactly the explicitly approved additional TRAIN-RMS M5 Entry epoch:118249 unique TRAIN rows/7391updates/last9 and32 fixed final ONLINE forwards. Native guard/trainer/observer PASS/0/0; windows task Disabled. No additional epoch or relaunch authority. Paired learning and Entry-quality review remains separate.",
-  "next_action": "Use153fixed-probe evidence to inspect short-horizon terminal-direction calibration and horizon conditioning/loss allocation in existing owners. Separate measured optimism in selected rows from its unproven cause; prepare only a minimal evidence-bound correction or explicit next-training proposal. No new training, model variant, threshold or horizon floor is admitted.",
+  "next_action": "Run exactly one154capped CPU saved-curve direction/horizon diagnosis from four148/151JSONs, fixed FINAL groups and own masks; zero model/checkpoint/raw/Parquet/pointer reads, forwards, updates or fits. Review terminal calibration and same-row horizon response before any correction is selected. No new training, score, threshold, floor, model variant or Exit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "153_COMPLETE_NEXT_M5_ENTRY_DIRECTIONAL_CALIBRATION",
+    "current_activity": "154_PREPARED_SAVED_CURVE_DIRECTION_HORIZON_DIAGNOSIS",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7615,7 +7615,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare exactly one capped CPU152paired review of stored148/151forecasts and fixed targets using current canonical validator and four pointer-column projections. No model loading, new forwards, refit, raw MBP scan, extra training, Exit or TEST.",
+    "next_action": "Run exactly one154capped CPU saved-curve direction/horizon diagnosis from four148/151JSONs, fixed FINAL groups and own masks; zero model/checkpoint/raw/Parquet/pointer reads, forwards, updates or fits. Review terminal calibration and same-row horizon response before any correction is selected. No new training, score, threshold, floor, model variant or Exit.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -15740,7 +15740,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Use153fixed-probe evidence to inspect short-horizon terminal-direction calibration and horizon conditioning/loss allocation in existing owners. Separate measured optimism in selected rows from its unproven cause; prepare only a minimal evidence-bound correction or explicit next-training proposal. No new training, model variant, threshold or horizon floor is admitted.",
+      "next_action": "Run exactly one154capped CPU saved-curve direction/horizon diagnosis from four148/151JSONs, fixed FINAL groups and own masks; zero model/checkpoint/raw/Parquet/pointer reads, forwards, updates or fits. Review terminal calibration and same-row horizon response before any correction is selected. No new training, score, threshold, floor, model variant or Exit.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 2,
       "full_native_epoch_request_fulfilled": true,
@@ -19566,7 +19566,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T18:19:50.437833+00:00",
+  "updated_utc": "2026-10-21T18:34:50.199134+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -21960,5 +21960,51 @@
   "original_project_goal": {
     "path": "/home/andre2/src/GX1_CURRENT/docs/ORIGINAL_PROJECT_GOAL.md",
     "sha256": "da21eeb1ec9e712e3d5372140a8165e1d771f12df7ff8efdefd341bdf849454c"
+  },
+  "dynamic_m5_direction_horizon_diagnosis_154": {
+    "status": "PREPARED_EXACT_ONE_CPU_AUDIT",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/PLAN.json",
+      "sha256": "8156971d50b424debc76a3129b84d668577f9f976a8ad83a67c5d428e74464fc"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/direction_horizon_diagnosis.py",
+      "sha256": "67e6435e7c296f4cbc3574abd0c6406f3926031aff4207efc0c0403e89532470"
+    },
+    "helper_worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153/joint_component_error_review.py",
+      "sha256": "d13f992333c384307d5bb82770dae81b01d6767bfe5e0a77c0b0262e1ac684ee"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154",
+    "execution_authorized": true,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "curve_JSON_reads": 4,
+    "max_wall_seconds": 900,
+    "memory_bytes": 4294967296,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "pointer_projections": 0,
+    "swap_bytes": 536870912,
+    "preexecution_source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/PREEXECUTION_SOURCE_PEER_REVIEW.json",
+      "sha256": "c5efb1a8438a49d2aae72da1f6ad073edc8162dfaab2457c7ad5de68375bfa44"
+    },
+    "markdown_read_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/MARKDOWN_READ_REVIEW.json",
+      "sha256": "28aef1cdb9b869b5d1e6650ac2296383267d7b3e45e0ebb261a9e6b7db6e3a0f"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "normalization_fit_enabled": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "new_score_threshold_or_horizon_floor": false,
+    "new_training_authorized": false
   }
 }
