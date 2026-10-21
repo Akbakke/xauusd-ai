@@ -79,17 +79,51 @@ Root: `/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153
 - `SUMMARY.json`:d1c4ace92788a0e843a34f78f84cfc1ca0192fcb0d4487c428bb57cbb93503c7
 - `ACTUAL_JOINT_REVIEW_PEER.json`:767f5f2bf40358716aec9a90e28aebf44828b9637306de1f8ab306c175a0f377
 
-Neste steg:154 er bundet som én capped CPUaudit av de fire lagrede148/151-
-kurvefilene. Mål terminalkalibrering, LONG−SHORT-kontrast og samme-rads
-horisontrespons på faste FINAL-grupper; gjenbruk153s identitets-/kurvevalidator.
-Null nye modellkall, optimizersteg, fits, PT-/Parquet-/råMBP-/pointerlesinger.
-Vurder deretter en konkret målt begrunnet rettelse eller eksplisitt treningsplan. Ingen ny score, terskel, horisontgrense, modellvariant eller trening
-har adgang nå. Opprinnelig én epoke og den nye TRAIN-RMS-epoken er begge konsumert.
-En ny agent starter med `bash scripts/gx1_handover.sh --check`, leser GX1_RULES
-og denne overleveringen, og fortsetter dette neste steget. Ingen råMBP-rescan.
-Scriptet validerer originalmålets canonical sti og SHA, viser nåstatus/neste steg
-og beholder terminal-/TEST-/kilde-/prosessvakter.56fokuserte kontroller bestod;
-kvittering:153/`HANDOVER_FOCUSED_CHECKS_TERMINAL.json`. Ingen ny treningsadgang.
+154 er COMPLETE/consumed:7,028s capped CPUaudit med fire lagrede148/151-
+kurvefiler, null nye modellkall/optimizersteg/fits/PT-/Parquet-/råMBP-/pointer-
+lesinger. Faste TRAIN256/CONTROL256, mål, masker og FINAL-grupper er bevart.
+Alle1024 FINAL-sidekurver har strengt fallende kandidatscore over479 nabopar
+og unikt maksimum ved1min. På samme CONTROL-rader endres terminalprognosen
+fra1til480min i snitt bare+0,082LONG/−0,209SHORTbps, mens predikert MAE øker
+5,862/6,308bps. Dette forklarer horisontvalget fra lagrede modellutganger.
+
+Ved1min på CONTROL er terminalprediksjonens standardavvik17,27/17,60bps,
+mot observerte7,61/7,50; korrelasjon0,053/0,049. LONG−SHORT-kontrastens
+korrelasjon er−0,094TRAIN/+0,050CONTROL. Sentrert feil er verre enn initial;
+overvurderte valgte signaler er derfor mer enn et felles nivå-/kostskift.
+Dette er512gjenbrukte proberader, ikke urørt generalisering eller handler.
+
+Kilden superviserer alle480queryer; horisontinput erh/480 gjennom én delt
+Linear+GELU-dekoder.111TRAIN-RMS er aktivt; samme residual/batch girh1 større
+per-cellegradientkoeffisient ennh480. Counts/RMS beviser ingen faktisk
+parametergradientfordeling. Ingen manglendeh1-label eller routingsfeil er påvist.
+Hvorfor7391steg lærte svak horisontrespons og for store korte retningsutslag,
+er fortsatt ubevist. Ingen modell-, taps-, score- eller terskelendring er valgt.
+
+Root: `/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154`.
+- `TERMINAL.json`:c0768755cf0f6f974f6f350b8f803488a5bd5cee20e7480cdc378bf7ee1eacea
+- `SUMMARY.json`:9001c67f2baff9bb63973dca3f4895c7b0796fa59bbb6e470cce9f3b11be1ae7
+- `ACTUAL_DIRECTION_HORIZON_PEER.json`:c08dc2335650ed4ce408aba6be96803a99af0851bf8cb7008904e77d260b896a
+- `SOURCE_AND_LOSS_REVIEW.json`:07590423d4540bb4352d2adf85439a9ce0e84120df246c85422a0ceb3d58a4a0
+
+Uavhengig review av252momentidentiteter/168counts/392sammenlignbare153felt
+bekrefter rapporteringen med synligF64-avrunding, ingen ny passgrense.
+56fokuserte handoverkontroller bestod under capped audit; kvittering:
+154/`HANDOVER_FOCUSED_CHECKS_TERMINAL.json`. Syntaks og diffkontroll er bestått.
+Alle32Markdown-filer/4570linjer ved98068b67 er lest, også historiske design;
+lesebevis:154/`MARKDOWN_READ_REVIEW.json`. CLAUDEs foreldede én-agent-setning
+er justert til gjeldende18.10-regel; ingen modell-/treningskode er endret.
+
+Neste steg: avgrens ett nullstegs vitne på en eksisterende fryst TRAIN-batch
+og eksakt slutt-ONLINE-state. Skill horisontgrenens bidrag fra delte oppgavers
+gradienter, med én felles forwardgraf og de allerede faste rapporthorisontene.
+Kilde/state/input/budsjett og eksisterende native lese-/maskinvarevakter må
+bindes før slik ny observasjon; dette er bare et forslag, ingen launchadgang.
+Et lokalt sluttstatevitne beviser ikke årsaken gjennom hele epoken.
+Ingen ny score, terskel, horisontgrense, modellvariant eller trening har adgang.
+Begge epoketillatelser er konsumert. En ny agent starter med
+`bash scripts/gx1_handover.sh --check`, leser reglene og denne overleveringen,
+og bygger på154-beviset. Ingen råMBP-rescan eller relansering av151–154.
 
 Læring, Entry-kvalitet/dekning, generalisering og økonomisk edge vurderes
 hver for seg. Alle26måneder er gjenbrukt utvikling, også CONTROL/VAL.

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T18:34:50.199134+00:00",
-  "status": "154_PREPARED_SAVED_CURVE_DIRECTION_HORIZON_DIAGNOSIS",
+  "observed_utc": "2026-10-21T18:41:18.194276+00:00",
+  "status": "154_COMPLETE_DIRECTION_HORIZON_DIAGNOSIS_HANDOVER_READY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "151 consumed exactly the explicitly approved additional TRAIN-RMS M5 Entry epoch:118249 unique TRAIN rows/7391updates/last9 and32 fixed final ONLINE forwards. Native guard/trainer/observer PASS/0/0; windows task Disabled. No additional epoch or relaunch authority. Paired learning and Entry-quality review remains separate.",
-  "next_action": "Run exactly one154capped CPU saved-curve direction/horizon diagnosis from four148/151JSONs, fixed FINAL groups and own masks; zero model/checkpoint/raw/Parquet/pointer reads, forwards, updates or fits. Review terminal calibration and same-row horizon response before any correction is selected. No new training, score, threshold, floor, model variant or Exit.",
+  "next_action": "Use154saved-curve and source/loss evidence to prepare the minimum zero-update fixed-TRAIN witness of horizon-route contribution and shared-task gradients at the final ONLINE state. Bind exact current source/state/input/budget through existing native read-only guards before any model observation. Local gradients cannot establish7391-update causality. No training, loss/model/score change, threshold, horizon floor, Exit or TEST is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -65,7 +65,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "108consumed exactly1 ordered TRAINepoch:118249rows/7391updates. Mixed componentlearning, no qualified Entryquality/generalization/edge. On512M5probe rows both sidecandidate scores peaked at1minute future horizon; diagnostic actions116SHORT/396FLAT/0LONG, not512trades and notM1Entry.111TRAIN-RMS learning remains unmeasured.148freshcurrent initial0measured32forwards/512rows;149state/RNG/currentfull480gateactualPASS qualifiedthatbaseline.111TRAIN-RMSepoch150proposal isreviewablebut notauthorized. No newepochauthority.",
+    "current_evidence_scope": "151consumed one TRAIN-RMSepoch/118249uniqueTRAINrows/7391updates;148/149freshbaseline preserved.152mixedcomponentlearning and153joint-error review arecomplete.154saved-curve audit4JSONs/0newforwards/updates measures weakterminalhorizonresponse andoverlargeh1directionalvariationwithweakcovariance onTRAIN256/CONTROL256. Trainingcause, LONG/SHORT/FLATEntryquality/generalization/economicedge remainunqualified; no newepochauthority.",
     "component_learning_measured": true,
     "component_learning_result": "MIXED_POOLED_IMPROVEMENT_WITH_H1_DEGRADATION",
     "primary_entry_quality_qualified": false,
@@ -84,11 +84,27 @@
     "latest_current_train_rms_mechanics": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117/ACTUAL_TECHNICAL_TERMINAL_REVIEW.json",
       "sha256": "41fec9f3352ea68b1d8232342f27b0199ff575117a77c36a1a12a577860f823e"
+    },
+    "latest_direction_horizon_diagnosis": {
+      "summary": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/SUMMARY.json",
+        "sha256": "9001c67f2baff9bb63973dca3f4895c7b0796fa59bbb6e470cce9f3b11be1ae7"
+      },
+      "actual_peer": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/ACTUAL_DIRECTION_HORIZON_PEER.json",
+        "sha256": "c08dc2335650ed4ce408aba6be96803a99af0851bf8cb7008904e77d260b896a"
+      },
+      "source_and_loss_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/SOURCE_AND_LOSS_REVIEW.json",
+        "sha256": "07590423d4540bb4352d2adf85439a9ce0e84120df246c85422a0ceb3d58a4a0"
+      },
+      "training_cause_established": false,
+      "new_training_authorized": false
     }
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "154_PREPARED_SAVED_CURVE_DIRECTION_HORIZON_DIAGNOSIS",
+    "current_activity": "154_COMPLETE_NEXT_FIXED_TRAIN_HORIZON_GRADIENT_WITNESS",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -117,11 +133,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTIONAL_CALIBRATION_ENTRY_QUALITY_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "153_CAPPED_CPU_JOINT_COMPONENT_ERROR_REVIEW",
+    "latest_terminal_role": "154_CAPPED_CPU_DIRECTION_HORIZON_DIAGNOSIS",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153/TERMINAL.json",
-      "sha256": "6cd7150babf6b1d29806bada146ba46c7c9f84126cf33370c6f660e68b90ee45"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/TERMINAL.json",
+      "sha256": "c0768755cf0f6f974f6f350b8f803488a5bd5cee20e7480cdc378bf7ee1eacea"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -141,7 +157,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No runtime blocker. At fixed final-selected CONTROL h1, terminal predictions are too optimistic while MAE overestimation reduces candidate optimism. Cause and corrective design remain unproven. The original goal is pinned; preserve M5 Entry direction/path quality and LONG/SHORT/FLAT coverage, no Exit or extra training.",
+    "current_blocker": "No runtime blocker.154explains h1selection arithmetically: terminal nearlyhorizon-flat whilepreMAEincreases, onall1024FINALsidecurves. H1statevariation is too large relative to weak observed directional covariance, so selecting positive tails is optimistic. Trainingcause andminimal corrective design remain unproven; no extra training or Exit.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7615,7 +7631,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exactly one154capped CPU saved-curve direction/horizon diagnosis from four148/151JSONs, fixed FINAL groups and own masks; zero model/checkpoint/raw/Parquet/pointer reads, forwards, updates or fits. Review terminal calibration and same-row horizon response before any correction is selected. No new training, score, threshold, floor, model variant or Exit.",
+    "next_action": "Use154saved-curve and source/loss evidence to prepare the minimum zero-update fixed-TRAIN witness of horizon-route contribution and shared-task gradients at the final ONLINE state. Bind exact current source/state/input/budget through existing native read-only guards before any model observation. Local gradients cannot establish7391-update causality. No training, loss/model/score change, threshold, horizon floor, Exit or TEST is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8744,7 +8760,8 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Current115zero-update initial, actualparity/Entry-only optimizer/resume, per-indicator independentnumeric audit anddecisionquality/generalization/economy remain open."
+      "Weak horizon response and excessive h1directional variation are measured; why7391updates learned them is unproven. No model/loss/score fix is selected.",
+      "A proposed local fixed-TRAIN zero-update gradient/horizon witness is not admitted or executed. It cannot alone establish whole-epoch causality."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -9464,7 +9481,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "153_COMPLETE_JOINT_ERRORS_LOCALIZED_ENTRY_QUALITY_REMAINS",
+      "status": "154_COMPLETE_DIRECTION_HORIZON_MECHANISM_MEASURED_ENTRY_UNQUALIFIED",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -9500,10 +9517,10 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "151explicit TRAIN-RMS epoch complete/consumed7391steps/118249rows, fixed final32ONLINE forwards. No additional epoch or relaunch authority.",
-        "152paired component review complete;153joint-error audit complete8.19s/0newforwards/updates/projections. Selected CONTROL h1 terminal predictions+14.24LONG/+22.05SHORT vs observed-2.89/-6.04bps. Positive MAE bias reduces candidate optimism. Its learned/horizon-conditioning cause remains unproven.",
-        "Actual Entry cadence remains M5. 153FINAL has no both-terminal-positive predictions at seven fixed report horizons; original152forecast-domain correction remains authoritative. No source/routing defect is proven.",
-        "LONG/SHORT/FLAT quality/coverage, selected/abstained interpretation, chronological generalization and economic edge remain unqualified. Preserve pinned original goal and explicit later clarifications. No Exit/TEST/broker or new training."
+        "151explicit TRAIN-RMSepochcomplete/consumed7391steps/118249rows.148/149baseline and152/153reviews unchanged; no relaunch or newepochauthority.",
+        "154COMPLETE7.028s/0newforwards/updates. All1024FINALsidecurves strictlyq-decrease; weak terminalhorizonresponse vs risingMAE explains h1max. H1directionamplitude vs weakcovariance explainsoptimistic selectedtails onfixedprobes.",
+        "Sourceproves480supervisedqueries/TRAIN-RMS, not a missingh1label or measured gradientallocation. Trainingcause andcorrective model/lossdesign remainunproven.",
+        "LONG/SHORT/FLATquality/coverage, chronologicalgeneralization andeconomicedge remainunqualified. No Exit/TEST/broker/training."
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
       "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/TERMINAL.json",
@@ -10368,7 +10385,7 @@
         }
       },
       "dynamic_m5_entry_implementation": {
-        "status": "153_JOINT_REVIEW_COMPLETE_ENTRY_DIRECTIONAL_CALIBRATION_AND_QUALITY_REMAIN",
+        "status": "154_DIRECTION_HORIZON_DIAGNOSIS_COMPLETE_TRAINING_CAUSE_REMAINS",
         "operator_authority": "18October M5Entry objective and one nativeepoch remain the project direction; the one requested epoch was fulfilled by108. No automatic additional epoch/HPO/Exit/TEST/broker authority.",
         "training_phase": "entry_only_dynamic_m5_path",
         "emission_scope": "m5_dynamic_observed",
@@ -10480,10 +10497,10 @@
           "elapsed_seconds": 138.4885816879978
         },
         "known_remaining_native_source_gaps": [
-          "No implementation, mask or horizon-routing defect is currently proven. 111TRAIN-RMS fit,147fresh/148initial/149stateaudit,151fullTRAIN-RMSepoch and152/153postreviews are complete and consumed; reuse unchanged evidence.",
-          "153fixed final-selected CONTROL h1 terminal direction is overoptimistic; MAE overestimation reduces q. Horizon-conditioning, loss allocation or convergence causes have not been established. No new score, threshold, horizon floor, model variant or training is admitted.",
-          "Active compact GC/core numeric routes and actual input influence are qualified in their recorded scope; parked full-library numeric/usefulness qualification remains outside this first profile.",
-          "Learned LONG/SHORT/FLAT quality, coverage, selected/abstained traceability, chronological generalization and economic edge remain separately unqualified. M5 Entry first; M1 future outcomes now, Exit later."
+          "No implementation/routing ormissingh1supervisiondefect proven. Reusephysicalinputs,111TRAIN-RMS,148/149baseline,151epochand152/153unchangedevidence.",
+          "154measuresweakterminalhorizonresponse andexcessh1statevariationwithweakcovariance. Sharedtask/horizongradientcause remainsunmeasured; nextfixedTRAINwitness is onlya proposal.",
+          "No newmodel/loss/score/threshold/horizonfloor/trainingisadmitted. Activecompactqualificationis scoped;parkedfulllibrarynumeric/usefulness remainsoutsideit.",
+          "LearnedLONG/SHORT/FLATquality/coverage, generalizationandeconomicedge remainseparatelyunqualified. M5Entryfirst;futureM1outcomesnow;Exitlater."
         ],
         "physical_dataset_stage_032": {
           "status": "FAILED_NO_ADMISSION_CONSUMED",
@@ -15740,7 +15757,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Run exactly one154capped CPU saved-curve direction/horizon diagnosis from four148/151JSONs, fixed FINAL groups and own masks; zero model/checkpoint/raw/Parquet/pointer reads, forwards, updates or fits. Review terminal calibration and same-row horizon response before any correction is selected. No new training, score, threshold, floor, model variant or Exit.",
+      "next_action": "Use154saved-curve and source/loss evidence to prepare the minimum zero-update fixed-TRAIN witness of horizon-route contribution and shared-task gradients at the final ONLINE state. Bind exact current source/state/input/budget through existing native read-only guards before any model observation. Local gradients cannot establish7391-update causality. No training, loss/model/score change, threshold, horizon floor, Exit or TEST is admitted.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 2,
       "full_native_epoch_request_fulfilled": true,
@@ -15873,7 +15890,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
     },
-    "latest_terminal_evidence_scope": "151nativeguard/trainer/observerPASS/0/0;118249uniqueTRAIN,7391updates,last9,32finalONLINEforwards/TRAIN256+CONTROL256. Source183+13inputidentities/policy/rules preserved throughterminal. Technicalexecution complete;pairedlearning/Entryquality/generalization/edge not yet qualified.",
+    "latest_terminal_evidence_scope": "154COMPLETE7.028s/4savedcurveJSONs/0newforwards/updates/PT/Parquet/raw/pointerreads. FixedTRAIN256/CONTROL256,1024FINALsidecurves strictlyq-decrease over479adjacentpairs anduniqueh1max. Terminal horizonrange small vs increasingMAE; h1direction spreadtoo large andcovarianceweak. No Entryquality/generalization/edge or trainingcausality qualified.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -16999,8 +17016,8 @@
       }
     },
     "handover_validation": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153/HANDOVER_FOCUSED_CHECKS_TERMINAL.json",
-      "sha256": "59ca8f2ffdebac75ffc7416010d30a925d544f0306cc31a1ac74a7bda581ed56"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/HANDOVER_FOCUSED_CHECKS_TERMINAL.json",
+      "sha256": "1ca82463022206a2a83d5cb6fddde8f26589fbf60640261df085911eb9ca37f4"
     },
     "handover_ready_for_next_agent": true
   },
@@ -19566,7 +19583,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T18:34:50.199134+00:00",
+  "updated_utc": "2026-10-21T18:41:18.194276+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20207,19 +20224,19 @@
     }
   },
   "latest_terminal_receipt": {
-    "elapsed_seconds": 8.186011084999336,
+    "elapsed_seconds": 7.028410356000677,
     "error": null,
     "exit_code": 0,
-    "finished_utc": "2026-10-21T18:08:18.468973+00:00",
+    "finished_utc": "2026-10-21T18:35:49.417358+00:00",
     "new_model_forwards": 0,
     "new_optimizer_steps": 0,
     "relaunch_allowed": false,
     "result": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153/RESULTS.json",
-      "sha256": "223f1cdffe8c86c30970976fefa0843c9c5181aa56513e7d7b46606fa6e0a943"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/RESULTS.json",
+      "sha256": "16ecf566debff533994e4e08e7bfbbcae3dac4444b32c9b4d4ff205cf83b667a"
     },
-    "schema_version": "gx1_joint_component_error_review_terminal_v1",
-    "source_head": "e0cec2f684c4596091449e89332555ab8dcb5d74",
+    "schema_version": "gx1_direction_horizon_diagnosis_terminal_v1",
+    "source_head": "611edaa6e26bbfad8c03c9f906c4f21cf6ee9352",
     "source_unchanged": true,
     "status": "COMPLETE",
     "test_data_used": false,
@@ -21962,7 +21979,7 @@
     "sha256": "da21eeb1ec9e712e3d5372140a8165e1d771f12df7ff8efdefd341bdf849454c"
   },
   "dynamic_m5_direction_horizon_diagnosis_154": {
-    "status": "PREPARED_EXACT_ONE_CPU_AUDIT",
+    "status": "COMPLETE_CONSUMED_HORIZON_RESPONSE_AND_DIRECTIONAL_AMPLITUDE_MEASURED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/PLAN.json",
       "sha256": "8156971d50b424debc76a3129b84d668577f9f976a8ad83a67c5d428e74464fc"
@@ -21976,9 +21993,9 @@
       "sha256": "d13f992333c384307d5bb82770dae81b01d6767bfe5e0a77c0b0262e1ac684ee"
     },
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154",
-    "execution_authorized": true,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "execution_authorized": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
     "curve_JSON_reads": 4,
@@ -22005,6 +22022,48 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "new_score_threshold_or_horizon_floor": false,
-    "new_training_authorized": false
+    "new_training_authorized": false,
+    "actual_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/TERMINAL.json",
+      "sha256": "c0768755cf0f6f974f6f350b8f803488a5bd5cee20e7480cdc378bf7ee1eacea"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/CONTROLLER_TERMINAL.json",
+      "sha256": "c2111f2ecca37783bfdbe4b69ec2f908850d1022cf66d47c696c870e28fe2b8c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/RESULTS.json",
+      "sha256": "16ecf566debff533994e4e08e7bfbbcae3dac4444b32c9b4d4ff205cf83b667a"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/SUMMARY.json",
+      "sha256": "9001c67f2baff9bb63973dca3f4895c7b0796fa59bbb6e470cce9f3b11be1ae7"
+    },
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/ACTUAL_DIRECTION_HORIZON_PEER.json",
+      "sha256": "c08dc2335650ed4ce408aba6be96803a99af0851bf8cb7008904e77d260b896a"
+    },
+    "source_and_loss_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/SOURCE_AND_LOSS_REVIEW.json",
+      "sha256": "07590423d4540bb4352d2adf85439a9ce0e84120df246c85422a0ceb3d58a4a0"
+    },
+    "measured_outcome": {
+      "train_entries": 256,
+      "control_entries": 256,
+      "final_sidecurves_strict_q_decrease_and_unique_h1_max": 1024,
+      "new_model_forwards": 0,
+      "new_optimizer_steps": 0,
+      "elapsed_seconds": 7.028410356000677,
+      "h1_control_terminal_std_predicted_bps": [
+        17.266749411336754,
+        17.60392573520193
+      ],
+      "h1_control_terminal_std_observed_bps": [
+        7.611950961652499,
+        7.4999046689860265
+      ],
+      "training_cause_established": false,
+      "entry_quality_generalization_or_edge_qualified": false
+    }
   }
 }
