@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T08:28:37.003738+00:00",
-  "status": "141_INPUT_PACKET_PRODUCER_AUTHORIZED_PENDING_CLEAN_BINDING",
+  "observed_utc": "2026-10-21T08:37:13.798720+00:00",
+  "status": "141_INPUT_PACKET_COMPLETE_ACTUAL_MODEL_INFLUENCE_BINDING_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Bind clean committed source, exact policy and 224 source files; invoke the single CPU-only 8G input packet producer once. Reuse qualified 139/140; do not construct a model or start training.",
+  "next_action": "Reuse the immutable 1.28 MB input packet. Bind exact native influence cases, 115 ONLINE optimizer0 state, 055 input normalization and 111 loss-only RMS roles, then obtain fresh hardware admission for the bounded actual influence check. Do not reopen raw data, rebuild witnesses, rerun 139/140/141, or start training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "141_INPUT_PACKET_ONE_SHOT_AUTHORIZED_PENDING_CLEAN_BINDING",
+    "current_activity": "141_INPUT_PACKET_COMPLETE_NATIVE_INFLUENCE_BINDING_PENDING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_CURRENT_ALIAS_WITNESSES_COMPLETE_NATIVE_INPUT_INFLUENCE_PRIMARY_ENTRY_QUALITY_AND_GENERALIZATION_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "134_all66_actual_raw_independent_reference_roll_pending_final_mask_join",
+    "latest_terminal_role": "141_CPU_INPUT_PACKET_PRODUCER",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_TRAIN_WITNESSES_20261021_140/WITNESS_AUDIT_TERMINAL.json",
-      "sha256": "1118d95c2fec188e7aeb0588490e96514750370c2c7a05f1f62e60e417a8353e"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_TERMINAL.json",
+      "sha256": "63853609c001e977d2b212737fc715013286f418e4b11d7ff1f9fd13031eed05"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual input assembly and strict packet roundtrip remain unmeasured.",
+    "current_blocker": "Input assembly is qualified. Exact bounded native influence cases, model state/normalization roles and fresh hardware admission remain before actual model influence measurement.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Bind clean committed source, exact policy and 224 source files; invoke the single CPU-only 8G input packet producer once. Reuse qualified 139/140; do not construct a model or start training.",
+    "next_action": "Reuse the immutable 1.28 MB input packet. Bind exact native influence cases, 115 ONLINE optimizer0 state, 055 input normalization and 111 loss-only RMS roles, then obtain fresh hardware admission for the bounded actual influence check. Do not reopen raw data, rebuild witnesses, rerun 139/140/141, or start training.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20964,10 +20964,10 @@
     }
   },
   "dynamic_compact_input_render_141": {
-    "status": "AUTHORIZED_ONE_CPU_INPUT_PACKET_PRODUCER_AFTER_CLEAN_BINDING",
-    "execution_authorized": true,
+    "status": "COMPLETE_PASS_REUSABLE_THREE_TRAIN_INPUT_PACKET",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_PLAN.json",
@@ -21021,6 +21021,46 @@
     "peer_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/PREEXECUTION_PEER_REVIEW.json",
       "sha256": "5d2a6c5c7e26cd69ff9706c30b25524e9c5e9dd0c372384e8f048d543081918a"
-    }
+    },
+    "claimed_invocations": 1,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/ACTUAL_REVIEW.json",
+      "sha256": "13cb327ce8db9d3973e44885e8af8196452710b4c45c54c1d57eef382d620cf6"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_TERMINAL.json",
+      "sha256": "63853609c001e977d2b212737fc715013286f418e4b11d7ff1f9fd13031eed05"
+    },
+    "actual_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_RESULT.json",
+      "sha256": "7cdf5deffd4788ec4d19724382795af729510aab5bfddc1bb31d71d2d8bc1353"
+    },
+    "actual_render_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_OUTPUT/RESULT.json",
+      "sha256": "ead7912bcb0100c79599e5dc09ee097606997cced3b5f88ffed163fd7f1db086"
+    },
+    "input_packet": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_OUTPUT/INPUT_PACKET.npz",
+      "sha256": "6c287b8fbd857a233cd3e3019dea68a1e445099651c942f8cd82fecf8a8ecbe0"
+    },
+    "input_packet_metadata": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_OUTPUT/INPUT_PACKET_METADATA.json",
+      "sha256": "1819b343a74a8aacaa7eac2c2130c6bad2ae678a2c81ab7eb2315beda3e2e656"
+    },
+    "packet_value_bytes": 4793460,
+    "packet_compressed_bytes": 1280070,
+    "strict_dtype_shape_bit_roundtrip_pass": true,
+    "selected_closed_MTF_windows": 15,
+    "elapsed_seconds": 103.63341988900356,
+    "cache_and_fresh_hash_seconds": 95.15516058499634,
+    "new_full_TRAIN_hash_passes": 1,
+    "new_full_selected_M5_hash_passes": 1,
+    "cache_loaded_once": true,
+    "native_influence_measured": false,
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/ACTUAL_PEER_REVIEW.json",
+      "sha256": "2f4d425b1314177fde257e770e6ec08d2546e29a9af5bb532b087e445cc9014b"
+    },
+    "independent_actual_peer_review_pending": false
   }
 }

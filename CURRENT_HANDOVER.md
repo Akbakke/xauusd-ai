@@ -138,27 +138,34 @@ WITNESS_OUTPUT/WITNESSES.json SHA3eb5fbf35c895bde814de205b794978d71158cdafa906c0
 Beviset gjelder currentaliasers masker, ikke komplette inputtensorer eller
 96historie/MTF/genericsnap/kategorisk påvirkning.
 
-141 bygger en gjenbrukbar inputpakke fra de tre allerede valgte TRAIN-vitnene.
-Kildene render_input_only.py og execute_input_render.py er skrevet og statisk
-kontrollert; ingen runtime er kjørt. INPUT_SCOPE.json og INPUT_RENDER_PLAN.json
-binder TRAIN/M5-filer, 140-vitner, 114-constructor, 055-normalisering og cache.
-Eksisterende kildeeiere leser tre TRAIN-rader og unionen av 96 M5-historierader
-per vitne; ingen Dataset, targets, provider, PT eller modell konstrueres.
-Vinduer er M5/M15/H1/H4/D1 = 16/64/96/96/252 fra faktisk constructor.
+141 er COMPLETE/exit0 på 103,633 sekunder: tre TRAIN-inputs er satt sammen
+med ekte 96-raders M5-historikk og alle fem tidsrammer. Alle aktuelle aliaser,
+seq-last/snapshot og 140s tre F32-context-hasher bestod. Alle 15 valgte
+MTF-vinduer er lukket ved vitnenes faktiske beslutningstid. Ingen fremtidsinput.
 
-Planen er én CPU-only producer på 8G/512M, 900 sekunder, numeriske tråder 1.
-Auditklassen beholder sin 4G-grense. Før hash eller dekoding kontrolleres alle
-projiserte rowgroups mot 1 GiB ukomprimert grense og tidsaksen mot TEST-seglet.
-TRAIN krever fersk hash. Cacheeieren lastes én gang; bare samme operasjons
-ferske M5-hash på eksakt samme fil kan gjenbrukes. Ingen varig digest-carry.
-9 unike rå inputarrayer lagres i NPZ med tre parentrader, B16-radkart og
-scoremaske (3 ekte + 13 uscorede kopier av første vitne). Dtype/shape/bits
-kontrolleres ved gjenåpning. Alle 15 valgte MTF-vinduer må være lukket ved
-riktig beslutningstid; 140s context-hasher og alle aktuelle aliaser kontrolleres.
+INPUT_RENDER_OUTPUT/INPUT_PACKET.npz inneholder 9 unike rå inputarrayer,
+parentrader, B16-radkart og scoremaske: 3 ekte + 13 uscorede kopier av første
+vitne. 4.793.460 logiske arraybyte er komprimert til 1.280.070 byte. Gjenåpning
+med allow_pickle=False bevarte eksakte nøkler, dtype, shape og bits. Pakken skal
+GJENBRUKES i neste kontroll uten ny råscan eller dekoding av TRAIN/M5-radene.
+SHA 6c287b8fbd857a233cd3e3019dea68a1e445099651c942f8cd82fecf8a8ecbe0.
+Metadata SHA 1819b343a74a8aacaa7eac2c2130c6bad2ae678a2c81ab7eb2315beda3e2e656.
+
+CPU-producerens cgroup verifiserte 8G/512M, 64 tasks og én numerisk tråd.
+224 kilder/policy ble bevart. Begge Parquet-footere bestod før hash/cache/decode;
+største projiserte rowgroup var 5.922.839 TRAIN-byte og 1.047.786 M5-byte.
+Tre TRAIN-rader krevde 3 rowgroups/1.536 dekodede rader; 288 M5-historierader
+krevde 6 rowgroups/576 dekodede rader. Disse byte er metadata, ikke målt disk-IO.
+Cachen ble lastet én gang; én fersk TRAIN-hash og én fersk valgt M5-hash.
+Cachekildens M5-fil var en annen fil, så dens hash ble ikke feilaktig gjenbrukt.
+Cache og hasher tok 95,155 sekunder. Ingen PT, modell, targets, provider,
+Dataset, fit, updates eller TEST; ingen trening ble åpnet.
 Eksternroot: `/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141`.
-Uavhengig kilde-/controller-review er PASS. Én kjøring er åpnet etter ren
-postcommit kilde-/policybinding; ingen plan er konsumert ennå.
-Ingen native påvirkning eller trening er åpnet. 139/140 gjenbrukes uten omkjøring.
+ACTUAL_REVIEW.json SHA 13cb327ce8db9d3973e44885e8af8196452710b4c45c54c1d57eef382d620cf6.
+INPUT_RENDER_TERMINAL.json SHA 63853609c001e977d2b212737fc715013286f418e4b11d7ff1f9fd13031eed05.
+Planen er konsumert/stengt; ingen relansering. Uavhengig ACTUAL_PEER_REVIEW
+er PASS, SHA 2f4d425b1314177fde257e770e6ec08d2546e29a9af5bb532b087e445cc9014b.
+Dette beviser inputpakken, ikke faktisk modellpåvirkning eller læring.
 
 Etter inputpakken gjenstår eksakt modell-/caseplan: eksisterende fixed_step._model
 og trainer._CandidateTrainingSession(read_only=True).load_checkpoint; kun
