@@ -66,13 +66,8 @@ Original34,37MB-resultat og alle bindinger er bevart.144 er konsumert/stengt.
 
 ## Neste konkrete arbeid
 
-145 er bare et fryst, ikke eksekverbart forslag til én ny TRAIN-RMS-epoke:
-118249TRAINrader, batch16/slutt9,7391updates, maks én12000s invokasjon og
-13800s ytre tak. Det foreslår114fresh/optimizer0-start;108/117vekter gjenbrukes ikke.
-`PROPOSAL_M5_CLARIFIED.json`, SHA
-4e31258e1a44e3b7db0e83d10cf381e7f9a53972b373754f24f340bfba12c7d4, under
-`/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_145`.
-Alle execution-/training-porter er false; ingen fit/campaign følger av forslaget.
+Neste steg er operatørens beslutning om det konkrete150-forslaget nedenfor.
+Ingen trening er åpnet.
 
 Fullkurvene er nå lagt til i eksisterende `_dynamic_m5_prefix_observations`
 og gjenkoblet av eksisterende `_require_dynamic_m5_observation`. Hver entry
@@ -129,21 +124,38 @@ Root: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148`.
 - `REBOOT_CONFIRMED.json`:f8273cdea6e00319a6014ef79fc2c794ae2a185c971a7bcbc5642f980bf1978b
 - `WINDOWS_TASK_DISABLED.json`:1ead3da8687948a728bd010a15a7de5f181abcf28805e6f596b693a59d1282ab
 
-149 er neste, én CPUaudit4G/512M/900s med0modellkall/updates:
-sammenlign147fresh mot148initial0checkpoint for modell/target/optimizer/EMA/
-scheduler og lagret CPU/Python/NumPy-RNG; kjør eksisterende obligatoriske
-`require_chronological_learning_measurement` med dagens full480-validator.
-Planroot: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149`.
-Dette er nødvendig baselinekvalifisering, ingen ny treningsrunde eller råscan.
-117s modell/loss/optimizer/paritetsmekanikk er uendret: bare to observerfunksjoner
-i to filer er endret. Reuse-proof er149/UNCHANGED_LEARNING_MECHANICS_REVIEW.json,
-SHA659a93fe87ea756d0b9e78ef0a689c562df714b10503682efaf0b9bb0b3a5b45.
-En ny fireoppdateringsprobe kreves ikke av epokegaten.
+149 er COMPLETE/PASS,67,848sekunder totalt: CPUaudit4G/512M/900s med
+0modellkall/updates.147fresh og148initial0checkpoint er eksakt like for modell,
+target, optimizer, EMA, scheduler og sju lagrede CPU/Python/NumPy-RNG-felt.
+CUDA-RNG finnes i nativecheckpointet, men sammenlignes ikke mot CPUinitialiseringen.
+Eksisterende `require_chronological_learning_measurement` har faktisk bestått
+med dagens full480-validator for begge256-raderskohorter. Hele kurvene og egne
+masker er dermed kvalifisert innen denne kohorten, ikke hele TRAIN-populasjonen.
+Root: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149`.
+- `TERMINAL.json`:aecce73f2c98924c96d360d7e2b8b1241c1c27dfbc0c215337bb1e662000cdd9
+- `INITIAL_MEASUREMENT_AUDIT.json`:b88aab0e0758d277b25a1d382060d8380e151d4cefa4bb631ef2494b61fcc573
+- `STATE_PRESERVATION_PROOF.json`:2b1f61eeec8fbb9f171fd8bd3c71f7196bf529a5c2a281c759bce92a72daafbf
+- `ACTUAL_AUDIT_PEER_REVIEW.json`:425eb8d1ec4db1d7aa9cfd7a0163155b12b897f1f8bc6a200d7b78620109c344
+117s modell/loss/optimizer/paritetsmekanikk er uendret; bare to observerfunksjoner
+i to filer er endret.149/UNCHANGED_LEARNING_MECHANICS_REVIEW.json,
+SHA659a93fe87ea756d0b9e78ef0a689c562df714b10503682efaf0b9bb0b3a5b45,
+kvalifiserer gjenbruk av det uendrede mekanikkomfanget. Ingen ny4-updateprobe.
 
-Etter bestått149: gjør ny TRAIN-RMS-epoke konkret og reviewbar før ny eksplisitt
-operatørbeslutning. Behold147fresh/148baseline/111skala og tidligere kvalifiserte
-inputs;108/117treningsvekter og den konsumerte148campaignen relanseres aldri.
-Alle training/full_epoch/fullVAL/Exit/TEST/brokerporter forblir false.
+150 er konkret forslag til én ny111TRAIN-RMS-epoke, ikke en kjøreplan:
+118249TRAINrader én gang, batch16/slutt9,7391updates, maks12000s/13800s ytre,
+32faste final ONLINE-forwards på samme TRAIN256/CONTROL256 og fullkurver.
+Start147fresh med kvalifisert148/149baseline; ingen108/117treningsvekter.
+Root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150`.
+PROPOSAL-SHAd65b07a4fa12d6b3812170f8fa81a3718a97e8871924348c76e403f2e4cc2cf8.
+Dette avløser145s foreldede reviewforslag. M5beslutninger; M1prisfasit1–480min,
+M1Exit først senere. Gjenbruk ferdige inputs/targets/055normalisering/111RMS;
+ingen råscan, refit, HPO, fullVAL, Exit, TEST eller broker.
+
+Neste steg er operatørens nye eksplisitte beslutning om150.108konsumerte den
+opprinnelig bestilte epoken. Før ny eventuell launch må eksakt ny policy/recipe/
+campaign og ferske native maskinvare-/bootporter bindes gjennom eksisterende eiere.
+Ingen gammel plan relanseres. Alle execution/training/full_epoch/fullVAL/
+Exit/TEST/brokerporter er false. Godkjent baseline er ikke læring eller edge.
 
 ## Bestått — gjenbruk uten omkjøring
 
@@ -182,7 +194,7 @@ om målte peaktemperaturer. Profiletterkontroll og originalconfig/logg er bevart
 Fysisk18.10-omstart er bekreftet, nyeste boot21.10T12:04:44.500Z. Ikke gjenta
 eldre omstartsbestilling. Fremtidig nativejobb følger egne faktiske hardwareporter.
 
-Aktivt mål er ufullført:149state-/RNG-/fullkurvebaselinekvalifisering, beslutningssporbarhet og TRAIN-RMS-læring,
+Aktivt mål er ufullført: beslutningssporbarhet etter læring og TRAIN-RMS-læring,
 LONG/SHORT/FLAT-kvalitet/dekning for valgte og avståtte, generalisering og
 økonomisk edge gjenstår hver for seg. Ingen observasjon eller tekniskPASS
 åpner TEST, handel eller ny trening. Originaldata/kvitteringer/checkpoints

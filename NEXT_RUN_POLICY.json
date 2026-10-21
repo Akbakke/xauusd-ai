@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T12:52:32.975191+00:00",
-  "status": "149_PREPARED_CURRENT_INITIAL_STATE_RNG_FULL_CURVE_AUDIT",
+  "observed_utc": "2026-10-21T13:02:53.945714+00:00",
+  "status": "150_CURRENT_BASELINE_QUALIFIED_NEW_TRAIN_RMS_EPOCH_OPERATOR_DECISION_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "148native0baseline is terminal PASS/0/0 with TRAIN256+CONTROL256/32forwards. Run exactly149CPUstate/RNG/currentfull480validator audit with0forwards/updates. Then present a concrete fresh147/148baseline/111TRAIN-RMS epoch proposal for a new operator decision; no epoch/Exit/TEST admitted.",
+  "next_action": "149actual savedstate/RNG/full480baselinequalification PASS. Present concrete150proposal for exactly1new111TRAIN-RMS M5 Entry epoch.108originalepochauthority consumed; do not compile/launch training or change trainingflags before new explicit userdecision. Reuse unchanged183source/input/norm/RMS/117mechanics proofs; exactnewrecipe/campaign/freshhardwareadmission stillrequired afterapproval.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -65,7 +65,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "108consumed exactly1 ordered TRAINepoch:118249rows/7391updates. Mixed componentlearning, no qualified Entryquality/generalization/edge. On512M5probe rows both sidecandidate scores peaked at1minute future horizon; diagnostic actions116SHORT/396FLAT/0LONG, not512trades and notM1Entry.111TRAIN-RMS learning remains unmeasured.148freshcurrent initial0measured32forwards/512rows;149state/RNG/fullcurvegatepending. No newepoch authority.",
+    "current_evidence_scope": "108consumed exactly1 ordered TRAINepoch:118249rows/7391updates. Mixed componentlearning, no qualified Entryquality/generalization/edge. On512M5probe rows both sidecandidate scores peaked at1minute future horizon; diagnostic actions116SHORT/396FLAT/0LONG, not512trades and notM1Entry.111TRAIN-RMS learning remains unmeasured.148freshcurrent initial0measured32forwards/512rows;149state/RNG/currentfull480gateactualPASS qualifiedthatbaseline.111TRAIN-RMSepoch150proposal isreviewablebut notauthorized. No newepochauthority.",
     "component_learning_measured": true,
     "component_learning_result": "MIXED_POOLED_IMPROVEMENT_WITH_H1_DEGRADATION",
     "primary_entry_quality_qualified": false,
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "149_CURRENT_INITIAL_STATE_RNG_AND_FULL480_CURVE_AUDIT",
+    "current_activity": "150_CONCRETE_TRAIN_RMS_EPOCH_PROPOSAL_PENDING_OPERATOR_DECISION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_FUNCTIONAL_COMPACT_INPUT_CONSUMPTION_PASS_LEARNING_ENTRY_QUALITY_GENERALIZATION_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "148_ACTUAL_CURRENT_SOURCE_FULL_CURVE_INITIAL0",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/RUNTIME",
+    "latest_terminal_role": "149_ACTUAL_INITIAL_STATE_RNG_FULL480_BASELINE_QUALIFICATION",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/TERMINAL.json",
-      "sha256": "15fdae2d18d582059766bad0f65be837e3a21bef32a47627a463d9ff6da061eb"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/TERMINAL.json",
+      "sha256": "aecce73f2c98924c96d360d7e2b8b1241c1c27dfbc0c215337bb1e662000cdd9"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "148initial0completed actual512M5probe rows/32forwards/0updates, fresh519boot/current183source/inputidentities preserved and guardPASS.149mustprove saved state/RNG equality and invoke currentfull480validator. Then new explicit operator epoch decision and exactcampaign binding required;108original epoch authority consumed.",
+    "current_blocker": "Current147fresh/148full480initialbaseline qualified by149actualstate/RNG/canonicalfull480validator. Onlynewexplicit150epochdecision remains before exactnewtrainingrecipe/campaign/freshhardwareadmission; training_enabled=false persists.108originalepochauthority consumed; no extra technical probes needed for unchangedlearningmechanics.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -9501,7 +9501,7 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "148current-source initial0is actualterminalPASS/0/0; freshBoot519/source183/input13identities preserved, TRAIN256+CONTROL256/32forwards/0updates.149mustcomplete savedstate/RNG/currentfull480curvegate. No extraepoch admission.",
+        "Currentbaseline is qualified:148native32forwards/512M5probe rows/0updates plus149actualstate/RNG/currentfull480validator PASS. Reuse147fresh/111RMS/current183sourceproofs.150concreteadditionalepoch needsnewexplicituserdecision, thenexactrecipe/campaign/hardwarebinding; no automaticextraepoch.",
         "108consumed originalfullnativeepoch; bothsidecandidate future horizons peakedat1minute on512M5proberows. Diagnostic116SHORT/396FLAT/0LONG, no nativeauthority and no M1Entry.111TRAIN-RMSlearning remainsunmeasured.",
         "121–126qualified1205activeGCvalues/fiveTF/actualM5context;127/128/129/133qualified139activecorefields perTF;134rawMBPparsedonce andjoinpassed;144functionalinputinfluencepassed. Reuse unchangedproofs, no newrawscan or4updateprobe.",
         "LONG/SHORT/FLAT quality/coverage for selectedandabstained, chronologicalgeneralization andeconomicedge remainunqualified; parkedfull-libraryfields are outsideactivecompactnumeric audit. M5Entryfirst; M1futurepricefasit now, M1Exitlater."
@@ -15866,7 +15866,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
     },
-    "latest_terminal_evidence_scope": "148one nativeinitial0 workflowCOMPLETE/exit0/sourcepolicyunchanged; TRAIN256+CONTROL256/32forwards,0updates; fullcurve and savedstate/RNG149audit pending. No learning/edge/newtrainingadmission. Actual519boot andguard55Ccore/62Cmemory/131.7Wdraw/738MiB, physical160W; WindowstaskDisabled/Last0.",
+    "latest_terminal_evidence_scope": "149COMPLETE/exit0/67.84775controllerseconds, CPUaudit4G/512M,0forwards/updates. Saved5stateowners+7CPU/Python/NumPyRNGfields preserved; CUDA RNG observed butnot comparedtoCPUconstructor. Existingcanonicalfull480gatepassed for TRAIN256/CONTROL256. Baselinequalified, no learning/edge/newtrainingadmission.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -16963,12 +16963,12 @@
       }
     },
     "last_actual_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/TERMINAL.json",
-      "sha256": "15fdae2d18d582059766bad0f65be837e3a21bef32a47627a463d9ff6da061eb"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/TERMINAL.json",
+      "sha256": "aecce73f2c98924c96d360d7e2b8b1241c1c27dfbc0c215337bb1e662000cdd9"
     },
     "last_actual_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/ACTUAL_NATIVE_INITIAL_TERMINAL_REVIEW.json",
-      "sha256": "170ff4311a895815d38e52b92fa3b5edce14b2789fb40ec4d540123211425a87"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/ACTUAL_AUDIT_PEER_REVIEW.json",
+      "sha256": "425eb8d1ec4db1d7aa9cfd7a0163155b12b897f1f8bc6a200d7b78620109c344"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19533,7 +19533,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T12:52:32.975191+00:00",
+  "updated_utc": "2026-10-21T13:02:53.945714+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20174,52 +20174,27 @@
     }
   },
   "latest_terminal_receipt": {
-    "schema_version": "gx1_current_native_initial_workflow_terminal_v1",
-    "status": "COMPLETE",
+    "elapsed_seconds": 67.25528280299977,
+    "error": null,
     "exit_code": 0,
-    "source_unchanged": true,
-    "policy_unchanged": true,
-    "source_head": "948a65d49a50d5439dfddb288ee543c3e08515d8",
-    "completed_utc": "2026-10-21T12:42:20.620761+00:00",
-    "observed_utc": "2026-10-21T12:55:56.599903+00:00",
-    "canonical_receipt": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/RUNTIME/receipts/invocation-0001.json",
-      "sha256": "c249f781129e73322c74e19ffb2a189f703c74dc54124fa4c2de10c097504730"
+    "finished_utc": "2026-10-21T12:57:49.686522+00:00",
+    "initial_measurement_audit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "b88aab0e0758d277b25a1d382060d8380e151d4cefa4bb631ef2494b61fcc573"
     },
-    "actual_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/ACTUAL_NATIVE_INITIAL_TERMINAL_REVIEW.json",
-      "sha256": "170ff4311a895815d38e52b92fa3b5edce14b2789fb40ec4d540123211425a87"
-    },
-    "initial_result": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/.gx1-candidate-training-session.BUNDLE/initial_measurement/RESULT.json",
-      "sha256": "a392890405aa9d645f4ed00d8e27bb31282757284194fb1b7d62c3c8d1cbf412"
-    },
-    "metadata_peer_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/ACTUAL_INITIAL_BASELINE_PEER_REVIEW.json",
-      "sha256": "2ce27aa310efcea18917d0949ee362fe9ab715bf327cb3d05be9a19e1cde435c"
-    },
-    "windows_task_disabled": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/WINDOWS_TASK_DISABLED.json",
-      "sha256": "1ead3da8687948a728bd010a15a7de5f181abcf28805e6f596b693a59d1282ab"
-    },
-    "reboot_confirmed": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/REBOOT_CONFIRMED.json",
-      "sha256": "f8273cdea6e00319a6014ef79fc2c794ae2a185c971a7bcbc5642f980bf1978b"
-    },
-    "elapsed_native_measurement_seconds": 1780.8676137630002,
-    "optimizer_steps": 0,
-    "model_forwards": 32,
-    "measurement_rows": 512,
-    "completed_invocations": 1,
-    "relaunch_allowed": false,
-    "state_rng_and_full_curve_audit_complete": false,
-    "training_enabled": false,
+    "model_forwards": 0,
     "native_training_admitted": false,
-    "full_epoch_training_allowed": false,
-    "full_val_allowed": false,
-    "exit_evaluation": false,
+    "optimizer_steps": 0,
+    "preservation_proof": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/STATE_PRESERVATION_PROOF.json",
+      "sha256": "2b1f61eeec8fbb9f171fd8bd3c71f7196bf529a5c2a281c759bce92a72daafbf"
+    },
+    "schema_version": "gx1_capped_initial_state_audit_terminal_v1",
+    "source_head": "ec707036b0c75da51c7db5d7103cfb0a60de93d4",
+    "source_unchanged": true,
+    "status": "COMPLETE",
     "test_data_used": false,
-    "broker_access_allowed": false
+    "training_enabled": false
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -21379,7 +21354,7 @@
   "future_query_horizons_are_not_entry_timeframe_or_hold_rules": true,
   "exit_training_and_evaluation_this_wave": false,
   "dynamic_m5_train_rms_epoch_proposal_145": {
-    "status": "PROPOSAL_ONLY_FULL_TRACE_AND_CURRENT_BINDING_REQUIRED_BEFORE_NEW_EPOCH_DECISION",
+    "status": "SUPERSEDED_FOR_OPERATOR_REVIEW_BY_CONCRETE150_NO_EXECUTION",
     "proposal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_145/PROPOSAL_M5_CLARIFIED.json",
       "sha256": "4e31258e1a44e3b7db0e83d10cf381e7f9a53972b373754f24f340bfba12c7d4"
@@ -21404,7 +21379,11 @@
       "Persist the already materialized full480 final-observer per-entry component predictions/targets and independent masks; no extra final forwards.",
       "Qualify exact current source/baseline recipe binding after any actual observer change; no unmeasured mismatch claim or gate bypass.",
       "The previous108 full-epoch order is consumed; a new explicit finite epoch decision and exact canonical campaign/hardware admission are required."
-    ]
+    ],
+    "superseded_by": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150/PROPOSAL.json",
+      "sha256": "d65b07a4fa12d6b3812170f8fa81a3718a97e8871924348c76e403f2e4cc2cf8"
+    }
   },
   "dynamic_m5_full_curve_source_qualification_146": {
     "status": "COMPLETE_PASS_29_CASES_AND_MEASURED_SOURCE_BINDING_NEW_BASELINE_REQUIRED",
@@ -21571,7 +21550,7 @@
     }
   },
   "dynamic_m5_full_curve_initial_148": {
-    "status": "COMPLETE_CONSUMED_NATIVE_INITIAL0_STATE_AND_CURVE_AUDIT_PENDING",
+    "status": "COMPLETE_CONSUMED_QUALIFIED_BY_ACTUAL149_STATE_RNG_FULL480_AUDIT",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/PLAN.json",
       "sha256": "e06ff8f98d1c48f26b88e1c1c53aaeec41fbe9982ad2bfd6511ae7a4d5fdedac"
@@ -21643,10 +21622,14 @@
     "actual_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148/TERMINAL.json",
       "sha256": "15fdae2d18d582059766bad0f65be837e3a21bef32a47627a463d9ff6da061eb"
+    },
+    "qualified_initial_measurement_audit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "b88aab0e0758d277b25a1d382060d8380e151d4cefa4bb631ef2494b61fcc573"
     }
   },
   "dynamic_m5_full_curve_initial_state_audit_149": {
-    "status": "PREPARED_ONE_CPU_PRESERVATION_AND_CURRENT_FULL_CURVE_AUDIT",
+    "status": "COMPLETE_CONSUMED_CURRENT_INITIAL_STATE_RNG_FULL480_BASELINE_QUALIFIED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/PLAN.json",
       "sha256": "47064b2455094d8966c2cbe7de7cd8791f6d6986c5cdc9f89a137379311e0b7d"
@@ -21656,9 +21639,9 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/run_initial_state_audit.py",
       "sha256": "e7256af38e7f699d6909f29ea0e8dfbd9436e224af03da4bded6b9681ae116b7"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
     "model_forwards": 0,
@@ -21670,6 +21653,54 @@
     "normalization_fit_enabled": false,
     "test_data_used": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/TERMINAL.json",
+      "sha256": "aecce73f2c98924c96d360d7e2b8b1241c1c27dfbc0c215337bb1e662000cdd9"
+    },
+    "controller_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/CONTROLLER_TERMINAL.json",
+      "sha256": "d8195f0273557a9feb32d11156c6dd49ac0718234d9678d4a570b32c1eee5083"
+    },
+    "state_preservation_proof": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/STATE_PRESERVATION_PROOF.json",
+      "sha256": "2b1f61eeec8fbb9f171fd8bd3c71f7196bf529a5c2a281c759bce92a72daafbf"
+    },
+    "initial_measurement_audit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "b88aab0e0758d277b25a1d382060d8380e151d4cefa4bb631ef2494b61fcc573"
+    },
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/ACTUAL_AUDIT_PEER_REVIEW.json",
+      "sha256": "425eb8d1ec4db1d7aa9cfd7a0163155b12b897f1f8bc6a200d7b78620109c344"
+    }
+  },
+  "dynamic_m5_train_rms_epoch_proposal_150": {
+    "status": "CONCRETE_OPERATOR_REVIEW_PENDING_NEW_EXPLICIT_EPOCH_DECISION",
+    "proposal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150/PROPOSAL.json",
+      "sha256": "d65b07a4fa12d6b3812170f8fa81a3718a97e8871924348c76e403f2e4cc2cf8"
+    },
+    "execution_authorized": false,
+    "operator_approval_received": false,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "normalization_fit_enabled": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "epochs_proposed": 1,
+    "train_rows_proposed": 118249,
+    "optimizer_steps_proposed": 7391,
+    "baseline_qualified_by": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "b88aab0e0758d277b25a1d382060d8380e151d4cefa4bb631ef2494b61fcc573"
+    },
+    "proposal_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150/PROPOSAL_PEER_REVIEW.json",
+      "sha256": "645bb52a7aaaaf8964b4c063029b9c64efbe66bcd44794c7f5b75332ee425f4f"
+    }
   }
 }
