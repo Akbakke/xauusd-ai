@@ -610,13 +610,23 @@ toACTUAL_REVIEW-kvitteringer står i134root. Korrigert gammel scopeprosa:
 11L1kvalitetstellere, ikke12. Originaldraft beholdes.
 
 Sluttkoblingen av fullvalgtM1akse/source-/incident-/recoverymasker mot024-
-tabellene er fortsatt fysiskåpen. FINAL_JOIN_PLAN binder nøyaktig én capped
-900s/4G/512M-kjøring, separat fra konsumert source/pilot/bulk. Adapter/controller
-og faktisk47/54/13/37/7-skjema har uavhengig statiskPASS.60cacheidentiteter
-gjenbrukes utenSHA;45mellomtabeller+5slutttabeller+001prior3kolonner leses
-én gang. Ingen rå-/ladder-/TF-/modellpayload. Ni literalrader førParquet og
-fysisk sluttjoin/ytrekildepolicyvakter må fortsatt bestå.
-Uendrede reference_masks134 har116fokuserte kildecaser på2,848s/0feil/0skips.
-Dette er ikke bevis på faktiskindividuellmodellbruk, Entry-kvalitet/dekning,
-sporbarhet, generalisering ellerøkonomiskedge. CURRENT_HANDOVER/NEXT_RUN_POLICY
-eier aktuelle bindinger; ingen ny trening er åpnet.
+tabellene er nå PASS på7,141s/exit0,222kilder/policy bevart.1.139.040rader,
+157kolonner/femslutttabeller gir178829280celler:72898560eksakteheltall/bool,
+78556709finiteF64bitkopier og27374011likeNaN-domener;NaNpayloadbits utestet.
+Alle54M1/13quality/37eventunmasked+final/7Tsizefelt bestod med fellesklokker.
+17clock-/18stateexclusions og1.441selected−1lagringsrader stemmer.
+60cacheidentiteter gjenbrukt utenSHA;45mellomtabeller+5slutttabeller+001prior-
+3kolonner lest én gang hver;51footere førdecode/6nyeSHApass/0rå-/0ladderlesing.
+Ni literalrader førParquet bestod;116kildecaser ble gjenbrukt, ikke kjørt om.
+FINAL_JOIN_ACTUAL_REVIEW SHA1a43cb8fce38942bca7efc960ee2c139ba85776b43c518047fa644846bf16eef.
+Uavhengig FINAL_JOIN_ACTUAL_PEER_REVIEW bekrefter alle157felt/masker og
+ytrevakter; SHA55663fdb21e18fe26a0f0bcf1195f37cdcef9f747062b116e5e9bfb98e4c5ca2.
+Alle134planer er konsumert og stengt; ingen ny rå-/TF-/baseline-/modellrunde.
+
+Dette beviser rådata→publisert valgtM1→tidligere kvalifisertTF/nativeprojeksjon
+innen bundne domener, ikke faktisk individuell modellpåvirkning ellernytte.
+Eksisterende inputinfluencehelper krever legacyQ/fullfeatures og må avgrenses
+korrekt for dynamisk kompaktprofil.115s512lagredebeslutningsspor kan gjenbrukes.
+Entry-kvalitet/dekning, LONG/SHORT/FLAT, sporbarhet, generalisering ogøkonomisk
+edge er fortsatt egne åpne krav. CURRENT_HANDOVER/NEXT_RUN_POLICY eier aktuell
+status; ingen ny trening er åpnet.

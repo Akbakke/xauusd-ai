@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T06:10:33.224924+00:00",
-  "status": "134_FINAL_SELECTED_MASK_JOIN_READY_ONE_CAPPED_INVOCATION_RAW66_PASS",
+  "observed_utc": "2026-10-21T06:15:27.680493+00:00",
+  "status": "134_RAW66_AND_FINAL_SELECTED_M1_INCIDENT_MASK_JOIN_PASS_MODEL_CONSUMPTION_REMAINS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Execute exactlyone finite900s capped134finalselectedM1maskjoin using qualified001/024caches; zero raw/ladder/native reads and no121–126/133rerun. Then review finalphysicalproof and actualindividualmodeluse/Entryquality/depth/coverage/trace. No training.",
+  "next_action": "Reuse completed raw66/finalselectedM1/121–126/133proofs. Qualify compactactive individualmodelinfluence against currentdynamicheads and reuse115saved512decisiontraces for Entryreadout/coverage. LegacyQ/fullfeature influence helper is incompatible with dynamiccompactphase; first bind minimum audit-onlyadapter. No newrawscan/nativebaseline/training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "134_FINAL_SELECTED_MASK_JOIN_READY_RAW66_PASS",
+    "current_activity": "POST134_COMPACT_DYNAMIC_INDIVIDUAL_MODEL_CONSUMPTION_AND_DECISION_TRACE_SCOPE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -121,8 +121,8 @@
     "latest_terminal_role": "134_all66_actual_raw_independent_reference_roll_pending_final_mask_join",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/REMAINING_FILES_TERMINAL.json",
-      "sha256": "c8aa57c100fc32793178a1762d01286427a658b4e2f3f8f2f54d42cab8b4c502"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_TERMINAL.json",
+      "sha256": "8a7363136a776132ad1f28a1fb2996c17e56ed9c0f4bd240fb99fcddf33e7890"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Raw66/892100712records M1+rollPASS; new finalselectedincident/admissionmaskjoin staticallyqualified andexactlyone cappedexecutionbound, physicalresultpending. Actualindividualmodeluse/Entryquality/depth/coverage/trace remain.",
+    "current_blocker": "Raw66/892100712records through finalselectedM1+source/incident/recoverymask join nowPASS; actualcompactindividualdynamicmodelinfluence and Entryquality/depth/coverage/decisiontrace remain. ExistinglegacyQ/fullfeature influence helper doesnotqualify currentdynamiccompactphase. No newtrainingadmission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -19522,7 +19522,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T06:10:33.224924+00:00",
+  "updated_utc": "2026-10-21T06:15:27.680493+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20163,33 +20163,20 @@
     }
   },
   "latest_terminal_receipt": {
-    "schema_version": "gx1_native_core_numeric_terminal_v1",
-    "status": "COMPLETE_SCOPED_ALL_ACTIVE_MTF_NUMERIC_PASS",
+    "schema_version": "gx1_final_raw_mask_join_terminal_v1",
+    "status": "COMPLETE",
     "exit_code": 0,
-    "observed_utc": "2026-10-21T04:09:30.674188+00:00",
-    "source_head": "0a2e32c300e1c65b25850ba9d720e05d9d0efa1f",
     "source_unchanged": true,
-    "actual_launch_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/ACTUAL_NUMERIC_AUDIT_LAUNCH_TERMINAL.json",
-      "sha256": "86a4cdb479e2a716df54125c0bc29f3ca647e11007bd421c73f76a6c04e510cb"
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_RESULT.json",
+      "sha256": "35294e64cc93013108703ad1837b69015155e8d3616cd7d25259769b69074592"
     },
-    "review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/ACTUAL_NUMERIC_REVIEW.json",
-      "sha256": "dfe6d9047367b779cf37f89711532be34b37ca95c112c9902001d011068406e9"
-    },
-    "qualified_mtf_numeric_index": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/QUALIFIED_MTF_NUMERIC_INDEX.json",
-      "sha256": "f5022afbdcde059440a327d8ea2b9b06cb5bc07a077b482b45b61302232a292f"
-    },
-    "elapsed_seconds": 1326.7296988199996,
-    "new_qualified_outputs": 470,
-    "cumulative_qualified_outputs": 790,
-    "cumulative_compact_active_outputs": 695,
-    "completed_invocations": 1,
-    "relaunch_allowed": false,
+    "elapsed_seconds": 7.141171407994989,
+    "test_data_used": false,
     "training_enabled": false,
     "native_training_admitted": false,
-    "test_data_used": false
+    "completed_invocations": 1,
+    "relaunch_allowed": false
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -20527,10 +20514,10 @@
     }
   },
   "raw_mbp_m1_final_join_134": {
-    "status": "READY_EXACTLY_ONE_CAPPED_FINAL_SELECTED_M1_JOIN",
-    "execution_authorized": true,
+    "status": "COMPLETE_RAW66_TO_FINAL_SELECTED_M1_MASK_JOIN_PASS",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_PLAN.json",
@@ -20559,6 +20546,28 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_RESULT.json",
+      "sha256": "35294e64cc93013108703ad1837b69015155e8d3616cd7d25259769b69074592"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_TERMINAL.json",
+      "sha256": "8a7363136a776132ad1f28a1fb2996c17e56ed9c0f4bd240fb99fcddf33e7890"
+    },
+    "qualified_partial": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_OUTPUT/RESULT.json",
+      "sha256": "88403c0d32dd07bd13b1514a76995dcf1e6b115cccefedd2e937718ed2ed7da6"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_ACTUAL_REVIEW.json",
+      "sha256": "1a43cb8fce38942bca7efc960ee2c139ba85776b43c518047fa644846bf16eef"
+    },
+    "elapsed_seconds": 7.141171407994989,
+    "independent_actual_peer_review_pending": false,
+    "independent_actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_ACTUAL_PEER_REVIEW.json",
+      "sha256": "55663fdb21e18fe26a0f0bcf1195f37cdcef9f747062b116e5e9bfb98e4c5ca2"
+    }
   }
 }

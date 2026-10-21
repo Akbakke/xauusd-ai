@@ -56,36 +56,40 @@ SHAf5022afbdcde059440a327d8ea2b9b06cb5bc07a077b482b45b61302232a292f.
 på flere tidsrammer, ikke790uavhengige indikatorer eller bevist modellnytte.
 Ingen133relansering;130/131/132originaler og konsumerte planer bevares.
 
-134 råMBP→M1 er nå uavhengig PASS:66filer/892100712records og62783740
-trustedT, alle20CSVkolonner, actualEOF/CRC/SHA én gang perråfil.65nye filer
-+gjenbrukt pilot tok2150,829s/exit0;222kilder/policy bevart.47råM1felt,
-37eventfelt,7Tsizefelt og12997937pris/sidelevels bestod.159399314koordinat-
-sammenligninger:74024631eksakteheltall,68066277finiteF64 innen forhåndslåste
-cellegrenser og17308406likeNaN-domener. Ingen globalepsilon eller bitidentitet
-foralleF64 påstås. Event-summer med stor avrunding er ikke fysiskutøvd her;
-syntetiske grenser har separat116casebevis. Alle60targeters utenforfilunion
-0/NaN/null/dtype bestod. Dagsvolum fraalle66 ga eksakt roll/basis/00:01akse.
-REMAINING_FILES_ACTUAL_REVIEW og uavhengig REMAINING_FILES_ACTUAL_PEER_REVIEW
-binder66gjenbrukbarepartials ogouterterminal. Råinventarets20,039GBgzip/
-118,260GBCSV ble lest/parset én gang hver; targetbulk60hash/decode,
-pilotens4targetpass separat. Modell/fit/dataombygging ble ikke kjørt.
-Konsumert source-/pilot-/bulkplan er stengt, ingen relansering/nyrålesing.
-Snapshot05:28 ved4G hadde memorymaxreclaim933/OOM0/kill0; ikke en helkjørings-
-peak-/eventpåstand. Ingen prosess gjenstår ved terminalkontroll.
+134 råMBP→M1 og valgt sluttmaskjoin er nå uavhengigPASS.66filer/
+892100712records og62783740trustedT bestod alle20CSVkolonner/EOF/CRC/SHA
+én gang perråfil.65nye+gjenbrukt pilot tok2150,829s/exit0;222kilder/policy
+bevart.47råM1felt,37event/7Tsize og12997937pris/sidelevels bestod159399314
+koordinatsammenligninger med låste heltalls-/F64-/NaN-domener. Alle60targeters
+utenforfilunion0/NaN/null/dtype bestod; dagsvolum gir eksakt roll/basis/00:01akse.
+Råinventaret20,039GBgzip/118,260GBCSV ble lest/parset én gang hver; bulk60
+hash/decode og4pilotpass separat. Originalpartials og råkvitteringer bevares.
+Eventwide-sumavrunding var ikke fysiskutøvd; syntetiskbevis er separat.
 
-134sluttjoin er nå statisk kvalifisert og bundet for nøyaktig én capped
-900s/4G/512M-kjøring mot024s fem publiserte M1-tabeller. FINAL_JOIN_PLAN og
-FINAL_JOIN_STATIC_PEER_REVIEW binder adapter, controller og faktisk47/54/13-/
-37/7-feltskjema.116kildecaser og66råfilbevis gjenbrukes.60cacheidentiteter
-bevares uten nySHA;45mellomtabeller+5slutttabeller+001prior3kolonner leses
-én gang. Ingen rå-/ladder-/TF-/modellpayload eller trening. Ni literalrader
-kontrolleres førParquet; faktisk sluttmaskjoin og ytre222kilde-/policyvakter
-må fortsatt bestå. Konsumert pilot/bulk er stengt; denne planen er separat. Faktisk individuell modellbruk, LONG/SHORT/FLAT,
-Entry-kvalitet/dekning og beslutningssporbarhet har fortsatt åpne krav.
-Ingen ny trening er åpnet. Alle lag må fortsatt skilles fra generalisering/edge.
-121–126 og133skal gjenbrukes, ikke kjøres om. Individuelt modellkonsum og
-Entry-kvalitet/dekning/beslutningssporbarhet har fortsatt egne åpne krav.
-Ingen jobb kjører ved planpublisering; faktisk prosess/terminal styrer.
+FINAL_JOIN er COMPLETE/exit0 på7,141s,222kilder/policy bevart.1.139.040rader,
+157kolonner over54M1+13quality+40eventunmasked+40eventfinal+10Tsizekolonner:
+178829280celler=72898560eksakteheltall/bool+78556709finiteF64bitkopier+
+27374011likeNaN-domener. NaNpayloadbits ble ikke sammenlignet. Sluttmaskene,
+incident/recovery,47→54feltkopien,alle37eventfelts OFImaske og7umaskerte
+Tsizefelt bestod. Ni literalrader/fem slutttabeller og001priorvolumkopi bestod.
+
+60cacheidentiteter ble gjenbrukt utenSHA;45mellomtabeller+5slutttabeller+
+001prior3kolonner ble lest én gang hver,51footere førdecode og6nyeSHApass.
+Ingen rå-/ladder-/TF-/modellpayload, fit ellertrening.1.441utenvalgtkontrakt-
+rader beholder0/NaN/false;17clock-/18stateexclusions er eksakte. FINAL_JOIN_ACTUAL_REVIEW SHA1a43cb8fce38942bca7efc960ee2c139ba85776b43c518047fa644846bf16eef
+og FINAL_JOIN_OUTPUT/RESULT SHA88403c0d32dd07bd13b1514a76995dcf1e6b115cccefedd2e937718ed2ed7da6.
+Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134`.
+Source/pilot/bulk/finaljoin-planer er konsumert/stengt; ingen relansering.
+Ingen jobb gjenstår. Uavhengig FINAL_JOIN_ACTUAL_PEER_REVIEW bekrefter
+alle157felt/masker/lesepass og ytrevakter; SHA55663fdb21e18fe26a0f0bcf1195f37cdcef9f747062b116e5e9bfb98e4c5ca2.
+
+Neste er faktisk individuell modellpåvirkning på kompaktprofilens dynamiske
+hoder og beslutningsspor. Eksisterende legacyQ/fullfeature-influencehelper
+passer ikke denne fasen; bind minste audit-onlyadapter til aktive felt/ruter.
+115har512lagredeTRAIN/CONTROLbeslutningsspor som kan oppsummeres uten nye
+forwards. LONG/SHORT/FLAT, kvalitet/dekning forvalgte/avståtte entries og
+senere generalisering har fortsatt åpne krav. Ingen ny trening er åpnet.
+121–126/133/134 og produksjonsbaseline/paritet gjenbrukes uten omkjøring.
 
 ## Bestått — gjenbruk uten omkjøring
 
@@ -98,7 +102,7 @@ modell/normalisering/baseline er uendret og krever ingen omkjøring av auditkode
 126 kvalifiserer1205verdier+1205masker bit-eksakt mot faktisk bruktM5-context:
 328119090celler/136149unike kilderader,118249TRAIN-/17284VAL-beslutninger
 med96historikk. TRAIN dekker1205/1205;VAL1181/1205.14D1OB+10H1flow/CVD er
-korrekt maskert0/0 iVAL, ikke finitt kvalifisert der. Råkomponentene er nå bevist av134; valgt sluttmaskjoin gjenstår.
+korrekt maskert0/0 iVAL, ikke finitt kvalifisert der. Rå→valgtM1/sluttmasker er nå bevist av134.
 Tidligere kilde-/data-/normaliserings-/cachekvitteringer gjenbrukes.
 
 Den bestilte hele nativeepoken108 er FULLFØRT:118249TRAINrader,
@@ -113,8 +117,8 @@ Ingen ny baseline/modellrunde kreves av uendret produksjon og ren auditkode.
 
 ## Åpent før ferdigmelding
 
-Fullfør råMBP→M1-grensen uten ny unødvendig fullscan. Kontroller individuell faktisk
-modellbruk og beslutningssporbarhet. Kvalifiser LONG/SHORT/FLAT, valgte og
+RåMBP→valgtM1/sluttmasker er kvalifisert. Kontroller individuell faktisk
+modellpåvirkning og beslutningssporbarhet uten ny råscan. Kvalifiser LONG/SHORT/FLAT, valgte og
 avståtte entries, kvalitet/dekning og senere generalisering hver for seg.
 Ingen ny treningskampanje er åpnet. Data-PASS, mekanikk, læring, generalisering
 og økonomisk edge holdes atskilt; hele prosjektmålet er fortsatt ufullført.
