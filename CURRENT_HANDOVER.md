@@ -86,12 +86,17 @@ alle157felt/masker/lesepass og ytrevakter; SHA55663fdb21e18fe26a0f0bcf1195f37cdc
 Neste er faktisk individuell modellpåvirkning på kompaktprofilens dynamiske
 hoder og beslutningsspor. Eksisterende legacyQ/fullfeature-influencehelper
 passer ikke denne fasen; bind minste audit-onlyadapter til aktive felt/ruter.
-135binder én900s/4G/512M-kjøring som reviderer115s512lagredeTRAIN/CONTROL-
-beslutningsspor uten nye forwards.7småJSON+4kilder/6funksjoner er bundet;
-6action-/5F32literalcaser kjøres før analysen.1021singletonscore kan
-kontrolleres eksakt,3sidehorisontties ogfull480argmax er ikke rekonstruerbare
-fra lagrede means. Ingen PT/Parquet/rå-/normaliseringspayload åpnes. Statisk
-uavhengigPASS er bundet; faktisk135resultat mangler fortsatt. LONG/SHORT/FLAT, kvalitet/dekning forvalgte/avståtte entries og
+135er konsumert/FAILED på0,829s før traceanalysen: kontrollens canonicalJSON-
+hjelper manglet originaleierens sluttlinjeskift.222kilder/policy ble bevart;
+ingen produksjons-/datafeil er påvist. ACTUAL_FAILURE_REVIEW i135root binder
+årsaken og originalterminalen. Ny137retter bare serialisering, én literal-
+fixture og bindingen til canonical_bytes-eieren. Ingen135relansering.
+137har nå uavhengig eksaktdiffPASS og binder én ny900s/4G/512M-receiptanalyse.
+Beggecohorthasher matcher kildens LF-format;12literalcaser/5kilder/8funksjoner
+er bundet før faktisk kjøring.
+115s512lagredebeslutningsspor kan fortsatt gjenbrukes uten modellforwards;
+1021singletonscore er eksakt kontrollerbare,3sidehorisontties ogfull480argmax
+kan ikke rekonstrueres fra lagrede means. LONG/SHORT/FLAT, kvalitet/dekning forvalgte/avståtte entries og
 senere generalisering har fortsatt åpne krav. Ingen ny trening er åpnet.
 121–126/133/134 og produksjonsbaseline/paritet gjenbrukes uten omkjøring.
 
