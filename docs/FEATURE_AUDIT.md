@@ -586,12 +586,16 @@ Tre smale kilde-/matematikkpeerreviews og66håndcaser bestod. Den ene fysiske
 persistente eiermålinger. Ingen nye felt er kvalifisert;129indeksen på320
 outputs er gjeldende. Originalkvitteringer/staging bevares,130 er konsumert.
 Ingen formelfeil eller lokalisert ytelsesårsak er bevist av tidsavbruddet.
-131 målte tre eiere på12000genuine2009M5-rader og lokaliserte en konkret
-cross-auditfeil: ekteATRwarmupNaN traff streng boundmultiplikasjon førmasken.
-Ingen produksjons-/prisoverflow er bevist. AVWAPoutputaritmetikken hadde
-målte mange skalare sub/div-kall.132 retter bare crossmasken og vektoriserer
-AVWAPoutput etter identisk causal Fraction/M2replay;121andrehelpers uendret.
-Nye permanente warmupregresjoner og frystoriginalbitparitet kontrolleres i
-énnycapped29casekvalifisering, inkludert ett ekte12000M5prefiks. Dette er
-ikke fysisk fullhistorisk470outputkvalifisering, modellrunde eller nyepoke.
-Se CURRENT_HANDOVER.md/NEXT_RUN_POLICY.json for eksakte bindinger og terminal.
+131 lokaliserte en cross-auditmaskeringsfeil: ekteATRwarmupNaN traff streng
+boundmultiplikasjon førmasken. Ingen produksjons-/prisoverflow ble bevist.
+132 retter bare crossmasken og vektoriserer output-onlyAVWAP etter identisk
+kausal Fraction/M2replay;121andrehelpers og182nativeproduksjonsfiler uendret.
+33hovedcaser+96subchecks bestod ién19,526s cappedjobb. På samme12000ekteM5-
+rader er12AVWAPverdier+12radier/143388finiteceller hver bitidentiske, egne
+NaNmasker bevares. Ett uprofilert gammeltkall12,920s og nytt1,743s er kun
+prefiksmåling, ingen fullhistorisk/modelldrevet hastighetsgevinstpåstand.
+Cross13warmup bevares;4pivoter harfiniteverdier,10extrema manglerfulltD1vindu
+på realprefikset og er fortsatt maskert.5TF-håndregresjoner bestod.
+Ingen nye fullhistoriske470outputs kvalifiseres av132;129s320indeks består.
+Neste fullhistoriske cachekontroll trenger ny eksakt plan og eierprogress.
+Se CURRENT_HANDOVER.md/NEXT_RUN_POLICY.json for bindinger og faktisk status.

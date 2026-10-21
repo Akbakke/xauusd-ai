@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T03:25:55.239913+00:00",
-  "status": "132_MINIMAL_AUDIT_REPAIRS_INTEGRATED_FOCUSED_QUALIFICATION_AUTHORIZED",
+  "observed_utc": "2026-10-21T03:30:24.059439+00:00",
+  "status": "132_AUDIT_WARMUP_FIXED_AND_AVWAP_PREFIX_BIT_PARITY_PASS_FRESH_FULL_NUMERIC_PLAN_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Exactly one132capped focusedqualification:16affected priorcases+8crosswarmup+4frozenAVWAPparity+1actual12000M5prefix. Freeze source/policy toterminal;900s. No130/131relaunch/fullhistorycachequalification/training/Exit/TEST/broker.",
+  "next_action": "Prepare exactly one fresh source-bound fullhistory470activeoutput numeric plan on repaired auditcode,with durable per-owner progress and existing1800s cap. Reuse prior320qualification,unchangedproduction/normalization/modelmechanics; no130/131/132relaunch or nativeepoch/Exit/TEST/broker. No job currently launched.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "132_FOCUSED_REPAIR_QUALIFICATION",
+    "current_activity": "NEXT_FRESH_REPAIRED_CORE_NUMERIC_PLAN_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,13 +118,13 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "131_actual_partial_performance_profile_and_cross_audit_warmup_failure",
+    "latest_terminal_role": "132_scoped_audit_repair_and_real_prefix_bit_parity",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_NUMERIC_PERFORMANCE_20261021_131/TERMINAL.json",
-      "sha256": "e8534ad45a25f6df705c9cb7daff2a10bc367c6f06db1512c1972422ad7a9b77"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/TERMINAL.json",
+      "sha256": "c9de44ac58405766fe37ac90560e86bf76f13376b633d038694c733a2f5efa72"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "131locatedcrossauditwarmupNaNinto strictboundmultiply;localAVWAPscalarcallsmeasured. Threeownerprofilespersisted; prior320qualificationunchanged. Repaironlythese measured auditissues before freshfocusedqualification.",
+    "current_blocker": "132source+actual12000prefix bitparity PASS fixes measured auditwarmup/error andscalarcost; fullhistory470cachecomparison remains unqualified. Need exactfresh plan/campaign; no performance extrapolation or nexttrainingadmission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Exactly one132capped focusedqualification:16affected priorcases+8crosswarmup+4frozenAVWAPparity+1actual12000M5prefix. Freeze source/policy toterminal;900s. No130/131relaunch/fullhistorycachequalification/training/Exit/TEST/broker.",
+    "next_action": "Prepare exactly one fresh source-bound fullhistory470activeoutput numeric plan on repaired auditcode,with durable per-owner progress and existing1800s cap. Reuse prior320qualification,unchangedproduction/normalization/modelmechanics; no130/131/132relaunch or nativeepoch/Exit/TEST/broker. No job currently launched.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9465,7 +9465,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "130_CORE_NUMERIC_TIMEOUT_129320_PASS_131_BOUNDED_PROFILE_PREPARATION",
+      "status": "132_AUDIT_REPAIR_PREFIX_PASS_129320_QUALIFIED_FRESH_FULL_CORE_NUMERIC_PLAN_REQUIRED",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -15867,7 +15867,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
     },
-    "latest_terminal_evidence_scope": "13135.886s/exit1,220sourcefilesandpolicyunchanged;3validperownerprofiles,noformulaqualification. Cross14warmupmaskbugandlocalAVWAPscalarcostmeasured. No newnativeproductionissueestablished.",
+    "latest_terminal_evidence_scope": "13219.526s/exit0,33topcases+96subchecks,220sources/policyunchanged.12000M5prefix12AVWAPvalues+radii143388finitecellseach bitidentical; old12.920s/new1.743s one unprofiledcall each. Cross13warmupfixed;4pivotsfinite/10extremamasked forshortD1history. No newfullhistoryqualification/indexextension or modeladmission.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -16834,14 +16834,14 @@
       "elapsed_seconds": 35.885802042997966
     },
     "core_audit_repair_132": {
-      "status": "SOURCE_INTEGRATED_ONE_FOCUSED_QUALIFICATION_AUTHORIZED",
+      "status": "COMPLETE_SCOPED_SOURCE_REPAIR_PASS",
       "implementation_scope": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/IMPLEMENTATION_SCOPE.json",
         "sha256": "a6f82a8c163c8862f2979022d2e4a25c48cbd1381888bbd09bbd8f6129afa076"
       },
       "execution_authorized": false,
-      "claimed_invocations": 0,
-      "completed_invocations": 0,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "training_enabled": false,
       "native_training_admitted": false,
@@ -16863,6 +16863,18 @@
       "prelaunch_correction": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/PRELAUNCH_TEST_COLUMN_BINDING_CORRECTION.json",
         "sha256": "4af21ef083f3b14b8e9c7ab798aac6a772f63c88a3288dbf6c8de9979afa9339"
+      },
+      "source_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/SOURCE_REVIEW.json",
+        "sha256": "fe274e2c6c8109ffeafb6383db9794430064329601209874e0003400a0f57b88"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/TERMINAL.json",
+        "sha256": "c9de44ac58405766fe37ac90560e86bf76f13376b633d038694c733a2f5efa72"
+      },
+      "actual_prefix_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/REAL_PREFIX_REPAIR_RESULT.json",
+        "sha256": "e43456e7660fd9a6721ebb8cb009d4a54b2b2c3f90e78063b795340a2388627e"
       }
     }
   },
@@ -19428,7 +19440,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T03:25:55.239913+00:00",
+  "updated_utc": "2026-10-21T03:30:24.059439+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20069,23 +20081,30 @@
     }
   },
   "latest_terminal_receipt": {
-    "schema_version": "gx1_native_core_prefix_profile_terminal_v1",
-    "status": "FAILED_NO_ADMISSION",
-    "exit_code": 1,
-    "observed_utc": "2026-10-21T03:20:16.511540+00:00",
-    "source_head": "723dd20b388328ac200036625efad9fef456a059",
+    "schema_version": "gx1_native_core_audit_repair_terminal_v1",
+    "status": "COMPLETE_SCOPED_SOURCE_REPAIR",
+    "exit_code": 0,
+    "observed_utc": "2026-10-21T03:30:24.059439+00:00",
+    "source_head": "e071ad715f4c90903918a18b15ce21cb5aa6860e",
     "source_unchanged": true,
     "review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_NUMERIC_PERFORMANCE_20261021_131/ACTUAL_PROFILE_REVIEW.json",
-      "sha256": "c25c96401431c4dadca8b110f7cca326f7e46de23235669da6bc4054c18369eb"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/SOURCE_REVIEW.json",
+      "sha256": "fe274e2c6c8109ffeafb6383db9794430064329601209874e0003400a0f57b88"
     },
-    "actual_launch_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_NUMERIC_PERFORMANCE_20261021_131/ACTUAL_PROFILE_LAUNCH_TERMINAL.json",
-      "sha256": "01c2939e82dfbbeb22808c713195e4b3448226d06d0fc9fa8c9fe0b20ebddb52"
+    "source_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "bed0c3068db0729f187e81848a00677a859fd9483630e75b2c0077b7f89f5317"
     },
-    "elapsed_seconds": 35.885802042997966,
-    "completed_profile_owners": 3,
-    "numeric_formula_qualification": false,
+    "actual_prefix_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/REAL_PREFIX_REPAIR_RESULT.json",
+      "sha256": "e43456e7660fd9a6721ebb8cb009d4a54b2b2c3f90e78063b795340a2388627e"
+    },
+    "elapsed_seconds": 19.526300296001864,
+    "qualified_mtf_numeric_index": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_NATIVE_SMC_NUMERIC_REFERENCE_20261021_129/QUALIFIED_MTF_NUMERIC_INDEX.json",
+      "sha256": "8d2369460e368d9c5efa53419b3616b40aa27de30b08597bdeb714c3bd2de24b"
+    },
+    "new_full_history_outputs_qualified": 0,
     "training_enabled": false,
     "native_training_admitted": false,
     "test_data_used": false,
@@ -20208,10 +20227,10 @@
     "elapsed_seconds": 4.12763361999896
   },
   "native_core_repair_source_132": {
-    "status": "AUTHORIZED_ONE_FOCUSED_REPAIR_QUALIFICATION",
-    "execution_authorized": true,
+    "status": "COMPLETE_SCOPED_SOURCE_REPAIR_PASS",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/SOURCE_QUALIFICATION_PLAN_CORRECTED.json",
@@ -20236,6 +20255,21 @@
     "prelaunch_correction": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/PRELAUNCH_TEST_COLUMN_BINDING_CORRECTION.json",
       "sha256": "4af21ef083f3b14b8e9c7ab798aac6a772f63c88a3288dbf6c8de9979afa9339"
-    }
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/SOURCE_QUALIFICATION_RESULT.json",
+      "sha256": "38b01899cb5fa8ecbd6cfe740be4d908d4d880bdf843ddc1ec21105115cdb5f5"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "bed0c3068db0729f187e81848a00677a859fd9483630e75b2c0077b7f89f5317"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CORE_AUDIT_REPAIR_20261021_132/SOURCE_REVIEW.json",
+      "sha256": "fe274e2c6c8109ffeafb6383db9794430064329601209874e0003400a0f57b88"
+    },
+    "actual_top_level_testcases": 33,
+    "xml_including_successful_subtests": 129,
+    "elapsed_seconds": 19.526300296001864
   }
 }
