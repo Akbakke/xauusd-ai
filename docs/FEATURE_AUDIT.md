@@ -607,6 +607,6 @@ fortsatt åpne. CURRENT_HANDOVER/NEXT_RUN_POLICY eier faktisk status og bindinge
 134uavhengige referanser og deltleser er implementert i
 `gx1/scripts/audit_raw_gc_m1_reference_v1.py`; hånd-/syntetiskIO-fasiter i
 `tests/test_raw_gc_m1_reference_v1.py`. DESIGN/ERROR_SPEC låser heltall og
-analytiske cellegrenser før targets. Én capped kildekvalifisering er åpnet;
-ekte rårecords er fortsatt ikke uavhengig kvalifisert, ingen rawscan/trening.
+analytiske cellegrenser før targets. 116capped kildecaser bestod på2,848s/0feil/0skips;222kilder/policy bevart.
+Ekte rårecords er fortsatt ikke uavhengig kvalifisert, ingen rawscan/trening.
 Korrigert scopeprosa: faktisk11L1kvalitetstellere, ikke12; originaldraft beholdes.

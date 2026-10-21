@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T04:43:34.651385+00:00",
-  "status": "134_INDEPENDENT_RAW_REFERENCE_HAND_IO_SOURCE_QUALIFICATION_PENDING_NO_RAW_PAYLOAD",
+  "observed_utc": "2026-10-21T04:45:19.767891+00:00",
+  "status": "134_INDEPENDENT_RAW_REFERENCE_SOURCE_116_PASS_ACTUAL_PAYLOAD_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Run exactlyone134capped synthetic/hand sourcequalification on cleanboundsource; no actualrawpayload scan/model/training. Afterterminal bind remaining actualraw inventory/studyseal/targetguards/perfiledurability and freshfiniteadmission. Reuse121–126/133.",
+  "next_action": "Bind one exact first rawfile actualreference invocation with qualifiedoracles, source/targetdigests, study/TESTseal, durableEOFverifiedpartial andfinitecappedruntime. Reuse this admittedpartial in remaining65file plan; do not rereadfullrawperfeature. Actualpayloadexecution remainsclosed until exactfreshbinding.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "134_RAW_REFERENCE_HAND_SYNTHETIC_IO_SOURCE_QUALIFICATION",
+    "current_activity": "134_FIRST_PHYSICAL_RAW_FILE_REFERENCE_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,11 +118,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_MIXED_COMPONENT_LEARNING_PRIMARY_ENTRY_QUALITY_AND_FEATURE_NUMERIC_AUDITS_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "133_fullhistory_all_compact_active_MTF_cache_numeric_reference",
+    "latest_terminal_role": "134_source_hand_synthetic_IO_only_no_actual_raw_payload",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/TERMINAL.json",
-      "sha256": "bc200474849469addaff51fc7d8c94b27873b603f618186872e787607c1d2ecc"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "96019730d4f4bd2e8a7d35365fc2fde9d56089c52dc3e01ecb2a058ef6382135"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "RawMBP-to-M1 independentformulas/reader/masks/comparers implemented; runtimehand/sourcequalification pending. Actual66payloadpass anddurableperfilebinding notyetopened. Individualmodeluse/Entryqualitycoverage/trace remain.",
+    "current_blocker": "116source/hand/syntheticIO cases PASS. Actualraw-to-M1 firstfile and remaining65 notyetexecuted; actualpayloadplan/controller/finalguards/perfilepartial required. Individualmodeluse/Entryqualitycoverage/trace remain.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -19522,7 +19522,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T04:43:34.651385+00:00",
+  "updated_utc": "2026-10-21T04:45:19.767891+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20394,10 +20394,10 @@
     "elapsed_seconds": 3.8389222500009055
   },
   "raw_mbp_m1_reference_source_134": {
-    "status": "READY_EXACT_ONE_SOURCE_QUALIFICATION_ONLY",
-    "execution_authorized": true,
+    "status": "COMPLETE_116_SOURCE_CASES_PASS_NO_ACTUAL_RAW",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/SOURCE_QUALIFICATION_PLAN.json",
@@ -20418,6 +20418,20 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/SOURCE_QUALIFICATION_RESULT.json",
+      "sha256": "9f3f17768938c3a9c9a5c2be4d4c589090a995b49ee1138dedc2ee17e988e9ff"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "96019730d4f4bd2e8a7d35365fc2fde9d56089c52dc3e01ecb2a058ef6382135"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/SOURCE_REVIEW.json",
+      "sha256": "2bf49155c45739fcdf9dcc9d72f3c2a349a1017bed7e4de6eeb88423b4351c2b"
+    },
+    "tests_passed": 116,
+    "elapsed_seconds": 2.8479710049978166
   }
 }
