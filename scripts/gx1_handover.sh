@@ -10,7 +10,7 @@ case "${1:-}" in
   -h|--help) echo "Usage: scripts/gx1_handover.sh [--check|--verbose|--source-only]"; exit 0 ;;
   *) echo "Unsupported handover argument: $1" >&2; exit 2 ;;
 esac
-for required in NEXT_RUN_POLICY.json CURRENT_HANDOVER.md docs/LEARNING_GATE.md; do
+for required in NEXT_RUN_POLICY.json CURRENT_HANDOVER.md docs/LEARNING_GATE.md docs/ORIGINAL_PROJECT_GOAL.md; do
   [[ -f "$REPO/$required" ]] || {
     echo "FATAL: required handover file missing: $required; no legacy fallback" >&2
     exit 78

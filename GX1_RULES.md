@@ -1,5 +1,11 @@
 # GX1-regler — bindende for alle agenter (mål presisert 18.10.2026)
 
+Originalbestillingen er bevart ordrett i
+[docs/ORIGINAL_PROJECT_GOAL.md](docs/ORIGINAL_PROJECT_GOAL.md).
+Den faste retningen og senere uttrykkelige brukerpresiseringer skal bevares;
+status eller beståtte tester skal aldri omdefinere målet. `NEXT_RUN_POLICY.json`
+hashbinder originaldokumentet; handover kontrollerer bindingen ved overtakelse.
+
 Dette er den ene regelkilden. Claude leser den via `CLAUDE.md`, Codex via `AGENTS.md`.
 Status, gjort/ikke gjort og neste steg står bare i `CURRENT_HANDOVER.md` med
 maskinlesbare bindinger i `NEXT_RUN_POLICY.json`, aldri som daglig historikk her.

@@ -350,8 +350,19 @@ def current_status(repo: Path, *, source_only: bool = False) -> dict[str, object
     work = policy.get("current_work")
     if not isinstance(work, dict):
         raise ValueError("CURRENT_WORK_REQUIRED_NO_HISTORICAL_FALLBACK")
+    original = policy.get("original_project_goal")
+    if (not isinstance(original, dict) or set(original) != {"path", "sha256"}
+            or not isinstance(original["path"], str)
+            or not isinstance(original["sha256"], str)):
+        raise ValueError("ORIGINAL_PROJECT_GOAL_BINDING_REQUIRED")
+    if original["path"] != str(repo / "docs/ORIGINAL_PROJECT_GOAL.md"):
+        raise ValueError("ORIGINAL_PROJECT_GOAL_PATH_MISMATCH")
+    original_path = _regular_file(original["path"], label="original_project_goal")
+    if _sha256(original_path) != original["sha256"]:
+        raise ValueError("ORIGINAL_PROJECT_GOAL_HASH_MISMATCH")
     out = {
         "decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY",
+        "original_project_goal": original,
         "observed_utc": datetime.now(timezone.utc).isoformat(),
         "source_repo": str(repo), "source_commit": _git(repo, "rev-parse", "HEAD"),
         "recorded_status": policy["status"],
@@ -472,7 +483,8 @@ def handover_view(status: dict[str, object]) -> dict[str, object]:
     work = status.get("current_work")
     if isinstance(work, dict):
         visible = (
-            "current_activity", "current_research_id", "latest_terminal",
+            "current_activity", "current_research_id", "latest_terminal", "latest_terminal_role",
+            "latest_terminal_evidence_scope", "latest_terminal_evidence_gaps",
             "pre_smoke_goal_preparation_complete", "full_benchmark_completed",
             "sampler_selected", "physical_native_preprocessing_complete",
             "native_training_coordinates_published", "training_started",
@@ -486,14 +498,23 @@ def handover_view(status: dict[str, object]) -> dict[str, object]:
                     "status", "physical_dataset_published",
                     "whole_physical_train_rows", "whole_physical_val_rows",
                     "physical_dataset_input_qualification_complete",
+                    "compact_active_input_qualification_complete", "physical_dataset_qualification_scope",
                     "physical_dataset_normalization_complete", "training_started",
-                    "mbp1_completion_stage", "observed_smc_registry_stage",
-                    "trusted_record_restoration_stage", "final_train_registry_stage",
-                    "new_generation_m5_feature_stage", "new_generation_m1_feature_stage",
-                    "dynamic_m5_entry_implementation",
-                    "native_binding_gaps",
+                    "native_training_admitted", "final_test_claim", "native_binding_gaps",
                 ) if key in native
             }
+            # Keep the phase and its admission refusals, not historical stage trees.
+            dynamic = native.get("dynamic_m5_entry_implementation")
+            if isinstance(dynamic, dict):
+                out["current_work"]["native_gc_rebuild_20261017"]["dynamic_m5_entry_implementation"] = {
+                    key: dynamic[key] for key in (
+                        "status", "training_phase", "emission_scope", "query_domain_minutes",
+                        "native_training_admitted", "training_started",
+                        "candidate_quality_value_admitted", "exit_training_authorized",
+                        "prior_fixed95_draft_execution_authorized", "test_data_used",
+                        "known_remaining_native_source_gaps",
+                    ) if key in dynamic
+                }
         goal = work.get("restart_and_smoke_goal")
         if isinstance(goal, dict):
             out["current_work"]["restart_and_smoke_goal"] = {

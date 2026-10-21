@@ -27,6 +27,10 @@ def _policy(repo):
     source=Path(__file__).resolve().parents[1]
     p=json.loads((source/'NEXT_RUN_POLICY.json').read_text())
     p['canonical_source_repo']=str(repo)
+    original=repo/'docs/ORIGINAL_PROJECT_GOAL.md'
+    original.parent.mkdir(parents=True, exist_ok=True)
+    original.write_text('Original fixture request: M5 Entry, all genuine indicators.\n')
+    p['original_project_goal']={'path':str(original),'sha256':hashlib.sha256(original.read_bytes()).hexdigest()}
     # This fixture intentionally owns the historical joint profile after replacing
     # current_work; the live policy may now declare an explicit Entry-only scope.
     p['required_val_profile']={'policy_batch_size':256,'cpu_pipeline_workers':8,
@@ -912,7 +916,7 @@ def test_one_latest_handover_replaces_redundant_goal_roadmap_and_cleanup_reports
         for consumer in consumers:
             assert name not in (repo / consumer).read_text()
     script = (repo / "scripts/gx1_handover.sh").read_text()
-    assert "for required in NEXT_RUN_POLICY.json CURRENT_HANDOVER.md docs/LEARNING_GATE.md;" in script
+    assert "for required in NEXT_RUN_POLICY.json CURRENT_HANDOVER.md docs/LEARNING_GATE.md docs/ORIGINAL_PROJECT_GOAL.md;" in script
     assert "CURRENT_HANDOVER.md" in (repo / "AGENTS.md").read_text()
 
 
@@ -1069,22 +1073,29 @@ def test_handover_shows_durable_project_goal_and_current_native_generation():
                   "query_domain_minutes": {"first": 1, "last": 480},
                   "native_training_admitted": False,
                   "candidate_quality_value_admitted": False,
-                  "prior_fixed95_draft_execution_authorized": False},
+                  "prior_fixed95_draft_execution_authorized": False,
+                  "exit_training_authorized": False, "test_data_used": False,
+                  "physical_dataset_stage_032": {"old_receipts": "omitted"},
+                  "train_rms_parity_resume4_stage_117": {"history": "omitted"}},
               "native_binding_gaps": ["new physical outputs unqualified"]}
     status = {"decision": "OBSERVATION_ONLY_NOT_RUN_AUTHORITY", "current_work": {
         "project_goal": goal, "native_gc_rebuild_20261017": native,
         "current_blocker": "normalization and parity", "historical_scope": {"do_not_dump": True}}}
     out = handover_view(status)
     assert out["current_work"]["project_goal"] == goal
-    assert out["current_work"]["native_gc_rebuild_20261017"] == {
-        key: value for key, value in native.items() if key not in {"raw_stage", "derived_timeframe_stage"}}
     assert "historical_scope" not in out["current_work"]
     assert out["decision"] == "OBSERVATION_ONLY_NOT_RUN_AUTHORITY"
     shown = out["current_work"]["native_gc_rebuild_20261017"]
-    assert shown["new_generation_m1_feature_stage"]["status"] == "COMPLETE_CONSUMED"
-    assert shown["dynamic_m5_entry_implementation"]["native_training_admitted"] is False
-    assert shown["dynamic_m5_entry_implementation"]["candidate_quality_value_admitted"] is False
+    assert shown["native_binding_gaps"] == native["native_binding_gaps"]
+    dynamic = shown["dynamic_m5_entry_implementation"]
+    assert dynamic["training_phase"] == "entry_only_dynamic_m5_path"
+    assert dynamic["query_domain_minutes"] == {"first": 1, "last": 480}
+    for name in ("native_training_admitted", "candidate_quality_value_admitted",
+                 "prior_fixed95_draft_execution_authorized", "exit_training_authorized", "test_data_used"):
+        assert dynamic[name] is False
     assert shown["physical_dataset_input_qualification_complete"] is False
+    assert "old_receipts" not in json.dumps(out) and '"history"' not in json.dumps(out)
+    assert "new_generation_m1_feature_stage" not in shown
 
 
 def test_declared_failed_unknown_test_observation_is_visible_and_blocks_readiness(fixture, monkeypatch):
@@ -1244,3 +1255,45 @@ def test_native_readiness_rejects_changed_physical_binding_inside_scope(native_s
     assert hashes._FILE_VERIFICATION_MEMO.get() is None
     hashes.file_sha256(shared)
     assert len(reads) == 3
+
+
+@pytest.mark.parametrize("source_only", [False, True])
+def test_original_goal_is_bound_without_granting_execution(fixture, monkeypatch, source_only):
+    path, policy = _policy(fixture)
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', lambda _: [])
+    observed = current_status(fixture, source_only=source_only)
+    assert observed['original_project_goal'] == policy['original_project_goal']
+    assert observed['decision'] == 'OBSERVATION_ONLY_NOT_RUN_AUTHORITY'
+    assert observed['training_enabled'] == policy['training_enabled']
+    assert observed['full_epoch_training_allowed'] == policy['full_epoch_training_allowed']
+    assert observed['full_val_allowed'] == policy['full_val_allowed']
+
+
+@pytest.mark.parametrize("source_only", [False, True])
+@pytest.mark.parametrize("fault", ["undeclared", "extra_field", "wrong_path", "relative_path", "hash", "bytes", "missing", "symlink"])
+def test_original_goal_fails_closed_before_any_terminal_read(fixture, monkeypatch, source_only, fault):
+    path, policy = _policy(fixture)
+    original = Path(policy['original_project_goal']['path'])
+    if fault == 'undeclared':
+        policy.pop('original_project_goal')
+    elif fault == 'extra_field':
+        policy['original_project_goal']['authority'] = 'launch'
+    elif fault in ('wrong_path', 'relative_path'):
+        policy['original_project_goal']['path'] = str(fixture / 'source.txt') if fault == 'wrong_path' else 'docs/ORIGINAL_PROJECT_GOAL.md'
+    elif fault == 'hash':
+        policy['original_project_goal']['sha256'] = '0' * 64
+    elif fault == 'bytes':
+        original.write_text('Changed original request')
+    elif fault == 'missing':
+        original.unlink()
+    else:
+        original.unlink()
+        original.symlink_to(fixture / 'source.txt')
+    path.write_text(json.dumps(policy))
+    terminal = Path(policy['current_work']['latest_terminal']['path'])
+    terminal.unlink()
+    def unexpected(_):
+        raise AssertionError('invalid original goal must not inspect workloads')
+    monkeypatch.setattr('scripts.collect_gx1_handover_readonly._current_processes', unexpected)
+    with pytest.raises(ValueError, match='ORIGINAL_PROJECT_GOAL|original_project_goal'):
+        current_status(fixture, source_only=source_only)

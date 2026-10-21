@@ -3,6 +3,10 @@
 Autoritet: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current` på
 `gx1-3090-lan`. Følg GX1_RULES og NEXT_RUN_POLICY; faktiske prosesser og
 terminaler overstyrer prosa. Én integrator og én capped tung jobb.
+Originalbestillingen er bevart ordrett i
+[docs/ORIGINAL_PROJECT_GOAL.md](docs/ORIGINAL_PROJECT_GOAL.md) og hashbundet i policy.
+Nåværende delmål: kvalifiser M5 Entry LONG/SHORT/FLAT, lav MAE før første MFE,
+kvalitet/dekning og forklarbare valgte/avståtte signaler. Ingen Exit i denne bølgen.
 
 ## Gjort nå
 
@@ -52,13 +56,39 @@ Root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_15
 Etterrapportens opprinnelige8/2 forecastdeling er feil; korreksjonen eier4M5-
 basekoordinater/6dagstøttekoordinater og gruppemidlene. Alle10koordinatfeil,
 samlede forecast-tall og Entry-resultater er uendret. Originalbevis bevares.
-153 er klar for én CPUaudit4G/512M/maks900s av de fire lagrede148-/151-kurvene.
-152 har ikke felles feil-/kryssmomenter;153måler terminal-/preMAE-feil og deres
-differanse på felles observerte celler, med samme faste FINAL-radgrupper før/etter.
-Egne masker, F32-scoreavrunding, alle480horisonter og valgte/avståtte beholdes.
-Samme-horisont terminal-LONG/SHORT-fortegn kontrolleres fra samme lesing.
-Ingen nye forwards, datasettprojeksjoner, fit, score, terskel eller horisontgrense;
-ingen ny trening. PLAN/policy eier faktisk153adgang; ingen konsumerte planer relanseres.
+153 er COMPLETE/consumed:8,19s CPUaudit, fire eksisterende kurvefiler lest én gang,
+null nye modellkall/optimizersteg/datasettprojeksjoner/refits. Terminal- og MAE-
+feil ble målt på felles observerte celler; faste FINAL-grupper og prognosevalgte
+horisonter er identiske i før/etter-sammenligningen. F32-avrunding rapporteres separat.
+På valgte CONTROL-rader ved1min framtidig målehorisont:
+
+| Kandidat | Antall | Predikert terminal-bps | Observert terminal-bps | MAE-bias-bps |
+|---|---:|---:|---:|---:|
+| LONG |29|+14,24|−2,89|+5,10|
+| SHORT |53|+22,05|−6,04|+4,60|
+
+Valgte kandidaters terminalretning er for optimistisk i disse proberadene.
+MAE er også overvurdert, og trekker derfor kandidatscoren ned. Dette skiller
+komponentfeilen fra årsaken til1min-mønsteret, som fortsatt ikke er fastslått.
+FINAL har ingen begge-terminal-positive prognoser ved de sju faste rapporthorisontene;
+INITIAL CONTROL hadde1–2. Ingen implementasjons-/routingsfeil er påvist.
+Dette er gjenbrukt utviklingsdiagnostikk, ikke økonomi eller ny generalisering.
+
+Root: `/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153`.
+- `TERMINAL.json`:6cd7150babf6b1d29806bada146ba46c7c9f84126cf33370c6f660e68b90ee45
+- `SUMMARY.json`:d1c4ace92788a0e843a34f78f84cfc1ca0192fcb0d4487c428bb57cbb93503c7
+- `ACTUAL_JOINT_REVIEW_PEER.json`:767f5f2bf40358716aec9a90e28aebf44828b9637306de1f8ab306c175a0f377
+
+Neste steg: undersøk terminalretningens korte horisontkalibrering,
+horisontkondisjonering og tapsfordeling i eksisterende eiere mot153-beviset.
+Velg deretter bare en konkret, målt begrunnet rettelse eller en eksplisitt ny
+treningsplan. Ingen ny score, terskel, horisontgrense, modellvariant eller trening
+har adgang nå. Opprinnelig én epoke og den nye TRAIN-RMS-epoken er begge konsumert.
+En ny agent starter med `bash scripts/gx1_handover.sh --check`, leser GX1_RULES
+og denne overleveringen, og fortsetter dette neste steget. Ingen råMBP-rescan.
+Scriptet validerer originalmålets canonical sti og SHA, viser nåstatus/neste steg
+og beholder terminal-/TEST-/kilde-/prosessvakter.56fokuserte kontroller bestod;
+kvittering:153/`HANDOVER_FOCUSED_CHECKS_TERMINAL.json`. Ingen ny treningsadgang.
 
 Læring, Entry-kvalitet/dekning, generalisering og økonomisk edge vurderes
 hver for seg. Alle26måneder er gjenbrukt utvikling, også CONTROL/VAL.
