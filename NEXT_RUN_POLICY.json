@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T07:46:47.865355+00:00",
-  "status": "140_CURRENT_ALIAS_MASK_WITNESSES_COMPLETE_141_INPUT_RENDERING_SOURCE_PREPARATION",
+  "observed_utc": "2026-10-21T08:28:37.003738+00:00",
+  "status": "141_INPUT_PACKET_PRODUCER_AUTHORIZED_PENDING_CLEAN_BINDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Implement minimal external141input-only renderer using existing positioned-row/clock/MTF-cache-window owners for frozen140parents[45713,14387,25188], exact96M5history and constructor-bound16/64/96/96/252MTFwindows, paddingfirstrealwitness13times. No Dataset/targets/provider/model/PT read or native launch without new exactbinding. Reuse139source and140currentmask proof. Training remains disabled.",
+  "next_action": "Bind clean committed source, exact policy and 224 source files; invoke the single CPU-only 8G input packet producer once. Reuse qualified 139/140; do not construct a model or start training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "141_INPUT_ONLY_RENDERER_SOURCE_PREPARATION",
+    "current_activity": "141_INPUT_PACKET_ONE_SHOT_AUTHORIZED_PENDING_CLEAN_BINDING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Full actualinput tensors/history/MTF/categorical witnesses not rendered. Need externalrenderer sourcequalification/exactdata-cache-normalization-state/caseplan/hardwarebinding before nativeinfluence; no trainingadmission.",
+    "current_blocker": "Actual input assembly and strict packet roundtrip remain unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Implement minimal external141input-only renderer using existing positioned-row/clock/MTF-cache-window owners for frozen140parents[45713,14387,25188], exact96M5history and constructor-bound16/64/96/96/252MTFwindows, paddingfirstrealwitness13times. No Dataset/targets/provider/model/PT read or native launch without new exactbinding. Reuse139source and140currentmask proof. Training remains disabled.",
+    "next_action": "Bind clean committed source, exact policy and 224 source files; invoke the single CPU-only 8G input packet producer once. Reuse qualified 139/140; do not construct a model or start training.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20917,7 +20917,7 @@
     "prior_digest_carry_used": false
   },
   "input_only_render_141": {
-    "status": "MINIMAL_EXTERNAL_ADAPTER_SOURCE_PREPARATION_NOT_ADMITTED",
+    "status": "MINIMAL_EXTERNAL_RENDERER_SOURCE_WRITTEN_NOT_RUNTIME_QUALIFIED_OR_ADMITTED",
     "execution_authorized": false,
     "training_enabled": false,
     "native_training_admitted": false,
@@ -20935,6 +20935,92 @@
     ],
     "baseline_padding_owner_index": 0,
     "native_model_forwards_admitted": 0,
-    "dataset_constructor_or_target_provider_allowed": false
+    "dataset_constructor_or_target_provider_allowed": false,
+    "renderer_source": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/render_input_only.py",
+      "sha256": "d41b33892efc180927bb1d891e436ee6c8509c89208af0d2b9bea40a6fe939ef"
+    },
+    "source_AST_review_pass": true,
+    "runtime_qualification_pending": true,
+    "pending": [
+      "exact_constructor_phase_window_and_field_bindings",
+      "predecode_projected_rowgroup_memory_bounds",
+      "canonical_current_file_hashes_and_cache_single_load",
+      "literal_source_checks_and_exact_capped_plan",
+      "fullinput_current_history_MTF_categorical_domain_and_140rowhash_rejoin"
+    ],
+    "persist_qualified_input_packet_for_later_audit_reuse_without_redecoding": true,
+    "existing_model_state_load_owners": {
+      "constructor": "gx1.scripts.run_unified_exit_random_access_fixed_step_v1._model",
+      "session": "gx1.models.entry_v10.entry_v10_ctx_train_v3._CandidateTrainingSession(read_only=True)",
+      "strict_loader": "_CandidateTrainingSession.load_checkpoint",
+      "ONLINE_payload_key": "model_state",
+      "prefix_function_guard": "trainer._require_prefix_online_function",
+      "normalization_guard": "model.require_input_normalization_state",
+      "native_load_or_model_forward_admitted": false,
+      "state_115_optimizer_steps_required": 0,
+      "ONLINE_state_sha256_expected": "9c4cf514cbfd5b6f9366f69065abcc0878ef274117e2b5c7e703656e86a79b4a",
+      "EMA_teacher_best_substitution_allowed": false
+    }
+  },
+  "dynamic_compact_input_render_141": {
+    "status": "AUTHORIZED_ONE_CPU_INPUT_PACKET_PRODUCER_AFTER_CLEAN_BINDING",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_RENDER_PLAN.json",
+      "sha256": "8fc8256642c881a7e177bbffbadf029a42d5238364db6f79af407b43165a58b9"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/run_input_render.py",
+      "sha256": "05c24bb8e043464c6618f1154e908079a483a56e247221af53f929e4183dd4a8"
+    },
+    "input_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/INPUT_SCOPE.json",
+      "sha256": "153130f1d991ca98b37b643ea65bede645bc042c5be34619cef4f593a6d62db0"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/DESIGN.json",
+      "sha256": "520f70e1d31bb5ee83544d2b2b08175606fe3b84b35a04af773205e1ff76dbf2"
+    },
+    "execution": {
+      "class": "producer",
+      "memory": "8G",
+      "swap": "512M",
+      "cpu_only": true,
+      "numerical_threads": 1,
+      "cpu_affinity": "0-7",
+      "timeout_seconds": 900,
+      "one_shot_invocations": 1
+    },
+    "train_fresh_digest_required": true,
+    "model_forwards_admitted": 0,
+    "targets_or_provider_allowed": false,
+    "checkpoint_or_PT_allowed": false,
+    "output_packet_reused_by_later_audit": true,
+    "unique_parent_rows": [
+      45713,
+      14387,
+      25188
+    ],
+    "padding_rows_not_independent": 13,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "preexecution_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/PREEXECUTION_REVIEW.json",
+      "sha256": "9923cdec0c94e6d64aa2d3296ce8a84bd4f6ce9daa7ada759cb222bebdfc5017"
+    },
+    "peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141/PREEXECUTION_PEER_REVIEW.json",
+      "sha256": "5d2a6c5c7e26cd69ff9706c30b25524e9c5e9dd0c372384e8f048d543081918a"
+    }
   }
 }

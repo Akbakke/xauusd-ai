@@ -138,17 +138,34 @@ WITNESS_OUTPUT/WITNESSES.json SHA3eb5fbf35c895bde814de205b794978d71158cdafa906c0
 Beviset gjelder currentaliasers masker, ikke komplette inputtensorer eller
 96historie/MTF/genericsnap/kategorisk påvirkning.
 
-141 lager minimal ekstern inputrenderer fra eksisterende
-_read_positioned_source_rows, load_m1_feature_surface_times og
-load_multi_tf_v4_cache/get_model_native_multi_tf_route_windows. Kun3TRAIN-
-rader og unionen av deres96M5historierader; ikke wholeDataset/__getitem__/
-targetprovider eller full22GBsignal-/contextdecode. MTFvinduer16/64/96/96/252
-må bindes fra faktisk constructor/phase, ikke defaults. Alle aktuelle filer,
-rowgroupgrenser og state/normaliseringsroller krever ny eksakt binding.
-Ingen renderer-/modellkjøring er åpnet.139/140 gjenbrukes uten omkjøring.
-KausaleTRAIN-maskvitner, eksaktcaseplan, gyldige value↔mask/aliasendringer,
-batchparitet, state/data/normalisering/cachebinding og fersk maskinvareadgang
-gjenstår før faktisk individuell modellpåvirkning. Ingen nativeadgang.
+141 bygger en gjenbrukbar inputpakke fra de tre allerede valgte TRAIN-vitnene.
+Kildene render_input_only.py og execute_input_render.py er skrevet og statisk
+kontrollert; ingen runtime er kjørt. INPUT_SCOPE.json og INPUT_RENDER_PLAN.json
+binder TRAIN/M5-filer, 140-vitner, 114-constructor, 055-normalisering og cache.
+Eksisterende kildeeiere leser tre TRAIN-rader og unionen av 96 M5-historierader
+per vitne; ingen Dataset, targets, provider, PT eller modell konstrueres.
+Vinduer er M5/M15/H1/H4/D1 = 16/64/96/96/252 fra faktisk constructor.
+
+Planen er én CPU-only producer på 8G/512M, 900 sekunder, numeriske tråder 1.
+Auditklassen beholder sin 4G-grense. Før hash eller dekoding kontrolleres alle
+projiserte rowgroups mot 1 GiB ukomprimert grense og tidsaksen mot TEST-seglet.
+TRAIN krever fersk hash. Cacheeieren lastes én gang; bare samme operasjons
+ferske M5-hash på eksakt samme fil kan gjenbrukes. Ingen varig digest-carry.
+9 unike rå inputarrayer lagres i NPZ med tre parentrader, B16-radkart og
+scoremaske (3 ekte + 13 uscorede kopier av første vitne). Dtype/shape/bits
+kontrolleres ved gjenåpning. Alle 15 valgte MTF-vinduer må være lukket ved
+riktig beslutningstid; 140s context-hasher og alle aktuelle aliaser kontrolleres.
+Eksternroot: `/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_RENDER_20261021_141`.
+Uavhengig kilde-/controller-review er PASS. Én kjøring er åpnet etter ren
+postcommit kilde-/policybinding; ingen plan er konsumert ennå.
+Ingen native påvirkning eller trening er åpnet. 139/140 gjenbrukes uten omkjøring.
+
+Etter inputpakken gjenstår eksakt modell-/caseplan: eksisterende fixed_step._model
+og trainer._CandidateTrainingSession(read_only=True).load_checkpoint; kun
+model_state fra 115s optimizer0-state med ONLINE-digest, ordinær checkpoint-policy,
+055-inputnormalisering og 111-loss-RMS i sine separate roller. Ingen bypass/EMA/
+teacher. Fersk maskinvareadgang kreves før faktisk modelljobb. Deretter måles
+individuell inputpåvirkning; input-PASS er ingen lærings- eller nyttepåstand.
 136s gamle135PENDING-note overstyres av138s faktiske kvitteringer i policy.
 Full480trace, LONG/SHORT/FLAT-kvalitet/dekning forvalgte/avståtte ogsenere
 læring/generalisering er åpne krav. Ingen ny trening er åpnet. Ingen jobb kjører.
