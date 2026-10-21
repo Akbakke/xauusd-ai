@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T03:41:29.193714+00:00",
-  "status": "133_FRESH_CORE_NUMERIC_PROGRESS_SOURCE_QUALIFICATION_AUTHORIZED",
+  "observed_utc": "2026-10-21T03:43:09.867522+00:00",
+  "status": "133_REPAIRED_470_ACTIVE_OUTPUT_PHYSICAL_NUMERIC_AUDIT_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Run exactly one new133focused progress-lifecycle qualification:4newcases+1existingmutualexclusivecase,300s/4G/512M; freeze source/policy. Mathematical controls132/130reused. Physical470audit stillclosed pendingthisPASS; no consumedplanrelaunch/newtraining/Exit/TEST/broker.",
+  "next_action": "Run exactly one claimed133fullhistory470activeoutput audit on132repairedreferences.28inputsoneSHA/12sourcecols,fullprefix,4sequentialowners withdurablependingguardprogress;1800s/4G/512M. Freezeallsource/policy toterminal. Sparseobservation15–30min. No consumedplanrelaunch/rawMBP/model/newtraining/Exit/TEST/broker.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "133_PROGRESS_SOURCE_QUALIFICATION",
+    "current_activity": "133_REPAIRED_CORE_470_PHYSICAL_NUMERIC_AUDIT",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "470activefullhistorycacheoutputs remainunqualified. Fresh133identity/progresshook integrated; only5focusedcontrolcases before one newphysicaladmission. No formula/prod/normalization/modelchange.",
+    "current_blocker": "133focused5progresscases PASS;one fresh470fullhistoryaudit nowclaimed,notcompleted. Previous129320indexremains authoritative untilactualfullPASS.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exactly one new133focused progress-lifecycle qualification:4newcases+1existingmutualexclusivecase,300s/4G/512M; freeze source/policy. Mathematical controls132/130reused. Physical470audit stillclosed pendingthisPASS; no consumedplanrelaunch/newtraining/Exit/TEST/broker.",
+    "next_action": "Run exactly one claimed133fullhistory470activeoutput audit on132repairedreferences.28inputsoneSHA/12sourcecols,fullprefix,4sequentialowners withdurablependingguardprogress;1800s/4G/512M. Freezeallsource/policy toterminal. Sparseobservation15–30min. No consumedplanrelaunch/rawMBP/model/newtraining/Exit/TEST/broker.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16878,9 +16878,9 @@
       }
     },
     "remaining_active_core_numeric_reference_133": {
-      "status": "SOURCE_QUALIFICATION_PENDING",
+      "status": "EXECUTION_CLAIMED",
       "execution_authorized": false,
-      "claimed_invocations": 0,
+      "claimed_invocations": 1,
       "completed_invocations": 0,
       "relaunch_allowed": false,
       "planned_active_outputs": 470,
@@ -16912,7 +16912,11 @@
       "test_data_used": false,
       "normalization_fit_enabled": false,
       "exit_evaluation": false,
-      "broker_access_allowed": false
+      "broker_access_allowed": false,
+      "source_qualification": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/SOURCE_REVIEW.json",
+        "sha256": "2e4dd661974e25b645d50d43f20a0a977fb320f582f6f36269411b36064c7a6f"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19477,7 +19481,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T03:41:29.193714+00:00",
+  "updated_utc": "2026-10-21T03:43:09.867522+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20310,10 +20314,10 @@
     "elapsed_seconds": 19.526300296001864
   },
   "native_core_progress_source_133": {
-    "status": "AUTHORIZED_ONE_FOCUSED_PROGRESS_QUALIFICATION",
-    "execution_authorized": true,
+    "status": "COMPLETE_FOCUSED_5_PROGRESS_CASES_PASS",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/SOURCE_QUALIFICATION_PLAN.json",
@@ -20334,6 +20338,20 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/SOURCE_QUALIFICATION_RESULT.json",
+      "sha256": "de7037f1b91c08853c23bbba4bc91d91d6fb6e2c9c571394046e998fa371f944"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "86b9786f9a7253e46177bc43006ac244dad1262e411544f0a6d73ce7ae583ce1"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/SOURCE_REVIEW.json",
+      "sha256": "2e4dd661974e25b645d50d43f20a0a977fb320f582f6f36269411b36064c7a6f"
+    },
+    "tests_passed": 5,
+    "elapsed_seconds": 3.8389222500009055
   }
 }

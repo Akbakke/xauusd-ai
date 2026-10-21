@@ -41,10 +41,12 @@ fremdriftseier. SharedSTARTED/PREPARED og4ownerSTARTED/COMPARED perTF lagres
 som fsyncete atomiske immutable bunter under eksisterende staging.
 Alle delresultater er eksplisitt pendingfinalguards, aldri samletPASS.
 121øvrigehelpers og eksisterende testprefix er uendret. Agentkildepeer bestod.
-Én ny capped kildekontroll er åpnet:4nye lifecycle/avbrudd/no-replace-caser
-og én eksisterende mutualexclusivecase.300s/4G/512M; ingen ny numerisk fullsuite.
-Den fysiske470jobben er fortsatt stengt til faktisk kilde-PASS og eksakt
-binding. Deretter én capped1800s/4G/512M, fryst kilde/policy og sparsom observasjon.
+Fem fokuserte kildecaser bestod på3,839s/exit0: lifecycle, tvungen localfeil,
+immutable duplicate, no-progress-kompatibilitet og mutualexclusiveguard.
+220kilder/policy er bevart;132numerikken gjenbrukes uten ny fullsuite.
+Én fysisk133kontroll er nå claimet:1800s/4G/512M, fryst kilde/policy til
+faktisk terminal, sparsom observasjon15–30min. STARTED/delresultater er aldri
+fullPASS. Ingen rawMBPscan, modellrunde, normaliseringsfit eller nyepoke.
 Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133`.
 
 130timeout1800s og131partialprofile/crosswarmupfeil er konsumert/bevart.
