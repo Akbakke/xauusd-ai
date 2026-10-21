@@ -530,5 +530,14 @@ ERROR_SPEC.json binder fullprefixEMA/Wilder, Kahan-summer og BB20s eksakte
 boundoperasjon avrundes utover; sluttlagringen kontrolleres som F32-intervall.
 Håndfasiter dekker blant annet minst41rader/remove-add, variert→uniformt→variert
 BB-ledger og stor binær prisoffset. Ingen global epsilon eller cachetilpasset
-feilgrense. Faktisk kilde-/fysisk resultat er kun gjeldende NEXT_RUN_POLICY;
-implementasjon og syntetiske fasiter alene kvalifiserer ingen produksjonsverdi.
+feilgrense. Faktisk127bestod deretter49fokuserte caser og én fysisk sammenligning:
+115/115varierende outputs,37880057finitecacheceller,0NaN etter cachewarmup.
+Stack/age10feltflater har3293918eksakte celler;105kontinuerlige felt ligger
+innen de forhåndslåste celleviseF32intervallene, ingen bit-identitetspåstand.
+955,756s totalelapsed inkluderer etterkontroll;216kilder/policy er bevart.
+28datafiler1739102302byteSHA én gang,1215514nativeM5rader, seks kildekolonner.
+Boundbytes er ikke målt fysisk disk-I/O.182native117produksjonsfiler er uendret.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127/ACTUAL_NUMERIC_REVIEW.json`,
+0bd57598d5409f72bf05edc892e311bc978474c84e1d9ec67227fb619d172465.
+Øvrige230cachekolonner perTF (128kompaktaktive), råevent→M1 og andre lokale
+formler er utenfor127. Ingen individuell nytte-, Entry- eller økonomipåstand.

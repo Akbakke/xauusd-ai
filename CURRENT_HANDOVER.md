@@ -31,27 +31,36 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — teknisk23×5-referanse127, fysisk kontroll bundet
+## Gjeldende grense — teknisk23×5-kontroll127 bestått
 
-127design, ERROR_SPEC og plan er publisert i
+127 er COMPLETE i
 `/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127`.
-Alle115tekniske outputs kontrolleres;55aktive i kompaktprofilen,60parkerte.
-Ekte fullnativeM5 fra2009 (18årspartisjoner,1215514rader,59202842byte) må
-brukes før cachetrimming. Faktiskprodusentrute beregner før slicing; standalone
-prebuildCLI er ikke denne ruten. Seks kolonner, priserF64/quotevolumI64,
-kalenderobservasjoner med indrepartialer og uten gap-/sesjonsreset.
-28datafiler1739102302byte bindes én gang; tiNPYcacher leses kun23av253felt.
-Ingen M5_ENRICHED-/MBP-/sekvens-/PT-/modellpayload eller ny normalisering.
-Avrundingsreglene er låst førdata: fullprefixEMA/Wilder, KahanVWAP og egen
-BB20Welforddrift/radius rundt uavhengige eksakte vindusmomenter; runtimepandas
-2.3.3/kernelfil er bundet. Ingen globalisclose/markedsepsilon eller tilpasning
-til faktiske cachefeil. Gjenbruk225PASS; kjør bare ny fokusert testklasse og
-relevante små håndfasiter. Kildepeer/AST/diffcheck er bestått; alle79tidligere
-hjelpere og225gamle caser er bevart og gjenbrukes uten ny testkjøring. Faktisk
-49fokuserte caser bestod på5,701s/exit0, inkludert38nye.216kilder/policy var
-uendret. SOURCE_REVIEW.json binder faktisk XML og kildekvittering. Én fysisk
-127kontroll er nå claimet;115outputs er ennå ikke fysisk kvalifisert.
-Trening og alle tidligere lukkede vakter er fortsatt stengt.
+Alle115tekniske cacheoutputs bestod uavhengig fullhistorisk numerisk kontroll:
+55aktive i kompaktprofilen og60parkerte, alle115varierer.37880057finiteceller
+og0NaN i faktisk varmuptrimmet cache. De10stack-/alderfeltene har3293918eksakte
+celler;105kontinuerlige felt bestod cellevise forhåndslåsteF32avrundingsgrenser,
+ikke en bit-identitetspåstand. Boundmaks er konservative grenser, ikke målte feil.
+Kildepeer og49fokuserte caser bestod (38nye),5,701s/exit0.225gamle caser og
+alle79gamle hjelpefunksjoner er uendret og gjenbrukt, ingen ny fullsuite.
+
+Fysisk127tok955,756s/exit0 totalt inklusive etterkontroll;216kilder/policy
+bevart. NativeM5 fra2009:18partisjoner/1215514rader/59202842byte, seks kolonner
+og priserF64/quotevolumI64 før indikatorer.28datafiler1739102302byteSHA én
+gang;10NPYcacher kun23av253felt, ingen MBP-/sekvens-/PT-/M5_ENRICHEDpayload.
+Resampling bruker observerte bøtter/indrepartialer og H4/D1-fase02/22UTC.
+FullprefixEMA/Wilder/Kahan/BB og faktisk pandas2.3.3-kjerne er bundet førdata.
+Ingen reseeding ved cachetrim, sesjon eller hull. Fysisk disk-I/O er ikke målt.
+ACTUAL_NUMERIC_REVIEW.json SHA0bd57598d5409f72bf05edc892e311bc978474c84e1d9ec67227fb619d172465.
+TERMINAL.json SHA3ee50b4d2157624bdc22a9b1f55a19984e71987615a6e5c3d5427bfb84834c3a.
+
+127 er konsumert, ingen relansering.182native117produksjonsfiler er uendret;
+normalisering, baseline og modell trenger ingen omkjøring av denne auditkoden.
+Ingen jobb kjører. Trening/fullEpoch/fullVAL/Exit/TEST/broker er fortsatt stengt.
+Neste avgrensede arbeid er eksisterende feltinventar for øvrige230cachekolonner
+perTF, hvor128perTF er aktive i kompaktprofilen, og deres tidligere kvalifiserte
+formeleiere. Deklarer ett konkret neste referanseomfang før kilde-/datajobb.
+Ingen ny råTB-scan eller modellrunde. Råevent→M1, andre lokale formler,
+individuell lært nytte og Entry-kvalitet/dekning/forklaringer har egne åpne grenser.
 
 ## Ferdig — GC-inputkjeden kontrollert126
 
