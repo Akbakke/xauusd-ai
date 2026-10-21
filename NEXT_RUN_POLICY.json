@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-20T23:46:22.938221+00:00",
-  "status": "125_COMPLETE_ALL1205_PUBLISHED_M1_TO_TF_NUMERIC_REFERENCES",
+  "status": "126_FOCUSED_SOURCE_QUALIFICATION_READY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Actual108 consumed exactly1 ordered TRAINepoch:118249unique rows/7391updates/last9; fixed finalONLINE measurement on unchanged256TRAIN+256CONTROL cohorts completed, guard/trainer/observer PASS/0/0. All6pooledTRAIN component errors improved; CONTROL terminal+supportforecast worsened, pooled path errors improved; h1 errors worsened on bothprobes, all512final candidates select1minute for bothsides. Partial component learning is measured; primary Entry quality, generalization and economic edge are unqualified. Exact108authority is consumed; Windows task Disabled/Last0; no extraepoch or unusedwindow authority.",
-  "next_action": "Close the independent published-M1-to-TF numeric stage at1205/1205. Next bounded scope is independent GC TF-to-stored-M5-context sourceclock/age/mask projection, reusing051 native-history reconstruction and055normalization; then active technical23x5 numeric reference with historical warmup. No rawTB reread, dataset rebuild, baseline/model rerun or nativeepoch is admitted. Preserve108 completed singleepoch and117 mechanical qualification; Entry quality, coverage, explanations and generalization remain separate.",
+  "next_action": "Execute exactlyone126capped focused sourcequalification. Physical126comparison remains unqualified and unclaimed until actualPASS. No native/model/baseline/normalization/epoch/Exit/TEST/broker.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "ALL1205_PUBLISHED_M1_TO_TF_NUMERIC_STAGE_COMPLETE",
+    "current_activity": "126_FOCUSED_SOURCE_QUALIFICATION_ONESHOT_ADMITTED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No measured published-M1-to-TF numeric mismatch remains in the1205active registry. Independent native availability/age, technical numeric reference, raw-to-M1 and individual learned use remain unproved scopes.108 fulfilled the ordered epoch; no further training admitted.",
+    "current_blocker": "126implementation passed AST/sourcepeerreview; actual focused pytest qualification pending. Physicalcomparison remains closed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7616,7 +7616,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Close the independent published-M1-to-TF numeric stage at1205/1205. Next bounded scope is independent GC TF-to-stored-M5-context sourceclock/age/mask projection, reusing051 native-history reconstruction and055normalization; then active technical23x5 numeric reference with historical warmup. No rawTB reread, dataset rebuild, baseline/model rerun or nativeepoch is admitted. Preserve108 completed singleepoch and117 mechanical qualification; Entry quality, coverage, explanations and generalization remain separate.",
+    "next_action": "Execute exactlyone126capped focused sourcequalification. Physical126comparison remains unqualified and unclaimed until actualPASS. No native/model/baseline/normalization/epoch/Exit/TEST/broker.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9465,7 +9465,7 @@
     },
     "research_fit_completed": true,
     "native_gc_rebuild_20261017": {
-      "status": "125_ALL1205_PUBLISHED_M1_TO_TF_NUMERIC_PASS_NATIVE117_MECHANICS_PASS_ENTRY_QUALITY_PENDING",
+      "status": "126_NATIVE_CONTEXT_NUMERIC_SOURCE_PENDING_125_ALL1205_M1_TF_PASS_117_MECHANICS_PASS",
       "operator_requested": true,
       "operator_request_utc": "2026-10-17T22:01:59.818700+00:00",
       "prior_cpu_pilot_satisfied_request": false,
@@ -15743,7 +15743,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Close the independent published-M1-to-TF numeric stage at1205/1205. Next bounded scope is independent GC TF-to-stored-M5-context sourceclock/age/mask projection, reusing051 native-history reconstruction and055normalization; then active technical23x5 numeric reference with historical warmup. No rawTB reread, dataset rebuild, baseline/model rerun or nativeepoch is admitted. Preserve108 completed singleepoch and117 mechanical qualification; Entry quality, coverage, explanations and generalization remain separate.",
+      "next_action": "Implement126independent GC TF-to-stored-M5context reference, focused handtests and qualify source once before any physicalcomparison. Derive exact TRAIN+VAL96historysource-rowunion from timeonly, then streamctx_cont2410GC lanes withdecision=barstart+300s. Reuse050actualGCsignal/contextaliasproof and051history/snapshotcopyproof. No native/model/baseline/normalization/extraepoch/Exit/TEST or rawTBread.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 1,
       "full_native_epoch_request_fulfilled": true,
@@ -16465,6 +16465,41 @@
       "raw_to_M1_proven": false,
       "native_availability_projection_proven": false,
       "individual_model_consumption_proven": false
+    },
+    "gc_native_projection_numeric_reference_126": {
+      "status": "SOURCE_QUALIFICATION_PENDING",
+      "execution_authorized": false,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126/PLAN.json",
+        "sha256": "495865a61832d4ca06e3376ba9b13d2b76ae331caa8a3ff3ff3dfd0d322195ed"
+      },
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126/DESIGN.json",
+        "sha256": "75e1ad89815555f23cb2469f14991f5398e54ea65cd4a7a2f70e95f411234e91"
+      },
+      "design_signal_alias_addendum": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126/DESIGN_SIGNAL_ALIAS_ADDENDUM.json",
+        "sha256": "c689be976c0013e3c8628fddabd07612dddf939ef61fe2b29ac63992a9219406"
+      },
+      "physical_audit_timeout_seconds": 1800,
+      "declared_active_values": 1205,
+      "declared_observed_masks": 1205,
+      "native_production_source_changes_allowed": false,
+      "training_enabled": false,
+      "full_epoch_training_allowed": false,
+      "full_val_allowed": false,
+      "native_training_admitted": false,
+      "test_data_used": false,
+      "normalization_fit_enabled": false,
+      "exit_evaluation": false,
+      "broker_access_allowed": false,
+      "footer_boundary_clarification": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126/DESIGN_GC_FOOTER_BOUNDARY_CLARIFICATION.json",
+        "sha256": "fb4e4913265a428a9a59dfef293d2ae4d760341a45bff9ab3e9f49912c88521c"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19029,7 +19064,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-20T23:46:22.938221+00:00",
+  "updated_utc": "2026-10-21T00:04:39.312689+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -19602,5 +19637,28 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125/SOURCE_REVIEW.json",
       "sha256": "c39127e5ede6525256ceeed3bce6abe84f27077f5c1eaeffaeede777cba5f2cf"
     }
+  },
+  "gc_native_projection_source_126": {
+    "status": "SOURCE_EXECUTION_READY",
+    "execution_authorized": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "03381bb173b529addb056844bb06b873a3cbe49a3f1dcb050bc852c2cbba350e"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126/run_focused_source_qualification.py",
+      "sha256": "6b8d34a7e61e5e4789cfba97f22845b4e5c80b018eaf045997ed42f98e2602d3"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }

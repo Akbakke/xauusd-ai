@@ -31,7 +31,26 @@ Hovedtrening/fullEpoch/fullVAL er stengt; ingen ekstraepoke eller HPO.
 Ingen broker/live/paper/ordre/spending/promotion. De to godkjente practice-
 leseoppslagene er konsumert. Ingen Exit-vurdering eller Exit-trening er utført.
 
-## Gjeldende arbeid — alle1205 GC-tallreferanser ferdige
+## Gjeldende arbeid — uavhengig GC→M5-inputkontroll126
+
+126 er under implementasjon i eksisterende audit-/testeiere. Plan og design er
+publisert i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126`.
+Alle1205verdier+1205masker skal kontrolleres fra kvalifiserte024TF-tabeller til
+faktisk brukt050M5-context. GCbeslutning=barstart+300s; latestavailable beholdes
+også ved ugyldighet, uten eldre gyldig fallback. Begge aldre beregnes ved beslutning.
+Eksakt TRAIN+VAL96historikk-radunion måles fra tre tidskolonner; ingen sekvens-/
+PT-payload leses. Context dekodes i småbatcher.050s faktiske2410signal/context-
+hashpar og051s bit-identiske snapshot/historikk gjenbrukes. De tre store filene
+24454184350byte og ti dedupliserte GC-tabeller191080843byte skal førstSHA-
+kontrolleres én gang hver, aldri perbatch. Alle13parquetfootere sjekkes førpayload.
+Kode/tester er ferdige, AST og uavhengig kildepeer bestod. Tidligere helpers/
+tester er uendret. Ny GC-footer bruker barstart<TESTgrensen, slik at genuin
+siste partialH4/D1 med senere tilgjengelighet bevares uten å konsumeres for tidlig.
+Én capped fokusert kildekvalifisering er åpnet; faktiskPASS gjenstår. Ingen
+fysisk126kontroll eller ny modelljobb er startet. Trening og alle tidligere
+lukkede vakter er fortsatt stengt.
+
+## Ferdig — alle1205 GC-tallreferanser på M1→TF-laget
 
 125 er COMPLETE i `/home/andre2/GX1_RUNS/NATIVE_M5_GC_BASIS_NUMERIC_REFERENCE_20261021_125`.
 De siste14 aktive basisverdiene bestod fysisk kontroll på21,969s/exit0:

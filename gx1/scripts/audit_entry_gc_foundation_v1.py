@@ -2667,6 +2667,400 @@ def run_gc_event_numeric(binding_path, *, event_book=False, trade=False, smc=Fal
     print(prefix+'_REFERENCE_COMPLETE',flush=True)
 
 
+
+GC_NATIVE_PROJECTION_PLAN_ID='NATIVE_M5_GC_NATIVE_PROJECTION_REFERENCE_20261021_126'
+GC_NATIVE_PROJECTION_POLICY_KEY='gc_native_projection_numeric_reference_126'
+GC_NATIVE_AGE_COLUMNS=frozenset(('observed_profile_snapshot_age_minutes','observed_spot_basis_age_minutes'))
+
+def _projection_integer_clock(values, label, *, grid=None):
+    a=np.asarray(values)
+    if (a.ndim!=1 or a.dtype!=np.dtype('int64') or (len(a)>1 and np.any(np.diff(a)<=0))
+            or (grid is not None and np.any(a%grid))):
+        raise RuntimeError(label)
+    return a
+
+def gc_native_decision_stamps(source_barstarts, *, seal=None):
+    """M5 surface stores BARSTART; GC observes this bar only after its close."""
+    a=_projection_integer_clock(source_barstarts,'GC_NATIVE_PROJECTION_CLOCK',grid=5*MINUTE)
+    if len(a) and a[-1]>np.iinfo(np.int64).max-5*MINUTE:raise RuntimeError('GC_NATIVE_PROJECTION_CLOCK')
+    decisions=a+5*MINUTE
+    if seal is not None and len(decisions) and decisions[-1]>=seal:raise RuntimeError('GC_NATIVE_PROJECTION_CLOCK')
+    return decisions
+
+def reference_consumed_surface_rows(source_barstarts, split_barstarts, *, sequence_length):
+    """Exact emitted row p consumes [p-L+1,p]; interval union needs no seq decode."""
+    source=_projection_integer_clock(source_barstarts,'GC_NATIVE_PROJECTION_ROW_UNION_CLOCK',grid=5*MINUTE)
+    if not len(source) or not isinstance(sequence_length,int) or sequence_length<1:
+        raise RuntimeError('GC_NATIVE_PROJECTION_ROW_UNION_HISTORY')
+    masks={};counts={};split_rows={}
+    for split,values in split_barstarts.items():
+        clocks=_projection_integer_clock(values,'GC_NATIVE_PROJECTION_ROW_UNION_CLOCK',grid=5*MINUTE)
+        positions=np.searchsorted(source,clocks)
+        if np.any(positions>=len(source)) or not np.array_equal(source[positions],clocks):
+            raise RuntimeError('GC_NATIVE_PROJECTION_ROW_UNION_CLOCK')
+        if np.any(positions<sequence_length-1):raise RuntimeError('GC_NATIVE_PROJECTION_ROW_UNION_HISTORY')
+        delta=np.zeros(len(source)+1,np.int64)
+        np.add.at(delta,positions-sequence_length+1,1);np.add.at(delta,positions+1,-1)
+        masks[split]=np.cumsum(delta[:-1])>0;counts[split]=int(masks[split].sum());split_rows[split]=len(clocks)
+    masks['union']=np.logical_or.reduce(list(masks.values())) if masks else np.zeros(len(source),bool)
+    selected=np.flatnonzero(masks['union'])
+    return masks,{'source_rows':len(source),'sequence_length':sequence_length,'split_rows':split_rows,
+        'consumed_rows_by_split':counts,'union_rows':len(selected),
+        'first_union_row':int(selected[0]) if len(selected) else None,'last_union_row':int(selected[-1]) if len(selected) else None,
+        'first_decision_ns':int(source[selected[0]]+5*MINUTE) if len(selected) else None,
+        'last_decision_ns':int(source[selected[-1]]+5*MINUTE) if len(selected) else None}
+
+def native_projection_layout(fields, ctx_names, signal_names, surface_names):
+    names=[name for item in fields for name in (item['name'],item['availability_field'])]
+    if (len(set(names))!=len(names) or len(set(ctx_names))!=len(ctx_names)
+            or len(set(signal_names))!=len(signal_names) or list(signal_names)!=list(surface_names)):
+        raise RuntimeError('GC_NATIVE_PROJECTION_FIELD_LAYOUT')
+    ctx={name:i for i,name in enumerate(ctx_names)};signal={name:i for i,name in enumerate(signal_names)}
+    if any(name not in ctx or 'ctx_cont.'+name not in signal for name in names):
+        raise RuntimeError('GC_NATIVE_PROJECTION_FIELD_LAYOUT')
+    return {'names':names,'ctx_indices':np.array([ctx[n] for n in names],np.int64),
+        'signal_indices':np.array([signal['ctx_cont.'+n] for n in names],np.int64)}
+
+def reference_gc_native_projection(fields, tables, decisions, *, cursors=None):
+    """Independent two-pointer asof, own domains, then observed-only binary32 cast.
+
+    Cursors is opaque mutable state keyed by table-object identity, for strictly
+    advancing batches. Only selected rows are inspected for field-domain errors;
+    a poisoned future bucket cannot affect an earlier decision.
+    """
+    query=_projection_integer_clock(decisions,'GC_NATIVE_PROJECTION_CLOCK')
+    state={} if cursors is None else cursors;joins={};prepared_clocks={};output=np.zeros((len(query),2*len(fields)),np.float32);reports={}
+    for item in fields:
+        table=tables[item['table']];key=id(table)
+        if key in joins:continue
+        old=state.get(key,{'row':-1,'decision':None})
+        clock=(_projection_integer_clock(table['available_ns'],'GC_NATIVE_PROJECTION_SOURCE_CLOCK')
+            if key not in state else np.asarray(table['available_ns']))
+        if len(query) and old['decision'] is not None and query[0]<=old['decision']:
+            raise RuntimeError('GC_NATIVE_PROJECTION_CLOCK')
+        take=np.empty(len(query),np.int64);row=int(old['row'])
+        for i,decision in enumerate(query):
+            while row+1<len(clock) and int(clock[row+1])<=int(decision):row+=1
+            take[i]=row
+        joins[key]=(clock,take)
+        if len(query):state[key]={'row':row,'decision':int(query[-1])}
+    for j,item in enumerate(fields):
+        table=tables[item['table']];clock,index=joins[id(table)];selected=index>=0
+        values=np.full(len(query),np.nan);source=np.zeros(len(query),np.int64);defined=np.zeros(len(query),bool)
+        if len(clock):
+            take=np.maximum(index,0);raw=np.asarray(table[item['column']])
+            if raw.ndim!=1 or len(raw)!=len(clock):raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+            values[selected]=raw[index[selected]].astype(np.float64)
+            observed=selected&np.isfinite(values)
+            if item.get('validity_column'):
+                valid=np.asarray(table[item['validity_column']])
+                if valid.ndim!=1 or len(valid)!=len(clock):raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+                admitted=valid[index[selected]].astype(np.float64)
+                if not np.isin(admitted[np.isfinite(admitted)],(0,1)).all():raise RuntimeError('GC_NATIVE_PROJECTION_VALIDITY_DOMAIN')
+                own=np.zeros(len(query),bool);own[selected]=np.isfinite(admitted)&(admitted==1);observed&=own
+            clock_column=item.get('source_clock_column') or 'available_ns';clock_key=(id(table),clock_column)
+            if clock_key not in prepared_clocks:
+                raw_clock=np.asarray(table[clock_column])
+                if raw_clock.ndim!=1 or len(raw_clock)!=len(clock):raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+                chosen=raw_clock[index[selected]];finite=np.isfinite(chosen);finite_values=chosen[finite]
+                # Range precedes conversion; float64 2**63 cannot wrap to int64.
+                if (np.any(finite_values<-(2**63)) or np.any(finite_values>=2**63)
+                        or (not np.issubdtype(finite_values.dtype,np.integer) and np.any(np.trunc(finite_values)!=finite_values))):
+                    raise RuntimeError('GC_NATIVE_PROJECTION_SOURCE_CLOCK_PRECISION')
+                selected_rows=np.flatnonzero(selected);defined[selected_rows[finite]]=True
+                source[selected_rows[finite]]=finite_values.astype(np.int64)
+                if np.any(defined&((source>query)|(source>clock[take]))):
+                    raise RuntimeError('GC_NATIVE_PROJECTION_FUTURE_SOURCE_CLOCK:'+item['name'])
+                prepared_clocks[clock_key]=(source,defined)
+            source,defined=prepared_clocks[clock_key];observed&=defined
+        else:observed=np.zeros(len(query),bool)
+        transform=item.get('transform')
+        if transform is None and item['column'] in GC_NATIVE_AGE_COLUMNS:transform='decision_age_minutes'
+        if transform:
+            if transform!='decision_age_minutes' or item['column'] not in GC_NATIVE_AGE_COLUMNS:
+                raise RuntimeError('GC_NATIVE_PROJECTION_TRANSFORM')
+            values=(query-source)/float(MINUTE)
+        if item.get('role')=='structural_observation_mask' and not np.isin(values[observed],(0,1)).all():
+            raise RuntimeError('GC_NATIVE_PROJECTION_STRUCTURAL_VALUE_DOMAIN')
+        with np.errstate(over='ignore',under='ignore',invalid='ignore'):
+            output[observed,2*j]=values[observed].astype(np.float32)
+        if not np.isfinite(output[:,2*j]).all():raise RuntimeError('GC_NATIVE_PROJECTION_FLOAT32_OVERFLOW')
+        output[:,2*j+1]=observed.astype(np.float32)
+        reports[item['name']]={'observed':int(observed.sum()),'missing':int((~observed).sum()),
+            'observed_zero':int((observed&(output[:,2*j]==0)).sum()),'nonzero':int((observed&(output[:,2*j]!=0)).sum()),
+            'age_transformed':bool(transform),'positive_age':int((observed&(values>0)).sum()) if transform else 0,
+            'source_clock_before_bucket':int((defined&selected&(source<clock[np.maximum(index,0)])).sum()) if len(clock) else 0,
+            'bit_errors':0}
+    return output,reports
+
+def projection_numeric_footer(path, seal, *, kind):
+    """Metadata-only barrier; GC publication is sealed by bucket BARSTART.
+
+    Its final partial anchored H4/D1 bucket starts before TEST but has later
+    availability. Keep that published row; the driver projects only availability
+    <= the last consumed development decision. Availability bounds below remain
+    the row-group selection bounds, never a replacement bar-start filter.
+    """
+    file=pq.ParquetFile(path);schema=file.schema_arrow;clock='available_ns' if kind=='gc' else 'time'
+    if kind not in ('surface','train','val','gc') or clock not in schema.names:
+        raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+    dtype=schema.field(clock).type
+    if (kind=='gc' and (dtype!=pa.int64() or 'bar_start_ns' not in schema.names
+            or schema.field('bar_start_ns').type!=pa.int64())) or (kind!='gc' and dtype!=pa.timestamp('ns',tz='UTC')):
+        raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+    if kind=='surface':
+        if 'ctx_cont' not in schema.names:raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+        nested=schema.field('ctx_cont').type
+        if not pa.types.is_fixed_size_list(nested) or nested.value_type!=pa.float32() or nested.list_size!=2542:
+            raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+    groups=[];sizes=[];bounds=[]
+    for i in range(file.metadata.num_row_groups):
+        row=file.metadata.row_group(i)
+        matches=[j for j in range(row.num_columns) if row.column(j).path_in_schema==clock]
+        if len(matches)!=1:raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+        stat=row.column(matches[0]).statistics
+        if stat is None or not stat.has_min_max or stat.null_count!=0:raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+        lo,hi=(int(stat.min),int(stat.max)) if kind=='gc' else (pd.Timestamp(stat.min).value,pd.Timestamp(stat.max).value)
+        if lo>hi:raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+        if kind=='gc':
+            starts=[j for j in range(row.num_columns) if row.column(j).path_in_schema=='bar_start_ns']
+            if len(starts)!=1:raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+            start_stat=row.column(starts[0]).statistics
+            if start_stat is None or not start_stat.has_min_max or start_stat.null_count!=0:
+                raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+            if int(start_stat.min)>int(start_stat.max):raise RuntimeError('GC_NATIVE_PROJECTION_SCHEMA')
+            if int(start_stat.max)>=seal:raise RuntimeError('GC_NATIVE_PROJECTION_TEST_ROW_GROUP')
+        elif hi>=seal:raise RuntimeError('GC_NATIVE_PROJECTION_TEST_ROW_GROUP')
+        groups.append(i);sizes.append(row.num_rows);bounds.append([lo,hi])
+    return {'groups':groups,'rows':file.metadata.num_rows,'row_group_rows':sizes,'clock_bounds':bounds}
+
+
+def run_gc_native_projection_numeric(binding_path):
+    """One scoped publication-to-native proof; never reads seq/snap/signal."""
+    prefix='GC_NATIVE_PROJECTION';root=Path('/home/andre2/GX1_RUNS')/GC_NATIVE_PROJECTION_PLAN_ID
+    if binding_path!=root/(prefix+'_EXECUTION_BINDING.json'):raise RuntimeError(prefix+'_BINDING_PATH')
+    io.require_regular_file(binding_path,prefix+'_BINDING');binding=io.read_json(binding_path);plan_path=root/'PLAN.json'
+    io.verify_digest(plan_path,binding['plan_sha256'],prefix+'_PLAN');plan=io.read_json(plan_path)
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],prefix+'_POLICY')
+    policy=io.read_json(REPO/'NEXT_RUN_POLICY.json');gate=policy['current_work'][GC_NATIVE_PROJECTION_POLICY_KEY]
+    if (plan['schema_version']!='gx1_gc_native_projection_audit_plan_v1' or plan['plan_id']!=GC_NATIVE_PROJECTION_PLAN_ID
+            or plan['run_root']!=str(root) or plan['policy_key']!=GC_NATIVE_PROJECTION_POLICY_KEY
+            or plan['max_invocations']!=1 or plan['batch_rows']!=256 or gate['status']!='EXECUTION_CLAIMED'
+            or gate['claimed_invocations']!=1 or gate['completed_invocations']!=0
+            or gate['execution_authorized'] is not False or gate['relaunch_allowed'] is not False
+            or gate['plan']!={'path':str(plan_path),'sha256':binding['plan_sha256']}
+            or policy['training_enabled'] is not False or io.git_head()!=binding['source_head']
+            or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)):
+        raise RuntimeError(prefix+'_AUTHORITY')
+    if set(binding['code_sha256'])!=set(plan['code_paths']):raise RuntimeError(prefix+'_CODE_INVENTORY')
+    for name,digest in binding['code_sha256'].items():io.verify_digest(REPO/name,digest,prefix+'_CODE')
+    proof=require_capped_cpu_audit_execution();proof['lock']=require_capped_lock_ancestry()
+    io.write_json(root/(prefix+'_CLAIM.json'),{'invocation':1,'plan_sha256':binding['plan_sha256'],'source_head':binding['source_head']})
+    staging=root/('.'+prefix+'_RESULTS.staging');staging.mkdir(exist_ok=False)
+    seal_stamp=pd.Timestamp(plan['TEST_seal_utc'])
+    from gx1.contracts.gc_source_disposition_v1 import WINDOW_END_NS
+    if seal_stamp.tzinfo is None or seal_stamp.value!=WINDOW_END_NS:raise RuntimeError(prefix+'_SEAL')
+    seal=seal_stamp.value;small={};identities={};hash_files={}
+    identity=lambda st:(st.st_dev,st.st_ino,st.st_mode,st.st_size,st.st_mtime_ns,st.st_ctime_ns)
+    def metadata(ref):
+        path=Path(ref['path']);digest=ref['sha256']
+        if str(path) in small:
+            if small[str(path)]!=digest:raise RuntimeError(prefix+'_METADATA_COLLISION')
+            return io.read_json(path)
+        io.require_regular_file(path,prefix+'_METADATA')
+        if not path.is_absolute() or path!=path.resolve():raise RuntimeError(prefix+'_CANONICAL_PATH')
+        before=identity(path.stat());io.verify_digest(path,digest,prefix+'_METADATA');value=io.read_json(path)
+        if identity(path.stat())!=before:raise RuntimeError(prefix+'_METADATA_CHANGED')
+        small[str(path)]=digest;identities[str(path)]=before;return value
+    design=metadata(plan['design']);addendum=metadata(plan['design_signal_alias_addendum'])
+    if (design['run_id']!=GC_NATIVE_PROJECTION_PLAN_ID or design['references']!=plan['references']
+            or addendum['design']!=plan['design'] or addendum['context_signal_alias_proof']!=plan['context_signal_alias_proof']):
+        raise RuntimeError(prefix+'_DESIGN')
+    refs=plan['references'];registry=metadata(refs['registry']);index=metadata(refs['published_m1_tf_numeric_index'])
+    publication=metadata(refs['publication_terminal']);surfaces=metadata(refs['surface_bindings'])
+    reconstruction_bindings=metadata(refs['source_reconstruction_bindings']);normalization=metadata(refs['normalization'])
+    reconstruction={split:metadata(ref) for split,ref in refs['reconstruction'].items()}
+    fields=registry['fields'];expected=design['expected_contract'];field_names={item['name'] for item in fields}
+    if (len(fields)!=1205 or len(field_names)!=1205 or index['registry']!=refs['registry']
+            or index['status']!='COMPLETE_SCOPED_ALL_1205_REGISTRY_VALUE_FIELDS'
+            or index['qualified_active_registry_fields']!=1205 or set(index['fields'])!=field_names
+            or index['missing_fields'] or index['foreign_fields'] or index['duplicate_fields']
+            or index['test_data_used'] is not False or publication['status']!='COMPLETE' or publication['exit_code']!=0
+            or publication['source_unchanged'] is not True or publication['test_data_used'] is not False
+            or surfaces['active_registry']!=refs['registry'] or surfaces['test_data_used'] is not False
+            or reconstruction_bindings['decision']!='PASS_CURRENT_PHYSICAL_METADATA_AND_FRESH_SOURCE_RECONSTRUCTION'
+            or reconstruction_bindings['test_data_used'] is not False or normalization['decision']!='PASS'
+            or normalization['test_accessed'] is not False or normalization['test_fit_rows']!=0 or normalization['val_fit_rows']!=0):
+        raise RuntimeError(prefix+'_REUSED_PROOF')
+    surface=surfaces['m5_feature_surface'];surface_manifest=metadata({'path':surface['manifest_path'],'sha256':surface['manifest_sha256']})
+    manifests={};physical={surface['path']:{'sha256':surface['sha256'],'kind':'surface'}}
+    for split in ('train','val'):
+        report=reconstruction[split];bound=reconstruction_bindings['reports'][split]
+        if (bound['path']!=refs['reconstruction'][split]['path'] or bound['sha256']!=refs['reconstruction'][split]['sha256']
+                or bound['rows']!=report['rows'] or bound['sequence_source_chain_sha256']!=report['sequence_source_chain_sha256']
+                or report['decision']!='PASS' or len(report['checks'])!=8 or not all(v is True for v in report['checks'].values())
+                or report['rows']!=expected[split+'_rows'] or report['sequence_shape']!=[report['rows'],96,2725]
+                or report['snapshot_shape']!=[report['rows'],2725] or report['feature_surface_rows']!=expected['surface_rows']
+                or any(report['feature_surface_'+key]!=surface[target] for key,target in
+                    (('path','path'),('sha256','sha256'),('manifest_path','manifest_path'),('manifest_sha256','manifest_sha256')))):
+            raise RuntimeError(prefix+'_SOURCE_RECONSTRUCTION')
+        manifests[split]=metadata({'path':report['manifest_path'],'sha256':report['manifest_sha256']})
+        physical[report['parquet_path']]={'sha256':report['parquet_sha256'],'kind':split}
+    norm_lineage=normalization['contract']['lineage']
+    if (norm_lineage['train_parquet_path']!=reconstruction['train']['parquet_path']
+            or norm_lineage['train_parquet_sha256']!=reconstruction['train']['parquet_sha256']
+            or norm_lineage['train_manifest_sha256']!=reconstruction['train']['manifest_sha256']
+            or norm_lineage['local_fit_row_count']!=118800 or norm_lineage['test_fit_row_count']!=0
+            or norm_lineage['val_fit_row_count']!=0):raise RuntimeError(prefix+'_NORMALIZATION_REUSE')
+    for item in fields:
+        evidence=index['fields'][item['name']]
+        if (evidence['registry_table']!=item['table'] or evidence['registry_column']!=item['column']
+                or evidence['availability_field']!=item['availability_field']
+                or evidence['statistics']['numeric_reference_qualified'] is not True
+                or evidence['statistics']['finite_published_values_compared']<=0):
+            raise RuntimeError(prefix+'_NUMERIC_INDEX_FIELD')
+    columns={};logical={};publication_root=Path(refs['publication_terminal']['path']).parent
+    for key,ref in registry['tables'].items():
+        path=Path(ref['path']);artifact=publication['artifacts'][path.name]
+        if path!=publication_root/path.name or artifact['sha256']!=ref['sha256']:
+            raise RuntimeError(prefix+'_PUBLISHED_TABLE_BINDING')
+        previous=physical.get(str(path))
+        if previous and previous['sha256']!=ref['sha256']:raise RuntimeError(prefix+'_PHYSICAL_ALIAS_COLLISION')
+        physical[str(path)]={'sha256':ref['sha256'],'kind':'gc','bytes':artifact['bytes']};logical[key]=str(path)
+        columns.setdefault(str(path),{'available_ns'})
+    for item in fields:
+        needed=columns[logical[item['table']]];needed.add(item['column'])
+        needed.update(item[name] for name in ('validity_column','source_clock_column') if item.get(name))
+    if len(physical)!=13 or len(columns)!=10 or len(logical)!=14:raise RuntimeError(prefix+'_PHYSICAL_INVENTORY')
+    # One whole-file digest per unique physical path. Later guards use stat only.
+    for name,item in physical.items():
+        path=Path(name);io.require_regular_file(path,prefix+'_INPUT')
+        if not path.is_absolute() or path!=path.resolve():raise RuntimeError(prefix+'_CANONICAL_PATH')
+        before=identity(path.stat());io.verify_digest(path,item['sha256'],prefix+'_INPUT');after=identity(path.stat())
+        if before!=after or ('bytes' in item and after[3]!=item['bytes']):raise RuntimeError(prefix+'_INPUT_CHANGED')
+        identities[name]=after;hash_files[name]={'sha256':item['sha256'],'bytes':after[3],'whole_file_hash_passes':1}
+    # Every source/split/GC footer is admitted before any clock or value payload.
+    footers={name:projection_numeric_footer(Path(name),seal,kind=item['kind']) for name,item in physical.items()}
+    for name,needed in columns.items():
+        schema=pq.ParquetFile(name).schema_arrow
+        if any(column not in schema.names or not (pa.types.is_boolean(schema.field(column).type)
+                or pa.types.is_integer(schema.field(column).type) or pa.types.is_floating(schema.field(column).type)) for column in needed):
+            raise RuntimeError(prefix+'_GC_COLUMN_SCHEMA')
+    def read_clock(path):
+        table=pq.ParquetFile(path).read_row_groups(footers[path]['groups'],columns=['time'],use_threads=False)
+        if table['time'].null_count:raise RuntimeError(prefix+'_CLOCK')
+        return table['time'].cast(pa.int64()).to_numpy()
+    source_clock=read_clock(surface['path']);split_clocks={split:read_clock(report['parquet_path']) for split,report in reconstruction.items()}
+    if len(source_clock)!=expected['surface_rows'] or any(len(split_clocks[s])!=expected[s+'_rows'] for s in ('train','val')):
+        raise RuntimeError(prefix+'_ROW_COUNTS')
+    for split,clock in split_clocks.items():
+        bounds=manifests[split]['ts_min_max_by_split'][split]
+        if int(clock[0])!=pd.Timestamp(bounds['ts_min']).value or int(clock[-1])!=pd.Timestamp(bounds['ts_max']).value:
+            raise RuntimeError(prefix+'_SPLIT_CLOCK_BINDING')
+    masks,row_union=reference_consumed_surface_rows(source_clock,split_clocks,sequence_length=96)
+    selected=np.flatnonzero(masks['union']);decisions=gc_native_decision_stamps(source_clock[selected],seal=seal)
+    if not len(selected):raise RuntimeError(prefix+'_EMPTY_ROW_UNION')
+    contract=manifests['train']['feature_contract'];ctx_names=contract['ctx_cont_names'];signal_names=contract['signal_bridge_fields']
+    if manifests['val']['feature_contract']!=contract:raise RuntimeError(prefix+'_SPLIT_FIELD_CONTRACT')
+    layout=native_projection_layout(fields,ctx_names,signal_names,surface_manifest['feature_field_order'])
+    if (len(ctx_names)!=2542 or len(signal_names)!=2725 or surface_manifest['rows']!=len(source_clock)
+            or not np.array_equal(layout['ctx_indices'],np.arange(132,2542))
+            or not np.array_equal(layout['signal_indices'],np.arange(315,2725))):raise RuntimeError(prefix+'_ACTUAL_2410_LANES')
+    alias=metadata(plan['context_signal_alias_proof']);entry=alias['entry'];population_start=entry['excluded_pre_history_row_count']
+    alias_input=alias['input_bindings']['m5_feature_surface'];hashes=entry['local_field_hashes']
+    if (alias['schema_version']!='entry_cross_surface_input_overlap_v5' or alias['decision']!='PASS' or alias['failures']
+            or any(alias_input[key]!=surface[key] for key in ('path','sha256','manifest_path','manifest_sha256'))
+            or alias_input['rows']!=len(source_clock) or alias_input['pair_generation_id']!=surface_manifest['pair_generation_id']
+            or entry['source_row_count']!=len(source_clock) or population_start+entry['row_count']!=len(source_clock)
+            or not 0<=population_start<len(source_clock) or selected[0]<population_start
+            or int(source_clock[population_start])!=entry['first_time_ns'] or int(source_clock[-1])!=entry['last_time_ns']):
+        raise RuntimeError(prefix+'_SIGNAL_ALIAS_POPULATION')
+    import re
+    for name in layout['names']:
+        digest=hashes.get('local.ctx_cont.'+name)
+        if not isinstance(digest,str) or re.fullmatch('[0-9a-f]{64}',digest) is None or hashes.get('local.signal.ctx_cont.'+name)!=digest:
+            raise RuntimeError(prefix+'_SIGNAL_ALIAS_HASH:'+name)
+    tables={};table_reads={}
+    for path,needed in columns.items():
+        footer=footers[path];groups=[i for i,(lo,hi) in enumerate(footer['clock_bounds']) if lo<=int(decisions[-1])]
+        table=pq.ParquetFile(path).read_row_groups(groups,columns=sorted(needed),use_threads=False)
+        values={name:table[name].to_numpy() for name in needed};clock=values['available_ns']
+        _projection_integer_clock(clock,prefix+'_SOURCE_CLOCK');keep=clock<=decisions[-1]
+        values={name:np.asarray(value)[keep] for name,value in values.items()}
+        for key,target in logical.items():
+            if target==path:tables[key]=values
+        table_reads[path]={'logical_tables':[key for key,target in logical.items() if target==path],
+            'projected_columns':sorted(needed),'decoded_rows':len(clock),'retained_rows':int(keep.sum()),'decoded_row_groups':len(groups)}
+    counters={split:{key:np.zeros(1205,np.int64) for key in ('observed','missing','observed_zero','nonzero','positive_age','bit_errors')}
+        for split in ('train','val','union')}
+    ages=np.array([item.get('transform')=='decision_age_minutes' or item['column'] in GC_NATIVE_AGE_COLUMNS for item in fields])
+    cursor={};visited=np.zeros(len(source_clock),bool);ctx_rows=0;ctx_batches=0;compared=0;row_offset=0
+    source_file=pq.ParquetFile(surface['path'])
+    for group,size in enumerate(footers[surface['path']]['row_group_rows']):
+        if not masks['union'][row_offset:row_offset+size].any():row_offset+=size;continue
+        batch_offset=row_offset
+        for batch in source_file.iter_batches(batch_size=256,row_groups=[group],columns=['time','ctx_cont'],use_threads=False):
+            n=batch.num_rows;ctx_rows+=n;ctx_batches+=1;positions=np.arange(batch_offset,batch_offset+n);take=masks['union'][positions]
+            if take.any():
+                stamps=batch.column(batch.schema.get_field_index('time')).cast(pa.int64()).to_numpy()
+                if not np.array_equal(stamps,source_clock[positions]):raise RuntimeError(prefix+'_STREAM_CLOCK')
+                nested=batch.column(batch.schema.get_field_index('ctx_cont'))
+                if nested.null_count or nested.values.null_count:raise RuntimeError(prefix+'_STREAM_NULL')
+                matrix=nested.flatten().to_numpy().reshape(n,2542)
+                actual=np.ascontiguousarray(matrix[take][:,layout['ctx_indices']],dtype=np.float32)
+                queries=gc_native_decision_stamps(stamps[take],seal=seal)
+                reference,_=reference_gc_native_projection(fields,tables,queries,cursors=cursor)
+                if not np.isfinite(actual).all() or not np.array_equal(actual.view(np.uint32),reference.view(np.uint32)):
+                    mismatch=np.argwhere(actual.view(np.uint32)!=reference.view(np.uint32))
+                    first=mismatch[0] if len(mismatch) else (0,0)
+                    raise RuntimeError(prefix+'_EXACT_BITS:'+str(int(queries[first[0]]))+':'+layout['names'][first[1]])
+                chosen=positions[take];visited[chosen]=True;compared+=len(chosen)
+                obs=reference[:,1::2]==1;value=reference[:,::2]
+                for split in ('train','val','union'):
+                    admitted=masks[split][chosen];own=obs[admitted];v=value[admitted];count=counters[split]
+                    count['observed']+=own.sum(axis=0);count['missing']+=(~own).sum(axis=0)
+                    count['observed_zero']+=(own&(v==0)).sum(axis=0);count['nonzero']+=(own&(v!=0)).sum(axis=0)
+                    count['positive_age']+=(own&(v>0)&ages).sum(axis=0)
+            batch_offset+=n
+        if batch_offset!=row_offset+size:raise RuntimeError(prefix+'_STREAM_ROW_COUNT')
+        row_offset+=size
+    if not np.array_equal(visited,masks['union']) or compared!=len(selected):raise RuntimeError(prefix+'_CONSUMED_ROW_COVERAGE')
+    reports={}
+    for split,count in counters.items():
+        reports[split]={item['name']:{key:int(values[j]) for key,values in count.items()} for j,item in enumerate(fields)}
+        for j,item in enumerate(fields):
+            reports[split][item['name']]['age_transformed']=bool(ages[j])
+            reports[split][item['name']]['numeric_projection_qualified']=bool(count['observed'][j]>0)
+            if split=='union' and count['observed'][j]==0:raise RuntimeError(prefix+'_ACTIVE_FIELD_UNOBSERVED:'+item['name'])
+    for path,before in identities.items():
+        if identity(Path(path).stat())!=before:raise RuntimeError(prefix+'_POST_INPUT_CHANGED')
+    for path,digest in small.items():io.verify_digest(Path(path),digest,prefix+'_POST_METADATA')
+    for name,digest in binding['code_sha256'].items():io.verify_digest(REPO/name,digest,prefix+'_POST_CODE')
+    io.verify_digest(plan_path,binding['plan_sha256'],prefix+'_POST_PLAN')
+    io.verify_digest(REPO/'NEXT_RUN_POLICY.json',binding['policy_sha256'],prefix+'_POST_POLICY')
+    if io.git_head()!=binding['source_head'] or subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True):
+        raise RuntimeError(prefix+'_POST_SOURCE_CHANGED')
+    result={'schema_version':'gx1_gc_native_projection_numeric_result_v1','status':'COMPLETE_SCOPED_ALL_1205_GC_NATIVE_PROJECTION',
+        'plan_sha256':binding['plan_sha256'],'source_head':binding['source_head'],'source_unchanged':True,'limits':proof,
+        'registry':refs['registry'],'reused_published_numeric_index':refs['published_m1_tf_numeric_index'],
+        'reused_source_reconstruction':refs['reconstruction'],'reused_normalization_metadata':refs['normalization'],
+        'context_signal_alias_proof':plan['context_signal_alias_proof'],'source_row_union':row_union,
+        'value_fields':1205,'availability_fields':1205,'context_lane_range':[132,2542],'signal_lane_range':[315,2725],
+        'exact_float32_bit_errors':0,'decision_clock':'M5surface bar_start_ns + 300 seconds',
+        'independent_two_pointer_latest_bucket':True,'no_older_valid_backsearch':True,'float32_cast_after_own_validity':True,
+        'field_reports':reports,'physical_inputs':hash_files,'deduplicated_physical_file_count':len(physical),
+        'whole_file_hash_passes':len(hash_files),'bound_physical_file_bytes':sum(item['bytes'] for item in hash_files.values()),
+        'gc_table_reads':table_reads,'source_clock_decoded_rows':len(source_clock),'split_clock_decoded_rows':{s:len(c) for s,c in split_clocks.items()},
+        'ctx_cont_projected_columns':['time','ctx_cont'],'ctx_cont_decoded_rows':ctx_rows,'ctx_cont_decoded_batches':ctx_batches,
+        'selected_source_rows_compared':compared,'batch_rows':256,'disk_io_bytes_measured':False,
+        'native_sequence_or_signal_payload_decoded':False,'model_forwards':0,'optimizer_updates':0,'test_data_used':False,
+        'normalization_fit_performed':False,'individual_learned_use_proven':False,'raw_to_M1_formula_proven':False,
+        'other_technical_numeric_formulas_proven':False,'learning_qualified':False,'economic_edge_qualified':False}
+    output=staging/(prefix+'_RESULT.json');io.write_json(output,result)
+    io.write_json(staging/(prefix+'_TERMINAL.json'),{'status':'COMPLETE','exit_code':0,'source_unchanged':True,
+        'test_data_used':False,'finished_utc':datetime.now(timezone.utc).isoformat(),'result_sha256':io.sha256_file(output)})
+    publish_bundle_directory_noreplace(staging,root/(prefix+'_RESULTS'));print(prefix+'_REFERENCE_COMPLETE',flush=True)
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser();group=parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--binding',type=Path);group.add_argument('--evaluation-binding',type=Path)
@@ -2676,8 +3070,10 @@ if __name__=='__main__':
     group.add_argument('--gc-smc-numeric-binding',type=Path)
     group.add_argument('--gc-profile-numeric-binding',type=Path)
     group.add_argument('--gc-basis-numeric-binding',type=Path)
+    group.add_argument('--gc-native-projection-binding',type=Path)
     group.add_argument('--p0-diagnosis-binding',type=Path);group.add_argument('--p0-review-binding',type=Path);group.add_argument('--l1-binding',type=Path);group.add_argument('--cash-binding',type=Path);group.add_argument('--p0-preparation-binding',type=Path);args=parser.parse_args()
-    if args.gc_basis_numeric_binding is not None:run_gc_event_numeric(args.gc_basis_numeric_binding,basis=True)
+    if args.gc_native_projection_binding is not None:run_gc_native_projection_numeric(args.gc_native_projection_binding)
+    elif args.gc_basis_numeric_binding is not None:run_gc_event_numeric(args.gc_basis_numeric_binding,basis=True)
     elif args.gc_profile_numeric_binding is not None:run_gc_event_numeric(args.gc_profile_numeric_binding,profile=True)
     elif args.gc_smc_numeric_binding is not None:run_gc_event_numeric(args.gc_smc_numeric_binding,smc=True)
     elif args.gc_trade_numeric_binding is not None:run_gc_event_numeric(args.gc_trade_numeric_binding,trade=True)

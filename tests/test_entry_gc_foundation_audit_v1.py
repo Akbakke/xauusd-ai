@@ -1407,3 +1407,421 @@ def test_basis_numeric_analytic_bound_rejects_unsupported_float_arithmetic(domai
     spot,_=audit.reference_basis_spot(m1['bar_start_ns'],[quotes],pd.Timestamp('2026-07-01T00:00Z').value)
     with pytest.raises(RuntimeError,match='GC_BASIS_REFERENCE_UNSUPPORTED_FLOAT_ARITHMETIC'):
         audit.reference_basis_aggregates(m1,spot,'M5',100000000,10**9)
+
+
+# 126: independent published-TF -> consumed M5 context projection.
+def _projection_field(name="x", *, table="T", column=None, validity="own_valid",
+                      source_clock="source_ns", role=None, transform=None):
+    value = {"name": name, "table": table, "column": name if column is None else column,
+             "availability_field": name + "_observed", "owner": "momentum_flow_encoder"}
+    if validity is not None:
+        value["validity_column"] = validity
+    if source_clock is not None:
+        value["source_clock_column"] = source_clock
+    if role is not None:
+        value["role"] = role
+    if transform is not None:
+        value["transform"] = transform
+    return value
+
+
+def test_native_projection_barstart_plus_300s_observes_exact_closed_boundary():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    base = pd.Timestamp("2024-05-01T00:00:00Z").value
+    barstarts = base + np.array([0, 5, 10], np.int64) * MINUTE
+    tables = {"T": {
+        "available_ns": base + np.array([5, 10, 15], np.int64) * MINUTE,
+        "x": np.array([10., 20., 30.]), "own_valid": np.ones(3),
+        "source_ns": base + np.array([5, 10, 15], np.int64) * MINUTE,
+    }}
+    decisions = audit.gc_native_decision_stamps(barstarts)
+    np.testing.assert_array_equal(decisions, base + np.array([5, 10, 15], np.int64) * MINUTE)
+    actual, _ = audit.reference_gc_native_projection([_projection_field()], tables, decisions)
+    np.testing.assert_array_equal(actual, np.array([[10, 1], [20, 1], [30, 1]], np.float32))
+    wrong_clock, _ = audit.reference_gc_native_projection([_projection_field()], tables, barstarts)
+    np.testing.assert_array_equal(wrong_clock, np.array([[0, 0], [10, 1], [20, 1]], np.float32))
+
+
+def test_native_projection_literal_inclusive_latest_invalid_and_real_zero(monkeypatch):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    from gx1.features import gc_native_context_v1 as producer
+    def forbidden(*args, **kwargs):
+        raise AssertionError("independent reference delegated to production context")
+    monkeypatch.setattr(producer, "build_context", forbidden)
+    monkeypatch.setattr(producer, "_field_values", forbidden)
+    clock = np.array([5, 10, 15], np.int64) * MINUTE
+    table = {"available_ns": clock, "source_ns": clock.copy(),
+             "x": np.array([10., 99., 0.]), "own_valid": np.array([1., 0., 1.])}
+    decisions = np.array([5*MINUTE-1, 5*MINUTE, 7*MINUTE, 10*MINUTE, 12*MINUTE, 15*MINUTE], np.int64)
+    actual, report = audit.reference_gc_native_projection([_projection_field()], {"T": table}, decisions)
+    expected = np.array([[0, 0], [10, 1], [10, 1], [0, 0], [0, 0], [0, 1]], np.float32)
+    assert actual.dtype == np.float32
+    np.testing.assert_array_equal(actual, expected)
+    assert report["x"]["observed"] == 3 and report["x"]["missing"] == 3
+    assert report["x"]["observed_zero"] == 1 and report["x"]["nonzero"] == 2
+
+
+@pytest.mark.parametrize("source_ns", [6*MINUTE, 7*MINUTE+1])
+def test_native_projection_future_source_rejected_even_with_invalid_latest_field(source_ns):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    table = {"available_ns": np.array([5*MINUTE], np.int64),
+             "source_ns": np.array([source_ns], np.int64),
+             "x": np.array([99.]), "own_valid": np.array([0.])}
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_FUTURE_SOURCE_CLOCK"):
+        audit.reference_gc_native_projection([_projection_field()], {"T": table},
+                                            np.array([7*MINUTE], np.int64))
+
+
+def test_native_projection_future_poison_is_not_read_as_current_information():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    table = {"available_ns": np.array([5, 10], np.int64)*MINUTE,
+             "source_ns": np.array([5, 11], np.int64)*MINUTE,
+             "x": np.array([10., np.nan]), "own_valid": np.array([1., 0.])}
+    earlier, _ = audit.reference_gc_native_projection([_projection_field()], {"T": table},
+                                                    np.array([7*MINUTE], np.int64))
+    np.testing.assert_array_equal(earlier, np.array([[10, 1]], np.float32))
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_FUTURE_SOURCE_CLOCK"):
+        audit.reference_gc_native_projection([_projection_field()], {"T": table},
+                                            np.array([10*MINUTE], np.int64))
+
+
+@pytest.mark.parametrize("missing", ["value", "validity", "source_clock"])
+def test_native_projection_nan_components_make_missing_without_backsearch(missing):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    table = {"available_ns": np.array([5, 10], np.int64)*MINUTE,
+             "source_ns": np.array([5*MINUTE, 10*MINUTE], np.float64),
+             "x": np.array([7., 8.]), "own_valid": np.ones(2)}
+    key = {"value": "x", "validity": "own_valid", "source_clock": "source_ns"}[missing]
+    table[key][1] = np.nan
+    actual, _ = audit.reference_gc_native_projection([_projection_field()], {"T": table},
+                                                   np.array([5, 10, 12], np.int64)*MINUTE)
+    np.testing.assert_array_equal(actual, np.array([[7, 1], [0, 0], [0, 0]], np.float32))
+
+
+def test_native_projection_structural_false_and_separate_own_validity():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    clock = np.array([5, 10, 15], np.int64)*MINUTE
+    table = {"available_ns": clock, "source_ns": clock.copy(),
+             "flag": np.array([0., 1., 0.]), "own_valid": np.array([1., 0., 1.])}
+    field = _projection_field("flag", role="structural_observation_mask")
+    actual, _ = audit.reference_gc_native_projection([field], {"T": table}, clock)
+    np.testing.assert_array_equal(actual, np.array([[0, 1], [0, 0], [0, 1]], np.float32))
+    table["flag"][0] = 2
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_STRUCTURAL_VALUE_DOMAIN"):
+        audit.reference_gc_native_projection([field], {"T": table}, clock)
+
+
+@pytest.mark.parametrize("fault,marker", [
+    ("validity", "VALIDITY_DOMAIN"), ("fractional_clock", "SOURCE_CLOCK_PRECISION"),
+])
+def test_native_projection_rejects_invalid_selected_domain_without_value_repair(fault, marker):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    table = {"available_ns": np.array([5*MINUTE], np.int64),
+             "source_ns": np.array([0.]), "x": np.array([3.]), "own_valid": np.array([1.])}
+    if fault == "validity":
+        table["own_valid"][0] = 2
+    else:
+        table["source_ns"][0] = .5
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_" + marker):
+        audit.reference_gc_native_projection([_projection_field()], {"T": table},
+                                            np.array([7*MINUTE], np.int64))
+
+
+@pytest.mark.parametrize("column", ["observed_profile_snapshot_age_minutes",
+                                   "observed_spot_basis_age_minutes"])
+@pytest.mark.parametrize("explicit_transform", [False, True])
+def test_native_projection_age_grows_from_own_source_clock_not_stored_snapshot(column, explicit_transform):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    field = _projection_field("age", column=column,
+        transform="decision_age_minutes" if explicit_transform else None)
+    table = {"available_ns": np.array([5, 10], np.int64)*MINUTE,
+             "source_ns": np.array([3, 8], np.int64)*MINUTE,
+             column: np.array([123., 456.]), "own_valid": np.ones(2)}
+    actual, report = audit.reference_gc_native_projection([field], {"T": table},
+                                                        np.array([5, 7, 10, 12], np.int64)*MINUTE)
+    np.testing.assert_array_equal(actual, np.array([[2, 1], [4, 1], [2, 1], [4, 1]], np.float32))
+    assert report["age"]["age_transformed"] is True
+
+
+def test_native_projection_float32_cast_happens_after_own_mask_and_preserves_observed_underflow():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    clock = np.array([5, 10, 15], np.int64)*MINUTE
+    table = {"available_ns": clock, "source_ns": clock.copy(),
+             "x": np.array([1e300, -1e-300, 0.]), "own_valid": np.array([0., 1., 1.])}
+    actual, _ = audit.reference_gc_native_projection([_projection_field()], {"T": table}, clock)
+    expected = np.array([[0., 0.], [-0., 1.], [0., 1.]], np.float32)
+    np.testing.assert_array_equal(actual.view(np.uint32), expected.view(np.uint32))
+    table["own_valid"][0] = 1
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_FLOAT32_OVERFLOW"):
+        audit.reference_gc_native_projection([_projection_field()], {"T": table}, clock)
+
+
+def test_native_projection_multiple_tables_aliases_and_opaque_batch_cursor_have_literal_lanes():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    a = {"available_ns": np.array([5, 10], np.int64)*MINUTE,
+         "source_ns": np.array([5, 10], np.int64)*MINUTE,
+         "a": np.array([1., 2.]), "copy": np.array([7., 9.]), "own_valid": np.ones(2)}
+    b = {"available_ns": np.array([6, 12], np.int64)*MINUTE,
+         "source_ns": np.array([6, 12], np.int64)*MINUTE,
+         "b": np.array([4., 8.]), "own_valid": np.ones(2)}
+    fields = [_projection_field("b", table="B"), _projection_field("a", table="A"),
+              _projection_field("alias", table="A_ALIAS", column="copy")]
+    tables = {"A": a, "A_ALIAS": a, "B": b}
+    decisions = np.array([5, 6, 10, 12], np.int64)*MINUTE
+    expected = np.array([[0, 0, 1, 1, 7, 1], [4, 1, 1, 1, 7, 1],
+                         [4, 1, 2, 1, 9, 1], [8, 1, 2, 1, 9, 1]], np.float32)
+    whole, _ = audit.reference_gc_native_projection(fields, tables, decisions)
+    cursor = {}
+    first, _ = audit.reference_gc_native_projection(fields, tables, decisions[:2], cursors=cursor)
+    second, _ = audit.reference_gc_native_projection(fields, tables, decisions[2:], cursors=cursor)
+    np.testing.assert_array_equal(whole, expected)
+    np.testing.assert_array_equal(np.concatenate((first, second)), expected)
+    for stale in (decisions[-1:], decisions[:1]):
+        with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_"):
+            audit.reference_gc_native_projection(fields, tables, stale, cursors=cursor)
+
+
+def test_native_projection_layout_uses_registry_order_and_exact_context_signal_aliases():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    fields = [_projection_field("a"), _projection_field("b")]
+    ctx = ["dense", "b", "b_observed", "a", "a_observed"]
+    signal = ["dense_signal", "ctx_cont.b", "ctx_cont.b_observed", "ctx_cont.a", "ctx_cont.a_observed"]
+    result = audit.native_projection_layout(fields, ctx, signal, signal.copy())
+    assert list(result["names"]) == ["a", "a_observed", "b", "b_observed"]
+    assert list(result["ctx_indices"]) == [3, 4, 1, 2]
+    assert list(result["signal_indices"]) == [3, 4, 1, 2]
+
+
+@pytest.mark.parametrize("fault", ["missing_mask", "duplicate_name", "wrong_alias", "surface_order"])
+def test_native_projection_layout_rejects_missing_duplicate_or_split_brain_lanes(fault):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    fields = [_projection_field("a")]
+    ctx, signal = ["a", "a_observed"], ["ctx_cont.a", "ctx_cont.a_observed"]
+    surface = signal.copy()
+    if fault == "missing_mask":
+        ctx.pop()
+    elif fault == "duplicate_name":
+        ctx.append("a")
+    elif fault == "wrong_alias":
+        signal[0] = surface[0] = "ctx_cont.other"
+    else:
+        surface.reverse()
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_FIELD_LAYOUT"):
+        audit.native_projection_layout(fields, ctx, signal, surface)
+
+
+def test_native_projection_96_history_union_is_exact_for_both_physical_splits():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    base = pd.Timestamp("2024-05-01T00:00:00Z").value
+    source = base + np.arange(240, dtype=np.int64)*5*MINUTE
+    split = {"train": source[[95, 100]], "val": source[[220]]}
+    masks, report = audit.reference_consumed_surface_rows(source, split, sequence_length=96)
+    expected_train, expected_val = np.zeros(240, bool), np.zeros(240, bool)
+    expected_train[:101], expected_val[125:221] = True, True
+    np.testing.assert_array_equal(masks["train"], expected_train)
+    np.testing.assert_array_equal(masks["val"], expected_val)
+    np.testing.assert_array_equal(masks["union"], expected_train | expected_val)
+    assert masks["union"].sum() == report["union_rows"] == 197
+    assert not masks["union"][101:125].any()
+    assert report["sequence_length"] == 96
+
+
+@pytest.mark.parametrize("fault", ["missing_exact_ns", "insufficient_history", "source_duplicate",
+                                 "split_duplicate", "source_reversed", "source_dtype"])
+def test_native_projection_96_history_union_rejects_wrong_clocks_and_unavailable_history(fault):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    source = np.arange(240, dtype=np.int64)*5*MINUTE
+    split = {"train": source[[95, 100]], "val": source[[220]]}
+    if fault == "missing_exact_ns":
+        split["train"] = split["train"].copy(); split["train"][1] += 1
+    elif fault == "insufficient_history":
+        split["train"] = source[[94]]
+    elif fault == "source_duplicate":
+        source[100] = source[99]
+    elif fault == "split_duplicate":
+        split["val"] = source[[220, 220]]
+    elif fault == "source_reversed":
+        source = source[::-1].copy()
+    else:
+        source = source.astype(np.float64)
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_ROW_UNION_"):
+        audit.reference_consumed_surface_rows(source, split, sequence_length=96)
+
+
+
+def _projection_footer_no_payload(monkeypatch, audit):
+    original = audit.pq.ParquetFile
+    def forbidden(*args, **kwargs):
+        raise AssertionError("projection footer decoded payload before all clock/schema barriers")
+    class FooterOnly:
+        def __init__(self, wrapped):
+            self.wrapped = wrapped
+        def __getattr__(self, name):
+            if name in ("read", "read_row_group", "read_row_groups", "iter_batches"):
+                return forbidden
+            return getattr(self.wrapped, name)
+    monkeypatch.setattr(audit.pq, "ParquetFile",
+                        lambda *args, **kwargs: FooterOnly(original(*args, **kwargs)))
+    monkeypatch.setattr(audit.pq, "read_table", forbidden)
+
+
+@pytest.mark.parametrize("kind", ["train", "val", "gc"])
+def test_native_projection_footer_all_groups_are_checked_without_payload(tmp_path, monkeypatch, kind):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    import pyarrow.parquet as pq
+    seal = pd.Timestamp("2026-07-01T00:00:00Z").value
+    stamps = np.array([seal-15*MINUTE, seal-10*MINUTE], np.int64)
+    name = "available_ns" if kind == "gc" else "time"
+    values = pa.array(stamps) if kind == "gc" else pa.array(pd.to_datetime(stamps, utc=True))
+    path = tmp_path / (kind + ".parquet")
+    columns = {name: values}
+    if kind == "gc": columns["bar_start_ns"] = pa.array(stamps-5*MINUTE)
+    pq.write_table(pa.table(columns), path, row_group_size=1)
+    _projection_footer_no_payload(monkeypatch, audit)
+    result = audit.projection_numeric_footer(path, seal, kind=kind)
+    assert result["groups"] == [0, 1]
+    assert result["rows"] == 2 and result["row_group_rows"] == [1, 1]
+
+
+@pytest.mark.parametrize("kind", ["train", "val", "gc"])
+def test_native_projection_footer_rejects_later_sealed_group_before_decoding_safe_group(tmp_path, monkeypatch, kind):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    import pyarrow.parquet as pq
+    seal = pd.Timestamp("2026-07-01T00:00:00Z").value
+    # GC admission follows bar-start provenance; a bucket starting at TEST is forbidden.
+    stamps = np.array([seal-15*MINUTE, seal + (5*MINUTE if kind == "gc" else 0)], np.int64)
+    name = "available_ns" if kind == "gc" else "time"
+    values = pa.array(stamps) if kind == "gc" else pa.array(pd.to_datetime(stamps, utc=True))
+    path = tmp_path / (kind + "-sealed.parquet")
+    columns = {name: values}
+    if kind == "gc": columns["bar_start_ns"] = pa.array(stamps-5*MINUTE)
+    pq.write_table(pa.table(columns), path, row_group_size=1)
+    _projection_footer_no_payload(monkeypatch, audit)
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_TEST_ROW_GROUP"):
+        audit.projection_numeric_footer(path, seal, kind=kind)
+
+
+@pytest.mark.parametrize("fault", ["naive", "milliseconds", "integer_time", "float_gc_clock"])
+def test_native_projection_footer_rejects_wrong_clock_schema_before_payload(tmp_path, monkeypatch, fault):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    import pyarrow.parquet as pq
+    seal = pd.Timestamp("2026-07-01T00:00:00Z").value
+    stamps = np.array([seal-15*MINUTE, seal-10*MINUTE], np.int64)
+    kind, name = ("gc", "available_ns") if fault == "float_gc_clock" else ("train", "time")
+    if fault == "naive":
+        values = pa.array(pd.to_datetime(stamps))
+    elif fault == "milliseconds":
+        values = pa.array(pd.to_datetime(stamps, utc=True).as_unit("ms"))
+    elif fault == "integer_time":
+        values = pa.array(stamps)
+    else:
+        values = pa.array(stamps.astype(np.float64))
+    path = tmp_path / (fault + ".parquet")
+    columns = {name: values}
+    if kind == "gc": columns["bar_start_ns"] = pa.array(stamps-5*MINUTE)
+    pq.write_table(pa.table(columns), path, row_group_size=1)
+    _projection_footer_no_payload(monkeypatch, audit)
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_SCHEMA"):
+        audit.projection_numeric_footer(path, seal, kind=kind)
+
+
+def test_native_projection_closed_decision_reaching_seal_is_rejected():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    seal = pd.Timestamp("2026-07-01T00:00:00Z").value
+    safe = audit.gc_native_decision_stamps(np.array([seal-10*MINUTE], np.int64), seal=seal)
+    np.testing.assert_array_equal(safe, np.array([seal-5*MINUTE], np.int64))
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_"):
+        audit.gc_native_decision_stamps(np.array([seal-5*MINUTE], np.int64), seal=seal)
+
+
+
+def test_native_projection_each_field_uses_its_own_validity_on_same_table():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    clock = np.array([5, 10, 15], np.int64)*MINUTE
+    table = {"available_ns": clock, "source_ns": clock.copy(),
+             "x": np.array([10., 20., 30.]), "valid_x": np.array([1., 0., 1.]),
+             "y": np.array([100., 200., 300.]), "valid_y": np.array([0., 1., 1.])}
+    fields = [_projection_field("x", validity="valid_x"), _projection_field("y", validity="valid_y")]
+    actual, _ = audit.reference_gc_native_projection(fields, {"T": table}, clock)
+    np.testing.assert_array_equal(actual, np.array([[10, 1, 0, 0], [0, 0, 200, 1],
+                                                  [30, 1, 300, 1]], np.float32))
+
+
+
+def test_native_projection_surface_footer_accepts_exact_f32_context_width_without_payload(tmp_path, monkeypatch):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    import pyarrow.parquet as pq
+    seal = pd.Timestamp("2026-07-01T00:00:00Z").value
+    stamps = np.array([seal-15*MINUTE, seal-10*MINUTE], np.int64)
+    context = pa.FixedSizeListArray.from_arrays(pa.array(np.zeros(2*2542, np.float32)), 2542)
+    path = tmp_path / "surface.parquet"
+    pq.write_table(pa.table({"time": pa.array(pd.to_datetime(stamps, utc=True)),
+                            "ctx_cont": context}), path, row_group_size=1)
+    _projection_footer_no_payload(monkeypatch, audit)
+    result = audit.projection_numeric_footer(path, seal, kind="surface")
+    assert result["groups"] == [0, 1] and result["rows"] == 2
+
+
+@pytest.mark.parametrize("fault", ["wrong_width", "float64_values", "variable_list", "missing_context"])
+def test_native_projection_surface_footer_rejects_wrong_context_schema_before_payload(tmp_path, monkeypatch, fault):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    import pyarrow.parquet as pq
+    seal = pd.Timestamp("2026-07-01T00:00:00Z").value
+    columns = {"time": pa.array(pd.to_datetime([seal-10*MINUTE], utc=True))}
+    if fault != "missing_context":
+        width = 2541 if fault == "wrong_width" else 2542
+        dtype = np.float64 if fault == "float64_values" else np.float32
+        values = pa.array(np.zeros(width, dtype))
+        columns["ctx_cont"] = (pa.ListArray.from_arrays(pa.array([0, width], pa.int32()), values)
+                               if fault == "variable_list" else
+                               pa.FixedSizeListArray.from_arrays(values, width))
+    path = tmp_path / (fault + "-surface.parquet")
+    pq.write_table(pa.table(columns), path)
+    _projection_footer_no_payload(monkeypatch, audit)
+    with pytest.raises(RuntimeError, match="GC_NATIVE_PROJECTION_SCHEMA"):
+        audit.projection_numeric_footer(path, seal, kind="surface")
+
+
+def test_native_projection_gc_footer_allows_bucket_closed_exactly_at_seal_without_payload(tmp_path, monkeypatch):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    import pyarrow.parquet as pq
+    seal = pd.Timestamp("2026-07-01T00:00:00Z").value
+    path = tmp_path / "closed-at-seal.parquet"
+    pq.write_table(pa.table({"available_ns": pa.array([seal], pa.int64()),
+                            "bar_start_ns": pa.array([seal-5*MINUTE], pa.int64())}), path)
+    _projection_footer_no_payload(monkeypatch, audit)
+    result = audit.projection_numeric_footer(path, seal, kind="gc")
+    assert result["groups"] == [0] and result["rows"] == 1
+
+
+
+def test_native_projection_plain_field_uses_bucket_clock_and_finite_value_gate():
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    clock = np.array([5, 10], np.int64)*MINUTE
+    table = {"available_ns": clock, "x": np.array([0., np.nan])}
+    field = _projection_field(validity=None, source_clock=None)
+    actual, _ = audit.reference_gc_native_projection([field], {"T": table}, clock)
+    np.testing.assert_array_equal(actual, np.array([[0, 1], [0, 0]], np.float32))
+
+
+
+def test_native_projection_published_partial_day_tail_is_admitted_but_never_selected_before_seal(tmp_path, monkeypatch):
+    from gx1.scripts import audit_entry_gc_foundation_v1 as audit
+    import pyarrow.parquet as pq
+    seal = pd.Timestamp("2026-07-01T00:00:00Z").value
+    # A genuine D1 bucket starts June30 22Z and nominally closes July1 22Z.
+    # It is pre-TEST publication provenance, with no usable observation yet.
+    table = {
+        "bar_start_ns": np.array([seal-26*60*MINUTE, seal-2*60*MINUTE], np.int64),
+        "available_ns": np.array([seal-2*60*MINUTE, seal+22*60*MINUTE], np.int64),
+        "source_ns": np.array([seal-2*60*MINUTE, seal+22*60*MINUTE], np.int64),
+        "x": np.array([4., 999.]), "own_valid": np.array([1., 0.]),
+    }
+    path = tmp_path / "published-partial-D1.parquet"
+    pq.write_table(pa.table(table), path, row_group_size=1)
+    _projection_footer_no_payload(monkeypatch, audit)
+    footer = audit.projection_numeric_footer(path, seal, kind="gc")
+    assert footer["groups"] == [0, 1] and footer["rows"] == 2
+    before_seal, _ = audit.reference_gc_native_projection(
+        [_projection_field()], {"T": table}, np.array([seal-60*MINUTE], np.int64))
+    np.testing.assert_array_equal(before_seal, np.array([[4., 1.]], np.float32))
