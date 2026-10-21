@@ -21384,8 +21384,8 @@
       "sha256": "0e2fee30e43fe70e9ced024bee18a72146cd1d41c62b5c1e408b617b196b88dc"
     },
     "controller": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/run_source_qualification.py",
-      "sha256": "9fd61b95bc7b8fe02c296f088535b3ef27eff2237a736a289702a38e1b921c36"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/run_source_qualification_bound.py",
+      "sha256": "05f9c1ec73ff238ba5dd70f423614694ae41768ddd03496d8fbf1cafab8fb1de"
     },
     "worker": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/qualify_full_curves.py",
@@ -21400,6 +21400,7 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "preexecution_guard_correction": "Final frozen() also physically rehashes exact plan and source-snapshot JSON. Original unexecuted controller/binding preserved; zero claims."
   }
 }
