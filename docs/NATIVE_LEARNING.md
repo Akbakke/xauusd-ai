@@ -446,11 +446,19 @@ celler til eksakte maskhasher, tellinger og batch16/F64-feilaggregater.
 Original rå target-storage-SHA beholdes separat; den rekonstrueres ikke fra
 nullable rapportverdier. Kurvene skrives én gang per TRAIN-/CONTROL-rapport;
 checkpoints beholder bare filreferanser med SHA. Ingen ekstra modellkall
-eller Exit-beregninger følger av dette.146 bestod29fokuserte syntetiske cases
-og målte hele faktiske trainclosure én gang:183roller,3endrede roller i2filer
-mot115. Ingen compatibility-exception er innført; fersk faktisk fullkurve-
-baseline krever korrekt nåbinding før neste treningsforslag kan ferdigstilles.
-147 har nå faktisk publisert ny CPUfresh-tilstand gjennom eksisterende eier:
-0forwards/updates/refits, tom optimizer og identiske ONLINE/target/EMA-digester
-med den utrente starten. Alle183nåroller og10inputreferanser er bevart;
-constructorreferansen er ny. Dette er ikke148fullkurve-baselinen eller læring.
+eller Exit-beregninger følger av dette. Endret observer-/valideringssemantikk
+krever riktig kildeclosure og kvalifisert faktisk fullkurvebaseline før trening.
+Gjeldende baseline-, state- og terminalbevis eies av CURRENT_HANDOVER/policy.
+
+Etter den avgrensede epoken sammenlignes lagrede initial-/finalrapporter på
+identiske TRAIN-/CONTROL-kohorter. Kontroller rå target-storage-identitet,
+nullable mål og separate masker før råbps-/TRAIN-RMS-feil og alle480horisonter
+sammenlignes. LONG/SHORT/FLAT og valgte/avståtte kandidatutfall rapporteres med
+egen observerbar dekning. Framtidsmaksima er kun merket hindsightdiagnostikk;
+ingen terskler eller nye policyer velges fra sluttmålingen. Dette er gjenbrukt
+utvikling, ikke ny generalisering eller realisert P&L.
+
+Gjenbruk eksisterende canonical observasjonsvalidator under CPUaudit. Den kan
+åpne de fire eksplisitt bundne parentpointer-kolonneprojeksjonene (initial/final
+for TRAIN/CONTROL); ingen feature-/target-/sekvenskolonner, råMBP eller PT/modell
+trengs for denne sammenligningen. Ingen nye forwards, refits eller Exit-arbeid.

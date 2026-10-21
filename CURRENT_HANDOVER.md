@@ -1,207 +1,85 @@
 # CURRENT HANDOVER — XAUUSD M5 Entry
 
-Autoritet: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
-Les `GX1_RULES.md`, kjør `bash scripts/gx1_handover.sh --check`, og les bare
-aktuelle status-/scopefelt i `NEXT_RUN_POLICY.json`. Policy eier arbeidsstatus;
-faktiske prosesser og terminaler overstyrer prosa. Én integrator og én capped
-jobb; fryst kilde/policy under kjøring. Konsumerte planer relanseres aldri.
+Autoritet: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current` på
+`gx1-3090-lan`. Følg GX1_RULES og NEXT_RUN_POLICY; faktiske prosesser og
+terminaler overstyrer prosa. Én integrator og én capped tung jobb.
 
-## Gjeldende mål og tidsrammer
+## Gjort nå
 
-Entry tar beslutninger på lukkede **M5**-barer, med lukket M15/H1/H4/D1.
-M1-data brukes nå bare som finere etterfølgende prisfasit. Prognose-/
-observasjonshorisontene 1–480 minutter er ikke Entry-tidsrammen, Exit-logikk
-eller en fast holdetid. **M1-Exit tilhører neste bølge etter Entry-edge.**
-108s512M5-proberader hadde beste prognosescore ved1minutt for begge sidekandidater;
-diagnostiske handlinger var116SHORT/396FLAT/0LONG, ingen native handelsautoritet.
-Reelle141/144-vitner har300sekunders Entry-barer og korrekt lukket tilgjengelighet.
+151 er COMPLETE/consumed: den eksplisitt godkjente TRAIN-RMS-epoken kjørte
+118249 unike TRAIN-rader, batch16/slutt9,7391 optimizersteg. Faste sluttmålinger
+på samme TRAIN256/CONTROL256 brukte32 ONLINE-forwards. Guard/trainer/observer
+PASS/0/0. Checkpointet er bevart ved den avtalte optimizergrensen;
+`RESUMABLE` er lagringsstatus, ingen tillatelse til flere steg eller ny epoke.
+Ingen ferdig kandidatbundle ble publisert. Ingen fullVAL/Exit/TEST ble kjørt.
 
+Root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151`.
+- `TERMINAL.json`:9e59a2620e60c95421dc45735407dfc41f60b8b116a3c1e3716d5e580667c431
+- `ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json`:b9fe3dbdabda8fbbae35706cde762f0fa59c94b2e69b76895743136873f4dcef
+- `.gx1-candidate-training-session.BUNDLE/final_online_measurement/RESULT.json`:f0c6c8d042e0ac98a682dd201cb5789bee685c3ab9a2db4d968ba8c84c653eab
+- `POST_NATIVE_SOURCE_PRESERVATION.json`:c7c58129c4ee3c8aee014b5bd9417a8fc47a0ab766c8bbdad1601d6f08d63873
+
+Frosset kildeHEAD0fc3ec0e og183roller,13inputidentiteter/policy/rules ble bevart
+gjennom terminal. Ny Windowsboot520 er fysisk bekreftet21.10T14:33:23.500Z.
+Oppgaven er nå Disabled/Last0. Vaktens målte topper:57Ccore/66Cmemory/
+134,68Wdraw/1804MiB; fysisk grense160W. Etterpå signert35/42C/21,97W/78MiB.
+Gammel18.10-omstartsbestilling er oppfylt og skal ikke gjentas.
+
+## Neste autoriserte steg
+
+152 er forberedelse til én CPUaudit4G/512M/maks900s av de allerede lagrede
+148-/151-prognosene og fasiten, uten modell/PT, nye forwards, refit eller ny
+råMBP-lesing. Eksisterende canonical full480-validator gjenbrukes uendret;
+den åpner bare fire eksplisitte `dynamic_entry_m1_row`-kolonneprojeksjoner
+for å bekrefte radkoblingen. TRAIN256/CONTROL256 sammenlignes før/etter,
+med egne masker, alle480horisonter og valgte/avståtte kandidater.
+PLAN/policy eier den endelige adgangsstatusen; ingen konsumerte planer relanseres.
+
+Læring, Entry-kvalitet/dekning, generalisering og økonomisk edge vurderes
+hver for seg. Sluttmålinger og tekniskPASS beviser ikke bedre Entry eller profitt.
+Alle26måneder er gjenbrukt utvikling, også CONTROL/VAL.
+`training_enabled=false`; ekstra epoker/HPO/fullVAL/Exit/broker/live/paper/
+ordre/spending/promotion er stengt. De to practice-leseoppslagene er konsumert.
+
+## Varig mål og definisjoner
+
+Entry beslutter på lukkede M5-barer med lukket M15/H1/H4/D1. M1 er nå bare
+finere etterfølgende prisfasit. Prognosehorisonter1–480min er ikke M1Entry,
+Exit eller fast holdetid. M1Exit kommer i neste bølge etter Entry-edge.
 Lær LONG/SHORT/FLAT fra kausale inputs. Retningsretur, signert MFE og
 konservativ MAE før første MFE har separate framtidsmasker; dager er støtte.
-Kvalitet og dekning gjelder både valgte og avståtte muligheter. Alltid-FLAT
-er ingen suksess, og framtidsfasit/masker brukes aldri som beslutningsinputs.
+Framtidsfasit/masker brukes aldri som beslutningsinputs. AlltidFLAT er ingen
+suksess; kvalitet og dekning gjelder valgte og avståtte muligheter.
 
-Første profil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, SHA
+Førsteprofil: `compact_mbp_smc_ema_atr_clock_macro_entry_v1`, SHA
 2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125.
-MBP-1, SMC/struktur, EMA/ATR og nødvendig klokke/makro beholdes i kompaktprofilen;
-utvalgte candle/chart-/overlappende felt er parkert. Fullbiblioteket med åtte
-familier og niende D1/makrokontekst bevares. Ingen felt er erklært støy uten måling.
-Separate modeller/stacking og M30 krever kronologisk OOF-merverdi.
+MBP-1,SMC/struktur,EMA/ATR og nødvendig klokke/makro er aktive. Utvalgte
+candle/chart-/overlappende felt er parkert; fullbiblioteket og åtte familier
+pluss niende D1/makro bevares. Separate modeller/stacking/M30 krever
+kronologisk OOF-merverdi. Ingen felt er erklært støy uten måling.
 
-TRAIN [2024-05-01,2026-01-01), VAL [2026-01-01,2026-04-01), senere
-utviklingsdata [2026-04-01,2026-07-01). Alle26måneder er gjenbrukt utvikling;
-TEST fra juli er forseglet. `training_enabled=true` bare for den eksplisitt godkjente151-epoken; fullVAL/HPO/Exit/broker/
-live/paper/ordre/spending/promotion er stengt. De to practice-leseoppslagene er konsumert.
+TRAIN[2024-05-01,2026-01-01),VAL[2026-01-01,2026-04-01),senereutvikling
+[2026-04-01,2026-07-01). TEST fra juli er forseglet.
 
-## Siste native inputpåvirkningsmåling —144
+## Bestått — gjenbruk
 
-144 er COMPLETE/PASS, exit0,160,399sekunder.229kilder/policy ble bevart.
-Faktisk218forwards/13input-VJP/3445gyldige counterfactual-responser ble kjørt
-på115optimizer0ONLINE, tre genuine TRAIN-vitner og13uscorede kopier.
-480framtidige minutter, alle9outputnøkler og B16-bitparitet bestod.
-Vekter, normalisering, parametergrads, RNG, moduser og sessionfiler ble bevart;
-0optimizersteg/refits, ingen Exit/TEST eller ny epoke.
+- 147fresh/148nullstegsfullkurvebaseline/149state-RNG/full480gate kvalifiserer
+  den eksakte151starten; ingen108/117treningsvekter ble adoptert.
+- 055wholeTRAIN-inputnormalisering og111TRAIN-only lossRMS gjenbrukes.
+  Native kildekjede183roller har digest27952ad6e1e669cd59d80c763ad0980a619e53725c06bef36b62d8791121b735.
+- 121–126:1205aktiveGCverdier/femTF og faktiskM5-context kvalifisert.
+  TRAIN dekker1205/1205,VAL1181/1205;24felt er korrekt manglende iVAL.
+- 127/128/129/133:139aktivecorefelt perTF,695outputs numerisk kvalifisert.
+  Øvrige parkerte fullbibliotekfelt er utenfor den aktive kompaktkontrollen.
+- 134:66råMBP-filer/892100712records og sluttmaskjoin PASS; rådata ble
+  lest/parset én gang. Ikke gjenta denne råscannen.
+- 144:218forwards/13input-VJP/3445genuine inngrep bekrefter funksjonell
+  inputpåvirkning på tre TRAIN-vitner. Dette beviser ikke lært featureverdi/edge.
+- 146:29fokuserte full480observer-/validatorcases PASS. Kun observerfunksjoner
+  ble endret;117s Entry-only optimizer/paritet/resume-mekanikk er uendret.
+- 108 er historisk fullført epoke,ikke151adgang eller dagens læringsdom.
 
-Alle3445gyldige inngrep endret kandidatmarginen og alle fem komponentmaksima.
-Alle3407numeriske/alias-ruter hadde minstett observert currentvitne og
-ikke-null VJP i hver av13projeksjoner der observerte. Ingen observert rute var
-helt uten respons. Dette er funksjonell sensitivitet på tre vitner, ikke
-lært indikatornytte, Entry-kvalitet, generalisering eller edge. Finite deltaer
-er maksima over side/horisont, ikke bevis på at alle480punkter/begge sider endret seg.
-
-Én D1-session_change_flag er kildekonstant og ble korrekt ikke intervenert.
-Ti GC-H1-aliaser mangler observert historikk blant vitnene; de er ikke bevist
-inaktive.96snapshotruter har ingen historikkakse.786numeriske og2515alias-
-historieruter hadde ikke-null historikkmaksimum. Alle tre diagnosevalg er FLAT:
-begge predikerte sidekvaliteter er under analytisk FLAT0, med unikt argmax.
-LONGs beste prognosehorisont er480min, SHORTs1min på disse tre optimizer0-vitnene;
-ingen etterfølgende utfall eller vellykket avståelse er bevist av det.
-
-Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_DYNAMIC_COMPACT_INPUT_INFLUENCE_20261021_144`.
-- `NATIVE_INPUT_AUDIT_TERMINAL.json`: dd6e6bfebf99e96035244e44ffe821d876387e8042320682a40c88cd1adc91e4
-- `ACTUAL_REVIEW.json`:7665527f3944bb73fa07b2fae4a30b57564c45188af984f8cba016a9b92d6bff
-- `ACTUAL_PEER_REVIEW.json`:acaab9c0bc00ec665d178972ed3e3b6cb59af8a27c3813b0bbd62e5e3d02db6e
-- `ACTUAL_INFLUENCE_NUMERIC_REVIEW.json`:61dbac1477439406b681b8ddca11e80d41feb489c9d6664b8e547a7709d9b935
-Original34,37MB-resultat og alle bindinger er bevart.144 er konsumert/stengt.
-
-## Neste konkrete arbeid
-
-Brukeren har svart **«Ja, kjør trening»** på det konkrete150-forslaget.
-151 binder nøyaktig én TRAIN-RMS M5 Entry-epoke; faktisk nativejobb er ennå ikke startet.
-
-Fullkurvene er nå lagt til i eksisterende `_dynamic_m5_prefix_observations`
-og gjenkoblet av eksisterende `_require_dynamic_m5_observation`. Hver entry
-har fem1..480minuttkurver med egne masker, null bak uobserverte mål og separat
-base-/dagsprognose. Original target-storage-SHA og alle gamle aggregater består.
-Dette gir ingen ekstra finalforwards eller Exit-arbeid.
-
-146 er COMPLETE/PASS:29fokuserte syntetiske cases,51,255sekunder, CPU4G/512M,
-0nativeforwards/optimizersteg. Kilde/policy bevart. Hele faktiske trainclosure ble
-målt én gang:183/183roller, ingen tilkomne/fjernede. Tre innholdsendrede roller
-viser til to fysiske filer (observer og admission, wrapper er alias). Eksakt
-nådigest27952ad6e1e669cd59d80c763ad0980a619e53725c06bef36b62d8791121b735
-avviker fra115s5385ca4c7afdd8b1c779dfcd4406b26f004372faad05ba388c266466b48676b1.
-Ingen compatibility-exception er lagt til. 115 har dessuten ikke fullkurvesporene.
-Dette er kilde-/rapporteringskvalifisering, ikke ny faktisk baseline eller læring.
-
-Root: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146`.
-- `TERMINAL.json`:09ebe0b623e9e741039f838a9be317f88a4dc17c772c6d1031f050865d355fe5
-- `SOURCE_BINDING_COMPARISON.json`:bbf5d7ba1141beaf6bf9de941ec909226f56622525d26c38c833db3ff7b95371
-- `ACTUAL_REVIEW.json`:552452c26912c9f40ca06835950036dbb97c6204ea4fc7d22b19a41b183df10a
-- `ACTUAL_PEER_REVIEW.json`:5ac13d3b5ec76980a6b2f5935812558c1fbc2e1d2c48d94ee1672e7b16e4a900
-
-148 har nå fullført den nye nullstegs initialmålingen med dagens eksakte kilder
-og fulle TRAIN256-/CONTROL256-kurver. Gjenbruk ferdige inputs, targets,
-wholeTRAIN-normalisering og TRAIN-RMS; ikke les rå MBP på nytt. Den nye
-baseline-/campaignbindingen skal følge eksisterende eiere og kildekrav.
-147 er COMPLETE/PASS,120,032s: eksisterende CPUfresh-publisering, audit4G/512M,
-0forwards/updates/refits.230kilder/policy ble bevart, faktisk nåbundet183rolle-kjede.
-Planroot: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_FRESH_PREPARATION_20261021_147`.
-Den konstruerte ny utrent tilstand gjennom kanonisk eier;114 var template,
-ikke checkpoint-adopsjon eller relansering. ONLINE/target/EMA er alle
-9c4cf514cbfd5b6f9366f69065abcc0878ef274117e2b5c7e703656e86a79b4a.
-Initialstate-SHA940283e6132a0339a1d3dd165d74cbdd64527927f5fdb7f1bc95ffe1c32e7232.
-Nyeinitialization/measurementrefs står i147RESULT; kilde-/IO-review er
-`ACTUAL_FRESH_IO_REVIEW.json`, SHAd076bfad9ae574bd2471efd118095a4c49dcee914679567ce377144c4b47e92b.
-Målt canonicalproducer-IO:49.271.677.365rchar/45.800.828.928read_bytes over111,846s,
-kun worker+ventede barn, ikke maskintotal. Ferdige fysiske inputs ble verifisert;
-ingen rå MBP-rebuild eller refit. Uavhengig metadata-peer bestod:
-`ACTUAL_PEER_REVIEW.json`, SHAde93e8236bd344dda4cb5f789d8a9b21a6c9feb280f9d3a7acb94302b406dbc6.
-148 er nå terminal og konsumert: native guard/trainer/observer PASS/0/0,
-TRAIN256+CONTROL256,32Entry-forwards og0optimizersteg. Måling1780,868sekunder;
-komponentoppsett731,366sekunder er en egen rapporteringsrolle. Hele jobben
-stoppet som planlagt ved optimizer-ceiling0 (`RESUMABLE`); dette er ikke
-adgang til å fortsette eller en ferdigtrent modell. Windows-oppgaven er Disabled/Last0.
-FysiskBoot519 er bekreftet21.10T12:04:44.500Z. Alle183kildefiler og13bundne
-inputidentiteter samt policy/rules ble bevart gjennom kjøringen.
-Vaktens målte topper var55Ccore/62Cmemory/131,7Wdraw/738MiB, fysisk effektgrense160W.
-Første tidlige signerte etterboot-forespørsel timet ut før controlleren klargjorde
-nettbroen; originalfeilen er bevart. Senere signert35/42C/160W bestod.
-Root: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_20261021_148`.
-- `ACTUAL_NATIVE_INITIAL_TERMINAL_REVIEW.json`:170ff4311a895815d38e52b92fa3b5edce14b2789fb40ec4d540123211425a87
-- initial_measurement/RESULT.json:a392890405aa9d645f4ed00d8e27bb31282757284194fb1b7d62c3c8d1cbf412
-- native receipt:c249f781129e73322c74e19ffb2a189f703c74dc54124fa4c2de10c097504730
-- `REBOOT_CONFIRMED.json`:f8273cdea6e00319a6014ef79fc2c794ae2a185c971a7bcbc5642f980bf1978b
-- `WINDOWS_TASK_DISABLED.json`:1ead3da8687948a728bd010a15a7de5f181abcf28805e6f596b693a59d1282ab
-
-149 er COMPLETE/PASS,67,848sekunder totalt: CPUaudit4G/512M/900s med
-0modellkall/updates.147fresh og148initial0checkpoint er eksakt like for modell,
-target, optimizer, EMA, scheduler og sju lagrede CPU/Python/NumPy-RNG-felt.
-CUDA-RNG finnes i nativecheckpointet, men sammenlignes ikke mot CPUinitialiseringen.
-Eksisterende `require_chronological_learning_measurement` har faktisk bestått
-med dagens full480-validator for begge256-raderskohorter. Hele kurvene og egne
-masker er dermed kvalifisert innen denne kohorten, ikke hele TRAIN-populasjonen.
-Root: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_INITIAL_STATE_AUDIT_20261021_149`.
-- `TERMINAL.json`:aecce73f2c98924c96d360d7e2b8b1241c1c27dfbc0c215337bb1e662000cdd9
-- `INITIAL_MEASUREMENT_AUDIT.json`:b88aab0e0758d277b25a1d382060d8380e151d4cefa4bb631ef2494b61fcc573
-- `STATE_PRESERVATION_PROOF.json`:2b1f61eeec8fbb9f171fd8bd3c71f7196bf529a5c2a281c759bce92a72daafbf
-- `ACTUAL_AUDIT_PEER_REVIEW.json`:425eb8d1ec4db1d7aa9cfd7a0163155b12b897f1f8bc6a200d7b78620109c344
-117s modell/loss/optimizer/paritetsmekanikk er uendret; bare to observerfunksjoner
-i to filer er endret.149/UNCHANGED_LEARNING_MECHANICS_REVIEW.json,
-SHA659a93fe87ea756d0b9e78ef0a689c562df714b10503682efaf0b9bb0b3a5b45,
-kvalifiserer gjenbruk av det uendrede mekanikkomfanget. Ingen ny4-updateprobe.
-
-150 er konkret forslag til én ny111TRAIN-RMS-epoke, ikke en kjøreplan:
-118249TRAINrader én gang, batch16/slutt9,7391updates, maks12000s/13800s ytre,
-32faste final ONLINE-forwards på samme TRAIN256/CONTROL256 og fullkurver.
-Start147fresh med kvalifisert148/149baseline; ingen108/117treningsvekter.
-Root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_150`.
-PROPOSAL-SHAd65b07a4fa12d6b3812170f8fa81a3718a97e8871924348c76e403f2e4cc2cf8.
-Dette avløser145s foreldede reviewforslag. M5beslutninger; M1prisfasit1–480min,
-M1Exit først senere. Gjenbruk ferdige inputs/targets/055normalisering/111RMS;
-ingen råscan, refit, HPO, fullVAL, Exit, TEST eller broker.
-
-151 er godkjent av direkte brukersvar «Ja, kjør trening», bundet til150s
-konkrete forslag i `OPERATOR_APPROVAL.json` (SHA
-1742277b20e2a46cc57c27a6a0036e3f4978b724006397eeb53764644f15c46a).
-Ny runroot: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151`.
-Policy åpner bare én ny epoke:118249TRAINrader, batch16/slutt9,7391updates,
-én nativeinvokasjon maks12000s/13800s ytre. Ingen ekstraepoke/HPO/fullVAL/
-Exit/TEST/broker.147fresh/148baseline/149audit og ferdige inputs/055/111 gjenbrukes.
-Nativejobben er ikke startet. Neste steg er eksakt ny recipe/campaign gjennom
-kanoniske eiere og fersk signert maskinvare-/fysiskboot-kvalifisering.
-Fysisk160W-profil bevares. Kilde/policy fryses etter sealing gjennom terminal.
-Ingen konsumert plan relanseres; oppdaterte bevis eies av151 og policy.
-
-## Bestått — gjenbruk uten omkjøring
-
-- 121–125:alle1205aktiveGCverdier på publisertM1→femTF kvalifisert.
-126:1205verdier+1205masker bit-eksakt til faktiskM5-context,328119090celler.
-TRAIN dekker1205/1205; VAL1181/1205.24felt er korrekt manglende iVAL.
-- 127/128/129/133:alle139aktive corecachefelt perTF numerisk kvalifisert,
-695aktiveoutputs.133s790-outputindeks omfatter95parkerteoutputs fra eldre
-kvalifisering; fullbibliotekets øvrige parkertefelt er utenfor kompaktkontrollen.
-- 134:66råMBP-filer/892100712records og sluttmaskjoin er uavhengigPASS;
-20,039GBgzip/118,260GBCSV ble lest/parset én gang hver. Sluttjoin157felt/
-1139040rader/178829280celler bestod. Rådata skal ikke leses på nytt for dette.
-- 139/142:65aktuelle fokuserte sourcecases bestod;142s ytrejobb feilet kun på
-JUnit-telling161rapportunits mot65testnoder. Originaler bevares, ingen omkjøring.
-- 140/141/143:tre maskvitner dekker alle2525currentaliaser; ferdig rå inputpakke
-1.280.070byte, ekte96historierader og15lukkedeTF-vinduer;3445gyldige cases/én
-kildekonstant. Inputpakke/caseplan gjenbrukes, ingen ny råscan/rendering.
-- 055:wholeTRAIN-inputnormalisering.111:TRAIN-only loss-RMS i egen rolle;
-inputnormalisering ble ikke refittet av lossendringen.
-- 114fresh/115initial/116state-RNG/117Entry-only fire private updates og fire
-paritetsforwards med eksaktresume er bestått.117vekter er ikke maintrain-start.
-- 108:den ene bestilte hele epoken er FULLFØRT,118249rader/7391updates/
-6090,176s. Alle seks pooledTRAINfeil falt, men1minuttfeil ble dårligere på
-begge diagnoser; på512M5-proberader toppet begge sidekandidater ved1minutt.
-Diagnostiske valg116SHORT/396FLAT/0LONG. Delvis læring,
-ikke kvalifisert Entry-kvalitet.111RMS-endringens læringsnytte er ubevist.
-
-## Maskinvare og resterende grenser
-
-144 brukte eksisterende CUDA-producer20G/512M, én numerisk tråd,CPU0–7,
-64tasks og samme signerte bridge/vakter:65Ccore/80Cmemory/160Wgrense/
-170Wdraw/12288MiB. Førlaunch ble vedvarende keeper satt300→160W med
-eksisterende installer uten nedlasting; bare power_limit_w i konfig endret seg.
-Signert førclaim:33C/40C/160W, guard viste trygg oppstart; dette er ingen påstand
-om målte peaktemperaturer. Profiletterkontroll og originalconfig/logg er bevart.
-Fysisk18.10-omstart er bekreftet, nyeste boot21.10T12:04:44.500Z. Ikke gjenta
-eldre omstartsbestilling. Fremtidig nativejobb følger egne faktiske hardwareporter.
-
-Aktivt mål er ufullført: beslutningssporbarhet etter læring og TRAIN-RMS-læring,
-LONG/SHORT/FLAT-kvalitet/dekning for valgte og avståtte, generalisering og
-økonomisk edge gjenstår hver for seg. Ingen observasjon eller tekniskPASS
-åpner TEST, handel eller ny trening. Originaldata/kvitteringer/checkpoints
-bevares; opprydding går bare via retention-eieren.
+Aktivt mål er ikke ferdig: beslutningssporbarhet etter læring og
+LONG/SHORT/FLAT-kvalitet/dekning, generalisering og økonomisk edge gjenstår
+hver for seg. Originaldata,kvitteringer og checkpoints bevares; DATA/RUNS
+ryddes bare via retention-eieren. Tidligere status finnes i Git og originale kvitteringer.
