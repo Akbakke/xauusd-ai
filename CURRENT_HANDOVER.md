@@ -16,8 +16,11 @@ faktisk horisontavhengig retning, separat retning/størrelse/MAE/MFE/kost/deknin
 og én målt begrunnet forbedring om gangen på sammenlignbare data og budsjetter.
 Målet og ferdigkriteriene står i policyens
 `current_work.autonomous_direction_qualification_goal_20261021`.
-Start med154-beviset og et presist nullstegs TRAIN-vitne.155 er bundet
-til én8GCPU/900s input-/målpakke for første16 fryste TRAIN256-rader.
+Start med154-beviset og et presist nullstegs TRAIN-vitne.155 stoppet før
+payloadlesing: CPU-vakten setter ikke CUDA_VISIBLE_DEVICES, mens arbeideren
+krever tom streng.155 er consumed og originalene bevart.157 binder samme
+én8GCPU/900s pakke for første16 fryste TRAIN256-rader, med eksplisitt tom
+CUDA-synlighet; arbeiderens eneste endring er ny ROOT-identitet.
 153fokuserte kilde-/gradient-/CLI-kontroller er bestått; native183kilder er
 byteuendret.156s nye leseadapter er implementert, men ingen modellobservasjon
 er ennå innrømmet eller utført. Gjenbruk beståtte

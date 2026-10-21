@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T19:32:40.500862+00:00",
-  "status": "155_PREPARED_GOAL_ACTIVE_FIXED_TRAIN_WITNESS",
+  "observed_utc": "2026-10-21T19:41:07.016972+00:00",
+  "status": "157_PREPARED_CPU_ENV_CORRECTED_FIXED_TRAIN_WITNESS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "151 consumed exactly the explicitly approved additional TRAIN-RMS M5 Entry epoch:118249 unique TRAIN rows/7391updates/last9 and32 fixed final ONLINE forwards. Native guard/trainer/observer PASS/0/0; windows task Disabled. No additional epoch or relaunch authority. Paired learning and Entry-quality review remains separate.",
-  "next_action": "Execute exactly one1558GCPU/900s preparation of first16frozenTRAIN256 inputs and saved151targets/references; no model, PT, provider or rawM1/MBP reads. Then admit only the exact one-forward/22-reverse zero-update156witness after input/source/state/hardware gates. Direction qualification goal remains active; no improvement/model/loss change selected.",
+  "next_action": "Execute exactly one1578GCPU/900s fixedTRAIN16 preparation with explicit empty CUDA visibility.155failed before payload reads and is consumed; no relaunch. Then gate one156forward/22reverse zero-update witness; no training correction selected.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -104,7 +104,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "155_FIXED_TRAIN16_INPUT_TARGET_PREPARATION",
+    "current_activity": "157_FIXED_TRAIN16_PREPARATION_CPU_ENV_CORRECTED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -17048,7 +17048,7 @@
       "new_model_observation_admitted": false,
       "new_training_admitted": false,
       "new_model_or_loss_correction_selected": false,
-      "latest_evidence_stage": "dynamic_m5_direction_horizon_diagnosis_154"
+      "latest_evidence_stage": "155_CPU_ENV_PREFLIGHT_FAILED_CONSUMED_157_PREPARED"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19613,7 +19613,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T19:32:40.500862+00:00",
+  "updated_utc": "2026-10-21T19:41:07.016972+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -22097,7 +22097,7 @@
     }
   },
   "dynamic_m5_direction_witness_preparation_155": {
-    "status": "PREPARED_ONE_CAPPED_CPU_FIXED_TRAIN16_PACKET",
+    "status": "FAILED_PREFLIGHT_CPU_ENV_CONSUMED_NO_PAYLOAD_READS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_155/PLAN.json",
       "sha256": "70b6dd802e292213940bbc1bc1e966d7ec51502f5463c95df733aaf3536d1e99"
@@ -22107,6 +22107,55 @@
       "sha256": "6dc21755fd66973635c64e632d073d8ba4fd2d6918afee5389df10947e7692a1"
     },
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_155",
+    "execution_authorized": false,
+    "planned_invocations": 1,
+    "completed_invocations": 1,
+    "claimed_invocations": 1,
+    "relaunch_allowed": false,
+    "max_wall_seconds": 900,
+    "class": "producer",
+    "memory_bytes": 8589934592,
+    "swap_bytes": 536870912,
+    "model_forwards_admitted": 0,
+    "optimizer_updates_admitted": 0,
+    "preexecution_source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_155/PREEXECUTION_SOURCE_PEER_REVIEW.json",
+      "sha256": "0275d7d281cbb06431abb85324797b491ba93761a98bec4b7c0cbaa0962017c0"
+    },
+    "native_closure_reuse": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GRADIENT_WITNESS_20261021_156/NATIVE_SOURCE_CLOSURE_REUSE.json",
+      "sha256": "1d6a0ccfdde6d24dbe823eb7e7065e849940a14c24f6b51f70c6ab26feb4008b"
+    },
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "normalization_fit_enabled": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_155/CONTROLLER_TERMINAL.json",
+      "sha256": "42fea56a8acc532bc5191e30cb14d93e198a93b6b15f5fce5db10b1482477bb7"
+    },
+    "failure_log": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_155/PREPARATION.log",
+      "sha256": "ec0d0b615f8c938f5d2d08fe1959869d935ef51ee20bf41c74ba281b06a04293"
+    },
+    "worker_claim_created": false,
+    "worker_terminal_created": false
+  },
+  "dynamic_m5_direction_witness_preparation_157": {
+    "status": "PREPARED_ONE_CAPPED_CPU_FIXED_TRAIN16_PACKET",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/PLAN.json",
+      "sha256": "1e65eb90c7f1415a13b36be1b478acbd3700b9fb04868d810084dbc8da1b76c3"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/prepare_train_witness.py",
+      "sha256": "97b5ecda7b3a8a1fedfb70778a9a47aedc13cdc7f50b0975e4d5245b817d363b"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157",
     "execution_authorized": true,
     "planned_invocations": 1,
     "completed_invocations": 0,
@@ -22133,6 +22182,13 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "preflight_correction_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_WITNESS_PREPARATION_20261021_157/PREFLIGHT_CORRECTION_REVIEW.json",
+      "sha256": "26a437eaba1cfa02fc39a59e5013360517a4d6b7289240ce669463d85ee15183"
+    },
+    "explicit_cpu_launch_environment": {
+      "CUDA_VISIBLE_DEVICES": ""
+    }
   }
 }
