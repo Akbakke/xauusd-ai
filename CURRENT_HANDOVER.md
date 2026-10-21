@@ -27,48 +27,55 @@ TEST fra juli er forseglet. training_enabled=false; ingen ekstraepoke/HPO/
 fullVAL er åpnet. Ingen broker/live/paper/ordre/spending/promotion.
 De to godkjente practice-leseoppslagene er konsumert.
 
-## Gjeldende hindring og neste steg
+## Gjeldende resultat og neste steg
 
-133 er en fersk engangsplan for alle94gjenstående aktive cachefelt/TF,
-470outputs. Samme12genuine sourcekolonner/full2009prefix,28filer/1739102302B
-SHA én gang og94av253cachekolonner. Fire eierblokker: swing20,local27,
-level33,cross14. MatematiskeERROR_SPEC er identisk med130 unntatt designref;
-132s rettede/kvalifiserte formler og alle tidligere320outputs gjenbrukes.
-Ingen bound-/toleranse-/feature-/produksjons-/normaliserings-/modellendring.
+133 er COMPLETE:470nye aktive cacheoutputs,94perTF, bestod fullhistorisk
+uavhengig sammenligning på1326,730s/exit0.220kilder/policy og182native-
+produksjonsfiler ble bevart.185diskrete outputs/60937483celler er eksakte;
+285kontinuerlige outputs/93876663celler ligger innen forhåndslåste cellevise
+F64/F32-grenser. Dette er ingen global bitidentitetspåstand.
+Alle154814146cacheceller er finite,0NaN.469outputs varierer;D1session_change_flag
+er målt konstant0 på4147rader. Egne warmup-/manglende-domener støttes av
+håndtestene; denne trimmede cachen gir ingen fysiskNaN-vitne.
 
-Kilden har kun ny133plan-ID/policykey, valgfri progress_dir og én liten
-fremdriftseier. SharedSTARTED/PREPARED og4ownerSTARTED/COMPARED perTF lagres
-som fsyncete atomiske immutable bunter under eksisterende staging.
-Alle delresultater er eksplisitt pendingfinalguards, aldri samletPASS.
-121øvrigehelpers og eksisterende testprefix er uendret. Agentkildepeer bestod.
-Fem fokuserte kildecaser bestod på3,839s/exit0: lifecycle, tvungen localfeil,
-immutable duplicate, no-progress-kompatibilitet og mutualexclusiveguard.
-220kilder/policy er bevart;132numerikken gjenbrukes uten ny fullsuite.
-Én fysisk133kontroll er nå claimet:1800s/4G/512M, fryst kilde/policy til
-faktisk terminal, sparsom observasjon15–30min. STARTED/delresultater er aldri
-fullPASS. Ingen rawMBPscan, modellrunde, normaliseringsfit eller nyepoke.
+Fire eierblokker/TF ble sammenlignet og frigitt sekvensielt: swing20,local27,
+level33,cross14.50atomiske immutable fremdriftsbunter matcher sluttresultatet;
+alle lokale pendingflags er bevart, og sluttvakter/moduleterminal gir samletPASS.
+12genuineOHLCV/q6kolonner,full2009prefix/1215514nativeM5rader,28filer med
+1739102302B SHA én gang,94av253cachekolonner. Ingen råMBP/sekvens/PT/modell-
+payload, fit eller nyepoke.619256584logiske featurebyte er ikke målt disk-I/O.
+133ACTUAL_NUMERIC_REVIEW.json SHAdfe6d9047367b779cf37f89711532be34b37ca95c112c9902001d011068406e9.
+133TERMINAL.json SHAbc200474849469addaff51fc7d8c94b27873b603f618186872e787607c1d2ecc.
 Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133`.
 
-130timeout1800s og131partialprofile/crosswarmupfeil er konsumert/bevart.
-132 rettet bare auditens warmupmaske og vektoriserte AVWAPoutput etter
-uendret anker/Fraction/M2replay.33hovedcaser+96subchecks bestod på19,526s;
-220kilder/policy og182nativeproduksjonsfiler bevart. På12000ekteM5rader var
-12AVWAPverdier+12radier/143388finiteceller hver bit-identiske. Ett gammeltkall
-12,920s/nytt1,743s er prefiksmåling, ingen fullhistorisk/modelldrevet fartspåstand.
-Cross13warmup bevares og5TF-regresjoner bestod. Alle10extrema var maskert på
-det korte realprefikset; ingen finitt fullhistorisk470kvalifisering følger.
-132/SOURCE_REVIEW.json SHAfe274e2c6c8109ffeafb6383db9794430064329601209874e0003400a0f57b88.
-Ingen130/131/132plan relanseres. Ingen ny treningskampanje/fullVAL/Exit er åpnet.
+133QUALIFIED_MTF_NUMERIC_INDEX.json erstatter129indeksen:127+128+129+133
+nøyaktig disjunkt,790outputs/158perTF,695kompaktaktive+95parkerte,
+260219522finiteceller. Alle139aktivecachefelt/TF er nå numerisk kvalifisert.
+SHAf5022afbdcde059440a327d8ea2b9b06cb5bc07a077b482b45b61302232a292f.
+95parkertefelt/TF er fortsatt utenfor tallkvalifiseringen. Dette er utganger
+på flere tidsrammer, ikke790uavhengige indikatorer eller bevist modellnytte.
+Ingen133relansering;130/131/132originaler og konsumerte planer bevares.
+
+Neste avgrensning134 er råMBP→M1: tidligere024kontroll bruker produksjonseiere
+og beviser replayparitet, ikke en uavhengig råfasit. Én planlagt fellespassering
+av66filer med alle20CSVfelt inkludert symbol skal dekke kvalitet/admission,
+trustedT/grid/størrelsesmomenter,BBO/tidsvekting/ordercounts og event/klokke.
+Perfilpartials må bindes til råSHA/kilde/state/sluttresultat og kunne gjenbrukes.
+001/024cacher kan bevise delkoblinger, men erstatter ikke rårecordreferansen.
+134SOURCE_SCOPE_DRAFT.json og66filinventaret er publisert som kun design.
+Råpayload er ikke åpnet/hashet; eksisterende filstat/66småkvitteringer er kontrollert.
+Faktisk EOF/råSHA og uavhengige formler/bounds må kvalifiseres før én ny jobb.
+Ingen ny råpayloadjobb eller trening er åpnet.
+121–126 og133skal gjenbrukes, ikke kjøres om. Individuelt modellkonsum og
+Entry-kvalitet/dekning/beslutningssporbarhet har fortsatt egne åpne krav.
+Ingen jobb kjører ved denne overleveringen.
 
 ## Bestått — gjenbruk uten omkjøring
 
-129/QUALIFIED_MTF_NUMERIC_INDEX.json er gjeldende:127+128+129 disjunkt,
-320outputs/64perTF,225aktive+95parkerte,105405376finiteceller.
-SHA8d2369460e368d9c5efa53419b3616b40aa27de30b08597bdeb714c3bd2de24b.
-127:115tekniske outputs,128:85trend/state/kryss/alder,129:120SMC/geometri.
-Diskrete felt er eksakte; kontinuerlige bruker forhåndslåste analytiske
-avrundingsgrenser. Full2009prefix, egne masker og faktisk TF-klokke er bevart.
-Resten er94aktive+95parkerte felt/TF;130 gir ingen utvidelse av indeksen.
+133indeksen ovenfor er gjeldende.127115tekniske+12885trend/state/kryss+
+129120SMC/geometri+133470gjenståendeaktive bevares uten omkjøring.
+132s AVWAP-/warmuprettelser og133s fem progresslivssykluscaser er bestått;
+modell/normalisering/baseline er uendret og krever ingen omkjøring av auditkoden.
 
 121–125 kvalifiserer alle1205aktive GCverdier på publisert M1→TF-lag.
 126 kvalifiserer1205verdier+1205masker bit-eksakt mot faktisk bruktM5-context:
@@ -89,8 +96,7 @@ Ingen ny baseline/modellrunde kreves av uendret produksjon og ren auditkode.
 
 ## Åpent før ferdigmelding
 
-Lokaliser og rett målt auditkost, fullfør manglende numeriske kjeder og
-råMBP→M1-grensen uten ny unødvendig TB-lesing. Kontroller individuell faktisk
+Fullfør råMBP→M1-grensen uten ny unødvendig fullscan. Kontroller individuell faktisk
 modellbruk og beslutningssporbarhet. Kvalifiser LONG/SHORT/FLAT, valgte og
 avståtte entries, kvalitet/dekning og senere generalisering hver for seg.
 Ingen ny treningskampanje er åpnet. Data-PASS, mekanikk, læring, generalisering

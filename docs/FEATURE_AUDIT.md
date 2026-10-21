@@ -579,23 +579,27 @@ ACTUAL_NUMERIC_REVIEW.json i129 SHA197f28c8f5a536dde1ac6ad0497e4ac398a7685ace803
 95parkerte. Rest189perTF=94aktive+95parkerte; ingen individuell lært nytte,
 Entry-kvalitet/generaliserings-/økonomi- eller råMBP→M1-påstand følger.
 
-130 dekker94gjenstående kompaktaktive cachefelt/TF:20swing,27local/scalar,
-33level og14crossTF. Delte127/129primitiver og sekvensielle eierblokker bevares.
-Tre smale kilde-/matematikkpeerreviews og66håndcaser bestod. Den ene fysiske
-470outputkontrollen traff1800s-grensen/exit124 uten modulresultat eller
-persistente eiermålinger. Ingen nye felt er kvalifisert;129indeksen på320
-outputs er gjeldende. Originalkvitteringer/staging bevares,130 er konsumert.
-Ingen formelfeil eller lokalisert ytelsesårsak er bevist av tidsavbruddet.
-131 lokaliserte en cross-auditmaskeringsfeil: ekteATRwarmupNaN traff streng
-boundmultiplikasjon førmasken. Ingen produksjons-/prisoverflow ble bevist.
-132 retter bare crossmasken og vektoriserer output-onlyAVWAP etter identisk
-kausal Fraction/M2replay;121andrehelpers og182nativeproduksjonsfiler uendret.
-33hovedcaser+96subchecks bestod ién19,526s cappedjobb. På samme12000ekteM5-
-rader er12AVWAPverdier+12radier/143388finiteceller hver bitidentiske, egne
-NaNmasker bevares. Ett uprofilert gammeltkall12,920s og nytt1,743s er kun
-prefiksmåling, ingen fullhistorisk/modelldrevet hastighetsgevinstpåstand.
-Cross13warmup bevares;4pivoter harfiniteverdier,10extrema manglerfulltD1vindu
-på realprefikset og er fortsatt maskert.5TF-håndregresjoner bestod.
-Ingen nye fullhistoriske470outputs kvalifiseres av132;129s320indeks består.
-Neste fullhistoriske cachekontroll trenger ny eksakt plan og eierprogress.
-Se CURRENT_HANDOVER.md/NEXT_RUN_POLICY.json for bindinger og faktisk status.
+133 har nå kvalifisert alle94gjenstående aktivecachefelt/TF:20swing,
+27local/scalar,33level,14crossTF.132s målte warmuprettelse/AVWAPoutput-
+vektorisering og133s atomiske per-eierprogress gjenbruker alle matematiske
+ERROR_SPEC. Fysisk133tok1326,730s/exit0,220kilder/policy og182native-
+produksjonsfiler bevart.185diskrete outputs/60937483celler er eksakte;
+285kontinuerlige/93876663celler bestod låste analytiske F64/F32grenser.
+469av470varierer;D1session_change_flag er korrektkonstant0.0fysiskeNaN-
+cachevitner: egne warmup-/manglendemasker har fokusertehåndtestbevis.
+50immutableprogressbunter matcher fullført sluttresultat og sluttvakter.
+
+133indeksen binder127+128+129+133disjunkt:790outputs/695aktive+95parkerte,
+260219522finiteceller. Alle139aktivecachefelt/TF er numerisk kvalifisert;
+95parkertefelt/TF er fortsattutenfor kvalifiseringen. Utganger påflereTF er
+ikke uavhengigeindikatorer eller individuellelærenyttebevis. Tidligere320-
+outputflater ble ikke kjørt om; modell/normalisering/baseline er uendret.
+
+134SOURCE_SCOPE_DRAFT binder neste råMBP→M1-grense: én planlagt felles
+66filpassering med20CSVfeltinklusive symbol. UInt64tider/int64nanopriser,
+ekteF_LAST-/T-/incident-/rollregler og fire uavhengige reduksjonsgrupper.
+001/024cacher kan vise delkoblinger, ikke erstatte rårecordfasit. Perfildel-
+kvitteringer skal gjøre verifiserte delresultater gjenbrukbare. Det er kun
+design/inventar: ingen råpayload er åpnet, ingen scan/fit/trening er åpnet.
+Modellbruk og Entry-kvalitet/dekning/sporbarhet/generaliserings-/edgebevis er
+fortsatt åpne. CURRENT_HANDOVER/NEXT_RUN_POLICY eier faktisk status og bindinger.
