@@ -444,6 +444,12 @@ beviser derfor ikke bedre kandidatvalg. Et maksimum ved1minutt endrer ikke
 M5-kadensen og begrunner ikke alene en ny horisontgrense eller handelsregel.
 Vurder terminal og pre-MFE-MAE hver for seg, deretter forskjellen på felles
 observerte celler. De separate maskene må ikke gjøres til framtidsinputs.
+For feildekomponering brukes samme frosne FINAL-radgrupper og prognosevalgte
+horisonter for initial/slutt: `eD=e_terminal-e_MAE` og
+`SSE(eD)=SSE(e_terminal)+SSE(e_MAE)-2*sum(e_terminal*e_MAE)` på fellesmasken.
+Native F32-subtraksjonsavrunding rapporteres separat fra F64-komponentmomentene;
+ingen gjettet epsilon avgjør matematisk PASS. Eksisterende enkeltkomponent-MSE
+med ulike masker kan ikke erstatte disse felles momentene.
 
 Forecast-headen har fire skalarer for1/5/12/24 etterfølgende M5-barer, deretter
 seks dagstøttekoordinater: LONG/SHORT ved1/5/20 observerte handelsdager.

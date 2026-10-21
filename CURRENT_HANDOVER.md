@@ -52,9 +52,13 @@ Root: `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_15
 Etterrapportens opprinnelige8/2 forecastdeling er feil; korreksjonen eier4M5-
 basekoordinater/6dagstøttekoordinater og gruppemidlene. Alle10koordinatfeil,
 samlede forecast-tall og Entry-resultater er uendret. Originalbevis bevares.
-Neste arbeid: skill terminal-/preMAE-feil og deres differanse på felles observerte
-celler i allerede lagret152før en konkret mål-/beslutningsrettelse velges.
-Ingen ny score, terskel eller horisontgrense er vedtatt; ingen ny trening er åpnet.
+153 er klar for én CPUaudit4G/512M/maks900s av de fire lagrede148-/151-kurvene.
+152 har ikke felles feil-/kryssmomenter;153måler terminal-/preMAE-feil og deres
+differanse på felles observerte celler, med samme faste FINAL-radgrupper før/etter.
+Egne masker, F32-scoreavrunding, alle480horisonter og valgte/avståtte beholdes.
+Samme-horisont terminal-LONG/SHORT-fortegn kontrolleres fra samme lesing.
+Ingen nye forwards, datasettprojeksjoner, fit, score, terskel eller horisontgrense;
+ingen ny trening. PLAN/policy eier faktisk153adgang; ingen konsumerte planer relanseres.
 
 Læring, Entry-kvalitet/dekning, generalisering og økonomisk edge vurderes
 hver for seg. Alle26måneder er gjenbrukt utvikling, også CONTROL/VAL.

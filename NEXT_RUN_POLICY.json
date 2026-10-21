@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T17:29:58.955086+00:00",
-  "status": "152_COMPLETE_COMPONENT_LEARNING_MIXED_ENTRY_NOT_QUALIFIED",
+  "observed_utc": "2026-10-21T18:05:43.655446+00:00",
+  "status": "153_READY_CAPPED_CPU_JOINT_ERROR_REVIEW",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "151 consumed exactly the explicitly approved additional TRAIN-RMS M5 Entry epoch:118249 unique TRAIN rows/7391updates/last9 and32 fixed final ONLINE forwards. Native guard/trainer/observer PASS/0/0; windows task Disabled. No additional epoch or relaunch authority. Paired learning and Entry-quality review remains separate.",
-  "next_action": "Review already stored152terminal/pre-MFE-MAE component errors and their difference on common observed cells; resolve the measured short-horizon/selection gap before choosing any explicit objective/decision-contract correction. No new score, threshold, horizon floor, native job or additional epoch is admitted.",
+  "next_action": "Run exactly one capped CPU153audit of four existing148/151saved curve files. Decompose terminal/pre-MFE-MAE error on common observed cells, use fixed FINAL-selected/abstained groups for both phases, retain native F32 roundoff and same-horizon two-side terminal-sign counts. No model, dataset projection, fit, new score, native job or additional epoch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "152_COMPLETE_PAIRED_REVIEW_NEXT_COMPONENT_DECISION_GAP",
+    "current_activity": "153_READY_SAVED_CURVE_JOINT_ERROR_REVIEW",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -118,7 +118,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "152_CAPPED_CPU_PAIRED_FULL480_SAVED_OBSERVATION_REVIEW",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/TERMINAL.json",
       "sha256": "d6d3a8f99c0e73f4f10c4515e8e19934e60d224f9847801db3667a569fd5d47b"
@@ -141,7 +141,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No runtime blocker. Component learning is mixed and Entry quality is not qualified: all predicted side maxima remain at1min and short-horizon terminal error worsened in both fixed probes. Existing diagnostic candidate is terminal minus pre-MFE-MAE; no direct action/ranking loss. Identify the measured component-selection gap from saved152evidence before an explicit design correction or new training proposal.",
+    "current_blocker": "No runtime blocker. Existing152metadata lacks joint error cross-moments, so153must measure the observed short-horizon/selection gap from saved curves. No implementation/routing error is proven; no model or training change has been chosen.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -15741,7 +15741,7 @@
         },
         "postboot_observation": "existing signed nonce-bound GPU bridgePASS; safety ownersRunning, stale autolaunchDisabled; observed300W isnotcanonical-default160W CUDAadmission; CPUtemperatureunavailable"
       },
-      "next_action": "Review already stored152terminal/pre-MFE-MAE component errors and their difference on common observed cells; resolve the measured short-horizon/selection gap before choosing any explicit objective/decision-contract correction. No new score, threshold, horizon floor, native job or additional epoch is admitted.",
+      "next_action": "Run exactly one capped CPU153audit of four existing148/151saved curve files. Decompose terminal/pre-MFE-MAE error on common observed cells, use fixed FINAL-selected/abstained groups for both phases, retain native F32 roundoff and same-horizon two-side terminal-sign counts. No model, dataset projection, fit, new score, native job or additional epoch.",
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 2,
       "full_native_epoch_request_fulfilled": true,
@@ -19555,7 +19555,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T17:29:58.955086+00:00",
+  "updated_utc": "2026-10-21T18:05:43.655446+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -21886,6 +21886,43 @@
         15
       ],
       "entry_quality_generalization_economic_edge_qualified": false
+    }
+  },
+  "dynamic_m5_joint_component_error_review_153": {
+    "status": "READY_ONE_CAPPED_CPU_SAVED_CURVE_JOINT_ERROR_REVIEW",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153/PLAN.json",
+      "sha256": "6a24783812ecb6db22c58b7538ca5da9caa6fd979fc223813c714ee368550b30"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153",
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153/joint_component_error_review.py",
+      "sha256": "d13f992333c384307d5bb82770dae81b01d6767bfe5e0a77c0b0262e1ac684ee"
+    },
+    "execution_authorized": true,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "max_wall_seconds": 900,
+    "memory_bytes": 4294967296,
+    "swap_bytes": 536870912,
+    "curve_JSON_reads": 4,
+    "pointer_projections": 0,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "normalization_fit_enabled": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "new_score_threshold_or_horizon_floor": false,
+    "preexecution_source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_JOINT_COMPONENT_ERROR_REVIEW_20261021_153/PREEXECUTION_SOURCE_PEER_REVIEW.json",
+      "sha256": "e2d365ba7108b006dbf2c6edaa8a45dd056bb24660f5d3b0a727f0479b7b4e1b"
     }
   }
 }
