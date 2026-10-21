@@ -46,8 +46,10 @@ kontrolleres én gang hver, aldri perbatch. Alle13parquetfootere sjekkes førpay
 Kode/tester er ferdige, AST og uavhengig kildepeer bestod. Tidligere helpers/
 tester er uendret. Ny GC-footer bruker barstart<TESTgrensen, slik at genuin
 siste partialH4/D1 med senere tilgjengelighet bevares uten å konsumeres for tidlig.
-Én capped fokusert kildekvalifisering er åpnet; faktiskPASS gjenstår. Ingen
-fysisk126kontroll eller ny modelljobb er startet. Trening og alle tidligere
+Faktisk225fokuserte kildecaser bestod på6,888s/exit0,0fail/error/skip og211
+kilder/policy bevart. SOURCE_REVIEW.json binder XML og faktisk terminal.
+Én fysisk126kontroll er nå claimet etter dettePASS-et; sammenligningen er
+ennå ukvalifisert. Ingen ny modelljobb er startet. Trening og alle tidligere
 lukkede vakter er fortsatt stengt.
 
 ## Ferdig — alle1205 GC-tallreferanser på M1→TF-laget

@@ -495,6 +495,16 @@ Råevent→M1, uavhengig TF→lagret M5-beslutningsprojeksjon og individuell mod
 har fortsatt egne ubeviste lag.051rekonstruksjon og055normalisering gjenbrukes;
 ingen ny sekvens-/PT-/råTB-lesing eller baseline er åpnet av dette PASS-et.
 
+126supplerer dette med uavhengig GC TF→lagret M5-context-reference under
+kvalifisering.225kildecaser bestod på6,888s;182native117filer er uendret.
+Fysisk1205verdi-/1205maskekontroll er claimet, ennå ikkePASS. Den måler eksakt
+TRAIN+VAL96historikk-radunion fra tidskolonner, bruker beslutning=barstart+300s
+og selvstendig latestavailable/ownvalid/sourceclock/alder/f32.050s2410faktiske
+signal/contexthashpar og051s bit-identiske sekvens/snapshot gjenbrukes;
+ingen ny sekvens-/signal-/PT-payload, modell eller normaliseringsfit.
+GC-footerTESTbarrieren bruker barstart; siste partialH4/D1med senereavailable
+bevares og kan først velges når faktiskavailable<=beslutning.
+
 Teknisk rapport beskriver WilderATR/RSI/ADX-seeding, EMA/SMA-seed og slope-lag,
 stack/stateage, quote-volumeVWAP, BBpopulationddof0, enheter og første gyldige
 rad perTF. Gyldige nullverdier skilles fra udefinerte normaliserte kvotienter.
