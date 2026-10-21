@@ -32,7 +32,7 @@ utviklingsdata [2026-04-01,2026-07-01). Alle26måneder er gjenbrukt utvikling;
 TEST fra juli er forseglet. `training_enabled=false`, fullVAL/HPO/Exit/broker/
 live/paper/ordre/spending/promotion er stengt. De to practice-leseoppslagene er konsumert.
 
-## Siste faktiske resultat —144
+## Siste native inputpåvirkningsmåling —144
 
 144 er COMPLETE/PASS, exit0,160,399sekunder.229kilder/policy ble bevart.
 Faktisk218forwards/13input-VJP/3445gyldige counterfactual-responser ble kjørt
@@ -73,17 +73,31 @@ Original34,37MB-resultat og alle bindinger er bevart.144 er konsumert/stengt.
 `/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_EPOCH_PROPOSAL_20261021_145`.
 Alle execution-/training-porter er false; ingen fit/campaign følger av forslaget.
 
-Målt diagnosegap: eksisterende `_dynamic_m5_prefix_observations` har480
-prediksjoner/targets/masker i RAM, men lagrer bare koordinataggregater og hver
-sides modellvalgte horisont. De allerede materialiserte fulle
-per-entry-kurvene og egne masker er lagt til i samme finalobserver, uten ekstra forwards.
-Fullkurve-serialisering og streng gjenkobling er nå implementert i eksisterende
-observer/validator;146 skal kjøre29syntetiske cases og måle faktisk trainclosure
-én gang. Ingen faktisk fullkurve-baseline er målt ennå.
-115 er faktisk paret aggregate/selected-horizon-baseline, ikke full480×512-baseline.
-En endring må få eksakt korrekt kilde-/baselinebinding. Hele ferske trainclosure
-mot115 er ennå ikke målt; ingen mismatch er påstått og ingen gate omgås.
-Nye fullkurve-baselinespor er ny etterspurt evidens, ikke relansering av115.
+Fullkurvene er nå lagt til i eksisterende `_dynamic_m5_prefix_observations`
+og gjenkoblet av eksisterende `_require_dynamic_m5_observation`. Hver entry
+har fem1..480minuttkurver med egne masker, null bak uobserverte mål og separat
+base-/dagsprognose. Original target-storage-SHA og alle gamle aggregater består.
+Dette gir ingen ekstra finalforwards eller Exit-arbeid.
+
+146 er COMPLETE/PASS:29fokuserte syntetiske cases,51,255sekunder, CPU4G/512M,
+0nativeforwards/optimizersteg. Kilde/policy bevart. Hele faktiske trainclosure ble
+målt én gang:183/183roller, ingen tilkomne/fjernede. Tre innholdsendrede roller
+viser til to fysiske filer (observer og admission, wrapper er alias). Eksakt
+nådigest27952ad6e1e669cd59d80c763ad0980a619e53725c06bef36b62d8791121b735
+avviker fra115s5385ca4c7afdd8b1c779dfcd4406b26f004372faad05ba388c266466b48676b1.
+Ingen compatibility-exception er lagt til. 115 har dessuten ikke fullkurvesporene.
+Dette er kilde-/rapporteringskvalifisering, ikke ny faktisk baseline eller læring.
+
+Root: `/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146`.
+- `TERMINAL.json`:09ebe0b623e9e741039f838a9be317f88a4dc17c772c6d1031f050865d355fe5
+- `SOURCE_BINDING_COMPARISON.json`:bbf5d7ba1141beaf6bf9de941ec909226f56622525d26c38c833db3ff7b95371
+- `ACTUAL_REVIEW.json`:552452c26912c9f40ca06835950036dbb97c6204ea4fc7d22b19a41b183df10a
+- `ACTUAL_PEER_REVIEW.json`:5ac13d3b5ec76980a6b2f5935812558c1fbc2e1d2c48d94ee1672e7b16e4a900
+
+Neste steg er en genuint ny nullstegs initialmåling med dagens eksakte kilder
+og fulle TRAIN256-/CONTROL256-kurver. Gjenbruk ferdige inputs, targets,
+wholeTRAIN-normalisering og TRAIN-RMS; ikke les rå MBP på nytt. Den nye
+baseline-/campaignbindingen skal følge eksisterende eiere og kildekrav.
 Deretter kreves ny eksplisitt beslutning om ekstra epoke og eksakt campaign/
 maskinvareadmission. Gjør dette konkrete arbeidet før treningsspørsmålet stilles.
 Ingen jobb kjører nå. Ingen gammel plan skal relanseres.
@@ -124,7 +138,7 @@ om målte peaktemperaturer. Profiletterkontroll og originalconfig/logg er bevart
 Fysisk18.10-omstart er bekreftet, nyere boot20.10T20:15:55.500Z. Ikke gjenta
 eldre omstartsbestilling. Fremtidig nativejobb følger egne faktiske hardwareporter.
 
-Aktivt mål er ufullført: full beslutningssporbarhet, TRAIN-RMS-læring,
+Aktivt mål er ufullført: faktisk fullkurve-baseline og beslutningssporbarhet, TRAIN-RMS-læring,
 LONG/SHORT/FLAT-kvalitet/dekning for valgte og avståtte, generalisering og
 økonomisk edge gjenstår hver for seg. Ingen observasjon eller tekniskPASS
 åpner TEST, handel eller ny trening. Originaldata/kvitteringer/checkpoints

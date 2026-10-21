@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-21T10:13:49.221801+00:00",
-  "status": "144_COMPLETE_NATIVE_INPUT_INFLUENCE_QUALIFIED_NEXT_LEARNING_NOT_ADMITTED",
+  "status": "146_COMPLETE_FULL_CURVE_SOURCE_QUALIFIED_NEW_CURRENT_BASELINE_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -88,7 +88,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "146_PREPARED_FULL_CURVE_SOURCE_TESTS_AND_CURRENT_NATIVE_BINDING_ONLY",
+    "current_activity": "146_COMPLETE_NEXT_FRESH_CURRENT_SOURCE_FULL_CURVE_INITIAL_BASELINE_NOT_TRAINING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -142,7 +142,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Current compact model consumption/parity is measured. Full480 per-entry final-observer traces are not persisted for TRAIN256+CONTROL256; complete this declared diagnostic gap and exact source/baseline qualification before presenting an executable new finite training proposal.108authority is consumed. Entry is M5; M1 query resolution is not M1 Entry or Exit.",
+    "current_blocker": "Full per-entry1..480minute traces are implemented and29focused cases passed.146measured183current recipe source roles:3content-changed roles map to2observer/admission files versus115.115cannotadmit exactcurrent source or supply missing full512curvebaseline. Prepare a genuinely new current-bound zero-update baseline; reuse physical inputs/targets/normalization.145remains proposalonly;108fulfilled originalepoch and noextraepoch is admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -16962,6 +16962,14 @@
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_RAW_MBP_M1_NUMERIC_REFERENCE_20261021_134/FINAL_JOIN_ACTUAL_REVIEW.json",
         "sha256": "1a43cb8fce38942bca7efc960ee2c139ba85776b43c518047fa644846bf16eef"
       }
+    },
+    "last_actual_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/TERMINAL.json",
+      "sha256": "09ebe0b623e9e741039f838a9be317f88a4dc17c772c6d1031f050865d355fe5"
+    },
+    "last_actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/ACTUAL_REVIEW.json",
+      "sha256": "552452c26912c9f40ca06835950036dbb97c6204ea4fc7d22b19a41b183df10a"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -21374,10 +21382,10 @@
     ]
   },
   "dynamic_m5_full_curve_source_qualification_146": {
-    "status": "PREPARED_SOURCE_ONLY_NOT_YET_EXECUTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_PASS_29_CASES_AND_MEASURED_SOURCE_BINDING_NEW_BASELINE_REQUIRED",
+    "execution_authorized": false,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/PLAN.json",
@@ -21401,6 +21409,40 @@
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "preexecution_guard_correction": "Final frozen() also physically rehashes exact plan and source-snapshot JSON. Original unexecuted controller/binding preserved; zero claims."
+    "preexecution_guard_correction": "Final frozen() also physically rehashes exact plan and source-snapshot JSON. Original unexecuted controller/binding preserved; zero claims.",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/TERMINAL.json",
+      "sha256": "09ebe0b623e9e741039f838a9be317f88a4dc17c772c6d1031f050865d355fe5"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/RESULT.json",
+      "sha256": "7d5932e4b5fa9ec003bee00ee9929ab205f07b346c1bc78a52f2cf0a58eea731"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/ACTUAL_REVIEW.json",
+      "sha256": "552452c26912c9f40ca06835950036dbb97c6204ea4fc7d22b19a41b183df10a"
+    },
+    "source_binding_comparison": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/SOURCE_BINDING_COMPARISON.json",
+      "sha256": "bbf5d7ba1141beaf6bf9de941ec909226f56622525d26c38c833db3ff7b95371"
+    },
+    "elapsed_seconds": 51.254874903999735,
+    "actual_unique_test_cases": 29,
+    "actual_source_binding_calls": 1,
+    "actual_model_forwards": 0,
+    "actual_optimizer_updates": 0,
+    "current_source_bindings_sha256": "27952ad6e1e669cd59d80c763ad0980a619e53725c06bef36b62d8791121b735",
+    "baseline_115_source_bindings_sha256": "5385ca4c7afdd8b1c779dfcd4406b26f004372faad05ba388c266466b48676b1",
+    "current_source_equals_115": false,
+    "content_changed_roles": 3,
+    "content_changed_physical_paths": [
+      "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+      "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py"
+    ],
+    "new_full_curve_baseline_measured": false,
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FULL_CURVE_OBSERVATION_SOURCE_QUALIFICATION_20261021_146/ACTUAL_PEER_REVIEW.json",
+      "sha256": "5ac13d3b5ec76980a6b2f5935812558c1fbc2e1d2c48d94ee1672e7b16e4a900"
+    }
   }
 }

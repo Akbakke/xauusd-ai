@@ -445,5 +445,7 @@ celler til eksakte maskhasher, tellinger og batch16/F64-feilaggregater.
 Original rå target-storage-SHA beholdes separat; den rekonstrueres ikke fra
 nullable rapportverdier. Kurvene skrives én gang per TRAIN-/CONTROL-rapport;
 checkpoints beholder bare filreferanser med SHA. Ingen ekstra modellkall
-eller Exit-beregninger følger av dette.146 kvalifiserer koden syntetisk;
-fersk faktisk fullkurve-baseline krever egen korrekt binding.
+eller Exit-beregninger følger av dette.146 bestod29fokuserte syntetiske cases
+og målte hele faktiske trainclosure én gang:183roller,3endrede roller i2filer
+mot115. Ingen compatibility-exception er innført; fersk faktisk fullkurve-
+baseline krever korrekt nåbinding før neste treningsforslag kan ferdigstilles.
