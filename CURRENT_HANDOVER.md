@@ -44,16 +44,25 @@ Kilde-PASS er bevart, men erstatter ingen fysisk tallkontroll.
 Bevisroot: `/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_130`.
 Se ACTUAL_NUMERIC_REVIEW.json og TERMINAL.json; bindinger står i policy.
 
-131 er en ny, avgrenset ytelsesdiagnose, kildekontrollert og claimet:
-`/home/andre2/GX1_RUNS/NATIVE_M5_CORE_NUMERIC_PERFORMANCE_20261021_131`.
-Eksisterende referansekode skal måles på første12000ekte2009M5-rader,
-12nativekolonner,4096batcher,4eiere sekvensielt og delt ATR/n3 én gang.
-Én capped CPUaudit4G/512M med900s-grense; eierprogress skrives umiddelbart.
-Ingen cache-/råMBP-/sekvens-/PT-/modellpayload eller numerisk kvalifisering.
-Profilerkilde/AST/uavhengig peer er bestått; eksakte bindinger fryses førstart. Bare en målt årsak kan
-begrunne en minste verdibevarende rettelse; ny fysisk kontroll trenger ny plan.
-Én131invokasjon er claimet. Faktiske prosesser og terminal styrer; kilde/policy
-fryses til terminal. Stabil jobb observeres sparsomt; ingen annen tungjobb.
+131 er avsluttet etter35,886s/exit1 med220kilder/policy bevart.
+Tre gyldige eierprofiler ble skrevet: swing20 0,064s,local27 27,757s,
+level33 4,526s; profileringens overhead er inkludert. Cross14 stoppet fordi
+legitim ATR-warmupNaN ble sendt til streng boundmultiplikasjon førfinitemask.
+Dette er en auditmaskeringsfeil, ikke bevist feil i produksjonsindikator/pris.
+AVWAP-hjelperen brukte19,271s kumulativt i lokalprofilen med mange skalare
+sub/div-kall. Dette beviser ikke årsaken til hele130tidsavbruddet eller en
+fullhistorisk hastighetsgevinst.131 er konsumert; ingen relansering.
+Bevis: `/home/andre2/GX1_RUNS/NATIVE_M5_CORE_NUMERIC_PERFORMANCE_20261021_131/ACTUAL_PROFILE_REVIEW.json`.
+
+132 avgrenser to minste auditrettelser: maskér bare gyldige cross-ATR-radier,
+og vektoriser output-onlyAVWAPberegninger etter uendret anker-/Fraction-/M2-
+replay. Eksisterende formler/verdier/radier/klokker/toleranser bevares. Begge
+agenters separate fragmenter er integrert og uavhengig kryssreviewet.121andre
+helpers er AST-identiske; gammel370caseprefix er byteidentisk.
+Én fersk capped kildekontroll er åpnet:16berørtegamle+8nye crosswarmupcaser,
+4AVWAPbitparitetscaser og énekte12000M5prefikskontroll. Totalt29forventede
+caser;354uberørtegamle gjenbrukes. Plan/bounds er låst førstart,900s/4G/512M.
+Ingen fullhistorisk audit eller ny trening er åpnet. Ingen jobb kjører nå.
 
 ## Bestått — gjenbruk uten omkjøring
 

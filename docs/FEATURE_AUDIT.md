@@ -586,7 +586,12 @@ Tre smale kilde-/matematikkpeerreviews og66håndcaser bestod. Den ene fysiske
 persistente eiermålinger. Ingen nye felt er kvalifisert;129indeksen på320
 outputs er gjeldende. Originalkvitteringer/staging bevares,130 er konsumert.
 Ingen formelfeil eller lokalisert ytelsesårsak er bevist av tidsavbruddet.
-Ny131diagnose måler fire eksisterende eiere på12000genuine2009M5-rader uten
-cachepayload før en eventuell minste verdibevarende rettelse. Ingen ny
-modellrunde, normaliseringsfit eller nativeepoke er åpnet. Se gjeldende
-CURRENT_HANDOVER.md og NEXT_RUN_POLICY.json for eksakte scope-/bevisbindinger.
+131 målte tre eiere på12000genuine2009M5-rader og lokaliserte en konkret
+cross-auditfeil: ekteATRwarmupNaN traff streng boundmultiplikasjon førmasken.
+Ingen produksjons-/prisoverflow er bevist. AVWAPoutputaritmetikken hadde
+målte mange skalare sub/div-kall.132 retter bare crossmasken og vektoriserer
+AVWAPoutput etter identisk causal Fraction/M2replay;121andrehelpers uendret.
+Nye permanente warmupregresjoner og frystoriginalbitparitet kontrolleres i
+énnycapped29casekvalifisering, inkludert ett ekte12000M5prefiks. Dette er
+ikke fysisk fullhistorisk470outputkvalifisering, modellrunde eller nyepoke.
+Se CURRENT_HANDOVER.md/NEXT_RUN_POLICY.json for eksakte bindinger og terminal.

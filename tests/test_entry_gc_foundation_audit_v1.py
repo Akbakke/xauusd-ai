@@ -3231,3 +3231,62 @@ class TestNativeCoreLevelCross130:
         else:actual['mtf_level_above_dist_atr'][0]=0.
         with pytest.raises(RuntimeError,match='TECHNICAL_NUMERIC_REFERENCE_'):
             self._owner().compare_technical_reference(v,actual,e,discrete_fields=self._owner().NATIVE_CORE_LEVEL_DISCRETE_FIELDS)
+
+# Integration fragment: append to existing foundation audit tests only.
+class TestNativeCoreCrossWarmup132:
+    @staticmethod
+    def _owner():
+        from gx1.scripts import audit_entry_gc_foundation_v1 as a
+        return a
+
+    @classmethod
+    def _frame(cls,timeframe='M5',rows=600):
+        import numpy as np
+        a=cls._owner();duration=a.NATIVE_CORE_LANE_DURATION_NS[timeframe]
+        start=1254434400000000000  # 2009-10-01T22:00:00Z, every native UTC phase.
+        clock=start+np.arange(rows,dtype=np.int64)*duration
+        return {'bar_start_ns':clock,'open':np.full(rows,100.),'high':np.full(rows,101.),
+            'low':np.full(rows,99.),'close':np.full(rows,100.),'volume':np.full(rows,100,dtype=np.int64)}
+
+    @pytest.mark.parametrize('timeframe',('M5','M15','H1','H4','D1'))
+    def test_genuine_wilder_prefix_stays_unobserved_and_finite_suffix_unchanged(self,timeframe,monkeypatch):
+        import numpy as np
+        a=self._owner();frame=self._frame(timeframe);atr,radius=a._core_reference_atr(frame)
+        assert np.isnan(atr[:13]).all() and np.isnan(radius[:13]).all()
+        assert np.isfinite(atr[13:]).all() and (atr[13:]>0.).all()
+        original=a._technical_umul;calls=[]
+        def finite_umul(left,right):
+            assert np.isfinite(left).all() and np.isfinite(right).all()
+            calls.append((np.shape(left),np.shape(right)))
+            return original(left,right)
+        monkeypatch.setattr(a,'_technical_umul',finite_umul)
+        values,radii,_=a.reference_native_core_cross(frame,atr=atr,atr_radius=radius,raw_m5=frame,timeframe=timeframe)
+        assert calls and set(values)==set(a.NATIVE_CORE_CROSS_FIELDS)==set(radii)
+        full_atr=atr.copy();full_radius=radius.copy();full_atr[:13]=atr[13];full_radius[:13]=radius[13]
+        full_values,full_radii,_=a.reference_native_core_cross(frame,atr=full_atr,atr_radius=full_radius,raw_m5=frame,timeframe=timeframe)
+        for name in a.NATIVE_CORE_CROSS_FIELDS:
+            assert np.isnan(values[name][:13]).all() and np.isnan(radii[name][:13]).all()
+            assert np.array_equal(values[name][13:],full_values[name][13:],equal_nan=True)
+            assert np.array_equal(radii[name][13:],full_radii[name][13:],equal_nan=True)
+            assert not np.isinf(values[name]).any() and not np.isinf(radii[name]).any()
+
+    def test_entire_preseed_history_remains_nan_without_synthetic_observation(self):
+        import numpy as np
+        a=self._owner();frame=self._frame(rows=12);atr,radius=a._core_reference_atr(frame)
+        assert np.isnan(atr).all() and np.isnan(radius).all()
+        values,radii,_=a.reference_native_core_cross(frame,atr=atr,atr_radius=radius,raw_m5=frame,timeframe='M5')
+        for name in a.NATIVE_CORE_CROSS_FIELDS:
+            assert np.isnan(values[name]).all() and np.isnan(radii[name]).all()
+
+    def test_finite_zero_atr_is_rejected_not_reclassified_as_warmup(self):
+        import numpy as np
+        a=self._owner();frame=self._frame(rows=14);atr,radius=a._core_reference_atr(frame)
+        atr[-1]=0.;radius[-1]=0.
+        with pytest.raises(RuntimeError,match='NATIVE_CORE_LEVEL_ATR_DOMAIN'):
+            a.reference_native_core_cross(frame,atr=atr,atr_radius=radius,raw_m5=frame,timeframe='M5')
+
+    def test_finite_float32_roundtrip_overflow_is_still_rejected(self):
+        a=self._owner();frame=self._frame(rows=14);atr,radius=a._core_reference_atr(frame)
+        atr[-1]=1e40;radius[-1]=0.
+        with pytest.raises(RuntimeError,match='NATIVE_CORE_NUMERIC_F32_INTERVAL_OVERFLOW'):
+            a.reference_native_core_cross(frame,atr=atr,atr_radius=radius,raw_m5=frame,timeframe='M5')

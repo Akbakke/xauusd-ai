@@ -4031,6 +4031,12 @@ def _local_core_sweep_anchors(frame, atr, atr_radius, raw):
         prefix = 'smc_sweep_'+side+'_avwap_'
         for suffix in suffixes:
             out[prefix+suffix] = np.full(n,np.nan);error[prefix+suffix] = np.full(n,np.nan)
+        # Only the output arithmetic moves out of the causal replay. The exact
+        # Fraction moments and wire mean/M2 operations below retain their order.
+        means = np.full(n,np.nan);mean_radii = np.full(n,np.nan)
+        deviations = np.full(n,np.nan);deviation_radii = np.full(n,np.nan)
+        anchor_closes = np.full(n,np.nan);anchor_levels = np.full(n,np.nan)
+        has_anchor = np.zeros(n,dtype=bool)
         anchor = None
         events = raw['sweep_'+side+'_event'];levels = raw['last_'+('high' if side == 'up' else 'low')+'_price']
         for row in range(n):
@@ -4069,21 +4075,28 @@ def _local_core_sweep_anchors(frame, atr, atr_radius, raw):
             ratio_wire = anchor['wire_S']/((age+1)*float(anchor['w0']))-1.
             value,radius = _local_core_fraction_center(ratio_exact,ratio_wire)
             out[prefix+'mean_activity_ratio'][row] = value;error[prefix+'mean_activity_ratio'][row] = radius
-            if np.isfinite(atr[row]):
-                scale = float(atr[row]);scale_radius = float(atr_radius[row])
-                differences = {
-                    'dist_atr':_technical_sub(price,mean,0.,mean_radius),
-                    'anchor_close_dist_atr':_technical_sub(price,anchor['close']),
-                    'level_dist_atr':_technical_sub(price,anchor['level']),
-                }
-                for suffix,(numerator,en) in differences.items():
-                    v,e = _technical_div(numerator,scale,en,scale_radius)
-                    out[prefix+suffix][row] = float(v);error[prefix+suffix][row] = float(e)
-                v,e = _technical_div(std,scale,std_radius,scale_radius)
-                out[prefix+'dispersion_atr'][row] = float(v);error[prefix+'dispersion_atr'][row] = float(e)
+            has_anchor[row] = True
+            means[row] = mean;mean_radii[row] = mean_radius
+            deviations[row] = std;deviation_radii[row] = std_radius
+            anchor_closes[row] = anchor['close'];anchor_levels[row] = anchor['level']
+        valid = has_anchor & np.isfinite(atr)
+        if np.any(valid):
+            price = np.asarray(frame['close'])[valid]
+            scale = np.asarray(atr)[valid];scale_radius = np.asarray(atr_radius)[valid]
+            differences = {
+                'dist_atr':_technical_sub(price,means[valid],0.,mean_radii[valid]),
+                'anchor_close_dist_atr':_technical_sub(price,anchor_closes[valid]),
+                'level_dist_atr':_technical_sub(price,anchor_levels[valid]),
+            }
+            for suffix,(numerator,en) in differences.items():
+                v,e = _technical_div(numerator,scale,en,scale_radius)
+                out[prefix+suffix][valid] = v;error[prefix+suffix][valid] = e
+            v,e = _technical_div(deviations[valid],scale,deviation_radii[valid],scale_radius)
+            out[prefix+'dispersion_atr'][valid] = v;error[prefix+'dispersion_atr'][valid] = e
         for suffix in suffixes:
             name = prefix+suffix;out[name],error[name] = _core_round32_interval(out[name],error[name])
     return out,error
+
 
 
 def reference_native_core_local(frame, *, atr, atr_radius, raw_smc, timeframe):
@@ -4434,14 +4447,21 @@ def reference_native_core_cross(frame,*,atr,atr_radius,raw_m5,timeframe):
     clock,a,ae=_core_level_validate_frame(frame,atr,atr_radius,timeframe);n=len(clock);c=frame['close']
     axes=_core_cross_reference_axes(raw_m5);duration=NATIVE_CORE_LANE_DURATION_NS[timeframe];availability=clock+duration
     # The source's intermediate float32 ATR-bps wire is a semantic operation.
-    bps,ebps=_technical_scale(*_technical_div(a,c,ae,0.),1e4)
-    bps,ebps=_core_round32_interval(bps,ebps)
-    scaled,es=_technical_div(bps,np.full(n,1e4),ebps,0.)
-    cross_atr=scaled*c;propagated=_technical_umul(es,np.abs(c));finite=np.isfinite(cross_atr)
-    if np.any(cross_atr[finite]<=0.):raise RuntimeError('NATIVE_CORE_CROSS_ATR_ROUNDTRIP_DOMAIN')
-    ecross=np.full(n,np.nan)
-    ecross[finite]=_technical_uadd(propagated[finite],
-        _technical_rho(_technical_uadd(np.abs(cross_atr[finite]),propagated[finite])),_technical_rho(cross_atr[finite]))
+    # The shared ATR owner has a genuine unavailable prefix. Its NaNs are
+    # observation masks, and must never enter strict finite-radius nodes.
+    finite=np.isfinite(a);cross_atr=np.full(n,np.nan);ecross=np.full(n,np.nan)
+    if np.any(finite):
+        close=c[finite]
+        bps,ebps=_technical_scale(*_technical_div(a[finite],close,ae[finite],0.),1e4)
+        bps,ebps=_core_round32_interval(bps,ebps)
+        scaled,es=_technical_div(bps,np.full(len(bps),1e4),ebps,0.)
+        restored=scaled*close
+        if not np.isfinite(restored).all():raise RuntimeError('TECHNICAL_NUMERIC_REFERENCE_OVERFLOW')
+        if np.any(restored<=0.):raise RuntimeError('NATIVE_CORE_CROSS_ATR_ROUNDTRIP_DOMAIN')
+        propagated=_technical_umul(es,np.abs(close))
+        cross_atr[finite]=restored
+        ecross[finite]=_technical_uadd(propagated,
+            _technical_rho(_technical_uadd(np.abs(restored),propagated)),_technical_rho(restored))
     out={name:np.full(n,np.nan) for name in NATIVE_CORE_CROSS_FIELDS};radii={name:v.copy() for name,v in out.items()}
     daily=axes['D1'];H,L,C=(daily[k] for k in ('high','low','close'))
     total,et=_technical_sub(H,-L);total,et=_technical_sub(total,-C,et,0.)
@@ -4481,6 +4501,7 @@ def reference_native_core_cross(frame,*,atr,atr_radius,raw_m5,timeframe):
         'reference_first_labels_ns':{tf:int(v['bar_start_ns'][0]) for tf,v in axes.items()},
         'leading_partial_reference_bins_retained':True,'reference_cutoff':'lane_start+lane_duration-reference_duration',
         'strict_prior_observed_D1_session':True,'session_offset_hours_UTC':22,'all_ten_extrema_share_full_window_mask':True}
+
 
 
 NATIVE_CORE_NUMERIC_PLAN_ID='NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_130'
