@@ -18,8 +18,8 @@ ved mye MAE. MAE alene beviser ikke feil retning eller invers edge.
 CPU-tester,0feil/hopp,6,863s, audit4G/512M/én tråd/pids64. Kilde-/matematikkpeer,
 AST/compile og diffkontroll bestod. Native183roller/182unike kildefiler er bundet;
 kun tre nativefiler er endret. Alle øvrige nativehashes er bevart.
-Dette er teknisk bevis.184 er ikke trent eller målt på genuine inputs og har
-ingen fersk initialbaseline.173 gjelder forrige170funksjon.172s konkrete
+Dette er teknisk bevis.184 er ikke trent.188 har nå målt en fersk initial på
+genuine inputs; savedstate-audit gjenstår.173 gjelder forrige170funksjon.172s
 kildekvalifikator er tilpasset185 i187; metadatakontroll og CPU-konstruksjon bestod.
 
 186s brede periode-/reverseringskontroll er COMPLETE/consumed og actualpeer-
@@ -44,6 +44,15 @@ alle512FLAT; tvungen retningsdiagnostikk er ingen valgt handel eller entrygevins
 Ingen universell snuregel eller invers edge er kvalifisert. MAE alene avgjør
 ikke motsatt sides verdi. Dette er prisbanemål, ingen realisertP&L.
 
+22Oct-kostnadsavstemmingen188/COST_AND_DIRECTION_STATUS_REVIEW.json bekrefter:
+bid/ask-spread ligger allerede i quoteavkastningen; ekstra4bps er to deklarerte
+slippageledd à2bps, commission0. Dette er konservativ, ikke-fittet preregistrering;
+historisk quote-til-fill-clock/slippagetruth er ukjent. Inversjonen bruker fysisk
+motsatt side og legger ikke på en ny kostnad. Felles4bps kanselleres i den separate
+retningskontrasten; svak kort retningslæring kan ikke forklares med dette alene.
+Nyeste177 har diagnostisk fortegnstreff49,2/59,4/49,2% ved1/5/15 på fastCONTROL;
+dette er ikke valgte handler eller kvalifisert edge. Originalresultatene bevares.
+
 TRAIN256 dekker193dager/84uker fordelt25/34/36/42/32/42/45rader i syv kvartaler;
 fem av syv kvartaler har under8støttede uker for167s valgte signaler. CONTROL256
 dekker68dager/14uker i Q1. Sparse prober er ikke alle118249TRAIN-rader eller
@@ -57,41 +66,46 @@ kilde-/testeiere,183native roller/182filer og bare tre endrede roller er bundet.
 ONLINE=EMA=TARGET har modellhash2eaf88…, optimizer er tom, TARGET fryst og
 ingen checkpointvekter er arvet.11inputrefs/profil/normalisering/111RMS er bevart;
 kilde/policy var fryst og prosjektlåsen er verifisert fri etter terminalen.
-Dette er en fersk CPU-starttilstand; faktisk native initialbaseline er ikke målt.
+Dette er en fersk CPU-starttilstand;188 har deretter målt native initial32F/0U.
 ActualCPU-peer bestod uten uavklarte funn. Original187kvitteringer/state bevares; ingen relansering.
 
-188s PLAN/sealer/materializer er fryst og rootkildekontrollert: sealer har bare
-tre literalendringer fra korrigert173; controller bare stageendring.15felts
-canonical initialmap er avledet fra faktiske187refs/recipe. Alle11inputrefs,
-183roller/182filer/111 og256TRAIN+256CONTROL/full480/batch16/32ONLINEforwards/
-0updates bevares. Kildedigest er ed1c6fa0…. Compile/AST-kontroller bestod.
+188 er COMPLETE/consumed: én sealer/materialisering og én faktisk native initial,
+256TRAIN+256Q1CONTROL,16+16ONLINEforwards,0TARGETforwards/0optimizersteg. Faktiske
+tellere er produsentrapportert i loggen; root/peer har ikke gjenlest OBS. Canonical
+receipt er RESUMABLE/guardPASS/exit0, planlagt pause ved optimizer_step_ceiling0,
+ingen hovedepoke eller ferdig modellbundle. InitialRESULT a76b95e8… har ONLINE=
+TARGET2eaf88… og samme187init/11inputs/111/183roller/182filer/digest ed1c6f… .
+Kilde e97fc3ff/policy f654eade var fryst gjennom kjøringen. Rootterminal afe658eb…
+og actualpeer b1fc7e6b… bekrefter initialmetadata; savedstate-audit er fortsatt åpen.
 
-Policy admits én188metadatasealing og én materialisering med eksisterende
-CPUaudit4G/512M/én tråd/pids64/900s respektive7199s+10TERM. Deretter bare én
-32F/0U faktisk initial, betinget av eksakt ny campaign/task/source/policy/budget,
-frisk fysiskWindowsboot etter526 og alle eksisterende kapasitets-/signatur-/
-maskinvarevakter. Root eier bindinger og launch. Original global15feltsinitial-
-modus er eksplisitt bundet; ingen annen native-/treningsmodus er åpen.
+FysiskWindowsboot527/22Oct18:47:22.5Z er bekreftet etter526. Maskinen var ved
+fersk lategrense uten observerte prosjektjobber/låser; første NOTidle-inventar og
+egencollectorFDgap er bevart, ingen absolutt OS-zero-IO-påstand. Eksakt ny task
+var ferdig Ready/LastResult0 og er nå Disabled/restart0; keeper160W/SHA62b53… er
+bevart. Signert guard hadde peak56Ccore/64Cminne/129,52W/738MiB og exit0.
+Prosjektlåsen er målt fri. Ingen188relaunch eller ny omstart/native er autorisert.
 
-Første maskininventar er IKKE idle-/omstartsgodkjenning: WSLkandidat201808
-(wsl.exe utenfor collectorancestry) og egencollectorFDgap201811 er bevart.
-Root må ta ferske Windows/WSL-kontroller etter at all forberedelse/agentI/O er
-stoppet, og avklare/binde alle kandidater/gap før taskendring eller shutdown.
-Ny WSLkontroll kjøres direkte via SSH→WSLroot med Linuxchild, slik at tidligere
-interopwrapper unngås; collectorsource er uendret. Windowskallet bruker etablert
-prosessavgrenset ExecutionPolicyBypass; ingen varig policy ble endret.
-Nåværende boot526/10:09:50Z er bare før-bootidentitet. Signert før-materialiserings-
-telemetri var35C core/42C minne/24,08W/160W/78MiB. Keeper160W beholdes.
-Én betinget fysiskomstart krever fersk lategate/bundetnytask, canonicalintent og
-confirm samt1200s shutdownfrist. Ingen omstart, nativeforward eller læring er
-utført i188. Fersk
-privat teknisk kvalifikasjon må senere bestå før én separat admitted, matchet
-hel TRAIN-epoke. Ingen ekstraepoker/HPO eller automatisk gjenbruk av gamle planer.
-Sammenlign bredt mot egen fersk initial og177 med samme data/budsjett: retning,
-størrelse, MAE før MFE, kostnader, LONG/SHORT/FLAT-dekning og periodestabilitet.
-Lavere pooledtap eller alltidFLAT fullfører ikke målet. All trening er stengt nå.
+189 er nå den eneste admitted jobben: én CPU-savedstate-audit,4G/512M/éntråd/
+pids64/900s+10TERM, to hashbundne187/188PT-arkiver,0modellkonstruksjon/F/R/U/fit,
+ingen marked/OBS/111-lesing. Worker er working173audit etter bare to literalbytter
+(stage og185kildedigest); compile/AST og kort uavhengig preexecpeer bestod.
+PLAN4a82882d…, worker1418ac49…, peer0d535b2a… og owneradmission er immutable.
+Root lager eksisterende firefelt EXECUTION_BINDING først etter clean commit:
+plan-FILEREF,worker_sha256/source_head/policy_sha256 som strenger.
 
-## Siste genuine modellresultat og tapshypotese
+Audit sammenligner durable PREmeasurement modell/optimizer/EMA/scheduler og
+CPU/Python/NumPyRNG; CUDA-RNG kun schema. Postmålt RNG-digestlikhet er ubevist.
+Eksisterende technical/main-dispatch gjenoppretter saved187freshstate i ny prosess;
+188s levende postmålingstilstand brukes ikke. Ingen native-rekonstruksjon trengs.
+Etter faktisk189PASS forberedes én fersk privat190kvalifikasjon via working176:
+4parityforwards/4privateupdates på32TRAIN,logicalcursor2/8resumehashes/full480.
+Ingen190native/privatupdate eller hovedtrening er admitted nå. En senere matchet
+hel TRAIN-epoke krever separat konkret admission og samme data/rader/budsjett.
+Sammenlign retning, størrelse, MAE før MFE, kostnad, LONG/SHORT/FLAT-dekning og
+brede perioder hver for seg. Ingen favorittminutt/-måned, terskelvalg eller HPO.
+Lavere pooledtap eller alltidFLAT fullfører ikke målet. Exit/TEST/broker er stengt.
+
+## Siste trente modellresultat og tapshypotese
 
 177s ene matchede epoke er consumed:118249unike TRAIN-rader/7391oppdateringer/
 32sluttforwards.178s lagrede sammenligning er canonical-validert/consumed.
