@@ -194,8 +194,8 @@
     "latest_terminal_role": "186_COMPLETE_NO_UNIVERSAL_INVERSION_ENTRY_GENERALIZATION_OR_EDGE",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/CONTROLLER_TERMINAL.json",
-      "sha256": "858f47e8de8fa3472f59b678b1c5f64c1963c0e9dc8c5895f35265647000d069"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/TERMINAL.json",
+      "sha256": "2fc6be5d0ed5fd240ab330fdad3772e609aeaedf1ef965f14e5ae3c13b021f52"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -17046,8 +17046,8 @@
       }
     },
     "last_actual_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/CONTROLLER_TERMINAL.json",
-      "sha256": "858f47e8de8fa3472f59b678b1c5f64c1963c0e9dc8c5895f35265647000d069"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/TERMINAL.json",
+      "sha256": "2fc6be5d0ed5fd240ab330fdad3772e609aeaedf1ef965f14e5ae3c13b021f52"
     },
     "last_actual_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/DECISION.json",
