@@ -96,37 +96,54 @@ stemmer eksakt mot187fresh. Dispatcher er borte og prosjektlåsen er målt fri.
 Dette gjelder durable PREmeasurement tilstand; CUDA-RNG kun schema. Postmålt
 RNG-digestlikhet er ubevist. Eksisterende technical/main-dispatch gjenoppretter
 saved187freshstate i ny prosess;188s levende postmålingstilstand brukes ikke.
-FullOBS-konsumentvalidering gjenstår i190s faktiske materialisering; ingen ekstra
-native-rekonstruksjon eller ny originalOBS-audit utføres nå.
+190s canonical materialisering har utført FullOBS-konsumentvalideringen; ingen
+ekstra native-rekonstruksjon eller ny originalOBS-audit trengs.
 
-190s konkrete working176-rute er statisk root- og preexecpeer-kontrollert:
-PLAN9a37c8d8…, PREPARATION_REVIEWd6860f93…, peer a5e77834… uten kildeblokkere.
-Sealer aa9ebb8e… har ni literalbytter; controller6ed6ba18… kun stagebytte.
-Byte-/AST-paritet, compile uten kjøring og canonical31/global34-feltlikhet bestod.
-Faktiske187fresh/188initial/189audit+peer/185current_native_source_bindings er bundet.
-Scope:4parityforwards/4privateupdates på samme32TRAIN,logicalcursor2/8resumehashes/
-full480/tol1e-4, samme11inputs/111/kostnader/profil/kohorter. Ingen ny modellhypotese.
+190 er COMPLETE/consumed: canonical materialisering og faktisk privat teknisk
+kvalifikasjon bestod. RESULT8e887e2b…/actualpeer2c4ce00b…/rootterminal03567770…
+binder samme187fresh/188initial/189audit/185kilde,183roller og11inputs/111. Fire
+fysiske private oppdateringer er2referanse+1avbrutt+1gjenopptatt; logicalcursor2.
+Alle8resumehasher stemmer. Fire parityforwards/16TRAIN+16CONTROL/full480 har
+maksavvik0bps i alle16outputpaneler; masker/actionties/modus/RNG er eksakte.
+Dette beviser mekanikk, ingen Entry-/læringsgevinst. Private vekter bevares som
+audit og brukes aldri i main. FullOBS-konsumentvalidering er utført i190.
 
-OWNER_ADMISSION_REVIEW admits én190metadatasealer og én canonical materialisering
-med eksisterende CPUaudit4G/512M/éntråd/pids64/900s respektive7199s+10TERM.
-Global training_enabled=true gjelder kun privat technical4; full_epoch/fullVAL=false.
-Forbudt chronological_initial_measurement:null er fjernet, eksakt global34map er
-installert. Før utførelse kreves clean postcommit og eksakte bindinger som beskrevet
-i working seal/controller; ingen tidligere fullført plan relanseres.
+Faktisk fysiskWindowsboot528/22Oct21:00:42.5Z etter527 er bekreftet, guardPASS og
+canonicalreceipt553af7ed… er RESUMABLE/exit0 ved planlagt2stegspause. Kilde35cd3727/
+policy31109f91 var fryst. Controller7764 er avsluttet; eksakt190task er Disabled/
+last0/restart0, keeper160W/SHA62b53… uendret. CanonicalUID1000-prosjektlås er målt
+fri22:17UTC, ingen CURRENT-Pythonjobb. Ingen190relaunch eller privatevektovertakelse.
 
-Før-boot527/18:47:22.5Z er ferskt observert; staged fireWindowsPS-kilder matcher
-kanoniske bytes og160Wkeeper/SHA62b53… er uendret. Signert telemetry35/42C,
-22,65W/160W/78MiB bestod. Dette er ingen ny fysiskboot eller nativekvalifikasjon.
-Materialiser campaign før boot og bind faktisk før-bootidentitet. Etter faktisk
-metadatareview kreves ny late Windows/WSL-idle/source/prosjektlås-kontroll, eksakt
-nytask og canonicalintent/confirm før én1200s fysiskomstart. Native tillates kun
-på faktisk ny fysiskboot>527 gjennom alle eksisterende signerte vakter.
-Private prøvevekter bevares, men brukes aldri som hovedmodellstart.
-En senere matchet hel TRAIN-epoke krever separat konkret admission og samme
-data/rader/budsjett; private prøvevekter brukes aldri som hovedmodellstart.
-Sammenlign retning, størrelse, MAE før MFE, kostnad, LONG/SHORT/FLAT-dekning og
-brede perioder hver for seg. Ingen favorittminutt/-måned, terskelvalg eller HPO.
-Lavere pooledtap eller alltidFLAT fullfører ikke målet. Exit/TEST/broker er stengt.
+191 er en NY, separat og betinget admitted matchet hel TRAIN-epoke for184hypotesen,
+under brukerens aktive kontinuerlige mål; ingen gammel engangsautoritet gjenbrukes.
+PLAN8d9af59e…/DESIGN205808b7…/EVALUATION434fc973…/PREPARATION4d9bca4d… og
+preexecpeer28157042… er immutable. Sealer90decbac… er working177 etter23literal-,
+firepeernesting- og én185→184metadatajoinendring; controller8b263087… bare stagebytte.
+Roottransform-/AST/compile og avgrenset peer bestod uten kildeblokkere.185s133
+fokuserte tester gjenbrukes; ingen ny baseline, fullsuite eller modellhypotese.
+
+Ny191admission tillater én capped metadatasealer (900s) og én canonical CPUaudit-
+materialisering (7199s+10TERM),4G/512M/éntråd/pids64, før native. Eksakt20felt mainmap
+er installert; privattechnical- og initial-modes er fjernet. Globaltraining/full_epoch
+true gjelder bare191. Før utførelse kreves clean postcommit og faktiske bindinger.
+191PLAN.execution_ready er betinget metadataklarhet, ikke egen kjøretillatelse.
+
+Native tillates kun etter faktiske late Windows/WSL-idle/source/prosjektlåser,
+eksakttask, canonicalintent/confirm og NY fysiskboot etter528. Før-boot528 er bundet
+som191/PREPARED_WINDOWS_BOOT.json2dc63219…; dette er ingen ny191nativeboot. Bevar
+160Wkeeper og alle eksisterende signerte ressurs-/temperatur-/effektvakter.
+191starter fra saved187fresh, aldri190private/177trente vekter;188owninitial og189audit
+gjenbrukes. Budsjettet er nøyaktig177:118249TRAIN,7391updates,B16/siste9,seed20260911,
+12000s native/13800s outer,32sluttONLINEforwards på samme256TRAIN+256Q1CONTROL/480.
+Data, features, arkitektur, optimizer/LR/EMA,111RMS, targets/masker/kost/score bevares.
+
+Vurder mot egen188initial og matchet177 etter preregistrert191EVALUATION. Rapportér
+også186s faste kalenderkvartaler/brede bånd og faktisk dag-/ukestøtte; sparsomt
+under8blokker er kun deskriptivt. Ingen favorittmåned/-minutt, terskelvalg, kostfit,
+HPO eller automatisk ekstraepoke. Retning, størrelse, MAE før MFE, kostnad og
+LONG/SHORT/FLAT-kvalitet/dekning vurderes separat. Lavere pooledtap eller alltidFLAT
+fullfører ikke målet.23gjenbrukte måneder/faste512prober er ikke26måneders OOF,
+urørt generalisering eller realisert økonomisk edge. Exit/TEST/broker er stengt.
 
 ## Siste trente modellresultat og tapshypotese
 
@@ -202,7 +219,7 @@ maksimal holdetid. Rapportér teknikk, TRAIN-læring, kronologisk gjenbrukt utvi
 generalisering og økonomi separat. Lange støttemål har alltidLONG/kjøp-og-hold
 som forhåndsvalgt referanse. Ingen ekstraepoch/HPO eller relansering av consumed
 engangsplaner. Native initialmåling krever ny fysiskboot; CPU-konstruksjon har
-ikke eget bootpredikat. Ingen nativeplan er admitted nå.
+ikke eget bootpredikat.191 er betinget admitted; native krever alle ferske runtimegater.
 
 Originalkvitteringer/checkpoints bevares; DATA/RUNS-rydding krever retention-eier.
 Historikk ligger i Git/originalkvitteringer og åpnes bare ved konkret avvik/gate.
