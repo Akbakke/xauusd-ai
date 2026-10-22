@@ -22,25 +22,43 @@ Dette er teknisk bevis.184 er ikke trent eller målt på genuine inputs og har
 ingen fersk initialbaseline.173 gjelder forrige170funksjon.172s konkrete
 kildekvalifikator må tilpasses185 før en eventuell ny konstruksjon.
 
-Neste arbeid er186s brede periode-/reverseringskontroll. Worker/PLAN er fryst;
-uavhengig kilde-/matematikkpeer og rootreview bestod. Policy admits én CPUaudit
-4G/512M/én tråd/300s med10s TERM-frist etter eksakt postcommitbinding på ren kilde.
-Les kun fire lagrede OBS én gang hver:177 og167, TRAIN og Q1CONTROL.
-Gjenbruk152/153/178-lesere/statistikk og ferdig178canonical-pointerbevis;
-ingen ny rå/cache/Parquet/PT/111/34MB178RESULTS-lesing eller modellkall.
-Aktuell scope ligger i186/FOUR_CURVE_PREPARATION_SCOPE.json; PLAN binder eksakt
-worker, inputs og budsjett. Engangsplanen kan ikke relanseres. Alle native-/
-treningslanseringer venter; kontrollen gir ingen automatisk inversjon/edge.
+186s brede periode-/reverseringskontroll er COMPLETE/consumed og actualpeer-
+kontrollert: fire lagrede167/177 OBS én gang hver,0F/R/U/fit,22,488s ytre tid.
+Samme entry og opprinnelige horisontsett/masker/kostnader er bevart; FLAT/ties
+beholdes. Ingen ny input-/Parquet-/PT-lesing eller prediksjon. Mainresultatet er
+bevart. En for stor kvartalseksport feilet; korrigert kompakt eksport bestod.
+Digest dekker fem brede kvartalsbånd;1/5/15 finnes i ALL/originalRESULTS, ikke
+kvartalsdigest. Ingen estimator eller originalanalyse er endret.
 
-Sammenlign original og motsatt side ved SAMME entry og opprinnelige horisontsett,
-inkludert alle eksakte F32-ties. FLAT/tied beholdes; ikke velg motsatt sides
-beste horisont etterpå. Bruk motsatt sides observerte, allerede kostede mål;
-ikke neger avkastning eller belast kostnad to ganger. Skill177s faktiske allFLAT,
-historisk167s valgte signaler og separat tvungen fortegnsdiagnostikk. AlwaysLONG/
-SHORT får identiske domener. Kvartaler, støtte, manglende/censurerte celler og
-faste brede horisontgrupper rapporteres samlet; ingen favorittminutt/-måned.
-Færre enn8blokker er deskriptivt. Dette er prisbaneproksier, ingen realisertP&L,
-automatisk inversjon, ny terskel eller bevis på urørt generalisering.
+Historisk167s faktisk valgte signaler, terminalrespons etter deklarerte kostnader:
+
+| Periode | Valgte | Original bps | Motsatt bps | Ukeblokkintervall for forskjell |
+|---|---:|---:|---:|---:|
+|TRAIN|58|−6,983|−5,115|[−2,183;8,072]|
+|Q1CONTROL|154|−6,091|−6,263|[−1,952;1,714]|
+
+Forskjellen er motsatt minus original; begge sider har negativt gjennomsnitt.
+CONTROL preMAE øker7,361→7,587bps og MFE faller3,185→3,002bps ved inversjon.
+TRAIN-kvartalenes inversjonseffekt skifter fortegn.177s faktiske valg er fortsatt
+alle512FLAT; tvungen retningsdiagnostikk er ingen valgt handel eller entrygevinst.
+Ingen universell snuregel eller invers edge er kvalifisert. MAE alene avgjør
+ikke motsatt sides verdi. Dette er prisbanemål, ingen realisertP&L.
+
+TRAIN256 dekker193dager/84uker fordelt25/34/36/42/32/42/45rader i syv kvartaler;
+fem av syv kvartaler har under8støttede uker for167s valgte signaler. CONTROL256
+dekker68dager/14uker i Q1. Sparse prober er ikke alle118249TRAIN-rader eller
+urørt generalisering. Ingen favorittmåned/-minutt eller ny terskel velges.
+
+186/DECISION.json beholder184 som én falsifiserbar M5/MFE-målhypotese, uten
+påstått retningsgevinst. Neste arbeid er187s eksterne forberedelse av ny CPU-
+konstruktør, tilpasset actual185-kvalifikasjonen og med eksakt ny188/BUNDLE-
+destinasjon. Gjenbruk fungerende172/173-mekanikk; ingen modell-/featureendring.
+Root/peer må kontrollere før engangskjøring admits. Native initial188 og fersk
+privat teknisk kvalifikasjon må senere bestå før én separat admitted, matchet
+hel TRAIN-epoke. Ingen ekstraepoker/HPO eller automatisk gjenbruk av gamle planer.
+Sammenlign bredt mot egen fersk initial og177 med samme data/budsjett: retning,
+størrelse, MAE før MFE, kostnader, LONG/SHORT/FLAT-dekning og periodestabilitet.
+Lavere pooledtap eller alltidFLAT fullfører ikke målet. All trening er stengt nå.
 
 ## Siste genuine modellresultat og tapshypotese
 
