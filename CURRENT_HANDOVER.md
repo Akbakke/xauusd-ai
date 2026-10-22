@@ -14,15 +14,23 @@ kostnad, kvalitet og dekning. Bedre retning, generalisering og edge er ubevist.
 Brukeren prioriterte22.10 en solid featuregrunnmur før videre trening;175 har
 avstemt faktiske kilde-/input-/numerikkbevis. Ingen ny generatorfeil er påvist.
 
-Neste tillatte jobb er kun en ny173-bundet tilstands-/RNG-audit på CPU,
-4G/512M/900s, to tilstandsarkiver,0modellbygginger/forwards/reverse/updates.
-Plan: `173/initial_state_audit_preparation/PLAN.json`. Den sammenligner172fresh
-mot faktisk173s durable nullstegscheckpoint. Bevisgrensen er før målingen;
-CUDA får bare skjemakontroll, ingen etter-måling-RNG-observasjon påstås.
-Global trening/fullVAL er false.176 har bare controller/rutereview og ingen
-adgang. Etter faktisk stateaudit krever170/metoden én ny eksakt privat teknisk
-optimizer/resume-kvalifisering før mulig hovedforsøk. Gjenbruk166mekanikk og
-171beståtte tester; ingen gamle engangsplaner eller ekstra fullsuiter relanseres.
+173s nye tilstands-/RNG-audit er COMPLETE/consumed:3,574s CPU4G/512M,
+to tilstandsarkiver,0modellbygginger/forwards/reverse/updates.172fresh og
+173s durable nullstegscheckpoint har eksakt lik modell/target/optimizer/EMA/
+scheduler og lagret CPU/Python/NumPy RNG. Bevisgrensen er før målingen;
+CUDA er bare skjemakontrollert, ingen etter-måling-RNG-observasjon påstås.
+TERMINAL/STATE_PRESERVATION_PROOF/INITIAL_MEASUREMENT_AUDIT og egen actualpeer
+ligger under173 og er bundet i policy; fullOBSvalidering gjenstår i176owner.
+
+Neste adgang er én privat176 teknisk optimizer/resume-kvalifisering:32genuine
+TRAINrader,4privateupdates/4paritetsforwards/logiskcursor2 og8statehashfelt.
+Uendret1e-4bps/rtol0/exaktemasker. Globale `training_enabled=true` gjelder bare
+den eksakte34-nøkkel tekniske mappen; hovedepoke/fullVAL er false. Før native
+må176recipe/campaign være canonicalvalidert, alle prosjekter ledige og maskinen
+ha egen ny fysiskboot etter524/signerte hardwarekontroller. Privatvekter er
+aldri hovedinitial; bruk172fresh. Gjenbruk166mekanikk/171tester og175grunnmur;
+ingen gammel engangsplan eller ekstra fullsuite relanseres. Første steg er
+kun capped metadataforsegling og campaignmaterialisering, ingen native nå.
 
 Root173: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173`.
 Root175: `/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FOUNDATION_AUDIT_20261022_175`.
@@ -102,9 +110,9 @@ terminaltask/+s.15/50:50 er designkonvensjon, ikke optimum. Alle480, ekteFLAT-N,
 beholdes; nye optimizerstats er egne og ikke samlet7391stegshistorikk.
 171 kvalifiserte91fokuserte kontroller,0feil/hopp,5,616s CPU.172 publiserte
 fersk ONLINE=TARGET=EMA2eaf88…/tomoptimizer/EMA0,122,508s/0F/updates/refits.
-173s aktuelle initialmåling er nå utført; ny tilstandsaudit/privat teknisk gate
-og eksakt ny adgang gjenstår før noe matchet167-budsjettforsøk. Ingen aktuell
-trening er startet for170. Inputs holdes faste for å måle denne tapsendringen.
+173s aktuelle initialmåling og tilstandsaudit er utført;176privat teknisk gate
+og eksakt hovedadgang gjenstår før noe matchet167-budsjettforsøk. Ingen
+hovedtrening er startet for170. Inputs holdes faste for å måle tapsendringen.
 
 ## Varige grenser
 
