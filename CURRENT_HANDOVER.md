@@ -19,7 +19,7 @@ CPU-tester,0feil/hopp,6,863s, audit4G/512M/én tråd/pids64. Kilde-/matematikkpe
 AST/compile og diffkontroll bestod. Native183roller/182unike kildefiler er bundet;
 kun tre nativefiler er endret. Alle øvrige nativehashes er bevart.
 Dette er teknisk bevis.184 er ikke trent.188 har nå målt en fersk initial på
-genuine inputs; savedstate-audit gjenstår.173 gjelder forrige170funksjon.172s
+genuine inputs;189s savedstate-audit er bestått.173 gjelder forrige170funksjon.172s
 kildekvalifikator er tilpasset185 i187; metadatakontroll og CPU-konstruksjon bestod.
 
 186s brede periode-/reverseringskontroll er COMPLETE/consumed og actualpeer-
@@ -76,7 +76,7 @@ receipt er RESUMABLE/guardPASS/exit0, planlagt pause ved optimizer_step_ceiling0
 ingen hovedepoke eller ferdig modellbundle. InitialRESULT a76b95e8… har ONLINE=
 TARGET2eaf88… og samme187init/11inputs/111/183roller/182filer/digest ed1c6f… .
 Kilde e97fc3ff/policy f654eade var fryst gjennom kjøringen. Rootterminal afe658eb…
-og actualpeer b1fc7e6b… bekrefter initialmetadata; savedstate-audit er fortsatt åpen.
+og actualpeer b1fc7e6b… bekrefter initialmetadata;189 har bestått savedstate-audit.
 
 FysiskWindowsboot527/22Oct18:47:22.5Z er bekreftet etter526. Maskinen var ved
 fersk lategrense uten observerte prosjektjobber/låser; første NOTidle-inventar og
@@ -85,22 +85,34 @@ var ferdig Ready/LastResult0 og er nå Disabled/restart0; keeper160W/SHA62b53…
 bevart. Signert guard hadde peak56Ccore/64Cminne/129,52W/738MiB og exit0.
 Prosjektlåsen er målt fri. Ingen188relaunch eller ny omstart/native er autorisert.
 
-189 er nå den eneste admitted jobben: én CPU-savedstate-audit,4G/512M/éntråd/
-pids64/900s+10TERM, to hashbundne187/188PT-arkiver,0modellkonstruksjon/F/R/U/fit,
-ingen marked/OBS/111-lesing. Worker er working173audit etter bare to literalbytter
-(stage og185kildedigest); compile/AST og kort uavhengig preexecpeer bestod.
-PLAN4a82882d…, worker1418ac49…, peer0d535b2a… og owneradmission er immutable.
-Root lager eksisterende firefelt EXECUTION_BINDING først etter clean commit:
-plan-FILEREF,worker_sha256/source_head/policy_sha256 som strenger.
+189 er COMPLETE/consumed: én CPU-savedstate-audit,4G/512M/éntråd/pids64,
+3,385s, to187/188PT-arkiver,0modellkonstruksjon/F/R/U/fit, ingen marked/OBS/111.
+Worker er working173audit etter bare stage-/kildedigestbytte. Firefeltbinding
+55ba6f5c… frøs HEAD dcb3fb11/policy519669e4. Terminal f89dff5c…/exit0 og actualpeer
+ca247b85… har ingen blokkere; proof de43c53d… og audit cee9fc3f… er immutable.
+Saved ONLINE=TARGET=EMA2eaf88…, optimizer/EMA/scheduler og CPU/Python/NumPyRNG
+stemmer eksakt mot187fresh. Dispatcher er borte og prosjektlåsen er målt fri.
 
-Audit sammenligner durable PREmeasurement modell/optimizer/EMA/scheduler og
-CPU/Python/NumPyRNG; CUDA-RNG kun schema. Postmålt RNG-digestlikhet er ubevist.
-Eksisterende technical/main-dispatch gjenoppretter saved187freshstate i ny prosess;
-188s levende postmålingstilstand brukes ikke. Ingen native-rekonstruksjon trengs.
-Etter faktisk189PASS forberedes én fersk privat190kvalifikasjon via working176:
-4parityforwards/4privateupdates på32TRAIN,logicalcursor2/8resumehashes/full480.
-Ingen190native/privatupdate eller hovedtrening er admitted nå. En senere matchet
-hel TRAIN-epoke krever separat konkret admission og samme data/rader/budsjett.
+Dette gjelder durable PREmeasurement tilstand; CUDA-RNG kun schema. Postmålt
+RNG-digestlikhet er ubevist. Eksisterende technical/main-dispatch gjenoppretter
+saved187freshstate i ny prosess;188s levende postmålingstilstand brukes ikke.
+FullOBS-konsumentvalidering gjenstår i190s faktiske materialisering; ingen ekstra
+native-rekonstruksjon eller ny originalOBS-audit utføres nå.
+
+190s statiske forberedelse via working176 er nå ferdig, ennå ikke admitted:
+PLAN9a37c8d8…, PREPARATION_REVIEWd6860f93…, sealer aa9ebb8e…/ni literalbytter
+og controller6ed6ba18…/kun stagebytte. Root bekreftet reversert byteparitet,
+compile uten kjøring og canonical31/global34-feltlikhet. Ingen payload eller jobb.
+Konkret fremtidig scope:4parityforwards/4privateupdates på32TRAIN,
+logicalcursor2/8resumehashes/full480/tol1e-4, samme187inputs/111/185kilde og faktiske
+188initial/189audit/peer. Bindinger bruker185s current_native_source_bindings.
+Ingen190sealing/materialisering/native/privatupdate/omstart eller hovedtrening er
+admitted nå. Ny konkret owneradmission og clean commitbinding må foreligge først.
+Forberedelsesreviewets argv-prosa sier etter freshboot; faktisk working-rute
+materialiserer campaign før boot, binder nåværende før-bootidentitet og krever
+deretter fersk fysiskboot før native. Ingen alternativ boot-/bindingsrute innføres.
+En senere matchet hel TRAIN-epoke krever separat konkret admission og samme
+data/rader/budsjett; private prøvevekter brukes aldri som hovedmodellstart.
 Sammenlign retning, størrelse, MAE før MFE, kostnad, LONG/SHORT/FLAT-dekning og
 brede perioder hver for seg. Ingen favorittminutt/-måned, terskelvalg eller HPO.
 Lavere pooledtap eller alltidFLAT fullfører ikke målet. Exit/TEST/broker er stengt.

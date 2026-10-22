@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-22T19:47:00.726829+00:00",
-  "status": "188_INITIAL_COMPLETE__189_SAVED_STATE_CPU_AUDIT_ADMITTED",
+  "observed_utc": "2026-10-22T20:02:55.316636+00:00",
+  "status": "189_SAVED_STATE_AUDIT_COMPLETE__190_PREPARED_UNADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "188actual initial32F0U and peer complete, task consumed/Disabled. Only189one CPU savedstate audit admitted by exact PLAN/OWNER_ADMISSION_REVIEW and clean four-field binding:4G/512M/threads1/900s,2PT0F0U, no OBS/market read. After actual PASS only prepare190private qualification; no native/private/maintraining, physicalboot, extra model/loss/threshold/inversepolicy, consumedplanrelaunch/TEST/Exit/broker.",
-  "next_action": "On clean postcommit four-field binding execute exactly one189CPU savedstate audit4G/512M/threads1/900s,2PT0F0U. Review actual proof; then only prepare fresh current-function private qualification190. No new native/private/main training admitted.",
+  "rule": "188actual initial32F0U and189saved PREmeasurement state audit are complete/consumed.190static metadata reuse of working176 is prepared and root-reviewed. No recipe sealing/campaign execution/native/private update/physical reboot/maintraining admitted yet. Next requires concrete current owner admission and clean exact binding. Preserve inputs/111/184source/originals; no TEST/Exit/broker or consumedplan relaunch.",
+  "next_action": "Review190 prepared plan/source joins and publish only the necessary concrete owner admission/bindings for working176 route. Then one guarded technical4 qualification must pass before any separately admitted matched full TRAIN epoch. Current all execution/native/private/main/boot flags remain false; no old plan relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -159,15 +159,20 @@
       "sha256": "0309307d7151ba78222e1629231d99a41ed03aa07b071c5842333c4193063070"
     },
     "current_function_native_baseline_missing": false,
-    "current_function_native_baseline_qualified": false,
+    "current_function_native_baseline_qualified": true,
     "latest_current_initial_measurement": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/TERMINAL.json",
       "sha256": "afe658eb2b746697976aa1c7b2cd66fb8c1f6f00bf1662535f1b526bbff232c0"
+    },
+    "current_function_native_baseline_qualification_scope": "188actual32F0U initial plus189durable PREmeasurement state audit. FullOBS consumer validation remains at190materialization. No postmeasurementRNG equality, private parity, learning, generalization or economic claim.",
+    "latest_current_initial_state_audit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/TERMINAL.json",
+      "sha256": "f89dff5c15e3c97ab565fe6b18f56c46295580750d398d31e4e2eb401b055f3b"
     }
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "189_CURRENT_SAVED_STATE_CPU_AUDIT",
+    "current_activity": "190_PREPARED_UNADMITTED_CURRENT_INITIAL_AUDIT_COMPLETE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -189,18 +194,18 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189",
+    "current_research_id": "NATIVE_M5_EARLY_MFE_TECHNICAL_20261022_190",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTIONAL_CALIBRATION_ENTRY_QUALITY_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "188_CURRENT_FUNCTION_INITIAL32F0U_COMPLETE_STATE_AUDIT_PENDING",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189",
+    "latest_terminal_role": "189_CURRENT_INITIAL_SAVED_PREMEASUREMENT_STATE_AUDIT_COMPLETE_NO_LEARNING",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_TECHNICAL_20261022_190",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/TERMINAL.json",
-      "sha256": "afe658eb2b746697976aa1c7b2cd66fb8c1f6f00bf1662535f1b526bbff232c0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/TERMINAL.json",
+      "sha256": "f89dff5c15e3c97ab565fe6b18f56c46295580750d398d31e4e2eb401b055f3b"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -2170,10 +2175,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/.gx1-candidate-training-session.BUNDLE/initial_measurement/RESULT.json",
       "sha256": "a76b95e8952778ee71e1983936ebac17a772c2490d90f52bf34ccc64db62335e"
     },
-    "current_generation_acceptance": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json",
-      "sha256": "b9fe3dbdabda8fbbae35706cde762f0fa59c94b2e69b76895743136873f4dcef"
-    },
+    "current_generation_acceptance": null,
     "sampler_generation_scope": "Exact057outcome-blind ordered118249TRAINpopulation used once by108; not a sampler performance-selection claim.",
     "latest_manual_host_restart": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/POST_REBOOT.json",
@@ -2288,7 +2290,7 @@
       },
       "test_data_used": false
     },
-    "current_generation_initial_baseline_role": "ACTUAL_CURRENT184_FUNCTION32ONLINEF0U_SAVED_STATE_AUDIT_PENDING",
+    "current_generation_initial_baseline_role": "ACTUAL188_CURRENT184_FUNCTION32F0U_WITH189_DURABLE_SAVED_STATE_AUDIT",
     "sampler_capacity_terminal_20261011": {
       "observed": true,
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/SAMPLER_BENCHMARK_001/TERMINAL.json",
@@ -7694,7 +7696,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "On clean postcommit four-field binding execute exactly one189CPU savedstate audit4G/512M/threads1/900s,2PT0F0U. Review actual proof; then only prepare fresh current-function private qualification190. No new native/private/main training admitted.",
+    "next_action": "Review190 prepared plan/source joins and publish only the necessary concrete owner admission/bindings for working176 route. Then one guarded technical4 qualification must pass before any separately admitted matched full TRAIN epoch. Current all execution/native/private/main/boot flags remain false; no old plan relaunch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8823,10 +8825,10 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Actual189savedstate equality pending. CUDA postmeasurement RNG digest is unobserved; new private/main restores explicit saved freshstate in a new process.",
-      "Current177all512FLAT; historical selected167netmeans negative both ways. Fixed probes/reusedQ1 are not full26month generalization or realized economics.",
-      "Features are consumed and active inputs qualified; chronological feature value/optimality and learned LONG/SHORT/FLAT quality/coverage remain unqualified.",
-      "Declared4bps slippage is conservative preregistration, not historical fill/quote truth. Common4bps cancels in separate direction contrast;5of6 short MSE panels worsened vs own initial."
+      "190current-function private parity/update/resume qualification and separately admitted matched epoch/comparison remain. FullOBS validator is the existing future materialization owner, not replayed by189.",
+      "177all512FLAT; historical selected167netmeans negative both ways. Sparse probes/reusedQ1 are not full26month generalization or realized economics.",
+      "Active features reach the model; chronological feature value/optimality and learned LONG/SHORT/FLAT quality/coverage remain unqualified.",
+      "Conservative declared4bps slippage is not historical fill/quote truth. Common4bps cancels in direction contrast;5of6 short MSE panels worsened versus own initial."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -15955,7 +15957,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/RUNTIME/receipts/invocation-0001.json",
       "sha256": "392c9d153ae78beea38538a33fbdee41bf5ed4efe40bcb4d2f101c8c10c80b95"
     },
-    "latest_terminal_evidence_scope": "Actual18832ONLINEF/512fixedTRAIN+Q1CONTROL/0updates; nativeguardPASS/exit0,boot527,newtaskDisabled160Wkeeper/source e97/policy f654 frozen, projectlockfree. Source/initialmetadata peerPASS. No new learned direction or economics.",
+    "latest_terminal_evidence_scope": "189actualCPU3.385s/0F0U,2PT exact saved187 to durable188 model/TARGET/optimizer/EMA/scheduler and CPU/Python/NumPy RNG equality; CUDA schema only. HEAD dcb3fb11/policy519669e4 frozen, source unchanged; actualpeerPASS, dispatcher absent/projectlock free. No postmeasurementRNG/learning/private/main or economics claim.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -16076,7 +16078,7 @@
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/ACCEPTANCE_REVIEW_001/RESULT.json",
       "sha256": "f67db984e0f6ca801abda2b33017287dea8da4926700f268926edd9eb2e04a8f"
     },
-    "current_generation_acceptance_scope": "147fresh/148current-source full480initial/149savedstate-RNG-fullcurvequalification; unchanged117Entry-only optimizer/parity/resume mechanics reused.151exactly1approved TRAIN-RMS epoch completed/PASS, authority consumed. Pairedlearning/Entryquality/generalization/economic admission unqualified pending152.",
+    "current_generation_acceptance_scope": "Current184generation:188initial32F0U and189saved PREmeasurement state equality complete. Fresh current private optimizer/parity/resume qualification and separately admitted matched epoch remain pending; historical151acceptance confers no current authority.",
     "gc_clock_numeric_reference_118": {
       "status": "COMPLETE_PASS_PUBLISHED_M1_TO_FIVE_TF_CLOCK_REFERENCE",
       "plan": {
@@ -17052,12 +17054,12 @@
       }
     },
     "last_actual_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/TERMINAL.json",
-      "sha256": "afe658eb2b746697976aa1c7b2cd66fb8c1f6f00bf1662535f1b526bbff232c0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/TERMINAL.json",
+      "sha256": "f89dff5c15e3c97ab565fe6b18f56c46295580750d398d31e4e2eb401b055f3b"
     },
     "last_actual_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/ACTUAL_INITIAL_PEER_REVIEW.json",
-      "sha256": "b1fc7e6bba16b2bc728ee6baf8eac25884350de4e3f3d5c16ab3b06e0be20269"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/ACTUAL_STATE_AUDIT_PEER_REVIEW.json",
+      "sha256": "ca247b85a3b85bafb4797867868395f57dbf1c66fe03807887f7d425337661f7"
     },
     "approved_train_rms_epoch_151": {
       "plan": {
@@ -17165,7 +17167,15 @@
     "active_continuous_goal_thread_id": "01a15fb6-db63-7fc2-b74c-9a104bf14312",
     "current_generation_initial_baseline_is_current_function": true,
     "current_function_initial_baseline_required_after184": false,
-    "current_generation_saved_state_audit_pending": true
+    "current_generation_saved_state_audit_pending": false,
+    "current_generation_initial_measurement_audit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "cee9fc3f0ad4b7f1b0816831606e34833d2276ee8f92c801886de8d9f7b0a485"
+    },
+    "current_generation_initial_state_audit_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/ACTUAL_STATE_AUDIT_PEER_REVIEW.json",
+      "sha256": "ca247b85a3b85bafb4797867868395f57dbf1c66fe03807887f7d425337661f7"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -24774,12 +24784,20 @@
       "sha256": "109cd484f0bf8cab5758fc6b4a38ee50195674ec370fb12a416330c66b9d9c54"
     },
     "native_initial_baseline_measured": true,
-    "saved_state_audit_qualified": false,
-    "postmeasurement_rng_digest_verified": false
+    "saved_state_audit_qualified": true,
+    "postmeasurement_rng_digest_verified": false,
+    "saved_state_audit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "cee9fc3f0ad4b7f1b0816831606e34833d2276ee8f92c801886de8d9f7b0a485"
+    },
+    "saved_state_audit_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/ACTUAL_STATE_AUDIT_PEER_REVIEW.json",
+      "sha256": "ca247b85a3b85bafb4797867868395f57dbf1c66fe03807887f7d425337661f7"
+    }
   },
   "chronological_initial_measurement": null,
   "dynamic_m5_early_MFE_initial_state_audit_189": {
-    "status": "SOURCE_REVIEWED_ONE_CPU_SAVED_STATE_AUDIT_ADMITTED",
+    "status": "COMPLETE_SAVED_PREMEASUREMENT_STATE_CPU_AUDIT_NO_LEARNING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/PLAN.json",
@@ -24801,11 +24819,11 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/OWNER_ADMISSION_REVIEW.json",
       "sha256": "6c1c71e66be7d4f8d10434f1ebed6b295315bfab443761003bed8dee6820c65c"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "preparation_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
     "full_epoch_training_allowed": false,
@@ -24828,6 +24846,67 @@
     "reverse_passes": 0,
     "optimizer_steps": 0,
     "market_or_observation_payload_reads": 0,
-    "rng_claim_boundary": "Durable PREmeasurement CPU/Python/NumPy equality; CUDA schema only, no independent postmeasurement RNG digest. Later private/main reloads saved187freshstate."
+    "rng_claim_boundary": "Durable PREmeasurement CPU/Python/NumPy equality; CUDA schema only, no independent postmeasurement RNG digest. Later private/main reloads saved187freshstate.",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/TERMINAL.json",
+      "sha256": "f89dff5c15e3c97ab565fe6b18f56c46295580750d398d31e4e2eb401b055f3b"
+    },
+    "actual_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/ACTUAL_STATE_AUDIT_PEER_REVIEW.json",
+      "sha256": "ca247b85a3b85bafb4797867868395f57dbf1c66fe03807887f7d425337661f7"
+    },
+    "initial_measurement_audit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "cee9fc3f0ad4b7f1b0816831606e34833d2276ee8f92c801886de8d9f7b0a485"
+    },
+    "state_preservation_proof": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/STATE_PRESERVATION_PROOF.json",
+      "sha256": "de43c53d3133684e67402e0ae536a6bf5700169f589bed2b637f18587a235a8a"
+    },
+    "actual_elapsed_seconds": 3.385381377000158
+  },
+  "dynamic_m5_early_MFE_technical_190": {
+    "status": "STATIC_PREPARATION_COMPLETE_ROOT_REVIEWED_NO_EXECUTION_ADMISSION",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_TECHNICAL_20261022_190",
+    "preparation_authorized": false,
+    "recipe_binding_authorized": false,
+    "campaign_preparation_authorized": false,
+    "native_launch_authorized": false,
+    "physical_reboot_authorized": false,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "normalization_fit_enabled": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_TECHNICAL_20261022_190/PLAN.json",
+      "sha256": "9a37c8d8c2917064d3de246dbe8cbb46561bb1f1974097336198af1998bdab7f"
+    },
+    "preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_TECHNICAL_20261022_190/PREPARATION_REVIEW.json",
+      "sha256": "d6860f93ad14adaaf00d54da82683e3eda768f078256f8a761e221b0370847ef"
+    },
+    "root_static_review": {
+      "working176_reverse_byte_parity": true,
+      "sealer_literal_changes": 9,
+      "controller_literal_changes": 1,
+      "compile_without_execution": "PASS",
+      "canonical_technical31_and_global34_map_equality": true,
+      "current187_188_189_185_refs_preserved": true,
+      "execution_admitted": false,
+      "limits": [
+        "PLAN.execution_ready and policy_training_enabled describe future metadata requirements, not current permission.",
+        "Preparation review argv prose says after actual fresh boot; working campaign materialization precedes boot and binds current before-boot identity. Fresh physical boot is required for later native invocation.",
+        "FullOBS validation remains the existing future canonical materialization; no duplicate originalOBS/PT/111 reading performed by preparation or root review."
+      ]
+    }
   }
 }
