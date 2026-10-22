@@ -67,16 +67,29 @@ Valgte LONG/SHORT predterminal+13,57/+22,12 motobs−5,03/−6,40; predpreMAE9,7
 kandidatoptimisme i disse gruppene; sterkere MAE-penalty beviser ingen retning.
 Dette er proxykomponenter under deklarerte kostnader, ingen realisertP&L.
 
-169 er nå admitted for én CPUstudie av eksisterende168perkoordinat-MSE/counts
-og111RMS. PLAN/worker/forberedelse/12punkts kodepeer er bundet i policy.
+169 er COMPLETE/consumed:0,488s CPU, to bundne payloadJSON(168RESULTS/111RMS),
+0nye modellkall/reverse/steg/refits. HEADafcbbe3b/policyd453500c var bevart.
 Root169: `/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169`.
-Kjør én gang med audit4G/512M/180s og nøyaktig to payloadJSON; ingen nye kurver,
-OBS/PT/Parquet, targets, modellkall, reversekall, steg eller refits.
-RMS er allerede per horisont og side; ikke én taskwide-skala. Alle480 beholdes.
-Skill poolednormalisertSSE og LONG/SHORTn/RMS²-masse fra faktiskbatch16loss,
-parametergradienter og7391stegshistorikk. FLAT har0SSE/gradient, men dens maskN
-skal ikke fjernes fra terminaldenominator; forecast er4M5+6dagkoordinater.
-Ingen ny vekting/design er valgt. Trening/fullVAL/Exit/TEST/broker er stengt.
+TERMINAL/RESULTS/SUMMARY/ACTUAL_LOSS_ALLOCATION_PEER_REVIEW er bundet i policy.
+Terminalpoolednormfeil falt0,726107→0,566106 mens1..15 steg0,728875→1,602966;
+16..480 falt0,726012→0,530303. Tidligfeil kan skjules i samletfit. Det beviser
+ikke parametergradientdominans eller årsaken gjennom7391steg. PerkoordinatRMS
+finnes allerede;1..15s hypotetiske likråresidualmasse31,14% mot121..480s28,81%.
+FLATs114298nullceller inngår fortsatt i terminalN342894; forecast er4M5+6dag.
+
+170 velger én hypotese for kildeforberedelse: terminaloptimizerobjective blir
+aritmetisk snitt av observerte1..15- og16..480-gruppemidler i fryste111RMS-
+enheter. Beggegrupper gir50:50; éngruppe gir bare sitt observerte middel;
+ingengruppe utelater terminaltask/+s.15/50:50 er en fast designkonvensjon,
+ikke målt optimum. Beggegrupper forblir Entry-prisforløp fra minutt til timer.
+Alle480, ekteFLAT-N, åtte familier+makro, øvrige tre tasks, rawbps/pooledunit-
+diagnostikk, inputs/targets/masker og score beholdes. Ny optimizerobjective og
+gruppe-N/én-/togruppebatcher skal ha egne navn; ikke kall balancedmean pooled.
+Root170: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_BALANCE_DESIGN_20261022_170`.
+DESIGN er bundet i policy; bare tre navngitte kildefiler+fokusert test er åpnet.
+Ingen modellobservasjon, trening, fullVAL, Exit, TEST eller broker er admitted.
+Fersk kildebundet CPU-publisering, aktuelle initial-/paritets-/resumegater og
+eksakt ny engangsadgang kreves før et eventuelt matchet167-budsjettforsøk.
 
 167/EVALUATION_PLAN var låst før trening:1/5/15min primærretning, separat
 MAE/MFE/kostnad og valgte/avståtte, dag2000seed20260911/mandagsukesensitivitet.

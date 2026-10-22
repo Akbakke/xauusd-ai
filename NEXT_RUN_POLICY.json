@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-22T03:52:51.409205+00:00",
-  "status": "169_ADMITTED_ONE_CPU_SAVED_TRAIN_LOSS_ALLOCATION_NO_TRAINING",
+  "status": "169_CONSUMED_170_SELECTED_TERMINAL_HORIZON_OBJECTIVE_SOURCE_PREPARATION_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "167consumed exactly one new current-query TRAINepoch118249unique rows/batch16final9/7391updates and32fixedfinalONLINEforwards. Actual technicalPASS does not prove directionquality. No furthertraining, relaunch,extraepoch/HPO,fullVAL/Exit/TEST/broker. Next only separately bound saved directionalcomparison under preregistered167EVALUATION_PLAN.",
-  "next_action": "Execute169once under canonical CPU audit4G/512M/180s; read only168RESULTS and111LOSS_SCALES payloads. Reconstruct descriptive TRAIN per-coordinate normalizedSSE and within-task allocation, preserve all480/FLAT N/forecast4+6. No new weights or training selected; consume terminal before any next design.",
+  "next_action": "Implement and source-qualify only170declaredterminalaggregation, preserve111units/pooleddiagnostics/all480/features/targets/score. No nativecall or epoch until fresh-source/current-function/technical gates and exactnewadmission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -65,7 +65,7 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "167/168currentquerynormalizedexperiment technicallycomplete but failed qualityimprovement: allCONTROLprimarycontrastMSEworse than151 with positive day/weekpairedintervals; selectedterminaloveroptimism persists. RMS is alreadypercoordinate, no blindreweighting/newtraining selected.",
+    "current_evidence_scope": "169savedTRAIN: pooledterminal0.726107->0.566106 while1..15mean0.728875->1.602966. No gradient-historycause proved.170selects one fixedgroupmean terminalobjective hypothesis forsourcequalification, qualityimprovement unproved.",
     "component_learning_measured": true,
     "component_learning_result": "MIXED_POOLED_IMPROVEMENT_WITH_H1_DEGRADATION",
     "primary_entry_quality_qualified": false,
@@ -120,11 +120,15 @@
     "latest_direction_comparison": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_COMPARISON_20261022_168/DECISION.json",
       "sha256": "637e5f2e9a11da0ac06605a91a0fbe30cfd2aec1223af28b00e567c8e6eeb3ed"
+    },
+    "latest_saved_loss_allocation": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/SUMMARY.json",
+      "sha256": "4c58905106c6f96403eb20e5d88583a35a6323dac477a347fabbb0ae961a2f19"
     }
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "Execute169once under canonical CPU audit4G/512M/180s; read only168RESULTS and111LOSS_SCALES payloads. Reconstruct descriptive TRAIN per-coordinate normalizedSSE and within-task allocation, preserve all480/FLAT N/forecast4+6. No new weights or training selected; consume terminal before any next design.",
+    "current_activity": "Implement and source-qualify only170declaredterminalaggregation, preserve111units/pooleddiagnostics/all480/features/targets/score. No nativecall or epoch until fresh-source/current-function/technical gates and exactnewadmission.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7651,7 +7655,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute169once under canonical CPU audit4G/512M/180s; read only168RESULTS and111LOSS_SCALES payloads. Reconstruct descriptive TRAIN per-coordinate normalizedSSE and within-task allocation, preserve all480/FLAT N/forecast4+6. No new weights or training selected; consume terminal before any next design.",
+    "next_action": "Implement and source-qualify only170declaredterminalaggregation, preserve111units/pooleddiagnostics/all480/features/targets/score. No nativecall or epoch until fresh-source/current-function/technical gates and exactnewadmission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17068,13 +17072,13 @@
       "zero_update_witness_preparation_authorized": true,
       "new_model_observation_admitted": false,
       "new_training_admitted": false,
-      "new_model_or_loss_correction_selected": false,
-      "latest_evidence_stage": "169_CPU_SAVED_LOSS_ALLOCATION_ADMITTED_NO_TRAINING",
+      "new_model_or_loss_correction_selected": true,
+      "latest_evidence_stage": "169_COMPLETE_170_SELECTED_TERMINAL_GROUP_OBJECTIVE_SOURCE_PREPARATION",
       "selected_single_design": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_QUERY_OWN_INITIAL_DESIGN_20261022_165/DESIGN.json",
-        "sha256": "1f5a942f524a0b9a4ae7b0481acd6937ad8c16c1449663b76593067adaa84a57"
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_BALANCE_DESIGN_20261022_170/DESIGN.json",
+        "sha256": "f408e670c6615ef8cbc67f7b587abdb7c69d69b4d40d9efd588abdf717744c7c"
       },
-      "new_training_scope": "NONE_167_CONSUMED_NO_ADDITIONAL_EPOCH_OR_RELAUNCH",
+      "new_training_scope": "NONE_SOURCE_PREPARATION_ONLY",
       "new_main_training_admitted": false,
       "latest_measured_decision": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_COMPARISON_20261022_168/DECISION.json",
@@ -19644,7 +19648,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-22T04:04:54.782072+00:00",
+  "updated_utc": "2026-10-22T04:12:22.213429+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -23160,7 +23164,7 @@
     }
   },
   "dynamic_m5_saved_loss_allocation_169": {
-    "status": "ADMITTED_ONE_CPU_SAVED_TRAIN_ALLOCATION_ONLY",
+    "status": "COMPLETE_CONSUMED_SAVED_TRAIN_ALLOCATION_NOT_GRADIENT_CAUSE",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/PLAN.json",
@@ -23193,9 +23197,9 @@
       "new_reverse_calls": 0,
       "swap_bytes": 536870912
     },
-    "execution_authorized": true,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "execution_authorized": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
@@ -23205,6 +23209,46 @@
     "native_training_admitted": false,
     "exit_evaluation": false,
     "test_data_used": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/TERMINAL.json",
+      "sha256": "a3f06809d4005889b56c6efffd3ed12bb49e448f2832ee884b9c33bc06999190"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/RESULTS.json",
+      "sha256": "92cc851c518b4698320844f77a70c82ddd7c5e86b7be219adfd5be13aaf92583"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/SUMMARY.json",
+      "sha256": "4c58905106c6f96403eb20e5d88583a35a6323dac477a347fabbb0ae961a2f19"
+    },
+    "actual_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/ACTUAL_LOSS_ALLOCATION_PEER_REVIEW.json",
+      "sha256": "8231e5d423d42b90e088adac08842dc0b219cfaab646c4aafcf9ea4872d12bc2"
+    }
+  },
+  "dynamic_m5_terminal_horizon_balance_design_170": {
+    "status": "SELECTED_SOURCE_PREPARATION_ONLY_NO_NATIVE_LAUNCH",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_BALANCE_DESIGN_20261022_170",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_BALANCE_DESIGN_20261022_170/DESIGN.json",
+      "sha256": "f408e670c6615ef8cbc67f7b587abdb7c69d69b4d40d9efd588abdf717744c7c"
+    },
+    "source_preparation_authorized": true,
+    "native_training_admitted": false,
+    "new_model_observation_admitted": false,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "relaunch_allowed": false,
+    "single_change": "terminalTRAIN_RMSloss arithmeticmean of observed1..15 and16..480groupmeans, trueFLAT_N, unchangedother3tasks andseparateoptimizerdiag",
+    "allowed_source_paths": [
+      "gx1/contracts/entry_dynamic_m5_loss_scale_v1.py",
+      "gx1/contracts/entry_model_native_training_objective_v1.py",
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py"
+    ],
+    "allowed_test_path": "tests/test_entry_dynamic_m5_terminal_horizon_objective_v1.py"
   }
 }
