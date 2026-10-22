@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-22T15:03:20.614970+00:00",
-  "status": "180_COMPLETE_CONSUMED_TRAINED_INPUT_DEPENDENCY_DIRECTION_AND_FEATURE_VALUE_UNQUALIFIED",
+  "observed_utc": "2026-10-22T15:54:42.529389+00:00",
+  "status": "183_ONE_SAVED_TRAIN_PATH_ALLOCATION_AUDIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "178actualsavedcomparison consumed; reduced167overamplitude butall512finalFLAT andno robust shortdirection improvementagainstown173. No newtraining/forward/gradient job, extraepoch/HPO,fullVAL/TEST/Exit/broker. Preserve qualifiedfeatureinputs and171source;179is only read-only preparation of exactzero-update trained177TRAINwitness before nextmechanismdecision. Never relaunch consumed oldplans.",
-  "next_action": "Targeted source-only review of currentterminal horizon conditioning motivated by measured nearparallel1/5/15inputdirection response. Preserve fullfeaturelibrary/activequalifiedbytes; no newfeature/model/loss/score/threshold change ortraining/modeljob admitted.",
+  "next_action": "Publish corrected exact183postcommitbinding after clean source; execute once through existingaudit4G/512M/thread1/120s+10sTERM owner. Onlysaved178TRAINown173/current177pathaggregate+111RMS; zeroOBS/raw/cache/checkpoint/model/updates. Consume actualterminal; no relaunch or lossdesignadmitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -157,7 +157,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "180route/scalarunits reviewed, existing179/15716TRAINroute reused, minimal audit-only1F5inputVJP DESIGN preparation. No furthertraining orfeature/model/loss/score change.",
+    "current_activity": "183_ONE_SAVED_TRAIN_PATH_ALLOCATION_AUDIT_ADMITTED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -210,7 +210,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No external blocker.180trainedfeaturedependency measured andconsumed; actualpredictivevalue/Entryqualification unproved. Next targeted source-only horizonconditioning review; all extra modeljobs/training/featurechangesclosed.",
+    "current_blocker": null,
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7684,7 +7684,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Seal176 from173recipe with exact31-key technical PLAN/34-key globalmap, run existing canonical materializer once under audit4G, then current hardware/all-machine-idle/fresh physicalWindowsboot gates for ONE private4U+4parityF technical invocation. No main epoch, source change or feature activation.",
+    "next_action": "Publish corrected exact183postcommitbinding after clean source; execute once through existingaudit4G/512M/thread1/120s+10sTERM owner. Onlysaved178TRAINown173/current177pathaggregate+111RMS; zeroOBS/raw/cache/checkpoint/model/updates. Consume actualterminal; no relaunch or lossdesignadmitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17099,22 +17099,22 @@
         "No historical one-shot relaunch, blind extraepoch/HPO or new fitted/serving authority; necessary new experiments require concrete scope and exact policy admission before execution.",
         "No Exit/TEST adaptation, broker, live/paper, orders, spending or promotion."
       ],
-      "zero_update_witness_preparation_authorized": true,
-      "new_model_observation_admitted": true,
-      "new_training_admitted": true,
-      "new_model_or_loss_correction_selected": true,
-      "latest_evidence_stage": "173_INITIAL_STATE_AUDIT_COMPLETE_175_FOUNDATION_RECONCILED_176_PRIVATE4_ADMITTED_CONDITIONALLY",
+      "zero_update_witness_preparation_authorized": false,
+      "new_model_observation_admitted": false,
+      "new_training_admitted": false,
+      "new_model_or_loss_correction_selected": false,
+      "latest_evidence_stage": "183_STATIC_PEER_PASS_ONE_ZERO_MODEL_AGGREGATE_AUDIT_ADMITTED",
       "selected_single_design": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_BALANCE_DESIGN_20261022_170/DESIGN.json",
         "sha256": "f408e670c6615ef8cbc67f7b587abdb7c69d69b4d40d9efd588abdf717744c7c"
       },
-      "new_training_scope": "176_FOUR_DISPOSABLE_PRIVATE_OPTIMIZER_UPDATES_ONLY_NO_MAIN_EPOCH",
+      "new_training_scope": "NONE__177_CONSUMED__183_SAVED_TRAIN_AGGREGATE_ANALYSIS_ONLY",
       "new_main_training_admitted": false,
       "latest_measured_decision": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_COMPARISON_20261022_168/DECISION.json",
-        "sha256": "637e5f2e9a11da0ac06605a91a0fbe30cfd2aec1223af28b00e567c8e6eeb3ed"
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/DECISION.json",
+        "sha256": "44e3c5cabd7cdc7c524422b752431f0aa2fa58c204801acf66a2da285b2997fc"
       },
-      "new_model_observation_scope": "176_FOUR_PRIVATE_TECHNICAL_PARITY_FORWARDS_ONLY_AFTER_EXACT_GATES",
+      "new_model_observation_scope": "NONE__180_CONSUMED__183_ZERO_MODEL_CALLS",
       "feature_foundation_priority_20261022": {
         "operator_request": "Solid genuine feature and indicator foundation before further training",
         "decision": {
@@ -17124,6 +17124,15 @@
         "new_generator_defect_proved": false,
         "optimal_predictive_use_proved": false,
         "compact_and_period_scope_limits_retained": true
+      },
+      "selected_single_design_status": "170_APPLIED_AND177_CONSUMED__NO_NEW_DESIGN_SELECTED",
+      "latest_source_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_SOURCE_REVIEW_20261022_181/DECISION.json",
+        "sha256": "3ac269aad7150eb957b020641a66d0cda3e1a91ff315d5cfdf3a3318407675ff"
+      },
+      "latest_saved_task_alignment_review": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_DECODER_TASK_CONFLICT_REVIEW_20261022_182/DECISION.json",
+        "sha256": "319b7cfe18294cb1db828686dbf0d38d426b7414713fbae041aaa3aa5065d6f1"
       }
     },
     "current_training_started": false,
@@ -24116,5 +24125,123 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/DECISION.json",
       "sha256": "44e3c5cabd7cdc7c524422b752431f0aa2fa58c204801acf66a2da285b2997fc"
     }
+  },
+  "dynamic_m5_terminal_horizon_source_review_181": {
+    "status": "COMPLETE_NO_FORCED_TIME_INVARIANCE_OR_AXIS_DEFECT",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_SOURCE_REVIEW_20261022_181",
+    "scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_SOURCE_REVIEW_20261022_181/SCOPE.json",
+      "sha256": "20704685859f60a59b2f4deaed39bce7d630f417f036874cf43af5bdca596019"
+    },
+    "preparation_authorized": true,
+    "source_edits_authorized": false,
+    "execution_authorized": false,
+    "model_forward_or_gradient_job_admitted": false,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_SOURCE_REVIEW_20261022_181/TERMINAL.json",
+      "sha256": "cc4075ecc25171817f77e686e821739856ffe77b6e065a99afbfd6df9b530997"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_SOURCE_REVIEW_20261022_181/DECISION.json",
+      "sha256": "3ac269aad7150eb957b020641a66d0cda3e1a91ff315d5cfdf3a3318407675ff"
+    }
+  },
+  "dynamic_m5_trained_decoder_task_conflict_review_182": {
+    "status": "COMPLETE_SHARED_QUERY_CONFLICT_NOT_ESTABLISHED_NO_DECODER_CHANGE",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_DECODER_TASK_CONFLICT_REVIEW_20261022_182",
+    "scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_DECODER_TASK_CONFLICT_REVIEW_20261022_182/SCOPE.json",
+      "sha256": "85bfa380e963985c337c3a55f3f3d0817adc55432f770db39f398da73697d6af"
+    },
+    "preparation_authorized": true,
+    "source_edits_authorized": false,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_DECODER_TASK_CONFLICT_REVIEW_20261022_182/TERMINAL.json",
+      "sha256": "2f7c8abc5a230350c597a103654553749c83fe5249835c1ed6091884b57bcb3f"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_DECODER_TASK_CONFLICT_REVIEW_20261022_182/DECISION.json",
+      "sha256": "319b7cfe18294cb1db828686dbf0d38d426b7414713fbae041aaa3aa5065d6f1"
+    }
+  },
+  "dynamic_m5_path_task_horizon_allocation_183": {
+    "status": "ADMITTED_ONE_SAVED_TRAIN_AGGREGATE_AUDIT",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_PATH_TASK_HORIZON_ALLOCATION_20261022_183",
+    "preparation_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PATH_TASK_HORIZON_ALLOCATION_20261022_183/PREPARATION_SCOPE.json",
+      "sha256": "aff787557114646217d3d2b4575794e6a6d5726bff337cf0a355deeb1d038424"
+    },
+    "preparation_authorized": true,
+    "execution_authorized": true,
+    "source_edits_authorized": false,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "aggregate_reuse_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PATH_TASK_HORIZON_ALLOCATION_20261022_183/AGGREGATE_REUSE_SCOPE.json",
+      "sha256": "f3d2e5ce1ab72872f6e9ee02f053ee917e35b12708f2f6ef3fa4c9b2d535034b"
+    },
+    "original_OBSERVATION_reader_proposal_superseded": true,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PATH_TASK_HORIZON_ALLOCATION_20261022_183/PLAN.json",
+      "sha256": "51b513d3e074b61cc6ce5afe54620ab221bd4c4a5d3f6b0537a2b447fd0a6417"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PATH_TASK_HORIZON_ALLOCATION_20261022_183/run_path_task_horizon_allocation.py",
+      "sha256": "9cd6e3a1f61e0cb78bb0355ba6a6f38805c34186628a6a909369e3cd06307b28"
+    },
+    "preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PATH_TASK_HORIZON_ALLOCATION_20261022_183/PREPARATION_REVIEW.json",
+      "sha256": "3dc6df46891732d20250b1d89fb1c39bc580c38b30165c9e06d81c5146fc3044"
+    },
+    "preparation_reference_correction": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PATH_TASK_HORIZON_ALLOCATION_20261022_183/PREPARATION_REFERENCE_CORRECTION.json",
+      "sha256": "5fbf444ea74e0a553636ae7c79bc9e189e6fd29060d6e3bcce07a167855cf1c1"
+    },
+    "math_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PATH_TASK_HORIZON_ALLOCATION_20261022_183/PREEXEC_MATH_PEER_REVIEW.json",
+      "sha256": "d0da37e2be075d6c929ffaeef67d25d161445e7487055a70a258696d523d924d"
+    },
+    "owner_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_PATH_TASK_HORIZON_ALLOCATION_20261022_183/PREEXEC_OWNER_REVIEW.json",
+      "sha256": "b5b6c48511787a6b0361bfa4ed695b1e57b87cc4cd895be8ef131b8b0cb4d4ed"
+    },
+    "budget": {
+      "OBSERVATION_payload_reads": 0,
+      "class": "audit",
+      "comparison_JSON_payload_reads": 1,
+      "fits": 0,
+      "loss_scale_JSON_reads": 1,
+      "max_invocations": 1,
+      "max_wall_seconds": 120,
+      "memory_bytes": 4294967296,
+      "new_model_forwards": 0,
+      "new_optimizer_steps": 0,
+      "new_reverse_calls": 0,
+      "swap_bytes": 536870912,
+      "term_grace_seconds": 10,
+      "threads": 1
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_binding": "Root publishes exact plan/worker/source_head/policy_sha256 after clean commit; no circular HEAD in PLAN"
   }
 }

@@ -14,6 +14,26 @@ kostnad, kvalitet og dekning. Bedre retning, generalisering og edge er ubevist.
 Brukeren prioriterte22.10 en solid featuregrunnmur før videre trening;175 har
 avstemt faktiske kilde-/input-/numerikkbevis. Ingen ny generatorfeil er påvist.
 
+Neste steg er183: én lagret TRAIN-analyse av MFE og preMAE ved1–15 mot
+16–480minutter, egen173initial mot177final. Statisk kilde-/matematikkpeer bestod;
+eksakt worker/PLAN er admitted i policy. Integrator publiserer postcommitbinding
+på ren kilde før én CPUaudit:4G/512M/én tråd/120s med10s TERM-frist.
+Den gjenbruker178s aggregater og111s frosne RMS, med0modellkall/oppdateringer
+og ingen OBS-, rå-, cache- eller vektlesing. Hele178JSON inneholder CONTROL-tekst;
+bare TRAIN-paret analyseres og brukes i valg. Ingen ny modell-, feature-, taps-
+eller treningsendring er valgt. Engangsplanen kan ikke relanseres.
+
+181s kildegjennomgang fant at GELU-decoderen tillater tilstand×horisont-respons;
+alle480mål har egne sideceller/masker/RMS. Nesten parallelle inputgradienter
+beviser derfor ingen tvungen horisontlikhet eller konkret arkitekturfeil.
+182 gjenbrukte179s taskgradienter: terminalens skalarprodukt med samlet gradient
+var positivt i alle7 undersøkte, overlappende grupper. MFE var positivt samrettet;
+MAE nesten ortogonal i decoderen. Klonet terminaldecoder er ikke begrunnet som
+konfliktrettelse. Dette er et lokalt vitne, ingen AdamW-/7391stegsårsaksanalyse.
+Konkret forskjell i målet: bare terminalen har170s early/later-gruppemiddel;
+MFE og preMAE pooles fortsatt over alle480 og begge endepunkter.183 skal måle
+fordelingen før noen tapsendring kan velges.
+
 173s nye tilstands-/RNG-audit er COMPLETE/consumed:172fresh og173s durable
 nullstegscheckpoint har eksakt lik modell/target/optimizer/EMA/scheduler og
 lagret CPU/Python/NumPy RNG. Bevisgrensen er før målingen; CUDA er bare
