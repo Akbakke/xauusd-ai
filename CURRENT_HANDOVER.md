@@ -20,7 +20,7 @@ AST/compile og diffkontroll bestod. Native183roller/182unike kildefiler er bunde
 kun tre nativefiler er endret. Alle øvrige nativehashes er bevart.
 Dette er teknisk bevis.184 er ikke trent eller målt på genuine inputs og har
 ingen fersk initialbaseline.173 gjelder forrige170funksjon.172s konkrete
-kildekvalifikator er tilpasset185 i187; faktisk metadatakontroll og kjøring gjenstår.
+kildekvalifikator er tilpasset185 i187; metadatakontroll og CPU-konstruksjon bestod.
 
 186s brede periode-/reverseringskontroll er COMPLETE/consumed og actualpeer-
 kontrollert: fire lagrede167/177 OBS én gang hver,0F/R/U/fit,22,488s ytre tid.
@@ -50,16 +50,41 @@ dekker68dager/14uker i Q1. Sparse prober er ikke alle118249TRAIN-rader eller
 urørt generalisering. Ingen favorittmåned/-minutt eller ny terskel velges.
 
 186/DECISION.json beholder184 som én falsifiserbar M5/MFE-målhypotese, uten
-påstått retningsgevinst.187s CPU-konstruktør er nå eksternt forberedt/fryst,
-tilpasset actual185-kvalifikasjonen med eksakt ny188/BUNDLE-destinasjon.
-Fungerende172/173-mekanikk gjenbrukes. Alle10controllerfunksjoner er AST-identiske;
-publisher endrer bare kildekvalifikasjon og deklarerte prepare-substitusjoner.
-Compile-only, rootreview og uavhengig kildepeer bestod. Policy admits nå én CPU-
-fresh-konstruksjon gjennom eksisterende audit4G/512M/én tråd/pids64/7200s+10TERM.
-Postcommitkilde/policy må bindes og ren metadatakvalifikator må bestå mot faktisk
-snapshot før controllerclaim.186kvalifiserte unike filer kreves:182native,
-fit-owner og tre peerbundne testeiere. Ingen forward/update/refit eller ny
-nativeadmission følger med. Native initial188 og fersk
+påstått retningsgevinst.187s CPU-fresh-konstruksjon er COMPLETE/consumed:
+118,744s ytre/117,917s worker,0modellforwards/0updates/0refit/0Exit. Faktisk
+preclaim-metadatakvalifikator bestod mot195filsnapshot;186kvalifiserte unike
+kilde-/testeiere,183native roller/182filer og bare tre endrede roller er bundet.
+ONLINE=EMA=TARGET har modellhash2eaf88…, optimizer er tom, TARGET fryst og
+ingen checkpointvekter er arvet.11inputrefs/profil/normalisering/111RMS er bevart;
+kilde/policy var fryst og prosjektlåsen er verifisert fri etter terminalen.
+Dette er en fersk CPU-starttilstand; faktisk native initialbaseline er ikke målt.
+ActualCPU-peer bestod uten uavklarte funn. Original187kvitteringer/state bevares; ingen relansering.
+
+188s PLAN/sealer/materializer er fryst og rootkildekontrollert: sealer har bare
+tre literalendringer fra korrigert173; controller bare stageendring.15felts
+canonical initialmap er avledet fra faktiske187refs/recipe. Alle11inputrefs,
+183roller/182filer/111 og256TRAIN+256CONTROL/full480/batch16/32ONLINEforwards/
+0updates bevares. Kildedigest er ed1c6fa0…. Compile/AST-kontroller bestod.
+
+Policy admits én188metadatasealing og én materialisering med eksisterende
+CPUaudit4G/512M/én tråd/pids64/900s respektive7199s+10TERM. Deretter bare én
+32F/0U faktisk initial, betinget av eksakt ny campaign/task/source/policy/budget,
+frisk fysiskWindowsboot etter526 og alle eksisterende kapasitets-/signatur-/
+maskinvarevakter. Root eier bindinger og launch. Original global15feltsinitial-
+modus er eksplisitt bundet; ingen annen native-/treningsmodus er åpen.
+
+Første maskininventar er IKKE idle-/omstartsgodkjenning: WSLkandidat201808
+(wsl.exe utenfor collectorancestry) og egencollectorFDgap201811 er bevart.
+Root må ta ferske Windows/WSL-kontroller etter at all forberedelse/agentI/O er
+stoppet, og avklare/binde alle kandidater/gap før taskendring eller shutdown.
+Ny WSLkontroll kjøres direkte via SSH→WSLroot med Linuxchild, slik at tidligere
+interopwrapper unngås; collectorsource er uendret. Windowskallet bruker etablert
+prosessavgrenset ExecutionPolicyBypass; ingen varig policy ble endret.
+Nåværende boot526/10:09:50Z er bare før-bootidentitet. Signert før-materialiserings-
+telemetri var35C core/42C minne/24,08W/160W/78MiB. Keeper160W beholdes.
+Én betinget fysiskomstart krever fersk lategate/bundetnytask, canonicalintent og
+confirm samt1200s shutdownfrist. Ingen omstart, nativeforward eller læring er
+utført i188. Fersk
 privat teknisk kvalifikasjon må senere bestå før én separat admitted, matchet
 hel TRAIN-epoke. Ingen ekstraepoker/HPO eller automatisk gjenbruk av gamle planer.
 Sammenlign bredt mot egen fersk initial og177 med samme data/budsjett: retning,
