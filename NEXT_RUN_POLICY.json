@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-22T03:52:51.409205+00:00",
-  "status": "168_COMPLETE_167_REJECTED_DIRECTION_IMPROVEMENT_SAVED_LOSS_ALLOCATION_PREPARATION",
+  "status": "169_ADMITTED_ONE_CPU_SAVED_TRAIN_LOSS_ALLOCATION_NO_TRAINING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "167consumed exactly one new current-query TRAINepoch118249unique rows/batch16final9/7391updates and32fixedfinalONLINEforwards. Actual technicalPASS does not prove directionquality. No furthertraining, relaunch,extraepoch/HPO,fullVAL/Exit/TEST/broker. Next only separately bound saved directionalcomparison under preregistered167EVALUATION_PLAN.",
-  "next_action": "Prepare169oneCPUonlysavedTRAINlossallocation from168RESULTS and111coordinateRMS; no newforwards/updates/refits/OBS/PT/Parquet. Measure within-task poolednormalizedSSE/count/coefficientmass over all480 and predeclaredbands before choosing any correction. Keep newtraining closed.",
+  "next_action": "Execute169once under canonical CPU audit4G/512M/180s; read only168RESULTS and111LOSS_SCALES payloads. Reconstruct descriptive TRAIN per-coordinate normalizedSSE and within-task allocation, preserve all480/FLAT N/forecast4+6. No new weights or training selected; consume terminal before any next design.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -124,7 +124,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "168_COMPLETE_NEGATIVE_DIRECTION_RESULT_169_SAVED_ALLOCATION_CODE_PREPARATION",
+    "current_activity": "Execute169once under canonical CPU audit4G/512M/180s; read only168RESULTS and111LOSS_SCALES payloads. Reconstruct descriptive TRAIN per-coordinate normalizedSSE and within-task allocation, preserve all480/FLAT N/forecast4+6. No new weights or training selected; consume terminal before any next design.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7651,7 +7651,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare169oneCPUonlysavedTRAINlossallocation from168RESULTS and111coordinateRMS; no newforwards/updates/refits/OBS/PT/Parquet. Measure within-task poolednormalizedSSE/count/coefficientmass over all480 and predeclaredbands before choosing any correction. Keep newtraining closed.",
+    "next_action": "Execute169once under canonical CPU audit4G/512M/180s; read only168RESULTS and111LOSS_SCALES payloads. Reconstruct descriptive TRAIN per-coordinate normalizedSSE and within-task allocation, preserve all480/FLAT N/forecast4+6. No new weights or training selected; consume terminal before any next design.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17069,7 +17069,7 @@
       "new_model_observation_admitted": false,
       "new_training_admitted": false,
       "new_model_or_loss_correction_selected": false,
-      "latest_evidence_stage": "168_MEASURED_167_REJECTED_NEXT_MINIMAL_SAVED_LOSS_ALLOCATION_REVIEW",
+      "latest_evidence_stage": "169_CPU_SAVED_LOSS_ALLOCATION_ADMITTED_NO_TRAINING",
       "selected_single_design": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_QUERY_OWN_INITIAL_DESIGN_20261022_165/DESIGN.json",
         "sha256": "1f5a942f524a0b9a4ae7b0481acd6937ad8c16c1449663b76593067adaa84a57"
@@ -19644,7 +19644,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-22T03:52:51.409205+00:00",
+  "updated_utc": "2026-10-22T04:04:54.782072+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -23158,5 +23158,53 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_COMPARISON_20261022_168/SUMMARY.json",
       "sha256": "f58fbbcc7b30e2a74f1d0ce2ff838a02a17eda2614281169b8b0b247174aa55d"
     }
+  },
+  "dynamic_m5_saved_loss_allocation_169": {
+    "status": "ADMITTED_ONE_CPU_SAVED_TRAIN_ALLOCATION_ONLY",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/PLAN.json",
+      "sha256": "5b662964703dd996059d635b73d03e4b47ab68d6a125209431913e2f83a4c23d"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/run_loss_allocation.py",
+      "sha256": "80f7cb33568b17b77771f0868ca1f7336072237d0e6a3ee0d2d13e151974bbc6"
+    },
+    "code_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/CODE_PREPARATION_REVIEW.json",
+      "sha256": "62fe09c80312f4a826abc31e7c8475e71f704216e45adba61580f7bfb845d8f3"
+    },
+    "code_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/CODE_PEER_REVIEW.json",
+      "sha256": "4341b1477cafbb346a997af46c6878f8ea94aec013c85cc6532060ecbef6a494"
+    },
+    "implementation_route_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_COMPARISON_20261022_168/NEXT_LOSS_ALLOCATION_ROUTE_REVIEW.json",
+      "sha256": "1d85ab555a2817cba7c29d7dc1e44c446b4bfec309fd1dc82cfc57d1bf2a6829"
+    },
+    "budget": {
+      "fits": 0,
+      "input_payload_JSON_reads": 2,
+      "max_invocations": 1,
+      "max_wall_seconds": 180,
+      "memory_bytes": 4294967296,
+      "new_model_forwards": 0,
+      "new_optimizer_steps": 0,
+      "new_reverse_calls": 0,
+      "swap_bytes": 536870912
+    },
+    "execution_authorized": true,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "normalization_fit_enabled": false,
+    "native_training_admitted": false,
+    "exit_evaluation": false,
+    "test_data_used": false,
+    "broker_access_allowed": false
   }
 }

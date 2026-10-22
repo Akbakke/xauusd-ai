@@ -60,20 +60,23 @@ TERMINAL/RESULTS/SUMMARY/ACTUAL_DIRECTION_COMPARISON_PEER_REVIEW/DECISION er bun
 ble572,260/686,241/1358,138 mot151s352,477/482,464/1142,099. Alle seks parvise
 UTCdag-/ukeintervaller for MSE-endring er positive. h1korrelasjon0,011 mot0,050;
 prognosespredning20,12 motfasit7,50bps (151:17,43). TRAINs korte MSE ble også
-større, mens mye lengreTRAINretning læres bedre; det er ingen generalisering.
+større, mens mye lengreTRAINretning læres bedre; det beviser ikke generalisering.
 CONTROL-valg økte til35LONG/119SHORT/102FLAT fra29/53/174, fortsatt h1overalt.
 Valgte LONG/SHORT predterminal+13,57/+22,12 motobs−5,03/−6,40; predpreMAE9,75/
 9,29 er allerede≥obs9,46/6,74. Terminalovervurdering dominerer derfor positiv
 kandidatoptimisme i disse gruppene; sterkere MAE-penalty beviser ingen retning.
 Dette er proxykomponenter under deklarerte kostnader, ingen realisertP&L.
 
-Neste169 er foreløpig bare kodeforberedelse til CPUstudie av eksisterende
-168perkoordinat-MSE/counts +111RMS, uten nye kurver/targets/modellkall.
+169 er nå admitted for én CPUstudie av eksisterende168perkoordinat-MSE/counts
+og111RMS. PLAN/worker/forberedelse/12punkts kodepeer er bundet i policy.
+Root169: `/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169`.
+Kjør én gang med audit4G/512M/180s og nøyaktig to payloadJSON; ingen nye kurver,
+OBS/PT/Parquet, targets, modellkall, reversekall, steg eller refits.
 RMS er allerede per horisont og side; ikke én taskwide-skala. Alle480 beholdes.
 Skill poolednormalisertSSE og LONG/SHORTn/RMS²-masse fra faktiskbatch16loss,
 parametergradienter og7391stegshistorikk. FLAT har0SSE/gradient, men dens maskN
-skal ikke fjernes fra terminaldenominator. Ingen ny vekting/design er valgt.
-Før169 kreves eksakt ny PLAN/worker/kodekontroll/CPUadmission; trening er stengt.
+skal ikke fjernes fra terminaldenominator; forecast er4M5+6dagkoordinater.
+Ingen ny vekting/design er valgt. Trening/fullVAL/Exit/TEST/broker er stengt.
 
 167/EVALUATION_PLAN var låst før trening:1/5/15min primærretning, separat
 MAE/MFE/kostnad og valgte/avståtte, dag2000seed20260911/mandagsukesensitivitet.
