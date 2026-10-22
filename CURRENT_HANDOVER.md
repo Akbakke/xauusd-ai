@@ -99,15 +99,25 @@ Root171: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_BALANCE_SOURCE_QUALIF
 Bruk NATIVE_SOURCE_DELTA_CORRECTED_AST.json; originalens posisjonelle AST-detalj-
 telling var misvisende ved innsetting av funksjoner og er bevart som forberedelse.
 Ingen kilde-/matematikkfeil eller modellkjøring følger av metadatarettelsen.
-172 er admitted for én fersk CPU-konstruksjon,0genuineforwards/steg, audit4G/
-512M/7200s. Bruk siste161recipe/konstruktør og gjeldende171kildekvalifikasjon;
-111/055/data gjenbrukes uten refit eller gamle vekter. Publisherens delta-key-
-oppslag og manglende fit-eier fra originalbase ble rettet før PLAN/CLAIM;
-originale forberedelsesreviews beholdes, rettelsene er bundet i policy.
+172 er COMPLETE/consumed:122,508s CPU,0forwards/updates/refits og194fryste
+filer bevart vedHEAD491c850a/policy82b96f04. ONLINE=TARGET=EMA2eaf88… er samme
+ferske parameterstate som161, tomoptimizer/EMA0, ingen arvede vekter. Dette er
+stateidentitet; aktuelle nativeforwards/paritet/læring er fortsatt ubevist.
 Root172: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_FRESH_PREPARATION_20261022_172`.
-Framtidig initialdestinasjon er173/BUNDLE. Før173 kreves faktisk172terminal/
-freshpeer og egen eksakt initialadmission med ny fysisk Windowsboot.
-Ingen native modellobservasjon, trening, fullVAL, Exit, TEST eller broker er admitted.
+RESULT/CONTROLLER_TERMINAL/WORKER_TERMINAL/ACTUAL_FRESH_PEER_REVIEW og aktuell
+SOURCE_CLOSURE_REVIEW er bundet.111/055/data og161konstruktør gjenbrukes uten
+refit. Forberedelsens delta-key/base-fit-eier ble rettet før PLAN/CLAIM;
+originale reviews og rettelsene bevares. Alle183roller er aktuelle.
+
+173 er admitted betinget én32forwards/0updates initialmåling på samme faste
+TRAIN256/CONTROL256 og alle480horisonter fra172freshstate. Ny sourcebinding
+9b17b25c… og15-nøkkel globalinitialmap skal være eksakt policy==PLAN==canonical.
+Root173: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173`.
+Recipeforsegling/campaign er bare metadataforberedelse. Før native kreves
+verifisert ledig maskin, egen ny fysisk Windowsboot, aktuell signert telemetri
+og eksakt kilde-/hardware-/campaignbinding. Ingen optimizersteg eller hovedepoke
+følger av173. Trening/fullVAL/Exit/TEST/broker er stengt;163forblir avvist.
+
 Fersk kildebundet CPU-publisering, aktuelle initial-/paritets-/resumegater og
 eksakt ny engangsadgang kreves før et eventuelt matchet167-budsjettforsøk.
 
