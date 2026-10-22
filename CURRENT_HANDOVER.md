@@ -35,27 +35,31 @@ ble eksplisitt deaktivert etter terminal og0identifiserte prosjektprosesser.
 TERMINAL.json og ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json er bundet i policy.
 
 Root166: `/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166`.
-167 er nå eneste nye hovedadmission under165: samme118249TRAIN-rader,
-batch16/slutt9,7391steg,32sluttforwards på fasteTRAIN256/CONTROL256 og samme
-seed/LR/TRAIN-RMS. `training_enabled=true/full_epoch_training_allowed=true`
-gjelder bare dette ene nye forsøket. FullVAL/Exit/TEST/broker er stengt.
-Gjenbruk161fresh,162egeninitial og separat bestått163state/RNG/canonicalaudit;
-ingen privat166vekt eller gjenbruk av konsumerte117/151-tillatelser.
-
-PLAN/CONTINUOUS_GOAL_AUTHORITY/EVALUATION_PLAN og peer med17beståtte kontroller
-er bundet i policy. Før sealing ble én feil statusstreng i metadata-sealeren
-rettet til original163FAILED_NO_ADMISSION/exit1; ingen kvittering ble omskrevet
-og ingen jobb/claim hadde startet. Produksjonskode/183closure er uendret.
-Måleplanen låser1/5/15min retning/kalibrering og separatMAE/MFE/kostnad/
-LONG-SHORT-FLAT-dekning, med parvise kalenderdagblokker og ukesensitivitet.
-Alle26måneder er gjenbrukt utvikling; ingen ny generaliserings-/økonomipåstand.
+167 er COMPLETE og consumed: én faktisk registrert epoke med118249unikeTRAIN-
+rader, batch16/slutt9,7391steg og32sluttforwards på TRAIN256/CONTROL256.
+Nativepausekvittering, sluttresultat, logg og18peer-kontroller er enige.
+Ytre6109,949s/native6010,822s; guard/trainer/observer PASS/0/0.4936samples,
+topper57Ccore/66Cmemory/134,05Wdraw/1804MiB; alleobserverte fysiskegrenser160W.
+Alle183hash/stat/path og frystHEAD3ceaa171/policy8855de74 ble bevart.
+Boot523 ble bekreftet; TaskReady/Last0 ble deretter eksplisitt Disabled etter
+terminal og0identifiserte prosjektprosesser. Fersk161/egen162baseline og frossen
+targetanker2eaf er bevart; ingen privat166vekt eller ekstraepoke er brukt.
 
 Root167: `/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167`.
-Neste: forsegl recipe og strict20globalmap, materialiser/installér én canonical
-campaign, bekreft aktuelle signerte vakter og maskinvid tomgang, og bruk ny fysisk
-Windowsboot etter forberedt522. Kilde/policy fryses fra commit/seal til terminal.
-Stabil langkjøring kontrolleres omtrent hver15.–30.minutt; ingen minuttpolling.
-Ingen blind ekstraepoke/HPO eller automatisk forlengelse er innrømmet.
+TERMINAL/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW og FINALRESULT er bundet i policy.
+`training_enabled=false/full_epoch_training_allowed=false`; ingen relaunch,
+videreepoke eller automatisk forlengelse. FullVAL/Exit/TEST/broker er stengt.
+
+Neste er168CPU-audit av lagret egen162initial,167FINAL og151FINAL, begge roller.
+167/EVALUATION_PLAN ble låst før trening:1/5/15min retning/kalibrering, separat
+MAE/MFE/kostnad og LONG/SHORT/FLAT valgte/avståtte, parvise UTCkalenderdag-
+intervaller og ukesensitivitet. Lengre horisonter er støtte/alltidLONG-reference.
+Gjenbruk152/153/canonicalvalidator; ny audit må eksplisitt innrømme seks
+parentpointer-projeksjoner av kun `dynamic_entry_m1_row` (tre perrolle).
+Ingen OBS-/Parquetpayload åpnes før eksakt168PLAN/worker/binding/CPUadmission.
+Ingen nye forwards, PT/råMBP/targets/sekvenslesinger, refits eller terskelvalg.
+Alle26måneder er gjenbrukt utvikling. Bedre retning/kalibrering/kvalitet/dekning,
+generalisering og edge er fortsatt ubevist og avgjøres ikke av tekniskPASS.
 
 ## Faktisk evidens som gjenbrukes
 
