@@ -21,7 +21,7 @@ from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_training_objective_v14"
+SCHEMA_VERSION = "entry_model_native_training_objective_v15"
 JOINT_FITTED_Q_TRAINING_PHASE = "joint_fitted_q"
 ENTRY_ONLY_TRAINING_PHASE = "entry_only"
 ENTRY_ONLY_M5_PATH_TRAINING_PHASE = "entry_only_observed_m5_path"
@@ -121,7 +121,9 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
     if phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
         from gx1.contracts.entry_observed_market_v1 import entry_observed_dynamic_m5_path_contract
         from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_ENDPOINT_KINDS
-        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_loss_scale_contract
+        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+            dynamic_m5_loss_scale_contract, dynamic_m5_terminal_horizon_objective_contract,
+        )
         expected.update({
             "all_advertised_heads_supervised": True,
             "active_joint_task_names": list(active_joint_task_names(phase)),
@@ -134,6 +136,8 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
                 for name in DYNAMIC_M5_JOINT_TASK_NAMES
             },
             "dynamic_loss_unit_contract": dynamic_m5_loss_scale_contract(),
+            "dynamic_terminal_optimizer_objective": dynamic_m5_terminal_horizon_objective_contract(),
+            "pooled_TRAIN_RMS_component_diagnostics_preserved": True,
             "train_fitted_loss_scales": True,
             "raw_bps_component_diagnostics_preserved": True,
             "dynamic_path_endpoint_kinds": list(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS),
@@ -147,6 +151,9 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
             "inactive_legacy_auxiliary_heads": ["entry_action_q", "position_size", "dip", "timing", "tail_risk", "vol_forecast", "side_mae", "trendline_event"],
             "long_horizon_forecasts": "independently_masked_learning_support_without_entry_authority",
         })
+        expected["dynamic_component_losses"]["dynamic_terminal_net_markout_bps"] = (
+            "mean_nonempty_terminal_horizon_group_TRAIN_RMS_squared_error"
+        )
     return expected
 
 

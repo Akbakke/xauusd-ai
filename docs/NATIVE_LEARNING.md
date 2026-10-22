@@ -217,6 +217,36 @@ Exit-vekter. Bruk allerede beståtte uendrede kontroller; en ny funksjon krever
 ferske funksjonsbevis. Nøyaktig nåstatus og eventuelt uavklart målvalg finnes
 bare i CURRENT_HANDOVER.md/NEXT_RUN_POLICY.json.
 
+## Valgt terminalgruppering etter169
+
+169 viser på fast TRAIN256 at terminalens pooled TRAIN-RMS-feil faller fra
+0,726107 til0,566106 samtidig som1–15min-feilen stiger fra0,728875 til1,602966.
+Dette dokumenterer kompensasjon mellom horisonter i samlet tapsverdi; det
+beviser ingen faktisk parametergradientdominans eller treningshistorisk årsak.
+
+170/DESIGN velger derfor ett avgrenset forsøk: bare terminalens optimizerobjective
+blir aritmetisk snitt av de observerte gruppemidlene for1–15 og16–480min.
+Hvert middel bruker ekte terminalmasker og fryste111RMS. Analytisk FLAT har
+null residual og inngår i gruppens sanne denominator. To observerte grupper
+vektes likt; én observert gruppe gir sitt middel; ingen utelater terminaltasken
+og dens+s. Gruppegrense og lik vekting er faste designvalg før ny kjøring,
+ikke målte optimale parametere. Alle480horisonter og hele minutt-til-timer-
+prisforløpet beholdes. Ingen gruppe er en Exit- eller holdetidsregel.
+
+Eksisterende rawbps- og pooled TRAIN-RMS-metrikker skal beholde sin definisjon.
+Gruppert optimizerobjective rapporteres separat, med sanne gruppe-N og antall
+batcher med null, én eller to observerte grupper. Batchradvektet objective må
+ikke kalles pooled SSE/N. Terminalens eksisterende lærte presisjon og ett+s
+beholdes; MFE/MAE-endepunktpooling og forecast4M5+6dag er uendret.111artefaktens
+baseenheter/kontrakt og inputnormalisering gjenbrukes uten refit.
+
+Ny kilde, fersk publisering, aktuell initial-/funksjonsparitet og privat
+Entry-only optimizer/resume må kvalifiseres før eventuell trening. Ett matchet
+budsjettforsøk må sammenlignes mot egeninitial og167 på identiske deklarerte
+rader/masker. Forbedret optimizerobjective alene kvalifiserer ingen retning;
+1/5/15min-retning, amplitudekalibrering, MAE/MFE og LONG/SHORT/FLAT-kvalitet
+sammen med dekning er fortsatt nødvendige mål. Faktisk status eies av policy.
+
 ## Sammenligning av læring og loss-enheter
 
 Før/etter-readout bruker samme frosne kohorter, targets, masker og counts.

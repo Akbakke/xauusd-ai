@@ -86,7 +86,17 @@ Alle480, ekteFLAT-N, åtte familier+makro, øvrige tre tasks, rawbps/pooledunit-
 diagnostikk, inputs/targets/masker og score beholdes. Ny optimizerobjective og
 gruppe-N/én-/togruppebatcher skal ha egne navn; ikke kall balancedmean pooled.
 Root170: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_BALANCE_DESIGN_20261022_170`.
-DESIGN er bundet i policy; bare tre navngitte kildefiler+fokusert test er åpnet.
+DESIGN er bundet i policy.170 er implementert i tre navngitte kildefiler,
+med ny fokusert test og minste reparasjon av gammel gatefixture/forventetlabel.
+Modellarkitektur/RNG er uendret. Ny treningskontraktv15 binder terminalobjective;
+111basekontrakt/pooledhelper/jointscalarizer er bevart. Ny optimizer-evidens er
+per train_epoch-kall/én kurvevalidering, aldri påstått samlet7391stegshistorikk.
+171 har én eksakt audit4G/512M/1800s-kontrollrunde admitted; ingen nativekall.
+Alle183roller er bundet; nøyaktig tre roller er endret,180andre byte/stat er like.
+Root171: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_HORIZON_BALANCE_SOURCE_QUALIFICATION_20261022_171`.
+Bruk NATIVE_SOURCE_DELTA_CORRECTED_AST.json; originalens posisjonelle AST-detalj-
+telling var misvisende ved innsetting av funksjoner og er bevart som forberedelse.
+Ingen kilde-/matematikkfeil eller modellkjøring følger av metadatarettelsen.
 Ingen modellobservasjon, trening, fullVAL, Exit, TEST eller broker er admitted.
 Fersk kildebundet CPU-publisering, aktuelle initial-/paritets-/resumegater og
 eksakt ny engangsadgang kreves før et eventuelt matchet167-budsjettforsøk.

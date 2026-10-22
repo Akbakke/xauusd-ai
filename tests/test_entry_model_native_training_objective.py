@@ -154,8 +154,11 @@ def test_dynamic_objective_matches_existing_quality_bps_candidate_without_native
     assert value["dynamic_candidate_has_supervised_target"] is False
     assert value["train_fitted_loss_scales"] is True
     assert value["raw_bps_component_diagnostics_preserved"] is True
-    assert set(value["dynamic_component_losses"].values()) == {
-        "independently_masked_TRAIN_target_RMS_scaled_squared_error"}
+    assert value["dynamic_component_losses"] == {
+        "dynamic_terminal_net_markout_bps": "mean_nonempty_terminal_horizon_group_TRAIN_RMS_squared_error",
+        **{name: "independently_masked_TRAIN_target_RMS_scaled_squared_error"
+           for name in ("dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps", "forecast_return_bps")},
+    }
     assert value["dynamic_loss_unit_contract"]["fit_partition"] == "train"
     assert value["dynamic_loss_unit_contract"]["raw_target_and_output_units"] == "bps"
     assert value["dynamic_loss_unit_contract"]["centering"] is False
@@ -279,6 +282,13 @@ def _dynamic_gate_execution_case(monkeypatch, tmp_path, *, compact):
         {name: out["synthetic_loss"] for name in tasks},
         {name: int(batch["seq_x"].shape[0]) for name in tasks},
     ))
+    def optimizer_gate_only_loss(out, batch, device, *, pooled_task_losses):
+        # Gate-execution fixture only: keep the injected fake task losses and
+        # their synthetic count. Real terminal group math is tested separately.
+        return dict(pooled_task_losses), {
+            "early_1_15": int(batch["seq_x"].shape[0]), "later_16_480": 0,
+        }
+    monkeypatch.setattr(trainer, "_dynamic_m5_optimizer_task_losses", optimizer_gate_only_loss)
     model = Model()
     return SimpleNamespace(trainer=trainer, model=model, target=ForbiddenTarget(),
                            loader=Loader(), widths=widths, shape=shape, calls=calls,

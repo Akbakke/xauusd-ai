@@ -582,6 +582,29 @@ def _dynamic_m5_task_loss_surfaces(out, batch, device, *, loss_units="raw_bps"):
     return {name: value / cells[name] for name, value in sums.items()}, cells
 
 
+def _dynamic_m5_optimizer_task_losses(out, batch, device, *, pooled_task_losses):
+    """Replace only terminal's pooled unit loss with its declared optimizer reduction."""
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+        DYNAMIC_M5_LOSS_SCALE_BATCH_KEY, dynamic_m5_terminal_horizon_objective,
+    )
+    from gx1.contracts.entry_observed_market_v1 import DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY
+    scale_context = batch.get(DYNAMIC_M5_LOSS_SCALE_BATCH_KEY)
+    target, valid = batch.get(DYNAMIC_M5_MARKOUT_TARGET_KEY), batch.get(DYNAMIC_M5_MARKOUT_VALID_KEY)
+    if (not isinstance(scale_context, Mapping) or set(scale_context) != {"identity", "rms"}
+            or not isinstance(scale_context["rms"], Mapping)
+            or not isinstance(target, torch.Tensor) or not isinstance(valid, torch.Tensor)):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_TERMINAL_OPTIMIZER_INPUT_INVALID")
+    terminal, group_cells = dynamic_m5_terminal_horizon_objective(
+        out.get("dynamic_terminal_net_markout_bps"), target.detach().to(device), valid.detach().to(device),
+        rms=scale_context["rms"].get("dynamic_terminal_net_markout_bps"))
+    losses = dict(pooled_task_losses)
+    if (terminal is not None) != ("dynamic_terminal_net_markout_bps" in losses):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_TERMINAL_OPTIMIZER_MASK_MISMATCH")
+    if terminal is not None:
+        losses["dynamic_terminal_net_markout_bps"] = terminal
+    return losses, group_cells
+
+
 def _joint_task_loss(
     model: nn.Module,
     task_losses: Mapping[str, torch.Tensor],
@@ -10118,6 +10141,7 @@ def train_epoch(
     dynamic_phase = _dynamic_m5_dataset_phase(dataset)
     dynamic_evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE) if dynamic_phase else None
     dynamic_unit_evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE) if dynamic_phase else None
+    dynamic_optimizer_evidence = _new_dynamic_m5_optimizer_loss_evidence() if dynamic_phase else None
     if dynamic_phase:
         _require_dynamic_m5_dataset_loss_scales(dataset)
         if getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
@@ -10303,11 +10327,13 @@ def train_epoch(
         if dynamic_phase:
             batch = _materialize_dynamic_m5_batch_targets(batch, dataset)
             raw_losses, dynamic_cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
-            task_losses, unit_cells = _dynamic_m5_task_loss_surfaces(out, batch, device, loss_units="train_rms")
+            pooled_task_losses, unit_cells = _dynamic_m5_task_loss_surfaces(out, batch, device, loss_units="train_rms")
             if unit_cells != dynamic_cells:
                 raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALE_DENOMINATOR_CHANGED")
+            task_losses, terminal_group_cells = _dynamic_m5_optimizer_task_losses(
+                out, batch, device, pooled_task_losses=pooled_task_losses)
             _accumulate_dynamic_m5_loss_evidence(dynamic_evidence, raw_losses, dynamic_cells)
-            _accumulate_dynamic_m5_loss_evidence(dynamic_unit_evidence, task_losses, dynamic_cells)
+            _accumulate_dynamic_m5_loss_evidence(dynamic_unit_evidence, pooled_task_losses, dynamic_cells)
             _accumulate_cooperation_gate_epoch(cooperation_gate_epoch, out, **cooperation_gate_kwargs)
             _accumulate_feature_tf_gate_epoch(feature_tf_gate_epoch, out, **feature_gate_kwargs)
             entry_action_q_loss = None
@@ -10455,6 +10481,9 @@ def train_epoch(
             task_supervision_observed[task_name] = True
         loss, _joint_task_stats = _joint_task_loss(model, task_losses,
             **({"loss_units": "train_rms"} if dynamic_phase else {}))
+        if dynamic_phase:
+            _accumulate_dynamic_m5_optimizer_loss_evidence(dynamic_optimizer_evidence,
+                task_losses, terminal_group_cells, batch_rows=int(batch["seq_x"].shape[0]))
         exit_supervised = not entry_only and int(unified_exit_stats["q_valid_cells"]) > 0
         if exit_supervised:
             task_supervision_observed["unified_exit_action"] = True
@@ -10630,6 +10659,8 @@ def train_epoch(
                         "partial": True,
                         "batches_completed": _absolute_batch_i,
                         "optimizer_steps_this_session": _optimizer_steps_this_call,
+                        **(_finalize_dynamic_m5_optimizer_loss_evidence(dynamic_optimizer_evidence)
+                           if dynamic_phase else {}),
                         **({"candidate_learning_diagnostics": _learning_diagnostics}
                            if _learning_diagnostics is not None else {}),
                     },
@@ -10790,6 +10821,7 @@ def train_epoch(
                 stats.pop(key)
         stats.update(_finalize_joint_task_loss_evidence(dynamic_evidence))
         stats.update(_finalize_dynamic_m5_unit_loss_evidence(dynamic_unit_evidence, dataset))
+        stats.update(_finalize_dynamic_m5_optimizer_loss_evidence(dynamic_optimizer_evidence))
         stats["dynamic_candidate_native_authority_admitted"] = False
     if _learning_diagnostics is not None:
         stats["candidate_learning_diagnostics"] = _learning_diagnostics
@@ -11359,6 +11391,45 @@ def _finalize_dynamic_m5_unit_loss_evidence(accumulator, dataset):
                for key, value in raw_keys.items() if key.startswith("joint_task_raw_loss_mean_")},
         "dynamic_m5_loss_scales": copy.deepcopy(dataset._entry_dynamic_m5_loss_scale_identity),
         "dynamic_loss_residual_units": "TRAIN_target_RMS_units"}
+
+
+def _new_dynamic_m5_optimizer_loss_evidence():
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_terminal_horizon_objective_contract
+    contract = dynamic_m5_terminal_horizon_objective_contract()
+    return {"objective_contract": contract,
+        "aggregation_scope": "current_train_epoch_call_or_single_curve_validation_pass_no_cross_invocation_history",
+        "group_observed_cells": {row["name"]: 0 for row in contract["groups"]},
+        "nonempty_group_batches": {"none": 0, "one": 0, "two": 0},
+        "processed_batch_rows": 0, "active_terminal_batch_rows": 0,
+        "batch_row_weighted_sum": 0.0}
+
+
+def _accumulate_dynamic_m5_optimizer_loss_evidence(accumulator, task_losses, group_cells, *, batch_rows):
+    if (type(batch_rows) is not int or batch_rows < 1 or not isinstance(group_cells, Mapping)
+            or set(group_cells) != set(accumulator["group_observed_cells"])
+            or any(type(n) is not int or n < 0 for n in group_cells.values())):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_TERMINAL_OPTIMIZER_EVIDENCE_INVALID")
+    nonempty = sum(n > 0 for n in group_cells.values())
+    terminal = task_losses.get("dynamic_terminal_net_markout_bps")
+    if ((terminal is not None) != (nonempty > 0) or (terminal is not None
+            and (not isinstance(terminal, torch.Tensor) or terminal.numel() != 1
+                 or not bool(torch.isfinite(terminal).all())))):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_TERMINAL_OPTIMIZER_EVIDENCE_INVALID")
+    accumulator["nonempty_group_batches"][("none", "one", "two")[nonempty]] += 1
+    accumulator["processed_batch_rows"] += batch_rows
+    for name, n in group_cells.items():
+        accumulator["group_observed_cells"][name] += n
+    if terminal is not None:
+        accumulator["active_terminal_batch_rows"] += batch_rows
+        accumulator["batch_row_weighted_sum"] += float(terminal.detach()) * batch_rows
+
+
+def _finalize_dynamic_m5_optimizer_loss_evidence(accumulator):
+    evidence = copy.deepcopy(accumulator)
+    total = evidence.pop("batch_row_weighted_sum")
+    rows = evidence["active_terminal_batch_rows"]
+    evidence["batch_row_weighted_terminal_optimizer_objective_mean"] = total / rows if rows else None
+    return {"dynamic_m5_terminal_optimizer_objective": evidence}
 
 
 def _finalize_joint_task_loss_evidence(
@@ -12884,6 +12955,7 @@ def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
     _require_dynamic_m5_dataset_loss_scales(dataset)
     evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     unit_evidence = _new_active_head_epoch_accumulator(entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+    optimizer_evidence = _new_dynamic_m5_optimizer_loss_evidence()
     cooperation_gate_kwargs, feature_gate_kwargs = _dynamic_m5_gate_execution_kwargs(model)
     cooperation = _new_cooperation_gate_epoch_accumulator(**cooperation_gate_kwargs)
     feature_gate = _new_feature_tf_gate_epoch_accumulator(**feature_gate_kwargs)
@@ -12896,12 +12968,16 @@ def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
                 ctx_cat=batch["ctx_cat"].to(device), ctx_cont=batch["ctx_cont"].to(device),
                 **_multi_tf_kwargs_from_batch(batch, device))
             raw_losses, cells = _dynamic_m5_task_loss_surfaces(out, batch, device)
-            losses, unit_cells = _dynamic_m5_task_loss_surfaces(out, batch, device, loss_units="train_rms")
+            pooled_losses, unit_cells = _dynamic_m5_task_loss_surfaces(out, batch, device, loss_units="train_rms")
             if cells != unit_cells:
                 raise RuntimeError("ENTRY_DYNAMIC_M5_LOSS_SCALE_DENOMINATOR_CHANGED")
+            losses, terminal_group_cells = _dynamic_m5_optimizer_task_losses(
+                out, batch, device, pooled_task_losses=pooled_losses)
             loss, _ = _joint_task_loss(model, losses, loss_units="train_rms")
+            _accumulate_dynamic_m5_optimizer_loss_evidence(optimizer_evidence,
+                losses, terminal_group_cells, batch_rows=int(batch["seq_x"].shape[0]))
             _accumulate_dynamic_m5_loss_evidence(evidence, raw_losses, cells)
-            _accumulate_dynamic_m5_loss_evidence(unit_evidence, losses, cells)
+            _accumulate_dynamic_m5_loss_evidence(unit_evidence, pooled_losses, cells)
             _accumulate_cooperation_gate_epoch(cooperation, out, **cooperation_gate_kwargs)
             _accumulate_feature_tf_gate_epoch(feature_gate, out, **feature_gate_kwargs)
             size = int(batch["seq_x"].shape[0])
@@ -12927,6 +13003,7 @@ def _validate_dynamic_m5_curves(model, loader, device, *, batch_observer=None):
         "realized_cash_or_native_policy_evaluated": False}
     stats.update(_finalize_joint_task_loss_evidence(evidence))
     stats.update(_finalize_dynamic_m5_unit_loss_evidence(unit_evidence, dataset))
+    stats.update(_finalize_dynamic_m5_optimizer_loss_evidence(optimizer_evidence))
     stats.update(_finalize_cooperation_gate_epoch(cooperation, **cooperation_gate_kwargs))
     stats.update(_finalize_feature_tf_gate_epoch(feature_gate))
     return total / rows, float("nan"), float("nan"), float("nan"), stats

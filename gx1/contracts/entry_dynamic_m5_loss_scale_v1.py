@@ -17,6 +17,7 @@ from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256
 DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY = "dynamic_m5_loss_scales"
 DYNAMIC_M5_LOSS_SCALE_BATCH_KEY = "_dynamic_m5_loss_scales"
 SCHEMA_VERSION = "gx1_dynamic_m5_train_target_rms_loss_units_v1"
+DYNAMIC_M5_TERMINAL_HORIZON_GROUPS = (("early_1_15", 1, 15), ("later_16_480", 16, 480))
 SURFACE_NAMES = (
     "dynamic_terminal_net_markout_bps", "dynamic_mfe_bps",
     "dynamic_pre_mfe_mae_upper_bps", "dynamic_closed_mfe_bps",
@@ -238,7 +239,8 @@ def dynamic_m5_loss_scale_identity(loaded: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def dynamic_m5_scaled_square_sum(prediction: torch.Tensor, target: torch.Tensor, valid: torch.Tensor,
-                                 *, surface: str, rms: torch.Tensor) -> tuple[torch.Tensor, int]:
+                                 *, surface: str, rms: torch.Tensor,
+                                 terminal_query_range: tuple[int, int] | None = None) -> tuple[torch.Tensor, int]:
     """Scale errors only; the known FLAT residual contributes zero to its old count."""
     if surface not in SURFACE_NAMES:
         raise RuntimeError("DYNAMIC_M5_LOSS_SCALE_SURFACE_INVALID")
@@ -259,9 +261,57 @@ def dynamic_m5_scaled_square_sum(prediction: torch.Tensor, target: torch.Tensor,
         if (tuple(prediction.shape[1:]) != (shape[0], 3) or bool((prediction[...,2] != 0).any())
                 or bool((target[...,2] != 0).any()) or not torch.equal(valid[...,2], valid[...,0] & valid[...,1])):
             raise RuntimeError("DYNAMIC_M5_LOSS_SCALE_RUNTIME_FLAT_INVALID")
+        if terminal_query_range is not None:
+            if (type(terminal_query_range) is not tuple or len(terminal_query_range) != 2
+                    or any(type(x) is not int for x in terminal_query_range)
+                    or terminal_query_range not in tuple((a, b) for _, a, b in DYNAMIC_M5_TERMINAL_HORIZON_GROUPS)):
+                raise RuntimeError("DYNAMIC_M5_TERMINAL_QUERY_RANGE_INVALID")
+            start, end = terminal_query_range
+            prediction, target, valid = (x[:, start-1:end] for x in (prediction, target, valid))
+            rms = rms[start-1:end]
+            count = int(valid.sum())  # Count genuine LONG/SHORT/analytic-FLAT before slicing sides.
         prediction, target, valid = prediction[...,:2], target[...,:2], valid[...,:2]
+    elif terminal_query_range is not None:
+        raise RuntimeError("DYNAMIC_M5_TERMINAL_QUERY_RANGE_INVALID")
     elif tuple(prediction.shape[1:]) != shape:
         raise RuntimeError("DYNAMIC_M5_LOSS_SCALE_RUNTIME_SHAPE_INVALID")
     if "pre_mfe_mae" in surface and (bool((prediction < 0).any()) or bool((target[valid] < 0).any())):
         raise RuntimeError("DYNAMIC_M5_LOSS_SCALE_NEGATIVE_MAE")
     return (((prediction-target)/rms)[valid]).square().sum(), count
+
+
+def dynamic_m5_terminal_horizon_objective_contract() -> dict[str, Any]:
+    """The selected terminal reduction; the frozen111 loss-unit owner is unchanged."""
+    value = {
+        "schema_version": "gx1_dynamic_m5_terminal_horizon_objective_v1",
+        "task": "dynamic_terminal_net_markout_bps",
+        "groups": [{"name": name, "query_minutes": [start, end]}
+                   for name, start, end in DYNAMIC_M5_TERMINAL_HORIZON_GROUPS],
+        "residual_units": "TRAIN_target_RMS_units",
+        "loss_unit_contract_sha256": dynamic_m5_loss_scale_contract()["contract_sha256"],
+        "group_numerator": "sum_observed_LONG_SHORT_scaled_squared_residuals",
+        "group_denominator": "true_observed_LONG_SHORT_analytic_FLAT_cells",
+        "reduction": "arithmetic_mean_of_nonempty_group_means",
+        "one_nonempty_group": "that_group_mean",
+        "no_nonempty_groups": "omit_terminal_task_and_its_log_variance_term",
+        "joint_task_precision": "existing_exp_minus_s_times_objective_plus_s_once_per_active_terminal_task",
+        "raw_and_pooled_TRAIN_RMS_diagnostics_preserved": True,
+        "optimizer_objective_is_pooled_SSE_over_N": False,
+        "epsilon_clipping_or_unit_fallback": False,
+        "native_decision_authority_granted": False,
+    }
+    return {**value, "contract_sha256": canonical_sha256(value)}
+
+
+def dynamic_m5_terminal_horizon_objective(prediction: torch.Tensor, target: torch.Tensor,
+                                        valid: torch.Tensor, *, rms: torch.Tensor
+                                        ) -> tuple[torch.Tensor | None, dict[str, int]]:
+    """Mean observed early/later group means, with the true FLAT-inclusive counts."""
+    means, cells = [], {}
+    for name, start, end in DYNAMIC_M5_TERMINAL_HORIZON_GROUPS:
+        squared, count = dynamic_m5_scaled_square_sum(prediction, target, valid,
+            surface="dynamic_terminal_net_markout_bps", rms=rms, terminal_query_range=(start, end))
+        cells[name] = count
+        if count:
+            means.append(squared / count)
+    return (torch.stack(means).mean() if len(means) == 2 else means[0] if means else None), cells
