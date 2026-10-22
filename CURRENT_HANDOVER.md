@@ -113,6 +113,11 @@ originale reviews og rettelsene bevares. Alle183roller er aktuelle.
 TRAIN256/CONTROL256 og alle480horisonter fra172freshstate. Ny sourcebinding
 9b17b25c… og15-nøkkel globalinitialmap skal være eksakt policy==PLAN==canonical.
 Root173: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173`.
+Første recipeforsegling stoppet før publisering: root bandt183-rollematrisen
+inline der sealer krever filreferanse. Originalbinding/logg og egen feilterminal
+bevares;0modellkall/steg/native. Ny metadatarettelsesplan er admitted én gang:
+bare ny bindingfil med korrekt path/SHA og ett tilsvarende filename-literal i
+sealerskopien. Algoritmen er ellers byteidentisk; ingen modell-/tapsendring.
 Recipeforsegling/campaign er bare metadataforberedelse. Før native kreves
 verifisert ledig maskin, egen ny fysisk Windowsboot, aktuell signert telemetri
 og eksakt kilde-/hardware-/campaignbinding. Ingen optimizersteg eller hovedepoke

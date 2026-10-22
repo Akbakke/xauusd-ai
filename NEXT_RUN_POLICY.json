@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-22T03:52:51.409205+00:00",
-  "status": "172_FRESH_CONSUMED_173_INITIAL32_CONDITIONAL_CAMPAIGN_BOOT_ADMISSION",
+  "status": "173_INITIAL_UNCONSUMED_BINDING_TYPE_METADATA_REPAIR_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -19649,7 +19649,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-22T04:48:30.390432+00:00",
+  "updated_utc": "2026-10-22T04:50:44.789344+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -23410,7 +23410,7 @@
     }
   },
   "dynamic_m5_terminal_balance_initial_173": {
-    "status": "ADMITTED_ONE_INITIAL32_AFTER_EXACT_CAMPAIGN_HARDWARE_FRESH_BOOT",
+    "status": "INITIAL_NATIVE_UNCONSUMED_ONE_NEW_BINDING_TYPE_METADATA_REPAIR_ADMITTED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173/PLAN.json",
       "sha256": "9ebc94915d055bea7165925ebb4b639985921d9da61b8217663e788265369f37"
@@ -23418,8 +23418,8 @@
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173",
     "recipe_binding_authorized": true,
     "sealer": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173/seal_current_initial_recipe.py",
-      "sha256": "7bf8f21c9f339f66c5b610c443401e351f1dffe9d6892c5dbbad1e773e20b5ba"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173/seal_current_initial_recipe_binding_repair.py",
+      "sha256": "0fbc066721710b5568eb2b5f46c0d7760b5499c7ca8f61c66c0ce4946468b312"
     },
     "controller": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173/run_materialize_campaign.py",
@@ -23451,6 +23451,34 @@
     "native_training_admitted": false,
     "test_data_used": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "original_recipe_sealer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173/seal_current_initial_recipe.py",
+      "sha256": "7bf8f21c9f339f66c5b610c443401e351f1dffe9d6892c5dbbad1e773e20b5ba"
+    },
+    "original_seal_attempt_consumed": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173/RECIPE_SEAL_PRECLAIM_FAILURE_TERMINAL.json",
+      "sha256": "0b021055b122386798f140bfcbb15070be53c3f9f84de0af8e80c30ad455c4cf"
+    },
+    "recipe_seal_binding_repair_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173/RECIPE_SEAL_BINDING_REPAIR_PLAN.json",
+      "sha256": "dbc2e3da260558ee1ebda90784702681bcbeaebfc28bb4a80cdf37cc39e5f116"
+    }
+  },
+  "dynamic_m5_terminal_balance_recipe_seal_binding_repair_173": {
+    "status": "ADMITTED_ONE_METADATA_BINDING_TYPE_REPAIR",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173/RECIPE_SEAL_BINDING_REPAIR_PLAN.json",
+      "sha256": "dbc2e3da260558ee1ebda90784702681bcbeaebfc28bb4a80cdf37cc39e5f116"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "native_training_admitted": false,
+    "model_forwards": 0,
+    "optimizer_updates": 0
   }
 }
