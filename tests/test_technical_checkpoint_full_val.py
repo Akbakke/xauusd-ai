@@ -336,3 +336,117 @@ def test_direction_v2_physical_scope_requires_both_groups_before_any_forward(mis
     assert bool(batch["dynamic_closed_path_observed"].all())
     with pytest.raises(RuntimeError, match="PHYSICAL_TERMINAL_GROUP_COVERAGE"):
         direction._require_native170_physical_batch(batch)
+
+
+def _direction_v3_origin_fixture():
+    from gx1.audit import dynamic_m5_direction_witness_v1 as direction
+    ref = lambda name: {"path": "/source-only/" + name, "sha256": "a" * 64}
+    origin = {"constructor_metadata": ref("147-constructor.json"),
+        "final_online_result": ref("151-final.json"), "online_model_state_sha256": "b" * 64}
+    scope = {"schema_version": direction.SCOPE_SCHEMA_V3, "packet_origin": origin,
+        "constructor_metadata": ref("172-constructor.json"), "final_online_result": ref("177-final.json"),
+        "normalization": ref("055-normalization.json"), "loss_scales": ref("111-scales.json"),
+        "input_packet": ref("157-packet.npz"), "input_packet_metadata": ref("157-metadata.json"),
+        "parity_reference": ref("177-TRAIN_OBSERVATION.json"),
+        "session": {"online_model_state_sha256": "e" * 64}}
+    metadata = {"constructor_metadata": origin["constructor_metadata"],
+        "final_online_result": origin["final_online_result"],
+        "reference_online_model_state_sha256": origin["online_model_state_sha256"],
+        "normalization": scope["normalization"], "loss_scales": scope["loss_scales"],
+        "genuine_rows": 16, "padding_rows": 0, "input_sha256": "c" * 64, "target_sha256": "d" * 64}
+    design = {"schema_version": "gx1_trained_input_consumption_design_v1", "execution_authorized": False,
+        "execution_constructor": scope["constructor_metadata"], "origin_constructor": origin["constructor_metadata"],
+        "state": {"final_online_result": scope["final_online_result"],
+                  "online_model_state_sha256": scope["session"]["online_model_state_sha256"]},
+        "parity_reference": scope["parity_reference"],
+        "inputs": {"packet": scope["input_packet"], "metadata": scope["input_packet_metadata"],
+                   "input_sha256": metadata["input_sha256"], "target_sha256": metadata["target_sha256"]}}
+    fields = ("architecture_control_source", "architecture_scalar_fields", "ctx_cat_dim", "ctx_cont_dim",
+        "current_input_sources", "dropout", "entry_execution_profile", "fits", "multi_tf",
+        "seq_input_dim", "seq_len", "snap_input_dim", "specialist_fusion")
+    constructor = {field: "unchanged-physical-contract-" + field for field in fields}
+    proof = {"packet_origin_constructor147": origin["constructor_metadata"],
+        "execution_constructor172": scope["constructor_metadata"],
+        **{k: True for k in ("same055_normalization", "same057_native_coordinates",
+            "same111_artifact_contract_fitlineage_identity", "same_physical_train_ref",
+            "same_ten_physical_file_refs_excluding_constructor",
+            "same_chronological_prefix_057_observed104_population_witness_profile_dataset111")}}
+    equivalence = {"schema_version": "gx1_trained_terminal_balance_gradient_witness_preparation_route_v1",
+                   "physical_contract_metadata_proof": proof}
+    final = {"observations": {"train": scope["parity_reference"]}}
+    return scope, metadata, constructor, dict(constructor), final, design, equivalence
+
+
+def test_direction_v3_origin_retains_old_metadata_and_179_equivalence_without_reads(monkeypatch):
+    import copy
+    from gx1.audit import dynamic_m5_direction_witness_v1 as direction
+    fixture = _direction_v3_origin_fixture()
+    before = copy.deepcopy(fixture)
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Origin binding attempted physical source or payload access")
+    monkeypatch.setattr(direction, "_read", forbidden)
+    monkeypatch.setattr(direction, "_reference", forbidden)
+    direction._require_v2_origin(*fixture)
+    assert fixture == before
+    assert fixture[1]["final_online_result"] != fixture[0]["final_online_result"]
+    assert fixture[-1]["schema_version"] == "gx1_trained_terminal_balance_gradient_witness_preparation_route_v1"
+    # The historic v2 design remains a separately admitted schema, not rewritten.
+    old = copy.deepcopy(fixture)
+    old[0]["schema_version"] = direction.SCOPE_SCHEMA_V2
+    old[-2]["schema_version"] = "gx1_trained_terminal_balance_gradient_witness_design_v1"
+    direction._require_v2_origin(*old)
+
+
+@pytest.mark.parametrize("defect", ["old_design_schema", "new_equivalence_schema", "constructor",
+    "origin_state", "execution_state", "parity", "packet", "normalization", "physical_contract"])
+def test_direction_v3_origin_rejects_relabelled_or_drifted_evidence(defect):
+    from gx1.audit import dynamic_m5_direction_witness_v1 as direction
+    scope, metadata, constructor, origin_constructor, final, design, equivalence = _direction_v3_origin_fixture()
+    if defect == "old_design_schema": design["schema_version"] = "gx1_trained_terminal_balance_gradient_witness_design_v1"
+    elif defect == "new_equivalence_schema": equivalence["schema_version"] = "gx1_trained_input_consumption_preparation_route_v1"
+    elif defect == "constructor": design["execution_constructor"] = scope["packet_origin"]["constructor_metadata"]
+    elif defect == "origin_state": metadata["reference_online_model_state_sha256"] = "e" * 64
+    elif defect == "execution_state": design["state"]["online_model_state_sha256"] = "b" * 64
+    elif defect == "parity": design["parity_reference"] = scope["packet_origin"]["final_online_result"]
+    elif defect == "packet": design["inputs"]["input_sha256"] = "0" * 64
+    elif defect == "normalization": metadata["normalization"] = scope["loss_scales"]
+    elif defect == "physical_contract": constructor["seq_len"] = "changed"
+    with pytest.raises(RuntimeError, match="DYNAMIC_M5_DIRECTION_WITNESS_"):
+        direction._require_v2_origin(scope, metadata, constructor, origin_constructor, final, design, equivalence)
+
+
+@pytest.mark.parametrize("bad", [{"max_reverse_calls": 16}, {"max_reverse_calls": 22},
+    {"max_reverse_calls": True}, {"max_forward_calls": 2}, {"max_wall_seconds": 901},
+    {"headline_horizons": [1, 5, 15, 60, 120, 240, 480]}, {"headline_horizons": [1, 5]},
+    {"training_enabled": True}])
+def test_direction_v3_budget_is_five_input_vjps_and_preserves_v1_v2(bad):
+    from gx1.audit import dynamic_m5_direction_witness_v1 as direction
+    plan = {"schema_version": direction.PLAN_SCHEMA_V3, "run_id": "unit", "policy_stage_key": "unit",
+        "input_scope": {"path": "/unused.json", "sha256": "a" * 64}, "output_directory": "/unused",
+        "one_shot_invocations": 1, "max_wall_seconds": 900, "max_forward_calls": 1,
+        "max_reverse_calls": 5, "headline_horizons": [1, 5, 15],
+        **{key: False for key in direction.FLAGS}}
+    direction._require_plan(plan)
+    with pytest.raises(RuntimeError, match="PLAN_BUDGET_OR_AUTHORITY"):
+        direction._require_plan({**plan, **bad})
+    for schema, count in ((direction.PLAN_SCHEMA_V2, 16), (direction.PLAN_SCHEMA, 22)):
+        direction._require_plan({**plan, "schema_version": schema, "max_reverse_calls": count,
+            "headline_horizons": [1, 5, 15, 60, 120, 240, 480]})
+
+
+def test_direction_v3_saved_reference_reuses_six_pointer_proofs_with_same16_join(monkeypatch):
+    from gx1.audit import dynamic_m5_direction_witness_v1 as direction
+    observation, scope, metadata, batch, final, documents = _direction_v2_reference_fixture()
+    scope["schema_version"] = direction.SCOPE_SCHEMA_V3
+    def forbidden(*args, **kwargs):
+        raise AssertionError("v3 pointer reuse attempted unadmitted file/Parquet access")
+    monkeypatch.setattr(direction, "_read", forbidden)
+    monkeypatch.setattr(direction, "_read_saved_train_reference", forbidden)
+    monkeypatch.setattr(direction, "_reference", forbidden)
+    references, proof = direction._join_saved_train_reference(observation, scope=scope,
+        metadata=metadata, batch=batch, final=final, pointer_documents=documents)
+    assert len(references) == 6 and all(value.shape[0] == 16 for value in references.values())
+    assert proof["completed_canonical_projections_reused"] == 6
+    assert proof["result_payload_read_or_rehashed"] is False
+    assert proof["nullable_masked_backing_reconstructed"] is False
+    assert proof["packet_target_sha256"] == metadata["target_sha256"]

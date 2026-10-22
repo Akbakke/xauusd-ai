@@ -14,8 +14,10 @@ from gx1.audit.dynamic_compact_input_influence_v1 import (
 
 PLAN_SCHEMA = "gx1_dynamic_m5_direction_witness_plan_v1"
 PLAN_SCHEMA_V2 = "gx1_dynamic_m5_direction_witness_plan_v2"
+PLAN_SCHEMA_V3 = "gx1_dynamic_m5_direction_witness_plan_v3"
 SCOPE_SCHEMA = "gx1_dynamic_m5_direction_witness_scope_v1"
 SCOPE_SCHEMA_V2 = "gx1_dynamic_m5_direction_witness_scope_v2"
+SCOPE_SCHEMA_V3 = "gx1_dynamic_m5_direction_witness_scope_v3"
 BINDING_SCHEMA = "gx1_dynamic_m5_direction_witness_binding_v1"
 _INPUTS = ("seq_x", "snap_x", "ctx_cont", "ctx_cat", "seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1")
 _COMPONENTS = ("dynamic_terminal_net_markout_bps", "dynamic_mfe_bps",
@@ -34,12 +36,14 @@ def _require_plan(plan):
             "output_directory", "one_shot_invocations", "max_wall_seconds",
             "max_forward_calls", "max_reverse_calls", "headline_horizons", *FLAGS}
     _require(isinstance(plan, dict) and set(plan) == keys
-             and plan["schema_version"] in (PLAN_SCHEMA, PLAN_SCHEMA_V2), "PLAN_SCHEMA")
+             and plan["schema_version"] in (PLAN_SCHEMA, PLAN_SCHEMA_V2, PLAN_SCHEMA_V3), "PLAN_SCHEMA")
+    input_vjp = plan["schema_version"] == PLAN_SCHEMA_V3
+    saved_reference = plan["schema_version"] in (PLAN_SCHEMA_V2, PLAN_SCHEMA_V3)
     _require(type(plan["one_shot_invocations"]) is int and plan["one_shot_invocations"] == 1
              and type(plan["max_forward_calls"]) is int and plan["max_forward_calls"] == 1
-             and type(plan["max_reverse_calls"]) is int and plan["max_reverse_calls"] == (16 if plan["schema_version"] == PLAN_SCHEMA_V2 else 22)
-             and type(plan["max_wall_seconds"]) is int and 0 < plan["max_wall_seconds"] <= (900 if plan["schema_version"] == PLAN_SCHEMA_V2 else 3500)
-             and plan["headline_horizons"] == list(_REPORT_HORIZONS)
+             and type(plan["max_reverse_calls"]) is int and plan["max_reverse_calls"] == (5 if input_vjp else 16 if saved_reference else 22)
+             and type(plan["max_wall_seconds"]) is int and 0 < plan["max_wall_seconds"] <= (900 if saved_reference else 3500)
+             and plan["headline_horizons"] == ([1, 5, 15] if input_vjp else list(_REPORT_HORIZONS))
              and all(plan[key] is False for key in FLAGS), "PLAN_BUDGET_OR_AUTHORITY")
     _require(isinstance(plan["run_id"], str) and bool(plan["run_id"])
              and isinstance(plan["policy_stage_key"], str) and bool(plan["policy_stage_key"]), "PLAN_IDENTITY")
@@ -78,12 +82,13 @@ def _preflight(plan_path, plan_sha256, device, out_dir):
         "input_preparation_result", "input_preparation_terminal", "constructor_metadata",
         "normalization", "loss_scales", "session", "final_online_result", "packet_layout",
         "helper", "executor"}
-    native170 = plan["schema_version"] == PLAN_SCHEMA_V2
-    if native170:
+    saved_reference = plan["schema_version"] in (PLAN_SCHEMA_V2, PLAN_SCHEMA_V3)
+    if saved_reference:
         scope_keys |= {"design", "packet_origin", "input_contract_equivalence",
                        "parity_reference", "canonical_pointer_proof"}
     _require(set(scope) == scope_keys and scope["schema_version"] ==
-             (SCOPE_SCHEMA_V2 if native170 else SCOPE_SCHEMA), "SCOPE")
+             (SCOPE_SCHEMA_V3 if plan["schema_version"] == PLAN_SCHEMA_V3 else
+              SCOPE_SCHEMA_V2 if saved_reference else SCOPE_SCHEMA), "SCOPE")
     _require(_reference(scope["executor"]) == Path(__file__).resolve()
              and _reference(scope["helper"]) == REPO / "gx1/contracts/entry_dynamic_compact_input_influence_v1.py", "OWNERS")
     for role in ("helper", "executor"):
@@ -173,7 +178,7 @@ def _require_native170_physical_batch(batch):
     return counts
 
 def _read_saved_train_reference(reference, *, proofs):
-    """The sole v2 saved-observation read: one bound <=64MiB TRAIN JSON."""
+    """The sole v2/v3 saved-observation read: one bound <=64MiB TRAIN JSON."""
     path = _reference(reference)
     before = _identity(path)
     _require(path.name == "TRAIN_OBSERVATION.json"
@@ -205,7 +210,10 @@ def _require_v2_origin(scope, metadata, constructor, origin_constructor, final, 
         and metadata["normalization"] == scope["normalization"]
         and metadata["loss_scales"] == scope["loss_scales"]
         and metadata["genuine_rows"] == 16 and metadata["padding_rows"] == 0, "PACKET_ORIGIN_BINDING")
-    _require(design["schema_version"] == "gx1_trained_terminal_balance_gradient_witness_design_v1"
+    design_schema = ("gx1_trained_input_consumption_design_v1"
+                     if scope["schema_version"] == SCOPE_SCHEMA_V3 else
+                     "gx1_trained_terminal_balance_gradient_witness_design_v1")
+    _require(design["schema_version"] == design_schema
         and design["execution_authorized"] is False
         and design["execution_constructor"] == scope["constructor_metadata"]
         and design["origin_constructor"] == origin["constructor_metadata"]
@@ -382,7 +390,9 @@ def run(*, plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dic
     _require(final["optimizer_steps"] == 7391 and final["selected_model_variant"] == "ONLINE"
              and all(final[k] is False for k in ("test_data_used", "exit_evaluation", "teacher_refreshed", "economic_rollout")), "FINAL_RESULT")
     native170 = plan["schema_version"] == PLAN_SCHEMA_V2
-    if native170:
+    input_vjp = plan["schema_version"] == PLAN_SCHEMA_V3
+    saved_reference_mode = native170 or input_vjp
+    if saved_reference_mode:
         design = _read(scope["design"], proofs=proofs)
         equivalence = _read(scope["input_contract_equivalence"], proofs=proofs)
         origin_constructor = _read(scope["packet_origin"]["constructor_metadata"], proofs=proofs)
@@ -402,7 +412,7 @@ def run(*, plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dic
         expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     flat_inputs, batch, references, packet_identity = _packet(scope, metadata)
     reference_join = None
-    if native170:
+    if saved_reference_mode:
         physical_group_counts = _require_native170_physical_batch(batch)
         pointer_documents = {key: _read(scope["canonical_pointer_proof"][key], proofs=proofs)
                              for key in ("plan", "terminal", "actual_peer")}
@@ -440,8 +450,9 @@ def run(*, plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dic
     scales = load_dynamic_m5_loss_scales(scope["loss_scales"], expected_lineage=scale_document["fit_lineage"])
     scale_identity = dynamic_m5_loss_scale_identity(scales)
     _require(scale_identity == prefix["dynamic_m5_loss_scales"] == final["dynamic_m5_loss_scales"], "LOSS_IDENTITY")
-    batch[DYNAMIC_M5_LOSS_SCALE_BATCH_KEY] = {"identity": scale_identity,
-        "rms": {key: torch.from_numpy(value.copy()).to(device=device) for key, value in scales["rms"].items()}}
+    if not input_vjp:
+        batch[DYNAMIC_M5_LOSS_SCALE_BATCH_KEY] = {"identity": scale_identity,
+            "rms": {key: torch.from_numpy(value.copy()).to(device=device) for key, value in scales["rms"].items()}}
     session_identities = {key: _identity(_reference(session_scope[key])) for key in ("contract", "active_pointer", "state")}
     device_object = torch.device(device)
     rng = trainer._attended_session_rng_state(device=device_object)
@@ -478,7 +489,9 @@ def run(*, plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dic
             forecast_inputs.append(args[0])
         handles = [model.dynamic_m5_query_projection.register_forward_pre_hook(capture_query),
                    model.head_forecast.register_forward_pre_hook(capture_forecast)]
-        inputs = {key: value.to(device_object) for key, value in flat_inputs.items()}
+        inputs = {key: (value.to(device_object).detach().requires_grad_(key != "ctx_cat")
+                        if input_vjp else value.to(device_object))
+                  for key, value in flat_inputs.items()}
         outputs = trainer._model_forward_fp32(model, inputs["seq_x"], inputs["snap_x"],
             ctx_cat=inputs["ctx_cat"], ctx_cont=inputs["ctx_cont"],
             **{key: inputs[key] for key in ("seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1")})
@@ -514,16 +527,21 @@ def run(*, plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dic
                                  reference_actions == reference_actions.amax(dim=1, keepdim=True)), "CANDIDATE_TIE_ACTION_PARITY")
         parity["candidate_tie_and_action"] = {"existing_tolerance_bps": tolerance,
             "all_equal_best_horizon_masks_identical": True, "all_action_winner_sets_identical": True}
-        gradients = audit.dynamic_m5_direction_witness_gradients(model=model, outputs=outputs,
-            batch={**batch, "seq_x": inputs["seq_x"]}, query_inputs=query_inputs,
-            forecast_input=forecast_inputs[0], headline_horizons=tuple(plan["headline_horizons"]),
-            **({"terminal_objective": "native_170_groupmean_v1"} if native170 else {}))
+        if input_vjp:
+            gradients = audit.dynamic_m5_direction_input_witness_vjps(
+                outputs=outputs, flat_inputs=inputs, layout=layout, normalization=normalization)
+        else:
+            gradients = audit.dynamic_m5_direction_witness_gradients(model=model, outputs=outputs,
+                batch={**batch, "seq_x": inputs["seq_x"]}, query_inputs=query_inputs,
+                forecast_input=forecast_inputs[0], headline_horizons=tuple(plan["headline_horizons"]),
+                **({"terminal_objective": "native_170_groupmean_v1"} if native170 else {}))
         _require(gradients["reverse_calls"] == plan["max_reverse_calls"]
                  and gradients["forward_calls"] == 0, "GRADIENT_BUDGET")
         if native170:
             _require(gradients["terminal_group_counts"] == physical_group_counts,
                      "PHYSICAL_TERMINAL_GROUP_COUNTS_CHANGED")
-        execution = {"schema_version": ("gx1_dynamic_m5_direction_witness_result_v2" if native170 else
+        execution = {"schema_version": ("gx1_dynamic_m5_direction_witness_result_v3" if input_vjp else
+                                         "gx1_dynamic_m5_direction_witness_result_v2" if native170 else
                                          "gx1_dynamic_m5_direction_witness_result_v1"),
             "status": "COMPLETE_LOCAL_EVAL_DIRECTION_GRADIENT_WITNESS_NOT_TRAINING_CAUSE_OR_EDGE",
             "plan": plan_ref, "input_scope": plan["input_scope"], "input_packet": scope["input_packet"],
@@ -534,9 +552,12 @@ def run(*, plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dic
             "input_batch_sha256": input_sha, "loss_scales": scale_identity,
             "component_parity": parity, "gradients": gradients, "hardware": hardware, "lock_ancestry": lock,
             **({"reference_join": reference_join, "packet_origin": scope["packet_origin"],
-                "execution_constructor": scope["constructor_metadata"],
-                "terminal_optimizer_objective": gradients["terminal_optimizer_objective_contract"]}
+                "execution_constructor": scope["constructor_metadata"]} if saved_reference_mode else {}),
+            **({"terminal_optimizer_objective": gradients["terminal_optimizer_objective_contract"]}
                if native170 else {}),
+            **({"input_gradient_units": gradients["units"],
+                "loss_scales_role": "111_identity_provenance_only_no_loss_or_precision_weighting"}
+               if input_vjp else {}),
             "observation_mode": "eval", "epoch_training_mode": "train",
             "causality_limit": "Local eval-function gradients at final state do not establish7391-update history, AdamW/clipping/momentum effects or a corrective model.",
             "source_policy_outer_guards_pending": True, **{key: False for key in FLAGS}}

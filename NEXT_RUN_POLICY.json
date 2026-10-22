@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-22T13:46:34.883374+00:00",
-  "status": "179_COMPLETE_CONSUMED_180_TRAINED_FEATURE_CONSUMPTION_ROUTE_PREPARATION_ONLY",
+  "observed_utc": "2026-10-22T14:39:18.840976+00:00",
+  "status": "180_ONE_FIXED_TRAIN16_INPUT_CONSUMPTION_WITNESS_ADMITTED_PENDING_CLEAN_BINDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "178actualsavedcomparison consumed; reduced167overamplitude butall512finalFLAT andno robust shortdirection improvementagainstown173. No newtraining/forward/gradient job, extraepoch/HPO,fullVAL/TEST/Exit/broker. Preserve qualifiedfeatureinputs and171source;179is only read-only preparation of exactzero-update trained177TRAINwitness before nextmechanismdecision. Never relaunch consumed oldplans.",
-  "next_action": "180read-onlysource/metadata route preparation only: reuse141/143/144/175and177/172proofs; qualify minimal trained input sensitivity for pureterminaldirection1/5/15 andLONG/SHORTvsFLAT separately. No payload/modelcall/gradient/218Fscan/training until exact new DESIGN/PLAN/review/policy binding.",
+  "next_action": "Commit/push focused180audit implementation, create independent currentHEAD/source/policy/controller bindings, verify idle/lock/signedhardware, execute exactlyone1F5inputVJP0U producer and independently consume localfeaturedependency/support results. No extra training/feature/model/loss/score changes.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -136,7 +136,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "179complete/consumed: current170aggregateearly/later reaches trained177decoder/sharedlayers; nofeatureutility orbetterEntryclaim.180read-onlytrainedfeatureconsumptionroute preparation only.",
+    "current_activity": "180route/scalarunits reviewed, existing179/15716TRAINroute reused, minimal audit-only1F5inputVJP DESIGN preparation. No furthertraining orfeature/model/loss/score change.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -189,7 +189,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No external blocker. Actual trained input consumption and chronological featureaddedvalue remain unqualified;180route preparation only.178allFLAT/weakshortdirection remains. No further training/model/feature/loss/score change admitted.",
+    "current_blocker": "No external blocker.180zero-update trained input-consumption witness precisely admitted after61focusedCPUtests/staticpeer; clean postcommit bindings/hardware/idle gates and actualmeasurement remain. Entrydirection/featureutility/generalization/economics unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -23948,7 +23948,7 @@
     "actual_optimizer_updates": 0
   },
   "dynamic_m5_trained_feature_consumption_180": {
-    "status": "READ_ONLY_SOURCE_METADATA_ROUTE_PREPARATION_ONLY",
+    "status": "ONE_FIXED_TRAIN16_INPUT_CONSUMPTION_WITNESS_ADMITTED_PENDING_CLEAN_BINDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180",
     "scope": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/ROUTE_PREPARATION_SCOPE.json",
@@ -23959,8 +23959,8 @@
       "sha256": "ba00dd1679308498fe3e295468d3ebaac53c6760810356257fcd0506200cf9eb"
     },
     "preparation_authorized": true,
-    "execution_authorized": false,
-    "model_forward_or_gradient_job_admitted": false,
+    "execution_authorized": true,
+    "model_forward_or_gradient_job_admitted": true,
     "training_enabled": false,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
@@ -23968,6 +23968,84 @@
     "test_data_used": false,
     "normalization_fit_enabled": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "route_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/PREPARATION_ROUTE_REVIEW.json",
+      "sha256": "d96c84c6b86565aa0e5f6c694cedd2032e659a068cb5369d77985fda16b834b2"
+    },
+    "scalar_unit_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/SCALAR_AND_UNIT_REVIEW.json",
+      "sha256": "ed9c7b06b6378b300c1f425689e4dad632c332837c7859e0bef333b00b29eb98"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/DESIGN.json",
+      "sha256": "3313cbd27a28b877813f70518ed715835fd9d0c7bf792fe3a70791b10e90998f"
+    },
+    "proposed_forward_calls": 1,
+    "proposed_reverse_calls": 5,
+    "optimizer_updates": 0,
+    "genuine_rows": 16,
+    "padding_rows": 0,
+    "input_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/INPUT_SCOPE.json",
+      "sha256": "c781529e0ef5b3dd7fa936fceb53f95e02f5231f61fdff462430fee4a2e0ed6d"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/PLAN.json",
+      "sha256": "94b653fdba40be0b030c5eceb7067b3b8be416241eedb1e09961af2ef5f1ac04"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/run_direction_witness_bounded.py",
+      "sha256": "377ad50edd30d746f240119cd7cf88444d8bff68ddbec2507baef14b303ed4f0"
+    },
+    "controller_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/CONTROLLER_PREPARATION_REVIEW.json",
+      "sha256": "9af264b533d28aca458a5b62364d2ec0efc29d6ac04ba4f7741cc115e6b20f33"
+    },
+    "implementation_sources": {
+      "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_compact_input_influence_v1.py": "9b525143834193a7ac0fbedd9897888876202023721865b3c280c3993d554f64",
+      "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_m5_direction_witness_v1.py": "2545761fe21179b06765783e8c45d6350aa2f3e9e060f2e7ba3e74eb392b808b",
+      "/home/andre2/src/GX1_CURRENT/tests/test_entry_dynamic_compact_input_influence_v1.py": "8e1cc74359bd0b28337a2fa7b242d1653248c39099ca479ddf748cc32fc75f78",
+      "/home/andre2/src/GX1_CURRENT/tests/test_technical_checkpoint_full_val.py": "0387f285cf49fbd8815b14303eac21bbe6ec4557cc64892923f1293bf38ed4bb"
+    },
+    "source_checks_authorized": true,
+    "source_checks_scope": {
+      "class": "audit",
+      "memory_bytes": 4294967296,
+      "swap_bytes": 536870912,
+      "wall_seconds": 120,
+      "term_grace_seconds": 10,
+      "torch_threads": 1,
+      "focused_test_nodes": [
+        "tests/test_entry_dynamic_compact_input_influence_v1.py::TestDirectionInputWitness",
+        "tests/test_technical_checkpoint_full_val.py -k direction"
+      ],
+      "real_market_payload_reads": 0,
+      "physical_model_forwards": 0,
+      "optimizer_updates": 0,
+      "test_data_used": false
+    },
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "max_forward_calls": 1,
+    "max_reverse_calls": 5,
+    "max_wall_seconds": 900,
+    "source_checks_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/SOURCE_CHECKS_TERMINAL.json",
+      "sha256": "fea535c1d7ab4be391b6eec646d7dd398fa7cbf38de43b37916f0ae7323e72db"
+    },
+    "input_math_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/PREEXEC_INPUT_MATH_SOURCE_REVIEW.json",
+      "sha256": "a4806ef46d8b9e4c23cb9e08f2a36cf6479714715995a3b238d3287c75ef8b3b"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/SOURCE_QUALIFICATION.json",
+      "sha256": "879ef7c126a192d5a98b64f89690619711114198dbffec92a174e2da08c4357f"
+    },
+    "precise_execution_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAINED_FEATURE_CONSUMPTION_20261022_180/PREEXEC_AUTHORITY.json",
+      "sha256": "bcb74d4120efab9138bc5d6f620bd9913215dc7e49e8623d812d718d07d51613"
+    }
   }
 }

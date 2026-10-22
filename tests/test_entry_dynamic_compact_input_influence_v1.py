@@ -1182,3 +1182,177 @@ class TestDirectionWitnessNative170(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "DIRECTION_TASK_SUPERVISION_OR_DENOMINATOR"):
                 self.witness(fixture)
         self.assertEqual(reverse.call_count, 0)
+
+
+
+class TestDirectionInputWitness(unittest.TestCase):
+    def fixture(self, coordinate=None, *, value=3., scale=2., observe_b=False, observe_mtf=False,
+                source_alias=None):
+        signal = ("ctx_cont." + source_alias if source_alias else "a",
+                  "b", "observed", "flat_train", "enum")
+        ctx_field = source_alias or "ctx_a"
+        mtf = ("m", "observed")
+        profile = {"signal_indices": tuple(range(5)), "ctx_cont_indices": (0,), "mtf_indices": (0, 1),
+            "generic_snap_signal_indices": (1, 2, 3, 4), "macro_context_fields": (ctx_field,),
+            "local_signal_indices_by_specialist": {"trend_ema_encoder": tuple(range(5))},
+            "ctx_cont_indices_by_specialist": {"trend_ema_encoder": (0,)},
+            "mtf_indices_by_specialist": {"trend_ema_encoder": (0, 1)},
+            "physical_field_names": {"signal": signal, "ctx_cont": (ctx_field,), "ctx_cat": ("session",), "mtf": mtf}}
+        domains, surfaces, flat = {}, {}, {}
+        for surface in ("seq_x", "snap_x", "ctx_cont", "ctx_cat", *influence._MTF):
+            names = signal if surface in ("seq_x", "snap_x") else mtf if surface in influence._MTF else profile["physical_field_names"][surface]
+            binary = (2,) if surface in ("seq_x", "snap_x") else (1,) if surface in influence._MTF else ()
+            enum = {4: (-1, 0, 1)} if surface in ("seq_x", "snap_x") else {}
+            pairs = ((1, 2),) if surface in ("seq_x", "snap_x") else ((0, 1),) if surface in influence._MTF else ()
+            domains[surface] = {"field_names": names, "binary_indices": binary, "enum_domains": enum,
+                "masking_pairs": pairs, "source_constants": {}}
+            shape = (2, 96, len(names)) if surface == "seq_x" else (2, 3, len(names)) if surface in influence._MTF else (2, len(names))
+            flat[surface] = torch.zeros(shape, dtype=torch.int64 if surface == "ctx_cat" else torch.float32)
+            if surface == "ctx_cat": continue
+            key = "signal" if surface in ("seq_x", "snap_x") else "mtf_" + surface[4:] if surface in influence._MTF else surface
+            mask = [int(i in binary) for i in range(len(names))]
+            cat = [int(i in enum) for i in range(len(names))]
+            scales = [scale if i == 0 else 1. for i in range(len(names))]
+            surfaces[key] = {"field_names": names, "center": [0.] * len(names), "scale": scales,
+                "binary_mask": mask, "categorical_mask": cat,
+                "scale_source": ["constant_train_unit_scale" if i == 3 and key == "signal" else
+                    "semantic_binary_identity" if mask[i] else "semantic_categorical_identity" if cat[i] else
+                    "raw_iqr" for i in range(len(names))]}
+        flat["seq_x"][:, -1, 0] = value
+        flat["seq_x"][:, 0, 0] = 1. if source_alias else 4.
+        if observe_b: flat["seq_x"][..., 2] = 1.
+        flat["snap_x"].copy_(flat["seq_x"][:, -1])
+        flat["ctx_cont"][:, 0] = flat["snap_x"][:, 0]
+        if observe_mtf:
+            for lane in influence._MTF: flat[lane][..., 1] = 1.
+        flat = {k: v.requires_grad_(k != "ctx_cat") for k, v in flat.items()}
+        families = [{"surface": "local", "token": "local.trend_ema_encoder", "ctx_cat_indices": ()},
+                    {"surface": "local", "token": "local.session_regime_encoder", "ctx_cat_indices": (0,)}]
+        families += [{"surface": lane, "token": lane + ".trend_ema_encoder"} for lane in influence._MTF]
+        layout = {"schema_version": influence.SCHEMA_VERSION, "profile": profile, "domains": domains,
+            "physical_aliases": ({"signal_index": 0, "ctx_cont_index": 0},), "families": families}
+        model = _AnalyticDynamicForward(coordinate or (lambda x: x["seq_x"][:, -1, 0]))
+        outputs = model(influence._nest_inputs(flat))
+        return model, outputs, flat, layout, {"surfaces": surfaces}
+
+    def witness(self, fixture):
+        _, outputs, flat, layout, normalization = fixture
+        return influence.dynamic_m5_direction_input_witness_vjps(outputs=outputs, flat_inputs=flat,
+            layout=layout, normalization=normalization)
+
+    def test_exact_five_unweighted_half_contrasts_and_one_existing_forward(self):
+        from unittest import mock
+        fixture = self.fixture()
+        model = fixture[0]
+        with mock.patch.object(torch.autograd, "grad", wraps=torch.autograd.grad) as reverse, \
+                mock.patch.object(model, "forward", side_effect=AssertionError("extra forward")):
+            result = self.witness(fixture)
+        self.assertEqual(reverse.call_count, 5)
+        self.assertEqual((result["forward_calls"], result["reverse_calls"], model.calls), (0, 5, 1))
+        self.assertEqual(len(result["current_projection_geometry"]), 10)
+        for name, expected in (("terminal_direction_h1", 1.), ("terminal_direction_h5", 1.),
+            ("terminal_direction_h15", 1.), ("candidate_long_minus_flat", 3.), ("candidate_short_minus_flat", 1.)):
+            row = result["results"][name]["fields"]["local.a"]["current"]
+            self.assertEqual(row["raw_signed_by_row"], [expected, expected])
+        self.assertTrue(all(p.grad is None for p in model.parameters()))
+        self.assertTrue(all(v.grad is None for k, v in fixture[2].items() if k != "ctx_cat"))
+
+    def test_hypot_units_and_deduplicated_family_support(self):
+        import math
+        result = self.witness(self.fixture())
+        row = result["results"]["terminal_direction_h1"]
+        current = row["fields"]["local.a"]["current"]
+        self.assertAlmostEqual(current["asinh_signed_by_row"][0], math.sqrt(13.), places=12)
+        self.assertNotEqual(current["asinh_signed_by_row"][0], 2.)  # Scale-only conversion is wrong.
+        family = row["family_lanes"]["local.trend_ema_encoder"]["current"]
+        self.assertEqual(family["source_declared_active_field_count"], 5)
+        self.assertEqual(family["dispersion_supported_observed_cells"], 2)  # Alias copies count once.
+        self.assertAlmostEqual(family["dispersion_supported_asinh_rms"], math.sqrt(13.), places=12)
+        self.assertEqual(len(result["canonical_current_coordinates"]), 15)
+        self.assertEqual(row["macro_context_overlap"]["current"]["source_declared_active_field_count"], 1)
+        self.assertEqual(family["binary_enum_mask_constant_fallback_counts"],
+            {"source_binary": 0, "source_enum": 1, "observation_mask": 1, "constant_train_fallback": 1, "integer_category": 0})
+        inactive = row["family_lanes"]["local.chart_geometry_encoder"]["current"]
+        self.assertEqual(inactive["rms_status"], "source_inactive")
+        self.assertIsNone(inactive["dispersion_supported_asinh_rms"])
+
+    def test_signed_alias_cancellation_and_cellwise_history_conversion(self):
+        import math
+        coordinate = lambda x: (2*x["seq_x"][:, -1, 0] + 3*x["snap_x"][:, 0] -
+                                5*x["ctx_cont"][:, 0] + 2*x["seq_x"][:, 0, 0])
+        result = self.witness(self.fixture(coordinate))
+        row = result["results"]["terminal_direction_h1"]["fields"]["local.a"]
+        self.assertEqual(row["current"]["raw_signed_by_row"], [0., 0.])
+        self.assertEqual(row["current"]["asinh_signed_by_row"], [0., 0.])
+        self.assertAlmostEqual(row["history"]["asinh_max_absolute"], 2*math.sqrt(20.), places=12)
+        self.assertAlmostEqual(row["history"]["asinh_rms"], math.sqrt(80/95), places=12)
+        pair = result["current_projection_geometry"]["terminal_direction_h1__terminal_direction_h5"]
+        self.assertIsNone(pair["cosine"])  # Connected but exactly cancelled, no epsilon.
+
+    def test_missing_unused_and_observed_zero_are_distinct(self):
+        result = self.witness(self.fixture(observe_b=True, observe_mtf=True))
+        row = result["results"]["terminal_direction_h1"]
+        zero = row["fields"]["local.b"]["current"]
+        self.assertEqual(zero["status"], "observed_zero_on_connected_surface")
+        self.assertEqual(zero["observed_zero_input_count"], 2)
+        self.assertEqual(zero["observed_zero_count"], 2)
+        self.assertEqual(row["surface_connectivity"]["seq_h1"], {"grad_is_none": True, "status": "unused"})
+        self.assertEqual(row["fields"]["seq_h1.m"]["current"]["status"], "surface_unused")
+        self.assertIsNone(row["fields"]["seq_h1.m"]["current"]["raw_signed_by_row"])
+        self.assertIsNone(row["family_lanes"]["seq_h1.trend_ema_encoder"]["current"]["dispersion_supported_asinh_rms"])
+        missing = self.witness(self.fixture())["results"]["terminal_direction_h1"]["fields"]["local.b"]["current"]
+        self.assertEqual(missing["status"], "not_exercised")
+        self.assertEqual(missing["missing_cell_count"], 2)
+        unused = self.witness(self.fixture(lambda x: torch.ones(len(x["seq_x"]))))
+        connectivity = unused["results"]["terminal_direction_h1"]["surface_connectivity"]
+        self.assertTrue(all(item["grad_is_none"] for item in connectivity.values()))
+        self.assertTrue(all(item["common_observed_connected_current_cells"] == 0 and item["cosine"] is None
+                            for item in unused["current_projection_geometry"].values()))
+
+    def test_f64_tail_diagnostic_is_finite_without_scale_only_or_clipping(self):
+        import math
+        fixture = self.fixture(lambda x: 1e-30*x["seq_x"][:, -1, 0], value=3e38, scale=1e-30)
+        result = self.witness(fixture)
+        row = result["results"]["terminal_direction_h1"]["fields"]["local.a"]["current"]
+        expected = row["raw_signed_by_row"][0] * math.hypot(float(torch.tensor(1e-30)), float(torch.tensor(3e38)))
+        self.assertTrue(math.isfinite(row["asinh_signed_by_row"][0]))
+        self.assertAlmostEqual(row["asinh_signed_by_row"][0] / expected, 1., places=12)
+        self.assertGreater(row["asinh_signed_by_row"][0], 1e8)
+
+    def test_disconnected_scalar_is_rejected_without_an_artificial_anchor(self):
+        from unittest import mock
+        fixture = self.fixture()
+        detached = {k: v.detach() for k, v in fixture[1].items()}
+        with mock.patch.object(torch.autograd, "grad", wraps=torch.autograd.grad) as reverse:
+            with self.assertRaisesRegex(RuntimeError, "DISCONNECTED_NO_ZERO_ANCHOR"):
+                self.witness((fixture[0], detached, *fixture[2:]))
+        self.assertEqual(reverse.call_count, 0)
+
+    def test_asinh_normalized_discrete_alias_retains_formal_slope_but_not_continuous_geometry(self):
+        import math
+        for field, kind, enum_count, binary_count in (
+                ("h1_ema_stack_aligned_v2", "source_enum", 2, 0),
+                ("swing_impulse_present", "source_binary", 1, 1)):
+            with self.subTest(field=field):
+                fixture = self.fixture(value=1., source_alias=field)
+                # Actual055 local discrete aliases use raw_iqr/asinh, not identity.
+                for surface in ("signal", "ctx_cont"):
+                    spec = fixture[-1]["surfaces"][surface]
+                    self.assertEqual(spec["scale_source"][0], "raw_iqr")
+                    self.assertEqual((spec["binary_mask"][0], spec["categorical_mask"][0]), (0, 0))
+                result = self.witness(fixture)
+                token = "local.ctx_cont." + field
+                metadata = next(c for c in result["canonical_current_coordinates"] if c["token"] == token)
+                self.assertEqual(metadata["domain_kind"], kind)
+                self.assertTrue(metadata["asinh_applicable"])
+                self.assertFalse(metadata["dispersion_supported"])
+                current = result["results"]["terminal_direction_h1"]["fields"][token]["current"]
+                self.assertEqual(current["raw_signed_by_row"], [1., 1.])
+                self.assertAlmostEqual(current["asinh_signed_by_row"][0], math.sqrt(5.), places=12)
+                family = result["results"]["terminal_direction_h1"]["family_lanes"]["local.trend_ema_encoder"]["current"]
+                self.assertEqual(family["binary_enum_mask_constant_fallback_counts"]["source_enum"], enum_count)
+                self.assertEqual(family["binary_enum_mask_constant_fallback_counts"]["source_binary"], binary_count)
+                self.assertEqual(family["dispersion_supported_observed_cells"], 0)
+                self.assertIsNone(family["dispersion_supported_asinh_rms"])
+                self.assertTrue(all(g["common_observed_connected_current_cells"] == 0 and g["cosine"] is None
+                                    for g in result["current_projection_geometry"].values()))

@@ -1172,3 +1172,260 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
             terminal_group_projection_role="weighted_data_gradient_only_no_repeated_log_variance_penalty")
     json.dumps(result, sort_keys=True, allow_nan=False)
     return result
+
+
+
+def _direction_input_coordinates(layout, normalization):
+    """One source-owned current coordinate; physical aliases are participants."""
+    from gx1.features.entry_specialist_feature_groups_v1 import MODEL_NATIVE_TRAINING_SPECIALISTS
+    from gx1.features.htf_features import MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4
+    profile, coordinates = layout["profile"], []
+    aliases = {}
+    for item in layout["physical_aliases"]:
+        if item["signal_index"] in profile["signal_indices"] and item["ctx_cont_index"] in profile["ctx_cont_indices"]:
+            aliases.setdefault(item["signal_index"], []).append(item["ctx_cont_index"])
+    signal_owner = {i: f for f, indices in profile["local_signal_indices_by_specialist"].items() for i in indices}
+    ctx_owner = {i: f for f, indices in profile["ctx_cont_indices_by_specialist"].items() for i in indices}
+    mtf_owner = {i: f for f, indices in profile["mtf_indices_by_specialist"].items() for i in indices}
+
+    def add(lane, surface, index, family, parts, history=None, macro=False):
+        key = "signal" if surface in ("seq_x", "snap_x") else "mtf_" + surface[4:] if surface in _MTF else surface
+        spec, domain = normalization["surfaces"][key], layout["domains"][surface]
+        field = domain["field_names"][index]
+        identity = bool(spec["binary_mask"][index] or spec["categorical_mask"][index])
+        fallback = spec["scale_source"][index] == "constant_train_unit_scale"
+        masks = {m for _, m in domain["masking_pairs"]}
+        # signal/htf_features preserve these local {-1,0,1} domains even though
+        # their frozen055 statistics use asinh rather than categorical identity.
+        local_ema_stack_enum = (surface in ("seq_x", "snap_x", "ctx_cont") and
+            field.removeprefix("ctx_cont.") in {
+                tf + "_ema_stack_aligned_v2" for tf in ("m5", "m15", "h1", "h4", "d1")})
+        kind = ("integer_category" if surface == "ctx_cat" else "observation_mask" if index in masks else
+                "source_enum" if local_ema_stack_enum or index in domain["enum_domains"] or spec["categorical_mask"][index] else
+                "source_binary" if field.removeprefix("ctx_cont.") in MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4 or
+                index in domain["binary_indices"] or spec["binary_mask"][index] else
+                "constant_train_fallback" if fallback else "continuous")
+        coordinates.append({"token": lane + "." + field, "lane": lane, "field": field, "family": family,
+            "surface": surface, "source_index": index, "current_participants": parts,
+            "history_source": history, "domain_kind": kind, "asinh_applicable": not identity,
+            "dispersion_supported": kind == "continuous" and spec["scale_source"][index] in
+                ("raw_iqr", "median_positive_abs_deviation"),
+            "source_constant": index in domain["source_constants"], "macro_overlap": macro})
+
+    folded = set()
+    for index in profile["signal_indices"]:
+        ctx = aliases.get(index, [])
+        folded.update(ctx)
+        macro = any(layout["domains"]["ctx_cont"]["field_names"][c] in profile["macro_context_fields"] for c in ctx)
+        add("local", "seq_x", index, signal_owner[index],
+            [("seq_x", index), ("snap_x", index), *(("ctx_cont", c) for c in ctx)],
+            history=("seq_x", index), macro=macro)
+    for index in profile["ctx_cont_indices"]:
+        if index not in folded:
+            add("local", "ctx_cont", index, ctx_owner[index], [("ctx_cont", index)],
+                macro=layout["domains"]["ctx_cont"]["field_names"][index] in profile["macro_context_fields"])
+    for surface in _MTF:
+        for index in profile["mtf_indices"]:
+            add(surface, surface, index, mtf_owner[index], [(surface, index)], history=(surface, index))
+    # Integer categories are fully accounted, but never enter a floating VJP.
+    categorical = []
+    for index, field in enumerate(profile["physical_field_names"]["ctx_cat"]):
+        owners = [f["token"].removeprefix("local.") for f in layout["families"]
+                  if f["surface"] == "local" and index in f.get("ctx_cat_indices", ())]
+        categorical.append({"token": "local.ctx_cat." + field, "lane": "local", "field": field,
+            "domain_kind": "integer_category", "source_index": index, "families": owners,
+            "status": "integer_input_not_differentiated"})
+    if len({c["token"] for c in coordinates}) != len(coordinates):
+        _fail("INPUT_VJP_CANONICAL_COORDINATE_DUPLICATE")
+    return coordinates, categorical, tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
+
+
+def _direction_input_cell_stats(gradient, values, observed, factor, *, connected, current):
+    """F64 post-gradient summaries; missing cells and unused surfaces stay explicit."""
+    import torch
+    count, total = int(observed.sum()), observed.numel()
+    selected = gradient[observed] if connected else None
+    converted = gradient * factor if connected and factor is not None else None
+    result = {"observed_row_or_history_cell_count": count, "missing_cell_count": total - count,
+        "observed_zero_input_count": int(((values == 0) & observed).sum()),
+        "observed_nonzero_input_count": int(((values != 0) & observed).sum()),
+        "status": "not_exercised" if not count else "surface_unused" if not connected else
+                  "observed_zero_on_connected_surface" if not bool(torch.count_nonzero(selected)) else "nonzero",
+        "observed_zero_count": int((selected == 0).sum()) if selected is not None else None,
+        "observed_nonzero_count": int(torch.count_nonzero(selected)) if selected is not None else None,
+        "raw_rms": float(torch.sqrt(selected.square().mean())) if count and connected else None,
+        "raw_max_absolute": float(selected.abs().max()) if count and connected else None,
+        "asinh_squared_sum": float(converted[observed].square().sum()) if converted is not None else None,
+        "asinh_rms": float(torch.sqrt(converted[observed].square().mean()))
+                     if count and converted is not None else None,
+        "asinh_max_absolute": float(converted[observed].abs().max())
+                              if count and converted is not None else None}
+    if current:
+        result["raw_signed_by_row"] = [float(g) if o else None for g, o in zip(gradient, observed)] if connected else None
+        result["asinh_signed_by_row"] = [float(g) if o else None for g, o in zip(converted, observed)] if converted is not None else None
+    return result, converted
+
+
+def _direction_input_family_stats(coordinates, fields, indices, phase, *, categorical_count=0):
+    import math
+    cells = [fields[coordinates[i]["token"]][phase] for i in indices]
+    supported = [(coordinates[i], fields[coordinates[i]["token"]][phase]) for i in indices
+                 if coordinates[i]["dispersion_supported"]]
+    observed = sum(c["observed_row_or_history_cell_count"] for _, c in supported)
+    measured = sum(c["observed_row_or_history_cell_count"] for _, c in supported
+                   if c["asinh_squared_sum"] is not None)
+    square = sum(c["asinh_squared_sum"] or 0. for _, c in supported)
+    return {"source_declared_active_field_count": len(indices) + categorical_count,
+        "observed_distinct_field_count": sum(c["observed_row_or_history_cell_count"] > 0 for c in cells),
+        "observed_row_or_history_cell_count": sum(c["observed_row_or_history_cell_count"] for c in cells),
+        "missing_cell_count": sum(c["missing_cell_count"] for c in cells),
+        "observed_zero_count": sum(c["observed_zero_count"] or 0 for c in cells),
+        "observed_nonzero_count": sum(c["observed_nonzero_count"] or 0 for c in cells),
+        "dispersion_supported_observed_cells": observed,
+        "connected_dispersion_supported_observed_cells": measured,
+        "unused_dispersion_supported_observed_cells": observed - measured,
+        "dispersion_supported_asinh_rms": math.sqrt(square / observed) if observed and measured else None,
+        "rms_status": "source_inactive" if not indices and not categorical_count else
+                      "no_dispersion_supported_fields" if not supported else "not_exercised" if not observed else
+                      "surface_unused_not_evidence" if not measured else "measured_local_derivative",
+        "surface_autograd_unused_field_count": sum(c["status"] == "surface_unused" for c in cells),
+        "binary_enum_mask_constant_fallback_counts": {
+            kind: sum(coordinates[i]["domain_kind"] == kind for i in indices) +
+                  (categorical_count if kind == "integer_category" else 0)
+            for kind in ("source_binary", "source_enum", "observation_mask", "constant_train_fallback", "integer_category")},
+        "unused_zero_arithmetic_note": "None is retained at surface level; absent partials enter sums as zero only. All-unused RMS is null."}
+
+
+def dynamic_m5_direction_input_witness_vjps(*, outputs, flat_inputs, layout, normalization):
+    """Five input-only VJPs on the caller's one native graph; no forward or fitting."""
+    import json
+    import torch
+    flat = require_dynamic_compact_inputs(_nest_inputs(flat_inputs), layout=layout)
+    if not torch.is_grad_enabled() or any(not flat[s].requires_grad or flat[s].grad is not None for s in _FLOAT_INPUTS):
+        _fail("INPUT_VJP_REQUIRES_UNMODIFIED_INPUT_GRAD_GRAPH")
+    _require_outputs(outputs, flat["seq_x"].shape[0])
+    coordinates, categorical, family_order = _direction_input_coordinates(layout, normalization)
+    for item in categorical:
+        item["provided_integer_input_rows"] = int(flat["ctx_cat"].shape[0])
+    values = {s: flat[s].detach().cpu().double() for s in _FLOAT_INPUTS}
+    observed = {s: _observed(values[s], layout["domains"][s]) for s in _FLOAT_INPUTS}
+    factors, centers, scales = {}, {}, {}
+    for surface in _FLOAT_INPUTS:
+        center, scale = _normalization_surface(normalization, surface, layout)
+        centers[surface], scales[surface] = center.float().cpu(), scale.float().cpu()
+        factors[surface] = torch.hypot(scales[surface].double(),
+                                      values[surface] - centers[surface].double())
+    # Shared aliases must really use the same raw value, observation and frozen F32 stats.
+    for coordinate in coordinates:
+        surface, index = coordinate["surface"], coordinate["source_index"]
+        if surface == "seq_x":
+            for other, column in coordinate["current_participants"][1:]:
+                if (not _same_bits(centers[surface][[index]], centers[other][[column]]) or
+                        not _same_bits(scales[surface][[index]], scales[other][[column]]) or
+                        not torch.equal(observed[surface][:, -1, index], observed[other][:, column])):
+                    _fail("INPUT_VJP_ALIAS_COORDINATE_OR_SUPPORT")
+    terminal, q = outputs[_COMPONENTS[0]], outputs[_CANDIDATE]
+    projections = {"terminal_direction_h" + str(h): (.5 * (terminal[:, h-1, 0] - terminal[:, h-1, 1])).sum()
+                   for h in (1, 5, 15)}
+    projections.update(candidate_long_minus_flat=(q[:, 0] - q[:, 2]).sum(),
+                       candidate_short_minus_flat=(q[:, 1] - q[:, 2]).sum())
+    result, current_vectors, current_support = {}, {}, {}
+    ordered = tuple(flat[s] for s in _FLOAT_INPUTS)
+    for ordinal, (name, scalar) in enumerate(projections.items()):
+        if not scalar.requires_grad:
+            _fail("INPUT_VJP_SCALAR_DISCONNECTED_NO_ZERO_ANCHOR")
+        raw = torch.autograd.grad(scalar, ordered, allow_unused=True, create_graph=False,
+                                  retain_graph=ordinal < 4)
+        gradients = {s: None if g is None else g.detach().cpu().double() for s, g in zip(_FLOAT_INPUTS, raw)}
+        connectivity = {s: {"grad_is_none": g is None, "status": "unused" if g is None else
+                           "connected_zero" if not bool(torch.count_nonzero(g)) else "nonzero"}
+                        for s, g in gradients.items()}
+        if any(g is not None and not bool(torch.isfinite(g).all()) for g in gradients.values()):
+            _fail("INPUT_VJP_NONFINITE_GRADIENT")
+        fields, vector, support = {}, [], []
+        for coordinate in coordinates:
+            surface, index = coordinate["surface"], coordinate["source_index"]
+            current_values = values[surface][:, -1, index] if values[surface].ndim == 3 else values[surface][:, index]
+            current_observed = observed[surface][:, -1, index] if values[surface].ndim == 3 else observed[surface][:, index]
+            factor = factors[surface][:, -1, index] if values[surface].ndim == 3 else factors[surface][:, index]
+            parts = []
+            for owner, column in coordinate["current_participants"]:
+                grad = gradients[owner]
+                if grad is not None:
+                    parts.append(grad[:, -1, column] if grad.ndim == 3 else grad[:, column])
+            connected = bool(parts)
+            joint = sum(parts, torch.zeros_like(current_values))
+            current, converted = _direction_input_cell_stats(joint, current_values, current_observed,
+                factor if coordinate["asinh_applicable"] else None, connected=connected, current=True)
+            history_owner = coordinate["history_source"]
+            if history_owner is not None:
+                owner, column = history_owner
+                grad = gradients[owner]
+                history, _ = _direction_input_cell_stats(
+                    grad[:, :-1, column] if grad is not None else torch.zeros_like(values[owner][:, :-1, column]),
+                    values[owner][:, :-1, column], observed[owner][:, :-1, column],
+                    factors[owner][:, :-1, column] if coordinate["asinh_applicable"] else None,
+                    connected=grad is not None, current=False)
+            else:
+                history, _ = _direction_input_cell_stats(torch.empty(0), torch.empty(0),
+                    torch.empty(0, dtype=torch.bool), None, connected=False, current=False)
+            fields[coordinate["token"]] = {"current": current, "history": history}
+            if coordinate["dispersion_supported"]:
+                vector.append(converted if converted is not None else torch.zeros_like(joint))
+                support.append(current_observed & connected)
+        families = {}
+        for lane in ("local", *_MTF):
+            for family in family_order:
+                indices = [i for i, c in enumerate(coordinates) if c["lane"] == lane and c["family"] == family]
+                cats = sum(family in c["families"] for c in categorical) if lane == "local" else 0
+                families[lane + "." + family] = {phase: _direction_input_family_stats(
+                    coordinates, fields, indices, phase, categorical_count=cats if phase == "current" else 0)
+                    for phase in ("current", "history")}
+        macro_indices = [i for i, c in enumerate(coordinates) if c["macro_overlap"]]
+        result[name] = {"scalar_value_bps": float(scalar.detach()), "surface_connectivity": connectivity,
+            "fields": fields, "family_lanes": families,
+            "macro_context_overlap": {phase: _direction_input_family_stats(coordinates, fields, macro_indices, phase)
+                                      for phase in ("current", "history")}}
+        current_vectors[name] = torch.stack(vector, dim=1).reshape(-1) if vector else torch.empty(0, dtype=torch.float64)
+        current_support[name] = torch.stack(support, dim=1).reshape(-1) if support else torch.empty(0, dtype=torch.bool)
+        del raw, gradients, grad, fields, parts, vector, support, _
+    geometry = {}
+    names = tuple(projections)
+    for i, first in enumerate(names):
+        for second in names[i+1:]:
+            common = current_support[first] & current_support[second]
+            a, b = current_vectors[first][common], current_vectors[second][common]
+            count = int(common.sum())
+            na, nb = float(torch.linalg.vector_norm(a)), float(torch.linalg.vector_norm(b))
+            dot = float(torch.dot(a, b)) if count else None
+            geometry[first + "__" + second] = {"common_observed_connected_current_cells": count,
+                "dot": dot, "first_l2_norm": na if count else None, "second_l2_norm": nb if count else None,
+                "cosine": dot / (na * nb) if count and na and nb else None}
+    if any(flat[s].grad is not None for s in _FLOAT_INPUTS):
+        _fail("INPUT_VJP_INPUT_GRAD_MUTATION")
+    profile = layout["profile"]
+    answer = {"schema_version": "gx1_dynamic_m5_direction_input_witness_v1",
+        "forward_calls": 0, "reverse_calls": 5, "optimizer_updates": 0,
+        "projections": list(projections), "input_surface_order": list(_FLOAT_INPUTS),
+        "canonical_current_coordinates": coordinates, "integer_input_accounting": categorical,
+        "declared_eight_families": list(family_order), "declared_family_lane_count": 6 * len(family_order),
+        "source_active_family_lane_count": len(layout["families"]),
+        "macro_context_tag_fields": list(profile["macro_context_fields"]),
+        "macro_context_is_overlapping_not_additive": True,
+        "actual_sequence_lengths": {s: flat[s].shape[1] for s in ("seq_x", *_MTF)},
+        "physical_active_field_references": {"seq_x": len(profile["signal_indices"]),
+            "snap_x": len(profile["generic_snap_signal_indices"]), "ctx_cont": len(profile["ctx_cont_indices"]),
+            "ctx_cat": len(profile["physical_field_names"]["ctx_cat"]),
+            **{s: len(profile["mtf_indices"]) for s in _MTF}},
+        "frozen_normalization_constant_fallback_references": sum(
+            x == "constant_train_unit_scale" for spec in normalization["surfaces"].values() for x in spec["scale_source"]),
+        "units": {"raw": "bps_per_original_feature_unit", "asinh": "bps_per_frozen_TRAIN_asinh_coordinate",
+            "conversion": "F32rawgradient_times_F64hypot(F32scale,F32rawinput-F32center)",
+            "current_alias_sum": "signed_F64_sum_of_native_F32_physical_partials_before_conversion",
+            "not_standard_deviations_or_finite_interventions": True, "task_precision_or_111_loss_weighting": False},
+        "candidate_exact_tied_rows_by_side": [int((outputs[_TIE][..., side].sum(dim=1) > 1).sum()) for side in (0, 1)],
+        "candidate_derivative": "native max(dim) selected branch; exact ties are nonsmooth",
+        "results": result, "current_projection_geometry": geometry,
+        "limits": "Local fixed-TRAIN derivatives only. No per-field disconnection from zero tensor entries, feature importance, optimality, OOF value, epoch cause, generalization or economics."}
+    json.dumps(answer, allow_nan=False)
+    return answer
