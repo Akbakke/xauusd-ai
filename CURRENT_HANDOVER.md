@@ -99,18 +99,29 @@ saved187freshstate i ny prosess;188s levende postmålingstilstand brukes ikke.
 FullOBS-konsumentvalidering gjenstår i190s faktiske materialisering; ingen ekstra
 native-rekonstruksjon eller ny originalOBS-audit utføres nå.
 
-190s statiske forberedelse via working176 er nå ferdig, ennå ikke admitted:
-PLAN9a37c8d8…, PREPARATION_REVIEWd6860f93…, sealer aa9ebb8e…/ni literalbytter
-og controller6ed6ba18…/kun stagebytte. Root bekreftet reversert byteparitet,
-compile uten kjøring og canonical31/global34-feltlikhet. Ingen payload eller jobb.
-Konkret fremtidig scope:4parityforwards/4privateupdates på32TRAIN,
-logicalcursor2/8resumehashes/full480/tol1e-4, samme187inputs/111/185kilde og faktiske
-188initial/189audit/peer. Bindinger bruker185s current_native_source_bindings.
-Ingen190sealing/materialisering/native/privatupdate/omstart eller hovedtrening er
-admitted nå. Ny konkret owneradmission og clean commitbinding må foreligge først.
-Forberedelsesreviewets argv-prosa sier etter freshboot; faktisk working-rute
-materialiserer campaign før boot, binder nåværende før-bootidentitet og krever
-deretter fersk fysiskboot før native. Ingen alternativ boot-/bindingsrute innføres.
+190s konkrete working176-rute er statisk root- og preexecpeer-kontrollert:
+PLAN9a37c8d8…, PREPARATION_REVIEWd6860f93…, peer a5e77834… uten kildeblokkere.
+Sealer aa9ebb8e… har ni literalbytter; controller6ed6ba18… kun stagebytte.
+Byte-/AST-paritet, compile uten kjøring og canonical31/global34-feltlikhet bestod.
+Faktiske187fresh/188initial/189audit+peer/185current_native_source_bindings er bundet.
+Scope:4parityforwards/4privateupdates på samme32TRAIN,logicalcursor2/8resumehashes/
+full480/tol1e-4, samme11inputs/111/kostnader/profil/kohorter. Ingen ny modellhypotese.
+
+OWNER_ADMISSION_REVIEW admits én190metadatasealer og én canonical materialisering
+med eksisterende CPUaudit4G/512M/éntråd/pids64/900s respektive7199s+10TERM.
+Global training_enabled=true gjelder kun privat technical4; full_epoch/fullVAL=false.
+Forbudt chronological_initial_measurement:null er fjernet, eksakt global34map er
+installert. Før utførelse kreves clean postcommit og eksakte bindinger som beskrevet
+i working seal/controller; ingen tidligere fullført plan relanseres.
+
+Før-boot527/18:47:22.5Z er ferskt observert; staged fireWindowsPS-kilder matcher
+kanoniske bytes og160Wkeeper/SHA62b53… er uendret. Signert telemetry35/42C,
+22,65W/160W/78MiB bestod. Dette er ingen ny fysiskboot eller nativekvalifikasjon.
+Materialiser campaign før boot og bind faktisk før-bootidentitet. Etter faktisk
+metadatareview kreves ny late Windows/WSL-idle/source/prosjektlås-kontroll, eksakt
+nytask og canonicalintent/confirm før én1200s fysiskomstart. Native tillates kun
+på faktisk ny fysiskboot>527 gjennom alle eksisterende signerte vakter.
+Private prøvevekter bevares, men brukes aldri som hovedmodellstart.
 En senere matchet hel TRAIN-epoke krever separat konkret admission og samme
 data/rader/budsjett; private prøvevekter brukes aldri som hovedmodellstart.
 Sammenlign retning, størrelse, MAE før MFE, kostnad, LONG/SHORT/FLAT-dekning og
