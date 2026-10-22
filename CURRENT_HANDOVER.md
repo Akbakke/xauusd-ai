@@ -50,16 +50,21 @@ TERMINAL/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW og FINALRESULT er bundet i policy.
 `training_enabled=false/full_epoch_training_allowed=false`; ingen relaunch,
 videreepoke eller automatisk forlengelse. FullVAL/Exit/TEST/broker er stengt.
 
-Neste er168CPU-audit av lagret egen162initial,167FINAL og151FINAL, begge roller.
+168CPU-audit er nå eneste admission: lagret egen162initial,167FINAL og151FINAL,
+begge roller. PLAN/worker/kodepeer er bundet i policy; én4G/512M/1800sCPUjobb,
+seks OBSJSON én gang hver og seks canonicalparentpointer-projeksjoner av kun
+`dynamic_entry_m1_row` (tre perrolle). Ingen nye forwards, PT/råMBP/feature-/
+target-/sekvenskolonner, refits eller terskelvalg.615linjer ny auditkode og små
+analytiske mattekontroller er kvalifisert; eksisterende152/153/canonicalhelpers
+beholdes. Før claim bindes renHEAD/policy i nøyaktig firefeltsEXECUTION_BINDING.
+
 167/EVALUATION_PLAN ble låst før trening:1/5/15min retning/kalibrering, separat
-MAE/MFE/kostnad og LONG/SHORT/FLAT valgte/avståtte, parvise UTCkalenderdag-
-intervaller og ukesensitivitet. Lengre horisonter er støtte/alltidLONG-reference.
-Gjenbruk152/153/canonicalvalidator; ny audit må eksplisitt innrømme seks
-parentpointer-projeksjoner av kun `dynamic_entry_m1_row` (tre perrolle).
-Ingen OBS-/Parquetpayload åpnes før eksakt168PLAN/worker/binding/CPUadmission.
-Ingen nye forwards, PT/råMBP/targets/sekvenslesinger, refits eller terskelvalg.
+MAE/MFE/kostnad og LONG/SHORT/FLAT valgte/avståtte. ParviseUTCkalenderdag-
+intervaller2000seed20260911 og UTCmandagsuke-sensitivitet; under8observerte
+blokker kun deskriptivt. Lengre horisonter er støtte/alltidLONG-reference.
 Alle26måneder er gjenbrukt utvikling. Bedre retning/kalibrering/kvalitet/dekning,
 generalisering og edge er fortsatt ubevist og avgjøres ikke av tekniskPASS.
+Root168: `/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_COMPARISON_20261022_168`.
 
 ## Faktisk evidens som gjenbrukes
 
