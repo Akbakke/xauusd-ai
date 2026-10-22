@@ -14,45 +14,48 @@ kostnad, kvalitet og dekning. Bedre retning, generalisering og edge er ubevist.
 Brukeren prioriterte22.10 en solid featuregrunnmur før videre trening;175 har
 avstemt faktiske kilde-/input-/numerikkbevis. Ingen ny generatorfeil er påvist.
 
-173s nye tilstands-/RNG-audit er COMPLETE/consumed:3,574s CPU4G/512M,
-to tilstandsarkiver,0modellbygginger/forwards/reverse/updates.172fresh og
-173s durable nullstegscheckpoint har eksakt lik modell/target/optimizer/EMA/
-scheduler og lagret CPU/Python/NumPy RNG. Bevisgrensen er før målingen;
-CUDA er bare skjemakontrollert, ingen etter-måling-RNG-observasjon påstås.
-TERMINAL/STATE_PRESERVATION_PROOF/INITIAL_MEASUREMENT_AUDIT og egen actualpeer
-ligger under173 og er bundet i policy; fullOBSvalidering gjenstår i176owner.
+173s nye tilstands-/RNG-audit er COMPLETE/consumed:172fresh og173s durable
+nullstegscheckpoint har eksakt lik modell/target/optimizer/EMA/scheduler og
+lagret CPU/Python/NumPy RNG. Bevisgrensen er før målingen; CUDA er bare
+skjemakontrollert. Full canonical OBS-validering bestod faktisk i176materializer.
 
-Neste adgang er én privat176 teknisk optimizer/resume-kvalifisering:32genuine
-TRAINrader,4privateupdates/4paritetsforwards/logiskcursor2 og8statehashfelt.
-Uendret1e-4bps/rtol0/exaktemasker. Globale `training_enabled=true` gjelder bare
-den eksakte34-nøkkel tekniske mappen; hovedepoke/fullVAL er false. Før native
-må176recipe/campaign være canonicalvalidert, alle prosjekter ledige og maskinen
-ha egen ny fysiskboot etter524/signerte hardwarekontroller. Privatvekter er
-aldri hovedinitial; bruk172fresh. Gjenbruk166mekanikk/171tester og175grunnmur;
-ingen gammel engangsplan eller ekstra fullsuite relanseres. Første steg er
-kun capped metadataforsegling og campaignmaterialisering, ingen native nå.
+Neste steg er én NY177fullTRAIN-epoke for170s vedtatte terminalvekting, matchet
+mot167:118249unikeTRAINrader/batch16/siste9/7391updates og32sluttONLINEforwards
+på faste TRAIN256/CONTROL256, alle480horisonter. Global20feltmap og eksakt
+currentpolicy/recipe/campaign/hardware/all-projectidle må stemme; ny fysiskboot
+må følge525.172fresh er eneste initialeier via egen173initial/audit;176private
+vekter er audit-only. Ingen ekstra epoke/HPO/fullVAL eller featureendring.
+177EVALUATION_PLAN er forhåndsbundet: egen173initial/matchet167final og151beholdt,
+primær1/5/15min, støtte60/120/240/480, retning/amplitude/komponentfeil, alle
+valgte/FLAT-rader/kvalitet/dekning og parvise UTCdag-/ukeintervaller.
 
 Root173: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173`.
 Root175: `/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FOUNDATION_AUDIT_20261022_175`.
 Root176: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_TECHNICAL_20261022_176`.
+Root177: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_SINGLE_FULL_NATIVE_EPOCH_20261022_177`.
 
 ## Faktisk siste kjøring
 
-173 er COMPLETE/consumed: én GENESIS-invokasjon, TRAIN256/16F og CONTROL256/16F,
-alle480horisonter,0optimizersteg/teacherrefresh. Rapportert ONLINE/TARGET-state
-2eaf88… er172fresh; ingen privatvekt er hovedinitial. Native1736,136s/ytre1998,331s.
-Guard/trainer/observer PASS/0/0;1505samples,55Ccore/64Cmemory/131,84W/738MiB.
-Fysiskboot524 etter523; alleobserverte fysiske effektgrenser160W. Guardtak er
-fortsatt85C/80C/300Wlimit/310Wdraw/12288MiB. WindowsTaskReady/Last0 ble Disabled
-etter faktisk terminal og0nativeprosesser. RESUMABLE betyr forventet stepceiling0,
-ikke ny adgang. TERMINAL/ACTUAL_INITIAL_PEER_REVIEW/SOURCE_CLOSURE_REVIEW og
-RESULT er bundet i policy. HEAD91f5decd/policydf114b11 og183byte/stat var bevart.
-11inputreferanser er metadataekvivalens; postrun stor-payloadrehash påstås ikke.
+176 er COMPLETE:4privateupdates/4paritetsforwards/32genuineTRAIN/logiskcursor2,
+åtte eksakte resume-statefelt.16rader per rolle/full480 paritet har maks0bps
+numerisk avvik ved atol1e-4/rtol0; masker/action/ties og målings-RNG er eksakte.
+Dette er samme funksjon, ingen ny cross-parameterization-paritet. Opprinnelig163
+FAILED beholdes. Privatevekter beholdes kun som audit; hovedtrening er fortsatt
+ikke utført for170. RESUMABLE er forventet stepceiling2, ikke ny engangsadgang.
 
-173s første sealerbindingfeil er bevart; den stoppet før publisering/CLAIM og
-modellkall. Separat korrekt metadatarettelse er COMPLETE/consumed,0F/updates.
-Alle originale kvitteringer og checkpoints bevares.163s kombinerte eksakte
-horizonparitet forblir FAILED; ingen ommerking eller funksjonsparitet påstås.
+Én GENESIS-invokasjon på fysiskboot525 etter524, guard/trainer/observer PASS/0/0,
+ytre3373,874s.2577signerte samples, maks55Ccore/64Cmemory/138,15W/1776MiB;
+observerte fysiske effektgrenser160W. Guardtak er85C/80C/300Wlimit/310Wdraw/
+12288MiB. WindowsTaskLast0/Disabled/restart0 og0nativekandidater er bekreftet.
+En etterkontroll feilet etter vellykket Disable på feil config-filnavn; original
+logg beholdes og read-only kontroll med faktisk installersti bekreftet tilstanden.
+Ingen nativekjøring ble repetert. SOURCE_CLOSURE verifiserte183sourcebyte/stat,
+23små immutable metadatarefs og receiptbevis; stor input-/state-rehash påstås ikke.
+TERMINAL/ACTUAL_TECHNICAL_PEER_REVIEW/SOURCE_CLOSURE_REVIEW/RESULT er bevart.
+
+173s egen initial er fortsatt baseline:32F/512rader/full480/0updates, state2eaf88…
+fra172fresh. Teknisk konsistens, featurekobling og numerikk er ikke bedre retning.
+Alle originalkvitteringer/checkpoints bevares; ingen gammel engangsplan relanseres.
 
 ## Featuregrunnmur og konkrete begrensninger
 
@@ -110,9 +113,9 @@ terminaltask/+s.15/50:50 er designkonvensjon, ikke optimum. Alle480, ekteFLAT-N,
 beholdes; nye optimizerstats er egne og ikke samlet7391stegshistorikk.
 171 kvalifiserte91fokuserte kontroller,0feil/hopp,5,616s CPU.172 publiserte
 fersk ONLINE=TARGET=EMA2eaf88…/tomoptimizer/EMA0,122,508s/0F/updates/refits.
-173s aktuelle initialmåling og tilstandsaudit er utført;176privat teknisk gate
-og eksakt hovedadgang gjenstår før noe matchet167-budsjettforsøk. Ingen
-hovedtrening er startet for170. Inputs holdes faste for å måle tapsendringen.
+173s aktuelle initialmåling/tilstandsaudit og176s private tekniske gate bestod.
+177 er neste nye matchede167-budsjettforsøk etter eksakt adgang. Ingen hovedtrening
+er startet for170. Inputs holdes faste for å måle tapsendringen.
 
 ## Varige grenser
 
