@@ -220,7 +220,7 @@ def _all_surface_case(*, active_terminal):
 
 
 @pytest.mark.parametrize("active_terminal", [True, False])
-def test_optimizer_adapter_preserves_other_three_tasks_and_old_raw_unit_metrics(active_terminal):
+def test_optimizer_adapter_preserves_MAE_forecast_and_old_raw_unit_metrics(active_terminal):
     out, batch = _all_surface_case(active_terminal=active_terminal)
     device = torch.device("cpu")
     raw, raw_counts = trainer._dynamic_m5_task_loss_surfaces(out, batch, device)
@@ -231,7 +231,8 @@ def test_optimizer_adapter_preserves_other_three_tasks_and_old_raw_unit_metrics(
     assert groups == ({EARLY: 4, LATER: 6} if active_terminal else {EARLY: 0, LATER: 0})
     assert raw_counts == counts
     for name, expected in zip(OTHER_TASKS, (2.5, 4., 4.)):
-        assert optimized[name] is pooled[name]
+        if name != MFE:  #184 deliberately replaces MFE's pooled optimizer tensor.
+            assert optimized[name] is pooled[name]
         assert float(optimized[name].detach()) == pytest.approx(expected)
     assert set(optimized) == set(pooled)
     if active_terminal:

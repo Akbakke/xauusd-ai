@@ -21,7 +21,7 @@ from gx1.contracts.entry_model_native_joint_task_weighting_v1 import (
 )
 
 
-SCHEMA_VERSION = "entry_model_native_training_objective_v15"
+SCHEMA_VERSION = "entry_model_native_training_objective_v16"
 JOINT_FITTED_Q_TRAINING_PHASE = "joint_fitted_q"
 ENTRY_ONLY_TRAINING_PHASE = "entry_only"
 ENTRY_ONLY_M5_PATH_TRAINING_PHASE = "entry_only_observed_m5_path"
@@ -123,6 +123,7 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
         from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_ENDPOINT_KINDS
         from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
             dynamic_m5_loss_scale_contract, dynamic_m5_terminal_horizon_objective_contract,
+            dynamic_m5_mfe_horizon_objective_contract,
         )
         expected.update({
             "all_advertised_heads_supervised": True,
@@ -137,11 +138,15 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
             },
             "dynamic_loss_unit_contract": dynamic_m5_loss_scale_contract(),
             "dynamic_terminal_optimizer_objective": dynamic_m5_terminal_horizon_objective_contract(),
+            "dynamic_mfe_optimizer_objective": dynamic_m5_mfe_horizon_objective_contract(),
             "pooled_TRAIN_RMS_component_diagnostics_preserved": True,
             "train_fitted_loss_scales": True,
             "raw_bps_component_diagnostics_preserved": True,
             "dynamic_path_endpoint_kinds": list(DYNAMIC_M1_PREFIX_ENDPOINT_KINDS),
-            "dynamic_path_loss_reduction": "all_observed_cells_of_both_endpoint_kinds_per_task",
+            "dynamic_path_loss_reduction": {
+                "dynamic_mfe_bps": "mean_nonempty_horizon_group_means_of_both_endpoint_kinds",
+                "dynamic_pre_mfe_mae_upper_bps": "all_observed_cells_of_both_endpoint_kinds",
+            },
             "dynamic_candidate_uses_endpoint_kind": "terminal_open_inclusive",
             "dynamic_candidate_has_supervised_target": False,
             "dynamic_candidate_quality_contract": entry_observed_dynamic_m5_path_contract()["candidate_quality_contract"],
@@ -153,6 +158,9 @@ def _expected_objective(entry_training_phase: str) -> dict[str, Any]:
         })
         expected["dynamic_component_losses"]["dynamic_terminal_net_markout_bps"] = (
             "mean_nonempty_terminal_horizon_group_TRAIN_RMS_squared_error"
+        )
+        expected["dynamic_component_losses"]["dynamic_mfe_bps"] = (
+            "mean_nonempty_mfe_horizon_group_TRAIN_RMS_squared_error"
         )
     return expected
 

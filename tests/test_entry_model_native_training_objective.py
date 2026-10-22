@@ -156,8 +156,9 @@ def test_dynamic_objective_matches_existing_quality_bps_candidate_without_native
     assert value["raw_bps_component_diagnostics_preserved"] is True
     assert value["dynamic_component_losses"] == {
         "dynamic_terminal_net_markout_bps": "mean_nonempty_terminal_horizon_group_TRAIN_RMS_squared_error",
+        "dynamic_mfe_bps": "mean_nonempty_mfe_horizon_group_TRAIN_RMS_squared_error",
         **{name: "independently_masked_TRAIN_target_RMS_scaled_squared_error"
-           for name in ("dynamic_mfe_bps", "dynamic_pre_mfe_mae_upper_bps", "forecast_return_bps")},
+           for name in ("dynamic_pre_mfe_mae_upper_bps", "forecast_return_bps")},
     }
     assert value["dynamic_loss_unit_contract"]["fit_partition"] == "train"
     assert value["dynamic_loss_unit_contract"]["raw_target_and_output_units"] == "bps"

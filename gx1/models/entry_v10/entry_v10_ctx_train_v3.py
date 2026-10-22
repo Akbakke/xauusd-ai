@@ -583,11 +583,16 @@ def _dynamic_m5_task_loss_surfaces(out, batch, device, *, loss_units="raw_bps"):
 
 
 def _dynamic_m5_optimizer_task_losses(out, batch, device, *, pooled_task_losses):
-    """Replace only terminal's pooled unit loss with its declared optimizer reduction."""
+    """Replace terminal/MFE pooled units with their declared optimizer reductions."""
     from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
         DYNAMIC_M5_LOSS_SCALE_BATCH_KEY, dynamic_m5_terminal_horizon_objective,
+        dynamic_m5_mfe_horizon_objective,
     )
-    from gx1.contracts.entry_observed_market_v1 import DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY
+    from gx1.contracts.entry_observed_market_v1 import (
+        DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY,
+        DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY,
+        DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
+    )
     scale_context = batch.get(DYNAMIC_M5_LOSS_SCALE_BATCH_KEY)
     target, valid = batch.get(DYNAMIC_M5_MARKOUT_TARGET_KEY), batch.get(DYNAMIC_M5_MARKOUT_VALID_KEY)
     if (not isinstance(scale_context, Mapping) or set(scale_context) != {"identity", "rms"}
@@ -602,6 +607,20 @@ def _dynamic_m5_optimizer_task_losses(out, batch, device, *, pooled_task_losses)
         raise RuntimeError("ENTRY_DYNAMIC_M5_TERMINAL_OPTIMIZER_MASK_MISMATCH")
     if terminal is not None:
         losses["dynamic_terminal_net_markout_bps"] = terminal
+    mfe_targets = [batch.get(key) for key in (DYNAMIC_M5_MFE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY,
+        DYNAMIC_M5_CLOSED_MFE_TARGET_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY)]
+    if not all(isinstance(value, torch.Tensor) for value in mfe_targets):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_MFE_OPTIMIZER_INPUT_INVALID")
+    target, valid, closed_target, closed_valid = (value.detach().to(device) for value in mfe_targets)
+    mfe, _ = dynamic_m5_mfe_horizon_objective(
+        out.get("dynamic_mfe_bps"), target, valid,
+        out.get("dynamic_closed_mfe_bps"), closed_target, closed_valid,
+        rms=scale_context["rms"].get("dynamic_mfe_bps"),
+        closed_rms=scale_context["rms"].get("dynamic_closed_mfe_bps"))
+    if (mfe is not None) != ("dynamic_mfe_bps" in losses):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_MFE_OPTIMIZER_MASK_MISMATCH")
+    if mfe is not None:
+        losses["dynamic_mfe_bps"] = mfe
     return losses, group_cells
 
 
@@ -11394,14 +11413,21 @@ def _finalize_dynamic_m5_unit_loss_evidence(accumulator, dataset):
 
 
 def _new_dynamic_m5_optimizer_loss_evidence():
-    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_terminal_horizon_objective_contract
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+        dynamic_m5_terminal_horizon_objective_contract, dynamic_m5_mfe_horizon_objective_contract,
+    )
     contract = dynamic_m5_terminal_horizon_objective_contract()
     return {"objective_contract": contract,
         "aggregation_scope": "current_train_epoch_call_or_single_curve_validation_pass_no_cross_invocation_history",
         "group_observed_cells": {row["name"]: 0 for row in contract["groups"]},
         "nonempty_group_batches": {"none": 0, "one": 0, "two": 0},
         "processed_batch_rows": 0, "active_terminal_batch_rows": 0,
-        "batch_row_weighted_sum": 0.0}
+        "batch_row_weighted_sum": 0.0,
+        "mfe_optimizer_evidence": {
+            "objective_contract": dynamic_m5_mfe_horizon_objective_contract(),
+            "aggregation_scope": "current_train_epoch_call_or_single_curve_validation_pass_no_cross_invocation_history",
+            "processed_batch_rows": 0, "active_mfe_batch_rows": 0,
+            "active_mfe_batches": 0, "omitted_mfe_batches": 0, "batch_row_weighted_sum": 0.0}}
 
 
 def _accumulate_dynamic_m5_optimizer_loss_evidence(accumulator, task_losses, group_cells, *, batch_rows):
@@ -11415,6 +11441,18 @@ def _accumulate_dynamic_m5_optimizer_loss_evidence(accumulator, task_losses, gro
             and (not isinstance(terminal, torch.Tensor) or terminal.numel() != 1
                  or not bool(torch.isfinite(terminal).all())))):
         raise RuntimeError("ENTRY_DYNAMIC_M5_TERMINAL_OPTIMIZER_EVIDENCE_INVALID")
+    mfe = task_losses.get("dynamic_mfe_bps")
+    if mfe is not None and (not isinstance(mfe, torch.Tensor) or mfe.numel() != 1
+                            or not bool(torch.isfinite(mfe).all())):
+        raise RuntimeError("ENTRY_DYNAMIC_M5_MFE_OPTIMIZER_EVIDENCE_INVALID")
+    mfe_evidence = accumulator["mfe_optimizer_evidence"]
+    mfe_evidence["processed_batch_rows"] += batch_rows
+    if mfe is None:
+        mfe_evidence["omitted_mfe_batches"] += 1
+    else:
+        mfe_evidence["active_mfe_batches"] += 1
+        mfe_evidence["active_mfe_batch_rows"] += batch_rows
+        mfe_evidence["batch_row_weighted_sum"] += float(mfe.detach()) * batch_rows
     accumulator["nonempty_group_batches"][("none", "one", "two")[nonempty]] += 1
     accumulator["processed_batch_rows"] += batch_rows
     for name, n in group_cells.items():
@@ -11426,10 +11464,15 @@ def _accumulate_dynamic_m5_optimizer_loss_evidence(accumulator, task_losses, gro
 
 def _finalize_dynamic_m5_optimizer_loss_evidence(accumulator):
     evidence = copy.deepcopy(accumulator)
+    mfe_evidence = evidence.pop("mfe_optimizer_evidence")
+    mfe_total = mfe_evidence.pop("batch_row_weighted_sum")
+    mfe_rows = mfe_evidence["active_mfe_batch_rows"]
+    mfe_evidence["batch_row_weighted_mfe_optimizer_objective_mean"] = mfe_total / mfe_rows if mfe_rows else None
     total = evidence.pop("batch_row_weighted_sum")
     rows = evidence["active_terminal_batch_rows"]
     evidence["batch_row_weighted_terminal_optimizer_objective_mean"] = total / rows if rows else None
-    return {"dynamic_m5_terminal_optimizer_objective": evidence}
+    return {"dynamic_m5_terminal_optimizer_objective": evidence,
+            "dynamic_m5_mfe_optimizer_objective": mfe_evidence}
 
 
 def _finalize_joint_task_loss_evidence(

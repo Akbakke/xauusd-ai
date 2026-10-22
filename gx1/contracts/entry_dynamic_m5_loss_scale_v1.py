@@ -315,3 +315,58 @@ def dynamic_m5_terminal_horizon_objective(prediction: torch.Tensor, target: torc
         if count:
             means.append(squared / count)
     return (torch.stack(means).mean() if len(means) == 2 else means[0] if means else None), cells
+
+
+def dynamic_m5_mfe_horizon_objective_contract() -> dict[str, Any]:
+    """MFE-only184 reduction; original111 units and terminal170 stay unchanged."""
+    value = {
+        "schema_version": "gx1_dynamic_m5_mfe_horizon_objective_v1",
+        "task": "dynamic_mfe_bps",
+        "endpoint_surfaces": ["dynamic_mfe_bps", "dynamic_closed_mfe_bps"],
+        "side_order": ["long", "short"],
+        "groups": [{"name": name, "query_minutes": [start, end]}
+                   for name, start, end in DYNAMIC_M5_TERMINAL_HORIZON_GROUPS],
+        "residual_units": "TRAIN_target_RMS_units",
+        "loss_unit_contract_sha256": dynamic_m5_loss_scale_contract()["contract_sha256"],
+        "group_numerator": "sum_observed_inclusive_and_closed_LONG_SHORT_separately_scaled_squared_residuals",
+        "group_denominator": "true_observed_inclusive_and_closed_LONG_SHORT_cells_without_FLAT",
+        "reduction": "arithmetic_mean_of_nonempty_group_means",
+        "one_nonempty_group": "that_group_mean",
+        "no_nonempty_groups": "omit_MFE_task_and_its_log_variance_term",
+        "joint_task_precision": "existing_exp_minus_s_times_objective_plus_s_once_per_active_MFE_task",
+        "raw_and_pooled_TRAIN_RMS_diagnostics_preserved": True,
+        "optimizer_objective_is_pooled_SSE_over_N": False,
+        "epsilon_clipping_or_unit_fallback": False,
+        "native_decision_authority_granted": False,
+    }
+    return {**value, "contract_sha256": canonical_sha256(value)}
+
+
+def dynamic_m5_mfe_horizon_objective(prediction: torch.Tensor, target: torch.Tensor,
+                                   valid: torch.Tensor, closed_prediction: torch.Tensor,
+                                   closed_target: torch.Tensor, closed_valid: torch.Tensor, *,
+                                   rms: torch.Tensor, closed_rms: torch.Tensor
+                                   ) -> tuple[torch.Tensor | None, dict[str, int]]:
+    """Pool genuine endpoints/sides within each170 group, then mean nonempty groups."""
+    endpoints = ((prediction, target, valid, rms, "dynamic_mfe_bps"),
+                 (closed_prediction, closed_target, closed_valid, closed_rms, "dynamic_closed_mfe_bps"))
+    # Validate original full target/mask storage before creating zero-backed
+    # subgroup targets. Reuse the unchanged111 primitive, including both RMS owners.
+    with torch.no_grad():
+        for p, y, observed, scale, surface in endpoints:
+            dynamic_m5_scaled_square_sum(p, y, observed, surface=surface, rms=scale)
+    means, cells = [], {}
+    for name, start, end in DYNAMIC_M5_TERMINAL_HORIZON_GROUPS:
+        sums, count = [], 0
+        for p, y, observed, scale, surface in endpoints:
+            group_valid = torch.zeros_like(observed)
+            group_valid[:, start-1:end] = observed[:, start-1:end]
+            group_target = torch.where(group_valid, y, 0.)
+            squared, n = dynamic_m5_scaled_square_sum(p, group_target, group_valid,
+                surface=surface, rms=scale)
+            sums.append(squared)
+            count += n
+        cells[name] = count
+        if count:
+            means.append((sums[0] + sums[1]) / count)
+    return (torch.stack(means).mean() if len(means) == 2 else means[0] if means else None), cells
