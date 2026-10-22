@@ -35,14 +35,27 @@ ble eksplisitt deaktivert etter terminal og0identifiserte prosjektprosesser.
 TERMINAL.json og ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json er bundet i policy.
 
 Root166: `/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166`.
-`training_enabled=false`; ingen hovedepoke er innrømmet ennå. Neste steg er
-ny167admission under165: samme118249TRAIN-rader, batch16/slutt9,7391steg,
-faste32sluttforwards på TRAIN256/CONTROL256, samme seed/LR/TRAIN-RMS.
-Gjenbruk161fresh og162egeninitial samt de separat beståtte163state/RNG/
-canonicalaudit-fakta. Ingen privat166vekt, blind ekstraepoke/HPO eller gjenbruk
-av konsumerte117/151-tillatelser. Før kjøring kreves eksakt policy/campaign,
-maskinvarevakter, maskinvid tomgang og ny fysiskWindowsboot etter522.
+167 er nå eneste nye hovedadmission under165: samme118249TRAIN-rader,
+batch16/slutt9,7391steg,32sluttforwards på fasteTRAIN256/CONTROL256 og samme
+seed/LR/TRAIN-RMS. `training_enabled=true/full_epoch_training_allowed=true`
+gjelder bare dette ene nye forsøket. FullVAL/Exit/TEST/broker er stengt.
+Gjenbruk161fresh,162egeninitial og separat bestått163state/RNG/canonicalaudit;
+ingen privat166vekt eller gjenbruk av konsumerte117/151-tillatelser.
+
+PLAN/CONTINUOUS_GOAL_AUTHORITY/EVALUATION_PLAN og peer med17beståtte kontroller
+er bundet i policy. Før sealing ble én feil statusstreng i metadata-sealeren
+rettet til original163FAILED_NO_ADMISSION/exit1; ingen kvittering ble omskrevet
+og ingen jobb/claim hadde startet. Produksjonskode/183closure er uendret.
+Måleplanen låser1/5/15min retning/kalibrering og separatMAE/MFE/kostnad/
+LONG-SHORT-FLAT-dekning, med parvise kalenderdagblokker og ukesensitivitet.
+Alle26måneder er gjenbrukt utvikling; ingen ny generaliserings-/økonomipåstand.
+
+Root167: `/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167`.
+Neste: forsegl recipe og strict20globalmap, materialiser/installér én canonical
+campaign, bekreft aktuelle signerte vakter og maskinvid tomgang, og bruk ny fysisk
+Windowsboot etter forberedt522. Kilde/policy fryses fra commit/seal til terminal.
 Stabil langkjøring kontrolleres omtrent hver15.–30.minutt; ingen minuttpolling.
+Ingen blind ekstraepoke/HPO eller automatisk forlengelse er innrømmet.
 
 ## Faktisk evidens som gjenbrukes
 

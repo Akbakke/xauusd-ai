@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-22T00:38:54.105366+00:00",
-  "status": "166_COMPLETE_CONSUMED_CURRENT_FUNCTION_TECHNICAL_PASS_MAIN_COMPARISON_NOT_YET_ADMITTED",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "observed_utc": "2026-10-22T00:46:34.113496+00:00",
+  "status": "167_ONE_CURRENT_FUNCTION_MATCHED_BUDGET_EPOCH_ADMITTED_PENDING_SEAL_CAMPAIGN_AND_FRESH_BOOT",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
-  "rule": "166 consumed one private current-function parity/resume invocation:4 parity forwards,4 private updates,logical cursor2,eight exact reported resume state fields. Private weights are audit-only.163 exact old-horizon claim remains rejected;165 own162initial comparison requires a separately bound new main scope.",
-  "next_action": "Prepare and review a new167single7391update matched-budget experiment under165own162initial design; bind actual166PASS, fresh161weights and valid163state/canonical audit facts. Main native execution remains closed pending exact policy/campaign/hardware/freshboot admission.",
+  "rule": "Current continuous direction-qualification goal admits exactly one new167same-budget TRAIN-only comparison under165own162initial design after actual166technicalPASS.118249rows/batch16,last9/7391updates,32fixedfinalONLINEforwards. No consumed151relaunch, extraepoch/HPO,166privateweightadoption,fullVAL/Exit/TEST/broker authority.",
+  "next_action": "Seal167current183source recipe with strict20global mainmap and valid163initialaudit; materialize/install exactsinglecampaign; bind current signedhardware, all-projectidle and newphysicalboot after522; then run exactly7391updates and32fixedfinalforwards. Compare against own162initial and151using preregistered metrics/coverage/timeblocks.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -120,7 +120,7 @@
   },
   "current_work": {
     "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
-    "current_activity": "166_COMPLETE_CONSUMED_PRIVATE_MECHANICS_PASS_MAIN167_PREPARATION",
+    "current_activity": "167_CURRENT_FUNCTION_MATCHED_BUDGET_EPOCH_ADMITTED_PENDING_OPERATIONAL_GATES",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -150,7 +150,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "166_COMPLETE_PRIVATE_CURRENT_FUNCTION_MECHANICS_NOT_DIRECTION_IMPROVEMENT",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/TERMINAL.json",
       "sha256": "cd1ea2170581e30f72e038b3effb74dcca82cb39f6510ff1f2ba40a64312a43c"
@@ -173,7 +173,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No technical blocker in166. New167samebudget main comparison still needs exact authority/recipe/policy/campaign and fresh physical boot. No measured directional improvement.",
+    "current_blocker": "167recipe/policyseal, canonicalcampaign/current signedhardware/all-projectidle/newphysicalboot after522 remain. No actual167training or improveddirection yet.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7647,7 +7647,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare and review a new167single7391update matched-budget experiment under165own162initial design; bind actual166PASS, fresh161weights and valid163state/canonical audit facts. Main native execution remains closed pending exact policy/campaign/hardware/freshboot admission.",
+    "next_action": "Seal167current183source recipe with strict20global mainmap and valid163initialaudit; materialize/install exactsinglecampaign; bind current signedhardware, all-projectidle and newphysicalboot after522; then run exactly7391updates and32fixedfinalforwards. Compare against own162initial and151using preregistered metrics/coverage/timeblocks.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17062,15 +17062,15 @@
       ],
       "zero_update_witness_preparation_authorized": true,
       "new_model_observation_admitted": true,
-      "new_training_admitted": false,
+      "new_training_admitted": true,
       "new_model_or_loss_correction_selected": true,
-      "latest_evidence_stage": "166_ACTUAL_CURRENT_FUNCTION_PARITY_RESUME_PASS_MAIN_COMPARISON_PREPARATION",
+      "latest_evidence_stage": "166_PRIVATE_MECHANICS_PASS_167_NEW_SAME_BUDGET_COMPARISON_ADMITTED_PENDING_OPERATIONAL_GATES",
       "selected_single_design": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_QUERY_OWN_INITIAL_DESIGN_20261022_165/DESIGN.json",
         "sha256": "1f5a942f524a0b9a4ae7b0481acd6937ad8c16c1449663b76593067adaa84a57"
       },
-      "new_training_scope": "NONE_166_CONSUMED_PRIVATE_WEIGHTS_AUDIT_ONLY",
-      "new_main_training_admitted": false
+      "new_training_scope": "167one newmatched-budget TRAINepoch118249rows/7391updates+32fixedfinalF; fresh161weights/own162baseline,never166privateweights",
+      "new_main_training_admitted": true
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19635,7 +19635,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-22T00:38:54.105382+00:00",
+  "updated_utc": "2026-10-22T00:46:34.113496+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -22933,5 +22933,146 @@
     },
     "actual_windows_task_state": "Disabled",
     "actual_windows_boot_id": 522
+  },
+  "entry_m5_path_single_epoch_run": {
+    "automatic_extension_allowed": false,
+    "batch_size": 16,
+    "chronological_learning_measurement": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_INITIAL_STATE_PARITY_20261022_163/INITIAL_MEASUREMENT_AUDIT.json",
+      "sha256": "5f0f31298e578f1885d34efa765e72480cf798e59e300bb19c258ba8d0719fae"
+    },
+    "chronological_prefix": {
+      "design": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/DESIGN.json",
+        "sha256": "4e8a027a9b8577bf6876601d0508bd7c376bf3620f6ee260ee4e399cc32568f5"
+      },
+      "labels_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
+        "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
+      },
+      "native_coordinates": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/COORDINATES/NATIVE_COORDINATES.json",
+        "sha256": "79e0104bffeb457d33672062e28c9df7b428156b191e58fd75f2be4842d3d664"
+      },
+      "normalization_result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
+        "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
+      }
+    },
+    "drop_last": false,
+    "dynamic_m5_loss_scales": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/LOSS_SCALES.json",
+      "sha256": "93fa60c423a4adebd888f7a905b31adc61a3094d8e7a04169f4049db540fc88d"
+    },
+    "entry_observed_market": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_EPOCH_GUARD_20261020_104/OBSERVED_MARKET_PLAN.json",
+      "sha256": "25019568903f1e64c09cc80e946dc579babbf8dcbb2b0cdb4b1fbf090681542d"
+    },
+    "epochs": 1,
+    "final_model_variant": "ONLINE",
+    "full_epoch_training_allowed": true,
+    "full_val_allowed": false,
+    "max_invocations": 1,
+    "maximum_trained_entry_rows": 118249,
+    "optimizer_steps": 7391,
+    "out_bundle_dir": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/BUNDLE",
+    "population_witness": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/WITNESS.json",
+      "sha256": "19b6b9a6c2167b3eb9795ceb1372a0b398e6fc0b2731a035db78b3e082d7f801"
+    },
+    "run_id": "NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167",
+    "source_bindings_sha256": "2d7fd42b7ae46082a08da4abd20e5195cd39f28b194541b57b920b02cb31ec1f",
+    "teacher_refresh_allowed": false,
+    "test_data_used": false
+  },
+  "dynamic_m5_standard_query_single_epoch_167": {
+    "status": "ADMITTED_ONE_NEW_MATCHED_BUDGET_EPOCH_PENDING_SEAL_CAMPAIGN_CURRENT_HARDWARE_FRESH_BOOT",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/PLAN.json",
+      "sha256": "e893e2efdb5f9438e3916bde73030007e497f1ae4a0f0b9f719bf11aea1827ba"
+    },
+    "continuous_goal_authority": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/CONTINUOUS_GOAL_AUTHORITY.json",
+      "sha256": "f0f93dbdb7592e3961674265da8eeea7aad480ace35bf82101fccfeb49094e29"
+    },
+    "evaluation_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/EVALUATION_PLAN.json",
+      "sha256": "3c5f5adbc8fbb6c367d1dd583c8a64d860dbde90a2014afbc48de5b3bb3c8e49"
+    },
+    "sealer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/seal_train_rms_epoch_recipe.py",
+      "sha256": "88dcf7eaf8ecae2d35d5a12d3ee9b13d5f66865205dade23250a58c57eb6cab3"
+    },
+    "sealer_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/SEALER_REUSE_REVIEW_FINAL.json",
+      "sha256": "69576d4a8bc57642a343dd5a85b4986451fa437c878c94ddd253752922af3710"
+    },
+    "sealer_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/SEALER_PEER_REVIEW.json",
+      "sha256": "ee51fff29c9002a5c24c4755d1ca937586a56fa0aed5488117009f8e01efd39d"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/run_materialize_campaign.py",
+      "sha256": "607b75533f1764e20f66b39d6a09db2b66447025a321adad73a7639623b194f5"
+    },
+    "controller_reuse_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/CONTROLLER_REUSE_REVIEW.json",
+      "sha256": "144cd599c56857dc9e57d13f953b1246c73baec88d2353242977e4f35a1597b0"
+    },
+    "technical_qualification": {
+      "peer": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json",
+        "sha256": "593f5755f4abeb9a4a155a8ff797d50a3639d8e2c7c9f0b8a54369c0505ab80a"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/DYNAMIC_M5_TECHNICAL_QUALIFICATION/RESULT.json",
+        "sha256": "1701b4a1ca7788ce2a51c4a5907f193e7a1da1e3123c5ee912be9c8a09347964"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/TERMINAL.json",
+        "sha256": "cd1ea2170581e30f72e038b3effb74dcca82cb39f6510ff1f2ba40a64312a43c"
+      }
+    },
+    "recipe_binding_authorized": true,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "execution_authorized_only_after_exact_campaign_signed_hardware_and_fresh_idle_physical_boot": true,
+    "planned_invocations": 1,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "maximum_train_rows": 118249,
+    "optimizer_updates": 7391,
+    "final_fixed_train_entries": 256,
+    "final_fixed_control_entries": 256,
+    "final_online_forwards": 32,
+    "native_source_roles": 183,
+    "source_bindings_sha256": "2d7fd42b7ae46082a08da4abd20e5195cd39f28b194541b57b920b02cb31ec1f",
+    "prepared_windows_boot": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "307661847098dbb271bd0210007bdb6f27fe155ba36436e70e11f506d8d2da15"
+    },
+    "pre_materialization_signed_telemetry": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/PRE_MATERIALIZATION_SIGNED_TELEMETRY.json",
+      "sha256": "42b6761bb5c1327f1bd837658303ed89eec408d385459bbd29d43998cb47c23d"
+    },
+    "windows_staged_source": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_SINGLE_FULL_NATIVE_EPOCH_20261022_167/WINDOWS_STAGED_SOURCE_BINDING.json",
+      "sha256": "29a912845e71d67b5c854dbab00b11774877e29865afc4a9b0681c10db68f463"
+    },
+    "physical_gpu_power_limit_w_to_preserve": 160,
+    "physical_reboot_authorized_only_after_all_project_jobs_and_locks_idle": true,
+    "training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "normalization_fit_enabled": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "automatic_extension_allowed": false,
+    "private166_initial_weights_adopted": false,
+    "old163_combined_gate_passed": false
   }
 }
