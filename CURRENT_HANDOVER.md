@@ -19,43 +19,42 @@ nullstegscheckpoint har eksakt lik modell/target/optimizer/EMA/scheduler og
 lagret CPU/Python/NumPy RNG. Bevisgrensen er før målingen; CUDA er bare
 skjemakontrollert. Full canonical OBS-validering bestod faktisk i176materializer.
 
-Neste steg er én NY177fullTRAIN-epoke for170s vedtatte terminalvekting, matchet
-mot167:118249unikeTRAINrader/batch16/siste9/7391updates og32sluttONLINEforwards
-på faste TRAIN256/CONTROL256, alle480horisonter. Global20feltmap og eksakt
-currentpolicy/recipe/campaign/hardware/all-projectidle må stemme; ny fysiskboot
-må følge525.172fresh er eneste initialeier via egen173initial/audit;176private
-vekter er audit-only. Ingen ekstra epoke/HPO/fullVAL eller featureendring.
-177EVALUATION_PLAN er forhåndsbundet: egen173initial/matchet167final og151beholdt,
-primær1/5/15min, støtte60/120/240/480, retning/amplitude/komponentfeil, alle
-valgte/FLAT-rader/kvalitet/dekning og parvise UTCdag-/ukeintervaller.
+177s ene matchede TRAIN-epoke er COMPLETE/consumed. Trening er stengt.
+Neste steg er178: én capped CPU4G/512M/1800s-analyse av seks lagrede kurver,
+egen173initial/177final/matchet167final på TRAIN256/CONTROL256/full480. Én ferdig
+168aggregatrapport beholder151referansen; ingen nye177–151parvise intervaller
+utledes. Bare seks canonicalprojections av dynamic_entry_m1_row er tillatt;
+0nye forwards/updates/refits og ingen VAL/TEST-tilpasning eller ny terskel.
+177EVALUATION_PLAN styrer primær1/5/15min, støtte60/120/240/480, retning/amplitude/
+komponentfeil, alle valgte/FLAT-rader/kvalitet/dekning og UTCdag-/ukeintervaller.
 
-Root173: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_INITIAL_20261022_173`.
 Root175: `/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FOUNDATION_AUDIT_20261022_175`.
-Root176: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_TECHNICAL_20261022_176`.
 Root177: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_SINGLE_FULL_NATIVE_EPOCH_20261022_177`.
+Root178: `/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_DIRECTION_COMPARISON_20261022_178`.
 
 ## Faktisk siste kjøring
 
-176 er COMPLETE:4privateupdates/4paritetsforwards/32genuineTRAIN/logiskcursor2,
-åtte eksakte resume-statefelt.16rader per rolle/full480 paritet har maks0bps
-numerisk avvik ved atol1e-4/rtol0; masker/action/ties og målings-RNG er eksakte.
-Dette er samme funksjon, ingen ny cross-parameterization-paritet. Opprinnelig163
-FAILED beholdes. Privatevekter beholdes kun som audit; hovedtrening er fortsatt
-ikke utført for170. RESUMABLE er forventet stepceiling2, ikke ny engangsadgang.
+177 er COMPLETE/consumed:118249unike genuineTRAINrader, batch16/siste9,
+7391updates/én epoch0-permutasjon og32faste sluttONLINEforwards/512rader/full480.
+172fresh/eget173initial er brukt; targetanker2eaf88… er frosset, ingen176private
+vekter eller teacherrefresh. Slutt-ONLINE e7ca6b1f…; bedre retning er ubevist.
+Én GENESIS-invokasjon på fysiskboot526 etter525. Native5828,584s/ytre6120,611s,
+guard/trainer/observer PASS/0/0,4843samples og maks57Ccore/66Cmemory/143,38W/
+1804MiB. Alle observerte fysiske effektgrenser160W; guardtak85C/80C/300Wlimit/
+310Wdraw/12288MiB. WindowsReady→Disabled/Last0/restart0/0nativekandidater bekreftet.
+RESUMABLE er forventet stepceiling7391, ikke ny engangsadgang eller ekstra epoke.
 
-Én GENESIS-invokasjon på fysiskboot525 etter524, guard/trainer/observer PASS/0/0,
-ytre3373,874s.2577signerte samples, maks55Ccore/64Cmemory/138,15W/1776MiB;
-observerte fysiske effektgrenser160W. Guardtak er85C/80C/300Wlimit/310Wdraw/
-12288MiB. WindowsTaskLast0/Disabled/restart0 og0nativekandidater er bekreftet.
-En etterkontroll feilet etter vellykket Disable på feil config-filnavn; original
-logg beholdes og read-only kontroll med faktisk installersti bekreftet tilstanden.
-Ingen nativekjøring ble repetert. SOURCE_CLOSURE verifiserte183sourcebyte/stat,
-23små immutable metadatarefs og receiptbevis; stor input-/state-rehash påstås ikke.
-TERMINAL/ACTUAL_TECHNICAL_PEER_REVIEW/SOURCE_CLOSURE_REVIEW/RESULT er bevart.
+HEADbc9fe504/policy6bd2fa2e og183sourcebyte/stat/23små bundne metadatarefs var
+bevart. SOURCE_CLOSURE_REVIEW har faktisk scope; POST_NATIVE_SOURCE_PRESERVATION
+er metadata-projeksjon til eksisterende v1-skjema. Ingen ny stor-payloadrehash.
+TERMINAL/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW/RESULT/progress/guard er bevart.
+Canonical validering av sluttkurvene og kvalitetsmåling gjenstår i178.
 
-173s egen initial er fortsatt baseline:32F/512rader/full480/0updates, state2eaf88…
-fra172fresh. Teknisk konsistens, featurekobling og numerikk er ikke bedre retning.
-Alle originalkvitteringer/checkpoints bevares; ingen gammel engangsplan relanseres.
+176privat gate bestod4updates/4paritetsforwards/32TRAIN/logiskcursor2/åtte eksakte
+statefelt;16rader per rolle/full480 hadde maks0bps ved atol1e-4/rtol0. Privatvekter
+forblir audit-only.173egeninitial var32F/512rader/0updates, state2eaf88… fra172.
+Original163FAILED beholdes; ingen cross-parameterization-paritet påstås. Alle
+originalkvitteringer/checkpoints bevares; ingen gammel engangsplan relanseres.
 
 ## Featuregrunnmur og konkrete begrensninger
 
@@ -114,8 +113,8 @@ beholdes; nye optimizerstats er egne og ikke samlet7391stegshistorikk.
 171 kvalifiserte91fokuserte kontroller,0feil/hopp,5,616s CPU.172 publiserte
 fersk ONLINE=TARGET=EMA2eaf88…/tomoptimizer/EMA0,122,508s/0F/updates/refits.
 173s aktuelle initialmåling/tilstandsaudit og176s private tekniske gate bestod.
-177 er neste nye matchede167-budsjettforsøk etter eksakt adgang. Ingen hovedtrening
-er startet for170. Inputs holdes faste for å måle tapsendringen.
+177s ene matchede167-budsjettepoke er fullført;178lagret retningssammenligning
+gjenstår. Inputs var faste gjennom forsøket for å måle tapsendringen.
 
 ## Varige grenser
 
