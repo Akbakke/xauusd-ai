@@ -907,9 +907,40 @@ def _direction_witness_pairs(vectors, summaries, pairs):
     return result
 
 
+def _direction_witness_terminal_group_losses(*, prediction, target, valid, rms):
+    """Canonical170 data contributions only; no task precision or +s here."""
+    from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import (
+        DYNAMIC_M5_TERMINAL_HORIZON_GROUPS, dynamic_m5_scaled_square_sum,
+    )
+    pieces = []
+    for name, start, end in DYNAMIC_M5_TERMINAL_HORIZON_GROUPS:
+        squared, count = dynamic_m5_scaled_square_sum(prediction, target, valid,
+            surface="dynamic_terminal_net_markout_bps", rms=rms,
+            terminal_query_range=(start, end))
+        pieces.append((name, start, end, squared, count))
+    active = sum(count > 0 for _, _, _, _, count in pieces)
+    losses, statistics = {}, {}
+    for name, start, end, squared, count in pieces:
+        # Empty sums retain the real connected-zero graph, not invented evidence.
+        contribution = squared / count / active if count else squared
+        losses[name] = contribution
+        mask = valid[:, start - 1:end]
+        statistics[name] = {
+            "query_minutes": [start, end], "group_observed_cells_including_flat": count,
+            "observed_side_cells": int(mask[..., :2].sum()),
+            "group_flat_cells": int(mask[..., 2].sum()), "nonempty_groups": active,
+            "unit_group_mean": float((squared / count).detach()) if count else None,
+            "optimizer_group_coefficient": 1 / active if count else 0,
+            "unit_loss_contribution": float(contribution.detach()),
+            "role": "observed_optimizer_group" if count else "unobserved_group_not_evidence",
+        }
+    return losses, statistics
+
+
 def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_inputs,
-                                         forecast_input, headline_horizons):
-    """Observe one already-built native eval graph with exactly22 reverse calls.
+                                         forecast_input, headline_horizons,
+                                         terminal_objective="pooled_v1"):
+    """Observe one native eval graph: historic22 or explicit native17016 reverses.
 
     The caller owns admission, the sole forward, native FP32 dispatch, frozen
     TRAIN/state identities and mode/RNG preservation. This function neither calls
@@ -930,13 +961,17 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
         DYNAMIC_M5_PATH_VALID_KEY, DYNAMIC_M5_CLOSED_PATH_VALID_KEY,
     )
     from gx1.models.entry_v10.entry_v10_ctx_train_v3 import (
-        _dynamic_m5_task_loss_surfaces, _joint_task_loss,
+        _dynamic_m5_task_loss_surfaces, _dynamic_m5_optimizer_task_losses, _joint_task_loss,
     )
     from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import (
         DYNAMIC_M5_QUERY_CENTER_MINUTES, DYNAMIC_M5_QUERY_SCALE_MINUTES,
         normalize_dynamic_m5_query_minutes,
     )
 
+    if terminal_objective not in ("pooled_v1", "native_170_groupmean_v1"):
+        _fail("DIRECTION_TERMINAL_OBJECTIVE_MODE")
+    native170 = terminal_objective == "native_170_groupmean_v1"
+    expected_reverses = 16 if native170 else 22
     if not torch.is_grad_enabled() or model.training:
         _fail("DIRECTION_REQUIRES_EVAL_GRAD_GRAPH")
     size = int(batch["seq_x"].shape[0])
@@ -968,10 +1003,15 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
         _fail("DIRECTION_MODEL_GRAD_PREEXISTS")
     raw, cells = _dynamic_m5_task_loss_surfaces(outputs, batch, hidden.device)
     unit, unit_cells = _dynamic_m5_task_loss_surfaces(outputs, batch, hidden.device, loss_units="train_rms")
-    joint_loss, joint_stats = _joint_task_loss(model, unit, loss_units="train_rms")
+    optimizer, group_cells = ( _dynamic_m5_optimizer_task_losses(
+        outputs, batch, hidden.device, pooled_task_losses=unit) if native170 else (unit, None))
     task_names = tuple(model.task_log_variances)
-    if len(task_names) != 4 or set(unit) != set(task_names) or cells != unit_cells:
+    # The fixed physical witness requires all four tasks; do not manufacture a
+    # missing task or its +s just to fill the declared reverse-call schedule.
+    if (len(task_names) != 4 or set(unit) != set(task_names)
+            or set(optimizer) != set(task_names) or cells != unit_cells):
         _fail("DIRECTION_TASK_SUPERVISION_OR_DENOMINATOR")
+    joint_loss, joint_stats = _joint_task_loss(model, optimizer, loss_units="train_rms")
     prefixes = ("dynamic_m5_query_projection.", "entry_q_joint_norm.", "entry_q_joint_in.",
                 "family_tf_context_gate.", "family_tf_token_gate.",
                 "head_dynamic_terminal_net_markout.", "head_dynamic_mfe.",
@@ -982,31 +1022,47 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
     precision = {name: joint_stats["joint_task_effective_precision_" + name] for name in task_names}
     # The native scalarizer also owns each projection; +s has no derivative on
     # these parameter/representation targets, which exclude task log variances.
-    projections = {name: _joint_task_loss(model, {name: unit[name]}, loss_units="train_rms")[0]
+    projections = {name: _joint_task_loss(model, {name: optimizer[name]}, loss_units="train_rms")[0]
                    for name in task_names}
     terminal_name = _COMPONENTS[0]
     target = batch[DYNAMIC_M5_MARKOUT_TARGET_KEY].detach().to(hidden.device)
     valid = batch[DYNAMIC_M5_MARKOUT_VALID_KEY].detach().to(hidden.device)
     rms = batch[DYNAMIC_M5_LOSS_SCALE_BATCH_KEY]["rms"][terminal_name]
-    selected = set(headline_horizons)
     partitions, partition_losses = {}, []
-    for name, minutes in [*(('h' + str(h), (h,)) for h in headline_horizons),
-                          ("complement", tuple(h for h in horizons if h not in selected))]:
-        horizon_mask = torch.tensor([h in minutes for h in horizons], dtype=torch.bool, device=hidden.device)
-        partmask = valid & horizon_mask[None, :, None]
-        squared, partition_count = dynamic_m5_scaled_square_sum(
-            outputs[terminal_name], torch.where(partmask, target, torch.zeros_like(target)),
-            partmask, surface=terminal_name, rms=rms)
-        loss = squared / cells[terminal_name]
-        key = "terminal." + name
-        projections[key] = _joint_task_loss(model, {terminal_name: loss}, loss_units="train_rms")[0]
-        partition_losses.append(loss)
-        partitions[key] = {"query_minutes": list(minutes), "observed_side_cells": int(partmask[..., :2].sum()),
-            "partition_observed_cells_including_flat": partition_count,
-            "partition_flat_cells": int(partmask[..., 2].sum()),
-            "analytic_flat_cells_in_native_denominator": int(valid[..., 2].sum()),
-            "native_task_denominator": cells[terminal_name], "unit_loss_contribution": float(loss.detach()),
-            "role": "observed_loss_partition" if bool(partmask.any()) else "unobserved_partition_not_evidence"}
+    if native170:
+        group_losses, group_statistics = _direction_witness_terminal_group_losses(
+            prediction=outputs[terminal_name], target=target, valid=valid, rms=rms)
+        if group_cells != {name: item["group_observed_cells_including_flat"]
+                           for name, item in group_statistics.items()}:
+            _fail("DIRECTION_TERMINAL_GROUP_DENOMINATOR")
+        for name, loss in group_losses.items():
+            key = "terminal." + name
+            # Use the sole native scalarizer; cancel its +s for these data-only
+            # contributions. Log-variance parameters are not gradient targets.
+            projections[key] = (_joint_task_loss(model, {terminal_name: loss},
+                loss_units="train_rms")[0] - model.task_log_variances[terminal_name])
+            partition_losses.append(loss)
+            partitions[key] = group_statistics[name]
+    else:
+        selected = set(headline_horizons)
+        partitions, partition_losses = {}, []
+        for name, minutes in [*(('h' + str(h), (h,)) for h in headline_horizons),
+                              ("complement", tuple(h for h in horizons if h not in selected))]:
+            horizon_mask = torch.tensor([h in minutes for h in horizons], dtype=torch.bool, device=hidden.device)
+            partmask = valid & horizon_mask[None, :, None]
+            squared, partition_count = dynamic_m5_scaled_square_sum(
+                outputs[terminal_name], torch.where(partmask, target, torch.zeros_like(target)),
+                partmask, surface=terminal_name, rms=rms)
+            loss = squared / cells[terminal_name]
+            key = "terminal." + name
+            projections[key] = _joint_task_loss(model, {terminal_name: loss}, loss_units="train_rms")[0]
+            partition_losses.append(loss)
+            partitions[key] = {"query_minutes": list(minutes), "observed_side_cells": int(partmask[..., :2].sum()),
+                "partition_observed_cells_including_flat": partition_count,
+                "partition_flat_cells": int(partmask[..., 2].sum()),
+                "analytic_flat_cells_in_native_denominator": int(valid[..., 2].sum()),
+                "native_task_denominator": cells[terminal_name], "unit_loss_contribution": float(loss.detach()),
+                "role": "observed_loss_partition" if bool(partmask.any()) else "unobserved_partition_not_evidence"}
     vectors, summaries, reverse_calls = {}, {}, 0
     for name, scalar in projections.items():
         gradients = torch.autograd.grad(scalar, targets, retain_graph=True, create_graph=False, allow_unused=True)
@@ -1015,12 +1071,26 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
         del gradients
     task_pairs = [(a, b) for index, a in enumerate(task_names) for b in task_names[index + 1:]]
     terminal_pairs = [(name, terminal_name) for name in partitions]
-    complement_pairs = [(name, "terminal.complement") for name in partitions if name != "terminal.complement"]
+    partition_pairs = ([( "terminal.early_1_15", "terminal.later_16_480")] if native170 else
+                       [(name, "terminal.complement") for name in partitions if name != "terminal.complement"])
     gradient_pairs = {
         "tasks": _direction_witness_pairs(vectors, summaries, task_pairs),
         "terminal_partitions_to_native_terminal": _direction_witness_pairs(vectors, summaries, terminal_pairs),
-        "terminal_headlines_to_complement": _direction_witness_pairs(vectors, summaries, complement_pairs),
+        ("terminal_early_to_later" if native170 else "terminal_headlines_to_complement"):
+            _direction_witness_pairs(vectors, summaries, partition_pairs),
     }
+    group_sum_residual = {}
+    if native170:
+        for group, native_vector in vectors[terminal_name].items():
+            connected = summaries[terminal_name][group]["l2_norm"] is not None
+            residual = sum((vectors[name][group] for name in partitions),
+                           torch.zeros_like(native_vector)) - native_vector
+            group_sum_residual[group] = {
+                "status": "observed_gradient_decomposition" if connected else "unused_not_evidence",
+                "l2_norm": float(torch.linalg.vector_norm(residual)) if connected else None,
+                "max_absolute": float(residual.abs().max()) if connected and residual.numel() else None,
+                "native_l2_norm": summaries[terminal_name][group]["l2_norm"],
+            }
     query_shares = {}
     for name in projections:
         total = summaries[name]["decoder_projection"]["l2_norm"]
@@ -1063,16 +1133,19 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
                                       for h in headline_horizons})
             sensitivity[component + "." + label] = row
             del gradients
-    if reverse_calls != 22 or any(parameter.grad is not None for parameter in model.parameters()):
+    if reverse_calls != expected_reverses or any(parameter.grad is not None for parameter in model.parameters()):
         _fail("DIRECTION_REVERSE_BUDGET_OR_GRAD_MUTATION")
     result = {
-        "schema_version": "gx1_dynamic_m5_direction_witness_gradients_v1",
+        "schema_version": ("gx1_dynamic_m5_direction_witness_gradients_v2" if native170 else
+                           "gx1_dynamic_m5_direction_witness_gradients_v1"),
         "scope": "local_final_state_eval_derivatives_on_TRAIN_not_epoch_causality_or_AdamW_updates",
         "forward_calls": 0, "reverse_calls": reverse_calls, "optimizer_updates": 0,
         "model_training": bool(model.training), "joint_loss": float(joint_loss.detach()),
         "native_joint_statistics": joint_stats,
         "task_statistics": {name: {"observed_task_cells": cells[name], "raw_bps_mse": float(raw[name].detach()),
             "train_rms_mse": float(unit[name].detach()),
+            **({"pooled_train_rms_mse": float(unit[name].detach()),
+                "optimizer_objective": float(optimizer[name].detach())} if native170 else {}),
             "log_variance": float(model.task_log_variances[name].detach()),
             "effective_precision": precision[name]} for name in task_names},
         "surface_observed_cells": {"terminal_including_flat": int(valid.sum()),
@@ -1080,7 +1153,9 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
             "inclusive_path": int(batch[DYNAMIC_M5_PATH_VALID_KEY].sum()),
             "closed_path": int(batch[DYNAMIC_M5_CLOSED_PATH_VALID_KEY].sum())},
         "headline_horizons": list(headline_horizons), "terminal_partitions": partitions,
-        "terminal_partition_sum_minus_native_unit_loss": float((torch.stack(partition_losses).sum() - unit[terminal_name]).detach()),
+        ("terminal_group_sum_minus_native_optimizer_objective" if native170 else
+         "terminal_partition_sum_minus_native_unit_loss"):
+            float((torch.stack(partition_losses).sum() - optimizer[terminal_name]).detach()),
         "parameter_groups": {name: [{"name": label, "selection": selection} for _, label, selection in members]
                              for name, members in groups.items()},
         "gradient_summaries": summaries, "gradient_pairs": gradient_pairs,
@@ -1088,5 +1163,12 @@ def dynamic_m5_direction_witness_gradients(*, model, outputs, batch, query_input
         "query_sensitivity": sensitivity,
         "interpretation": "Same-coordinate gradient dots are local first-order alignment only. Column groups overlap decoder_projection. No epsilon, fitted threshold, invented task weight, optimizer or model selection.",
     }
+    if native170:
+        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_terminal_horizon_objective_contract
+        result.update(terminal_objective_mode=terminal_objective,
+            terminal_optimizer_objective_contract=dynamic_m5_terminal_horizon_objective_contract(),
+            terminal_group_counts=group_cells, active_native_tasks=list(optimizer),
+            terminal_group_vector_sum_residual=group_sum_residual,
+            terminal_group_projection_role="weighted_data_gradient_only_no_repeated_log_variance_penalty")
     json.dumps(result, sort_keys=True, allow_nan=False)
     return result

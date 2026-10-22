@@ -1040,3 +1040,145 @@ class TestDirectionWitnessGradientArithmetic(unittest.TestCase):
         fixture[2][DYNAMIC_M5_MARKOUT_TARGET_KEY][0, 0, 0] = 7
         with self.assertRaisesRegex(RuntimeError, "TARGET_STORAGE_INVALID"):
             self.witness(fixture)
+
+
+
+class TestDirectionWitnessNative170(unittest.TestCase):
+    fixture = TestDirectionWitnessGradientArithmetic.fixture
+    headlines = TestDirectionWitnessGradientArithmetic.headlines
+
+    def witness(self, fixture):
+        model, outputs, batch, queries, z = fixture
+        return influence.dynamic_m5_direction_witness_gradients(model=model, outputs=outputs,
+            batch=batch, query_inputs=queries, forecast_input=z, headline_horizons=self.headlines,
+            terminal_objective="native_170_groupmean_v1")
+
+    def group_case(self):
+        amplitude = torch.tensor(1., requires_grad=True)
+        coefficient = torch.zeros(1, 480, 3)
+        coefficient[0, 0, :2] = torch.tensor([2., 8.])
+        coefficient[0, 15, 0] = 2.
+        valid = torch.zeros(1, 480, 3, dtype=torch.bool)
+        valid[0, 0] = True  # L/S plus true analytic FLAT: N=3, scaled SSE=20.
+        valid[0, 15, 0] = True
+        valid[0, 16, 1] = True  # Genuine observed zero: later N=2, SSE=4.
+        rms = torch.ones(480, 2)
+        rms[0, 1] = 2.
+        rms[16, 1] = 3.
+        return amplitude, coefficient * amplitude, torch.zeros_like(coefficient), valid, rms
+
+    def test_asymmetric_rms_masks_flat_and_observed_zero_give_13_over_3(self):
+        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_terminal_horizon_objective
+        amplitude, prediction, target, valid, rms = self.group_case()
+        losses, stats = influence._direction_witness_terminal_group_losses(
+            prediction=prediction, target=target, valid=valid, rms=rms)
+        total = sum(losses.values())
+        canonical, counts = dynamic_m5_terminal_horizon_objective(prediction, target, valid, rms=rms)
+        self.assertEqual(counts, {"early_1_15": 3, "later_16_480": 2})
+        self.assertEqual(stats["early_1_15"]["group_flat_cells"], 1)
+        self.assertEqual(stats["later_16_480"]["observed_side_cells"], 2)
+        self.assertAlmostEqual(float(total), 13 / 3, places=6)
+        self.assertEqual(float(total), float(canonical))
+        derivative, cell_derivative = torch.autograd.grad(total, (amplitude, prediction))
+        self.assertAlmostEqual(float(derivative), 26 / 3, places=5)
+        self.assertTrue(torch.equal(cell_derivative[..., 2], torch.zeros_like(cell_derivative[..., 2])))
+        self.assertEqual(float(cell_derivative[0, 16, 1]), 0.)
+        self.assertEqual(float(cell_derivative[~valid].abs().sum()), 0.)
+
+    def test_one_or_no_observed_group_has_no_epsilon_or_fake_observation(self):
+        from gx1.contracts.entry_dynamic_m5_loss_scale_v1 import dynamic_m5_terminal_horizon_objective
+        _, prediction, target, valid, rms = self.group_case()
+        valid[:, :15] = False
+        losses, stats = influence._direction_witness_terminal_group_losses(
+            prediction=prediction, target=target, valid=valid, rms=rms)
+        self.assertEqual(float(sum(losses.values())), 2.)
+        self.assertIsNone(stats["early_1_15"]["unit_group_mean"])
+        self.assertEqual(stats["early_1_15"]["role"], "unobserved_group_not_evidence")
+        self.assertEqual(stats["later_16_480"]["optimizer_group_coefficient"], 1.)
+        valid[:] = False
+        losses, stats = influence._direction_witness_terminal_group_losses(
+            prediction=prediction, target=target, valid=valid, rms=rms)
+        canonical, counts = dynamic_m5_terminal_horizon_objective(prediction, target, valid, rms=rms)
+        self.assertIsNone(canonical)  # Native omission includes omission of its +s.
+        self.assertEqual(sum(counts.values()), 0)
+        self.assertEqual(float(sum(losses.values())), 0.)
+        self.assertTrue(all(x["nonempty_groups"] == x["optimizer_group_coefficient"] == 0 for x in stats.values()))
+
+    def test_full_validation_precedes_any_group_slice(self):
+        _, prediction, target, valid, rms = self.group_case()
+        target[0, -1, 0] = 7.
+        with self.assertRaisesRegex(RuntimeError, "LOSS_SCALE_RUNTIME_INVALID"):
+            influence._direction_witness_terminal_group_losses(
+                prediction=prediction, target=target, valid=valid, rms=rms)
+
+    def test_nonunit_precision_native_task_and_group_vector_sum(self):
+        from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+        fixture = self.fixture()
+        model, outputs, batch, _, _ = fixture
+        term = "dynamic_terminal_net_markout_bps"
+        with torch.no_grad():
+            model.task_log_variances[term].fill_(float(np.log(2.)))
+        pooled, _ = trainer._dynamic_m5_task_loss_surfaces(outputs, batch, torch.device("cpu"), loss_units="train_rms")
+        optimizer, counts = trainer._dynamic_m5_optimizer_task_losses(
+            outputs, batch, torch.device("cpu"), pooled_task_losses=pooled)
+        scalar = trainer._joint_task_loss(model, {term: optimizer[term]}, loss_units="train_rms")[0]
+        parameters = tuple(model.head_dynamic_terminal_net_markout.parameters())
+        expected = torch.autograd.grad(scalar, parameters, retain_graph=True)
+        expected_norm = float(torch.linalg.vector_norm(torch.cat([g.double().reshape(-1) for g in expected])))
+        result = self.witness(fixture)
+        self.assertEqual(result["terminal_group_counts"], counts)
+        self.assertAlmostEqual(result["task_statistics"][term]["effective_precision"], .5, places=6)
+        self.assertEqual(result["task_statistics"][term]["pooled_train_rms_mse"], float(pooled[term]))
+        self.assertEqual(result["task_statistics"][term]["optimizer_objective"], float(optimizer[term]))
+        self.assertAlmostEqual(result["gradient_summaries"][term]["terminal_head"]["l2_norm"], expected_norm, places=6)
+        self.assertAlmostEqual(result["terminal_group_sum_minus_native_optimizer_objective"], 0., places=6)
+        for group, residual in result["terminal_group_vector_sum_residual"].items():
+            if residual["l2_norm"] is not None:
+                self.assertLessEqual(residual["l2_norm"], 2e-6)
+        self.assertEqual(result["terminal_group_vector_sum_residual"]["forecast_head"]["status"], "unused_not_evidence")
+
+    def test_native170_schedule_is_four_tasks_two_groups_ten_queries_without_mutation(self):
+        import json
+        from unittest import mock
+        from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+        fixture = self.fixture()
+        model = fixture[0]
+        state = {k: v.clone() for k, v in model.state_dict().items()}
+        rng = torch.get_rng_state().clone()
+        with mock.patch.object(torch.autograd, "grad", wraps=torch.autograd.grad) as reverse, \
+                mock.patch.object(trainer, "_dynamic_m5_optimizer_task_losses",
+                                  wraps=trainer._dynamic_m5_optimizer_task_losses) as native, \
+                mock.patch.object(model, "forward", side_effect=AssertionError("extra forward")):
+            result = self.witness(fixture)
+        self.assertEqual(native.call_count, 1)
+        self.assertEqual(reverse.call_count, 16)
+        self.assertEqual(result["reverse_calls"], 16)
+        self.assertEqual(result["forward_calls"], 0)
+        self.assertEqual(result["schema_version"], "gx1_dynamic_m5_direction_witness_gradients_v2")
+        self.assertEqual(len(result["active_native_tasks"]), 4)
+        self.assertEqual(len(result["terminal_partitions"]), 2)
+        self.assertEqual(len(result["query_sensitivity"]), 10)
+        self.assertEqual(model.calls, 1)
+        self.assertTrue(all(p.grad is None for p in model.parameters()))
+        self.assertTrue(torch.equal(torch.get_rng_state(), rng))
+        self.assertTrue(all(torch.equal(state[k], v) for k, v in model.state_dict().items()))
+        json.dumps(result, allow_nan=False)
+
+    def test_two_active_tasks_cannot_fill_a_four_task_physical_schedule(self):
+        from unittest import mock
+        from gx1.contracts.entry_observed_market_v1 import DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY
+        from gx1.contracts.entry_observed_market_horizons_v1 import (
+            M5_FORECAST_VALID_BATCH_KEY, SUPPORT_FORECAST_TARGET_BATCH_KEY, SUPPORT_FORECAST_VALID_BATCH_KEY,
+        )
+        fixture = self.fixture()
+        batch = fixture[2]
+        batch[DYNAMIC_M5_MARKOUT_TARGET_KEY].zero_()
+        batch[DYNAMIC_M5_MARKOUT_VALID_KEY].zero_()
+        batch[M5_FORECAST_VALID_BATCH_KEY].zero_()
+        for h in (1, 5, 12, 24): batch["y_forecast_ret_K" + str(h)].zero_()
+        batch[SUPPORT_FORECAST_TARGET_BATCH_KEY].zero_()
+        batch[SUPPORT_FORECAST_VALID_BATCH_KEY].zero_()
+        with mock.patch.object(torch.autograd, "grad", wraps=torch.autograd.grad) as reverse:
+            with self.assertRaisesRegex(RuntimeError, "DIRECTION_TASK_SUPERVISION_OR_DENOMINATOR"):
+                self.witness(fixture)
+        self.assertEqual(reverse.call_count, 0)
