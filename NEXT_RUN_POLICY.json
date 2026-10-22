@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-22T16:28:55.582896+00:00",
-  "status": "185_SOURCE_CPU133_PASS_186_BROAD_PERIOD_INVERSION_PREPARATION",
+  "observed_utc": "2026-10-22T16:44:32.701615+00:00",
+  "status": "186_ONE_BROAD_PERIOD_INVERSION_CPU_AUDIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "178actualsavedcomparison consumed; reduced167overamplitude butall512finalFLAT andno robust shortdirection improvementagainstown173. No newtraining/forward/gradient job, extraepoch/HPO,fullVAL/TEST/Exit/broker. Preserve qualifiedfeatureinputs and171source;179is only read-only preparation of exactzero-update trained177TRAINwitness before nextmechanismdecision. Never relaunch consumed oldplans.",
-  "next_action": "Finish186minimalexternalworkerPLAN and code/mathpeer for exact4savedOBS broadquarter/original-vs-inverse review; only then consider oneaudit4G512M300s+10TERM exactadmission. No originalpayloadread/job now. Nativefreshbaseline/trainingdeferred; no feature/minute/month/thresholdtuning orautomaticflip.",
+  "next_action": "Publish exact186postcommitbinding on cleance0successor and execute thisone300saudit4G512Mthread1+10TERM through existingcappedowner. Readexact4saved167/177TRAIN/Q1OBS once each; no model/update/raw/Parquet/PT/111/large178RESULTS. Consume actualterminal; no relaunch/flip/newtraining authority.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -162,7 +162,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "186_BROAD_PERIOD_INVERSION_WORKER_PREPARATION",
+    "current_activity": "186_ONE_BROAD_PERIOD_INVERSION_CPU_AUDIT_ADMITTED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7689,7 +7689,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Finish186minimalexternalworkerPLAN and code/mathpeer for exact4savedOBS broadquarter/original-vs-inverse review; only then consider oneaudit4G512M300s+10TERM exactadmission. No originalpayloadread/job now. Nativefreshbaseline/trainingdeferred; no feature/minute/month/thresholdtuning orautomaticflip.",
+    "next_action": "Publish exact186postcommitbinding on cleance0successor and execute thisone300saudit4G512Mthread1+10TERM through existingcappedowner. Readexact4saved167/177TRAIN/Q1OBS once each; no model/update/raw/Parquet/PT/111/large178RESULTS. Consume actualterminal; no relaunch/flip/newtraining authority.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17108,7 +17108,7 @@
       "new_model_observation_admitted": false,
       "new_training_admitted": false,
       "new_model_or_loss_correction_selected": true,
-      "latest_evidence_stage": "185_SOURCE_CPU133_PASS_186_BROAD_PERIOD_INVERSION_WORKER_PREPARATION",
+      "latest_evidence_stage": "186_STATIC_SOURCE_MATH_PASS_ONE_FOUR_SAVED_CURVE_CPU_AUDIT_ADMITTED",
       "selected_single_design": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_ALIGNMENT_DESIGN_20261022_184/DESIGN.json",
         "sha256": "4597bbd82551d8e347a3217a8686867355542fda3429b6d976c199d54838c5f0"
@@ -24322,16 +24322,16 @@
     }
   },
   "dynamic_m5_broad_period_inversion_186": {
-    "status": "FOUR_SAVED_CURVE_WORKER_PREPARATION_ONLY",
+    "status": "ADMITTED_ONE_FOUR_SAVED_CURVE_PERIOD_INVERSION_CPU_AUDIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186",
     "scope": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/PREPARATION_SCOPE.json",
       "sha256": "d1207d0d9eacbb543f61ac8d4a3381dfa00254041845ad949d8d8123c7f506d3"
     },
     "preparation_authorized": true,
-    "execution_authorized": false,
+    "execution_authorized": true,
     "source_edits_authorized": false,
-    "original_payload_reads_authorized": 0,
+    "original_payload_reads_authorized": 4,
     "training_enabled": false,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
@@ -24346,7 +24346,48 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/FOUR_CURVE_PREPARATION_SCOPE.json",
       "sha256": "02d9c3ec1d2a8d746140672979277bea5f40eae4b89c17fc697546160c9f9949"
     },
-    "external_worker_plan_preparation_authorized": true
+    "external_worker_plan_preparation_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/PLAN.json",
+      "sha256": "8f34f179bb23f3a7ee0011d734dfb010ac880bd46daddcb5b3443f377a9b0a94"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/run_broad_period_inversion.py",
+      "sha256": "fb68d29287c587fefc3a000ca6a45473367688a4731c94e946640868b76ed27f"
+    },
+    "preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/PREPARATION_REVIEW.json",
+      "sha256": "0f8203c3d02ef17a7e77290c2e490396696fd7db3df34655159a9e41e59fdf1a"
+    },
+    "preexec_math_source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/PREEXEC_MATH_SOURCE_PEER_REVIEW.json",
+      "sha256": "32086a161d841cbef2de9be101efc926b2681c2d2380d6212734a0baaa48922b"
+    },
+    "preexec_owner_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BROAD_PERIOD_INVERSION_REVIEW_20261022_186/PREEXEC_OWNER_REVIEW.json",
+      "sha256": "7b0d4c0af651099d791418f67cdbbddbb71db40ee8ffa91b16b2aaf75c560728"
+    },
+    "budget": {
+      "OBS_reads": 4,
+      "TERM_grace_seconds": 10,
+      "class": "audit",
+      "fits": 0,
+      "market_raw_input_cache_Parquet_PT_111_or178largeRESULT_reads": 0,
+      "max_invocations": 1,
+      "memory_bytes": 4294967296,
+      "model_forwards": 0,
+      "optimizer_updates": 0,
+      "reverse_calls": 0,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1,
+      "wall_seconds": 300
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_binding": "Root supplies exact corrected4-key binding after clean commit; no circularHEAD/policy in PLAN"
   },
   "dynamic_m5_early_MFE_source_qualification_185": {
     "status": "PASS_SOURCE_CPU133_NO_NATIVE_ADMISSION",

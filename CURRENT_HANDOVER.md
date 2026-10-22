@@ -22,14 +22,15 @@ Dette er teknisk bevis.184 er ikke trent eller målt på genuine inputs og har
 ingen fersk initialbaseline.173 gjelder forrige170funksjon.172s konkrete
 kildekvalifikator må tilpasses185 før en eventuell ny konstruksjon.
 
-Neste arbeid er186s brede periode-/reverseringskontroll. Kun ekstern worker,
-PLAN og review forberedes; payloadlesing/kjøring er ikke admitted ennå.
-Minste komplette lesesett er fire lagrede OBS:177 og167, TRAIN og Q1CONTROL.
+Neste arbeid er186s brede periode-/reverseringskontroll. Worker/PLAN er fryst;
+uavhengig kilde-/matematikkpeer og rootreview bestod. Policy admits én CPUaudit
+4G/512M/én tråd/300s med10s TERM-frist etter eksakt postcommitbinding på ren kilde.
+Les kun fire lagrede OBS én gang hver:177 og167, TRAIN og Q1CONTROL.
 Gjenbruk152/153/178-lesere/statistikk og ferdig178canonical-pointerbevis;
 ingen ny rå/cache/Parquet/PT/111/34MB178RESULTS-lesing eller modellkall.
-Aktuell scope ligger i186/FOUR_CURVE_PREPARATION_SCOPE.json. Etter kilde-/planpeer
-må root gi eksakt ny engangsadmission og postcommitbinding før én CPUaudit
-4G/512M/én tråd/300s med10s TERM-frist. Alle native-/treningslanseringer venter.
+Aktuell scope ligger i186/FOUR_CURVE_PREPARATION_SCOPE.json; PLAN binder eksakt
+worker, inputs og budsjett. Engangsplanen kan ikke relanseres. Alle native-/
+treningslanseringer venter; kontrollen gir ingen automatisk inversjon/edge.
 
 Sammenlign original og motsatt side ved SAMME entry og opprinnelige horisontsett,
 inkludert alle eksakte F32-ties. FLAT/tied beholdes; ikke velg motsatt sides
