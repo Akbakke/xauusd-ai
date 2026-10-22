@@ -50,21 +50,35 @@ TERMINAL/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW og FINALRESULT er bundet i policy.
 `training_enabled=false/full_epoch_training_allowed=false`; ingen relaunch,
 videreepoke eller automatisk forlengelse. FullVAL/Exit/TEST/broker er stengt.
 
-168CPU-audit er nå eneste admission: lagret egen162initial,167FINAL og151FINAL,
-begge roller. PLAN/worker/kodepeer er bundet i policy; én4G/512M/1800sCPUjobb,
-seks OBSJSON én gang hver og seks canonicalparentpointer-projeksjoner av kun
-`dynamic_entry_m1_row` (tre perrolle). Ingen nye forwards, PT/råMBP/feature-/
-target-/sekvenskolonner, refits eller terskelvalg.615linjer ny auditkode og små
-analytiske mattekontroller er kvalifisert; eksisterende152/153/canonicalhelpers
-beholdes. Før claim bindes renHEAD/policy i nøyaktig firefeltsEXECUTION_BINDING.
-
-167/EVALUATION_PLAN ble låst før trening:1/5/15min retning/kalibrering, separat
-MAE/MFE/kostnad og LONG/SHORT/FLAT valgte/avståtte. ParviseUTCkalenderdag-
-intervaller2000seed20260911 og UTCmandagsuke-sensitivitet; under8observerte
-blokker kun deskriptivt. Lengre horisonter er støtte/alltidLONG-reference.
-Alle26måneder er gjenbrukt utvikling. Bedre retning/kalibrering/kvalitet/dekning,
-generalisering og edge er fortsatt ubevist og avgjøres ikke av tekniskPASS.
+168 er COMPLETE/consumed:33,873s CPU, seks OBSJSON én gang hver og seks
+canonicalparentpointer-projeksjoner,0nye forwards/steg/refits. Data/masker/
+storage/cohort/nullable-target-joins er rapportert eksakte og peer-kontrollert.
 Root168: `/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_COMPARISON_20261022_168`.
+TERMINAL/RESULTS/SUMMARY/ACTUAL_DIRECTION_COMPARISON_PEER_REVIEW/DECISION er bundet.
+
+167 avvises som retningskvalitetsforbedring. CONTROL nettkontrast-MSE1/5/15min
+ble572,260/686,241/1358,138 mot151s352,477/482,464/1142,099. Alle seks parvise
+UTCdag-/ukeintervaller for MSE-endring er positive. h1korrelasjon0,011 mot0,050;
+prognosespredning20,12 motfasit7,50bps (151:17,43). TRAINs korte MSE ble også
+større, mens mye lengreTRAINretning læres bedre; det er ingen generalisering.
+CONTROL-valg økte til35LONG/119SHORT/102FLAT fra29/53/174, fortsatt h1overalt.
+Valgte LONG/SHORT predterminal+13,57/+22,12 motobs−5,03/−6,40; predpreMAE9,75/
+9,29 er allerede≥obs9,46/6,74. Terminalovervurdering dominerer derfor positiv
+kandidatoptimisme i disse gruppene; sterkere MAE-penalty beviser ingen retning.
+Dette er proxykomponenter under deklarerte kostnader, ingen realisertP&L.
+
+Neste169 er foreløpig bare kodeforberedelse til CPUstudie av eksisterende
+168perkoordinat-MSE/counts +111RMS, uten nye kurver/targets/modellkall.
+RMS er allerede per horisont og side; ikke én taskwide-skala. Alle480 beholdes.
+Skill poolednormalisertSSE og LONG/SHORTn/RMS²-masse fra faktiskbatch16loss,
+parametergradienter og7391stegshistorikk. FLAT har0SSE/gradient, men dens maskN
+skal ikke fjernes fra terminaldenominator. Ingen ny vekting/design er valgt.
+Før169 kreves eksakt ny PLAN/worker/kodekontroll/CPUadmission; trening er stengt.
+
+167/EVALUATION_PLAN var låst før trening:1/5/15min primærretning, separat
+MAE/MFE/kostnad og valgte/avståtte, dag2000seed20260911/mandagsukesensitivitet.
+Alle26måneder er gjenbrukt utvikling. Retning/kvalitet/dekning/generalisering/
+edge er fortsatt ubevist; målet fortsetter. Ingen relaunch, nyepoke, Exit ellerTEST.
 
 ## Faktisk evidens som gjenbrukes
 
