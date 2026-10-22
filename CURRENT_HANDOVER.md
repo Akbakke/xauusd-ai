@@ -20,7 +20,7 @@ AST/compile og diffkontroll bestod. Native183roller/182unike kildefiler er bunde
 kun tre nativefiler er endret. Alle øvrige nativehashes er bevart.
 Dette er teknisk bevis.184 er ikke trent eller målt på genuine inputs og har
 ingen fersk initialbaseline.173 gjelder forrige170funksjon.172s konkrete
-kildekvalifikator må tilpasses185 før en eventuell ny konstruksjon.
+kildekvalifikator er tilpasset185 i187; faktisk metadatakontroll og kjøring gjenstår.
 
 186s brede periode-/reverseringskontroll er COMPLETE/consumed og actualpeer-
 kontrollert: fire lagrede167/177 OBS én gang hver,0F/R/U/fit,22,488s ytre tid.
@@ -50,10 +50,16 @@ dekker68dager/14uker i Q1. Sparse prober er ikke alle118249TRAIN-rader eller
 urørt generalisering. Ingen favorittmåned/-minutt eller ny terskel velges.
 
 186/DECISION.json beholder184 som én falsifiserbar M5/MFE-målhypotese, uten
-påstått retningsgevinst. Neste arbeid er187s eksterne forberedelse av ny CPU-
-konstruktør, tilpasset actual185-kvalifikasjonen og med eksakt ny188/BUNDLE-
-destinasjon. Gjenbruk fungerende172/173-mekanikk; ingen modell-/featureendring.
-Root/peer må kontrollere før engangskjøring admits. Native initial188 og fersk
+påstått retningsgevinst.187s CPU-konstruktør er nå eksternt forberedt/fryst,
+tilpasset actual185-kvalifikasjonen med eksakt ny188/BUNDLE-destinasjon.
+Fungerende172/173-mekanikk gjenbrukes. Alle10controllerfunksjoner er AST-identiske;
+publisher endrer bare kildekvalifikasjon og deklarerte prepare-substitusjoner.
+Compile-only, rootreview og uavhengig kildepeer bestod. Policy admits nå én CPU-
+fresh-konstruksjon gjennom eksisterende audit4G/512M/én tråd/pids64/7200s+10TERM.
+Postcommitkilde/policy må bindes og ren metadatakvalifikator må bestå mot faktisk
+snapshot før controllerclaim.186kvalifiserte unike filer kreves:182native,
+fit-owner og tre peerbundne testeiere. Ingen forward/update/refit eller ny
+nativeadmission følger med. Native initial188 og fersk
 privat teknisk kvalifikasjon må senere bestå før én separat admitted, matchet
 hel TRAIN-epoke. Ingen ekstraepoker/HPO eller automatisk gjenbruk av gamle planer.
 Sammenlign bredt mot egen fersk initial og177 med samme data/budsjett: retning,

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-22T17:03:40.000444+00:00",
-  "status": "186_REVIEW_COMPLETE__187_FRESH_CONSTRUCTOR_PREPARATION_ONLY",
+  "observed_utc": "2026-10-22T17:24:23.733761+00:00",
+  "status": "187_ONE_CPU_FRESH_CONSTRUCTOR_ADMITTED_NATIVE_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "186 broad same-entry original/opposite audit complete; no stable automatic inversion or Entry qualification. Retain184 as one predeclared falsifiable M5/MFE objective hypothesis, not an established directional fix. Only187 external constructor preparation admitted; consumed plans cannot relaunch. TEST/Exit/broker and all native/training remain closed.",
-  "next_action": "Prepare187 source-bound CPU fresh constructor from working172 with actual185 qualification and exact188 destination; root/peer review before any execution. No originalOBS reread/inverse policy or native/training admission.",
+  "next_action": "After clean commit publish actual187source snapshot/binding; puremetadata source_qualification must pass before controllerclaim. Then run exact frozen187controller once under existing audit4G512M/7200+10TERM/lock guards. Consume actual CPUfresh result;188initial/native/training remain separately closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -162,7 +162,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "187_FRESH_CONSTRUCTOR_PREPARATION_ONLY",
+    "current_activity": "187_ONE_CPU_FRESH_CONSTRUCTOR_ADMITTED_NATIVE_TRAINING_CLOSED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7689,7 +7689,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare187 source-bound CPU fresh constructor from working172 with actual185 qualification and exact188 destination; root/peer review before any execution. No originalOBS reread/inverse policy or native/training admission.",
+    "next_action": "After clean commit publish actual187source snapshot/binding; puremetadata source_qualification must pass before controllerclaim. Then run exact frozen187controller once under existing audit4G512M/7200+10TERM/lock guards. Consume actual CPUfresh result;188initial/native/training remain separately closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17107,7 +17107,7 @@
       "new_model_observation_admitted": false,
       "new_training_admitted": false,
       "new_model_or_loss_correction_selected": true,
-      "latest_evidence_stage": "186_BROAD_REVIEW_COMPLETE_187_CONSTRUCTOR_PREPARATION_ONLY",
+      "latest_evidence_stage": "187_STATIC_PEER_PASSED_ONE_CPU_CONSTRUCTOR_ADMITTED_NO_NATIVE_TRAINING",
       "selected_single_design": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_ALIGNMENT_DESIGN_20261022_184/DESIGN.json",
         "sha256": "4597bbd82551d8e347a3217a8686867355542fda3429b6d976c199d54838c5f0"
@@ -24519,23 +24519,72 @@
     },
     "source_checks_passed": true,
     "new_current_function_initial_baseline_exists": false,
-    "native_172_constructor_qualifier_adaptation_done": false
+    "native_172_constructor_qualifier_adaptation_done": true
   },
   "dynamic_m5_early_MFE_fresh_preparation_187": {
-    "status": "PREPARATION_ONLY",
+    "status": "ADMITTED_ONE_CPU_FRESH_CONSTRUCTOR_AFTER_PRECLAIM_METADATA_CHECK",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187",
     "scope": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/PREPARATION_SCOPE.json",
       "sha256": "3f21ff277eb2162e5029fdfc0d407a5bd2d8a66e26b15f2b947aa897d0a96c08"
     },
     "preparation_authorized": true,
-    "execution_authorized": false,
+    "execution_authorized": true,
     "source_edits_authorized": false,
     "native_launch_authorized": false,
     "training_enabled": false,
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/PLAN.json",
+      "sha256": "7b4ff9dcd92fc4454323d07da56ac0df0f0c02965b425fa9fcdda51fae32f81c"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/publish_fresh_preparation.py",
+      "sha256": "c95305f0e796af2d8bdf74beec94ab9459fb52ed51cc0b17bd7d8f5dfb363cb1"
+    },
+    "controller": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/run_early_mfe_fresh_preparation.py",
+      "sha256": "a4116c9b4683d537305d567065ea0b1de2062d28d03f6b10be88383cc75539fd"
+    },
+    "preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/PREPARATION_REVIEW.json",
+      "sha256": "e4c66d74e97948b69a9b7cdfe7d7d4df122d619eb3b25a9a6b0baeb59a80dc2b"
+    },
+    "owner_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/PREEXEC_OWNER_SOURCE_REVIEW.json",
+      "sha256": "eafde5c855f93fd8397151f83b873963ce0901e1241e9549f458be0692455b1d"
+    },
+    "required_qualified_unique_source_files": 186,
+    "metadata_qualification_check_complete": false,
+    "source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/PREEXEC_SOURCE_PEER_REVIEW.json",
+      "sha256": "83b5c91f2969bf402534c793cc1d0719b381f9ac9a070868ea6cf199eaba0572"
+    },
+    "planned_invocations": 1,
+    "metadata_preclaim_check_authorized": true,
+    "metadata_preclaim_check_scope": "Run stdlib-only publisher.source_qualification once against the actual postcommit SOURCE_BINDINGS. No prepare/main/project/model import, fit_provenance/111/raw/OBS/state payload, claim or constructor. Must pass before controllerclaim.",
+    "budget": {
+      "class": "audit",
+      "memory_bytes": 4294967296,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1,
+      "wall_seconds": 7200,
+      "TERM_grace_seconds": 10,
+      "model_forwards": 0,
+      "optimizer_updates": 0,
+      "normalization_refits": 0,
+      "max_invocations": 1
+    },
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "normalization_fit_enabled": false,
+    "native_training_admitted": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }
