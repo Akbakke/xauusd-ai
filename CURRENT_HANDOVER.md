@@ -21,25 +21,28 @@ Sammenlign læringsendring fra egeninitial og151 med samme data/budsjett;
 ikke påstå identisk F32-startfunksjon eller isolert optimizergeometri.
 165/DESIGN.json og ACTUAL_BASELINE_SCOPE_PEER_REVIEW.json er bundet i policy.
 
-166 er nå eneste nativeadmission: fire paritetsforwards og fire private
-optimizeroppdateringer, med to sammenhengende steg mot ett+durable-reload+ett.
-Logisk cursorgrense2, åtte eksakte statehash-sammenligninger, første32TRAIN-
-foreldre og faste TRAIN16/CONTROL16-paritetsrader. Private vekter blir aldri
-hovedmodellens startvekter. `training_enabled=true` gjelder bare denne eksakte
-privateporten; full epoke/fullVAL/Exit/TEST/broker er stengt.
+166 er COMPLETE og consumed: fire paritetsforwards, fire private optimizersteg,
+logisk cursor2. Alle215456sammenlignede flyttallsceller har maksavvik0 ved
+uendret1e-4bps/rtol0; action/query/horizon-masker er eksakte. To sammenhengende
+steg mot ett+durable-reload+ett ga eksakte åtte rapporterte statefelt. Private
+vekter er kun audit, aldri hovedinitial. Original163-avvisning er bevart.
 
-Før166: forsegl recipe/budsjett, materialiser/installér én canonicalcampaign,
-bekreft aktuelle signerte maskinvarevakter og maskinvid tomgang, og bruk en
-ny fysisk Windowsboot etter den forberedte521. Kilde/policy fryses etter
-commit/seal til terminal. Forberedt tomgang:35/42C,25,57W,160Wlimit,78MiB;
-WindowsTaskDisabled/Last0. Fire uendrede Windows-eierscript gjenbrukes.
-Stabil langkjøring kontrolleres omtrent hver15.–30.minutt; ingen minuttpolling.
+166 brukte fysiskboot522 etter521 og frystHEADa612d6c3/policy480bae7d.
+Alle183sourcehash/stat/path og11resultatfilreferanser var bevart; guard/trainer/
+observer PASS/0/0. Ytre3389,128s;2644telemetrisamples, topper55Ccore/64Cmemory/
+136,71Wdraw/1776MiB; alleobserverte fysiskegrenser160W. WindowsTaskReady/Last0
+ble eksplisitt deaktivert etter terminal og0identifiserte prosjektprosesser.
+TERMINAL.json og ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json er bundet i policy.
 
 Root166: `/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166`.
-Ingen hovedepoke er innrømmet. Et senere enkeltforsøk må først ha faktisk166PASS
-og ny eksakt policy: samme118249TRAIN-rader, batch16/slutt9,7391oppdateringer,
+`training_enabled=false`; ingen hovedepoke er innrømmet ennå. Neste steg er
+ny167admission under165: samme118249TRAIN-rader, batch16/slutt9,7391steg,
 faste32sluttforwards på TRAIN256/CONTROL256, samme seed/LR/TRAIN-RMS.
-Ingen blind ekstraepoke/HPO eller gjenbruk av konsumerte117/151-tillatelser.
+Gjenbruk161fresh og162egeninitial samt de separat beståtte163state/RNG/
+canonicalaudit-fakta. Ingen privat166vekt, blind ekstraepoke/HPO eller gjenbruk
+av konsumerte117/151-tillatelser. Før kjøring kreves eksakt policy/campaign,
+maskinvarevakter, maskinvid tomgang og ny fysiskWindowsboot etter522.
+Stabil langkjøring kontrolleres omtrent hver15.–30.minutt; ingen minuttpolling.
 
 ## Faktisk evidens som gjenbrukes
 

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-21T22:37:05.453718+00:00",
-  "status": "166_ONE_PRIVATE_PARITY_RESUME_ADMITTED_PENDING_CANONICAL_CAMPAIGN_AND_FRESH_BOOT",
-  "training_enabled": true,
+  "observed_utc": "2026-10-22T00:38:54.105366+00:00",
+  "status": "166_COMPLETE_CONSUMED_CURRENT_FUNCTION_TECHNICAL_PASS_MAIN_COMPARISON_NOT_YET_ADMITTED",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "151 consumed exactly the explicitly approved additional TRAIN-RMS M5 Entry epoch:118249 unique TRAIN rows/7391updates/last9 and32 fixed final ONLINE forwards. Native guard/trainer/observer PASS/0/0; windows task Disabled. No additional epoch or relaunch authority. Paired learning and Entry-quality review remains separate.",
-  "next_action": "Seal166RECIPE/stop2budget/current183sourceandglobal34mappolicy; materialize/install exactone-shotcampaign, proveall-projectidle andfreshphysicalboot, run4parityforwards/4privateoptimizerupdates andexact8statehashresumecheck. Consume before any futuremain7391scope.",
+  "rule": "166 consumed one private current-function parity/resume invocation:4 parity forwards,4 private updates,logical cursor2,eight exact reported resume state fields. Private weights are audit-only.163 exact old-horizon claim remains rejected;165 own162initial comparison requires a separately bound new main scope.",
+  "next_action": "Prepare and review a new167single7391update matched-budget experiment under165own162initial design; bind actual166PASS, fresh161weights and valid163state/canonical audit facts. Main native execution remains closed pending exact policy/campaign/hardware/freshboot admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -82,8 +82,8 @@
       "sha256": "ddcc5c186bb1760f5f12f97e894113392f18a2083c616c55c2cabe2a866bbdf2"
     },
     "latest_current_train_rms_mechanics": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PARITY_RESUME4_20261020_117/ACTUAL_TECHNICAL_TERMINAL_REVIEW.json",
-      "sha256": "41fec9f3352ea68b1d8232342f27b0199ff575117a77c36a1a12a577860f823e"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json",
+      "sha256": "593f5755f4abeb9a4a155a8ff797d50a3639d8e2c7c9f0b8a54369c0505ab80a"
     },
     "latest_direction_horizon_diagnosis": {
       "summary": {
@@ -119,10 +119,10 @@
     }
   },
   "current_work": {
-    "operator_request": "10.10.2026: ja gj\u00f8r dette (corrected-generation training plan and startup checks)",
-    "current_activity": "166_PRIVATE_CURRENT_FUNCTION_PARITY_AND_RESUME_ADMITTED",
+    "operator_request": "10.10.2026: ja gjør dette (corrected-generation training plan and startup checks)",
+    "current_activity": "166_COMPLETE_CONSUMED_PRIVATE_MECHANICS_PASS_MAIN167_PREPARATION",
     "restart_and_smoke_goal": {
-      "operator_request": "Ja, restart pc\u2019en du, og lag deg et m\u00e5l som fikser",
+      "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
       "thread_id": "01a10ffd-150b-7443-963c-03314e5968bd",
       "status_at_creation": "active",
@@ -149,11 +149,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTIONAL_CALIBRATION_ENTRY_QUALITY_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "164_COMPLETE_SAVED_DIAGNOSIS_NOT_PARITY_OR_TRAINING_ADMISSION",
+    "latest_terminal_role": "166_COMPLETE_PRIVATE_CURRENT_FUNCTION_MECHANICS_NOT_DIRECTION_IMPROVEMENT",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_INITIAL_FUNCTION_PARITY_DIAGNOSIS_20261022_164/TERMINAL.json",
-      "sha256": "6aab0472673e124cbf803d231aee206a89901dbaa442b838f7b1a73aef80cdd9"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/TERMINAL.json",
+      "sha256": "cd1ea2170581e30f72e038b3effb74dcca82cb39f6510ff1f2ba40a64312a43c"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -173,13 +173,13 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "166source/policyseal, canonicalcampaign/currenthardware/freshidlephysicalboot andactualcurrentfunctionparity/resume remain. Main7391notadmitted; no improveddirectionmeasured.",
+    "current_blocker": "No technical blocker in166. New167samebudget main comparison still needs exact authority/recipe/policy/campaign and fresh physical boot. No measured directional improvement.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
     },
     "restart_efficiency_request": {
-      "operator_request": "Omstartene m\u00e5 ikke komme for sent (unng\u00e5 bl\u00e5 heng) men m\u00e5 deles opp hyppig nok. Samtidig m\u00e5 vi finne en god effektivitet og mellomlagre s\u00e5 vi ikke mister info",
+      "operator_request": "Omstartene må ikke komme for sent (unngå blå heng) men må deles opp hyppig nok. Samtidig må vi finne en god effektivitet og mellomlagre så vi ikke mister info",
       "method": "docs/NATIVE_LEARNING.md",
       "shorter_window_implemented": false,
       "safe_cadence_and_v38_resume_measured": false,
@@ -195,7 +195,7 @@
       "errors": 0
     },
     "training_preparation_goal": {
-      "operator_request": "Flott, lag deg dette som et m\u00e5l og f\u00e5 alt dette p\u00e5 plass, g\u00e5 s\u00e5 igjennom HELE repoet etter feil/mismatches og forbedringer/tilpassinger etter beste evne for prosjektet, s\u00e5 kj\u00f8rer vi en smoke og s\u00e5 til slutt en stor trening",
+      "operator_request": "Flott, lag deg dette som et mål og få alt dette på plass, gå så igjennom HELE repoet etter feil/mismatches og forbedringer/tilpassinger etter beste evne for prosjektet, så kjører vi en smoke og så til slutt en stor trening",
       "thread_id": "01a1203d-4a95-7d03-bbd9-84017db6b29c",
       "status": "completed",
       "created_utc": "2026-10-09T13:22:42Z",
@@ -1329,7 +1329,7 @@
       "authorized": false,
       "authorized_mode": null,
       "research_id": "ENTRY_EDGE_TRAIN_20261010_001",
-      "operator_request": "Bra! Lag deg dette som et m\u00e5l og fullf\u00f8r disse 4 stegene",
+      "operator_request": "Bra! Lag deg dette som et mål og fullfør disse 4 stegene",
       "spec": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/ENTRY_EDGE_TRAIN_PROBE_20261010.json",
         "sha256": "be64cdec048e07ecf3349a8f6f70fac4c99728c90d7476c06eddcf3e9438184a"
@@ -1392,7 +1392,7 @@
       "sha256": "2da93ae99d2f90056ce3f9e1cd9b0a1cebeec8137b3aada45b47f01c561e885e"
     },
     "entry_learning_study_20261010": {
-      "operator_request": "10.10.2026: Lag deg et nytt m\u00e5l og kj\u00f8r disse 4.",
+      "operator_request": "10.10.2026: Lag deg et nytt mål og kjør disse 4.",
       "goal_thread_id": "01a123d0-e7e1-79c3-900c-c56837ea0367",
       "status": "COMPLETE_REJECTED_ENTRY_QUALIFICATION",
       "authorized": false,
@@ -1997,7 +1997,7 @@
         "new_budget_time_added": true,
         "optimizer_authorized": false,
         "status": "closed_after_completion",
-        "operator_request": "11.10.2026 \u00abJa, kj\u00f8r og hent inn resten ogs\u00e5\u00bb; program decision: native track alongside CPU research; next_action 4 fresh zero-step v10 baseline under a new explicit budget"
+        "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»; program decision: native track alongside CPU research; next_action 4 fresh zero-step v10 baseline under a new explicit budget"
       },
       "fresh_initial_baseline_stage_v10": {
         "authorized": false,
@@ -2173,7 +2173,7 @@
       }
     },
     "head_deviation_fixes_20261011": {
-      "operator_request": "11.10.2026: Ja, rett opp i Avvik i HEAD som st\u00e5r ul\u00f8st, dette m\u00e5 uansett p\u00e5 plass.",
+      "operator_request": "11.10.2026: Ja, rett opp i Avvik i HEAD som står uløst, dette må uansett på plass.",
       "source_commit": "56d87f49a552f273397d0b0bbb13a411ac0a373a",
       "changed_source_files": {
         "gx1/contracts/entry_model_native_training_objective_v1.py": "4e8db5982dc5276a52bad4becd2ba144ccf9a765139e733eefdb8e84de4a633e",
@@ -2278,17 +2278,17 @@
       "note": "capacity measured sampler/collation only (model_forwards 0); remains valid for the v10 function; binding the selected sampler into a recipe is a separate step after the fresh v10 baseline"
     },
     "operator_decisions_20261011_program": {
-      "swing_primary_track": "\u00abJa, 1\u00bb: D1 decision clock, 5 and 20 day horizons, research owner research_ta_campaign_v1 D1 pipeline extended; preregistration required before any fit",
-      "parallel_gpu_and_cpu_research": "\u00abforskningsjobben kan s\u00e5 klart g\u00e5 samtidig\u00bb: one native GPU job and one CPU research job may run concurrently within CURRENT; each keeps its own capped cgroup, memory and thread limits; two GPU jobs or two CPU heavy jobs remain forbidden",
-      "oanda_read_access": "\u00abDu skal ha API fra Oanda for \u00e5 hente inn mer info\u00bb: manifest-bound read-only historical candle fetches for named instruments through the existing OandaClient; no orders, no account changes, secrets never logged",
-      "pattern_fields_pause": "\u00abIkke slett candlesticks og slikt da, men vi kan vel sette dem p\u00e5 pause\u00bb: candle/pattern fields are excluded from the D1 research input set; native keeps all eight families (training time is not driven by these fields); nothing deleted",
-      "dead_code_removal": "\u00abHusk \u00e5 slette un\u00f8dvendig kode\u00bb: import-graph scan 11.10 found 8 modules/980 lines with zero importers and zero references outside conversation transcripts; removed in a separate commit",
+      "swing_primary_track": "«Ja, 1»: D1 decision clock, 5 and 20 day horizons, research owner research_ta_campaign_v1 D1 pipeline extended; preregistration required before any fit",
+      "parallel_gpu_and_cpu_research": "«forskningsjobben kan så klart gå samtidig»: one native GPU job and one CPU research job may run concurrently within CURRENT; each keeps its own capped cgroup, memory and thread limits; two GPU jobs or two CPU heavy jobs remain forbidden",
+      "oanda_read_access": "«Du skal ha API fra Oanda for å hente inn mer info»: manifest-bound read-only historical candle fetches for named instruments through the existing OandaClient; no orders, no account changes, secrets never logged",
+      "pattern_fields_pause": "«Ikke slett candlesticks og slikt da, men vi kan vel sette dem på pause»: candle/pattern fields are excluded from the D1 research input set; native keeps all eight families (training time is not driven by these fields); nothing deleted",
+      "dead_code_removal": "«Husk å slette unødvendig kode»: import-graph scan 11.10 found 8 modules/980 lines with zero importers and zero references outside conversation transcripts; removed in a separate commit",
       "program_document": "docs/ENTRY_DIRECTION_SWING_PROGRAM_20261011.md",
       "source_fetch_authorized": false,
       "fits_authorized": false
     },
     "operator_decision_20261011_rule_1_instruments": {
-      "operator_request": "\u00c5pne regel 1 med andre instrumenter (det var initielt for \u00e5 ikke blande EURUSD men dette er parkert).",
+      "operator_request": "Åpne regel 1 med andre instrumenter (det var initielt for å ikke blande EURUSD men dette er parkert).",
       "bound_scope": "named instruments as manifest-bound research inputs and as offline research backtest targets (pooled/hierarchical estimation across a panel, portfolio research track)",
       "native_entry_exit_and_serving_instrument": "XAUUSD unchanged until a separate evidence-based decision",
       "source_fetch_authorized": false,
@@ -3229,7 +3229,7 @@
       "evidence_class": "measured on reused development history"
     },
     "swing_d1_stage_c_20261011": {
-      "operator_request": "11.10.2026 \u00abJa, kj\u00f8r og hent inn resten ogs\u00e5\u00bb",
+      "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»",
       "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1 (optional D1 lane, FOMC calendar, H.10 dollar group, fold_spans)",
       "h10_retry": {
         "manifest": "configs/research/FED_H10_PACKAGES_SOURCE_20261011_002.json",
@@ -3466,7 +3466,7 @@
       "evidence_class": "measured_reused_development_walkforward"
     },
     "swing_d1_stage_c_followups_20261011": {
-      "operator_request": "11.10.2026 \u00abJa, kj\u00f8r og hent inn resten ogs\u00e5\u00bb",
+      "operator_request": "11.10.2026 «Ja, kjør og hent inn resten også»",
       "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-d1 (block-matched long null d4d9229f, exclude_groups b07918b9)",
       "forward_check_010": {
         "preregistration": "configs/research/ENTRY_DIRECTION_SWING_D1_20261011_010.json",
@@ -3921,7 +3921,7 @@
       "evidence_class": "measured_reused_development_walkforward_plus_low_power_forward_half_year"
     },
     "forward_journal_20261011": {
-      "operator_request": "11.10.2026 \u00abJa, gj\u00f8r begge\u00bb og \u00abja ja bash tillatelsesregel s\u00e5 gj\u00f8r du det\u00bb",
+      "operator_request": "11.10.2026 «Ja, gjør begge» og «ja ja bash tillatelsesregel så gjør du det»",
       "authorized": true,
       "journal_id": "ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011",
       "owner": "gx1.scripts.research_ta_campaign_v1 run-swing-forward-journal",
@@ -3951,7 +3951,7 @@
         "route": "OANDA H1 resampled on the canonical D1 session clock"
       },
       "fit_rule": "ridge fit on rows whose 20-day outcome closed before the scored month; never on scored rows",
-      "rules_owner": "GX1_RULES.md (Operat\u00f8rvedtak 11.10.2026 kveld)",
+      "rules_owner": "GX1_RULES.md (Operatørvedtak 11.10.2026 kveld)",
       "predictor_admitted": false,
       "orders_sent": false,
       "preregistration": "configs/research/ENTRY_DIRECTION_SWING_FORWARD_JOURNAL_20261011.json",
@@ -4067,7 +4067,7 @@
       "evidence_class": "forward_scored_once_after_the_fact_fit_strictly_before_each_month"
     },
     "operator_decision_20261011_native_d1_context": {
-      "operator_request": "11.10.2026 \u00abJa, gj\u00f8r begge\u00bb",
+      "operator_request": "11.10.2026 «Ja, gjør begge»",
       "decided": "observed-market target on 1/5/20 trading days (explicitly bound successor) and a new D1 context family (COT positioning, cross-asset panel, macro drivers) with the research surface's as-of availability",
       "not_launched": "contract, signal manifest, normalization owner, dataset rebuild, recipe and training each need their own binding and budget; nothing is started by this decision",
       "design_document": "docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md",
@@ -4076,7 +4076,7 @@
       "test_sealed_for_fitting": true
     },
     "native_d1_wave_20261011": {
-      "operator_request": "11.10.2026 \u00abJa, kj\u00f8r steg 1 og 2\u00bb",
+      "operator_request": "11.10.2026 «Ja, kjør steg 1 og 2»",
       "design_document": "docs/NATIVE_D1_CONTEXT_HORIZON_DECISION_20261011.md",
       "step_1_d1_macro_context": {
         "status": "MEASURED_PASS",
@@ -4236,7 +4236,7 @@
       "flags_repair_note": "14.10.2026: the NATIVE_D1 generation (315-field manifest, horizon labels in the builder, trainer dispatch) made both true"
     },
     "native_d1_rebuild_20261011": {
-      "operator_request": "11.10.2026 \u00abja, kj\u00f8r 3, 4 og 5\u00bb",
+      "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
       "status": "FAILED_M5_LANE_D1_READ_END_PRESERVED",
       "authorized_goal": false,
       "core_build_authorized": false,
@@ -4281,7 +4281,7 @@
       "event_root_note": "failed core attempt; event root named by generation (not path) so the retention owner can plan it after the spec document is closed"
     },
     "native_d1_rebuild_20261011_002": {
-      "operator_request": "11.10.2026 \u00abja, kj\u00f8r 3, 4 og 5\u00bb",
+      "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
       "status": "FAILED_BUILDER_TEST_READ_END_PRESERVED",
       "previous_attempt": "native_d1_rebuild_20261011 (FAILED_M5_LANE_D1_READ_END_PRESERVED, 2013 s)",
       "authorized_goal": false,
@@ -4328,7 +4328,7 @@
       "event_root_note": "failed core attempt; event root named by generation (not path) so the retention owner can plan it after the spec document is closed"
     },
     "native_d1_rebuild_20261011_003": {
-      "operator_request": "11.10.2026 \u00abja, kj\u00f8r 3, 4 og 5\u00bb",
+      "operator_request": "11.10.2026 «ja, kjør 3, 4 og 5»",
       "status": "DOWNSTREAM_COMPLETE_FRESH_BASELINE_MEASURED",
       "previous_attempts": [
         "native_d1_rebuild_20261011 (FAILED_M5_LANE_D1_READ_END_PRESERVED, 2013 s)",
@@ -5012,7 +5012,7 @@
       }
     },
     "native_d1_minimum_learning_20261012": {
-      "operator_request": "12.10.2026: \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten for \u00e5 se at alt fungerer som det skal, s\u00e5 kan vi vurdere \u00e5 legge p\u00e5 fler ting senere\u00bb",
+      "operator_request": "12.10.2026: «ja gjør dette … Bruk minimum nå i starten for å se at alt fungerer som det skal, så kan vi vurdere å legge på fler ting senere»",
       "plan_document": "docs/NATIVE_D1_MINIMUM_LEARNING_PLAN_20261012.md",
       "status": "P2_RECENT_180D_ADMITTED_RECEIPTS_OWN_PROGRESS",
       "registered_utc": "2026-10-12T12:30:00.292062+00:00",
@@ -5052,7 +5052,7 @@
         "test_access_allowed": false,
         "control_observation_note": "study spec and study contract bind CONTROL4096 at steps 0 and 4096 and TRAIN_PROBE4096 at 0/256/1024/4096; the plan document's four control checkpoints were a wording error, repaired 14.10.2026",
         "recent_year_note": "14.10.2026: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261014 adds the recent-window phase (365 days before the TRAIN cutoff, 65 148 eligible rows, 4 071 steps derived by the contract owner); fit/curve repeated byte for byte",
-        "recent_two_years_note": "14.10.2026 \u00abkj\u00f8r\u00bb: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261015 reruns the window phase with 730 days (128 815 eligible rows, 8 050 derived steps); the contract phase key stays recent_year, window_days carries the truth",
+        "recent_two_years_note": "14.10.2026 «kjør»: successor spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261015 reruns the window phase with 730 days (128 815 eligible rows, 8 050 derived steps); the contract phase key stays recent_year, window_days carries the truth",
         "seed_variant_note": "15.10.2026: named seed variants 20261015/20261016 opened through the gates for window phases only (30f0b5ba)"
       },
       "steps": {
@@ -5598,7 +5598,7 @@
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_001/RECENT_YEAR",
               "run_id": "ENTRY_D1_HORIZON_RECENT2Y_20261015_001",
-              "operator_basis": "user 14.10.2026 \u00abkj\u00f8r\u00bb on presented option 1 after the recent_year review (GX1_RULES decision 14.10 b: smaller window before any full epoch)",
+              "operator_basis": "user 14.10.2026 «kjør» on presented option 1 after the recent_year review (GX1_RULES decision 14.10 b: smaller window before any full epoch)",
               "window": {
                 "rule": "eligible TRAIN rows whose decision lies in (cutoff - window_days, cutoff]; frozen epoch-0 order restricted to the window first. The phase keeps the contract key name recent_year although the window is 730 days.",
                 "window_days": 730,
@@ -6050,7 +6050,7 @@
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261015",
               "run_id": "ENTRY_D1_HORIZON_365D_SEED15_20261015_001",
-              "operator_basis": "user 15.10.2026 \u00abJa, 1 og 2\u00bb: seed variants on the 365-day window plus a 180-day window; GX1_RULES decision 14.10 b stands",
+              "operator_basis": "user 15.10.2026 «Ja, 1 og 2»: seed variants on the 365-day window plus a 180-day window; GX1_RULES decision 14.10 b stands",
               "phase_spec": {
                 "run_id": "ENTRY_D1_HORIZON_365D_SEED15_20261015_001",
                 "optimizer_steps": 4071,
@@ -6238,7 +6238,7 @@
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_365D_S20261016",
               "run_id": "ENTRY_D1_HORIZON_365D_SEED16_20261015_001",
-              "operator_basis": "user 15.10.2026 \u00abJa, 1 og 2\u00bb (phase 2 of 3)",
+              "operator_basis": "user 15.10.2026 «Ja, 1 og 2» (phase 2 of 3)",
               "phase_spec": {
                 "run_id": "ENTRY_D1_HORIZON_365D_SEED16_20261015_001",
                 "optimizer_steps": 4071,
@@ -6422,7 +6422,7 @@
               },
               "root": "/home/andre2/GX1_RUNS/ENTRY_D1_HORIZON_LEARNING_20261015_002/RECENT_180D",
               "run_id": "ENTRY_D1_HORIZON_180D_20261015_001",
-              "operator_basis": "user 15.10.2026 \u00abJa, 1 og 2\u00bb (phase 3 of 3)",
+              "operator_basis": "user 15.10.2026 «Ja, 1 og 2» (phase 3 of 3)",
               "phase_spec": {
                 "run_id": "ENTRY_D1_HORIZON_180D_20261015_001",
                 "optimizer_steps": 2010,
@@ -6452,7 +6452,7 @@
                 }
               },
               "evidence_class": "not started; one GPU invocation at the next physical Windows boot (task armed, no forced reboot)",
-              "disarm_note": "15.10.2026: the Windows task was disabled before the M5 recheck commits (the recipe binds HEAD 810b0714; a later commit would make the invocation fail closed). Re-arm = recipe + campaign + task at the final HEAD of the M5 wave. Not re-armed: the recipe and campaign under RECENT_180D are immutable and bound to 810b0714, so re-arming needs a new attempt root; the operator re-prioritized to the M5 recheck on 15.10 (\u00abikke \u00e5 l\u00e5se prosjektet til D1\u00bb)."
+              "disarm_note": "15.10.2026: the Windows task was disabled before the M5 recheck commits (the recipe binds HEAD 810b0714; a later commit would make the invocation fail closed). Re-arm = recipe + campaign + task at the final HEAD of the M5 wave. Not re-armed: the recipe and campaign under RECENT_180D are immutable and bound to 810b0714, so re-arming needs a new attempt root; the operator re-prioritized to the M5 recheck on 15.10 («ikke å låse prosjektet til D1»)."
             }
           },
           "smoke_definition": "the fit phase's TRAIN256 observation at optimizer step 256 is the minimum plan's smoke (deviation from the 12.10 wording, recorded 14.10.2026)"
@@ -6922,7 +6922,7 @@
         "automatic_host_restart": false,
         "native_launch_admitted": false,
         "resource_owner": "scripts/gx1_capped_run.sh CPU producer20G/512M,CPU0-7,1 thread,64tasks,CURRENT project lock,unchanged available-memory/cgroup guards",
-        "operator_request": "12.10.2026 \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten\u00bb",
+        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
         "authorization_utc": "2026-10-12T13:33:31.280374+00:00",
         "status": "STOPPED_BY_AGENT_ON_MEASURED_PAIR_RATE_PROJECTED_OVER_WINDOW_NO_RELAUNCH",
         "proposal": {
@@ -6987,7 +6987,7 @@
         "automatic_host_restart": false,
         "native_launch_admitted": false,
         "resource_owner": "scripts/gx1_capped_run.sh CPU producer20G/512M,CPU0-7,1 thread,64tasks,CURRENT project lock,unchanged available-memory/cgroup guards",
-        "operator_request": "12.10.2026 \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten\u00bb",
+        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
         "authorization_utc": "2026-10-12T13:52:44.542357+00:00",
         "status": "GENUINE_COMPLETE_MEASURED_TRAIN_CAPACITY_EXIT0_AUTHORITY_CONSUMED",
         "proposal": {
@@ -7073,7 +7073,7 @@
         "schema_version": "gx1_bound_native_d1_metadata_handoff_scope_v1",
         "stage_id": "NATIVE_METADATA_HANDOFF_001",
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_METADATA_HANDOFF_001",
-        "operator_request": "12.10.2026 \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten\u00bb",
+        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
         "authorization_utc": "2026-10-13T05:57:56.372205+00:00",
         "authorized": false,
         "relaunch_allowed": false,
@@ -7139,7 +7139,7 @@
         "schema_version": "gx1_bound_native_d1_physical_preprocessing_scope_v1",
         "stage_id": "NATIVE_PREPROCESSING_001",
         "stage_root": "/home/andre2/GX1_RUNS/NATIVE_D1_REBUILD_20261011_003/NATIVE_PREPROCESSING_001",
-        "operator_request": "12.10.2026 \u00abja gj\u00f8r dette \u2026 Bruk minimum n\u00e5 i starten\u00bb",
+        "operator_request": "12.10.2026 «ja gjør dette … Bruk minimum nå i starten»",
         "authorization_utc": "2026-10-13T05:59:23.558188+00:00",
         "authorized": false,
         "relaunch_allowed": false,
@@ -7279,7 +7279,7 @@
         ]
       },
       "operator_decision_20261015": {
-        "request": "\u00abJa, 1 og 2\u00bb on the presented options after the recency-decay measurement",
+        "request": "«Ja, 1 og 2» on the presented options after the recency-decay measurement",
         "bound": "three preregistered window phases in spec ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002, one at a time: recent_365d_s20261015 and recent_365d_s20261016 (seed variants, contract constant RECENT_WINDOW_SEED_VARIANTS, date convention) and recent_180d (design seed). Full epoch stays excluded by the 730-day measurement; option 3 (closing the native track in favour of the forward journal) parked by this choice.",
         "spec": {
           "path": "configs/research/ENTRY_D1_HORIZON_LEARNING_STUDY_20261015_002.json",
@@ -7612,7 +7612,7 @@
     },
     "gc_goal_resume_authorization": {
       "received_date": "2026-10-16",
-      "operator_request": "La oss implementere det nye GC datasettet som vi lastet ned s\u00e5 bruker vi volume, order block og ALT vi kan f\u00e5 ut av dette og s\u00e5 trener vi igjen",
+      "operator_request": "La oss implementere det nye GC datasettet som vi lastet ned så bruker vi volume, order block og ALT vi kan få ut av dette og så trener vi igjen",
       "authorized_scope": "One new local-only raw-data pass, continuous series and indicator-specific source admission; no indicator feature values, fit, TEST, economics or native changes.",
       "new_databento_requests_allowed": false,
       "additional_spending_allowed": false,
@@ -7624,7 +7624,7 @@
       "new_one_off_audit_plan_execution_allowed": false,
       "new_one_off_audit_approval": {
         "received_date": "2026-10-16",
-        "operator_response": "La oss implementere det nye GC datasettet som vi lastet ned s\u00e5 bruker vi volume, order block og ALT vi kan f\u00e5 ut av dette og s\u00e5 trener vi igjen",
+        "operator_response": "La oss implementere det nye GC datasettet som vi lastet ned så bruker vi volume, order block og ALT vi kan få ut av dette og så trener vi igjen",
         "approved_plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
         "approved_plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
         "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004/OPERATOR_APPROVAL.json",
@@ -7647,7 +7647,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly one1558GCPU/900s preparation of first16frozenTRAIN256 inputs and saved151targets/references; no model, PT, provider or rawM1/MBP reads. Then admit only the exact one-forward/22-reverse zero-update156witness after input/source/state/hardware gates. Direction qualification goal remains active; no improvement/model/loss change selected.",
+    "next_action": "Prepare and review a new167single7391update matched-budget experiment under165own162initial design; bind actual166PASS, fresh161weights and valid163state/canonical audit facts. Main native execution remains closed pending exact policy/campaign/hardware/freshboot admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -7902,7 +7902,7 @@
     },
     "retention_hard_delete_20261016": {
       "status": "DELETE_AND_PHYSICAL_COMPACTION_COMPLETE",
-      "operator_request": "Gj\u00f8r en ordenlig hard slett av ubrukelige filer. fra 500gb til 150/200 sikkert",
+      "operator_request": "Gjør en ordenlig hard slett av ubrukelige filer. fra 500gb til 150/200 sikkert",
       "operator_authorized_permanent_unused_file_removal": true,
       "target_inventory": "/home/andre2/GX1_RUNS/RETENTION_OBSOLETE_PAYLOADS_20261016_001/TARGETS.json",
       "targets": 1333,
@@ -8027,7 +8027,7 @@
       "terminal_sha256": "4362868a27359bb17dab3e9bb72ac5932210f57a1f578772f29100e6d1efd32b"
     },
     "gc_m5_operator_decision_20261017": {
-      "operator_response": "Vi holder oss til M5 intradag (med mtf s\u00e5 klart).",
+      "operator_response": "Vi holder oss til M5 intradag (med mtf så klart).",
       "entry_timeframe": "M5",
       "style": "intraday",
       "mtf_preserved": [
@@ -8776,8 +8776,8 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "160currentfunction baseline32forwards on sameTRAIN256/CONTROL256 not yet executed; raw148fullcurve/candidateparity and freshstateaudit remain.",
-      "Private4nativeparity/resume and independentlybound7391samebudget experiment are not yet admitted. No measured directionquality improvement."
+      "No167matched-budget main comparison or final direction/calibration/path/coverage evidence yet.",
+      "TRAIN and reused chronological development remain distinct from untouched generalization or economic edge."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -9184,7 +9184,7 @@
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_001/ATTEMPT_001_FAILURE.json sha256=1e0c555542917d8c28db9ff432f1567f0beae3f8866ad09e8647dc9ca4dd71cf: attempt 001 failed on a valid Fill row, no partial report; plan 001 will not be relaunched.",
           "configs/research/GC_SOURCE_AUDIT_20261016_002.json sha256=3cca1eef4bd965e0194a5f353f76645fbb6a030c509d0f3d24850745f4d0310d: executed exactly once under the fresh single-use user approval; terminal COMPLETE_NOT_ADMITTED.",
           "Focused source-owner tests: 36 passed after adding passive-Fill handling; no full MBP-1 rerun performed.",
-          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json sha256=799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376: user response \u201cJa\u201d; single-use approval for plan 002 only.",
+          "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json sha256=799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376: user response “Ja”; single-use approval for plan 002 only.",
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/RESULT.json sha256=c869e3d1395c5892fab19d7c3056faaca1ca4aaac41f70d3f05943d4e63dcbab: STRUCTURAL_AUDIT_COMPLETE_NOT_ADMITTED; 66 files, 892100712 records, 62783740 trades, 0 new downloads, 0 fits, TEST false.",
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/AUDIT_RESULTS/TERMINAL.json sha256=e513dc5f58f360cf52e06e53d280f3ce1b854a808a020c224159223dcfc0c1f8: COMPLETE_NOT_ADMITTED; result hash verified.",
           "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/POST_AUDIT_RECONCILIATION.json sha256=14288c053ad5ca972577c854183fee93abe972565ba92cc1a21ae90b75f41cda: all 66 source/receipt hashes and 15-symbol definition crosswalk match; daily activity on 678/791 dates, all 113 absent dates Saturdays; intraday coverage and OANDA overlap remain unproven.",
@@ -9418,7 +9418,7 @@
       },
       "operator_train_smoke_approval": {
         "received_utc": "2026-10-17T21:41:57.036176+00:00",
-        "request": "ja, pass p\u00e5 at alt av informative features/indikatorer er p\u00e5 plass og faktisk produserer det dem skal, s\u00e5 kj\u00f8rer vi en train og smoke test p\u00e5 disse 26 m\u00e5nedene.",
+        "request": "ja, pass på at alt av informative features/indikatorer er på plass og faktisk produserer det dem skal, så kjører vi en train og smoke test på disse 26 månedene.",
         "approved_scope": "one frozen five-fold CPU train/smoke study; full qualified market inputs, max20fits/10neural fits,128steps/network,whole1800s/4G; only after input/producer qualification",
         "native_training": false,
         "TEST": false
@@ -10422,7 +10422,7 @@
         "query_domain_minutes": {
           "first": 1,
           "last": 480,
-          "origin": "firstengineeringdomain manyhours, reuses existing96M5\u00d75min scale; nooptimalityorholdlimitclaim"
+          "origin": "firstengineeringdomain manyhours, reuses existing96M5×5min scale; nooptimalityorholdlimitclaim"
         },
         "required_completion": [
           "immutableM1BIDASKquoteprovenance+splitcontainedperquerytargets",
@@ -15777,7 +15777,7 @@
       "native_entry_private_qualification_completed": true,
       "completed_full_native_epochs": 2,
       "full_native_epoch_request_fulfilled": true,
-      "physical_dataset_qualification_scope": "121\u2013126activeGCfive-TF numeric qualification;127/128/129/133activecompactcore numeric qualification;134once-parsed rawMBP reference join;144actual compact model input influence. Parked full-library independent numeric/usefulness qualification remains outside the active compact scope.",
+      "physical_dataset_qualification_scope": "121–126activeGCfive-TF numeric qualification;127/128/129/133activecompactcore numeric qualification;134once-parsed rawMBP reference join;144actual compact model input influence. Parked full-library independent numeric/usefulness qualification remains outside the active compact scope.",
       "completed_full_native_epoch_scope": "108original epoch and151new explicit TRAIN-RMS epoch are independently completed and consumed; no authority for another epoch.",
       "compact_active_input_qualification_complete": true
     },
@@ -15903,12 +15903,12 @@
       }
     },
     "native_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RUNTIME/receipts/invocation-0001.json",
-      "sha256": "0630d990ec1d9c13cbf4bb4b6da3498013b264942ae2ec27a096ae0891972b9b"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "09bf0777a64dec80daf17a5564cc0bbf8a7cd5634fc01c9917c59454c261a1de"
     },
-    "latest_terminal_evidence_scope": "161COMPLETE121.641s,192sourcefiles/sourcepolicy preserved; canonicalfreshCPUONLINE=TARGET=EMA2eaf88...; emptyoptimizer/0EMA/0forwards/updates/refits. Same118249TRAIN/11filegeometry/111RMS. Current183sourceclosure equals158prequalification, onechangedmodelrole.",
+    "latest_terminal_evidence_scope": "1663389.127805s,4parityforwards/4privateupdates/logical2.215456paritycells maxdelta0,exact candidate/action/horizon masks;8reported resume states exact.183source roles/HEAD/policy preserved,guardPASS/exit0/observer0;taskDisabled. No maininitialadoption or learning claim.",
     "training_efficiency_request_20261019": {
-      "operator_request": "Effektivisertreningenmaks;unng\u00e5gjentatteTB-ogun\u00f8dvendigelesinger;organiserogoptimaliser heledataflyten.",
+      "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
       "reuse_existing_feature_target_normalization_artifacts": true,
       "full_scan_or_hash_inside_batch_loop_allowed": false,
@@ -16000,12 +16000,12 @@
       "latest_actual_initial_checkpoint_write_seconds": 0.531438
     },
     "latest_native_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/RUNTIME/receipts/invocation-0001.json",
-      "sha256": "0705c6d67ab765f47d3efe86746b12805f4f41b997497196db1a3269a253706e"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "09bf0777a64dec80daf17a5564cc0bbf8a7cd5634fc01c9917c59454c261a1de"
     },
     "latest_native_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json",
-      "sha256": "b9fe3dbdabda8fbbae35706cde762f0fa59c94b2e69b76895743136873f4dcef"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json",
+      "sha256": "593f5755f4abeb9a4a155a8ff797d50a3639d8e2c7c9f0b8a54369c0505ab80a"
     },
     "latest_native_initial_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_INITIAL_20261020_115/ACTUAL_INITIAL_TERMINAL_REVIEW.json",
@@ -17003,12 +17003,12 @@
       }
     },
     "last_actual_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/TERMINAL.json",
-      "sha256": "9e59a2620e60c95421dc45735407dfc41f60b8b116a3c1e3716d5e580667c431"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/TERMINAL.json",
+      "sha256": "cd1ea2170581e30f72e038b3effb74dcca82cb39f6510ff1f2ba40a64312a43c"
     },
     "last_actual_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_SINGLE_FULL_NATIVE_EPOCH_20261021_151/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json",
-      "sha256": "b9fe3dbdabda8fbbae35706cde762f0fa59c94b2e69b76895743136873f4dcef"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json",
+      "sha256": "593f5755f4abeb9a4a155a8ff797d50a3639d8e2c7c9f0b8a54369c0505ab80a"
     },
     "approved_train_rms_epoch_151": {
       "plan": {
@@ -17039,7 +17039,7 @@
     "autonomous_direction_qualification_goal_20261021": {
       "status": "ACTIVE_DIAGNOSE_THEN_MEASURE_ONE_JUSTIFIED_IMPROVEMENT",
       "operator_request_utc": "2026-10-21T19:15:05.466847+00:00",
-      "operator_request_verbatim": "Flott! Lag disse punktene som et m\u00e5l og jobb kontinuerlig til du er forn\u00f8yd med resultatet av bedre kvalifikasjon av retning",
+      "operator_request_verbatim": "Flott! Lag disse punktene som et mål og jobb kontinuerlig til du er fornøyd med resultatet av bedre kvalifikasjon av retning",
       "task_goal_thread_id": "01a15fb6-db63-7fc2-b74c-9a104bf14312",
       "objective": "Better qualified M5 Entry LONG/SHORT/FLAT direction, move magnitude and small MAE before first MFE using shared native model, existing MBP-1/SMC and causal closed M15/H1/H4/D1 context.",
       "work_packages": [
@@ -17062,14 +17062,14 @@
       ],
       "zero_update_witness_preparation_authorized": true,
       "new_model_observation_admitted": true,
-      "new_training_admitted": true,
+      "new_training_admitted": false,
       "new_model_or_loss_correction_selected": true,
-      "latest_evidence_stage": "165_NEW_OWN_INITIAL_DESIGN_REVIEWED_166_PRIVATE_TECHNICAL_GATE_ADMITTED",
+      "latest_evidence_stage": "166_ACTUAL_CURRENT_FUNCTION_PARITY_RESUME_PASS_MAIN_COMPARISON_PREPARATION",
       "selected_single_design": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_QUERY_OWN_INITIAL_DESIGN_20261022_165/DESIGN.json",
         "sha256": "1f5a942f524a0b9a4ae7b0481acd6937ad8c16c1449663b76593067adaa84a57"
       },
-      "new_training_scope": "166private4updatesonly, branchcursor2; nevermaininitial",
+      "new_training_scope": "NONE_166_CONSUMED_PRIVATE_WEIGHTS_AUDIT_ONLY",
       "new_main_training_admitted": false
     }
   },
@@ -17079,7 +17079,7 @@
     "goal_execution_requested": true,
     "pause_request_owner": "current_work.gc_goal_resume_authorization",
     "pause_scope": "Current input engineering and no-fit qualification completed under 014/017/019/020. No current pause request or model launch authority; consumed plans cannot relaunch.",
-    "operator_request": "Flott, fullf\u00f8r dette m\u00e5let med \u00e5 legge inn disse 4 punktene. Vi skal gj\u00f8re dette grundig. 15.10.2026: last ned det avgrensede 26-m\u00e5nedersdatasettet innenfor et absolutt tak p\u00e5 USD 120; bruk kun rapporterte gratis Databento-kreditter. 16.10.2026: \u00abJa, 26 da. Da fortsetter vi\u00bb; narrowly resumes local source qualification (step 1) only.",
+    "operator_request": "Flott, fullfør dette målet med å legge inn disse 4 punktene. Vi skal gjøre dette grundig. 15.10.2026: last ned det avgrensede 26-månedersdatasettet innenfor et absolutt tak på USD 120; bruk kun rapporterte gratis Databento-kreditter. 16.10.2026: «Ja, 26 da. Da fortsetter vi»; narrowly resumes local source qualification (step 1) only.",
     "required_steps": [
       1,
       2,
@@ -17091,7 +17091,7 @@
     "planning_only_calendar_design": {
       "status": "PREDECLARED_NOT_EXECUTABLE",
       "updated_utc": "2026-10-15T15:28:30Z",
-      "operator_request": "tilpass testopplegget slik at vi har 26 m\u00e5neder",
+      "operator_request": "tilpass testopplegget slik at vi har 26 måneder",
       "preregistration_field": "historical_validation_design.predeclared_26_month_design",
       "window_start_utc_inclusive": "2024-05-01T00:00:00Z",
       "window_end_utc_exclusive": "2026-07-01T00:00:00Z",
@@ -17374,7 +17374,7 @@
       "new_plan_execution_authorized": true,
       "approval_required_by": [
         "User-provided AGENTS.md instruction for this project",
-        "GX1_RULES.md \u00a7 Brukte engangstillatelser"
+        "GX1_RULES.md § Brukte engangstillatelser"
       ],
       "approval_receipt_path": "/home/andre2/GX1_RUNS/GC_ORDER_FLOW_RESEARCH_001/GC_SOURCE_QUALIFICATION_20261016_002/OPERATOR_APPROVAL.json",
       "approval_receipt_sha256": "799008e5c49192d83886705ca174b901386439771988e3742d30676c41498376",
@@ -17675,7 +17675,7 @@
     "retraining_request_owner": "current_work.operator_request",
     "new_retraining_plan_bound": false,
     "retraining_readiness": "NEW_SOURCE_BOUND_FINITE_PLAN_AND_BUDGET_REQUIRED_BEFORE_SAMPLER_BENCHMARK; NO_NATIVE_LAUNCH",
-    "user_authorization": "Enig med deg. Lag deg et m\u00e5l for \u00e5 gjennomf\u00f8re punkt 1 til 6 n\u00e5 og knekk i gang",
+    "user_authorization": "Enig med deg. Lag deg et mål for å gjennomføre punkt 1 til 6 nå og knekk i gang",
     "user_authorized_steps": [
       1,
       2,
@@ -19223,7 +19223,7 @@
       "schema_version": "gx1_bound_native_v38_train_capacity_scope_v1",
       "stage_id": "SAMPLER_BENCHMARK_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SAMPLER_BENCHMARK_001",
-      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
       "authorization_utc": "2026-10-08T04:55:12.000Z",
       "authorized": false,
       "relaunch_allowed": false,
@@ -19284,7 +19284,7 @@
       "schema_version": "gx1_bound_native_v38_train_capacity_scope_v1",
       "stage_id": "SAMPLER_BENCHMARK_002",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/SAMPLER_BENCHMARK_002",
-      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
       "authorization_utc": "2026-10-08T04:55:12.000Z",
       "authorized": false,
       "relaunch_allowed": false,
@@ -19380,7 +19380,7 @@
       "schema_version": "gx1_bound_native_v38_metadata_handoff_scope_v1",
       "stage_id": "NATIVE_METADATA_HANDOFF_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_METADATA_HANDOFF_001",
-      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
       "authorized": false,
       "relaunch_allowed": false,
       "status_at_binding": "EXACT_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
@@ -19456,7 +19456,7 @@
       "schema_version": "gx1_bound_native_v38_physical_preprocessing_scope_v1",
       "stage_id": "NATIVE_PREPROCESSING_001",
       "stage_root": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_PREPROCESSING_001",
-      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
       "authorized": false,
       "relaunch_allowed": false,
       "status_at_binding": "EXACT_BOUND_NOT_STARTED_RECEIPTS_OWN_PROGRESS",
@@ -19565,7 +19565,7 @@
     },
     "bounded_native_smoke_request_20261008": {
       "schema_version": "gx1_new_operator_requested_conditional_bounded_smoke_v1",
-      "operator_request": "Ja, kj\u00f8r videre train kapasitetstest og smoke",
+      "operator_request": "Ja, kjør videre train kapasitetstest og smoke",
       "requested": true,
       "authorized_conditionally_on_existing_gates": true,
       "native_launch_admitted": false,
@@ -19635,7 +19635,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-21T20:28:35.932833+00:00",
+  "updated_utc": "2026-10-22T00:38:54.105382+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20276,23 +20276,73 @@
     }
   },
   "latest_terminal_receipt": {
-    "elapsed_seconds": 7.028410356000677,
-    "error": null,
-    "exit_code": 0,
-    "finished_utc": "2026-10-21T18:35:49.417358+00:00",
-    "new_model_forwards": 0,
-    "new_optimizer_steps": 0,
-    "relaunch_allowed": false,
-    "result": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_HORIZON_DIAGNOSIS_20261021_154/RESULTS.json",
-      "sha256": "16ecf566debff533994e4e08e7bfbbcae3dac4444b32c9b4d4ff205cf83b667a"
+    "actual_native_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "09bf0777a64dec80daf17a5564cc0bbf8a7cd5634fc01c9917c59454c261a1de"
     },
-    "schema_version": "gx1_direction_horizon_diagnosis_terminal_v1",
-    "source_head": "611edaa6e26bbfad8c03c9f906c4f21cf6ee9352",
+    "all_observed_physical_power_limits_w": [
+      160
+    ],
+    "compared_state_fields": [
+      "epoch_order",
+      "lr_scheduler_state",
+      "model_state",
+      "optimizer_state",
+      "rng_state",
+      "target_model_state",
+      "training_progress",
+      "weight_ema_state"
+    ],
+    "cross_parameterization_exact_horizon_parity": false,
+    "exit_code": 0,
+    "exit_model_forwards": 0,
+    "finished_utc": "2026-10-22T00:14:28.231104+00:00",
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "guard_decision": "PASS",
+    "guard_exit_code": 0,
+    "guard_metrics": {
+      "peak_core_temp_c": 55.0,
+      "peak_memory_temp_c": 64.0,
+      "peak_memory_used_mib": 1776.0,
+      "peak_power_draw_w": 136.71,
+      "telemetry_samples": 2644.0
+    },
+    "guard_thresholds_are_not_physical_power_observations": true,
+    "learning_improvement_proved": false,
+    "logical_resume_cursor": 2,
+    "main_training_admitted": false,
+    "main_training_updates": 0,
+    "observer_exit_code": 0,
+    "original163_rejection_preserved": true,
+    "outer_elapsed_seconds": 3389.127805,
+    "parity_model_forwards": 4,
+    "post_native_windows_observation": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/POST_NATIVE_WINDOWS_OBSERVATION.json",
+      "sha256": "d5cabb54fb44b62e284aa1ccbe3433eb5320c0184af28f432d14bea92ce22aa7"
+    },
+    "private_weights_reusable": false,
+    "progress": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/RUNTIME/progress/invocation-0001.json",
+      "sha256": "07519d0def1f17c1437cb5419273f94aca419e0e60726ba8e18f63c1a95419a9"
+    },
+    "resume_exact": true,
+    "schema_version": "gx1_actual_private_technical_native_terminal_v1",
+    "source_head": "a612d6c3ce5d99d073a29eb73fdf1812e7f5d774",
+    "source_preservation": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/POST_NATIVE_SOURCE_PRESERVATION.json",
+      "sha256": "e8c59d43c5889af206d2f538e8bd8b7c214b3dfba19e2b707c4adea8418a3f83"
+    },
     "source_unchanged": true,
+    "started_utc": "2026-10-21T23:17:59.103299+00:00",
     "status": "COMPLETE",
-    "test_data_used": false,
-    "training_enabled": false
+    "storage_resume_is_not_launch_authority": true,
+    "technical_optimizer_updates": 4,
+    "technical_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/DYNAMIC_M5_TECHNICAL_QUALIFICATION/RESULT.json",
+      "sha256": "1701b4a1ca7788ce2a51c4a5907f193e7a1da1e3123c5ee912be9c8a09347964"
+    },
+    "test_data_used": false
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -22793,166 +22843,8 @@
       "sha256": "182aed625c1a6cec55b239c9cb7f816b57131bc973d936fc96976341fcb6676e"
     }
   },
-  "entry_dynamic_m5_technical_qualification": {
-    "batch_size": 16,
-    "chronological_prefix": {
-      "design": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/DESIGN.json",
-        "sha256": "4e8a027a9b8577bf6876601d0508bd7c376bf3620f6ee260ee4e399cc32568f5"
-      },
-      "labels_result": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
-        "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
-      },
-      "native_coordinates": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/COORDINATES/NATIVE_COORDINATES.json",
-        "sha256": "79e0104bffeb457d33672062e28c9df7b428156b191e58fd75f2be4842d3d664"
-      },
-      "normalization_result": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
-        "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
-      }
-    },
-    "control_optimizer_updates": 0,
-    "dynamic_m5_loss_scales": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_LOSS_RMS_FIT_20261020_111/LOSS_SCALES.json",
-      "sha256": "93fa60c423a4adebd888f7a905b31adc61a3094d8e7a04169f4049db540fc88d"
-    },
-    "entry_execution_profile": {
-      "contract_sha256": "2ac4fb4ddfac84f588f65363ac8959544233ace286d9648bfebf60b97153f125",
-      "name": "compact_mbp_smc_ema_atr_clock_macro_entry_v1"
-    },
-    "entry_observed_market": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_EPOCH_GUARD_20261020_104/OBSERVED_MARKET_PLAN.json",
-      "sha256": "25019568903f1e64c09cc80e946dc579babbf8dcbb2b0cdb4b1fbf090681542d"
-    },
-    "entry_training_phase": "entry_only_dynamic_m5_path",
-    "files": {
-      "entry_measurement_coordinates": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/COORDINATES/DYNAMIC_M5_NATIVE_COORDINATES_RESULT.json",
-        "sha256": "3dfc8b506539663def969466380bfbffe2173b93b77dcfeed13e7c413c5d8158"
-      },
-      "entry_only_base_normalization": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_WHOLE_TRAIN_NORMALIZATION_REPAIR_20261019_055/NORMALIZATION.json",
-        "sha256": "c02ca97967a314f7dbd6c8bebc341c9782acd9e999e67e4b730db7e99e318c62"
-      },
-      "entry_train_manifest": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.manifest.json",
-        "sha256": "d6bf1d2ddacf0260e6c23e0496f57086ddfcd3ba971e6fa34b4b433f58cf2ed0"
-      },
-      "entry_train_parquet": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.parquet",
-        "sha256": "351d6874a846e09d759255462335221c04b10961309b7404a1752fb2da3fb725"
-      },
-      "entry_val_manifest": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_val.manifest.json",
-        "sha256": "16ad5d2f9736f8de729b9f0adfe5303383fe429cd9f348c549c83556be2921a1"
-      },
-      "entry_val_parquet": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_val.parquet",
-        "sha256": "f804af25895a582a2c48fcea19ca71bacc87ab7a39301c1a4f8117c7f29e4113"
-      },
-      "m5_prebuilt": {
-        "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
-        "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
-      },
-      "sequence_source_audit": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/SOURCE_RECONSTRUCTION_train.json",
-        "sha256": "f9ddf882de5b2481a274849d5775e23197b2012b6599a52c1078286a85fc2c55"
-      },
-      "source_bundle_metadata": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_FRESH_PREPARATION_20261021_161/CONSTRUCTOR_METADATA.json",
-        "sha256": "09a16ccfd5b54fe88e47cc3f6b6ad411184f1a300366104a5d40d922e24f95d9"
-      },
-      "train_cost_authority": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_COST_TERMS_20261019_059/COST_POLICY/parameter_authority.json",
-        "sha256": "e93ed40451a24344f94716e1f5ebe4cd348e6c7c3120e7509d6d55827bf40522"
-      },
-      "val_sequence_source_audit": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/SOURCE_RECONSTRUCTION_val.json",
-        "sha256": "60408d0a332c60dd04d915ae8ca608a9e7368c8cccb4d1b37212ca416fd200d1"
-      }
-    },
-    "full_epoch_training_allowed": false,
-    "full_val_allowed": false,
-    "initial_measurement_audit": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_INITIAL_STATE_PARITY_20261022_163/INITIAL_MEASUREMENT_AUDIT.json",
-      "sha256": "5f0f31298e578f1885d34efa765e72480cf798e59e300bb19c258ba8d0719fae"
-    },
-    "initial_measurement_result": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_INITIAL_20261021_162/.gx1-candidate-training-session.BUNDLE/initial_measurement/RESULT.json",
-      "sha256": "f385d6e583bbcfd1666787be2c0d6f946875ff696a6dbc92c17e5e8ca19c75de"
-    },
-    "initialization_result": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_FRESH_PREPARATION_20261021_161/FRESH_INITIALIZATION/INITIALIZATION.json",
-      "sha256": "039014fe4cc0fc7fcc1d056120553a5a49eb8813dc77406d0ef775f9afbbe461"
-    },
-    "max_invocation_seconds": 12000,
-    "max_invocations": 1,
-    "measurement_binding_result": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_FRESH_PREPARATION_20261021_161/FRESH_INITIALIZATION/MEASUREMENT_BINDING.json",
-      "sha256": "73ca8e91c1d7ff9ff01058d667ad009ff401596467d6bca303b53be854012206"
-    },
-    "measurement_cohort_sha256": {
-      "control": "06f5803af40fd8e5567d7a5ef0e581a006bf35fa28d46e4ebe0ef9eef36a4214",
-      "train": "eb976c66daa83e937c5e96c2371221c5d2f3683b3fd486304d6de03fd0b71a49"
-    },
-    "native_launch_authorized": false,
-    "native_train_parent_rows": [
-      79512,
-      77435,
-      75358,
-      73281,
-      71204,
-      69127,
-      67050,
-      64973,
-      62896,
-      60819,
-      58742,
-      56665,
-      54588,
-      52511,
-      50434,
-      48357,
-      46280,
-      44203,
-      42126,
-      40049,
-      37972,
-      35895,
-      33818,
-      31741,
-      29664,
-      27587,
-      25510,
-      23433,
-      21356,
-      19279,
-      17202,
-      15125
-    ],
-    "optimizer_steps": 2,
-    "out_bundle_dir": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/BUNDLE",
-    "parity_absolute_tolerance_bps": 0.0001,
-    "parity_entries_per_role": 16,
-    "parity_model_forwards": 4,
-    "parity_relative_tolerance": 0.0,
-    "plan": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/TECHNICAL_QUALIFICATION_PLAN.json",
-      "sha256": "9303be75dd2e1d24c760a558fb02981e6be645afff4c6168db8488077c5ab7ee"
-    },
-    "private_weights_reusable": false,
-    "run_id": "NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166",
-    "schema_version": "gx1_dynamic_m5_technical_qualification_v1",
-    "source_bindings_sha256": "2d7fd42b7ae46082a08da4abd20e5195cd39f28b194541b57b920b02cb31ec1f",
-    "teacher_refresh_allowed": false,
-    "technical_optimizer_updates": 4,
-    "test_data_used": false,
-    "train_entries": 32
-  },
   "dynamic_m5_standard_query_technical4_166": {
-    "status": "ADMITTED_ONE_PRIVATE_CURRENT_FUNCTION_PARITY_RESUME_PENDING_SEAL_CAMPAIGN_FRESH_BOOT",
+    "status": "COMPLETE_CONSUMED_TECHNICAL_PASS_PRIVATE_WEIGHTS_NOT_REUSABLE",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/PLAN.json",
@@ -22986,11 +22878,11 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/run_materialize_campaign.py",
       "sha256": "d6c107dc30333d0c054c6563df8b213a586d9fd504875847187be70538317e6c"
     },
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
     "execution_authorized_only_after_exact_campaign_signed_hardware_and_fresh_idle_physical_boot": true,
     "planned_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
     "parity_model_forwards": 4,
@@ -23014,14 +22906,32 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/WINDOWS_STAGED_SOURCE_BINDING.json",
       "sha256": "b29ef6da5c9d3dc01da92ea818bd97b8f57388fcc95acb8bdd417966b2b4b499"
     },
-    "training_enabled": true,
-    "native_training_admitted": true,
+    "training_enabled": false,
+    "native_training_admitted": false,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
     "normalization_fit_enabled": false,
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "authority": "Current continuousdirectionqualification goal and165newowninitialdesign. Exactly existingcurrentfunctionprivateparity/resume only; no117/151authorityreuse, no maintraining or privateweightadoption."
+    "authority": "Current continuousdirectionqualification goal and165newowninitialdesign. Exactly existingcurrentfunctionprivateparity/resume only; no117/151authorityreuse, no maintraining or privateweightadoption.",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/TERMINAL.json",
+      "sha256": "cd1ea2170581e30f72e038b3effb74dcca82cb39f6510ff1f2ba40a64312a43c"
+    },
+    "actual_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json",
+      "sha256": "593f5755f4abeb9a4a155a8ff797d50a3639d8e2c7c9f0b8a54369c0505ab80a"
+    },
+    "actual_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/DYNAMIC_M5_TECHNICAL_QUALIFICATION/RESULT.json",
+      "sha256": "1701b4a1ca7788ce2a51c4a5907f193e7a1da1e3123c5ee912be9c8a09347964"
+    },
+    "source_preservation": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_STANDARD_QUERY_TECHNICAL4_20261022_166/POST_NATIVE_SOURCE_PRESERVATION.json",
+      "sha256": "e8c59d43c5889af206d2f538e8bd8b7c214b3dfba19e2b707c4adea8418a3f83"
+    },
+    "actual_windows_task_state": "Disabled",
+    "actual_windows_boot_id": 522
   }
 }
