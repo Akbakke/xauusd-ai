@@ -13,21 +13,40 @@ størrelse, liten MAE før første MFE, kostnad, kvalitet og dekning. Solid
 featuregrunnmur og generell robusthet prioriteres; ingen favorittmåned,
 småjustering, HPO eller automatisk inversjon. Exit venter. Målet er ufullført.
 
-204 er kildeforberedelse for én bred kandidat: skill felles absolutt GC-prisnivå
-fra relative prisavstander, log(P/A), med felles A én gang som kontekst.
-Alle opprinnelige felt, masker, familier og tidsrammer bevares. Før numerisk
-implementering kreves komplett kildebevist nivå-/enhetskart, kausalt anker,
-kontrakt-/klokkeproveniens, normalisering av ekte null og eksplisitt outputkart.
-USD-differanser, ATR, spread, volumer og øvrige tilstander skal ikke omtolkes.
-Book-close er første ankerkilde; fast fullstendig kildeprioritet dekker manglende
-book-close. Observerte ugyldige nivåer avvises, ikke skjules. 198s F32-invers
-skal ikke brukes som eksakt råprisbevis. Eksisterende kvalifisert råloader gjenbrukes.
+204 er COMPLETE/consumed: komplett kildebevist kart over1205GC-verdier:
+232USD-nivåer+10tick-nivåer og963uendrede verdier/tilstander. Alle opprinnelige
+navn, masker, familier og tidsrammer er bevart. Uavhengig kildepeerPASS og
+27fokuserte testerPASS,0markedspayload/fit/nativeF/U.3,368s/ytre4,020s,
+peakRSS617062400B underaudit4GiB/512MiB/éntråd/pids64; kilde/policy uendret.
+SOURCE_MAPc3dd0428…/TERMINAL2c6d3e26…/ytre7d0fd542…/DECISION og evalueringdesign
+ligger i `NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204`.
 
-PREPARATION_SCOPE og V29_FIT_PROVENANCE ligger under
-`/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204`.
-Bare nye kartkontrakt-/testfiler er autorisert, med avgrenset agenteierskap.
-Root eier policy, overlevering og all launch. Ingen payload, referansefit,
-nativekjøring eller endring av eksisterende runtime er autorisert i 204.
+205 autoriserer bare nye isolerte numeriske kilde-/testfiler for én kandidat:
+log(P/A) for alle242bevisteGC-nivåer, fellesA+observed én gang som kontekst.
+Baseline3345/kandidat3347 er en representasjonspakke; ankeret dupliseres ikke
+inn i baseline. Alle963andreGC-felt, øvrige indikatorer og egne masker bevares.
+Ekte relativ0 forP=A er observert. ManglendeOB/profilnivåer er kilde-NaN med
+egenmaske0; ingen legitim observert0-sentinel er funnet i kildekartet.
+Observerte ikke-positive nivåer skal avvises; ingen klipping/prisgulv.
+
+Eksakt feltnavn→unit/produsent er bundet; ticknivåer bruker faktiskrollmetadata.
+Book-close er første anker, deretter fast registerrekkefølge over alle242nivåer.
+Matematisk rekonstruksjon og numeriskF32-rundtur skilles. Ingen F32-invers av198
+brukes som råprisbevis. Eksisterende051rawloader/5TFcache/198targets gjenbrukes.
+Valgt ankerfelt-ID knyttes til049kildeidentitet; faktisk radkontrakt/absoluttkilde-
+klokke er ikke lagret i snapshot og oppgis ukjent. Dette hindrer ikke numerisk
+invertering; samme-kontrakt/støtte-motstandspåstand gis ikke. Valgfri profil-
+kontrakt måtte hentes fra eksaktM5snapshot, ikke ytreTF-kontrakten.
+
+Ny referanseadapter skal normalisere parentindekserte aktuelle snapshotrader
+kun på hvert prefix, med alle aktive kildemasker/domener og samme eksisterende
+median/IQR/asinh-regler. HTF-repetisjoner perparent bevares. Alle2622lokale felt
+kommer frasnap;2525ctx-aliaser bevises like og foldes én gang. Dette er en ny
+prefix-snapshotoppskrift, ikke055/native-normaliseringsekvivalens.
+Root eier policy/launch;205agenter eier kun de fire navngitte nye kilde-/testfilene.
+Ingen eksisterende native/runtimeendring,markedspayload,referansefit ellertrening
+er autorisert. PREPARATION_SCOPE ligger i
+`NATIVE_M5_GC_RELATIVE_COORDINATE_SOURCE_20261023_205`.
 
 Lokal og alle fem MTF-nivåregistre bruker faktisk samme fryste parameterkontrakt
 (a222c3c1…), fit 01.06.2009–01.01.2013T22Z, inner-fit 11.04.2012T22Z.

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T09:30:48.761941+00:00",
-  "status": "GC_RELATIVE_COORDINATE_SOURCE_PREPARATION_ONLY",
+  "observed_utc": "2026-10-23T09:54:04.309598+00:00",
+  "status": "GC_RELATIVE_COORDINATE_NUMERIC_SOURCE_PREPARATION_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All fitting closed.201completedconsumed3referencefit, no native training. Review saved allperiodresults before a concrete new choice or separate admission.",
-  "next_action": "Prepare complete source-proven GC price-level/unit contract for one broad common-level/relative-geometry candidate; verify map before numeric transform. Six fixed chronological development folds2024Q4..2026Q1, prefix-only normalization; no payload/fit/native/Exit/TEST admitted.",
+  "next_action": "Implement one completeGCrelativecoordinate and fixedprefixsnapshotreference adapter innewisolatedsourcefiles per205scope; sourcepeer+focusedsyntheticmechanics beforeanyphysicalpayload orrealreferencefit. Existingnativefunctionunchanged.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -196,7 +196,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "204_GC_RELATIVE_COORDINATE_SOURCE_PREPARATION",
+    "current_activity": "205_NUMERIC_RELATIVE_COORDINATE_SOURCE_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -218,18 +218,18 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204",
+    "current_research_id": "NATIVE_M5_GC_RELATIVE_COORDINATE_SOURCE_20261023_205",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTION_SELECTED_ENTRY_FEATURE_VALUE_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "203_FIXED_REFERENCE_INFORMATION_TYPE_ACCOUNTING_ZERO_FIT",
+    "latest_terminal_role": "204_STATIC_SOURCE_MAP_QUALIFICATION_ONLY",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/TERMINAL.json",
-      "sha256": "0f8fb87080327a4982d2fcfa896d0300a2a3d294a22831cfd30cc85b7008c18f"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "2c6d3e26f2a22a4e3ced4b0f1bd25c5d0295b437c384f6d59bf8549d6e39fc06"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -7720,7 +7720,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare complete source-proven GC price-level/unit contract for one broad common-level/relative-geometry candidate; verify map before numeric transform. Six fixed chronological development folds2024Q4..2026Q1, prefix-only normalization; no payload/fit/native/Exit/TEST admitted.",
+    "next_action": "Implement one completeGCrelativecoordinate and fixedprefixsnapshotreference adapter innewisolatedsourcefiles per205scope; sourcepeer+focusedsyntheticmechanics beforeanyphysicalpayload orrealreferencefit. Existingnativefunctionunchanged.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8849,9 +8849,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Source-complete common-level/relative-geometry candidate requires explicit units, anchor provenance and numeric qualification",
-      "Representation benefit across locked chronological development folds is not measured",
-      "Native action quality, untouched generalization and Entry economics remain unqualified"
+      "Numericrelative-coordinate transform andnewprefixnormalizationnotyetqualified",
+      "Benefitacrosslockedchronologicaldevelopmentfoldsunmeasured",
+      "NativeEntrydirection/preMAE-MFEand economicedgeunqualified"
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -15980,7 +15980,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/RUNTIME/receipts/invocation-0001.json",
       "sha256": "392c9d153ae78beea38538a33fbdee41bf5ed4efe40bcb4d2f101c8c10c80b95"
     },
-    "latest_terminal_evidence_scope": "203 zero-fit semantic accounting:3345columns/99panels/48cells,1280markers/34nominal/2031other values; one saved202ledger,36stable identities,source unchanged,0fit/F/U/replay. Direct value terms carry pooled negative mean shift; this is not causal feature value.",
+    "latest_terminal_evidence_scope": "204completeexact1205GCmap:232USD+10ticklevels,963unchanged.27focusedsourceunitcasesPASS,0marketpayload/realfit/nativeF/U.3.368sworker/4.020souter,peakRSS617062400B;sourcefrozen.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17201,8 +17201,8 @@
     },
     "training_active": false,
     "latest_decision": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/DECISION.json",
-      "sha256": "85fdf4f18cc8418d0bb8efbcb6c831c1c93a77ce2c9c4566ffba8615c4eb7e8d"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/DECISION.json",
+      "sha256": "456ea8e2641b4f2ca35185be024c23eaf28da6882da137eef7bb7603086e5a4e"
     },
     "latest_direction_analysis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/RESULT.json",
@@ -25960,7 +25960,7 @@
     }
   },
   "dynamic_m5_gc_relative_coordinate_source_preparation_204": {
-    "status": "SOURCE_PREPARATION_ONLY",
+    "status": "COMPLETE_SOURCE_MAP_DESIGN_AND27TESTS_CONSUMED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204",
     "preparation_scope": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/PREPARATION_SCOPE.json",
@@ -25972,7 +25972,7 @@
       "sha256": "b83227cab4c4369b3b1c7904ef9d1d885711cc797de8b54f1c461ce2254e00af",
       "size_bytes": 1967
     },
-    "source_edits_authorized": true,
+    "source_edits_authorized": false,
     "source_edit_scope": {
       "gradient_design": [
         "gx1/contracts/gc_price_coordinate_contract_v1.py",
@@ -25996,6 +25996,74 @@
     "reference_fits": 0,
     "native_model_forwards": 0,
     "optimizer_updates": 0,
+    "test_data_used": false,
+    "goal_complete": false,
+    "source_unit_qualification_authorized": false,
+    "source_qualification_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "4de796593634440c174144b3669aa389484681bf5fbc973acc1685bb29a66880"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/SOURCE_PEER_REVIEW.json",
+      "sha256": "f8d457b7ee78a83c183e5eb1f9f4d53b515f503ff655b76c7ba9c2e53dacf7a5"
+    },
+    "source_test_claimed_invocations": 1,
+    "source_test_completed_invocations": 1,
+    "source_test_max_invocations": 1,
+    "source_semantics_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/SOURCE_SEMANTICS_REVIEW.json",
+      "sha256": "af67cd289073b2c6c6db4f676bbf16e8a77fb5df42b2ddce194b779330b2dd70"
+    },
+    "evaluation_design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/EVALUATION_DESIGN.json",
+      "sha256": "199a8188d8175350489f9a578a30862f833da2eceaf42834bfa0a3ccde36ca42"
+    },
+    "source_map": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/SOURCE_MAP.json",
+      "sha256": "c3dd04288d93d9d78d96ac7444db2f9ba887157142513334445eb3c75a138996"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "2c6d3e26f2a22a4e3ced4b0f1bd25c5d0295b437c384f6d59bf8549d6e39fc06"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/ACTUAL_SOURCE_LAUNCH_TERMINAL.json",
+      "sha256": "7d0fd542f2ee706188804bd1c42861fbf76bc0a790036a1e276359f94031abf9"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/DECISION.json",
+      "sha256": "456ea8e2641b4f2ca35185be024c23eaf28da6882da137eef7bb7603086e5a4e"
+    },
+    "focused_tests_passed": 27
+  },
+  "dynamic_m5_gc_relative_coordinate_numeric_source_205": {
+    "status": "SOURCE_PREPARATION_ONLY",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_SOURCE_20261023_205",
+    "preparation_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_SOURCE_20261023_205/PREPARATION_SCOPE.json",
+      "sha256": "82227f9b9ac2a4e75a1cef1988b98e47d00157025528ed9e519a4a0cc4be306b"
+    },
+    "source_edits_authorized": true,
+    "source_edit_scope": {
+      "gradient_design": [
+        "gx1/contracts/gc_relative_price_coordinates_v1.py",
+        "tests/test_gc_relative_price_coordinates_v1.py"
+      ],
+      "horizon_review": [
+        "gx1/contracts/entry_relative_price_snapshot_v1.py",
+        "tests/test_entry_relative_price_snapshot_v1.py"
+      ],
+      "root": [
+        "CURRENT_HANDOVER.md",
+        "NEXT_RUN_POLICY.json",
+        "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_SOURCE_20261023_205"
+      ]
+    },
+    "execution_authorized": false,
+    "market_payload_reads_authorized": false,
+    "genuine_reference_fit_admitted": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
     "test_data_used": false,
     "goal_complete": false
   }
