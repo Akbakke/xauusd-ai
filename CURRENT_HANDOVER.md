@@ -3,172 +3,131 @@
 Autoritet: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current` på
 `gx1-3090-lan`. GX1_RULES er bindende; NEXT_RUN_POLICY eier arbeidsstatus.
 Prosesser og terminalkvitteringer overstyrer prosa. Én integrator, én capped
-CURRENT-jobb og fryst kilde/policy gjennom kjøring. Originalmålet står i
+CURRENT-jobb og fryst kilde/policy under kjøring. Originalmål:
 [docs/ORIGINAL_PROJECT_GOAL.md](docs/ORIGINAL_PROJECT_GOAL.md).
 
-## Mål og aktuelt neste steg
+## Mål og neste arbeid
 
-Bedre M5 Entry LONG/SHORT/FLAT med MBP-1 og lukket M15/H1/H4/D1:
-retning, størrelse, liten MAE før første MFE, kostnad, kvalitet og dekning.
-Solid featuregrunnmur og generell robusthet prioriteres. Ingen favorittmåned,
-minuttjustering, HPO eller automatisk inversjon. Exit venter.
+Kvalifiser M5 Entry LONG/SHORT/FLAT med MBP-1 og lukket MTF: retning,
+størrelse, liten MAE før første MFE, kostnad, kvalitet og dekning. Solid
+featuregrunnmur og generell robusthet prioriteres; ingen favorittmåned,
+småjustering, HPO eller automatisk inversjon. Exit venter. Målet er ufullført.
 
-198 er COMPLETE/consumed. Fysisk snapshotpublisering er kvalifisert:
-118249 TRAIN +17284 Q1CONTROL =135533 parentrader,3345 kolonner.
-Egne observerte 1/5/15-masker: TRAIN118237/117799/116936 og
-CONTROL17283/17219/17089. Alle parentrader beholdes; strictcutoffs01.01/01.04.2026.
-På eksisterende512 modellrader er parent/klokke/M1pointer, terminalmasker,
-observerte F32-sideverdier og F64-kontrast eksakt bevart.
+204 er kildeforberedelse for én bred kandidat: skill felles absolutt GC-prisnivå
+fra relative prisavstander, log(P/A), med felles A én gang som kontekst.
+Alle opprinnelige felt, masker, familier og tidsrammer bevares. Før numerisk
+implementering kreves komplett kildebevist nivå-/enhetskart, kausalt anker,
+kontrakt-/klokkeproveniens, normalisering av ekte null og eksplisitt outputkart.
+USD-differanser, ATR, spread, volumer og øvrige tilstander skal ikke omtolkes.
+Book-close er første ankerkilde; fast fullstendig kildeprioritet dekker manglende
+book-close. Observerte ugyldige nivåer avvises, ikke skjules. 198s F32-invers
+skal ikke brukes som eksakt råprisbevis. Eksisterende kvalifisert råloader gjenbrukes.
 
-198worker150,534s/ytre151,113s, peakRSS3256209408bytes, audit4GiB/512MiB/
-éntråd/pids64/CPU0–7.15cache-NPY-filer ble ferskverifisert; tidligere fullmatrix-
-liveness/squeeze/proveniens fra055/053 gjenbrukes. Dette er ikke ny
-native-loader-ekvivalens. To originalOBS-lesinger,27,505GB rchar;
-rchar er ikke samlet mmap/disk-I/O.239 inputstatidentiteter og kilde/policy var
-uendret. HEAD8926dfe4/policyad8dc278 var fryst. Canonicalprosjektlås er fri.
-Ingen referansefit, native forward eller optimizeroppdatering ble utført.
+PREPARATION_SCOPE og V29_FIT_PROVENANCE ligger under
+`/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204`.
+Bare nye kartkontrakt-/testfiler er autorisert, med avgrenset agenteierskap.
+Root eier policy, overlevering og all launch. Ingen payload, referansefit,
+nativekjøring eller endring av eksisterende runtime er autorisert i 204.
 
-198TERMINALd098166b…/RESULT7edcdcfd…/METADATAf94356b3…/ytre7e793c16…,
-ACTUAL_PHYSICAL_PEER_REVIEW og DECISION ligger under
-`/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_LAYOUT_REPAIR_20261023_198`.
-Seks kvalifiserte OUTPUT-filer skal gjenbrukes; originaldata skal ikke bygges om.
-194s27PASS og196s29PASS gjenbrukes.195/197 er failed/consumed med uendrede
-originalkvitteringer og partialoutputs; ingen relansering eller opprydding.
-Feilene var testfixture-path, helperens NumPy-binding og tuple/JSON-listelikhet;
-minste rettelser er kontrollert, siste feil fanges nå før store datalesinger.
+Lokal og alle fem MTF-nivåregistre bruker faktisk samme fryste parameterkontrakt
+(a222c3c1…), fit 01.06.2009–01.01.2013T22Z, inner-fit 11.04.2012T22Z.
+Eksakte cache-/lokalmanifest SHA 3f4c3b4b…/2faacdca… er verifisert.
+Ingen regenerering av disse eierne trengs for de planlagte kvartalene.
 
-201 er COMPLETE/consumed:3faste TRAIN-ridgefit og3TRAINmiddel,0nativeF/U.
-Alle135533parentrader/3345kolonner er evaluert ved1/5/15 på egne masker;
-alle20TRAIN+3CONTROLmåneder,7+1kvartaler ogALL,198paneler/495par er kontrollert.
-De opprinnelige256+256native191-probene beholdes separat i eksakt originalorden.
-Faktisk138,783s/ytre139,415s,peakRSS3647066112B under4GiB/512MiB/éntråd/pids64.
-Relative solverrest3,91e−13/5,32e−13/3,98e−13, alle under fast1e−8grense.
-40inputidentiteter og HEADab3dd10a/policya6b36888 var fryst. Prosjektlåsen er fri.
-Snapshot/target/model/prognoseartefakter og originale kvitteringer er bevart.
+Låst utviklingssammenligning foreslås: burn-in mai–september2024 og alle seks
+hele kvartaler2024Q4–2026Q1. Hver baseline/kandidat får kun tidligere inputs
+for normalisering og modne targets før cutoff på faktisk M5-beslutningsklokke.
+Samme parentrader og egne1/5/15-masker; ingen komplett-case-utvalg.
+Fast alpha1 SUM-SSE/fri intercept; alle18måneder/6kvartaler/ALL rapporteres.
+36ridgefit/18delte TRAIN-middel/12normaliseringsbindinger er foreslått, ikke
+admittert. Dag-/mandagsuke-bootstrap2000, seed20260911; sparse<8deskriptivt.
+Historikken er allerede brukt til design og er ikke urørt OOF-generalisering.
+Ny ONLINE-funksjon vil kreve fersk initialbaseline.
 
-201TERMINAL2624acc5…/RESULT4012aa2e…/SUMMARYd6c3d693…/actualpeerf2f24154…/
-DECISION ligger under
+## Siste målte funn
+
+203 er COMPLETE/consumed, siste terminal: 0f8fb870…; RESULT17cc1fc1…,
+SUMMARY632bd9f0…, actualpeerb4477df1…, DECISION85fdf4f1… under
+`NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203`.
+Alle3345kolonner/99paneler/48celler er splittet i1280kildebestemte markører,
+34nominalindikatorer og2031øvrige verdier/tilstander. Én tidligere202ledger;
+0fit/forward/replay/oppdatering. 0,952s/ytre1,270s,peakRSS221396992B;
+36inputidentiteter og HEAD34f4e8b5/policyd4f230c3 uendret. Maks cellerest
+8,527e−14bps/totalrest7,283e−14;5184vektede peeravstemminger maks4,974e−14.
+
+| CONTROL direkte bidrag,bps | 1min | 5min | 15min |
+|---|---:|---:|---:|
+| Observasjonsmarkører | +0,04476 | +0,18775 | −0,15457 |
+| Nominalindikatorer | +0,05618 | +0,12411 | +0,48064 |
+| Øvrige verdier/tilstander | −0,98088 | −5,12659 | −14,50967 |
+
+Price-action-gruppens37prisverdier gir−9,87153/−30,42696/−92,11239bps;
+37egne markører gir+0,002953/−0,002925/−0,006094. Andre grupper motvirker
+store ledd. Alle9CONTROLmåned×horisont-paneler har negativt direkte V-bidrag.
+Dette er aritmetikk i en korrelert fast ridge-basis, ikke kausal featureverdi,
+native treningsårsak eller grunnlag for å fjerne indikatorer. V inkluderer også
+tilstander, og masker påvirker nulling av verdier: direkte maskebidrag er ikke
+total kausal effekt av manglende data.
+
+202 er COMPLETE/consumed:3345kolonner,48deklarerte/32aktive celler og99paneler;
+maks rest2,345e−13bps.9,480s/ytre9,762s,peakRSS1900494848B,41stabile identiteter,
+0fit/F/U/replay. COLUMN_LEDGER/MAPPING og kvitteringer bevares under
+`NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202`.
+Samlet CONTROL inputmiddelforskyvning−0,880/−4,815/−14,184bps er avstemt.
+
+201 er COMPLETE/consumed:3TRAIN-ridgefit+3TRAIN-middel på alle118249TRAIN og
+17284CONTROLparentrader/3345kolonner; egne1/5/15-masker, alle måneder/kvartaler.
+138,783s/ytre139,415s,peakRSS3647066112B under audit4GiB/512MiB/éntråd/pids64;
+40stabile inputidentiteter,0nativeF/U. Originale256+256native191-prober beholdt
+separat i eksakt orden. TERMINAL2624acc5…/RESULT4012aa2e…/actualpeerf2f24154…/
+DECISIONdb87105a… under
 `NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_COHORT_REPAIR_20261023_201`.
-199/200forberedende kjøringer feilet førfit på lovlig NPZ-F-order og usortert
-original TRAIN-probeorden. Minste rettelser bevarer alle verdier/masker/klokker;
-fullpopulasjonen beholder kronologi. Ingen failedplan relanseres.
 
-Referansen forkastes som dokumentert forbedring på senere utvikling.
-Fastalpha1SUM-SSE/friintercept/055fryst gir følgende MSE mot TRAIN-middel:
-
-| Minutt | TRAIN forbedring | Q1middel MSE | Q1ridge MSE | Q1forverring | Q1fortegn |
+| Minutt | TRAIN MSE-forbedring | Q1middel MSE | Q1ridge MSE | Q1forverring | Q1fortegn |
 |---|---:|---:|---:|---:|---:|
 |1|1,95%|57,310|59,563|3,93%|50,02%|
 |5|2,13%|230,271|262,629|14,05%|49,59%|
 |15|5,20%|694,201|974,224|40,34%|48,98%|
 
-Alle9CONTROLmåned×horisont-paneler er verre enn TRAINmiddel ognull.
-Pooled dag-/uke-CI for MSEforskjellen er positive. Sparse<8blokker erdeskriptive;
-372kalenderposter mangler derforCI,66udefinerte replikater er eksplisitt ført.
-CONTROLkorrelasjon0,0103/0,0118/0,0179 og bias−0,889/−4,772/−14,070bps.
-Native191 MSE på sineCONTROLprober58,108/225,698/774,889 mot ridge
-61,575/268,177/1029,216. Ingen fullCONTROL nativepåstand fra256rader.
+Referansen forkastes som dokumentert forbedring på senere utvikling.
+Alle9CONTROLpaneler er verre enn TRAINmiddel/null. Pooled dag-/uke-CI for
+MSEforskjellen er positive. Korrelasjon0,0103/0,0118/0,0179;
+bias−0,889/−4,772/−14,070bps. Bias står for35,1/70,4/70,7% av overskuddsfeilen;
+sentrert overskuddsfeil består. Ingen CONTROL-tilpasset offset er tillatt.
 
-AGGREGATE_TRANSFER_REVIEW3503cc78… bruker bare lagrede momentmetrikker,
-0nye fits/F/U/arraylesinger. MSE-dekomponeringens største rest1,11e−11bps².
-Pooled bias forklarer35,1/70,4/70,7% av ridgeoverskuddsfeil motTRAINmiddel;
-sentrert overskuddsfeil1,463/9,588/82,063bps² består. En kontrolltilpasset
-offset er ingen tillatt løsning. Modellens vektede inputmiddelforskyvning er
-−0,880/−4,815/−14,184bps; hvilken featuregruppe som bærer dette er ennå umålt.
-Neste avgrensede arbeid forbereder eksakt aritmetisk avstemming av hele aktive
-feature-/TF-flaten mot denne forskyvningen, alleperioder/horisonter. Ingen
-familierangering, featurefjerning, ablation, HPO eller modellvalg er autorisert.
-Bidrag er regnskap for denne korrelerte lineære referansen, ikke kausal verdi.
-202 er COMPLETE/consumed: alle3345kolonner,48deklarerte familie/inputflate-celler
-(32aktive/16tomme) og99periode×horisont-paneler er aritmetisk avstemt.
-Maks rest2,345e−13bps; alle innen forhåndsfast F64-grense. Uavhengig JSON-peer
-kontrollerte1728vektede måned/kvartal/ALL-celler; maks avvik6,395e−14bps.
-9,480s/ytre9,762s,peakRSS1900494848B; audit4GiB/512MiB/éntråd/pids64.
-Fem tidligere inputfiler, én numerisk matrisegjennomgang perrolle plussSHA-lesing;
-0fit/forward/replay/oppdatering.41inputidentiteter og HEAD3c1cb36c/policy9bc58116
-var fryst. Original COLUMN_LEDGER/MAPPING og alle kvitteringer er bevart under
-`NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202`.
+## Gjenbruk og ubeviste grenser
 
-CONTROLtotal−0,880/−4,815/−14,184bps gjenskapes. Store fortegnsbidrag motvirker
-hverandre; ved15min SMCfamilie+85,453,price_action−92,118,flow+28,877 og
-session−27,824bps. Dette er den faste korrelerte ridge-basisens regnskap,
-ikke kausal featureverdi, kondisjoneringsbevis eller native-treningsårsak.
-Price_action-gruppens74kolonner er37GCUSD-prisnivåer med37observasjonsmarkører.
-Netto−92,118bps skiller derfor ennå ikke prisnivåbidrag fra datatilgjengelighet.
-Neste avgrensede kilde-/metadataarbeid definerer en komplett verdi/markør-
-inndeling av eksisterende202kolonneregnskap, alleperioder/horisonter/celler.
-Ingen featurefjerning/rangering, nyfit, normaliseringsendring eller ny modell
-velges uten dette skillet. 203 er separat engangsadmittert etter kildepeer: én202ledger på8,15MB,
-alle3345kolonner/99paneler/48celler splittes i1280kildebestemte markører,
-34nominalindikatorer og2031øvrigeverdier/tilstander.0fit/forward/replay.
-Audit4GiB/512MiB/éntråd/pids64/300s+10s/256MiBrchar; egenplan under
-`NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203`.
-training_enabled/full_epoch/fullVAL/native_launch=false. Målet er ufullført.
+198s seks kvalifiserte OUTPUT-filer gjenbrukes fra
+`NATIVE_M5_SNAPSHOT_REFERENCE_LAYOUT_REPAIR_20261023_198`;
+TERMINALd098166b…/METADATAf94356b3…/DECISION37413851….
+118249+17284=135533parentrader,3345F32kolonner; egne observerte masker
+TRAIN118237/117799/116936, CONTROL17283/17219/17089. Eksakt512probeparitet
+for parent/klokke/M1pointer/masker/F32-sideverdier/F64-kontrast. Dette er ikke
+ny native-loader-ekvivalens. Eksisterende053/055proof og194/196tester gjenbrukes.
+195/197/199/200 failed/consumed bevares; ingen engangsplan relanseres.
 
-Samlet snapshot inneholder alle aktive kanoniske felt og femTF:3317koordinater
-blir3345kolonner når seks nominelle SMC-tilstander erstattes av6×5one-hot og
-session får4kategorier. Aliasene telles én gang. Positive referanseresultater
-viser samlet snapshotinformasjon inklusive klokker/masker; negative avviser
-ikke sekvensinformasjon eller nonlinear læring. Ingen familierangerings-,
-featureutvalgs- eller nativearkitekturendring følger automatisk.
+191 siste native epoke:118249rader/7391oppdateringer,B16/siste9,egen188initial,
+189savedstate-audit,190privat mekanikk.192 fant ingen påvist retningsgevinst:
+alle512handlingerFLAT;5/6paneler verre enn egen initial,alle12dag-/uke-CI krysser0.
+Tidlig path-punktfeil forbedres delvis; dette er ikke mottattMFE eller handels-P&L.
+186s154historiske CONTROL-signaler:original−6,091bps/motsatt−6,263;
+inverspreMAE7,361→7,587 ogMFE3,185→3,002. Ingen generell snuregel.
+Bid/ask-spread er i quotes; ekstra4bps er2×2slippage,commission0.
+Scoped avstemming fant ingen fortegns-/dobbelavgiftsfeil; quote-til-fill er ukjent.
+Felleskostnaden kanselleres i retningskontrasten. PreMAE-straff er ingen cashfee.
 
-## Siste målte retning og hvorfor begge sider kan være negative
+Profil compact_mbp_smc_ema_atr_clock_macro_entry_v1 har7lokale/5MTF-familier
+etter19Oct-unntaket; åtte spesialister og9.D1/makro beholdes.175/180 viser
+numerisk feltparitet og konsum i32aktive av48deklarerte laner, ikke optimalitet.
+SMC,EMA/trend,swing,støtte/motstand,volumprofil ogMBP-1 bevares kausalt.
+MBP-1 er aggregertBBO/ordretall/OFI, ikke ordrekø eller skjultdybde.
 
-191 er COMPLETE/consumed: én TRAIN-passering,118249unike rader/7391oppdateringer,
-B16/siste9/drop_lastfalse. Sluttmåling16+16ONLINEforwards på256TRAIN+256CONTROL,
-full480. Canonical guardPASS/exit0 og planlagt RESUMABLE ved7391; ingen ferdig
-trainerbundle eller ekstraepoke.191 startet fra187fresh, egen188initial og
-189savedstate-audit etter190privat mekanikkvalifikasjon.184s eneste designendring
-var separat MFE-gruppemiddel for1–15 og16–480. Nativeeiere er siden bevart.
-
-192 er siste native retningssammenligning;201 er senere fast referanseanalyse.
-192 brukte0nyeF/U/fit. Alle512handlinger er FLAT.
-CONTROL nettkontrast-MSE i bps² på identiske rader/masker:
-
-| Minutt | Egen188initial | Matchet177 | Ny191 |
-|---|---:|---:|---:|
-|1|57,459|61,678|58,108|
-|5|228,358|227,369|225,698|
-|15|772,101|774,629|774,889|
-
-Fem av seks TRAIN/CONTROL-paneler er verre enn188; fire av seks bedre enn177.
-Alle12par har dag-/ukeintervaller som krysser0. CONTROL fortegnstreff45,3/49,6/46,0%,
-Pearson0,098/0,136/0,018 og bias−1,37/−1,33/−2,31bps. Predstd1,40/1,41/1,42
-mot fasit7,50/15,09/27,73bps beviser ikke underfit. Ingen retningsgevinst er påvist.
-Tidligpath-punktfeil er forbedret mot188, men ikke konsekvent mot177; dette er
-anslagsfeil, ikke mottattMFE eller mindreMAE i handler.
-
-186s historiske167-signaler:58TRAIN original−6,983bps/motsatt−5,115;
-154Q1CONTROL original−6,091/motsatt−6,263. Ukeintervall for inversjonsforskjell
-krysser0 i begge perioder. CONTROLpreMAE øker7,361→7,587 og MFE faller3,185→3,002.
-Ingen generell snuregel. Bid/ask-spread ligger allerede i quoteavkastningen;
-ytterligere4bps er to slippageledd à2bps,commission0. Quote-til-fill-truth er
-ukjent. Scoped kildeavstemming fant ingen fortegns- eller dobbelavgiftsfeil.
-Felles4bps kanselleres i retningskontrasten; de forklarer ikke svak retning alene.
-PreMAE-straff er utilityproxy, ingen cashfee. Prisbanemål er ikke realisertP&L.
-
-## Featuregrunnmur og grenser
-
-Aktiv profil `compact_mbp_smc_ema_atr_clock_macro_entry_v1`:7lokale/5MTF-familier
-etter19Oct-unntaket; åtte spesialister og9.D1/makro beholdes.175 kvalifiserte
-695aktiveMTF-felt139×5 og aktiveGC-verdier/masker med0F32avvik. SMC,EMA/trend,
-swing,støtte/motstand,volumprofil ogMBP-1 er bevart kausalt. Manglende data er
-ukjente. MBP-1 er aggregertBBO/ordretall/OFI, ikke ordrekø eller skjultdybde.
-180 målte lokal respons i alle32aktiveav48deklarerte familie/TF-laner og
-alle8flytflater,16genuineTRAIN/1F/5VJP/0U og84640paritetsceller delta0.
-Dette viser konsum, ikke optimal featurebruk eller kronologisk merverdi.
-
-TRAIN[2024-05-01,2026-01-01), Q1CONTROL[2026-01-01,2026-04-01) er23gjenbrukte
+TRAIN mai2024–januar2026 og Q1CONTROL januar–april2026 er23gjenbrukte
 utviklingsmåneder. April–juni venter fysisk binding; råkildemålet er26måneder.
-WholeTRAIN055 og TRAIN-fittede konstanter tillater ikke internTRAIN-OOF.
-201 har vist alle måneder/kvartaler/ALL og alle1/5/15,2000UTCdag-/mandagsuke-
-bootstrap med samme kalendervekter/egne masker; sparse<8blokker erdeskriptive.
-Direkte191-sammenligning gjelder bare256+256lagrede rader,ingen nyeforwards.
-Ingen av disse dataene er urørt generalisering.
-
-M5 er beslutningstidspunkt;1–480min er prognosedomene, aldri fasttap eller
-maksimal holdetid. Lang støtte sammenlignes med alltidLONG/kjøp-og-hold.
-TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
-scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-Originalkvitteringer/checkpoints bevares; DATA/RUNS-rydding krever retention-eier.
-Historikk ligger i Git. Metoden er [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
+055helTRAIN-normalisering kan ikke brukes til internTRAIN-prefixevaluering.
+M5 er beslutningsklokke;1–480min prognosedomene er ingen fasttap/holdetidsregel.
+Lang støtte bruker alltidLONG/kjøp-og-hold som referanse. TEST frajuli forsegles
+for tilpasning/utvalg; bare vedtatt månedlig forwardjournal scorer utenrefit.
+Ingen Exit/broker/live/paper/ordre/spending/promotion. DATA/RUNS ryddes bare
+med retention-eier. Metode: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
+training_enabled/full_epoch/fullVAL/native_launch=false. Ingen tungjobb aktiv.

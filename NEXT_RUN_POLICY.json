@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T08:03:03.732726+00:00",
-  "status": "ONE_SAVED_LEDGER_SEMANTIC_ACCOUNTING_ADMITTED_NO_FIT",
+  "observed_utc": "2026-10-23T09:30:48.761941+00:00",
+  "status": "GC_RELATIVE_COORDINATE_SOURCE_PREPARATION_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All fitting closed.201completedconsumed3referencefit, no native training. Review saved allperiodresults before a concrete new choice or separate admission.",
-  "next_action": "Prepare broad exact weighted-input-mean-shift diagnostic across complete declared active columns/lanes using existing201state and198snapshots. No feature ranking/removal, ablation, retuning, refit, nativeforward or newmodelchoice yet. Every cell/period/horizon retained; contributions arithmetic not causal attribution. Source/metadata preparation only; any array operation needs a separate exact bounded0fit admission.201fits consumed; allnative/fullVAL/Exit/TEST/promotion closed.",
+  "next_action": "Prepare complete source-proven GC price-level/unit contract for one broad common-level/relative-geometry candidate; verify map before numeric transform. Six fixed chronological development folds2024Q4..2026Q1, prefix-only normalization; no payload/fit/native/Exit/TEST admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -196,7 +196,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "203_SAVED_LEDGER_SEMANTIC_ACCOUNTING_ADMITTED_ONCE",
+    "current_activity": "204_GC_RELATIVE_COORDINATE_SOURCE_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -218,18 +218,18 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_COHORT_REPAIR_20261023_201",
+    "current_research_id": "NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTION_SELECTED_ENTRY_FEATURE_VALUE_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "202_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_ZERO_FIT",
+    "latest_terminal_role": "203_FIXED_REFERENCE_INFORMATION_TYPE_ACCOUNTING_ZERO_FIT",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202/TERMINAL.json",
-      "sha256": "acc4fab6dd403578091d5182812815a98e98331f58b6867174662d3e544f17ad"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/TERMINAL.json",
+      "sha256": "0f8fb87080327a4982d2fcfa896d0300a2a3d294a22831cfd30cc85b7008c18f"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -7720,7 +7720,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Freeze cleanHEAD/policy, dispatch203once withone202ledgerinput, closeauthority afterterminal; no native improvement selected.",
+    "next_action": "Prepare complete source-proven GC price-level/unit contract for one broad common-level/relative-geometry candidate; verify map before numeric transform. Six fixed chronological development folds2024Q4..2026Q1, prefix-only normalization; no payload/fit/native/Exit/TEST admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8849,8 +8849,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Why weightedinputmean shifts produce large negative laterpredictions is not yet reconciled by fullcolumn/lane arithmetic",
-      "Native actionquality, genuinechronologicalgeneralization and economics remain unqualified"
+      "Source-complete common-level/relative-geometry candidate requires explicit units, anchor provenance and numeric qualification",
+      "Representation benefit across locked chronological development folds is not measured",
+      "Native action quality, untouched generalization and Entry economics remain unqualified"
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -10589,7 +10590,7 @@
           "No new feature-generator/routing/numeric-causality defect proved;175active compact qualification and180local consumption retained.",
           "191/192current native function improves scoped early path pointfit but direction and selectedEntry are unqualified.",
           "198all135533snapshot rows physically qualified;201fixed reference completed and rejected as later-direction improvement.202source preparation covers exact broad arithmetic mean-shift accounting, not a native-function change.",
-          "203single saved-ledger accounting admitted once,0fit/nativeF/U; allotherdata/job/fit/forward/Exit/TEST closed."
+          "203complete consumed0fits; directvalue/markerdecomposition measured. One generalrelativepricegeometry design under source/metadata review; no newimplementation/payload/fit/nativeF/U/Exit/TEST admission."
         ],
         "physical_dataset_stage_032": {
           "status": "FAILED_NO_ADMISSION_CONSUMED",
@@ -15979,7 +15980,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/RUNTIME/receipts/invocation-0001.json",
       "sha256": "392c9d153ae78beea38538a33fbdee41bf5ed4efe40bcb4d2f101c8c10c80b95"
     },
-    "latest_terminal_evidence_scope": "2013fixedTRAINridge over118249 and17284reusedQ1,3345cols,ownh1/5/15masks. TRAIN MSE improves1.95/2.13/5.20%; CONTROL MSE worsens3.93/14.05/40.34% vsTRAINmean, all9month panels worse. No nativeF/U/selectedEntry/economics.",
+    "latest_terminal_evidence_scope": "203 zero-fit semantic accounting:3345columns/99panels/48cells,1280markers/34nominal/2031other values; one saved202ledger,36stable identities,source unchanged,0fit/F/U/replay. Direct value terms carry pooled negative mean shift; this is not causal feature value.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17200,12 +17201,12 @@
     },
     "training_active": false,
     "latest_decision": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202/DECISION.json",
-      "sha256": "062b7a6bbcaf68e5cb77a3fbf80ad8cdd7ccb41e0c4c7d88e05291367447999a"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/DECISION.json",
+      "sha256": "85fdf4f18cc8418d0bb8efbcb6c831c1c93a77ce2c9c4566ffba8615c4eb7e8d"
     },
     "latest_direction_analysis": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202/RESULT.json",
-      "sha256": "6e5e63edf2985f796c6561104c662c372f30371916a5b59a2fcc2be1433d99e0"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/RESULT.json",
+      "sha256": "17cc1fc17700c50f97402c8a35d5e4b0d51656e307f2dd0dce953811f99e0a3a"
     },
     "latest_reference_direction_decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_COHORT_REPAIR_20261023_201/DECISION.json",
@@ -25881,7 +25882,7 @@
     }
   },
   "dynamic_m5_fixed_reference_semantic_accounting_203": {
-    "status": "ADMITTED_ONCE_ZERO_FIT_SAVED_LEDGER_SEMANTIC_ACCOUNTING",
+    "status": "COMPLETE_CONSUMED_DIRECT_SEMANTIC_LEDGER_NOT_CAUSAL_VALUE",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203",
     "preparation_scope": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/PREPARATION_SCOPE.json",
@@ -25889,7 +25890,7 @@
     },
     "source_edits_authorized": false,
     "source_edit_scope": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/account_semantic_types_guarded.py",
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_enabled": false,
     "native_launch_authorized": false,
     "genuine_reference_fit_admitted": false,
@@ -25931,7 +25932,71 @@
       "threads": 1
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/TERMINAL.json",
+      "sha256": "0f8fb87080327a4982d2fcfa896d0300a2a3d294a22831cfd30cc85b7008c18f"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/RESULT.json",
+      "sha256": "17cc1fc17700c50f97402c8a35d5e4b0d51656e307f2dd0dce953811f99e0a3a"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/SUMMARY.json",
+      "sha256": "632bd9f09f9331e2ff8148aae42e8abde21b0face20632e0e485d4971c99c765"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/ACTUAL_LAUNCH_TERMINAL.json",
+      "sha256": "e87cdd939e1044e7cca4de318435108f5005cfa5910ecded3411943c27b0daa6"
+    },
+    "actual_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/ACTUAL_SEMANTIC_PEER_REVIEW.json",
+      "sha256": "b4477df1647f5af5ac312008c3291f7964fb7628ad9516eee4e736fd172151bb"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/DECISION.json",
+      "sha256": "85fdf4f18cc8418d0bb8efbcb6c831c1c93a77ce2c9c4566ffba8615c4eb7e8d"
+    }
+  },
+  "dynamic_m5_gc_relative_coordinate_source_preparation_204": {
+    "status": "SOURCE_PREPARATION_ONLY",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204",
+    "preparation_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/PREPARATION_SCOPE.json",
+      "sha256": "2fc86b884c2f1dd28d89182e5c008633119eee609b205cb085aae9a1e75e6466",
+      "size_bytes": 8228
+    },
+    "v29_fit_provenance": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/V29_FIT_PROVENANCE.json",
+      "sha256": "b83227cab4c4369b3b1c7904ef9d1d885711cc797de8b54f1c461ce2254e00af",
+      "size_bytes": 1967
+    },
+    "source_edits_authorized": true,
+    "source_edit_scope": {
+      "gradient_design": [
+        "gx1/contracts/gc_price_coordinate_contract_v1.py",
+        "tests/test_gc_price_coordinate_contract_v1.py",
+        "configs/research/NATIVE_GC_PRICE_COORDINATES_20261023_204.json"
+      ],
+      "root": [
+        "CURRENT_HANDOVER.md",
+        "NEXT_RUN_POLICY.json",
+        "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204"
+      ],
+      "only_new_static_mapping_contract_and_focused_tests": true,
+      "existing_runtime_or_native_changes_allowed": false,
+      "numerical_transform_waits_for_root_map_review": true
+    },
+    "execution_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "genuine_reference_fit_admitted": false,
+    "payload_reads_authorized": false,
+    "reference_fits": 0,
+    "native_model_forwards": 0,
+    "optimizer_updates": 0,
+    "test_data_used": false,
+    "goal_complete": false
   }
 }
