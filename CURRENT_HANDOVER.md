@@ -36,7 +36,7 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Nå:224 kobling til eksisterende native Entry-rute
+## Nå:225 fersk GC-ON-initialisering innrømmet én gang
 
 223 er COMPLETE/consumed og actualpeer429b80de… PASS:15readonlyNPY,
 467723564B, fem separate TRAIN-normaliseringer,84,292sworker/85,268sytre.
@@ -54,11 +54,15 @@ normalisering og råsidefiler bindes gjennom én betinget `gc_mtf_history_identi
 for modell/TRAIN/CONTROL, freshstate, session/context, tekniskbevis og målinger.
 Loader gjenbruker verifisert descriptor+readonlymmap; ingen nytrener, serving/export
 eller endringav generator/selektor/gather/055/targets/kostnader/åttefamilier/D1makro.
-Kildepeer og AST/stale-path/diffcheck PASS.224PLAN innrømmer én capped syntetisk
-11-case kvalifisering av metadata/readonlyloader/tamper/nativeidentitet/freshstate/
-måleparing:0 modellforwards,5 syntetiske normaliseringsfits;38 tidligere PASS
-gjenbrukes. Fileierskap/API står i224DESIGN. Kilde og policy fryses før kjøring.
-Ingen genuine payload/fit/forward/update er innrømmet; TEST forblir forseglet.
+224 COMPLETE/consumed:11/11 guardcases PASS,0fail/error/skip,0forwards og5
+syntetiske normaliseringsfits,32,098sworker/33,003sytre,frystkilde/policy.38
+tidligere PASS gjenbrukes. Falsk/endret metadata,payload,klokke og state avvises.
+225PLAN og kildepeer5e9ff3cd… PASS innrømmer én fersk GC-ON CPUstate gjennom
+eksisterende publisering: audit4GiB/512MiB,64pids,1tråd,900s/64GiBrchar,F0/U0/
+refit0. Original055/057/111 og11filrefs beholdes, nytt GCmanifest/profil og fersk
+sourceclosure bindes. Kanonisk integritetshashing/koordinatvalidering kan lese
+fysiske bytes; ingen Dataset-/GC-arraymaterialisering. Kilde/policy fryses.
+224actualpeer3ca8053b… PASS. Native initialmåling/trening er fortsatt lukket.
 
 Neste porter er fokusert syntetisk native-wiring-kvalifisering, fersk genuine
 initialstate/ONLINEbaseline og optimizer/resume-paritet før en egen fast native-
