@@ -37,23 +37,24 @@ originalkvitteringer og partialoutputs; ingen relansering eller opprydding.
 Feilene var testfixture-path, helperens NumPy-binding og tuple/JSON-listelikhet;
 minste rettelser er kontrollert, siste feil fanges nå før store datalesinger.
 
-199 er FAILED/consumed før fit,0,715s/0fits/0nativeF/U. En for streng C-only
-NPZ-vakt avviste lovlig F-order i fire reference191-array (contrast og maske).
-Header-only diagnose777ce698… og uendrede41inputidentiteter/kilde er bevart.
-Ingen ny retningsmåling ble utført;198snapshotene er fortsatt kvalifisert.
+199/200 er FAILED/consumed før fit,0fits/0nativeF/U.199s C-only NPZ-vakt avviste
+lovlig F-order i reference191contrast/mask.200s kronologikrav avviste191TRAINs
+originale256unikeparents med125nedadgående sprang. Kilde/inputidentiteter er
+uendret;198snapshotene er fortsatt kvalifisert. Originalkvitteringer er bevart.
+Bare kontroller er rettet: contiguous C/F forNPZ, eksakt original referanseorden
+med unikeparents; fullpopulasjonen beholder streng kronologi. Ingen sortering.
 
-200 har én egen eksakt admission etter minimal kildepeer uten blokkere.
-`NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200` inneholder
-PLAN/SOURCE_REPAIR_REVIEW. Workeree7ceb0f… tillater sammenhengende C eller F
-for NPZ; ingen transponering, verdi- eller aritmetikkendring. Snapshot-mmap
-forblir C-order; alle dtype/shape/finite/digest/bit/mask/klokkevakter beholdes.
+201 har én egen eksakt admission etter kildepeer uten blokkere.
+`NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_COHORT_REPAIR_20261023_201`
+inneholder PLAN/SOURCE_REPAIR_REVIEW. Worker3e616245… bevarer alle dtype/shape/
+finite/digest/bit/mask/klokkevakter. Alle numeriske konstanter er uendret.
 Samme3TRAIN-only ridge1/5/15,alpha1SUM-SSE/friintercept/055fryst,3TRAINmiddel/null.
 Normal-equation-residual≤1e−8 ved positiv RHS, ellers eksakt nullrest, og finite
 F64-tilstand/prognoser kreves; det beviser ikke velkondisjonering eller retning.
-Audit4GiB/512MiB/éntråd/pids64/1800s+10TERM/8GiB rchar; faktisk fitkapasitet
+Audit4GiB/512MiB/éntråd/pids64/1800s+10TERM/8GiB rchar. Faktisk fitkapasitet
 og retningsresultat er umålt. Bare seks kvalifiserte198-filer, ingen originaldata,
-nativeF/U, HPO eller nye toyfits.194/196 og199metode-/evalreview gjenbrukes.
-Top training_enabled=true gjelder bare eksakt200fit; full_epoch/fullVAL/
+nativeF/U,HPO eller nye toyfits.194/196 og199metode-/evalreview gjenbrukes.
+Top training_enabled=true gjelder bare eksakt201fit; full_epoch/fullVAL/
 native_launch=false. Kilde/policy fryses; etter terminal stenges admission og
 hele resultatet tolkes før konkret native forbedring velges.
 
