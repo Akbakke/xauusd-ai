@@ -37,26 +37,50 @@ originalkvitteringer og partialoutputs; ingen relansering eller opprydding.
 Feilene var testfixture-path, helperens NumPy-binding og tuple/JSON-listelikhet;
 minste rettelser er kontrollert, siste feil fanges nå før store datalesinger.
 
-199/200 er FAILED/consumed før fit,0fits/0nativeF/U.199s C-only NPZ-vakt avviste
-lovlig F-order i reference191contrast/mask.200s kronologikrav avviste191TRAINs
-originale256unikeparents med125nedadgående sprang. Kilde/inputidentiteter er
-uendret;198snapshotene er fortsatt kvalifisert. Originalkvitteringer er bevart.
-Bare kontroller er rettet: contiguous C/F forNPZ, eksakt original referanseorden
-med unikeparents; fullpopulasjonen beholder streng kronologi. Ingen sortering.
+201 er COMPLETE/consumed:3faste TRAIN-ridgefit og3TRAINmiddel,0nativeF/U.
+Alle135533parentrader/3345kolonner er evaluert ved1/5/15 på egne masker;
+alle20TRAIN+3CONTROLmåneder,7+1kvartaler ogALL,198paneler/495par er kontrollert.
+De opprinnelige256+256native191-probene beholdes separat i eksakt originalorden.
+Faktisk138,783s/ytre139,415s,peakRSS3647066112B under4GiB/512MiB/éntråd/pids64.
+Relative solverrest3,91e−13/5,32e−13/3,98e−13, alle under fast1e−8grense.
+40inputidentiteter og HEADab3dd10a/policya6b36888 var fryst. Prosjektlåsen er fri.
+Snapshot/target/model/prognoseartefakter og originale kvitteringer er bevart.
 
-201 har én egen eksakt admission etter kildepeer uten blokkere.
-`NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_COHORT_REPAIR_20261023_201`
-inneholder PLAN/SOURCE_REPAIR_REVIEW. Worker3e616245… bevarer alle dtype/shape/
-finite/digest/bit/mask/klokkevakter. Alle numeriske konstanter er uendret.
-Samme3TRAIN-only ridge1/5/15,alpha1SUM-SSE/friintercept/055fryst,3TRAINmiddel/null.
-Normal-equation-residual≤1e−8 ved positiv RHS, ellers eksakt nullrest, og finite
-F64-tilstand/prognoser kreves; det beviser ikke velkondisjonering eller retning.
-Audit4GiB/512MiB/éntråd/pids64/1800s+10TERM/8GiB rchar. Faktisk fitkapasitet
-og retningsresultat er umålt. Bare seks kvalifiserte198-filer, ingen originaldata,
-nativeF/U,HPO eller nye toyfits.194/196 og199metode-/evalreview gjenbrukes.
-Top training_enabled=true gjelder bare eksakt201fit; full_epoch/fullVAL/
-native_launch=false. Kilde/policy fryses; etter terminal stenges admission og
-hele resultatet tolkes før konkret native forbedring velges.
+201TERMINAL2624acc5…/RESULT4012aa2e…/SUMMARYd6c3d693…/actualpeerf2f24154…/
+DECISION ligger under
+`NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_COHORT_REPAIR_20261023_201`.
+199/200forberedende kjøringer feilet førfit på lovlig NPZ-F-order og usortert
+original TRAIN-probeorden. Minste rettelser bevarer alle verdier/masker/klokker;
+fullpopulasjonen beholder kronologi. Ingen failedplan relanseres.
+
+Referansen forkastes som dokumentert forbedring på senere utvikling.
+Fastalpha1SUM-SSE/friintercept/055fryst gir følgende MSE mot TRAIN-middel:
+
+| Minutt | TRAIN forbedring | Q1middel MSE | Q1ridge MSE | Q1forverring | Q1fortegn |
+|---|---:|---:|---:|---:|---:|
+|1|1,95%|57,310|59,563|3,93%|50,02%|
+|5|2,13%|230,271|262,629|14,05%|49,59%|
+|15|5,20%|694,201|974,224|40,34%|48,98%|
+
+Alle9CONTROLmåned×horisont-paneler er verre enn TRAINmiddel ognull.
+Pooled dag-/uke-CI for MSEforskjellen er positive. Sparse<8blokker erdeskriptive;
+372kalenderposter mangler derforCI,66udefinerte replikater er eksplisitt ført.
+CONTROLkorrelasjon0,0103/0,0118/0,0179 og bias−0,889/−4,772/−14,070bps.
+Native191 MSE på sineCONTROLprober58,108/225,698/774,889 mot ridge
+61,575/268,177/1029,216. Ingen fullCONTROL nativepåstand fra256rader.
+
+AGGREGATE_TRANSFER_REVIEW3503cc78… bruker bare lagrede momentmetrikker,
+0nye fits/F/U/arraylesinger. MSE-dekomponeringens største rest1,11e−11bps².
+Pooled bias forklarer35,1/70,4/70,7% av ridgeoverskuddsfeil motTRAINmiddel;
+sentrert overskuddsfeil1,463/9,588/82,063bps² består. En kontrolltilpasset
+offset er ingen tillatt løsning. Modellens vektede inputmiddelforskyvning er
+−0,880/−4,815/−14,184bps; hvilken featuregruppe som bærer dette er ennå umålt.
+Neste avgrensede arbeid forbereder eksakt aritmetisk avstemming av hele aktive
+feature-/TF-flaten mot denne forskyvningen, alleperioder/horisonter. Ingen
+familierangering, featurefjerning, ablation, HPO eller modellvalg er autorisert.
+Bidrag er regnskap for denne korrelerte lineære referansen, ikke kausal verdi.
+Kun kilde-/metadataforberedelse nå; egen0fitadmission kreves forarraydiagnose.
+training_enabled/full_epoch/fullVAL/native_launch=false. Målet er ufullført.
 
 Samlet snapshot inneholder alle aktive kanoniske felt og femTF:3317koordinater
 blir3345kolonner når seks nominelle SMC-tilstander erstattes av6×5one-hot og
@@ -74,7 +98,8 @@ trainerbundle eller ekstraepoke.191 startet fra187fresh, egen188initial og
 189savedstate-audit etter190privat mekanikkvalifikasjon.184s eneste designendring
 var separat MFE-gruppemiddel for1–15 og16–480. Nativeeiere er siden bevart.
 
-192 er siste målte retningsanalyse,0nyeF/U/fit. Alle512handlinger er FLAT.
+192 er siste native retningssammenligning;201 er senere fast referanseanalyse.
+192 brukte0nyeF/U/fit. Alle512handlinger er FLAT.
 CONTROL nettkontrast-MSE i bps² på identiske rader/masker:
 
 | Minutt | Egen188initial | Matchet177 | Ny191 |
