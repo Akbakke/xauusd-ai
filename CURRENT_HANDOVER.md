@@ -103,21 +103,21 @@ Alle native-/tap-/score-/kosteiere er uendret. Native/fullVAL/reboot/TEST/Exit
 og genuinefits forblir stengt. Målet er ufullført; ingen favorittmåned/-minutt,
 HPO eller snuregel. Åtte spesialister/9.D1makro består.
 
-195s første kildekontroll er FAILED/consumed:28syntetiske cachetilfeller stoppet
-i oppsettet fordi en midlertidig htf.__file__ flyttet en relativ kildehenvisning.
-Den faktiske capped-/låskontrollen bestod. Produksjonsadapteren og worker er
-uendret.196 retter kun tre fixturelinjer og har egen eksakt admission for29
-fokuserte kontroller; de er ennå ikke kjørt.194s27PASS gjenbrukes.
-195s PLAN5cae63ab… for118249TRAIN+17284Q1CONTROL er fortsatt unclaimed og ikke
-admittert. Ingen originale markedsdata, ekte fits eller nye nativeforwards er
-lest/kjørt. Originale feilkvitteringer og alle øvrige bytes bevares.
-Arbeidsrøttene er `NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195`
-og `NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196` underGX1_RUNS.
-Foreslått fysisk budsjett er audit4G/512M/éntråd/pids64/1800s+10sTERM,
-96GiB logisk rchar; tre fulle Parquet-SHA-pass er65,98GB. Kapasitet, alle valgte
-rader og512fasitparitet er fortsatt umålt. Fullmatrix-liveness gjenbrukes fra
-eksakt055/053;15NPY-filers bytes skal verifiseres ferskt. Senere forbruk krever
-faktisk RESULT og COMPLETE-terminal, aldri OUTPUT alene.
+196 er COMPLETE/consumed:29fokuserte kontroller bestod på4,120s med faktiske
+capped-/låsvakter, audit4G/512M/éntråd/pids64.195s første syntetiske setupfeil
+ble rettet med tre fixturelinjer; originalfeilkvitteringer bevares og ingen
+produksjonsadapter/worker ble endret.194s27PASS gjenbrukes.
+195s PLAN5cae63ab… har nå egen eksakt admission for én ikke-fittende fysisk
+kvalifikasjon:118249TRAIN+17284Q1CONTROL,3345F32kolonner, uendrede1/5/15masker,
+strenge cutoffs og eksakt191fasit-/maske-/parent-/klokkeparitet på512rader.
+OriginalOBS leses én gang perrolle;15NPY-filers bytes verifiseres ferskt og
+055/053fullmatrix-liveness gjenbrukes eksplisitt. Ingen fit eller ny nativeF/U.
+Budsjett audit4G/512M/éntråd/pids64/1800s+10sTERM og96GiB logiskrchar;
+tre fulle Parquet-SHA-pass er65,98GB. Faktisk kapasitet/projeksjon/paritet er
+ennå umålt. Senere forbruk krever RESULT+COMPLETE-terminal; OUTPUT alene er
+ukvalifisert. Kilde/policy fryses. Native/fullVAL/TEST/Exit/HPO/ektefits forblir
+stengt. Røtter underGX1_RUNS: `NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195`
+og `NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196`.
 
 ## Siste ferdige retningsanalyse og kostnadsforklaring
 

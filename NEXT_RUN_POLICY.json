@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-23T06:03:05.162796+00:00",
-  "status": "REPAIRED_SNAPSHOT_CACHE_SOURCE_CHECKS_ADMITTED_PHYSICAL_PENDING",
+  "status": "EXACT_NONFITTING_SNAPSHOT_PHYSICAL_QUALIFICATION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "191main,192comparison and194source qualification are complete/consumed.193design and194decision admit bounded cache/physical-qualification source preparation only.194passed27synthetic/055metadata checks; this proves no actual feature projection, capacity, chronological feature value, Entry direction/actions, generalization or economic edge. Original data jobs, genuine fits, native training/forwards, fullVAL/reboot/TEST/Exit/HPO/selector or cost changes and consumed relaunches remain closed until exact new admission.",
-  "next_action": "Run only196 exact29 focused source checks after the measured test-fixture owner-path correction.195sourceattempt is failed/consumed;195physicalPLAN remains unclaimed/not admitted. Reuse19427PASS and unchanged production source. No originalpayload, genuinefit, nativeforward/training, TEST, Exit, HPO or promotion.",
+  "next_action": "Run exact195PLAN5cae63ab once through existing capped audit4G/512M/one-thread guards, max1800s+10TERM and96GiB rchar.196actual29PASS and19427PASS are retained; source/policy frozen. Materialize all118249TRAIN+17284Q1CONTROL with unchanged3345layout, strict cutoffs/own1-5-15masks, fresh15cacheSHA and exact191512targetparity. Zero fits/model forwards/updates. Consume only actual RESULT+COMPLETEterminal; then review capacity/parity before any separate reference-fit admission. Native/fullVAL/TEST/Exit/HPO/promotion remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -191,7 +191,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "196_REPAIRED29_SOURCE_CHECKS_ADMITTED_PHYSICAL_PENDING",
+    "current_activity": "195_ONE_NONFITTING_PHYSICAL_QUALIFICATION_ADMITTED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -223,10 +223,10 @@
     "latest_terminal_role": "194_SYNTHETIC_SOURCE_AND_ACTUAL055_METADATA_ONLY_NO_DIRECTION_RESULT",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/SOURCE_TESTS_TERMINAL.json",
-      "sha256": "3bb2437c8d238ffd684a4d54e1d6784b0dec48972a592af685100d6d02787745"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196/SOURCE_TESTS_TERMINAL.json",
+      "sha256": "d58f55e9e00d90cbc61c38aab4343726982edea97b2f8f0a77582b1d32cab1bc"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -244,7 +244,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Synthetic cache fixture owner path; no production data run attempted.",
+    "current_blocker": null,
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7715,7 +7715,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run only196 exact29 focused source checks after the measured test-fixture owner-path correction.195sourceattempt is failed/consumed;195physicalPLAN remains unclaimed/not admitted. Reuse19427PASS and unchanged production source. No originalpayload, genuinefit, nativeforward/training, TEST, Exit, HPO or promotion.",
+    "next_action": "Run exact195PLAN5cae63ab once through existing capped audit4G/512M/one-thread guards, max1800s+10TERM and96GiB rchar.196actual29PASS and19427PASS are retained; source/policy frozen. Materialize all118249TRAIN+17284Q1CONTROL with unchanged3345layout, strict cutoffs/own1-5-15masks, fresh15cacheSHA and exact191512targetparity. Zero fits/model forwards/updates. Consume only actual RESULT+COMPLETEterminal; then review capacity/parity before any separate reference-fit admission. Native/fullVAL/TEST/Exit/HPO/promotion remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17198,8 +17198,8 @@
     },
     "training_active": false,
     "latest_decision": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/SOURCE_FAILURE_DECISION.json",
-      "sha256": "402ec69dd31802ac47d0b4f94b951c7eaea2c174d440f80a71448c8b5c3d095a"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/EXECUTION_ADMISSION.json",
+      "sha256": "aa3c0932d928a3fa878ba6aabd549b8cedacfcca3794e4256fc3d718ae882cc5"
     },
     "latest_direction_analysis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/TERMINAL.json",
@@ -25432,7 +25432,7 @@
     }
   },
   "dynamic_m5_snapshot_reference_physical_qualification_195": {
-    "status": "UNCLAIMED_NOT_ADMITTED_CACHE_FIXTURE_QUALIFICATION_REPAIR_PENDING",
+    "status": "EXACT_NONFITTING_PHYSICAL_QUALIFICATION_ADMITTED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/PLAN.json",
@@ -25442,17 +25442,48 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/SOURCE_PEER_REVIEW.json",
       "sha256": "2a95724c4afce9e137ce1f50cb3c0adf196c857b7ea91c6564163f425cbb8aa0"
     },
-    "execution_authorized": false,
+    "execution_authorized": true,
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "training_enabled": false,
     "genuine_reference_fit_admitted": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "source_edits_authorized": false,
+    "execution_admission": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/EXECUTION_ADMISSION.json",
+      "sha256": "aa3c0932d928a3fa878ba6aabd549b8cedacfcca3794e4256fc3d718ae882cc5"
+    },
+    "actual_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196/SOURCE_TESTS_TERMINAL.json",
+      "sha256": "d58f55e9e00d90cbc61c38aab4343726982edea97b2f8f0a77582b1d32cab1bc"
+    },
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "cache_npy_sha_files": 15,
+      "canonical_pointer_projections": 2,
+      "input_projection_passes": 2,
+      "max_invocations": 1,
+      "max_rchar_bytes": 103079215104,
+      "max_wall_seconds": 1800,
+      "memory_bytes": 4294967296,
+      "model_forwards": 0,
+      "optimizer_updates": 0,
+      "original_observation_json_reads": 2,
+      "pessimistic_full_parquet_sha_passes": 3,
+      "reference_fits": 0,
+      "swap_bytes": 536870912,
+      "target_source_phases": 2,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "reference_fits": 0,
+    "model_forwards": 0,
+    "optimizer_updates": 0
   },
   "dynamic_m5_snapshot_cache_source_repair_196": {
-    "status": "EXACT_REPAIRED29_SOURCE_CHECKS_ADMITTED_NO_ORIGINAL_DATA",
+    "status": "COMPLETE_CONSUMED_29_PASS",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196",
     "scope": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196/SOURCE_CHECKS_SCOPE.json",
@@ -25462,11 +25493,11 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196/SOURCE_REPAIR_REVIEW.json",
       "sha256": "f6886ef811fe0c3d2154fb2e07f64c54ac4b5eaa019a5bf3e41f2e075134c4c6"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "source_edits_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "expected_pytest_cases": 29,
     "budget": {
       "TERM_grace_seconds": 10,
@@ -25482,6 +25513,14 @@
     "native_launch_authorized": false,
     "physical_projection_admitted": false,
     "genuine_reference_fit_admitted": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "source_tests_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196/SOURCE_TESTS_TERMINAL.json",
+      "sha256": "d58f55e9e00d90cbc61c38aab4343726982edea97b2f8f0a77582b1d32cab1bc"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196/DECISION.json",
+      "sha256": "629b74336970ec0bdba7d5cddae25de18247ea9bcaad0967512c5e4297d34656"
+    }
   }
 }
