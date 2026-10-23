@@ -79,14 +79,26 @@ Neste avgrensede arbeid forbereder eksakt aritmetisk avstemming av hele aktive
 feature-/TF-flaten mot denne forskyvningen, alleperioder/horisonter. Ingen
 familierangering, featurefjerning, ablation, HPO eller modellvalg er autorisert.
 Bidrag er regnskap for denne korrelerte lineære referansen, ikke kausal verdi.
-202 forbereder dette komplette regnskapet: alle3345kolonner og48deklarerte
-familie/inputflate-celler,32aktive/16tomme, alle99periode×horisont-paneler.
-202 er separat engangsadmittert etter uavhengig metode-/kildepeer.
-Fem kvalifiserte inputfiler, én numerisk matrisegjennomgang perrolle i1024rader,
-ferskeSHA-lesinger og eksakt avstemming mot201.0fit/forward/replay/oppdatering.
-Audit4GiB/512MiB/éntråd/pids64/1800s+10s/8GiBrchar; kilde/policy fryses.
-PLAN og kvitteringer ligger under
+202 er COMPLETE/consumed: alle3345kolonner,48deklarerte familie/inputflate-celler
+(32aktive/16tomme) og99periode×horisont-paneler er aritmetisk avstemt.
+Maks rest2,345e−13bps; alle innen forhåndsfast F64-grense. Uavhengig JSON-peer
+kontrollerte1728vektede måned/kvartal/ALL-celler; maks avvik6,395e−14bps.
+9,480s/ytre9,762s,peakRSS1900494848B; audit4GiB/512MiB/éntråd/pids64.
+Fem tidligere inputfiler, én numerisk matrisegjennomgang perrolle plussSHA-lesing;
+0fit/forward/replay/oppdatering.41inputidentiteter og HEAD3c1cb36c/policy9bc58116
+var fryst. Original COLUMN_LEDGER/MAPPING og alle kvitteringer er bevart under
 `NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202`.
+
+CONTROLtotal−0,880/−4,815/−14,184bps gjenskapes. Store fortegnsbidrag motvirker
+hverandre; ved15min SMCfamilie+85,453,price_action−92,118,flow+28,877 og
+session−27,824bps. Dette er den faste korrelerte ridge-basisens regnskap,
+ikke kausal featureverdi, kondisjoneringsbevis eller native-treningsårsak.
+Price_action-gruppens74kolonner er37GCUSD-prisnivåer med37observasjonsmarkører.
+Netto−92,118bps skiller derfor ennå ikke prisnivåbidrag fra datatilgjengelighet.
+Neste avgrensede kilde-/metadataarbeid definerer en komplett verdi/markør-
+inndeling av eksisterende202kolonneregnskap, alleperioder/horisonter/celler.
+Ingen featurefjerning/rangering, nyfit, normaliseringsendring eller ny modell
+velges uten dette skillet. Egen eksakt admission kreves før nyledgerlesing.
 training_enabled/full_epoch/fullVAL/native_launch=false. Målet er ufullført.
 
 Samlet snapshot inneholder alle aktive kanoniske felt og femTF:3317koordinater
