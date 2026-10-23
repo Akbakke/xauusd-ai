@@ -36,27 +36,25 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Nå:222 minste semantikkrettelse etter221
+## Nå:223 fysisk produsent etter kvalifisert semantikk
 
-220 er FAILED/consumed på feil forhåndstalt hashmultiplisitet.221 rettet bare
-78→150 med faktisk9M1+45M5+48tape+48pair; eksisterende loader/vakter er bevart.
-221 fullførte150hashes/15cacheNPY, ti selectors med eksakt055TRAINvindu/proof,
-14logiskeGC-tabeller/10filer, fem projeksjoner og15sidefiler467723564B.
-Fysiskklokkefasekontroll ble passert. Ingen målutfall ellermodellarbeid.
+220 FAILED/consumed på forhåndstalt78 mot faktisk150hashes.221 rettet bare
+målt9M1+45M5+48tape+48pair; loader/vakter er bevart.221 fullførte ti selectors med
+055-TRAINvindu/proof likt,14GC-tabeller/10filer, fem projeksjoner/15sidefiler,
+men D1 first_retouch-fit var UNSCALEABLE. Ingen220/221-relaunch.
 
-221 er FAILED/consumed i femte normaliseringsfit: D1-feltet
-`gc_d1_observed_proxy_ob_bull_first_retouch` var UNSCALEABLE som kontinuerlig verdi.
-222 undersøker kildeformelens0/1-domene og tillater bare nødvendig semantikkrettelse
-for nye `gc_mtf_*`-flater. Ingen prøvedatabasert domenegjetting, skalagulv eller
-unobserved-fallback. Original055 og gammel defaultnormalisering bevares.
-222minste patch og fire nye tester er klare. Kildepeer576b14b3… PASS binder plan288ac1ee…
-og worker5b21017e…. Én38cases syntetisk audit er innrømmet,4GiB/512MiB/64pids/
-éntråd/180+10s. Ingen genuine payload/fit/forward/update; kilden fryses under kjøring.
+222 er COMPLETE/consumed:38/38 fokuserte cases PASS,0fail/error/skip,
+49,753sworker/50,463sytre,RSS918130688B,11syntetiskeforwardforsøk/51syntetiskefits.
+Kildeformelen beviser0/1 på14retouch-felt; bare nye eksakte fem `gc_mtf_*`-flater
+behandler disse som hendelser. Gammel binary/defaultnormalisering og055 er bevart.
+Ingen samplet domene, skalagulv, unobserved-fallback eller genuine arbeid.
 
-221s15readonlysidefiler beholdes ukvalifisert. SHA ble beregnet internt, men varig
-manifest kom aldri før fitfeilen; ingen historisk outputdigest kan sammenlignes.
-Ingen ny rekonstruksjonsbane. Etter minimal kildekvalifisering brukes eksisterende
-81s-produsent med samme inputs i en ny fysisk plan. Ingen220/221-relaunch.
+223 klargjør samme eksisterende targetfrie produsent med kildekvalifisert222-
+semantikk og målte150hashes. Plan/worker/semantikkref står iNEXT_RUN_POLICY.
+Samme4GiB/512MiB/64pids/éntråd/900+10s,8GiBrchar/1GiBNPY. Kombinert222actual-/223kildepeer2c818380… PASS. Én223invokasjon er innrømmet;
+source/policy fryses underkjøring. Alle originale inputs gjenbrukes.
+221s15readonlysidefiler beholdes ukvalifisert: deres internt målteSHA ble ikke
+varig publisert før fitfeilen. De reproduseres via81s-løypen, ingen ny rekonstruksjon.
 
 Neste steg etter kvalifisert220 er minste kobling inn i eksisterende dynamiske
 Entry-rute, ikke en ny trener. Fersk initialbaseline for den endrede ONLINE-
