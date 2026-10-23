@@ -128,6 +128,21 @@ Den tidligere feilede kontrollen er replikert og PASS i lett kildepreflight.
 Lagret intercept er kildefikset til eksakt target_mean−feature_mean@beta.
 Bruker23.10 bestilte mål og videre bygging/justering.214skal kvalifiseres én gang
 under audit4GiB/512MiB/éntråd/64pids og180s+10s timeout før separat215fit.
+214 er nå COMPLETE/consumed:27/27syntetiske testerPASS,0fail/error/skip,
+ytre2,981s og uendret kilde166753a0.0markedspayload/genuinefit/nativeF/U.
+TERMINAL6b0c6366…/ytre04729077… i214; faktisk uavhengig peerPASS18kontroller,
+27unikeXMLcases, allehasher/caps/lock/bindinger avstemt. ACTUAL_SOURCE_PEER/DECISION i214.
+215 er eksakt admittert CPU-kapasitetsreferanse for samme6prefixer/begge armer/1,5,15min.
+EgneTRAINmålinger legges til mens samme matrise/state finnes; lagrede211-
+kvartalsprediksjoner gjenbrukes til ekte parvise forskjeller, ingen gammelrefit.
+CAPACITY_DESIGN låser fullperiode- og kvartalskriterier før nye resultater.
+PLANad756816…/worker47695935…/SOURCE_PEER binder36fits/24predictors,
+9payloads/1098400kodede rader/18TRAIN+75senerepaneler. KildepeerPASS;
+metadata-preflightPASS41refs utenpayload/fit. Én capped4GiB/512MiB/éntråd/64pids,
+3600s+10s hardtimeout. Kilde/policy fryses; ingen native/Exit/TEST-adgang.
+Arvet211routeprosa iPREPARATION_SCOPE er historisk;215CAPACITY_DESIGN/PLAN
+og kvalifisertworker eier mean-SSElambda1/femparvise sammenligninger.
+Alle12normaliseringsoppskrifter er allerede kvalifisert; ingen ny fit av dem.
 Eksisterende SUM-SSE+1 tilsvarer mean-SSE+1/N; styrken faller med egetN.
 Ny fast kandidat: mean-SSE+1·||beta||², fri intercept, altså SUM-alpha=egetN
 perhorisont. Dette er en vesentlig sterkere prior, ikke bevist optimalstyrke.
@@ -277,5 +292,5 @@ Lang støtte bruker alltidLONG/kjøp-og-hold som referanse. TEST frajuli forsegl
 for tilpasning/utvalg; bare vedtatt månedlig forwardjournal scorer utenrefit.
 Ingen Exit/broker/live/paper/ordre/spending/promotion. DATA/RUNS ryddes bare
 med retention-eier. Metode: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
-training_enabled/full_epoch/fullVAL/native_launch=false.
-211/212planene er brukt. Kun eksakt214syntetisk bindingrettelse er forberedt; genuin fit og native trening er stengt.
+training_enabled=true gjelder bare215CPUreferanse; full_epoch/fullVAL/native_launch=false.
+211/212planene er brukt. 214er brukt; kun eksakt215CPUreferansefit er admittert. Native trening er stengt.
