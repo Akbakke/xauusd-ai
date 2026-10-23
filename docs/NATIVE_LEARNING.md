@@ -593,7 +593,7 @@ egen eksakt policyadmission. Kilde-/designforberedelse åpner ingen datajobb,
 fit, nativeforward, ekstra epoke, Exit, TEST eller handlingsautoritet.
 
 De avgrensede193adapterne er `entry_direction_snapshot_reference_v1` og
-`entry_direction_snapshot_data_v1`.194kildekontroll binder syntetisk numerikk,
+`entry_direction_snapshot_data_v1`.194bestod27fokuserte kontroller av syntetisk numerikk,
 kategorier/masker/aliaser, canonicalF64→F32→F64target og MTF-klokkegeometri,
 samt faktisk055metadata-layout. Den instansierer ingen native modell eller
 leser opprinnelige markedsinputs. Import av eksisterende eierdefinisjoner og

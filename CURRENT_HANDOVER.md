@@ -80,21 +80,25 @@ ned på185/256,185/256 og181/252observerte rader, mens fasiten peker opp på
 143/256,132/256 og141/252. Dette er diagnostiske prognoser; alle512handlinger
 forblir FLAT. Ingen automatisk forsterkning, inversjon eller kalibrering følger.
 
-193design er implementert som to nye, avgrensede kontrakter for
-snapshot/ridge og fysisk snapshot-/targetadapter, med to fokuserte testfiler.
-Uavhengig statisk kildegjennomgang har ingen blokkere.194 åpner nå én konkret
-capped kildekontroll:17syntetiske referansetilfeller,9adaptertilfeller og én
-faktisk055JSON-/layout-/cappedkontroll;27totalt,maks120s,audit4G/512M/éntråd.
-Transitive native definisjoner kan importeres, men ingen native modell/data
-instansieres; ingen ekte markedsinputs, OBS, PT eller referencefit inngår.
-Kilde/policy fryses til terminal. Dette er ikke dokumentert featurenyttighet.
+194 er COMPLETE/consumed: alle27fokuserte kontroller bestod på10,173s,
+audit4G/512M/éntråd/pids64/CPU0–7.17syntetiske referansetilfeller,9adaptertilfeller
+og én faktisk055JSON/layout/cappedkontroll kvalifiserte3317kanoniske koordinater
+og3345unike kolonner. Kategorier, masker, bitaliaser, ridge-algebra, canonical
+F64→F32→F64target, cutoff/MTF-geometri og liten syntetisk Parquet-blokklesing
+bestod. Eksakt kildeHEAD06082e18/policy22fbae6b var uendret under kontrollen;
+alle native eiere er bevart. En ny native initialbaseline trengs derfor ikke.
+Ingen originale markedsinputs/OBS/PT/cachepayload, ekte referansefits eller
+native modellinstanser/forwards/oppdateringer inngikk.27PASS er ikke ny
+retningsinformasjon. Git-hokens automatiske guard-/Entry-kontrakttester bestod
+separat under samme eksisterende capped-vakt; logger er bevart i194.
 
-Aktuell kildekontroll ligger under
+Terminaldb640d2b…/DECISION og kildebevis ligger under
 `/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_SOURCE_QUALIFICATION_20261023_194`.
-193design/momentreview bevares på opprinnelig rot. Cachemanifest/inventory/SHA/
-livenessmetadata, faktisk191targetparitet, minne og eksakte I/O-/tidsbudsjetter
-må fortsatt kvalifiseres før en separat datajobb og deretter ekte CPUfit.
-Hele Parquet-SHA-pass teller som fullfil-I/O selv når seq aldri dekodes.
+193design/momentreview er bevart. Neste avgrensede arbeid er cachemanifest/
+inventory/SHA/livenessmetadata-glue og eksakt ikke-fittende fysisk kvalifikasjon:
+alle118249TRAIN+17284Q1CONTROL, parent-/klokkebinding, faktisk191target/maskparitet,
+minne og I/O-/tidsbudsjett. Hele Parquet-SHA-pass teller som fullfil-I/O selv når
+seq aldri dekodes. Dette trenger egen dataadmission før senere ekte CPUfit.
 Alle native-/tap-/score-/kosteiere er uendret. Native/fullVAL/reboot/TEST/Exit
 og genuinefits forblir stengt. Målet er ufullført; ingen favorittmåned/-minutt,
 HPO eller snuregel. Åtte spesialister/9.D1makro består.
