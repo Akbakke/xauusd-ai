@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T07:24:02.105607+00:00",
-  "status": "SNAPSHOT_PHYSICAL_QUALIFIED_FIXED_DIRECTION_REFERENCE_SOURCE_PREPARATION",
-  "training_enabled": false,
+  "observed_utc": "2026-10-23T07:35:34.234260+00:00",
+  "status": "FIXED_SNAPSHOT_DIRECTION_REFERENCE_ONE_FIT_EVALUATION_ADMITTED",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "191main,192comparison and194source qualification are complete/consumed.193design and194decision admit bounded cache/physical-qualification source preparation only.194passed27synthetic/055metadata checks; this proves no actual feature projection, capacity, chronological feature value, Entry direction/actions, generalization or economic edge. Original data jobs, genuine fits, native training/forwards, fullVAL/reboot/TEST/Exit/HPO/selector or cost changes and consumed relaunches remain closed until exact new admission.",
-  "next_action": "Prepare199 exact fixed three TRAIN ridge references plus TRAIN means, using qualified198 snapshots and unchanged194 source. Review numerical residual criterion and complete all-period day/week paired evaluation before once-only fit admission. No199 fit/native job yet; no HPO, TEST, Exit or promotion.",
+  "rule": "training_enabled=true permits ONLY exact199 fixed snapshot reference fit under its consumed-once plan and capped CPU audit. It does not admit native training, fullVAL, HPO, TEST or promotion. Prior consumed plans remain closed.",
+  "next_action": "Execute exact199PLAN once through capped audit4G/512M/one-thread/1800s+10TERM/8GiB rchar. Only3fixed TRAIN ridge fits+3TRAINmeans with qualified198sixartifacts. Report allperiods/all1-5-15 and fixed512native comparison using paired calendar uncertainty. No originalOBS/Parquet/cache/PT, new nativeF/U,HPO,Exit,TEST or promotion. Require actual COMPLETE terminal/result/outer input/source bookends; then close fit authority and interpret before choosing any native improvement.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -191,7 +191,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "199_FIXED_DIRECTION_REFERENCE_SOURCE_PREPARATION_198_PHYSICAL_COMPLETE",
+    "current_activity": "199_EXACT_FIXED_DIRECTION_REFERENCE_FIT_EVALUATION_ADMITTED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7715,7 +7715,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare199 exact fixed three TRAIN ridge references plus TRAIN means, using qualified198 snapshots and unchanged194 source. Review numerical residual criterion and complete all-period day/week paired evaluation before once-only fit admission. No199 fit/native job yet; no HPO, TEST, Exit or promotion.",
+    "next_action": "Execute exact199PLAN once through capped audit4G/512M/one-thread/1800s+10TERM/8GiB rchar. Only3fixed TRAIN ridge fits+3TRAINmeans with qualified198sixartifacts. Report allperiods/all1-5-15 and fixed512native comparison using paired calendar uncertainty. No originalOBS/Parquet/cache/PT, new nativeF/U,HPO,Exit,TEST or promotion. Require actual COMPLETE terminal/result/outer input/source bookends; then close fit authority and interpret before choosing any native improvement.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17195,8 +17195,8 @@
     },
     "training_active": false,
     "latest_decision": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_LAYOUT_REPAIR_20261023_198/DECISION.json",
-      "sha256": "374138512643bf3c81272ae2a19d73f9cd568622654e2d2bc776501a5871e4e1"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199/EXECUTION_ADMISSION.json",
+      "sha256": "b4e82dc6fb32784ec0dfde3528842848bf1bab931ab7456c51157637a3b40a1e"
     },
     "latest_direction_analysis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/TERMINAL.json",
@@ -19765,7 +19765,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-23T07:24:02.105607+00:00",
+  "updated_utc": "2026-10-23T07:35:34.234260+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -25578,21 +25578,57 @@
     }
   },
   "dynamic_m5_fixed_snapshot_direction_reference_199": {
-    "status": "SOURCE_PREPARATION_ONLY_NO_FIT_ADMISSION",
+    "status": "ONE_EXACT_FIXED_TRAIN_REFERENCE_FIT_EVALUATION_ADMITTED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199",
     "preparation_scope": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199/PREPARATION_SCOPE.json",
       "sha256": "99c121d5cac6bc65223e56e2abe85a2cea87fc422e16bd0eb69f3a96c24ab1d6"
     },
-    "source_edits_authorized": true,
-    "execution_authorized": false,
-    "training_enabled": false,
-    "genuine_reference_fit_admitted": false,
+    "source_edits_authorized": false,
+    "execution_authorized": true,
+    "training_enabled": true,
+    "genuine_reference_fit_admitted": true,
     "native_launch_authorized": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "test_data_used": false
-  }
+    "test_data_used": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199/PLAN.json",
+      "sha256": "7e5263d9002e5982558bc70a8b18ce21ce0cca00d9e0b1206807839755e3ddf9"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199/fit_evaluate_guarded.py",
+      "sha256": "f62a66f96ff998e3ef5baf2311525fccbef427f749fbe0554189929ba3863499"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199/SOURCE_REVIEW.json",
+      "sha256": "d453c985c6c2bcaa74a739d41450b071f2ca652cfb6eaabcbedc01936241172b"
+    },
+    "method_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199/METHOD_REVIEW.json",
+      "sha256": "b71a6a746ed14a758fd3d0b09abb85be9609288242758a54fd8a8c3b283381a3"
+    },
+    "execution_admission": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199/EXECUTION_ADMISSION.json",
+      "sha256": "b4e82dc6fb32784ec0dfde3528842848bf1bab931ab7456c51157637a3b40a1e"
+    },
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "TRAIN_constant_estimates": 3,
+      "class": "audit",
+      "genuine_ridge_regressions": 3,
+      "max_invocations": 1,
+      "max_wall_seconds": 1800,
+      "memory_bytes": 4294967296,
+      "native_model_forwards": 0,
+      "optimizer_updates": 0,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1,
+      "max_rchar_bytes": 8589934592
+    }
+  },
+  "native_launch_authorized": false
 }

@@ -37,13 +37,21 @@ originalkvitteringer og partialoutputs; ingen relansering eller opprydding.
 Feilene var testfixture-path, helperens NumPy-binding og tuple/JSON-listelikhet;
 minste rettelser er kontrollert, siste feil fanges nå før store datalesinger.
 
-199 er bare kildeforberedelse, ingen fit-admission. PREPARATION_SCOPE99c121d5…
-ligger under `NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199`.
-Neste steg er fast TRAIN-only referansefit og all-period-evaluering etter
-193DESIGNf98781c9…: tre ridge ved1/5/15min, alpha1 SUM-SSE, fri intercept,
-055fryst uten ny standardisering. TRAIN-middel og null er faste referanser.
-Numerisk solve-residual må bindes og kilde må vurderes før én egen admission.
-Ingen gammel autorisasjon åpner en ny jobb. training_enabled=false nå.
+199 har én eksakt engangsadmission etter metode- og kildepeer uten blokkere.
+PLAN og SOURCE_REVIEW ligger under
+`NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199`.
+Workerf62a66f9… bruker uendret194referanse:3TRAIN-only ridge ved1/5/15,
+alpha1 SUM-SSE/fri intercept/055fryst,3TRAINmiddel og fastnull. Ingen HPO.
+Fast normal-equation-residual≤1e−8 ved positiv RHS, ellers eksakt nullrest,
+og finite F64-tilstand/prognoser kreves. Det beviser ikke velkondisjonering.
+Budsjett audit4GiB/512MiB/éntråd/pids64/1800s+10TERM/8GiB rchar.
+Faktisk fitkapasitet og retningsresultat er fortsatt umålt. Alle perioder må vises.
+Kun seks kvalifiserte198snapshot/target/reference-filer; ingen originalOBS/
+Parquet/quote/cache/PT eller nativeF/U. Tiny evalueringsguard kommer førpayload;
+194/196tester gjenbrukes, ingen nye toyfits. Kilde/policy fryses gjennom jobben.
+Top training_enabled=true gjelder bare denne eksakte199referansefit;
+full_epoch/fullVAL/native_launch=false. Etter faktisk terminal stenges admission,
+planen forbrukes og resultat tolkes før konkret native forbedring velges.
 
 Samlet snapshot inneholder alle aktive kanoniske felt og femTF:3317koordinater
 blir3345kolonner når seks nominelle SMC-tilstander erstattes av6×5one-hot og
