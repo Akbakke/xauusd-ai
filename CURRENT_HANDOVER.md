@@ -86,9 +86,9 @@ Streng actualinitialrapport-audit må bestå før egen4U/4F-tekniskplan og
 eventuelt fast hovedbudsjett. training_enabled/full_epoch/fullVAL=false.
 Prognosegevinst er fortsatt umålt;ingenTEST/broker/live/paper/promotion.
 
-Neste porter er fokusert syntetisk native-wiring-kvalifisering, fersk genuine
-initialstate/ONLINEbaseline og optimizer/resume-paritet før en egen fast native-
-sammenligning.191/188 erstatter ikke ny funksjons egen startmåling. Samme frosne057
+Native-wiring-kvalifisering og fersk initialstate er fullført. Neste porter er
+228s genuine ONLINEbaseline, streng lagret-rapportaudit og egen optimizer/resume-
+paritet før en separat innrømmet fast native-sammenligning.191/188 erstatter ikke ny funksjons egen startmåling. Samme frosne057
 rekkefølge118249/batch16/7391steg, prisfasit/kostnader og budsjett skal gjenbrukes.
 Prognoseforbedring er fortsatt umålt. Ingen220/221/222/223-relaunch. Mislykkede
 kvitteringer/sidefiler beholdes; ingenDATA/RUNS-rydding.
