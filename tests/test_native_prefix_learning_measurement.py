@@ -707,3 +707,14 @@ def test_dynamic_technical_caller_publishes_role_failure_and_reraises_original(d
     assert report["optimizer_updates"] == 0 and report["native_training_admitted"] is False
     assert report["test_data_used"] is False
     assert not (path.parent / "RESULT.json").exists()
+
+
+@pytest.mark.parametrize("record", ["result", "train", "control"])
+def test_dynamic_learning_admission_rejects_stray_gc_identity_in_saved_off_records(dynamic_learning_measurement, record):
+    case = dynamic_learning_measurement
+    saved = case["result"] if record == "result" else case["observations"][record]
+    assert "gc_mtf_history_identity" not in saved
+    saved["gc_mtf_history_identity"] = None
+    case["seal_learning"]()
+    with pytest.raises(RuntimeError, match="GC_MTF_HISTORY_IDENTITY_UNEXPECTED"):
+        native.require_chronological_learning_measurement(case["recipe"])

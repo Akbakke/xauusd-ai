@@ -1906,6 +1906,7 @@ def require_chronological_learning_measurement(recipe, *, initial_measurement_au
     dynamic_prefix = (_require_dynamic_m5_native_prefix(recipe) if _dynamic_m5_native_design(recipe) is not None else None)
     if dynamic_prefix is not None:
         _require_dynamic_initial_artifacts(recipe, dynamic_prefix, initial, measurement)
+        _require_gc_mtf_history_identity_records(initial.get("gc_mtf_history_identity"), result)
     expected = initial.get("online_model_state_sha256")
     repo = Path(__file__).resolve().parents[2]
     model_source = "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py"
@@ -1968,6 +1969,7 @@ def require_chronological_learning_measurement(recipe, *, initial_measurement_au
                     recipe["chronological_prefix"]["design"], measurement["coordinate_result"], role=role):
                 raise RuntimeError("NATIVE_PREFIX_LEARNING_PHYSICAL_COHORT_MISMATCH")
         if dynamic_prefix is not None:
+            _require_gc_mtf_history_identity_records(initial.get("gc_mtf_history_identity"), observation)
             source = dynamic_prefix["physical_preprocessing"]["physical_sources"]["train" if role == "train" else "val"]
             if (cohort.get("parent_entry_parquet") != source["parquet"]
                     or cohort.get("parent_entry_manifest") != source["manifest"]):

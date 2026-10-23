@@ -36,7 +36,7 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Nå:225 fersk GC-ON-initialisering innrømmet én gang
+## Nå:226 minste rettelse av lagret målerapports GC-identitet
 
 223 er COMPLETE/consumed og actualpeer429b80de… PASS:15readonlyNPY,
 467723564B, fem separate TRAIN-normaliseringer,84,292sworker/85,268sytre.
@@ -57,12 +57,20 @@ eller endringav generator/selektor/gather/055/targets/kostnader/åttefamilier/D1
 224 COMPLETE/consumed:11/11 guardcases PASS,0fail/error/skip,0forwards og5
 syntetiske normaliseringsfits,32,098sworker/33,003sytre,frystkilde/policy.38
 tidligere PASS gjenbrukes. Falsk/endret metadata,payload,klokke og state avvises.
-225PLAN og kildepeer5e9ff3cd… PASS innrømmer én fersk GC-ON CPUstate gjennom
-eksisterende publisering: audit4GiB/512MiB,64pids,1tråd,900s/64GiBrchar,F0/U0/
-refit0. Original055/057/111 og11filrefs beholdes, nytt GCmanifest/profil og fersk
-sourceclosure bindes. Kanonisk integritetshashing/koordinatvalidering kan lese
-fysiske bytes; ingen Dataset-/GC-arraymaterialisering. Kilde/policy fryses.
-224actualpeer3ca8053b… PASS. Native initialmåling/trening er fortsatt lukket.
+225 COMPLETE/consumed: fersk GC-ON CPUstate med faktisk0forward/update/fit/
+Dataset-/GC-arrayåpning.27inputstat bookends matcher;287,275sworker/289,448sytre.
+Profil880cbd1a… er kanonisk målt;184closure-roller, kun GC-eieren er lagt til.
+ONLINE=TARGET=EMA0 og strictstate/normalisering/RNG-roundtrip er verifisert av
+eksisterende publisher.49,43GBrchar omfatter integritetshashing, ikke nullbytes.
+
+Ekstra målrettet kildepeer fant ett hull: senere baseline-admisjon ignorerer
+GC-identitet i lagretRESULT og beggeOBS.226DESIGN åpner kun to eksisterende
+helperkall i campaign-validatoren og tre syntetiske negative cases, ikke
+modellmatematikk.226PLAN innrømmer én audit4GiB/512MiB,64pids,1tråd,180s/
+1GiBrchar:24syntetiske surfacefits+3categoryfits+3RMSfits,0GCfit/forward/update.
+Kun de tre nye cases kjøres;224ON-helperbevis gjenbrukes. Etter PASS
+må nye kildereferanser og freshstate publiseres;225 relabeles aldri. Dens ubrukte
+framtidigeINITIAL226-sti er avløst før launch. Native baseline/trening er lukket.
 
 Neste porter er fokusert syntetisk native-wiring-kvalifisering, fersk genuine
 initialstate/ONLINEbaseline og optimizer/resume-paritet før en egen fast native-
