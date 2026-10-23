@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T01:34:07.640041+00:00",
-  "status": "191_BOUNDED_MAIN_COMPLETE_192_GUARDED_SAVED_COMPARISON_ONLY_ADMITTED",
+  "observed_utc": "2026-10-23T01:53:50.255594+00:00",
+  "status": "COMPLETE_CONSUMED_EARLY_PATH_FIT_IMPROVED_DIRECTION_AND_ENTRY_UNQUALIFIED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "191 consumed at7391updates and32finalforwards; candidate remains plannedRESUMABLE/completefalse/bundlefalse. Only exact guarded192 savedCPUcomparison admitted under current goal, no new training/native/reboot/fullVAL/HPO/TEST/Exit.",
-  "next_action": "Commit/push current docs; publish exact guarded192 four-field cleanpostcommit binding and run once capped audit4G/512M/1thread/pids64/1800s+10TERM. Read6OBS,one178aggregate,6small canonical parent-pointer projections and frozen111RMS JSON once. Review actual paired direction/amplitude/MFE/preMAE/selection/FLAT coverage and fixed calendar bands/support. No new epoch or automatic promotion.",
+  "rule": "191 main and192 savedcomparison are consumed. EarlyMFE/preMAE pointfit improved; no qualified direction/selectedEntry/generalization/edge. Training/native/fullVAL/TEST/Exit/HPO/costfit/selectorchange remain closed. Active continuous goal may prepare next broad feature-information-versus-learning qualification design; no new execution is admitted by old one-shots.",
+  "next_action": "Use actual192decision/digest and current feature/method docs to define one broad foundation diagnostic separating genuine feature directioninformation from learning/use. Preserve sharedTransformer/eight specialists+ninthD1macro and all genuine causal inputs. No more lossweight/threshold/favoriteperiod search, extraepoch, automatic inversion or oldplan relaunch. Prepare exact scope/budget/joins before any separate new admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -65,9 +65,9 @@
     "profitability_demonstrated": false,
     "required_before_more_extensive_training": true,
     "entry_learning_demonstrated": false,
-    "current_evidence_scope": "191 current184MFEfunction completed exactly118249TRAIN/7391U and32finalONLINEF on own188/fixed256+256, source/guard/peerPASS; paired learning, direction, MAE/MFE and actual LONGSHORTFLAT selection not yet reviewed.178 prior function evidence retained, not a191quality verdict.",
+    "current_evidence_scope": "192actual191vsown188/matched177:all512finalFLAT;5/6primarynetcontrastMSEworsevsown188 and4/6bettervs177;all12paircomparisons have day/weekCIs crossing0. Earlyinclusive+closed MFE/preMAE raw+111RMSpointMSE improvevsown188;rawCONTROL earlyMFE andlaterMFEworsevs177. Scope23reusedmonths/fixed512probes, no OOF/untouchedgeneralization/economics.",
     "component_learning_measured": true,
-    "component_learning_result": "PARTIAL_OVERAMPLITUDE_CORRECTION_SHORT_DIRECTION_AND_SELECTED_ENTRY_UNQUALIFIED",
+    "component_learning_result": "EARLY_PATH_POINT_FIT_IMPROVED_WITH_LONGER_MFE_TRADEOFF_DIRECTION_AND_SELECTED_ENTRY_UNQUALIFIED",
     "primary_entry_quality_qualified": false,
     "paired_learning_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/PAIRED_LEARNING_REVIEW.json",
@@ -122,8 +122,8 @@
       "direction_improvement_established": false
     },
     "latest_direction_comparison": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TERMINAL_BALANCE_DIRECTION_COMPARISON_20261022_178/DECISION.json",
-      "sha256": "0596ebc08787bda79902f4cccfc52624bdeac7513676eaa4a0892da083857cd3"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/DECISION.json",
+      "sha256": "6a367a6820d6cb9e5e74b8762355670c73003cbbb853dee92378ac375e2d12b4"
     },
     "latest_saved_loss_allocation": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/SUMMARY.json",
@@ -179,11 +179,15 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/TERMINAL.json",
       "sha256": "aeee0a93564499d0b53e28acce70406e928c8fd4b7815099d5927f85d47de1fb"
     },
-    "current_function_main_paired_review_pending": true
+    "current_function_main_paired_review_pending": false,
+    "latest_current_function_paired_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/ACTUAL_DIRECTION_COMPARISON_PEER_REVIEW.json",
+      "sha256": "5e310cee9367d05bc92b1a08a3b3ee4d814009f658789249720dc7433557a57e"
+    }
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "192_GUARDED_SAVED_FIXED_COHORT_DIRECTION_PATH_COMPARISON_ONLY",
+    "current_activity": "192_CLOSED_NEXT_BROAD_FEATURE_INFORMATION_VS_LEARNING_DESIGN_ONLY_NO_EXECUTION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -209,14 +213,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_NOT_COMPLETE_191_DIRECTION_PATH_SELECTION_REVIEW_PENDING",
+    "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTION_SELECTED_ENTRY_FEATURE_VALUE_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "191_ONE_BOUNDED_MAIN_TRAIN_PASS_COMPLETE_FIXED_FINAL_QUALITY_REVIEW_PENDING",
+    "latest_terminal_role": "192_SAVED_COMPARISON_COMPLETE_EARLY_PATH_FIT_IMPROVED_ENTRY_UNQUALIFIED",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/TERMINAL.json",
-      "sha256": "aeee0a93564499d0b53e28acce70406e928c8fd4b7815099d5927f85d47de1fb"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/TERMINAL.json",
+      "sha256": "b992f04058b4a0f0159c7bf8a0a10f15bcda8a299f14824c50f03237174791b7"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -16062,8 +16066,8 @@
       "latest_actual_initial_checkpoint_write_seconds": 0.531438
     },
     "latest_native_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/RUNTIME/receipts/invocation-0001.json",
-      "sha256": "392c9d153ae78beea38538a33fbdee41bf5ed4efe40bcb4d2f101c8c10c80b95"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/TERMINAL.json",
+      "sha256": "aeee0a93564499d0b53e28acce70406e928c8fd4b7815099d5927f85d47de1fb"
     },
     "latest_native_terminal_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/ACTUAL_INITIAL_PEER_REVIEW.json",
@@ -17187,7 +17191,11 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_STATE_AUDIT_20261022_189/ACTUAL_STATE_AUDIT_PEER_REVIEW.json",
       "sha256": "ca247b85a3b85bafb4797867868395f57dbf1c66fe03807887f7d425337661f7"
     },
-    "training_active": false
+    "training_active": false,
+    "latest_decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/DECISION.json",
+      "sha256": "6a367a6820d6cb9e5e74b8762355670c73003cbbb853dee92378ac375e2d12b4"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -19751,7 +19759,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-23T01:34:07.640041+00:00",
+  "updated_utc": "2026-10-23T01:53:50.255594+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20392,69 +20400,97 @@
     }
   },
   "latest_terminal_receipt": {
-    "schema_version": "gx1_bounded_main_train_terminal_status_v1",
+    "schema_version": "gx1_saved_cpu_comparison_terminal_status_v1",
     "status": "COMPLETE",
-    "observed_utc": "2026-10-23T00:57:51.663882+00:00",
-    "scope_result": "Exactly one bounded7391-update TRAIN pass and planned32-forward final measurement completed. Candidate session remains RESUMABLE/completefalse/bundle_writtenfalse at declared optimizer ceiling; no extraepoch or finished modelbundle claim.",
+    "observed_utc": "2026-10-23T01:37:15.251113+00:00",
+    "scope_result": "COMPLETE_CONSUMED_EARLY_PATH_FIT_IMPROVED_DIRECTION_AND_ENTRY_UNQUALIFIED",
     "references": {
       "terminal": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/TERMINAL.json",
-        "sha256": "aeee0a93564499d0b53e28acce70406e928c8fd4b7815099d5927f85d47de1fb"
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/TERMINAL.json",
+        "sha256": "b992f04058b4a0f0159c7bf8a0a10f15bcda8a299f14824c50f03237174791b7"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/RESULTS.json",
+        "sha256": "46fafbbda7aa93872ca7aa756cca6f37a6c74f8729692bb195b9a42e28131ae0"
+      },
+      "summary": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/SUMMARY.json",
+        "sha256": "f77a9178441caa30b528f2e5e92bdb7a016d4a4d7e5229da9363dafcc1e37007"
       },
       "actual_peer": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/ACTUAL_NATIVE_TERMINAL_PEER_REVIEW.json",
-        "sha256": "a92d2941201a3193db8d37938a8016eaaf201d6d7a958bc98b02eb2e31a8d775"
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/ACTUAL_DIRECTION_COMPARISON_PEER_REVIEW.json",
+        "sha256": "5e310cee9367d05bc92b1a08a3b3ee4d814009f658789249720dc7433557a57e"
       },
-      "source_preservation": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/POST_NATIVE_SOURCE_PRESERVATION.json",
-        "sha256": "7108356643c98fa9d5adb4e2146cf4aa233e1f966bbba073f3ba112e89b201c0"
+      "interpretation": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/INTERPRETATION.json",
+        "sha256": "cfd581f416c283d6b549cd6a2a41b40e269b75c8871fb73537c9c4066474a4ca"
       },
-      "windows_task_completion": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/WINDOWS_TASK_COMPLETION.json",
-        "sha256": "b08eae76722dac065d1cc2e1465e55886aa62333cba614c88e960fe5c6511e58"
+      "decision": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/DECISION.json",
+        "sha256": "6a367a6820d6cb9e5e74b8762355670c73003cbbb853dee92378ac375e2d12b4"
       },
-      "native_receipt": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/RUNTIME/receipts/invocation-0001.json",
-        "sha256": "d151155cc488cdbac112163780f485b0e41b76521b7b80b70f3311ef03b39951"
+      "source_lock_closure": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/SOURCE_LOCK_CLOSURE.json",
+        "sha256": "a9c7051d3f5f4c5e31a8d83e7024864900611ae4ed911ade16ba37202f6e6ae9"
       },
-      "final_result": {
-        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/.gx1-candidate-training-session.BUNDLE/final_online_measurement/RESULT.json",
-        "sha256": "a9a1fd8c45575ced345281bf94946675d270137199ea072f237b57442aa485ed"
+      "execution_capture": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/EXECUTION_CAPTURE.json",
+        "sha256": "ccb9acc5f0fa8ba396e3240e631b4f8b868d73da8119f6852b42c400478f3bb2"
       }
     },
-    "source_head": "5644cc53d82b78e1cc89650d9b47199f0e018485",
-    "policy_sha256": "8374d3bd1eb4d662f9c180e4ccd6a71d6cbf284784d66d1d9f9e4c532caf5bd3",
+    "source_head": "aded92d4a53481dac837eb2e849abf65fa2fda90",
+    "policy_sha256": "d48ec7fa2595fb57c9a0093c6e09612f4f59dc18e0cd36820c55e0522cc81807",
     "source_unchanged": true,
-    "policy_unchanged": true,
-    "native_source_digest": "ed1c6fa0abf71d5f916ee613efe6e22315ee2af15b66802ba495113ce1dd711b",
-    "native_source_roles": 183,
-    "boot": {
-      "boot_id": 529,
-      "computer_name": "ANDRE2",
-      "identity_sha256": "5303fda225fdc724515cd8234b58e597193d38e6e2409effa91171ef038e921f",
-      "last_boot_utc": "2026-10-22T23:09:15.5000000Z",
-      "schema_version": "gx1_windows_boot_identity_v1"
+    "policy_unchanged_through_execution": true,
+    "limits": {
+      "cgroup_path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-r98c731351ea244c6ab1b57b6c8b09417.scope",
+      "class": "audit",
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "execution_mode": "cpu_audit",
+      "lock": {
+        "lock_device": 78,
+        "lock_inode": 35,
+        "lock_path": "/run/user/1000/gx1-current-heavy-job.lock",
+        "owner_pid": 194432,
+        "owner_start_ticks": 872933,
+        "scope": "/user.slice/user-1000.slice/user@1000.service/app.slice/run-r98c731351ea244c6ab1b57b6c8b09417.scope"
+      },
+      "memory_high": 4294967296,
+      "memory_max": 4294967296,
+      "numerical_threads": 1,
+      "pids": 64,
+      "swap": 536870912
     },
-    "canonical_outcome": "RESUMABLE",
-    "candidate_session_complete": false,
-    "candidate_bundle_written": false,
-    "completed_task_disabled": true,
-    "project_lock_free_verified": true,
+    "exit_code": 0,
     "planned_invocations": 1,
     "completed_invocations": 1,
-    "main_training_updates": 7391,
-    "control_optimizer_updates": 0,
-    "fixed_final_encoder_forwards": 32,
+    "curve_JSON_reads": 6,
+    "canonical_pointer_projections": 6,
+    "retained_aggregate_JSON_reads": 1,
+    "frozen_loss111_JSON_reads": 1,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "normalization_fit_enabled": false,
     "training_enabled": false,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
-    "normalization_fit_enabled": false,
-    "learning_or_direction_improvement_measured": false,
-    "goal_complete": false,
-    "relaunch_allowed": false,
     "test_data_used": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "early_path_point_fit_improvement_measured": true,
+    "direction_improvement_qualified": false,
+    "primary_entry_quality_admitted": false,
+    "goal_complete": false,
+    "relaunch_allowed": false
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -25116,7 +25152,7 @@
     "direction_improvement_proved": false
   },
   "dynamic_m5_early_MFE_direction_comparison_192": {
-    "status": "GUARDED_STATIC_REVIEWED_ONE_SAVED_CPU_COMPARISON_ADMITTED_PENDING_FRESH_BINDING",
+    "status": "COMPLETE_CONSUMED_EARLY_PATH_FIT_IMPROVED_DIRECTION_AND_ENTRY_UNQUALIFIED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/PLAN_GUARDED.json",
@@ -25146,11 +25182,11 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/EVALUATION_PLAN.json",
       "sha256": "434fc9735415e8d6e1c0b2722753f708e8d8eb05fe5271ffa6ff7959fb73e90b"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
     "planned_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "budget": {
       "curve_JSON_reads": 6,
@@ -25194,6 +25230,45 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "primary_entry_quality_admitted": false,
-    "synthetic_runtime_guard_executed": false
+    "synthetic_runtime_guard_executed": true,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/TERMINAL.json",
+      "sha256": "b992f04058b4a0f0159c7bf8a0a10f15bcda8a299f14824c50f03237174791b7"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/RESULTS.json",
+      "sha256": "46fafbbda7aa93872ca7aa756cca6f37a6c74f8729692bb195b9a42e28131ae0"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/SUMMARY.json",
+      "sha256": "f77a9178441caa30b528f2e5e92bdb7a016d4a4d7e5229da9363dafcc1e37007"
+    },
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/ACTUAL_DIRECTION_COMPARISON_PEER_REVIEW.json",
+      "sha256": "5e310cee9367d05bc92b1a08a3b3ee4d814009f658789249720dc7433557a57e"
+    },
+    "interpretation": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/INTERPRETATION.json",
+      "sha256": "cfd581f416c283d6b549cd6a2a41b40e269b75c8871fb73537c9c4066474a4ca"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/DECISION.json",
+      "sha256": "6a367a6820d6cb9e5e74b8762355670c73003cbbb853dee92378ac375e2d12b4"
+    },
+    "digest": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/COMPARISON_DIGEST.json",
+      "sha256": "e30054c6d9654c2edc087f98f3b4b6bedb5d3aa11fe86090e64b0bde4fff9137"
+    },
+    "source_lock_closure": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/SOURCE_LOCK_CLOSURE.json",
+      "sha256": "a9c7051d3f5f4c5e31a8d83e7024864900611ae4ed911ade16ba37202f6e6ae9"
+    },
+    "execution_capture": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/EXECUTION_CAPTURE.json",
+      "sha256": "ccb9acc5f0fa8ba396e3240e631b4f8b868d73da8119f6852b42c400478f3bb2"
+    },
+    "synthetic_runtime_guard_passed": true,
+    "source_unchanged_at_terminal": true,
+    "goal_complete": false
   }
 }

@@ -19,7 +19,7 @@ sluttmålingen:118249unike TRAIN-rader,7391oppdateringer,B16/siste9/drop_lastfal
 har guardPASS/exit0 og planlagt RESUMABLE ved optimizer_step_ceiling7391.
 Candidate complete=false/bundle_written=false; ingen ferdig trainerbundle eller
 ekstraepoke er autorisert. Rootterminal aeee0a93… og actualpeer a92d2941…
-har ingen blokkere. Retningsgevinst og aktuelle actioncounts er ennå ikke målt.
+har ingen blokkere.192 har nå målt aktuelle valg og prisprognoser; alle512valg er FLAT.
 
 191 startet fra187fresh, brukte188owninitial og189savedstate-audit etter190privat
 mekanikkvalifikasjon; aldri190private eller177trente vekter. Alle11inputs,
@@ -36,43 +36,56 @@ CanonicalUID1000-prosjektlås er målt fri og ingen nativeworkload er observert.
 POST_NATIVE_SOURCE_PRESERVATION71083566… bevarer faktisk HEAD5644cc53/policy8374d3bd
 gjennom native. Originalkvitteringer, OBS og checkpoints bevares.
 
-192 er NY, separat savedCPU-sammenligning under det aktive kontinuerlige målet.
-Eneste admitted kandidat er192/PLAN_GUARDED.json213b07cf… og guardedworker1786b00d…;
-DESIGNb83fcfb5…/preparation6e7d7c50…/staticpeerff6175f1… har ingen blokkere.
-Tidligere uførte192prototyper er superseded og uadmitted. AST/compile og
-avgrenset matematikk-/metadatareview bestod; numerisk runtimeguard er ikke kjørt.
-Kun én audit4G/512M/éntråd/pids64/1800s+10TERM tillates etter clean docscommit og
-fersk firefelt EXECUTION_BINDING. Trening/fullEpoch/fullVAL/native/reboot er stengt.
-
-192 leser seks lagrede OBS én gang, én178aggregate, seks små canonical
+192 er COMPLETE/consumed: guardedPLAN213b07cf…/worker1786b00d…/binding2bb530bf…
+ga faktisk exit0,75,254s ytre/74,667s worker,audit4G/512M/éntråd/pids64/CPU0–7.
+Syntetisk N/SSE/mask/entrykalender-CI-guard bestod før originalOBS-lesing.
+Seks lagrede OBS ble lest én gang, én178aggregate, seks små canonical
 dynamic_entry_m1_row-projeksjoner og én frossen111LOSS_SCALES JSON for RMS.
-Dette er ikke zero-Parquet; ingen fullParquet/features/sekvens-/targetcache/PT/
-råMBP eller refit. Samme188initial/191final/matchet177 på identiske rader, mål,
-masker og klokker;151 beholdes bare som allerede målteALL-tall via178→177.
-Ingen nye191minus151-parintervaller eller151-under191grupper kan utledes.
+Ingen fullParquet/features/sekvens-/targetcache/PT/råMBP/refit eller nyeF/U.
+Canonicalvalidator og alle target/mask/cohort/clock/order/storage-joins bestod.
+Samme188initial/191final/matchet177;151 er bare tidligere målteALL via178→177,
+uten nye191minus151-parintervaller eller151-under191grupper.
 
-Vurder retning/amplitude, inklusive+closed MFE/preMAE, kost og faktisk
-LONG/SHORT/FLAT-kvalitet/dekning separat etter191EVALUATION. Behold186s åtte
-kalenderkvartaler og åtte faste bånd, ekte celle-N/SSE og entrykalenderbootstrap.
-Faktisk dag-/ukestøtte og tomme paneler skal vises; under8blokker er deskriptivt.
-Ingen favorittmåned/-minutt, terskel-/kostfit, inversregel eller automatisk trening.
-Lavere pooledtap eller alltidFLAT fullfører ikke målet.
+TERMINALb992f040…/RESULTS46fafbbd…/actualpeer5e310cee…/DECISION er immutable.
+COMPARISON_DIGESTe30054c6… er13,24MB projeksjon av eksisterende96,05MBRESULTS,
+ikke originalpayload. Rootpooledepathpunkter bruker inklusive+closed begge sider
+med ekte celle-N; ingen ny pooledCI er avledet av marginaleintervaller.
+HEADaded92d4/policyd48ec7fa var fryst gjennom CPUjobben; dispatcher/child er borte
+og canonicalUID1000-prosjektlås er målt fri. Ingen relansering eller ekstraepoke.
+
+Neste arbeid er kun design av en bred grunnmurkontroll som skiller genuin
+retningsinformasjon i features fra modellens læring/bruk. Bruk gjeldende metode
+og kvalifiserte inputs; behold fellesTransformer/åtte spesialister/9.D1makro.
+Ingen ny modell-/tap-/score-/kost-/terskelendring er valgt fra192. All trening,
+native/fullVAL/reboot og ny utførelse er stengt til en separat eksakt admission.
+Målet er aktivt og ufullført; ingen favorittmåned/-minutt, HPO eller snuregel.
 
 ## Siste ferdige retningsanalyse og kostnadsforklaring
 
-178 gjaldt forrige177funksjon og er consumed.177 valgte LONG0/SHORT0/FLAT256
-på både TRAIN og CONTROL; alltidFLAT er ingen selektivitet eller handelsgevinst.
-CONTROL nettkontrast-MSE(bps²) på samme rader/masker:
+192 er siste ferdige analyse.191 valgte LONG0/SHORT0/FLAT256 på både TRAIN og
+CONTROL; begge siders beregnede beste horisont er1 på alle512rader. Dette er
+ingen kvalifisert selektivitet eller handelsgevinst. CONTROL nettkontrast-MSE
+(bps²), identiske rader/masker:
 
-| Minutt | Egen173initial | 167final | 177final |
+| Minutt | Egen188initial | Matchet177 | Ny191 |
 |---|---:|---:|---:|
-|1|57,459|572,260|61,678|
-|5|228,358|686,241|227,369|
-|15|772,101|1358,138|774,629|
+|1|57,459|61,678|58,108|
+|5|228,358|227,369|225,698|
+|15|772,101|774,629|774,889|
 
-Alle6primærpaneler bedres mot167, men5av6 forverres mot egen173initial.
-CONTROLh1 predstd2,461 motobservasjon7,504bps,corr0,0578. Dempet overamplitude
-er ikke kvalifisert retning.191s læring/valg må vurderes i192, uten å arve dommen.
+Fem av seks primærpaneler/TRAIN+CONTROL er verre enn egen188initial; fire av seks
+er bedre enn177. Alle12MSE-par har både dag-/ukeintervaller som krysser0.
+Intervallene er deskriptive, ingen ny signifikans-/admissionsterskel.
+CONTROL diagnostisk fortegnstreff er45,3/49,6/46,0% ved1/5/15; ikke valgtehandler.
+Predstd1,40/1,41/1,42 mot observert7,50/15,09/27,73bps viser fortsatt svak
+tilstands-/horisonttilpasset retningsprognose. Ingen generell retningsgevinst.
+
+Tidlig1–15 inklusive+closed begge sider: TRAINråMFE-MSE56,173→41,202 og
+preMAE35,449→18,368 fra egen188; CONTROL394,898→291,943 og110,245→44,073.
+Original111RMS-punktfeil bedres også. Mot177 er CONTROLråMFE291,943 verre enn
+284,762, og senere16–480MFE er verre i begge roller. Dette er målte anslagsfeil,
+ikke mottattMFE/redusertMAE i handler.184 forbedret avgrenset tidligpathfit,
+men kvalifiserte ikke bedre retning, LONG/SHORT-valg eller størretrening.
 
 186s brede inversjonsreview er consumed,0nyeF/U/fit. Historisk167s faktisk valgte
 signaler ga terminalrespons etter deklarerte kostnader:
