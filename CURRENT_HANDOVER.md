@@ -97,7 +97,7 @@ Pakken forkastes som robust retningsforbedring; ingen feature-nytteløshets-,
 solverfeil-, nativeårsaks- eller økonomipåstand. DECISION og begge actualpeers
 ligger i211. Ingen relaunch eller nyfit/nativejobb er admittert.
 
-212 er admittert én gang for scoring: alle12 lagrede211modeller scores på sine
+212 er COMPLETE/consumed: alle12 lagrede211modeller er scoret på sine
 samme36 egne modne TRAIN-kohorter, uten refit. Eksakte210oppskrifter og fire
 TRAIN-artefakter gjenbrukes. Strøm1024rader; ingen full kodet matrise.
 18prefix×horisont-paneler med begge armer, lagret middel og null; kobles til
@@ -108,7 +108,37 @@ Kildepeer PASS fra loss_review/horizon_review; worker9796d575… fryst.
 EksaktPLAN dc737fbe6e31…: audit4GiB/512MiB/én tråd/64pids,900s+10s,
 8GiBrchar;12pass/36horisonter/887032kodede rader/874predictorkall. Tre små
 syntetiske kall før payload,0refit/normaliseringsfit/nativeF/U. Root eier launch;
-alle kilder/policy fryses. training_enabled=false, TEST/Exit stengt.
+Kilde/policy var uendret. Ytre327,530s, peakRSS796450816B.
+TERMINAL0a7ba5da…/ytre5088e3e3… ogRESULT/SUMMARY i212.
+Uavhengige actualpeers PASS:221kvitterings-/metadatakontroller og18eksakte
+kvartalskoblinger. Alle36TRAIN-scorer slår eget middel: baseline1,94–16,88%,
+relativ2,20–18,10% lavereMSE. Relativ bedre18/18TRAIN-par, bare9/18senere
+kvartalspar; begge taper18/18kvartalspaneler mot middel. Maks friintercept-
+rest2,14e−14bps;0FPbrudd og0positivSSE+straff−konstantSSE. Det er et målt
+fit–transfer-gap, ikke isolert overfit/nativeårsak eller prediktivinformasjon.
+DECISION/ACTUAL_EXECUTION_PEER/ACTUAL_TRAIN_FIT_REVIEW er immutable i212.
+Ingen ny kjøring er admittert.
+training_enabled=false, TEST/Exit stengt.
+
+213 er forberedt for én kildekvalifikasjon av den faste kapasitetsreferansen.
+Bruker23.10 bestilte mål og videre bygging/justering. Eksakt
+SOURCE_QUALIFICATION_PLAN binder27analytiske/state-tester,0markedspayload/fit,
+audit4GiB/512MiB/éntråd/64pids og180s+10s hardtimeout. Målt stateavvik er
+rettet: lagret intercept må stemme eksakt med target_mean−feature_mean@beta.
+Ingen test er kjørt ennå; uavhengig kildepeer og ren commit kreves før claim.
+Eksisterende SUM-SSE+1 tilsvarer mean-SSE+1/N; styrken faller med egetN.
+Ny fast kandidat: mean-SSE+1·||beta||², fri intercept, altså SUM-alpha=egetN
+perhorisont. Dette er en vesentlig sterkere prior, ikke bevist optimalstyrke.
+Isolert kontrakt/test; eksisterende baseline/native/features/targets/oppskrifter
+beholdes. Alle37price-action-USDfelter var allerede med i204s242transform;
+ingen utelatt37-feltsgruppe forklarer211svikten.
+DESIGN/PREPARATION_SCOPE i `NATIVE_M5_SNAPSHOT_CAPACITY_SOURCE_20261023_213`.
+Gradient_design eier ny kontrakt/eksternqualworker, horizon_review nytest,
+root policy/launch. Analytisk egenN/friintercept/duplikasjonsinvarians og
+strengt separat stateskjema kvalifiseres før en ny selvstendigfitplan.
+Senere plan vil bruke begge hele varianter/alle6prefixer/1,5,15min og frosne
+211kontroller;0HPO/periodevalg/featurefjerning. Ren krymping mot middel eller
+mindre negativfeil gir ingen retningseffekt. Ingen nativeendring er valgt.
 
 205/207 omfatter nye isolerte numeriske kilde-/testfiler for én kandidat:
 log(P/A) for alle242bevisteGC-nivåer, fellesA+observed én gang som kontekst.
@@ -246,4 +276,4 @@ for tilpasning/utvalg; bare vedtatt månedlig forwardjournal scorer utenrefit.
 Ingen Exit/broker/live/paper/ordre/spending/promotion. DATA/RUNS ryddes bare
 med retention-eier. Metode: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 training_enabled/full_epoch/fullVAL/native_launch=false.
-211planen er brukt. Bare eksakt212PLAN har én auditadmission; native/trening er stengt.
+211/212planene er brukt. Kun eksakt213syntetisk kildekvalifikasjon er forberedt; genuin fit og native trening er stengt.
