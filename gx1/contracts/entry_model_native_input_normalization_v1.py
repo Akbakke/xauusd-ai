@@ -837,6 +837,9 @@ def fit_surface_normalization(
         binary_fields = {str(name) for name in semantic_binary_fields} | _gc_context.binary_fields(names)
     binary_fields |= _micro_context.range_observation_binary_fields(names)
     binary_fields |= session_native_binary_event_fields(names)
+    # New GC histories retain source-declared first-retouch event units; legacy surfaces stay unchanged.
+    if str(surface) in ("gc_mtf_m5", "gc_mtf_m15", "gc_mtf_h1", "gc_mtf_h4", "gc_mtf_d1"):
+        binary_fields |= _gc_context.mtf_history_binary_fields(names)
     if (
         not set(categorical_domains).issubset(names)
         or not binary_fields.issubset(names)
@@ -1158,6 +1161,9 @@ def require_surface_normalization(
     )
     expected_binary_fields |= _micro_context.range_observation_binary_fields(names)
     expected_binary_fields |= session_native_binary_event_fields(names)
+    # New GC histories retain source-declared first-retouch event units; legacy surfaces stay unchanged.
+    if str(surface) in ("gc_mtf_m5", "gc_mtf_m15", "gc_mtf_h1", "gc_mtf_h4", "gc_mtf_d1"):
+        expected_binary_fields |= _gc_context.mtf_history_binary_fields(names)
     observed_binary_fields = {
         names[index] for index in np.flatnonzero(binary_mask)
     }

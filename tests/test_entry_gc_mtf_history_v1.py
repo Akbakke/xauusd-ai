@@ -17,6 +17,12 @@ from gx1.features.htf_features import (
 from tests.test_entry_v10_input_normalization_fit import _mtf_frame, _mtf_values
 
 MINUTE = 60_000_000_000
+# The SMC builder writes these event columns as float(False/True), retaining
+# unknown rows behind their own observation masks. Other GC values keep units.
+FIRST_RETOUCH_COLUMNS = frozenset({
+    "ob_bull_first_retouch", "ob_bear_first_retouch",
+    "observed_proxy_ob_bull_first_retouch", "observed_proxy_ob_bear_first_retouch",
+})
 # Physical source-table identities, not tokens in a field's display name.
 TABLE_TF = {"M5_GC_FEATURES.parquet": "M5"}
 TABLE_TF.update({f"TRADE_FEATURES_{tf}.parquet": tf for tf in MULTI_TF_SHIFT})
@@ -43,6 +49,8 @@ def _source_tables():
         for ci, name in enumerate(dict.fromkeys(row["column"] for row in fields)):
             columns[name] = ordinal * 1000.0 + ci * 10.0 + np.arange(3) + 0.25
         for row in fields:
+            if row["column"] in FIRST_RETOUCH_COLUMNS:
+                columns[row["column"]] = np.array([0.0, 1.0, 0.0])
             if row.get("role") == "structural_observation_mask":
                 columns[row["column"]] = np.ones(3)
             if row.get("validity_column"):
@@ -332,3 +340,80 @@ def test_normalization_fits_each_consumed_train_row_once_keeps_warmup_and_ignore
     changed = history.fit_gc_mtf_history_normalization(poisoned, selected, train_start_ns=start, train_end_ns=end, layout=layout)
     assert changed == bound["normalization"]
     history.require_gc_mtf_history(bound)
+
+
+
+def test_first_retouch_history_binary_fields_follow_source_domains_without_changing_legacy():
+    events = {f"gc_{tf.lower()}_observed_proxy_ob_{side}_first_retouch"
+              for tf in history.TIMEFRAMES for side in ("bull", "bear")}
+    events |= {f"gc_{tf}_ob_{side}_first_retouch"
+               for tf in ("m5", "m15") for side in ("bull", "bear")}
+    registry_events = {item["name"] for item in gc.REGISTRY["fields"]
+                       if item["column"] in FIRST_RETOUCH_COLUMNS}
+    assert registry_events == events
+    old_binary = set(gc.OBSERVED_FIELDS) | set(gc.STRUCTURAL_VALUE_FIELDS)
+    unknown = {"gc_m30_observed_proxy_ob_bull_first_retouch",
+               "gc_d1_observed_proxy_ob_bull_first_retouch_unproven"}
+    for prefix in ("", "ctx_cont."):
+        names = [prefix + name for name in (*gc.CONTEXT_FIELDS, *sorted(unknown))]
+        expected_old = {prefix + name for name in old_binary}
+        assert gc.binary_fields(names) == expected_old
+        assert gc.mtf_history_binary_fields(names) == expected_old | {prefix + name for name in events}
+    layout = history.gc_mtf_history_layout()
+    for tf in history.TIMEFRAMES:
+        assert set(layout["binary_fields"][tf]) == old_binary.intersection(layout["field_names"][tf]) | events.intersection(layout["field_names"][tf])
+
+
+def test_one_positive_first_retouch_train_event_fits_identity_and_fractional_value_fails(gc_case):
+    from gx1.contracts.entry_model_native_input_normalization_v1 import fit_surface_normalization
+    bound, surfaces, selected, start, end = gc_case
+    layout = bound["layout"]
+    sparse = deepcopy(surfaces)
+    for tf, surface in sparse.items():
+        names = layout["field_names"][tf]
+        for item in layout["source_fields"][tf]:
+            if item["column"] not in FIRST_RETOUCH_COLUMNS:
+                continue
+            vi = names.index(item["name"])
+            surface["features"][:, vi] = 0.0
+            surface["features"][selected[tf][-1], vi] = 1.0
+            assert np.count_nonzero(surface["features"][selected[tf], vi]) == 1
+    normalization = history.fit_gc_mtf_history_normalization(
+        sparse, selected, train_start_ns=start, train_end_ns=end, layout=layout,
+    )
+    history.require_gc_mtf_history_normalization(normalization, layout=layout)
+    assert normalization["provenance"] == bound["normalization"]["provenance"]
+    for tf in history.TIMEFRAMES:
+        stats = normalization["surfaces"]["gc_mtf_" + tf.lower()]
+        for item in layout["source_fields"][tf]:
+            if item["column"] not in FIRST_RETOUCH_COLUMNS:
+                continue
+            vi = stats["field_names"].index(item["name"])
+            assert (stats["center"][vi], stats["scale"][vi], stats["binary_mask"][vi]) == (0.0, 1.0, 1)
+            assert stats["scale_source"][vi] == "semantic_binary_identity"
+            assert (stats["train_transformed_min"][vi], stats["train_transformed_max"][vi]) == (0.0, 1.0)
+    names = layout["field_names"]["D1"]
+    bad = sparse["D1"]["features"][selected["D1"]].copy()
+    bad[-1, names.index("gc_d1_observed_proxy_ob_bull_first_retouch")] = 0.5
+    with pytest.raises(RuntimeError, match="BINARY_DOMAIN_INVALID"):
+        fit_surface_normalization(bad, surface="gc_mtf_d1", field_names=names)
+
+
+def test_first_retouch_identity_does_not_reclassify_existing_055_or_other_default_surfaces():
+    from gx1.contracts.entry_model_native_input_normalization_v1 import (
+        fit_surface_normalization, require_surface_normalization,
+    )
+    value = "gc_d1_observed_proxy_ob_bull_first_retouch"
+    names = [value, value + "_observed"]
+    raw = np.array([[0, 1], [0, 1], [1, 1], [1, 1]], dtype=np.float32)
+    for surface in ("signal", "ctx_cont", "gc_mtf_m30"):
+        stats = fit_surface_normalization(raw, surface=surface, field_names=names)
+        # These are the existing055 rules: event values remain continuous,
+        # observation gates remain binary, and serialized metadata still loads.
+        assert stats["center"] == [0.5, 0.0] and stats["scale"] == [1.0, 1.0]
+        assert stats["binary_mask"] == [0, 1]
+        assert stats["scale_source"] == ["raw_iqr", "semantic_binary_identity"]
+        assert require_surface_normalization(stats, surface=surface, field_names=names) == stats
+    sparse = np.array([[0, 1], [0, 1], [0, 1], [0, 1], [1, 1]], dtype=np.float32)
+    with pytest.raises(RuntimeError, match="UNSCALEABLE"):
+        fit_surface_normalization(sparse, surface="ctx_cont", field_names=names)

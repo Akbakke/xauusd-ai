@@ -90,7 +90,7 @@ def gc_mtf_history_layout():
         'families': families, 'field_names': names, 'family_indices': owners,
         'value_mask_pairs': {tf: [list(pair) for pair in gc.masking_pairs(names[tf])] for tf in TIMEFRAMES},
         'widths': {tf: len(names[tf]) for tf in TIMEFRAMES}, 'window_rows': dict(WINDOW_ROWS),
-        'binary_fields': {tf: [name for name in names[tf] if name in gc.binary_fields(names[tf])]
+        'binary_fields': {tf: [name for name in names[tf] if name in gc.mtf_history_binary_fields(names[tf])]
             for tf in TIMEFRAMES}, 'categorical_domains': {tf: {} for tf in TIMEFRAMES},
         'source_registry': {'path': gc.REGISTRY_PATH, 'sha256': gc.REGISTRY_SHA256},
         'source_tables': json.loads(json.dumps(gc.REGISTRY['tables'])), 'source_fields': source}

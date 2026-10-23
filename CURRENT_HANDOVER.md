@@ -36,22 +36,27 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Nå:221 minste rettelse etter220 målt kontrollstopp
+## Nå:222 minste semantikkrettelse etter221
 
-220 er FAILED/consumed: cacheloader fullførte15NPY,1M5hash,1manifest/12params,
-men150squeezeSHA-kall mot planlagt78. Dobbel canonical provenancevalidering
-forklarer målt9M1+45M5+48tape+48pair; alleSHA stemte. Ingen loaderendring.
-0selectors/GC-tabell-lesing/fit/projeksjon/utdata/modellarbeid. Ingen220-relaunch.
+220 er FAILED/consumed på feil forhåndstalt hashmultiplisitet.221 rettet bare
+78→150 med faktisk9M1+45M5+48tape+48pair; eksisterende loader/vakter er bevart.
+221 fullførte150hashes/15cacheNPY, ti selectors med eksakt055TRAINvindu/proof,
+14logiskeGC-tabeller/10filer, fem projeksjoner og15sidefiler467723564B.
+Fysiskklokkefasekontroll ble passert. Ingen målutfall ellermodellarbeid.
 
-221s nye plan119746e5…/workerb89f8c30… korrigerer bare telling/bindinger,
-med original220design/input/addendum og målt kildeclosurec0d94436….
-Sammeaudit4GiB/512MiB/64pids/éntråd/900+10s,8GiBrchar/1GiBNPY-utdata.
-Canonical15cachearrayer,14logiskeGC-tabeller/10filer, to198klokke-NPZer/fire
-medlemmer og eksplisitt hash-onlysqueeze/M5-lukning beholdes. Faktisk TRAIN-
-klokke/vindu/proof skal være lik original055 før fem separate GC-statistikkfit.
-CONTROL lager kun kontekstinventar.0targetmedlemmer/prediktorfit/modellforward/
-optimizer/Exit/TEST. Sourcepeerffc6dac6… er PASS; én ny221invokasjon er innrømmet. Ingen relaunch.
-Kilde/policy fryses fra faktisk launch til terminal. Originalkvitteringer beholdes.
+221 er FAILED/consumed i femte normaliseringsfit: D1-feltet
+`gc_d1_observed_proxy_ob_bull_first_retouch` var UNSCALEABLE som kontinuerlig verdi.
+222 undersøker kildeformelens0/1-domene og tillater bare nødvendig semantikkrettelse
+for nye `gc_mtf_*`-flater. Ingen prøvedatabasert domenegjetting, skalagulv eller
+unobserved-fallback. Original055 og gammel defaultnormalisering bevares.
+222minste patch og fire nye tester er klare. Kildepeer576b14b3… PASS binder plan288ac1ee…
+og worker5b21017e…. Én38cases syntetisk audit er innrømmet,4GiB/512MiB/64pids/
+éntråd/180+10s. Ingen genuine payload/fit/forward/update; kilden fryses under kjøring.
+
+221s15readonlysidefiler beholdes ukvalifisert. SHA ble beregnet internt, men varig
+manifest kom aldri før fitfeilen; ingen historisk outputdigest kan sammenlignes.
+Ingen ny rekonstruksjonsbane. Etter minimal kildekvalifisering brukes eksisterende
+81s-produsent med samme inputs i en ny fysisk plan. Ingen220/221-relaunch.
 
 Neste steg etter kvalifisert220 er minste kobling inn i eksisterende dynamiske
 Entry-rute, ikke en ny trener. Fersk initialbaseline for den endrede ONLINE-

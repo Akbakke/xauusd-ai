@@ -264,6 +264,22 @@ def test_no_gc_argument_preserves_initial_rng_state_parameters_and_exact_outputs
         implicit(**kwargs, gc_seq_m5=torch.ones(1, 4, 3))
 
 
+def test_first_retouch_runtime_keeps_source_binary_units_and_rejects_fractional_events(candidate_case):
+    _profile, model, inputs, _normalization = candidate_case
+    for tf in history.TIMEFRAMES:
+        names = model.gc_mtf_history["layout"]["field_names"][tf]
+        value = f"gc_{tf.lower()}_observed_proxy_ob_bull_first_retouch"
+        vi, mi = names.index(value), names.index(value + "_observed")
+        raw = inputs["gc_seq_" + tf.lower()][:, :2].clone()
+        raw[..., vi] = torch.tensor([0.0, 1.0])
+        raw[..., mi] = 1.0
+        normalized = model._normalize_input_surface(raw, surface="gc_mtf_" + tf.lower())
+        assert torch.equal(normalized[..., vi], raw[..., vi])
+        bad = raw.clone(); bad[0, 0, vi] = 0.5
+        with pytest.raises(RuntimeError, match="BINARY_VALUE_INVALID"):
+            model._normalize_input_surface(bad, surface="gc_mtf_" + tf.lower())
+
+
 def test_new_gap_reuses_own_bbo_mask_after_asinh_normalization(candidate_case):
     _profile, model, inputs, _normalization = candidate_case
     for tf in history.TIMEFRAMES:

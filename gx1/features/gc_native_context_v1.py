@@ -101,6 +101,15 @@ def binary_fields(names):
     return {name for name in names if str(name).removeprefix('ctx_cont.') in declared}
 
 
+def mtf_history_binary_fields(names):
+    """Source-formula first-retouch bits on additive GC history surfaces only."""
+    columns = {'ob_bull_first_retouch', 'ob_bear_first_retouch',
+        'observed_proxy_ob_bull_first_retouch', 'observed_proxy_ob_bear_first_retouch'}
+    declared = {item['name'] for item in REGISTRY['fields'] if item['column'] in columns}
+    return binary_fields(names) | {name for name in names
+        if str(name).removeprefix('ctx_cont.') in declared}
+
+
 
 
 def _needed_columns(fields):
