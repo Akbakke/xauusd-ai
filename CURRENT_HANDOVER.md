@@ -98,7 +98,11 @@ Netto−92,118bps skiller derfor ennå ikke prisnivåbidrag fra datatilgjengelig
 Neste avgrensede kilde-/metadataarbeid definerer en komplett verdi/markør-
 inndeling av eksisterende202kolonneregnskap, alleperioder/horisonter/celler.
 Ingen featurefjerning/rangering, nyfit, normaliseringsendring eller ny modell
-velges uten dette skillet. Egen eksakt admission kreves før nyledgerlesing.
+velges uten dette skillet. 203 er separat engangsadmittert etter kildepeer: én202ledger på8,15MB,
+alle3345kolonner/99paneler/48celler splittes i1280kildebestemte markører,
+34nominalindikatorer og2031øvrigeverdier/tilstander.0fit/forward/replay.
+Audit4GiB/512MiB/éntråd/pids64/300s+10s/256MiBrchar; egenplan under
+`NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203`.
 training_enabled/full_epoch/fullVAL/native_launch=false. Målet er ufullført.
 
 Samlet snapshot inneholder alle aktive kanoniske felt og femTF:3317koordinater
