@@ -79,7 +79,14 @@ Neste avgrensede arbeid forbereder eksakt aritmetisk avstemming av hele aktive
 feature-/TF-flaten mot denne forskyvningen, alleperioder/horisonter. Ingen
 familierangering, featurefjerning, ablation, HPO eller modellvalg er autorisert.
 Bidrag er regnskap for denne korrelerte lineære referansen, ikke kausal verdi.
-Kun kilde-/metadataforberedelse nå; egen0fitadmission kreves forarraydiagnose.
+202 forbereder dette komplette regnskapet: alle3345kolonner og48deklarerte
+familie/inputflate-celler,32aktive/16tomme, alle99periode×horisont-paneler.
+202 er separat engangsadmittert etter uavhengig metode-/kildepeer.
+Fem kvalifiserte inputfiler, én numerisk matrisegjennomgang perrolle i1024rader,
+ferskeSHA-lesinger og eksakt avstemming mot201.0fit/forward/replay/oppdatering.
+Audit4GiB/512MiB/éntråd/pids64/1800s+10s/8GiBrchar; kilde/policy fryses.
+PLAN og kvitteringer ligger under
+`NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202`.
 training_enabled/full_epoch/fullVAL/native_launch=false. Målet er ufullført.
 
 Samlet snapshot inneholder alle aktive kanoniske felt og femTF:3317koordinater
@@ -138,8 +145,8 @@ Dette viser konsum, ikke optimal featurebruk eller kronologisk merverdi.
 TRAIN[2024-05-01,2026-01-01), Q1CONTROL[2026-01-01,2026-04-01) er23gjenbrukte
 utviklingsmåneder. April–juni venter fysisk binding; råkildemålet er26måneder.
 WholeTRAIN055 og TRAIN-fittede konstanter tillater ikke internTRAIN-OOF.
-199 skal vise alle måneder/kvartaler/ALL og alle1/5/15,2000UTCdag-/mandagsuke-
-bootstrap med samme kalendervekter/egne masker; sparse<8blokker merkes.
+201 har vist alle måneder/kvartaler/ALL og alle1/5/15,2000UTCdag-/mandagsuke-
+bootstrap med samme kalendervekter/egne masker; sparse<8blokker erdeskriptive.
 Direkte191-sammenligning gjelder bare256+256lagrede rader,ingen nyeforwards.
 Ingen av disse dataene er urørt generalisering.
 

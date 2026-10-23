@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-23T08:03:03.732726+00:00",
-  "status": "FIXED_REFERENCE_REJECTED_LATER_DEVELOPMENT_WEIGHTED_INPUT_SHIFT_DIAGNOSIS_PREPARATION",
+  "status": "ONE_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_ADMITTED_NO_FIT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -196,7 +196,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "201_REFERENCE_COMPLETE_REJECTED_LATER_VALUE_BROAD_TRANSFER_DIAGNOSIS_PREPARATION",
+    "current_activity": "202_ZERO_FIT_ALL3345_INPUT_SHIFT_ACCOUNTING_ADMITTED_ONCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7720,7 +7720,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare broad exact weighted-input-mean-shift diagnostic across complete declared active columns/lanes using existing201state and198snapshots. No feature ranking/removal, ablation, retuning, refit, nativeforward or newmodelchoice yet. Every cell/period/horizon retained; contributions arithmetic not causal attribution. Source/metadata preparation only; any array operation needs a separate exact bounded0fit admission.201fits consumed; allnative/fullVAL/Exit/TEST/promotion closed.",
+    "next_action": "Freeze cleanHEAD/policy, dispatch exact202once undercanonical cappedlock, reconcileall99 then closeauthority and record actualterminal. No model improvement selected.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -9606,9 +9606,9 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "191epoch and192paired comparison complete consumed; no relaunch/extraepoch authority.193design accepted for bounded source preparation only.",
+        "191epoch/192paired native comparison and201full snapshot reference are complete consumed; no relaunch/extraepoch authority.202prepares broad fixed-reference mean-shift accounting only.",
         "180all32activefamilylanes/8floatsurfaces have localdependency on16TRAIN;3317canonicalfields accounted. This is preserved scoped consumption evidence.",
-        "181/182source/gradient interpretations completed without isolated training-cause proof; no repeated witness or new architecture authorized.",
+        "201fixed all3345column ridge reference improves TRAINfit but worsens all9Q1month-horizon panels; no isolated native optimizer/loss/architecture cause proved.",
         "Feature chronological value/optimality and LONG/SHORT/FLATquality/coverage/generalization/economics remain unqualified."
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
@@ -10587,9 +10587,9 @@
         },
         "known_remaining_native_source_gaps": [
           "No new feature-generator/routing/numeric-causality defect proved;175active compact qualification and180local consumption retained.",
-          "191/192current function improves scoped early path pointfit but direction and selectedEntry are unqualified.",
-          "193design requires one bounded snapshot/target adapter using existing owners; no native model/loss/score/feature change selected.",
-          "No new data job, fit, epoch, fullVAL, native forward, reboot or relaunch admitted. Exit andTEST stay closed."
+          "191/192current native function improves scoped early path pointfit but direction and selectedEntry are unqualified.",
+          "198all135533snapshot rows physically qualified;201fixed reference completed and rejected as later-direction improvement.202source preparation covers exact broad arithmetic mean-shift accounting, not a native-function change.",
+          "Exact202zero-fit arithmetic payload accounting admitted once; nativefit/epoch/fullVAL/forward/reboot/relaunch/Exit/TEST stay closed."
         ],
         "physical_dataset_stage_032": {
           "status": "FAILED_NO_ADMISSION_CONSUMED",
@@ -25801,5 +25801,59 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_COHORT_REPAIR_20261023_201/DECISION.json",
       "sha256": "db87105ae1c25436a3597e6747786974f1e25fcac82af731b136a0f5d2bcb7d5"
     }
+  },
+  "dynamic_m5_fixed_reference_input_shift_accounting_202": {
+    "status": "ADMITTED_ONCE_ZERO_FIT_ALL_INPUT_MEAN_SHIFT_ACCOUNTING",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202",
+    "preparation_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202/PREPARATION_SCOPE.json",
+      "sha256": "bc7275e9d502ea9ff8401c2c4e87a77259f41672f6f00c68aa5883d3cc5cd9f1"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202/account_input_shift_guarded.py",
+    "execution_authorized": true,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "reference_fits": 0,
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "test_data_used": false,
+    "relaunch_allowed": false,
+    "goal_complete": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202/PLAN.json",
+      "sha256": "eeb5ccfd0a1e2ad65ae10454b7b56fe4d5d5bc431276310aa978e3f802ee56fb"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202/account_input_shift_guarded.py",
+      "sha256": "cfa7fdaea9d01d37722c9d6a43b3a78b8cf6f26449df636d68270de146f915bb"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202/SOURCE_REVIEW.json",
+      "sha256": "cc236b5c5cb6a95086ef7a9503e5b8d33cc5b44d785046bb6de7076f45578866"
+    },
+    "execution_admission": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_INPUT_SHIFT_ACCOUNTING_20261023_202/EXECUTION_ADMISSION.json",
+      "sha256": "2bf092a1cea9e04971e188f717082ddc90b3cb90c0cd1b43a3ad928b58fba8e3"
+    },
+    "genuine_reference_fit_admitted": false,
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "class": "audit",
+      "max_invocations": 1,
+      "max_rchar_bytes": 8589934592,
+      "max_wall_seconds": 1800,
+      "memory_bytes": 4294967296,
+      "native_model_forwards": 0,
+      "new_constant_estimates": 0,
+      "optimizer_updates": 0,
+      "reference_fits": 0,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0
   }
 }
