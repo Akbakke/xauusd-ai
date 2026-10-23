@@ -60,7 +60,7 @@ gjenbrukes.7,691s,peakRSS649326592B;4GiB/512MiB/én tråd/pids64. Kilde/policy
 uendret.206-layoutbroPASS:kun recipe/seal endret; alle fysiske koordinater like.
 TERMINAL737d567a…/layoutbroba2d51d9…/actualpeer ogDECISION ligger i209.
 Uavhengig actualpeerPASS33koblinger. Ingen markedspayload/
-retningsfit/native F/U. Tolv faktiske prefixoppskrifter er fortsatt ukvalifisert.
+retningsfit/native F/U. Faktiske prefixoppskrifter kvalifiseres separat i210 nedenfor.
 
 Den generelle opt-in-policyen:
 Kun kildefestede verdi/mask-par uten observerte prefixverdier får deklarerte
@@ -70,22 +70,29 @@ hevdes estimert. Masker/null lagring valideres. Senere verdier bevares uten
 fremtidsstatistikk eller klipping. Native standardvalg er fortsatt avvisning;
 bare den isolerte prefixadapteren velger dette eksplisitt. Ny recipe-identitet
 og streng bro til206s uendrede råkoordinater kreves. Alle felt og faste kvartaler
-beholdes.210worker er uavhengig statisk peerPASS og fryst. Én eksakt capped
-CPU-preprosesseringsplan er admittert:12oppskrifter/78overflatestatistikker,
-4GiB/512MiB/én tråd/pids64, maks1800s.206s tre TRAIN-inputs og208s komplette
-støttetellinger gjenbrukes; ingen ny maskeskanning. Alle1205tellinger bindes
-til hver oppskrift;3075uendrede statistikkkoordinater/alle5MTFpakker avstemmes.
-PLANe620c8f0…/workerfe998cdc…/SOURCE_PEER ligger i210.
-Kun preprocessing er admittert;0retningsfit/nativeF/U/nyefasit/OBS. Faktisk
-RESULT og COMPLETE-terminal med etterfølgende peer kreves før bruk.
+beholdes.210 er COMPLETE/consumed:12oppskrifter/78overflatestatistikker,
+211,36s/ytre211,93s,peakRSS2314203136B under4GiB/512MiB/én tråd/pids64.
+206s tre TRAIN-inputs og208s komplette støttetellinger er gjenbrukt uten
+ny maskeskanning. Alle1205tellinger stemmer peroppskrift;3075uendrede
+statistikkkoordinater/alle5MTFpakker er avstemt. Kilde/policy uendret;
+0retningsfit/nativeF/U/nyefasit/OBS. TERMINAL6796e880…/RESULT8dec3c24…/
+METADATA0216824d…/ytrebcc8b046… ligger i210. Uavhengig actualpeerPASS500
+JSON-/kvitteringskontroller:14460verdi- og14460masketellinger,12seals og30
+hele MTF-par. Actualpeerb99b82ec…/DECISION345ef6b3…. Retning eller Entry-
+kvalitet er ikke målt av denne preprosesseringskontrollen.
 209s kilde-/testkvitteringer bevares under
 `NATIVE_M5_GC_UNOBSERVED_PREFIX_POLICY_20261023_209`.
 
-211 har kun et avgrenset PREPARATION_SCOPE for den fastlagte sammenligningen
-over seks kvartaler; worker er ikke påbegynt. Kildearbeid starter etter210s
-terminal. Ingen referansefit er admittert; faktisk210COMPLETE og alle12
-oppskrifter med eksakte hashes må bindes først. All kilde og policy fryses
-under210kjøringen; root eier samlet kontroll og launch.
+211 er uavhengig statisk peerPASS på tidsrekkefølge/evaluering og ressurs-/
+vaktkode. Én eksakt CPU-referanseplan er admittert:36ridgefit i12eierkall,
+36beregnede middel som må gi18bitlike delte referanser. Alle seks kvartaler,
+18måneder+6kvartaler+ALL, egne1/5/15-masker og moden fasit.210s12oppskrifter
+og actualpeer er eksakt bundet.4GiB/512MiB/én tråd/pids64, maks3600s/32GiB
+rchar, ingen relaunch. PLANcf203df7…/workerc01b301e…/SOURCE_PEER55b6b19c…
+ligger i211. Root eier policy/launch; all kilde er fryst. training_enabled=true
+kun for denne CPU-referansen; native/fullEpoch/fullVAL/Exit/TEST er false.
+Samme eksisterende ridge/alpha1; ingen HPO, featurefjerning, nyefasit eller
+nativefunksjonsendring. Faktisk numerikk, ressursbruk og prediksjon venter.
 
 205/207 omfatter nye isolerte numeriske kilde-/testfiler for én kandidat:
 log(P/A) for alle242bevisteGC-nivåer, fellesA+observed én gang som kontekst.
@@ -112,7 +119,7 @@ prefix-snapshotoppskrift, ikke055/native-normaliseringsekvivalens.
 Root eier policy/launch;205agenter eier kun de fire navngitte nye kilde-/testfilene.
 Native standardatferd og ONLINE-bruk beholdes;209 endrer kun opt-in i den
 eksisterende statistikkeieren for den isolerte referanseadapteren. Ingen
-referansefit ellertrening er autorisert.
+nativekjøring er autorisert; kun den eksakte211CPU-referansen er admittert.
 206 og 208 sine engangsplaner er brukt; 208 stoppet på målt manglende prefixstøtte. PREPARATION_SCOPE ligger i
 `NATIVE_M5_GC_RELATIVE_COORDINATE_SOURCE_20261023_205`.
 206s kildeworker er uavhengig kontrollert og fryst.207binder bestått
@@ -130,8 +137,9 @@ hele kvartaler2024Q4–2026Q1. Hver baseline/kandidat får kun tidligere inputs
 for normalisering og modne targets før cutoff på faktisk M5-beslutningsklokke.
 Samme parentrader og egne1/5/15-masker; ingen komplett-case-utvalg.
 Fast alpha1 SUM-SSE/fri intercept; alle18måneder/6kvartaler/ALL rapporteres.
-36ridgefit/18delte TRAIN-middel er foreslått, ikkeadmittert. De12 nødvendige
-normaliseringsbindingene må først kvalifiseres etter208s observerte blokkering. Dag-/mandagsuke-bootstrap2000, seed20260911; sparse<8deskriptivt.
+36ridgefit/18distinkte delte TRAIN-middel er admittert én gang i211. De12
+normaliseringsbindingene er nå kvalifisert i210. Dag-/mandagsuke-bootstrap2000,
+seed20260911; sparse<8deskriptivt.
 Historikken er allerede brukt til design og er ikke urørt OOF-generalisering.
 Ny ONLINE-funksjon vil kreve fersk initialbaseline.
 
@@ -221,4 +229,5 @@ Lang støtte bruker alltidLONG/kjøp-og-hold som referanse. TEST frajuli forsegl
 for tilpasning/utvalg; bare vedtatt månedlig forwardjournal scorer utenrefit.
 Ingen Exit/broker/live/paper/ordre/spending/promotion. DATA/RUNS ryddes bare
 med retention-eier. Metode: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
-training_enabled/full_epoch/fullVAL/native_launch=false. Ingen tungjobb aktiv.
+training_enabled=true kun i eksakt211CPU-referanse.
+full_epoch/fullVAL/native_launch=false. Ingen nativejobb er admittert.
