@@ -120,12 +120,14 @@ DECISION/ACTUAL_EXECUTION_PEER/ACTUAL_TRAIN_FIT_REVIEW er immutable i212.
 Ingen ny kjøring er admittert.
 training_enabled=false, TEST/Exit stengt.
 
-213 er forberedt for én kildekvalifikasjon av den faste kapasitetsreferansen.
-Bruker23.10 bestilte mål og videre bygging/justering. Eksakt
-SOURCE_QUALIFICATION_PLAN binder27analytiske/state-tester,0markedspayload/fit,
-audit4GiB/512MiB/éntråd/64pids og180s+10s hardtimeout. Målt stateavvik er
-rettet: lagret intercept må stemme eksakt med target_mean−feature_mean@beta.
-Ingen test er kjørt ennå; uavhengig kildepeer og ren commit kreves før claim.
+213 er FAILED_PRECLAIM/consumed: ytre0,165s, ingenCLAIM/pytest/fit/payload.
+Planen manglet den separate reused_guard_worker212-bindingen; uendret kilde.
+OriginalDISPATCH/log/ytreterminal bevares, ingen213relaunch.
+214 er ny eksakt bindingrettelse med samme213DESIGN/modul/27tester/budsjett.
+Den tidligere feilede kontrollen er replikert og PASS i lett kildepreflight.
+Lagret intercept er kildefikset til eksakt target_mean−feature_mean@beta.
+Bruker23.10 bestilte mål og videre bygging/justering.214skal kvalifiseres én gang
+under audit4GiB/512MiB/éntråd/64pids og180s+10s timeout før separat215fit.
 Eksisterende SUM-SSE+1 tilsvarer mean-SSE+1/N; styrken faller med egetN.
 Ny fast kandidat: mean-SSE+1·||beta||², fri intercept, altså SUM-alpha=egetN
 perhorisont. Dette er en vesentlig sterkere prior, ikke bevist optimalstyrke.
@@ -276,4 +278,4 @@ for tilpasning/utvalg; bare vedtatt månedlig forwardjournal scorer utenrefit.
 Ingen Exit/broker/live/paper/ordre/spending/promotion. DATA/RUNS ryddes bare
 med retention-eier. Metode: [docs/NATIVE_LEARNING.md](docs/NATIVE_LEARNING.md).
 training_enabled/full_epoch/fullVAL/native_launch=false.
-211/212planene er brukt. Kun eksakt213syntetisk kildekvalifikasjon er forberedt; genuin fit og native trening er stengt.
+211/212planene er brukt. Kun eksakt214syntetisk bindingrettelse er forberedt; genuin fit og native trening er stengt.
