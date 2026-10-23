@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T15:39:39.378529+00:00",
-  "status": "CAPACITY215_FOLLOWUP_COMPLETE_DIRECTION_REJECTED_NO_NEW_RUN_ADMITTED",
+  "observed_utc": "2026-10-23T16:08:12.133885+00:00",
+  "status": "FEATURE_VALUE217_BBO_SUPPORT_AUDIT_ADMITTED_ONCE_NO_FIT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Capacity followup complete; reuse201 for original193 native-probe comparison. Next development question is predictive feature value through the existing M5 Entry sequence/path objective and quality plus coverage. Select a separate evidence-grounded fixed hypothesis under NATIVE_LEARNING before any further fit;215 admits no new lambda search or native intervention.",
+  "next_action": "Execute the single217 target-free BBO support audit under exact caps. Keep source and policy frozen. Then reconcile actual support and continue the own-TF GC history design; no forecast fit is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -210,7 +210,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "CAPACITY215_FOLLOWUP_COMPLETE_DIRECTION_REJECTED",
+    "current_activity": "217_BBO_SUPPORT_AUDIT_ADMITTED_GC_MTF_DESIGN_ACTIVE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -263,7 +263,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Neither complete capacity arm qualifies later direction against prefix TRAIN mean.215 establishes shrinkage/stabilization, not a native model/loss/feature cause. Genuine feature consumption is verified; useful feature information, primary M5 Entry quality, coverage, generalization and economics remain unqualified.",
+    "current_blocker": "GC1205valuefieldsarepresenton96localM5asofrowsbutnative16/64/96/96/252MTFwindowshavezeroGCfields. BBOsupportpositionalsoomittedforpartialbuckets. Neitherobservationyetprovesforecastgain;217willmeasurephysicalBBOsupportbeforecandidateimplementation.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17268,6 +17268,15 @@
         "current_work.m5_intraday_recheck_20261015.a_versus_b.gbdt_h120.rank_ic_diff_t"
       ],
       "model_or_metric_recomputation": false
+    },
+    "feature_value_goal_20261023": {
+      "user_instruction": "Da må vi gå rett på spørmålet om features. Hva skal til for at vi får bedre prognoser? Lag deg et nytt mål og dykk dypt inn i featursene for spørmål om forbedring/retningsedge i entry. Vi SKAL lage dette prosjektet slik at vi får en bot som har gode prognoser",
+      "thread_id": "01a1691c-e91c-7281-a962-54431293de52",
+      "status": "active",
+      "scope": "Genuine source-to-sequence feature information, all active families and closedTF; smallest evidence-grounded improvement, fixed causal chronological forecast/quality/coverage comparison if admitted. TechnicalPASS is not goal completion.",
+      "training_enabled": false,
+      "project_goal_complete": false,
+      "test_data_used": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19832,7 +19841,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-23T15:39:39.378529+00:00",
+  "updated_utc": "2026-10-23T16:08:12.133885+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -27121,5 +27130,86 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CAPACITY_SIX_QUARTER_REFERENCE_20261023_215/NATIVE_COMPARISON_SCOPE_RECONCILIATION.json",
       "sha256": "435448a35c9e5279657e51d460ca0554d4bfab87e85993251b85d204dd74d5c0"
     }
+  },
+  "dynamic_m5_feature_value_source_audit_216": {
+    "status": "SOURCE_AUDIT_COMPLETE_BBO_SUPPORT_AND_GC_TEMPORAL_SCOPE_IDENTIFIED",
+    "source_head": "682ee52e324592d042df3e963cb72958684a5e93",
+    "read_only_source_metadata_authorized": true,
+    "source_edits_authorized": false,
+    "execution_authorized": false,
+    "market_payload_reads_authorized": false,
+    "genuine_reference_fit_admitted": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "goal_complete": false,
+    "integrator": "root",
+    "assignments": {
+      "feature_audit": "genuine producer units, masks, source freshness and compression acrossallTF; readonly",
+      "learning_audit": "actual native sequence/normalization/clock representation tohead; readonly",
+      "research_audit": "fixed predictive/Entryqualityandcoverage measurement design using qualified existingowners; readonly"
+    },
+    "one_heavy_current_job": true,
+    "source_frozen_during_job": true,
+    "source_information_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_VALUE_SOURCE_AUDIT_20261023_216/SOURCE_INFORMATION_REVIEW.json",
+      "sha256": "b1e08018a9750ce1904e79ca0fb3ff4e5534b9ba0059dbb454fab9356ff14ac6"
+    },
+    "gc_temporal_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_VALUE_SOURCE_AUDIT_20261023_216/GC_TEMPORAL_SCOPE.json",
+      "sha256": "83e08e4cb4123227d69fb094e30a160caf897c321663e07b1fa16f2e5fd261b7"
+    }
+  },
+  "dynamic_m5_bbo_support_gap_qualification_217": {
+    "status": "ADMITTED_ONCE_TARGET_FREE_PHYSICAL_SUPPORT_ONLY",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/DESIGN.json",
+      "sha256": "5e2f6622390f1b0cfb71b81649ea43ea83f9fd5e9b46d4e0a645864cacd7976b"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/PLAN.json",
+      "sha256": "66979396561be753b00a34ddbad6692fc7c3509ddb0ac8d023a56384414764f9"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/audit_bbo_support_guarded.py",
+      "sha256": "c78a815c4c0ed7ada33d9f98f84521dc87f1f99472e5ca63fa12db61ccb1b24b"
+    },
+    "source_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/SOURCE_PEER_REVIEW.json",
+      "sha256": "0f428f7c81634a1d9a984a14c5e87d1f61046432ad077c3fb2cc9440cf326a84"
+    },
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "class": "audit",
+      "clock_archives": 2,
+      "genuine_reference_fits": 0,
+      "input_payloads": 7,
+      "max_invocations": 1,
+      "max_rchar_bytes": 1073741824,
+      "max_wall_seconds": 180,
+      "memory_bytes": 4294967296,
+      "native_model_forwards": 0,
+      "new_targets": 0,
+      "normalization_recipe_fits": 0,
+      "optimizer_updates": 0,
+      "original_OBS_reads": 0,
+      "parquet_tables": 5,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "source_edits_authorized": false,
+    "execution_authorized": true,
+    "market_payload_reads_authorized": true,
+    "training_enabled": false,
+    "genuine_reference_fit_admitted": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "goal_complete": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
   }
 }

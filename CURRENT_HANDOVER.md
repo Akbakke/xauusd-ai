@@ -6,6 +6,33 @@ terminalkvitteringer overstyrer prosa. Én integrator, én capped CURRENT-jobb,
 fryst kilde/policy under kjøring. Originalmål:
 [docs/ORIGINAL_PROJECT_GOAL.md](docs/ORIGINAL_PROJECT_GOAL.md).
 
+## Aktivt brukerbestilt featuremål23.10
+
+Brukeren har bestilt et nytt dypt mål om faktisk featureinformasjon og bedre
+prognoser/retningsedge i M5 Entry.216 er kun koordinert lesende kilde-/metadata-
+revisjon av alle genuine aktive familier, masker, enheter og tidsrammer fram
+til native sekvens/head. Root eier integrasjon, policy og launch. Kun217s separat bundne targetfrie
+markedspayload er nå innrømmet; ingen fit eller nativeforward. Konkrete ferskhets-/
+tidsrepresentasjonsspor undersøkes; prognosegevinst er ikke påvist. Minste
+kildebeviste forbedring og eventuell fysisk måling bindes separat. Målet er aktivt.
+
+216 kildekontroll er nå fullført: BBO-støtteposisjon i delvise bøtter mangler
+som modellfelt. Viktig tillegg: alle1205 GC-verdier/2410 verdi+maskekanaler
+følger96 lokale M5-rader og current context. Native MTF-sekvensene
+16/64/96/96/252 har0 GC-felt, både i full253- og kompakt139-flaten.
+GC-kildenes M5/M15/H1/H4/D1 har319/246/226/215/199 verdier. Lang TF-tilstand
+og historiske sammendrag er derfor med, men ikke lange GC-sekvenser på de
+native TF-vinduene.32 aktive familieruter beviser ikke32 GC-historieruter.
+SOURCE_INFORMATION_REVIEWb1e08018… og GC_TEMPORAL_SCOPE ligger i216.
+Dette er kildebevist omfang, ingen påvist treningsårsak eller prognosegevinst.
+217 klargjøres for targetfri fysisk BBO-støttemåling på198s eksakte native
+TRAIN118249/CONTROL17284-klokker; bare7filer/15Parquet-kolonner/to klokke-
+medlemmer perNPZ. Ingen råreplay, targets, fit eller nativeforward. Ingen
+fit er admittert.217s eksakte targetfrie payloadjobb er nå innrømmet én gang
+under audit4GiB/512MiB/64pids/én tråd/180s+10s og1GiB rchar. SOURCE_PEER og
+metadata-preflight PASS; PLAN/worker er fryst. Egen TF-GC-historikk undersøkes som neste kandidat,
+med eksisterende encoders og alle genuine felt bevart; ingen endring er valgt.
+
 ## Mål, status og neste beslutning
 
 Kvalifiser M5 Entry LONG/SHORT/FLAT med genuine MBP-1-/indikatorfeatures og
