@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T18:05:46.385258+00:00",
+  "observed_utc": "2026-10-23T18:06:44.636939+00:00",
   "status": "FEATURE_VALUE221_ONCE_TARGET_FREE_COUNT_REPAIR_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -245,7 +245,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_PHYSICAL_INPUTS_20261023_220/TERMINAL.json",
       "sha256": "847c81adda87ac22dad9f5abc3e0233b7f496d4afcda2aa77bdd8adf4905f737"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -8863,9 +8863,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "220 physical exact native/source clock parity, observation counts and five TRAIN-only GC normalizations remain unmeasured.",
-      "The additive GC-history candidate requires fresh initialization/baseline and optimizer/resume qualification before a new separately admitted fixed native comparison.",
-      "Direction, selected Entry, later chronological value and economics remain unqualified."
+      "221 physical native/source clock parity, observation counts and five separate TRAIN-only GC normalizations remain unmeasured.",
+      "New GC-history function requires own fresh initial measurement and optimizer/resume qualification before any separately admitted fixed predictor experiment.",
+      "Direction, selectedEntry, chronological generalization and economic edge remain unqualified."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -15994,7 +15994,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/RUNTIME/receipts/invocation-0001.json",
       "sha256": "392c9d153ae78beea38538a33fbdee41bf5ed4efe40bcb4d2f101c8c10c80b95"
     },
-    "latest_terminal_evidence_scope": "All41 scoped source-mechanics cases qualified across218/219; actual21926/26PASS with0 genuine work. No forecast improvement measured.",
+    "latest_terminal_evidence_scope": "220 actual canonical loader150hashes/15NPY/1M5/1manifest/12params allverified; failedonlyexpected78hashcount, before selectors/GCread/projections/normalization/outputs. Sourceunchanged and0modelwork.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
