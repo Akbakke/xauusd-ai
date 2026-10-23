@@ -50,6 +50,12 @@ join som ellers kunne bære en eldre GC-bøtte over en helt manglende bøtte, sa
 GC-builder og nativecache deler canonical fasene H4=02:00 og D1=22:00; exactjoin
 er kildekonsistent, mens fysisk024/cache-paritet fortsatt må måles.
 
+218-kvalifikasjon er FAILED/consumed:41cases,15PASS og26failure/error fra én
+felles registerfeil (genererte featurelag ble brukt som modellspesialister).
+Ingen markedspayload/genuinefit/nativeforward; kilden var uendret.219 åpner
+kun kobling til canonical8-spesialistregisteret.15beståtte cases gjenbrukes;
+26feilede kvalifiseres etter minste rettelse under ny plan, ingen218-relaunch.
+
 Neste gate er én frosset, kildebundet CPU-kvalifikasjon med syntetiske tabeller,
 masker, unike TRAIN-rader, Dataset→collate→forwardbinding og prognose-/gradient-
 utslag på hverTF. Dette er mekanikkbevis, ikke lærings-/edgebevis. Aktuell

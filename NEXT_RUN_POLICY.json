@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-23T16:20:00.168773+00:00",
-  "status": "FEATURE_VALUE218_REVIEWED_SOURCE_FROZEN_SYNTHETIC_QUALIFICATION_ADMITTED",
+  "status": "FEATURE_VALUE219_EXACT_FAILED_CASE_SOURCE_QUALIFICATION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -210,7 +210,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "218_EXACT_SOURCE_QUALIFICATION_ONCE",
+    "current_activity": "219_26CASE_SOURCE_QUALIFICATION_ONCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7734,7 +7734,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run only reviewed218 synthetic CPU qualification once under existing audit caps; genuine source/normalization/native fitting remains closed.",
+    "next_action": "Complete unchanged mandatory capped precommit, then exact26 failed-case qualification once. Preserve218 outputs/reuse15PASS. No genuine market/model work.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -27237,14 +27237,14 @@
     }
   },
   "dynamic_m5_gc_temporal_support_source_218": {
-    "status": "EXACT_REVIEWED_41CASE_SYNTHETIC_CPU_QUALIFICATION_ADMITTED",
+    "status": "FAILED_CONSUMED_SINGLE_FAMILY_OWNER_CAUSE_15PASS_26BLOCKED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/DESIGN.json",
       "sha256": "912dfc572a2ccaef379576b6b9067892177c61a72d96e0205368b431f6261b0a"
     },
     "source_edits_authorized": false,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "market_payload_reads_authorized": false,
     "training_enabled": false,
     "genuine_reference_fit_admitted": false,
@@ -27257,7 +27257,7 @@
       "learning_audit": "Model/profile/production-architecture/bundle changes after agreed API; no trainer/data-owner edits.",
       "research_audit": "Focused new tests and source review after agreed API; no implementation-owner edits."
     },
-    "synthetic_cpu_tests_authorized": true,
+    "synthetic_cpu_tests_authorized": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/SOURCE_QUALIFICATION_REVIEWED_PLAN.json",
       "sha256": "3e5ec726a7f4934654b598046bd05f7afb35e1740a9b7be5c2fbaa861accfac5"
@@ -27294,8 +27294,8 @@
     },
     "expected_test_cases": 41,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "mandatory_tracked_precommit_checks_authorized": true,
     "mandatory_precommit_scope": "Unchanged .claude/git-hooks/pre-commit exact guard drift and three Entry contract files, serialized through its existing audit4GiB cap. Routine commit gate, separate from the41case one-shot qualification; no genuine payload, fit or forward.",
@@ -27307,6 +27307,91 @@
       "earlier_drift_log": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/INTERRUPTED_PRECOMMIT_DRIFT.log",
       "earlier_model_log": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/INTERRUPTED_PRECOMMIT_MODEL_NATIVE.log",
       "test_completion_not_claimed": true
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/SOURCE_QUALIFICATION_TERMINAL.json",
+      "sha256": "92f1a12f0db6af9faffe5ccfebc694a8316681803aa206956d21190ccbbcf599"
+    },
+    "actual_launch_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/ACTUAL_SOURCE_QUALIFICATION_LAUNCH_TERMINAL.json",
+      "sha256": "cd7e534b01525c031f499daf6f9bf1d5295423616a8ea15bda6a6db01192d51d"
+    },
+    "test_report": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/SOURCE_TESTS.xml",
+      "sha256": "8cda8a5600264b307f1bcf76028ed03917eff45ce28650b8aabd329c8489e730"
+    },
+    "test_counts": {
+      "cases": 41,
+      "errors": 16,
+      "failures": 10,
+      "skipped": 0
+    },
+    "work_counters": {
+      "synthetic_model_forward_calls": 6,
+      "synthetic_normalization_surface_fits": 22
+    },
+    "source_unchanged": true
+  },
+  "dynamic_m5_gc_temporal_support_owner_repair_219": {
+    "status": "EXACT_26CASE_OWNER_REPAIR_SOURCE_QUALIFICATION_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_OWNER_REPAIR_20261023_219",
+    "repair_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_OWNER_REPAIR_20261023_219/REPAIR_SCOPE.json",
+      "sha256": "2274aeb01140091e1934e9cf9d7ec2e3ad78ed3e57d0d0ac021d358b5b67f88f"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/DESIGN.json",
+      "sha256": "912dfc572a2ccaef379576b6b9067892177c61a72d96e0205368b431f6261b0a"
+    },
+    "source_edits_authorized": false,
+    "execution_authorized": true,
+    "market_payload_reads_authorized": false,
+    "training_enabled": false,
+    "genuine_reference_fit_admitted": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "goal_complete": false,
+    "original218_relaunch_allowed": false,
+    "synthetic_cpu_tests_authorized": true,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_OWNER_REPAIR_20261023_219/SOURCE_QUALIFICATION_PLAN.json",
+      "sha256": "7981517459ca4654efc19877c728fc8103549f7c9b054b39bb7e23d60b990b0e"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_OWNER_REPAIR_20261023_219/qualify_gc_history_owner_repair_guarded.py",
+      "sha256": "dfeccc2fd07a2bd9f2e75c7d0dfb860e728ca7e9cd3e06da6cffe8886faedd74"
+    },
+    "integrator_source_check": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_OWNER_REPAIR_20261023_219/INTEGRATOR_SOURCE_CHECK.json",
+      "sha256": "4595c0b5d2879fdab06cf58b597e0ae070d3051860960da1fb165af94cba4b30"
+    },
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "class": "audit",
+      "genuine_model_forwards": 0,
+      "genuine_reference_fits": 0,
+      "market_payload_reads": 0,
+      "max_invocations": 1,
+      "max_rchar_bytes": 1073741824,
+      "max_synthetic_model_forward_calls": 32,
+      "max_synthetic_normalization_surface_fits": 128,
+      "max_test_cases": 64,
+      "max_wall_seconds": 180,
+      "memory_bytes": 4294967296,
+      "optimizer_updates": 0,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "expected_test_cases": 26,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "mandatory_tracked_precommit_checks_authorized": true,
+    "source_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_OWNER_REPAIR_20261023_219/SOURCE_PEER_REVIEW.json",
+      "sha256": "84a3406a0409778b08eeca4694f78d4735f4cde16c43b7b448aef74bf0820616"
     }
   }
 }

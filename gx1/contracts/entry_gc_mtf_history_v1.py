@@ -13,7 +13,6 @@ import re
 import numpy as np
 
 from gx1.features import gc_native_context_v1 as gc
-from gx1.features.entry_model_native_feature_layers_v1 import MODEL_NATIVE_MANDATORY_FAMILY_FEATURES
 
 SCHEMA_VERSION = 'gx1_gc_mtf_history_layout_v1'
 NORMALIZATION_SCHEMA_VERSION = 'gx1_gc_mtf_history_normalization_v1'
@@ -60,8 +59,9 @@ def _hash(value):
 
 def gc_mtf_history_layout():
     """Return the complete ordered049 inventory partitioned by bound source TF."""
+    from gx1.features.entry_specialist_feature_groups_v1 import MODEL_NATIVE_TRAINING_SPECIALISTS
     _require(set(gc.REGISTRY['tables']) == set(SOURCE_TABLE_TIMEFRAMES), 'SOURCE_TABLE_INVENTORY')
-    families = [family for family, _ in MODEL_NATIVE_MANDATORY_FAMILY_FEATURES]
+    families = list(MODEL_NATIVE_TRAINING_SPECIALISTS)
     _require(len(families) == len(set(families)) == 8, 'FAMILY_OWNER_INVENTORY')
     source = {tf: [] for tf in TIMEFRAMES}
     names = {tf: [] for tf in TIMEFRAMES}
