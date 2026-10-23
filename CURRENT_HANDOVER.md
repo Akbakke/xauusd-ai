@@ -92,7 +92,7 @@ native modellinstanser/forwards/oppdateringer inngikk.27PASS er ikke ny
 retningsinformasjon. Git-hokens automatiske guard-/Entry-kontrakttester bestod
 separat under samme eksisterende capped-vakt; logger er bevart i194.
 
-Terminaldb640d2b…/DECISION og kildebevis ligger under
+Fokusert testterminaldb640d2b… og samlet194TERMINAL/DECISION/kildebevis ligger under
 `/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_SOURCE_QUALIFICATION_20261023_194`.
 193design/momentreview er bevart. Neste avgrensede arbeid er cachemanifest/
 inventory/SHA/livenessmetadata-glue og eksakt ikke-fittende fysisk kvalifikasjon:

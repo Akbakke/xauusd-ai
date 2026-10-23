@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T05:59:59.433858+00:00",
+  "observed_utc": "2026-10-23T06:03:05.162796+00:00",
   "status": "SOURCE_QUALIFIED_SNAPSHOT_REFERENCE_PHYSICAL_PREPARATION_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -223,8 +223,8 @@
     "latest_terminal_role": "194_SYNTHETIC_SOURCE_AND_ACTUAL055_METADATA_ONLY_NO_DIRECTION_RESULT",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_SOURCE_QUALIFICATION_20261023_194/SOURCE_TESTS_TERMINAL.json",
-      "sha256": "db640d2b61544d0889985e4de241e6481c795b522b58214e71baf2492f46adf8"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_SOURCE_QUALIFICATION_20261023_194/TERMINAL.json",
+      "sha256": "6ee7d903b477a0c858e7f91bdbd52b3e5d8e2313f86470224c03e31339efddb0"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -19768,7 +19768,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-23T05:59:59.433858+00:00",
+  "updated_utc": "2026-10-23T06:03:05.162796+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -25384,6 +25384,10 @@
     "decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_SOURCE_QUALIFICATION_20261023_194/DECISION.json",
       "sha256": "9e36d9bf03599aa92c15a39b6b955b9703daca6d144f9d1c4fa66fcc5280edb0"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_SOURCE_QUALIFICATION_20261023_194/TERMINAL.json",
+      "sha256": "6ee7d903b477a0c858e7f91bdbd52b3e5d8e2313f86470224c03e31339efddb0"
     }
   }
 }
