@@ -57,10 +57,13 @@ def _prior_liveness():
 def _fixture(tmp_path, monkeypatch, *, manifest_change=None, full_change=None,
         normalization_change=None, result_change=None, terminal_change=None,
         array_change=None):
+    primitive_metadata = htf.native_mtf_full_primitive_contract_metadata_v4()
     owner = tmp_path / "gx1" / "features" / "htf_features.py"
     owner.parent.mkdir(parents=True)
     owner.write_bytes(b"generated historical HTF owner\n")
     monkeypatch.setattr(htf, "__file__", str(owner))
+    monkeypatch.setattr(htf, "native_mtf_full_primitive_contract_metadata_v4",
+        lambda: primitive_metadata)
 
     def git_show(args, *, stderr):
         assert args == ["git", "-C", str(tmp_path), "show",

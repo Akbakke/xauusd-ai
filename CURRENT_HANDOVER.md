@@ -103,19 +103,21 @@ Alle native-/tap-/score-/kosteiere er uendret. Native/fullVAL/reboot/TEST/Exit
 og genuinefits forblir stengt. Målet er ufullført; ingen favorittmåned/-minutt,
 HPO eller snuregel. Åtte spesialister/9.D1makro består.
 
-195 har nå en fryst cacheadapter og konkret ikke-fittende PLAN5cae63ab… for
-hele118249TRAIN+17284Q1CONTROL. Uavhengig kildepeer godtar cachebindingene;
-workerpeerens eneste konkrete mkdir-feil er minimalt rettet og rootkontrollert.
-28nye syntetiske cachetester pluss én faktisk capped/låskontroll er eksakt
-admittert; de er ennå ikke kjørt.194s27PASS gjenbrukes. Ingen originalpayload
-eller fysisk projeksjon er autorisert før disse består og root gir den eksakte
-separate dataadmissionen. Arbeidsroten er
-`/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195`.
+195s første kildekontroll er FAILED/consumed:28syntetiske cachetilfeller stoppet
+i oppsettet fordi en midlertidig htf.__file__ flyttet en relativ kildehenvisning.
+Den faktiske capped-/låskontrollen bestod. Produksjonsadapteren og worker er
+uendret.196 retter kun tre fixturelinjer og har egen eksakt admission for29
+fokuserte kontroller; de er ennå ikke kjørt.194s27PASS gjenbrukes.
+195s PLAN5cae63ab… for118249TRAIN+17284Q1CONTROL er fortsatt unclaimed og ikke
+admittert. Ingen originale markedsdata, ekte fits eller nye nativeforwards er
+lest/kjørt. Originale feilkvitteringer og alle øvrige bytes bevares.
+Arbeidsrøttene er `NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195`
+og `NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196` underGX1_RUNS.
 Foreslått fysisk budsjett er audit4G/512M/éntråd/pids64/1800s+10sTERM,
-96GiB logisk rchar; pessimistisch tre fulle Parquet-SHA-pass er65,98GB.
-Kapasitet, alle valgte rader og512fasitparitet er fortsatt umålt. Fullmatrix-
-liveness gjenbrukes fra eksakt055/053;15NPY-filers bytes verifiseres ferskt.
-Senere forbruk krever faktisk RESULT og COMPLETE-terminal, aldri OUTPUT alene.
+96GiB logisk rchar; tre fulle Parquet-SHA-pass er65,98GB. Kapasitet, alle valgte
+rader og512fasitparitet er fortsatt umålt. Fullmatrix-liveness gjenbrukes fra
+eksakt055/053;15NPY-filers bytes skal verifiseres ferskt. Senere forbruk krever
+faktisk RESULT og COMPLETE-terminal, aldri OUTPUT alene.
 
 ## Siste ferdige retningsanalyse og kostnadsforklaring
 
