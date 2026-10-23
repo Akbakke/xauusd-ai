@@ -30,13 +30,31 @@ peakRSS647487488B;0markedspayload/fit/nativeF/U, kilde/policy fryst.
 207TERMINAL58f055d5…/actualpeer ogDECISION ligger i
 `NATIVE_M5_GC_RELATIVE_COORDINATE_DOMAIN_REPAIR_20261023_207`.
 
-206 er nå admittert én gang for fysisk kvalifikasjon etter rencommitted binding:
-4GiB/512MiB/éntråd/pids64/1800s/64GiBrchar. Eksakt PLAN og kildepeer i
+206 er COMPLETE/consumed, fysisk kvalifikasjon og metadata-peerPASS66koblinger.
+118249TRAIN+17284CONTROL=135533rader; alle masker/nonlevels/ikke-observerte
+prislagringsbiter er like.055allradsprojeksjon og alle fem TF-rad-/klokkehashes
+stemmer med198.4råNPY+2ankerNPZ+METADATA publisert immutable uten nyefasit.
+186,870s/ytre187,438s,peakRSS1269760000B under4GiB/512MiB/éntråd/pids64.
+SOURCE_UNCHANGED;0OBS/targetsbygging/normaliseringsfit/referansefit/nativeF/U.
+TERMINAL87fd9105…/RESULT25ae3ef3…/METADATAf8919c9a…/actualpeer/DECISION i
 `NATIVE_M5_GC_RELATIVE_COORDINATE_PHYSICAL_20261023_206`.
-Én051passering perrolle, én5TFcachelast, gamle198targets; ingen nye targets/fit.
-Fire3318-råmatriser+toankervektorfiler ogMETADATA; alle masker/nonlevels
-skal være bitlike,055allrads-hash ogTF-klokker identiske med198.
-Matematisk/Numerisk prisrekonstruksjon måles, ikke antas. Ingen nativekjøring.
+
+Anker observert117805TRAIN/all17284CONTROL;444TRAINrader er eksplisittukjente.
+Maks rekonstruksjonsfeil0,00009976USD/0,0009961tick;0nonfinite/grensebrudd.
+33TRAIN-tickceller avviker ved inversF32-recast; full bitlik invers hevdes ikke.
+Originalraw bevares. Målt trekantgrense er feilregnskap, ikke egen nøyaktighetsgate.
+
+208 er kildepeer-PASS og admittert én gang for de 12 nødvendige prefix-
+normaliseringsoppskriftene fra fast 204-design. Kun tre kvalifiserte TRAIN-
+inputfiler; D=bar_start+300s og D<cutoff, egne opprinnelige masker og observerte
+anker. Alle 1205 maskepartnere auditeres før fit. Ingen targetutvalg, fremtidig
+fallback, fjerning av felt eller cutoff-justering. Manglende tidligere
+observasjoner stopper eksisterende eier og bevares som målt hindring.
+12 oppskrifter/78 overflatestatistikker skal gjenbrukes i senere 36 regresjoner;
+0 retningsfit/native F/U. Én auditjobb, 4GiB/512MiB/én tråd/pids64/1800s.
+PLAN b5406ca3… og SOURCE_PEER_REVIEW ligger i
+`NATIVE_M5_GC_RELATIVE_PREFIX_NORMALIZATION_20261023_208`. Kun RESULT sammen
+med COMPLETE-terminal kvalifiserer OUTPUT; fysisk prefixstøtte er ennå umålt.
 
 205/207 omfatter nye isolerte numeriske kilde-/testfiler for én kandidat:
 log(P/A) for alle242bevisteGC-nivåer, fellesA+observed én gang som kontekst.
@@ -62,7 +80,7 @@ kommer frasnap;2525ctx-aliaser bevises like og foldes én gang. Dette er en ny
 prefix-snapshotoppskrift, ikke055/native-normaliseringsekvivalens.
 Root eier policy/launch;205agenter eier kun de fire navngitte nye kilde-/testfilene.
 Ingen eksisterende native/runtimeendring,referansefit ellertrening er autorisert.
-Bare206s eksakte ikke-trenende fysiske plan har payloadadmission. PREPARATION_SCOPE ligger i
+206s engangsplan er brukt; 208 har én egen admittert normaliseringsplan. PREPARATION_SCOPE ligger i
 `NATIVE_M5_GC_RELATIVE_COORDINATE_SOURCE_20261023_205`.
 206s kildeworker er uavhengig kontrollert og fryst.207binder bestått
 nyadapter.051raw/5TFcache og
@@ -79,8 +97,8 @@ hele kvartaler2024Q4–2026Q1. Hver baseline/kandidat får kun tidligere inputs
 for normalisering og modne targets før cutoff på faktisk M5-beslutningsklokke.
 Samme parentrader og egne1/5/15-masker; ingen komplett-case-utvalg.
 Fast alpha1 SUM-SSE/fri intercept; alle18måneder/6kvartaler/ALL rapporteres.
-36ridgefit/18delte TRAIN-middel/12normaliseringsbindinger er foreslått, ikke
-admittert. Dag-/mandagsuke-bootstrap2000, seed20260911; sparse<8deskriptivt.
+36ridgefit/18delte TRAIN-middel er foreslått, ikkeadmittert.208 skal først
+kvalifisere og bevare de12normaliseringsbindingene; ingen retningsfit er admittert. Dag-/mandagsuke-bootstrap2000, seed20260911; sparse<8deskriptivt.
 Historikken er allerede brukt til design og er ikke urørt OOF-generalisering.
 Ny ONLINE-funksjon vil kreve fersk initialbaseline.
 
