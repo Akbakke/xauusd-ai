@@ -103,24 +103,24 @@ Alle native-/tap-/score-/kosteiere er uendret. Native/fullVAL/reboot/TEST/Exit
 og genuinefits forblir stengt. Målet er ufullført; ingen favorittmåned/-minutt,
 HPO eller snuregel. Åtte spesialister/9.D1makro består.
 
-196 er COMPLETE/consumed:29fokuserte cachekontroller bestod på4,120s,
-med faktiske capped-/låsvakter.194s27PASS gjenbrukes. Produksjonsadapterne er
-uendret. Original195fixturefeil og den minimale trelinjersrettelsen er bevart.
-195s faktiske datakjøring er FAILED/consumed etter42,400s: én originalOBS,
-22,197GB logiskrchar,962,1MB peakRSS og ingen outputfiler/fits/forwards.
-Årsaken er konkret:152resultatleserens np=None ble ikke initialisert; fungerende
-192route setter module.np=np.239inputidentiteter og kilde/policy var uendret.
-197 gjenbruker den fungerende initialiseringen og har en liten fast decoder-
-kontroll før noen originalOBS-/Parquet-lesing. Kun workerwiring er rettet;
-193design, alle productioneiere, kostnader, masker og layout er uendret.
-197 har egen eksakt engangsadmission:118249TRAIN+17284Q1CONTROL,3345F32felt,
-1/5/15egne terminalmasker/strengecutoffs og191fasitparitet på512rader.
-Budsjett audit4G/512M/éntråd/pids64/1800s+10sTERM/96GiB rchar;0fits/F/U.
-Faktisk fullprojeksjon/kapasitet/paritet er fortsatt ubevist.195 relanseres
-aldri. Forbruk krever RESULT+COMPLETEterminal+vellykket ytre kvittering med
-uendrede inputidentiteter. Kilde/policy fryses. Native/fullVAL/TEST/Exit/HPO og
-ektefits forblir stengt. Ny rot underGX1_RUNS:
-`NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_REPAIR_20261023_197`.
+196 er COMPLETE/consumed:29cachekontroller bestod på4,120s med faktiske
+capped-/låsvakter.194s27PASS og uendrede produksjonsadaptere gjenbrukes.
+195 og197 er FAILED/consumed; begge originalkvitteringer bevares.195manglet
+NumPy-initialiseringen som allerede finnes i fungerende192resultatleser; den
+er rettet og en liten decoder-kontroll er lagt føroriginalpayload.
+197 nådde begge targetfaser og15cachefiler, men stoppet etter65,517s fordi
+runtime-tupledomener ble sammenlignet direkte med lagredeJSON-lister.
+ToOBS ble lest,25,095GB rchar/3,240GB peakRSS,239inputidentiteter uendret.
+Fire små NPZ er bevart som ukvalifiserte partialoutputs; ingen snapshot/fits/F/U.
+198 retter bare eksakt kanonisk JSON-sammenligning og flytter055/layoutkontroll
+førstorelesinger; samme3345felt/rekkefølge/domener/hash kreves fortsatt.
+Ny eksakt engangsadmission gjelder118249TRAIN+17284Q1CONTROL,1/5/15egne
+terminalmasker/cutoffs og191fasitparitet på512rader. Budsjett audit4G/512M/
+éntråd/pids64/1800s+10sTERM/96GiB rchar;0fits/F/U. Fullprojeksjon er fortsatt
+ubevist. Forbruk krever RESULT+COMPLETEterminal+vellykket ytre kvittering med
+uendredeinputidentiteter; OUTPUT alene er ukvalifisert. Kilde/policy fryses.
+Native/fullVAL/TEST/Exit/HPO og ektefits er stengt. Ny rot underGX1_RUNS:
+`NATIVE_M5_SNAPSHOT_REFERENCE_LAYOUT_REPAIR_20261023_198`.
 
 ## Siste ferdige retningsanalyse og kostnadsforklaring
 
