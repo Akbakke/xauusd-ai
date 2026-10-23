@@ -37,21 +37,25 @@ originalkvitteringer og partialoutputs; ingen relansering eller opprydding.
 Feilene var testfixture-path, helperens NumPy-binding og tuple/JSON-listelikhet;
 minste rettelser er kontrollert, siste feil fanges nå før store datalesinger.
 
-199 har én eksakt engangsadmission etter metode- og kildepeer uten blokkere.
-PLAN og SOURCE_REVIEW ligger under
-`NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_20261023_199`.
-Workerf62a66f9… bruker uendret194referanse:3TRAIN-only ridge ved1/5/15,
-alpha1 SUM-SSE/fri intercept/055fryst,3TRAINmiddel og fastnull. Ingen HPO.
-Fast normal-equation-residual≤1e−8 ved positiv RHS, ellers eksakt nullrest,
-og finite F64-tilstand/prognoser kreves. Det beviser ikke velkondisjonering.
-Budsjett audit4GiB/512MiB/éntråd/pids64/1800s+10TERM/8GiB rchar.
-Faktisk fitkapasitet og retningsresultat er fortsatt umålt. Alle perioder må vises.
-Kun seks kvalifiserte198snapshot/target/reference-filer; ingen originalOBS/
-Parquet/quote/cache/PT eller nativeF/U. Tiny evalueringsguard kommer førpayload;
-194/196tester gjenbrukes, ingen nye toyfits. Kilde/policy fryses gjennom jobben.
-Top training_enabled=true gjelder bare denne eksakte199referansefit;
-full_epoch/fullVAL/native_launch=false. Etter faktisk terminal stenges admission,
-planen forbrukes og resultat tolkes før konkret native forbedring velges.
+199 er FAILED/consumed før fit,0,715s/0fits/0nativeF/U. En for streng C-only
+NPZ-vakt avviste lovlig F-order i fire reference191-array (contrast og maske).
+Header-only diagnose777ce698… og uendrede41inputidentiteter/kilde er bevart.
+Ingen ny retningsmåling ble utført;198snapshotene er fortsatt kvalifisert.
+
+200 har én egen eksakt admission etter minimal kildepeer uten blokkere.
+`NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200` inneholder
+PLAN/SOURCE_REPAIR_REVIEW. Workeree7ceb0f… tillater sammenhengende C eller F
+for NPZ; ingen transponering, verdi- eller aritmetikkendring. Snapshot-mmap
+forblir C-order; alle dtype/shape/finite/digest/bit/mask/klokkevakter beholdes.
+Samme3TRAIN-only ridge1/5/15,alpha1SUM-SSE/friintercept/055fryst,3TRAINmiddel/null.
+Normal-equation-residual≤1e−8 ved positiv RHS, ellers eksakt nullrest, og finite
+F64-tilstand/prognoser kreves; det beviser ikke velkondisjonering eller retning.
+Audit4GiB/512MiB/éntråd/pids64/1800s+10TERM/8GiB rchar; faktisk fitkapasitet
+og retningsresultat er umålt. Bare seks kvalifiserte198-filer, ingen originaldata,
+nativeF/U, HPO eller nye toyfits.194/196 og199metode-/evalreview gjenbrukes.
+Top training_enabled=true gjelder bare eksakt200fit; full_epoch/fullVAL/
+native_launch=false. Kilde/policy fryses; etter terminal stenges admission og
+hele resultatet tolkes før konkret native forbedring velges.
 
 Samlet snapshot inneholder alle aktive kanoniske felt og femTF:3317koordinater
 blir3345kolonner når seks nominelle SMC-tilstander erstattes av6×5one-hot og
