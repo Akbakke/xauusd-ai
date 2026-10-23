@@ -53,12 +53,42 @@ med ekte celle-N; ingen ny pooledCI er avledet av marginaleintervaller.
 HEADaded92d4/policyd48ec7fa var fryst gjennom CPUjobben; dispatcher/child er borte
 og canonicalUID1000-prosjektlås er målt fri. Ingen relansering eller ekstraepoke.
 
-Neste arbeid er kun design av en bred grunnmurkontroll som skiller genuin
-retningsinformasjon i features fra modellens læring/bruk. Bruk gjeldende metode
-og kvalifiserte inputs; behold fellesTransformer/åtte spesialister/9.D1makro.
-Ingen ny modell-/tap-/score-/kost-/terskelendring er valgt fra192. All trening,
-native/fullVAL/reboot og ny utførelse er stengt til en separat eksakt admission.
-Målet er aktivt og ufullført; ingen favorittmåned/-minutt, HPO eller snuregel.
+193 har et konkret design for en bred kontroll av retningsinformasjon:
+én fast lineær snapshotreferanse med alle aktive kanoniske felt og femTF.
+Kilde-/metadataavledet bredde er3345:3317flytlagrede koordinater, hvor seks
+nominelle SMC-tilstander erstattes av6×5one-hot og session får fire kategorier.
+2622lokale og139×5MTF-koordinater omfatter eksisterende genuine masker;
+sekvens-/snap-/kontekstaliaser telles én gang. Runtime-projeksjonen er ennå ikke
+kvalifisert. Uavhengig193designreview828ced99… har ingen designblokkere;
+DECISION åpner bare kilde-/adapterforberedelse, ingen datajobb eller fit.
+Referansen erstatter ingen native modell eller handlingsautoritet.
+
+Hashverifiserte191manifester deklarerer118249TRAIN og17284Q1CONTROL-rader.
+Planen bruker hele dette materialet med055fryst, og tre faste regresjoner ved
+1/5/15min mot samme192kontrast (LONG−SHORT)/2. Alpha1 er gjenbrukt fast
+sum-SSE-konvensjon med fri intercept, aldri HPO eller et målt optimum.
+TRAIN-middel og nullkontrast er prognosereferanser. Direkte191sammenligning
+begrenser seg til eksisterende256+256prober; ingen nye nativeforwards.
+WholeTRAIN055 og TRAIN-fittede featurekonstanter tillater ikke internTRAIN-OOF.
+Positivt resultat gjelder samlet snapshotinformasjon inklusive klokker/masker;
+negativt resultat avviser ikke sekvensinformasjon eller nonlinear læring.
+
+193/SAVED_MOMENT_REVIEW er ren algebra på192SUMMARY,18paneler og ingen nye
+features/OBS/PT/forwards/fits. MSE-identitetens største F64-rest er4,55e−13bps².
+Lav prognosespredning alene beviser ikke underfit.191CONTROL-kontrasten peker
+ned på185/256,185/256 og181/252observerte rader, mens fasiten peker opp på
+143/256,132/256 og141/252. Dette er diagnostiske prognoser; alle512handlinger
+forblir FLAT. Ingen automatisk forsterkning, inversjon eller kalibrering følger.
+
+Gjeldende193design og momentreview ligger under
+`/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193`.
+Neste arbeid er avgrenset kilde-/adapterforberedelse: kanonisk felt-/kategori-/
+maske-/parent-/klokkebinding, samme aktuelle targeteier og minnebegrenset Gram
+fra eksisterende eiere. Eksakte I/O-/tidsbudsjetter, numerisk kvalifikasjon og
+separat admission mangler før datakjøring og fit. Den gamle285kolonnepiloten
+beviser ikke kapasitet for3345. Ingen native-/tap-/score-/kostendring er valgt.
+All trening, native/fullVAL/reboot og ny datakjøring er stengt. Målet er ufullført;
+ingen favorittmåned/-minutt, HPO eller snuregel. Åtte spesialister/9.D1makro består.
 
 ## Siste ferdige retningsanalyse og kostnadsforklaring
 
@@ -77,8 +107,10 @@ Fem av seks primærpaneler/TRAIN+CONTROL er verre enn egen188initial; fire av se
 er bedre enn177. Alle12MSE-par har både dag-/ukeintervaller som krysser0.
 Intervallene er deskriptive, ingen ny signifikans-/admissionsterskel.
 CONTROL diagnostisk fortegnstreff er45,3/49,6/46,0% ved1/5/15; ikke valgtehandler.
-Predstd1,40/1,41/1,42 mot observert7,50/15,09/27,73bps viser fortsatt svak
-tilstands-/horisonttilpasset retningsprognose. Ingen generell retningsgevinst.
+Predstd1,40/1,41/1,42 mot observert7,50/15,09/27,73bps beskriver spredning;
+forventningsprognoser trenger ikke gjenskape markedsstøy. Dette forholdet alene
+beviser ikke underfit. CONTROL-Pearson er0,098/0,136/0,018 og bias er
+−1,37/−1,33/−2,31bps. Ingen generell retningsgevinst er påvist.
 
 Tidlig1–15 inklusive+closed begge sider: TRAINråMFE-MSE56,173→41,202 og
 preMAE35,449→18,368 fra egen188; CONTROL394,898→291,943 og110,245→44,073.

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T01:53:50.255594+00:00",
-  "status": "COMPLETE_CONSUMED_EARLY_PATH_FIT_IMPROVED_DIRECTION_AND_ENTRY_UNQUALIFIED",
+  "observed_utc": "2026-10-23T05:22:10.157191+00:00",
+  "status": "DESIGN_ACCEPTED_FEATURE_INFORMATION_REFERENCE_SOURCE_PREPARATION_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "191 main and192 savedcomparison are consumed. EarlyMFE/preMAE pointfit improved; no qualified direction/selectedEntry/generalization/edge. Training/native/fullVAL/TEST/Exit/HPO/costfit/selectorchange remain closed. Active continuous goal may prepare next broad feature-information-versus-learning qualification design; no new execution is admitted by old one-shots.",
-  "next_action": "Use actual192decision/digest and current feature/method docs to define one broad foundation diagnostic separating genuine feature directioninformation from learning/use. Preserve sharedTransformer/eight specialists+ninthD1macro and all genuine causal inputs. No more lossweight/threshold/favoriteperiod search, extraepoch, automatic inversion or oldplan relaunch. Prepare exact scope/budget/joins before any separate new admission.",
+  "rule": "191 main and192 savedcomparison are consumed.193design admits bounded snapshot-reference source/adapter preparation only. All data jobs, reference fits, native training/forwards, fullVAL, reboot, TEST, Exit, HPO, cost/selector changes and relaunches remain closed until their own exact new admission. Early path pointfit is improved; direction, selectedEntry, chronological feature value, generalization and economic edge remain unqualified.",
+  "next_action": "Prepare only the bounded3345-column snapshot-reference adapter and exact non-fitting projection qualification plan from193design. Reuse current canonical input/normalization/target/clock owners and chunked ridge primitives; bind parent IDs, observed counts, nominal categories and per-horizon TRAIN centering with chunk scale1. Qualify numerical equivalence and exact memory/IO/wall scope before separate data-job or CPU-fit admission. No original payload job, fit, native forward/epoch, fullVAL, reboot, HPO, threshold/flip or oldplan relaunch is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -183,11 +183,15 @@
     "latest_current_function_paired_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/ACTUAL_DIRECTION_COMPARISON_PEER_REVIEW.json",
       "sha256": "5e310cee9367d05bc92b1a08a3b3ee4d814009f658789249720dc7433557a57e"
+    },
+    "latest_feature_information_design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193/DECISION.json",
+      "sha256": "32bf6b278b998c71e2067dbf0ba65e256bf52b9e4ddfef6f75cd7aeb3fed9d4b"
     }
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "192_CLOSED_NEXT_BROAD_FEATURE_INFORMATION_VS_LEARNING_DESIGN_ONLY_NO_EXECUTION",
+    "current_activity": "193_DESIGN_ACCEPTED_SNAPSHOT_REFERENCE_SOURCE_PREPARATION_ONLY_NO_EXECUTION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -209,7 +213,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192",
+    "current_research_id": "NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -217,7 +221,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "192_SAVED_COMPARISON_COMPLETE_EARLY_PATH_FIT_IMPROVED_ENTRY_UNQUALIFIED",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/TERMINAL.json",
       "sha256": "b992f04058b4a0f0159c7bf8a0a10f15bcda8a299f14824c50f03237174791b7"
@@ -7711,7 +7715,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "On clean exact postcommit binding seal190recipe/2stepbudget once, inspect actual output, then materialize one guarded technical4 campaign with actual beforeboot527. Review metadata before fresh late idle/task/physicalboot gates and exactly one private qualification. No main epoch admitted.",
+    "next_action": "Prepare only the bounded3345-column snapshot-reference adapter and exact non-fitting projection qualification plan from193design. Reuse current canonical input/normalization/target/clock owners and chunked ridge primitives; bind parent IDs, observed counts, nominal categories and per-horizon TRAIN centering with chunk scale1. Qualify numerical equivalence and exact memory/IO/wall scope before separate data-job or CPU-fit admission. No original payload job, fit, native forward/epoch, fullVAL, reboot, HPO, threshold/flip or oldplan relaunch is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8840,10 +8844,11 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "191new matched epoch and preregistered/broad-period paired direction, amplitude, preMFE-MAE/MFE, cost and LONG/SHORT/FLAT coverage assessment remain.",
-      "177lasttrainedall512FLAT; historical selected167 negative both ways. Sparse reusedQ1 probes are not full26month OOF/generalization or realized economics.",
-      "Active features reach the model; chronological feature value/optimality and robust directional qualification remain unproved.",
-      "Conservative declared4bps slippage is not historical fill truth; common4bps cancels in directioncontrast,5of6 shortMSE panels worsened versus owninitial."
+      "191/192 are complete consumed; robust direction and selected LONG/SHORT/FLAT quality remain unqualified despite early path point-fit improvement.",
+      "193snapshot reference requires exact runtime column/mask/parent/clock/target joins, numerical/capacity proof, bounded plan and separate CPU-fit admission. No next job is admitted.",
+      "Active feature numeric consistency and local consumption are measured; combined chronological predictive information, individual family value and optimal use remain unproved.",
+      "Fixed512probes and reusedQ1 development are not full26month OOF, untouched generalization or realized economics.",
+      "Declared4bps is not historical fill truth; common cost cancels in direction contrast. Small predicted dispersion alone is not underfit evidence or authority to amplify/flip."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -9599,10 +9604,10 @@
         "source_at_execution": "982fcfe247c53e9954b9eabbe5a92fc2f8e4cbec"
       },
       "native_binding_gaps": [
-        "177/178epoch+pairedcomparison and179/180zero-updatewitnesses consumed; no relaunch/extraepoch authority.",
-        "180all32activefamilylanes/8floatsurfaces have localdependency on16TRAIN, all3317canonicalfields accounted; no wholefamily disconnection onthiswitness.",
-        "Nearlyparallel1/5/15terminaldirection derivatives require sourceinterpretation, not an assumed defect or featureimportance.",
-        "Featurechronologicalvalue/optimality and LONG/SHORT/FLATquality/coverage/generalization/economics remainunqualified."
+        "191epoch and192paired comparison complete consumed; no relaunch/extraepoch authority.193design accepted for bounded source preparation only.",
+        "180all32activefamilylanes/8floatsurfaces have localdependency on16TRAIN;3317canonicalfields accounted. This is preserved scoped consumption evidence.",
+        "181/182source/gradient interpretations completed without isolated training-cause proof; no repeated witness or new architecture authorized.",
+        "Feature chronological value/optimality and LONG/SHORT/FLATquality/coverage/generalization/economics remain unqualified."
       ],
       "final_test_claim": "All26months reused development; any final pre-July retrospective test is not untouched confirmation. Existing sealed TEST from July remains unread.",
       "terminal_path": "/home/andre2/GX1_RUNS/NATIVE_M5_TRAIN_RMS_PAIRED_ENTRY_REVIEW_20261021_152/TERMINAL.json",
@@ -10579,10 +10584,10 @@
           "elapsed_seconds": 138.4885816879978
         },
         "known_remaining_native_source_gaps": [
-          "No newfeaturegenerator/routing/numericcausality defect proved;175activecompactqualification retained.",
-          "180currenttrainedinputdependency measured; nearparallelshorthorizondirection response sourceinterpretation remains.",
-          "No extra model/feature/loss/score/threshold/training admitted; parkedlibraryqualification and chronologicalfeaturevalue remain scoped.",
-          "LONG/SHORT/FLATquality/coverage/generalization/economics unqualified. M5Entryfirst;Exitwaits."
+          "No new feature-generator/routing/numeric-causality defect proved;175active compact qualification and180local consumption retained.",
+          "191/192current function improves scoped early path pointfit but direction and selectedEntry are unqualified.",
+          "193design requires one bounded snapshot/target adapter using existing owners; no native model/loss/score/feature change selected.",
+          "No new data job, fit, epoch, fullVAL, native forward, reboot or relaunch admitted. Exit andTEST stay closed."
         ],
         "physical_dataset_stage_032": {
           "status": "FAILED_NO_ADMISSION_CONSUMED",
@@ -15972,7 +15977,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/RUNTIME/receipts/invocation-0001.json",
       "sha256": "392c9d153ae78beea38538a33fbdee41bf5ed4efe40bcb4d2f101c8c10c80b95"
     },
-    "latest_terminal_evidence_scope": "190actual4physicalprivateU/4parityF,logicalcursor2/8resumehashes exact,maxoutputdiff0/full480; guardPASS/boot528, originalweights audit-only, source35cd/policy311frozen; taskDisabled/last0/restart0/keeper160, canonicalUID1000projectlockfree. No main or direction gain.",
+    "latest_terminal_evidence_scope": "192actual saved191-vs188/matched177 comparison COMPLETE/exit0/0F0U. All512current actions FLAT;5/6primaryMSE worse thanown188; all12paired day/weekCIs cross0. Earlypath pointfit improves versusown188, with longerMFE tradeoffs.191one fullTRAIN pass118249/7391 plus fixed256+256 complete consumed.193 is design/source preparation only, not a new terminal model or data job.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17193,8 +17198,8 @@
     },
     "training_active": false,
     "latest_decision": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/DECISION.json",
-      "sha256": "6a367a6820d6cb9e5e74b8762355670c73003cbbb853dee92378ac375e2d12b4"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193/DECISION.json",
+      "sha256": "32bf6b278b998c71e2067dbf0ba65e256bf52b9e4ddfef6f75cd7aeb3fed9d4b"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19759,7 +19764,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-23T01:53:50.255594+00:00",
+  "updated_utc": "2026-10-23T05:22:10.157191+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -25269,6 +25274,51 @@
     },
     "synthetic_runtime_guard_passed": true,
     "source_unchanged_at_terminal": true,
+    "goal_complete": false
+  },
+  "dynamic_m5_feature_information_design_193": {
+    "status": "DESIGN_ACCEPTED_SOURCE_PREPARATION_ONLY_DATA_AND_FIT_NOT_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193/DESIGN.json",
+      "sha256": "f98781c99bc81b8f73b5bdfc697d70341e520633c72f7b986e7b7154f380c319"
+    },
+    "saved_moment_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193/SAVED_MOMENT_REVIEW.json",
+      "sha256": "d97ec02c088bf63130970d348ceb568abd6d6d39896d1086a67e5f33cabb5780"
+    },
+    "independent_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193/DESIGN_PEER_REVIEW.json",
+      "sha256": "828ced99d034df10655386cc8802ca7a33521ec3f6eefa927e9106c9f2861f0e"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193/DECISION.json",
+      "sha256": "32bf6b278b998c71e2067dbf0ba65e256bf52b9e4ddfef6f75cd7aeb3fed9d4b"
+    },
+    "source_preparation_authorized": true,
+    "source_preparation_scope": "Bounded current snapshot/target adapter and exact qualification plan only; no native model/training-function change.",
+    "source_qualification_execution_authorized": false,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_training_admitted": false,
+    "new_reference_fit_admitted": false,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "new_reference_fits": 0,
+    "new_feature_data_reads": 0,
+    "expected_projection_columns": 3345,
+    "declared_train_rows": 118249,
+    "declared_control_rows": 17284,
+    "proposed_ridge_fits": 3,
+    "runtime_projection_qualified": false,
+    "capacity_measured": false,
+    "exact_execution_budget_bound": false,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
     "goal_complete": false
   }
 }

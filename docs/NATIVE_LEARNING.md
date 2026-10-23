@@ -529,3 +529,65 @@ Gjenbruk eksisterende canonical observasjonsvalidator under CPUaudit. Den kan
 åpne de fire eksplisitt bundne parentpointer-kolonneprojeksjonene (initial/final
 for TRAIN/CONTROL); ingen feature-/target-/sekvenskolonner, råMBP eller PT/modell
 trengs for denne sammenligningen. Ingen nye forwards, refits eller Exit-arbeid.
+
+
+## Retningsinformasjon i inputs og modellens lærte prognoser
+
+Inputkonsistens og lokal respons beviser ikke prediktiv merverdi. Lagrede
+modellprognoser kan vise bias, kalibrering og feil, men kan ikke alene avsløre
+all informasjon modellen kunne ha brukt. Lavere prognosespredning enn
+utfallsspredning er forenlig med en forventningsprognose; det beviser verken
+underfit, en kapasitetsfeil eller at prognosene bør forsterkes.
+
+En avgrenset diagnostisk referanse kan bruke alle aktive kanoniske snapshotfelt
+fra M5 og siste kausalt lukkede M15/H1/H4/D1. Felt, masker og tidsrammer kommer
+fra eksisterende profileier og inputeier, med sekvens-siste/snap/kontekstaliaser
+tatt med én gang. Native sekvenshistorikk og arkitektur beholdes. Referansens
+siste rad erstatter ikke historiske sekvenslag; negativt resultat avviser ikke
+temporal eller nonlinear informasjon.
+
+Nominelle SMC-tilstander er kategorier, ikke ordnede størrelser. De seks
+aktive lokale/MTF-tilstandene og session kodes med fulle deklarerte domener;
+ingen kategori velges fra observerte evalueringsverdier. Meningsfulle signerte
+enums og øvrige native flytfelt beholder055-transform og eksisterende
+value/mask-semantikk. Alle aktive genuine felt, inklusive makro, beholdes;
+ingen featureutvalg, familiegradering, gjettet manglendeverdi eller ny
+inputnormalisering inngår. Eksakt kolonnerekkefølge og dimensjon må kvalifiseres
+fra de eksekverbare eierne før fysisk projeksjon.
+
+WholeTRAIN-normalisering og TRAIN-fittede featurekonstanter er gyldige for
+hele TRAIN til en senere CONTROL-periode. De gjør ikke evaluering inne i
+TRAIN til streng kronologisk OOF. Slike fold krever prefix-gyldige
+normaliseringer og featurekonstanter; en encoder trent på hele TRAIN er
+heller ingen OOF-representasjon. Gjenbrukt CONTROL er utvikling.
+
+En ny lineær referanse må låse mål, masker, populasjon, regularisering,
+intercept, numerisk løsning og budsjett før fit. En fast alpha i sum av
+kvadratfeil er ikke samme objektiv som samme alpha i gjennomsnittsfeil.
+Bruk eksisterende minnebegrensede Gram-/xty-/matvec-eiere og kvalifiser
+likhet med den eksisterende ridge-algebraen. Etter055 skal chunkhelperens
+scale være1; sentrering og konstant bruker hver horisonts egne observerte
+TRAIN-rader. Ingen ekstra standardisering innføres. Gamle forskningswrappere med
+andre targets, HPO, utvalg eller imputering kan ikke relabeles som denne
+kontrollen. Manglende numerisk konvergens eller timeout er teknisk feil.
+
+Mål her er samme netto retningskontrast (LONG−SHORT)/2 ved de forhåndsbundne
+1/5/15min, med hver horisonts egne terminalmasker og faktiske utfall før
+split-cutoff. Framtidig tilgjengelighet blir aldri input eller felles
+complete-case-utvalg. Alle fysiske beslutningsrader beholdes i regnskapet.
+TRAIN-middel tilpasses bare egne observerte TRAIN-celler; CONTROL-middel
+eller etterfølgende targetvarians er ingen kjørbar referanse eller støygulv.
+
+Rapporter hele avtalte CONTROL-perioden for referansen, og skill dette fra
+paring mot nativeprognoser som bare finnes på en fast delmengde. Oppgi alle
+forhåndsbundne horisonter og kalenderperioder, counts, masker og paired dag-/
+ukeusikkerhet. Ingen ny native fullVAL skjules i en referansesammenligning.
+Et positivt resultat viser samlet informasjon i denne representasjonen,
+inklusive klokker og masker; det tilskriver ikke merverdi til en bestemt
+indikatorfamilie eller isolerer en optimizer-/taps-/arkitekturårsak.
+Et svakt resultat avviser bare den låste referansen. Ingen av delene
+kvalifiserer LONG/SHORT/FLAT, liten MAE før MFE eller handelsøkonomi alene.
+
+Også en enkel CPU-regresjon og dens lærte konstantreferanse er fit og trenger
+egen eksakt policyadmission. Kilde-/designforberedelse åpner ingen datajobb,
+fit, nativeforward, ekstra epoke, Exit, TEST eller handlingsautoritet.
