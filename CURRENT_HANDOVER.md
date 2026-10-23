@@ -36,7 +36,7 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Nå:228 egen initialmåling,32F/0oppdateringer innrømmet én gang
+## Nå:229 egen initialmåling etter minimal bootmetadatarettelse
 
 223 er COMPLETE/consumed og actualpeer429b80de… PASS:15readonlyNPY,
 467723564B, fem separate TRAIN-normaliseringer,84,292sworker/85,268sytre.
@@ -82,12 +82,19 @@ prisfasit/kostnader er uendret. Kan kun starte etter fersk maskinvididle,
 bundetWindowsinstallasjon, prepare/confirm-reboot og faktisk ny boot med
 eksisterende maskinvarevakter. Ingen direkteStartScheduledTask. Én invokasjon,
 12000/13800s, fryst kilde/policy fra seal til terminal;ingenrelaunch.
+228campaignforberedelse FAILED/consumed før campaign/modell: bootidentitet var
+hashet uten lokal-campaign-kontraktens påkrevde avsluttende linjeskift.0F/U og
+ingen nativekjøring. Feilkvittering beholdes.229 er en egen avgrenset plan som
+gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
+Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
+materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
+
 Streng actualinitialrapport-audit må bestå før egen4U/4F-tekniskplan og
 eventuelt fast hovedbudsjett. training_enabled/full_epoch/fullVAL=false.
 Prognosegevinst er fortsatt umålt;ingenTEST/broker/live/paper/promotion.
 
 Native-wiring-kvalifisering og fersk initialstate er fullført. Neste porter er
-228s genuine ONLINEbaseline, streng lagret-rapportaudit og egen optimizer/resume-
+229s genuine ONLINEbaseline, streng lagret-rapportaudit og egen optimizer/resume-
 paritet før en separat innrømmet fast native-sammenligning.191/188 erstatter ikke ny funksjons egen startmåling. Samme frosne057
 rekkefølge118249/batch16/7391steg, prisfasit/kostnader og budsjett skal gjenbrukes.
 Prognoseforbedring er fortsatt umålt. Ingen220/221/222/223-relaunch. Mislykkede
