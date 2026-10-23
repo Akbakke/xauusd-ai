@@ -36,7 +36,7 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Nå:229 egen initialmåling etter minimal bootmetadatarettelse
+## Kandidaten er initialmålt; neste port er samlet230-audit
 
 223 er COMPLETE/consumed og actualpeer429b80de… PASS:15readonlyNPY,
 467723564B, fem separate TRAIN-normaliseringer,84,292sworker/85,268sytre.
@@ -75,7 +75,7 @@ GC-arrayåpning,27bookends og184closure-roller; kanonisk modellstatehash er
 eksakt lik225, uten gjenbruk av dens vekter.290,273sworker/292,482sytre. Aktuell
 metadatareview PASS;225kvitteringer er bevartoriginale, ingen226initiallaunch.
 
-228PLAN innrømmer egen full480-initialmåling:256TRAIN+256CONTROL,batch16,
+228PLAN innrømmet egen full480-initialmåling:256TRAIN+256CONTROL,batch16,
 16encoderforwards/rolle,32totalt,0updates/refits/Exit. Sealer og canonical
 materialisator gjenbrukes, sourcepeer2de6951a… PASS;11filer/055/057/111/
 prisfasit/kostnader er uendret. Kan kun starte etter fersk maskinvididle,
@@ -99,6 +99,17 @@ paritet før en separat innrømmet fast native-sammenligning.191/188 erstatter i
 rekkefølge118249/batch16/7391steg, prisfasit/kostnader og budsjett skal gjenbrukes.
 Prognoseforbedring er fortsatt umålt. Ingen220/221/222/223-relaunch. Mislykkede
 kvitteringer/sidefiler beholdes; ingenDATA/RUNS-rydding.
+
+## Faktisk229 ferdig;230 samlet rapport-/statekontroll innrømmet én gang
+
+229 COMPLETE/consumed: nyWindowsboot530,32forwards,0optimizeroppdateringer.
+256TRAIN+256CONTROL,alle480horisonter lagret.1803,430snative/2086,816sytre;
+signertevaktersPASS,child/observer0,kilde/policyuendret. Ingen baseline-relaunch.
+Foreløpigmetadata er ikke streng fullOBS-/statebevis. Neste er én samlet
+CPU0F/0U-audit som gjenbruker eksisterende state-sammenligning og canonical
+fullrapportvalidator.230PLAN er innrømmet én gang,4G/512M/64pids/1tråd/900s,
+toCPUstatearkiver ogtofulleOBS;ingen modell/Dataset/fit/backward. Ingen separatmodelljobb eller nyfreshpublisher. Egen
+4U/4F-tekniskplan ogfastmain er fortsattstengt;ingenprognosegevinstmålt.
 
 ## Gjenbruk og ubeviste grenser
 
