@@ -37,10 +37,12 @@ SIGNED_LOCAL_EMA = frozenset(
     tf + "_ema_stack_aligned_v2" for tf in ("m5", "m15", "h1", "h4", "d1"))
 ARMS = ("baseline", "relative")
 PREFIX_RECIPE = {
-    "name": "fixed_prefix_parent_current_snapshot_asinh_v1",
+    "name": "fixed_prefix_parent_current_snapshot_asinh_unobserved_units_v2",
     "fit_population": "caller-qualified unique M5 parents with decision D < cutoff; repeated current HTF values retained",
     "label_masks_condition_normalization": False,
     "allow_constant_train_fields": True,
+    "allow_unobserved_train_fields": True,
+    "unobserved_policy": "declared identity or center0/unit_scale asinh; count0; no future statistics",
     "constant_policy": "existing constant_train_unit_scale; no future fallback",
     "missing": "source availability masks, never value != 0",
     "anchor": "observed prefix rows only; separate scalar stats; hardmask after apply",
@@ -269,7 +271,7 @@ def _fit_surface(values, spec, lane):
         values, surface="prefix_snapshot_" + lane, field_names=spec["field_names"],
         row_count=len(values), semantic_binary_fields=spec["binary_fields"],
         semantic_categorical_domains=spec["categorical_domains"],
-        allow_constant_train_fields=True)
+        allow_constant_train_fields=True, allow_unobserved_train_fields=True)
 
 
 def fit_prefix_snapshot_normalization(
@@ -293,7 +295,7 @@ def fit_prefix_snapshot_normalization(
             anchor_usd[observed, None], surface="prefix_snapshot_anchor",
             field_names=[ANCHOR_FIELDS[0]], row_count=int(observed.sum()),
             semantic_binary_fields=[], semantic_categorical_domains={},
-            allow_constant_train_fields=True)
+            allow_constant_train_fields=True, allow_unobserved_train_fields=True)
     else:
         _require(anchor_usd is None and anchor_observed is None, "BASELINE_ANCHOR")
     surfaces = {lane: _fit_surface(prefix_values[:, spec["start"]:spec["stop"]], spec, lane)
@@ -333,12 +335,28 @@ def _validate_surface_stats(stats, *, spec, lane, rows):
              and stats["categorical_field_count"] == sum(expected_cat)
              and stats["categorical_domains"] == spec["categorical_domains"], "STATS_DOMAINS:" + lane)
     _require(len(stats["scale_source"]) == len(names), "STATS_SCALE_SOURCE:" + lane)
+    counts = stats.get("observed_fit_counts")
+    _require(stats.get("allow_unobserved_train_fields") is True
+             and isinstance(counts, list) and len(counts) == len(names)
+             and all(type(count) is int and 0 <= count <= rows for count in counts),
+             "STATS_OBSERVED_COUNTS:" + lane)
+    paired = {value for value, _mask in spec.get("masking_pairs", ())}
     for i, name in enumerate(names):
         binary, category = expected_binary[i], expected_cat[i]
+        count = counts[i]
+        _require(i in paired or count == rows, "STATS_UNPAIRED_COUNT:" + name)
+        if count == 0:
+            _require(i in paired and arrays["center"][i] == 0 and arrays["scale"][i] == 1
+                     and arrays["train_transformed_min"][i] == 0
+                     and arrays["train_transformed_max"][i] == 0,
+                     "STATS_UNOBSERVED_UNITS:" + name)
         if binary or category:
             expected = "semantic_binary_identity" if binary else "categorical_embedding_identity"
             _require(arrays["center"][i] == 0 and arrays["scale"][i] == 1
                      and stats["scale_source"][i] == expected, "STATS_IDENTITY_UNITS:" + name)
+        elif count == 0:
+            _require(stats["scale_source"][i] == "unobserved_prefix_unit_scale",
+                     "STATS_UNOBSERVED_SOURCE:" + name)
         else:
             _require(stats["scale_source"][i] in (
                 "raw_iqr", "median_positive_abs_deviation", "constant_train_unit_scale"),

@@ -795,3 +795,241 @@ def test_temporal_alias_support_rejects_invalid_gc_mask_or_storage(fault):
     with pytest.raises(RuntimeError, match="OBSERVATION.*STORAGE"):
         normalization_contract.share_temporal_alias_stats_from_signal(
             fitted, fitted, temporal_aliases=[], ctx_cont_values=bad)
+
+
+# 209: synthetic source-pair fixtures; no market payload or model instance.
+def _unobserved_prefix_case(kind: str, *, observed: bool = False):
+    gc = normalization_contract._gc_context
+    value = ("gc_d1_observed_proxy_ob_bear_active" if kind == "binary" else
+             "gc_m15_observed_executed_trade_size_min_contracts")
+    assert kind in {"continuous", "binary", "categorical"}
+    assert value in gc.VALUE_FIELDS
+    mask = dict(zip(gc.VALUE_FIELDS, gc.OBSERVED_FIELDS))[value]
+    raw = np.zeros((8, 3), dtype=np.float32)
+    raw[:, 2] = np.arange(1, 9, dtype=np.float32)
+    if observed:
+        raw[:, 1] = [0., 1., 1., 0., 1., 1., 1., 0.]
+        supported = {"continuous": [1., 2., 3., 4., 5.],
+                     "binary": [0., 1., 0., 1., 1.],
+                     "categorical": [0., 1., 2., 1., 0.]}
+        raw[raw[:, 1] == 1., 0] = supported[kind]
+    kwargs = dict(surface="ctx_cont", field_names=[value, mask, "ordinary"],
+                  column_chunk=1)
+    if kind == "binary":
+        kwargs["semantic_binary_fields"] = [value]
+    if kind == "categorical":
+        # Explicit synthetic nominal schema on a real source-defined pair;
+        # this does not assign a nominal domain to the market producer.
+        kwargs["semantic_categorical_domains"] = {value: (0, 1, 2)}
+    return raw, kwargs
+
+
+def test_unobserved_prefix_default_retains_legacy_schema_and_hash():
+    raw = np.asarray([[0.], [1.], [0.], [1.]], dtype=np.float32)
+    kwargs = dict(surface="mtf_d1", field_names=["ema50_200_bull_state"])
+    default = fit_surface_normalization(raw, **kwargs)
+    explicit = fit_surface_normalization(raw, **kwargs,
+                                         allow_unobserved_train_fields=False)
+    assert default == explicit
+    assert len(default) == 17
+    assert "allow_unobserved_train_fields" not in default
+    assert "observed_fit_counts" not in default
+    assert default["center"] == [0.] and default["scale"] == [1.]
+    assert default["binary_mask"] == [1]
+    assert default["train_transformed_min"] == [0.]
+    assert default["train_transformed_max"] == [1.]
+    assert default["stats_sha256"] == "3d197c1314914bc6b773fdd0c851b788a1c8004b357720a383bc7537d4b0bbfc"
+    normalization_contract.require_surface_normalization(default, **kwargs)
+    assert inspect.signature(fit_surface_normalization).parameters[
+        "allow_unobserved_train_fields"].default is False
+
+
+@pytest.mark.parametrize("flag", [
+    pytest.param(0, id="integer-zero"), pytest.param(1, id="integer-one"),
+    pytest.param(None, id="none"), pytest.param("true", id="string"),
+    pytest.param(np.bool_(True), id="numpy-bool"),
+])
+def test_unobserved_prefix_policy_requires_strict_bool(flag):
+    raw, kwargs = _unobserved_prefix_case("continuous", observed=True)
+    with pytest.raises(RuntimeError, match="POLICY_INVALID"):
+        fit_surface_normalization(raw, **kwargs,
+                                  allow_unobserved_train_fields=flag)
+
+
+@pytest.mark.parametrize("kind", ["continuous", "binary"])
+@pytest.mark.parametrize("policy", ["omitted", "false"])
+def test_unobserved_prefix_default_rejects_empty_source_mask(kind, policy):
+    raw, kwargs = _unobserved_prefix_case(kind)
+    if policy == "false":
+        kwargs["allow_unobserved_train_fields"] = False
+    with pytest.raises(RuntimeError, match="NO_PHYSICAL_TRAIN_OBSERVATIONS"):
+        fit_surface_normalization(raw, **kwargs)
+
+
+@pytest.mark.parametrize("kind", ["continuous", "binary", "categorical"])
+@pytest.mark.parametrize("partitioned", [False, True])
+def test_unobserved_prefix_opt_in_preserves_empty_domains_and_inference(kind, partitioned):
+    raw, kwargs = _unobserved_prefix_case(kind)
+    original = raw.copy()
+    population = ([MatrixPopulationPart(raw[:3], source="first"),
+                   MatrixPopulationPart(raw[3:], source="last")]
+                  if partitioned else raw)
+    fitted = fit_surface_normalization(population, **kwargs,
+                                      allow_unobserved_train_fields=True)
+    assert fitted["allow_unobserved_train_fields"] is True
+    assert fitted["observed_fit_counts"] == [0, 8, 8]
+    assert all(type(n) is int for n in fitted["observed_fit_counts"])
+    assert fitted["center"][0] == 0. and fitted["scale"][0] == 1.
+    assert fitted["train_transformed_min"][0] == 0.
+    assert fitted["train_transformed_max"][0] == 0.
+    expected_source = {"continuous": "unobserved_prefix_unit_scale",
+                       "binary": "semantic_binary_identity",
+                       "categorical": "categorical_embedding_identity"}[kind]
+    assert fitted["scale_source"][0] == expected_source
+    assert fitted["binary_mask"][0] == int(kind == "binary")
+    assert fitted["categorical_mask"][0] == int(kind == "categorical")
+    np.testing.assert_array_equal(raw, original)
+    train_encoded = apply_surface_normalization(raw, fitted)
+    np.testing.assert_array_equal(train_encoded[:, :2], np.zeros((8, 2), np.float32))
+    served = np.asarray([[0., 0., 1.], [0., 1., 2.],
+                         [0., 1., 3.], [0., 1., 4.]], dtype=np.float32)
+    served[:, 0] = {"continuous": [0., 0., -3., 7.],
+                    "binary": [0., 0., 1., 1.],
+                    "categorical": [0., 0., 2., 1.]}[kind]
+    served_original = served.copy()
+    encoded = apply_surface_normalization(served, fitted)
+    expected = (np.arcsinh(served[:, 0].astype(np.float64)).astype(np.float32)
+                if kind == "continuous" else served[:, 0])
+    np.testing.assert_array_equal(encoded[:, 0], expected)
+    np.testing.assert_array_equal(encoded[:, 1], served[:, 1])
+    assert encoded[0, 0] == encoded[1, 0] == 0.
+    assert encoded[0, 1] == 0. and encoded[1, 1] == 1.
+    np.testing.assert_allclose(invert_surface_normalization(encoded, fitted), served,
+                               rtol=2e-6, atol=2e-6)
+    np.testing.assert_array_equal(served, served_original)
+
+
+@pytest.mark.parametrize("kind", ["continuous", "binary", "categorical"])
+def test_unobserved_prefix_opt_in_preserves_nonempty_statistics(kind):
+    raw, kwargs = _unobserved_prefix_case(kind, observed=True)
+    default = fit_surface_normalization(raw, **kwargs)
+    explicit = fit_surface_normalization(raw, **kwargs,
+                                         allow_unobserved_train_fields=False)
+    opt_in = fit_surface_normalization(raw, **kwargs,
+                                       allow_unobserved_train_fields=True)
+    assert default == explicit
+    assert set(opt_in) - set(default) == {
+        "allow_unobserved_train_fields", "observed_fit_counts"}
+    assert {k: v for k, v in opt_in.items() if k in default} == default
+    assert opt_in["stats_sha256"] == default["stats_sha256"]
+    assert opt_in["allow_unobserved_train_fields"] is True
+    assert opt_in["observed_fit_counts"] == [5, 8, 8]
+    assert all(type(n) is int for n in opt_in["observed_fit_counts"])
+    if kind == "continuous":
+        assert opt_in["center"] == [3., 0., 4.5]
+        assert opt_in["scale"] == [2., 1., 3.5]
+    np.testing.assert_array_equal(apply_surface_normalization(raw, opt_in),
+                                  apply_surface_normalization(raw, default))
+
+
+@pytest.mark.parametrize("observed_constant", [0., 0.25])
+def test_unobserved_prefix_is_distinct_from_observed_constant(observed_constant):
+    raw, kwargs = _unobserved_prefix_case("continuous")
+    observed = np.asarray([0., 1., 1., 0., 1., 1., 1., 0.], np.float32)
+    raw = np.column_stack((raw[:, :2], observed * observed_constant,
+                           observed, raw[:, 2])).astype(np.float32)
+    kwargs["field_names"] = kwargs["field_names"][:2] + [
+        "close_distance_below_high_range_fraction", "close_range_observed", "ordinary"]
+    fitted = fit_surface_normalization(raw, **kwargs,
+                                      allow_unobserved_train_fields=True)
+    assert fitted["observed_fit_counts"] == [0, 8, 5, 8, 8]
+    assert fitted["center"][0] == 0. and fitted["center"][2] == observed_constant
+    assert fitted["scale"][0] == fitted["scale"][2] == 1.
+    assert fitted["scale_source"][0] == "unobserved_prefix_unit_scale"
+    assert fitted["scale_source"][2] == "constant_train_unit_scale"
+    np.testing.assert_array_equal(apply_surface_normalization(raw, fitted)[:, (0, 2)],
+                                  np.zeros((8, 2), np.float32))
+
+
+@pytest.mark.parametrize("fault", ["missing_mask", "mask_domain", "masked_storage",
+    "nonfinite", "binary_domain", "categorical_domain", "category_declaration",
+    "unpaired_constant"])
+def test_unobserved_prefix_opt_in_rejects_invalid_fit_evidence(fault):
+    kind = ("binary" if fault == "binary_domain" else
+            "categorical" if fault in {"categorical_domain", "category_declaration"}
+            else "continuous")
+    raw, kwargs = _unobserved_prefix_case(kind)
+    if fault == "missing_mask":
+        raw = raw[:, (0, 2)]
+        kwargs["field_names"] = [kwargs["field_names"][i] for i in (0, 2)]
+        error = "OBSERVATION_FIELD_MISSING"
+    elif fault == "mask_domain":
+        raw[0, 1] = 0.5
+        error = "OBSERVATION"
+    elif fault == "masked_storage":
+        raw[0, 0] = 1.
+        error = "OBSERVATION"
+    elif fault == "nonfinite":
+        raw[0, 0] = np.nan
+        error = "NONFINITE"
+    elif fault == "binary_domain":
+        raw[0, :2] = [2., 1.]
+        error = "BINARY_DOMAIN_INVALID"
+    elif fault == "categorical_domain":
+        raw[0, :2] = [3., 1.]
+        error = "CATEGORICAL_DOMAIN_INVALID"
+    elif fault == "category_declaration":
+        kwargs["semantic_categorical_domains"][kwargs["field_names"][0]] = (0, 2)
+        error = "CATEGORICAL_FIELDS_INVALID"
+    else:
+        raw[:, 2] = 0.
+        error = "UNSCALEABLE"
+    with pytest.raises(RuntimeError, match=error):
+        fit_surface_normalization(raw, **kwargs,
+                                  allow_unobserved_train_fields=True)
+
+
+@pytest.mark.parametrize("fault", ["mask_domain", "masked_storage", "nonfinite",
+                                   "binary_domain", "categorical_domain"])
+def test_unobserved_prefix_opt_in_keeps_inference_guards(fault):
+    kind = ("binary" if fault == "binary_domain" else
+            "categorical" if fault == "categorical_domain" else "continuous")
+    raw, kwargs = _unobserved_prefix_case(kind)
+    fitted = fit_surface_normalization(raw, **kwargs,
+                                      allow_unobserved_train_fields=True)
+    served = raw[:2].copy()
+    if fault == "mask_domain":
+        served[0, 1] = 0.5
+        error = "BINARY_VALUE_INVALID"
+    elif fault == "masked_storage":
+        served[0, 0] = 1.
+        error = "MASKED_STORAGE_INVALID"
+    elif fault == "nonfinite":
+        served[0, 0] = np.inf
+        error = "NONFINITE"
+    elif fault == "binary_domain":
+        served[0, :2] = [2., 1.]
+        error = "BINARY_VALUE_INVALID"
+    else:
+        served[0, :2] = [3., 1.]
+        error = "CATEGORICAL_VALUE_INVALID"
+    with pytest.raises(RuntimeError, match=error):
+        apply_surface_normalization(served, fitted)
+
+
+@pytest.mark.parametrize("metadata", ["both", "flag_only", "counts_only"])
+def test_unobserved_prefix_metadata_is_rejected_by_native_validator(metadata):
+    raw, kwargs = _unobserved_prefix_case("continuous", observed=True)
+    fitted = fit_surface_normalization(raw, **kwargs,
+                                      allow_unobserved_train_fields=True)
+    extra = {k: fitted[k] for k in ("allow_unobserved_train_fields", "observed_fit_counts")}
+    native = {k: v for k, v in fitted.items() if k not in extra}
+    normalization_contract.require_surface_normalization(
+        native, surface=kwargs["surface"], field_names=kwargs["field_names"])
+    if metadata != "both":
+        extra.pop("observed_fit_counts" if metadata == "flag_only" else
+                  "allow_unobserved_train_fields")
+    with pytest.raises(RuntimeError, match="SURFACE_SCHEMA_INVALID"):
+        normalization_contract.require_surface_normalization(
+            {**native, **extra}, surface=kwargs["surface"],
+            field_names=kwargs["field_names"])

@@ -13,6 +13,9 @@ from gx1.contracts.entry_relative_price_snapshot_v1 import (
 )
 from gx1.contracts.gc_price_coordinate_contract_v1 import build_gc_price_coordinate_source_contract
 from gx1.features.htf_features import MULTI_TF_STRUCTURAL_BINARY_FEATURES_V4
+from gx1.contracts.entry_model_native_input_normalization_v1 import (
+    fit_surface_normalization, require_surface_normalization,
+)
 
 
 @pytest.fixture(scope="module")
@@ -221,16 +224,165 @@ def test_anchor_absence_hardmask_and_flag_parity(layout, packet, source_contract
             anchor_usd=np.zeros(1, np.float32), anchor_observed=np.zeros(1, np.uint8))
 
 
-def test_no_observed_prefix_data_fails_without_fallback(layout, packet):
+@pytest.fixture(scope="module")
+def unobserved_prefix(layout, packet):
     _, _, candidate, clocks, _, _ = packet
-    bad = candidate["values"].copy()
-    value, mask = layout["contract"]["surfaces"]["local"]["masking_pairs"][0]
-    bad[:, value] = 0
-    bad[:, mask] = 0
-    with pytest.raises(RuntimeError, match="NO_PHYSICAL_TRAIN_OBSERVATIONS"):
-        fit_prefix_snapshot_normalization(
-            bad, clocks, cutoff_ns=100, layout=layout, arm="relative",
-            anchor_usd=candidate["anchor_usd"], anchor_observed=candidate["anchor_observed"])
+    values = candidate["values"].copy()
+    fields = layout["contract"]["surfaces"]["local"]["field_names"]
+    indices = {}
+    for kind, name in (
+        ("binary", "ctx_cont.gc_d1_observed_proxy_ob_bear_active"),
+        ("continuous", "ctx_cont.gc_d1_observed_proxy_ob_bear_low"),
+    ):
+        value, mask = fields.index(name), fields.index(name + "_observed")
+        values[:, value] = 0
+        values[:, mask] = 0
+        indices[kind] = (value, mask)
+    norm = fit_prefix_snapshot_normalization(
+        values, clocks, cutoff_ns=100, layout=layout, arm="relative",
+        anchor_usd=candidate["anchor_usd"], anchor_observed=candidate["anchor_observed"])
+    return values, candidate, norm, indices
+
+
+def test_unobserved_continuous_prefix_units_and_later_observed_zero(layout, packet, unobserved_prefix):
+    values, candidate, norm, indices = unobserved_prefix
+    value, mask = indices["continuous"]
+    stats = norm["surfaces"]["local"]
+    assert stats["allow_unobserved_train_fields"] is True
+    assert stats["observed_fit_counts"][value] == 0
+    assert stats["observed_fit_counts"][mask] == len(values)
+    assert stats["center"][value] == 0 and stats["scale"][value] == 1
+    assert stats["scale_source"][value] == "unobserved_prefix_unit_scale"
+    assert stats["train_transformed_min"][value] == stats["train_transformed_max"][value] == 0
+    encoded, columns = encode_normalized_snapshot_block(
+        values, layout=layout, normalization=norm,
+        anchor_usd=candidate["anchor_usd"], anchor_observed=candidate["anchor_observed"])
+    names = layout["contract"]["raw_columns"]
+    assert (encoded[:, columns.index(names[value])] == 0).all()
+    assert (encoded[:, columns.index(names[mask])] == 0).all()
+    # Missing zero, observed zero and a later genuine nonzero remain distinct
+    # through the original mask; the frozen recipe is never refit.
+    future = values[:3].copy()
+    future[:, value] = [0, 0, 2]
+    future[:, mask] = [0, 1, 1]
+    before = deepcopy(norm)
+    applied, columns = encode_normalized_snapshot_block(
+        future, layout=layout, normalization=norm,
+        anchor_usd=candidate["anchor_usd"][:3],
+        anchor_observed=candidate["anchor_observed"][:3])
+    assert np.array_equal(applied[:, columns.index(names[value])],
+                          np.asarray([0, 0, np.arcsinh(2.)], np.float32))
+    assert np.array_equal(applied[:, columns.index(names[mask])], [0, 1, 1])
+    assert norm == before
+    # Observed constant zero has evidence and keeps the original constant path.
+    ordinary = packet[5]["surfaces"]["local"]
+    close = layout["contract"]["surfaces"]["local"]["field_names"].index("ctx_cont.gc_book_close_usd")
+    assert ordinary["observed_fit_counts"][close] == len(values)
+    assert ordinary["scale_source"][close] == "constant_train_unit_scale"
+
+
+def test_unobserved_binary_prefix_has_declared_identity_and_later_one(layout, unobserved_prefix):
+    values, candidate, norm, indices = unobserved_prefix
+    value, mask = indices["binary"]
+    stats = norm["surfaces"]["local"]
+    assert stats["observed_fit_counts"][value] == 0
+    assert stats["binary_mask"][value] == 1 and stats["categorical_mask"][value] == 0
+    assert stats["center"][value] == 0 and stats["scale"][value] == 1
+    assert stats["scale_source"][value] == "semantic_binary_identity"
+    assert stats["train_transformed_min"][value] == stats["train_transformed_max"][value] == 0
+    future = values[:2].copy()
+    future[:, value], future[:, mask] = [0, 1], [0, 1]
+    encoded, columns = encode_normalized_snapshot_block(
+        future, layout=layout, normalization=norm,
+        anchor_usd=candidate["anchor_usd"][:2],
+        anchor_observed=candidate["anchor_observed"][:2])
+    names = layout["contract"]["raw_columns"]
+    assert np.array_equal(encoded[:, columns.index(names[value])], [0, 1])
+    assert np.array_equal(encoded[:, columns.index(names[mask])], [0, 1])
+
+
+@pytest.mark.parametrize("lane", ["local", "seq_m5", "seq_m15", "seq_h1", "seq_h4", "seq_d1"])
+def test_opt_in_nonempty_surface_statistics_equal_default_owner(layout, packet, lane):
+    _, values, _, _, baseline, _ = packet
+    spec = layout["contract"]["surfaces"][lane]
+    source = snapshot_surface_views(values, layout=layout)[lane]
+    default = fit_surface_normalization(
+        source, surface="prefix_snapshot_" + lane, field_names=spec["field_names"],
+        row_count=len(source), semantic_binary_fields=spec["binary_fields"],
+        semantic_categorical_domains=spec["categorical_domains"],
+        allow_constant_train_fields=True)
+    actual = baseline["surfaces"][lane]
+    assert set(actual) - set(default) == {"allow_unobserved_train_fields", "observed_fit_counts"}
+    assert {key: actual[key] for key in default} == default
+    assert actual["allow_unobserved_train_fields"] is True
+    assert actual["observed_fit_counts"] == [len(source)] * len(spec["field_names"])
+
+
+def test_anchor_opt_in_metadata_and_statistics_equal_default_owner(packet):
+    _, _, candidate, _, _, relative = packet
+    observed = candidate["anchor_observed"] == 1
+    values = candidate["anchor_usd"][observed, None]
+    default = fit_surface_normalization(
+        values, surface="prefix_snapshot_anchor", field_names=[ANCHOR_FIELDS[0]],
+        row_count=len(values), semantic_binary_fields=[],
+        semantic_categorical_domains={}, allow_constant_train_fields=True)
+    actual = relative["anchor_surface"]
+    assert {key: actual[key] for key in default} == default
+    assert set(actual) - set(default) == {"allow_unobserved_train_fields", "observed_fit_counts"}
+    assert actual["allow_unobserved_train_fields"] is True
+    assert actual["observed_fit_counts"] == [int(observed.sum())]
+
+
+@pytest.mark.parametrize("violation", [
+    "missing_policy", "bool_count", "negative_count", "too_many_count", "unpaired_zero", "observed_source",
+    "empty_source", "empty_count_positive", "empty_center", "empty_scale",
+    "empty_min", "empty_max",
+])
+def test_prefix_validator_rejects_resealed_unobserved_metadata(layout, unobserved_prefix, violation):
+    _, _, original, indices = unobserved_prefix
+    norm = deepcopy(original)
+    norm.pop("contract_sha256")
+    stats = norm["surfaces"]["local"]
+    value, mask = indices["continuous"]
+    if violation == "missing_policy":
+        stats.pop("allow_unobserved_train_fields")
+        reason = "STATS_OBSERVED_COUNTS"
+    elif violation == "bool_count":
+        stats["observed_fit_counts"][value] = False
+        reason = "STATS_OBSERVED_COUNTS"
+    elif violation in ("negative_count", "too_many_count"):
+        stats["observed_fit_counts"][value] = -1 if violation == "negative_count" else len(unobserved_prefix[0]) + 1
+        reason = "STATS_OBSERVED_COUNTS"
+    elif violation == "unpaired_zero":
+        stats["observed_fit_counts"][mask] = 0
+        reason = "STATS_UNPAIRED_COUNT"
+    elif violation == "observed_source":
+        close = stats["field_names"].index("ctx_cont.gc_book_close_usd")
+        stats["scale_source"][close] = "unobserved_prefix_unit_scale"
+        reason = "STATS_SCALE_SOURCE"
+    elif violation == "empty_source":
+        stats["scale_source"][value] = "constant_train_unit_scale"
+        reason = "STATS_UNOBSERVED_SOURCE"
+    elif violation == "empty_count_positive":
+        stats["observed_fit_counts"][value] = 1
+        reason = "STATS_SCALE_SOURCE"
+    else:
+        key, number = {
+            "empty_center": ("center", 1), "empty_scale": ("scale", 2),
+            "empty_min": ("train_transformed_min", -1),
+            "empty_max": ("train_transformed_max", 1),
+        }[violation]
+        stats[key][value] = number
+        reason = "STATS_UNOBSERVED_UNITS"
+    with pytest.raises(RuntimeError, match=reason):
+        require_prefix_snapshot_normalization(_seal(norm), layout=layout)
+
+
+def test_prefix_opt_in_statistics_are_not_native_schema(packet):
+    stats = packet[4]["surfaces"]["local"]
+    with pytest.raises(RuntimeError, match="SURFACE_SCHEMA_INVALID"):
+        require_surface_normalization(
+            stats, surface=stats["surface"], field_names=stats["field_names"])
 
 
 def test_new_recipe_rejects_resealed_invalid_statistics(layout, packet):

@@ -769,6 +769,7 @@ def fit_surface_normalization(
     semantic_categorical_domains: Mapping[str, Sequence[int]] | None = None,
     semantic_binary_fields: Sequence[str] | None = None,
     allow_constant_train_fields: bool = False,
+    allow_unobserved_train_fields: bool = False,
 ) -> dict[str, Any]:
     """Fit an invertible robust transform without materializing the matrix.
 
@@ -818,6 +819,10 @@ def fit_surface_normalization(
     scale_source: list[str] = [""] * width
     if type(allow_constant_train_fields) is not bool:
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONSTANT_POLICY_INVALID]")
+    if type(allow_unobserved_train_fields) is not bool:
+        raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_UNOBSERVED_POLICY_INVALID]")
+    observed_fit_counts = ([int(population_rows)] * width
+                           if allow_unobserved_train_fields else None)
     categorical_domains = {
         str(name): tuple(int(value) for value in domain)
         for name, domain in (semantic_categorical_domains or {}).items()
@@ -887,8 +892,24 @@ def fit_surface_normalization(
                 if not np.isin(observed, (0.0, 1.0)).all() or np.any(column[observed == 0.0] != 0.0):
                     raise RuntimeError('ENTRY_INPUT_OBSERVATION_MASKED_STORAGE_INVALID')
                 column = column[observed == 1.0]
+                if observed_fit_counts is not None:
+                    observed_fit_counts[index] = int(len(column))
                 if len(column) == 0:
-                    raise RuntimeError('ENTRY_INPUT_NO_PHYSICAL_TRAIN_OBSERVATIONS:' + names[index])
+                    if not allow_unobserved_train_fields:
+                        raise RuntimeError('ENTRY_INPUT_NO_PHYSICAL_TRAIN_OBSERVATIONS:' + names[index])
+                    # Prefix-only opt-in: these are declared units/domains, not
+                    # estimates from masked zeros or later observations.
+                    center[index] = np.float32(0.0)
+                    scale[index] = np.float32(1.0)
+                    if names[index] in binary_fields:
+                        binary_mask[index] = np.uint8(1)
+                        scale_source[index] = "semantic_binary_identity"
+                    elif names[index] in categorical_domains:
+                        categorical_mask[index] = np.uint8(1)
+                        scale_source[index] = "categorical_embedding_identity"
+                    else:
+                        scale_source[index] = "unobserved_prefix_unit_scale"
+                    continue
                 q25[local], median[local], q75[local] = np.quantile(column, [0.25, 0.5, 0.75])
             if names[index] in binary_fields:
                 if not np.logical_or(column == 0.0, column == 1.0).all():
@@ -1020,7 +1041,7 @@ def fit_surface_normalization(
         train_transformed_min=transformed_min,
         train_transformed_max=transformed_max,
     )
-    return {
+    result = {
         "surface": str(surface),
         "continuous_transform": CONTINUOUS_TRANSFORM,
         "field_count": width,
@@ -1041,6 +1062,10 @@ def fit_surface_normalization(
         "train_transformed_max": [float(value) for value in transformed_max],
         "stats_sha256": stats_hash,
     }
+    if allow_unobserved_train_fields:
+        result["allow_unobserved_train_fields"] = True
+        result["observed_fit_counts"] = observed_fit_counts
+    return result
 
 
 def require_surface_normalization(
