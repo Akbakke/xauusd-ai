@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-23T06:03:05.162796+00:00",
-  "status": "SOURCE_QUALIFIED_SNAPSHOT_REFERENCE_PHYSICAL_PREPARATION_ONLY",
+  "status": "SNAPSHOT_CACHE_SOURCE_CHECKS_ADMITTED_PHYSICAL_EXECUTION_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "191main,192comparison and194source qualification are complete/consumed.193design and194decision admit bounded cache/physical-qualification source preparation only.194passed27synthetic/055metadata checks; this proves no actual feature projection, capacity, chronological feature value, Entry direction/actions, generalization or economic edge. Original data jobs, genuine fits, native training/forwards, fullVAL/reboot/TEST/Exit/HPO/selector or cost changes and consumed relaunches remain closed until exact new admission.",
-  "next_action": "194 source checks are complete/consumed:27PASS and actual0553345-column layout. Prepare only exact cache manifest/inventory/SHA/liveness-metadata glue, source/input/parent/clock bindings, fullfile SHA+projection IO/wall budget and191target/mask parity for a separately admitted non-fitting physical projection. Reuse the frozen tested reference/data adapters and unchanged native owners. No original data job, genuine reference fit, native forward/training, fullVAL, reboot, TEST, Exit, HPO or selector/cost change is admitted.",
+  "next_action": "Run only195 exact29 capped source checks on generated fixtures and actual cap/lock proof. Reuse19427PASS. Physical PLAN5cae63ab is prepared but not admitted until actual source checks pass and exact final root admission. No genuine reference fit, native forward/training, TEST, Exit, HPO, selector/cost change or promotion.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -191,7 +191,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "194_SOURCE27_PASS_ACTUAL055_QUALIFIED_PHYSICAL_ADAPTER_PREPARATION_ONLY",
+    "current_activity": "195_EXACT29_SOURCE_CHECKS_ADMITTED_PHYSICAL_PENDING",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7715,7 +7715,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "194 source checks are complete/consumed:27PASS and actual0553345-column layout. Prepare only exact cache manifest/inventory/SHA/liveness-metadata glue, source/input/parent/clock bindings, fullfile SHA+projection IO/wall budget and191target/mask parity for a separately admitted non-fitting physical projection. Reuse the frozen tested reference/data adapters and unchanged native owners. No original data job, genuine reference fit, native forward/training, fullVAL, reboot, TEST, Exit, HPO or selector/cost change is admitted.",
+    "next_action": "Run only195 exact29 capped source checks on generated fixtures and actual cap/lock proof. Reuse19427PASS. Physical PLAN5cae63ab is prepared but not admitted until actual source checks pass and exact final root admission. No genuine reference fit, native forward/training, TEST, Exit, HPO, selector/cost change or promotion.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -25389,5 +25389,58 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_SOURCE_QUALIFICATION_20261023_194/TERMINAL.json",
       "sha256": "6ee7d903b477a0c858e7f91bdbd52b3e5d8e2313f86470224c03e31339efddb0"
     }
+  },
+  "dynamic_m5_snapshot_cache_source_qualification_195": {
+    "status": "EXACT_SOURCE_CHECKS_ADMITTED_NO_ORIGINAL_DATA",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195",
+    "scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/SOURCE_CHECKS_SCOPE.json",
+      "sha256": "8f75d394334fc98d07e5f40946255fd4715812cac9a0e194b3156b29e7a689b8"
+    },
+    "source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/SOURCE_PEER_REVIEW.json",
+      "sha256": "2a95724c4afce9e137ce1f50cb3c0adf196c857b7ea91c6564163f425cbb8aa0"
+    },
+    "execution_authorized": true,
+    "source_edits_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "expected_pytest_cases": 29,
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "max_invocations": 1,
+      "max_wall_seconds": 120,
+      "memory_bytes": 4294967296,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "physical_projection_admitted": false,
+    "genuine_reference_fit_admitted": false,
+    "test_data_used": false
+  },
+  "dynamic_m5_snapshot_reference_physical_qualification_195": {
+    "status": "EXACT_PLAN_PREPARED_SOURCE_CHECKS_PENDING_NOT_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/PLAN.json",
+      "sha256": "5cae63ab5f9e7e11b75ac1eb88cebc4477acdfef4dd0932ea3450298442b4b33"
+    },
+    "source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/SOURCE_PEER_REVIEW.json",
+      "sha256": "2a95724c4afce9e137ce1f50cb3c0adf196c857b7ea91c6564163f425cbb8aa0"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "genuine_reference_fit_admitted": false,
+    "test_data_used": false
   }
 }
