@@ -323,8 +323,10 @@ def _require_dynamic_m5_constructor_binding(*, files, prefix, entry_execution_pr
     from gx1.features.entry_specialist_feature_groups_v1 import (
         compile_compact_entry_execution_profile, require_compact_entry_execution_profile_reference,
     )
+    gc_metadata = _gc_mtf_constructor_metadata(metadata, files=files)
+    gc_history = gc_metadata["history"] if gc_metadata is not None else None
     execution_profile = require_compact_entry_execution_profile_reference(
-        entry_execution_profile, context="NATIVE_DYNAMIC_M5_CONSTRUCTOR")
+        entry_execution_profile, context="NATIVE_DYNAMIC_M5_CONSTRUCTOR", gc_mtf_history=gc_history)
     if execution_profile is not None:
         physical = compile_compact_entry_execution_profile()["physical_field_names"]
         if (signal != list(physical["signal"])
@@ -536,15 +538,34 @@ def _require_component_model_phase(model, entry_training_phase):
             raise RuntimeError("NATIVE_COMPONENT_MODEL_DYNAMIC_QUERY_MISMATCH")
 
 
+def _gc_mtf_constructor_metadata(metadata, *, files=None):
+    """Read GC metadata and join it to the unchanged base cache/055 authority."""
+    binding = metadata.get("gc_mtf_history_artifact")
+    if binding is None:
+        return None
+    from gx1.contracts.entry_gc_mtf_history_v1 import read_gc_mtf_history_artifact_metadata
+    artifact = read_gc_mtf_history_artifact_metadata(binding)
+    if artifact["manifest"].get("base_cache_identity_sha256") != metadata.get("multi_tf", {}).get("shared_cache_identity_sha256"):
+        raise RuntimeError("NATIVE_GC_MTF_HISTORY_BASE_CACHE_MISMATCH")
+    if files is not None:
+        base = {"path": str(files["entry_only_base_normalization"]),
+            "sha256": val.file_sha256(files["entry_only_base_normalization"])}
+        if artifact["manifest"].get("base_normalization_unchanged") != base:
+            raise RuntimeError("NATIVE_GC_MTF_HISTORY_BASE_NORMALIZATION_MISMATCH")
+    return artifact
+
+
 def _fresh_prefix_model(*, metadata, normalization, device, seed,
                         entry_training_phase=trainer.JOINT_FITTED_Q_TRAINING_PHASE,
                         entry_execution_profile=None):
     """Call the existing complete constructor, never any checkpoint loader."""
     from gx1.features.entry_specialist_feature_groups_v1 import require_compact_entry_execution_profile_reference
+    gc_metadata = _gc_mtf_constructor_metadata(metadata)
+    gc_history = gc_metadata["history"] if gc_metadata is not None else None
     execution_profile = require_compact_entry_execution_profile_reference(
-        entry_execution_profile, context="NATIVE_PREFIX_FRESH_MODEL")
+        entry_execution_profile, context="NATIVE_PREFIX_FRESH_MODEL", gc_mtf_history=gc_history)
     metadata_profile = require_compact_entry_execution_profile_reference(
-        metadata.get("entry_execution_profile"), context="NATIVE_PREFIX_FRESH_METADATA")
+        metadata.get("entry_execution_profile"), context="NATIVE_PREFIX_FRESH_METADATA", gc_mtf_history=gc_history)
     if execution_profile != metadata_profile:
         raise RuntimeError("NATIVE_PREFIX_FRESH_EXECUTION_PROFILE_MISMATCH")
     if execution_profile is not None and entry_training_phase != trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
@@ -552,11 +573,15 @@ def _fresh_prefix_model(*, metadata, normalization, device, seed,
     trainer._set_deterministic(seed, device, "deterministic_fp32")
     model = val._model(metadata, normalization, device,
         **trainer._dynamic_m5_model_kwargs(entry_training_phase),
-        **({"entry_execution_profile":execution_profile} if execution_profile is not None else {}))
+        **({"entry_execution_profile":execution_profile} if execution_profile is not None else {}),
+        **({"gc_mtf_history": gc_history} if gc_history is not None else {}))
     if execution_profile is not None and (getattr(model, "entry_execution_profile", None) != execution_profile
             or getattr(getattr(model, "cfg", None), "entry_execution_profile", None) != execution_profile):
         raise RuntimeError("NATIVE_PREFIX_FRESH_MODEL_EXECUTION_PROFILE_MISMATCH")
     _require_component_model_phase(model, entry_training_phase)
+    gc_identity = trainer._gc_mtf_history_native_identity(model)
+    if gc_identity != (gc_metadata["identity"] if gc_metadata is not None else None):
+        raise RuntimeError("NATIVE_PREFIX_FRESH_GC_HISTORY_IDENTITY_MISMATCH")
     if any(torch.count_nonzero(parameter.detach()).item() for parameter in model.task_log_variances.parameters()):
         raise RuntimeError("NATIVE_PREFIX_FRESH_TASK_WEIGHTS_INVALID")
     return model, {
@@ -564,6 +589,7 @@ def _fresh_prefix_model(*, metadata, normalization, device, seed,
         "seed": seed, "model_state_sha256": trainer._model_state_sha256(model),
         "input_normalization_sha256": normalization["contract_sha256"],
         "checkpoint_loaded": False,
+        **({"gc_mtf_history_identity": gc_identity} if gc_identity is not None else {}),
         **({"entry_execution_profile":execution_profile} if execution_profile is not None else {}),
     }
 
@@ -707,7 +733,9 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
         return value
     rng_sha256 = _structured_sha256(rng_identity(rng))
     closure = require_prefix_measurement_source_binding(recipe)
+    gc_identity = trainer._gc_mtf_history_native_identity(model)
     common = {"entry_training_phase": phase, "target_model_role": "frozen_constructor_anchor_no_forward",
+        **({"gc_mtf_history_identity": gc_identity} if gc_identity is not None else {}),
         DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY: loss_scale_identity,
         "exit_evaluation": False, "native_launch_authorized": False, "exit_model_forward_count": 0, **closure}
     initial = {"schema_version": "gx1_prefix_fresh_initialization_v1",
@@ -732,6 +760,7 @@ def publish_dynamic_m5_fresh_initialization(*, recipe_path: Path, recipe_file_sh
     # state_dict tensors are detached CPU values. The immutable archive may share
     # their storage for ONLINE and its identical no-forward constructor anchor.
     state = {"schema_version": "gx1_prefix_fresh_initial_state_v1",
+        **({"gc_mtf_history_identity": gc_identity} if gc_identity is not None else {}),
         DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY: loss_scale_identity,
         "chronological_prefix": recipe["chronological_prefix"], "model_functions": prefix["model_functions"],
         "model_forwards": 0, "optimizer_steps": 0, "checkpoint_loaded": False,
@@ -807,6 +836,13 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
         loss_scales = load_dynamic_m5_loss_scales(dynamic_m5_loss_scales,
             expected_lineage=dynamic_m5_loss_fit_lineage(observed_entry_scope, single))
     loss_scale_identity = dynamic_m5_loss_scale_identity(loss_scales)
+    gc_metadata = _gc_mtf_constructor_metadata(meta, files=files)
+    gc_inputs = None
+    if gc_metadata is not None:
+        from gx1.contracts.entry_gc_mtf_history_v1 import load_gc_mtf_history_artifact
+        gc_inputs = load_gc_mtf_history_artifact(gc_metadata["identity"]["binding"])
+        if gc_inputs["identity"] != gc_metadata["identity"]:
+            raise RuntimeError("NATIVE_DYNAMIC_M5_GC_HISTORY_INPUT_CHANGED")
     datasets = {}
     for split, role, audit_key in (("train", "TRAIN", "sequence_source_audit"),
                                   ("val", "CONTROL256", "val_sequence_source_audit")):
@@ -820,7 +856,9 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
             raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_DATASET_IDENTITY_MISMATCH")
         dataset = val.EntryV10CtxDataset(files[f"entry_{split}_parquet"], seq_len=int(meta["seq_len"]),
             m5_prebuilt_path=files["m5_prebuilt"], per_tf_seq_lens=per_tf,
-            multi_tf_closed_bar=True, sequence_source_audit_json=files[audit_key])
+            multi_tf_closed_bar=True, sequence_source_audit_json=files[audit_key],
+            **({"gc_mtf_history": gc_inputs["history"], "gc_mtf_surfaces": gc_inputs["surfaces"],
+                "gc_mtf_history_identity": gc_inputs["identity"]} if gc_inputs is not None else {}))
         if len(dataset) != source["physical_rows"]:
             raise RuntimeError("NATIVE_DYNAMIC_M5_COMPONENT_SOURCE_MISMATCH")
         dataset.bind_policy_dependent_auxiliary_targets(
@@ -842,6 +880,7 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
         device=device, seed=seed, entry_training_phase=phase,
         **({"entry_execution_profile":meta["entry_execution_profile"]} if meta.get("entry_execution_profile") is not None else {}))
     _configure_component_training_phase(model, phase)
+    gc_identity = trainer._gc_mtf_history_native_identity(model, datasets["train"], datasets["val"])
     # This owner establishes the strict population/order authority before the
     # epoch order is requested and before any optimizer is constructed.
     with file_verification_scope():
@@ -860,7 +899,8 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
         "physical_sources": physical["physical_sources"],
         "entry_only_base_normalization": physical["entry_only_base_normalization"],
         "base_contract_sha256": physical["base_contract_sha256"], "evaluation_cohort": cohort,
-        "val_sequence_audit": physical["sequence_source_audits"]["val"], **dict(val_limits)}
+        "val_sequence_audit": physical["sequence_source_audits"]["val"], **dict(val_limits),
+        **({"gc_mtf_history_identity": gc_identity} if gc_identity is not None else {})}
     trainer._native_candidate_val_context_binding(context)
     optimizer, weight_ema, scheduler, ema_derivation = _component_optimizer_state(
         model=model, entry_phase=phase, train_rows=int(parents.numel()), batch_size=batch_size,
@@ -878,6 +918,7 @@ def _build_dynamic_m5_entry_components(*, files, chronological_prefix, observed_
         "prefix_epoch0_parent_order": order.numpy().copy(), "effective_train_rows": int(parents.numel()),
         "entry_m5_path_single_epoch": single, "entry_observed_market": identity,
         "entry_only_session_binding": session_binding,
+        **({"gc_mtf_history_identity": gc_identity} if gc_identity is not None else {}),
         DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY: loss_scale_identity,
         "unified_exit_lifecycle_evidence": {"schema_version": "gx1_native_entry_only_dynamic_m5_input_lineage_v1",
             "physical_sources": physical["physical_sources"], "base_normalization": physical["entry_only_base_normalization"],
@@ -2226,11 +2267,17 @@ def _run_entry_gradient_diagnostic(*, components, recipe, device, output, recipe
 def _restore_prefix_initial_measurement_state(*, components, scope, device):
     """Load the saved fresh state, never an exposed historical checkpoint."""
     initial = scope["initialization"]
+    gc_identity = trainer._gc_mtf_history_native_identity(components["model"],
+        *(components[key] for key in ("train_ds", "val_ds") if key in components))
+    if initial.get("gc_mtf_history_identity") != gc_identity:
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_GC_HISTORY_IDENTITY_MISMATCH")
     dynamic = getattr(components["model"], "entry_training_phase", None) == trainer.ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     if dynamic and (not isinstance(components.get(DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY), Mapping)
             or initial.get(DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY) != components[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY]):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_LOSS_SCALE_MISMATCH")
     state = torch.load(_bound_artifact(initial["initial_state"]), map_location="cpu", weights_only=False)
+    if state.get("gc_mtf_history_identity") != gc_identity:
+        raise RuntimeError("NATIVE_PREFIX_INITIAL_SAVED_GC_HISTORY_IDENTITY_MISMATCH")
     expected = initial["online_model_state_sha256"]
     functions = components.get("model_functions")
     if (functions not in (trainer._PREFIX_MODEL_FUNCTIONS, trainer._PREFIX_CURRENT_MODEL_FUNCTIONS)
@@ -2267,6 +2314,8 @@ def _restore_prefix_initial_measurement_state(*, components, scope, device):
         raise RuntimeError("NATIVE_PREFIX_INITIAL_EMA_STATE_MISMATCH")
     model = components["model"]
     model.load_state_dict(state["model_state"], strict=True)
+    if gc_identity is not None:
+        model.require_input_normalization_state()
     optimizer.load_state_dict(state["optimizer_state"])
     components["weight_ema"].restore_checkpoint_state(saved_ema, model=model)
     if scheduler is not None:
@@ -2298,7 +2347,8 @@ def _dynamic_m5_technical_batch_manifest(batch):
     """Describe actual tensors by role, preserving each nested MTF leaf."""
     import hashlib
     from gx1.contracts.entry_exit_feature_base_v1 import ENTRY_MTF_CONTEXT_TIMEFRAMES
-    inputs = {"seq_x", "snap_x", "ctx_cont", "ctx_cat", *("seq_" + tf.lower() for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES)}
+    inputs = {"seq_x", "snap_x", "ctx_cont", "ctx_cat", *("seq_" + tf.lower() for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES),
+        *("gc_seq_" + tf.lower() for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES)}
     from gx1.contracts.entry_observed_market_v1 import (
         DYNAMIC_M5_MARKOUT_TARGET_KEY, DYNAMIC_M5_MARKOUT_VALID_KEY, DYNAMIC_M5_MFE_TARGET_KEY,
         DYNAMIC_M5_MAE_TARGET_KEY, DYNAMIC_M5_PATH_VALID_KEY, DYNAMIC_M5_CLOSED_MFE_TARGET_KEY,
@@ -2351,6 +2401,9 @@ def _dynamic_m5_forward_parity(*, model, batch, device, diagnostics=None):
     snapshots = []
     evidence = {} if diagnostics is None else diagnostics
     evidence.update(model_forwards=0, optimizer_steps=0, execution_passes=[], output_comparisons={})
+    gc_identity = trainer._gc_mtf_history_native_identity(model)
+    if gc_identity is not None:
+        evidence["gc_mtf_history_identity"] = gc_identity
     try:
         for context in (torch.no_grad, torch.enable_grad):
             trainer._restore_attended_session_rng_state(rng, device=device)
@@ -2423,6 +2476,7 @@ def _dynamic_m5_forward_parity(*, model, batch, device, diagnostics=None):
             raise RuntimeError("DYNAMIC_M5_TECHNICAL_PARITY_ACTION_OR_TIE_CHANGED")
         return {"model_forwards": 2, "optimizer_steps": 0, "model_state_sha256": before,
             "materialized_batch_sha256": input_hash, "typed_batch_manifest": manifest, "output_comparisons": comparisons,
+            **({"gc_mtf_history_identity": gc_identity} if gc_identity is not None else {}),
             "query_and_best_horizon_masks_exact": True, "candidate_actions_and_ties_exact": True,
             "supervised_cells": snapshots[0][1],
             "reference_outputs_sha256": _dynamic_m5_technical_tree_sha256(left),
@@ -2469,6 +2523,7 @@ def _run_dynamic_m5_technical_qualification(*, components, scope, recipe, files,
             raise RuntimeError("DYNAMIC_M5_TECHNICAL_WALL_LIMIT")
     controls = recipe["trainer_cli"]
     model = components["model"]
+    gc_identity = trainer._gc_mtf_history_native_identity(model, components["train_ds"], components["val_ds"])
     phase = ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
     def fresh():
         optimizer, ema, scheduler, derivation = _component_optimizer_state(model=model, entry_phase=phase,
@@ -2595,6 +2650,7 @@ def _run_dynamic_m5_technical_qualification(*, components, scope, recipe, files,
         "initial_measurement_result": scope["artifacts"]["initial_measurement_result"],
         "initial_measurement_audit": scope["artifacts"]["initial_measurement_audit"],
         "initial_model_state_sha256": initial_hash, "entry_execution_profile": recipe["entry_execution_profile"],
+        **({"gc_mtf_history_identity": gc_identity} if gc_identity is not None else {}),
         "source_bindings_sha256": recipe["source_bindings_sha256"], "files": recipe["files"],
         "entry_observed_market": components["entry_observed_market"], "parity": parity,
         "native_train_parent_rows": actual_order, "technical_optimizer_updates": updates,
@@ -2614,6 +2670,9 @@ def _run_dynamic_m5_technical_qualification(*, components, scope, recipe, files,
 
 def _require_dynamic_m5_measurement_source(*, model, dataset, cohort, context):
     """Shared actual Dataset/clock/parent join for observations and parity."""
+    gc_identity = trainer._gc_mtf_history_native_identity(model, dataset)
+    if context.get("gc_mtf_history_identity") != gc_identity:
+        raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_GC_HISTORY_IDENTITY_MISMATCH")
     import hashlib
     import pandas as pd
     from gx1.contracts.unified_exit_bounded_val_cohort_v1 import require_bounded_val_cohort
@@ -2832,7 +2891,14 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
         raise RuntimeError("NATIVE_PREFIX_DYNAMIC_MEASUREMENT_COMPONENT_MISMATCH")
     if (("entry_observed_market" in recipe or "entry_observed_market_horizons" in recipe)) != (entry_identity is not None):
         raise RuntimeError("NATIVE_PREFIX_OBSERVED_ENTRY_COMPONENT_MISMATCH")
+    gc_identity = trainer._gc_mtf_history_native_identity(components["model"],
+        *(components[key] for key in ("train_ds", "val_ds") if key in components))
+    if (context.get("gc_mtf_history_identity") != gc_identity
+            or (dynamic and scope["initialization"].get("gc_mtf_history_identity") != gc_identity)):
+        raise RuntimeError("NATIVE_PREFIX_MEASUREMENT_GC_HISTORY_IDENTITY_MISMATCH")
     entry_evidence = {} if entry_identity is None else {"entry_observed_market": entry_identity}
+    if gc_identity is not None:
+        entry_evidence["gc_mtf_history_identity"] = gc_identity
     if dynamic:
         entry_evidence[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY] = components[DYNAMIC_M5_LOSS_SCALE_RECIPE_KEY]
     deadline = min(invocation_started + 12000 - 60, time.monotonic() + context["max_wall_seconds"])
@@ -2936,7 +3002,8 @@ def _run_prefix_initial_measurement(*, components, scope, recipe, output, device
                         raise RuntimeError("NATIVE_PREFIX_DERIVED_ENTRY_TRAIN_ONLY_REQUIRED")
                     baseline["diagnostics"]["bounded_entry_observations"] = scope["entry_baseline"]["entry_observations"]
                 if (baseline["cohort"] != cohort or baseline["target_model_state_sha256"] != target_hash
-                        or baseline.get("entry_observed_market") != entry_identity):
+                        or baseline.get("entry_observed_market") != entry_identity
+                        or baseline.get("gc_mtf_history_identity") != gc_identity):
                     raise RuntimeError("NATIVE_PREFIX_FINAL_COHORT_OR_TEACHER_CHANGED")
                 if dynamic:
                     if ("entry_baseline" in scope

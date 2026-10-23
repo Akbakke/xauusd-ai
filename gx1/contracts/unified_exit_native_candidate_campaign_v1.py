@@ -1403,6 +1403,23 @@ def require_prefix_measurement_source_binding(recipe, *, measurement=None):
     return expected
 
 
+def _require_gc_mtf_history_identity_records(expected, *records):
+    """Bind the optional artifact identity without adding keys to old records."""
+    if any(not isinstance(record, Mapping) for record in records):
+        raise RuntimeError("NATIVE_GC_MTF_HISTORY_IDENTITY_RECORD_INVALID")
+    key = "gc_mtf_history_identity"
+    if expected is None:
+        if any(key in record for record in records):
+            raise RuntimeError("NATIVE_GC_MTF_HISTORY_IDENTITY_UNEXPECTED")
+        return {}
+    from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history_artifact_identity
+    identity = require_gc_mtf_history_artifact_identity(expected)
+    for record in records:
+        if key not in record or require_gc_mtf_history_artifact_identity(record[key]) != identity:
+            raise RuntimeError("NATIVE_GC_MTF_HISTORY_IDENTITY_MISMATCH")
+    return {key: identity}
+
+
 def _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement):
     """Rejoin constructor provenance and Entry coordinates, without a teacher forward."""
     from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE as phase
@@ -1430,6 +1447,24 @@ def _require_dynamic_initial_artifacts(recipe, prefix, initial, measurement):
             or any(char not in "0123456789abcdef" for char in initial["online_model_state_sha256"])
             or measurement.get("coordinate_result") != recipe.get("files", {}).get("entry_measurement_coordinates")):
         raise RuntimeError("NATIVE_DYNAMIC_M5_INITIAL_COMPONENT_BINDING_INVALID")
+    gc_identity = None
+    profile = recipe.get("entry_execution_profile")
+    from gx1.features.entry_specialist_feature_groups_v1 import GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+    gc_profile = isinstance(profile, Mapping) and profile.get("name") == GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+    files = recipe.get("files", {})
+    if "source_bundle_metadata" in files:
+        binding = require_binding(files["source_bundle_metadata"], label="GC initial constructor", verify_file=True)
+        metadata = read_bound_json(Path(binding["path"]), binding["sha256"])
+        if not isinstance(metadata, Mapping):
+            raise RuntimeError("NATIVE_GC_MTF_HISTORY_INITIAL_METADATA_INVALID")
+        if metadata.get("gc_mtf_history_artifact") is not None:
+            from gx1.contracts.entry_gc_mtf_history_v1 import read_gc_mtf_history_artifact_metadata
+            gc_identity = read_gc_mtf_history_artifact_metadata(metadata["gc_mtf_history_artifact"])["identity"]
+        if gc_profile or metadata.get("gc_mtf_history_artifact") is not None:
+            require_dynamic_m5_execution_profile(recipe)
+    elif gc_profile:
+        raise RuntimeError("NATIVE_GC_MTF_HISTORY_INITIAL_METADATA_REQUIRED")
+    _require_gc_mtf_history_identity_records(gc_identity, initial, measurement)
     require_prefix_measurement_source_binding(recipe, measurement=initial)
     require_prefix_measurement_source_binding(recipe, measurement=measurement)
 
@@ -2299,8 +2334,13 @@ def require_dynamic_m5_execution_profile(recipe: Mapping[str, Any]) -> dict[str,
     declared = recipe.get("entry_execution_profile")
     if metadata.get("entry_execution_profile") != declared:
         raise RuntimeError("NATIVE_ENTRY_EXECUTION_PROFILE_RECIPE_CONSTRUCTOR_MISMATCH")
+    gc_kwargs = {}
+    if metadata.get("gc_mtf_history_artifact") is not None:
+        from gx1.contracts.entry_gc_mtf_history_v1 import read_gc_mtf_history_artifact_metadata
+        artifact = read_gc_mtf_history_artifact_metadata(metadata["gc_mtf_history_artifact"])
+        gc_kwargs = {"gc_mtf_history": artifact["history"]}
     reference = require_compact_entry_execution_profile_reference(
-        declared, context="NATIVE_ENTRY_EXECUTION_PROFILE")
+        declared, context="NATIVE_ENTRY_EXECUTION_PROFILE", **gc_kwargs)
     if ("entry_execution_profile" in recipe or "entry_execution_profile" in metadata) and _dynamic_m5_native_design(recipe) is None:
         raise RuntimeError("NATIVE_ENTRY_EXECUTION_PROFILE_DYNAMIC_ENTRY_REQUIRED")
     return reference

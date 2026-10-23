@@ -296,3 +296,126 @@ def require_gc_mtf_history(value):
     _require(isinstance(value, Mapping) and set(value) == {'layout', 'normalization'}, 'WRAPPER_KEYS')
     layout = require_gc_mtf_history_layout(value['layout'])
     return {'layout': layout, 'normalization': require_gc_mtf_history_normalization(value['normalization'], layout=layout)}
+
+
+
+def _gc_mtf_history_artifact_ref(value):
+    from pathlib import Path
+    _require(isinstance(value, Mapping) and set(value) == {'path', 'sha256'}, 'ARTIFACT_REF_KEYS')
+    path = value['path']
+    _require(isinstance(path, str) and Path(path).is_absolute()
+        and str(Path(path)) == path and '..' not in Path(path).parts
+        and _hash(value['sha256']), 'ARTIFACT_REF')
+    return {'path': path, 'sha256': value['sha256']}
+
+
+def _read_gc_mtf_history_artifact_json(binding):
+    import os
+    import stat
+    from pathlib import Path
+    binding = _gc_mtf_history_artifact_ref(binding)
+    path = Path(binding['path'])
+    _require(path.resolve(strict=True) == path, 'ARTIFACT_JSON_PATH')
+    fd = os.open(path, os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        _require(stat.S_ISREG(info.st_mode) and 0 < info.st_size <= 2 * 1024 * 1024, 'ARTIFACT_JSON_SIZE')
+        body = stream.read(2 * 1024 * 1024 + 1)
+    _require(len(body) == info.st_size and hashlib.sha256(body).hexdigest() == binding['sha256'],
+        'ARTIFACT_JSON_HASH')
+    def unique_object(pairs):
+        result = dict(pairs)
+        _require(len(result) == len(pairs), 'ARTIFACT_JSON_DUPLICATE_KEYS')
+        return result
+    value = json.loads(body, object_pairs_hook=unique_object,
+        parse_constant=lambda _: _require(False, 'ARTIFACT_JSON_NONFINITE'))
+    _require(isinstance(value, Mapping), 'ARTIFACT_JSON_OBJECT')
+    return value
+
+
+def require_gc_mtf_history_artifact_identity(value, *, history=None):
+    """Validate durable identity without opening metadata or array files."""
+    from pathlib import Path
+    _require(isinstance(value, Mapping) and set(value) == {
+        'binding', 'layout_sha256', 'normalization_sha256'}, 'ARTIFACT_IDENTITY_KEYS')
+    binding = _gc_mtf_history_artifact_ref(value['binding'])
+    _require(Path(binding['path']).name == 'SURFACES.json'
+        and _hash(value['layout_sha256']) and _hash(value['normalization_sha256']), 'ARTIFACT_IDENTITY')
+    if history is not None:
+        history = require_gc_mtf_history(history)
+        _require(value['layout_sha256'] == history['layout']['contract_sha256']
+            and value['normalization_sha256'] == history['normalization']['contract_sha256'],
+            'ARTIFACT_IDENTITY_HISTORY')
+    return {'binding': binding, 'layout_sha256': value['layout_sha256'],
+        'normalization_sha256': value['normalization_sha256']}
+
+
+def read_gc_mtf_history_artifact_metadata(binding):
+    """Read only the three bound JSON files, never NPY, base cache or targets."""
+    from pathlib import Path
+    binding = _gc_mtf_history_artifact_ref(binding)
+    directory = Path(binding['path']).parent
+    _require(Path(binding['path']).name == 'SURFACES.json', 'ARTIFACT_MANIFEST_NAME')
+    manifest = _read_gc_mtf_history_artifact_json(binding)
+    _require(manifest.get('schema_version') == 'gx1_gc_mtf_history_physical_surfaces_v1'
+        and type(manifest.get('CONTROL_fit_rows')) is int and manifest['CONTROL_fit_rows'] == 0
+        and type(manifest.get('TEST_fit_rows')) is int and manifest['TEST_fit_rows'] == 0
+        and manifest.get('predictive_value_measured') is False
+        and isinstance(manifest.get('surfaces'), Mapping)
+        and set(manifest['surfaces']) == set(TIMEFRAMES), 'ARTIFACT_MANIFEST_SCOPE')
+    history = {}
+    for key, filename in (('layout', 'LAYOUT.json'), ('normalization', 'NORMALIZATION.json')):
+        ref = _gc_mtf_history_artifact_ref(manifest.get(key))
+        _require(ref['path'] == str(directory / filename), 'ARTIFACT_METADATA_PATH:' + key)
+        history[key] = _read_gc_mtf_history_artifact_json(ref)
+    history = require_gc_mtf_history(history)
+    for tf in TIMEFRAMES:
+        surface = manifest['surfaces'][tf]
+        _require(isinstance(surface, Mapping) and set(surface) == {
+            'native_row_indices', 'available_ns', 'features'}, 'ARTIFACT_ARRAY_INVENTORY:' + tf)
+        rows = None
+        for key in ('native_row_indices', 'available_ns', 'features'):
+            descriptor = surface[key]
+            _require(isinstance(descriptor, Mapping) and set(descriptor) == {
+                'path', 'sha256', 'size_bytes', 'dtype', 'shape'}, 'ARTIFACT_ARRAY_DESCRIPTOR:' + tf)
+            ref = _gc_mtf_history_artifact_ref({k: descriptor[k] for k in ('path', 'sha256')})
+            shape = descriptor['shape']
+            _require(ref['path'] == str(directory / ('GC_' + tf + '_' + key + '.npy'))
+                and type(descriptor['size_bytes']) is int and descriptor['size_bytes'] > 0
+                and isinstance(shape, list) and all(type(n) is int and n > 0 for n in shape)
+                and descriptor['dtype'] == ('float32' if key == 'features' else 'int64')
+                and len(shape) == (2 if key == 'features' else 1), 'ARTIFACT_ARRAY_HEADER:' + tf)
+            rows = shape[0] if rows is None else rows
+            _require(shape[0] == rows and (key != 'features'
+                or shape[1] == history['layout']['widths'][tf]), 'ARTIFACT_ARRAY_SHAPE:' + tf)
+    identity = require_gc_mtf_history_artifact_identity({'binding': binding,
+        'layout_sha256': history['layout']['contract_sha256'],
+        'normalization_sha256': history['normalization']['contract_sha256']}, history=history)
+    return {'history': history, 'identity': identity, 'manifest': manifest}
+
+
+def load_gc_mtf_history_artifact(binding):
+    """Verify all fifteen immutable descriptors through the canonical mmap owner."""
+    import os
+    from pathlib import Path
+    from gx1.features import htf_features as htf
+    result = read_gc_mtf_history_artifact_metadata(binding)
+    directory = Path(result['identity']['binding']['path']).parent
+    fd = os.open(directory, os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0) | getattr(os, 'O_NOFOLLOW', 0))
+    surfaces = {}
+    try:
+        for tf in TIMEFRAMES:
+            surface = {'field_names': result['history']['layout']['field_names'][tf]}
+            for key in ('native_row_indices', 'available_ns', 'features'):
+                descriptor = result['manifest']['surfaces'][tf][key]
+                array = htf._load_verified_cache_npy(fd, Path(descriptor['path']).name,
+                    expected_sha256=descriptor['sha256'], expected_size_bytes=descriptor['size_bytes'],
+                    label='gc_mtf_' + tf.lower() + '/' + key)
+                _require(array.dtype.name == descriptor['dtype'] and list(array.shape) == descriptor['shape']
+                    and not array.flags.writeable, 'ARTIFACT_ARRAY_LOADED_HEADER:' + tf)
+                surface[key] = array
+            surfaces[tf] = surface
+    finally:
+        os.close(fd)
+    surfaces = require_gc_mtf_history_surfaces(surfaces, layout=result['history']['layout'])
+    return {**result, 'surfaces': surfaces}

@@ -36,32 +36,36 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Nå:223 fysisk produsent etter kvalifisert semantikk
+## Nå:224 kobling til eksisterende native Entry-rute
 
-220 FAILED/consumed på forhåndstalt78 mot faktisk150hashes.221 rettet bare
-målt9M1+45M5+48tape+48pair; loader/vakter er bevart.221 fullførte ti selectors med
-055-TRAINvindu/proof likt,14GC-tabeller/10filer, fem projeksjoner/15sidefiler,
-men D1 first_retouch-fit var UNSCALEABLE. Ingen220/221-relaunch.
+223 er COMPLETE/consumed og actualpeer429b80de… PASS:15readonlyNPY,
+467723564B, fem separate TRAIN-normaliseringer,84,292sworker/85,268sytre.
+Ti canonicalselectors matcher055vinduer/proofs;0manglende bøtter etter kildestart
+påalle28table/rolepaneler. Ingen targetmedlemmer/prediktorfit/modellforward/update.
+TRAIN-union M5/M15/H1/H4/D1=118720/39638/9995/2686/683rader;
+CONTROL-kontekst=17363/5847/1542/474/315, ingen CONTROL-fit.
+Alle14first_retouch har kildebevist binaryidentity. D1TRAINbull1/15,bear1/9;
+CONTROLbull0/9,bear1/6. Ti eldre H1buy/sell/POC/delta/CVD-felt har3TRAIN-
+observasjoner og0CONTROL; de beholdes maskert. Rader er ikke uavhengige signaler.
 
-222 er COMPLETE/consumed:38/38 fokuserte cases PASS,0fail/error/skip,
-49,753sworker/50,463sytre,RSS918130688B,11syntetiskeforwardforsøk/51syntetiskefits.
-Kildeformelen beviser0/1 på14retouch-felt; bare nye eksakte fem `gc_mtf_*`-flater
-behandler disse som hendelser. Gammel binary/defaultnormalisering og055 er bevart.
-Ingen samplet domene, skalagulv, unobserved-fallback eller genuine arbeid.
+224DESIGN binder minste kobling av manifest223 til existing dynamisk M5Entry.
+Metadatafelt `gc_mtf_history_artifact` beholder recipeens11filer. GC-layout,
+normalisering og råsidefiler bindes gjennom én betinget `gc_mtf_history_identity`
+for modell/TRAIN/CONTROL, freshstate, session/context, tekniskbevis og målinger.
+Loader gjenbruker verifisert descriptor+readonlymmap; ingen nytrener, serving/export
+eller endringav generator/selektor/gather/055/targets/kostnader/åttefamilier/D1makro.
+Kildepeer og AST/stale-path/diffcheck PASS.224PLAN innrømmer én capped syntetisk
+11-case kvalifisering av metadata/readonlyloader/tamper/nativeidentitet/freshstate/
+måleparing:0 modellforwards,5 syntetiske normaliseringsfits;38 tidligere PASS
+gjenbrukes. Fileierskap/API står i224DESIGN. Kilde og policy fryses før kjøring.
+Ingen genuine payload/fit/forward/update er innrømmet; TEST forblir forseglet.
 
-223 klargjør samme eksisterende targetfrie produsent med kildekvalifisert222-
-semantikk og målte150hashes. Plan/worker/semantikkref står iNEXT_RUN_POLICY.
-Samme4GiB/512MiB/64pids/éntråd/900+10s,8GiBrchar/1GiBNPY. Kombinert222actual-/223kildepeer2c818380… PASS. Én223invokasjon er innrømmet;
-source/policy fryses underkjøring. Alle originale inputs gjenbrukes.
-221s15readonlysidefiler beholdes ukvalifisert: deres internt målteSHA ble ikke
-varig publisert før fitfeilen. De reproduseres via81s-løypen, ingen ny rekonstruksjon.
-
-Neste steg etter kvalifisert220 er minste kobling inn i eksisterende dynamiske
-Entry-rute, ikke en ny trener. Fersk initialbaseline for den endrede ONLINE-
-funksjonen og optimizer/resume-paritet kreves før en egen fast nativeinnrømmelse.
-191/188 er gjenbrukbare referanser, men ikke ny kandidats egen initialbaseline.
-Samme frosne057 epoch0-order,118249TRAIN/batch16/7391steg, targets/kostnader
-og oppdateringsbudsjett skal gjenbrukes. Ingen ny RNG-basert rekkefølge trengs.
+Neste porter er fokusert syntetisk native-wiring-kvalifisering, fersk genuine
+initialstate/ONLINEbaseline og optimizer/resume-paritet før en egen fast native-
+sammenligning.191/188 erstatter ikke ny funksjons egen startmåling. Samme frosne057
+rekkefølge118249/batch16/7391steg, prisfasit/kostnader og budsjett skal gjenbrukes.
+Prognoseforbedring er fortsatt umålt. Ingen220/221/222/223-relaunch. Mislykkede
+kvitteringer/sidefiler beholdes; ingenDATA/RUNS-rydding.
 
 ## Gjenbruk og ubeviste grenser
 

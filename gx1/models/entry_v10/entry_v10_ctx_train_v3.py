@@ -5215,10 +5215,12 @@ class EntryV10CtxDataset(Dataset):
         *,
         gc_mtf_history: Optional[Mapping[str, Any]] = None,
         gc_mtf_surfaces: Optional[Mapping[str, Any]] = None,
+        gc_mtf_history_identity: Optional[Mapping[str, Any]] = None,
     ):
         self.gc_mtf_history = None
         self._gc_mtf_surfaces = None
-        if gc_mtf_history is not None or gc_mtf_surfaces is not None:
+        self.gc_mtf_history_identity = None
+        if gc_mtf_history is not None or gc_mtf_surfaces is not None or gc_mtf_history_identity is not None:
             from gx1.contracts.entry_gc_mtf_history_v1 import (
                 require_gc_mtf_history_layout,
                 require_gc_mtf_history_normalization,
@@ -5236,6 +5238,10 @@ class EntryV10CtxDataset(Dataset):
             self._gc_mtf_surfaces = require_gc_mtf_history_surfaces(
                 gc_mtf_surfaces, layout=layout,
             )
+            if gc_mtf_history_identity is not None:
+                from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history_artifact_identity
+                self.gc_mtf_history_identity = require_gc_mtf_history_artifact_identity(
+                    gc_mtf_history_identity, history=self.gc_mtf_history)
         architecture = current_entry_exit_architecture_observation()
         architecture["entry"]["sequence_bars"] = seq_len
         architecture["exit"]["sequence_bars"] = (
@@ -12571,6 +12577,14 @@ def _candidate_training_session_contract(
                        for key in ("artifact_sha256", "fit_lineage_sha256"))):
             raise RuntimeError("[CANDIDATE_DYNAMIC_LOSS_SCALE_SESSION_BINDING_REQUIRED]")
         require_binding(units["binding"], label="dynamic Session loss units", verify_file=False)
+        gc_identity = prefix_training_binding.get("gc_mtf_history_identity")
+        context_gc_identity = native_val_binding.get("gc_mtf_history_identity") if isinstance(native_val_binding, Mapping) else None
+        if gc_identity is not None or context_gc_identity is not None:
+            from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history_artifact_identity
+            if (gc_identity is None or context_gc_identity is None
+                    or require_gc_mtf_history_artifact_identity(gc_identity) !=
+                    require_gc_mtf_history_artifact_identity(context_gc_identity)):
+                raise RuntimeError("[CANDIDATE_GC_MTF_HISTORY_SESSION_CONTEXT_MISMATCH]")
     if type(exit_backup_steps) is not int or exit_backup_steps not in (1, 5):
         raise RuntimeError("[CANDIDATE_TRAINING_BACKUP_POLICY_INVALID]")
     if exit_reference_policy is not None:
@@ -12859,6 +12873,9 @@ def _restore_candidate_training_checkpoint(
     try:
         model.load_state_dict(model_state, strict=True)
         target_model.load_state_dict(target_state, strict=True)
+        if getattr(model, "gc_mtf_history", None) is not None:
+            model.require_input_normalization_state()
+            target_model.require_input_normalization_state()
         target_model.requires_grad_(False)
         target_model.eval()
         optimizer.load_state_dict(optimizer_state)
@@ -14152,12 +14169,32 @@ def _require_dynamic_prefix_dataset_binding(dataset, *, binding, source, proof, 
     return scope
 
 
+def _gc_mtf_history_native_identity(model, *datasets):
+    """Join one physical GC artifact to the model and all consuming Datasets."""
+    owners = (model, *datasets)
+    histories = [getattr(owner, "gc_mtf_history", None) for owner in owners]
+    identities = [getattr(owner, "gc_mtf_history_identity", None) for owner in owners]
+    if all(value is None for value in histories):
+        if any(value is not None for value in identities):
+            raise RuntimeError("[CANDIDATE_GC_MTF_HISTORY_IDENTITY_WITHOUT_INPUTS]")
+        return None
+    if any(value is None for value in histories) or any(value is None for value in identities):
+        raise RuntimeError("[CANDIDATE_GC_MTF_HISTORY_IDENTITY_REQUIRED]")
+    from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history_artifact_identity
+    checked = [require_gc_mtf_history_artifact_identity(value, history=history)
+               for value, history in zip(identities, histories)]
+    if any(value != checked[0] for value in checked[1:]):
+        raise RuntimeError("[CANDIDATE_GC_MTF_HISTORY_IDENTITY_MISMATCH]")
+    return checked[0]
+
+
 def _prefix_candidate_training_binding(
     *, chronological_prefix, train_ds, val_ds, train_parquet, val_parquet,
     input_normalization, model, seed, batch_size, learning_rate, weight_decay,
 ):
     """Bind already prepared prefix data to the durable native training session."""
     from gx1.contracts.local_random_access_campaign_v2 import require_binding, read_bound_json
+    gc_history_identity = _gc_mtf_history_native_identity(model, train_ds, val_ds)
 
     def checked(binding):
         return require_binding(binding, label="native prefix session", verify_file=True)
@@ -14398,6 +14435,10 @@ def _prefix_candidate_training_binding(
         binding["dynamic_m5_query_minutes"] = list(queries)
         binding["candidate_quality_native_authority_admitted"] = False
         binding["dynamic_m5_loss_scales"] = loss_scale_identity
+    if gc_history_identity is not None:
+        if not dynamic:
+            raise RuntimeError("[CANDIDATE_GC_MTF_HISTORY_DYNAMIC_ENTRY_REQUIRED]")
+        binding["gc_mtf_history_identity"] = gc_history_identity
     if single_epoch is not None and (any(not isinstance(value, Mapping) for value in observed)
             or observed[0]["identity"].get("training_phase") != single_epoch["witness"]["training_phase"]):
         raise RuntimeError("[CANDIDATE_M5_SINGLE_EPOCH_TARGET_MISMATCH]")
@@ -14555,6 +14596,11 @@ def _dynamic_entry_native_context_binding(context: Mapping[str, Any]) -> dict[st
         limit_keys = ("max_model_forwards", "max_state_views", "max_wall_seconds", "progress_interval_forwards")
         required = {"entry_training_phase", "entry_supervision_identity", "physical_sources",
             "entry_only_base_normalization", "base_contract_sha256", "evaluation_cohort", "val_sequence_audit", *limit_keys}
+        gc_identity = None
+        if "gc_mtf_history_identity" in context:
+            from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history_artifact_identity
+            gc_identity = require_gc_mtf_history_artifact_identity(context["gc_mtf_history_identity"])
+            required.add("gc_mtf_history_identity")
         if set(context) != required or context["entry_training_phase"] != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
             raise RuntimeError("[CANDIDATE_DYNAMIC_ENTRY_CONTEXT_INVALID]")
         cohort = require_bounded_val_cohort(context["evaluation_cohort"])
@@ -14617,6 +14663,7 @@ def _dynamic_entry_native_context_binding(context: Mapping[str, Any]) -> dict[st
             "entry_supervision_identity": dict(identity), "physical_sources": dict(sources),
             "entry_only_base_normalization": base_binding, "base_contract_sha256": contract["contract_sha256"],
             "evaluation_cohort": cohort, "sequence_source_audit": audit, "compute_limits": limits,
+            **({"gc_mtf_history_identity": gc_identity} if gc_identity is not None else {}),
             "report_only": True, "exit_evaluation": False, "native_launch_authorized": False, "test_accessed": False}
 
 
@@ -15881,11 +15928,14 @@ def _run_resumable_candidate_training(
         )
         epoch_order = restored["epoch_order"]
         adapter = getattr(train_ds, "_unified_exit_lifecycle_v2", None)
-        if getattr(adapter, "_random_access_train", None) is not None:
+        gc_history_enabled = getattr(model, "gc_mtf_history", None) is not None
+        if getattr(adapter, "_random_access_train", None) is not None or gc_history_enabled:
             rebuilt_order = _candidate_training_epoch_order(
                 train_ds, epoch_index=int(restored["epoch_index"]), parent_population=parent_population,
             )
             if not torch.equal(epoch_order.cpu(), rebuilt_order):
+                if gc_history_enabled:
+                    raise RuntimeError("[CANDIDATE_GC_MTF_HISTORY_RESUME_ORDER_MISMATCH]")
                 raise RuntimeError("[CANDIDATE_RANDOM_ACCESS_RESUME_ORDER_MISMATCH]")
         progress = _require_candidate_training_progress(
             restored["training_progress"], checkpoint_monitor=checkpoint_monitor,

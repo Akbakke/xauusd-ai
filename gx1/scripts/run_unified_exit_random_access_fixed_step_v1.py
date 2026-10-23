@@ -566,6 +566,7 @@ def _model(
     meta: Mapping[str, Any], normalization: Mapping[str, Any], device: torch.device,
     *, entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE, dynamic_m5_query_minutes=None,
     entry_execution_profile: Mapping[str, str] | None = None,
+    gc_mtf_history: Mapping[str, Any] | None = None,
 ) -> EntryV10CtxHybridTransformer:
     phase = require_entry_training_phase(entry_training_phase, context="UNIFIED_EXIT_MODEL")
     phase_kwargs = _dynamic_m5_model_kwargs(phase)
@@ -578,10 +579,25 @@ def _model(
     from gx1.features.entry_specialist_feature_groups_v1 import (
         compile_compact_entry_execution_profile, require_compact_entry_execution_profile_reference,
     )
+    gc_kwargs = {}
+    gc_identity = None
+    if meta.get("gc_mtf_history_artifact") is not None:
+        from gx1.contracts.entry_gc_mtf_history_v1 import (
+            read_gc_mtf_history_artifact_metadata, require_gc_mtf_history,
+            require_gc_mtf_history_artifact_identity,
+        )
+        history = require_gc_mtf_history(gc_mtf_history)
+        artifact = read_gc_mtf_history_artifact_metadata(meta["gc_mtf_history_artifact"])
+        if history != artifact["history"]:
+            raise RuntimeError("UNIFIED_EXIT_MODEL_GC_HISTORY_ARTIFACT_MISMATCH")
+        gc_identity = require_gc_mtf_history_artifact_identity(artifact["identity"], history=history)
+        gc_kwargs = {"gc_mtf_history": history}
+    elif gc_mtf_history is not None:
+        raise RuntimeError("UNIFIED_EXIT_MODEL_GC_HISTORY_ARTIFACT_REQUIRED")
     execution_profile = require_compact_entry_execution_profile_reference(
-        entry_execution_profile, context="UNIFIED_EXIT_MODEL")
+        entry_execution_profile, context="UNIFIED_EXIT_MODEL", **gc_kwargs)
     metadata_profile = require_compact_entry_execution_profile_reference(
-        meta.get("entry_execution_profile"), context="UNIFIED_EXIT_MODEL_METADATA")
+        meta.get("entry_execution_profile"), context="UNIFIED_EXIT_MODEL_METADATA", **gc_kwargs)
     if execution_profile != metadata_profile:
         raise RuntimeError("UNIFIED_EXIT_MODEL_EXECUTION_PROFILE_MISMATCH")
     if execution_profile is not None:
@@ -616,7 +632,7 @@ def _model(
             raise RuntimeError("UNIFIED_EXIT_MODEL_SPECIALIST_FAMILIES_INVALID")
         # JSON key order is not model order; preserve every feature-index list.
         return {name: list(values[name]) for name in MODEL_NATIVE_TRAINING_SPECIALISTS}
-    return EntryV10CtxHybridTransformer(
+    model = EntryV10CtxHybridTransformer(
         seq_input_dim=int(meta["seq_input_dim"]),
         snap_input_dim=int(meta["snap_input_dim"]),
         seq_len=int(meta["seq_len"]),
@@ -657,7 +673,11 @@ def _model(
         input_normalization=normalization,
         **phase_kwargs,
         **({"entry_execution_profile": execution_profile} if execution_profile is not None else {}),
+        **gc_kwargs,
     ).to(device)
+    if gc_identity is not None:
+        model.gc_mtf_history_identity = gc_identity
+    return model
 
 
 def run(
