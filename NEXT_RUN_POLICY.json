@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T16:08:12.133885+00:00",
-  "status": "FEATURE_VALUE217_BBO_SUPPORT_AUDIT_ADMITTED_ONCE_NO_FIT",
+  "observed_utc": "2026-10-23T16:20:00.168773+00:00",
+  "status": "FEATURE_VALUE218_REVIEWED_SOURCE_FROZEN_SYNTHETIC_QUALIFICATION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Execute the single217 target-free BBO support audit under exact caps. Keep source and policy frozen. Then reconcile actual support and continue the own-TF GC history design; no forecast fit is admitted.",
+  "next_action": "Implement the fixed own-TF GC temporal/support input package with explicit source ownership and unchanged base inputs; qualify source mechanics before a separately admitted physical producer or native forecast experiment.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -210,7 +210,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "217_BBO_SUPPORT_AUDIT_ADMITTED_GC_MTF_DESIGN_ACTIVE",
+    "current_activity": "218_EXACT_SOURCE_QUALIFICATION_ONCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -239,11 +239,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTION_SELECTED_ENTRY_FEATURE_VALUE_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "215_COMPLETE_36_CAPACITY_FITS_24_PREDICTIONS_PEERS_PASS_DIRECTION_REJECTED",
+    "latest_terminal_role": "217_TARGET_FREE_BBO_SUPPORT_AUDIT_COMPLETE_REVIEW_PENDING",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CAPACITY_SIX_QUARTER_REFERENCE_20261023_215/TERMINAL.json",
-      "sha256": "42befaa355af23dd1ec44b7db3737cfdf1b208098c108a79397c8029bdd9b029"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/TERMINAL.json",
+      "sha256": "1e29773d9aafbbd1b98d6a768bab5611696502a3ef82bdd754db98ae92b0b845"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -7734,7 +7734,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Check completed193/201 native191 matched-probe comparison scope; reuse existing evidence or prepare a separate zero-refit saved-output comparison, no source/model change selected.",
+    "next_action": "Run only reviewed218 synthetic CPU qualification once under existing audit caps; genuine source/normalization/native fitting remains closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19841,7 +19841,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-23T16:08:12.133885+00:00",
+  "updated_utc": "2026-10-23T16:20:00.168773+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20482,8 +20482,8 @@
     }
   },
   "latest_terminal_receipt": {
-    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/TERMINAL.json",
-    "sha256": "0a7ba5da754b411f69fd8630683b0e261e8488735c9eff96644189dd57569bad"
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/TERMINAL.json",
+    "sha256": "1e29773d9aafbbd1b98d6a768bab5611696502a3ef82bdd754db98ae92b0b845"
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -27161,7 +27161,7 @@
     }
   },
   "dynamic_m5_bbo_support_gap_qualification_217": {
-    "status": "ADMITTED_ONCE_TARGET_FREE_PHYSICAL_SUPPORT_ONLY",
+    "status": "COMPLETE_CONSUMED_ACTUAL_PEER_PASS_GENUINE_SUPPORT_CONFIRMED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/DESIGN.json",
@@ -27200,16 +27200,113 @@
       "threads": 1
     },
     "source_edits_authorized": false,
-    "execution_authorized": true,
-    "market_payload_reads_authorized": true,
+    "execution_authorized": false,
+    "market_payload_reads_authorized": false,
     "training_enabled": false,
     "genuine_reference_fit_admitted": false,
     "native_launch_authorized": false,
     "test_data_used": false,
     "goal_complete": false,
     "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/TERMINAL.json",
+      "sha256": "1e29773d9aafbbd1b98d6a768bab5611696502a3ef82bdd754db98ae92b0b845"
+    },
+    "actual_launch_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/ACTUAL_LAUNCH_TERMINAL.json",
+      "sha256": "8ade90991b39dedd7b9bbacb3ca5677035bbbadb6d4aaf2dbf4bec28a40a6d2f"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/RESULT.json",
+      "sha256": "a65031100fab797f15fdcd0229d3b3ec6016651757d3a1c4b6ac1c87bd7609e6"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/SUMMARY.json",
+      "sha256": "6532125450f3e61473d286c26afb6c9e7500f95938f5a97d3081afa84c2e02a0"
+    },
+    "actual_support_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/ACTUAL_SUPPORT_PEER.json",
+      "sha256": "45e633c59008bc8adc744a9aa2b2255438155b1af1ee40c08d3df8fa3a7010c7"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_BBO_SUPPORT_GAP_QUALIFICATION_20261023_217/DECISION.json",
+      "sha256": "5c08cf3d27e82b35e52f491f9a97d8dcfb0fc30a3c80982ced065494bb8c1176"
+    }
+  },
+  "dynamic_m5_gc_temporal_support_source_218": {
+    "status": "EXACT_REVIEWED_41CASE_SYNTHETIC_CPU_QUALIFICATION_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/DESIGN.json",
+      "sha256": "912dfc572a2ccaef379576b6b9067892177c61a72d96e0205368b431f6261b0a"
+    },
+    "source_edits_authorized": false,
+    "execution_authorized": true,
+    "market_payload_reads_authorized": false,
+    "training_enabled": false,
+    "genuine_reference_fit_admitted": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "goal_complete": false,
+    "file_ownership": {
+      "root": "Policy, handover, launch and integration; trainer/Dataset forward/collation/constructor/artifact wiring.",
+      "feature_audit": "Existing gc_native_context_v1.py and new entry_gc_mtf_history_v1.py contract/projection/normalization; no model/trainer edits.",
+      "learning_audit": "Model/profile/production-architecture/bundle changes after agreed API; no trainer/data-owner edits.",
+      "research_audit": "Focused new tests and source review after agreed API; no implementation-owner edits."
+    },
+    "synthetic_cpu_tests_authorized": true,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/SOURCE_QUALIFICATION_REVIEWED_PLAN.json",
+      "sha256": "3e5ec726a7f4934654b598046bd05f7afb35e1740a9b7be5c2fbaa861accfac5"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/qualify_gc_history_source_reviewed.py",
+      "sha256": "1782a471ef70f5818feb7b88effa881b6d213850d35e55923bae40d781b8aecf"
+    },
+    "source_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/SOURCE_PEER_REVIEW.json",
+      "sha256": "d033f4cb80b27b68fc10f5e2ad944720321c4562158f473cc54bf0d41306a971"
+    },
+    "feature_source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/SOURCE_FEATURE_PEER.json",
+      "sha256": "1fc051b15fdaa30bc51b3838180ec01e1ae411e66e829c6e9c13674a0e516bb5"
+    },
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "class": "audit",
+      "genuine_model_forwards": 0,
+      "genuine_reference_fits": 0,
+      "market_payload_reads": 0,
+      "max_invocations": 1,
+      "max_rchar_bytes": 1073741824,
+      "max_synthetic_model_forward_calls": 32,
+      "max_synthetic_normalization_surface_fits": 128,
+      "max_test_cases": 64,
+      "max_wall_seconds": 180,
+      "memory_bytes": 4294967296,
+      "optimizer_updates": 0,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "expected_test_cases": 41,
+    "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "mandatory_tracked_precommit_checks_authorized": true,
+    "mandatory_precommit_scope": "Unchanged .claude/git-hooks/pre-commit exact guard drift and three Entry contract files, serialized through its existing audit4GiB cap. Routine commit gate, separate from the41case one-shot qualification; no genuine payload, fit or forward.",
+    "interrupted_precommit_observation": {
+      "status": "ROOT_INTERRUPTED_BEFORE_COMMIT_UNEXPECTED_ADDITIONAL_TEST_SELECTION",
+      "original_cap_was_present": true,
+      "commit_created": false,
+      "hook_unchanged": true,
+      "earlier_drift_log": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/INTERRUPTED_PRECOMMIT_DRIFT.log",
+      "earlier_model_log": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_SOURCE_20261023_218/INTERRUPTED_PRECOMMIT_MODEL_NATIVE.log",
+      "test_completion_not_claimed": true
+    }
   }
 }

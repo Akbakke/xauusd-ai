@@ -5235,7 +5235,8 @@ _HTF_WINDOW_VALIDATED: dict = {}
 
 def slice_multi_tf_v4_window(
     feats: pd.DataFrame, target_ts: pd.Timestamp, n: int, tf_shift: pd.Timedelta,
-) -> np.ndarray:
+    *, return_row_indices: bool = False,
+) -> np.ndarray | tuple[np.ndarray, np.ndarray]:
     """Slice the last `n` start-labelled rows with start <= target_ts - tf_shift.
 
     Returns an exact finite ``(n, n_features)`` float32 array. Missing history,
@@ -5333,7 +5334,14 @@ def slice_multi_tf_v4_window(
     tail = np.asarray(feats_np[left:right], dtype=np.float32)
     if tail.shape != (n, width) or not np.isfinite(tail).all():
         raise RuntimeError("HTF_WINDOW_SOURCE_INVALID: selected feature evidence is non-finite")
-    return np.ascontiguousarray(tail)
+    if type(return_row_indices) is not bool:
+        raise RuntimeError("HTF_WINDOW_ROW_INDEX_MODE_INVALID")
+    window = np.ascontiguousarray(tail)
+    if return_row_indices:
+        # An additive GC surface must consume exactly these same physical rows.
+        # Expose this owner's already validated selection, never a second slicer.
+        return window, np.arange(left, right, dtype=np.int64)
+    return window
 
 
 def get_model_native_multi_tf_route_windows(
@@ -5343,7 +5351,8 @@ def get_model_native_multi_tf_route_windows(
     per_tf_seq_lens: dict[str, int],
     route_timeframes: tuple[str, ...],
     base_bar_duration: pd.Timedelta,
-) -> dict[str, np.ndarray]:
+    return_row_indices: bool = False,
+) -> dict[str, np.ndarray | tuple[np.ndarray, np.ndarray]]:
     """Slice one canonical Entry or Exit MTF route from the shared V4 cache.
 
     Entry and Exit deliberately use this same owner.  Their only differences
@@ -5415,6 +5424,7 @@ def get_model_native_multi_tf_route_windows(
             availability,
             n=int(per_tf_seq_lens[tf]),
             tf_shift=MULTI_TF_SHIFT[tf],
+            return_row_indices=return_row_indices,
         )
         for tf in route
     }

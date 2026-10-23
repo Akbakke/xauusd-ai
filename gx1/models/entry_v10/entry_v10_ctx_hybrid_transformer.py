@@ -81,6 +81,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MODEL_NATIVE_TRAINING_SPECIALISTS,
     MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION,
     compile_compact_entry_execution_profile,
+    compile_gc_mtf_entry_execution_profile,
     require_compact_entry_execution_profile_reference,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -448,6 +449,7 @@ class CtxModelConfig:
     entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE
     dynamic_m5_query_minutes: Optional[Tuple[int, ...]] = None
     entry_execution_profile: Optional[Mapping[str, str]] = None
+    gc_mtf_history: Optional[Mapping[str, object]] = None
 
 
 class EntryV10CtxHybridTransformer(nn.Module):
@@ -508,14 +510,23 @@ class EntryV10CtxHybridTransformer(nn.Module):
         entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE,
         dynamic_m5_query_minutes: Optional[Sequence[int]] = None,
         entry_execution_profile: Optional[Mapping[str, str]] = None,
+        gc_mtf_history: Optional[Mapping[str, object]] = None,
     ) -> None:
+        if gc_mtf_history is not None:
+            from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history
+            gc_mtf_history = require_gc_mtf_history(gc_mtf_history)
         profile_reference = require_compact_entry_execution_profile_reference(
             entry_execution_profile, context="ENTRY_MODEL_EXECUTION_PROFILE",
+            gc_mtf_history=gc_mtf_history,
         )
         if profile_reference is not None and entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
             raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE")
-        compiled_profile = (compile_compact_entry_execution_profile()
-                            if profile_reference is not None else None)
+        compiled_profile = (
+            compile_gc_mtf_entry_execution_profile(gc_mtf_history)
+            if gc_mtf_history is not None else
+            compile_compact_entry_execution_profile()
+            if profile_reference is not None else None
+        )
         unit_test_shape = (
             getattr(self, "_gx1_unit_test_architecture_token", None)
             is _UNIT_TEST_ARCHITECTURE_SENTINEL
@@ -524,7 +535,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
             object.__delattr__(self, "_gx1_unit_test_architecture_token")
         else:
             architecture = (
-                current_entry_exit_architecture_observation(entry_execution_profile=profile_reference)
+                current_entry_exit_architecture_observation(
+                    entry_execution_profile=profile_reference, gc_mtf_history=gc_mtf_history,
+                )
                 if profile_reference is not None else current_entry_exit_architecture_observation()
             )
             architecture["shared_surface"] = {
@@ -572,12 +585,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
             require_entry_exit_production_architecture(
                 architecture,
                 context="ENTRY_V10_MODEL_CONSTRUCTION",
+                gc_mtf_history=gc_mtf_history,
             )
         super().__init__()
         self.entry_training_phase = require_entry_training_phase(
             entry_training_phase, context="ENTRY_MODEL_CONSTRUCTION",
         )
         self.entry_execution_profile = profile_reference
+        self.gc_mtf_history = gc_mtf_history
+        self._gc_mtf_history_identity = (
+            (gc_mtf_history["layout"]["contract_sha256"],
+             gc_mtf_history["normalization"]["contract_sha256"])
+            if gc_mtf_history is not None else None
+        )
         self._entry_execution_profile_identity = (
             (profile_reference["name"], profile_reference["contract_sha256"])
             if profile_reference is not None else None
@@ -656,6 +676,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             entry_training_phase=self.entry_training_phase,
             dynamic_m5_query_minutes=bound_queries,
             entry_execution_profile=profile_reference,
+            gc_mtf_history=gc_mtf_history,
             seq_len=seq_len,
             dropout=float(dropout),
             ctx_cont_dim=int(ctx_cont_dim),
@@ -676,6 +697,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
             specialist_fusion_scale=float(specialist_fusion_scale),
             cross_family_fusion_scale=float(cross_family_fusion_scale),
         )
+
+        if gc_mtf_history is not None and any(
+            int(gc_mtf_history["layout"]["window_rows"][tf])
+            != int(getattr(self.cfg, f"{tf.lower()}_seq_len"))
+            for tf in gc_mtf_history["layout"]["timeframes"]
+        ):
+            raise RuntimeError("GC_MTF_MODEL_WINDOW_BINDING_INVALID")
 
         d_model = int(self.cfg.d_model)
         if d_model != ENTRY_DECISION_TOKEN_DIM:
@@ -852,6 +880,32 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
             for surface in INPUT_NORMALIZATION_SURFACES
         }
+        if gc_mtf_history is not None:
+            self.register_buffer(
+                "gc_mtf_layout_sha256",
+                torch.tensor(list(bytes.fromhex(self._gc_mtf_history_identity[0])), dtype=torch.uint8),
+            )
+            self.register_buffer(
+                "gc_mtf_normalization_sha256",
+                torch.tensor(list(bytes.fromhex(self._gc_mtf_history_identity[1])), dtype=torch.uint8),
+            )
+            for tf in gc_mtf_history["layout"]["timeframes"]:
+                surface = f"gc_mtf_{tf.lower()}"
+                stats = gc_mtf_history["normalization"]["surfaces"][surface]
+                self._input_normalization_field_names[surface] = list(stats["field_names"])
+                self._input_norm_categorical_domains[surface] = {
+                    name: tuple(domain) for name, domain in stats["categorical_domains"].items()
+                }
+                for suffix, dtype in (
+                    ("center", torch.float32), ("scale", torch.float32),
+                    ("binary_mask", torch.bool), ("categorical_mask", torch.bool),
+                ):
+                    self.register_buffer(
+                        f"input_norm_{surface}_{suffix}", torch.tensor(stats[suffix], dtype=dtype),
+                    )
+                self._input_norm_categorical_index_tuples[surface] = tuple(
+                    index for index, flag in enumerate(stats["categorical_mask"]) if flag
+                )
         self.register_buffer(
             "input_norm_alias_signal_indices",
             torch.tensor(temporal_alias_signal_indices, dtype=torch.long),
@@ -1120,6 +1174,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         }
         self._specialist_names = EXACT_SPECIALIST_NAMES
         self._mtf_specialist_names = EXACT_SPECIALIST_NAMES
+        self._base_mtf_specialist_names = EXACT_SPECIALIST_NAMES
         if (
             not isinstance(multi_tf_specialist_input_indices, dict)
             or tuple(multi_tf_specialist_input_indices)
@@ -1183,6 +1238,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
 
             self._specialist_names = tuple(compiled_profile["local_specialists"])
             self._mtf_specialist_names = tuple(compiled_profile["mtf_specialists"])
+            self._base_mtf_specialist_names = (
+                tuple(compiled_profile["base_mtf_specialists"])
+                if gc_mtf_history is not None else self._mtf_specialist_names
+            )
             cleaned = _profile_partition(
                 cleaned, compiled_profile["local_signal_indices_by_specialist"],
                 self._specialist_names, "signal",
@@ -1211,7 +1270,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             }
             cleaned_mtf = _profile_partition(
                 cleaned_mtf, compiled_profile["mtf_indices_by_specialist"],
-                self._mtf_specialist_names, "mtf",
+                self._base_mtf_specialist_names, "mtf",
             )
         self._mtf_feature_gate_width = (
             len(compiled_profile["mtf_indices"]) if compiled_profile is not None
@@ -1469,7 +1528,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
                 if global_index in self._multi_tf_categorical_index_set
             )
-            for name in self._mtf_specialist_names
+            for name in self._base_mtf_specialist_names
         }
         self.mtf_nominal_embeddings = nn.ModuleDict(
             {
@@ -1488,7 +1547,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         self.mtf_family_proj = nn.ModuleDict(
             {
                 name: nn.Linear(len(cleaned_mtf[name]), d_model)
-                for name in self._mtf_specialist_names
+                for name in self._base_mtf_specialist_names
             }
         )
         self.mtf_family_encoder = nn.ModuleDict(
@@ -1499,7 +1558,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         self.mtf_feature_context_gate = nn.ModuleDict()
         for tf_name in TF_INPUT_SCALE_NAMES:
-            for name in self._mtf_specialist_names:
+            for name in self._base_mtf_specialist_names:
                 key = f"{tf_name}__{name}"
                 gate = nn.Linear(d_model, len(cleaned_mtf[name]))
                 # 2*sigmoid(0)=1: every feature×timeframe path starts neutral;
@@ -1507,6 +1566,28 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 nn.init.zeros_(gate.weight)
                 nn.init.zeros_(gate.bias)
                 self.mtf_feature_context_gate[key] = gate
+        if gc_mtf_history is not None:
+            self.gc_mtf_family_proj = nn.ModuleDict()
+            self.gc_mtf_feature_context_gate = nn.ModuleDict()
+            self._gc_mtf_specialist_index_tuples = {}
+            for tf in gc_mtf_history["layout"]["timeframes"]:
+                suffix = tf.lower()
+                for family in self._mtf_specialist_names:
+                    indices = tuple(gc_mtf_history["layout"]["family_indices"][tf][family])
+                    if not indices:
+                        continue
+                    key = f"{suffix}__{family}"
+                    self._gc_mtf_specialist_index_tuples[key] = indices
+                    self.register_buffer(
+                        f"gc_mtf_specialist_idx_{key}",
+                        torch.tensor(indices, dtype=torch.long), persistent=False,
+                    )
+                    # No independent constant for an entirely absent source.
+                    self.gc_mtf_family_proj[key] = nn.Linear(len(indices), d_model, bias=False)
+                    gate = nn.Linear(d_model, len(indices))
+                    nn.init.zeros_(gate.weight)
+                    nn.init.zeros_(gate.bias)
+                    self.gc_mtf_feature_context_gate[key] = gate
         self.family_axis_attn = _mk_encoder(1)
         self.timeframe_axis_attn = _mk_encoder(1)
         self.family_tf_token_identity = nn.Parameter(
@@ -1734,8 +1815,47 @@ class EntryV10CtxHybridTransformer(nn.Module):
             expected_contract_hash,
         ):
             raise RuntimeError("ENTRY_INPUT_NORMALIZATION_STATE_HASH_MISMATCH")
-        for surface in INPUT_NORMALIZATION_SURFACES:
-            surface_contract = contract["surfaces"][surface]
+        state_surfaces = dict(contract["surfaces"])
+        if self._gc_mtf_history_identity is None:
+            if self.gc_mtf_history is not None or self.cfg.gc_mtf_history is not None:
+                raise RuntimeError("GC_MTF_MODEL_STATE_BINDING_INVALID")
+        else:
+            from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history
+            history = require_gc_mtf_history(self.gc_mtf_history)
+            hashes = (history["layout"]["contract_sha256"],
+                      history["normalization"]["contract_sha256"])
+            if hashes != self._gc_mtf_history_identity or self.cfg.gc_mtf_history != history:
+                raise RuntimeError("GC_MTF_MODEL_STATE_BINDING_INVALID")
+            for buffer_name, digest in zip(
+                ("gc_mtf_layout_sha256", "gc_mtf_normalization_sha256"), hashes,
+            ):
+                if not torch.equal(
+                    getattr(self, buffer_name).detach().cpu(),
+                    torch.tensor(list(bytes.fromhex(digest)), dtype=torch.uint8),
+                ):
+                    raise RuntimeError("GC_MTF_MODEL_STATE_HASH_MISMATCH")
+            state_surfaces.update(history["normalization"]["surfaces"])
+            expected_indices = {
+                f"{tf.lower()}__{family}": tuple(indices)
+                for tf in history["layout"]["timeframes"]
+                for family, indices in history["layout"]["family_indices"][tf].items()
+                if indices
+            }
+            if self._gc_mtf_specialist_index_tuples != expected_indices:
+                raise RuntimeError("GC_MTF_MODEL_STATE_INDEX_BINDING_INVALID")
+            for key, indices in expected_indices.items():
+                if not torch.equal(
+                    getattr(self, f"gc_mtf_specialist_idx_{key}").detach().cpu(),
+                    torch.tensor(indices, dtype=torch.long),
+                ):
+                    raise RuntimeError("GC_MTF_MODEL_STATE_INDEX_BUFFER_MISMATCH")
+            for surface, stats in history["normalization"]["surfaces"].items():
+                if (self._input_normalization_field_names[surface] != list(stats["field_names"])
+                        or self._input_norm_categorical_domains[surface] != {
+                            name: tuple(domain) for name, domain in stats["categorical_domains"].items()
+                        }):
+                    raise RuntimeError("GC_MTF_MODEL_STATE_FIELD_BINDING_INVALID")
+        for surface, surface_contract in state_surfaces.items():
             expected = {
                 "center": torch.tensor(
                     surface_contract["center"], dtype=torch.float32
@@ -2245,6 +2365,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         tf_inputs: Tuple[Tuple[str, torch.Tensor, int, int], ...],
         route_timeframes: tuple[str, ...],
         route_label: str,
+        gc_tf_inputs: Optional[Tuple[Tuple[str, torch.Tensor], ...]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Fuse one canonical route with the single shared V4 MTF stack."""
 
@@ -2286,6 +2407,26 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 )
             _assert_finite(name, tensor)
 
+        if self.gc_mtf_history is None:
+            if gc_tf_inputs is not None:
+                raise RuntimeError("GC_MTF_INPUTS_WITHOUT_BOUND_HISTORY")
+            gc_by_tf = {}
+        else:
+            if route_label != "entry":
+                raise RuntimeError("GC_MTF_HISTORY_REQUIRES_ENTRY_ROUTE")
+            if gc_tf_inputs is None or tuple(item[0] for item in gc_tf_inputs) != route:
+                raise RuntimeError("GC_MTF_MODEL_INPUT_ORDER_INVALID")
+            gc_by_tf = dict(gc_tf_inputs)
+            for suffix, _base_tensor, expected_len, _base_width in tf_inputs:
+                tensor = gc_by_tf[suffix]
+                _assert_shape(f"gc_seq_{suffix}", tensor, 3)
+                if tuple(tensor.shape) != (
+                    batch_size, int(expected_len),
+                    int(self.gc_mtf_history["layout"]["widths"][suffix.upper()]),
+                ):
+                    raise RuntimeError(f"GC_MTF_MODEL_INPUT_SHAPE_INVALID:{suffix}")
+                _assert_finite(f"gc_seq_{suffix}", tensor)
+
         batch_eval = (
             _BATCH_EQUAL_LENGTH_MTF_EVAL.get()
             and not self.training
@@ -2306,6 +2447,10 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 0.0,
             )
             effective_scale = self._effective_tf_input_scale(suffix)
+            if gc_by_tf:
+                gc_raw = gc_by_tf[suffix]
+                gc_surface = f"gc_mtf_{suffix}"
+                gc_numeric = self._normalize_input_surface(gc_raw, surface=gc_surface)
             full_feature_gate = torch.zeros(
                 batch_size,
                 self._mtf_feature_gate_width,
@@ -2314,39 +2459,55 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
             family_tokens: list[torch.Tensor] = []
             for specialist in self._mtf_specialist_names:
-                family_idx = getattr(
-                    self,
-                    f"multi_tf_specialist_idx_{specialist}",
-                ).to(tensor.device)
-                feature_gate = 2.0 * torch.sigmoid(
-                    self.mtf_feature_context_gate[
-                        f"{suffix}__{specialist}"
-                    ](base_representation)
-                )
-                full_feature_gate = full_feature_gate.scatter(
-                    1,
-                    (getattr(self, f"multi_tf_feature_gate_idx_{specialist}").to(tensor.device)
-                     if self._entry_execution_profile_identity is not None else family_idx)
-                    .view(1, -1).expand(batch_size, -1),
-                    feature_gate.to(full_feature_gate.dtype),
-                )
-                family_values = numeric_tf.index_select(dim=2, index=family_idx)
-                family_values = (
-                    family_values
-                    * feature_gate.unsqueeze(1)
-                    * effective_scale
-                )
-                projected = self.mtf_family_proj[specialist](family_values)
-                for local_position, global_index in (
-                    self._multi_tf_specialist_categorical_positions[specialist]
-                ):
-                    nominal = self.mtf_nominal_embeddings[
-                        f"{suffix}_{global_index}"
-                    ](tensor[..., global_index].long())
-                    projected = projected + nominal * (
-                        feature_gate[:, local_position].view(batch_size, 1, 1)
+                projected = None
+                if specialist in self._multi_tf_specialist_index_tuples:
+                    family_idx = getattr(
+                        self,
+                        f"multi_tf_specialist_idx_{specialist}",
+                    ).to(tensor.device)
+                    feature_gate = 2.0 * torch.sigmoid(
+                        self.mtf_feature_context_gate[
+                            f"{suffix}__{specialist}"
+                        ](base_representation)
+                    )
+                    full_feature_gate = full_feature_gate.scatter(
+                        1,
+                        (getattr(self, f"multi_tf_feature_gate_idx_{specialist}").to(tensor.device)
+                         if self._entry_execution_profile_identity is not None else family_idx)
+                        .view(1, -1).expand(batch_size, -1),
+                        feature_gate.to(full_feature_gate.dtype),
+                    )
+                    family_values = numeric_tf.index_select(dim=2, index=family_idx)
+                    family_values = (
+                        family_values
+                        * feature_gate.unsqueeze(1)
                         * effective_scale
                     )
+                    projected = self.mtf_family_proj[specialist](family_values)
+                    for local_position, global_index in (
+                        self._multi_tf_specialist_categorical_positions[specialist]
+                    ):
+                        nominal = self.mtf_nominal_embeddings[
+                            f"{suffix}_{global_index}"
+                        ](tensor[..., global_index].long())
+                        projected = projected + nominal * (
+                            feature_gate[:, local_position].view(batch_size, 1, 1)
+                            * effective_scale
+                        )
+                gc_key = f"{suffix}__{specialist}"
+                if gc_by_tf and gc_key in self._gc_mtf_specialist_index_tuples:
+                    gc_idx = getattr(self, f"gc_mtf_specialist_idx_{gc_key}").to(gc_raw.device)
+                    gc_gate = 2.0 * torch.sigmoid(
+                        self.gc_mtf_feature_context_gate[gc_key](base_representation)
+                    )
+                    gc_values = gc_numeric.index_select(dim=2, index=gc_idx)
+                    gc_projected = self.gc_mtf_family_proj[gc_key](
+                        gc_values * gc_gate.unsqueeze(1) * effective_scale
+                    )
+                    projected = (gc_projected if projected is None
+                                 else projected + gc_projected)
+                if projected is None:
+                    raise RuntimeError(f"GC_MTF_MODEL_EMPTY_FAMILY_TF:{gc_key}")
                 projected = self._add_pe(projected, f"pos_enc_{suffix}")
                 if batch_eval:
                     projected_eval_rows.setdefault(specialist, {})[suffix] = projected
@@ -3995,6 +4156,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         seq_h1: torch.Tensor,
         seq_h4: torch.Tensor,
         seq_d1: torch.Tensor,
+        gc_seq_m5: Optional[torch.Tensor] = None,
+        gc_seq_m15: Optional[torch.Tensor] = None,
+        gc_seq_h1: Optional[torch.Tensor] = None,
+        gc_seq_h4: Optional[torch.Tensor] = None,
+        gc_seq_d1: Optional[torch.Tensor] = None,
         liquidation_relative_values: bool = False,
     ) -> Dict[str, torch.Tensor]:
         expected_profile = (
@@ -4006,6 +4172,24 @@ class EntryV10CtxHybridTransformer(nn.Module):
             raise RuntimeError("ENTRY_MODEL_EXECUTION_PROFILE_BINDING_INVALID")
         if self.entry_training_phase != self.cfg.entry_training_phase:
             raise RuntimeError("ENTRY_MODEL_PHASE_BINDING_INVALID")
+        gc_values = (gc_seq_m5, gc_seq_m15, gc_seq_h1, gc_seq_h4, gc_seq_d1)
+        if self._gc_mtf_history_identity is None:
+            if (self.gc_mtf_history is not None or self.cfg.gc_mtf_history is not None
+                    or any(value is not None for value in gc_values)):
+                raise RuntimeError("GC_MTF_INPUTS_WITHOUT_BOUND_HISTORY")
+            gc_tf_inputs = None
+        else:
+            for history in (self.gc_mtf_history, self.cfg.gc_mtf_history):
+                if (not isinstance(history, Mapping)
+                        or not isinstance(history.get("layout"), Mapping)
+                        or not isinstance(history.get("normalization"), Mapping)
+                        or (history["layout"].get("contract_sha256"),
+                            history["normalization"].get("contract_sha256"))
+                        != self._gc_mtf_history_identity):
+                    raise RuntimeError("GC_MTF_MODEL_METADATA_BINDING_INVALID")
+            if any(value is None for value in gc_values):
+                raise RuntimeError("GC_MTF_MODEL_INPUTS_REQUIRED")
+            gc_tf_inputs = tuple(zip(TF_INPUT_SCALE_NAMES, gc_values))
         if type(liquidation_relative_values) is not bool:
             raise RuntimeError("ENTRY_LIQUIDATION_GRADIENT_MODE_INVALID")
         z_v3, specialist_gate, global_context_h = self._encode_shared_feature_base(
@@ -4028,6 +4212,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             ),
             route_timeframes=ENTRY_MTF_CONTEXT_TIMEFRAMES,
             route_label="entry",
+            gc_tf_inputs=gc_tf_inputs,
         )
         z = entry_mtf["representation"]
         mtf_repr = entry_mtf["mtf_repr"]

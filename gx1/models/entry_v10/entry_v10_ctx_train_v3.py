@@ -3599,6 +3599,15 @@ def _multi_tf_kwargs_from_batch(batch: Dict[str, torch.Tensor], device: torch.de
         if key not in batch or not isinstance(batch[key], torch.Tensor):
             raise RuntimeError(f"[ENTRY_EXACT_MULTI_TF_BATCH_MISSING] {key}")
         out[key] = batch[key].to(device)
+    gc_keys = tuple(f"gc_seq_{tf.lower()}" for tf in ENTRY_MTF_CONTEXT_TIMEFRAMES)
+    observed_gc = {key for key in batch if key.startswith("gc_seq_")}
+    if observed_gc:
+        if observed_gc != set(gc_keys):
+            raise RuntimeError("[ENTRY_EXACT_GC_MULTI_TF_BATCH_KEYS_INVALID]")
+        for key in gc_keys:
+            if not isinstance(batch[key], torch.Tensor):
+                raise RuntimeError(f"[ENTRY_EXACT_GC_MULTI_TF_BATCH_INVALID] {key}")
+            out[key] = batch[key].to(device)
     return out
 
 
@@ -5203,7 +5212,30 @@ class EntryV10CtxDataset(Dataset):
         multi_tf_closed_bar: bool,
         sequence_roll_audit_json: Optional[Path] = None,
         sequence_source_audit_json: Optional[Path] = None,
+        *,
+        gc_mtf_history: Optional[Mapping[str, Any]] = None,
+        gc_mtf_surfaces: Optional[Mapping[str, Any]] = None,
     ):
+        self.gc_mtf_history = None
+        self._gc_mtf_surfaces = None
+        if gc_mtf_history is not None or gc_mtf_surfaces is not None:
+            from gx1.contracts.entry_gc_mtf_history_v1 import (
+                require_gc_mtf_history_layout,
+                require_gc_mtf_history_normalization,
+                require_gc_mtf_history_surfaces,
+            )
+            if (not isinstance(gc_mtf_history, Mapping)
+                    or set(gc_mtf_history) != {"layout", "normalization"}
+                    or gc_mtf_surfaces is None):
+                raise RuntimeError("ENTRY_GC_MTF_DATASET_BINDING_INVALID")
+            layout = require_gc_mtf_history_layout(gc_mtf_history["layout"])
+            normalization = require_gc_mtf_history_normalization(
+                gc_mtf_history["normalization"], layout=layout,
+            )
+            self.gc_mtf_history = {"layout": layout, "normalization": normalization}
+            self._gc_mtf_surfaces = require_gc_mtf_history_surfaces(
+                gc_mtf_surfaces, layout=layout,
+            )
         architecture = current_entry_exit_architecture_observation()
         architecture["entry"]["sequence_bars"] = seq_len
         architecture["exit"]["sequence_bars"] = (
@@ -5310,6 +5342,9 @@ class EntryV10CtxDataset(Dataset):
         self.direction_logit_mode = MODEL_NATIVE_DIRECTION_LOGIT_MODE
         self.model_native_signal_contract = signal_contract["model_native_signal_contract"]
         self.aux_head_target_contract = signal_contract["aux_head_target_contract"]
+        if (self.gc_mtf_history is not None
+                and self.aux_head_target_contract.get("emission_scope") != M5_DYNAMIC_OBSERVED_EMISSION_SCOPE):
+            raise RuntimeError("ENTRY_GC_MTF_DATASET_REQUIRES_DYNAMIC_M5_SCOPE")
 
         manifest_architecture = current_entry_exit_architecture_observation()
         manifest_architecture["entry"]["sequence_bars"] = self.seq_len
@@ -5800,17 +5835,36 @@ class EntryV10CtxDataset(Dataset):
             get_model_native_multi_tf_route_windows,
         )
 
+        gc_history = getattr(self, "gc_mtf_history", None)
+        options = {"return_row_indices": True} if gc_history is not None else {}
         windows = get_model_native_multi_tf_route_windows(
             self._multi_tf_feats,
             decision_bar_start=pd.Timestamp(target_ts),
             per_tf_seq_lens=self.per_tf_seq_lens,
             route_timeframes=route_timeframes,
             base_bar_duration=pd.Timedelta(seconds=base_bar_seconds),
+            **options,
         )
-        return {
-            f"{key_prefix}{tf.lower()}": value
-            for tf, value in windows.items()
-        }
+        if gc_history is None:
+            return {
+                f"{key_prefix}{tf.lower()}": value
+                for tf, value in windows.items()
+            }
+        if (tuple(route_timeframes) != tuple(ENTRY_MTF_CONTEXT_TIMEFRAMES)
+                or base_bar_seconds != ENTRY_DECISION_BAR_SECONDS or key_prefix != "seq_"):
+            raise RuntimeError("ENTRY_GC_MTF_REQUIRES_EXACT_ENTRY_ROUTE")
+        from gx1.contracts.entry_gc_mtf_history_v1 import gather_gc_mtf_history_rows
+        out = {}
+        for tf, (base_window, native_indices) in windows.items():
+            source_times = self._multi_tf_feats[tf].attrs["ts_int64"]
+            available = np.asarray(source_times[native_indices], dtype=np.int64) + int(MULTI_TF_SHIFT[tf].value)
+            out[f"{key_prefix}{tf.lower()}"] = base_window
+            out[f"gc_seq_{tf.lower()}"] = gather_gc_mtf_history_rows(
+                self._gc_mtf_surfaces[tf], tf=tf,
+                native_row_indices=native_indices, available_ns=available,
+                layout=gc_history["layout"],
+            )
+        return out
 
     def _get_exit_multi_tf_episode_histories(
         self,
@@ -6414,14 +6468,17 @@ def _dynamic_m5_gate_execution_kwargs(model) -> tuple[dict[str, Any], dict[str, 
         return {}, {}
     from gx1.features.entry_specialist_feature_groups_v1 import (
         compile_compact_entry_execution_profile,
+        compile_gc_mtf_entry_execution_profile,
         require_compact_entry_execution_profile_reference,
     )
+    gc_history = getattr(model, "gc_mtf_history", None)
     require_compact_entry_execution_profile_reference(
-        value, context="ENTRY_DYNAMIC_M5_GATE_PROFILE",
+        value, context="ENTRY_DYNAMIC_M5_GATE_PROFILE", gc_mtf_history=gc_history,
     )
     if getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
         raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE")
-    compiled = compile_compact_entry_execution_profile()
+    compiled = (compile_gc_mtf_entry_execution_profile(gc_history)
+                if gc_history is not None else compile_compact_entry_execution_profile())
     widths = {
         "specialist_gate": len(compiled["local_specialists"]),
         "tf_gate": ENTRY_MTF_CONTEXT_COUNT,

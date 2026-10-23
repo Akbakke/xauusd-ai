@@ -1608,17 +1608,77 @@ def compile_compact_entry_execution_profile() -> dict[str, object]:
     return {**payload, "contract_sha256": _canonical_sha256(payload)}
 
 
+GC_MTF_ENTRY_EXECUTION_PROFILE_NAME = "compact_mbp_gc_mtf_support_entry_v1"
+
+
+def compile_gc_mtf_entry_execution_profile(
+    gc_mtf_history: Mapping[str, object],
+) -> dict[str, object]:
+    """Bind one additive GC view to the unchanged compact base and TRAIN stats."""
+    from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history
+
+    history = require_gc_mtf_history(gc_mtf_history)
+    layout = history["layout"]
+    base = compile_compact_entry_execution_profile()
+    base_families = tuple(base["mtf_specialists"])
+    gc_families = {
+        family
+        for tf in layout["timeframes"]
+        for family, indices in layout["family_indices"][tf].items()
+        if indices
+    }
+    families = tuple(
+        family for family in MODEL_NATIVE_TRAINING_SPECIALISTS
+        if family in base_families or family in gc_families
+    )
+    # This fixed package needs no synthetic empty family×TF token.
+    if any(
+        family not in base_families and not layout["family_indices"][tf][family]
+        for tf in layout["timeframes"] for family in families
+    ):
+        raise RuntimeError("GC_MTF_ENTRY_EXECUTION_PROFILE_EMPTY_FAMILY_TF")
+    payload = {
+        key: value for key, value in base.items() if key != "contract_sha256"
+    }
+    payload.update({
+        "schema_version": "gx1_compact_gc_mtf_entry_execution_profile_v1",
+        "name": GC_MTF_ENTRY_EXECUTION_PROFILE_NAME,
+        "base_entry_execution_profile": {
+            "name": base["name"], "contract_sha256": base["contract_sha256"],
+        },
+        "base_mtf_specialists": base_families,
+        "mtf_specialists": families,
+        "gc_mtf_history": {
+            "layout_sha256": layout["contract_sha256"],
+            "normalization_sha256": history["normalization"]["contract_sha256"],
+        },
+        "gc_mtf_field_names": layout["field_names"],
+        "gc_mtf_family_indices": layout["family_indices"],
+        "gc_mtf_widths": layout["widths"],
+        "gc_mtf_window_rows": layout["window_rows"],
+    })
+    return {**payload, "contract_sha256": _canonical_sha256(payload)}
+
+
 def require_compact_entry_execution_profile_reference(
     value: object, *, context: str = "ENTRY_EXECUTION_PROFILE",
+    gc_mtf_history: Mapping[str, object] | None = None,
 ) -> dict[str, str] | None:
-    """Accept full default or only the exact source-compiled compact reference."""
+    """Accept full, unchanged compact, or the fully bound additive GC candidate."""
     if value is None:
+        if gc_mtf_history is not None:
+            raise RuntimeError(f"{context}_GC_MTF_EXECUTION_PROFILE_REQUIRED")
         return None
     if not isinstance(context, str) or not context.strip():
         raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_CONTEXT_INVALID")
     if not isinstance(value, Mapping) or set(value) != {"name", "contract_sha256"}:
         raise RuntimeError(f"{context}_COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE_INVALID")
-    compiled = compile_compact_entry_execution_profile()
+    if value["name"] == GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
+        compiled = compile_gc_mtf_entry_execution_profile(gc_mtf_history)
+    else:
+        if gc_mtf_history is not None:
+            raise RuntimeError(f"{context}_GC_MTF_EXECUTION_PROFILE_REQUIRED")
+        compiled = compile_compact_entry_execution_profile()
     expected = {"name": compiled["name"], "contract_sha256": compiled["contract_sha256"]}
     if any(type(value[key]) is not str or value[key] != expected[key] for key in expected):
         raise RuntimeError(f"{context}_COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE_MISMATCH")

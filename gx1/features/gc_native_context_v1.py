@@ -47,11 +47,36 @@ if len(set(CONTEXT_FIELDS)) != len(CONTEXT_FIELDS):
     raise RuntimeError('NATIVE_GC_DUPLICATE_FIELDS')
 
 
+BBO_TRAILING_SUPPORT_TRANSFORM = 'bbo_trailing_support_gap_minutes'
+# Additive218 side inputs only. The immutable049 registry and legacy context
+# dimensions are unchanged; the existing structural BBO-valid value is the gate.
+TRAILING_SUPPORT_FIELDS = tuple({
+    'name': 'gc_' + tf.lower() + '_observed_book_trailing_support_gap_minutes',
+    'availability_field': 'gc_' + tf.lower() + '_observed_book_valid',
+    'table': 'TRADE_FEATURES_' + tf + '.parquet',
+    'column': 'observed_book_last_minute_ns',
+    'validity_column': 'observed_book_valid',
+    'source_clock_column': 'available_ns',
+    'transform': BBO_TRAILING_SUPPORT_TRANSFORM,
+    'role': 'bbo_trailing_support_gap',
+    'owner': 'momentum_flow_encoder',
+    'bucket_minutes': minutes,
+} for tf, minutes in (('M5', 5), ('M15', 15), ('H1', 60), ('H4', 240), ('D1', 1440)))
+_TRAILING_SUPPORT_BY_NAME = {item['name']: item for item in TRAILING_SUPPORT_FIELDS}
+
+
+def _require_trailing_support_field(item):
+    expected = _TRAILING_SUPPORT_BY_NAME.get(item.get('name'))
+    if expected is None or any(item.get(key) != value for key, value in expected.items()):
+        raise RuntimeError('NATIVE_GC_TRAILING_SUPPORT_FIELD_CONTRACT')
+    return expected
+
+
 def field_role(name):
     name = str(name).removeprefix('ctx_cont.')
     if name in OBSERVED_FIELDS or name in STRUCTURAL_VALUE_FIELDS:
         return 'gc_observation_mask'
-    if name in VALUE_FIELDS:
+    if name in VALUE_FIELDS or name in _TRAILING_SUPPORT_BY_NAME:
         return 'gc_masked_source_value'
     return 'dense_market_feature'
 
@@ -60,7 +85,9 @@ def masking_pairs(names):
     """Indices on the actual ordered signal or context surface, never an alias copy."""
     positions = {name: i for i, name in enumerate(names)}
     pairs = []
-    for value, observed in zip(VALUE_FIELDS, OBSERVED_FIELDS):
+    declared_pairs = tuple(zip(VALUE_FIELDS, OBSERVED_FIELDS)) + tuple(
+        (item['name'], item['availability_field']) for item in TRAILING_SUPPORT_FIELDS)
+    for value, observed in declared_pairs:
         for prefix in ('', 'ctx_cont.'):
             if prefix + value in positions:
                 if prefix + observed not in positions:
@@ -80,6 +107,9 @@ def _needed_columns(fields):
     columns = {'available_ns'}
     for item in fields:
         columns.add(item['column'])
+        if item.get('transform') == BBO_TRAILING_SUPPORT_TRANSFORM:
+            _require_trailing_support_field(item)
+            columns.add('bar_start_ns')
         for key in ('validity_column', 'source_clock_column'):
             if item.get(key):columns.add(item[key])
     return sorted(columns)
@@ -143,7 +173,35 @@ def _field_values(item, clock, table, stamps, index):
     transform = item.get('transform')
     if transform is None and item['column'] in DECISION_AGE_COLUMNS:
         transform = 'decision_age_minutes'
-    if transform:
+    if transform == BBO_TRAILING_SUPPORT_TRANSFORM:
+        spec = _require_trailing_support_field(item)
+        # last is the START of the final admitted, fully covered BBO minute.
+        # The output describes support location, never last actual quote age.
+        promised = (index >= 0) & np.isfinite(mask) & (mask == 1)
+        # Select admitted Arrow endpoints before conversion: nullable int64
+        # columns otherwise become float64 and can hide a one-nanosecond fault.
+        # The physical owner also uses exact float64 minute timestamps with NaN.
+        last_column = table[item['column']].take(take[promised])
+        bar_column = table['bar_start_ns'].take(take[promised])
+        if last_column.null_count or bar_column.null_count or not source_defined[promised].all():
+            raise RuntimeError('NATIVE_GC_TRAILING_SUPPORT_MISSING_ENDPOINT')
+        raw_last, raw_bar = last_column.to_numpy(), bar_column.to_numpy()
+        if len(raw_last) and (raw_last.dtype not in (np.dtype('int64'), np.dtype('float64'))
+                or raw_bar.dtype not in (np.dtype('int64'), np.dtype('float64'))
+                or not np.isfinite(raw_last).all() or not np.isfinite(raw_bar).all()):
+            raise RuntimeError('NATIVE_GC_TRAILING_SUPPORT_ENDPOINT_PRECISION')
+        last, bar = raw_last.astype(np.int64), raw_bar.astype(np.int64)
+        available = clock[take][promised]
+        minute = 60 * 1_000_000_000
+        if (np.any(raw_last != last) or np.any(raw_bar != bar)
+                or np.any(last % minute) or np.any(bar % minute)
+                or np.any(available - bar != spec['bucket_minutes'] * minute)
+                or np.any(last < bar) or np.any(last > available - minute)):
+            raise RuntimeError('NATIVE_GC_TRAILING_SUPPORT_ENDPOINT_GRID')
+        values = np.full(n, np.nan, np.float64)
+        values[promised] = (available - last - minute) / minute
+        observed = promised
+    elif transform:
         if transform != 'decision_age_minutes' or item['column'] not in DECISION_AGE_COLUMNS:
             raise RuntimeError('NATIVE_GC_SOURCE_TRANSFORM')
         values = (stamps - source) / (60 * 1_000_000_000)
