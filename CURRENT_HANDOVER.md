@@ -80,15 +80,24 @@ ned på185/256,185/256 og181/252observerte rader, mens fasiten peker opp på
 143/256,132/256 og141/252. Dette er diagnostiske prognoser; alle512handlinger
 forblir FLAT. Ingen automatisk forsterkning, inversjon eller kalibrering følger.
 
-Gjeldende193design og momentreview ligger under
-`/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193`.
-Neste arbeid er avgrenset kilde-/adapterforberedelse: kanonisk felt-/kategori-/
-maske-/parent-/klokkebinding, samme aktuelle targeteier og minnebegrenset Gram
-fra eksisterende eiere. Eksakte I/O-/tidsbudsjetter, numerisk kvalifikasjon og
-separat admission mangler før datakjøring og fit. Den gamle285kolonnepiloten
-beviser ikke kapasitet for3345. Ingen native-/tap-/score-/kostendring er valgt.
-All trening, native/fullVAL/reboot og ny datakjøring er stengt. Målet er ufullført;
-ingen favorittmåned/-minutt, HPO eller snuregel. Åtte spesialister/9.D1makro består.
+193design er implementert som to nye, avgrensede kontrakter for
+snapshot/ridge og fysisk snapshot-/targetadapter, med to fokuserte testfiler.
+Uavhengig statisk kildegjennomgang har ingen blokkere.194 åpner nå én konkret
+capped kildekontroll:17syntetiske referansetilfeller,9adaptertilfeller og én
+faktisk055JSON-/layout-/cappedkontroll;27totalt,maks120s,audit4G/512M/éntråd.
+Transitive native definisjoner kan importeres, men ingen native modell/data
+instansieres; ingen ekte markedsinputs, OBS, PT eller referencefit inngår.
+Kilde/policy fryses til terminal. Dette er ikke dokumentert featurenyttighet.
+
+Aktuell kildekontroll ligger under
+`/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_SOURCE_QUALIFICATION_20261023_194`.
+193design/momentreview bevares på opprinnelig rot. Cachemanifest/inventory/SHA/
+livenessmetadata, faktisk191targetparitet, minne og eksakte I/O-/tidsbudsjetter
+må fortsatt kvalifiseres før en separat datajobb og deretter ekte CPUfit.
+Hele Parquet-SHA-pass teller som fullfil-I/O selv når seq aldri dekodes.
+Alle native-/tap-/score-/kosteiere er uendret. Native/fullVAL/reboot/TEST/Exit
+og genuinefits forblir stengt. Målet er ufullført; ingen favorittmåned/-minutt,
+HPO eller snuregel. Åtte spesialister/9.D1makro består.
 
 ## Siste ferdige retningsanalyse og kostnadsforklaring
 
