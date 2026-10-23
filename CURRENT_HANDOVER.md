@@ -36,21 +36,22 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Nå:220 én fysisk, targetfri produsent
+## Nå:221 minste rettelse etter220 målt kontrollstopp
 
-Plan388d86af…/workerf860bb1b…/kildepeer8a3fa605… er bundet i NEXT_RUN_POLICY.
-Én invokasjon er innrømmet: audit4GiB/512MiB/64pids/éntråd/900+10s,
-max8GiB rchar/max1GiB NPY-utdata. Bare eksisterende15 cachearrayer,
-14 logiske GC-tabeller/10filer og to198 klokke-NPZers fire medlemmer brukes.
-Canonical cacheloader har eksplisitt bundet hash-only M5/squeeze-kildelukning.
-051 metadata får64MiB kun for sine to eksakte manifester;055 beholdes uendret.
-Faktiske TRAIN-klokker/vinduer/proofs må være eksakt lik055 før nye statistikker.
+220 er FAILED/consumed: cacheloader fullførte15NPY,1M5hash,1manifest/12params,
+men150squeezeSHA-kall mot planlagt78. Dobbel canonical provenancevalidering
+forklarer målt9M1+45M5+48tape+48pair; alleSHA stemte. Ingen loaderendring.
+0selectors/GC-tabell-lesing/fit/projeksjon/utdata/modellarbeid. Ingen220-relaunch.
 
-220 skal produsere fem readonly GC-overflater, måle fysisk kilde/native-fase-
-og bøtteparitet, telle observasjoner og tilpasse fem separate TRAIN-normaliseringer.
-CONTROL velger bare kontekstinventar. Ingen targetmedlemmer, genuine prediktorfit,
-modellforward, optimizer, Exit eller TEST. Kilde/policy fryses fra launch til terminal.
-Actual220 og uavhengig resultatkontroll gjenstår; teknisk/prediktiv gevinst er ubevist.
+221s nye plan119746e5…/workerb89f8c30… korrigerer bare telling/bindinger,
+med original220design/input/addendum og målt kildeclosurec0d94436….
+Sammeaudit4GiB/512MiB/64pids/éntråd/900+10s,8GiBrchar/1GiBNPY-utdata.
+Canonical15cachearrayer,14logiskeGC-tabeller/10filer, to198klokke-NPZer/fire
+medlemmer og eksplisitt hash-onlysqueeze/M5-lukning beholdes. Faktisk TRAIN-
+klokke/vindu/proof skal være lik original055 før fem separate GC-statistikkfit.
+CONTROL lager kun kontekstinventar.0targetmedlemmer/prediktorfit/modellforward/
+optimizer/Exit/TEST. Sourcepeerffc6dac6… er PASS; én ny221invokasjon er innrømmet. Ingen relaunch.
+Kilde/policy fryses fra faktisk launch til terminal. Originalkvitteringer beholdes.
 
 Neste steg etter kvalifisert220 er minste kobling inn i eksisterende dynamiske
 Entry-rute, ikke en ny trener. Fersk initialbaseline for den endrede ONLINE-

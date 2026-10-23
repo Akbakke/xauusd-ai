@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-23T17:55:26.962556+00:00",
-  "status": "FEATURE_VALUE220_ONCE_TARGET_FREE_PHYSICAL_INPUT_AND_TRAIN_STATISTICS_ADMITTED",
+  "observed_utc": "2026-10-23T18:05:46.385258+00:00",
+  "status": "FEATURE_VALUE221_ONCE_TARGET_FREE_COUNT_REPAIR_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Execute220 exactly once under audit4GiB/512MiB/64pids/one thread/900+10s, with frozen clean source; verify physical native/source clocks, unique TRAIN-window parity with055 and five separate GC normalizations. Then bind the qualified additive candidate into the existing Entry native route; fresh baseline and optimizer/resume proof precede any separately admitted fixed forecast experiment.",
+  "next_action": "Execute221 exactly once under unchanged audit4GiB/512MiB/64pids/one thread/900+10s with measured150hash closure; qualify physical GC-history surfaces, exact055TRAINwindows and five separate TRAIN-only normalizations. No220relaunch or training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -210,7 +210,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "220_ONCE_TARGET_FREE_PHYSICAL_INPUT_AND_TRAIN_STATISTICS_ADMITTED",
+    "current_activity": "221_ONCE_TARGET_FREE_COUNT_REPAIR_ADMITTED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -239,11 +239,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTION_SELECTED_ENTRY_FEATURE_VALUE_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "219_COMPLETE_CONSUMED_26PASS_PLUS15_REUSED_SOURCE_QUALIFIED",
+    "latest_terminal_role": "220_FAILED_CONSUMED_BEFORE_GC_READ_OR_FIT",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_OWNER_REPAIR_20261023_219/SOURCE_QUALIFICATION_TERMINAL.json",
-      "sha256": "6092374e57200c0cb89bac32dc1a03fd6698988737c1f36f347b021942861533"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_PHYSICAL_INPUTS_20261023_220/TERMINAL.json",
+      "sha256": "847c81adda87ac22dad9f5abc3e0233b7f496d4afcda2aa77bdd8adf4905f737"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -263,7 +263,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Source mechanics qualified; physicalGC history, clock coverage and unique TRAIN-surface statistics not yet produced. Existing191/188 baseline applies to old optional-OFF function, not the new GC-history candidate.",
+    "current_blocker": "220 canonical cache loader performed150hashes versus precomputed78; allinputhashes/15arrays/12params verified. No selectors/GCread/statistics/modelwork yet. Correct counts under new221 only.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -27423,16 +27423,16 @@
     }
   },
   "dynamic_m5_gc_temporal_support_physical_inputs_220": {
-    "status": "ADMITTED_ONCE_TARGET_FREE_PHYSICAL_INPUTS_AND_FIVE_TRAIN_SURFACE_STATISTICS",
+    "status": "FAILED_CONSUMED_DELEGATED_HASH_COUNT_UNDERESTIMATE",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_PHYSICAL_INPUTS_20261023_220",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_PHYSICAL_INPUTS_20261023_220/DESIGN.json",
       "sha256": "6d9b7fd52c982c993dc8a9d08bc9b7cc92c846e5a6f23caab515c6759e483dcf"
     },
     "source_edits_authorized": false,
-    "execution_authorized": true,
-    "market_payload_reads_authorized": true,
-    "new_normalization_fit_authorized": true,
+    "execution_authorized": false,
+    "market_payload_reads_authorized": false,
+    "new_normalization_fit_authorized": false,
     "training_enabled": false,
     "genuine_reference_fit_admitted": false,
     "native_launch_authorized": false,
@@ -27491,8 +27491,125 @@
       "sha256": "8a3fa605199ec33f332e40c2533cd4260a71a4332a3b6930d144facb17a681f7"
     },
     "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_PHYSICAL_INPUTS_20261023_220/TERMINAL.json",
+      "sha256": "847c81adda87ac22dad9f5abc3e0233b7f496d4afcda2aa77bdd8adf4905f737"
+    },
+    "actual_launch_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_PHYSICAL_INPUTS_20261023_220/ACTUAL_LAUNCH_TERMINAL.json",
+      "sha256": "6d24e1fe2a292104c52d3f3acdaee7a3d7af06f32159d6d8cf7e973be393e3e3"
+    },
+    "actual_canonical_calls": {
+      "cache_m5_hash": {
+        "started": 1,
+        "successful_returns": 1
+      },
+      "cache_npy_load": {
+        "started": 15,
+        "successful_returns": 15
+      },
+      "squeeze_hash": {
+        "started": 150,
+        "successful_returns": 150
+      },
+      "squeeze_manifest_load": {
+        "started": 1,
+        "successful_returns": 1
+      },
+      "squeeze_params_load": {
+        "started": 12,
+        "successful_returns": 12
+      }
+    },
+    "work_counters": {
+      "GC_loader_calls_returned": 0,
+      "GC_loader_calls_started": 0,
+      "cache_loader_calls_returned": 1,
+      "cache_loader_calls_started": 1,
+      "clock_archives_read": 2,
+      "clock_members_read": 4,
+      "genuine_model_forwards": 0,
+      "genuine_predictor_fits": 0,
+      "normalization_wrapper_calls_returned": 0,
+      "normalization_wrapper_calls_started": 0,
+      "numpy_output_bytes": 0,
+      "numpy_outputs": 0,
+      "optimizer_updates": 0,
+      "original_OBS_reads": 0,
+      "projection_calls_returned": 0,
+      "projection_calls_started": 0,
+      "selector_calls_returned": 0,
+      "selector_calls_started": 0,
+      "target_outcome_members_materialized": 0
+    },
+    "source_unchanged": true
+  },
+  "dynamic_m5_gc_temporal_support_loader_count_repair_221": {
+    "status": "ADMITTED_ONCE_MINIMAL_OBSERVED_LOADER_COUNT_REPAIR",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_LOADER_COUNT_REPAIR_20261023_221",
+    "repair_scope": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_LOADER_COUNT_REPAIR_20261023_221/REPAIR_SCOPE.json",
+      "sha256": "f112f411cac655005ef5327ba06df4ffc5dac3ac42a9e877625257f1b6c27735"
+    },
+    "loader_closure_binding": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_LOADER_COUNT_REPAIR_20261023_221/LOADER_CLOSURE_BINDING_MEASURED.json",
+      "sha256": "c0d94436f0ec82c8f6434783ad08dd7d5fd561bd04cdf82a092c7b0d0a204c0e"
+    },
+    "source_edits_authorized": false,
+    "execution_authorized": true,
+    "market_payload_reads_authorized": true,
+    "new_normalization_fit_authorized": true,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "genuine_reference_fit_admitted": false,
+    "test_data_used": false,
+    "goal_complete": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_LOADER_COUNT_REPAIR_20261023_221/PLAN.json",
+      "sha256": "119746e53de07335d29e06b9c609633463534bbdefc95af7c80a6b259f85b777"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_LOADER_COUNT_REPAIR_20261023_221/build_gc_mtf_history_guarded.py",
+      "sha256": "b89f8c30feb1b58f78ed0927b3cc63e355659c52fcc2c3e779d5e47b6a00a653"
+    },
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "cache_m5_source_hash_only_files": 1,
+      "cache_npy_inputs": 15,
+      "class": "audit",
+      "clock_archives": 2,
+      "clock_members_per_archive": 2,
+      "delegated_squeeze_hash_calls": 150,
+      "delegated_squeeze_hash_only_files": 2,
+      "delegated_squeeze_metadata_files": 9,
+      "delegated_squeeze_params_load_calls": 12,
+      "genuine_model_forwards": 0,
+      "genuine_predictor_fits": 0,
+      "max_invocations": 1,
+      "max_output_numpy_bytes": 1073741824,
+      "max_rchar_bytes": 8589934592,
+      "max_wall_seconds": 900,
+      "memory_bytes": 4294967296,
+      "normalization_surface_fits": 5,
+      "optimizer_updates": 0,
+      "original_OBS_reads": 0,
+      "physical_source_tables": 10,
+      "source_table_keys": 14,
+      "swap_bytes": 536870912,
+      "target_outcome_members_materialized": 0,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "source_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_LOADER_COUNT_REPAIR_20261023_221/SOURCE_PEER_REVIEW.json",
+      "sha256": "ffc6dac65556b0b8144dec016cba86aa46fca558452a6cc522186cd16f8373f5"
+    }
   }
 }
