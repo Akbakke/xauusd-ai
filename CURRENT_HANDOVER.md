@@ -36,7 +36,7 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Kandidaten er initialmålt; neste port er samlet230-audit
+## Kvalifisert featurepakke og initielle målinger
 
 223 er COMPLETE/consumed og actualpeer429b80de… PASS:15readonlyNPY,
 467723564B, fem separate TRAIN-normaliseringer,84,292sworker/85,268sytre.
@@ -100,7 +100,7 @@ rekkefølge118249/batch16/7391steg, prisfasit/kostnader og budsjett skal gjenbru
 Prognoseforbedring er fortsatt umålt. Ingen220/221/222/223-relaunch. Mislykkede
 kvitteringer/sidefiler beholdes; ingenDATA/RUNS-rydding.
 
-## Faktisk229 ferdig;230 samlet rapport-/statekontroll innrømmet én gang
+## Nå:230 bestått;231 privat4U/4F innrømmet én gang
 
 229 COMPLETE/consumed: nyWindowsboot530,32forwards,0optimizeroppdateringer.
 256TRAIN+256CONTROL,alle480horisonter lagret.1803,430snative/2086,816sytre;
@@ -110,6 +110,20 @@ CPU0F/0U-audit som gjenbruker eksisterende state-sammenligning og canonical
 fullrapportvalidator.230PLAN er innrømmet én gang,4G/512M/64pids/1tråd/900s,
 toCPUstatearkiver ogtofulleOBS;ingen modell/Dataset/fit/backward. Ingen separatmodelljobb eller nyfreshpublisher. Egen
 4U/4F-tekniskplan ogfastmain er fortsattstengt;ingenprognosegevinstmålt.
+
+230 COMPLETE/consumed: én canonicalfullrapportgate/toOBS ogtoCPUstatearkiver
+verifisert.0modell/Dataset/forward/update/fit/backward.627,251sworker/627,881sytre,
+peakRSS1527341056B,4G/512M/64pids/1tråd;source/policyuendret. Online/target/EMA,
+optimizer/scheduler oglagretCPU/Python/NumPyRNG erlike227. CUDA kunlagretskjema,
+ingen uavhengig postforwardRNGpåstand. Egen229baseline er kvalifisert.
+
+231PLAN er innrømmet én gang med eksisterende tekniskrute: første32TRAINrader,
+batch16,fire faktiske privateoppdateringer/logiskcursor2,fireparitetsforwards,
+16TRAIN+16CONTROL,åttestatehashlikheter,atol1e-4bps/rtol0. IngenCONTROL-update
+ellerprivatvektgjenbruk. Ingen nyfreshpublisher/kildeendring/ekstraauditsuite.
+training_enabled=true gjelder bare denne eksakte privateplanen;full_epoch og
+fullVAL=false. Egenrenkilde/binding,hele-maskin-idle ogfysisknyboot med
+eksisterende vakter må beståførlaunch. Main/TEST/Exit/broker er stengt.
 
 ## Gjenbruk og ubeviste grenser
 
@@ -130,5 +144,6 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled/full_epoch/fullVAL/native_launch=false. Ingen DATA/RUNS-rydding.
+training_enabled gjelder bare eksakt231privat4U/4F;full_epoch/fullVAL=false.
+Ingen mainlaunch ellerDATA/RUNS-rydding.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
