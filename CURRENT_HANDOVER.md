@@ -21,7 +21,24 @@ peakRSS617062400B underaudit4GiB/512MiB/éntråd/pids64; kilde/policy uendret.
 SOURCE_MAPc3dd0428…/TERMINAL2c6d3e26…/ytre7d0fd542…/DECISION og evalueringdesign
 ligger i `NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204`.
 
-205 autoriserer bare nye isolerte numeriske kilde-/testfiler for én kandidat:
+207 er COMPLETE/consumed:17prefixtesterPASS, sammenmed25uendrede geometritester
+fra205 gir42distinkte beståtte mekanikktilfeller.205s opprinnelige41PASS/1FAIL
+bevares. Den nye referanseadapteren deklarerer nå alle210kildebestemte GC-binær-
+verdier, inkludert135som manglet gammel structural-role. Produsent/nativekode
+og normaliseringsmatematikk er uendret. 5.218s/ytre5.789s,
+peakRSS647487488B;0markedspayload/fit/nativeF/U, kilde/policy fryst.
+207TERMINAL58f055d5…/actualpeer ogDECISION ligger i
+`NATIVE_M5_GC_RELATIVE_COORDINATE_DOMAIN_REPAIR_20261023_207`.
+
+206 er nå admittert én gang for fysisk kvalifikasjon etter rencommitted binding:
+4GiB/512MiB/éntråd/pids64/1800s/64GiBrchar. Eksakt PLAN og kildepeer i
+`NATIVE_M5_GC_RELATIVE_COORDINATE_PHYSICAL_20261023_206`.
+Én051passering perrolle, én5TFcachelast, gamle198targets; ingen nye targets/fit.
+Fire3318-råmatriser+toankervektorfiler ogMETADATA; alle masker/nonlevels
+skal være bitlike,055allrads-hash ogTF-klokker identiske med198.
+Matematisk/Numerisk prisrekonstruksjon måles, ikke antas. Ingen nativekjøring.
+
+205/207 omfatter nye isolerte numeriske kilde-/testfiler for én kandidat:
 log(P/A) for alle242bevisteGC-nivåer, fellesA+observed én gang som kontekst.
 Baseline3345/kandidat3347 er en representasjonspakke; ankeret dupliseres ikke
 inn i baseline. Alle963andreGC-felt, øvrige indikatorer og egne masker bevares.
@@ -44,9 +61,13 @@ median/IQR/asinh-regler. HTF-repetisjoner perparent bevares. Alle2622lokale felt
 kommer frasnap;2525ctx-aliaser bevises like og foldes én gang. Dette er en ny
 prefix-snapshotoppskrift, ikke055/native-normaliseringsekvivalens.
 Root eier policy/launch;205agenter eier kun de fire navngitte nye kilde-/testfilene.
-Ingen eksisterende native/runtimeendring,markedspayload,referansefit ellertrening
-er autorisert. PREPARATION_SCOPE ligger i
+Ingen eksisterende native/runtimeendring,referansefit ellertrening er autorisert.
+Bare206s eksakte ikke-trenende fysiske plan har payloadadmission. PREPARATION_SCOPE ligger i
 `NATIVE_M5_GC_RELATIVE_COORDINATE_SOURCE_20261023_205`.
+206s kildeworker er uavhengig kontrollert og fryst.207binder bestått
+nyadapter.051raw/5TFcache og
+198targets gjenbrukes;055 brukes bare til identisk gammelprojeksjons-hash.
+Eksisterende15GC-kontrakter har samme0,1USD/tick fra bundetrollmetadata.
 
 Lokal og alle fem MTF-nivåregistre bruker faktisk samme fryste parameterkontrakt
 (a222c3c1…), fit 01.06.2009–01.01.2013T22Z, inner-fit 11.04.2012T22Z.
@@ -65,7 +86,7 @@ Ny ONLINE-funksjon vil kreve fersk initialbaseline.
 
 ## Siste målte funn
 
-203 er COMPLETE/consumed, siste terminal: 0f8fb870…; RESULT17cc1fc1…,
+203 er COMPLETE/consumed, siste kolonneregnskap: 0f8fb870…; RESULT17cc1fc1…,
 SUMMARY632bd9f0…, actualpeerb4477df1…, DECISION85fdf4f1… under
 `NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203`.
 Alle3345kolonner/99paneler/48celler er splittet i1280kildebestemte markører,
