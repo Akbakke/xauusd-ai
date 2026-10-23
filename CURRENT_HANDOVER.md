@@ -36,7 +36,7 @@ PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
 TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
 Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
 
-## Nå:227 fersk kildebinding etter kvalifisert rapportvakt
+## Nå:228 egen initialmåling,32F/0oppdateringer innrømmet én gang
 
 223 er COMPLETE/consumed og actualpeer429b80de… PASS:15readonlyNPY,
 467723564B, fem separate TRAIN-normaliseringer,84,292sworker/85,268sytre.
@@ -70,14 +70,21 @@ negativecases PASS,0fail/error/skip,4,015sworker/4,701sytre,frystkilde/policy.
 Syntetisk arbeid var eksakt24surfacefits+3categoryfits+3RMSfits;0GCfit/F/update.
 Tidligere224ON-helperbevis gjenbrukes.225actualpeerfee76f01… PASS kunfreshstate.
 
-227DESIGN/PLAN forbereder ny aktuell sourceclosure og fersk CPUstate gjennom
-samme publisher/budsjett. Kun campaign-vakten er endret; modell/targets/inputs/
-profil beholdes, og fersk kanonisk modellstatehash må matche225.225bevis
-beholdes originale. Ny ustartet initialmåling får228sti; ingen226initiallaunch
-eller relaunch.227PLAN/sourcepeerca38ac94… PASS innrømmer én F0/U0/refit0CPUstate under
-uendret4GiB/512MiB,64pids,1tråd,900s/64GiBrchar.226actualpeer9195cfe1… PASS.
-Kilde/policy fryses.228initial-sealer er kun kildeforberedt; ingen baseline/
-teknisk4U/hovedtrening er åpnet.
+227 COMPLETE/consumed: én ny fersk CPUstate på aktuellkilde.0F/U/fit/Dataset/
+GC-arrayåpning,27bookends og184closure-roller; kanonisk modellstatehash er
+eksakt lik225, uten gjenbruk av dens vekter.290,273sworker/292,482sytre. Aktuell
+metadatareview PASS;225kvitteringer er bevartoriginale, ingen226initiallaunch.
+
+228PLAN innrømmer egen full480-initialmåling:256TRAIN+256CONTROL,batch16,
+16encoderforwards/rolle,32totalt,0updates/refits/Exit. Sealer og canonical
+materialisator gjenbrukes, sourcepeer2de6951a… PASS;11filer/055/057/111/
+prisfasit/kostnader er uendret. Kan kun starte etter fersk maskinvididle,
+bundetWindowsinstallasjon, prepare/confirm-reboot og faktisk ny boot med
+eksisterende maskinvarevakter. Ingen direkteStartScheduledTask. Én invokasjon,
+12000/13800s, fryst kilde/policy fra seal til terminal;ingenrelaunch.
+Streng actualinitialrapport-audit må bestå før egen4U/4F-tekniskplan og
+eventuelt fast hovedbudsjett. training_enabled/full_epoch/fullVAL=false.
+Prognosegevinst er fortsatt umålt;ingenTEST/broker/live/paper/promotion.
 
 Neste porter er fokusert syntetisk native-wiring-kvalifisering, fersk genuine
 initialstate/ONLINEbaseline og optimizer/resume-paritet før en egen fast native-
