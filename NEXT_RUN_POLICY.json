@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-23T06:03:05.162796+00:00",
-  "status": "EXACT_NONFITTING_SNAPSHOT_PHYSICAL_QUALIFICATION_ADMITTED",
+  "status": "EXACT_REPAIRED_NONFITTING_SNAPSHOT_PHYSICAL_QUALIFICATION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "191main,192comparison and194source qualification are complete/consumed.193design and194decision admit bounded cache/physical-qualification source preparation only.194passed27synthetic/055metadata checks; this proves no actual feature projection, capacity, chronological feature value, Entry direction/actions, generalization or economic edge. Original data jobs, genuine fits, native training/forwards, fullVAL/reboot/TEST/Exit/HPO/selector or cost changes and consumed relaunches remain closed until exact new admission.",
-  "next_action": "Run exact195PLAN5cae63ab once through existing capped audit4G/512M/one-thread guards, max1800s+10TERM and96GiB rchar.196actual29PASS and19427PASS are retained; source/policy frozen. Materialize all118249TRAIN+17284Q1CONTROL with unchanged3345layout, strict cutoffs/own1-5-15masks, fresh15cacheSHA and exact191512targetparity. Zero fits/model forwards/updates. Consume only actual RESULT+COMPLETEterminal; then review capacity/parity before any separate reference-fit admission. Native/fullVAL/TEST/Exit/HPO/promotion remain closed.",
+  "next_action": "Run exact197PLAN once through capped audit4G/512M/one-thread, max1800s+10TERM/96GiB rchar. Existing paired152 NumPy initialization is restored with mandatory synthetic decoder guard before originalreads.195failed/consumed; preserve all receipts. Reuse19427PASS/19629PASS, same193all118249+17284rows/3345layout/own1-5-15masks/512targetparity. Zero fits/modelF/U. Require actual RESULT+COMPLETEterminal+outer stable identities before later separatefit admission. Native/fullVAL/TEST/Exit/HPO/promotion closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -191,7 +191,7 @@
   },
   "current_work": {
     "operator_request": "Continuous goal: better M5 LONG/SHORT/FLAT qualification;22.10priority solid indicator/feature foundation.",
-    "current_activity": "195_ONE_NONFITTING_PHYSICAL_QUALIFICATION_ADMITTED",
+    "current_activity": "197_REPAIRED_ONE_NONFITTING_PHYSICAL_QUALIFICATION_ADMITTED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -223,10 +223,10 @@
     "latest_terminal_role": "194_SYNTHETIC_SOURCE_AND_ACTUAL055_METADATA_ONLY_NO_DIRECTION_RESULT",
     "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196/SOURCE_TESTS_TERMINAL.json",
-      "sha256": "d58f55e9e00d90cbc61c38aab4343726982edea97b2f8f0a77582b1d32cab1bc"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/TERMINAL.json",
+      "sha256": "2efa3bf87ea5d5fc3ff1e75ba83bb4b40529773076e4b4cb27f37cb09fecdc75"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -7715,7 +7715,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exact195PLAN5cae63ab once through existing capped audit4G/512M/one-thread guards, max1800s+10TERM and96GiB rchar.196actual29PASS and19427PASS are retained; source/policy frozen. Materialize all118249TRAIN+17284Q1CONTROL with unchanged3345layout, strict cutoffs/own1-5-15masks, fresh15cacheSHA and exact191512targetparity. Zero fits/model forwards/updates. Consume only actual RESULT+COMPLETEterminal; then review capacity/parity before any separate reference-fit admission. Native/fullVAL/TEST/Exit/HPO/promotion remain closed.",
+    "next_action": "Run exact197PLAN once through capped audit4G/512M/one-thread, max1800s+10TERM/96GiB rchar. Existing paired152 NumPy initialization is restored with mandatory synthetic decoder guard before originalreads.195failed/consumed; preserve all receipts. Reuse19427PASS/19629PASS, same193all118249+17284rows/3345layout/own1-5-15masks/512targetparity. Zero fits/modelF/U. Require actual RESULT+COMPLETEterminal+outer stable identities before later separatefit admission. Native/fullVAL/TEST/Exit/HPO/promotion closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17198,8 +17198,8 @@
     },
     "training_active": false,
     "latest_decision": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/EXECUTION_ADMISSION.json",
-      "sha256": "aa3c0932d928a3fa878ba6aabd549b8cedacfcca3794e4256fc3d718ae882cc5"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_REPAIR_20261023_197/EXECUTION_ADMISSION.json",
+      "sha256": "f3a8ba671ecc3337271386d8d364c13edca7549a8af961be6b54f1c800cefa64"
     },
     "latest_direction_analysis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/TERMINAL.json",
@@ -25432,7 +25432,7 @@
     }
   },
   "dynamic_m5_snapshot_reference_physical_qualification_195": {
-    "status": "EXACT_NONFITTING_PHYSICAL_QUALIFICATION_ADMITTED",
+    "status": "FAILED_CONSUMED_HELPER_NUMPY_INITIALIZATION",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/PLAN.json",
@@ -25442,10 +25442,10 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/SOURCE_PEER_REVIEW.json",
       "sha256": "2a95724c4afce9e137ce1f50cb3c0adf196c857b7ea91c6564163f425cbb8aa0"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
     "genuine_reference_fit_admitted": false,
@@ -25480,7 +25480,19 @@
     },
     "reference_fits": 0,
     "model_forwards": 0,
-    "optimizer_updates": 0
+    "optimizer_updates": 0,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/TERMINAL.json",
+      "sha256": "2efa3bf87ea5d5fc3ff1e75ba83bb4b40529773076e4b4cb27f37cb09fecdc75"
+    },
+    "actual_launch_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/ACTUAL_LAUNCH_TERMINAL.json",
+      "sha256": "805e16cd22cee6d17f098a523d2365e5fdf3270bb54a9b1f93b771c7cff20c20"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195/DECISION.json",
+      "sha256": "bbb047dc7fee09a5412d98c8f086a5fddea0bed8dab368486e845d85ff9cf866"
+    }
   },
   "dynamic_m5_snapshot_cache_source_repair_196": {
     "status": "COMPLETE_CONSUMED_29_PASS",
@@ -25522,5 +25534,56 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196/DECISION.json",
       "sha256": "629b74336970ec0bdba7d5cddae25de18247ea9bcaad0967512c5e4297d34656"
     }
+  },
+  "dynamic_m5_snapshot_reference_physical_repair_197": {
+    "status": "EXACT_REPAIRED_NONFITTING_PHYSICAL_QUALIFICATION_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_REPAIR_20261023_197",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_REPAIR_20261023_197/PLAN.json",
+      "sha256": "988203bc80180d73ac05662bf0c1ed7a4be008916d63d263adc1fe112e64d9b3"
+    },
+    "source_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_REPAIR_20261023_197/SOURCE_REPAIR_REVIEW.json",
+      "sha256": "62a68425ca58c715f421b9d55997ecad34a66bd913be871c19e668997e0c3fc1"
+    },
+    "execution_admission": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_REPAIR_20261023_197/EXECUTION_ADMISSION.json",
+      "sha256": "f3a8ba671ecc3337271386d8d364c13edca7549a8af961be6b54f1c800cefa64"
+    },
+    "actual_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196/SOURCE_TESTS_TERMINAL.json",
+      "sha256": "d58f55e9e00d90cbc61c38aab4343726982edea97b2f8f0a77582b1d32cab1bc"
+    },
+    "execution_authorized": true,
+    "source_edits_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "cache_npy_sha_files": 15,
+      "canonical_pointer_projections": 2,
+      "input_projection_passes": 2,
+      "max_invocations": 1,
+      "max_rchar_bytes": 103079215104,
+      "max_wall_seconds": 1800,
+      "memory_bytes": 4294967296,
+      "model_forwards": 0,
+      "optimizer_updates": 0,
+      "original_observation_json_reads": 2,
+      "pessimistic_full_parquet_sha_passes": 3,
+      "reference_fits": 0,
+      "swap_bytes": 536870912,
+      "target_source_phases": 2,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "reference_fits": 0,
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "training_enabled": false,
+    "genuine_reference_fit_admitted": false,
+    "test_data_used": false
   }
 }

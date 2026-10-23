@@ -103,21 +103,24 @@ Alle native-/tap-/score-/kosteiere er uendret. Native/fullVAL/reboot/TEST/Exit
 og genuinefits forblir stengt. Målet er ufullført; ingen favorittmåned/-minutt,
 HPO eller snuregel. Åtte spesialister/9.D1makro består.
 
-196 er COMPLETE/consumed:29fokuserte kontroller bestod på4,120s med faktiske
-capped-/låsvakter, audit4G/512M/éntråd/pids64.195s første syntetiske setupfeil
-ble rettet med tre fixturelinjer; originalfeilkvitteringer bevares og ingen
-produksjonsadapter/worker ble endret.194s27PASS gjenbrukes.
-195s PLAN5cae63ab… har nå egen eksakt admission for én ikke-fittende fysisk
-kvalifikasjon:118249TRAIN+17284Q1CONTROL,3345F32kolonner, uendrede1/5/15masker,
-strenge cutoffs og eksakt191fasit-/maske-/parent-/klokkeparitet på512rader.
-OriginalOBS leses én gang perrolle;15NPY-filers bytes verifiseres ferskt og
-055/053fullmatrix-liveness gjenbrukes eksplisitt. Ingen fit eller ny nativeF/U.
-Budsjett audit4G/512M/éntråd/pids64/1800s+10sTERM og96GiB logiskrchar;
-tre fulle Parquet-SHA-pass er65,98GB. Faktisk kapasitet/projeksjon/paritet er
-ennå umålt. Senere forbruk krever RESULT+COMPLETE-terminal; OUTPUT alene er
-ukvalifisert. Kilde/policy fryses. Native/fullVAL/TEST/Exit/HPO/ektefits forblir
-stengt. Røtter underGX1_RUNS: `NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_QUALIFICATION_PREPARATION_20261023_195`
-og `NATIVE_M5_SNAPSHOT_CACHE_FIXTURE_REPAIR_20261023_196`.
+196 er COMPLETE/consumed:29fokuserte cachekontroller bestod på4,120s,
+med faktiske capped-/låsvakter.194s27PASS gjenbrukes. Produksjonsadapterne er
+uendret. Original195fixturefeil og den minimale trelinjersrettelsen er bevart.
+195s faktiske datakjøring er FAILED/consumed etter42,400s: én originalOBS,
+22,197GB logiskrchar,962,1MB peakRSS og ingen outputfiler/fits/forwards.
+Årsaken er konkret:152resultatleserens np=None ble ikke initialisert; fungerende
+192route setter module.np=np.239inputidentiteter og kilde/policy var uendret.
+197 gjenbruker den fungerende initialiseringen og har en liten fast decoder-
+kontroll før noen originalOBS-/Parquet-lesing. Kun workerwiring er rettet;
+193design, alle productioneiere, kostnader, masker og layout er uendret.
+197 har egen eksakt engangsadmission:118249TRAIN+17284Q1CONTROL,3345F32felt,
+1/5/15egne terminalmasker/strengecutoffs og191fasitparitet på512rader.
+Budsjett audit4G/512M/éntråd/pids64/1800s+10sTERM/96GiB rchar;0fits/F/U.
+Faktisk fullprojeksjon/kapasitet/paritet er fortsatt ubevist.195 relanseres
+aldri. Forbruk krever RESULT+COMPLETEterminal+vellykket ytre kvittering med
+uendrede inputidentiteter. Kilde/policy fryses. Native/fullVAL/TEST/Exit/HPO og
+ektefits forblir stengt. Ny rot underGX1_RUNS:
+`NATIVE_M5_SNAPSHOT_REFERENCE_PHYSICAL_REPAIR_20261023_197`.
 
 ## Siste ferdige retningsanalyse og kostnadsforklaring
 
