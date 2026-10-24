@@ -89,41 +89,46 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-Streng actualinitialrapport-audit må bestå før egen4U/4F-tekniskplan og
-eventuelt fast hovedbudsjett. training_enabled/full_epoch/fullVAL=false.
-Prognosegevinst er fortsatt umålt;ingenTEST/broker/live/paper/promotion.
+## Nå:231 bestått;232 én fast GC-featureepoke innrømmet
 
-Native-wiring-kvalifisering og fersk initialstate er fullført. Neste porter er
-229s genuine ONLINEbaseline, streng lagret-rapportaudit og egen optimizer/resume-
-paritet før en separat innrømmet fast native-sammenligning.191/188 erstatter ikke ny funksjons egen startmåling. Samme frosne057
-rekkefølge118249/batch16/7391steg, prisfasit/kostnader og budsjett skal gjenbrukes.
-Prognoseforbedring er fortsatt umålt. Ingen220/221/222/223-relaunch. Mislykkede
-kvitteringer/sidefiler beholdes; ingenDATA/RUNS-rydding.
-
-## Nå:230 bestått;231 privat4U/4F innrømmet én gang
-
-229 COMPLETE/consumed: nyWindowsboot530,32forwards,0optimizeroppdateringer.
-256TRAIN+256CONTROL,alle480horisonter lagret.1803,430snative/2086,816sytre;
-signertevaktersPASS,child/observer0,kilde/policyuendret. Ingen baseline-relaunch.
-Foreløpigmetadata er ikke streng fullOBS-/statebevis. Neste er én samlet
-CPU0F/0U-audit som gjenbruker eksisterende state-sammenligning og canonical
-fullrapportvalidator.230PLAN er innrømmet én gang,4G/512M/64pids/1tråd/900s,
-toCPUstatearkiver ogtofulleOBS;ingen modell/Dataset/fit/backward. Ingen separatmodelljobb eller nyfreshpublisher. Egen
-4U/4F-tekniskplan ogfastmain er fortsattstengt;ingenprognosegevinstmålt.
-
+229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
+alle480horisonter,32forwards og0updates på nyWindowsboot530.
 230 COMPLETE/consumed: én canonicalfullrapportgate/toOBS ogtoCPUstatearkiver
-verifisert.0modell/Dataset/forward/update/fit/backward.627,251sworker/627,881sytre,
-peakRSS1527341056B,4G/512M/64pids/1tråd;source/policyuendret. Online/target/EMA,
-optimizer/scheduler oglagretCPU/Python/NumPyRNG erlike227. CUDA kunlagretskjema,
-ingen uavhengig postforwardRNGpåstand. Egen229baseline er kvalifisert.
+bestod.0modell/Dataset/forward/update/fit/backward;627,251sworker/627,881sytre,
+peakRSS1527341056B. Online/target/EMA/optimizer/scheduler og lagretCPU/Python/
+NumPyRNG erlike227; CUDA kun lagretskjema, ingen uavhengig postforwardRNGpåstand.
+Egen229baseline er kvalifisert. Ingen ny freshpublisher eller baseline-relaunch.
 
-231PLAN er innrømmet én gang med eksisterende tekniskrute: første32TRAINrader,
-batch16,fire faktiske privateoppdateringer/logiskcursor2,fireparitetsforwards,
-16TRAIN+16CONTROL,åttestatehashlikheter,atol1e-4bps/rtol0. IngenCONTROL-update
-ellerprivatvektgjenbruk. Ingen nyfreshpublisher/kildeendring/ekstraauditsuite.
-training_enabled=true gjelder bare denne eksakte privateplanen;full_epoch og
-fullVAL=false. Egenrenkilde/binding,hele-maskin-idle ogfysisknyboot med
-eksisterende vakter må beståførlaunch. Main/TEST/Exit/broker er stengt.
+231 COMPLETE/consumed: ny fysiskWindowsboot531, fire faktiske privateupdates,
+fireparitetsforwards,16TRAIN+16CONTROL,16paritetspaneler uten avvik og åtte
+resume-statehashlikheter. Logiskcursor2;ingenCONTROL-update,teacherrefresh,
+Exit eller privatvektgjenbruk. Native3623,381s; signedguardPASS ogchild/observer0,
+f12f4ad4/policy0d955a5b… fryst. Actualpeer25a42667… PASS metadata/proveniens;
+originale PT-/guard-/kvitteringsbevis beholdes. Teknisk PASS er ingen prognosegevinst.
+
+232 er én NY avgrenset test av den faste218GC-history/support-pakken etter
+223/227/229/230/231. Gjenbruk227freshstate, original055,057rekkefølge og111;
+118249TRAINrader, batch16/siste9,7391updates og32finalONLINEforwards på samme
+256TRAIN+256CONTROL/alle480. Ingen kilde-/modellendring eller normaliseringsrefit.
+PLAN/authority/DESIGN/EVAL er hashlåst før sealer og ny policy; kildepeer PASS.
+Global entry_m5_path_single_epoch_run er eksakt20felt; tidligere privatmap fjernes.
+training_enabled/full_epoch=true gjelder bare denne ene faste epochplanen;
+fullVAL=false. Ingen ekstraepoke/HPO/variant eller gjenbruk av231privatevekter.
+
+Før launch må ren pushet kilde, cappedsealer, canonicalcampaign, hele maskinens
+jobb-/writer-/låsidle, bundetWindowsinstallasjon og prepare/request/confirm-reboot
+bestå. Faktisk nyboot etter531 med eksisterende signerteGPU/host/cgroupvakter;
+ingen direkteStartScheduledTask.160Widlekeeper bevares; samme300Wadaptivevakt.
+CURRENTkode/policy fryses fra seal til terminal; eksternebootmetadata får bare
+avtalte232sti/hash/bootbindinger før fysiskboot. Én12000snative/13800sytre invokasjon.
+
+EVAL er forhåndslåst: egen229initial og target/mask/cost/row-parret191final,
+primær1/5/15min, alle480 samt60/120/240/480støtte, paired dag/uke95%-intervall,
+LONG/SHORT/FLAT-dekning, censoring, inclusive/closedMFE ogMAEførførsteMFE.
+Alle tre CONTROLprimærfeil må forbedres mot begge referanser for retningsgevinst;
+robustpåstand krever day/weekintervall helt under0. Under8blokker er deskriptivt.
+AllFLAT/pooledMSE/TRAIN-fit alene kvalifiserer ikke Entry. Ingen isolertfeature-
+årsakspåstand fra denne samledepakken. Prognosegevinst er fortsatt umålt.
 
 ## Gjenbruk og ubeviste grenser
 
@@ -144,6 +149,6 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled gjelder bare eksakt231privat4U/4F;full_epoch/fullVAL=false.
-Ingen mainlaunch ellerDATA/RUNS-rydding.
+training_enabled/full_epoch gjelder bare eksakt232 én7391Uepoke;fullVAL=false.
+Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
