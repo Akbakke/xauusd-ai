@@ -94,7 +94,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:retning alene;242 retter én konkret cache-lineagebinding
+## Nå:retning først;243 måler konkret featureklokkeavvik,244 enkel baseline er låst
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -275,16 +275,29 @@ rchar23785719758B. Full9-array198paritet/116endpoints og quoteindeksfrigjøring
 PASS;0featurematriser/prefixfit/prediktor/nativeF/update. IngenOUTPUT publisert.
 CanonicalV29-cachevalidering stoppet på manglende3892B PRETEST_PAIR.json i
 leselisten. Filen er SHA-bundet av faktisk cacheproveniens; feilkvitteringer beholdes.
-242 er ny minimal plan: bare eksakt f6742b05…/3892B-ref i metadata/leseliste,
-pluss run/stage-identitet. Worker e1ed11b0… har uendret mål-/featureberegning.
-Actual PLAN/preflight og alle51 kilde-SHA er kontrollert. Én capped datajobb:
-4GiB/512MiB/64pids/éntråd,900+10s,40GiB rchar,256MiB NumPy. Canonicalcachevakter
-beholdes; ingen ekstra innlesing av40MBcachemanifest i den nye metadatavakten.
-Full198paritet og206–223/current bits må bestå. Renpris/null/sensur rapporteres;
-210 gjenbrukes, bare25 book-prefixer fittes. Fem faste86-kolonnematriser/413667
-foreldre;0prediktorfit/nativeF/update. Frystkilde/policy til terminal,ingenrelaunch.
-En senere45-fit referanse krever faktisk datakvalifikasjon og egen ny plan.
-Ingen prognosegevinst er vist.
+242 FAILED/consumed etter138,762sworker/140,111sytre, rchar30448065635B,
+prosesspeakRSS4560302080B (ikke cgroup-peak). Full198paritet/5native selectors/
+30NPY/150SHA+1manifest+12params bestod. M5-parbits bestod; M15-parbits avvek.
+0featurematriser/prefixfit/prediktor/nativeF/update og ingenOUTPUT. Originalbevis beholdes.
+Kildene bruker ulike currentklokker:206 sisteGC-kalenderbøtte<=D,223 siste native
+prisrad. Faktisk avviksomfang/årsak er ikke målt;239s strenge port er uendret.
+
+243worker25ce2377… og actualPLAN er kildepeeret før én targetfri dataaudit.
+14påkrevd kildeeiere og217-klokkekontrakt er kontrollert; bareto198klokkemedlemmer,
+niheaders,30NPY/5canonicalselectors og206ti kolonner. Alle5TF måles i175faste
+aggregeringer: mask/bits/numeric/signedzero/ULP/clockrelation/age/month/boundary.
+GC-asof utledes bare frabundet komplett ownbook-grid; H4/D1faser2t/22t beholdes.
+Capped4GiB/512MiB/64pids/éntråd,300+10s/8GiB rchar.0nyequote-/endpointreaders,
+men canonical9M1+45M5OHLC-SHApass leserbytes og rapporteres.0fit/prognose/arrayoutput.
+Frystsource/policy til terminal; ingenrelaunch ellerautomatiskkandidatgodkjenning.
+
+244DESIGN6d7a5b5f… er låst og sourcepeerPASS: førsteenkle retningsreferanse er
+prospektiv S_PRICE66, fem210prefixer uendret og239renpris-/sannsynlighetseiere.
+15faste logistiske fits/30predictorpopulasjoner er bare framtidigtak,ikkeinnrømmet.
+Ingen klassifikatorscore har valgt armen.86-pakken er fortsatt ukvalifisert.
+Streng horizonmodning, null/missingnevner, proper scores, råpersistens/commoncohort
+og paired UTCdag/Mandaguke beholdes;TRAIN-folds er gjenbrukt utvikling. Førstegen
+datakvalifisering, såegenfitplan. Selve trades/Exit ognativeautoritet er stengt.
 
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
@@ -311,6 +324,6 @@ TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forward
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
 training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235/236 er consumed.
 236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
-er ferdig og239 er kildekvalifisert.240/241 er consumed;242 har én data-only admisjon. Prediktorfit er stengt.
+er ferdig og239 er kildekvalifisert.240/241/242 er consumed;243 har én targetfri dataadmisjon.244 er kun design. Prediktorfit er stengt.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
