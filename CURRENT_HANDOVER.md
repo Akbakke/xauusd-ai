@@ -375,3 +375,12 @@ Alle genuine270gater erfalse. Én eksakt32case syntetisk testjobb er nå innrøm
 Gamle recipebytes/39AST-noder er uendret. Fem målte nye vaktgap er rettet med
 minste delta: bufferfinitet, typeddefaults, MTpos, parameteralias og semantisk
 immutablebuffer førrestore. Ingen nativefunksjon eller data er endret.
+
+## 270 feilet/forbrukt — 271 retter én feilinjeksjonslinje
+
+270 faktisk:31PASS/1FAIL,4.243s,begge kilde-/metadatabokender ogcap verifisert.
+Test model_nonfinite forsøkte NaN i første stateverdi, som er I64-horisontbuffer.
+Feilen oppstod førrestorevakten. Alle270gater er lukket/claimed-completed1/1;
+originalene bevares og270 relanseresikke. Root eier271s eneste testlinje: bruk
+navngitt FP32 direction_head.weight i feilinjeksjonen. Implementasjon/oppskrift
+er uendret; alle32cases beholdes. 271 kilde-/PLAN-peer PASS; én ny eksakt32case syntetisk kvalifikasjon er innrømmet. Ingen genuine gater åpnes.

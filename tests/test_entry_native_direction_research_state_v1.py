@@ -217,7 +217,7 @@ def test_restore_rejects_corrupt_state_before_mutation(monkeypatch,fault):
     elif fault=='updates':saved['optimizer_updates']=5
     elif fault=='buffer':saved['buffer_state'].pop('backbone.ephemeral_probe')
     elif fault=='buffer_dtype':saved['buffer_state']['backbone.ephemeral_probe']=saved['buffer_state']['backbone.ephemeral_probe'].double()
-    elif fault=='model_nonfinite':next(iter(saved['model_state'].values())).fill_(float('nan'))
+    elif fault=='model_nonfinite':saved['model_state']['direction_head.weight'].fill_(float('nan'))
     elif fault=='semantic_buffer':
         name='backbone.input_norm_signal_center'
         saved['model_state'][name].add_(1);saved['buffer_state'][name].add_(1)
