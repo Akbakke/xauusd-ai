@@ -36,6 +36,7 @@ _KINDS = {
     "epoch1_window",
     "full_val_window",
     "native_candidate_window",
+    "native_direction_research_window",
 }
 _SUCCESS_OUTCOMES = {"COMPLETE", "RESUMABLE"}
 _EXPECTED_SUCCESS_OUTCOMES = _SUCCESS_OUTCOMES | {"RESUMABLE_OR_COMPLETE"}
@@ -390,10 +391,11 @@ def require_invocation(
     ):
         raise RandomAccessCampaignError("invocation number invalid")
     batch_size = result.get("batch_size")
-    if batch_size not in (4, 8, 16):
+    if ((kind == "native_direction_research_window" and (type(batch_size) is not int or batch_size != 2))
+            or (kind != "native_direction_research_window" and batch_size not in (4, 8, 16))):
         raise RandomAccessCampaignError("invocation batch size invalid")
     for name in ("epoch_index", "window_index", "window_count"):
-        if name == "epoch_index" and kind == "native_candidate_window" and result[name] is None:
+        if name == "epoch_index" and kind in {"native_candidate_window", "native_direction_research_window"} and result[name] is None:
             continue
         if type(result.get(name)) is not int or result[name] < 0:
             raise RandomAccessCampaignError(f"invocation {name} invalid")
@@ -410,7 +412,7 @@ def require_invocation(
     if result["expected_success_outcome"] not in _EXPECTED_SUCCESS_OUTCOMES:
         raise RandomAccessCampaignError("expected outcome invalid")
     maximum_wall = result.get("maximum_wall_seconds")
-    wall_ceiling = 13800 if kind == "native_candidate_window" else 7200
+    wall_ceiling = 13800 if kind in {"native_candidate_window", "native_direction_research_window"} else 7200
     if type(maximum_wall) is not int or not 1 <= maximum_wall <= wall_ceiling:
         raise RandomAccessCampaignError("invocation wall bound invalid")
     result["execution_manifest"] = require_binding(
@@ -493,7 +495,10 @@ def require_invocation(
             or execution.get("artifact_sha256") != canonical_sha256(unsigned)
         ):
             raise RandomAccessCampaignError("execution manifest binding invalid")
-        if kind == "native_candidate_window":
+        if kind == "native_direction_research_window":
+            from gx1.contracts.entry_native_direction_research_campaign_v1 import require_research_invocation_execution
+            require_research_invocation_execution(result, execution, source_repo=source_repo, source_commit=source_commit)
+        elif kind == "native_candidate_window":
             from gx1.contracts.unified_exit_native_candidate_campaign_v1 import (
                 NATIVE_MODULE, require_native_window_policy, require_native_recipe_metadata,
             )
@@ -819,7 +824,28 @@ def _full_population_session_for_plan(
         raise RandomAccessCampaignError("full-year session provenance invalid")
     return session, binding, authority["campaign_plan"]
 
+def campaign_hardware_policy(phase: str) -> dict[str, Any]:
+    """Existing signed hardware envelope, shared by native research transport."""
+    expected_policy = {
+        "physical_power_limit_w": 160,
+        "maximum_actual_power_draw_w": 170,
+        "maximum_core_temperature_c": 65,
+        "maximum_memory_junction_temperature_c": 80,
+        "maximum_vram_mib": 12288,
+        "signed_local_telemetry_seconds": 1,
+        "human_status_seconds": 900,
+        "fresh_physical_windows_boot_before_every_invocation": True,
+        "automatic_power_limit_change": False,
+    }
+    if phase in {"native_candidate", "native_direction_research"}:
+        expected_policy.update(physical_power_limit_w=300, maximum_actual_power_draw_w=310, maximum_core_temperature_c=85, automatic_power_limit_change=True, power_reduction_core_temperature_c=80, reduced_power_limit_w=200)
+    return expected_policy
+
+
 def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
+    if isinstance(value, Mapping) and value.get("phase") == "native_direction_research":
+        from gx1.contracts.entry_native_direction_research_campaign_v1 import require_research_plan
+        return require_research_plan(value, verify_files=verify_files)
     keys = {
         "schema_version",
         "decision",
@@ -876,19 +902,7 @@ def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
     result["prepared_windows_boot"] = require_boot_identity(
         result["prepared_windows_boot"]
     )
-    expected_policy = {
-        "physical_power_limit_w": 160,
-        "maximum_actual_power_draw_w": 170,
-        "maximum_core_temperature_c": 65,
-        "maximum_memory_junction_temperature_c": 80,
-        "maximum_vram_mib": 12288,
-        "signed_local_telemetry_seconds": 1,
-        "human_status_seconds": 900,
-        "fresh_physical_windows_boot_before_every_invocation": True,
-        "automatic_power_limit_change": False,
-    }
-    if result["phase"] == "native_candidate":
-        expected_policy.update(physical_power_limit_w=300, maximum_actual_power_draw_w=310, maximum_core_temperature_c=85, automatic_power_limit_change=True, power_reduction_core_temperature_c=80, reduced_power_limit_w=200)
+    expected_policy = campaign_hardware_policy(result["phase"])
     expected_authority = {
         "test": False,
         "promotion": False,
@@ -1195,6 +1209,10 @@ def require_progress(
     expected_selection_receipt_sha256: str | None,
     verify_file: bool = True,
 ) -> dict[str, Any]:
+    if invocation.get("kind") == "native_direction_research_window":
+        from gx1.contracts.entry_native_direction_research_campaign_v1 import require_research_progress
+        return require_research_progress(value, plan_sha256=plan_sha256, invocation=invocation,
+            expected_selection_receipt_sha256=expected_selection_receipt_sha256, verify_file=verify_file)
     keys = {
         "schema_version",
         "plan_sha256",

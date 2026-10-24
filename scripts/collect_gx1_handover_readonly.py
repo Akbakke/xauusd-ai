@@ -210,6 +210,22 @@ def next_run_readiness(
     """Report readiness; a calibration exception requires its exact native window."""
     if (native_window_policy is None) != (native_window_policy_file_sha256 is None):
         raise ValueError("NEXT_RUN_NATIVE_WINDOW_BINDING_PAIR_REQUIRED")
+    if native_window_policy is not None:
+        import sys
+        source_root = str(Path(__file__).resolve().parents[1])
+        if source_root not in sys.path:
+            sys.path.insert(0, source_root)
+        from gx1.contracts.local_random_access_campaign_v2 import read_bound_json
+        from gx1.contracts.entry_native_direction_research_campaign_v1 import (
+            WINDOW_SCHEMA, require_native_direction_research_readiness,
+        )
+        window_path = _regular_file(str(native_window_policy), label="native_window_policy")
+        window = read_bound_json(window_path, native_window_policy_file_sha256)
+        if isinstance(window, dict) and window.get("schema_version") == WINDOW_SCHEMA:
+            return require_native_direction_research_readiness(
+                repo, window_path=window_path,
+                window_file_sha256=native_window_policy_file_sha256,
+            )
     path = _regular_file(str(repo / "NEXT_RUN_POLICY.json"), label="next_run_policy")
     policy = json.loads(path.read_text())
     expected = {"policy_batch_size": 256, "cpu_pipeline_workers": 8,

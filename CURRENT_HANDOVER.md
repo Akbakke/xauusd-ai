@@ -403,3 +403,14 @@ falske gamlephase-/targetfelt. CPU-PASS erikkeGPU-PASS. Bind minste scope før
 kildeendring; genuine4privateupdates/resume førchronologicalfit. Privatevekter
 brukesikke til hovedfit. 269s15minsupervisedgradient erfortsattukvalifisert.
 Ingen nye gater/sourceedits ellerfit erinnrømmet. NEXT_RUN_POLICY binderalle refs.
+
+## Aktuelt272 — minste kanoniske forskningsrute
+
+Kildeendring er bundet i policy272/DESIGN med avgrenset fileierskap. Den gamle
+campaign-/windowvalideringen krever fleroppgave-recipe/TD/sampler/session før
+ren260retning slipper til. Ny strict researchvariant bruker samme nativewindow-
+module/capped/CUDA/signedhardware-/freshbootkjede, uten gamle fase-/targetalias.
+Kilde er gjennomgått av root og to avgrensede peers. Én ny70case syntetisk
+jobb er bundet i TEST_PLAN; data-/modell-/update-/fitgater er false. Først fryst
+ren Git/policy og påkrevde hooks, deretter én cappedCPU-kjøring.
+270/271s beståtte state/recipe gjenbrukes uendret. Målet er fortsatt ikke oppnådd.

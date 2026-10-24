@@ -17242,7 +17242,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "NONE__271_CONSUMED_SYNTHETIC32PASS__ALL_EXECUTION_AND_TRAINING_GATES_CLOSED",
+    "current_training_scope": "NONE__272_SOURCE_BOUND_SYNTHETIC70_ONLY__GENUINE_TRAINING_CLOSED",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17306,7 +17306,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "BindnextminimalcanonicalGPUresearchscopeusingqualified270implementation/271tests andexistingcapped/CUDAguards; no oldphase/TD/statealias. Onegenuineprivate4U/resume before fixedchronologicalfit; no oldqualificationweightsreuse.",
+      "next_step": "272strictcanonicalresearchroute implementation/synthetic qualification; all genuine gates remain closed, then new explicit privateGPU admission.",
       "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed."
     },
     "latest_direction_terminal": {
@@ -32378,5 +32378,70 @@
       "sha256": "662f5dda61432d212d100adf2ca1635d5783200087951d4fb14e00742cfa3258"
     },
     "synthetic_state_optimizer_rng_qualified": true
+  },
+  "dynamic_m5_direction_canonical_research_route_272": {
+    "status": "SOURCE_REVIEWED_ONE_SYNTHETIC_INVOCATION_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_RESEARCH_ROUTE_20261024_272",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_RESEARCH_ROUTE_20261024_272/DESIGN.json",
+      "sha256": "a4136596be2a887c4dbaf0679b38ae288060d35e7f7a8d53f2a1d6e3def79bf4"
+    },
+    "integrator": "/root",
+    "file_ownership": {
+      "/root": [
+        "gx1/contracts/entry_native_direction_research_campaign_v1.py",
+        "gx1/contracts/local_random_access_campaign_v2.py",
+        "gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+        "tests/test_entry_native_direction_research_campaign_v1.py"
+      ],
+      "/root/research_audit": [
+        "scripts/gx1_capped_run.sh",
+        "scripts/collect_gx1_handover_readonly.py",
+        "tests/test_native_direction_research_readiness_v1.py"
+      ],
+      "/root/learning_audit": [
+        "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+        "tests/test_entry_native_direction_research_window_v1.py"
+      ]
+    },
+    "source_edit_scope": [
+      "gx1/contracts/entry_native_direction_research_campaign_v1.py",
+      "gx1/contracts/local_random_access_campaign_v2.py",
+      "gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+      "tests/test_entry_native_direction_research_campaign_v1.py",
+      "scripts/gx1_capped_run.sh",
+      "scripts/collect_gx1_handover_readonly.py",
+      "tests/test_native_direction_research_readiness_v1.py",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "tests/test_entry_native_direction_research_window_v1.py"
+    ],
+    "source_edits_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "synthetic_test_execution_authorized": true,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_RESEARCH_ROUTE_20261024_272/SOURCE_REVIEW.json",
+      "sha256": "18af4738af6b157c9c193a3204d422767bfceedaba58dcad7a96868858439120"
+    },
+    "test_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_RESEARCH_ROUTE_20261024_272/TEST_PLAN.json",
+      "sha256": "3eeef7f25a1fcac9e2cb180e6cbcdcb755da656d6d45bf97d9e16c0785b6613f"
+    }
   }
 }
