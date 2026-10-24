@@ -14,98 +14,82 @@ Trades, bevegelsesstørrelse/MFE/MAE, risiko og Exit utsettes. Målet er aktivt 
 ikke oppnådd. TRAIN-fit, senere overføring, generalisering og økonomisk edge
 krever forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 
-256 er COMPLETE/consumed og **forkastet som retningskandidat**. To uavhengige
-actualmetadata/stat-peers er PASS. 258design og259kilde har tre peer-PASS.
-259 er nå innrømmet for nøyaktig én CPU-kjøring: samme239R1, tre eksplisitte
-felt og15 genuine fits. Root eier policy/PLAN/launch. Worker ogPLAN er fryst;
-alle kilder og policy forblir uendret til terminal. Global training=true gjelder
-bare denne CPU-testen. Native/full_epoch/fullVAL/CONTROL/TEST/Exit/trades er lukket.
-Ingen gammel plan relanseres. Målt prognosegevinst for259 foreligger ikke ennå.
+259 er COMPLETE/consumed og **forkastet som retningskandidat**. Tre uavhengige
+actualmetadata/stat-/rapport-peers består konsistenskontrollene. Alle globale og
+lokale training/data/fit/execution-gater er false. Tidligere ret_1 brukes i alle
+15 modeller, men stabil retningsgevinst er ikke kvalifisert. Ingen relansering.
+Native/full_epoch/fullVAL/CONTROL/TEST/Exit/trades er lukket. Neste spørsmål
+om ren retning på ordnet nativehistorikk er kun kilde/design, ingen fitadmisjon.
 
-## Siste faktiske retningsmåling
+## Siste faktiske retningsmåling — 259
 
-256 tester én fast ExtraTrees med alle3345 snapshotfelt + tidligere ret_1 ved
-**eksakt D−300s** + qualified_parent_present. Samme19parametre som252:
-32trær/dybde8/minleaf256/sqrt/éntråd/seed20260911. Samme fem kronologiske
-TRAIN-prefixer,245renprisfasiter og frosneR1/252prognoser. Ingen norm-/kontroll-
-refit, klassevekter, HPO, terskelvalg eller kalibreringsfit.
+Uendret239 logistisk R1 med tre felt: nåværende ret_1, ret_1 ved **eksakt
+D−300s** og qualified_parent_present. Samme245 renprisfasiter, fem kronologiske
+TRAIN-prefixer og frosne R1/252-kontroller. Ingen normaliserings-/kontrollrefit,
+klassevekter, HPO, terskelvalg eller kalibreringsfit. Nativefeatures beholdes.
 
-| Horisont | TRAIN-fit, fem prefixer | Senere OOF | Lagret252 | AlltidOPP | Balansert OOF |
-|---|---:|---:|---:|---:|---:|
-|1min|55.89–56.84%|50.4370%|50.4972%|50.3099%|50.4703%|
-|5min|54.50–57.30%|50.7732%|50.7493%|51.0086%|50.1549%|
-|15min|55.81–60.32%|51.4609%|51.6819%|51.6899%|50.5289%|
+| Horisont | Senere OOF | Alltid OPP | Lagret252 | Balansert OOF |
+|---|---:|---:|---:|---:|
+| 1 min | 49.8831% | 50.3099% | 50.4972% | 49.7481% |
+| 5 min | 50.9006% | 51.0086% | 50.7493% | 50.1875% |
+| 15 min | 51.5822% | 51.6899% | 51.6819% | 50.2923% |
 
-Alle15TRAIN-paneler forbedrer logloss og Brier mot egen modneprefixprior.
-Alle36pooled dag/uke95%-intervaller motprior/R1/252 krysser0. Fellesnegative
-folds overalle6properloss-sammenligninger er1/0/1, underkravet4. Samlet proper-
-pointdiff er verre enn252 påalle3h; bare5min bedrerprior ogbare1min bedrerR1.
-Hardaccuracy feiler motalltidOPP5/15. Alle3followups ogsamletfollowup er false;
-ingen kontroll blir automatisk vinner. Ingenp=0/1/.5 ellerloglossklipp i33paneler.
+Historikk bidrar i alle15 modeller og30 prefix-/senerepopulasjoner, uten ekstra
+modellkall. Alle tidligere-returkoeffisienter er negative og bidragene varierer.
+Dette avklarer konsum for pakken, ikke generell temporalverdi eller kausal effekt.
 
-En konkret konsumgrense er nå målt: tidligere ret_1 fikk **7splitter i5av15
-modeller**;10bruktefeltet aldri. Presence fikk0splitter. Kandidatpakken er
-forkastet, men dette er ingen generell dom over temporal informasjon/native.
-Inputbredde og tilfeldige featurevalg endres sammen; splitbruk beviser konsum,
-ikke kausal prediktiv merverdi. TRAIN→senere-gapet består; støytilpasning,
-ustabile relasjoner og representasjonsgrenser er ikke skilt fra hverandre.
+Avgrensede proper-scoreforbedringer:5min slår lagret R1 med fire dag/uke95%-
+intervaller under0;15min slår egenprefixprior tilsvarende, ukesøvre svært nær0.
+1min er verre ennprior med fire intervaller over0. Alle12intervaller mot252
+krysser0. Av36pooled er10negative/22krysser0/4positive. Fellesnegative folds
+over alle6sammenligninger er0/1/2, underkravet4. Alle3followups/samletfalse;
+hardaccuracy er underalltidOPP påalle3horisonter. Ingen kontroll/h velges somvinner.
 
-## Hva som faktisk er kvalifisert
+## Faktiske input- og utføringsbevis
 
-Globalt eksakt lag finnes for117799/118249foreldre.450ukjente består av1før
-bundetdomene og449uteneksaktparent;213genuine rånuller beholdes medpresence.
-Fravær er ingen kvalifisert historiskparent, ikke manglende markedsbar. Ingen
-radfiltrering/row−1/nearest/backfill. Faktisk051første1minuttsemisjon betyr at
-historiskparent vedD−5min er kjent innenD−4min;253binder dette til kilde/data.
+Åtte ferdige payloads144496754B ble SHA-verifisert av fryst worker.245cached
+F32[stop,66]col65 matcher252/256ret_1, samme210prefixstats. Eksakt lag finnes
+for117799/118249foreldre;450ukjente=1førdomene+449uteneksaktparent.213genuine
+rånuller beholdes medpresence. Fravær betyr ukjent kvalifisert parent, ikke
+manglende markedsbar. Ingen filtrering/row−1/nearest/backfill.253første1minutt-
+emisjon gjør historiskparent kjent innenD−4min;051body ble ikke lest pånytt.
 
-Globalproof kom før0fits; femfoldproofs før0/3/6/9/12fits. Alle3345feltkart,
-rekkefølge,210prefixnormaliseringer, kol1F32-hashes og15maturity-/fitmasker
-matcher252. Firepayloads ble ferskSHA-verifisert. Beggekontrollers18fold/pooled
-scores og14numeriske kontrollarrayer ble avstemt førfit. Alleforeldre beholdes.
+Globalproof før0fits; femprefitproofs før0/3/6/9/12fits. Nåværende/lagF32hashes,
+F64trekolonneorden, parent/D, prefixstats og15maturity-/fitmasker matcher256.
+14-arraykontrollparitet er byteidentisk256; begge18fold/pooledscores avstemt
+førfit. Alle118249foreldre/88400OOF beholdes. Sju syntetiske grupper består.
+Syntetisk1fit/2populasjoner er adskilt fra genuine15fits/30populasjoner; alle
+seks callbacklag teller faktiske vellykkede kall. Egne11-keymodelltilstander
+og15roundtrips er kvittert uten ekstra genuine inferens;30logitbidragsrapporter.
 
-Utføring:391,921sworker/393,560sytre, fryst e4664b19/policy, beggeexit0 og
-sourceunchanged.7score/datagrupper +separat syntetiskforest varPASS. Genuine
-15forestfits/480treefits/30populasjoner/960treepredict;synthetic1/32/2/64.
-Alle480/32treeinnganger har F32/C/shared-memory-witness.413667encoderforeldre,
-0norm-/R1-/252refit/nativeF/U/CONTROL/TEST/quote/originalOBS/forbidden.
+6.367sworker/6.667sytre, fryst6383d8c2/policy, beggeexit0 ogsourceunchanged.
+Cap4GiB/512MiB/64pids/énnumerisktråd ogCURRENTprosjektlås er kvittert. Prosess-
+RSSpeak327827456B, rchar271333626B, scratch0. RSS er ikke cgrouppeak; endelig
+cgrouppeak er ikke fanget.15modeller15702B ogOOF19895338B bevares utenforGit.
+0nyencode/norm/R1-/252refit/nativeF/U/CONTROL/TEST/quote/originalOBS/forbidden.
 
-Faktisk cap4GiB/512MiB/64pids/énnumerisktråd og prosjektlås er kvittert.
-Prosess-RSSpeak2348969984B, rchar1843573020B, scratch1582171620B. RSS er ikke
-cgrouppeak; endeligcgrouppeak ble ikke fanget.15egne modeller har verifisert
-pickle-state/readonlystat uten ekstragenuineinferens;4897482Bmodeller og
-17773490BOOF bevares utenforGit. Actualpeers avstemte33paneler,69kontraster/
-276CI,15modell-/480treemetadata og alle kohorter uten payload-/modellkropper
-eller numeriskreplay. Målekonsistens er PASS; forecastverdi er ikke kvalifisert.
+Peergrensen er JSON-/statkonsistens og rapportaritmetikk. Workerens payload-
+hashes, rekonstruksjoner, modellroundtrip og numerikk er ikke uavhengig replayet.
+GjenbruktTRAIN er eksplorativ utvikling; nominelle intervaller er ingen urørt
+generalisering, økonomi eller promotion.259ACTUAL_REPORT_PEER/DECISION binder
+refs i policy og i:
+`/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259`.
+Originale receipts/checkpoints/modeller bevares. IngenDATA/RUNS-rydding.
 
-255 er bevart som consumed prefit-feil: vår wrapper krevde siste beholdte rad
-lik konfigurert kandidat-slutt21:55; faktiskbundet slutt er21:50. Ingen genuine
-fit/encode skjedde i255.256 retter bare inkluderende intervallgrenser ognye
-run/stage/feilnavn; alle3eksakte parent-/klokkehashes beholdes.255 er ikke relansert.
+## Tolkning og neste avgrensede spørsmål
 
-Eksakte terminal/resultat/actualpeer/decisionrefs står i policy256 og:
-`/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_20261024_256`.
-Originale receipts/checkpoints/forskningsmodeller bevares; ingen promotion.
+Forrige256 brukte3345snapshotfelt+lag i fast ExtraTrees. TRAIN55–60%, senere
+50–51%; balansert50.15–50.53%. Bare5/15modeller brukte lagretur.259 avklarer
+at eksplisitt bruk alene ikke løser prognosene. Gapet kan være forenlig med
+støytilpasning, ustabile relasjoner eller representasjonsgrenser; årsakene er
+ikke skilt. Ingen generell dom om at indikatorer/nativehistorikk er uten verdi.
 
-## Neste konkrete spørsmål —259kildepreparasjon, ingenfitadmisjon
-
-En liten direkte3kolonne-referanse kan måle additivt historiesignal med samme
-faste239R1-eier: [nåværende ret_1, eksaktD−300s ret_1, qualified_parent_present].
-Egne koeffisienter og logitbidrag gjør faktisk bruk målbar; dette lover ingen
-prognosegevinst. Kilder239/245/252/256 er allerede bundet. Fem eksisterende245
-F32[stop,66]-matriser har col65hash lik252/256col1 ogsamme210stats. Ingen3345-
-reencoding/raw206/nye normaliseringer er nødvendig; nativefeatures beholdes.
-
-Prospektivt8payloads144496754B,15kandidatfits/30prediksjonspopulasjoner,
-F64trekolonnepopulasjon maksimalt2837976B. EksisterendeL2/C1/lbfgs/max500/
-tol1e−4/seed20260911, ingenklassevekter ellerparameterjakt. Ressursanslag er
-umålt og ingenadmisjon. Egen257RESULT binder eksakte refs/kildekonfigurasjon.
-258 låser nå full input-/klokke-/kontroll-/score-/konsumbudsjettkontrakt:
-15fits/30populasjoner, samme3referanser/36CI/4fellesnegativefolds ogalle15
-mekaniskekonsumkrav.258designreview og259kildekvalifikasjon erPASS; én259CPU-kjøring er innrømmet.
-PLAN/worker/SOURCE_PREPARATION_REVIEW er bundet i policy. Sju syntetiske grupper
-og faktiske databevis/fit/ressurser/prognoser må bestå i selve kjøringen. Ingen prefixkontroll-
-rekonstruksjon eller naivchi²-likelihoodtest på regularisert/tidsavhengig/gjenbrukt
-utvikling. Samme-rad senere properloss ogdag/ukeusikkerhet er avgjørende.
+Native har allerede ordnet M5/MTF-historikk, men gjeldende fleroppgaveregresjon
+er ikke den rene245 binære prisretningsoppgaven. Neste nødvendige spørsmål er
+et rent retningsmål på denne genuine historikken mot samme kronologiske
+referanser. Dette er kilde-/designkvalifikasjon, ingen nytrening, vektsøk,
+featurefjerning eller launch. FullTRAINnormalisering fra native er ikke en
+kvalifisert OOFprefixnormalisering. Nye fit/data/nativegater forblir false.
 
 ## Datagrunnlag og varige grenser
 
