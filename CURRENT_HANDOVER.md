@@ -254,6 +254,13 @@ sannsynlighetseier og ukvalifisert liten temporalrad/prefix-wrapper. Ingen
 native modell,055 eller eksisterende target-/kostnadseier endres. Syntetisk
 kjøring må innrømmes separat på fryst kilde; genuine payloads/fit er stengt.
 
+239s seks nye kilde-/testfiler er klare. Én fryst capped syntetisk kvalifikasjon
+er innrømmet: nøyaktig50 cases,0fail/error/skip,1 ekte syntetisk sklearnfit
+og30 små syntetiske surfacefits.4GiB/512MiB/64pids/éntråd,300+10s og2GiB
+rchar. Arvede pytestvalg fjernes; XML-fullstendighet og fitcounters må passere.
+0genuine payloads/fit/nativeF/update. Prognosenytte er ennå ikke målt; ingen
+datajobb følger automatisk. Prefixproveniens og positiv support må beholdes.
+
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
 

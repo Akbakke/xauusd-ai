@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T06:13:24.579691+00:00",
-  "status": "DIRECTION_ONLY238_DESIGN_COMPLETE_239_SOURCE_IMPLEMENTATION_ONLY",
+  "observed_utc": "2026-10-24T06:26:56.191315+00:00",
+  "status": "DIRECTION239_EXACT_FOCUSED_SYNTHETIC_QUALIFICATION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Implement only three narrow isolated direction-reference helpers and focused synthetic tests under239. No genuine target/feature payload or fit launch. Qualify pure endpoint labels, causal current/previous rows/prefix normalization, and fixed probability adapter before data.",
+  "next_action": "One capped239 synthetic test invocation only; source/policy frozen until terminal. Require all50cases and1classifier/30surfacefits. No genuine data/fit/native launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -215,7 +215,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "239_DIRECTION_PROBABILITY_HELPERS_AND_SYNTHETIC_QUALIFICATION_PREPARATION",
+    "current_activity": "239_EXACT_FOCUSED_SYNTHETIC_QUALIFICATION_ADMITTED",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -19860,7 +19860,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-24T06:13:24.579691+00:00",
+  "updated_utc": "2026-10-24T06:26:56.191315+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -29027,17 +29027,17 @@
     }
   },
   "dynamic_m5_direction_probability_source_239": {
-    "status": "SOURCE_EDITS_ONLY_SYNTHETIC_EXECUTION_NOT_YET_ADMITTED",
+    "status": "EXACT_ONCE_FOCUSED_SYNTHETIC_QUALIFICATION_ADMITTED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238/DESIGN.json",
       "sha256": "0ed463579123b125d860029d8c96b0ab147a1676fde4ef15533918689152251a"
     },
-    "source_edits_authorized": true,
+    "source_edits_authorized": false,
     "data_reads_authorized": false,
     "target_materialization_authorized": false,
     "genuine_fits_authorized": false,
-    "source_qualification_execution_authorized": false,
+    "source_qualification_execution_authorized": true,
     "execution_authorized": false,
     "training_enabled": false,
     "native_launch_authorized": false,
@@ -29062,8 +29062,41 @@
         "NEXT_RUN_POLICY.json",
         "CURRENT_HANDOVER.md",
         "PLAN.json",
-        "SOURCE_PREPARATION_REVIEW.json"
+        "SOURCE_PREPARATION_REVIEW.json",
+        "run_focused_direction_qualification_guarded.py"
       ]
-    }
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239/PLAN.json",
+      "sha256": "7f3a1eb6ecd5d58563ffee999fe187214ad6177ebf8cdbdeeb9b0fed337cb7c4"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "a29deedc958fd233c7ad234114e345f1318218cae4beaf6873a510814f52641b"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239/run_focused_direction_qualification_guarded.py",
+      "sha256": "204c70aac86ec8c57a8328fbba4ea8be5770ba1c9175404e99b3458e296608eb"
+    },
+    "budget": {
+      "max_invocations": 1,
+      "max_wall_seconds": 300,
+      "TERM_grace_seconds": 10,
+      "memory_bytes": 4294967296,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1,
+      "max_rchar_bytes": 2147483648,
+      "max_synthetic_classifier_fits": 8,
+      "max_synthetic_surface_fits": 100,
+      "genuine_payload_reads": 0,
+      "native_forwards": 0,
+      "native_optimizer_updates": 0
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "source_frozen_during_run": true
   }
 }
