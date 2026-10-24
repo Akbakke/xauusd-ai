@@ -361,26 +361,45 @@ uprefiksede navn og kan ikke kopieres til backbone.*. Gjenbruk finitt-gradient-
 steg/RNG-/hashprimitiver; bind først minste eksplisitte research-oppskrift/state.
 Denne kilderevisjonen åpner ingen kildeendring, EMA-variant, oppdatering eller fit.
 
-## Aktuelt270 — kun kilde for research-oppskrift/optimizer/fullstate
+## Fullført270/271 — research-oppskrift/state,32syntetiskePASS
 
-Root har bundet DESIGN for tre filer eid avlearning_audit: eksisterende
-recipeeier utvides med separat pure-direction-oppskrift; ny avgrenset stateeier
-og fokusert testfil. 229/231s faktiske LR/WD1e-4,clip1,seed20260911 ogFP32
-gjenbrukes. Eksplisitt EMAOFF0.0/schedulerOFF0 for ren ONLINE-BCE; ingen TD-
-target eller gammel nativefasealias. Produksjonsoppskrift/validator er uendret.
-Alle genuine270gater erfalse. Én eksakt32case syntetisk testjobb er nå innrømmet etter source/PLAN-peer. Nativefunksjon/260loss/
-268view/stats ogalle features/TF bevares. Kilde-/spygodkjenning åpneringenfit.
+To nye filer (stateeier/fokusert test) og43linjers utvidelse i eksisterende
+recipeeier. Alle gamle recipebytes/39AST-noder ogalle260/268/native-/feature-/
+normaliseringsbytes er bevart. LR/WD1e-4,clip1,seed20260911 ogFP32 kommer fra
+229/231s bundne trainer_cli; batch_size/max_updates er eksplisitte argumenter.
+Research bruker ONLINE/BCE og eksplisitt EMAOFF0.0/schedulerOFF0, ingen TDtarget,
+gammel nativefase-/taskvariancealias eller produksjons-Session.
 
-270 source/root/scopedpeers PASS på recipe231d9b8f/statead9a3f91/test8adb56ed.
-Gamle recipebytes/39AST-noder er uendret. Fem målte nye vaktgap er rettet med
-minste delta: bufferfinitet, typeddefaults, MTpos, parameteralias og semantisk
-immutablebuffer førrestore. Ingen nativefunksjon eller data er endret.
+Én ordnet AdamW-gruppe beholder alle aktive veier og ekskluderer bare kilde-
+identifiserte legacyheads. FullONLINE+allebuffers (ogsånonpersistent), optimizer,
+Python/NumPy/TorchRNG, modustilstand, eksaktradorden/cursor/updatecount er bundet.
+Ingen partialbackward lagres. Fem målte kildevaktgap er rettet før test: buffer-
+finitet/typeddefaults/MTpos/parameteralias/immutablebuffer før live restore.
 
-## 270 feilet/forbrukt — 271 retter én feilinjeksjonslinje
+270originalen er FAILED/consumed:31PASS/1FAIL,4.243s,exit1,kilde/metadatabokender
+ogcap uendret. Én fixture forsøkte NaN i første stateverdi, en I64-horisontbuffer,
+førrestore. Actualfailure-peer PASS. Ingen backendfeil eller godkjenning av den
+uferdige casen ble utledet. Originale270PLAN/CLAIM/JUnit/stdout/terminal bevares.
 
-270 faktisk:31PASS/1FAIL,4.243s,begge kilde-/metadatabokender ogcap verifisert.
-Test model_nonfinite forsøkte NaN i første stateverdi, som er I64-horisontbuffer.
-Feilen oppstod førrestorevakten. Alle270gater er lukket/claimed-completed1/1;
-originalene bevares og270 relanseresikke. Root eier271s eneste testlinje: bruk
-navngitt FP32 direction_head.weight i feilinjeksjonen. Implementasjon/oppskrift
-er uendret; alle32cases beholdes. 271 kilde-/PLAN-peer PASS; én ny eksakt32case syntetisk kvalifikasjon er innrømmet. Ingen genuine gater åpnes.
+271 er en ny eksakt engangsplan medkunén testlinjeendring: NaN i navngitt FP32
+headweight. Implementasjonene recipe231d9b8f/statead9a3f91 er uendret. Fersk
+32casejobb på fryst887801c6/policyc06b7e7a bestod32/0fail/error/skip,4.001s,
+exit0/command0/ingen timeout/kilde ogmetadata uendret. Root+research actualpeer
+PASS:41pins (34Git+7runtime),8metarefs/JUnit/kryssrefs avstemt. Cap4GiB/512MiB/
+64pids/éntråd bekreftet frachildlog. Requiredhooks10guards PASS; uendrede61native
+fra270gjenbrukes. Ingen profilerte modell-/optimizerkalltall påstås.
+
+Testene beviser syntetisk AdamW/state/RNG, bl.a. stokastisk2updates mot1+fersk-
+restore+1, snapshotuavhengighet, inaktiveverdier uendret og resealedkorrupsjon
+avvist førmodifikasjon. Nativeconstructor/normalizer/forward er shells/spies,
+ingen genuine trenings-/CUDA-/resume-/15mingradient-/prognosekvalifikasjon.
+Alle270/271gater erfalse/consumed1/1;ingen relansering. Retningsmålet eraktivt.
+
+Neste konkrete kildegap er GPU-launch:231s gamle campaign/recipe/sampler/TD/
+EMA/cursorvalidering skjer før technicaldispatch oggodtar ikke pure260. Et
+sannferdig forskningsschemaspor må beholde eksisterende canonicalCUDAguard,
+cappedlås/cgroup/hardwarevakter. Ingen audit/producer-/ambientCUDAomvei eller
+falske gamlephase-/targetfelt. CPU-PASS erikkeGPU-PASS. Bind minste scope før
+kildeendring; genuine4privateupdates/resume førchronologicalfit. Privatevekter
+brukesikke til hovedfit. 269s15minsupervisedgradient erfortsattukvalifisert.
+Ingen nye gater/sourceedits ellerfit erinnrømmet. NEXT_RUN_POLICY binderalle refs.
