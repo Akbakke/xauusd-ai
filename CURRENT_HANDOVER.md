@@ -21,7 +21,9 @@ D1-hendelse etter fire eksakte datapariteter; ingen komplett normalisering
 eller modell ble publisert. 266 er COMPLETE/consumed:115syntetiske cases består, actual receipt-peer PASS.
 267 er COMPLETE/consumed og actualartefakt-peer PASS: fem ferske råpariteter og
 fire genuine prefixnormaliseringer. Alle execution/data/normaliserings-/modell-
-og treningsgater er false. Ingen ny retningsprognose er målt. TEST, CONTROL,
+og treningsgater er false. 268 har18syntetiskePASS/actualpeerPASS. 269 er
+COMPLETE/consumed: ferskconstructor,2evalF/1B/0U ogGCgradienter påallefemTF
+består; actualreceiptpeer PASS. Ingen ny retningsprognose er målt. TEST, CONTROL,
 Exit og trades er lukket. Root eier policy og launch.
 
 ## Siste faktiske retningsmåling — 259
@@ -313,24 +315,48 @@ Kun arkitekturscalarer/fullrouting gjenbrukes; gamle vekter/stats/profilrefs
 brukesikke. Ekte nyconstructor er fortsatt utestet. Beggeactualreviews og
 alle refs står under268iNEXT_RUN_POLICY. Målet ombedreprognoser eraktivt.
 
-## Aktuelt269 — kildearbeid for genuine2F/1B/0U
+## Fullført269 — genuine2evalF/1B/0U, actualpeer PASS
 
-269DESIGN autoriserer kun én ekstern worker eid avlearning_audit. Root eier
-policy/launch. Første støttede267normfold1 og187s eksplisittearkitektur gjenbrukes;
-seed20260911, fasteforeldre[47600,47601] fra slutten av første støttede prefix,maksbatch2. Ingennydata/statfit ellervektsøk.
-Planlagt1fersksamletconstructor/2evalforwards/1BCEbackward/0updates. Finitte
-GCgradientaggregater perTFmåmåles; initiale nullresidualer betyrikke at alle
-aktiveparametre kan ha ikk nullgradient. Ubrukteheads skal ha gradNone.
-FullONLINE/buffers/RNG skalforbli eksaktuendret. Ingenbatchsøkvedfeil.
+Én jobb på fryst58b92077/policyc4714934 bestod: worker252.961s/outer256.298s,
+beggeexit0/ingen timeout/kilde og eksterne bokender uendret.1fersknative+260-
+wrapper,2evalforward hver/énTensor+autogradbackward,0optimizer/EMA/scheduler,
+0stats-/predictorfit/trainmode/resume/CONTROL/TEST. Seks245members dekodet én
+ganghver; source/currentfulldecode0,clock/reuse/cache/rawGC1/1,NPY30/30,
+GCgather10/nativewindows2/viewgather1,squeeze150/12/1,V291/11/11/33,forbidden0.
 
-269 source/PLAN er root- og topeer-kvalifisert; én eksakt CPU-kjøring er nå innrømmet. Ingenekteconstructor,
-forward/backward,trainmode/dropout,optimizer/EMA/schedulerupdates,resume eller
-forbedredeprognoser er kvalifisert. Én eventuellCPUaudit1800s/4GiB/512MiB/64/1
-er bundet til PLAN a0441ea4/worker795b4761 og onceadmission. Målet eraktivt.
+Originalsource-onlyDESIGN hadde batch vedGC-kildestart før høyeTF-bøtter.
+Før PLAN/claim/kjøring ble kun inputbasert fixedtail[47600,47601] fra kvalifisert
+prefix47602 bundet iDESIGN_INPUT_COVERAGE_REPAIR. Eksakteclocks+25TF/familie-
+støttegrupper bestod førconstructor; observerte nullverdier beholdt. Ingen
+labels/gradienter valgte batch/init. OriginalDESIGN/alle kvitteringer bevares.
 
-269 kildepeer fant at opprinnelig batch startet før første M15/H1/H4/D1-GC-bøtter.
-Før PLAN/claim/kjøring er én inputbasert designrettelse bundet i
-DESIGN_INPUT_COVERAGE_REPAIR: siste to av kvalifisert prefix47602. Eksakt
-prefixtail/sluttklokke og observert GC-støtte perTF/familie kreves førconstructor.
-OriginalDESIGN bevares; ingen labels/gradienter velger batch eller init.
-269 åpner nå kun de fem eksakte nullstegs execution-/data-/constructor-/forward-/backward-gatene. Trening, resume, CONTROL, TEST og alle vektoppdateringer er false.
+BeggeFP32evalforwards var bit-eksakte. Retningshode,Q-representasjon,disjunkt
+backbone ogGC-projeksjons-/gateaggregater påallefemTF hadde finitte nonzero-
+gradienter; alle75GCparametertensorer hadde nonzero, ubrukteheads gradNone.
+115av479baseparametertensorer hadde nullgradient, forenligmed dokumenterte
+initiale nullresidualer; ingen påstand om at hver aktivparameter var nonzero.
+Hele state_dict+alle named_buffers+bindings+Python/NumPy/TorchRNG ogbatcher var
+uendret. Ferskinitial41,736,572B er bevart utenforGit; ingen gammel vekt ble lastet.
+
+Fasitgrense:3av6celler var eligible (1min2,5min1,15min0),3utfall manglet.
+15min-logit var finitt, men15min-supervisedgradient er IKKEkvalifisert. Ingen
+batchsøk/relansering. Dette er tomodellrader ogmekanikk, ikke læring, bedre
+prognoser, generalisering ellerøkonomi. Retningsmålet erfortsattaktivt.
+
+Cap4GiB/512MiB/64pids/éntråd/lås er kvittert. ProcessRSSpeak4,517,126,144B erikke
+cgrouppeak; endeligcgrouppeak erikke fanget. Rchar_delta6,067,680,265B utelater
+mmapfaults. Nyinputscratch0;6readonlymmaps26,534,936,912B er gjenbrukt.
+Rootactualkontroll:34kildepins/31frysteGitblobs,48payloadstats,68metadatabokender
+og13JSON/ref/statkontroller PASS,ingen uavhengig numerisk replay/checkpointload.
+Requiredhooks10guards PASS; uendrede61native/115domain/18viewtester gjenbrukes.
+
+Alle269gater erlukket,claimed/completed1/1. Root+research_auditactualreceiptpeer PASS. Neste minste kildeplan er for Entry-only optimizer/fullstate resume.
+Ingen DATA/RUNS ryddes ogingen fullført plan relanseres. NEXT_RUN_POLICY binder
+PLAN/worker/terminal/result/outer ogaktuellstatus. TEST/Exit/trades/trening erlukket.
+
+Neste målte kildegap er wrapperen mot _component_optimizer_state og gammel
+Session: de krever task_log_variances/nativefase/produksjonstilstand som260 ikke
+har. Ingen slike aliaser skal forfalskes. Native inaktivklassifisering bruker
+uprefiksede navn og kan ikke kopieres til backbone.*. Gjenbruk finitt-gradient-
+steg/RNG-/hashprimitiver; bind først minste eksplisitte research-oppskrift/state.
+Denne kilderevisjonen åpner ingen kildeendring, EMA-variant, oppdatering eller fit.
