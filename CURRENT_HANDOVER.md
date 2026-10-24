@@ -23,6 +23,22 @@ prognoseresultat. Alle execution-/fitgater er lukket; ingen kvalifiseringsvekt
 i hovedfit. Neste steg er ny fast kronologisk pure-direction TRAIN/OOF-protokoll.
 TEST, CONTROL, Exit og trades er lukket. Root eier policy og launch.
 
+## Aktuelt276 — første genuine prefixmåling
+
+Eksakt ny276-admisjon åpner kun prefix1:47,602TRAIN-foreldre før01.01.2025,
+én B16-pass, maksimalt2,976updates og17,288OOF-foreldre neste kvartal.
+275-protokollens egen0U/samme256før/etter, sluttvekter og ni kontekstpaneler
+beholdes.267normalisering gjenbrukes; ingen kvalifiseringsvekt eller ekstra
+fit/HPO/epoke. Øvrige prefixer er ikke innrømmet av276.
+
+50kildebindinger og uavhengig metadatareview består. Én capped metadata-
+materialisering og fire sekvensielle12000/13800s-vinduer er øvre grense;
+fullstate gjenopptas etter ny fysisk boot ved behov. Fjerde uferdige vindu
+blokkerer. Kjøring er ikke startet: bundet campaign/readiness, Windowsinstall,
+sen idle-kontroll og freshboot må fortsatt være faktiske. B16-minne/ytelse er
+umålt. Source/policy fryses før oppsett og gjennom hele kjøringen. TEST,
+CONTROL, normaliseringsfit, Exit, trades/broker og promotion er false.
+
 ## Aktuelt275 — kilde for faktisk ren retningsfit
 
 Den private4U-geometrien kan ikke måle full prefix-fit eller senere OOF.

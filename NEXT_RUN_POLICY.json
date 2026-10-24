@@ -46,11 +46,11 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-24T22:11:21.298724+00:00",
   "status": "DIRECTION_NATIVE_PRIVATE_GPU_RESUME_QUALIFIED_CHRONOLOGICAL_FIT_NOT_ADMITTED",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "All execution and fitting closed.273 is COMPLETE and consumed once; qualification weights are barred from main fit. Bind a new finite chronological pure-direction TRAIN/OOF scope before source edits or admission; no CONTROL/TEST/Exit/trades.",
-  "next_action": "Prepare fresh exact genuine native direction prefix-fit admission with own0U, paired256TRAIN and all later70647OOF;275 source/synthetic plan complete and cannot relaunch. No genuine launch admitted yet.",
+  "next_action": "Prepare exact276fold1 four-window campaign once; verify bound readiness, idle Windows/WSL and installed signed controller then fresh physical boot before first B16 native initial/train/OOF window. No other prefix/epoch/TEST or policy/source edits during run.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -230,7 +230,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "275 source/dispatch/context implementation and177 synthetic cases plus10+61 mandatory hooks PASS; all future fit/data/model gates closed pending exact new admission.",
+    "current_activity": "276 exact first-prefix one-pass fit admitted after275source+177synthetic qualification; campaign preparation/readiness/freshboot still required; no genuine job started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -30694,7 +30694,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -32464,5 +32464,62 @@
     "genuine_full_prefix_fit_qualified": false,
     "predictive_value_qualified": false,
     "all_feature_potential_qualified": false
+  },
+  "dynamic_m5_direction_prefix_fit_fold1_276": {
+    "status": "EXACT_FIRST_PREFIX_ADMITTED_PENDING_BOUND_CAMPAIGN_AND_FRESH_BOOT",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME",
+    "evidence_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/DESIGN.json",
+      "sha256": "e618d98c4b0d13668adc99aeaf91a9d2b4891efd708090225bb4dcc34d9f71f0"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RECIPE.json",
+      "sha256": "8ba298a148af3b923c7b4a567f98bf8ddd2eaef1e4eeb5144e2a785e9f9e2d93"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275/ACTUAL_SOURCE_QUALIFICATION_REVIEW.json",
+      "sha256": "60bc98bb34783c8a0ebb0f3c2d35ec349c1fef9c328e069e99732fc11eef7b23"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/METADATA_SOURCE_REVIEW.json",
+      "sha256": "301aa66fb3c1f7485bd953fb94ddb1db05fa0be0c9b8736df7b30c70c4d45e9b"
+    },
+    "preparation_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/PREPARATION_PLAN.json",
+      "sha256": "83084a1ebfe116d11ad2818db7aaf6d7a0bda185ba237fc1dd722840a8bdb983"
+    },
+    "campaign_preparation_authorized": true,
+    "max_preparation_invocations": 1,
+    "max_invocations": 4,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "fold_id": 1,
+    "genuine_prefix_models": 1,
+    "train_passes": 1,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "CONTROL_TEST_Exit_trades_broker_promotion": false,
+    "qualification_weights_for_main_fit": false,
+    "fixed_protocol_no_hpo_early_stopping_or_checkpoint_selection": true,
+    "genuine_B16_memory_latency_qualified": false,
+    "predictive_value_qualified": false,
+    "authorization_basis": "Current explicit direction/feature-improvement goal and GX1_RULES standing first-native-epoch request; exact new first-prefix campaign only, no old plan relaunch or added epoch."
   }
 }
