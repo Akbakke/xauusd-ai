@@ -91,6 +91,26 @@ referanser. Dette er kilde-/designkvalifikasjon, ingen nytrening, vektsøk,
 featurefjerning eller launch. FullTRAINnormalisering fra native er ikke en
 kvalifisert OOFprefixnormalisering. Nye fit/data/nativegater forblir false.
 
+## Pågående260 — kildekomponent, ingen kjøring
+
+Eksisterende native forward eksponerer entry_q_joint_hidden etter shared/M5,
+alle fem TF-/GC-ruter og D1/makro. To nye filer er ferdige og kildepeer består:
+entry_native_direction_research_v1.py og tilhørende fokuserte tester, eid av
+learning_audit. Uendret backbone kjøres én gang av framtidig wrapper; et separat
+3-logitthode får ren maskert BCE. Ingen ny produksjonsfase eller modellutbytting.
+Root eier design/policy/rules/handover. DESIGN260 binder eksakte kildehashes og
+krav før fit. Genuine data/training/native er false. Én capped syntetisk testkjøring er nå
+innrømmet:45cases,7spy/3backward/23loss/3BCE, ingen ekte native/data/optimizer.
+Alle kilder/policy er fryst til terminal; denne kjøringen er ennå ikke utført.
+
+210 er parentvektet snapshotnormalisering, ikke native96M5-/ctx-/TF-/GC-
+normalisering. Legacy prefixfit støtter joint Entry/Exit; dynamisk Entry-only-
+fit krever fortsatt wholeTRAIN. Reelle native prefixstats/freshinitial/gradient/
+resume er derfor nødvendige før genuine fit. De konkret bundne V29- og fem
+squeeze-konstantene er fitted2009–2013, før alle245cuts; disse trenger ikke
+refittes. INPUT_FEASIBILITY binder metadata og presise ubeviste grenser.055/223
+og ferdige kontroller bevares.
+
 ## Datagrunnlag og varige grenser
 
 245 bruker F64-midtpris vedD=bar_start+300s ogT=D+1/5/15min fraeksakteM1-open.

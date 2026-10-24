@@ -533,6 +533,36 @@ trengs for denne sammenligningen. Ingen nye forwards, refits eller Exit-arbeid.
 
 ## Retningsinformasjon i inputs og modellens lærte prognoser
 
+Ren prisretning prioriteres etter operatørpresisering24.10; trades, MFE/MAE og
+Exit er utsatt. En separat forskningskomponent kan bruke uendret native
+forward sitt `entry_q_joint_hidden` til et trelogitthode for245s1/5/15min.
+Dette er første faste sammenligningsdomene, ikke hele minutt-til-timer-målet.
+Full native M5-/TF-/GC-/familie-/makrokontekst beholdes. Ingen gammel fase,
+path-head, targetkvittering eller bundle får ny målbetydning ved ommerking.
+
+Retningsloss er stabil uvektet BCE over observerte, ikke-null og strengt modne
+celler. Alle inputbeslutninger er før fitcutoff; terminaltid er eksaktD+h.
+Rapporter lossens numerator og faktisk celletall, ikke gjennomsnitt av batch-
+gjennomsnitt. Tom maske har `loss=None`: cursor kan konsumere batchen uten
+optimizer-, EMA- eller schedulersteg. Null/missing/umodne foreldre beholdes
+som separate nevnere. Mål/masker/klokker mates aldri til modellens forward.
+
+Før genuine fit kreves prefix-gyldige native sju baseflater og femGC-flater,
+inklusive unike konsumerte96M5-/TF-/GC-radunioner og gyldig featurekonstant-
+lineage.210snapshotstatistikk og055/223helTRAIN er ingen erstatning. Fersk
+samlet backbone+head-initial, faktisk gradientkonsum og identisk gjenopptakelse
+av hele modell-/optimizer-/EMA-/scheduler-/RNG-/ordretilstanden må kvalifiseres.
+Ubrukte path-/forecast-/taskvektparametre får ingen påstand om trening; deres
+manglende gradient og uendrede vekter må kontrolleres. En forward-spytest er
+bare komponentmekanikk, ikke genuine encoder-/feature-/TF-evidens.
+
+Sammenligningsprotokoll låses før fit. Egen prefixprior pluss frosneR1/252/259
+utgjør fire referanser:48pooled dag/uke-proper-scoreintervaller og åtte
+foldkontraster perhorisont når alle inngår som primære. Prefixprognoser fra
+kontroller er ikke tilgjengelige og skal ikke rekonstrueres. Ingen horisont,
+kontroll, checkpoint eller klassevekt velges etter resultatet. Research-output
+har ingen native serving-/ordreautoritet. Alle faktiske porter eies av policy.
+
 Inputkonsistens og lokal respons beviser ikke prediktiv merverdi. Lagrede
 modellprognoser kan vise bias, kalibrering og feil, men kan ikke alene avsløre
 all informasjon modellen kunne ha brukt. Lavere prognosespredning enn

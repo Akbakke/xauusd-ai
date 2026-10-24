@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T12:42:12.734322+00:00",
-  "status": "DIRECTION_EXPLICIT_PREVIOUS_RETURN_REJECTED_NEXT_PURE_DIRECTION_HISTORY_DESIGN_ONLY",
+  "observed_utc": "2026-10-24T13:23:18.913462+00:00",
+  "status": "DIRECTION_NATIVE_SEQUENCE_COMPONENT_ONCE_SYNTHETIC_ONLY_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Source/design only: qualify pure direction objective on existing native ordered M5/MTF history versus same chronological245targets/references.259 consumed/rejected; all training/data/fit/execution/native/CONTROL/TEST/Exit/trades closed; no parameter retry or launch admitted.",
+  "next_action": "Run260 one capped4GiB/512MiB/64pids/one-thread synthetic qualification:45cases/7spy/3backward/23loss/3BCE, zero genuine native/data/optimizer. Freeze source/policy until terminal, then close test gate; no genuine fit admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -225,7 +225,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "259 actual3peer reviews PASS consistency; previous-return consumption15/15, package rejected by frozen direction criteria. Single6.37s run consumed; gates closed.",
+    "current_activity": "260 component/test/source/input feasibility reviewed; one synthetic-only test run admitted, genuine data/fit/native closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -247,7 +247,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259",
+    "current_research_id": "NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -278,7 +278,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No stable later direction advantage.259 uses previousreturn15/15 but hardaccuracy belowalwaysUP allh and commonnegativefolds0/1/2. Pure direction native ordered-history objective unqualified.",
+    "current_blocker": "Pure native-direction component absent; native fiveprefix sequence/ctx/TF/GC normalization and fresh objective baseline/resume unqualified. No real fit admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7749,7 +7749,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Source/design only: qualify pure direction objective on existing native ordered M5/MTF history versus same chronological245targets/references.259 consumed/rejected; all training/data/fit/execution/native/CONTROL/TEST/Exit/trades closed; no parameter retry or launch admitted.",
+    "next_action": "Run260 one capped4GiB/512MiB/64pids/one-thread synthetic qualification:45cases/7spy/3backward/23loss/3BCE, zero genuine native/data/optimizer. Freeze source/policy until terminal, then close test gate; no genuine fit admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17306,7 +17306,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Source/design only: qualify pure direction objective on existing native ordered M5/MTF history versus same chronological245targets/references.259 consumed/rejected; all training/data/fit/execution/native/CONTROL/TEST/Exit/trades closed; no parameter retry or launch admitted.",
+      "next_step": "Run260 one capped4GiB/512MiB/64pids/one-thread synthetic qualification:45cases/7spy/3backward/23loss/3BCE, zero genuine native/data/optimizer. Freeze source/policy until terminal, then close test gate; no genuine fit admission.",
       "baseline_priority": "Completed245/249/252/256/259; no repeated model/weight search. Native ordered-history pure-direction source/design only; allfit closed."
     }
   },
@@ -30831,5 +30831,71 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false
+  "native_training_enabled": false,
+  "dynamic_m5_direction_native_sequence_component_260": {
+    "status": "SOURCE_REVIEWED_ONCE_SYNTHETIC_TEST_ONLY_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/DESIGN.json",
+      "sha256": "c3afe64a2de998a5b6b75bef55a69b0eecf536d7710598d1beb2719f4f21d82f"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": [
+      "gx1/contracts/entry_native_direction_research_v1.py",
+      "tests/test_entry_native_direction_research_v1.py"
+    ],
+    "file_ownership": {
+      "/root/learning_audit": [
+        "gx1/contracts/entry_native_direction_research_v1.py",
+        "tests/test_entry_native_direction_research_v1.py"
+      ],
+      "/root": "policy/design/integration/rules/handover/launch"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "genuine_model_forwards": 0,
+    "genuine_optimizer_updates": 0,
+    "fresh_baseline_qualified": false,
+    "native_prefix_normalization_qualified": false,
+    "predictive_value_qualified": false,
+    "synthetic_test_execution_authorized": true,
+    "test_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/PLAN.json",
+      "sha256": "b060c497fa7b7d6d0b840aea6c16abeee9f262998e17392041588fcf0592516a"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/SOURCE_REVIEW.json",
+      "sha256": "17373567c25a7ecbf000508041eacf0624fd8d0a2f2f1774c284e0fe35b6516f"
+    },
+    "input_feasibility": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/INPUT_FEASIBILITY.json",
+      "sha256": "81cba9efc333592c8111432fc9e1f9300bd8f60e5b3cf8ca245402aa336eca69"
+    },
+    "component": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+      "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_research_v1.py",
+      "sha256": "66c5c5a3bc1137be9a46c2bbdec290314f93919091c91636d8cd723d5c3765a5"
+    },
+    "test_worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/qualify_native_direction_component_guarded.py",
+      "sha256": "68476a9561e07f76a66eb8c7cd5dbe584f1790a3504ca6478dede776b84b38d3"
+    },
+    "test_max_invocations": 1,
+    "test_claimed_invocations": 0,
+    "test_completed_invocations": 0,
+    "test_relaunch_allowed": false,
+    "all_source_frozen_for_capped_job": true
+  }
 }

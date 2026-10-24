@@ -74,6 +74,25 @@ blokkeringer og vedtatte designgap fortløpende med minst nødvendig endring;
 ikke bruk tid på kosmetisk ombygging. Dobbeltsjekk utført arbeid. Usikre
 målvalg spørres operatøren om mens uavhengig arbeid fortsetter.
 
+## Presisering24.10.2026: retning først
+
+Operatøren prioriterer nå bedre OPP/NED-prognoser før selve trades.
+Prisbanens størrelse, MFE/MAE, risiko og Exit utsettes i denne bølgen; de varige
+prosjektkravene og genuine inputs/TF beholdes. Første forskning bruker245s
+observerte, ikke-null midtprisretning ved1/5/15min med separate masker og alle
+foreldre/ties/manglende utfall rapportert. Dette er et avgrenset sammenlignings-
+domene, ingen erstatning for minutt-til-timer-målet eller en handelsregel.
+
+Et eget forskningshode på eksisterende native representasjon kan kvalifiseres
+med ren, uvektet retningsloss. Det får en sannferdig separat målidentitet;
+backbone-fasens gamle prisbaneheads får ingen påstand om å være trent av dette.
+Sannsynlighetsprognoser har ingen native Entry-/Exit-/ordreautoritet. Endret
+samlet forskningsfunksjon krever fersk egeninitial, faktisk gradient-/resume-
+kvalifikasjon og korrekt prefixnormalisering før genuine fit. Hel-TRAIN-
+statistikk kan ikke brukes som normalisering i tidligere kronologiske folds.
+NEXT_RUN_POLICY binder hver konkret source-/test-/fitadmisjon; dette vedtaket
+åpner ingen kjøring eller TEST. Teknisk PASS er fortsatt ingen retningsedge.
+
 ## Første kompakte treningsprofil, operatørpresisering19.10.2026
 
 Brukeren ønsker først MBP-1, SMC, EMA, ATR og minste nødvendige kontekst,
