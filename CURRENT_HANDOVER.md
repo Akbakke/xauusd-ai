@@ -94,7 +94,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:238 retning alene;237 avsluttet før datajobb
+## Nå:retning alene;238 design ferdig,239 kun smal kildeimplementasjon
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -234,6 +234,26 @@ Gjenbruk eksisterende eiere og data; ingen ny familiejakt, HPO eller terskeljakt
 Ingen payload, ny target-cache, fit eller nativekjøring er innrømmet nå.
 Root eier integrasjon/policy; tre avgrensede kildepeers har egne reviewfiler.
 
+238 DESIGN er låst etter tre kildepeers.198s sidekontrast beholdes original,
+men ny ren midpointretning trengs: spread/nevner, ulik finansiering og F32 kan
+endre kontrastens fortegn. Faktiske radavvik er ennå ikke målt. Endpointhelper
+skal gjenbruke canonical191-scope/TRAINreader og kreve full198-paritet før
+separat F64-midtprisfasit. Kjente uendrede priser skilles fra manglende mål.
+
+Én fast logistisk referanse er valgt prospektivt: L2/lbfgs/C1/maxiter500,
+ingen HPO, klassevekting, kalibreringsfit eller terskelvalg. Tre låste
+S+ret_1/current-book/previous-book-armer har66/76/86 koordinater;45 senere
+fits er bare et tak, ikke innrømmet. Kjent ret_1 er rå206kolonne1; persistens
+bruker råsign, ikke sentrert normalisert sign. P(opp) gjelder observert
+ikke-null prisbevegelse. Logloss/Brier og retnings-/kalibreringsmål måles
+på kronologiske senere TRAIN-folds; disse er gjenbrukt utvikling. Ingen edge vises nå.
+
+239 kan kun opprette tre små analysehjelpere og fokuserte tester med eksplisitt
+fileierskap. Konkret grunn er ny renprisfasit, manglende kvalifisert
+sannsynlighetseier og ukvalifisert liten temporalrad/prefix-wrapper. Ingen
+native modell,055 eller eksisterende target-/kostnadseier endres. Syntetisk
+kjøring må innrømmes separat på fryst kilde; genuine payloads/fit er stengt.
+
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
 
@@ -258,7 +278,7 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
 training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235/236 er consumed.
-236s faktiske resultatreview er ferdig.237 er superseded før data;238 er bare
-kilde-/metadatadesign for retning. Ingen ny datajobb, fit, trening eller relaunch.
+236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
+er ferdig og239 er bare kildeimplementasjon. Ingen ny datajobb eller genuin fit.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.

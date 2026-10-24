@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T06:04:44.651388+00:00",
-  "status": "USER_DIRECTION_ONLY_OBJECTIVE_238_SOURCE_METADATA_DESIGN",
+  "observed_utc": "2026-10-24T06:13:24.579691+00:00",
+  "status": "DIRECTION_ONLY238_DESIGN_COMPLETE_239_SOURCE_IMPLEMENTATION_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Direction only: qualify existing terminal direction labels versus actual price direction, reuse a minimal fixed causal feature/learner baseline, and preregister chronological probability/direction evaluation. Defer MFE/MAE/trade/risk; no data/fit/native run admitted yet.",
+  "next_action": "Implement only three narrow isolated direction-reference helpers and focused synthetic tests under239. No genuine target/feature payload or fit launch. Qualify pure endpoint labels, causal current/previous rows/prefix normalization, and fixed probability adapter before data.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -215,7 +215,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "238_DIRECTION_ONLY_FEATURE_SOURCE_METADATA_DESIGN",
+    "current_activity": "239_DIRECTION_PROBABILITY_HELPERS_AND_SYNTHETIC_QUALIFICATION_PREPARATION",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -237,7 +237,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238",
+    "current_research_id": "NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -268,7 +268,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No stable directional feature value qualified. Check direction label semantics and smallest fixed causal classification/temporal witness before further fits. MFE/preMAE target job is superseded before execution.",
+    "current_blocker": "238 identified target semantics and missing classifier/temporal reference qualification. Implement only isolated analysis helpers; no genuine data/fit yet.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -19860,7 +19860,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-24T06:04:44.651388+00:00",
+  "updated_utc": "2026-10-24T06:13:24.579691+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -28985,14 +28985,14 @@
     }
   },
   "dynamic_m5_direction_only_feature_design_238": {
-    "status": "SOURCE_METADATA_ONLY_DIRECTION_LABEL_AND_FIXED_CLASSIFIER_DESIGN",
+    "status": "SOURCE_METADATA_DESIGN_COMPLETE",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238",
     "predecessor_scope_decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_PATH_FEATURE_INFORMATION_DESIGN_20261024_237/DECISION.json",
       "sha256": "fdc1914040c0692ea1ffd275f4fb371dbb75bf051e6bf947a20cb18e7c5b7ddb"
     },
-    "source_reads_authorized": true,
-    "metadata_reads_authorized": true,
+    "source_reads_authorized": false,
+    "metadata_reads_authorized": false,
     "source_edits_authorized": false,
     "data_reads_authorized": false,
     "target_materialization_authorized": false,
@@ -29019,6 +29019,50 @@
       ],
       "learning_audit": [
         "DIRECTION_LEARNER_SOURCE_REVIEW.json"
+      ]
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238/DESIGN.json",
+      "sha256": "0ed463579123b125d860029d8c96b0ab147a1676fde4ef15533918689152251a"
+    }
+  },
+  "dynamic_m5_direction_probability_source_239": {
+    "status": "SOURCE_EDITS_ONLY_SYNTHETIC_EXECUTION_NOT_YET_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238/DESIGN.json",
+      "sha256": "0ed463579123b125d860029d8c96b0ab147a1676fde4ef15533918689152251a"
+    },
+    "source_edits_authorized": true,
+    "data_reads_authorized": false,
+    "target_materialization_authorized": false,
+    "genuine_fits_authorized": false,
+    "source_qualification_execution_authorized": false,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "scope": "Three small single-purpose reference helpers and focused tests only; no native model/normalization/dataset loader/target-cost owner edits. All genuine-data and model-fit admissions remain closed.",
+    "file_ownership": {
+      "research_audit": [
+        "gx1/contracts/entry_direction_price_projection_v1.py",
+        "tests/test_entry_direction_price_projection_v1.py"
+      ],
+      "feature_audit": [
+        "gx1/contracts/entry_direction_temporal_witness_v1.py",
+        "tests/test_entry_direction_temporal_witness_v1.py"
+      ],
+      "learning_audit": [
+        "gx1/contracts/entry_direction_probability_reference_v1.py",
+        "tests/test_entry_direction_probability_reference_v1.py"
+      ],
+      "root": [
+        "NEXT_RUN_POLICY.json",
+        "CURRENT_HANDOVER.md",
+        "PLAN.json",
+        "SOURCE_PREPARATION_REVIEW.json"
       ]
     }
   }
