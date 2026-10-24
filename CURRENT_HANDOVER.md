@@ -283,7 +283,7 @@ wrapperoptimizer/EMA-policy måikke gjenbrukes blindt. Bevar eksisterende
 nativeeiere; løs bare målte konsumentsømmer. Kun268sine to nye source-/testfiler er nå autorisert; ingen launchadmisjon.
 Disse tekniske bevisene er fortsatt ikke bedre retningstreff eller økonomi.
 
-## Aktuelt 268 — source-only featureview og direkte konstruktør
+## Fullført 268 — featureview og direkte konstruktør,18syntetiskePASS
 
 learning_audit eier kun nye entry_native_direction_feature_view_v1.py og
 fokusert testfil. 268DESIGN binder267s faktiske kvalifikasjon og alle fire nye
@@ -293,17 +293,44 @@ rad-/klokkeeiere; ingen gammel pathsupervisjon eller Dataset-binding forfalskes.
 Direkte constructor bruker full8eierpartisjoner, ny GC-profil og eksisterende
 260retningskomponent; native gjør compact7/chartparked-valget selv.
 
-268source/root/topeers består på ownerb410c56f/test9107f44a. Kun18syntetiske
-cases er nå innrømmet én gang viaTEST_PLAN; alle genuine data-/modell-/0U-
-forward/backwardgater erfalse. Ingen optimizer/EMA/schedulerupdate,trainmode
-ellerresume er innrømmet. Nullstegs genuine måling kan beholde trainingfalse;
-senere tekniskeupdates krever egen policy/recipe/trainingtrue/full_epochfalse.
-Målet om bedre prognoser er aktivt; ingen nye retningstreff er målt.
+268source/root/topeers består på ownerb410c56f/test9107f44a. Én cappedtestjobb
+på fryst6b2143d5 er COMPLETE/consumed:18cases,0fail/error/skip,19.885s,exit0,
+ingen timeout,26kilder/049metadata uendret ogcap4GiB/512MiB/64pids/éntråd
+verifisert i faktiskchildlog. Root/feature_auditactualreceiptpeer består.
+Alleexecution/data/fitgater erfalse;18tester relanseresikke. Påkrevdehooks
+bestod10guards+61nativekontrakter. Originalereceipts/kode/outputbevares.
 
-268TEST_PLAN binder26kildehash og049metadata. Testfixturen har planlagt
-2syntetiskqual/1prefixfit/12surface/1GC/1ctxcat ogénconstructorSPY+ekte260headinit;
-0genuine nativeforwards/backwards. Direktepytest har ingen profilertcallclaim.
-Max600s/4GiB/512MiB/64pids/éntråd/once. Kilder/policy fryses gjennomhooks/jobben.
-Gamle115tester og267stats gjenbrukes. Faktiskconstructor-meta for senere0U
-kan hentes fra227sin bundne187CONSTRUCTOR_METADATA (8d0fc19b), bare arkitektur-
-scalarer/fullrouting, ingen gamle vekter/stats/profile.0Uer fortsatt uinnrømmet.
+Syntetiskfixture/spies har ingen profilertkalltallspåstand eller ekte native-
+constructor/forward/backward/input/prognosekvalifikasjon. 267stats ogde115
+uendrede testene gjenbrukes. Ingen optimizer/EMA/schedulerupdate,trainmode
+ellerresume er innrømmet.0Ugenuinegate krever egen source/PLAN/admission.
+
+CONSTRUCTOR_METADATA_COMPATIBILITY binder eksisterende187metadata8d0fc19b
+via227sinplan:2725/2725/96/2542/1,253TFbredde og16/64/96/96/252vinduer;
+scalarer dropout0.05/MTFlayers2+scale0.5/specialistlayer1/fusion0.25/cross0.25.
+Alle8eierpartisjoner/2542aliaser/253MTFfelt er statiskkompatible med267.
+Kun arkitekturscalarer/fullrouting gjenbrukes; gamle vekter/stats/profilrefs
+brukesikke. Ekte nyconstructor er fortsatt utestet. Beggeactualreviews og
+alle refs står under268iNEXT_RUN_POLICY. Målet ombedreprognoser eraktivt.
+
+## Aktuelt269 — kildearbeid for genuine2F/1B/0U
+
+269DESIGN autoriserer kun én ekstern worker eid avlearning_audit. Root eier
+policy/launch. Første støttede267normfold1 og187s eksplisittearkitektur gjenbrukes;
+seed20260911, fasteforeldre[47600,47601] fra slutten av første støttede prefix,maksbatch2. Ingennydata/statfit ellervektsøk.
+Planlagt1fersksamletconstructor/2evalforwards/1BCEbackward/0updates. Finitte
+GCgradientaggregater perTFmåmåles; initiale nullresidualer betyrikke at alle
+aktiveparametre kan ha ikk nullgradient. Ubrukteheads skal ha gradNone.
+FullONLINE/buffers/RNG skalforbli eksaktuendret. Ingenbatchsøkvedfeil.
+
+269 source/PLAN er root- og topeer-kvalifisert; én eksakt CPU-kjøring er nå innrømmet. Ingenekteconstructor,
+forward/backward,trainmode/dropout,optimizer/EMA/schedulerupdates,resume eller
+forbedredeprognoser er kvalifisert. Én eventuellCPUaudit1800s/4GiB/512MiB/64/1
+er bundet til PLAN a0441ea4/worker795b4761 og onceadmission. Målet eraktivt.
+
+269 kildepeer fant at opprinnelig batch startet før første M15/H1/H4/D1-GC-bøtter.
+Før PLAN/claim/kjøring er én inputbasert designrettelse bundet i
+DESIGN_INPUT_COVERAGE_REPAIR: siste to av kvalifisert prefix47602. Eksakt
+prefixtail/sluttklokke og observert GC-støtte perTF/familie kreves førconstructor.
+OriginalDESIGN bevares; ingen labels/gradienter velger batch eller init.
+269 åpner nå kun de fem eksakte nullstegs execution-/data-/constructor-/forward-/backward-gatene. Trening, resume, CONTROL, TEST og alle vektoppdateringer er false.

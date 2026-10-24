@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T18:03:59.368792+00:00",
+  "observed_utc": "2026-10-24T18:22:47.529053+00:00",
   "status": "DIRECTION_NATIVE_SEQUENCE_COMPONENT_TESTED_NATIVE_PREFIX_INPUTS_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Run exact268TEST_PLAN directpytest once under capped4G/512M64pids/thread1; verify actual JUnit and close allgates. Futuregenuine0U stillrequires ownsource/PLAN/admission.",
+  "next_action": "Implement/review269minimalexternal0Uworker/PLAN usingqualified267inputs/stats and268view. No realnative execution until separate exact onceadmission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -225,7 +225,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "268 source/root/twopeers PASS; exactly18synthetic cases admitted once. Freeze source/policy through requiredhooks and test. Genuine native/model/data gates closed.",
+    "current_activity": "269 source/PLAN root+twopeersPASS; admitexactone genuineCPU2evalF/1pureBCEbackward/0updates withfixedtail+25inputsupport guards. No training/predictivevaluequalified.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -247,18 +247,18 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266",
+    "current_research_id": "NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "267 physical domains/five raw parities/four genuine prefix normalizations only. No native model or direction forecasts.",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267",
+    "latest_terminal_role": "268 featureview synthetic tests only; no genuine native construction/forward/gradient or forecast qualification.",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/TERMINAL.json",
-      "sha256": "ae53d3274fb84487c247969177dc13506352db509d9ea17b414f290a5df7020a"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/TEST_TERMINAL.json",
+      "sha256": "5124205dfe345d7ea4ebd8a178f47fc0685612a0fd18ba30f46247067ec83723"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -278,7 +278,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Fresh native featureview/constructor/initial/gradient/exact-resume qualification still required before native direction fit. No new directional outcome measured.",
+    "current_blocker": "269 exact source/PLAN qualification and genuine constructor/forward/backward remain; pure direction improvement unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7749,7 +7749,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exact268TEST_PLAN directpytest once under capped4G/512M64pids/thread1; verify actual JUnit and close allgates. Futuregenuine0U stillrequires ownsource/PLAN/admission.",
+    "next_action": "Implement/review269minimalexternal0Uworker/PLAN usingqualified267inputs/stats and268view. No realnative execution until separate exact onceadmission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17242,7 +17242,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "NONE__264_SOURCE_ONLY__ALL_DATA_STATS_AND_MODEL_FITS_CLOSED",
+    "current_training_scope": "269_ZERO_UPDATE_GENUINE_CONSTRUCTOR_2EVAL_FORWARD_1BCE_BACKWARD_ONLY__NO_FIT_RESUME_OR_TRAIN_MODE",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17306,7 +17306,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Run exact268TEST_PLAN directpytest once under capped4G/512M64pids/thread1; verify actual JUnit and close allgates. Futuregenuine0U stillrequires ownsource/PLAN/admission.",
+      "next_step": "Execute exact269 once under existingcaps/sourcefreeze; consumePASSorFAIL and separatelyreviewreceipt. No weightupdates, modelselection, CONTROLorTEST.",
       "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed."
     },
     "latest_direction_terminal": {
@@ -31926,7 +31926,7 @@
     "predictive_value_qualified": false
   },
   "dynamic_m5_direction_native_feature_view_268": {
-    "status": "ONCE_SYNTHETIC_TEST_ADMITTED_SOURCE_AND_PEERS_PASS",
+    "status": "COMPLETE_CONSUMED_18_SYNTHETIC_TESTS_PASS_NO_GENUINE_ADMISSION",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/DESIGN.json",
@@ -31944,8 +31944,8 @@
       ]
     },
     "integrator": "/root",
-    "execution_authorized": true,
-    "synthetic_test_execution_authorized": true,
+    "execution_authorized": false,
+    "synthetic_test_execution_authorized": false,
     "data_reads_authorized": false,
     "normalization_fit_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -31964,9 +31964,9 @@
       "sha256": "abbfb86f76082a51fb176b41190dfd9deb221ff6fe7f6043160d0484d69ec2d1"
     },
     "test_max_invocations": 1,
-    "test_claimed_invocations": 0,
-    "test_completed_invocations": 0,
-    "test_status": "ONCE_ADMITTED",
+    "test_claimed_invocations": 1,
+    "test_completed_invocations": 1,
+    "test_status": "COMPLETE_CONSUMED",
     "test_budget": {
       "max_wall_seconds": 600,
       "memory_max": 4294967296,
@@ -31976,6 +31976,135 @@
       "max_invocations": 1
     },
     "test_expected_cases": 18,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "test_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/TEST_TERMINAL.json",
+      "sha256": "5124205dfe345d7ea4ebd8a178f47fc0685612a0fd18ba30f46247067ec83723"
+    },
+    "test_junit": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/PYTEST_SYNTHETIC.xml",
+      "sha256": "a2f6079b313fbd95d1f7ee485f9805476b117fd62a68c1e1182a7aca77775d74"
+    },
+    "test_stdout": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/TEST_STDOUT.log",
+      "sha256": "d071c84f921dd743b70a046079abe922b0af955411b8c6b22a6251de03e406fe"
+    },
+    "test_junit_summary": {
+      "tests": 18,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "test_elapsed_seconds": 19.884853578005277,
+    "test_source_unchanged": true,
+    "test_actual_peer_pending": false,
+    "actual_test_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/ACTUAL_TEST_REVIEW.json",
+      "sha256": "11c97b6d3e22c4b2fff08af2bfac213b662d3126bf2d227708c44372ae967a64"
+    },
+    "constructor_metadata_compatibility": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/CONSTRUCTOR_METADATA_COMPATIBILITY.json",
+      "sha256": "2737ee88e528285b115d3caee977533a006e9dd131deeb0631d9f8098192547c"
+    }
+  },
+  "dynamic_m5_direction_native_zero_update_qualification_269": {
+    "status": "ADMITTED_ONCE_GENUINE_CPU_EVAL_TWO_FORWARD_ONE_BACKWARD_ZERO_UPDATE_ONLY",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269/DESIGN_INPUT_COVERAGE_REPAIR.json",
+      "sha256": "2534575f89f38546865df061fb492c153cb572fc262fffb35905ec194153f1a0"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": [
+      "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269/qualify_native_direction_zero_update_guarded.py"
+    ],
+    "file_ownership": {
+      "/root/learning_audit": [
+        "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269/qualify_native_direction_zero_update_guarded.py"
+      ]
+    },
+    "integrator": "/root",
+    "budget": {
+      "max_wall_seconds": 1800,
+      "memory_max": 4294967296,
+      "swap": 536870912,
+      "pids": 64,
+      "numerical_threads": 1,
+      "max_rchar_bytes": 137438953472,
+      "scratch_bytes": 0,
+      "reused_bytes": 26534936912,
+      "max_json_output_bytes": 33554432,
+      "max_invocations": 1,
+      "source_loader_calls": 0,
+      "current_loader_calls": 0,
+      "clock_loader_calls": 1,
+      "reuse_calls": 1,
+      "cache_loader_calls": 1,
+      "gc_loader_calls": 0,
+      "verified_npy_calls": 30,
+      "qualify_calls": 0,
+      "squeeze_hash_calls": 150,
+      "squeeze_params_load_calls": 12,
+      "squeeze_manifest_load_calls": 1,
+      "v29_registry_calls": 1,
+      "v29_payload_calls": 11,
+      "v29_source_calls": 11,
+      "v29_hash_calls": 33,
+      "decoded_axis_arrays": 3,
+      "statistics_fits": 0,
+      "native_forwards": 2,
+      "model_constructions": 1,
+      "optimizer_updates": 0,
+      "decoded_label_arrays": 0,
+      "normalization_fit_calls": 0,
+      "surface_fit_calls": 0,
+      "gc_fit_calls": 0,
+      "ctxcat_fit_calls": 0,
+      "raw_gc_loader_calls": 1,
+      "max_initial_checkpoint_bytes": 1073741824,
+      "max_raw_feature_batch_bytes": 5013032,
+      "decoded_target_arrays": 3,
+      "wrapper_constructions": 1,
+      "backwards": 1,
+      "ema_updates": 0,
+      "scheduler_updates": 0,
+      "view_gather_calls": 1,
+      "native_window_calls": 2,
+      "gc_gather_calls": 10
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "normalization_fit_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "superseded_source_only_design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269/DESIGN.json",
+      "sha256": "7cf8d59484bdf4c77329b29710dda15c5abcd56c25d97148587384a7a8aff8b9"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269/PLAN.json",
+      "sha256": "a0441ea48f4418794d5081ddf3f8644fafca12c1edcc767809ffbbb3301146df"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269/SOURCE_REVIEW.json",
+      "sha256": "ff5edb4fbd22ce2d70196cdb29d96d72fd338a52cac6e26e8f6a024083548d32"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269/qualify_native_direction_zero_update_guarded.py",
+      "sha256": "795b4761d1c4b5f9a55d5164f23c4fdd70e65bab752a48076cd4c28dbc6de61a"
+    }
   }
 }
