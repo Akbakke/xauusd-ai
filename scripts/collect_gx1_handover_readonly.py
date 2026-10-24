@@ -221,6 +221,14 @@ def next_run_readiness(
         )
         window_path = _regular_file(str(native_window_policy), label="native_window_policy")
         window = read_bound_json(window_path, native_window_policy_file_sha256)
+        from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import (
+            WINDOW_SCHEMA as PREFIX_FIT_WINDOW_SCHEMA, require_native_direction_prefix_fit_readiness,
+        )
+        if isinstance(window, dict) and window.get("schema_version") == PREFIX_FIT_WINDOW_SCHEMA:
+            return require_native_direction_prefix_fit_readiness(
+                repo, window_path=window_path,
+                window_file_sha256=native_window_policy_file_sha256,
+            )
         if isinstance(window, dict) and window.get("schema_version") == WINDOW_SCHEMA:
             return require_native_direction_research_readiness(
                 repo, window_path=window_path,

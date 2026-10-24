@@ -32,8 +32,11 @@ dispatch. Samme modell/features/267stats/260BCE/270AdamW beholdes. Fire
 prefixmodeller, én fast pass med B16/seed20260911 og samme senere70,647foreldre.
 Fersk0U/samme256TRAIN før/etter, faste sluttvekter og kontekstpaneler.
 Eksisterende12000/13800s, fullstate-resume, freshboot og maskinvarevakter.
-Ingen fullført plan relanseres. Source-only; alle test-/data-/fit-/launchgater
-forblirfalse. Root eier policy/launch; tre agenter har separate nye filer.
+Kilde og avgrensede uavhengige peers består. Eksakt275 TEST_PLAN åpner én
+syntetisk177case-kjøring under4G/512M/64tasks/1tråd/600s etter kildefrys, samt
+påkrevde capped precommitkontroller. Ingen test er kjørt ennå. Genuine data-,
+modell-,fit- og launchgater er false. Ingen gammel plan relanseres.
+Root eier policy/launch; alle agentfiler er fryst på planens eksakte SHA-er.
 
 ## Aktuelt274 — prioriterte features, potensialet er ikke ferdig undersøkt
 

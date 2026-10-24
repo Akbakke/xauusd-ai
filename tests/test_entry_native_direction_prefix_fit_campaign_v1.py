@@ -1,0 +1,270 @@
+"""Synthetic metadata only: no native construction, data, loss, or optimizer."""
+import copy
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as owner
+from gx1.contracts import local_random_access_campaign_v2 as campaign
+
+
+def sealed(value, key):
+    return {**value, key:campaign.canonical_sha256(value)}
+
+
+def reseal(value, key):
+    value[key] = campaign.canonical_sha256({k:v for k,v in value.items() if k != key})
+    return value
+
+
+def write(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, allow_nan=False))
+    return {'path':str(path), 'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
+
+
+def numerical_seal(value):
+    value.pop('contract_sha256', None)
+    value['contract_sha256'] = hashlib.sha256(json.dumps(value, sort_keys=True,
+        separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+    return value
+
+
+@pytest.fixture
+def fixture(tmp_path, monkeypatch):
+    repo=tmp_path/'source';repo.mkdir();runtime=tmp_path/'runtime';runtime.mkdir()
+    monkeypatch.setattr(owner, 'CANONICAL_REPO', repo)
+    monkeypatch.setattr(owner, 'REQUIRED_SOURCE_PATHS', ('source.py',))
+    source=write(repo/'source.py', {'synthetic_source':True})
+    dummy=write(runtime/'input.json', {'synthetic_metadata':True})
+    fold={'fold_id':1,'prefix_rows':47602,'oof_start_row':47602,'oof_end_row':64890,
+        'train_cutoff_ns':1735689600000000000,'oof_cutoff_ns':1743465600000000000}
+    prefix_record={'fold_id':1,'prefix_parent_rows':47602,'cutoff_ns':fold['train_cutoff_ns'],'output':dummy,
+        'base_normalization_sha256':'2'*64,'combined_contract_sha256':'1'*64,'gc_layout_sha256':'3'*64,
+        'gc_normalization_sha256':'4'*64,'fresh_support_report':dummy,'original_support_report':dummy}
+    input_ref=write(runtime/'INPUT_MANIFEST.json',{'schema_version':owner.INPUT_SCHEMA,'source_design':dummy,
+        'physical_provider_plan':dummy,'physical_provider_worker':dummy,'prefix_normalization':prefix_record,
+        'constructor_metadata':dummy,'view_source_bindings':dict.fromkeys(owner.VIEW_SOURCE_KEYS,dummy),'targets':dummy,
+        'archive_members':sorted(owner.ARCHIVE_MEMBERS),'state_qualification':dummy,
+        'native_private_qualification':dummy,'input_qualification':dummy})
+    numerical=numerical_seal({'schema_version':'gx1_native_direction_research_recipe_v1','batch_size':16,
+        'max_updates':2976,'genuine_updates_authorized':False,'native_launch_authorized':False,
+        'research_objective_sha256':'e'*64})
+    recipe=sealed({'schema_version':owner.RECIPE_SCHEMA,'source_repo':str(repo),'runtime_root':str(runtime),
+        'admission_stage':'dynamic_m5_direction_synthetic_prefix_275','run_scope':'single_prefix_one_pass_direction_fit',
+        'numerical_recipe':numerical,'input_manifest':input_ref,'source_owners':{'source.py':source},
+        'execution_binding_path':str(runtime/'EXECUTION_BINDING.json'),'fold':fold,'train_passes':1,
+        'max_windows':4,'parent_order_algorithm':owner.PARENT_ORDER_ALGORITHM,'initial_measurement_rows':256,
+        'eval_batch_size':16,'checkpoint_every_updates':256,'max_checkpoint_bytes':1073741824,
+        'max_checkpoint_total_bytes':4294967296,'max_published_json_bytes':67108864,'training_enabled':True,
+        'full_epoch_training_allowed':True,'test_data_used':False,'predictive_value_claimed':False,
+        'qualification_weights_for_main_fit':False}, 'recipe_sha256')
+    recipe_ref=write(runtime/'RECIPE.json', recipe)
+    windows=[];window_refs=[];invocations=[];invocation_refs=[]
+    for number in range(1,5):
+        window=sealed({'schema_version':owner.WINDOW_SCHEMA,'recipe':recipe_ref,'invocation_number':number,
+            'max_invocation_seconds':12000,'progress_path':str(runtime/'progress'/f'invocation-{number:04d}.json'),
+            'campaign_cursor_path':str(runtime/'prefix-cursor/RESUME_CURSOR.json'),
+            'output_directory':str(runtime/'prefix-fit'),'test_data_used':False}, 'policy_sha256')
+        window_ref=write(runtime/f'WINDOW_{number}.json', window)
+        argv=[str(repo/'scripts/gx1_capped_run.sh'),'--class','trainer','--mem','20G','--swap','512M','--',
+            str(repo/'.venv/bin/python'),'-m',owner.MODULE,'--window-policy',window_ref['path'],
+            '--window-policy-file-sha256',window_ref['sha256'],'--progress-path',window['progress_path']]
+        execution=sealed({'schema_version':campaign.EXECUTION_MANIFEST_SCHEMA,'decision':'PASS_EXACT_INVOCATION',
+            'invocation_kind':owner.KIND,'python_module':owner.MODULE,'source_commit':'a'*40,
+            'launcher_argv_sha256':campaign.canonical_sha256(argv),'prelaunch_manifest':recipe_ref,
+            'prelaunch_manifest_sha256':recipe['recipe_sha256'],'train_session_manifest':window_ref,
+            'train_session_manifest_sha256':window['policy_sha256'],'test_data_used':False}, 'artifact_sha256')
+        invocation=sealed({'schema_version':campaign.INVOCATION_SCHEMA,'decision':'PASS','invocation_number':number,
+            'invocation_id':f'invocation-{number:04d}','kind':owner.KIND,'batch_size':16,'epoch_index':None,
+            'window_index':number-1,'window_count':4,'optimizer_step_budget':2976,
+            'expected_success_outcome':'RESUMABLE_OR_COMPLETE','source_commit':'a'*40,
+            'execution_manifest':write(runtime/f'EXECUTION_{number}.json',execution),'launcher_argv':argv,
+            'launcher_argv_sha256':campaign.canonical_sha256(argv),'progress_path':window['progress_path'],
+            'guard_log_path':str(runtime/'logs'/f'invocation-{number:04d}.signed-guard.log'),
+            'checkpoint':{'pointer_path':window['campaign_cursor_path'],
+                'before_mode':'GENESIS' if number==1 else 'PREVIOUS_RECEIPT_AFTER',
+                'predecessor_invocation_number':None if number==1 else number-1,'write_mode':'ATOMIC_UPDATE'},
+            'maximum_wall_seconds':13800,'requires_fresh_windows_boot':True,'signed_guard_only':True,
+            'test_data_used':False}, 'invocation_sha256')
+        windows.append(window);window_refs.append(window_ref);invocations.append(invocation)
+        invocation_refs.append(write(runtime/f'INVOCATION_{number}.json', invocation))
+    boot=sealed({'schema_version':campaign.BOOT_SCHEMA,'computer_name':'SYNTHETIC','boot_id':1,
+        'last_boot_utc':'2026-10-25T00:00:00+00:00'}, 'identity_sha256')
+    plan=sealed({'schema_version':campaign.PLAN_SCHEMA,'decision':'PASS_PREPARED','campaign_id':'synthetic275fold1',
+        'phase':owner.PHASE,'created_utc':'2026-10-25T01:00:00+00:00','source_repo':str(repo),'source_commit':'a'*40,
+        'runtime_root':str(runtime),'gpu_uuid':'GPU-synthetic','prepared_windows_boot':boot,'recipe':recipe_ref,
+        'invocations':invocation_refs,'signed_guard_sources':{k:dummy for k in ('runner','guard','query','certificate')},
+        'controller_sources':{k:dummy for k in ('controller','observer','campaign_cli')},
+        'policy':campaign.campaign_hardware_policy(owner.PHASE),
+        'authority':{'test':False,'promotion':False,'paper':False,'live':False,'cloud_spend':False},
+        'test_data_used':False}, 'plan_sha256')
+    true=('execution_authorized','data_reads_authorized','genuine_constructor_authorized','genuine_forward_authorized',
+        'genuine_backward_authorized','genuine_updates_authorized','genuine_predictor_fit_authorized',
+        'training_enabled','native_training_enabled','full_epoch_training_allowed','native_launch_authorized')
+    false=('normalization_fit_authorized','synthetic_test_execution_authorized','test_data_used','exit_evaluation',
+        'broker_access_allowed','full_val_allowed','relaunch_allowed')
+    gate={**dict.fromkeys(true,True),**dict.fromkeys(false,False),'recipe':recipe_ref,'run_root':str(runtime),
+        'max_invocations':4,'claimed_invocations':0,'completed_invocations':0}
+    policy={'schema_version':'gx1_next_native_run_policy_v1','canonical_source_repo':str(repo),
+        'canonical_branch':'work/gx1-current','training_module':owner.MODULE,'training_enabled':True,
+        'native_training_enabled':True,'full_epoch_training_allowed':True,'full_val_allowed':False,
+        'gpu_clock_launcher':dummy,recipe['admission_stage']:gate}
+    write(repo/'NEXT_RUN_POLICY.json', policy)
+    def git(args, **kwargs):
+        assert args[:3]==['git','-C',str(repo)]
+        return {'rev-parse':'a'*40+'\n','branch':'work/gx1-current\n','status':''}[args[3]]
+    monkeypatch.setattr(subprocess, 'check_output', git)
+    prefix_identity={'binding':dummy,'contract_sha256':'1'*64,'base_sha256':'2'*64,
+        'gc_layout_sha256':'3'*64,'gc_normalization_sha256':'4'*64,'qualification_sha256':'5'*64}
+    view_identity={'contract_sha256':'6'*64,'prefix_normalization':prefix_identity,'research_objective_sha256':'e'*64}
+    return locals()
+
+
+def cursor(f, **changes):
+    args={'recipe_ref':f['recipe_ref'],'fold':f['fold'],'feature_view_identity':f['view_identity'],
+        'phase_state':'TRAINING','outcome':'RESUMABLE','optimizer_updates':1,'parent_cursor':32,
+        'parent_order_sha256':'d'*64,'full_state':f['dummy'],'own_initial_state':f['dummy'],
+        'initial_measurement':f['dummy'],'final_train_measurement':None,'oof_cursor':0,'result':f['dummy']}
+    args.update(changes)
+    return owner.build_prefix_fit_cursor(**args)
+
+
+def test_four_window_chain_is_one_exact_prefix_and_one_pass(fixture):
+    f=fixture;plan=campaign.require_plan(f['plan'])
+    assert len(plan['checked_invocations'])==4 and plan['selection_artifact_sha256'] is None
+    assert [v['checkpoint']['before_mode'] for v in plan['checked_invocations']]==['GENESIS']+['PREVIOUS_RECEIPT_AFTER']*3
+    assert all(v['direction_prefix_fit_recipe']==f['recipe_ref'] for v in plan['checked_invocations'])
+    assert not {'entry_pairs_per_epoch','transitions_per_epoch','native_recipe'} & set(plan)
+    assert campaign.campaign_hardware_policy(owner.PHASE)==campaign.campaign_hardware_policy('native_candidate')
+    ready=owner.require_native_direction_prefix_fit_readiness(f['repo'],window_path=Path(f['window_refs'][0]['path']),
+        window_file_sha256=f['window_refs'][0]['sha256'])
+    assert ready['native_window_scope']['fold']==f['fold'] and ready['native_window_scope']['full_epoch_training_allowed'] is True
+
+
+@pytest.mark.parametrize('key,value',[('invocation_number',True),('invocation_number',5),('max_invocation_seconds',12001),('test_data_used',True)])
+def test_bound_window_cannot_expand_limits(fixture,key,value):
+    value_dict=copy.deepcopy(fixture['windows'][0]);value_dict[key]=value;reseal(value_dict,'policy_sha256')
+    with pytest.raises(RuntimeError):owner.require_prefix_fit_window_policy(value_dict)
+
+
+@pytest.mark.parametrize('fault',['fold','batch','updates','order','passes','qualification_weights'])
+def test_recipe_rejects_resealed_scope_mutations(fixture,fault):
+    f=fixture;recipe=copy.deepcopy(f['recipe'])
+    if fault=='fold':recipe['fold']['prefix_rows']+=1
+    elif fault=='batch':recipe['numerical_recipe']['batch_size']=2
+    elif fault=='updates':recipe['numerical_recipe']['max_updates']=4
+    elif fault=='order':recipe['parent_order_algorithm']='last_emitted_or_sampled'
+    elif fault=='passes':recipe['train_passes']=2
+    else:recipe['qualification_weights_for_main_fit']=True
+    numerical_seal(recipe['numerical_recipe']);reseal(recipe,'recipe_sha256');ref=write(f['runtime']/'BAD_RECIPE.json',recipe)
+    with pytest.raises(RuntimeError):owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
+@pytest.mark.parametrize('key,value',[('batch_size',8),('epoch_index',0),('window_count',5),('optimizer_step_budget',4),
+    ('expected_success_outcome','COMPLETE'),('requires_fresh_windows_boot',False)])
+def test_resealed_invocation_keeps_fixed_budget_and_guards(fixture,key,value):
+    f=fixture;item=copy.deepcopy(f['invocations'][0]);item[key]=value;reseal(item,'invocation_sha256')
+    with pytest.raises((RuntimeError,ValueError)):campaign.require_invocation(item,source_repo=f['repo'],source_commit='a'*40)
+
+
+@pytest.mark.parametrize('scope,key,value',[('global','training_enabled',False),('global','full_epoch_training_allowed',False),
+    ('global','full_val_allowed',True),('gate','genuine_predictor_fit_authorized',False),('gate','normalization_fit_authorized',True),
+    ('gate','broker_access_allowed',True),('gate','claimed_invocations',1),('gate','max_invocations',True)])
+def test_readiness_needs_actual_fullfit_admission(fixture,scope,key,value):
+    f=fixture;policy=copy.deepcopy(f['policy']);target=policy if scope=='global' else policy[f['recipe']['admission_stage']]
+    target[key]=value;write(f['repo']/'NEXT_RUN_POLICY.json',policy)
+    with pytest.raises(RuntimeError):owner.require_native_direction_prefix_fit_readiness(f['repo'],
+        window_path=Path(f['window_refs'][0]['path']),window_file_sha256=f['window_refs'][0]['sha256'])
+
+
+def test_cursor_counts_empty_batches_without_fabricating_optimizer_updates(fixture):
+    f=fixture;c=cursor(f)
+    assert c['parent_cursor']==32 and c['optimizer_updates']==1
+    pointer=write(Path(f['windows'][0]['campaign_cursor_path']),c)
+    inv=campaign.require_plan(f['plan'])['checked_invocations'][0]
+    progress=owner.build_prefix_fit_progress(window=f['windows'][0],plan=f['plan'],invocation=inv,
+        checkpoint_pointer=pointer,cursor=c)
+    checked=campaign.require_progress(progress,plan_sha256=f['plan']['plan_sha256'],invocation=inv,
+        expected_selection_receipt_sha256=None)
+    assert checked['completed_units']==32 and checked['total_units']==47602 and checked['optimizer_updates']==1
+    c['parent_order_sha256']='b'*64;reseal(c,'cursor_sha256');progress['checkpoint_pointer']=write(Path(pointer['path']),c)
+    reseal(progress,'progress_sha256')
+    with pytest.raises(RuntimeError):campaign.require_progress(progress,plan_sha256=f['plan']['plan_sha256'],
+        invocation=inv,expected_selection_receipt_sha256=None)
+
+
+@pytest.mark.parametrize('fault',['mid_batch','too_many_updates','early_scoring','early_oof','missing_initial',
+    'complete_before_score','wrong_fold','partial_epoch_alias'])
+def test_cursor_rejects_inconsistent_resealed_trajectory(fixture,fault):
+    f=fixture;c=cursor(f)
+    if fault=='mid_batch':c['parent_cursor']=17
+    elif fault=='too_many_updates':c['optimizer_updates']=3
+    elif fault=='early_scoring':c['phase_state']='SCORING'
+    elif fault=='early_oof':c['oof_cursor']=1
+    elif fault=='missing_initial':c['own_initial_state']=None
+    elif fault=='complete_before_score':c.update(parent_cursor=47602,phase_state='COMPLETE',outcome='COMPLETE',final_train_measurement=f['dummy'])
+    elif fault=='wrong_fold':c['fold']['train_cutoff_ns']+=1
+    else:c['epoch_index']=0
+    reseal(c,'cursor_sha256')
+    with pytest.raises(RuntimeError):owner.require_prefix_fit_cursor(c,expected_recipe=f['recipe_ref'],expected_fold=f['fold'])
+
+
+def test_scoring_resume_and_complete_preserve_final_fixed_state(fixture):
+    f=fixture;c=cursor(f,parent_cursor=47602,optimizer_updates=2000,phase_state='SCORING',final_train_measurement=f['dummy'])
+    assert c['outcome']=='RESUMABLE' and c['oof_cursor']==0
+    done=cursor(f,parent_cursor=47602,optimizer_updates=2000,phase_state='COMPLETE',outcome='COMPLETE',
+        final_train_measurement=f['dummy'],oof_cursor=17288)
+    assert done['full_state']==c['full_state'] and done['own_initial_state']==c['own_initial_state']
+    failed=cursor(f,phase_state='TRAINING',outcome='FAILED',parent_cursor=0,optimizer_updates=0,
+        full_state=None,own_initial_state=None,initial_measurement=None,feature_view_identity=None)
+    assert failed['full_state'] is None
+
+
+@pytest.mark.parametrize('complete',[True,False])
+def test_shared_next_action_stops_complete_and_blocks_exhausted_resumable(fixture,monkeypatch,complete):
+    f=fixture;plan=campaign.require_plan(f['plan'])
+    receipts=[{'outcome':'COMPLETE'}] if complete else [{'outcome':'RESUMABLE'}]*4
+    monkeypatch.setattr(campaign,'require_receipt_chain',lambda *args,**kwargs:receipts)
+    action=campaign.next_action(plan,[],current_boot=f['boot'])
+    assert action['decision']==('COMPLETE' if complete else 'BLOCKED_DIRECTION_PREFIX_WINDOWS_EXHAUSTED')
+
+
+@pytest.mark.parametrize('fault',[None,'marker','policy_binding','existing_output'])
+def test_context_checks_genesis_active_and_exact_frozen_binding(fixture,monkeypatch,fault):
+    f=fixture;plan_ref=write(f['runtime']/'PLAN.json',f['plan']);inv=f['invocations'][0]
+    binding={'plan':plan_ref,'source_head':'a'*40,'policy':{'path':str(f['repo']/'NEXT_RUN_POLICY.json'),
+        'sha256':hashlib.sha256((f['repo']/'NEXT_RUN_POLICY.json').read_bytes()).hexdigest()}}
+    marker=sealed({'schema_version':campaign.ACTIVE_SCHEMA,'plan_sha256':f['plan']['plan_sha256'],
+        'invocation_sha256':inv['invocation_sha256'],'invocation_number':1,'invocation_id':'invocation-0001',
+        'kind':owner.KIND,'launcher_argv_sha256':inv['launcher_argv_sha256'],'pointer_before_sha256':'GENESIS'},'marker_sha256')
+    if fault=='marker':marker['pointer_before_sha256']='d'*64;reseal(marker,'marker_sha256')
+    if fault=='policy_binding':binding['policy']['sha256']='d'*64
+    if fault=='existing_output':Path(f['windows'][0]['output_directory']).mkdir()
+    write(f['runtime']/'EXECUTION_BINDING.json',binding);write(f['runtime']/'ACTIVE_INVOCATION.json',marker)
+    for key,value in {'GX1_CAMPAIGN_PLAN_PATH':plan_ref['path'],'GX1_CAMPAIGN_PLAN_FILE_SHA256':plan_ref['sha256'],
+        'GX1_CAMPAIGN_PLAN_SHA256':f['plan']['plan_sha256'],'GX1_CAMPAIGN_INVOCATION_SHA256':inv['invocation_sha256']}.items():monkeypatch.setenv(key,value)
+    monkeypatch.setattr(campaign,'require_clean_source',lambda value:None)
+    def call():return owner.require_native_direction_prefix_fit_context(Path(f['window_refs'][0]['path']),
+        f['window_refs'][0]['sha256'],Path(f['windows'][0]['progress_path']))
+    if fault is None:
+        result=call();assert result[0]==f['windows'][0] and result[4]['fold']==f['fold']
+    else:
+        with pytest.raises(RuntimeError):call()
+
+
+def test_source_byte_tamper_and_duplicate_invocations_fail_closed(fixture):
+    f=fixture;plan=copy.deepcopy(f['plan']);plan['invocations'][1]=plan['invocations'][0];reseal(plan,'plan_sha256')
+    with pytest.raises(RuntimeError):owner.require_prefix_fit_plan(plan)
+    Path(f['source']['path']).write_text('changed')
+    with pytest.raises(RuntimeError):campaign.require_plan(f['plan'])
+
+
+def test_metadata_import_has_no_numerical_dependency():
+    import sys
+    done=subprocess.run([sys.executable,'-c','import sys; import gx1.contracts.entry_native_direction_prefix_fit_campaign_v1; '
+        'assert not {"torch","numpy","sklearn"} & set(sys.modules)'],capture_output=True,text=True,timeout=30,check=False)
+    assert done.returncode==0,done.stderr

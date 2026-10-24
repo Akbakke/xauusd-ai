@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All execution and fitting closed.273 is COMPLETE and consumed once; qualification weights are barred from main fit. Bind a new finite chronological pure-direction TRAIN/OOF scope before source edits or admission; no CONTROL/TEST/Exit/trades.",
-  "next_action": "Implement/review exact275source-only prefixfit/context/campaign route; qualify finite synthetic tests once only after frozen source/testplan. Genuine training/evaluation remains closed.",
+  "next_action": "Freeze exact275 source and policy; mandatory capped hooks then one capped177case synthetic test only. Genuine data/model/fit/launch remains closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -230,7 +230,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "275 source-only implementation: extend qualified pure-native mechanics to fullprefix one-pass/freshbaseline/laterOOF and fixed context panels. Root integrates; disjoint3agent fileownership. No jobs/inputs/model imports until admitted.",
+    "current_activity": "275 source+context+dispatch source reviews PASS; exact177case synthetic admission once, genuine execution remains false.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -32414,19 +32414,44 @@
     "retained_ladder_train_scope_qualified": false
   },
   "dynamic_m5_direction_prefix_fit_source_275": {
-    "status": "EXACT_SOURCE_DESIGN_ADMITTED_NO_TEST_OR_GENUINE_EXECUTION",
+    "status": "SOURCE_PEER_PASS_EXACT_SYNTHETIC_TEST_ONCE_ADMITTED",
     "evidence_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275/DESIGN.json",
       "sha256": "f73b5a516494ec82cab64e3d43526f337d10438dc11d46dcbb59f724c8c80e19"
     },
-    "source_edits_authorized": true,
-    "execution_authorized": false,
-    "synthetic_test_execution_authorized": false,
+    "source_edits_authorized": false,
+    "execution_authorized": true,
+    "synthetic_test_execution_authorized": true,
     "data_reads_authorized": false,
     "genuine_model_execution_authorized": false,
     "predictor_fit_authorized": false,
     "normalization_fit_authorized": false,
-    "CONTROL_TEST_Exit_trades_broker_promotion": false
+    "CONTROL_TEST_Exit_trades_broker_promotion": false,
+    "test_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275/TEST_PLAN.json",
+      "sha256": "123bea9e973c582b375dd21decf41190225ece514e3b266da2204129a92de671"
+    },
+    "source_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275/SOURCE_PEER_REVIEW_001.json",
+      "sha256": "2f99fccf5240e83f07be1e7aab5d6ce85732fcb3e4f3c7831c2e7a45fa8dc856"
+    },
+    "root_worker_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275/ROOT_WORKER_SOURCE_REVIEW_001.json",
+      "sha256": "8dafec25f090a65f7dd9b5ba4c41766bd89105fa30a4cb34254fe0dbe50e4df0"
+    },
+    "root_dispatch_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275/ROOT_DISPATCH_SOURCE_REVIEW_001.json",
+      "sha256": "c8b2249df521bf5f6aaa2c6d5c0902f39beddf9ffc17c4fa32f929799811f3c6"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "mandatory_precommit_checks": {
+      "guardrail_cases": 10,
+      "native_contract_cases": 61,
+      "source": "unchanged .claude/git-hooks/pre-commit; each capped audit"
+    }
   }
 }
