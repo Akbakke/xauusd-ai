@@ -19,9 +19,10 @@ kvalifisert. 263 bestod 30 syntetiske tester. 264 målte fysisk inputstøtte:
 fold 0 blokkert, fire senere støttet. 265 normalisering feilet på en sjelden
 D1-hendelse etter fire eksakte datapariteter; ingen komplett normalisering
 eller modell ble publisert. 266 er COMPLETE/consumed:115syntetiske cases består, actual receipt-peer PASS.
-267 har én innrømmet fysisk domene-/råparitets-/normaliseringsjobb. Kun
-execution/data/normaliseringsscope er true; alle modell-/treningsgater er false.
-TEST, CONTROL, Exit og trades er lukket. Root eier policy og launch.
+267 er COMPLETE/consumed og actualartefakt-peer PASS: fem ferske råpariteter og
+fire genuine prefixnormaliseringer. Alle execution/data/normaliserings-/modell-
+og treningsgater er false. Ingen ny retningsprognose er målt. TEST, CONTROL,
+Exit og trades er lukket. Root eier policy og launch.
 
 ## Siste faktiske retningsmåling — 259
 
@@ -247,26 +248,62 @@ eller bedre prognoser er kvalifisert. Original TEST_TERMINAL er bevart;
 OUTER_TERMINAL_TEST samler samme bevis med handoverens feltnavn.
 ACTUAL_TEST_REVIEW og alle refs står under266 i NEXT_RUN_POLICY.
 
-## Aktuelt 267 — én innrømmet fysisk kontroll/statistikkjobb
+## Fullført 267 — fysisk domene og fire prefixstatistikker
 
-267DESIGN binder uendrede264inputbevis og dagens17kildeeiere separat.
-learning_audit eier kun ny qualify_and_fit_boolean_prefixes_guarded.py utenfor
-repo. Root eier policy/launch; research_audit gjør source-/PLAN-peer.
-Ingen kanonisk kode, nye tester eller ekstra rammeverk er bestilt.
+Én ny jobb på fryst63a6510f er COMPLETE/consumed: worker/outer exit0,
+1146.088/1146.848s,ingen timeout,kilde/eksterne bokender uendret.9/9kvalifikasjoner,
+4/4prefixfits,48/48surfacefits,4/4GCfits,4/4ctxcat. RawGC1/1,streng gammelGC0,
+NPY30/30,squeeze150/12/1,V291/11/11/33. Alleforbidden0. Ingen labels,CONTROL,
+TEST,modellforward,constructor elleroptimizer. Source/currentfulldecode0.
 
-Planlagt kontroll: aktuell rawGC-loader validerer genuine0/1-domener og lager
-ny layout/transition. Alle fem prefixer kvalifiseres pånytt. Råbevis/support
-skal være eksakt264, unntatt deklarert provenance, kanoniske binary_fields og
-nye segl. Forventet214binærtillegg perrapport (76signal+76ctx+62GC), ingen
-nativeTF-endring. Blokkeringer153/0/0/0/0 og samme fit_allowed. Alle fem
-pariteter må bestå før fire prefixfits. Eksisterende fitter rekvalifiserer:
-9kvalifikasjoner/4fits/48surfacefits. Skalavakter svekkes ikke.
+Alle fem nye rapporter har identiske264råbevis/support, med kun deklarert
+proveniens/kanoniske binary_fields/nye segl endret.214binærtillegg perrapport;
+blokkeringer153/0/0/0/0, sammefit_allowed ogstats0. Allefempariteter førførstefit.
+Fire separate prefixkontrakter bruker samme nyeGC-layoutb67b9b94 ogsannferdig
+cut/lineage. Alle76verdibiter påtrealiasflater (228forekomster/prefix) har
+binary1/center0/scale1/semantic_binary_identity. Alle48statistikhasher består.
+055/223stats erikke gjenbrukt; kontinuerligskalavakt er uendret.
 
-Én eventuell ny jobb:1800s/4GiB/512MiB/64pids/éntråd/rchar128GiB/JSON48MiB,
-6readonlymmaps gjenbrukes26,534,936,912B; inputkopi/scratch0. Streng gammel
-GC-loader0, rawGC1, NPY30. Ingen labels, CONTROL, TEST, modell eller optimizer.
-Root/source-peer PASS: worker ee742161, PLAN e20ce91d,17kildehash/48statref
-og alle fem råpariteter før fit. Én onceadmisjon er gitt; kilder/policy fryses
-gjennom påkrevde hooks og jobb. Modell-/treningsgater forblirfalse. Etter
-terminal lukkes scope og faktisk resultat kontrolleres. Ingen bedre prognoser
-er målt; målet er aktivt.
+Kapasitet4GiB/512MiB/64pids/éntråd/lås er kvittert. Process-RSSpeak4,358,950,912B
+erikke cgrouppeak; endeligcgrouppeak erikke fanget. Rchar_delta6,041,701,325B
+utelatermmap-sidefeil. JSON37,415,387B førterminal innen48MiB.6readonlymmaps
+26,534,936,912B gjenbrukt,nyinputscratch0. Alleoriginaler/outputbevares.
+
+Root+research_auditactualpeer:17kildehash,48payloadstat,43metadatabokender,
+39integritetsrefs,5råpariteter/rapportsegl og4normkontrakter avstemt. Ingen
+uavhengigarray-/numeriskfitreplay. ACTUAL_ROOT_CHECKS/ACTUAL_QUALIFICATION_REVIEW,
+RESULT/TERMINAL/OUTER ogallekontraktrefs er bundet under267iNEXT_RUN_POLICY.
+Ingenrelansering. Alleexecution/data/fitgater erfalse; målet eraktivt.
+
+Neste nødvendige arbeid er kilde/design for ekte featureview, direkte native
+constructor med nye267stats og fersk samletbackbone+retningshode-initial,
+genuinegradienter og eksaktfullstate-resume. Dataset.__getitem__ krever gammel
+pathsupervisjon; ingenforfalsketbinding. Gamle223fixedstepconstructor og gammel
+wrapperoptimizer/EMA-policy måikke gjenbrukes blindt. Bevar eksisterende
+nativeeiere; løs bare målte konsumentsømmer. Kun268sine to nye source-/testfiler er nå autorisert; ingen launchadmisjon.
+Disse tekniske bevisene er fortsatt ikke bedre retningstreff eller økonomi.
+
+## Aktuelt 268 — source-only featureview og direkte konstruktør
+
+learning_audit eier kun nye entry_native_direction_feature_view_v1.py og
+fokusert testfil. 268DESIGN binder267s faktiske kvalifikasjon og alle fire nye
+prefixkontrakter. Root eier integrasjon/policy/launch. Eksisterende eiere og
+stats forblir uendret. Full rå96M5/currentctx/femTF/femGC går gjennom kanoniske
+rad-/klokkeeiere; ingen gammel pathsupervisjon eller Dataset-binding forfalskes.
+Direkte constructor bruker full8eierpartisjoner, ny GC-profil og eksisterende
+260retningskomponent; native gjør compact7/chartparked-valget selv.
+
+268source/root/topeers består på ownerb410c56f/test9107f44a. Kun18syntetiske
+cases er nå innrømmet én gang viaTEST_PLAN; alle genuine data-/modell-/0U-
+forward/backwardgater erfalse. Ingen optimizer/EMA/schedulerupdate,trainmode
+ellerresume er innrømmet. Nullstegs genuine måling kan beholde trainingfalse;
+senere tekniskeupdates krever egen policy/recipe/trainingtrue/full_epochfalse.
+Målet om bedre prognoser er aktivt; ingen nye retningstreff er målt.
+
+268TEST_PLAN binder26kildehash og049metadata. Testfixturen har planlagt
+2syntetiskqual/1prefixfit/12surface/1GC/1ctxcat ogénconstructorSPY+ekte260headinit;
+0genuine nativeforwards/backwards. Direktepytest har ingen profilertcallclaim.
+Max600s/4GiB/512MiB/64pids/éntråd/once. Kilder/policy fryses gjennomhooks/jobben.
+Gamle115tester og267stats gjenbrukes. Faktiskconstructor-meta for senere0U
+kan hentes fra227sin bundne187CONSTRUCTOR_METADATA (8d0fc19b), bare arkitektur-
+scalarer/fullrouting, ingen gamle vekter/stats/profile.0Uer fortsatt uinnrømmet.

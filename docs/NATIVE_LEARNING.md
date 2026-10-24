@@ -591,6 +591,22 @@ aktuell semantikk, med identiske råverdi-/rad-/klokkehashes mot opprinnelige
 inputs. Gamle055/223stats eller264rapporter får ingen ny betydning ved ommerking.
 Fersk samlet ONLINE-initial/gradient/resume kreves fortsatt før modellfit.
 
+267 har nå kvalifisert den aktuelle semantikken på genuine inputs: fem ferske
+råpariteter bevarer alle264verdier/klokker/masker/support, med kun bundet
+proveniens/binary_fields/segl endret. Fold0 har fortsatt153n0-blokkeringer;
+fold1–4 har nye native prefixstatistikker,48surfacefits totalt. Alle76boolske
+verdifelt er identitetsskalert på signal/ctx/GC; kontinuerligskalavakt beholdes.
+Nye stats og gammel055/223identitet blandes ikke. Dette er input-/statbevis;
+ingen ny native modell, retningsforbedring eller modellfitadmisjon er gitt.
+
+268 legger til en avgrenset featureview-/konstruktøreier: rå96M5/currentctx og
+fem nativeTF+GC-vinduer går via eksisterende rad-/klokkeeiere, derGCbruker eksakt
+samme nativeIDer/sluttklokker. Fullåtte eierpartisjoner gis til uendret native,
+som selv gjør compact7/chartparked-valget. Ny267normalisering/GCprofil bindes
+separat fra gamle metadata og260s retningsmål. Ingen gammelDataset-supervisjon
+eller223artifactjoin ommerkes. Modellen normaliserer råinputs internt én gang.
+Source/spies beviser ikke ekte constructor/forward/gradient ellerbedre retning.
+
 Inputkonsistens og lokal respons beviser ikke prediktiv merverdi. Lagrede
 modellprognoser kan vise bias, kalibrering og feil, men kan ikke alene avsløre
 all informasjon modellen kunne ha brukt. Lavere prognosespredning enn

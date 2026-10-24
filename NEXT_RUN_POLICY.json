@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T17:13:41.724254+00:00",
+  "observed_utc": "2026-10-24T18:03:59.368792+00:00",
   "status": "DIRECTION_NATIVE_SEQUENCE_COMPONENT_TESTED_NATIVE_PREFIX_INPUTS_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Run exact once267PLAN under existing capped audit4G/512M64pids/one thread; inspect actual terminal and consume scope before any new work.",
+  "next_action": "Run exact268TEST_PLAN directpytest once under capped4G/512M64pids/thread1; verify actual JUnit and close allgates. Futuregenuine0U stillrequires ownsource/PLAN/admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -225,7 +225,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "267 one bounded physical Boolean-domain/five raw-parity/four prefix normalization invocation admitted; no model/predictor fit. Freeze source and policy through terminal.",
+    "current_activity": "268 source/root/twopeers PASS; exactly18synthetic cases admitted once. Freeze source/policy through requiredhooks and test. Genuine native/model/data gates closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -254,11 +254,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "266 synthetic outer receipt integrates immutable terminal; 115 cases only, no genuine normalization or direction evidence.",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266",
+    "latest_terminal_role": "267 physical domains/five raw parities/four genuine prefix normalizations only. No native model or direction forecasts.",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/OUTER_TERMINAL_TEST.json",
-      "sha256": "37f8a9163157280b04aca39bed86b23bcb8091f5ef99fc39b075014d0f573daa"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/TERMINAL.json",
+      "sha256": "ae53d3274fb84487c247969177dc13506352db509d9ea17b414f290a5df7020a"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -278,7 +278,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "267 genuine domains/raw parity/four prefix-normalization outcomes unmeasured; fresh native initial/featureview/gradients/resume still required afterward.",
+    "current_blocker": "Fresh native featureview/constructor/initial/gradient/exact-resume qualification still required before native direction fit. No new directional outcome measured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7749,7 +7749,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exact once267PLAN under existing capped audit4G/512M64pids/one thread; inspect actual terminal and consume scope before any new work.",
+    "next_action": "Run exact268TEST_PLAN directpytest once under capped4G/512M64pids/thread1; verify actual JUnit and close allgates. Futuregenuine0U stillrequires ownsource/PLAN/admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17306,7 +17306,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Run exact once267PLAN under existing capped audit4G/512M64pids/one thread; inspect actual terminal and consume scope before any new work.",
+      "next_step": "Run exact268TEST_PLAN directpytest once under capped4G/512M64pids/thread1; verify actual JUnit and close allgates. Futuregenuine0U stillrequires ownsource/PLAN/admission.",
       "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed."
     },
     "latest_direction_terminal": {
@@ -31600,7 +31600,7 @@
     }
   },
   "dynamic_m5_direction_gc_boolean_physical_prefix_normalization_267": {
-    "status": "ONCE_ADMITTED_PHYSICAL_BOOLEAN_DOMAINS_FIVE_PARITIES_FOUR_PREFIX_STATS",
+    "status": "COMPLETE_CONSUMED_FIVE_RAW_QUALIFICATIONS_FOUR_PREFIX_NORMALIZATIONS",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/DESIGN.json",
@@ -31616,9 +31616,9 @@
       ]
     },
     "integrator": "/root",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "normalization_fit_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "normalization_fit_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
     "training_enabled": false,
@@ -31627,8 +31627,8 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "budget": {
       "max_wall_seconds": 1800,
@@ -31680,6 +31680,302 @@
     "source_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/SOURCE_REVIEW.json",
       "sha256": "304fe66d574df73c94b1866da4589c15fb6736ed434f67d21046ef826e796099"
-    }
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/TERMINAL.json",
+      "sha256": "ae53d3274fb84487c247969177dc13506352db509d9ea17b414f290a5df7020a"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/OUTER_TERMINAL.json",
+      "sha256": "81f3bb48888bbc8f3b687c76d9f84bfb3fa313b768d8464228e427b04d874874"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/RESULT.json",
+      "sha256": "e4359717d818e6c7c55382d36a941765cc7c177b19b3eb89a50e11ec11684fe9"
+    },
+    "counts": {
+      "cache_loader_calls": 1,
+      "cache_loader_returns": 1,
+      "clock_loader_calls": 1,
+      "clock_loader_returns": 1,
+      "ctxcat_fit_calls": 4,
+      "ctxcat_fit_returns": 4,
+      "current_loader_calls": 0,
+      "current_loader_returns": 0,
+      "forbidden_fit_calls": 0,
+      "forbidden_model_calls": 0,
+      "forbidden_opens": 0,
+      "forbidden_redecode_calls": 0,
+      "forbidden_supervision_calls": 0,
+      "gc_fit_calls": 4,
+      "gc_fit_returns": 4,
+      "gc_loader_calls": 0,
+      "gc_loader_returns": 0,
+      "normalization_fit_calls": 4,
+      "normalization_fit_returns": 4,
+      "qualify_calls": 9,
+      "qualify_returns": 9,
+      "raw_gc_loader_calls": 1,
+      "raw_gc_loader_returns": 1,
+      "reuse_calls": 1,
+      "reuse_returns": 1,
+      "source_loader_calls": 0,
+      "source_loader_returns": 0,
+      "squeeze_hash_calls": 150,
+      "squeeze_hash_returns": 150,
+      "squeeze_manifest_load_calls": 1,
+      "squeeze_manifest_load_returns": 1,
+      "squeeze_params_load_calls": 12,
+      "squeeze_params_load_returns": 12,
+      "surface_fit_calls": 48,
+      "surface_fit_returns": 48,
+      "v29_hash_calls": 33,
+      "v29_hash_returns": 33,
+      "v29_payload_calls": 11,
+      "v29_payload_returns": 11,
+      "v29_registry_calls": 1,
+      "v29_registry_returns": 1,
+      "v29_source_calls": 11,
+      "v29_source_returns": 11,
+      "verified_npy_calls": 30,
+      "verified_npy_returns": 30
+    },
+    "qualifications": [
+      {
+        "blocker_count": 153,
+        "cutoff_ns": 1727740800000000000,
+        "fit_allowed": false,
+        "fold_id": 0,
+        "prefix_parent_rows": 29849,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_0.json",
+          "sha256": "885b3dce180cef245cd73ffe2975f87d41bf985b25aed425a8074967e0df5c96"
+        }
+      },
+      {
+        "blocker_count": 0,
+        "cutoff_ns": 1735689600000000000,
+        "fit_allowed": true,
+        "fold_id": 1,
+        "prefix_parent_rows": 47602,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_1.json",
+          "sha256": "20a2d770b44e9d58087ff82774dddb74a5f19d91ba0c3df3c94f26de677c479f"
+        }
+      },
+      {
+        "blocker_count": 0,
+        "cutoff_ns": 1743465600000000000,
+        "fit_allowed": true,
+        "fold_id": 2,
+        "prefix_parent_rows": 64890,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_2.json",
+          "sha256": "ac498e13c9f653de8c470e98810697c8ff097bccdd7e3332451e9b4b569fd1b3"
+        }
+      },
+      {
+        "blocker_count": 0,
+        "cutoff_ns": 1751328000000000000,
+        "fit_allowed": true,
+        "fold_id": 3,
+        "prefix_parent_rows": 82427,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_3.json",
+          "sha256": "9b121ec893fa1d5ce97ec2001cf557fb4e1c7781e08b712c701cecc2b5f2eb2e"
+        }
+      },
+      {
+        "blocker_count": 0,
+        "cutoff_ns": 1759276800000000000,
+        "fit_allowed": true,
+        "fold_id": 4,
+        "prefix_parent_rows": 100499,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_4.json",
+          "sha256": "92bca6b2b4eab51901be6acdd33fe8f473b7ae456ec7b5f20e6503e844f8a5e2"
+        }
+      }
+    ],
+    "prefit_parities": [
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIT_PARITY_0.json",
+        "sha256": "cbd6fedeb5ae905437c6f6c44afd018e70813ece1be938574aa2aafd3ae8a3c7"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIT_PARITY_1.json",
+        "sha256": "e9c7a3f18093e8bb0d145c4c3f0275dafeb2264945e79deba78bdda6bb805e8d"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIT_PARITY_2.json",
+        "sha256": "6fc72ef5e34abd6094c91df5380747b1cd609f51710e49e4c10e31542aea2fb1"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIT_PARITY_3.json",
+        "sha256": "ef41479e297f311323d9b246678543efc180828438b99be3e504a349bfb3ee50"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIT_PARITY_4.json",
+        "sha256": "8b8e602666167e3eb7d232e5685d81fcd647ea50321edb1cbaf2d08bfb175d91"
+      }
+    ],
+    "normalizations": [
+      {
+        "base_normalization_sha256": "608b093ad300c19bfaed964b8525d781eeeb08a456f5a307ffe034c9a5e46f99",
+        "combined_contract_sha256": "564287a4a4cc21684100efa76d106cbb226254d1d6eaa6ad3d50ca6bd39b2d12",
+        "cutoff_ns": 1735689600000000000,
+        "fold_id": 1,
+        "fresh_support_report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_1.json",
+          "sha256": "20a2d770b44e9d58087ff82774dddb74a5f19d91ba0c3df3c94f26de677c479f"
+        },
+        "gc_layout_sha256": "b67b9b94b78b4cf933c23e6738666911cd2c262ae3ab696448d42571e13bec6f",
+        "gc_normalization_sha256": "7eba83508b1e73bad4c428d3263885dc7c268764c4dc7df1059d552759ae35ee",
+        "original_support_report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFIX_SUPPORT_1.json",
+          "sha256": "9218ad4662ae2c20c9954a9d8464ae703db8a3d461a10e31a90d7bfdc3d7b038"
+        },
+        "output": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+          "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+        },
+        "prefix_parent_rows": 47602
+      },
+      {
+        "base_normalization_sha256": "c2719c355b750adb876dd5bb5fe54d2f800bd3e20e8cb423ddfb5334f8b3407c",
+        "combined_contract_sha256": "9ab96954ff77480e92eddaf0e11eececc737dec77707e834cdcefd5cbc9351cc",
+        "cutoff_ns": 1743465600000000000,
+        "fold_id": 2,
+        "fresh_support_report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_2.json",
+          "sha256": "ac498e13c9f653de8c470e98810697c8ff097bccdd7e3332451e9b4b569fd1b3"
+        },
+        "gc_layout_sha256": "b67b9b94b78b4cf933c23e6738666911cd2c262ae3ab696448d42571e13bec6f",
+        "gc_normalization_sha256": "7986c346fd429f74bf2f00753ee324dd691d4e22d0397ae484c16fa6531240cf",
+        "original_support_report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFIX_SUPPORT_2.json",
+          "sha256": "aeb157519ef7d6ae9d914b725f2209efe8bef41fca686319ea1b88aad6977da9"
+        },
+        "output": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_2.json",
+          "sha256": "03ddefd543e748d115cdeca7e44b46d47b346e3be781e4d6707ef86618fe0377"
+        },
+        "prefix_parent_rows": 64890
+      },
+      {
+        "base_normalization_sha256": "fb2ccdd504aac167fed128aa86c0e527161a1fe726a45c7d5cc85f7746268f27",
+        "combined_contract_sha256": "b27500f0d8bd4f76727e8a7bccf3485095773eb6916bcef40cb75327a2f09a07",
+        "cutoff_ns": 1751328000000000000,
+        "fold_id": 3,
+        "fresh_support_report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_3.json",
+          "sha256": "9b121ec893fa1d5ce97ec2001cf557fb4e1c7781e08b712c701cecc2b5f2eb2e"
+        },
+        "gc_layout_sha256": "b67b9b94b78b4cf933c23e6738666911cd2c262ae3ab696448d42571e13bec6f",
+        "gc_normalization_sha256": "d9556a524eda9b3cebe9bf3acf912ab0bf0ebe81c9dfb7de4b29805f11a613fb",
+        "original_support_report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFIX_SUPPORT_3.json",
+          "sha256": "38a8c5e159edfed41f6f4d1db1f2a64302f8b4d0f0d1c76cd750cc37d5d7cb76"
+        },
+        "output": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_3.json",
+          "sha256": "7dba8aa67c19740407d5ca4afa510902bfe513818be62e6e1fbe42b2ce7663e3"
+        },
+        "prefix_parent_rows": 82427
+      },
+      {
+        "base_normalization_sha256": "b7ae5b3853e3736ac8c9cb09d6b66350a12266128cdd2b1781ebf0a3ce5b2542",
+        "combined_contract_sha256": "4690e31b0ef8b4a296fc3bdfd10efcf959cc84e727f909773b15014bdb4977d6",
+        "cutoff_ns": 1759276800000000000,
+        "fold_id": 4,
+        "fresh_support_report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_4.json",
+          "sha256": "92bca6b2b4eab51901be6acdd33fe8f473b7ae456ec7b5f20e6503e844f8a5e2"
+        },
+        "gc_layout_sha256": "b67b9b94b78b4cf933c23e6738666911cd2c262ae3ab696448d42571e13bec6f",
+        "gc_normalization_sha256": "5a40bffc6f456b3db69df8d6255f1b797e3326bb849bb44a21aa52e609115fcc",
+        "original_support_report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFIX_SUPPORT_4.json",
+          "sha256": "7e2e45ebec1d6e15bdae92262b1f741176a44aef161c968a63f3141db77c46a8"
+        },
+        "output": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_4.json",
+          "sha256": "6582d046ab65c9cc1039e841cab8bbed04c350dc90701de74382084d87d664f6"
+        },
+        "prefix_parent_rows": 100499
+      }
+    ],
+    "current_gc_layout": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/CURRENT_GC_LAYOUT.json",
+      "sha256": "c0cdc60447ceb303ebdcdc790716789585fb32c0c30918f5d58d030ad6baffde"
+    },
+    "raw_domain_transition": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/RAW_DOMAIN_TRANSITION.json",
+      "sha256": "98bc67279431199725ff64630dcce0687e6b0908bef0595724b8e861a7306a00"
+    },
+    "elapsed_seconds": 1146.087641062004,
+    "source_unchanged_at_terminal": true,
+    "actual_peer_pending": false,
+    "actual_qualification_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/ACTUAL_QUALIFICATION_REVIEW.json",
+      "sha256": "8b3e0b953e6e760e787f51e44bb8c701dd22e8e06ee2d7f934f50f86f5cf84c4"
+    },
+    "physical_raw_domains_qualified": true,
+    "prefix_normalization_contracts_qualified": true,
+    "native_model_qualified": false,
+    "predictive_value_qualified": false
+  },
+  "dynamic_m5_direction_native_feature_view_268": {
+    "status": "ONCE_SYNTHETIC_TEST_ADMITTED_SOURCE_AND_PEERS_PASS",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/DESIGN.json",
+      "sha256": "b6137436cd1b0b7f7aba456874cd35808a58498dbe3551fbe97c1b46308bb24d"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": [
+      "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+      "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_feature_view_v1.py"
+    ],
+    "file_ownership": {
+      "/root/learning_audit": [
+        "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+        "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_feature_view_v1.py"
+      ]
+    },
+    "integrator": "/root",
+    "execution_authorized": true,
+    "synthetic_test_execution_authorized": true,
+    "data_reads_authorized": false,
+    "normalization_fit_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "test_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/TEST_PLAN.json",
+      "sha256": "76c53d599d9ed61ca9be36340e7935e312e4e2c548ea2fd9165e821bc676d65d"
+    },
+    "test_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_FEATURE_VIEW_20261024_268/TEST_SOURCE_REVIEW.json",
+      "sha256": "abbfb86f76082a51fb176b41190dfd9deb221ff6fe7f6043160d0484d69ec2d1"
+    },
+    "test_max_invocations": 1,
+    "test_claimed_invocations": 0,
+    "test_completed_invocations": 0,
+    "test_status": "ONCE_ADMITTED",
+    "test_budget": {
+      "max_wall_seconds": 600,
+      "memory_max": 4294967296,
+      "swap": 536870912,
+      "pids": 64,
+      "numerical_threads": 1,
+      "max_invocations": 1
+    },
+    "test_expected_cases": 18,
+    "relaunch_allowed": false
   }
 }
