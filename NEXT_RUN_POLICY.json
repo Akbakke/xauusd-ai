@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Prepareminimal259worker reusingqualified249/256helpers; independent source-only review and focusedAST/metadata/guards before newoncecappedfit admission.",
+  "next_action": "Launch259 exactly once through existing4GiB/512MiB/64pids/one-thread capped runner; freeze all source and policy until terminal. Then close gates and review actual evidence.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
