@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T05:48:29.669944+00:00",
-  "status": "FEATURE_VALUE236_CLOSED_DIRECTION_UNQUALIFIED_237_SOURCE_ONLY_DESIGN",
+  "observed_utc": "2026-10-24T06:04:44.651388+00:00",
+  "status": "USER_DIRECTION_ONLY_OBJECTIVE_238_SOURCE_METADATA_DESIGN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Source/metadata-only237 design: reuse existing early-path semantics and determine minimal target projection plus side-common/directional decomposition. No payloads, target materialization, fit, native launch or automatic model selection.",
+  "next_action": "Direction only: qualify existing terminal direction labels versus actual price direction, reuse a minimal fixed causal feature/learner baseline, and preregister chronological probability/direction evaluation. Defer MFE/MAE/trade/risk; no data/fit/native run admitted yet.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -214,8 +214,8 @@
     "fixed_family_direction_qualified": false
   },
   "current_work": {
-    "operator_request": "23.10 user goal: deeply investigate actual features for better M5 Entry LONG/SHORT/FLAT forecasts and directional edge.",
-    "current_activity": "237_EARLY_PATH_FEATURE_INFORMATION_SOURCE_METADATA_DESIGN_ONLY",
+    "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
+    "current_activity": "238_DIRECTION_ONLY_FEATURE_SOURCE_METADATA_DESIGN",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -237,7 +237,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_EARLY_PATH_FEATURE_INFORMATION_DESIGN_20261024_237",
+    "current_research_id": "NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -268,7 +268,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "236 closed: no stable fixed snapshot family direction/selection benefit. Original first-MFE/pre-MAE feature information and full temporal/nonlinear utility remain unqualified; design first, no further fit admitted.",
+    "current_blocker": "No stable directional feature value qualified. Check direction label semantics and smallest fixed causal classification/temporal witness before further fits. MFE/preMAE target job is superseded before execution.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17287,6 +17287,15 @@
     "latest_direction_decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_DIRECTION_COMPARISON_20261024_233/DECISION.json",
       "sha256": "e45f099cb7103cb66d45dedcda5616568c327a64c1e16075884e75fbd30bbb1a"
+    },
+    "direction_only_goal": {
+      "status": "ACTIVE_NOT_ACHIEVED",
+      "operator_request": "Et mål: retningen. Så tar vi selve trades i2.omgang.",
+      "observed_utc": "2026-10-24T06:04:44.651388+00:00",
+      "objective": "Forutsi senere prisretning LONG/SHORT med kalibrert sannsynlighet på M5-beslutninger, med samme genuine kausale features/TF. Dokumenter gevinst mot enkle retningsreferanser og prefix-only fit i kronologisk evaluering. Trades/risiko/Exit/MFE/MAE er utsatt.",
+      "phase_2_trade_design_authorized_now": false,
+      "better_direction_qualified": false,
+      "profitability_claimed": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -19851,7 +19860,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-24T05:48:29.669944+00:00",
+  "updated_utc": "2026-10-24T06:04:44.651388+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -28934,14 +28943,14 @@
     "followup_heuristic_met_families": 0
   },
   "dynamic_m5_early_path_feature_information_design_237": {
-    "status": "SOURCE_METADATA_DESIGN_ONLY_NO_DATA_OR_FIT",
+    "status": "SOURCE_REVIEWS_COMPLETE_SUPERSEDED_BEFORE_DATA_BY_USER_DIRECTION_ONLY",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_PATH_FEATURE_INFORMATION_DESIGN_20261024_237",
     "predecessor_decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_SOURCE_COMPAT_REPAIR_20261024_236/DECISION.json",
       "sha256": "3090986e0227914e81e7b66e776012af69603afd8ff19a051aa0bf2d6ca497af"
     },
-    "source_reads_authorized": true,
-    "metadata_reads_authorized": true,
+    "source_reads_authorized": false,
+    "metadata_reads_authorized": false,
     "source_edits_authorized": false,
     "data_reads_authorized": false,
     "target_materialization_authorized": false,
@@ -28968,6 +28977,48 @@
       ],
       "learning_audit": [
         "TARGET_EVALUATION_SOURCE_REVIEW.json"
+      ]
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_PATH_FEATURE_INFORMATION_DESIGN_20261024_237/DECISION.json",
+      "sha256": "fdc1914040c0692ea1ffd275f4fb371dbb75bf051e6bf947a20cb18e7c5b7ddb"
+    }
+  },
+  "dynamic_m5_direction_only_feature_design_238": {
+    "status": "SOURCE_METADATA_ONLY_DIRECTION_LABEL_AND_FIXED_CLASSIFIER_DESIGN",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238",
+    "predecessor_scope_decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_PATH_FEATURE_INFORMATION_DESIGN_20261024_237/DECISION.json",
+      "sha256": "fdc1914040c0692ea1ffd275f4fb371dbb75bf051e6bf947a20cb18e7c5b7ddb"
+    },
+    "source_reads_authorized": true,
+    "metadata_reads_authorized": true,
+    "source_edits_authorized": false,
+    "data_reads_authorized": false,
+    "target_materialization_authorized": false,
+    "fits_authorized": false,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "scope": "Price direction first. Verify existing198 terminal contrast/cost semantics before calling it price direction; reuse current qualified assets/learners. Consider only one fixed prospective causal feature representation, evaluate probabilities and signs on later TRAIN folds with baselines, no HPO/family sweep/action/threshold search.",
+    "file_ownership": {
+      "root": [
+        "DESIGN.json",
+        "TERMINAL.json",
+        "NEXT_RUN_POLICY.json",
+        "CURRENT_HANDOVER.md"
+      ],
+      "research_audit": [
+        "DIRECTION_LABEL_SOURCE_REVIEW.json"
+      ],
+      "feature_audit": [
+        "DIRECTION_FEATURE_SOURCE_REVIEW.json"
+      ],
+      "learning_audit": [
+        "DIRECTION_LEARNER_SOURCE_REVIEW.json"
       ]
     }
   }

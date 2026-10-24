@@ -6,9 +6,11 @@ Root er integrator. Én capped CURRENT-jobb, fryst kilde/policy under kjøring.
 
 ## Aktivt mål og målt mangel
 
-Brukerens nye mål23.10 er bedre M5 Entry-prognoser/retningsedge LONG/SHORT/FLAT,
-med liten MAE før første MFE og kvalitet sammen med dekning. Målet er aktivt.
-Teknisk konsum, TRAIN-fit, senere generalisering og økonomisk edge er egne bevis.
+Bruker spisset målet24.10: **prisretning først**. M5-beslutninger skal gi
+bedre LONG/SHORT-prognoser med etterprøvbar sannsynlighet og kvalitet.
+Selve trades, MFE/MAE-optimering, risiko og Exit utsettes til neste omgang.
+Målet er aktivt og ikke oppnådd. Teknisk konsum og TRAIN-fit er egne bevis;
+kronologisk retningsgevinst, senere generalisering og handelsøkonomi er ikke vist.
 
 216 fant1205 GC-verdier og1205 masker på96 lokale M5-rader/currentcontext.
 Native MTF-vinduene16/64/96/96/252 har0 GC-felt i både full253 og kompakt139.
@@ -92,7 +94,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:236 avsluttet;237 er kun kilde- og metadatadesign
+## Nå:238 retning alene;237 avsluttet før datajobb
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -218,15 +220,19 @@ Valgt dekning er10,41–22,74%, fortegnst treff48,38–51,30% og netto
 Dette er faste, overlappende prognosehorisonter med originale kostnader,
 ikke realisert handelsøkonomi eller en generell dom over modellens historikk.
 
-237 skal bare avklare minste gjenbrukbare projeksjon av eksisterende
-TRAIN-fasit: signert MFE og pre-MAE lower/upper ved1/5/15 minutter,
-begge sider og endpointtyper, med uendret hel-horisont-modning og masker.
-198 har bare terminalfasit; native batchkonverterer krever alle480 horisonter.
-Sidefelles komponent og LONG–SHORT-kontrast skal skilles i evalueringen,
-slik at bedre anslag for bevegelsesstørrelse ikke tolkes som bedre retning.
-Ingen ny loss, MFE−MAE-handelsfasit, kostnad ved toppen eller handling utledes.
-Root eier design/policy; tre avgrensede kildepeers har egne reviewfiler.
-Ingen payload, målmaterialisering, ny normalisering eller predictorfit er innrømmet.
+237 avsluttes før målmaterialisering eller kodeendring etter brukerens nye
+prioritering. Tre uforanderlige kilde-/metadatapeers er bevart;0payload/fit/F/U.
+Ingen MFE/preMAE-cache eller ny normalisering ble startet.237 gjenåpnes ikke
+automatisk. Dets lille prisfrie temporalalternativ kan eventuelt gjenbrukes
+etter ny kvalifikasjon, men dette gir ingen retnings- eller fitautoritet.
+
+238 er kun kilde-/metadatadesign for retning. Først kontrolleres om198s
+terminalkontrast er identisk med prisretning eller påvirkes av sidevise
+finansieringskostnader/F32-avrunding. Deretter låses én enkel, kausal
+feature-/klassifikasjonsreferanse og kronologiske sannsynlighets-/retningstester.
+Gjenbruk eksisterende eiere og data; ingen ny familiejakt, HPO eller terskeljakt.
+Ingen payload, ny target-cache, fit eller nativekjøring er innrømmet nå.
+Root eier integrasjon/policy; tre avgrensede kildepeers har egne reviewfiler.
 
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
@@ -252,7 +258,7 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
 training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235/236 er consumed.
-236s faktiske resultatreview er ferdig.237 er kun kilde-/metadatadesign;
-ingen ny datajobb, fit, trening eller relaunch.
+236s faktiske resultatreview er ferdig.237 er superseded før data;238 er bare
+kilde-/metadatadesign for retning. Ingen ny datajobb, fit, trening eller relaunch.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
