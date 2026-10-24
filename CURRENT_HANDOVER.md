@@ -404,13 +404,39 @@ kildeendring; genuine4privateupdates/resume førchronologicalfit. Privatevekter
 brukesikke til hovedfit. 269s15minsupervisedgradient erfortsattukvalifisert.
 Ingen nye gater/sourceedits ellerfit erinnrømmet. NEXT_RUN_POLICY binderalle refs.
 
-## Aktuelt272 — minste kanoniske forskningsrute
+## Fullført272 — kanonisk researchrute,70syntetiskePASS
 
-Kildeendring er bundet i policy272/DESIGN med avgrenset fileierskap. Den gamle
-campaign-/windowvalideringen krever fleroppgave-recipe/TD/sampler/session før
-ren260retning slipper til. Ny strict researchvariant bruker samme nativewindow-
-module/capped/CUDA/signedhardware-/freshbootkjede, uten gamle fase-/targetalias.
-Kilde er gjennomgått av root og to avgrensede peers. Én ny70case syntetisk
-jobb er bundet i TEST_PLAN; data-/modell-/update-/fitgater er false. Først fryst
-ren Git/policy og påkrevde hooks, deretter én cappedCPU-kjøring.
-270/271s beståtte state/recipe gjenbrukes uendret. Målet er fortsatt ikke oppnådd.
+Den gamle nativecampaignen krevde fleroppgave-recipe/TD/sampler/session før
+pure260. Ny strict researchvariant går via samme nativewindowtarget, eksisterende
+capped/CUDA/projectlock/cgroup/signedhardware/freshWindowsboot. Hardwareverdier
+er identiske; B2/4privateupdates er avgrenset til researchkind. Ingen gamle
+phase-/TD-/EMA-/produksjonsstatealias. Metadataimport er stdlib-only.
+
+Egen runner gjenbruker267fysiskprovider,268featureview,260BCE og270state/recipe.
+Fire forhåndsvalgte unike foreldre47595..47598 har kildebegrunnet15mintidsmargin;
+alle3h må haeligiblefasit ogalle25GCgrupper støtte førconstructor,ellersstopp
+utenbatchsøk. Tre ferske egneCUDAinitialer skal matche. To updates mot1+lagring+
+ferskrestore+1 er fire faktiske privateupdates; allebuffers/optimizer/RNG/modus/
+radorden/cursor skal matche. Tre stagedstrictloads kommer før publisering og
+én ekstra faktiskresumeload etterpå. Ingen kvalifiseringsvekt får brukes i fit.
+Dette beskriver kvalifisert kilde; ekteGPU-målingen er IKKE utført.
+
+Én jobb på fryst2f2355f7/policy9495935a er COMPLETE/consumed:70PASS/0fail/error/
+skip,4.727463s,command0/exit0/ingen timeout,kilde/policy/metadatabokender uendret.
+52nye cases (31campaign/8readiness/13runner) og18eksisterende (7campaign/
+3windowscope/8readiness). Påkrevde hooks10guards+61native bestod. Cap4GiB/
+512MiB/64pids/éntråd/lås bekreftet. ParentPythonaudit har0forbudteåpningsforsøk;
+det er ikke en global subprocess-/I/O-profiler. Ingen profilerte globale
+modellkalltall påstås. Gyldig270numericalrecipe B2/max_updates2 er materialisert.
+
+Root+researchactualpeer:53pins (45Git+8runtime),3metarefs,allekryssrefs/JUnit/
+segl/caps avstemt. Fire outputfiler ble låst0444 etterterminal med identiske
+bytes; ARTIFACT_FINALIZATION bevarer denne konkrete stat-rettelsen. Alle
+originalreceipts bevares. PLAN/TEST_TERMINAL/ACTUAL_QUALIFICATION_REVIEW ogrefs
+står i policy272. Alle272gater erfalse/claimed=completed1;ingenrelansering.
+
+Neste nødvendige steg er ny eksplisitt kanoniskGPU-admisjon for genuine4U/
+resume med eksisterende maskinvare-/freshbootvakter. Deretter fastkronologisk
+pure-directionfit mot identiske referanser. Ingen genuineGPU/resume/15min-
+update eller bedre prognose er kvalifisert av272. TEST/CONTROL/Exit/trades/
+trening erlukket. Retningsmålet eraktivt ogikkeoppnådd.
