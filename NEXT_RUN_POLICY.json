@@ -46,7 +46,7 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-24T18:22:47.529053+00:00",
   "status": "DIRECTION_NATIVE_SEQUENCE_COMPONENT_TESTED_NATIVE_PREFIX_INPUTS_REQUIRED",
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
@@ -17242,7 +17242,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "NONE__272_CONSUMED70_SYNTHETIC_PASS__ALL_EXECUTION_AND_TRAINING_GATES_CLOSED",
+    "current_training_scope": "273_ONLY_PRIVATE4U_RESUME__CANONICAL_CAMPAIGN_FRESH_BOOT_AND_HARDWARE_REQUIRED__NO_FIT",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17306,7 +17306,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Bind a new exact privateGPU4U/resume recipe and canonical campaign using272qualified transport/270state/267prefix inputs; revalidate physicalWindowsboot and hardware/source. No oldplan relaunch or qualificationweightsmainfit. Fixed chronological pure-direction fit follows actual qualification.",
+      "next_step": "273onecanonicalprivateGPU4U/resume, no qualificationweightsreuse; fixedchronologicalpure-directionfit only after actual qualification and newscope.",
       "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed."
     },
     "latest_direction_terminal": {
@@ -30876,7 +30876,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -32467,5 +32467,62 @@
     "canonical_research_route_source_and_synthetic_qualified": true,
     "genuine_native_training_or_resume_qualified": false,
     "predictive_value_qualified": false
+  },
+  "dynamic_m5_direction_canonical_private_gpu_resume_273": {
+    "status": "EXACT_PRIVATE4U_RECIPE_ADMITTED_PENDING_CAMPAIGN_BOOT_AND_GUARDS",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_PRIVATE_GPU_RESUME_20261024_273/RUNTIME",
+    "evidence_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_PRIVATE_GPU_RESUME_20261024_273",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_PRIVATE_GPU_RESUME_20261024_273/DESIGN.json",
+      "sha256": "a57b409f68917e60069359178d0a621bd9f237aa22f414d7df3410a26e8011a5"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_PRIVATE_GPU_RESUME_20261024_273/RECIPE.json",
+      "sha256": "0da2d84c7f80b38d43b9d4af3adf5b7be1fee528b400b8d3154fa4e3d077330e"
+    },
+    "input_manifest": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_PRIVATE_GPU_RESUME_20261024_273/INPUT_MANIFEST.json",
+      "sha256": "ba8d45c15ecc6a5409643e365d3e070acf08fcabeb46f4ae8619390318da4d5e"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_PRIVATE_GPU_RESUME_20261024_273/RECIPE_SOURCE_REVIEW.json",
+      "sha256": "7575bebd9149e6c90432ea086dbd145143622d8013a3151eee2fed2532d6f0af"
+    },
+    "owner_idle_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_PRIVATE_GPU_RESUME_20261024_273/OWNER_MACHINE_IDLE_REVIEW.json",
+      "sha256": "0a7c900026f4520300ed96c0cc24d849e79870b00320bd39a97f526d1509cfcc"
+    },
+    "materializer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_PRIVATE_GPU_RESUME_20261024_273/materialize_research_campaign_once.py",
+      "sha256": "5eb46f6e97b0886fbb9adf9d83f77bde75fa0de88934f9961da3bf5e6b9fdb55"
+    },
+    "campaign_preparation_authorized": true,
+    "boot_preparation_authorized": true,
+    "source_edits_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "main_fit_weights_reusable": false,
+    "max_private_updates": 4,
+    "max_model_constructions": 3,
+    "max_forwards": 4,
+    "max_backwards": 4,
+    "full_epoch_training_allowed": false
   }
 }

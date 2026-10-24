@@ -20,8 +20,7 @@ fold 0 blokkert, fire senere støttet. 265 normalisering feilet på en sjelden
 D1-hendelse etter fire eksakte datapariteter; ingen komplett normalisering
 eller modell ble publisert. 266 er COMPLETE/consumed:115syntetiske cases består, actual receipt-peer PASS.
 267 er COMPLETE/consumed og actualartefakt-peer PASS: fem ferske råpariteter og
-fire genuine prefixnormaliseringer. Alle execution/data/normaliserings-/modell-
-og treningsgater er false. 268 har18syntetiskePASS/actualpeerPASS. 269 er
+fire genuine prefixnormaliseringer. 267/268/269 er lukket;273 har kun betinget4U-kvalifikasjon, aldri hovedfit. 268 har18syntetiskePASS/actualpeerPASS. 269 er
 COMPLETE/consumed: ferskconstructor,2evalF/1B/0U ogGCgradienter påallefemTF
 består; actualreceiptpeer PASS. Ingen ny retningsprognose er målt. TEST, CONTROL,
 Exit og trades er lukket. Root eier policy og launch.
@@ -440,3 +439,19 @@ resume med eksisterende maskinvare-/freshbootvakter. Deretter fastkronologisk
 pure-directionfit mot identiske referanser. Ingen genuineGPU/resume/15min-
 update eller bedre prognose er kvalifisert av272. TEST/CONTROL/Exit/trades/
 trening erlukket. Retningsmålet eraktivt ogikkeoppnådd.
+
+## Aktuelt273 — ekte privatGPU/resume, ingen hovedfit
+
+Eksakt47pin recipe/inputmanifest og egne0U-CUDAinitialer er bundet.272/271/267
+gjenbrukes. Root+feature kilde-/metadata-peer PASS; faktisk støtte/gradient/
+resume gjenstår. Én ny kanoniskcampaign med fire privateupdates (2mot1+restore+1),
+20G/512M/128tasks/8tråder, eksisterende signedhardware, lås og freshWindowsboot.
+Ingen gammel plan relanseres, ingen privatevekter i hovedfit.
+
+training_enabled/native_training_enabled=true gjelder kun273s eksakte
+private4U. full_epoch=false og predictorfit/CONTROL/TEST/Exit/trades erfalse.
+Campaignmaterialisering, freshwholehostidle/stagedhash/160Widlekeeper, install/
+prepare-reboot/beskyttet1200srequest/confirm/freshboot må bestås førlaunch.
+273s kjøringsbinding opprettes etter frystcommit. Allemodell-/databytes beholdes.
+Det ble ikke målt annet enn idle/prosess-/metadata i denne forberedelsen.
+Målet eraktivt; godeprognoser erikke kvalifisert. Root eier launch og policy.
