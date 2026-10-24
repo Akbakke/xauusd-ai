@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-24T10:56:12.528437+00:00",
-  "status": "DIRECTION_PREVIOUS_RETURN_ONCE_CAPPED_CPU_REFERENCE_ADMITTED_NOT_STARTED",
+  "status": "DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_ONCE_CPU_REFERENCE_ADMITTED_NOT_STARTED",
   "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Commit clean source/policy; launch255 once via existing cap4GiB/512MiB/64pids/1thread/1800+10s. Freeze source/policy toterminal, then closegates and reviewactual outputs. No relaunch/refit/HPO/native/TEST.",
+  "next_action": "Commit clean source/policy, launch256 once via cap4GiB/512MiB/64pids/1thread/1800+10s; freeze toterminal then closegates/actualreview. No old255relaunch or parameter change.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -220,7 +220,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "255 external source/PLAN reviewed by input/resource/scoring peers and root,24helpersASTidentical. New once-only capped CPU TRAIN-OOF reference admitted; not started.",
+    "current_activity": "256 minimal bound assertion repair source review PASS. New once-only capped CPU TRAIN-OOF fit admitted, notstarted;255 consumed immutable withzero genuinefits.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -249,13 +249,13 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTION_SELECTED_ENTRY_FEATURE_VALUE_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "252 fixed CPU nonlinear direction reference, not native training or economic evidence",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252",
+    "latest_terminal_role": "255 consumed prefit endpoint-bound guard failure;0 genuinefit/encode, no new directional evidence",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/TERMINAL.json",
-      "sha256": "5b68dcea6b668704aa62dc38931e4125044a759a71cb6857b584045c57b56d0c"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/TERMINAL.json",
+      "sha256": "362730ee42616fcdce64883ff136016f181fb175854a8d7e16adf61145b527ab"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -273,7 +273,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Later direction edge absent; exactpreviousret1 incremental value and actuallagcoverage remain unmeasured. Technical/source PASS is no learning/edge claim.",
+    "current_blocker": "Previousret1 incremental directionvalue and actualcoverage remain unmeasured; fixedcontrols reject stableedge sofar.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7744,7 +7744,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Commit clean source/policy; launch255 once via existing cap4GiB/512MiB/64pids/1thread/1800+10s. Freeze source/policy toterminal, then closegates and reviewactual outputs. No relaunch/refit/HPO/native/TEST.",
+    "next_action": "Commit clean source/policy, launch256 once via cap4GiB/512MiB/64pids/1thread/1800+10s; freeze toterminal then closegates/actualreview. No old255relaunch or parameter change.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17237,7 +17237,7 @@
       "sha256": "1117375d003551002bc3464db3f4342faa842584c2b90a0f92358b2e450beb19"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Only255:15fixedCPUExtraTrees/480trees/fiveprefixes, full3345+exactpreviousret1/presence, same245targets/210norms; no native/R1/252refit/CONTROL/TEST/Exit/trades.",
+    "current_training_scope": "Only256: same254 fixed15CPUforests/480trees with full3345+onepastret1/presence.255hadzero genuinefits; configured-window containment repair only. No new normalizer/R1/252refit/native/CONTROL/TEST/Exit/trades.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -19867,7 +19867,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-24T11:18:29.082887+00:00",
+  "updated_utc": "2026-10-24T11:30:27.179574+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -20508,8 +20508,172 @@
     }
   },
   "latest_terminal_receipt": {
-    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239/TERMINAL.json",
-    "sha256": "6fa245a2077f4cdbf6710f1329c67b3eedb237623f73f6457137916d311d048e"
+    "economic_edge_claimed": false,
+    "elapsed_seconds": 9.364124969994009,
+    "error": "RuntimeError:DIRECTION_PREVIOUS_RET255_FULL253_PARENT_CLOCK_PARITY",
+    "execution_binding": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/EXECUTION_BINDING.json",
+      "sha256": "bbede5b98f2baaffc1bf1bd69df4cf6e951316fa6b0cbda9e628c27f0cc47b05"
+    },
+    "exit_code": 1,
+    "finished_utc": "2026-10-24T11:19:16.913240+00:00",
+    "fold_feature_qualifications": [],
+    "global_lag_qualification": null,
+    "goal_complete": false,
+    "limits": {
+      "cgroup_path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-rc47a826373044217887fe37fa95c72ce.scope",
+      "class": "audit",
+      "cpu_affinity": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "execution_mode": "cpu_audit",
+      "lock": {
+        "lock_device": 78,
+        "lock_inode": 35,
+        "lock_path": "/run/user/1000/gx1-current-heavy-job.lock",
+        "owner_pid": 335518,
+        "owner_start_ticks": 3759834,
+        "scope": "/user.slice/user-1000.slice/user@1000.service/app.slice/run-rc47a826373044217887fe37fa95c72ce.scope"
+      },
+      "memory_high": 4294967296,
+      "memory_max": 4294967296,
+      "numerical_threads": 1,
+      "pids": 64,
+      "swap": 536870912
+    },
+    "max_rchar_bytes": 8589934592,
+    "native_launch_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/PLAN.json",
+      "sha256": "a4fbe07b5e2e7fd99bac8fe75d9b28435cf57c627659f97c1df50420fe8e8c96"
+    },
+    "process_IO_before": {
+      "cancelled_write_bytes": 0,
+      "peak_rss_bytes": 32169984,
+      "rchar": 10161789,
+      "read_bytes": 49152,
+      "syscr": 640,
+      "syscw": 3,
+      "wchar": 3641,
+      "write_bytes": 4096
+    },
+    "process_IO_final": {
+      "cancelled_write_bytes": 0,
+      "peak_rss_bytes": 739414016,
+      "rchar": 1725481523,
+      "read_bytes": 2079376192,
+      "syscr": 9204,
+      "syscw": 9,
+      "wchar": 11248,
+      "write_bytes": 12288
+    },
+    "relaunch_allowed": false,
+    "result": null,
+    "schema_version": "gx1_direction_previous_return_fixed_reference_terminal_v1",
+    "source_head": "78752b6780b7cb955575ae41fc3625019914bd6c",
+    "source_unchanged": true,
+    "status": "FAILED_NO_ADMISSION",
+    "summary": null,
+    "test_data_used": false,
+    "work_counters": {
+      "CONTROL_rows": 0,
+      "ET_FULL_252_refits": 0,
+      "R1_refits": 0,
+      "TEST_rows": 0,
+      "encoded_parent_rows": 0,
+      "encoder_parent_rows": 0,
+      "folds_completed": 0,
+      "forbidden_work": {
+        "Dataset_constructions": 0,
+        "native_backwards": 0,
+        "native_forwards": 0,
+        "native_model_constructions": 0,
+        "native_optimizer_updates": 0,
+        "source_reads": 0,
+        "unapproved_fits": 0
+      },
+      "genuine_model_roundtrip_loads": 0,
+      "global_lag_qualifications": 0,
+      "input_payloads_SHA_verified": 4,
+      "named_calls": {
+        "genuine": {
+          "accumulate_prediction": {
+            "started": 0,
+            "successful_returns": 0
+          },
+          "forest_fit": {
+            "started": 0,
+            "successful_returns": 0
+          },
+          "forest_predict": {
+            "started": 0,
+            "successful_returns": 0
+          },
+          "tree_builder": {
+            "started": 0,
+            "successful_returns": 0
+          },
+          "tree_fit": {
+            "started": 0,
+            "successful_returns": 0
+          },
+          "tree_predict": {
+            "started": 0,
+            "successful_returns": 0
+          }
+        },
+        "synthetic": {
+          "accumulate_prediction": {
+            "started": 64,
+            "successful_returns": 64
+          },
+          "forest_fit": {
+            "started": 1,
+            "successful_returns": 1
+          },
+          "forest_predict": {
+            "started": 2,
+            "successful_returns": 2
+          },
+          "tree_builder": {
+            "started": 32,
+            "successful_returns": 32
+          },
+          "tree_fit": {
+            "started": 32,
+            "successful_returns": 32
+          },
+          "tree_predict": {
+            "started": 64,
+            "successful_returns": 64
+          }
+        }
+      },
+      "native_model_forwards": 0,
+      "native_optimizer_updates": 0,
+      "normalization_fits": 0,
+      "original_OBS_reads": 0,
+      "output_model_bytes": 0,
+      "output_numpy_bytes": 0,
+      "peak_scratch_bytes": 0,
+      "prefit_fold_qualifications": 0,
+      "raw_quote_source_reads": 0,
+      "saved_genuine_models": 0,
+      "synthetic_model_roundtrip_loads": 1,
+      "synthetic_score_data_groups_passed": 7,
+      "synthetic_score_data_groups_started": 7,
+      "tree_fit_F32_C_shared_memory": {
+        "genuine": 0,
+        "synthetic": 32
+      }
+    }
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -30184,7 +30348,7 @@
     }
   },
   "dynamic_m5_direction_previous_return_reference_255": {
-    "status": "ADMITTED_ONCE_FIXED_CPU_TRAIN_OOF_PREVIOUS_RET1_NOT_STARTED",
+    "status": "FAILED_BEFORE_GENUINE_FIT_PARENT_CLOCK_HASH_GUARD_CONSUMED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_DESIGN_20261024_254/DESIGN.json",
@@ -30200,6 +30364,113 @@
       "/root/learning_audit": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/fit_previous_return_direction_guarded.py",
       "/root": "policy/PLAN/integration/launch"
     },
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "new_normalization_fit_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "budget": {
+      "CONTROL_rows": 0,
+      "ET_FULL_252_refits": 0,
+      "M1_quote_reads": 0,
+      "OOF_parent_rows": 88400,
+      "R1_refits": 0,
+      "TERM_grace_seconds": 10,
+      "TEST_rows": 0,
+      "bootstrap_replicates": 2000,
+      "bootstrap_seed": 20260911,
+      "class": "audit",
+      "encoded_parent_rows": 413667,
+      "feature_width": 3347,
+      "genuine_forest_fit_calls": 15,
+      "genuine_forest_predict_calls": 30,
+      "genuine_model_roundtrip_loads": 15,
+      "genuine_tree_fit_calls": 480,
+      "genuine_tree_predict_calls": 960,
+      "historical_lag_seconds": 300,
+      "historical_qualification_window_seconds": 60,
+      "input_payload_bytes": 1604688882,
+      "input_payloads": 4,
+      "max_block_rows": 1024,
+      "max_invocations": 1,
+      "max_model_bytes_each": 4194304,
+      "max_output_model_bytes": 67108864,
+      "max_output_numpy_bytes": 67108864,
+      "max_rchar_bytes": 8589934592,
+      "max_scratch_bytes": 2147483648,
+      "max_wall_seconds": 1800,
+      "memory_bytes": 4294967296,
+      "min_effective_blocks": 8,
+      "native_model_forwards": 0,
+      "native_optimizer_updates": 0,
+      "new_history_columns": 2,
+      "normalization_fits": 0,
+      "original_OBS_reads": 0,
+      "parent_rows": 118249,
+      "prefit_fold_qualifications": 5,
+      "raw_width": 3318,
+      "saved_genuine_models": 15,
+      "source_feature_width": 3345,
+      "swap_bytes": 536870912,
+      "synthetic_forest_fit_calls": 1,
+      "synthetic_forest_predict_calls": 2,
+      "synthetic_score_data_groups": 7,
+      "synthetic_tree_fit_calls": 32,
+      "synthetic_tree_predict_calls": 64,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "all_source_frozen_for_capped_job": false,
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/fit_previous_return_direction_guarded.py",
+      "sha256": "acfb20fcac19e022e4031d66236c6c4e2f8a1ead86270eff24dbc8806878ef6e"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/PLAN.json",
+      "sha256": "a4fbe07b5e2e7fd99bac8fe75d9b28435cf57c627659f97c1df50420fe8e8c96"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "041430404838d0273a6d87841737454235e3acd8fb4f38e078d8114bba14df09"
+    },
+    "fit_authority_scope": "Only255:15fixedCPUExtraTrees/480trees/fiveprefixes, full3345+exactpreviousret1/presence, same245targets/210norms; no native/R1/252refit/CONTROL/TEST/Exit/trades.",
+    "latest_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/TERMINAL.json",
+      "sha256": "362730ee42616fcdce64883ff136016f181fb175854a8d7e16adf61145b527ab"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/OUTER_TERMINAL.json",
+      "sha256": "7379ee147214cdc6e6828a3305a62217bfe8883c5429c8fb566caa59cce6b711"
+    }
+  },
+  "dynamic_m5_direction_previous_return_bound_repair_256": {
+    "status": "ADMITTED_ONCE_FIXED_CPU_TRAIN_OOF_BOUND_REPAIR_NOT_STARTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_20261024_256",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_DESIGN_20261024_254/DESIGN.json",
+      "sha256": "98ea95cf20dc264ddf5c829ba0e27864fc60561706b39b46df48b1cd61fbe96b"
+    },
+    "design_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_DESIGN_20261024_254/DESIGN_SOURCE_REVIEW.json",
+      "sha256": "ea2876e8c67c98b2c19ae34573089d354e1ededebf3e01971ae54a0765551b54"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_20261024_256/fit_previous_return_direction_guarded.py",
+    "file_ownership": {
+      "/root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_20261024_256/fit_previous_return_direction_guarded.py;policy/PLAN/integration/launch"
+    },
+    "observed_blocker": "255 compares configured emission_end21:55 to actual last retained21:50; all3hashes verified. Fix inclusive bounds only, no data/model change.",
     "execution_authorized": true,
     "data_reads_authorized": true,
     "new_normalization_fit_authorized": false,
@@ -30268,18 +30539,22 @@
       "threads": 1
     },
     "all_source_frozen_for_capped_job": true,
+    "source_repair": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_20261024_256/SOURCE_REPAIR.json",
+      "sha256": "51d03f060a5942ecda1b222c8d5f79d69225ea77421a837378807b0ad5a1f6e4"
+    },
     "worker": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/fit_previous_return_direction_guarded.py",
-      "sha256": "acfb20fcac19e022e4031d66236c6c4e2f8a1ead86270eff24dbc8806878ef6e"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_20261024_256/fit_previous_return_direction_guarded.py",
+      "sha256": "922e3a2db87bc93702043abbda6bf386a349dec1d7c8cc0d6a3a9b794ea9cb80"
     },
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/PLAN.json",
-      "sha256": "a4fbe07b5e2e7fd99bac8fe75d9b28435cf57c627659f97c1df50420fe8e8c96"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_20261024_256/PLAN.json",
+      "sha256": "d5008393dd7214f6edd1048aa695314776e28c9c70e9a4ae6bbfd4ab1505656e"
     },
     "source_preparation_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_REFERENCE_20261024_255/SOURCE_PREPARATION_REVIEW.json",
-      "sha256": "041430404838d0273a6d87841737454235e3acd8fb4f38e078d8114bba14df09"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_20261024_256/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "f2fba5b0cd8ef977e9a63c1cd00c5b435e9d3b0b6a8ed753f006f3e206404ff9"
     },
-    "fit_authority_scope": "Only255:15fixedCPUExtraTrees/480trees/fiveprefixes, full3345+exactpreviousret1/presence, same245targets/210norms; no native/R1/252refit/CONTROL/TEST/Exit/trades."
+    "fit_authority_scope": "Only256: same254 fixed15CPUforests/480trees with full3345+onepastret1/presence.255hadzero genuinefits; configured-window containment repair only. No new normalizer/R1/252refit/native/CONTROL/TEST/Exit/trades."
   }
 }

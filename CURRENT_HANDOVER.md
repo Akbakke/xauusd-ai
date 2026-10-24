@@ -15,10 +15,15 @@ Målet er aktivt og ikke oppnådd. TRAIN-fit, senere overføring, generalisering
 og økonomisk edge er forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 
 252 er COMPLETE/consumed og **forkastet som retningskandidat**; actualpeerPASS.
-255 er nå kildekvalifisert og innrømmet én gang som fast cappedCPU TRAIN-OOF-
-referanse, ennå ikke startet. Globaltraining=true gjelder bare disse15forestfits,
-uten ny normalisering eller kontrollrefit. Native/full_epoch/fullVAL/CONTROL/TEST/
-Exit/trades er lukket. Ingen gammel engangsplan relanseres eller justeres.
+255 er avsluttet FAILED etter9,364s før noen genuinefit/encode. Fireinputs SHA,
+begge kontrollpariteter18paneler,7scoregrupper og syntetikk1/32/2/64 bestod.
+FULL253_PARENT_CLOCK_PARITY stoppet forsøket;0genuine/encode/native/CONTROL/TEST.
+Kilde/policy var fryst78752b67, ytreterminal9,993s/exit1/sourceunchanged.
+255 er consumed og relanseres aldri. Feilen var vår wrapper: konfigurert
+kandidat-slutt21:55 er ikke siste beholdte rad21:50. Dette er rettet i ny256,
+uavhengig diffreviewPASS.256 er innrømmet én gang, ennå ikke startet. Bare
+256CPU-reference fit/data er åpnet; native/CONTROL/TEST/Exit/trades er lukket.
+Ingen ny retningsprognose er ennå produsert.
 
 ## Siste faktiske retningsmåling
 
@@ -117,15 +122,20 @@ Lagdekning/radmapping er fortsatt umålt.
 samme5prefixstats/245kohorter og faste19ExtraTreesparametre.252arkivet har begge
 frosne252/R1kontroller; ingen refit/prefixrekonstruksjon. Alle3horisonter må slå
 prior+R1+252, dag/ukeintervaller ogfoldstabilitet samt faktisk bruk avreturlaget.
-254design og255kilde/PLAN er uavhengigreviewet PASS.24IO/scorehjelpere er
-AST-identiske med252;53kodeeiere og gjeldende småmetadata er bundet. Worker
-acfb20fc/PLANa4fbe07b er immutable.255 er innrømmet én gang med4GiB/512MiB/
-64pids/éntråd/1800+10s,15forestfits/480treefits/30populasjoner/960treepredict,
-separat syntetikk1/32/2/64 og7scoregrupper. Én3345scratch og én direkte3347F32-
-populasjon; ingen annen diskmatrise. Faktisklagkart og begge kontrollpariteter
-kvalifiseres før førstefit, femfoldproofs før0/3/6/9/12fits. Root eier launch og
-policy; fryst kilde/policy til terminal, deretter gater false og actualreview.
-Ingen målbar ny forecastgevinst er ennå produsert; eksakte refs i policy255.
+254design og255kilde/PLAN varreviewet PASS;24hjelpere AST-identiske og53eiere
+bundet.255 stanset ved kontrollen som krevde siste beholdte rad lik konfigurert
+emisjons-slutt. Kildebyggeren bruker kandidatintervall og tilgjengelighetsfilter;
+faktiskbundet198rapport sier sisteentry21:50, mens konfigurert051slutt er21:55.
+Tre fulle parent-/klokkehashes skal fortsatt være eksakte; bare intervallets
+semantikk undersøkes/rettes. Originale255receipts og kode bevares immutable.
+256worker922e3a2d/PLANd5008393 er immutable og diffreviewet PASS av input-
+og ressurspeer/root. Kun inkluderende intervalgrenser og nye run/stage/feilnavn;
+alle3hashes,53eiere,19parametre, features/labels/cohort/scoring er uendret.
+Én ny cappedCPU-plan er innrømmet:4GiB/512MiB/64pids/éntråd/1800+10s,
+15forestfits/480trees/30populasjoner/960treepredict, separat syntetikk1/32/2/64
+og7scoregrupper. Ingen modell-/parameterendring eller255relansering.
+Root eier launch/policy; fryst kilde tilterminal, deretter lukking/actualreview.
+Eksakte refs står i policy255/256 og256SOURCE_REPAIR.json.
 
 ## Varige grenser
 
