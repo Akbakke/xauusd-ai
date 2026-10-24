@@ -92,7 +92,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:233 målt;234 design ferdig;235 kun kildeforberedelse
+## Nå:233 målt;235 én fast TRAIN-only CPU-referanse innrømmet
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -148,23 +148,34 @@ Ingen automatisk reaktivering avchart ellernymodellendring følger av auditen.
 Terminal/MFEearly-later oglært exp(-s)*loss+s er kildebekreftet;faktisk
 oppgave-/gradientpress er ikke målt. Ingen konkret feilrettelse er begrunnet nå.
 
-234 COMPLETE kun kilde-/metadatadesign:206rå3318/210prefixstatistikk er kausal
-for femTRAIN-folds;198s055-normaliserte featurematrise brukes ikke tilOOF.
-88400holdoutrader førmålmasker.209broen binder gammel206 ogoppdatert210layout;
-hele kontraktene er ikke byteidentiske. Behold055native uendret.
-235 er kun kildeforberedelse av61-feltsmakro+session alene ogsju kanoniske
-familie+samme-makro-armer. Eksakt alias-/indeks-/maskekart,overlapp ogU-sett
-skal bindes førpayload. Fastmean-SSEridge lambda1,1/5/15,femTRAIN-folds,
-max40fitkall/120regresjoner,ingenHPO/CONTROL-/TESTtilpasning. Låst90persentil
-fraprefix-TRAIN gir bareselektiv prognosediagnostikk;valg skjerførfremtidige
-masker,ogavståtte fårLONG/SHORT-potensialer separat,aldri hindsight-besteside.
-Allefamiliepaneler ereksplorative;ingenautomatiskvinner,nativeendringellerlaunch.
-Chart227råkoordinater(32lokale+5x39) erIKKE_MÅLT;egen sidecar kreveraktuell
-kvalifisertloader ogprefixstatistikk.GammelHTF_OWNER_CHANGED-gate svekkesikke.
-Snapshotmed énrad/TF målerikke232sfulle16/64/96/96/252ellerGC-historier.
-Ingen datajobb,fit,modellforward/updateellerproduksjonsendring erinnrømmetnå.
-Parameterstate-audit erikkestartet;parameterbevegelse alenebeviser ikkefeatureverdi
-ogkaninkludereweightdecay. Målet eraktivt ogikkeoppnådd.
+234 COMPLETE som kilde-/metadatadesign:206 rå3318 og210 prefixstatistikk kan
+gjenbrukes kausalt i fem TRAIN-folds, med88400 holdoutrader før målmasker.
+198s055-normaliserte featurematrise brukes ikke til OOF.209-broen binder gammel206
+og oppdatert210 layout; hele kontraktene er ikke byteidentiske. Native055 er uendret.
+
+235 er kildeforberedt og uavhengig gjennomgått på worker8badfd40… med35 kildeeiere.
+24 funksjoner er AST-identiske med215. Minste rettelse håndterer S uten maskpar
+med korrekte tomme int64-/bool-arrays; gammel215-helper er uendret.
+Referansen er de61 makrofeltene og session alene,
+og hver av sju kanoniske familier i union med samme makrosett. Dette er en begrenset
+makroreferanse, ikke hele den native global-context-ruten eller en modellablasjon.
+Eksakt alias-, indeks- og maskekart, overlapp og umappet U-sett bindes før payload.
+Fast mean-SSE ridge lambda1,1/5/15 minutter, fem TRAIN-folds og høyst40 fitkall/
+120 regresjoner. Ingen HPO eller CONTROL-/TEST-tilpasning. En låst90-persentil fra
+egen prefix-TRAIN gir bare selektiv prognosediagnostikk. Valg skjer før fremtidige
+masker; avståtte får LONG/SHORT-potensialer separat, aldri hindsight-beste side.
+Alle familiepaneler er eksplorative. Ingen automatisk vinner, nativeendring eller launch.
+
+Chart227 råkoordinater (32 lokale+5x39) er IKKE_MÅLT. En egen sidecar krever aktuell
+kvalifisert loader og nye prefixstatistikker. Gammel HTF_OWNER_CHANGED-gate beholdes.
+Snapshot med én rad perTF måler ikke232s fulle16/64/96/96/252 eller GC-historier.
+Én ny235 CPU-referanse er innrømmet:4GiB/512MiB,64pids,én tråd,3600+10s,
+nytt failclosed rchar-tak16GiB. Kun206TRAINraw og198TRAINtargets er payloads;
+fem210-oppskrifter gjenbrukes uten refit. Høyst40/120/80 fit/regresjons/prediktorkall
+og413667 fullbaseline-kodede parentrader. Faktiske armer/kall/rader skal rapporteres.
+Kilde/policy fryses før launch. Ingen native modellforward/update eller produksjonsendring.
+Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
+og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
 
 ## Gjenbruk og ubeviste grenser
 
@@ -186,6 +197,7 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled/full_epoch/fullVAL=false;232/233/234consumed og235kun kildeforberedelse.
+training_enabled=true gjelder bare den eksakte235 CPU-referansen. Full_epoch/fullVAL/
+native_launch=false;232/233/234 er consumed. Ingen annen trening eller relaunch.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.

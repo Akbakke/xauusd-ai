@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T04:42:45.087533+00:00",
-  "status": "FEATURE_VALUE234_DESIGN_COMPLETE_235_SOURCE_PREPARATION_ONLY",
-  "training_enabled": false,
+  "observed_utc": "2026-10-24T05:01:05.356125+00:00",
+  "status": "FEATURE_VALUE235_FIXED_TRAIN_ONLY_FAMILY_REFERENCE_ADMITTED_ONCE",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Prepare one exact235 TRAIN-only family+macro snapshot worker, coordinate map and resource plan; peer review and bind before any data/fit execution. No native launch or automatic family selection.",
+  "next_action": "Run exactly one235 capped CPU reference on frozen source/policy; review actual terminal/results and consume. No native launch, model/feature mutation, extrafit or automatic family winner.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -122,8 +122,8 @@
       "direction_improvement_established": false
     },
     "latest_direction_comparison": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/DECISION.json",
-      "sha256": "6a367a6820d6cb9e5e74b8762355670c73003cbbb853dee92378ac375e2d12b4"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_DIRECTION_COMPARISON_20261024_233/DECISION.json",
+      "sha256": "e45f099cb7103cb66d45dedcda5616568c327a64c1e16075884e75fbd30bbb1a"
     },
     "latest_saved_loss_allocation": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_LOSS_ALLOCATION_DIAGNOSIS_20261022_169/SUMMARY.json",
@@ -170,23 +170,23 @@
       "sha256": "4956438fc41dc9bc4c8d14aa2b72d141fb75527e78232cbd35d0a4d486d98054"
     },
     "latest_current_function_mechanics": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_TECHNICAL_20261022_190/TERMINAL.json",
-      "sha256": "035677703cd20a183405e7c52399b2b168361acdc70a33b5b58ab4bfc27c0669"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_TECHNICAL_20261023_231/TERMINAL.json",
+      "sha256": "a9285a924886605bef861d992cc34e25681761ca0af3cfdc3be2ac10fda05289"
     },
     "current_function_private_technical_qualified": true,
     "current_function_private_technical_scope": "Actual231 native private4U/4F16paritypanels/8resumehashes PASS on227fresh+own229/230; privateweights audit-only. Mechanics, not forecast learning or launch authority.",
     "latest_current_function_main": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_SINGLE_FULL_NATIVE_EPOCH_20261023_191/TERMINAL.json",
-      "sha256": "aeee0a93564499d0b53e28acce70406e928c8fd4b7815099d5927f85d47de1fb"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_SINGLE_FULL_NATIVE_EPOCH_20261024_232/TERMINAL.json",
+      "sha256": "c77ef8f6de087c5dfa8b079db8b504afcb1c1dccba8c5a4caad18886f551d799"
     },
     "current_function_main_paired_review_pending": false,
     "latest_current_function_paired_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_DIRECTION_COMPARISON_20261023_192/ACTUAL_DIRECTION_COMPARISON_PEER_REVIEW.json",
-      "sha256": "5e310cee9367d05bc92b1a08a3b3ee4d814009f658789249720dc7433557a57e"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_DIRECTION_COMPARISON_20261024_233/ACTUAL_COMPARISON_PEER_REVIEW.json",
+      "sha256": "ba9e31edabd663462776f64f8442c6ce25db737a391bce05a240edc983212611"
     },
     "latest_feature_information_design": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_INFORMATION_DESIGN_20261023_193/DECISION.json",
-      "sha256": "32bf6b278b998c71e2067dbf0ba65e256bf52b9e4ddfef6f75cd7aeb3fed9d4b"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_DIRECTION_INFORMATION_DESIGN_20261024_234/DESIGN.json",
+      "sha256": "ae7d37769f18d74ba7118e3f64f0efd2b9a3cc41fd85e7e40fccb62b4fae8c17"
     },
     "latest_fixed_snapshot_reference": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_SIX_QUARTER_DIRECTION_REFERENCE_20261023_211/DECISION.json",
@@ -210,7 +210,7 @@
   },
   "current_work": {
     "operator_request": "23.10 user goal: deeply investigate actual features for better M5 Entry LONG/SHORT/FLAT forecasts and directional edge.",
-    "current_activity": "235_FEATURE_FAMILY_TRAIN_OOF_SOURCE_PREPARATION_ONLY",
+    "current_activity": "235_FIXED_TRAIN_ONLY_FAMILY_REFERENCE_ADMITTED_ONCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -263,7 +263,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "232/233 directional Entry gate failed.234 causal reference design complete;235 source preparation only. Exact map, worker, caps and frozen source/policy still required before any payload/fit.",
+    "current_blocker": "No proven directional Entry gain. One fixed235 TRAIN-only diagnostic is admitted; actual terminal and measured family/selection results are pending. Native training, CONTROL/TEST adaptation, economics and promotion remain closed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -19846,7 +19846,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-24T04:42:45.087533+00:00",
+  "updated_utc": "2026-10-24T05:01:05.356125+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -28750,26 +28750,64 @@
     }
   },
   "dynamic_m5_feature_family_train_oof_reference_235": {
-    "status": "SOURCE_PREPARATION_ONLY_NO_DATA_OR_FIT_ADMISSION",
+    "status": "ADMITTED_ONCE_FIXED_TRAIN_ONLY_FAMILY_REFERENCE_NO_NATIVE",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_DIRECTION_INFORMATION_DESIGN_20261024_234/DESIGN.json",
       "sha256": "ae7d37769f18d74ba7118e3f64f0efd2b9a3cc41fd85e7e40fccb62b4fae8c17"
     },
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "fits_authorized": false,
-    "genuine_reference_fit_admitted": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "fits_authorized": true,
+    "genuine_reference_fit_admitted": true,
     "native_launch_authorized": false,
-    "source_edits_authorized": true,
+    "source_edits_authorized": false,
     "source_edit_scope": "Only new external235 fixed worker/plan/orchestration, no production model/training/feature code. Root owns policy/launch; research agent owns worker; feature/learning agents read-only peers.",
-    "allowed_scope": "Implement one fixed TRAIN-only family+macro snapshot reference by reusing206 raw/198 targets/210 prefix normalization/215 ridge and statistics. No payload/import/fit/launch during source preparation. Chart/full temporal remain NOT_MEASURED.",
-    "training_enabled": false,
+    "allowed_scope": "Exactly one4GiB capped CPU audit using206TRAINraw and198TRAINtargets, five210baseline recipes, eight fixed macro/family arms, lambda1 and1/5/15, ownTRAINq90 and actualselected/abstained cost diagnostics. No new normalization, CONTROL/TEST, saved fullsnapshot/control predictions, native model or automatic family selection. No relaunch.",
+    "training_enabled": true,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235/PLAN.json",
+      "sha256": "99eb7e786452ea8658723d9011b54dfb4294845c11a56e42aafd470683d52a9a"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235/fit_family_reference_guarded.py",
+      "sha256": "8badfd4095854fe3610655e201435eb73724ffa933ae92b8e70dc55ca1287842"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "d661df637028b649c8371344c039432d8fd7d1df03a195c3a6ac423ca2f2850b"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "budget": {
+      "class": "audit",
+      "max_invocations": 1,
+      "max_wall_seconds": 3600,
+      "TERM_grace_seconds": 10,
+      "memory_bytes": 4294967296,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1,
+      "max_rchar_bytes": 17179869184,
+      "input_payloads": 2,
+      "max_fit_owner_calls": 40,
+      "max_ridge_regressions": 120,
+      "max_predictor_calls": 80,
+      "encoded_parent_rows": 413667,
+      "normalization_recipe_fits": 0,
+      "new_targets": 0,
+      "original_OBS_reads": 0,
+      "native_model_forwards": 0,
+      "optimizer_updates": 0
+    },
+    "source_frozen_during_run": true,
+    "quality_or_model_selection_authorized": false
   }
 }
