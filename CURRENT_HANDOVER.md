@@ -92,7 +92,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:233 målt;235 én fast TRAIN-only CPU-referanse innrømmet
+## Nå:235 stoppet før data;236 minste kildekompatibilitet forberedes
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -174,6 +174,19 @@ nytt failclosed rchar-tak16GiB. Kun206TRAINraw og198TRAINtargets er payloads;
 fem210-oppskrifter gjenbrukes uten refit. Høyst40/120/80 fit/regresjons/prediktorkall
 og413667 fullbaseline-kodede parentrader. Faktiske armer/kall/rader skal rapporteres.
 Kilde/policy fryses før launch. Ingen native modellforward/update eller produksjonsendring.
+235 FAILED/consumed før payload: GC_PRICE_COORDINATE_SOURCE_SHA256 avviser
+aktuelle gc_native_context-bytes i den historiske prisrelativ-kontrakten.
+Worker1,706s/ytre1,999s;0payload,0encodedrader,0fit/prediktor/F/update.
+Kilde323692bc og policy/worker var uendret. Originale kvitteringer beholdes;
+ingen relaunch og ingen konklusjon om featureinformasjon fra dette forsøket.
+236 er kun kildeforberedelse av minste rettelse: bruk204/SOURCE_MAP.json som
+allerede er bundet av206, i stedet for å bygge historisk kildekvalifikasjon på nytt.
+Hele kompilert layout må fortsatt være lik210 før payload. Samme8 armer, femfold,
+fitter, koding, mål, kostnader og budsjetter beholdes. Kun én ny metadataref kreves.
+Prisrelativ-gaten endres ikke. Faktisk kompilert layoutparitet er ennå ikke målt.
+Globaltraining/full_epoch/fullVAL/native_launch=false. Ingen datajobb eller
+produksjonsendring er innrømmet.
+
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
 
@@ -197,7 +210,7 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled=true gjelder bare den eksakte235 CPU-referansen. Full_epoch/fullVAL/
-native_launch=false;232/233/234 er consumed. Ingen annen trening eller relaunch.
+training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235 er consumed.
+Ingen annen trening eller relaunch.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.

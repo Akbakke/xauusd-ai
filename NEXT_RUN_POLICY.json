@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T05:01:05.356125+00:00",
-  "status": "FEATURE_VALUE235_FIXED_TRAIN_ONLY_FAMILY_REFERENCE_ADMITTED_ONCE",
-  "training_enabled": true,
+  "observed_utc": "2026-10-24T05:05:30.291517+00:00",
+  "status": "FEATURE_VALUE235_PREPAYLOAD_FAILURE_CONSUMED_236_SOURCE_PREPARATION_ONLY",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Run exactly one235 capped CPU reference on frozen source/policy; review actual terminal/results and consume. No native launch, model/feature mutation, extrafit or automatic family winner.",
+  "next_action": "Prepare exact236 saved-source-map reuse of235 analysis; preserve all historical guards and235 receipts; fullcompiled layout210 equality must remain before payload. No execution/data/fit yet.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -210,7 +210,7 @@
   },
   "current_work": {
     "operator_request": "23.10 user goal: deeply investigate actual features for better M5 Entry LONG/SHORT/FLAT forecasts and directional edge.",
-    "current_activity": "235_FIXED_TRAIN_ONLY_FAMILY_REFERENCE_ADMITTED_ONCE",
+    "current_activity": "236_MINIMUM_BASELINE_SOURCE_COMPATIBILITY_PREPARATION_ONLY",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -232,20 +232,20 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235",
+    "current_research_id": "NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_SOURCE_COMPAT_REPAIR_20261024_236",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTION_SELECTED_ENTRY_FEATURE_VALUE_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "233_COMPLETE_CONSUMED_GC_PACKAGE_DIRECTION_ENTRY_UNQUALIFIED",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235",
+    "latest_terminal_role": "235_FAILED_CONSUMED_ZERO_PAYLOAD_ZERO_FIT",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_SOURCE_COMPAT_REPAIR_20261024_236",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_DIRECTION_COMPARISON_20261024_233/TERMINAL.json",
-      "sha256": "b146768ae7c2915602e994f292dff37f866a68973222e5095d5de067876ac17e"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235/TERMINAL.json",
+      "sha256": "070166fe18e6d361c7dbed6d4ebba7ee57b81b375ff8a44333d9ae09bf2053c8"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -263,7 +263,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No proven directional Entry gain. One fixed235 TRAIN-only diagnostic is admitted; actual terminal and measured family/selection results are pending. Native training, CONTROL/TEST adaptation, economics and promotion remain closed.",
+    "current_blocker": "235 failed before payload due historical source builder.236 may only prepare exact saved-source-map reuse; actual compiled210 parity and family measurements remain unproved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -8863,9 +8863,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "No robust directional forecast or selected Entry improvement demonstrated by232/233.",
-      "234 must distinguish current raw snapshot feature information from unmeasured full temporal histories and parked chart fields.",
-      "Chronological generalization and economic edge remain unproved; no extra native epoch or promotion follows."
+      "Family-direction information not measured:235 read0payloads and started0fits.",
+      "Need explicit baseline-only source compatibility without weakening historical GC price contracts.",
+      "Directional Entry and economic edge remain unproved."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -15994,7 +15994,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/RUNTIME/receipts/invocation-0001.json",
       "sha256": "392c9d153ae78beea38538a33fbdee41bf5ed4efe40bcb4d2f101c8c10c80b95"
     },
-    "latest_terminal_evidence_scope": "233 actual saved GC comparison: six OBS and six pointer projections; CONTROL3/6 primary point improvements, all12 paired day/week intervals cross zero; all512 current decisions FLAT; fixedTRAIN256 direction errors worse vs owninitial at1/5/15. Source unchanged,0F/U/refits.",
+    "latest_terminal_evidence_scope": "235 stopped after1.706s before either payload, encoding, fitting or prediction. GC_PRICE_COORDINATE_SOURCE_SHA256 rejects current gc_native_context bytes in the historical price-coordinate source chain. Source/policy/worker remained frozen; this is compatibility evidence only.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -19846,7 +19846,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-24T05:01:05.356125+00:00",
+  "updated_utc": "2026-10-24T05:05:30.291517+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -28750,21 +28750,21 @@
     }
   },
   "dynamic_m5_feature_family_train_oof_reference_235": {
-    "status": "ADMITTED_ONCE_FIXED_TRAIN_ONLY_FAMILY_REFERENCE_NO_NATIVE",
+    "status": "FAILED_CONSUMED_PREPAYLOAD_GC_PRICE_SOURCE_IDENTITY_COMPATIBILITY",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_DIRECTION_INFORMATION_DESIGN_20261024_234/DESIGN.json",
       "sha256": "ae7d37769f18d74ba7118e3f64f0efd2b9a3cc41fd85e7e40fccb62b4fae8c17"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "fits_authorized": true,
-    "genuine_reference_fit_admitted": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "fits_authorized": false,
+    "genuine_reference_fit_admitted": false,
     "native_launch_authorized": false,
     "source_edits_authorized": false,
     "source_edit_scope": "Only new external235 fixed worker/plan/orchestration, no production model/training/feature code. Root owns policy/launch; research agent owns worker; feature/learning agents read-only peers.",
     "allowed_scope": "Exactly one4GiB capped CPU audit using206TRAINraw and198TRAINtargets, five210baseline recipes, eight fixed macro/family arms, lambda1 and1/5/15, ownTRAINq90 and actualselected/abstained cost diagnostics. No new normalization, CONTROL/TEST, saved fullsnapshot/control predictions, native model or automatic family selection. No relaunch.",
-    "training_enabled": true,
+    "training_enabled": false,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
     "test_data_used": false,
@@ -28784,8 +28784,8 @@
       "sha256": "d661df637028b649c8371344c039432d8fd7d1df03a195c3a6ac423ca2f2850b"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "budget": {
       "class": "audit",
       "max_invocations": 1,
@@ -28808,6 +28808,53 @@
       "optimizer_updates": 0
     },
     "source_frozen_during_run": true,
-    "quality_or_model_selection_authorized": false
+    "quality_or_model_selection_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235/TERMINAL.json",
+      "sha256": "070166fe18e6d361c7dbed6d4ebba7ee57b81b375ff8a44333d9ae09bf2053c8"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235/OUTER_TERMINAL.json",
+      "sha256": "5bb186bcc24dac98916530d5064eff4a0f58a9b86808b0b045a14bcc626ea3d7"
+    },
+    "actual_error": "RuntimeError:GC_PRICE_COORDINATE_SOURCE_SHA256:gx1/features/gc_native_context_v1.py",
+    "payloads_opened_or_SHA_verified": 0,
+    "fit_calls_started": 0,
+    "encoded_parent_rows": 0,
+    "source_unchanged": true,
+    "failure_decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235/FAILURE_DECISION.json",
+      "sha256": "af21f7b959e6eb20ce7011262de9d6c0d8752a45a37ee83c838d1393f94c126a"
+    }
+  },
+  "dynamic_m5_feature_family_train_oof_source_compat_repair_236": {
+    "status": "SOURCE_PREPARATION_ONLY_MINIMUM_BASELINE_METADATA_REUSE",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_SOURCE_COMPAT_REPAIR_20261024_236",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_DIRECTION_INFORMATION_DESIGN_20261024_234/DESIGN.json",
+      "sha256": "ae7d37769f18d74ba7118e3f64f0efd2b9a3cc41fd85e7e40fccb62b4fae8c17"
+    },
+    "parent_failure_decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_REFERENCE_20261024_235/FAILURE_DECISION.json",
+      "sha256": "af21f7b959e6eb20ce7011262de9d6c0d8752a45a37ee83c838d1393f94c126a"
+    },
+    "qualified_source_map": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/SOURCE_MAP.json",
+      "sha256": "c3dd04288d93d9d78d96ac7444db2f9ba887157142513334445eb3c75a138996"
+    },
+    "source_edits_authorized": true,
+    "source_edit_scope": "Only new236 worker copied from immutable235, exact plan/orchestration and saved-source-map input binding; no production or historical gate edits. Root owns policy/launch; research agent owns new worker.",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "fits_authorized": false,
+    "genuine_reference_fit_admitted": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false
   }
 }
