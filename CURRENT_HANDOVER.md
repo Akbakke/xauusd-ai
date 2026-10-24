@@ -15,10 +15,12 @@ ikke oppnådd. TRAIN-fit, senere overføring, generalisering og økonomisk edge
 krever forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 
 256 er COMPLETE/consumed og **forkastet som retningskandidat**. To uavhengige
-actualmetadata/stat-peers er PASS. Alle globale/lokale training/data/fit/
-executiongater er false. Ingen gammel plan relanseres eller parameterjusteres.
-257 kildefeasibility er fullført; ingen ny kode, data eller fit er innrømmet.
-Native/full_epoch/fullVAL/CONTROL/TEST/Exit/trades er lukket.
+actualmetadata/stat-peers er PASS. 258design og259kilde har tre peer-PASS.
+259 er nå innrømmet for nøyaktig én CPU-kjøring: samme239R1, tre eksplisitte
+felt og15 genuine fits. Root eier policy/PLAN/launch. Worker ogPLAN er fryst;
+alle kilder og policy forblir uendret til terminal. Global training=true gjelder
+bare denne CPU-testen. Native/full_epoch/fullVAL/CONTROL/TEST/Exit/trades er lukket.
+Ingen gammel plan relanseres. Målt prognosegevinst for259 foreligger ikke ennå.
 
 ## Siste faktiske retningsmåling
 
@@ -84,7 +86,7 @@ Eksakte terminal/resultat/actualpeer/decisionrefs står i policy256 og:
 `/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREVIOUS_RETURN_BOUND_REPAIR_20261024_256`.
 Originale receipts/checkpoints/forskningsmodeller bevares; ingen promotion.
 
-## Neste konkrete spørsmål — bare kildefeasibility257
+## Neste konkrete spørsmål —259kildepreparasjon, ingenfitadmisjon
 
 En liten direkte3kolonne-referanse kan måle additivt historiesignal med samme
 faste239R1-eier: [nåværende ret_1, eksaktD−300s ret_1, qualified_parent_present].
@@ -97,8 +99,11 @@ Prospektivt8payloads144496754B,15kandidatfits/30prediksjonspopulasjoner,
 F64trekolonnepopulasjon maksimalt2837976B. EksisterendeL2/C1/lbfgs/max500/
 tol1e−4/seed20260911, ingenklassevekter ellerparameterjakt. Ressursanslag er
 umålt og ingenadmisjon. Egen257RESULT binder eksakte refs/kildekonfigurasjon.
-Neste er å låse full input-/klokke-/kontroll-/score-/konsumbudsjettkontrakt og
-uavhengig kildekvalifikasjon før eventuell nyengangsfit. Ingen prefixkontroll-
+258 låser nå full input-/klokke-/kontroll-/score-/konsumbudsjettkontrakt:
+15fits/30populasjoner, samme3referanser/36CI/4fellesnegativefolds ogalle15
+mekaniskekonsumkrav.258designreview og259kildekvalifikasjon erPASS; én259CPU-kjøring er innrømmet.
+PLAN/worker/SOURCE_PREPARATION_REVIEW er bundet i policy. Sju syntetiske grupper
+og faktiske databevis/fit/ressurser/prognoser må bestå i selve kjøringen. Ingen prefixkontroll-
 rekonstruksjon eller naivchi²-likelihoodtest på regularisert/tidsavhengig/gjenbrukt
 utvikling. Samme-rad senere properloss ogdag/ukeusikkerhet er avgjørende.
 
