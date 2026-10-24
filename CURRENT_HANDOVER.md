@@ -18,8 +18,10 @@ krever forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 kvalifisert. 263 bestod 30 syntetiske tester. 264 målte fysisk inputstøtte:
 fold 0 blokkert, fire senere støttet. 265 normalisering feilet på en sjelden
 D1-hendelse etter fire eksakte datapariteter; ingen komplett normalisering
-eller modell ble publisert. Kun266sin syntetiske testgate er innrømmet én gang; genuine data-/fit- og
-treningsgater er false. Neste kontroll er115fokuserte syntetiske cases. TEST, CONTROL, Exit og trades er lukket. Root eier policy og launch.
+eller modell ble publisert. 266 er COMPLETE/consumed:115syntetiske cases består, actual receipt-peer PASS.
+267 har én innrømmet fysisk domene-/råparitets-/normaliseringsjobb. Kun
+execution/data/normaliseringsscope er true; alle modell-/treningsgater er false.
+TEST, CONTROL, Exit og trades er lukket. Root eier policy og launch.
 
 ## Siste faktiske retningsmåling — 259
 
@@ -215,13 +217,10 @@ hendelsen gjentas i276signal-/275kontekstverdier. Senere prefixer har2/2/3
 nonzero D1-verdier. Dette avdekker en konkret skaleringsblokkering; sweep-eventets kilde er nå bevist boolsk, mens metadata utelot deklarasjonen.
 Dette er ingen bevist forklaring på tidligere 50%prognoser.
 
-Neste steg: verifiser produsert domene, koblede hendelser og metadataeier, og
-undersøk minste korrekte rettelse uten å lempe på native skalavalidator eller
-fylle ukjent. Ingen kilder er autorisert endret ennå, bortsett fra root sin
-statusføring. Alle execution/data/normaliserings-/modellfitgater er false.
-Ny rettelse krever konkret design, fokuserte tester og nye sannferdige
-kvalifikasjons-/statkontrakter der semantikken endres. Native freshinitial,
-featureview, genuine gradienter og eksakt resume gjenstår før retningsfit.
+Dette er rettet og syntetisk kvalifisert i266. Gamle265receipts forblir
+uendret og forbrukt. Nye genuine normaliseringskontrakter er fortsatt
+ukvalifisert; native freshinitial, featureview, genuine gradienter og eksakt
+resume gjenstår før retningsfit. Ingen gamle planer skal relanseres.
 
 Målvalget er fortsatt fire opprinnelige senere folds fra første støttede
 cut2025-01-01 med alle features/masker beholdt. Første utelatte cut har51
@@ -229,33 +228,45 @@ uobserverte D1-felt, ikke samme blokkering som hendelsesskalaen. Referanser
 må sammenlignes på samme70,647foreldre, aldri firefold mot femfold-aggregater.
 TEST/Exit/trades/trening er lukket. Ingen bedre prognoser er målt; målet er aktivt.
 
-## Aktuelt 266 — kildebevist boolsk GC-domene, kun kildearbeid
+## Fullført 266 — kildebevist boolsk GC-domene
 
-265-feilen er source-/receipt-peer kontrollert. Produsenten beregner sweep-
-hendelser som bool og kopierer dem uendret. Samme produsent har11kildebeviste
-bitkolonner med strict/observed-varianter, faktisk76verdifelt på alle femTF.
-Base signal/ctx klassifiserte0av76 som binære; GC-historikk bare14retouchfelt.
+Produsenten har11kildebeviste bitkolonner med strict/observed-varianter,
+faktisk76verdifelt på femTF. Base signal/ctx klassifiserte0av76 som binære,
+GC-historikk bare14retouchfelt. De to metadata-/loader-eierne er rettet med
+049s eksakte kolonnekart; felt/verdier/masker/skalavakter er bevart.
+GC-layout/profil/normalisering får ny identitet. Streng loader avviser gammel
+223wrapper; rawbridge gjenbruker samme15GC-arrays med ny layout uten gamle
+stats eller kopier. Modell-/loss-/normalizeralgoritmer er uendret.
 
-266 retter denne avgrensede produsentfamilien, med eksakt049kolonnekart og
-alle felt, verdier, masker og skalavakter bevart. Andre lokale SMC-metadata
-får ingen utestet endring. GC-layout/profil og normalisering får ny identitet;
-gammel223wrapper skal fortsatt avvises av streng loader. En eksplisitt raw-
-bridge skal gjenbruke de15verifiserteGC-arrayene med ny layout, uten å merke
-om gamle stats eller kopiere data. Gamle264rapporter kan ikke få ny semantikk
-ved ommerking; nye rapporter må kreve identiske råverdi-/rad-/klokkehashes.
+Fryst79b4497d:115cases PASS (22boolske+24rawbridge+20history+19context+30prefix),
+0fail/error/skip,71.891s,exit0/command0/notimeout,source/metadata uendret.
+Cap4GiB/512MiB/64pids/éntråd er avstemt mot faktisk childlog. Påkrevde hooks
+bestod10guards+61nativekontrakter. Root og research_audit bekrefter receipt-
+konsistens. Ingen profilerte fit-/modellkalltall, genuine data, native modell
+eller bedre prognoser er kvalifisert. Original TEST_TERMINAL er bevart;
+OUTER_TERMINAL_TEST samler samme bevis med handoverens feltnavn.
+ACTUAL_TEST_REVIEW og alle refs står under266 i NEXT_RUN_POLICY.
 
-Fileierskap er avgrenset i266DESIGN/policy: feature_audit eier GC-metadata og
-sin nye testfil; learning_audit eier eksisterende GC-historyowner/raw-loader
-og sin nye testfil. Root eier design/policy/handover/launch. Kunénavgrenset syntetisk testjobb er nå innrømmet; genuine data-,
-normaliserings- og modellfit er false. Modell-/loss-/normalizer-
-algoritmer endres ikke. Fersk ONLINE-initial/gradient/resume gjenstår. Målet
-om bedre retning er aktivt; ingen ny prognose er målt.
+## Aktuelt 267 — én innrømmet fysisk kontroll/statistikkjobb
 
-266-kilden har root/source-peer PASS: metadata28c4235d, history82ead3da,
-nye tester7c8caaef/1a25f543 og justert gammel test1b29a05b. Kun fixturen og to
-godkjente domene-policytester ble justert;11andre testfunksjoner er AST-like.
-TEST_PLANaffd2541 binder22kildehash og049metadata. Én capped pytestjobb kjører
-femfiler:22nye binærcases,24rawbridge,20GC-historikk,19GC-kontekst og30prefix-
-cases, totalt115.600s/4GiB/512MiB/64pids/éntråd. KunJunit-/exit-/kildebokend-
-bevis hevdes; ingen profilerte fitter-/modellkalltellere eller genuine bevis.
-Root holder kilder/policy fryst gjennom både påkrevde hooks og testjobb.
+267DESIGN binder uendrede264inputbevis og dagens17kildeeiere separat.
+learning_audit eier kun ny qualify_and_fit_boolean_prefixes_guarded.py utenfor
+repo. Root eier policy/launch; research_audit gjør source-/PLAN-peer.
+Ingen kanonisk kode, nye tester eller ekstra rammeverk er bestilt.
+
+Planlagt kontroll: aktuell rawGC-loader validerer genuine0/1-domener og lager
+ny layout/transition. Alle fem prefixer kvalifiseres pånytt. Råbevis/support
+skal være eksakt264, unntatt deklarert provenance, kanoniske binary_fields og
+nye segl. Forventet214binærtillegg perrapport (76signal+76ctx+62GC), ingen
+nativeTF-endring. Blokkeringer153/0/0/0/0 og samme fit_allowed. Alle fem
+pariteter må bestå før fire prefixfits. Eksisterende fitter rekvalifiserer:
+9kvalifikasjoner/4fits/48surfacefits. Skalavakter svekkes ikke.
+
+Én eventuell ny jobb:1800s/4GiB/512MiB/64pids/éntråd/rchar128GiB/JSON48MiB,
+6readonlymmaps gjenbrukes26,534,936,912B; inputkopi/scratch0. Streng gammel
+GC-loader0, rawGC1, NPY30. Ingen labels, CONTROL, TEST, modell eller optimizer.
+Root/source-peer PASS: worker ee742161, PLAN e20ce91d,17kildehash/48statref
+og alle fem råpariteter før fit. Én onceadmisjon er gitt; kilder/policy fryses
+gjennom påkrevde hooks og jobb. Modell-/treningsgater forblirfalse. Etter
+terminal lukkes scope og faktisk resultat kontrolleres. Ingen bedre prognoser
+er målt; målet er aktivt.
