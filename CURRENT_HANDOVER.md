@@ -14,12 +14,12 @@ Trades, bevegelsesstørrelse/MFE/MAE, risiko og Exit utsettes. Målet er aktivt 
 ikke oppnådd. TRAIN-fit, senere overføring, generalisering og økonomisk edge
 krever forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 
-259 er COMPLETE/consumed og forkastet som retningskandidat. Ingen bedre
-retning er kvalifisert. 263 har bestått syntetiske mekanikktester, mens den
-fysiske 261-kontrollen feilet før første prefix. 264 er fullført og forbrukt: fire senere prefixer støttes, det første
-blokkeres av uobserverte D1-felt. Ingen modell- eller statsfit er innrømmet.
-Kun én normaliseringsjobb265 er innrømmet; modell- og treningsgater er false. Native fit, CONTROL,
-TEST, Exit og trades er lukket. Root eier launch; se 264-status nederst.
+259 er fullført og forkastet som retningskandidat. Ingen bedre retning er
+kvalifisert. 263 bestod 30 syntetiske tester. 264 målte fysisk inputstøtte:
+fold 0 blokkert, fire senere støttet. 265 normalisering feilet på en sjelden
+D1-hendelse etter fire eksakte datapariteter; ingen komplett normalisering
+eller modell ble publisert. Kun266sin syntetiske testgate er innrømmet én gang; genuine data-/fit- og
+treningsgater er false. Neste kontroll er115fokuserte syntetiske cases. TEST, CONTROL, Exit og trades er lukket. Root eier policy og launch.
 
 ## Siste faktiske retningsmåling — 259
 
@@ -197,30 +197,65 @@ kanonisk sti; originalbinding og preflight-kvittering er bevart separat.
 Eksakte terminaler, resultater, prefixrapporter og grenser er bundet under
 264 i NEXT_RUN_POLICY. TEST, Exit, trades og trening er lukket. Målet er aktivt.
 
-## Aktuelt 265 — én normaliseringsjobb, ingen modellfit
+## Aktuelt 265 — normalisering feilet, kun kilde-/metadataanalyse
 
-Første fysisk støttede cut er 2025-01-01, originalfolds 1–4. Valget bruker
-inputstøtte før modellfit, uten senere retningsutfall. Alle features, masker og
-statistikkkrav beholdes. Fold 0 sine 51 uobserverte D1-felt fylles ikke eller
-fittes fra fremtiden. Bear-OB har bare tre unike D1-observasjoner ved første
-støttede cut, selv om de gjentas i mange M5-rader; støtte er ikke retningsverdi.
-Senere sammenligning må bruke samme 70,647 foreldre/fourfold-cohort for alle
-referanser, aldri firefold mot gamle femfold-aggregater.
+265 er FAILED/consumed: worker/outer exit 1, 590.690/591.348 s på fryst
+e885dfd1. Kilde og eksterne bokender er uendret. Fire komplette originale
+264-rapport-/verdihashpariteter bestod før første fit. Deretter første
+normaliseringsfit 1/0, kvalifikasjoner 5/5, surfacefits 12/11, GC-fit 1/0,
+kategorifit 1/1. Alle planlagte loader/hash-kall var fullført; forbudte kall 0.
+Ingen komplett PREFIX_NORMALIZATION/RESULT ble publisert. Originalkvitteringer,
+fire parityrapporter og alle inputs bevares. Ingen relansering av265.
 
-265 worker0047a76a/PLAN8f1bb809 har root/source-peer PASS: 14 PLAN-nøkler,
-17 eiere, 48 inputstat-identiteter, uendret 264-inputeier og ingen ny dekoding.
-Fire komplette originale rapport-/verdi-hashpariteter må bestå før første fit.
-Behold bare ekte returnerte inputspesifikasjoner og rapporter; eksisterende
-native fitter rekonstruerer og kontrollerer hele populasjonen pånytt.
+Eksakt feil: ENTRY_INPUT_NORMALIZATION_UNSCALEABLE, surface gc_mtf_d1,
+field gc_d1_observed_proxy_sweep_up_event, center=0, scale=0. Første støttede
+prefix har117observerte unike D1-verdier og én nonzero, min0/max1; feltet er
+registrert binary=false på signal, ctx_cont og egen GC-flate. Den ene native
+hendelsen gjentas i276signal-/275kontekstverdier. Senere prefixer har2/2/3
+nonzero D1-verdier. Dette avdekker en konkret skaleringsblokkering; sweep-eventets kilde er nå bevist boolsk, mens metadata utelot deklarasjonen.
+Dette er ingen bevist forklaring på tidligere 50%prognoser.
 
-Én capped audit er innrømmet: 1800 s/4 GiB/512 MiB/64 pids/én tråd/lås;
-8 kvalifikasjoner, 4 prefix-normaliseringer, 48 surfacefits, 4 GC-fits og
-4 kategorifits. Ingen ukjent-fallback eller gamle 055/223-stats. Samme sju
-base-/fem GC-flater og sann prefixlineage valideres av uendrede native eiere.
-Kilde/policy holdes fryst til terminal. Root konsumerer også et mislykket
-forsøk og lukker gatene. Alle modell-, native trenings- og TEST-gater er false.
+Neste steg: verifiser produsert domene, koblede hendelser og metadataeier, og
+undersøk minste korrekte rettelse uten å lempe på native skalavalidator eller
+fylle ukjent. Ingen kilder er autorisert endret ennå, bortsett fra root sin
+statusføring. Alle execution/data/normaliserings-/modellfitgater er false.
+Ny rettelse krever konkret design, fokuserte tester og nye sannferdige
+kvalifikasjons-/statkontrakter der semantikken endres. Native freshinitial,
+featureview, genuine gradienter og eksakt resume gjenstår før retningsfit.
 
-Ingen faktisk normalisering eller bedre prognoser er ennå bevist. Fersk
-samlet native initial, featureview, genuine gradienter og eksakt resume gjenstår
-før retningsfit. Native-/modell-/Datasetkode og de 30 beståtte testene endres
-ikke. Root eier policy, launch og samlet kontroll; eksakte refs står under265.
+Målvalget er fortsatt fire opprinnelige senere folds fra første støttede
+cut2025-01-01 med alle features/masker beholdt. Første utelatte cut har51
+uobserverte D1-felt, ikke samme blokkering som hendelsesskalaen. Referanser
+må sammenlignes på samme70,647foreldre, aldri firefold mot femfold-aggregater.
+TEST/Exit/trades/trening er lukket. Ingen bedre prognoser er målt; målet er aktivt.
+
+## Aktuelt 266 — kildebevist boolsk GC-domene, kun kildearbeid
+
+265-feilen er source-/receipt-peer kontrollert. Produsenten beregner sweep-
+hendelser som bool og kopierer dem uendret. Samme produsent har11kildebeviste
+bitkolonner med strict/observed-varianter, faktisk76verdifelt på alle femTF.
+Base signal/ctx klassifiserte0av76 som binære; GC-historikk bare14retouchfelt.
+
+266 retter denne avgrensede produsentfamilien, med eksakt049kolonnekart og
+alle felt, verdier, masker og skalavakter bevart. Andre lokale SMC-metadata
+får ingen utestet endring. GC-layout/profil og normalisering får ny identitet;
+gammel223wrapper skal fortsatt avvises av streng loader. En eksplisitt raw-
+bridge skal gjenbruke de15verifiserteGC-arrayene med ny layout, uten å merke
+om gamle stats eller kopiere data. Gamle264rapporter kan ikke få ny semantikk
+ved ommerking; nye rapporter må kreve identiske råverdi-/rad-/klokkehashes.
+
+Fileierskap er avgrenset i266DESIGN/policy: feature_audit eier GC-metadata og
+sin nye testfil; learning_audit eier eksisterende GC-historyowner/raw-loader
+og sin nye testfil. Root eier design/policy/handover/launch. Kunénavgrenset syntetisk testjobb er nå innrømmet; genuine data-,
+normaliserings- og modellfit er false. Modell-/loss-/normalizer-
+algoritmer endres ikke. Fersk ONLINE-initial/gradient/resume gjenstår. Målet
+om bedre retning er aktivt; ingen ny prognose er målt.
+
+266-kilden har root/source-peer PASS: metadata28c4235d, history82ead3da,
+nye tester7c8caaef/1a25f543 og justert gammel test1b29a05b. Kun fixturen og to
+godkjente domene-policytester ble justert;11andre testfunksjoner er AST-like.
+TEST_PLANaffd2541 binder22kildehash og049metadata. Én capped pytestjobb kjører
+femfiler:22nye binærcases,24rawbridge,20GC-historikk,19GC-kontekst og30prefix-
+cases, totalt115.600s/4GiB/512MiB/64pids/éntråd. KunJunit-/exit-/kildebokend-
+bevis hevdes; ingen profilerte fitter-/modellkalltellere eller genuine bevis.
+Root holder kilder/policy fryst gjennom både påkrevde hooks og testjobb.

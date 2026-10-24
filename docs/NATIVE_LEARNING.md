@@ -573,6 +573,24 @@ referanser må sammenlignes på samme firefold-cohort70,647foreldre, aldri mot
 gamle femfold-aggregater. Modellbudsjett og full evalueringsprotokoll låses
 separat før genuine fit. Fire støtte-PASS er ingen stats- eller modellfit-PASS.
 
+266 korrigerer en kildebevist GC-domenemangel: 76 verdifelt fra samme boolske
+produsentfamilie var kontinuerlig behandlet i base, og bare14retouchfelt var
+binære i GC-historikken. En ekte D1-hendelse med117observasjoner/énpositiv
+stoppet derfor korrekt i kontinuerlig skalaestimering. Nå deklareres de76
+feltene binære via eksakte049sourcekolonner på alle aktuelle flater. Råverdier,
+masker, feltrekkefølge, bredder og skalavakt endres ikke. Dette er ingen målt
+forbedring i retning og ingen forklaring på tidligere resultater alene.
+
+Endret domene gir nye normaliserings-, layout- og profilidentiteter. Den
+strenge223-wrapperlasteren skal avvise gamle metadata som aktuell kontrakt.
+Den separate raw-lasteren binder de gamle metadatafilenes SHA/segl og krever
+at bare kildebeviste binærdeklarasjoner er lagt til. Alle15råarray verifiseres
+med eksisterende primitive og gjeldende verdi-/maskedomener, uten å anvende
+gamle stats eller kopiere data. Nye prefixkvalifikasjoner må forsegles under
+aktuell semantikk, med identiske råverdi-/rad-/klokkehashes mot opprinnelige
+inputs. Gamle055/223stats eller264rapporter får ingen ny betydning ved ommerking.
+Fersk samlet ONLINE-initial/gradient/resume kreves fortsatt før modellfit.
+
 Inputkonsistens og lokal respons beviser ikke prediktiv merverdi. Lagrede
 modellprognoser kan vise bias, kalibrering og feil, men kan ikke alene avsløre
 all informasjon modellen kunne ha brukt. Lavere prognosespredning enn
@@ -589,8 +607,9 @@ temporal eller nonlinear informasjon.
 Nominelle SMC-tilstander er kategorier, ikke ordnede størrelser. De seks
 aktive lokale/MTF-tilstandene og session kodes med fulle deklarerte domener;
 ingen kategori velges fra observerte evalueringsverdier. Meningsfulle signerte
-enums og øvrige native flytfelt beholder055-transform og eksisterende
-value/mask-semantikk. Alle aktive genuine felt, inklusive makro, beholdes;
+enums og øvrige native flytfelt beholder eksisterende value/mask-semantikk.
+De frosne snapshotreferansene beholder sine opprinnelige055-statidentiteter;
+de lastes ikke om som aktuelle kontrakter etter266sin GC-domeneendring. Alle aktive genuine felt, inklusive makro, beholdes;
 ingen featureutvalg, familiegradering, gjettet manglendeverdi eller ny
 inputnormalisering inngår. Eksakt kolonnerekkefølge og dimensjon må kvalifiseres
 fra de eksekverbare eierne før fysisk projeksjon.

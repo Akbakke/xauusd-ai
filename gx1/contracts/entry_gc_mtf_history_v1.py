@@ -1,8 +1,9 @@
 """Additive218 own-TF GC history metadata and pure array contracts.
 
-No payload loader, policy, native launch or fitting admission lives here. The
-producer binds verified024 tables and the existing native TF row selector.
-The original049 context,055 normalization and base tensors remain unchanged.
+The artifact loaders verify immutable raw arrays; policy, native launch and
+fitting admission remain caller-owned. The producer binds verified024 tables
+and the existing native TF row selector. A raw domain bridge never applies
+legacy normalization or changes source values, field order or row clocks.
 """
 from __future__ import annotations
 
@@ -350,8 +351,7 @@ def require_gc_mtf_history_artifact_identity(value, *, history=None):
         'normalization_sha256': value['normalization_sha256']}
 
 
-def read_gc_mtf_history_artifact_metadata(binding):
-    """Read only the three bound JSON files, never NPY, base cache or targets."""
+def _read_gc_mtf_history_artifact_manifest(binding):
     from pathlib import Path
     binding = _gc_mtf_history_artifact_ref(binding)
     directory = Path(binding['path']).parent
@@ -363,12 +363,10 @@ def read_gc_mtf_history_artifact_metadata(binding):
         and manifest.get('predictive_value_measured') is False
         and isinstance(manifest.get('surfaces'), Mapping)
         and set(manifest['surfaces']) == set(TIMEFRAMES), 'ARTIFACT_MANIFEST_SCOPE')
-    history = {}
-    for key, filename in (('layout', 'LAYOUT.json'), ('normalization', 'NORMALIZATION.json')):
-        ref = _gc_mtf_history_artifact_ref(manifest.get(key))
-        _require(ref['path'] == str(directory / filename), 'ARTIFACT_METADATA_PATH:' + key)
-        history[key] = _read_gc_mtf_history_artifact_json(ref)
-    history = require_gc_mtf_history(history)
+    return binding, directory, manifest
+
+
+def _require_gc_mtf_history_artifact_arrays(manifest, *, directory, layout):
     for tf in TIMEFRAMES:
         surface = manifest['surfaces'][tf]
         _require(isinstance(surface, Mapping) and set(surface) == {
@@ -387,27 +385,38 @@ def read_gc_mtf_history_artifact_metadata(binding):
                 and len(shape) == (2 if key == 'features' else 1), 'ARTIFACT_ARRAY_HEADER:' + tf)
             rows = shape[0] if rows is None else rows
             _require(shape[0] == rows and (key != 'features'
-                or shape[1] == history['layout']['widths'][tf]), 'ARTIFACT_ARRAY_SHAPE:' + tf)
+                or shape[1] == layout['widths'][tf]), 'ARTIFACT_ARRAY_SHAPE:' + tf)
+
+
+def read_gc_mtf_history_artifact_metadata(binding):
+    """Read only the three bound JSON files, never NPY, base cache or targets."""
+    binding, directory, manifest = _read_gc_mtf_history_artifact_manifest(binding)
+    history = {}
+    for key, filename in (('layout', 'LAYOUT.json'), ('normalization', 'NORMALIZATION.json')):
+        ref = _gc_mtf_history_artifact_ref(manifest.get(key))
+        _require(ref['path'] == str(directory / filename), 'ARTIFACT_METADATA_PATH:' + key)
+        history[key] = _read_gc_mtf_history_artifact_json(ref)
+    history = require_gc_mtf_history(history)
+    _require_gc_mtf_history_artifact_arrays(manifest, directory=directory, layout=history['layout'])
     identity = require_gc_mtf_history_artifact_identity({'binding': binding,
         'layout_sha256': history['layout']['contract_sha256'],
         'normalization_sha256': history['normalization']['contract_sha256']}, history=history)
     return {'history': history, 'identity': identity, 'manifest': manifest}
 
 
-def load_gc_mtf_history_artifact(binding):
-    """Verify all fifteen immutable descriptors through the canonical mmap owner."""
+
+def _load_gc_mtf_history_artifact_surfaces(manifest, *, binding, layout):
     import os
     from pathlib import Path
     from gx1.features import htf_features as htf
-    result = read_gc_mtf_history_artifact_metadata(binding)
-    directory = Path(result['identity']['binding']['path']).parent
+    directory = Path(binding['path']).parent
     fd = os.open(directory, os.O_RDONLY | getattr(os, 'O_DIRECTORY', 0) | getattr(os, 'O_NOFOLLOW', 0))
     surfaces = {}
     try:
         for tf in TIMEFRAMES:
-            surface = {'field_names': result['history']['layout']['field_names'][tf]}
+            surface = {'field_names': layout['field_names'][tf]}
             for key in ('native_row_indices', 'available_ns', 'features'):
-                descriptor = result['manifest']['surfaces'][tf][key]
+                descriptor = manifest['surfaces'][tf][key]
                 array = htf._load_verified_cache_npy(fd, Path(descriptor['path']).name,
                     expected_sha256=descriptor['sha256'], expected_size_bytes=descriptor['size_bytes'],
                     label='gc_mtf_' + tf.lower() + '/' + key)
@@ -417,5 +426,107 @@ def load_gc_mtf_history_artifact(binding):
             surfaces[tf] = surface
     finally:
         os.close(fd)
-    surfaces = require_gc_mtf_history_surfaces(surfaces, layout=result['history']['layout'])
+    return require_gc_mtf_history_surfaces(surfaces, layout=layout)
+
+
+def load_gc_mtf_history_artifact(binding):
+    """Verify fifteen arrays only after the unchanged strict wrapper admission."""
+    result = read_gc_mtf_history_artifact_metadata(binding)
+    surfaces = _load_gc_mtf_history_artifact_surfaces(result['manifest'],
+        binding=result['identity']['binding'], layout=result['history']['layout'])
     return {**result, 'surfaces': surfaces}
+
+
+def _gc_mtf_history_raw_layout_transition(legacy, current):
+    """Accept only source-proven binary additions to an internally sealed layout."""
+    _require(isinstance(legacy, Mapping) and set(legacy) == set(current), 'RAW_LAYOUT_KEYS')
+    _require(_hash(legacy['contract_sha256']) and legacy['contract_sha256'] == _sha(
+        {k: v for k, v in legacy.items() if k != 'contract_sha256'}), 'RAW_LEGACY_LAYOUT_HASH')
+    _require(all(legacy[key] == current[key] for key in current
+        if key not in ('binary_fields', 'contract_sha256')), 'RAW_LAYOUT_INVARIANTS')
+    _require(isinstance(legacy['binary_fields'], Mapping)
+        and set(legacy['binary_fields']) == set(TIMEFRAMES), 'RAW_LEGACY_BINARY_KEYS')
+    additions = {}
+    for tf in TIMEFRAMES:
+        previous = legacy['binary_fields'][tf]
+        names = current['field_names'][tf]
+        _require(isinstance(previous, list) and all(isinstance(name, str) for name in previous)
+            and len(previous) == len(set(previous))
+            and previous == [name for name in names if name in set(previous)], 'RAW_LEGACY_BINARY_ORDER:' + tf)
+        previous = set(previous)
+        declared = set(current['binary_fields'][tf])
+        added = declared - previous
+        _require(previous <= declared and added <= gc.SOURCE_BINARY_VALUE_FIELDS,
+            'RAW_BINARY_ADDITIONS_ONLY:' + tf)
+        additions[tf] = [name for name in names if name in added]
+    return additions
+
+
+def read_gc_mtf_history_raw_artifact_metadata(binding):
+    """Bind legacy raw metadata to the current domain layout, without statistics.
+
+    The legacy normalization is read only for its file seal, internal seal and
+    legacy-layout link. It is neither admitted against the current layout nor
+    returned as applicable statistics. Payload/domain validation is loader-only.
+    """
+    binding, directory, manifest = _read_gc_mtf_history_artifact_manifest(binding)
+    metadata = {}
+    refs = {}
+    for key, filename in (('layout', 'LAYOUT.json'), ('normalization', 'NORMALIZATION.json')):
+        ref = _gc_mtf_history_artifact_ref(manifest.get(key))
+        _require(ref['path'] == str(directory / filename), 'ARTIFACT_METADATA_PATH:' + key)
+        refs[key] = ref
+        metadata[key] = _read_gc_mtf_history_artifact_json(ref)
+    layout = gc_mtf_history_layout()
+    legacy = metadata['layout']
+    additions = _gc_mtf_history_raw_layout_transition(legacy, layout)
+    old_norm = metadata['normalization']
+    _require(set(old_norm) == {'schema_version', 'layout_sha256', 'surfaces', 'provenance', 'contract_sha256'}
+        and old_norm['schema_version'] == NORMALIZATION_SCHEMA_VERSION
+        and old_norm['layout_sha256'] == legacy['contract_sha256']
+        and _hash(old_norm['contract_sha256']) and old_norm['contract_sha256'] == _sha(
+            {k: v for k, v in old_norm.items() if k != 'contract_sha256'}), 'RAW_LEGACY_NORMALIZATION_SEAL')
+    _require_gc_mtf_history_artifact_arrays(manifest, directory=directory, layout=layout)
+    transition = {'schema_version': 'gx1_gc_mtf_history_raw_domain_transition_v1',
+        'binding': binding, 'legacy_layout_binding': refs['layout'],
+        'legacy_layout_sha256': legacy['contract_sha256'],
+        'current_layout_sha256': layout['contract_sha256'],
+        'binary_field_additions': additions,
+        'array_descriptors': json.loads(json.dumps(manifest['surfaces'])),
+        'legacy_normalization_binding': refs['normalization'],
+        'legacy_normalization_sha256': old_norm['contract_sha256'],
+        'normalization_applied': False, 'legacy_statistics_admitted_as_current': False,
+        'raw_value_validation': {'performed': False}}
+    transition['contract_sha256'] = _sha(transition)
+    return {'manifest': manifest, 'layout': layout, 'transition': transition}
+
+
+def load_gc_mtf_history_raw_artifact(binding):
+    """Verify and map the same fifteen files, then scan current domains in blocks.
+
+    No feature array is copied, reprojected, filled or normalized. This creates
+    new domain-transition provenance, never a relabeled legacy fitted wrapper.
+    """
+    result = read_gc_mtf_history_raw_artifact_metadata(binding)
+    layout = result['layout']
+    surfaces = _load_gc_mtf_history_artifact_surfaces(result['manifest'],
+        binding=result['transition']['binding'], layout=layout)
+    block_rows = 1024
+    rows = {}
+    for tf in TIMEFRAMES:
+        names = layout['field_names'][tf]
+        positions = {name: i for i, name in enumerate(names)}
+        values = surfaces[tf]['features']
+        rows[tf] = len(values)
+        for start in range(0, len(values), block_rows):
+            block = values[start:start + block_rows]
+            _require(np.isfinite(block).all(), 'RAW_NONFINITE:' + tf)
+            gc.require_masked_storage_numpy(block, names)
+            for name in layout['binary_fields'][tf]:
+                _require(np.isin(block[:, positions[name]], (0.0, 1.0)).all(), 'RAW_BINARY_DOMAIN:' + tf + ':' + name)
+    transition = {key: value for key, value in result['transition'].items() if key != 'contract_sha256'}
+    transition['raw_value_validation'] = {'performed': True, 'block_rows': block_rows,
+        'rows_by_tf': rows, 'finite': True, 'masked_storage': True,
+        'binary_fields': json.loads(json.dumps(layout['binary_fields']))}
+    transition['contract_sha256'] = _sha(transition)
+    return {**result, 'transition': transition, 'surfaces': surfaces}

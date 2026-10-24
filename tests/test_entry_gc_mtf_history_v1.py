@@ -49,7 +49,7 @@ def _source_tables():
         for ci, name in enumerate(dict.fromkeys(row["column"] for row in fields)):
             columns[name] = ordinal * 1000.0 + ci * 10.0 + np.arange(3) + 0.25
         for row in fields:
-            if row["column"] in FIRST_RETOUCH_COLUMNS:
+            if row["name"] in gc.SOURCE_BINARY_VALUE_FIELDS:
                 columns[row["column"]] = np.array([0.0, 1.0, 0.0])
             if row.get("role") == "structural_observation_mask":
                 columns[row["column"]] = np.ones(3)
@@ -343,25 +343,28 @@ def test_normalization_fits_each_consumed_train_row_once_keeps_warmup_and_ignore
 
 
 
-def test_first_retouch_history_binary_fields_follow_source_domains_without_changing_legacy():
+def test_first_retouch_history_binary_fields_follow_shared_source_domains():
     events = {f"gc_{tf.lower()}_observed_proxy_ob_{side}_first_retouch"
               for tf in history.TIMEFRAMES for side in ("bull", "bear")}
     events |= {f"gc_{tf}_ob_{side}_first_retouch"
                for tf in ("m5", "m15") for side in ("bull", "bear")}
     registry_events = {item["name"] for item in gc.REGISTRY["fields"]
                        if item["column"] in FIRST_RETOUCH_COLUMNS}
-    assert registry_events == events
+    assert registry_events == events and len(events) == 14
     old_binary = set(gc.OBSERVED_FIELDS) | set(gc.STRUCTURAL_VALUE_FIELDS)
+    assert len(gc.SOURCE_BINARY_VALUE_FIELDS) == 76
+    expected_binary = old_binary | gc.SOURCE_BINARY_VALUE_FIELDS
     unknown = {"gc_m30_observed_proxy_ob_bull_first_retouch",
                "gc_d1_observed_proxy_ob_bull_first_retouch_unproven"}
     for prefix in ("", "ctx_cont."):
         names = [prefix + name for name in (*gc.CONTEXT_FIELDS, *sorted(unknown))]
-        expected_old = {prefix + name for name in old_binary}
-        assert gc.binary_fields(names) == expected_old
-        assert gc.mtf_history_binary_fields(names) == expected_old | {prefix + name for name in events}
+        expected = {prefix + name for name in expected_binary}
+        assert gc.binary_fields(names) == expected
+        assert gc.mtf_history_binary_fields(names) == expected
+        assert {prefix + name for name in events}.issubset(expected)
     layout = history.gc_mtf_history_layout()
     for tf in history.TIMEFRAMES:
-        assert set(layout["binary_fields"][tf]) == old_binary.intersection(layout["field_names"][tf]) | events.intersection(layout["field_names"][tf])
+        assert set(layout["binary_fields"][tf]) == expected_binary.intersection(layout["field_names"][tf])
 
 
 def test_one_positive_first_retouch_train_event_fits_identity_and_fractional_value_fails(gc_case):
@@ -399,21 +402,34 @@ def test_one_positive_first_retouch_train_event_fits_identity_and_fractional_val
         fit_surface_normalization(bad, surface="gc_mtf_d1", field_names=names)
 
 
-def test_first_retouch_identity_does_not_reclassify_existing_055_or_other_default_surfaces():
+def test_first_retouch_identity_rejects_stale_055_continuous_metadata():
     from gx1.contracts.entry_model_native_input_normalization_v1 import (
-        fit_surface_normalization, require_surface_normalization,
+        _stats_sha256, fit_surface_normalization, require_surface_normalization,
     )
     value = "gc_d1_observed_proxy_ob_bull_first_retouch"
     names = [value, value + "_observed"]
     raw = np.array([[0, 1], [0, 1], [1, 1], [1, 1]], dtype=np.float32)
     for surface in ("signal", "ctx_cont", "gc_mtf_m30"):
         stats = fit_surface_normalization(raw, surface=surface, field_names=names)
-        # These are the existing055 rules: event values remain continuous,
-        # observation gates remain binary, and serialized metadata still loads.
-        assert stats["center"] == [0.5, 0.0] and stats["scale"] == [1.0, 1.0]
-        assert stats["binary_mask"] == [0, 1]
-        assert stats["scale_source"] == ["raw_iqr", "semantic_binary_identity"]
+        assert stats["center"] == [0.0, 0.0] and stats["scale"] == [1.0, 1.0]
+        assert stats["binary_mask"] == [1, 1]
+        assert stats["scale_source"] == ["semantic_binary_identity", "semantic_binary_identity"]
         assert require_surface_normalization(stats, surface=surface, field_names=names) == stats
+        # Former055 continuous encoding remains stale even with a valid stats hash.
+        stale = deepcopy(stats)
+        stale["center"][0] = 0.5
+        stale["binary_mask"][0] = 0
+        stale["binary_field_count"] = 1
+        stale["scale_source"][0] = "raw_iqr"
+        stale["train_transformed_min"][0] = float(np.arcsinh(-0.5))
+        stale["train_transformed_max"][0] = float(np.arcsinh(0.5))
+        stale["stats_sha256"] = _stats_sha256(**{key: stale[key] for key in (
+            "field_names", "center", "scale", "binary_mask", "categorical_mask",
+            "categorical_domains", "train_transformed_min", "train_transformed_max",
+        )})
+        with pytest.raises(RuntimeError, match="BINARY_CONTRACT_INVALID"):
+            require_surface_normalization(stale, surface=surface, field_names=names)
     sparse = np.array([[0, 1], [0, 1], [0, 1], [0, 1], [1, 1]], dtype=np.float32)
-    with pytest.raises(RuntimeError, match="UNSCALEABLE"):
-        fit_surface_normalization(sparse, surface="ctx_cont", field_names=names)
+    sparse_stats = fit_surface_normalization(sparse, surface="ctx_cont", field_names=names)
+    assert sparse_stats["binary_mask"] == [1, 1]
+    assert sparse_stats["scale_source"][0] == "semantic_binary_identity"

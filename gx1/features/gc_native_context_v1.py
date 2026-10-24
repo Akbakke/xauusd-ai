@@ -40,6 +40,17 @@ VALUE_FIELDS = tuple(item['name'] for item in REGISTRY['fields'])
 STRUCTURAL_VALUE_FIELDS = frozenset(item['name'] for item in REGISTRY['fields']
     if item.get('role') == 'structural_observation_mask')
 OBSERVED_FIELDS = tuple(item['availability_field'] for item in REGISTRY['fields'])
+# Same producer, exact source-column domains: smc_v1 replay Boolean formulas
+# (structure/BOS/sweep and OB active/created/retouch), copied unchanged into
+# strict and observed-proxy GC tables by gc_order_flow_v1. Missing is masked.
+_SOURCE_BINARY_COLUMNS = frozenset({
+    'structure_available', 'bos_up', 'bos_down', 'sweep_up_event', 'sweep_down_event',
+    'ob_bull_active', 'ob_bull_created', 'ob_bull_first_retouch',
+    'ob_bear_active', 'ob_bear_created', 'ob_bear_first_retouch',
+})
+_SOURCE_BINARY_COLUMNS |= frozenset('observed_proxy_' + name for name in _SOURCE_BINARY_COLUMNS)
+SOURCE_BINARY_VALUE_FIELDS = frozenset(item['name'] for item in REGISTRY['fields']
+    if item['column'] in _SOURCE_BINARY_COLUMNS)
 CONTEXT_FIELDS = tuple(name for item in REGISTRY['fields'] for name in (item['name'], item['availability_field']))
 SPECIALIST_OWNERS = {name: item['owner'] for item in REGISTRY['fields']
                      for name in (item['name'], item['availability_field'])}
@@ -97,17 +108,13 @@ def masking_pairs(names):
 
 
 def binary_fields(names):
-    declared = set(OBSERVED_FIELDS) | STRUCTURAL_VALUE_FIELDS
+    declared = set(OBSERVED_FIELDS) | STRUCTURAL_VALUE_FIELDS | SOURCE_BINARY_VALUE_FIELDS
     return {name for name in names if str(name).removeprefix('ctx_cont.') in declared}
 
 
 def mtf_history_binary_fields(names):
-    """Source-formula first-retouch bits on additive GC history surfaces only."""
-    columns = {'ob_bull_first_retouch', 'ob_bear_first_retouch',
-        'observed_proxy_ob_bull_first_retouch', 'observed_proxy_ob_bear_first_retouch'}
-    declared = {item['name'] for item in REGISTRY['fields'] if item['column'] in columns}
-    return binary_fields(names) | {name for name in names
-        if str(name).removeprefix('ctx_cont.') in declared}
+    """Canonical source-proven GC Boolean domains on every history surface."""
+    return binary_fields(names)
 
 
 
