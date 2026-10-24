@@ -92,7 +92,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:236 én ny eksakt CPU-referanse innrømmet etter235s kildefeil
+## Nå:236 avsluttet;237 er kun kilde- og metadatadesign
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -185,10 +185,48 @@ Minste rettelse bruker204/SOURCE_MAP.json som
 allerede er bundet av206, i stedet for å bygge historisk kildekvalifikasjon på nytt.
 Hele kompilert layout må fortsatt være lik210 før payload. Samme8 armer, femfold,
 fitter, koding, mål, kostnader og budsjetter beholdes. Kun én ny metadataref kreves.
-Prisrelativ-gaten endres ikke. Faktisk kompilert layoutparitet er ennå ikke målt.
+Prisrelativ-gaten endres ikke.236 målte deretter full kompilert layoutparitet mot210.
 Én ny236 CPU-referanse er innrømmet med samme4GiB/512MiB/64pids/éntråd/
 3600+10s og16GiB-rchar-tak. Globaltraining=true gjelder bare denne referansen;
 full_epoch/fullVAL/native_launch=false. Ingen produksjonsendring eller235relaunch.
+
+236 COMPLETE/consumed: full layout mot210 er målt eksakt før payload;8 ulike
+armer,3318 råkoordinater i union og ingen umappede felt.4GiB/512MiB/64pids/éntråd
+ble faktisk verifisert.333,831sworker/335,264sytre; RESULT-timer327,578s har
+smalere scope.40fitkall/120regresjoner/80prediktorkall,2TRAINpayloads,
+413667kodede parentrader og88400disjunkte OOF-rader før målmasker;144paneler.
+0nativeF/update/refit/TEST. Kilde1298d22e/policy/worker var fryst og er uendret.
+ProsesspeakRSS2157506560B; rchar1709781969B slutt minus9293671B start er under16GiB.
+Originale kvitteringer og235-feilen beholdes. Ingen236relaunch eller ekstrafit.
+
+Ingen av sju familie+makro-armer består den faste videreundersøkelsesheuristikken.
+Alle14 poolede5/15min-paneler har verre MSE enn både makro og prefixmiddel.
+Små1min-punktforbedringer gir ingen stabil familiegevinst over alle tre horisonter.
+Alle24 valgte-side terminal-nettgjennomsnitt er negative etter originale kostnader;
+dette er overlappende fastehorisont-prognosediagnostikk, aldri portefølje-PnL.
+Actualpeer2fcf2d97… PASS:23 JSON-referanser og816 vektede avstemminger;
+opaque payloads er kun statkontrollert av peer. Ingen familie er valgt.
+Snapshot/ridge-hypotesen avsluttes etter fast plan; chart227 og full temporal/
+ikke-lineær featureverdi er ikke avgjort. Globaltraining/full_epoch/fullVAL/
+native_launch=false. Ingen nydatajobb,fit ellerproduksjonsendring erinnrømmet.
+
+236 DECISION avslutter den faste snapshot/ridge-hypotesen. Ingen av de sju
+familiene får videreføring etter den låste heuristikken. Bare struktur h1 ALL
+har nominell dag- og ukeforbedring mot prefixmiddel; ingen gjør dette mot makro.
+Valgt dekning er10,41–22,74%, fortegnst treff48,38–51,30% og netto
+−5,986 til−5,700bps. Alle120 fold-nettgjennomsnitt er også negative.
+Dette er faste, overlappende prognosehorisonter med originale kostnader,
+ikke realisert handelsøkonomi eller en generell dom over modellens historikk.
+
+237 skal bare avklare minste gjenbrukbare projeksjon av eksisterende
+TRAIN-fasit: signert MFE og pre-MAE lower/upper ved1/5/15 minutter,
+begge sider og endpointtyper, med uendret hel-horisont-modning og masker.
+198 har bare terminalfasit; native batchkonverterer krever alle480 horisonter.
+Sidefelles komponent og LONG–SHORT-kontrast skal skilles i evalueringen,
+slik at bedre anslag for bevegelsesstørrelse ikke tolkes som bedre retning.
+Ingen ny loss, MFE−MAE-handelsfasit, kostnad ved toppen eller handling utledes.
+Root eier design/policy; tre avgrensede kildepeers har egne reviewfiler.
+Ingen payload, målmaterialisering, ny normalisering eller predictorfit er innrømmet.
 
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
@@ -213,7 +251,8 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled=true gjelder kun den eksakte236 CPU-referansen.
-Full_epoch/fullVAL/native_launch=false;232/233/234/235 er consumed. Ingen annen trening.
+training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235/236 er consumed.
+236s faktiske resultatreview er ferdig.237 er kun kilde-/metadatadesign;
+ingen ny datajobb, fit, trening eller relaunch.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
