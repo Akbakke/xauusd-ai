@@ -298,7 +298,10 @@ Ingen klassifikatorscore har valgt armen;86-pakken er ikke gjenkvalifisert.
 full9-array198-paritet,116endpointblokker og fem66-kolonnematriser/413667 kodede
 foreldre. Bare eksisterende206/204/209/210-eiere; ingen ny normaliseringsfit,
 book/cacheinput, modell eller CONTROL-targetquery. Prisnull/sensur/fortegnsavvik
-og rå ret_1-persistens lagres med bindinger. Datajobben er ennå ikke innrømmet.
+og rå ret_1-persistens lagres med bindinger. Én245-datajobb er nå innrømmet etter kildepeerPASS på worker08e1e533…;
+24kildeeiere/PLANc25dfdd4… er kontrollert.4GiB/512MiB/64pids/éntråd,
+600+10s og32GiB-rchar. Ingen ny normalisering eller klassifikatorfit.
+Alle kilder er fryst;247-eier har bekreftet fryst worker21d4e2c2… til terminal.
 
 247 forbereder bare den faste CPU-referanseworkerens kilde:15 logistiske fits
 og30 predictorpopulasjoner, uten HPO, terskelvalg eller kalibreringsrefit.
@@ -333,6 +336,7 @@ TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forward
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
 training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235/236 er consumed.
 236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
-er ferdig og239 er kildekvalifisert.240/241/242/243 er consumed.244-design er låst;245/247 er kildeforberedelse.246 er klar, ikke innrømmet. Prediktorfit er stengt.
+er ferdig og239 er kildekvalifisert.240/241/242/243 er consumed.244-design er låst;245 er innrømmet én gang kun for data;247kilde er fryst inntil245terminal.
+246 er klar, ikke innrømmet. Prediktorfit er stengt.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
