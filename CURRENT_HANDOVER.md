@@ -91,25 +91,42 @@ referanser. Dette er kilde-/designkvalifikasjon, ingen nytrening, vektsøk,
 featurefjerning eller launch. FullTRAINnormalisering fra native er ikke en
 kvalifisert OOFprefixnormalisering. Nye fit/data/nativegater forblir false.
 
-## Pågående260 — kildekomponent, ingen kjøring
+## Fullført260 — retningskomponent, ingen native fit
 
-Eksisterende native forward eksponerer entry_q_joint_hidden etter shared/M5,
-alle fem TF-/GC-ruter og D1/makro. To nye filer er ferdige og kildepeer består:
-entry_native_direction_research_v1.py og tilhørende fokuserte tester, eid av
-learning_audit. Uendret backbone kjøres én gang av framtidig wrapper; et separat
-3-logitthode får ren maskert BCE. Ingen ny produksjonsfase eller modellutbytting.
-Root eier design/policy/rules/handover. DESIGN260 binder eksakte kildehashes og
-krav før fit. Genuine data/training/native er false. Én capped syntetisk testkjøring er nå
-innrømmet:45cases,7spy/3backward/23loss/3BCE, ingen ekte native/data/optimizer.
-Alle kilder/policy er fryst til terminal; denne kjøringen er ennå ikke utført.
+`gx1/contracts/entry_native_direction_research_v1.py` er implementert med
+uendret native backbone, ett feature-only forward og separat FP32 trelogitthode
+på entry_q_joint_hidden. Alle lokale/context/femTF/femGC-argumenter videreføres;
+ingen detach, ny produksjonsfase eller eksport-/ordreautoritet. Loss er ren
+uvektet maskert BCE; tom supervisjon gir loss=None og ingen oppdateringstillatelse.
+Eksakt fasit/klokke/cutoff, null/missing/umodne nevnere og forskningsidentitet
+kontrolleres. Numerisk FP32/MHA-policy må anvendes på backbone ved ekte kjøring.
 
-210 er parentvektet snapshotnormalisering, ikke native96M5-/ctx-/TF-/GC-
-normalisering. Legacy prefixfit støtter joint Entry/Exit; dynamisk Entry-only-
-fit krever fortsatt wholeTRAIN. Reelle native prefixstats/freshinitial/gradient/
-resume er derfor nødvendige før genuine fit. De konkret bundne V29- og fem
-squeeze-konstantene er fitted2009–2013, før alle245cuts; disse trenger ikke
-refittes. INPUT_FEASIBILITY binder metadata og presise ubeviste grenser.055/223
-og ferdige kontroller bevares.
+Tre kildepeers og root bestod; to actualpeers bekrefter syntetisk konsistens.
+To nye kode-/testfiler; native eierkode er uendret.
+Én capped syntetisk kvalifikasjon er COMPLETE/consumed:45cases PASS,7forward-
+spies/3backward/23lossforsøk/3BCE. Faktiske native constructor-/encoder-/forward-
+kall og Python-markedsåpninger var sperret; alle tellere0. Ingen datafit,
+optimizersteg eller genuine modellgradienter.4.865sytre, beggeexit0/fryst9a9bfa19,
+worker/PLAN/binding/policy/statbookends uendret. Cap4GiB/512MiB/64pids/éntråd.
+Alle execution/data/training/nativegater er igjen false.
+
+Spies og syntetiske leaf-gradienter beviser komponentmekanikk, ikke ekte
+native-/GC-konsum, fersk fullinitial, checkpoint/resume eller bedre prognoser.
+Påkrevd precommit bestod10guardrails+61nativekontrakttester undercap.
+SOURCE_REVIEW/INPUT_FEASIBILITY/PLAN/RESULT/TERMINAL/ACTUAL_QUALIFICATION_REVIEW
+står i policy260 og i
+`/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260`.
+
+Neste konkrete datagap:210 er parentvektet snapshotnormalisering, ikke native
+96M5-/ctx-/TF-/GC-normalisering. Legacy prefixfit støtter jointEntry/Exit;
+dynamisk Entry-only-fit krever fortsatt wholeTRAIN. Gjenbruk eksisterende
+union-/fitprimitiver i en eksplisitt Entry-only forskningsprefixkontrakt:
+sju baseflater +femGC-flater på uendrede245foreldre/cutoffs, uten labelmaskestyrt
+utvalg.055/223 bevares. Bundne V29-/fem squeeze-konstanter er fitted2009–2013,
+før alle245cuts; disse kan beholdes. Cachemanifest40.4MB er allerede SHA-verifisert;
+ikke les body pånytt uten konkret gatebehov. Ingen tett sekvenskopi trengs,
+men eksisterende loader har reell SHA-/parquet-/temp-mmap-I/O som må budsjetteres.
+Fysiskprefix/freshinitial/genuinegradient/resume gjenstår før genuine fit.
 
 ## Datagrunnlag og varige grenser
 

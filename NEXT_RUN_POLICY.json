@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T13:23:18.913462+00:00",
-  "status": "DIRECTION_NATIVE_SEQUENCE_COMPONENT_ONCE_SYNTHETIC_ONLY_ADMITTED",
+  "observed_utc": "2026-10-24T13:29:02.204057+00:00",
+  "status": "DIRECTION_NATIVE_SEQUENCE_COMPONENT_TESTED_NATIVE_PREFIX_INPUTS_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Run260 one capped4GiB/512MiB/64pids/one-thread synthetic qualification:45cases/7spy/3backward/23loss/3BCE, zero genuine native/data/optimizer. Freeze source/policy until terminal, then close test gate; no genuine fit admission.",
+  "next_action": "Source/design next: reuse existing Entry-only normalization primitives for explicit five245prefix native96M5/currentctx/fiveTF+GC populations.260head/loss45syntheticcases passed; no genuine data/fit/native/Exit/trades admission. Preserve055/223 and pre2013 boundfeatureconstants; qualify actual prefixinputs then fresh fullcandidate/gradient/resume before real fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -225,7 +225,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "260 component/test/source/input feasibility reviewed; one synthetic-only test run admitted, genuine data/fit/native closed.",
+    "current_activity": "260 pure-direction research component implemented and45syntheticcases independently reviewed PASS; actual native inputs/freshbaseline/gradients/resume/forecast remain unqualified. All gates closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -254,11 +254,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "259 complete, independently reviewed/rejected; mechanical use demonstrated, stable predictive value unqualified.",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259",
+    "latest_terminal_role": "260synthetic component tests only; latest measured direction259remains rejected.",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/TERMINAL.json",
-      "sha256": "5bc5f245fc0bf0f492e7278da62538224ec729c692f23f71cfe93c54ee855421"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/TERMINAL.json",
+      "sha256": "d15632d2d564a1864ee5f2f62fc0b6a0189f5dd5a7d0e1e4ed81d320140f5b06"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -278,7 +278,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Pure native-direction component absent; native fiveprefix sequence/ctx/TF/GC normalization and fresh objective baseline/resume unqualified. No real fit admitted.",
+    "current_blocker": "Five native prefix population/statistics contracts absent; fullsequence freshinitial/realgradient/resume remain unqualified. Component mechanics are qualified, predictive value is not.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7749,7 +7749,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run260 one capped4GiB/512MiB/64pids/one-thread synthetic qualification:45cases/7spy/3backward/23loss/3BCE, zero genuine native/data/optimizer. Freeze source/policy until terminal, then close test gate; no genuine fit admission.",
+    "next_action": "Source/design next: reuse existing Entry-only normalization primitives for explicit five245prefix native96M5/currentctx/fiveTF+GC populations.260head/loss45syntheticcases passed; no genuine data/fit/native/Exit/trades admission. Preserve055/223 and pre2013 boundfeatureconstants; qualify actual prefixinputs then fresh fullcandidate/gradient/resume before real fit.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17306,8 +17306,12 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Run260 one capped4GiB/512MiB/64pids/one-thread synthetic qualification:45cases/7spy/3backward/23loss/3BCE, zero genuine native/data/optimizer. Freeze source/policy until terminal, then close test gate; no genuine fit admission.",
+      "next_step": "Source/design next: reuse existing Entry-only normalization primitives for explicit five245prefix native96M5/currentctx/fiveTF+GC populations.260head/loss45syntheticcases passed; no genuine data/fit/native/Exit/trades admission. Preserve055/223 and pre2013 boundfeatureconstants; qualify actual prefixinputs then fresh fullcandidate/gradient/resume before real fit.",
       "baseline_priority": "Completed245/249/252/256/259; no repeated model/weight search. Native ordered-history pure-direction source/design only; allfit closed."
+    },
+    "latest_direction_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/TERMINAL.json",
+      "sha256": "5bc5f245fc0bf0f492e7278da62538224ec729c692f23f71cfe93c54ee855421"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -30833,7 +30837,7 @@
   },
   "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
-    "status": "SOURCE_REVIEWED_ONCE_SYNTHETIC_TEST_ONLY_ADMITTED",
+    "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/DESIGN.json",
@@ -30851,7 +30855,7 @@
       ],
       "/root": "policy/design/integration/rules/handover/launch"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "data_reads_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "training_enabled": false,
@@ -30867,7 +30871,7 @@
     "fresh_baseline_qualified": false,
     "native_prefix_normalization_qualified": false,
     "predictive_value_qualified": false,
-    "synthetic_test_execution_authorized": true,
+    "synthetic_test_execution_authorized": false,
     "test_plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/PLAN.json",
       "sha256": "b060c497fa7b7d6d0b840aea6c16abeee9f262998e17392041588fcf0592516a"
@@ -30893,9 +30897,31 @@
       "sha256": "68476a9561e07f76a66eb8c7cd5dbe584f1790a3504ca6478dede776b84b38d3"
     },
     "test_max_invocations": 1,
-    "test_claimed_invocations": 0,
-    "test_completed_invocations": 0,
+    "test_claimed_invocations": 1,
+    "test_completed_invocations": 1,
     "test_relaunch_allowed": false,
-    "all_source_frozen_for_capped_job": true
+    "all_source_frozen_for_capped_job": true,
+    "test_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/TERMINAL.json",
+      "sha256": "d15632d2d564a1864ee5f2f62fc0b6a0189f5dd5a7d0e1e4ed81d320140f5b06"
+    },
+    "test_outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/OUTER_TERMINAL.json",
+      "sha256": "6a7d752ef467baa6a2fac5f7c3375ce0b9fbe004aae51de331c1ec4e89624cc2"
+    },
+    "test_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/RESULT.json",
+      "sha256": "6048c72da6e43ff99422a46ddfc5602f144c6a401aae98dc9b821ce008552efe"
+    },
+    "synthetic_component_qualified": true,
+    "genuine_native_gradient_qualified": false,
+    "actual_qualification_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/ACTUAL_QUALIFICATION_REVIEW.json",
+      "sha256": "4fe373abffe037a60b8c9b07b1a9efb57098a1b39d979aef841dc66bed7e68c2"
+    },
+    "required_precommit_checks": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260/PRECOMMIT_CHECKS.json",
+      "sha256": "0cedf7c8b157f19dea12d0e50ee3b19d53766b0ab5efae4e81d81b91fa1538cf"
+    }
   }
 }
