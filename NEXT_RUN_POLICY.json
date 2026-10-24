@@ -225,7 +225,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "264 target-free physical support audit admitted once after exact V29 metadata binding and completed-decode reuse source review; all fit gates closed.",
+    "current_activity": "265 four supported native prefix normalizations admitted once, after264actual support and265source/PLANpeer PASS. No model or direction fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -247,20 +247,20 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264",
+    "current_research_id": "NATIVE_M5_DIRECTION_NATIVE_SUPPORTED_PREFIX_NORMALIZATION_20261024_265",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "263syntheticprefixmechanics only; latestmeasureddirection259stillrejected.",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261",
+    "latest_terminal_role": "Target-free physical prefix input support, not normalization fit or direction evidence.",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261/TERMINAL_SUPPORT.json",
-      "sha256": "c7423d7b7402c9a4c986f3b058e62dfa99b53ee5734aef07139fd746afe80ecb"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/TERMINAL_SUPPORT.json",
+      "sha256": "4697330e1547246397e872a32f7c75e9b394f76987410c452a34460b7a91e9be"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -278,7 +278,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Actual support for the five causal native prefixes remains unmeasured. Two missing V29 metadata bindings are repaired in the separately reviewed 264 worker.",
+    "current_blocker": "Earliest pre-2024-10 prefix has153 no-observed-value blockers across51 GC D1 fields repeated in3surfaces; four later prefixes pass. Native pure-direction stats/initial/gradient/resume remain unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7749,7 +7749,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Freeze source and policy, run the one admitted capped 264 target-free support audit, consume its terminal and close gates. Do not relaunch 261 or fit a model.",
+    "next_action": "Freeze source/policy and run one capped265normalization-only audit. Four original264report parities must precede first fit; consume terminal and close gates. Fresh native initial/featureview/gradient/resume still required before direction training.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17306,7 +17306,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Freeze source and policy, run the one admitted capped 264 target-free support audit, consume its terminal and close gates. Do not relaunch 261 or fit a model.",
+      "next_step": "Freeze source/policy and run one capped265normalization-only audit. Four original264report parities must precede first fit; consume terminal and close gates. Fresh native initial/featureview/gradient/resume still required before direction training.",
       "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed."
     },
     "latest_direction_terminal": {
@@ -31108,7 +31108,7 @@
     }
   },
   "dynamic_m5_direction_native_prefix_input_binding_repair_264": {
-    "status": "ADMITTED_ONCE_TARGET_FREE_PHYSICAL_SUPPORT_AUDIT",
+    "status": "COMPLETE_CONSUMED_PHYSICAL_SUPPORT_FIRST_PREFIX_BLOCKED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/DESIGN.json",
@@ -31129,9 +31129,9 @@
       "/root": "design/policy/handover/integration/launch"
     },
     "execution_authorized": false,
-    "support_execution_authorized": true,
+    "support_execution_authorized": false,
     "synthetic_test_execution_authorized": false,
-    "data_reads_authorized": true,
+    "data_reads_authorized": false,
     "normalization_fit_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
@@ -31140,7 +31140,7 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "support_status": "READY_UNCLAIMED",
+    "support_status": "COMPLETE_NO_FIT_ADMISSION",
     "support_plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
       "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"
@@ -31158,8 +31158,8 @@
       "sha256": "5cef665cc3a884be0dbe2c1fd68e0bcfd54349fe08de7615f810246adae36bea"
     },
     "support_max_invocations": 1,
-    "support_claimed_invocations": 0,
-    "support_completed_invocations": 0,
+    "support_claimed_invocations": 1,
+    "support_completed_invocations": 1,
     "relaunch_allowed": false,
     "support_budget": {
       "max_wall_seconds": 1800,
@@ -31194,6 +31194,228 @@
       "optimizer_updates": 0,
       "decoded_label_arrays": 0
     },
-    "support_scope": "One target-free five-prefix support audit, reusing six completed immutable decoded files; no normalization statistics, models, labels or TEST."
+    "support_scope": "One target-free five-prefix support audit, reusing six completed immutable decoded files; no normalization statistics, models, labels or TEST.",
+    "support_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/TERMINAL_SUPPORT.json",
+      "sha256": "4697330e1547246397e872a32f7c75e9b394f76987410c452a34460b7a91e9be"
+    },
+    "support_outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/OUTER_TERMINAL_SUPPORT.json",
+      "sha256": "870c1a5517e74236d52a3ff2631e1b38c356e15f9571b6d982141baeeb65f360"
+    },
+    "support_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/RESULT_SUPPORT.json",
+      "sha256": "78b9e7a9aa4ade441e83c664c81836e837439fee1f18f8401ee7ee4bc2169e89"
+    },
+    "support_execution_binding": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/EXECUTION_BINDING_SUPPORT.json",
+      "sha256": "ffd5fafea70bd0018b2541af2cf4ed7edb3252ca98f5e3e4203e0aca2b6f770d"
+    },
+    "preflight_binding_path_repair": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFLIGHT_BINDING_PATH_REPAIR.json",
+      "sha256": "ae74dbf885c709ea46e53e02b376e38f201637cd1c8719e6e259bf62d1b56c33"
+    },
+    "support_source_unchanged": true,
+    "support_all_five_supported": false,
+    "support_prefixes": [
+      {
+        "fold_id": 0,
+        "prefix_parent_rows": 29849,
+        "fit_allowed": false,
+        "blocker_count": 153,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFIX_SUPPORT_0.json",
+          "sha256": "ced7406dcbcd895855ea90e1966d0f0f50691cba8f21ba6ed8b04f1874e8506a"
+        }
+      },
+      {
+        "fold_id": 1,
+        "prefix_parent_rows": 47602,
+        "fit_allowed": true,
+        "blocker_count": 0,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFIX_SUPPORT_1.json",
+          "sha256": "9218ad4662ae2c20c9954a9d8464ae703db8a3d461a10e31a90d7bfdc3d7b038"
+        }
+      },
+      {
+        "fold_id": 2,
+        "prefix_parent_rows": 64890,
+        "fit_allowed": true,
+        "blocker_count": 0,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFIX_SUPPORT_2.json",
+          "sha256": "aeb157519ef7d6ae9d914b725f2209efe8bef41fca686319ea1b88aad6977da9"
+        }
+      },
+      {
+        "fold_id": 3,
+        "prefix_parent_rows": 82427,
+        "fit_allowed": true,
+        "blocker_count": 0,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFIX_SUPPORT_3.json",
+          "sha256": "38a8c5e159edfed41f6f4d1db1f2a64302f8b4d0f0d1c76cd750cc37d5d7cb76"
+        }
+      },
+      {
+        "fold_id": 4,
+        "prefix_parent_rows": 100499,
+        "fit_allowed": true,
+        "blocker_count": 0,
+        "report": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PREFIX_SUPPORT_4.json",
+          "sha256": "7e2e45ebec1d6e15bdae92262b1f741176a44aef161c968a63f3141db77c46a8"
+        }
+      }
+    ],
+    "support_counts": {
+      "cache_loader_calls": 1,
+      "cache_loader_returns": 1,
+      "clock_loader_calls": 1,
+      "clock_loader_returns": 1,
+      "current_loader_calls": 0,
+      "current_loader_returns": 0,
+      "forbidden_fit_calls": 0,
+      "forbidden_model_calls": 0,
+      "forbidden_opens": 0,
+      "forbidden_redecode_calls": 0,
+      "forbidden_supervision_calls": 0,
+      "gc_loader_calls": 1,
+      "gc_loader_returns": 1,
+      "qualify_calls": 5,
+      "qualify_returns": 5,
+      "reuse_calls": 1,
+      "reuse_returns": 1,
+      "source_loader_calls": 0,
+      "source_loader_returns": 0,
+      "squeeze_hash_calls": 150,
+      "squeeze_hash_returns": 150,
+      "squeeze_manifest_load_calls": 1,
+      "squeeze_manifest_load_returns": 1,
+      "squeeze_params_load_calls": 12,
+      "squeeze_params_load_returns": 12,
+      "v29_hash_calls": 33,
+      "v29_hash_returns": 33,
+      "v29_payload_calls": 11,
+      "v29_payload_returns": 11,
+      "v29_registry_calls": 1,
+      "v29_registry_returns": 1,
+      "v29_source_calls": 11,
+      "v29_source_returns": 11,
+      "verified_npy_calls": 30,
+      "verified_npy_returns": 30
+    },
+    "support_elapsed_seconds": 548.742247359005,
+    "support_outer_elapsed_seconds": 549.297307103996,
+    "support_new_scratch_bytes": 0,
+    "support_reused_bytes": 26534936912,
+    "support_first_prefix_blocker_reasons": {
+      "no_observed_prefix_values": 153
+    },
+    "support_first_prefix_blocker_surfaces": {
+      "signal": 51,
+      "ctx_cont": 51,
+      "gc_mtf_d1": 51
+    },
+    "support_first_prefix_unique_fields": 51,
+    "support_actual_peer_pending": false,
+    "support_actual_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/ACTUAL_QUALIFICATION_REVIEW.json",
+      "sha256": "1a4d90059a6f28c6a407801e80f4bde26ad3fae5e876deedb3f84c218cbb3efe"
+    }
+  },
+  "dynamic_m5_direction_native_supported_prefix_normalization_265": {
+    "status": "ADMITTED_ONCE_FOUR_SUPPORTED_NATIVE_PREFIX_NORMALIZATION",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SUPPORTED_PREFIX_NORMALIZATION_20261024_265",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SUPPORTED_PREFIX_NORMALIZATION_20261024_265/DESIGN.json",
+      "sha256": "b8c5b231becc4f3c57e95e44ae8e808db3a404673aa52e09cd393dab892c7656"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": [
+      "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SUPPORTED_PREFIX_NORMALIZATION_20261024_265/fit_supported_prefix_normalization_guarded.py"
+    ],
+    "file_ownership": {
+      "/root/learning_audit": [
+        "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SUPPORTED_PREFIX_NORMALIZATION_20261024_265/fit_supported_prefix_normalization_guarded.py"
+      ],
+      "/root": "design/policy/handover/integration/launch"
+    },
+    "original_fold_ids": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "input_support_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/ACTUAL_QUALIFICATION_REVIEW.json",
+      "sha256": "1a4d90059a6f28c6a407801e80f4bde26ad3fae5e876deedb3f84c218cbb3efe"
+    },
+    "execution_authorized": true,
+    "support_execution_authorized": false,
+    "data_reads_authorized": true,
+    "normalization_fit_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "synthetic_test_execution_authorized": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SUPPORTED_PREFIX_NORMALIZATION_20261024_265/PLAN.json",
+      "sha256": "8f1bb809fb1b2565beb0ba38aa265a03c3c2845841c4f59336f2216f270be36b"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SUPPORTED_PREFIX_NORMALIZATION_20261024_265/fit_supported_prefix_normalization_guarded.py",
+      "sha256": "0047a76a12d8c79177dd566fcc75a1696863018568889fb02805ae0c6b8dcfbd"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SUPPORTED_PREFIX_NORMALIZATION_20261024_265/SOURCE_REVIEW.json",
+      "sha256": "51f871268b34a19841b37f2a7706f1f8f246284e322dc9909093cb538b8152b9"
+    },
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "budget": {
+      "max_wall_seconds": 1800,
+      "memory_max": 4294967296,
+      "swap": 536870912,
+      "pids": 64,
+      "numerical_threads": 1,
+      "max_rchar_bytes": 137438953472,
+      "scratch_bytes": 0,
+      "reused_bytes": 26534936912,
+      "max_json_output_bytes": 33554432,
+      "max_invocations": 1,
+      "source_loader_calls": 0,
+      "current_loader_calls": 0,
+      "clock_loader_calls": 1,
+      "reuse_calls": 1,
+      "cache_loader_calls": 1,
+      "gc_loader_calls": 1,
+      "verified_npy_calls": 30,
+      "qualify_calls": 8,
+      "squeeze_hash_calls": 150,
+      "squeeze_params_load_calls": 12,
+      "squeeze_manifest_load_calls": 1,
+      "v29_registry_calls": 1,
+      "v29_payload_calls": 11,
+      "v29_source_calls": 11,
+      "v29_hash_calls": 33,
+      "decoded_axis_arrays": 3,
+      "statistics_fits": 48,
+      "native_forwards": 0,
+      "model_constructions": 0,
+      "optimizer_updates": 0,
+      "decoded_label_arrays": 0,
+      "normalization_fit_calls": 4,
+      "surface_fit_calls": 48,
+      "gc_fit_calls": 4,
+      "ctxcat_fit_calls": 4
+    }
   }
 }

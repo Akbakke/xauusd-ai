@@ -563,6 +563,16 @@ kontroller er ikke tilgjengelige og skal ikke rekonstrueres. Ingen horisont,
 kontroll, checkpoint eller klassevekt velges etter resultatet. Research-output
 har ingen native serving-/ordreautoritet. Alle faktiske porter eies av policy.
 
+Fysisk støttekontroll264 viser at første cut2024-10-01 har51uobserverte
+GC D1-felt i tre flater, mens de fire senere cutoffs består. Ren native
+retning kan derfor forberedes fra første støttede cut2025-01-01, originalfolds
+1–4, med alle felt/masker/validatorer bevart. Dette er inputvalg før modellfit,
+ikke resultatvalg; fold0 beholdes som blokkert. Normalisering må fortsatt
+fittes og kvalifiseres separat percut. Alle senere prognoser og frosne
+referanser må sammenlignes på samme firefold-cohort70,647foreldre, aldri mot
+gamle femfold-aggregater. Modellbudsjett og full evalueringsprotokoll låses
+separat før genuine fit. Fire støtte-PASS er ingen stats- eller modellfit-PASS.
+
 Inputkonsistens og lokal respons beviser ikke prediktiv merverdi. Lagrede
 modellprognoser kan vise bias, kalibrering og feil, men kan ikke alene avsløre
 all informasjon modellen kunne ha brukt. Lavere prognosespredning enn

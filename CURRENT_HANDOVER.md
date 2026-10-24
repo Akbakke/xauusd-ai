@@ -16,9 +16,9 @@ krever forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 
 259 er COMPLETE/consumed og forkastet som retningskandidat. Ingen bedre
 retning er kvalifisert. 263 har bestått syntetiske mekanikktester, mens den
-fysiske 261-kontrollen feilet før første prefix. Aktuell 264 er innrømmet én
-gang for mål-fri fysisk støttekontroll med gjenbruk av ferdig dekodede inputs.
-Alle normaliserings-, modell- og treningsgater er false. Native fit, CONTROL,
+fysiske 261-kontrollen feilet før første prefix. 264 er fullført og forbrukt: fire senere prefixer støttes, det første
+blokkeres av uobserverte D1-felt. Ingen modell- eller statsfit er innrømmet.
+Kun én normaliseringsjobb265 er innrømmet; modell- og treningsgater er false. Native fit, CONTROL,
 TEST, Exit og trades er lukket. Root eier launch; se 264-status nederst.
 
 ## Siste faktiske retningsmåling — 259
@@ -168,32 +168,59 @@ Oppdater policy/handover i sammebølge; fokuserte kontroller/AST/stale-path/
 gitdiff--check og ærlige grenser. Pushrett tilwork/gx1-current gjelder kode/docs/
 interne refs/aggregater, aldri rådata/vekter/hemmeligheter ellerforcepush.
 
-## Aktuelt 264 — én fysisk støttekontroll, ingen fit
+## Aktuelt 264 — fysisk støtte målt, alle gater lukket
 
-263 er fullført og forbrukt: 30 syntetiske tester bestått, 0 feil/skip,
-41 kvalifikasjonskall/24 returer, 9 fitforsøk/4 returer, 48 overflatefits og
-4 GC-fits. Alle forbudte kall var 0; cap/lås og fryst kilde ble bekreftet.
-Dette kvalifiserer syntetisk mekanikk, ikke genuine stats eller prognoser.
+264 er COMPLETE/consumed: worker/outer exit 0, 548.742/549.297 s på fryst
+18b47435. Kilde og eksterne bokender er uendret. Source/current fulldecode 0;
+clock/reuse/cache/GC 1/1 hver; NPY 30/30; squeeze 150/150,12/12,1/1;
+V29 1/1,11/11,11/11,33/33. Alle forbudte kall og stats-/modellfits var 0.
+Cap 4 GiB/512 MiB/64 pids/én tråd/lås er verifisert. Process-RSS peak
+4,335,644,672 B er prosessmåling, ikke cgrouppeak; rchar_delta 5,980,473,984 B
+inkluderer ikke mmap page faults. Seks mmaps 26,534,936,912 B ble gjenbrukt,
+ny scratch 0 B. Opprinnelige 261/262/263/264-receipts og inputs bevares.
 
-261 fysisk støtte feilet og er forbrukt: 101.181 s worker/101.553 s ytre,
-exit 1, fryst f6ec3d9d og kildebokender bestått. 050/051-loadere fullførte
-1/1 hver, cache 1/0. Filvakten stoppet to ubundne V29-metadatastier; ingen
-rådatafeil er påvist. 0 av 5 prefixer ble kontrollert; støtte var umålt.
-Alle 261-gater er lukket. Opprinnelige receipts og seks readonly mmaps
-på 26,534,936,912 B bevares, uten relansering eller ny 26.5 GB dekoding.
+Alle fem genuine prefixer er kontrollert. Fold 0 (før 2024-10-01, 29,849
+foreldre) har 153 no_observed_prefix_values-blokkeringer: 51 GC D1-felt,
+gjentatt i signal/ctx_cont/gc_mtf_d1. Fold 1–4 har 0 blokkeringer og fit_allowed
+true i kvalifikasjonsrapporten. Dette gir ingen fitadmisjon i policy og er
+ikke bevis for retningsverdi. Actual metadata/stat-peer består; ingen uavhengig numerisk replay. Neste steg er å
+velge minste kausale sammenligningsscope fra faktisk støtte uten å fjerne
+features, fylle ukjent som observasjon eller bruke senere stats i første fold.
+Alle execution/data/fitgater er false; ingen relansering av fullførte planer.
 
-264 worker a007b01d og PLAN 96ff8253 har root/source-peer PASS: 20 nøkler,
-48 eksakte inputstat-identiteter og 17 kildeeiere. V29-closure binder tre små
-JSON-filer med 33 kanoniske SHA-kall; to stier var manglende. Squeeze beholder
-150 SHA-kall/12 paramsloads/1 manifestload. Native eiere og de 30 beståtte
-testene er uendret. Ingen numerisk replay eller fysisk støtte er målt av peer.
+Native eiere og 263 sine 30 beståtte syntetiske tester er uendret. 264 source-
+peer kontrollerte 20 PLAN-nøkler, 48 inputstat-identiteter og 17 kildehash.
+V29-lesningen er rettet med to manglende metadataref; den forrige 261-jobben
+stoppet ved én observert ubundet open, ikke to observerte åpninger. En relativ
+policy.path i root sin 264-binding ble fanget før kommando/claim og rettet til
+kanonisk sti; originalbinding og preflight-kvittering er bevart separat.
+Eksakte terminaler, resultater, prefixrapporter og grenser er bundet under
+264 i NEXT_RUN_POLICY. TEST, Exit, trades og trening er lukket. Målet er aktivt.
 
-Én ny mål-fri audit er innrømmet: 1800 s, 4 GiB RAM, 512 MiB swap, 64 pids,
-én numerisk tråd og prosjektlås. Gjenbruk seks immutable mmaps, les bare 050
-klokker med eksisterende hjelper, åpne ikke original 051. Revalider alle
-aksene, posisjoner og full snapshotparitet før fem prefixers genuine støtte.
-Ingen nye scratch-data, statsfits, modeller, labels, CONTROL eller TEST.
-Worker bevarer feilårsakskjede og eksakte avviste stier. Bare support/data-
-gater er true; alle fit-/treningsgater er false. Root fryser kilde/policy til
-terminal, konsumerer også et mislykket forsøk og lukker gatene. Eksakte refs
-og engangsgrenser finnes under 264 i NEXT_RUN_POLICY. Målet er fortsatt aktivt.
+## Aktuelt 265 — én normaliseringsjobb, ingen modellfit
+
+Første fysisk støttede cut er 2025-01-01, originalfolds 1–4. Valget bruker
+inputstøtte før modellfit, uten senere retningsutfall. Alle features, masker og
+statistikkkrav beholdes. Fold 0 sine 51 uobserverte D1-felt fylles ikke eller
+fittes fra fremtiden. Bear-OB har bare tre unike D1-observasjoner ved første
+støttede cut, selv om de gjentas i mange M5-rader; støtte er ikke retningsverdi.
+Senere sammenligning må bruke samme 70,647 foreldre/fourfold-cohort for alle
+referanser, aldri firefold mot gamle femfold-aggregater.
+
+265 worker0047a76a/PLAN8f1bb809 har root/source-peer PASS: 14 PLAN-nøkler,
+17 eiere, 48 inputstat-identiteter, uendret 264-inputeier og ingen ny dekoding.
+Fire komplette originale rapport-/verdi-hashpariteter må bestå før første fit.
+Behold bare ekte returnerte inputspesifikasjoner og rapporter; eksisterende
+native fitter rekonstruerer og kontrollerer hele populasjonen pånytt.
+
+Én capped audit er innrømmet: 1800 s/4 GiB/512 MiB/64 pids/én tråd/lås;
+8 kvalifikasjoner, 4 prefix-normaliseringer, 48 surfacefits, 4 GC-fits og
+4 kategorifits. Ingen ukjent-fallback eller gamle 055/223-stats. Samme sju
+base-/fem GC-flater og sann prefixlineage valideres av uendrede native eiere.
+Kilde/policy holdes fryst til terminal. Root konsumerer også et mislykket
+forsøk og lukker gatene. Alle modell-, native trenings- og TEST-gater er false.
+
+Ingen faktisk normalisering eller bedre prognoser er ennå bevist. Fersk
+samlet native initial, featureview, genuine gradienter og eksakt resume gjenstår
+før retningsfit. Native-/modell-/Datasetkode og de 30 beståtte testene endres
+ikke. Root eier policy, launch og samlet kontroll; eksakte refs står under265.
