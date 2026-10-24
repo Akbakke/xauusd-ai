@@ -167,3 +167,20 @@ minuttmodellpolling/fyllarbeid. IngenDATA/RUNS-rydding utenretention-eier.
 Oppdater policy/handover i sammebølge; fokuserte kontroller/AST/stale-path/
 gitdiff--check og ærlige grenser. Pushrett tilwork/gx1-current gjelder kode/docs/
 interne refs/aggregater, aldri rådata/vekter/hemmeligheter ellerforcepush.
+
+## Pågående261 — native prefix-normalisering
+
+Separat research-eier og30syntetiske cases er implementert; root/skriveeier/
+kildepeer består kildegjennomgangen. Eksakt245 parent/barstart/D og cutoff binder
+lokal96M5-union, currentcontext og femnativeTF/GC-unioner; ingen målmaskering.
+Alle fysiske felt/masker og warmup beholdes. Kvalifikasjonen teller alle12flaters
+støtte uten fit; nullobservasjoner og konstant alias-support stopper før fit.
+Delvis observert konstant alias blokkeres konservativt med egen begrunnelse,
+ikke som bevist normaliseringsfeil i alle slike tilfeller. Fit revaliderer
+verdihasher og bruker eksisterende native transform/validatorer uendret.
+
+Én capped syntetisk kvalifikasjon av30cases er innrømmet, ikke kjørt ennå.
+Fysisk supportworker er kildeforberedt og under read-only peer; ingen fysisk
+datalesing, faktisk statistikkfit eller modellfit er innrømmet. Etter test-PASS
+trengs egen eksakt supportadmisjon for alle fem prefixene før videre fit.
+Genuine native input-/initial-/gradient-/resume- og prognosebevis gjenstår.
