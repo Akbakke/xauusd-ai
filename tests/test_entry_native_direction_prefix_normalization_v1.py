@@ -1,5 +1,6 @@
 """Synthetic full native dimensions only; no files, models or market inputs."""
 from copy import deepcopy
+from functools import lru_cache
 import hashlib
 
 import numpy as np
@@ -42,8 +43,8 @@ def _matrix(rows, names, surface):
     if "ema_stack_aligned_v2" in names:
         values[:, names.index("ema_stack_aligned_v2")] = row % 3 - 1
     if surface.startswith("mtf_"):
-        for name in htf.MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4:
-            values[:, names.index(name)] = 0.
+        for name, value in htf.MULTI_TF_SOURCE_CONSTANT_BINARY_EVENTS_V4.get(surface.removeprefix("mtf_").upper(), {}).items():
+            values[:, names.index(name)] = value
     for vi, mi in (*gc.masking_pairs(names), *range_observation_masking_pairs(names)):
         values[values[:, mi] == 0., vi] = 0.
     return values.astype(np.float32)
@@ -61,7 +62,8 @@ def _sync_current(case):
     case["ctx_cont"] = ctx
 
 
-def prefix_case():
+@lru_cache(maxsize=1)
+def _base_prefix_case():
     """One small full-width fixture with causal warmup and later source rows."""
     fields = compile_compact_entry_execution_profile()["physical_field_names"]
     names = list(fields["signal"])
@@ -108,6 +110,10 @@ def prefix_case():
         case["gc_surfaces"][tf] = {"native_row_indices": np.arange(len(times), dtype=np.int64),
             "available_ns": times + int(step.value), "features": raw, "field_names": list(gc_names)}
     return case
+
+
+def prefix_case():
+    return deepcopy(_base_prefix_case())
 
 
 def _qualify(case):

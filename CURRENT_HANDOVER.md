@@ -168,19 +168,21 @@ Oppdater policy/handover i sammebølge; fokuserte kontroller/AST/stale-path/
 gitdiff--check og ærlige grenser. Pushrett tilwork/gx1-current gjelder kode/docs/
 interne refs/aggregater, aldri rådata/vekter/hemmeligheter ellerforcepush.
 
-## Pågående261 — native prefix-normalisering
+##261/262 — prefix-komponent og konkret testblokkering
 
-Separat research-eier og30syntetiske cases er implementert; root/skriveeier/
-kildepeer består kildegjennomgangen. Eksakt245 parent/barstart/D og cutoff binder
-lokal96M5-union, currentcontext og femnativeTF/GC-unioner; ingen målmaskering.
-Alle fysiske felt/masker og warmup beholdes. Kvalifikasjonen teller alle12flaters
-støtte uten fit; nullobservasjoner og konstant alias-support stopper før fit.
-Delvis observert konstant alias blokkeres konservativt med egen begrunnelse,
-ikke som bevist normaliseringsfeil i alle slike tilfeller. Fit revaliderer
-verdihasher og bruker eksisterende native transform/validatorer uendret.
+261eier er implementert; nativeeiere/validatorer er uendret. SourcepeerPASS
+var kildebevis. Den ene syntetiske261admisjonen er FAILED/consumed:30feil før
+0qualifier-/0fitkall,29ValueError fordiTF-nøkkelenD1 ble behandlet somfeltnavn,
+én180sdeadline fangetavpytest.194.2sworker/194.8sytre,exit1/kildefrysPASS.
+Dette er feil i de nye syntetiske dataene, ingen dom over indikatorer/modell.
+Alle261gater er lukket, originale receipts bevares; ingen relansering.
 
-Én capped syntetisk kvalifikasjon av30cases er innrømmet, ikke kjørt ennå.
-Fysisk supportworker er kildeforberedt og under read-only peer; ingen fysisk
-datalesing, faktisk statistikkfit eller modellfit er innrømmet. Etter test-PASS
-trengs egen eksakt supportadmisjon for alle fem prefixene før videre fit.
-Genuine native input-/initial-/gradient-/resume- og prognosebevis gjenstår.
+262avgrenser minste testrettelse: perTF felt→verdi-mapping, samme30cases og
+éncached syntetisk basekopi meddeepcopy percase. Kvalifiserings-/fit-eierne
+endres/patches ikke. Kildepeer/AST PASS; samme30cases er nåinnrømmet én gang i262 med600s
+budsjett og --maxfail=1. Alle genuine data-/fitgater erfalse, ingenkjøringennå.
+
+261fysisk støtteworker+40pathplan er kilde-/metadata-/stat-peerPASS, fortsatt
+ikkeinnrømmet. Alle fem245prefixer og12inputflater skal måles target-fritt
+etter reell syntetiskPASS. Prefixstats/fullnativeinitial/gradient/resume og
+prognosegevinst er ennåukvalifisert. IngenTEST/Exit/trades.
