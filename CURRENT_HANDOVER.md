@@ -94,7 +94,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå: første enkle retningsreferanse klargjøres; ingen modellfit er innrømmet
+## Nå: prisdata kvalifisert; én fast CPU-retningsreferanse innrømmet
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -311,6 +311,24 @@ måles; TRAIN-folds er gjenbrukt utvikling. Ingen247-fit før faktisk245-datakva
 og egen bundet fitadmisjon. Alle kildeeiere stopper før en fryst cappedkjøring.
 Selve trades/Exit og nativeautoritet er stengt; ingen prognosegevinst er vist.
 
+245 COMPLETE/consumed:235,084sworker/235,696sytre,4GiB/512MiB/64pids/éntråd.
+Full9-array198paritet,116endpoints/116convert/1TRAINreader/2h1guards og
+5matriser/413667kodede foreldre PASS.0normaliserings-/prediktorfit/nativeF/U.
+7readonlypayloads130260690B;rawfeaturebytes109208088. Rchar24734894825B<32GiB;
+prosesspeakRSS3170807808B. Kilde23d31f73/policy/alle workere var fryst.
+Actualpeer PASS på9JSON/7payloadstat; opaque bodies ble ikke åpnet av peer.
+Renpris1/5/15 har476/194/99observerte nullbevegelser og12/450/1313manglende.
+Gammel kostnadskontrast avviker i fortegn på503/212/109observerte rader; dette
+er målkorrigering, ikke dokumentert årsak til manglende edge. Originaler beholdes.
+
+247worker21d4e2c2… har uavhengig kildepeerPASS og faktisk245-grensesnitt er
+kontrollert førPLAN. Én900+10s/4GiB/512MiB/64pids/éntråd/1GiB-rchar-jobb
+er innrømmet, eksakt15CPU-logistikkfits og30predictorpopulasjoner. Global
+training=true gjelder bare denne forskningsreferansen.33prefix/fold/pooledpaneler
+må rapportere modenhet/null/missing, begge retninger, prior/alwaysUP/persistens,
+sannsynlighetsmål og paired dag/ukeusikkerhet. Ingen nativeF/U/refit/CONTROL/TEST/
+Exit/trades. Fryst kilde/policy til terminal;0prediktiv gevinst er hittil målt.
+
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
 
@@ -334,9 +352,10 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235/236 er consumed.
+training_enabled=true bare for247s15CPU-referansefits;full_epoch/fullVAL/
+native_launch=false.232/233/234/235/236 er consumed.
 236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
-er ferdig og239 er kildekvalifisert.240/241/242/243 er consumed.244-design er låst;245 er innrømmet én gang kun for data;247kilde er fryst inntil245terminal.
-246 er klar, ikke innrømmet. Prediktorfit er stengt.
+er ferdig og239 er kildekvalifisert.240/241/242/243 er consumed.244-design er låst;245 er COMPLETE/consumed og datakvalifisert;247 er innrømmet én gang kun
+for15 faste CPU-fits.246 er klar, ikke innrømmet. Native trening er stengt.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
