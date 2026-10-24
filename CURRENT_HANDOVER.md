@@ -94,7 +94,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:retning alene; én avgrenset240-datajobb innrømmet
+## Nå:retning alene;241 retter kun datakjøringens kildebinding
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -267,14 +267,18 @@ eksakt1 sklearnfit og30 små surfacefits.2,709sworker/3,262sytre;prosesspeak
 0genuine payloads/prediktorfit/nativeF/update; ingen prognosegevinst er målt.
 Originale terminaler og XML er bevart; ingen239relaunch.
 
-240 er kildepeervurdert på fryst worker e82e7bdd… og innrømmet én gang.
-Canonical191 TRAINreader, full9-array198paritet og206–223/current rad-/bitparitet
-må bestå; ren F64-midtprisfasit, uendrede priser, sensur og fortegnsavvik rapporteres.
-210 S/prisstatistikk gjenbrukes; bare25 små egne book-prefixer tilpasses.
-Fem faste66/76/86-featurematriser,413667 kodede foreldre; ingen prediktorfit.
-Capped audit4GiB/512MiB/64pids/éntråd,900+10s,40GiB rchar og256MiB NumPyoutput.
-Source/policy fryses til terminal. Ingen relaunch; en senere45-fit retningsreferanse
-krever faktisk datakvalifikasjon og egen ny plan. Ingen prognosegevinst er vist.
+240 FAILED/consumed før workerCLAIM, payload eller fit. PLAN manglet eksakt
+canonical entry_exit_production_architecture_v1 og entry_model_native_aux_targets_v3.
+Ytre exit1/0,167s og uendret kilde er bevart; ingen workerterminal eller outputs.
+241 er en ny minimal plan: bare to kildebindinger og RUN_ID/STAGE er endret.
+Actual PLAN er sammenlignet med workerens13-kontraktskrav før ny admisjon.
+241worker9b877eb9… er ellers byteidentisk med kildepeeret240; ingen beregningsendring.
+Én capped datajobb:4GiB/512MiB/64pids/éntråd,900+10s,40GiB rchar,256MiB NumPy.
+Canonical191 TRAINreader/full9-array198paritet og206–223/current bits må bestå.
+F64-midtprisretning/null/sensur rapporteres;210 gjenbrukes, bare25 book-prefixer
+fittes. Fem faste86-kolonnematriser/413667 foreldre;0prediktorfit/nativeF/update.
+Kilde/policy fryses til terminal; ingen relaunch. En senere45-fit referanse krever
+faktisk datakvalifikasjon og egen plan. Ingen prognosegevinst er vist.
 
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
@@ -301,6 +305,6 @@ TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forward
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
 training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235/236 er consumed.
 236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
-er ferdig og239 er kildekvalifisert.240 har én data-only admisjon; genuin prediktorfit er stengt.
+er ferdig og239 er kildekvalifisert.240 er consumed;241 har én data-only admisjon. Prediktorfit er stengt.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.

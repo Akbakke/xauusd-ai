@@ -17296,7 +17296,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "240 one capped TRAIN data-only projection; a classifier run remains separately gated on actual data qualification."
+      "next_step": "241 minimal source-binding repair: one capped data-only projection, actual13-contract closure preflight PASS; no classifier fit."
     }
   },
   "gc_order_flow_research_20261006": {
@@ -29121,7 +29121,7 @@
     }
   },
   "dynamic_m5_direction_price_feature_projection_240": {
-    "status": "ONE_CAPPED_TRAIN_DATA_ONLY_PROJECTION_ADMITTED",
+    "status": "FAILED_CONSUMED_BEFORE_WORKER_CLAIM_OR_PAYLOAD",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238/DESIGN.json",
@@ -29133,10 +29133,10 @@
     },
     "source_edits_authorized": false,
     "source_edit_scope": "Only new external240 worker/metadata orchestration; canonical239 helpers and all production/target/cost/cache owners stay unchanged.",
-    "data_reads_authorized": true,
-    "new_normalization_fit_authorized": true,
+    "data_reads_authorized": false,
+    "new_normalization_fit_authorized": false,
     "genuine_predictor_fit_authorized": false,
-    "execution_authorized": true,
+    "execution_authorized": false,
     "training_enabled": false,
     "native_launch_authorized": false,
     "test_data_used": false,
@@ -29202,6 +29202,100 @@
     "worker": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240/materialize_direction_projection_guarded.py",
       "sha256": "e82e7bdde142eefe1a7a28106246be8ccac682f359749e766fe77e0d46d6bd43"
-    }
+    },
+    "attempted_invocations": 1,
+    "worker_claimed_invocations": 0,
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240/DECISION.json",
+      "sha256": "e18c53b84c58c30f101e41b180d9a445b4d52233ea18d130fa2d465cd773d7f9"
+    },
+    "consumed": true
+  },
+  "dynamic_m5_direction_projection_source_binding_repair_241": {
+    "status": "ONE_CAPPED_TRAIN_DATA_ONLY_BINDING_REPAIR_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_SOURCE_BINDING_REPAIR_20261024_241",
+    "prior_consumed_decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240/DECISION.json",
+      "sha256": "e18c53b84c58c30f101e41b180d9a445b4d52233ea18d130fa2d465cd773d7f9"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238/DESIGN.json",
+      "sha256": "0ed463579123b125d860029d8c96b0ab147a1676fde4ef15533918689152251a"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239/DECISION.json",
+      "sha256": "d690cc46dea503dc7fbc35237cb361cb052e54059c0755bad18429a80526b756"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": "External worker only: copy frozen240 and alter RUN_ID/STAGE literals. Root PLAN adds exactly the two missing canonical owner refs; no computational changes.",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "new_normalization_fit_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "file_ownership": {
+      "research_audit": [
+        "materialize_direction_projection_guarded.py"
+      ],
+      "root": [
+        "PLAN.json",
+        "SOURCE_PREPARATION_REVIEW.json",
+        "NEXT_RUN_POLICY.json",
+        "CURRENT_HANDOVER.md"
+      ]
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_SOURCE_BINDING_REPAIR_20261024_241/PLAN.json",
+      "sha256": "2dce8ce3d110d8b0b82cd38fcbe6ed626f57fa1aec102aa8be552a3763780e67"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_SOURCE_BINDING_REPAIR_20261024_241/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "85d9f58be15f12011579d9a66090aaef001f5b4f9e13ce68fec05031a5f28867"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_SOURCE_BINDING_REPAIR_20261024_241/materialize_direction_projection_guarded.py",
+      "sha256": "9b877eb910d96481acdfcbe78c49585c984ef14f43e57ce32bf1a2be967319ca"
+    },
+    "budget": {
+      "CONTROL_target_queries": 0,
+      "TERM_grace_seconds": 10,
+      "book_prefix_wrapper_calls": 5,
+      "book_surface_fits": 25,
+      "book_surface_npy_inputs": 15,
+      "class": "audit",
+      "current_selector_calls": 5,
+      "encoded_parent_rows": 413667,
+      "endpoint_block_rows": 1024,
+      "endpoint_projection_calls": 116,
+      "genuine_predictor_fits": 0,
+      "max_invocations": 1,
+      "max_output_numpy_bytes": 268435456,
+      "max_rchar_bytes": 42949672960,
+      "max_wall_seconds": 900,
+      "memory_bytes": 4294967296,
+      "native_cache_npy_inputs": 15,
+      "native_model_forwards": 0,
+      "optimizer_updates": 0,
+      "original_OBS_reads": 0,
+      "output_feature_matrices": 5,
+      "output_feature_width": 86,
+      "reference_arrays": 9,
+      "swap_bytes": 536870912,
+      "target_parent_rows": 118249,
+      "target_source_reads": 1,
+      "tasks_max": 64,
+      "terminal_conversion_calls": 116,
+      "threads": 1
+    },
+    "normalization_fit_scope": "Exactly25 own-prefix book surfaces; reuse210 unchanged. No genuine predictor fit.",
+    "admitted_utc": "2026-10-24T06:56:32.532700+00:00"
   }
 }
