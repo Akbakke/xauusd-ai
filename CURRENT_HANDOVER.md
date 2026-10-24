@@ -13,16 +13,16 @@ etterprøvbare sannsynligheter. Selve trades, MFE/MAE-optimering, risiko og Exit
 utsettes. Målet er aktivt og ikke oppnådd. Teknisk konsum, TRAIN-fit,
 generalisering og økonomisk edge er forskjellige bevis.
 
-Siste målte retningsreferanse247 er COMPLETE/consumed og forkastet. Dens
-actualpeer er PASS. Datagrunnlag245 er kvalifisert. Klokkediagnose246 er
-COMPLETE/consumed og actualpeerPASS, men kvalifiserer ingen hel bookpakke.
+Siste målte retningsreferanse249 er COMPLETE/consumed og forkastet;actualpeer
+er PASS. Også247 er forkastet/peerPASS. Datagrunnlag245 er kvalifisert.
+Klokkediagnose246 er COMPLETE/consumed og actualpeerPASS,men kvalifiserer
+ingen hel bookpakke.
 
-**Én fryst249-jobb er nå innrømmet**, etter låst248-design/designpeerPASS,
-fryst worker1b84296b… og uavhengig kildepeerPASS. Ti kildeeiere og faktisk
-PLAN/budsjett/metadata er kontrollert.8syntetiske adaptercases førgenuinepayload;
-faktisk ny M5-kvalifikasjon skal publiseres før30faste CPU-fits/60populasjoner.
-Globaltraining=true gjelder bare denne forskningsreferansen;
-full_epoch/fullVAL/native_launch=false. Alle kilder/policy er fryst til terminal.
+**249 er COMPLETE/consumed; kandidaten er forkastet.** Åtte syntetiske
+adaptercases og ekte current/predecessor-kvalifikasjon bestod før30CPU-fits.
+Ingen ny jobb, kodeendring eller fit er innrømmet. Globaltraining/full_epoch/
+fullVAL/native_launch=false. Kun avgrenset lesende gjennomførbarhetskontroll
+av én mulig ikke-lineær retningsreferanse på eksisterende features pågår.
 
 ## Hva faktisk er målt om retning
 
@@ -113,7 +113,7 @@ observed_book_tw_imbalance og observedmaske, råverdier med fast[-1,1]-skala.
 M5current hadde117628observerte(inklusive19genuine nuller) og621maske0.
 223s heleTRAIN-normalisering skal ikke brukes som OOF-prefixnormalisering.
 
-## Låst neste hypotese:248 og kildeforberedelse249
+## Låst og fullført hypotese:248/249
 
 248DESIGN SHA305f3a29… og DESIGN_SOURCE_REVIEW00fbded1… låser to småarmer:
 R1=245kolonne65/ret_1 alene; R1_M5_BOOK5 legger til current og previousM5
@@ -146,8 +146,30 @@ UTCdag/Mandaguke2000bootstrap/seed20260911/min8, fortsatt gjenbrukt utvikling.
 Korrekte kontrastnavn; ikke arve247s prior-navn påaugmented−R1.
 
 Prospektiv249ramme:én audit300+10s/4GiB/512MiB/64pids/éntråd/3GiBrchar,
-64MiBnumpyoutputs. Rammen er nå innrømmet én gang etter full faktiskPLAN/sourceclosure/
-budsjettpreflight. Ingen relaunch eller ekstrafit følger av tekniskPASS.
+64MiBnumpyoutputs. Rammen er consumed etter én faktisk kjøring. Ingen relaunch eller ekstrafit følger.
+
+249 COMPLETE:7,175sworker/7,493sytre,fryst0855d6d2/policy.8/8adaptercasesPASS
+førgenuinepayload,10inputSHA/8unikeNPYheadere/15prefixstøtter og1publisert
+faktiskfeaturekvalifikasjon førfit. Current/previous observerte117628/117627;
+alle118249 har eksakt nativeID−1. Reellelagsgap bevares;min300s/max263100s.
+30fit/60predictor,189solveriterasjoner(2–12),0normalisering/nativeF/U/CONTROL/TEST.
+Rchar574946057B,prosesspeak528715776B,readonlynumpyoutputs16625994B.
+
+Bookkandidat1/5/15treff49,6833/50,9495/51,6280%,underalwaysOPP
+50,3099/51,0086/51,6899%. Alle12dag/ukeproper-loss-CI motR1 krysser0;
+booktillegget har ingen påvist stabil merverdi i denne lille lineære modellen.
+Fellesnegativefolds1/1/1;allefollowupfalse. R1-kontrollens15minproper-scores
+bedrerprior nominelt i dag/uke,menR1 blir ingenautomatiskvinner ellertrade.
+Dette avgjør ikke fulle ikke-lineære/temporale features. Actual249peerPASS:9JSON/12payloadstat/66paneler/462confusions/396CI.
+250 er fullført bare som lesende kilde-/minne-feasibility. Én mulig fast
+ExtraTrees-referanse(32trær/dybd8/minleaf256/sqrt/éntråd/seed20260911) kan
+beholde hele3345snapshot med F32. To største arrays er2926848240B før øvrig
+minne; faktiskET-RSS/tid er UMÅLT. Énfold/horisont og frigitt206raw kreves.
+15forestfits/480trær/30populasjoner og frosset249R1 utenrefit er en mulig
+fremtidig kontrakt,ikke innrømmet. ET0/1probabilitet krever presis numerisk
+logloss-kontrakt;Brier/reliability skal bruke råp. Lås ny input-/score-/
+ressursdesign ogkvalifiser minsteisolertekilde førnoen nyfit. Ingenkalibrering/
+HPO ellerautomatiskmodellvinner. Fulletemporalsekvenser/chart er fortsattumålt.
 
 ## Varige grenser og ubeviste forhold
 
@@ -162,7 +184,7 @@ Siste nativefunksjon beholder223GCinputs/227freshstate/229egeninitial/230stateau
 231privatequalification/232epoke/233analyse. ONLINE-endring krever nyinitial,
 men ingen slikendring er gjort. Originale kvitteringer/checkpoints bevares.
 237 er stoppet førdata etter brukerens retningsprioritering;240/241/242/243 er
-failed/consumed med bevartoriginalfeil;239/245/246/247 ercomplete/consumed.
+failed/consumed med bevartoriginalfeil;239/245/246/247/249 ercomplete/consumed.
 Ingen gammelplan relanseres. Tidligere tekniskePASS skal ikke gjentas rutinemessig.
 
 Fysisk grunnlag er23 gjenbrukte utviklingsmåneder:TRAIN mai2024–desember2025,
