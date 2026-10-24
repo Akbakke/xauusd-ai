@@ -14,12 +14,12 @@ Trades, bevegelsesstørrelse/MFE/MAE, risiko og Exit utsettes. Målet er aktivt 
 ikke oppnådd. TRAIN-fit, senere overføring, generalisering og økonomisk edge
 krever forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 
-259 er COMPLETE/consumed og **forkastet som retningskandidat**. Tre uavhengige
-actualmetadata/stat-/rapport-peers består konsistenskontrollene. Alle genuine trenings-/fitgater er false. Ett target-fritt261støtteaudit
-er nå innrømmet, se aktuellstatus nederst. Tidligere ret_1 brukes i alle
-15 modeller, men stabil retningsgevinst er ikke kvalifisert. Ingen relansering.
-Native/full_epoch/fullVAL/CONTROL/TEST/Exit/trades er lukket. Neste spørsmål
-om ren retning på ordnet nativehistorikk er kun kilde/design, ingen fitadmisjon.
+259 er COMPLETE/consumed og forkastet som retningskandidat. Ingen bedre
+retning er kvalifisert. 263 har bestått syntetiske mekanikktester, mens den
+fysiske 261-kontrollen feilet før første prefix. Aktuell 264 er innrømmet én
+gang for mål-fri fysisk støttekontroll med gjenbruk av ferdig dekodede inputs.
+Alle normaliserings-, modell- og treningsgater er false. Native fit, CONTROL,
+TEST, Exit og trades er lukket. Root eier launch; se 264-status nederst.
 
 ## Siste faktiske retningsmåling — 259
 
@@ -168,24 +168,32 @@ Oppdater policy/handover i sammebølge; fokuserte kontroller/AST/stale-path/
 gitdiff--check og ærlige grenser. Pushrett tilwork/gx1-current gjelder kode/docs/
 interne refs/aggregater, aldri rådata/vekter/hemmeligheter ellerforcepush.
 
-## Aktuelt —263syntetiskPASS,261fysiskstøtte innrømmet
+## Aktuelt 264 — én fysisk støttekontroll, ingen fit
 
-263er COMPLETE/consumed:30bestått/0feil/0skip,41qualifyforsøk/24returns,
-9fitforsøk/4returns,48surfacefits/4GCfits. Alle native-/wholeTRAIN-/markeds-
-forbidden-tellere0.4GiB/512MiB/64pids/éntråd/prosjektlås,128.594sworker/
-129.201sytre, beggeexit0/kilde-ogeksternebookendsPASS på717102d3. Root og
-uavhengigactualmetadata/stat-peerPASS; ingen numeriskreplay eller ekte
-markeds-/modellarbeid.261/262feilede fixture-receipts bevares; ingen relansering.
+263 er fullført og forbrukt: 30 syntetiske tester bestått, 0 feil/skip,
+41 kvalifikasjonskall/24 returer, 9 fitforsøk/4 returer, 48 overflatefits og
+4 GC-fits. Alle forbudte kall var 0; cap/lås og fryst kilde ble bekreftet.
+Dette kvalifiserer syntetisk mekanikk, ikke genuine stats eller prognoser.
 
-Én separat261target-fri fysiskstøtteaudit er innrømmet: samme245parent/barstart/D
-og femcuts; alle12inputflater, allefelt/masker og varmup. Eksakt40path-/15source-
-plan og worker er kilde-/metadata-/stat-peerPASS. Gjenbruk050/051/nativecache/
-223råGC; kun treNPZaksemedlemmer, ingenlabels.0statsfits/0modeller/0updates.
-Prospektivt4GiB/512MiB/64pids/éntråd/1800s og26534936912B bevarte mmaps.
-Cache/GC/squeeze har canonicalfreshhash;051/050Parquet-SHAarves medfulle
-statbookends, ikke ferske bodyhash. Faktisk støtte/RSS/tid er ikke målt ennå.
+261 fysisk støtte feilet og er forbrukt: 101.181 s worker/101.553 s ytre,
+exit 1, fryst f6ec3d9d og kildebokender bestått. 050/051-loadere fullførte
+1/1 hver, cache 1/0. Filvakten stoppet to ubundne V29-metadatastier; ingen
+rådatafeil er påvist. 0 av 5 prefixer ble kontrollert; støtte var umålt.
+Alle 261-gater er lukket. Opprinnelige receipts og seks readonly mmaps
+på 26,534,936,912 B bevares, uten relansering eller ny 26.5 GB dekoding.
 
-Under audit fryses kilde/policy; stabiljobb observeres15–30min, ikke minuttvis.
-Vedterminal lukkes admisjonen også ved blokkertstøtte/feil. Ingen retningsgevinst
-er bevist; genuineprefixstats/fullnativeinitial/gradient/resume/fit gjenstår.
-Alle modell-/normaliseringsfitgater erfalse; TEST/Exit/trades forblir lukket.
+264 worker a007b01d og PLAN 96ff8253 har root/source-peer PASS: 20 nøkler,
+48 eksakte inputstat-identiteter og 17 kildeeiere. V29-closure binder tre små
+JSON-filer med 33 kanoniske SHA-kall; to stier var manglende. Squeeze beholder
+150 SHA-kall/12 paramsloads/1 manifestload. Native eiere og de 30 beståtte
+testene er uendret. Ingen numerisk replay eller fysisk støtte er målt av peer.
+
+Én ny mål-fri audit er innrømmet: 1800 s, 4 GiB RAM, 512 MiB swap, 64 pids,
+én numerisk tråd og prosjektlås. Gjenbruk seks immutable mmaps, les bare 050
+klokker med eksisterende hjelper, åpne ikke original 051. Revalider alle
+aksene, posisjoner og full snapshotparitet før fem prefixers genuine støtte.
+Ingen nye scratch-data, statsfits, modeller, labels, CONTROL eller TEST.
+Worker bevarer feilårsakskjede og eksakte avviste stier. Bare support/data-
+gater er true; alle fit-/treningsgater er false. Root fryser kilde/policy til
+terminal, konsumerer også et mislykket forsøk og lukker gatene. Eksakte refs
+og engangsgrenser finnes under 264 i NEXT_RUN_POLICY. Målet er fortsatt aktivt.
