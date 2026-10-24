@@ -14,16 +14,14 @@ Trades, bevegelsesstørrelse/MFE/MAE, risiko og Exit utsettes. Målet er aktivt 
 ikke oppnådd. TRAIN-fit, senere overføring, generalisering og økonomisk edge
 krever forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 
-259 er fullført og forkastet som retningskandidat. Ingen bedre retning er
-kvalifisert. 263 bestod 30 syntetiske tester. 264 målte fysisk inputstøtte:
-fold 0 blokkert, fire senere støttet. 265 normalisering feilet på en sjelden
-D1-hendelse etter fire eksakte datapariteter; ingen komplett normalisering
-eller modell ble publisert. 266 er COMPLETE/consumed:115syntetiske cases består, actual receipt-peer PASS.
-267 er COMPLETE/consumed og actualartefakt-peer PASS: fem ferske råpariteter og
-fire genuine prefixnormaliseringer. 267/268/269 er lukket;273 har kun betinget4U-kvalifikasjon, aldri hovedfit. 268 har18syntetiskePASS/actualpeerPASS. 269 er
-COMPLETE/consumed: ferskconstructor,2evalF/1B/0U ogGCgradienter påallefemTF
-består; actualreceiptpeer PASS. Ingen ny retningsprognose er målt. TEST, CONTROL,
-Exit og trades er lukket. Root eier policy og launch.
+259 er forkastet som retningskandidat; ingen bedre retning er kvalifisert.
+267s fire genuine prefixnormaliseringer og268s featureview er gjenbrukt.
+273 er nå COMPLETE/consumed: ekte CUDA,3ferske initialer,4F/4B/4privateupdates,
+alle1/5/15-utganger supervised og bit-eksakt lagret/gjenopptatt fullstate.
+Root og tre avgrensede actualpeers består. Dette er fire foreldre, ikke et
+prognoseresultat. Alle execution-/fitgater er lukket; ingen kvalifiseringsvekt
+i hovedfit. Neste steg er ny fast kronologisk pure-direction TRAIN/OOF-protokoll.
+TEST, CONTROL, Exit og trades er lukket. Root eier policy og launch.
 
 ## Siste faktiske retningsmåling — 259
 
@@ -440,18 +438,39 @@ pure-directionfit mot identiske referanser. Ingen genuineGPU/resume/15min-
 update eller bedre prognose er kvalifisert av272. TEST/CONTROL/Exit/trades/
 trening erlukket. Retningsmålet eraktivt ogikkeoppnådd.
 
-## Aktuelt273 — ekte privatGPU/resume, ingen hovedfit
+## Fullført273 — ekte privatGPU/resume, actualpeer PASS
 
-Eksakt47pin recipe/inputmanifest og egne0U-CUDAinitialer er bundet.272/271/267
-gjenbrukes. Root+feature kilde-/metadata-peer PASS; faktisk støtte/gradient/
-resume gjenstår. Én ny kanoniskcampaign med fire privateupdates (2mot1+restore+1),
-20G/512M/128tasks/8tråder, eksisterende signedhardware, lås og freshWindowsboot.
-Ingen gammel plan relanseres, ingen privatevekter i hovedfit.
+Én ny kanoniskcampaign på frysteec82c98/policy6e25e202 er COMPLETE/consumed.
+Boot533 er faktisk nyere enn bundet532. Install/prepare/beskyttet1200srequest/
+confirm, wholehostidle, kildepins og eksisterende signedguard bestod.
+Worker175.736s, receiptspenn180.203s, guard/observer exit0, ingen timeout.
+3ferske CUDAinitialer er identiske;4F/4B/4updates er2sammenhengende mot1+
+faktisk lagring+ferskrestore+1. Tre stagedstrictloads ogén resumeload bestod.
 
-training_enabled/native_training_enabled=true gjelder kun273s eksakte
-private4U. full_epoch=false og predictorfit/CONTROL/TEST/Exit/trades erfalse.
-Campaignmaterialisering, freshwholehostidle/stagedhash/160Widlekeeper, install/
-prepare-reboot/beskyttet1200srequest/confirm/freshboot må bestås førlaunch.
-273s kjøringsbinding opprettes etter frystcommit. Allemodell-/databytes beholdes.
-Det ble ikke målt annet enn idle/prosess-/metadata i denne forberedelsen.
-Målet eraktivt; godeprognoser erikke kvalifisert. Root eier launch og policy.
+Fire forhåndsvalgte foreldre47595..47598 har12unike eligible1/5/15-celler,
+24fysiske loss-celleeksponeringer. Alle3headweight-rader har128nonzero ogbias
+nonzero; GC-projeksjon/gateaggregater er nonzero påalle5TF.25familier har fysisk
+støtte; det er ikke25separatefamilie-gradientbevis. Inaktivevekter/gradienter,
+raw14arrays, allebuffers/AdamW/RNG/modus/radorden/cursor og inputbokender bestod
+runtimevaktene. To logiskestegtap0.595379/0.885802 gjelderulikebatcher ogbeviser
+ikke læring. Ingen statsfit/predictorfit/CONTROL/TEST/Exit/trades.
+
+Signedguard:147telemetriprøver, peak48Ccore/54Cminne/130.95W/860MiB. Første
+aktivesnapshot måltecgrouppeak10,248,830,976B; endeligcgrouppeak bleikke fanget.
+ProcessRSSpeak5,709,103,104B erikke cgrouppeak. Cap20GiB/512MiB/128tasks/
+8numerisketråder/lås består. Etterterminal taskReady/restart0, GPU160Widle og
+originaleprosesser borte; prosjektlåsen bleverifisert ledig.
+
+Root+research/learning/featureactualpeer PASS:47pins(39Git+8runtime),55metadata,
+48payloadstats og3checkpointbytehasher avstemt. Ingen uavhengig numerisk PT-
+eller råarrayreplay; fullstate/rawbevaring hvilerpå fryste runtimeasserts og
+terminalsuccess. En rootmetadata-kontroll feiltolketførst .venv som Git; feilen
+erbevart separat ogrettet med faktiskgitmembership, uten kilde-/runendring.
+Originalreceipts/checkpoints bevares. OUTER_TERMINAL/ACTUAL_QUALIFICATION_REVIEW
+ogalle aktuelle refs er bundet under273iNEXT_RUN_POLICY.
+
+Alle273gater erfalse/claimed=completed1;ingen relansering. Privatvektene erikke
+hovedfitvekter. Neste arbeid er minste faste kronologiske native retningsfit:
+fire kvalifiserte267prefixer, fersk egenCUDAforecastbaseline perprefix, samme
+70,647senereforeldre ogfrosne referanser. Ingen budsjett/fit/launch er ennå
+innrømmet. Målet ombedreprognoser eraktivt ogikkeoppnådd.
