@@ -94,7 +94,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:retning først;243 måler konkret featureklokkeavvik,244 enkel baseline er låst
+## Nå: første enkle retningsreferanse klargjøres; ingen modellfit er innrømmet
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -282,22 +282,31 @@ prosesspeakRSS4560302080B (ikke cgroup-peak). Full198paritet/5native selectors/
 Kildene bruker ulike currentklokker:206 sisteGC-kalenderbøtte<=D,223 siste native
 prisrad. Faktisk avviksomfang/årsak er ikke målt;239s strenge port er uendret.
 
-243worker25ce2377… og actualPLAN er kildepeeret før én targetfri dataaudit.
-14påkrevd kildeeiere og217-klokkekontrakt er kontrollert; bareto198klokkemedlemmer,
-niheaders,30NPY/5canonicalselectors og206ti kolonner. Alle5TF måles i175faste
-aggregeringer: mask/bits/numeric/signedzero/ULP/clockrelation/age/month/boundary.
-GC-asof utledes bare frabundet komplett ownbook-grid; H4/D1faser2t/22t beholdes.
-Capped4GiB/512MiB/64pids/éntråd,300+10s/8GiB rchar.0nyequote-/endpointreaders,
-men canonical9M1+45M5OHLC-SHApass leserbytes og rapporteres.0fit/prognose/arrayoutput.
-Frystsource/policy til terminal; ingenrelaunch ellerautomatiskkandidatgodkjenning.
+243 FAILED/consumed før payload: 5,364s worker / 5,654s ytre, exit1 og uendret
+kilde. Metadata sammenlignet relativ LAYOUT-registry med absolutt SURFACES-ref.
+Begge resolver til samme kanoniske fil og SHA3e444777…; ingen datamismatch ble
+målt i243.0arkiv/NPY/feature/fit/modellarbeid; original terminal er bevart.
+246 har en kildeklart minimalrettelse: kun denne likheten flyttes til allerede
+absolutt ref, pluss run/stage-identitet. Workerbf9075e5… er kontrollert; ingen
+algoritme-/guard-/budsjettendring.246 er ikke innrømmet.239-paritetsporten består;
+book-kandidaten er fortsatt ukvalifisert og faktisk klokkeavviksomfang er umålt.
 
-244DESIGN6d7a5b5f… er låst og sourcepeerPASS: førsteenkle retningsreferanse er
-prospektiv S_PRICE66, fem210prefixer uendret og239renpris-/sannsynlighetseiere.
-15faste logistiske fits/30predictorpopulasjoner er bare framtidigtak,ikkeinnrømmet.
-Ingen klassifikatorscore har valgt armen.86-pakken er fortsatt ukvalifisert.
+244DESIGN6d7a5b5f… er låst og sourcepeerPASS: første enkle retningsreferanse er
+prospektiv S_PRICE66, fem210-prefixer uendret og239-renpris-/sannsynlighetseiere.
+Ingen klassifikatorscore har valgt armen;86-pakken er ikke gjenkvalifisert.
+245 forbereder én renpris/S_PRICE66-dataworker: alle118249 TRAIN-foreldre,
+full9-array198-paritet,116endpointblokker og fem66-kolonnematriser/413667 kodede
+foreldre. Bare eksisterende206/204/209/210-eiere; ingen ny normaliseringsfit,
+book/cacheinput, modell eller CONTROL-targetquery. Prisnull/sensur/fortegnsavvik
+og rå ret_1-persistens lagres med bindinger. Datajobben er ennå ikke innrømmet.
+
+247 forbereder bare den faste CPU-referanseworkerens kilde:15 logistiske fits
+og30 predictorpopulasjoner, uten HPO, terskelvalg eller kalibreringsrefit.
 Streng horizonmodning, null/missingnevner, proper scores, råpersistens/commoncohort
-og paired UTCdag/Mandaguke beholdes;TRAIN-folds er gjenbrukt utvikling. Førstegen
-datakvalifisering, såegenfitplan. Selve trades/Exit ognativeautoritet er stengt.
+og paired UTCdag/Mandaguke beholdes. Både retning/dekning og sannsynligheter
+måles; TRAIN-folds er gjenbrukt utvikling. Ingen247-fit før faktisk245-datakvalitet
+og egen bundet fitadmisjon. Alle kildeeiere stopper før en fryst cappedkjøring.
+Selve trades/Exit og nativeautoritet er stengt; ingen prognosegevinst er vist.
 
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
@@ -324,6 +333,6 @@ TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forward
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
 training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235/236 er consumed.
 236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
-er ferdig og239 er kildekvalifisert.240/241/242 er consumed;243 har én targetfri dataadmisjon.244 er kun design. Prediktorfit er stengt.
+er ferdig og239 er kildekvalifisert.240/241/242/243 er consumed.244-design er låst;245/247 er kildeforberedelse.246 er klar, ikke innrømmet. Prediktorfit er stengt.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.

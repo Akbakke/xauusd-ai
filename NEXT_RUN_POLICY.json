@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T06:31:36.494950+00:00",
-  "status": "DIRECTION239_SOURCE_QUALIFIED_240_NONFITTING_PROJECTION_PREPARATION_ONLY",
+  "observed_utc": "2026-10-24T07:56:42.208487+00:00",
+  "status": "DIRECTION_BASELINE_WORKER_PREPARATION_NO_EXECUTION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Prepare exact240 once-only genuine TRAIN midpoint label and causal feature/provenance projection. No predictor fit. Reuse existing readers, cache/normalizers and239 qualified helpers; all data reads remain closed until exact worker/plan/guard review.",
+  "next_action": "Finish and source-review245 pureprice/S_PRICE66 data worker and247 fixed15-fit reference worker. Freeze allsource before one capped job. Qualify actual245publisheddata before any247fit admission.246book diagnostic repair is source-ready but not admitted. Native/TEST/Exit/trades/broker stay closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -245,10 +245,10 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "239_SOURCE_QUALIFIED_50_SYNTHETIC_CASES_NO_GENUINE_DIRECTION_EVIDENCE",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_CACHE_LINEAGE_REPAIR_20261024_242",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_DIAGNOSTIC_20261024_243",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_CACHE_LINEAGE_REPAIR_20261024_242/TERMINAL.json",
-      "sha256": "795eb64da8b196b0c2aef8c38179f69a72c10807d154cd215c949eb07c0c2b3e"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_DIAGNOSTIC_20261024_243/TERMINAL.json",
+      "sha256": "25204b68d4a6d4c842a7c9fff8f395154db7b23d42284c2628c4f482212e5ee6"
     },
     "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
@@ -17296,7 +17296,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "243 one target-free all5TF book-route discrepancy measurement;244 unchanged prospective S_PRICE66 baseline design/sourcepeer complete, no data or classifier fit yet admitted.",
+      "next_step": "245 pureprice/S_PRICE66 baseline data has priority, then15fixed classifier fits if qualified.246 only minimal descriptive book metadata repair; optional book package stays unqualified. No source edits during any capped run.",
       "baseline_priority": "244 freezes unchanged prospective S_PRICE66 control as first standalone direction baseline before optional book changes;15 future fixedfits only, not admitted. No classifier scores have been observed."
     }
   },
@@ -29397,7 +29397,7 @@
     }
   },
   "dynamic_m5_direction_book_alignment_diagnostic_243": {
-    "status": "ONE_CAPPED_TARGET_FREE_ALL_TF_ALIGNMENT_DIAGNOSTIC_ADMITTED",
+    "status": "FAILED_CONSUMED_BEFORE_PAYLOAD_RELATIVE_VS_ABSOLUTE_REGISTRY_REF",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_DIAGNOSTIC_20261024_243",
     "prior_consumed_decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_CACHE_LINEAGE_REPAIR_20261024_242/DECISION.json",
@@ -29413,8 +29413,8 @@
     },
     "source_edits_authorized": false,
     "source_edit_scope": "External narrow alignment diagnostic only after concrete242M15 mismatch; no canonical helper/generator/selector/target/model edits. Root owns policy/launch.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "new_normalization_fit_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "training_enabled": false,
@@ -29423,8 +29423,8 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_DIAGNOSTIC_20261024_243/PLAN.json",
@@ -29468,7 +29468,12 @@
       "threads": 1,
       "timeframes": 5
     },
-    "admitted_utc": "2026-10-24T07:40:53.618975+00:00"
+    "admitted_utc": "2026-10-24T07:40:53.618975+00:00",
+    "consumed": true,
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_DIAGNOSTIC_20261024_243/DECISION.json",
+      "sha256": "886870549a125d9d4d2033c66c6ad581bc8eed09e83ca7d33ffe162b4f84cfa6"
+    }
   },
   "dynamic_m5_direction_baseline_only_design_244": {
     "status": "LOCKED_DESIGN_ONLY_NO_DATA_OR_FIT_ADMISSION",
@@ -29492,5 +29497,174 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_ONLY_DESIGN_20261024_244/DESIGN_SOURCE_REVIEW.json",
       "sha256": "a2a1e92bdd3c0b5e2c70b164ed714ded56b7bcba949fbb7f42ee3dc5c75243ed"
     }
+  },
+  "dynamic_m5_direction_baseline_data_245": {
+    "status": "BOUNDED_WORKER_SOURCE_PREPARATION_ONLY_NO_EXECUTION",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245",
+    "baseline_design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_ONLY_DESIGN_20261024_244/DESIGN.json",
+      "sha256": "6d7a5b5fab2a15ccd79da51aa83a7ac242690bb9e7e5f25f2a8cc22d9a17eb95"
+    },
+    "baseline_design_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_ONLY_DESIGN_20261024_244/DESIGN_SOURCE_REVIEW.json",
+      "sha256": "a2a1e92bdd3c0b5e2c70b164ed714ded56b7bcba949fbb7f42ee3dc5c75243ed"
+    },
+    "prior_consumed_decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_DIAGNOSTIC_20261024_243/DECISION.json",
+      "sha256": "886870549a125d9d4d2033c66c6ad581bc8eed09e83ca7d33ffe162b4f84cfa6"
+    },
+    "source_edits_authorized": true,
+    "source_edit_scope": "New external pureprice/S_PRICE66 data worker only. Reuse239 endpoint and full198parity,206raw/saved204map/exact210fiveprefixstats. No book/nativecache/GCrawroute or newnormalizers. First direction baseline priority.",
+    "file_ownership": {
+      "learning_audit": [
+        "worker"
+      ],
+      "root": [
+        "PLAN.json",
+        "SOURCE_PREPARATION_REVIEW.json",
+        "NEXT_RUN_POLICY.json",
+        "CURRENT_HANDOVER.md"
+      ]
+    },
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "new_normalization_fit_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
+  },
+  "dynamic_m5_direction_book_alignment_binding_repair_246": {
+    "status": "SOURCE_REPAIR_READY_NOT_ADMITTED_BASELINE_PRIORITY",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246",
+    "baseline_design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_ONLY_DESIGN_20261024_244/DESIGN.json",
+      "sha256": "6d7a5b5fab2a15ccd79da51aa83a7ac242690bb9e7e5f25f2a8cc22d9a17eb95"
+    },
+    "baseline_design_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_ONLY_DESIGN_20261024_244/DESIGN_SOURCE_REVIEW.json",
+      "sha256": "a2a1e92bdd3c0b5e2c70b164ed714ded56b7bcba949fbb7f42ee3dc5c75243ed"
+    },
+    "prior_consumed_decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_DIAGNOSTIC_20261024_243/DECISION.json",
+      "sha256": "886870549a125d9d4d2033c66c6ad581bc8eed09e83ca7d33ffe162b4f84cfa6"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": "External243 clone only: RUN_ID/STAGE plus move equality to alreadycanonical resolved source-registry path+sameSHA. No computations/budgets/guard weakening.",
+    "file_ownership": {
+      "research_audit": [
+        "worker"
+      ],
+      "root": [
+        "PLAN.json",
+        "SOURCE_PREPARATION_REVIEW.json",
+        "NEXT_RUN_POLICY.json",
+        "CURRENT_HANDOVER.md"
+      ]
+    },
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "new_normalization_fit_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/PLAN.json",
+      "sha256": "6b32d957617390de70c3c20daaf59ee650f637b40e6dc103ba1f38a5eeecace8"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "c5007818855306a7655f4fd53ee8edc7a82615681354f15d8f5d8abd0ba4f7b6"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/audit_book_alignment_guarded.py",
+      "sha256": "bf9075e557e10a07653d5c79a4d0d1cea07051c93f3b2efd0d3ae03f65ff2b2e"
+    },
+    "budget": {
+      "TERM_grace_seconds": 10,
+      "aggregate_reports": 175,
+      "book_surface_npy_inputs": 15,
+      "class": "audit",
+      "clock_archives": 1,
+      "clock_member_inventory": 9,
+      "clock_members": 2,
+      "current_selector_calls": 5,
+      "feature_output_arrays": 0,
+      "genuine_predictor_fits": 0,
+      "max_invocations": 1,
+      "max_rchar_bytes": 8589934592,
+      "max_wall_seconds": 300,
+      "memory_bytes": 4294967296,
+      "native_cache_npy_inputs": 15,
+      "native_model_forwards": 0,
+      "new_targets": 0,
+      "normalization_fits": 0,
+      "optimizer_updates": 0,
+      "original_OBS_reads": 0,
+      "outcome_members_materialized": 0,
+      "parent_rows": 118249,
+      "price_target_source_reads": 0,
+      "raw_GC_tables": 0,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1,
+      "timeframes": 5
+    }
+  },
+  "dynamic_m5_direction_baseline_fixed_reference_247": {
+    "status": "FIXED15_FIT_WORKER_PREPARATION_ONLY_NO_DATA_OR_FIT_ADMISSION",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_FIXED_REFERENCE_20261024_247",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_ONLY_DESIGN_20261024_244/DESIGN.json",
+      "sha256": "6d7a5b5fab2a15ccd79da51aa83a7ac242690bb9e7e5f25f2a8cc22d9a17eb95"
+    },
+    "design_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_ONLY_DESIGN_20261024_244/DESIGN_SOURCE_REVIEW.json",
+      "sha256": "a2a1e92bdd3c0b5e2c70b164ed714ded56b7bcba949fbb7f42ee3dc5c75243ed"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239/DECISION.json",
+      "sha256": "d690cc46dea503dc7fbc35237cb361cb052e54059c0755bad18429a80526b756"
+    },
+    "data_dependency_245_must_be_qualified_before_admission": true,
+    "source_edits_authorized": true,
+    "source_edit_scope": "External one fixed S_PRICE66 chronological probability/direction reference runner only, exactly15fit/30logicalpredictor populations per244. No native/feature/helper/normalization/model design change. Prepare against explicit245 output contract; verify actual published refs only after245 terminal/dataqualification.",
+    "file_ownership": {
+      "research_audit": [
+        "fit_direction_baseline_guarded.py"
+      ],
+      "root": [
+        "PLAN.json",
+        "SOURCE_PREPARATION_REVIEW.json",
+        "NEXT_RUN_POLICY.json",
+        "CURRENT_HANDOVER.md"
+      ]
+    },
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "new_normalization_fit_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
   }
 }
