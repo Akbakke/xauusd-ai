@@ -1,402 +1,182 @@
-# CURRENT HANDOVER — XAUUSD M5 Entry
+# CURRENT HANDOVER — XAUUSD, retning først
 
-Autoritet: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current` på
-`gx1-3090-lan`. GX1_RULES gjelder; NEXT_RUN_POLICY eier arbeidsstatus.
-Root er integrator. Én capped CURRENT-jobb, fryst kilde/policy under kjøring.
+Autoritet: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`,
+`gx1-3090-lan`. Les GX1_RULES helt ved første arbeid; start overtakelse med
+`bash scripts/gx1_handover.sh --check`. NEXT_RUN_POLICY er eneste arbeidsstatus.
+Root eier integrasjon, policy og launch. Historiske detaljer finnes i Git og
+originale eksterne kvitteringer; ikke åpne dem uten konkret behov.
 
-## Aktivt mål og målt mangel
+## Mål og aktuell status
 
-Bruker spisset målet24.10: **prisretning først**. M5-beslutninger skal gi
-bedre LONG/SHORT-prognoser med etterprøvbar sannsynlighet og kvalitet.
-Selve trades, MFE/MAE-optimering, risiko og Exit utsettes til neste omgang.
-Målet er aktivt og ikke oppnådd. Teknisk konsum og TRAIN-fit er egne bevis;
-kronologisk retningsgevinst, senere generalisering og handelsøkonomi er ikke vist.
+Bruker spisset24.10 målet til **prisretning først**: bedre opp/ned-prognoser og
+etterprøvbare sannsynligheter. Selve trades, MFE/MAE-optimering, risiko og Exit
+utsettes. Målet er aktivt og ikke oppnådd. Teknisk konsum, TRAIN-fit,
+generalisering og økonomisk edge er forskjellige bevis.
 
-216 fant1205 GC-verdier og1205 masker på96 lokale M5-rader/currentcontext.
-Native MTF-vinduene16/64/96/96/252 har0 GC-felt i både full253 og kompakt139.
-GC har lange TF-sammendrag, men ingen lange egne TF-sekvenser i disse vinduene.
-Dette er en målt rutemangel, ikke bevist årsak eller lovet prognosegevinst.
-217s targetfrie fysiske audit bekreftet at BBO-støttens plassering i delvise bøtter
-mangler som modellfelt. COMPLETE/consumed; actualpeer PASS5961 kontroller.
-D1-positive gap gjelder346/52 unike TRAIN/CONTROL-bøtter, ikke uavhengige foreldre.
+Siste målte retningsreferanse247 er COMPLETE/consumed og forkastet. Dens
+actualpeer er PASS. Datagrunnlag245 er kvalifisert. Klokkediagnose246 er
+COMPLETE/consumed og actualpeerPASS, men kvalifiserer ingen hel bookpakke.
 
-## Gjort: fast kandidat og kvalifisert kilde
+**Én fryst249-jobb er nå innrømmet**, etter låst248-design/designpeerPASS,
+fryst worker1b84296b… og uavhengig kildepeerPASS. Ti kildeeiere og faktisk
+PLAN/budsjett/metadata er kontrollert.8syntetiske adaptercases førgenuinepayload;
+faktisk ny M5-kvalifikasjon skal publiseres før30faste CPU-fits/60populasjoner.
+Globaltraining=true gjelder bare denne forskningsreferansen;
+full_epoch/fullVAL/native_launch=false. Alle kilder/policy er fryst til terminal.
 
-218s ene additive GC temporal/support-pakke beholder alle1205 verdi/mask-par,
-lokale inputs, original055, base253/kompakt139, targets/kostnader, åtte spesialister
-og niende D1/makro samt eksisterende encoder/attention/readout.
-Presisering: fullmodellens8 beholdes, men19.10-kompaktprofilen har7aktive
-lokalfamilier,5base-MTF-familier og7MTF-familier medGC. Chart er vedtattparkert,
-ikke bortfalt utilsiktet.39chartfelt/TF og32lokalsignalfelt er ikke konsumert her.
-Egne GC-historier bruker de eksakt samme native radene, med én trailinggapverdi
-perTF og eksisterende BBO-validmaske: bredder639/493/453/431/399.
-Nye fem `gc_mtf_*`-normaliseringer er separate; bare unike konsumert-TRAIN-rader
-kan tilpasses. Manglende kildebøtter forblir ukjente, ingen tilbakefylling.
-KunNone slår kandidaten av; layout/normalisering/profil og alle fem inputs bindes.
+## Hva faktisk er målt om retning
 
-218 FAILED/consumed:15PASS og26røde fra én feil registereier. Minste rettelse
-binder canonical8 modellspesialister.219 COMPLETE/consumed:26/26 tidligere røde
-PASS,0fail/error/skip,28,292s worker/29,250s ytre,peakRSS900452352B.
-15 tidligere PASS gjenbrukes. Alle41 avgrensede cases er kildekvalifisert.
-TF-endringer når prognoser/gradienter i syntetiske tester; dette er ikke læring.
-Ingen218/219-relaunch. Originalfeil/kvitteringer beholdes.
+Native232 med218GC-history/support-pakken hadde7391updates og32finalforwards
+på256TRAIN+256CONTROL, alle480horisonter. Teknisk guard og actualpeerPASS;
+kvitteringer/checkpoints er originale. Den forbedret ikke Entry-retning:
+CONTROL1/5/15 retnings-MSE mot191 var +0,647% /−0,291% /−0,185%; bare3/6
+primærpunkter mot egeninitial og191 bedret seg. Alle12 dag/uke95%-CI krysset0.
+Alle512 aktuelle handlingsrader varFLAT. TidligMFE/preMAE kunne bedre egeninitial
+uten bedre retning; mot191 var alle8CONTROL-sidepanelene verre.
 
-## Kvalifisert featurepakke og initielle målinger
+236s faste femfold snapshot/ridge-studie fullførte40fit/120regresjoner,
+8armer og413667kodede foreldre. Ingen av sju familie+makro-armer bestod låst
+videreføring. Alle14poolede5/15min-paneler var verre enn makro og prefixmiddel.
+Dette er en avgrenset lineær snapshotkonklusjon, ikke dom over allefeatures,
+lange sekvenser eller ikke-lineær informasjon. Ingen vinner eller ny fit følger.
 
-223 er COMPLETE/consumed og actualpeer429b80de… PASS:15readonlyNPY,
-467723564B, fem separate TRAIN-normaliseringer,84,292sworker/85,268sytre.
-Ti canonicalselectors matcher055vinduer/proofs;0manglende bøtter etter kildestart
-påalle28table/rolepaneler. Ingen targetmedlemmer/prediktorfit/modellforward/update.
-TRAIN-union M5/M15/H1/H4/D1=118720/39638/9995/2686/683rader;
-CONTROL-kontekst=17363/5847/1542/474/315, ingen CONTROL-fit.
-Alle14first_retouch har kildebevist binaryidentity. D1TRAINbull1/15,bear1/9;
-CONTROLbull0/9,bear1/6. Ti eldre H1buy/sell/POC/delta/CVD-felt har3TRAIN-
-observasjoner og0CONTROL; de beholdes maskert. Rader er ikke uavhengige signaler.
+247 er den første rene prisretning/logistikkreferansen, S_PRICE66 med61makro,
+4session og ret_1. Fem ekspanderendeTRAIN-folds, fast239L2/C1/lbfgs/maxiter500,
+15fit/30prediktorpopulasjoner;867faktiske solveriterasjoner(24–107),alle15success.
+8,126sworker/8,423sytre; fryst fefd62d3/policy,7SHA-verifiserte inputs.
+0normaliseringsfit/nativeF/U/CONTROL/TEST. Actualpeer avstemte8JSON,
+9payloadfiler medstat,33paneler,231forvekslingsmatriser og132lagrede intervaller.
 
-224DESIGN binder minste kobling av manifest223 til existing dynamisk M5Entry.
-Metadatafelt `gc_mtf_history_artifact` beholder recipeens11filer. GC-layout,
-normalisering og råsidefiler bindes gjennom én betinget `gc_mtf_history_identity`
-for modell/TRAIN/CONTROL, freshstate, session/context, tekniskbevis og målinger.
-Loader gjenbruker verifisert descriptor+readonlymmap; ingen nytrener, serving/export
-eller endringav generator/selektor/gather/055/targets/kostnader/åttefamilier/D1makro.
-224 COMPLETE/consumed:11/11 guardcases PASS,0fail/error/skip,0forwards og5
-syntetiske normaliseringsfits,32,098sworker/33,003sytre,frystkilde/policy.38
-tidligere PASS gjenbrukes. Falsk/endret metadata,payload,klokke og state avvises.
-225 COMPLETE/consumed: fersk GC-ON CPUstate med faktisk0forward/update/fit/
-Dataset-/GC-arrayåpning.27inputstat bookends matcher;287,275sworker/289,448sytre.
-Profil880cbd1a… er kanonisk målt;184closure-roller, kun GC-eieren er lagt til.
-ONLINE=TARGET=EMA0 og strictstate/normalisering/RNG-roundtrip er verifisert av
-eksisterende publisher.49,43GBrchar omfatter integritetshashing, ikke nullbytes.
+| Horisont | Binære OOF-rader | Modelltreff | AlltidOPP | Balansert treff |
+|---|---:|---:|---:|---:|
+|1min|88102|50,0624%|50,3099%|50,0101%|
+|5min|87944|49,9909%|51,0086%|49,8935%|
+|15min|87344|49,8443%|51,6899%|49,7829%|
 
-Ekstra målrettet kildepeer fant ett hull: senere baseline-admisjon ignorerer
-GC-identitet i lagretRESULT og beggeOBS.226 rettet dette med nøyaktig to
-helperkall; eneste endrede AST-funksjon er saved-baseline-validatoren.3/3nye
-negativecases PASS,0fail/error/skip,4,015sworker/4,701sytre,frystkilde/policy.
-Syntetisk arbeid var eksakt24surfacefits+3categoryfits+3RMSfits;0GCfit/F/update.
-Tidligere224ON-helperbevis gjenbrukes.225actualpeerfee76f01… PASS kunfreshstate.
+Alle trepooledlogloss/Brier var verre enn egen modneprefixprior. Alle12pooled
+proper-score dag/uke95%-CI lå helt over0(model−prior), ikke bare over null i
+punktestimatet. Bare1/15foldpanel bedret beggepropermetrics. Ingen horisont
+bestod fastfollowup. Dette forkaster S_PRICE66-fastlogistikk på gjenbruktTRAIN;
+ingen generell feature-, native-, generaliserings- eller edgekonklusjon.
+Ingen247relaunch/HPO/terskelvalg/kalibreringsfit.
 
-227 COMPLETE/consumed: én ny fersk CPUstate på aktuellkilde.0F/U/fit/Dataset/
-GC-arrayåpning,27bookends og184closure-roller; kanonisk modellstatehash er
-eksakt lik225, uten gjenbruk av dens vekter.290,273sworker/292,482sytre. Aktuell
-metadatareview PASS;225kvitteringer er bevartoriginale, ingen226initiallaunch.
+## Kvalifiserte data og eiere som skal gjenbrukes
 
-228PLAN innrømmet egen full480-initialmåling:256TRAIN+256CONTROL,batch16,
-16encoderforwards/rolle,32totalt,0updates/refits/Exit. Sealer og canonical
-materialisator gjenbrukes, sourcepeer2de6951a… PASS;11filer/055/057/111/
-prisfasit/kostnader er uendret. Kan kun starte etter fersk maskinvididle,
-bundetWindowsinstallasjon, prepare/confirm-reboot og faktisk ny boot med
-eksisterende maskinvarevakter. Ingen direkteStartScheduledTask. Én invokasjon,
-12000/13800s, fryst kilde/policy fra seal til terminal;ingenrelaunch.
-228campaignforberedelse FAILED/consumed før campaign/modell: bootidentitet var
-hashet uten lokal-campaign-kontraktens påkrevde avsluttende linjeskift.0F/U og
-ingen nativekjøring. Feilkvittering beholdes.229 er en egen avgrenset plan som
-gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
-Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
-materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
+239s tre nye analysehjelpere er kildekvalifisert:50/50syntetiske casesPASS,
+0fail/error/skip,eksakt1syntetisk sklearnfit og30små surfacefits. Renpris-,
+temporal- og sannsynlighetseiere er uendret. Ingen ny fullsuite er begrunnet.
 
-## Nå: første rene retningsreferanse målt; ingen retningsgevinst
+245 publiserte ren F64-midtprisfasit ved D=bar_start+300s og T=D+1/5/15min,
+fra eksakte M1-openklokker. Full9-array198kostnads-/klokkeparitet er bit-eksakt;
+originale targets/kostnader er bevart. Alle118249TRAINforeldre beholdes.
+Observerte nullbevegelser1/5/15=476/194/99; manglende=12/450/1313.
+Gammel kostnadskontrast hadde annet fortegn på503/212/109observerte rader.
+Dette er målkorrigering, ikke dokumentert forklaring på manglende edge.
 
-229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
-alle480horisonter,32forwards og0updates på nyWindowsboot530.
-230 COMPLETE/consumed: én canonicalfullrapportgate/toOBS ogtoCPUstatearkiver
-bestod.0modell/Dataset/forward/update/fit/backward;627,251sworker/627,881sytre,
-peakRSS1527341056B. Online/target/EMA/optimizer/scheduler og lagretCPU/Python/
-NumPyRNG erlike227; CUDA kun lagretskjema, ingen uavhengig postforwardRNGpåstand.
-Egen229baseline er kvalifisert. Ingen ny freshpublisher eller baseline-relaunch.
+245 COMPLETE/consumed:235,084sworker/235,696sytre;116endpoints/116converts/
+1TRAINreader/2eksisterendeh1guards. Ingen nye h5/h15pathquery,CONTROL-targetquery,
+normaliseringsfit,prediktorfit eller nativeF/U. Quoteindeksen ble frigjort før
+featurekoding. Fem S_PRICE66-matriser koder413667foreldre;109208088råfeaturebytes.
+Sju readonlypayloads130260690B. Rchar24734894825B<32GiB,prosesspeak3170807808B.
+ActualpeerPASS påmetadata/stat; peer åpnet ikke opaque payloadbodies.
+Canonical191-scope omfatter også CONTROL-integritet; ikke påstå0CONTROLbytes.
 
-231 COMPLETE/consumed: ny fysiskWindowsboot531, fire faktiske privateupdates,
-fireparitetsforwards,16TRAIN+16CONTROL,16paritetspaneler uten avvik og åtte
-resume-statehashlikheter. Logiskcursor2;ingenCONTROL-update,teacherrefresh,
-Exit eller privatvektgjenbruk. Native3623,381s; signedguardPASS ogchild/observer0,
-f12f4ad4/policy0d955a5b… fryst. Actualpeer25a42667… PASS metadata/proveniens;
-originale PT-/guard-/kvitteringsbevis beholdes. Teknisk PASS er ingen prognosegevinst.
+Gjenbruk206TRAINraw, saved204SOURCE_MAP og209full-layoutbro til210. Fem210
+baseline-prefixoppskrifter er allerede fit og uendret:20241001/20250101/20250401/
+20250701/20251001. Ikke bygg historisk kildekontrakt på nytt og ikke refit.
+245featureorden er155..215,3341..3344,1; sistekolonne65 er normalisert ret_1.
+Persistens bruker derimot rå206ret_1-sign, med rånull som avståelse.
 
-232 COMPLETE/consumed: én ny fast test av218GC-history/support-pakken etter
-223/227/229/230/231. Gjenbruk227fresh,055,057 og111;118249TRAINrader,
-batch16/siste9,7391updates og32finalONLINEforwards på256TRAIN+256CONTROL,
-alle480. Ingen kilde-/modellendring,refit,teacherrefresh eller231privatvektgjenbruk.
-Faktisk nyWindowsboot532;nativekvittering10294,049s,produsenttimer9975,581s
-harulikeklokkescope. GuardPASS/child0/observer0,peak57/66C/137,94W/2220MiB,
-8222samples. WindowsReady/LastResult0/Restart0,ingen prosjektPython eller aktivmarkør.
-Kilde4b971b3f/policyAAA692c5… var fryst til terminal;184roller/183kildestiers
-SHA+stat gjenverifisert. Actualpeer0c448c81… PASS metadata. RESUMABLE/complete=false
-og bundle_written=false er forventet ved budsjettstoppen, ikke en nylaunchport.
+## Målt klokkeforskjell og M5-rute
 
-232s engangsadmisjon er consumed;globaltraining/full_epoch/fullVAL=false,
-mainmap fjernet. Ingen relaunch,ekstraepoke/HPO/variant,TEST/Exit/broker eller
-privatvektgjenbruk. Originale kvitteringer/checkpoints beholdes.
-233 COMPLETE/consumed: én cappedCPU-audit128,390sworker/128,986sytre,
-4GiB/512MiB/64pids/1tråd,6OBS og6kunpointerprojeksjoner;0nyeF/U/refit/PT/NPY/
-råMBP/aggregate151/178. Faktiskrchar395365695B<4GiB. SourceADB3ef80/policy87a28314…
-fryst; runtimeband-selfcheck ogidentiskefasit/masker/klokker/kostnader PASS.
-Alle480min gir1440ALLpaneler/rolle. Actualpeerba9e31ed… PASS evalueringensbevis,
-menretningsgaten er IKKE bestått. Ingenrelaunch/ekstraepoke/HPO ellerpromotion.
+246 COMPLETE/consumed:82,598sworker/83,102sytre,fryst2d37c138/policy;
+5TF/175aggregerte paneler,0target/fit/nativeF/U. Rchar7494014023B<8GiB.
+ProsesspeakRSS4348985344B kan inkludere delt mmap og er ikke cgrouppeak.
+ActualpeerPASS kontrollerte kvitteringskjede,14kilde-SHA og alle175aggregater.
 
-CONTROL1/5/15 retningMSEmot191: +0,647% /-0,291% /-0,185%. Motegen229initial
-forbedres bare5min;totalt3/6primærpunkter forbedres. Alle12paired dag/uke95%-CI
-krysser0. Kontroll har68dags-/14ukeblokker. Alle512currentrader erFLAT.
-På de faste256TRAINprobene er1/5/15retningsfeil alleverre motegeninitial;
-dette er ikke et mål på heleTRAIN-populasjonens retningsfeil.
-Alle16tidlige1..15MFE/preMAE-sidepaneler,inclusive/closed,begge roller,forbedres
-raw+111RMSmotegeninitial. Mot191 eralle8CONTROLpaneler verre;TRAINbedrer4/8.
-Komponentfit gir ikke bedreEntry-retning,kvalitet,selektivitet eller økonomi.
+|TF|Verdi-bitavvik|Maske-bitavvik|
+|---|---:|---:|
+|M5|0|0|
+|M15|853|573|
+|H1|4701|846|
+|H4|3861|3250|
+|D1|24285|20465|
 
-Etterfølgende kilde-/metadataaudit fant ingenGC-frakobling mellom231/232:
-alle5GCtensorruter nårONLINE/encoder/curveheads/backward/aktivAdamW,ingen
-detach i inputkjeden. FrosneTARGET brukes ikke til dynamisktrainforward.
-Genuine per-featuregradienter/parameterdeltaer ogprediktivnytte er ubevist.
-Sju aktive familier er eksplisitt tillatt19.10;chartfelt omrutes ikke generisk.
-Ingen automatisk reaktivering avchart ellernymodellendring følger av auditen.
-Terminal/MFEearly-later oglært exp(-s)*loss+s er kildebekreftet;faktisk
-oppgave-/gradientpress er ikke målt. Ingen konkret feilrettelse er begrunnet nå.
+Alle avvik ligger der206s GCkalender-asof er nyere enn siste nativeprisclose
+brukt av223. Samme klokke har0bitavvik i alle5TF. M5current er bit-eksakt på
+alle118249foreldre. Dette forklarer242porten;239full5TF-paritetsport er uendret,
+og hele86-kandidaten er fortsatt ukvalifisert. Ingen prognosenytte er vist.
 
-234 COMPLETE som kilde-/metadatadesign:206 rå3318 og210 prefixstatistikk kan
-gjenbrukes kausalt i fem TRAIN-folds, med88400 holdoutrader før målmasker.
-198s055-normaliserte featurematrise brukes ikke til OOF.209-broen binder gammel206
-og oppdatert210 layout; hele kontraktene er ikke byteidentiske. Native055 er uendret.
+223s tre M5-sidefiler er readonly,349969852B samlet: featuresF32[136069,639],
+native_row_indicesI64[136069],available_nsI64[136069]. Kolonner502/503 er genuin
+observed_book_tw_imbalance og observedmaske, råverdier med fast[-1,1]-skala.
+M5current hadde117628observerte(inklusive19genuine nuller) og621maske0.
+223s heleTRAIN-normalisering skal ikke brukes som OOF-prefixnormalisering.
 
-235 er kildeforberedt og uavhengig gjennomgått på worker8badfd40… med35 kildeeiere.
-24 funksjoner er AST-identiske med215. Minste rettelse håndterer S uten maskpar
-med korrekte tomme int64-/bool-arrays; gammel215-helper er uendret.
-Referansen er de61 makrofeltene og session alene,
-og hver av sju kanoniske familier i union med samme makrosett. Dette er en begrenset
-makroreferanse, ikke hele den native global-context-ruten eller en modellablasjon.
-Eksakt alias-, indeks- og maskekart, overlapp og umappet U-sett bindes før payload.
-Fast mean-SSE ridge lambda1,1/5/15 minutter, fem TRAIN-folds og høyst40 fitkall/
-120 regresjoner. Ingen HPO eller CONTROL-/TEST-tilpasning. En låst90-persentil fra
-egen prefix-TRAIN gir bare selektiv prognosediagnostikk. Valg skjer før fremtidige
-masker; avståtte får LONG/SHORT-potensialer separat, aldri hindsight-beste side.
-Alle familiepaneler er eksplorative. Ingen automatisk vinner, nativeendring eller launch.
+## Låst neste hypotese:248 og kildeforberedelse249
 
-Chart227 råkoordinater (32 lokale+5x39) er IKKE_MÅLT. En egen sidecar krever aktuell
-kvalifisert loader og nye prefixstatistikker. Gammel HTF_OWNER_CHANGED-gate beholdes.
-Snapshot med én rad perTF måler ikke232s fulle16/64/96/96/252 eller GC-historier.
-Én ny235 CPU-referanse er innrømmet:4GiB/512MiB,64pids,én tråd,3600+10s,
-nytt failclosed rchar-tak16GiB. Kun206TRAINraw og198TRAINtargets er payloads;
-fem210-oppskrifter gjenbrukes uten refit. Høyst40/120/80 fit/regresjons/prediktorkall
-og413667 fullbaseline-kodede parentrader. Faktiske armer/kall/rader skal rapporteres.
-Kilde/policy fryses før launch. Ingen native modellforward/update eller produksjonsendring.
-235 FAILED/consumed før payload: GC_PRICE_COORDINATE_SOURCE_SHA256 avviser
-aktuelle gc_native_context-bytes i den historiske prisrelativ-kontrakten.
-Worker1,706s/ytre1,999s;0payload,0encodedrader,0fit/prediktor/F/update.
-Kilde323692bc og policy/worker var uendret. Originale kvitteringer beholdes;
-ingen relaunch og ingen konklusjon om featureinformasjon fra dette forsøket.
-236 har fryst workerbdac561a… og avgrenset uavhengig delta-peer PASS.
-37/42 funksjoner er AST-identiske med235; numerikk/statistikk/budsjetter er uendret.
-Minste rettelse bruker204/SOURCE_MAP.json som
-allerede er bundet av206, i stedet for å bygge historisk kildekvalifikasjon på nytt.
-Hele kompilert layout må fortsatt være lik210 før payload. Samme8 armer, femfold,
-fitter, koding, mål, kostnader og budsjetter beholdes. Kun én ny metadataref kreves.
-Prisrelativ-gaten endres ikke.236 målte deretter full kompilert layoutparitet mot210.
-Én ny236 CPU-referanse er innrømmet med samme4GiB/512MiB/64pids/éntråd/
-3600+10s og16GiB-rchar-tak. Globaltraining=true gjelder bare denne referansen;
-full_epoch/fullVAL/native_launch=false. Ingen produksjonsendring eller235relaunch.
+248DESIGN SHA305f3a29… og DESIGN_SOURCE_REVIEW00fbded1… låser to småarmer:
+R1=245kolonne65/ret_1 alene; R1_M5_BOOK5 legger til current og previousM5
+imbalance+mask. Bredder1/5,senere eksakt30fit/60prediktorpopulasjoner.
+R1 er kontroll; kun augmented er kandidaten. Ingen feature-/horizont-/modellvinner,
+HPO, terskelvalg, kalibreringsfit eller ny normaliseringsfit.
 
-236 COMPLETE/consumed: full layout mot210 er målt eksakt før payload;8 ulike
-armer,3318 råkoordinater i union og ingen umappede felt.4GiB/512MiB/64pids/éntråd
-ble faktisk verifisert.333,831sworker/335,264sytre; RESULT-timer327,578s har
-smalere scope.40fitkall/120regresjoner/80prediktorkall,2TRAINpayloads,
-413667kodede parentrader og88400disjunkte OOF-rader før målmasker;144paneler.
-0nativeF/update/refit/TEST. Kilde1298d22e/policy/worker var fryst og er uendret.
-ProsesspeakRSS2157506560B; rchar1709781969B slutt minus9293671B start er under16GiB.
-Originale kvitteringer og235-feilen beholdes. Ingen236relaunch eller ekstrafit.
+249s eneste kildeeier er learning_audit for ekstern
+`NATIVE_M5_DIRECTION_PRICE_BOOK_REFERENCE_20261024_249/fit_price_book_direction_guarded.py`.
+Root eier PLAN/review/policy/launch, feature_audit kildepeer. Gjenbruk239learner
+og247IO/evaluering. Underliggende245/244metadataidentitet må holdes separat fra
+ny248design. Ti eksisterendepayloads480230542B; ingen ny cache/206/quote/GCparquet.
 
-Ingen av sju familie+makro-armer består den faste videreundersøkelsesheuristikken.
-Alle14 poolede5/15min-paneler har verre MSE enn både makro og prefixmiddel.
-Små1min-punktforbedringer gir ingen stabil familiegevinst over alle tre horisonter.
-Alle24 valgte-side terminal-nettgjennomsnitt er negative etter originale kostnader;
-dette er overlappende fastehorisont-prognosediagnostikk, aldri portefølje-PnL.
-Actualpeer2fcf2d97… PASS:23 JSON-referanser og816 vektede avstemminger;
-opaque payloads er kun statkontrollert av peer. Ingen familie er valgt.
-Snapshot/ridge-hypotesen avsluttes etter fast plan; chart227 og full temporal/
-ikke-lineær featureverdi er ikke avgjort. Globaltraining/full_epoch/fullVAL/
-native_launch=false. Ingen nydatajobb,fit ellerproduksjonsendring erinnrømmet.
+Før fit må ny M5-adapter bevise currentexact available==D og identiske246
+canonical currentID/start/available/pairhashes.223 er sparselagring: previous er
+lookup av eksakt nativeID−1, aldri forrige sparselagerrad eller D−5min.
+CurrentID0 er ukjent predecessor medverdi0/maske0/ID−1 uten negativindeksering;
+positivcurrent med manglendeID−1 stopper. Krev prevclock<currentclock==D,
+bevar reelle gap og alleforeldre, mål støtte/gap og bind ID-/klokke-/parhashes.
+Bookverdier må være finite/[-1,1],masker binære ogmaske0⇒verdi0; ingenclipping.
+Åtte småsyntetiske adaptercases skal bestå før genuineinput. Publiser faktisk
+readonlyFEATURE_QUALIFICATION før første fit, medpositive modneprefixstøtter.
 
-236 DECISION avslutter den faste snapshot/ridge-hypotesen. Ingen av de sju
-familiene får videreføring etter den låste heuristikken. Bare struktur h1 ALL
-har nominell dag- og ukeforbedring mot prefixmiddel; ingen gjør dette mot makro.
-Valgt dekning er10,41–22,74%, fortegnst treff48,38–51,30% og netto
-−5,986 til−5,700bps. Alle120 fold-nettgjennomsnitt er også negative.
-Dette er faste, overlappende prognosehorisonter med originale kostnader,
-ikke realisert handelsøkonomi eller en generell dom over modellens historikk.
+Samme245targets/femfolds/helehorisontmodning og alle null/missingnevner gjelder.
+Augmented må slå egenprefixprior OG samme-radR1 påpooledlogloss/Brier; begge
+propermetrics dag/uke95%upper<0 motbegge, minst4sammefolds forbedrer begge
+metrics motbegge referanser, påalle1/5/15. Krev beggeprediksjonssider,
+balanserttreff>.5 og treff overprior-majoritet/alltidOPP/råpersistenscommoncohort.
+UTCdag/Mandaguke2000bootstrap/seed20260911/min8, fortsatt gjenbrukt utvikling.
+Korrekte kontrastnavn; ikke arve247s prior-navn påaugmented−R1.
 
-237 avsluttes før målmaterialisering eller kodeendring etter brukerens nye
-prioritering. Tre uforanderlige kilde-/metadatapeers er bevart;0payload/fit/F/U.
-Ingen MFE/preMAE-cache eller ny normalisering ble startet.237 gjenåpnes ikke
-automatisk. Dets lille prisfrie temporalalternativ kan eventuelt gjenbrukes
-etter ny kvalifikasjon, men dette gir ingen retnings- eller fitautoritet.
+Prospektiv249ramme:én audit300+10s/4GiB/512MiB/64pids/éntråd/3GiBrchar,
+64MiBnumpyoutputs. Rammen er nå innrømmet én gang etter full faktiskPLAN/sourceclosure/
+budsjettpreflight. Ingen relaunch eller ekstrafit følger av tekniskPASS.
 
-238 er kun kilde-/metadatadesign for retning. Først kontrolleres om198s
-terminalkontrast er identisk med prisretning eller påvirkes av sidevise
-finansieringskostnader/F32-avrunding. Deretter låses én enkel, kausal
-feature-/klassifikasjonsreferanse og kronologiske sannsynlighets-/retningstester.
-Gjenbruk eksisterende eiere og data; ingen ny familiejakt, HPO eller terskeljakt.
-Ingen payload, ny target-cache, fit eller nativekjøring er innrømmet nå.
-Root eier integrasjon/policy; tre avgrensede kildepeers har egne reviewfiler.
+## Varige grenser og ubeviste forhold
 
-238 DESIGN er låst etter tre kildepeers.198s sidekontrast beholdes original,
-men ny ren midpointretning trengs: spread/nevner, ulik finansiering og F32 kan
-endre kontrastens fortegn. Faktiske radavvik er ennå ikke målt. Endpointhelper
-skal gjenbruke canonical191-scope/TRAINreader og kreve full198-paritet før
-separat F64-midtprisfasit. Kjente uendrede priser skilles fra manglende mål.
+Native åtte spesialister ogniendeD1/makro, genuinefeatures/tidsrammer,
+055/057/111 og eksisterende vakter beholdes.19.10kompaktprofil har eksplisitt
+7aktivefamilier;chart er vedtattparkert,ikke utilsiktet fjernet. NativeGC-rutene
+nårencoder/curvehead/backward/AdamW; ekte per-featuregradient-/parametergevinst
+og generell temporal/ikke-lineær featureverdi er ikke bevist. Den nye lille
+forskningsreferansen erstatter eller fjerner ingen nativefeature.
 
-Én fast logistisk referanse er valgt prospektivt: L2/lbfgs/C1/maxiter500,
-ingen HPO, klassevekting, kalibreringsfit eller terskelvalg. Tre låste
-S+ret_1/current-book/previous-book-armer har66/76/86 koordinater;45 senere
-fits er bare et tak, ikke innrømmet. Kjent ret_1 er rå206kolonne1; persistens
-bruker råsign, ikke sentrert normalisert sign. P(opp) gjelder observert
-ikke-null prisbevegelse. Logloss/Brier og retnings-/kalibreringsmål måles
-på kronologiske senere TRAIN-folds; disse er gjenbrukt utvikling. Ingen edge vises nå.
+Siste nativefunksjon beholder223GCinputs/227freshstate/229egeninitial/230stateaudit/
+231privatequalification/232epoke/233analyse. ONLINE-endring krever nyinitial,
+men ingen slikendring er gjort. Originale kvitteringer/checkpoints bevares.
+237 er stoppet førdata etter brukerens retningsprioritering;240/241/242/243 er
+failed/consumed med bevartoriginalfeil;239/245/246/247 ercomplete/consumed.
+Ingen gammelplan relanseres. Tidligere tekniskePASS skal ikke gjentas rutinemessig.
 
-239 kan kun opprette tre små analysehjelpere og fokuserte tester med eksplisitt
-fileierskap. Konkret grunn er ny renprisfasit, manglende kvalifisert
-sannsynlighetseier og ukvalifisert liten temporalrad/prefix-wrapper. Ingen
-native modell,055 eller eksisterende target-/kostnadseier endres. Syntetisk
-kjøring må innrømmes separat på fryst kilde; genuine payloads/fit er stengt.
+Fysisk grunnlag er23 gjenbrukte utviklingsmåneder:TRAIN mai2024–desember2025,
+CONTROL januar–mars2026.26måneder er målet; april–juni er ikke fysiskbundet.
+Juni er gjenbruktutviklingsVAL. TEST frajuli er forseglet for alltilpasning/utvalg;
+bare vedtattmånedligforwardjournal scorer utenrefit. IngenExit/broker/live/paper/
+ordre/spending/promotion.1–480min er beregningshorisonter,ingen taps-/holderegel.
+Lang støtte bruker alltidLONG/kjøp-og-hold somreferanse. Økonomi må ta med alle
+valgtehandler og åpneposisjoner; ingen slik handelsøkonomi er målt her.
 
-239s seks nye kilde-/testfiler er klare. Én fryst capped syntetisk kvalifikasjon
-er innrømmet: nøyaktig50 cases,0fail/error/skip,1 ekte syntetisk sklearnfit
-og30 små syntetiske surfacefits.4GiB/512MiB/64pids/éntråd,300+10s og2GiB
-rchar. Arvede pytestvalg fjernes; XML-fullstendighet og fitcounters må passere.
-0genuine payloads/fit/nativeF/update. Prognosenytte er ennå ikke målt; ingen
-datajobb følger automatisk. Prefixproveniens og positiv support må beholdes.
-
-239 COMPLETE/consumed:50/50 faktiske syntetiske cases PASS,0fail/error/skip,
-eksakt1 sklearnfit og30 små surfacefits.2,709sworker/3,262sytre;prosesspeak
-639733760B og rchar-delta42695253B. Sourcecef70648/policy/worker var fryst.
-0genuine payloads/prediktorfit/nativeF/update; ingen prognosegevinst er målt.
-Originale terminaler og XML er bevart; ingen239relaunch.
-
-240 FAILED/consumed før workerCLAIM, payload eller fit. PLAN manglet eksakt
-canonical entry_exit_production_architecture_v1 og entry_model_native_aux_targets_v3.
-Ytre exit1/0,167s og uendret kilde er bevart; ingen workerterminal eller outputs.
-241 FAILED/consumed etter64,322sworker/64,912sytre,peakRSS3231969280B,
-rchar23785719758B. Full9-array198paritet/116endpoints og quoteindeksfrigjøring
-PASS;0featurematriser/prefixfit/prediktor/nativeF/update. IngenOUTPUT publisert.
-CanonicalV29-cachevalidering stoppet på manglende3892B PRETEST_PAIR.json i
-leselisten. Filen er SHA-bundet av faktisk cacheproveniens; feilkvitteringer beholdes.
-242 FAILED/consumed etter138,762sworker/140,111sytre, rchar30448065635B,
-prosesspeakRSS4560302080B (ikke cgroup-peak). Full198paritet/5native selectors/
-30NPY/150SHA+1manifest+12params bestod. M5-parbits bestod; M15-parbits avvek.
-0featurematriser/prefixfit/prediktor/nativeF/update og ingenOUTPUT. Originalbevis beholdes.
-Kildene bruker ulike currentklokker:206 sisteGC-kalenderbøtte<=D,223 siste native
-prisrad. Faktisk avviksomfang/årsak er ikke målt;239s strenge port er uendret.
-
-243 FAILED/consumed før payload: 5,364s worker / 5,654s ytre, exit1 og uendret
-kilde. Metadata sammenlignet relativ LAYOUT-registry med absolutt SURFACES-ref.
-Begge resolver til samme kanoniske fil og SHA3e444777…; ingen datamismatch ble
-målt i243.0arkiv/NPY/feature/fit/modellarbeid; original terminal er bevart.
-246 har en kildeklart minimalrettelse: kun denne likheten flyttes til allerede
-absolutt ref, pluss run/stage-identitet. Workerbf9075e5… er kontrollert; ingen
-algoritme-/guard-/budsjettendring.246 var ved klargjøring ikke innrømmet.239-paritetsporten består;
-book-kandidaten er fortsatt ukvalifisert og faktisk klokkeavviksomfang er umålt.
-
-244DESIGN6d7a5b5f… er låst og sourcepeerPASS: første enkle retningsreferanse er
-prospektiv S_PRICE66, fem210-prefixer uendret og239-renpris-/sannsynlighetseiere.
-Ingen klassifikatorscore har valgt armen;86-pakken er ikke gjenkvalifisert.
-245 forbereder én renpris/S_PRICE66-dataworker: alle118249 TRAIN-foreldre,
-full9-array198-paritet,116endpointblokker og fem66-kolonnematriser/413667 kodede
-foreldre. Bare eksisterende206/204/209/210-eiere; ingen ny normaliseringsfit,
-book/cacheinput, modell eller CONTROL-targetquery. Prisnull/sensur/fortegnsavvik
-og rå ret_1-persistens lagres med bindinger. Én245-datajobb er nå innrømmet etter kildepeerPASS på worker08e1e533…;
-24kildeeiere/PLANc25dfdd4… er kontrollert.4GiB/512MiB/64pids/éntråd,
-600+10s og32GiB-rchar. Ingen ny normalisering eller klassifikatorfit.
-Alle kilder er fryst;247-eier har bekreftet fryst worker21d4e2c2… til terminal.
-
-247 forbereder bare den faste CPU-referanseworkerens kilde:15 logistiske fits
-og30 predictorpopulasjoner, uten HPO, terskelvalg eller kalibreringsrefit.
-Streng horizonmodning, null/missingnevner, proper scores, råpersistens/commoncohort
-og paired UTCdag/Mandaguke beholdes. Både retning/dekning og sannsynligheter
-måles; TRAIN-folds er gjenbrukt utvikling. Ingen247-fit før faktisk245-datakvalitet
-og egen bundet fitadmisjon. Alle kildeeiere stopper før en fryst cappedkjøring.
-Selve trades/Exit og nativeautoritet er stengt; ingen prognosegevinst er vist.
-
-245 COMPLETE/consumed:235,084sworker/235,696sytre,4GiB/512MiB/64pids/éntråd.
-Full9-array198paritet,116endpoints/116convert/1TRAINreader/2h1guards og
-5matriser/413667kodede foreldre PASS.0normaliserings-/prediktorfit/nativeF/U.
-7readonlypayloads130260690B;rawfeaturebytes109208088. Rchar24734894825B<32GiB;
-prosesspeakRSS3170807808B. Kilde23d31f73/policy/alle workere var fryst.
-Actualpeer PASS på9JSON/7payloadstat; opaque bodies ble ikke åpnet av peer.
-Renpris1/5/15 har476/194/99observerte nullbevegelser og12/450/1313manglende.
-Gammel kostnadskontrast avviker i fortegn på503/212/109observerte rader; dette
-er målkorrigering, ikke dokumentert årsak til manglende edge. Originaler beholdes.
-
-247worker21d4e2c2… har uavhengig kildepeerPASS og faktisk245-grensesnitt er
-kontrollert førPLAN. Én900+10s/4GiB/512MiB/64pids/éntråd/1GiB-rchar-jobb
-er innrømmet, eksakt15CPU-logistikkfits og30predictorpopulasjoner. Global
-training=true gjelder bare denne forskningsreferansen.33prefix/fold/pooledpaneler
-må rapportere modenhet/null/missing, begge retninger, prior/alwaysUP/persistens,
-sannsynlighetsmål og paired dag/ukeusikkerhet. Ingen nativeF/U/refit/CONTROL/TEST/
-Exit/trades. Fryst kilde/policy til terminal;0prediktiv gevinst er hittil målt.
-
-247 COMPLETE/consumed:8,126sworker/8,423sytre,fryst fefd62d3/policy.
-Eksakt15fit/LBFGS/minimize og30predictor/decision_function;867solveriterasjoner
-(24–107),alle15success.0normaliseringsfit/nativeF/U/CONTROL/TEST.
-Pooled1/5/15accuracy er50,0624/49,9909/49,8443% mot alwaysUP50,3099/51,0086/
-51,6899%; balancedaccuracy50,0101/49,8935/49,7829%. Ingen fastfollowup består.
-Alle3pooledlogloss/Brier er verre enn egen matureprefixprior; alle12dag/uke-
-95%proper-scoreCI ligger over0. Bare1/15foldpanel bedrer beggepropermetrics.
-Dette forkaster én S_PRICE66-logistikkreferanse på gjenbruktTRAIN-utvikling,
-ikke alle genuinefeatures eller temporal/ikke-lineær informasjon.
-Ingen relaunch/HPO/terskelvalg/kalibreringsfit eller nativeendring følger.
-Globaltraining=false; actualresultatpeerPASS:8JSON/9payloadstat/33paneler/231confusions/132CI. Målet er fortsatt aktivt.
-
-246 får nå én targetfri innrømmelse etter målt247mangel: samme fryste
-workerbf9075e5…/PLAN6b32d957… og kildepeer som allerede foreligger.
-300+10s/4GiB/512MiB/64pids/éntråd/8GiB-rchar;5TF og175aggregerte paneler.
-Mål eksakte parentklokker/currentIDs/verdi-/mask-/ULP-avvik,0targets/fit/
-normalisering/nativeF/U. Canonicalcache krever prisinput-SHApass; dette
-er ikke0prisinputbytes. Ingen featureroute er kvalifisert ved diagnostikk alene,
-og239s strenge parbitsport svekkes ikke. Alle kilder er fryst til terminal.
-
-246 COMPLETE/consumed:82,598sworker/83,102sytre,fryst2d37c138/policy.
-5TF/175paneler,0target/fit/F/U; rchar7494014023B<8GiB. ProsesspeakRSS
-4348985344B er ikke cgrouppeak (delt mmap kan telles). M5 har0verdi-/maskbitsavvik
-påalle118249foreldre. M15/H1/H4/D1 verdiavvik853/4701/3861/24285 og
-maskavvik573/846/3250/20465. Alle avvik finnes bare nårGCkalender-asof er nyere
-enn siste nativeprisclose. Samme klokke har0bitavvik påalle5TF.
-Dette forklarer242porten;86pakken er fortsatt ukvalifisert,239porten er uendret.
-Neste forberedelse er minsteM5-alene pris/book-retningshypotese, med245targets
-og fastefolds. Ingen nydatajobb/normalisering/fit/produksjonsendring er innrømmet.
-
-248prospektivdesign låser minste nye hypotesetest: R1=245kol65/ret_1 alene
-og R1_M5_BOOK5 med current/previousM5 imbalance+mask. To1/5kolonnearmer,
-30senereCPUfits/60populasjoner;ingenHPO/terskel/kalibrerings-/normaliseringsfit.
-Ti eksisterendepayloads480230542B;ingen nycache/206/quote/GCparquet.
-CurrentD/ID/pair må gjenbevise246fulleM5hashes. Previous er eksakt nativeID−1,
-ikke forrige sparselagerrad; data-/støtte-/klokkeproof må bestå før eventuellfit.
-Bookverdier har fast genuin[-1,1]-skala/binærmaske; alle foreldre beholdes.
-Må slå både egenprior og R1 med samme faste retning/proper/dag/ukekrav.
-249 er kun innrømmet for ekstern kildeforberedelse, ingen payload/import/fit/launch.
-Nativefeatures/åttefamilier/D1macro beholdes; whole86pakken/239 er uendret.
-
-Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
-og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
-
-## Gjenbruk og ubeviste grenser
-
-191 er den tidligere GC-OFF-nativeepoken;232 er siste genuine GC-kandidat.
-192: alle512 handlinger FLAT;5/6 primære
-retnings-MSE-paneler verre enn egen188-initial; paired dag/ukeintervaller krysser0.
-Delvis bedre tidlige path-punktfeil kvalifiserer ikke Entry/økonomi.
-215s faste lineære snapshots er forkastet som retningsforbedring: bare2/18 og3/18
-kvartalspaneler bedre enn eget TRAIN-middel; ingen pooledhorisont bestod.
-Det utelukker ikke temporal/ikke-lineær informasjon.193/191-paringen er utført201.
-Ingen gjentatt sammenligning eller lambda-/terskeljakt.
-
-Fysisk grunnlag:23 gjenbrukte utviklingsmåneder, TRAIN mai2024–desember2025,
-CONTROL januar–mars2026. April–juni venter fysisk binding; råkildemålet er26.
-Prognoseevaluering må ha alle480 horisonter, original1/5/15min-retning,
-paired dag/ukeusikkerhet, valgte/avståtte, censoring og LONG/SHORT/FLAT-dekning.
-AlltidFLAT eller lavere pooledMSE alene oppfyller ikke Entry-målet.
-Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderegel.
-
-TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
-scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled/full_epoch/fullVAL/native_launch=false etter consumed247.232/233/234/235/236 er consumed.
-236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
-er ferdig og239 er kildekvalifisert.240/241/242/243 er consumed.244-design er låst;245 er COMPLETE/consumed og datakvalifisert;247 er innrømmet én gang kun
-for15 faste CPU-fits.246 er COMPLETE/consumed med målt klokkeforskjell; ingen ny jobb er innrømmet.
-Native trening er stengt.
-Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
-Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
+Én tungCURRENT-jobb gjennom gx1_capped_run.sh med faktisklås/hardwarevakter;
+fryst kilde/policy til terminal. Stabil langkjøring ses omtrent15–30min eller
+sjeldnere,ingenminuttpolling. IngenDATA/RUNS-rydding uten retention-eier.
+Parameterstate-audit ognyttretningsedgebevis er ikke startet/oppnådd. Oppdater
+policy/handover i sammebølge; avslutt medfokusertverifisering/AST/stale-path/
+gitdiff--check ogærlige ubevistegrenser. Pushrett tilwork/gx1-current gjelder
+kode/docs/interne refs/aggregater,aldri rådata/vekter/hemmeligheter ellerforcepush.

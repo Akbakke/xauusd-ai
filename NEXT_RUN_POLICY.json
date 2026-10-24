@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T08:45:45.330815+00:00",
-  "status": "DIRECTION_MINIMAL_PRICE_BOOK249_SOURCE_PREPARATION_ONLY",
-  "training_enabled": false,
+  "observed_utc": "2026-10-24T09:03:39.507665+00:00",
+  "status": "DIRECTION_PRICE_BOOK_REFERENCE249_ONCE_ADMITTED_SOURCE_FROZEN",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Review248 prospective R1 versus R1_M5_BOOK5 design and prepare249external worker only. No imports/payload/fit/launch admission. Reuse245labels/folds and exact246currentM5proof; newly qualify exactnativeID-1 predecessor before any fit. Native/full-epoch/fullVAL/TEST/Exit/trades/broker remain closed.",
+  "next_action": "Execute249 once under300s/4GiB/512MiB/64pids/one-thread/3GiB-rchar cap with frozen source.8 no-fit synthetic adapter cases,then exactcurrent/predecessor input proof/publication before30 fixed CPU fits/60populations. Compare augmented vs ownprior AND R1 on all fixed horizons; no HPO/winner/threshold/native/TEST/Exit/trades/broker.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -215,7 +215,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Preparing smallest price-only versus genuine closedM5 book directional contrast.",
+    "current_activity": "One bounded two-arm M5 price/book direction reference249 admitted; source frozen.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -268,7 +268,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No direction advantage measured. Whole86book package mismatches current clock; M5-only current route is bit-exact, previous M5 must still be qualified.",
+    "current_blocker": "No direction edge yet.249 must qualify exact M5predecessor before fit,then pass fixed chronology against prior andR1.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7739,7 +7739,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Review248 prospective R1 versus R1_M5_BOOK5 design and prepare249external worker only. No imports/payload/fit/launch admission. Reuse245labels/folds and exact246currentM5proof; newly qualify exactnativeID-1 predecessor before any fit. Native/full-epoch/fullVAL/TEST/Exit/trades/broker remain closed.",
+    "next_action": "Execute249 once under300s/4GiB/512MiB/64pids/one-thread/3GiB-rchar cap with frozen source.8 no-fit synthetic adapter cases,then exactcurrent/predecessor input proof/publication before30 fixed CPU fits/60populations. Compare augmented vs ownprior AND R1 on all fixed horizons; no HPO/winner/threshold/native/TEST/Exit/trades/broker.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17232,7 +17232,7 @@
       "sha256": "1117375d003551002bc3464db3f4342faa842584c2b90a0f92358b2e450beb19"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "All training closed after consumed247; no native or extra CPU fit admitted.",
+    "current_training_scope": "Only24930 fixed small CPU logistic fits after dataqualification; no native training.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -29853,13 +29853,13 @@
     }
   },
   "dynamic_m5_direction_price_book_reference_249": {
-    "status": "BOUNDED_TWO_ARM_WORKER_SOURCE_PREPARATION_ONLY_NO_EXECUTION",
+    "status": "ONE_FIXED_TWO_ARM_CPU_DIRECTION_REFERENCE_ADMITTED_SOURCE_FROZEN",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_REFERENCE_20261024_249",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_DESIGN_20261024_248/DESIGN.json",
       "sha256": "305f3a29db23e646fd6c6f5cd5d082dab09d75a2cf731ab576e5f08bda699365"
     },
-    "source_edits_authorized": true,
+    "source_edits_authorized": false,
     "source_edit_scope": "One new external249worker only: reuse247 and239 fixed probability evaluation, M5-only exact-ID/clock adapter. Two fixed1/5column references, no native/oldhelper/model/normalizer design change. No payload/import/fit until later bound admission.",
     "file_ownership": {
       "learning_audit": [
@@ -29872,11 +29872,11 @@
         "CURRENT_HANDOVER.md"
       ]
     },
-    "execution_authorized": false,
-    "data_reads_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
     "new_normalization_fit_authorized": false,
-    "genuine_predictor_fit_authorized": false,
-    "training_enabled": false,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
     "native_launch_authorized": false,
     "test_data_used": false,
     "exit_evaluation": false,
@@ -29884,6 +29884,65 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_REFERENCE_20261024_249/fit_price_book_direction_guarded.py",
+      "sha256": "1b84296b5604354c5c37d3da4c387dadd7c21ffeb21996fb6f558efdced5d41c"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_REFERENCE_20261024_249/PLAN.json",
+      "sha256": "e5e321c95f44c4da9868160b3669b172dfd408290d526c17c5c10931f566d8d8"
+    },
+    "design_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_DESIGN_20261024_248/DESIGN_SOURCE_REVIEW.json",
+      "sha256": "00fbded1816669e1e282f594c123238161e81a72c94933ca2c2c19fddd285156"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_REFERENCE_20261024_249/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "01d2af8427296abc39ceef63fd4507374546a8d7966ee1d0f1798ee28bca81cc"
+    },
+    "budget": {
+      "class": "audit",
+      "max_invocations": 1,
+      "max_wall_seconds": 300,
+      "TERM_grace_seconds": 10,
+      "memory_bytes": 4294967296,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1,
+      "max_rchar_bytes": 3221225472,
+      "max_output_numpy_bytes": 67108864,
+      "input_payloads": 10,
+      "input_payload_bytes": 480230542,
+      "parent_rows": 118249,
+      "OOF_parent_rows": 88400,
+      "source_feature_width": 66,
+      "R1_width": 1,
+      "R1_M5_BOOK5_width": 5,
+      "synthetic_adapter_cases": 8,
+      "genuine_npy_headers": 8,
+      "prefit_feature_qualifications": 1,
+      "fit_wrapper_calls": 30,
+      "LogisticRegression_fit_calls": 30,
+      "lbfgs_path_calls": 30,
+      "scipy_minimize_calls": 30,
+      "predictor_population_calls": 60,
+      "decision_function_calls": 60,
+      "bootstrap_replicates": 2000,
+      "bootstrap_seed": 20260911,
+      "min_effective_blocks": 8,
+      "normalization_fits": 0,
+      "native_model_forwards": 0,
+      "native_optimizer_updates": 0,
+      "CONTROL_rows": 0,
+      "TEST_rows": 0,
+      "original_OBS_reads": 0,
+      "raw_source_reads": 0
+    },
+    "all_source_frozen_for_capped_job": true,
+    "fit_authority_scope": "Exactly249:8 synthetic no-fit adapter cases before genuinepayload,10 bound payloads and one published actual M5 qualification before30 fixed R1/R1_M5_BOOK5 CPU fits/60populations. No extra fits, normalization, HPO, native or trading authority."
   }
 }
