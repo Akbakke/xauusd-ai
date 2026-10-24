@@ -20,9 +20,16 @@ ingen hel bookpakke.
 
 **249 er COMPLETE/consumed; kandidaten er forkastet.** Åtte syntetiske
 adaptercases og ekte current/predecessor-kvalifikasjon bestod før30CPU-fits.
-Ingen ny jobb, kodeendring eller fit er innrømmet. Globaltraining/full_epoch/
-fullVAL/native_launch=false. Kildegjennomførbarhet250 er undersøkt; en mulig ikke-lineær referanse
-trenger fortsatt ny konkret design og kvalifikasjon før kode eller fit.
+251 låser én fast ExtraTrees-retningstest med alle3345 kvalifiserte snapshotfelt,
+samme femTRAIN-folds og renprisfasit245.252 eksternworker er fryst0444 med
+uavhengig feature-/estimatorreview og root-PASS.24hjelpere er AST-identiske
+med249;50kildeeiere og firedatarefs er bundet. Nøyaktig én ny cappedCPU-fit
+innrømmes, først seks score/datagrupper og én separat syntetiskforest, deretter
+15genuineforests. Globaltraining/local252=true kun for dette avgrensede
+forsøket; native/full_epoch/fullVAL/TEST/Exit/trades=false. Ingen faktisk
+kvalifikasjon eller prognoseforbedring er ennå målt. Root lukker fitgater etter
+terminal og krever actualpeer førresultattolkning. Prospektiv4GiB/1800s;
+faktisk ET-tids-/minnebruk er fortsatt umålt.
 
 ## Hva faktisk er målt om retning
 
@@ -161,15 +168,20 @@ booktillegget har ingen påvist stabil merverdi i denne lille lineære modellen.
 Fellesnegativefolds1/1/1;allefollowupfalse. R1-kontrollens15minproper-scores
 bedrerprior nominelt i dag/uke,menR1 blir ingenautomatiskvinner ellertrade.
 Dette avgjør ikke fulle ikke-lineære/temporale features. Actual249peerPASS:9JSON/12payloadstat/66paneler/462confusions/396CI.
-250 er fullført bare som lesende kilde-/minne-feasibility. Én mulig fast
-ExtraTrees-referanse(32trær/dybd8/minleaf256/sqrt/éntråd/seed20260911) kan
-beholde hele3345snapshot med F32. To største arrays er2926848240B før øvrig
-minne; faktiskET-RSS/tid er UMÅLT. Énfold/horisont og frigitt206raw kreves.
-15forestfits/480trær/30populasjoner og frosset249R1 utenrefit er en mulig
-fremtidig kontrakt,ikke innrømmet. ET0/1probabilitet krever presis numerisk
-logloss-kontrakt;Brier/reliability skal bruke råp. Lås ny input-/score-/
-ressursdesign ogkvalifiser minsteisolertekilde førnoen nyfit. Ingenkalibrering/
-HPO ellerautomatiskmodellvinner. Fulletemporalsekvenser/chart er fortsattumålt.
+250 er fullført som kilde-feasibility.251 låser og tre sourcepeers har reviewet
+én fast ExtraTrees(32trær/dybde8/minleaf256/sqrt/éntråd/seed20260911) med
+alle19parametre.252 eksternworker er kildekvalifisert/fryst, learning_audit er eneeier.
+Root eier policy/PLAN/launch; andrepeers leser. Én ny cappedCPU-kjøring er
+innrømmet; ingen native/full_epoch/fullVAL/TEST/tradeautoritet. F32énfold/énhorisont, rawmap og encodedmap lukkes førfit,
+fit_X slippes førto heleprediksjonspopulasjoner. Prospektiv4GiB/512MiB,
+64pids/éntråd/1800s/8GiBrchar/2GiBscratch; faktisk ET-tid/peak er umålt.
+Førgenuine skal seks score/datagrupper og én separat syntetiskforest bestå.
+Genuinekontrakt:15forests/480trær/30populasjoner, femfoldproofs og15egne
+modellfiler med verifisertstate, uten ekstra prediksjoner/refit. Frosset249R1
+brukes barepåFOLD/pooled; prefixkunprior. Råp tilBrier/reliability/p>.5,
+F64epsklipp kunlogloss. Førhverfoldfit måfullcol1ret_1 bitmatches249col65.
+Alle1/5/15 må slåprior+R1 etterlåstgate; ingenHPO/terskel/kalibreringsfit/
+automatiskvinner. Fulltemporalsekvens og parkertchart er fortsatt umålt.
 
 ## Varige grenser og ubeviste forhold
 

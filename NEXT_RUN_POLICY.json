@@ -44,9 +44,9 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T09:10:40.522968+00:00",
-  "status": "DIRECTION_REFERENCES_PEER_VERIFIED_NONLINEAR_PROPOSAL_NOT_ADMITTED",
-  "training_enabled": false,
+  "observed_utc": "2026-10-24T10:08:04.972262+00:00",
+  "status": "DIRECTION_NONLINEAR_FULL_SNAPSHOT_SINGLE_CPU_REFERENCE_ADMITTED",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
@@ -215,7 +215,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Direction references complete and peer reviewed; next nonlinear hypothesis is source-feasible only, not admitted.",
+    "current_activity": "252 source/PLAN qualified and frozen; one new capped fixed CPU full3345-snapshot direction reference admitted. Actual launch/terminal still required; no forecast result yet.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -268,7 +268,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No stable direction advantage. Fixed linear probes leave nonlinear/fulltemporal genuine feature information unresolved.",
+    "current_blocker": "No stable measured direction advantage.252 synthetic/data/no-copy/pickle qualifications and genuine OOF results are not yet run.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7739,7 +7739,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "249 actual report peer PASS; candidate rejected without refit/HPO/threshold/control winner.250 source feasibility supports one possible fixed F32 nonlinear full3345snapshot reference; ET runtime unmeasured. Before any new code/fit, lock input/probability-boundary/scoring contract and resource budget/design, then independent source qualification and a new once-only capped admission. Alltraining/native/TEST/Exit/trades/broker closed.",
+    "next_action": "Launch exact252 PLAN once through4GiB/512MiB capped audit1800s with source/policy frozen; observe actual terminal and close global/local fit gates immediately. Then independent actual report review; no automatic followup/promotion.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17232,7 +17232,7 @@
       "sha256": "1117375d003551002bc3464db3f4342faa842584c2b90a0f92358b2e450beb19"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "All training closed after consumed249; only bounded read-only nonlinear source feasibility.",
+    "current_training_scope": "Only252 fixed CPU direction reference admitted, native and full epochs closed. Data and synthetic qualifications precede15genuinefits; sourceprepPASS is not learning.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -29982,5 +29982,120 @@
     "native_launch_authorized": false,
     "test_data_used": false,
     "source_edits_authorized": false
+  },
+  "dynamic_m5_direction_nonlinear_design_251": {
+    "status": "DESIGN_REVIEW_PASS_CONSUMED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_DESIGN_20261024_251/DESIGN.json",
+      "sha256": "2d3d429bd503ee767989e8194c6a9bf97d321c82ce3dd73890c61904e4b25059"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "data_reads_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "goal_complete": false,
+    "design_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_DESIGN_20261024_251/DESIGN_SOURCE_REVIEW.json",
+      "sha256": "9f9489d4cad69e33d189b1cb0bb998206986f2434c35387551ec2d97badd60e7"
+    }
+  },
+  "dynamic_m5_direction_nonlinear_reference_252": {
+    "status": "SOURCE_REVIEW_PASS_ONE_CAPPED_CPU_REFERENCE_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_DESIGN_20261024_251/DESIGN.json",
+      "sha256": "2d3d429bd503ee767989e8194c6a9bf97d321c82ce3dd73890c61904e4b25059"
+    },
+    "design_source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_DESIGN_20261024_251/DESIGN_SOURCE_REVIEW.json",
+      "sha256": "9f9489d4cad69e33d189b1cb0bb998206986f2434c35387551ec2d97badd60e7"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": "Only external252 fit_nonlinear_direction_guarded.py. Reuse qualified236 encoding/IO,239 probability control,249 chronology/evaluation/publication; add fixedET raw-probability adapter, own model retention and six focused source qualification groups. No canonical/native/ONLINE edits.",
+    "file_ownership": {
+      "root": "Integrator: policy, design/PLAN, launch and terminal/actual peer decision.",
+      "learning_audit": "Sole external252 worker source writer. No PLAN/policy/launch.",
+      "feature_audit": "Read-only feature/encoder/source closure peer.",
+      "research_audit": "Read-only sklearn/score/resource/observer peer."
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "new_normalization_fit_authorized": false,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/fit_nonlinear_direction_guarded.py",
+      "sha256": "7f3082a2c5bea0447885ce238509c5f8b744688bee9e1917e5128e2be1fdc5dc"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/PLAN.json",
+      "sha256": "b4050f978d1df599b3c69f1028c4e0e8f0c5bf2d379d2b0b18cd5089304f9c07"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "ae488e0ce95b1acd9567e43aeaaeb2a7c2965518cc6e3be03032c53e475d035a"
+    },
+    "budget": {
+      "CONTROL_rows": 0,
+      "M1_quote_reads": 0,
+      "OOF_parent_rows": 88400,
+      "R1_refits": 0,
+      "TERM_grace_seconds": 10,
+      "TEST_rows": 0,
+      "bootstrap_replicates": 2000,
+      "bootstrap_seed": 20260911,
+      "class": "audit",
+      "encoded_parent_rows": 413667,
+      "feature_width": 3345,
+      "genuine_forest_fit_calls": 15,
+      "genuine_forest_predict_calls": 30,
+      "genuine_model_roundtrip_loads": 15,
+      "genuine_tree_fit_calls": 480,
+      "genuine_tree_predict_calls": 960,
+      "input_payload_bytes": 1607075724,
+      "input_payloads": 4,
+      "max_block_rows": 1024,
+      "max_invocations": 1,
+      "max_model_bytes_each": 4194304,
+      "max_output_model_bytes": 67108864,
+      "max_output_numpy_bytes": 67108864,
+      "max_rchar_bytes": 8589934592,
+      "max_scratch_bytes": 2147483648,
+      "max_wall_seconds": 1800,
+      "memory_bytes": 4294967296,
+      "min_effective_blocks": 8,
+      "native_model_forwards": 0,
+      "native_optimizer_updates": 0,
+      "normalization_fits": 0,
+      "original_OBS_reads": 0,
+      "parent_rows": 118249,
+      "prefit_fold_qualifications": 5,
+      "raw_width": 3318,
+      "saved_genuine_models": 15,
+      "swap_bytes": 536870912,
+      "synthetic_forest_fit_calls": 1,
+      "synthetic_forest_predict_calls": 2,
+      "synthetic_score_data_groups": 6,
+      "synthetic_tree_fit_calls": 32,
+      "synthetic_tree_predict_calls": 64,
+      "tasks_max": 64,
+      "threads": 1
+    },
+    "all_source_frozen_for_capped_job": true,
+    "fit_authority_scope": "Only252 fixed CPU ExtraTrees reference: one synthetic1forest/32trees/2pop and15genuineforests/480trees/30pop. Existing245puretargets/five210prefixnorms/206raw and frozen249R1. Zero native/full_epoch/fullVAL/Exit/CONTROL/TEST/normalization/R1refit/broker/trades. Consume once regardless success."
   }
 }
