@@ -21,8 +21,8 @@ ingen hel bookpakke.
 **249 er COMPLETE/consumed; kandidaten er forkastet.** Åtte syntetiske
 adaptercases og ekte current/predecessor-kvalifikasjon bestod før30CPU-fits.
 Ingen ny jobb, kodeendring eller fit er innrømmet. Globaltraining/full_epoch/
-fullVAL/native_launch=false. Kun avgrenset lesende gjennomførbarhetskontroll
-av én mulig ikke-lineær retningsreferanse på eksisterende features pågår.
+fullVAL/native_launch=false. Kildegjennomførbarhet250 er undersøkt; en mulig ikke-lineær referanse
+trenger fortsatt ny konkret design og kvalifikasjon før kode eller fit.
 
 ## Hva faktisk er målt om retning
 
