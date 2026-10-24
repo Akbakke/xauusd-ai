@@ -17296,7 +17296,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "241 minimal source-binding repair: one capped data-only projection, actual13-contract closure preflight PASS; no classifier fit."
+      "next_step": "242 one capped data projection with exact SHA/3892B cache lineage JSON allowed; actual PLAN/source closure verified; classifier fit remains closed."
     }
   },
   "gc_order_flow_research_20261006": {
@@ -29212,7 +29212,7 @@
     "consumed": true
   },
   "dynamic_m5_direction_projection_source_binding_repair_241": {
-    "status": "ONE_CAPPED_TRAIN_DATA_ONLY_BINDING_REPAIR_ADMITTED",
+    "status": "FAILED_CONSUMED_AFTER_TARGET_PARITY_BEFORE_CACHE_PAYLOAD",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_SOURCE_BINDING_REPAIR_20261024_241",
     "prior_consumed_decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240/DECISION.json",
@@ -29228,9 +29228,9 @@
     },
     "source_edits_authorized": false,
     "source_edit_scope": "External worker only: copy frozen240 and alter RUN_ID/STAGE literals. Root PLAN adds exactly the two missing canonical owner refs; no computational changes.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "new_normalization_fit_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "new_normalization_fit_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "training_enabled": false,
     "native_launch_authorized": false,
@@ -29238,8 +29238,8 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "file_ownership": {
       "research_audit": [
@@ -29296,6 +29296,98 @@
       "threads": 1
     },
     "normalization_fit_scope": "Exactly25 own-prefix book surfaces; reuse210 unchanged. No genuine predictor fit.",
-    "admitted_utc": "2026-10-24T06:56:32.532700+00:00"
+    "admitted_utc": "2026-10-24T06:56:32.532700+00:00",
+    "consumed": true,
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_SOURCE_BINDING_REPAIR_20261024_241/DECISION.json",
+      "sha256": "934689cb6c31cba62f166872ef6b7272d992d86ed0493e8443915e67d0c86f26"
+    }
+  },
+  "dynamic_m5_direction_projection_cache_lineage_repair_242": {
+    "status": "ONE_CAPPED_TRAIN_DATA_ONLY_EXACT_CACHE_LINEAGE_REPAIR_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_CACHE_LINEAGE_REPAIR_20261024_242",
+    "prior_consumed_decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_SOURCE_BINDING_REPAIR_20261024_241/DECISION.json",
+      "sha256": "934689cb6c31cba62f166872ef6b7272d992d86ed0493e8443915e67d0c86f26"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238/DESIGN.json",
+      "sha256": "0ed463579123b125d860029d8c96b0ab147a1676fde4ef15533918689152251a"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239/DECISION.json",
+      "sha256": "d690cc46dea503dc7fbc35237cb361cb052e54059c0755bad18429a80526b756"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": "External241 worker clone plus RUN_ID/STAGE literals and minimal existing registry pair manifest SHA-bound exact allowlist addition. No computation/guard relaxation.",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "new_normalization_fit_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "file_ownership": {
+      "research_audit": [
+        "materialize_direction_projection_guarded.py"
+      ],
+      "root": [
+        "PLAN.json",
+        "SOURCE_PREPARATION_REVIEW.json",
+        "NEXT_RUN_POLICY.json",
+        "CURRENT_HANDOVER.md"
+      ]
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_CACHE_LINEAGE_REPAIR_20261024_242/PLAN.json",
+      "sha256": "e940d195dade996c116cd527199580f6a0ee8fb615f1a60a78f7824d65259acb"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_CACHE_LINEAGE_REPAIR_20261024_242/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "f5f2cc5db30ae1c0ae420a999dd8692b35eb188aa44a33e01042094afba433d7"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROJECTION_CACHE_LINEAGE_REPAIR_20261024_242/materialize_direction_projection_guarded.py",
+      "sha256": "e1ed11b020d02a12df5c7b22e68e598e0a4a0561e0f8200fc2eeb6a47641fda1"
+    },
+    "budget": {
+      "CONTROL_target_queries": 0,
+      "TERM_grace_seconds": 10,
+      "book_prefix_wrapper_calls": 5,
+      "book_surface_fits": 25,
+      "book_surface_npy_inputs": 15,
+      "class": "audit",
+      "current_selector_calls": 5,
+      "encoded_parent_rows": 413667,
+      "endpoint_block_rows": 1024,
+      "endpoint_projection_calls": 116,
+      "genuine_predictor_fits": 0,
+      "max_invocations": 1,
+      "max_output_numpy_bytes": 268435456,
+      "max_rchar_bytes": 42949672960,
+      "max_wall_seconds": 900,
+      "memory_bytes": 4294967296,
+      "native_cache_npy_inputs": 15,
+      "native_model_forwards": 0,
+      "optimizer_updates": 0,
+      "original_OBS_reads": 0,
+      "output_feature_matrices": 5,
+      "output_feature_width": 86,
+      "reference_arrays": 9,
+      "swap_bytes": 536870912,
+      "target_parent_rows": 118249,
+      "target_source_reads": 1,
+      "tasks_max": 64,
+      "terminal_conversion_calls": 116,
+      "threads": 1
+    },
+    "normalization_fit_scope": "Exactly25 own-prefix book surfaces; reuse210 unchanged. No genuine predictor fit.",
+    "admitted_utc": "2026-10-24T07:04:10.916175+00:00"
   }
 }
