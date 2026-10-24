@@ -23,6 +23,38 @@ prognoseresultat. Alle execution-/fitgater er lukket; ingen kvalifiseringsvekt
 i hovedfit. Neste steg er ny fast kronologisk pure-direction TRAIN/OOF-protokoll.
 TEST, CONTROL, Exit og trades er lukket. Root eier policy og launch.
 
+## Aktuelt274 — prioriterte features, potensialet er ikke ferdig undersøkt
+
+Bruker krever faktisk utnyttelse av GC-ordrebok/order blocks/volum/profil,
+EMA/ATR og støtte/motstand med sammenheng og tidsrammer. Vedtatt prioritering
+beholdes. Teknisk konsum/gradient er ikke individuell featureverdi.
+
+Root og tre avgrensede kilde-/metadatapeers fant eksisterende profilnivåer,
+avstander/priorrespons, delta/CVD/OFI/BBO-proxyer, sweeps/OB, ATR-relative
+EMA-avstander/slopes og SR-berørings-/reaksjonshistorie. Ingen ny konkret
+frakobling eller nødvendig EMA/ATR/SR-koderettelse er påvist. Aliaser og
+asinh-affin prefixnormalisering bevarer de kontrollerte sammenhengene.
+
+Footprint taper informasjon før modellen: full pris×side-fordeling og
+intrabar handelsrekkefølge komprimeres til barsammendrag. En faktisk bevart
+024 FOOTPRINT_M1_LEVELS.parquet (31,837,332B) kan gi mer pris×side/minutt-
+informasjon. Kun terminalbinding/stat/skjema er kontrollert; ingen fersk
+payloadhash, TRAIN-radkvalifikasjon eller bodylesning. Filen dekker også utenfor
+TRAIN og krever eksakt TRAIN-avgrensning, kvalitetsmasker og kontraktmapping.
+Egne GC-nivåpriser er USD med prefixmedian/IQR/asinh; eksisterende profil-
+avstander er ticks. En koordinatkontrast tester læringsgeometri, ikke ny info.
+
+Neste minste måling er fersk ren native retningsbaseline på fire267-prefixer,
+med låst budsjett/radorden/sluttcheckpoint og kausale nivå/press/respons- og
+EMA/ATR-kontekstpaneler. Alle70,647senereforeldre og samme referanseprognoser;
+firefold-aggregater/CIs beregnes på nytt. Kontekstgevinst er ikke featurekausalitet.
+En ny representasjonsarm krever egen fysisk/freshinitial-binding og identisk
+sammenligning. Ingen featurefamilie er avskrevet ut fra korte tester.
+
+FEATURE_SEMANTICS_REVIEW og kilderefs står under274iNEXT_RUN_POLICY. Ingen
+kodeendring, ny data-/modellbody, fit, launch, CONTROL/TEST/Exit/trades.
+Bedre prognoser og maksimal featureutnyttelse er fortsatt ikke kvalifisert.
+
 ## Siste faktiske retningsmåling — 259
 
 Uendret239 logistisk R1 med tre felt: nåværende ret_1, ret_1 ved **eksakt

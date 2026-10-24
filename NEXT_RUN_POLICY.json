@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T21:48:07.241025+00:00",
+  "observed_utc": "2026-10-24T22:03:50.951172+00:00",
   "status": "DIRECTION_NATIVE_PRIVATE_GPU_RESUME_QUALIFIED_CHRONOLOGICAL_FIT_NOT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All execution and fitting closed.273 is COMPLETE and consumed once; qualification weights are barred from main fit. Bind a new finite chronological pure-direction TRAIN/OOF scope before source edits or admission; no CONTROL/TEST/Exit/trades.",
-  "next_action": "Bind minimal pure-direction native TRAIN-fit/OOF protocol using four qualified267 prefixes, fresh own CUDA initial baselines, same70647 later parents and saved references. Preserve all genuine features/guards and no selection/refit on later outcomes.",
+  "next_action": "Bind minimal pure-native four-prefix TRAIN-fit/OOF baseline with fresh initial predictive measurements and fixed causal level/flow/EMA/ATR context panels on same70647parents. Preserve priority families; qualify retained minute price×side ladder only withinTRAIN before any richer representation contrast. No fit/launch admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -230,7 +230,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "273 genuine CUDA private4U/bit-exact serialized resume COMPLETE; root and three scoped actual peers PASS. Next is a new finite chronological pure-direction fit/evaluation protocol, not a relaunch.",
+    "current_activity": "274 targeted source/metadata audit complete: priority EMA/ATR/SR/profile/GCbook/OB/volume routes exist; footprint compression is real, feature value and full potential remain unmeasured.273 pureGPU mechanics qualified/closed; nextfixed native direction baseline/context measurement is required.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -283,7 +283,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Pure-direction chronological fit/evaluation source, finite budget/order/cursor and same-cohort comparison are not yet bound/admitted. Fresh actual CUDA forecast baselines per prefix remain required.",
+    "current_blocker": "No pure-native chronological fit/OOF value measurement yet. Fixed budget/order/cursor/native scoring/context map must be bound; retained minute price×side ladder has not received a new TRAIN-only physical qualification.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17360,7 +17360,12 @@
       "test_data_used": false
     },
     "training_running": false,
-    "genuine_predictor_fit_started": false
+    "genuine_predictor_fit_started": false,
+    "latest_prioritized_feature_semantics_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRIORITIZED_FEATURE_SEMANTICS_20261025_274/FEATURE_SEMANTICS_REVIEW.json",
+      "sha256": "111b48c32dfb2bd95e5606f13d17fbc0b7b118c9de122f9f88827fea6451f0bc"
+    },
+    "feature_potential_exhausted": false
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -19924,7 +19929,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-24T21:48:07.241025+00:00",
+  "updated_utc": "2026-10-24T22:03:50.951172+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -32390,5 +32395,22 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_CANONICAL_PRIVATE_GPU_RESUME_20261024_273/RUNTIME/receipts/invocation-0001.json",
       "sha256": "0d95dd5c20a0779d12b3f30e6b832a327e0f5a28d76ba29601854e32b39da210"
     }
+  },
+  "dynamic_m5_direction_prioritized_feature_semantics_274": {
+    "status": "COMPLETE_READONLY_SOURCE_METADATA_AUDIT_NO_PREDICTIVE_VALUE_CLAIM",
+    "evidence_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRIORITIZED_FEATURE_SEMANTICS_20261025_274",
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRIORITIZED_FEATURE_SEMANTICS_20261025_274/FEATURE_SEMANTICS_REVIEW.json",
+      "sha256": "111b48c32dfb2bd95e5606f13d17fbc0b7b118c9de122f9f88827fea6451f0bc"
+    },
+    "source_edits_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "normalization_fit_authorized": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "feature_potential_exhausted": false,
+    "retained_ladder_train_scope_qualified": false
   }
 }
