@@ -94,7 +94,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå: prisdata kvalifisert; én fast CPU-retningsreferanse innrømmet
+## Nå: første rene retningsreferanse målt; ingen retningsgevinst
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -288,7 +288,7 @@ Begge resolver til samme kanoniske fil og SHA3e444777…; ingen datamismatch ble
 målt i243.0arkiv/NPY/feature/fit/modellarbeid; original terminal er bevart.
 246 har en kildeklart minimalrettelse: kun denne likheten flyttes til allerede
 absolutt ref, pluss run/stage-identitet. Workerbf9075e5… er kontrollert; ingen
-algoritme-/guard-/budsjettendring.246 er ikke innrømmet.239-paritetsporten består;
+algoritme-/guard-/budsjettendring.246 var ved klargjøring ikke innrømmet.239-paritetsporten består;
 book-kandidaten er fortsatt ukvalifisert og faktisk klokkeavviksomfang er umålt.
 
 244DESIGN6d7a5b5f… er låst og sourcepeerPASS: første enkle retningsreferanse er
@@ -329,6 +329,26 @@ må rapportere modenhet/null/missing, begge retninger, prior/alwaysUP/persistens
 sannsynlighetsmål og paired dag/ukeusikkerhet. Ingen nativeF/U/refit/CONTROL/TEST/
 Exit/trades. Fryst kilde/policy til terminal;0prediktiv gevinst er hittil målt.
 
+247 COMPLETE/consumed:8,126sworker/8,423sytre,fryst fefd62d3/policy.
+Eksakt15fit/LBFGS/minimize og30predictor/decision_function;867solveriterasjoner
+(24–107),alle15success.0normaliseringsfit/nativeF/U/CONTROL/TEST.
+Pooled1/5/15accuracy er50,0624/49,9909/49,8443% mot alwaysUP50,3099/51,0086/
+51,6899%; balancedaccuracy50,0101/49,8935/49,7829%. Ingen fastfollowup består.
+Alle3pooledlogloss/Brier er verre enn egen matureprefixprior; alle12dag/uke-
+95%proper-scoreCI ligger over0. Bare1/15foldpanel bedrer beggepropermetrics.
+Dette forkaster én S_PRICE66-logistikkreferanse på gjenbruktTRAIN-utvikling,
+ikke alle genuinefeatures eller temporal/ikke-lineær informasjon.
+Ingen relaunch/HPO/terskelvalg/kalibreringsfit eller nativeendring følger.
+Globaltraining=false; actualresultatpeer avventer. Målet er fortsatt aktivt.
+
+246 får nå én targetfri innrømmelse etter målt247mangel: samme fryste
+workerbf9075e5…/PLAN6b32d957… og kildepeer som allerede foreligger.
+300+10s/4GiB/512MiB/64pids/éntråd/8GiB-rchar;5TF og175aggregerte paneler.
+Mål eksakte parentklokker/currentIDs/verdi-/mask-/ULP-avvik,0targets/fit/
+normalisering/nativeF/U. Canonicalcache krever prisinput-SHApass; dette
+er ikke0prisinputbytes. Ingen featureroute er kvalifisert ved diagnostikk alene,
+og239s strenge parbitsport svekkes ikke. Alle kilder er fryst til terminal.
+
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
 
@@ -352,10 +372,9 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled=true bare for247s15CPU-referansefits;full_epoch/fullVAL/
-native_launch=false.232/233/234/235/236 er consumed.
+training_enabled/full_epoch/fullVAL/native_launch=false etter consumed247.232/233/234/235/236 er consumed.
 236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
 er ferdig og239 er kildekvalifisert.240/241/242/243 er consumed.244-design er låst;245 er COMPLETE/consumed og datakvalifisert;247 er innrømmet én gang kun
-for15 faste CPU-fits.246 er klar, ikke innrømmet. Native trening er stengt.
+for15 faste CPU-fits.246 er nå innrømmet én gang kun for targetfri klokkediagnostikk. Native trening er stengt.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
