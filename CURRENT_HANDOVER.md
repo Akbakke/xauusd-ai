@@ -14,10 +14,11 @@ Trades, bevegelsesstørrelse/MFE/MAE-optimering, risiko og Exit utsettes.
 Målet er aktivt og ikke oppnådd. TRAIN-fit, senere overføring, generalisering
 og økonomisk edge er forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 
-252 er COMPLETE/consumed og **forkastet som retningskandidat**. Uavhengig
-actualreport-peer er PASS. Alle globale/lokale training/data/fit/executiongater
-er lukket igjen. Ingen ny kode, fit, native/full_epoch/fullVAL/TEST/Exit eller
-trades er innrømmet. Ingen gammel engangsplan relanseres eller parameterjusteres.
+252 er COMPLETE/consumed og **forkastet som retningskandidat**; actualpeerPASS.
+255 er nå kildekvalifisert og innrømmet én gang som fast cappedCPU TRAIN-OOF-
+referanse, ennå ikke startet. Globaltraining=true gjelder bare disse15forestfits,
+uten ny normalisering eller kontrollrefit. Native/full_epoch/fullVAL/CONTROL/TEST/
+Exit/trades er lukket. Ingen gammel engangsplan relanseres eller justeres.
 
 ## Siste faktiske retningsmåling
 
@@ -100,13 +101,31 @@ fortsatt ikke kvalifisert,239strictgate er uendret. Disse jobbene gjentas ikke.
 
 ## Neste konkrete spørsmål
 
-Kun lesende kildefeasibility: kartlegg hvilken kausal hendelsesrekkefølge som
-allerede finnes i snapshotfeltene, og hvilken som bare finnes i eksisterende
-historikkruter. Definer minste faste state-versus-history retningskontrast med
-identiske245kohorter og frosset252/R1-kontroll. Hypotesen om representasjon er
-åpen, ikke etablert årsak. Ingen dupliserteindikatorer eller valg fraOOF.
-Ny kode/fit krever konkret design, kilde-/eier-/ressurskvalifikasjon og ny
-engangsadmisjon. Ingen tilfeldig modell-/vektsveip eller gjentatt gammeltest.
+253 kildefeasibility er fullført. Snapshotet har ekte historiske sammendrag;
+native har ordnet96M5 og16/64/96/96/252TF-historikk, men annen fleroppgave-
+regresjon enn renprisretningen245. Ingen generell mangel-på-historikk-dom.
+Aktiv3345 har ret_1, EMA-/hendelsesaldre/CVD/profiler, men ikke lokalret_20/roc100.
+Parkertchartfamilie utelukker ikke17chart-navngitte aktive skalarefelt.
+
+Faktisk051emisjon bruker kun første1minutt; kvalifisertparent vedD−5min er
+avgjort innenD−4min. Eksakt tidligere206ret_1 kan derfor tidskvalifiseres uten
+nyquote/223lesing. Fravær er ingen kvalifisertparent, ikke manglende markedsbar.
+253SOURCE_CLOCK_QUALIFICATION binder faktisk051/191/187/206/245 og kodeeiere.
+Lagdekning/radmapping er fortsatt umålt.
+
+254 låser foreslått current3345 + tidligere ret_1 ved eksaktD−5min +presence,
+samme5prefixstats/245kohorter og faste19ExtraTreesparametre.252arkivet har begge
+frosne252/R1kontroller; ingen refit/prefixrekonstruksjon. Alle3horisonter må slå
+prior+R1+252, dag/ukeintervaller ogfoldstabilitet samt faktisk bruk avreturlaget.
+254design og255kilde/PLAN er uavhengigreviewet PASS.24IO/scorehjelpere er
+AST-identiske med252;53kodeeiere og gjeldende småmetadata er bundet. Worker
+acfb20fc/PLANa4fbe07b er immutable.255 er innrømmet én gang med4GiB/512MiB/
+64pids/éntråd/1800+10s,15forestfits/480treefits/30populasjoner/960treepredict,
+separat syntetikk1/32/2/64 og7scoregrupper. Én3345scratch og én direkte3347F32-
+populasjon; ingen annen diskmatrise. Faktisklagkart og begge kontrollpariteter
+kvalifiseres før førstefit, femfoldproofs før0/3/6/9/12fits. Root eier launch og
+policy; fryst kilde/policy til terminal, deretter gater false og actualreview.
+Ingen målbar ny forecastgevinst er ennå produsert; eksakte refs i policy255.
 
 ## Varige grenser
 
