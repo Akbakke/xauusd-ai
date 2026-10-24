@@ -15,8 +15,8 @@ ikke oppnådd. TRAIN-fit, senere overføring, generalisering og økonomisk edge
 krever forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 
 259 er COMPLETE/consumed og **forkastet som retningskandidat**. Tre uavhengige
-actualmetadata/stat-/rapport-peers består konsistenskontrollene. Alle globale og
-lokale training/data/fit/execution-gater er false. Tidligere ret_1 brukes i alle
+actualmetadata/stat-/rapport-peers består konsistenskontrollene. Alle genuine trenings-/fitgater er false. Ett target-fritt261støtteaudit
+er nå innrømmet, se aktuellstatus nederst. Tidligere ret_1 brukes i alle
 15 modeller, men stabil retningsgevinst er ikke kvalifisert. Ingen relansering.
 Native/full_epoch/fullVAL/CONTROL/TEST/Exit/trades er lukket. Neste spørsmål
 om ren retning på ordnet nativehistorikk er kun kilde/design, ingen fitadmisjon.
@@ -168,20 +168,24 @@ Oppdater policy/handover i sammebølge; fokuserte kontroller/AST/stale-path/
 gitdiff--check og ærlige grenser. Pushrett tilwork/gx1-current gjelder kode/docs/
 interne refs/aggregater, aldri rådata/vekter/hemmeligheter ellerforcepush.
 
-## Aktuell263 — native prefix-komponent, syntetisk kvalifikasjon
+## Aktuelt —263syntetiskPASS,261fysiskstøtte innrømmet
 
-261eier er implementert; eksisterende nativeeiere/validatorer er uendret.
-261/262engangsjobber er FAILED/consumed, originale receipts bevares og ingen
-relanseres. Begge stoppet i nye syntetiske fixtures før0fits. Siste262: første
-M5vindu hadde14av16rader,1qualifierforsøk/0returns,99.38s/kildefrysPASS.
+263er COMPLETE/consumed:30bestått/0feil/0skip,41qualifyforsøk/24returns,
+9fitforsøk/4returns,48surfacefits/4GCfits. Alle native-/wholeTRAIN-/markeds-
+forbidden-tellere0.4GiB/512MiB/64pids/éntråd/prosjektlås,128.594sworker/
+129.201sytre, beggeexit0/kilde-ogeksternebookendsPASS på717102d3. Root og
+uavhengigactualmetadata/stat-peerPASS; ingen numeriskreplay eller ekte
+markeds-/modellarbeid.261/262feilede fixture-receipts bevares; ingen relansering.
 
-263retter bare fixture-start til førsteD−TFshift medtohistoriske paddingrader,
-og testvaktens gjentatte Path-bygging. Ingen ekte data fylles eller hoppesover.
-Alle14testfunksjoners AST/assertions er uendret;30cases/4vellykkedefits forventes.
-Root/skriveeier/kildepeerPASS; én nyseparat capped30casekjøring med600s/failfast
-er nåinnrømmet, ingen fysisk datalesing eller faktisk normaliserings-/modellfit.
+Én separat261target-fri fysiskstøtteaudit er innrømmet: samme245parent/barstart/D
+og femcuts; alle12inputflater, allefelt/masker og varmup. Eksakt40path-/15source-
+plan og worker er kilde-/metadata-/stat-peerPASS. Gjenbruk050/051/nativecache/
+223råGC; kun treNPZaksemedlemmer, ingenlabels.0statsfits/0modeller/0updates.
+Prospektivt4GiB/512MiB/64pids/éntråd/1800s og26534936912B bevarte mmaps.
+Cache/GC/squeeze har canonicalfreshhash;051/050Parquet-SHAarves medfulle
+statbookends, ikke ferske bodyhash. Faktisk støtte/RSS/tid er ikke målt ennå.
 
-261fysisk støtteworker+40pathplan er kilde-/metadata-/stat-peerPASS, fortsatt
-ikkeinnrømmet. Alle fem245prefixer og12inputflater skal måles target-fritt
-etter reell syntetiskPASS. Prefixstats/fullnativeinitial/gradient/resume og
-prognosegevinst er ennåukvalifisert. TEST/Exit/trades er lukket.
+Under audit fryses kilde/policy; stabiljobb observeres15–30min, ikke minuttvis.
+Vedterminal lukkes admisjonen også ved blokkertstøtte/feil. Ingen retningsgevinst
+er bevist; genuineprefixstats/fullnativeinitial/gradient/resume/fit gjenstår.
+Alle modell-/normaliseringsfitgater erfalse; TEST/Exit/trades forblir lukket.
