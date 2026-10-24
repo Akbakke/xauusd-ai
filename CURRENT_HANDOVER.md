@@ -339,7 +339,7 @@ Alle3pooledlogloss/Brier er verre enn egen matureprefixprior; alle12dag/uke-
 Dette forkaster én S_PRICE66-logistikkreferanse på gjenbruktTRAIN-utvikling,
 ikke alle genuinefeatures eller temporal/ikke-lineær informasjon.
 Ingen relaunch/HPO/terskelvalg/kalibreringsfit eller nativeendring følger.
-Globaltraining=false; actualresultatpeer avventer. Målet er fortsatt aktivt.
+Globaltraining=false; actualresultatpeerPASS:8JSON/9payloadstat/33paneler/231confusions/132CI. Målet er fortsatt aktivt.
 
 246 får nå én targetfri innrømmelse etter målt247mangel: samme fryste
 workerbf9075e5…/PLAN6b32d957… og kildepeer som allerede foreligger.
@@ -348,6 +348,27 @@ Mål eksakte parentklokker/currentIDs/verdi-/mask-/ULP-avvik,0targets/fit/
 normalisering/nativeF/U. Canonicalcache krever prisinput-SHApass; dette
 er ikke0prisinputbytes. Ingen featureroute er kvalifisert ved diagnostikk alene,
 og239s strenge parbitsport svekkes ikke. Alle kilder er fryst til terminal.
+
+246 COMPLETE/consumed:82,598sworker/83,102sytre,fryst2d37c138/policy.
+5TF/175paneler,0target/fit/F/U; rchar7494014023B<8GiB. ProsesspeakRSS
+4348985344B er ikke cgrouppeak (delt mmap kan telles). M5 har0verdi-/maskbitsavvik
+påalle118249foreldre. M15/H1/H4/D1 verdiavvik853/4701/3861/24285 og
+maskavvik573/846/3250/20465. Alle avvik finnes bare nårGCkalender-asof er nyere
+enn siste nativeprisclose. Samme klokke har0bitavvik påalle5TF.
+Dette forklarer242porten;86pakken er fortsatt ukvalifisert,239porten er uendret.
+Neste forberedelse er minsteM5-alene pris/book-retningshypotese, med245targets
+og fastefolds. Ingen nydatajobb/normalisering/fit/produksjonsendring er innrømmet.
+
+248prospektivdesign låser minste nye hypotesetest: R1=245kol65/ret_1 alene
+og R1_M5_BOOK5 med current/previousM5 imbalance+mask. To1/5kolonnearmer,
+30senereCPUfits/60populasjoner;ingenHPO/terskel/kalibrerings-/normaliseringsfit.
+Ti eksisterendepayloads480230542B;ingen nycache/206/quote/GCparquet.
+CurrentD/ID/pair må gjenbevise246fulleM5hashes. Previous er eksakt nativeID−1,
+ikke forrige sparselagerrad; data-/støtte-/klokkeproof må bestå før eventuellfit.
+Bookverdier har fast genuin[-1,1]-skala/binærmaske; alle foreldre beholdes.
+Må slå både egenprior og R1 med samme faste retning/proper/dag/ukekrav.
+249 er kun innrømmet for ekstern kildeforberedelse, ingen payload/import/fit/launch.
+Nativefeatures/åttefamilier/D1macro beholdes; whole86pakken/239 er uendret.
 
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
@@ -375,6 +396,7 @@ scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
 training_enabled/full_epoch/fullVAL/native_launch=false etter consumed247.232/233/234/235/236 er consumed.
 236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
 er ferdig og239 er kildekvalifisert.240/241/242/243 er consumed.244-design er låst;245 er COMPLETE/consumed og datakvalifisert;247 er innrømmet én gang kun
-for15 faste CPU-fits.246 er nå innrømmet én gang kun for targetfri klokkediagnostikk. Native trening er stengt.
+for15 faste CPU-fits.246 er COMPLETE/consumed med målt klokkeforskjell; ingen ny jobb er innrømmet.
+Native trening er stengt.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T08:30:26.857236+00:00",
-  "status": "DIRECTION_BOOK_CLOCK_DIAGNOSTIC246_ONCE_ADMITTED_SOURCE_FROZEN",
+  "observed_utc": "2026-10-24T08:45:45.330815+00:00",
+  "status": "DIRECTION_MINIMAL_PRICE_BOOK249_SOURCE_PREPARATION_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Run246 target-free clock/bit/mask diagnostic once,300s/4GiB/512MiB/64pids/one-thread/8GiB-rchar, allsourcefrozen.247 reference is consumed/rejected; no fits/HPO. Original239 strict full206pair gate stays unchanged; native/TEST/Exit/trades/broker closed.",
+  "next_action": "Review248 prospective R1 versus R1_M5_BOOK5 design and prepare249external worker only. No imports/payload/fit/launch admission. Reuse245labels/folds and exact246currentM5proof; newly qualify exactnativeID-1 predecessor before any fit. Native/full-epoch/fullVAL/TEST/Exit/trades/broker remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -215,7 +215,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "First direction reference rejected; one target-free246 concrete book-clock diagnostic admitted.",
+    "current_activity": "Preparing smallest price-only versus genuine closedM5 book directional contrast.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -244,11 +244,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTION_SELECTED_ENTRY_FEATURE_VALUE_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "247 fixed15 CPU direction reference complete; no edge",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_FIXED_REFERENCE_20261024_247",
+    "latest_terminal_role": "246 target-free actual book-clock diagnosis",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_FIXED_REFERENCE_20261024_247/TERMINAL.json",
-      "sha256": "62caf8918101b10975cba9e9371f6b80ca51245905e3a1e1eb3fe7e5370675aa"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/TERMINAL.json",
+      "sha256": "e692bee95f235b2ee0df8c512c7fd9962a9d298f4e8280c17b70e8df119f3e8b"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -268,7 +268,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "S_PRICE66 fixed direction reference does not beat baseline; temporal book input clock mismatch remains unqualified.",
+    "current_blocker": "No direction advantage measured. Whole86book package mismatches current clock; M5-only current route is bit-exact, previous M5 must still be qualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7739,7 +7739,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run246 target-free clock/bit/mask diagnostic once,300s/4GiB/512MiB/64pids/one-thread/8GiB-rchar, allsourcefrozen.247 reference is consumed/rejected; no fits/HPO. Original239 strict full206pair gate stays unchanged; native/TEST/Exit/trades/broker closed.",
+    "next_action": "Review248 prospective R1 versus R1_M5_BOOK5 design and prepare249external worker only. No imports/payload/fit/launch admission. Reuse245labels/folds and exact246currentM5proof; newly qualify exactnativeID-1 predecessor before any fit. Native/full-epoch/fullVAL/TEST/Exit/trades/broker remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -29613,7 +29613,7 @@
     }
   },
   "dynamic_m5_direction_book_alignment_binding_repair_246": {
-    "status": "ONE_TARGET_FREE_BOOK_CLOCK_DIAGNOSTIC_ADMITTED_SOURCE_FROZEN",
+    "status": "COMPLETE_CONSUMED_CLOCK_DIFFERENCE_CONFIRMED_NO_FEATURE_QUALIFICATION",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246",
     "baseline_design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_ONLY_DESIGN_20261024_244/DESIGN.json",
@@ -29640,8 +29640,8 @@
         "CURRENT_HANDOVER.md"
       ]
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "new_normalization_fit_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "training_enabled": false,
@@ -29650,8 +29650,8 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/PLAN.json",
@@ -29696,7 +29696,27 @@
       "timeframes": 5
     },
     "all_source_frozen_for_capped_job": true,
-    "admission_reason": "247 fixed baseline failed; measure concrete242 current-book clock mismatch before any book-direction data/fit. Reuse frozen246 minimal resolved-registry repair; no changed statistical design, target queries, normalization or learner."
+    "admission_reason": "247 fixed baseline failed; measure concrete242 current-book clock mismatch before any book-direction data/fit. Reuse frozen246 minimal resolved-registry repair; no changed statistical design, target queries, normalization or learner.",
+    "latest_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/TERMINAL.json",
+      "sha256": "e692bee95f235b2ee0df8c512c7fd9962a9d298f4e8280c17b70e8df119f3e8b"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/OUTER_TERMINAL.json",
+      "sha256": "5ffb6be94518e233484d9ccb45e217a927f90a678162423733ceb2c275a4160b"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/RESULT.json",
+      "sha256": "2f8cf110cb9e7368fc87d4ad077ab3c333bd972f9364b3c8bad8f3512ae7e875"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/DECISION.json",
+      "sha256": "ae660274d6a406c19bf2b3d5e6d7a6bbf72c511c4b4e2612d8d3203fbb1d89e2"
+    },
+    "actual_diagnostic_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BOOK_ALIGNMENT_BINDING_REPAIR_20261024_246/ACTUAL_DIAGNOSTIC_PEER.json",
+      "sha256": "87736a3cc3dc70357158ef11e9ac97a231e11919cf36f0177944688dddc69d1d"
+    }
   },
   "dynamic_m5_direction_baseline_fixed_reference_247": {
     "status": "COMPLETE_CONSUMED_REJECTED_NO_DIRECTION_GAIN",
@@ -29826,6 +29846,44 @@
     "decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_FIXED_REFERENCE_20261024_247/DECISION.json",
       "sha256": "f97b0dea6971e43d4c9221a0529d4bfb35338644a5cffc80a226ac889a4f587b"
+    },
+    "actual_report_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_FIXED_REFERENCE_20261024_247/ACTUAL_REPORT_PEER.json",
+      "sha256": "2cad228f3da16a5463d30b95e2c8d766b73b9b400ea646975b4a5b760be22c5c"
     }
+  },
+  "dynamic_m5_direction_price_book_reference_249": {
+    "status": "BOUNDED_TWO_ARM_WORKER_SOURCE_PREPARATION_ONLY_NO_EXECUTION",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_REFERENCE_20261024_249",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_DESIGN_20261024_248/DESIGN.json",
+      "sha256": "305f3a29db23e646fd6c6f5cd5d082dab09d75a2cf731ab576e5f08bda699365"
+    },
+    "source_edits_authorized": true,
+    "source_edit_scope": "One new external249worker only: reuse247 and239 fixed probability evaluation, M5-only exact-ID/clock adapter. Two fixed1/5column references, no native/oldhelper/model/normalizer design change. No payload/import/fit until later bound admission.",
+    "file_ownership": {
+      "learning_audit": [
+        "fit_price_book_direction_guarded.py"
+      ],
+      "root": [
+        "PLAN.json",
+        "SOURCE_PREPARATION_REVIEW.json",
+        "NEXT_RUN_POLICY.json",
+        "CURRENT_HANDOVER.md"
+      ]
+    },
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "new_normalization_fit_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
   }
 }
