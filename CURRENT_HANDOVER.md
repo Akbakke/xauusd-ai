@@ -94,7 +94,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:retning alene;239 kildekvalifisert,240 datajobb kun under forberedelse
+## Nå:retning alene; én avgrenset240-datajobb innrømmet
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -267,12 +267,14 @@ eksakt1 sklearnfit og30 små surfacefits.2,709sworker/3,262sytre;prosesspeak
 0genuine payloads/prediktorfit/nativeF/update; ingen prognosegevinst er målt.
 Originale terminaler og XML er bevart; ingen239relaunch.
 
-240 kan bare forberede én ekstern ikke-fittende dataworker på kvalifiserte
-hjelpere. Den skal måle ekte midpointfasit/full198paritet og206–223/current
-rad-/bitparitet, gjenbruke210 S/prisstatistikk og kvalifisere25 små book-prefixer.
-Ingen data-/normaliserings-/fitkjøring er innrømmet nå. Alle nye prismerker,
-uendrede priser, sensur og eventuelle fortegnsavvik mot198 skal rapporteres.
-Én senere45-fit retningsreferanse krever faktisk datakvalifikasjon og ny plan.
+240 er kildepeervurdert på fryst worker e82e7bdd… og innrømmet én gang.
+Canonical191 TRAINreader, full9-array198paritet og206–223/current rad-/bitparitet
+må bestå; ren F64-midtprisfasit, uendrede priser, sensur og fortegnsavvik rapporteres.
+210 S/prisstatistikk gjenbrukes; bare25 små egne book-prefixer tilpasses.
+Fem faste66/76/86-featurematriser,413667 kodede foreldre; ingen prediktorfit.
+Capped audit4GiB/512MiB/64pids/éntråd,900+10s,40GiB rchar og256MiB NumPyoutput.
+Source/policy fryses til terminal. Ingen relaunch; en senere45-fit retningsreferanse
+krever faktisk datakvalifikasjon og egen ny plan. Ingen prognosegevinst er vist.
 
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
@@ -299,6 +301,6 @@ TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forward
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
 training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235/236 er consumed.
 236s faktiske resultatreview er ferdig.237 er superseded før data;238 design
-er ferdig og239 er kildekvalifisert.240 forberedes bare; ingen datajobb eller genuin fit.
+er ferdig og239 er kildekvalifisert.240 har én data-only admisjon; genuin prediktorfit er stengt.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.

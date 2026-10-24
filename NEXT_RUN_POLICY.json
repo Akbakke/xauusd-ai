@@ -17295,7 +17295,8 @@
       "objective": "Forutsi senere prisretning LONG/SHORT med kalibrert sannsynlighet på M5-beslutninger, med samme genuine kausale features/TF. Dokumenter gevinst mot enkle retningsreferanser og prefix-only fit i kronologisk evaluering. Trades/risiko/Exit/MFE/MAE er utsatt.",
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
-      "profitability_claimed": false
+      "profitability_claimed": false,
+      "next_step": "240 one capped TRAIN data-only projection; a classifier run remains separately gated on actual data qualification."
     }
   },
   "gc_order_flow_research_20261006": {
@@ -29120,7 +29121,7 @@
     }
   },
   "dynamic_m5_direction_price_feature_projection_240": {
-    "status": "WORKER_PREPARATION_ONLY_NO_DATA_OR_FIT_ADMISSION",
+    "status": "ONE_CAPPED_TRAIN_DATA_ONLY_PROJECTION_ADMITTED",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_ONLY_FEATURE_DESIGN_20261024_238/DESIGN.json",
@@ -29130,12 +29131,12 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PROBABILITY_SOURCE_QUALIFICATION_20261024_239/DECISION.json",
       "sha256": "d690cc46dea503dc7fbc35237cb361cb052e54059c0755bad18429a80526b756"
     },
-    "source_edits_authorized": true,
+    "source_edits_authorized": false,
     "source_edit_scope": "Only new external240 worker/metadata orchestration; canonical239 helpers and all production/target/cost/cache owners stay unchanged.",
-    "data_reads_authorized": false,
-    "new_normalization_fit_authorized": false,
+    "data_reads_authorized": true,
+    "new_normalization_fit_authorized": true,
     "genuine_predictor_fit_authorized": false,
-    "execution_authorized": false,
+    "execution_authorized": true,
     "training_enabled": false,
     "native_launch_authorized": false,
     "test_data_used": false,
@@ -29156,6 +29157,51 @@
         "CURRENT_HANDOVER.md"
       ]
     },
-    "scope": "Prepare one finite CPU data-only job: canonical191scope/TRAINreader plus239 endpoint helper/full198 parity; existing206 raw and223 rawGC surfaces/current canonical native row IDs; reuse210 S/price prefixes and qualify exactly25 tiny book prefix normalizations. Publish pure-price target/witness/feature arrays and proofs, never predictor fits or automatic fit authority."
+    "scope": "One finite CPU TRAIN pure-price endpoint/198 parity and fixed66/76/86 feature projection; no predictor fit, native model, new CONTROL target query, TEST, Exit/trades or promotion. 25 tiny book normalizers only.",
+    "admitted_utc": "2026-10-24T06:52:40.071323+00:00",
+    "budget": {
+      "CONTROL_target_queries": 0,
+      "TERM_grace_seconds": 10,
+      "book_prefix_wrapper_calls": 5,
+      "book_surface_fits": 25,
+      "book_surface_npy_inputs": 15,
+      "class": "audit",
+      "current_selector_calls": 5,
+      "encoded_parent_rows": 413667,
+      "endpoint_block_rows": 1024,
+      "endpoint_projection_calls": 116,
+      "genuine_predictor_fits": 0,
+      "max_invocations": 1,
+      "max_output_numpy_bytes": 268435456,
+      "max_rchar_bytes": 42949672960,
+      "max_wall_seconds": 900,
+      "memory_bytes": 4294967296,
+      "native_cache_npy_inputs": 15,
+      "native_model_forwards": 0,
+      "optimizer_updates": 0,
+      "original_OBS_reads": 0,
+      "output_feature_matrices": 5,
+      "output_feature_width": 86,
+      "reference_arrays": 9,
+      "swap_bytes": 536870912,
+      "target_parent_rows": 118249,
+      "target_source_reads": 1,
+      "tasks_max": 64,
+      "terminal_conversion_calls": 116,
+      "threads": 1
+    },
+    "normalization_fit_scope": "Exactly5 own-prefix book wrappers/25 tiny surfaces, all original current-slot TRAIN parents; reuse210 S_PRICE stats unchanged.",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240/PLAN.json",
+      "sha256": "c2a918fd8974dd7bfec1e36099ef6427161b5a447c5f825b750c8c99fea14ec5"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "ac5a40dd9fee9994f05ee3c3628c48944566113ddea27cd97be25dc2bb6848af"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240/materialize_direction_projection_guarded.py",
+      "sha256": "e82e7bdde142eefe1a7a28106246be8ccac682f359749e766fe77e0d46d6bd43"
+    }
   }
 }
