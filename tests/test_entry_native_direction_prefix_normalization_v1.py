@@ -90,8 +90,11 @@ def _base_prefix_case():
     _sync_current(case)
     for tf, length in owner.WINDOWS.items():
         step = htf.MULTI_TF_SHIFT[tf]
+        first_cutoff = int(decisions[0]) - int(step.value)
+        first_label = htf.multi_tf_bar_label(pd.Timestamp(first_cutoff, tz="UTC"), tf)
+        start = first_label - (length + 1) * step
         end = htf.multi_tf_bar_label(pd.Timestamp(int(decisions[-1]), tz="UTC"), tf) + 2 * step
-        times = pd.date_range(end=end, periods=length + 8, freq=step).as_unit("ns").asi8
+        times = pd.date_range(start=start, end=end, freq=step).as_unit("ns").asi8
         values = _matrix(len(times), list(fields["mtf"]), "mtf_" + tf.lower())
         frame = pd.DataFrame(values, index=pd.DatetimeIndex(times.astype("datetime64[ns]"), tz="UTC"), columns=fields["mtf"], copy=False)
         frame.attrs.update(ts_int64=times.copy(), feats_np=values, causal_warmup_rows=0, htf_feature_contract=htf.HTF_V4_MATRIX_CONTRACT)

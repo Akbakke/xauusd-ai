@@ -168,21 +168,20 @@ Oppdater policy/handover i sammebølge; fokuserte kontroller/AST/stale-path/
 gitdiff--check og ærlige grenser. Pushrett tilwork/gx1-current gjelder kode/docs/
 interne refs/aggregater, aldri rådata/vekter/hemmeligheter ellerforcepush.
 
-##261/262 — prefix-komponent og konkret testblokkering
+## Aktuell263 — native prefix-komponent, syntetisk kvalifikasjon
 
-261eier er implementert; nativeeiere/validatorer er uendret. SourcepeerPASS
-var kildebevis. Den ene syntetiske261admisjonen er FAILED/consumed:30feil før
-0qualifier-/0fitkall,29ValueError fordiTF-nøkkelenD1 ble behandlet somfeltnavn,
-én180sdeadline fangetavpytest.194.2sworker/194.8sytre,exit1/kildefrysPASS.
-Dette er feil i de nye syntetiske dataene, ingen dom over indikatorer/modell.
-Alle261gater er lukket, originale receipts bevares; ingen relansering.
+261eier er implementert; eksisterende nativeeiere/validatorer er uendret.
+261/262engangsjobber er FAILED/consumed, originale receipts bevares og ingen
+relanseres. Begge stoppet i nye syntetiske fixtures før0fits. Siste262: første
+M5vindu hadde14av16rader,1qualifierforsøk/0returns,99.38s/kildefrysPASS.
 
-262avgrenser minste testrettelse: perTF felt→verdi-mapping, samme30cases og
-éncached syntetisk basekopi meddeepcopy percase. Kvalifiserings-/fit-eierne
-endres/patches ikke. Kildepeer/AST PASS; samme30cases er nåinnrømmet én gang i262 med600s
-budsjett og --maxfail=1. Alle genuine data-/fitgater erfalse, ingenkjøringennå.
+263retter bare fixture-start til førsteD−TFshift medtohistoriske paddingrader,
+og testvaktens gjentatte Path-bygging. Ingen ekte data fylles eller hoppesover.
+Alle14testfunksjoners AST/assertions er uendret;30cases/4vellykkedefits forventes.
+Root/skriveeier/kildepeerPASS; én nyseparat capped30casekjøring med600s/failfast
+er nåinnrømmet, ingen fysisk datalesing eller faktisk normaliserings-/modellfit.
 
 261fysisk støtteworker+40pathplan er kilde-/metadata-/stat-peerPASS, fortsatt
 ikkeinnrømmet. Alle fem245prefixer og12inputflater skal måles target-fritt
 etter reell syntetiskPASS. Prefixstats/fullnativeinitial/gradient/resume og
-prognosegevinst er ennåukvalifisert. IngenTEST/Exit/trades.
+prognosegevinst er ennåukvalifisert. TEST/Exit/trades er lukket.

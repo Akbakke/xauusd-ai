@@ -225,7 +225,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "262testfixture minimumrepair/sourcepeerPASS; newseparateonce30case failfast cappedtest600s admitted.261failedreceiptpreserved; no physicaldata/native/genuinefit.",
+    "current_activity": "263syntheticwarmup andguardloopminimumrepair sourcepeerPASS; one30case failfast cappedqualification admitted, same nativeowner377, no genuine data/fit/native.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -247,7 +247,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_DIRECTION_NATIVE_PREFIX_FIXTURE_REPAIR_20261024_262",
+    "current_research_id": "NATIVE_M5_DIRECTION_NATIVE_PREFIX_WARMUP_REPAIR_20261024_263",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -255,10 +255,10 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "260synthetic component tests only; latest measured direction259remains rejected.",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_FIXTURE_REPAIR_20261024_262",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261/TERMINAL.json",
-      "sha256": "2ffeac9d468a78364bc39d33f727412155bd1b23d5aca7d6c3e5e01f959bb00f"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_FIXTURE_REPAIR_20261024_262/TERMINAL.json",
+      "sha256": "2412fdaf7b27d1dcd5b48ec7577968092cb60861d205c3ba279c0189ddfe4d92"
     },
     "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
@@ -278,7 +278,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "261fixtureconstantbinaryevents indexed atwronglevel; no actualprefixorfitcoverage. Originalfailedreceiptpreserved.",
+    "current_blocker": "SyntheticTFgenerator anchorslastparent withinsufficient firstM5warmup (14<16); nativepopulation/fit stillunqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7749,7 +7749,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactlyone26230case syntheticqualification onfrystsource. Closeconsumedgatesatactualterminal. OnlyafterPASS separatelyadmitprepared261target-freefiveprefixsupportaudit, no statsfit.",
+    "next_action": "Execute exactlyone26330case syntheticqualification. OnactualPASS closeconsumedgates and separatelyadmitprepared261target-freefiveprefixsupportaudit, zero statsfits.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17242,7 +17242,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "NONE__262_ONLY_NEW_ONCE_SYNTHETIC_TEST__ALL_GENUINE_DATA_AND_FITS_CLOSED",
+    "current_training_scope": "NONE__263_ONLY_ONE_SYNTHETIC_QUALIFICATION__ALL_GENUINE_DATA_AND_FITS_CLOSED",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17306,7 +17306,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Execute exactlyone26230case syntheticqualification onfrystsource. Closeconsumedgatesatactualterminal. OnlyafterPASS separatelyadmitprepared261target-freefiveprefixsupportaudit, no statsfit.",
+      "next_step": "Execute exactlyone26330case syntheticqualification. OnactualPASS closeconsumedgates and separatelyadmitprepared261target-freefiveprefixsupportaudit, zero statsfits.",
       "baseline_priority": "Completed245/249/252/256/259; no repeated model/weight search. Native ordered-history pure-direction source/design only; allfit closed."
     },
     "latest_direction_terminal": {
@@ -30980,7 +30980,7 @@
     }
   },
   "dynamic_m5_direction_native_prefix_fixture_repair_262": {
-    "status": "SOURCE_QUALIFIED_ONE_NEW_SYNTHETIC_TEST_ADMITTED",
+    "status": "FAILED_CONSUMED_SYNTHETIC_M5_FIXTURE_WARMUP_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_FIXTURE_REPAIR_20261024_262",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_FIXTURE_REPAIR_20261024_262/DESIGN.json",
@@ -30996,8 +30996,8 @@
       ],
       "/root": "design/policy/handover/launch/integration"
     },
-    "execution_authorized": true,
-    "synthetic_test_execution_authorized": true,
+    "execution_authorized": false,
+    "synthetic_test_execution_authorized": false,
     "data_reads_authorized": false,
     "normalization_fit_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -31014,6 +31014,55 @@
     "source_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_FIXTURE_REPAIR_20261024_262/SOURCE_REVIEW.json",
       "sha256": "e94603bd2c64f602cff559e22419fa285960cae9b85029ed93542531ab499412"
+    },
+    "test_max_invocations": 1,
+    "test_claimed_invocations": 1,
+    "test_completed_invocations": 1,
+    "test_relaunch_allowed": false,
+    "test_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_FIXTURE_REPAIR_20261024_262/TERMINAL.json",
+      "sha256": "2412fdaf7b27d1dcd5b48ec7577968092cb60861d205c3ba279c0189ddfe4d92"
+    },
+    "test_outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_FIXTURE_REPAIR_20261024_262/OUTER_TERMINAL.json",
+      "sha256": "fe44c276dbacc2090935aa3dfe4d6d462f100cfb51070c7617d442490f5e8712"
+    }
+  },
+  "dynamic_m5_direction_native_prefix_warmup_repair_263": {
+    "status": "SOURCE_QUALIFIED_ONE_SYNTHETIC_TEST_ADMITTED",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_WARMUP_REPAIR_20261024_263",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_WARMUP_REPAIR_20261024_263/DESIGN.json",
+      "sha256": "3a07f652475b72ebe7919b07e84d026820bf31ea360e7fcc9320214160717091"
+    },
+    "source_edits_authorized": false,
+    "source_edit_scope": [
+      "tests/test_entry_native_direction_prefix_normalization_v1.py"
+    ],
+    "file_ownership": {
+      "/root/feature_audit": [
+        "tests/test_entry_native_direction_prefix_normalization_v1.py"
+      ],
+      "/root": "design/policy/handover/guard/launch/integration"
+    },
+    "execution_authorized": true,
+    "synthetic_test_execution_authorized": true,
+    "data_reads_authorized": false,
+    "normalization_fit_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "test_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_WARMUP_REPAIR_20261024_263/PLAN.json",
+      "sha256": "fc2dad19d1c8165df1b1fb2d8a6e3c4ebede6548cf814942b16469517981f1cb"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_WARMUP_REPAIR_20261024_263/SOURCE_REVIEW.json",
+      "sha256": "3d3ad9773e258fc4a4d2a833fd45e775c8197a71113981a69e02d333539fac70"
     },
     "test_max_invocations": 1,
     "test_claimed_invocations": 0,
