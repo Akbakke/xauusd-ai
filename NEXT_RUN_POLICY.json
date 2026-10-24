@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T22:03:50.951172+00:00",
+  "observed_utc": "2026-10-24T22:11:21.298724+00:00",
   "status": "DIRECTION_NATIVE_PRIVATE_GPU_RESUME_QUALIFIED_CHRONOLOGICAL_FIT_NOT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All execution and fitting closed.273 is COMPLETE and consumed once; qualification weights are barred from main fit. Bind a new finite chronological pure-direction TRAIN/OOF scope before source edits or admission; no CONTROL/TEST/Exit/trades.",
-  "next_action": "Bind minimal pure-native four-prefix TRAIN-fit/OOF baseline with fresh initial predictive measurements and fixed causal level/flow/EMA/ATR context panels on same70647parents. Preserve priority families; qualify retained minute price×side ladder only withinTRAIN before any richer representation contrast. No fit/launch admitted.",
+  "next_action": "Implement/review exact275source-only prefixfit/context/campaign route; qualify finite synthetic tests once only after frozen source/testplan. Genuine training/evaluation remains closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -230,7 +230,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "274 targeted source/metadata audit complete: priority EMA/ATR/SR/profile/GCbook/OB/volume routes exist; footprint compression is real, feature value and full potential remain unmeasured.273 pureGPU mechanics qualified/closed; nextfixed native direction baseline/context measurement is required.",
+    "current_activity": "275 source-only implementation: extend qualified pure-native mechanics to fullprefix one-pass/freshbaseline/laterOOF and fixed context panels. Root integrates; disjoint3agent fileownership. No jobs/inputs/model imports until admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -19929,7 +19929,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-24T22:03:50.951172+00:00",
+  "updated_utc": "2026-10-24T22:11:21.298724+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -32412,5 +32412,21 @@
     "test_data_used": false,
     "feature_potential_exhausted": false,
     "retained_ladder_train_scope_qualified": false
+  },
+  "dynamic_m5_direction_prefix_fit_source_275": {
+    "status": "EXACT_SOURCE_DESIGN_ADMITTED_NO_TEST_OR_GENUINE_EXECUTION",
+    "evidence_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275/DESIGN.json",
+      "sha256": "f73b5a516494ec82cab64e3d43526f337d10438dc11d46dcbb59f724c8c80e19"
+    },
+    "source_edits_authorized": true,
+    "execution_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_model_execution_authorized": false,
+    "predictor_fit_authorized": false,
+    "normalization_fit_authorized": false,
+    "CONTROL_TEST_Exit_trades_broker_promotion": false
   }
 }

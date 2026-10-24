@@ -23,6 +23,18 @@ prognoseresultat. Alle execution-/fitgater er lukket; ingen kvalifiseringsvekt
 i hovedfit. Neste steg er ny fast kronologisk pure-direction TRAIN/OOF-protokoll.
 TEST, CONTROL, Exit og trades er lukket. Root eier policy og launch.
 
+## Aktuelt275 — kilde for faktisk ren retningsfit
+
+Den private4U-geometrien kan ikke måle full prefix-fit eller senere OOF.
+275DESIGN åpner kun avgrensede kildefiler med eksplisitt fileierskap: ny
+prefixcampaign, fitrunner og kausal kontekstrapport samt minste kanoniske
+dispatch. Samme modell/features/267stats/260BCE/270AdamW beholdes. Fire
+prefixmodeller, én fast pass med B16/seed20260911 og samme senere70,647foreldre.
+Fersk0U/samme256TRAIN før/etter, faste sluttvekter og kontekstpaneler.
+Eksisterende12000/13800s, fullstate-resume, freshboot og maskinvarevakter.
+Ingen fullført plan relanseres. Source-only; alle test-/data-/fit-/launchgater
+forblirfalse. Root eier policy/launch; tre agenter har separate nye filer.
+
 ## Aktuelt274 — prioriterte features, potensialet er ikke ferdig undersøkt
 
 Bruker krever faktisk utnyttelse av GC-ordrebok/order blocks/volum/profil,
