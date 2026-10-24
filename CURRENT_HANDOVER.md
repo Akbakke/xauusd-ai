@@ -89,7 +89,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:231 bestått;232 én fast GC-featureepoke innrømmet
+## Nå:232 fast GC-featureepoke ferdig;233 prognosesammenligning gjenstår
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -106,21 +106,28 @@ Exit eller privatvektgjenbruk. Native3623,381s; signedguardPASS ogchild/observer
 f12f4ad4/policy0d955a5b… fryst. Actualpeer25a42667… PASS metadata/proveniens;
 originale PT-/guard-/kvitteringsbevis beholdes. Teknisk PASS er ingen prognosegevinst.
 
-232 er én NY avgrenset test av den faste218GC-history/support-pakken etter
-223/227/229/230/231. Gjenbruk227freshstate, original055,057rekkefølge og111;
-118249TRAINrader, batch16/siste9,7391updates og32finalONLINEforwards på samme
-256TRAIN+256CONTROL/alle480. Ingen kilde-/modellendring eller normaliseringsrefit.
-PLAN/authority/DESIGN/EVAL er hashlåst før sealer og ny policy; kildepeer PASS.
-Global entry_m5_path_single_epoch_run er eksakt20felt; tidligere privatmap fjernes.
-training_enabled/full_epoch=true gjelder bare denne ene faste epochplanen;
-fullVAL=false. Ingen ekstraepoke/HPO/variant eller gjenbruk av231privatevekter.
+232 COMPLETE/consumed: én ny fast test av218GC-history/support-pakken etter
+223/227/229/230/231. Gjenbruk227fresh,055,057 og111;118249TRAINrader,
+batch16/siste9,7391updates og32finalONLINEforwards på256TRAIN+256CONTROL,
+alle480. Ingen kilde-/modellendring,refit,teacherrefresh eller231privatvektgjenbruk.
+Faktisk nyWindowsboot532;nativekvittering10294,049s,produsenttimer9975,581s
+harulikeklokkescope. GuardPASS/child0/observer0,peak57/66C/137,94W/2220MiB,
+8222samples. WindowsReady/LastResult0/Restart0,ingen prosjektPython eller aktivmarkør.
+Kilde4b971b3f/policyAAA692c5… var fryst til terminal;184roller/183kildestiers
+SHA+stat gjenverifisert. Actualpeer0c448c81… PASS metadata. RESUMABLE/complete=false
+og bundle_written=false er forventet ved budsjettstoppen, ikke en nylaunchport.
 
-Før launch må ren pushet kilde, cappedsealer, canonicalcampaign, hele maskinens
-jobb-/writer-/låsidle, bundetWindowsinstallasjon og prepare/request/confirm-reboot
-bestå. Faktisk nyboot etter531 med eksisterende signerteGPU/host/cgroupvakter;
-ingen direkteStartScheduledTask.160Widlekeeper bevares; samme300Wadaptivevakt.
-CURRENTkode/policy fryses fra seal til terminal; eksternebootmetadata får bare
-avtalte232sti/hash/bootbindinger før fysiskboot. Én12000snative/13800sytre invokasjon.
+232s engangsadmisjon er consumed;globaltraining/full_epoch/fullVAL=false,
+mainmap fjernet. Ingen relaunch,ekstraepoke/HPO/variant,TEST/Exit/broker eller
+privatvektgjenbruk. Originale kvitteringer/checkpoints beholdes.
+233 er innrømmet én gang for lagrede229initial/232final/191final,med192s
+beståtte metric/CI/path/selected-beregninger. Kildepeer PASS;31feltPLAN er låst.
+CPUaudit4GiB/512MiB/64pids/1tråd/1800s+10s; eksakt6OBSmaks64MiBhver og6
+canonical dynamic_entry_m1_row-projeksjoner,ingen andre Parquetkolonner/rådata/
+PT/NPY/aggregat151/178/fit/forwards/updates.4GiBrchar er ny forhåndslåst failclosed-
+grense,ikke et målt tidligere forbruk;faktisk233counter kreves. Alle480min gir1440
+ALLretningspaneler/rolle,headlinegrupper1/5/15/60/120/240/480 beholdes. Rencommit,
+bundetpolicy/worker/PLAN,cappedlock ogkilde/policyfrys kreves;ingenrelaunch.
 
 EVAL er forhåndslåst: egen229initial og target/mask/cost/row-parret191final,
 primær1/5/15min, alle480 samt60/120/240/480støtte, paired dag/uke95%-intervall,
@@ -149,6 +156,6 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled/full_epoch gjelder bare eksakt232 én7391Uepoke;fullVAL=false.
+training_enabled/full_epoch/fullVAL=false;232consumed og233kun savedreportreview.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
