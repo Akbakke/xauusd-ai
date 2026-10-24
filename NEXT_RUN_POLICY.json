@@ -225,7 +225,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "269 consumed2evalF1B0U technicalPASS/root+actualpeerPASS; allgatesclosed. Nextminimal source-only Entry-only optimizer/fullstate resume seam; direction improvement unmeasured.",
+    "current_activity": "270source/root+scopedpeersPASS; admitoneexact32case syntheticrecipe/statequal. All genuine/data/update/fitgatesfalse.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -247,7 +247,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_DIRECTION_NATIVE_ZERO_UPDATE_QUALIFICATION_20261024_269",
+    "current_research_id": "NATIVE_M5_DIRECTION_RESEARCH_OPTIMIZER_RESUME_COMPONENT_20261024_270",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -17306,7 +17306,7 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Source/design for research-wrapper-only optimizer/fullstate resume using existing numerical/state primitives and exactcanonicalrecipe origins; no fit until separate contract/admission. 269h15supervisedgradient remainsunqualified.",
+      "next_step": "Implement/review270three-file source scope then one focused capped synthetic state/recipe qualification if admitted. Preserve nativeONLINE function; genuine private updates and chronological directionfit still closed.",
       "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed."
     },
     "latest_direction_terminal": {
@@ -32199,5 +32199,103 @@
       5
     ],
     "fifteen_minute_supervised_gradient_qualified": false
+  },
+  "dynamic_m5_direction_research_optimizer_resume_component_270": {
+    "status": "ADMITTED_ONCE_32_SYNTHETIC_RESEARCH_STATE_RECIPE_CASES_ONLY",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_RESEARCH_OPTIMIZER_RESUME_COMPONENT_20261024_270",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_RESEARCH_OPTIMIZER_RESUME_COMPONENT_20261024_270/DESIGN.json",
+      "sha256": "f99d10a1f5039ecae47c6f1581d4e53b31aa0c3d307327037b1eb132be0b90d9"
+    },
+    "source_edit_scope": [
+      "gx1/contracts/entry_model_native_train_recipe_v1.py",
+      "gx1/contracts/entry_native_direction_research_state_v1.py",
+      "tests/test_entry_native_direction_research_state_v1.py"
+    ],
+    "file_ownership": {
+      "/root/learning_audit": [
+        "gx1/contracts/entry_model_native_train_recipe_v1.py",
+        "gx1/contracts/entry_native_direction_research_state_v1.py",
+        "tests/test_entry_native_direction_research_state_v1.py"
+      ]
+    },
+    "integrator": "/root",
+    "source_edits_authorized": false,
+    "synthetic_test_execution_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "next_cuda_seam_source_review": {
+      "status": "READ_ONLY_FINDINGS_NO_CODE_OR_GPU_ADMISSION",
+      "prior_private_gpu_qualification": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_TECHNICAL_20261023_231/TERMINAL.json",
+        "sha256": "a9285a924886605bef861d992cc34e25681761ca0af3cfdc3be2ac10fda05289"
+      },
+      "source_owners": {
+        "scripts/gx1_capped_run.sh": {
+          "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+          "sha256": "a85bf761e3607ead54dd806b4cf581febaeeeca5801e3060ffc1e76a289d5f3d"
+        },
+        "scripts/gx1_guarded_trainer_exec.sh": {
+          "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_guarded_trainer_exec.sh",
+          "sha256": "6c4a4bfe704828aeb1c5ad2d89160e4cbb8fadb210be5fc33d26f12b96db0c45"
+        },
+        "gx1/contracts/unified_exit_native_candidate_campaign_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_native_candidate_campaign_v1.py",
+          "sha256": "d6138f31b894bf821c950222b6896b94b1d1e1d05dcd9770a33f533d4b1b633c"
+        },
+        "gx1/contracts/local_random_access_campaign_v2.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/local_random_access_campaign_v2.py",
+          "sha256": "ef98d2dc72d8d764355c7ebcebca9a378304c370b223779144da8207d70d605c"
+        },
+        "gx1/scripts/run_unified_exit_native_candidate_window_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+          "sha256": "f7336c3a20c718f0f4443bfff7a889dcf7de142c78d3a04050bb41bbef90dbe6"
+        },
+        "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+          "sha256": "78b3a253f13643794d5fa4a92a3359a4acc72114e9f0cc7f32f7794f60db7032"
+        }
+      },
+      "findings": [
+        "231 used genuine canonical GPU trainer guard for private4updates, not CPU. Oldweights/admission are not reusable.",
+        "Current campaign recipe/sampler/target/EMA and window cursor/state validators run before oldtechnical dispatch and do not accept pure260research identity. A lone early fulltrain dispatch is insufficient.",
+        "NextGPU design must retain existing lock/cgroup/hardware guards and canonical CUDA guard; bind an explicit truthful research recipe/state route without faking oldnativephase/TDtarget. No audit/producer workaround or ambient CUDA flags.",
+        "270syntheticCPU tests will not qualify genuine nativeCUDAtrainmode/updates/resume."
+      ],
+      "source_edits_authorized": false,
+      "genuine_execution_authorized": false
+    },
+    "test_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_RESEARCH_OPTIMIZER_RESUME_COMPONENT_20261024_270/TEST_PLAN.json",
+      "sha256": "917da8b8aaffe5991f5aebc53ac1dddafdcf11062711f4453acf8446a928e23b"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_RESEARCH_OPTIMIZER_RESUME_COMPONENT_20261024_270/SOURCE_REVIEW.json",
+      "sha256": "85482f4b7c3452f87e5e0ee1f896f56c0fd2fdc1ece0328ca4218a4bc8473e0a"
+    },
+    "budget": {
+      "max_wall_seconds": 600,
+      "memory_max": 4294967296,
+      "swap": 536870912,
+      "pids": 64,
+      "numerical_threads": 1,
+      "max_invocations": 1
+    }
   }
 }

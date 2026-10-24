@@ -360,3 +360,18 @@ har. Ingen slike aliaser skal forfalskes. Native inaktivklassifisering bruker
 uprefiksede navn og kan ikke kopieres til backbone.*. Gjenbruk finitt-gradient-
 steg/RNG-/hashprimitiver; bind først minste eksplisitte research-oppskrift/state.
 Denne kilderevisjonen åpner ingen kildeendring, EMA-variant, oppdatering eller fit.
+
+## Aktuelt270 — kun kilde for research-oppskrift/optimizer/fullstate
+
+Root har bundet DESIGN for tre filer eid avlearning_audit: eksisterende
+recipeeier utvides med separat pure-direction-oppskrift; ny avgrenset stateeier
+og fokusert testfil. 229/231s faktiske LR/WD1e-4,clip1,seed20260911 ogFP32
+gjenbrukes. Eksplisitt EMAOFF0.0/schedulerOFF0 for ren ONLINE-BCE; ingen TD-
+target eller gammel nativefasealias. Produksjonsoppskrift/validator er uendret.
+Alle genuine270gater erfalse. Én eksakt32case syntetisk testjobb er nå innrømmet etter source/PLAN-peer. Nativefunksjon/260loss/
+268view/stats ogalle features/TF bevares. Kilde-/spygodkjenning åpneringenfit.
+
+270 source/root/scopedpeers PASS på recipe231d9b8f/statead9a3f91/test8adb56ed.
+Gamle recipebytes/39AST-noder er uendret. Fem målte nye vaktgap er rettet med
+minste delta: bufferfinitet, typeddefaults, MTpos, parameteralias og semantisk
+immutablebuffer førrestore. Ingen nativefunksjon eller data er endret.
