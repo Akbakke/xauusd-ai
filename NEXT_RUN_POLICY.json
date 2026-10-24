@@ -44,9 +44,9 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T10:08:04.972262+00:00",
-  "status": "DIRECTION_NONLINEAR_FULL_SNAPSHOT_SINGLE_CPU_REFERENCE_ADMITTED",
-  "training_enabled": true,
+  "observed_utc": "2026-10-24T10:30:37.918038+00:00",
+  "status": "DIRECTION_NONLINEAR_SNAPSHOT_REJECTED_FIT_FAILS_LATER",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
@@ -211,11 +211,16 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_SOURCE_COMPAT_REPAIR_20261024_236/DECISION.json",
       "sha256": "3090986e0227914e81e7b66e776012af69603afd8ff19a051aa0bf2d6ca497af"
     },
-    "fixed_family_direction_qualified": false
+    "fixed_family_direction_qualified": false,
+    "latest_pure_direction_nonlinear_reference": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/DECISION.json",
+      "sha256": "b347f518c0da11045fe9ef6ba3ce477efe432396e5b8a8c5263285276fe6e357"
+    },
+    "pure_direction_nonlinear_reference_qualified": false
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "252 source/PLAN qualified and frozen; one new capped fixed CPU full3345-snapshot direction reference admitted. Actual launch/terminal still required; no forecast result yet.",
+    "current_activity": "252 actual report peer PASS; fixed full3345 ExtraTrees candidate rejected. Prefix fit54–60% does not transfer: OOF50–52%, all24pooledproperCIs cross0. All fit gates closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -237,18 +242,18 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "NATIVE_M5_DIRECTION_PRICE_AND_FEATURE_PROJECTION_20261024_240",
+    "current_research_id": "NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_DIRECTION_SELECTED_ENTRY_FEATURE_VALUE_GENERALIZATION_EDGE_REMAIN",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "249 fixed pure direction price versus M5book reference complete; no stable edge",
-    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_REFERENCE_20261024_249",
+    "latest_terminal_role": "252 fixed CPU nonlinear direction reference, not native training or economic evidence",
+    "runtime_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_REFERENCE_20261024_249/TERMINAL.json",
-      "sha256": "5e307fc38c0af1f41495aa1a419c527a2b66f249dcd5736e59a424ff5f187695"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/TERMINAL.json",
+      "sha256": "5b68dcea6b668704aa62dc38931e4125044a759a71cb6857b584045c57b56d0c"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -268,7 +273,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No stable measured direction advantage.252 synthetic/data/no-copy/pickle qualifications and genuine OOF results are not yet run.",
+    "current_blocker": "No stable measured direction edge. The fit-to-later gap is measured; noise fit, relationship instability and representation limits remain unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7739,7 +7744,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Launch exact252 PLAN once through4GiB/512MiB capped audit1800s with source/policy frozen; observe actual terminal and close global/local fit gates immediately. Then independent actual report review; no automatic followup/promotion.",
+    "next_action": "Source-only feasibility: identify which genuine causal time-order information is already encoded in full3345 snapshot and which requires the existing native history routes. Define the smallest fixed state-versus-history direction contrast with identical245 cohorts and frozen252/R1 controls; do not add duplicate indicators or select features/thresholds from OOF. No new code/fit admitted until a concrete design and owner/resource qualification.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17220,8 +17225,8 @@
     },
     "training_active": false,
     "latest_decision": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_SNAPSHOT_CAPACITY_SIX_QUARTER_REFERENCE_20261023_215/DECISION.json",
-      "sha256": "1117375d003551002bc3464db3f4342faa842584c2b90a0f92358b2e450beb19"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/DECISION.json",
+      "sha256": "b347f518c0da11045fe9ef6ba3ce477efe432396e5b8a8c5263285276fe6e357"
     },
     "latest_direction_analysis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_REFERENCE_SEMANTIC_ACCOUNTING_20261023_203/RESULT.json",
@@ -17232,7 +17237,7 @@
       "sha256": "1117375d003551002bc3464db3f4342faa842584c2b90a0f92358b2e450beb19"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Only252 fixed CPU direction reference admitted, native and full epochs closed. Data and synthetic qualifications precede15genuinefits; sourceprepPASS is not learning.",
+    "current_training_scope": "All training closed after252 terminal; native/full_epoch/fullVAL/TEST/Exit/trades remain closed.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17285,8 +17290,8 @@
       "test_data_used": false
     },
     "latest_direction_decision": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PRICE_BOOK_REFERENCE_20261024_249/DECISION.json",
-      "sha256": "1a09331fc7c6efc72dd8d82025426203548e39e9e422d0e83a19ca1e5eb9d208"
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/DECISION.json",
+      "sha256": "b347f518c0da11045fe9ef6ba3ce477efe432396e5b8a8c5263285276fe6e357"
     },
     "direction_only_goal": {
       "status": "ACTIVE_NOT_ACHIEVED",
@@ -29989,7 +29994,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_DESIGN_20261024_251/DESIGN.json",
       "sha256": "2d3d429bd503ee767989e8194c6a9bf97d321c82ce3dd73890c61904e4b25059"
     },
-    "source_preparation_authorized": true,
+    "source_preparation_authorized": false,
     "execution_authorized": false,
     "training_enabled": false,
     "data_reads_authorized": false,
@@ -30003,7 +30008,7 @@
     }
   },
   "dynamic_m5_direction_nonlinear_reference_252": {
-    "status": "SOURCE_REVIEW_PASS_ONE_CAPPED_CPU_REFERENCE_ADMITTED",
+    "status": "COMPLETE_CONSUMED_REJECTED_NO_STABLE_DIRECTION_EDGE",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_DESIGN_20261024_251/DESIGN.json",
@@ -30021,11 +30026,11 @@
       "feature_audit": "Read-only feature/encoder/source closure peer.",
       "research_audit": "Read-only sklearn/score/resource/observer peer."
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "new_normalization_fit_authorized": false,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
     "native_training_enabled": false,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
@@ -30034,8 +30039,8 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "worker": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/fit_nonlinear_direction_guarded.py",
@@ -30096,6 +30101,52 @@
       "threads": 1
     },
     "all_source_frozen_for_capped_job": true,
-    "fit_authority_scope": "Only252 fixed CPU ExtraTrees reference: one synthetic1forest/32trees/2pop and15genuineforests/480trees/30pop. Existing245puretargets/five210prefixnorms/206raw and frozen249R1. Zero native/full_epoch/fullVAL/Exit/CONTROL/TEST/normalization/R1refit/broker/trades. Consume once regardless success."
+    "fit_authority_scope": "Only252 fixed CPU ExtraTrees reference: one synthetic1forest/32trees/2pop and15genuineforests/480trees/30pop. Existing245puretargets/five210prefixnorms/206raw and frozen249R1. Zero native/full_epoch/fullVAL/Exit/CONTROL/TEST/normalization/R1refit/broker/trades. Consume once regardless success.",
+    "latest_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/TERMINAL.json",
+      "sha256": "5b68dcea6b668704aa62dc38931e4125044a759a71cb6857b584045c57b56d0c"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/OUTER_TERMINAL.json",
+      "sha256": "796452e0ea581d2b47eeb3e72bb6a2f4a27b0d6f001f09e0a408e41457e6f8ae"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/RESULT.json",
+      "sha256": "50594fb97a4a2e81f57b90f83332c7e980aff752a120f8505d99eadeca8c3c6c"
+    },
+    "saved_R1_parity": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/SAVED_R1_OOF_PARITY.json",
+      "sha256": "87e4133ffada0829299d002cab6804be10abfbd43cd3880b263ef4b43932a658"
+    },
+    "fold_feature_qualifications": [
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/FOLD_0_FEATURE_QUALIFICATION.json",
+        "sha256": "cc42f352069014cbf153229b384ddda8a08f772ae34d6ca33f2f73a4fb84e65f"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/FOLD_1_FEATURE_QUALIFICATION.json",
+        "sha256": "931fdcdc429d5c5c628904f83e0a80a4b923174ab47d4bb7230c37ba1ebac568"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/FOLD_2_FEATURE_QUALIFICATION.json",
+        "sha256": "3ae3345bc695c9858a2035adbe8dd4112eaafdaaddfd28cf6a5f2dc40ca53c55"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/FOLD_3_FEATURE_QUALIFICATION.json",
+        "sha256": "8e209788ec4daff1f8be02f42e28a8e40f812cf6e4b1875bbf8c0992c688ae1f"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/FOLD_4_FEATURE_QUALIFICATION.json",
+        "sha256": "f5f5e7bdd71ee0a83255e9077573626d649412505f27431b689fda9b1912ed11"
+      }
+    ],
+    "actual_report_peer": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/ACTUAL_REPORT_PEER.json",
+      "sha256": "d7833ae1a4de339a2cc854e6006f0f5bca70dc5c8946b203afcfe07feacbadde"
+    },
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/DECISION.json",
+      "sha256": "b347f518c0da11045fe9ef6ba3ce477efe432396e5b8a8c5263285276fe6e357"
+    }
   }
 }
