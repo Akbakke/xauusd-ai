@@ -92,7 +92,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:235 stoppet før data;236 minste kildekompatibilitet forberedes
+## Nå:236 én ny eksakt CPU-referanse innrømmet etter235s kildefeil
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -179,13 +179,16 @@ aktuelle gc_native_context-bytes i den historiske prisrelativ-kontrakten.
 Worker1,706s/ytre1,999s;0payload,0encodedrader,0fit/prediktor/F/update.
 Kilde323692bc og policy/worker var uendret. Originale kvitteringer beholdes;
 ingen relaunch og ingen konklusjon om featureinformasjon fra dette forsøket.
-236 er kun kildeforberedelse av minste rettelse: bruk204/SOURCE_MAP.json som
+236 har fryst workerbdac561a… og avgrenset uavhengig delta-peer PASS.
+37/42 funksjoner er AST-identiske med235; numerikk/statistikk/budsjetter er uendret.
+Minste rettelse bruker204/SOURCE_MAP.json som
 allerede er bundet av206, i stedet for å bygge historisk kildekvalifikasjon på nytt.
 Hele kompilert layout må fortsatt være lik210 før payload. Samme8 armer, femfold,
 fitter, koding, mål, kostnader og budsjetter beholdes. Kun én ny metadataref kreves.
 Prisrelativ-gaten endres ikke. Faktisk kompilert layoutparitet er ennå ikke målt.
-Globaltraining/full_epoch/fullVAL/native_launch=false. Ingen datajobb eller
-produksjonsendring er innrømmet.
+Én ny236 CPU-referanse er innrømmet med samme4GiB/512MiB/64pids/éntråd/
+3600+10s og16GiB-rchar-tak. Globaltraining=true gjelder bare denne referansen;
+full_epoch/fullVAL/native_launch=false. Ingen produksjonsendring eller235relaunch.
 
 Parameterstate-audit er ikke startet; parameterbevegelse alene beviser ikke featureverdi
 og kan inkludere weightdecay. Målet er aktivt og ikke oppnådd.
@@ -210,7 +213,7 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled/full_epoch/fullVAL/native_launch=false.232/233/234/235 er consumed.
-Ingen annen trening eller relaunch.
+training_enabled=true gjelder kun den eksakte236 CPU-referansen.
+Full_epoch/fullVAL/native_launch=false;232/233/234/235 er consumed. Ingen annen trening.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.

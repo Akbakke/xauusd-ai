@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-24T05:05:30.291517+00:00",
-  "status": "FEATURE_VALUE235_PREPAYLOAD_FAILURE_CONSUMED_236_SOURCE_PREPARATION_ONLY",
-  "training_enabled": false,
+  "observed_utc": "2026-10-24T05:09:54.699657+00:00",
+  "status": "FEATURE_VALUE236_EXACT_TRAIN_ONLY_SOURCE_COMPAT_REFERENCE_ADMITTED_ONCE",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Allfittingclosed.215stabilizedfixedsnapshotpredictions but failed lockedmeancriteria; no relaunch/nativechange/search admitted.",
-  "next_action": "Prepare exact236 saved-source-map reuse of235 analysis; preserve all historical guards and235 receipts; fullcompiled layout210 equality must remain before payload. No execution/data/fit yet.",
+  "next_action": "Run exactly one236 capped CPU reference with saved source-map metadata; full210layout equality required before payload. Consume actual receipt and review measurements; no235relaunch or automatic selection/native launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -210,7 +210,7 @@
   },
   "current_work": {
     "operator_request": "23.10 user goal: deeply investigate actual features for better M5 Entry LONG/SHORT/FLAT forecasts and directional edge.",
-    "current_activity": "236_MINIMUM_BASELINE_SOURCE_COMPATIBILITY_PREPARATION_ONLY",
+    "current_activity": "236_EXACT_TRAIN_ONLY_SOURCE_COMPAT_REFERENCE_ADMITTED_ONCE",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -263,7 +263,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "235 failed before payload due historical source builder.236 may only prepare exact saved-source-map reuse; actual compiled210 parity and family measurements remain unproved.",
+    "current_blocker": "235 prepayload source error consumed.236 is one new exact compatibility successor; actual fullcompiled210parity, family direction information and selected forecast diagnostics remain pending. No native training, TEST or promotion.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -19846,7 +19846,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-24T05:05:30.291517+00:00",
+  "updated_utc": "2026-10-24T05:09:54.699657+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -28828,7 +28828,7 @@
     }
   },
   "dynamic_m5_feature_family_train_oof_source_compat_repair_236": {
-    "status": "SOURCE_PREPARATION_ONLY_MINIMUM_BASELINE_METADATA_REUSE",
+    "status": "ADMITTED_ONCE_EXACT_SAVED_SOURCE_MAP_FAMILY_REFERENCE",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_SOURCE_COMPAT_REPAIR_20261024_236",
     "design": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_DIRECTION_INFORMATION_DESIGN_20261024_234/DESIGN.json",
@@ -28842,19 +28842,58 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_RELATIVE_COORDINATE_DESIGN_20261023_204/SOURCE_MAP.json",
       "sha256": "c3dd04288d93d9d78d96ac7444db2f9ba887157142513334445eb3c75a138996"
     },
-    "source_edits_authorized": true,
+    "source_edits_authorized": false,
     "source_edit_scope": "Only new236 worker copied from immutable235, exact plan/orchestration and saved-source-map input binding; no production or historical gate edits. Root owns policy/launch; research agent owns new worker.",
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "fits_authorized": false,
-    "genuine_reference_fit_admitted": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "fits_authorized": true,
+    "genuine_reference_fit_admitted": true,
     "native_launch_authorized": false,
-    "training_enabled": false,
+    "training_enabled": true,
     "full_epoch_training_allowed": false,
     "full_val_allowed": false,
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_SOURCE_COMPAT_REPAIR_20261024_236/PLAN.json",
+      "sha256": "4ff67ee665f1db2107af3d3709deb3ccf1555c9a0103074011a0a8a67ff00a00"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_SOURCE_COMPAT_REPAIR_20261024_236/fit_family_reference_guarded.py",
+      "sha256": "bdac561afdac38884712e4a2451ad530e949277971a8f9381ce5e3825d4fc6ca"
+    },
+    "source_preparation_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_FEATURE_FAMILY_TRAIN_OOF_SOURCE_COMPAT_REPAIR_20261024_236/SOURCE_PREPARATION_REVIEW.json",
+      "sha256": "90140f07092e6327fd71a0d45e6300b3159cd866ee2236663d79dc5507a54db9"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "budget": {
+      "class": "audit",
+      "max_invocations": 1,
+      "max_wall_seconds": 3600,
+      "TERM_grace_seconds": 10,
+      "memory_bytes": 4294967296,
+      "swap_bytes": 536870912,
+      "tasks_max": 64,
+      "threads": 1,
+      "max_rchar_bytes": 17179869184,
+      "input_payloads": 2,
+      "max_fit_owner_calls": 40,
+      "max_ridge_regressions": 120,
+      "max_predictor_calls": 80,
+      "encoded_parent_rows": 413667,
+      "normalization_recipe_fits": 0,
+      "new_targets": 0,
+      "original_OBS_reads": 0,
+      "native_model_forwards": 0,
+      "optimizer_updates": 0
+    },
+    "source_frozen_during_run": true,
+    "quality_or_model_selection_authorized": false,
+    "allowed_scope": "One new236 invocation after235 prepayload failure: exact saved204source-map argument, FULL currentcompiled210contract parity before two cachedTRAINpayloads; same8arms/5folds/lambda1/h1-5-15/q90/metrics/budgets. No235relaunch, new normalization, source-gate mutation, CONTROL/TEST/native/model selection or promotion."
   }
 }
