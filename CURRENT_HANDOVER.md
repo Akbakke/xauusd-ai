@@ -23,6 +23,9 @@ D1-positive gap gjelder346/52 unike TRAIN/CONTROL-bøtter, ikke uavhengige forel
 218s ene additive GC temporal/support-pakke beholder alle1205 verdi/mask-par,
 lokale inputs, original055, base253/kompakt139, targets/kostnader, åtte spesialister
 og niende D1/makro samt eksisterende encoder/attention/readout.
+Presisering: fullmodellens8 beholdes, men19.10-kompaktprofilen har7aktive
+lokalfamilier,5base-MTF-familier og7MTF-familier medGC. Chart er vedtattparkert,
+ikke bortfalt utilsiktet.39chartfelt/TF og32lokalsignalfelt er ikke konsumert her.
 Egne GC-historier bruker de eksakt samme native radene, med én trailinggapverdi
 perTF og eksisterende BBO-validmaske: bredder639/493/453/431/399.
 Nye fem `gc_mtf_*`-normaliseringer er separate; bare unike konsumert-TRAIN-rader
@@ -89,7 +92,7 @@ gjenbruker227freshstate og alle kvalifiserte inputs; bare bootmetadata rettes.
 Canonicalrequire_boot_identity validerer metadata i cappedsealer før ny
 materialisering. Ingen produksjons-/modellendring eller ny freshpublisher.
 
-## Nå:232 fast GC-featureepoke ferdig;233 prognosesammenligning gjenstår
+## Nå:233 målt;ingen dokumentert retningsgevinst,234 kun design
 
 229 COMPLETE/consumed: genuine ONLINEbaseline med256TRAIN+256CONTROL,
 alle480horisonter,32forwards og0updates på nyWindowsboot530.
@@ -120,22 +123,37 @@ og bundle_written=false er forventet ved budsjettstoppen, ikke en nylaunchport.
 232s engangsadmisjon er consumed;globaltraining/full_epoch/fullVAL=false,
 mainmap fjernet. Ingen relaunch,ekstraepoke/HPO/variant,TEST/Exit/broker eller
 privatvektgjenbruk. Originale kvitteringer/checkpoints beholdes.
-233 er innrømmet én gang for lagrede229initial/232final/191final,med192s
-beståtte metric/CI/path/selected-beregninger. Kildepeer PASS;31feltPLAN er låst.
-CPUaudit4GiB/512MiB/64pids/1tråd/1800s+10s; eksakt6OBSmaks64MiBhver og6
-canonical dynamic_entry_m1_row-projeksjoner,ingen andre Parquetkolonner/rådata/
-PT/NPY/aggregat151/178/fit/forwards/updates.4GiBrchar er ny forhåndslåst failclosed-
-grense,ikke et målt tidligere forbruk;faktisk233counter kreves. Alle480min gir1440
-ALLretningspaneler/rolle,headlinegrupper1/5/15/60/120/240/480 beholdes. Rencommit,
-bundetpolicy/worker/PLAN,cappedlock ogkilde/policyfrys kreves;ingenrelaunch.
+233 COMPLETE/consumed: én cappedCPU-audit128,390sworker/128,986sytre,
+4GiB/512MiB/64pids/1tråd,6OBS og6kunpointerprojeksjoner;0nyeF/U/refit/PT/NPY/
+råMBP/aggregate151/178. Faktiskrchar395365695B<4GiB. SourceADB3ef80/policy87a28314…
+fryst; runtimeband-selfcheck ogidentiskefasit/masker/klokker/kostnader PASS.
+Alle480min gir1440ALLpaneler/rolle. Actualpeerba9e31ed… PASS evalueringensbevis,
+menretningsgaten er IKKE bestått. Ingenrelaunch/ekstraepoke/HPO ellerpromotion.
 
-EVAL er forhåndslåst: egen229initial og target/mask/cost/row-parret191final,
-primær1/5/15min, alle480 samt60/120/240/480støtte, paired dag/uke95%-intervall,
-LONG/SHORT/FLAT-dekning, censoring, inclusive/closedMFE ogMAEførførsteMFE.
-Alle tre CONTROLprimærfeil må forbedres mot begge referanser for retningsgevinst;
-robustpåstand krever day/weekintervall helt under0. Under8blokker er deskriptivt.
-AllFLAT/pooledMSE/TRAIN-fit alene kvalifiserer ikke Entry. Ingen isolertfeature-
-årsakspåstand fra denne samledepakken. Prognosegevinst er fortsatt umålt.
+CONTROL1/5/15 retningMSEmot191: +0,647% /-0,291% /-0,185%. Motegen229initial
+forbedres bare5min;totalt3/6primærpunkter forbedres. Alle12paired dag/uke95%-CI
+krysser0. Kontroll har68dags-/14ukeblokker. Alle512currentrader erFLAT.
+På de faste256TRAINprobene er1/5/15retningsfeil alleverre motegeninitial;
+dette er ikke et mål på heleTRAIN-populasjonens retningsfeil.
+Alle16tidlige1..15MFE/preMAE-sidepaneler,inclusive/closed,begge roller,forbedres
+raw+111RMSmotegeninitial. Mot191 eralle8CONTROLpaneler verre;TRAINbedrer4/8.
+Komponentfit gir ikke bedreEntry-retning,kvalitet,selektivitet eller økonomi.
+
+Etterfølgende kilde-/metadataaudit fant ingenGC-frakobling mellom231/232:
+alle5GCtensorruter nårONLINE/encoder/curveheads/backward/aktivAdamW,ingen
+detach i inputkjeden. FrosneTARGET brukes ikke til dynamisktrainforward.
+Genuine per-featuregradienter/parameterdeltaer ogprediktivnytte er ubevist.
+Sju aktive familier er eksplisitt tillatt19.10;chartfelt omrutes ikke generisk.
+Ingen automatisk reaktivering avchart ellernymodellendring følger av auditen.
+Terminal/MFEearly-later oglært exp(-s)*loss+s er kildebekreftet;faktisk
+oppgave-/gradientpress er ikke målt. Ingen konkret feilrettelse er begrunnet nå.
+
+234 er kun kilde-/metadatadesign av én eventuellTRAIN-only kronologisk
+featureinformasjonsreferanse med eksisterende215eiere. Avklar råverdier versus
+055fullTRAIN-normalisering ogfoldtilgjengelighet før noen data-/fitadmisjon.
+Ingen ny datajobb,fit,modellvariant/forward/oppdatering ellerkildeendring er
+innrømmet. Parameterstate-audit er ikke startet;parameterbevegelse alene beviser
+ikke featureverdi ogkaninkludereweightdecay. Målet er aktivt og ikke oppnådd.
 
 ## Gjenbruk og ubeviste grenser
 
@@ -156,6 +174,6 @@ Lang støtte bruker alltidLONG/kjøp-og-hold.1–480min er ingen taps-/holderege
 
 TEST fra juli er forseglet for tilpasning/utvalg; bare vedtatt månedlig forwardjournal
 scorer uten refit. Ingen Exit/broker/live/paper/ordre/spending/promotion.
-training_enabled/full_epoch/fullVAL=false;232consumed og233kun savedreportreview.
+training_enabled/full_epoch/fullVAL=false;232/233consumed og234kun kilde-/metadatadesign.
 Ingen videre trening/promotion ellerDATA/RUNS-rydding uten ny konkret admisjon.
 Avslutt kildebølgen med fokuserte tester, syntaks, stale-path-scan og diffcheck.
