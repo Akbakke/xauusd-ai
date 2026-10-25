@@ -17,8 +17,7 @@ profil/EMA/ATR/SR-ruter, åtte eierpartisjoner og niende D1/makro beholdes.
 
 276 og277 er COMPLETE/consumed: første2av4faste nativeprefixer, hver én full
 B16-pass med egen fersk0U og samme256TRAIN før/etter.34,825senereforeldre er
-scoret. Root/tre actualpeers/wholehostidle består perkampanje. Alle276/277og
-GLOBALtraining/native/epoch/launchgater er lukket. Ubrukte3/4vinduer er revokert;
+scoret. Root/tre actualpeers/wholehostidle består perkampanje. Alle276/277gater er lukket. Ubrukte3/4vinduer er revokert;
 ingen relansering. Ingen robust retningsgevinst eller featureoptimalitet.
 
 ## Siste faktiske måling — 277
@@ -102,8 +101,8 @@ optimizer/checkpoint/rawfeature/TEST. Alle50nativekilder og bokender består.
 
 B_ACTUAL_SOURCE_QUALIFICATION_REVIEW binder begge terminaler, datadel-/CLI-
 review, opprinnelig feil og reparasjon i programgaten. Kilde/tests er lukket.
-Påkrevde10+61precommitkontroller håndheves ved kildecommit; faktisk commit-
-kvittering lagres separat etterpå. Ingen gamle planer relanseres.
+Påkrevde10+61precommitkontroller er PASS, commitf091d1c9 er pushet og ren.
+B_SOURCE_CLOSURE_COMMIT_CHECKS binder faktisk kvittering. Ingen gamle planer relanseres.
 
 Rang er primært innenfold på raw native/R1/259logits og252rawp med eksakte ties.
 Pooled AUC merkes blandingsdiagnose; en endret kvartalsprior beviser ikke lokal
@@ -115,11 +114,26 @@ rekonstruksjon og hele48CI-kallstien er ikke kvalifisert. Full B krever alle4
 faste folds/70,647foreldre i en senere separat read-only-admisjon. Ingen
 terskel-/kalibreringsfit, OOF-utvalg eller retnings-/feature-/økonomipåstand.
 
-Neste rootsteg er kildecommit/push med obligatoriske kontroller, så ny eksakt
-fold3admisjon/freshboot under uendret275firefoldprotokoll. Fold3 har82,427TRAIN/
-5,152U/18,072OOF; fold4 har100,499/6,282/17,750. Begge er uinnrømmet nå.
-C/D/E/F trenger separat eksakt kilde-/operasjonsscope; ingen parallelle tunge
-jobber eller kildeendringer under fryst kjøring. All30 er fortsatt uferdig.
+## 279 — tredje faste prefix, innrømmet før boundkampanje/freshboot
+
+Root har gitt ny eksakt279admisjon etter metadata-peerPASS og faktisk Bkilde-
+commitkontroll. TRAIN82,427/5,152U og OOF18,072, cut2025-07-01/2025-10-01.
+275protokoll, alle50nativekilder, B16/seed20260911/270AdamW/énpass og ni faste
+kontekster er uendret. Prefix3-statistikk fra267 gjenbrukes uten refit. Modellen
+får egen fersk0U og samme256TRAIN før/etter; ingen kvalifikasjonsvekter gjenbrukes.
+
+Kun279-scopen er åpen: metadataforberedelse én4GiBaudit, deretter maksimalt fire
+sekvensielle nativevinduer12000s/outer13800s,20GiB/512MiB/128tasks/8tråder.
+Hvert vindu krever ny fysisk Windowsboot. Nåværende boot537 er forberedelsesboot,
+ikke gyldig kjøreboot. Kvalifisert controller må bindes til nykampanje først.
+Ingen nativejobb er startet. Tidligere276/277 og alle Btest-/datagater er lukket;
+GLOBALtraining/native/epoch er true bare som nødvendig overordnet279gate.
+GLOBALnative_launch_authorized er false; scoped279freshboot/window-gater avgjør.
+
+Kilde/policy fryses ved commit gjennom HELE279kampanjen, ogsåRESUMABLEpauser.
+Cforslag/30punktsledger er bundet som metadata, ingen Ckode/PT/numerikk er
+innrømmet. Fold4 er fortsatt uinnrømmet:100,499TRAIN/6,282U/17,750OOF.
+Full B/70,647rader og48properCIs venter alle4folds. All30 er fortsatt uferdig.
 
 ## Gjenbruk og varige grenser
 

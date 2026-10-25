@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-25T10:04:27.468731+00:00",
-  "status": "DIRECTION_B_SOURCE_SYNTHETIC_QUALIFIED_PRECOMMIT_REQUIRED_NATIVE_CLOSED",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "observed_utc": "2026-10-25T11:29:46.200732+00:00",
+  "status": "DIRECTION_FIXED_FOLD3_EXACT_ADMITTED_PENDING_BOUND_CAMPAIGN_AND_FRESH_BOOT",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
-  "rule": "All execution and fitting closed.273 is COMPLETE and consumed once; qualification weights are barred from main fit. Bind a new finite chronological pure-direction TRAIN/OOF scope before source edits or admission; no CONTROL/TEST/Exit/trades.",
-  "next_action": "Commit/push bounded Bsource/docs with mandatory10+61hook evidence, then fresh exact fixedfold3admission. All current execution closed. Genuine4foldBanalysis waits remainingfolds; no old-plan relaunch.",
+  "rule": "Only exact279fixedfold3 metadata preparation and sequential fresh-boot nativewindows are admitted under dynamic_m5_direction_prefix_fit_fold3_279.276/277 andallBtest/dataplans remainclosed/consumed. Source/policy frozen forwhole279campaign; no CONTROL/TEST/Exit/trades orqualificationweights for mainfit.",
+  "next_action": "Prepare279boundcampaign metadata once under4GiBaudit after committed sourcefreeze; install qualified controller andfreshphysicalboot before first279nativewindow. No othergenuineplan orBdatajob.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -236,7 +236,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Rank57PASS and Bworker41helpercasesPASS; only Gitcommondir repair after consumedfailure1. Source50nativeunchanged; alltest/data/model/nativegatesclosed. Requiredsourcecommit hook10+61 next.",
+    "current_activity": "Fresh exact279thirdprefix admitted, unchanged native50source/275protocol; metadata preparation andboundcontroller/freshboot still required. No native invocation started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -289,7 +289,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Required sourcecommit hooks/receipt, remainingfixedfold3/4 andgenuine4foldBanalysis; direction/featurevalue/generalization/economics unqualified.",
+    "current_blocker": "279boundcampaign metadata/controller/freshphysicalboot. Remainingfold3/4,Bactual4fold/48CI anddirection/feature/generalization/economics notqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7760,7 +7760,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Commit/push bounded Bsource/docs with mandatory10+61hook evidence, then fresh exact fixedfold3admission. All current execution closed. Genuine4foldBanalysis waits remainingfolds; no old-plan relaunch.",
+    "next_action": "Prepare279boundcampaign metadata once under4GiBaudit after committed sourcefreeze; install qualified controller andfreshphysicalboot before first279nativewindow. No othergenuineplan orBdatajob.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -31271,7 +31271,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -33219,7 +33219,7 @@
     }
   },
   "direction_diagnostic_execution_program_20261025": {
-    "status": "B_SOURCE_SYNTHETIC_QUALIFIED_REQUIRED_PRECOMMIT_NEXT_FOLDS3_4_PENDING",
+    "status": "B_SOURCE_SYNTHETIC_QUALIFIED_COMMITTED_A_FOLD3_EXACT_ADMITTED_PENDING_BOOT",
     "program": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_DESIGN.json",
       "sha256": "41497f9d9d8899f5012d4020b286b1367d2350f67f07df529b04c0da64eb5aea"
@@ -33308,6 +33308,23 @@
     "B_worker_actual_terminal": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_WORKER_TEST_OUTER_TERMINAL_002.json",
       "sha256": "465c7a6073f666d6ef4df47f94a4cec12eb41a0f3b0e1033b625950d3d1127d4"
+    },
+    "B_source_closure_commit_checks": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_SOURCE_CLOSURE_COMMIT_CHECKS.json",
+      "sha256": "2581b3ee2a89304ec57887eda618ec9019bf566b9661d3a1da2c72a8587a84fd"
+    },
+    "B_required_precommit_cases_passed": [
+      10,
+      61
+    ],
+    "B_source_committed_and_pushed": true,
+    "owner_program_ledger": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER.json",
+      "sha256": "e02492e0b869bc7c5b4b5f60c1899072bd87ad1b7b2066bf90dde2be5a4f7147"
+    },
+    "C_metadata_proposal_only_not_source_admitted": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_METADATA_PROPOSAL.json",
+      "sha256": "a150effb50567e6e7cec6fbd9aa92b53f4a0b30bce020c0321ef299e481dc070"
     }
   },
   "direction_diagnostic_B_rank_synthetic_qualification_20261025": {
@@ -33430,5 +33447,74 @@
     },
     "consumed_invocations": 1,
     "old_plan_relaunch_authorized": false
+  },
+  "dynamic_m5_direction_prefix_fit_fold3_279": {
+    "status": "EXACT_THIRD_PREFIX_ADMITTED_PENDING_BOUND_CAMPAIGN_AND_FRESH_BOOT",
+    "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/RUNTIME",
+    "evidence_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/DESIGN.json",
+      "sha256": "b16fa63f2a2a930f0d7236791386571f83832a8f2b46c0398fa16829fb83c88b"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/RECIPE.json",
+      "sha256": "cadb6b7d994b748c7fcd74389fdebe9bfbf88658b881f6b8e9e3c0da4321de29"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_SOURCE_20261025_275/ACTUAL_SOURCE_QUALIFICATION_REVIEW.json",
+      "sha256": "60bc98bb34783c8a0ebb0f3c2d35ec349c1fef9c328e069e99732fc11eef7b23"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/METADATA_SOURCE_REVIEW.json",
+      "sha256": "8abd19c79c7671e2f53b7e9f08bdbfc9f737769cc29ecc4573976975135f9499"
+    },
+    "first_prefix_actual_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/ACTUAL_QUALIFICATION_REVIEW.json",
+      "sha256": "bc97d36111a0cc95d78dc1b6c1946fca11d07acf7e9d12b54787ecc66e597c6f"
+    },
+    "preparation_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/PREPARATION_PLAN.json",
+      "sha256": "44cbf16dd86c2a07f043318aae14f9b936aa1fe6080ad317d71da1f709934714"
+    },
+    "campaign_preparation_authorized": true,
+    "max_preparation_invocations": 1,
+    "max_invocations": 4,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "fold_id": 3,
+    "genuine_prefix_models": 1,
+    "train_passes": 1,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "CONTROL_TEST_Exit_trades_broker_promotion": false,
+    "qualification_weights_for_main_fit": false,
+    "predictive_value_qualified": false,
+    "fixed_protocol_no_hpo_early_stopping_or_checkpoint_selection": true,
+    "genuine_B16_memory_latency_qualified": true,
+    "authorization_basis": "Explicit user direction/feature goal and coordinated authorized30itemprogramA; fresh fixedfold3 of unchanged275protocol after276/277consumed andBsource qualification. No old-plan relaunch or extraepoch/HPO.",
+    "second_prefix_actual_qualification": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD2_20261025_277/ACTUAL_QUALIFICATION_REVIEW.json",
+      "sha256": "5694075df4323b69bce1a6a2fc0363d9593748ded1f6143122880149a80906ec"
+    },
+    "exact_prefix_admission": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/EXACT_PREFIX_ADMISSION.json",
+      "sha256": "b41b25e781d53437f68a686c9b183bbc35f0baeb16524de1ceb5b3d577625887"
+    }
   }
 }
