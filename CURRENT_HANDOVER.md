@@ -123,36 +123,34 @@ rekonstruksjon og hele48CI-kallstien er ikke kvalifisert. Full B krever alle4
 faste folds/70,647foreldre i en senere separat read-only-admisjon. Ingen
 terskel-/kalibreringsfit, OOF-utvalg eller retnings-/feature-/økonomipåstand.
 
-## Neste arbeid — C-kilde; fold4 gjenstår
+## Neste arbeid — fjerde faste prefix er innrømmet én gang
 
-Alle279gater er lukket; GLOBALtraining/native/epoch/launch er false.
-PROGRAM_EXECUTION_LEDGER_002 bevarer gammel bundet ledger uendret og fører
-A til3av4. Alle30punkter er fortsatt uferdige. Fold4 er ikke innrømmet:
-100,499TRAIN/høyst6,282updates/17,750OOF med uendret275protokoll.
+280 bruker uendret 275-protokoll: 100,499 TRAIN, høyst 6,282 AdamW-steg,
+17,750 OOF-foreldre, egen fersk 0U og samme 256 TRAIN før/etter. Tre tidligere
+prefixer er consumed/lukket. Alle 50 nativekilder er fysisk SHA-kontrollert
+uendret etter C-komponentcommit 8b9c900e. Fire vinduer à 12,000 native /
+13,800 ytre sekunder, med ny fysisk Windows-boot før hvert vindu, er maksimum.
 
-Ckomponentkilden er ferdig skrevet og AST-/kildegjennomgått: tre nye filer,
-checkpoint-diagnostic contract, worker og test. Eksisterende51native/rang-eiere
-er uendret. Én konkret shared-prefix-merkefeil er rettet med negativGCfixture.
-C_COMPONENT_SOURCE_HANDOFF_001 binder nøyaktige bytes og ubeviste grenser.
+DESIGN, METADATA_SOURCE_REVIEW, PREPARATION_PLAN og EXACT_PREFIX_ADMISSION
+under 280 binder nye metadata, prefix4-normalisering uten refit og fersk
+maskinledighet ved boot539. NEXT_RUN_POLICY åpner bare denne eksakte kjøringen.
+Trening har ikke startet. Etter ren commit/binding skal metadata materialiseres
+én gang capped 4GiB/600s, eksisterende kontroller bindes til ny plan/SHA og
+maskinen startes fysisk på nytt. Hele kilde/policy fryses gjennom kampanjen,
+også RESUMABLE-pauser. Root eier integrasjon, launch og samlet kontroll.
 
-Ckomponenten har34unike syntetiskePASS. Første eksakteCPUaudit ga32PASS og
-2importfeil da NumBa prøvde å opprette kildecache; skrivevakten stanset dette.
-Bare NUMBA_CACHE_DIR ble flyttet til ny kvalifiseringsrot. Ny002plan kjørte
-kun de2feilede tilfellene og bestod;32tidligerePASS og alle3kildebytes beholdes.
-Begge planer er consumed/lukket.4GiB/512MiB/64tasks/1tråd/600salarm består;
-faktisk5CPULinear(2,1),6grad/6engine-reverser og0genuine/fit/step/load/save/CUDA.
-Originalfeil,rootguard,cache-repair,JUNIT og begge terminaler bevares.
-C_ACTUAL_COMPONENT_QUALIFICATION_REVIEW_001 binder samlet avgrensetPASS.
+C-komponenten har 34 unike syntetiske PASS: 32 i første forsøk og bare de to
+importfeilene omkjørt etter at NUMBA_CACHE_DIR ble flyttet til kvalifiseringsrot.
+Originalfeil og begge terminaler er bevart og consumed. Faktiske påkrevde
+10+61 commitkontroller bestod; C_COMPONENT_REQUIRED_HOOK_TESTS_001 binder dem.
+Ingen genuine C-checkpoint/data/modelkall er kjørt eller innrømmet.
 
-GenuineC er fortsatt stengt: fire faste276tilstander, tre fasteTRAIN256paneler,
-192B16panelforward+2gradientforward+6reverse,0optimizersteg er bare design.
-Ingen slik beregning er kjørt eller innrømmet.
-
-Neste er ny eksakt metadata-/kjøreadmisjon for gjenstående uendrede fold4. Direkte Cworker er ikke tillatt i eksisterende capped
-trainerroute; C_GUARDED_LAUNCH_ROUTE_GAP_001 binder dette kildefunnet. Etter
-alle4folds er lukket/idle kreves egen minimal guardbevarende integrasjon og
-kvalifikasjon før194genuineCforward. Ingen vaktomgåelse. Full B krever alle4folds.
-Ingen gammel engangsplan, ekstraepoke eller forseglet periode åpnes.
+Etter alle fire uendrede prefixer er lukket/idle følger full B på 70,647
+foreldre med R1/252/259, rang og blokk-CIs. C trenger egen minimal integrasjon
+i eksisterende capped trainerroute før de vedtatte 194 forward / 6 reverse /
+0 optimizersteg; C_GUARDED_LAUNCH_ROUTE_GAP_001 binder den konkrete hindringen.
+Ingen ekstraepoke, HPO, TEST eller økonomikjøring åpnes. Alle 30 programpunkter
+står fortsatt som uferdige i PROGRAM_EXECUTION_LEDGER_003.
 
 ## Gjenbruk og varige grenser
 
