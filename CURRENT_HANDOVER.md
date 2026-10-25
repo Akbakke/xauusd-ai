@@ -17,9 +17,26 @@ krever forskjellige bevis. Teknisk PASS er ikke gode prognoser.
 276 er COMPLETE/consumed: første genuine native prefix, én full B16-pass,
 47,602TRAIN-foreldre/2,976updates og17,288senereforeldre i Q12025. Egen fersk0U
 og samme256TRAIN før/etter er bevart. Root og tre avgrensede actualpeers
-består teknisk. Alle276/global execution-/fitgater er nå lukket; vindu3/4
-revokert, ingen relansering. Ingen bedre retning er kvalifisert.
+består teknisk. Alle276gater er lukket; vindu3/4 revokert, ingen relansering.
+Ny277admisjon gjelder kun neste faste prefix. Ingen bedre retning er kvalifisert.
 TEST, CONTROL, Exit og trades er lukket. Root eier policy og launch.
+
+## Aktuelt277 — andre faste genuine prefix
+
+Ny eksakt277-admisjon åpner bare fold2:64,890TRAIN før01.04.2025, én B16-pass,
+maks4,056updates og17,537senereforeldre i Q22025. Egen fersk0U/samme256før/etter,
+sluttvekter,267prefix2stats og uendret275budsjett/seed/radorden/ni kontekster.
+50kilder er identiske med276 og aktuell kilde; metadatareview består begge
+segl og eksakt avledning. Ingen modell-/feature-/loss-/optimizerkode endret.
+
+Én capped metadataforberedelse og maksimalt fire12000/13800s-vinduer, hvert
+etter ny fysisk Windowsboot, fullstate-resume, samme20GiB/512MiB/128tasks og
+signedguard. COMPLETE revokerer ubrukte vinduer; fjerde uferdige blokkerer.
+Campaign/readiness, Windowsinstall, sen whole-machineidle og freshboot er
+ennå ikke faktiske; ingen277genuine jobb startet. Source/policy fryses før
+oppsett og gjennom alle kampanjevinduer. Ingen andre prefixer, ekstra epoke,
+HPO, tidligstopp, checkpoint-/kontekst-/terskelutvalg eller normaliseringsrefit.
+TEST/CONTROL/Exit/trades/broker/promotion forblir lukket. Root eier launch.
 
 ## Siste faktiske måling — 276
 
@@ -59,13 +76,13 @@ ligger under276 evidence_root i NEXT_RUN_POLICY. Originaler bevares.
 
 ## Neste avgrensede steg
 
-Forbered ny eksakt fold2-admisjon under uendret275protokoll:64,890TRAIN før
+Fullfør kun innrømmet277fold2 under uendret275protokoll:64,890TRAIN før
 01.04.2025, én B16-pass/maks4,056updates,17,537senereforeldre i Q22025.
 Fresh egen0U/samme256før/etter, sluttvekter, egne267prefix2stats, fast seed/
 radorden/ni kontekster. Ingen ekstra epoke, HPO, tidligstopp, checkpointvalg
 eller kontekst-/terskelutvalg. Ingen ny kildeendring er nødvendig av276.
 Ny bundet campaign/readiness/idleinstall/fysiskboot med samme vakter kreves.
-276 tillater ikke fold2–4. Første kvartals svake score endrer ikke protokollen.
+276 tillater ingen relansering;277 tillater ikke fold3–4. Svak fold1 endrer ikke protokollen.
 
 Fullfør de resterende tre faste foldmodellene; deretter sammenlign alle70,647
 senereforeldre med frosne R1/252/259-prognoser på identiske akser/masker og
