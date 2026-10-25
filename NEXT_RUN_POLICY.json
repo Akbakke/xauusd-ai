@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-25T10:04:27.468731+00:00",
-  "status": "DIRECTION_TWO_FIXED_PREFIXES_COMPLETE_B_RANK_SOURCE_BOUNDARY_NO_EXECUTION",
+  "status": "DIRECTION_B_SOURCE_SYNTHETIC_QUALIFIED_PRECOMMIT_REQUIRED_NATIVE_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All execution and fitting closed.273 is COMPLETE and consumed once; qualification weights are barred from main fit. Bind a new finite chronological pure-direction TRAIN/OOF scope before source edits or admission; no CONTROL/TEST/Exit/trades.",
-  "next_action": "Explicit root callback for other thread B append-only rank helpers/tests and one bound external worker; source-only. No tests/data/model/job before new exact root admission. Complete Bsource qualification before fresh fixedfold3admission;275fourfold protocol unchanged.",
+  "next_action": "Commit/push bounded Bsource/docs with mandatory10+61hook evidence, then fresh exact fixedfold3admission. All current execution closed. Genuine4foldBanalysis waits remainingfolds; no old-plan relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -236,7 +236,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "277COMPLETE/consumed2windows;root+3peers+idlePASS.276+277=2of4fixedfolds/noedge.278broad3agentreviewcomplete; verifieduser30pointprogram coordinated. Bsource-only boundary next, no duplicate diagnostic job.",
+    "current_activity": "Rank57PASS and Bworker41helpercasesPASS; only Gitcommondir repair after consumedfailure1. Source50nativeunchanged; alltest/data/model/nativegatesclosed. Requiredsourcecommit hook10+61 next.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -289,7 +289,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Bsource/scorer diagnostic qualification andremainingfold3/4exactadmissions; no generalization/edge/currentfeaturepotential qualification.",
+    "current_blocker": "Required sourcecommit hooks/receipt, remainingfixedfold3/4 andgenuine4foldBanalysis; direction/featurevalue/generalization/economics unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7760,7 +7760,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Explicit root callback for other thread B append-only rank helpers/tests and one bound external worker; source-only. No tests/data/model/job before new exact root admission. Complete Bsource qualification before fresh fixedfold3admission;275fourfold protocol unchanged.",
+    "next_action": "Commit/push bounded Bsource/docs with mandatory10+61hook evidence, then fresh exact fixedfold3admission. All current execution closed. Genuine4foldBanalysis waits remainingfolds; no old-plan relaunch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -33219,7 +33219,7 @@
     }
   },
   "direction_diagnostic_execution_program_20261025": {
-    "status": "USER_AUTHORIZED_PROGRAM_B_SOURCE_ONLY_PENDING_CALLBACK",
+    "status": "B_SOURCE_SYNTHETIC_QUALIFIED_REQUIRED_PRECOMMIT_NEXT_FOLDS3_4_PENDING",
     "program": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_DESIGN.json",
       "sha256": "41497f9d9d8899f5012d4020b286b1367d2350f67f07df529b04c0da64eb5aea"
@@ -33242,7 +33242,7 @@
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/DIAGNOSTIC_B_SOURCE_ADMISSION.json",
       "sha256": "8e366a7fd22ce5b5103732bf04fe9d8effdea9ffa6b5bcc5ad547d3ec0b37c6d"
     },
-    "source_edits_authorized_only_for_B_after_callback": true,
+    "source_edits_authorized_only_for_B_after_callback": false,
     "allowed_repo_files": [
       "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_probability_reference_v1.py",
       "/home/andre2/src/GX1_CURRENT/tests/test_entry_direction_probability_reference_v1.py"
@@ -33254,6 +33254,181 @@
     "native_launch_authorized": false,
     "all30items_complete": false,
     "predictive_value_qualified": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "B_source_callback": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_SOURCE_CALLBACK_RECEIPT.json",
+      "sha256": "f5a6ded25898ce2b1107caec473f5fd1e4faacd8f79ad74ed65f7d6514a86060"
+    },
+    "B_rank_contract_source_review": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_RANK_ROOT_CONTRACT_SOURCE_REVIEW.json",
+      "sha256": "245988fed69678d82337474dedba1c97825cbf072a4d836bef98aee9e1a97334"
+    },
+    "B_rank_synthetic_test_plan_prepared": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_RANK_SYNTHETIC_TEST_PLAN_CORRECTED.json",
+      "sha256": "1076599de12fdbff2b71e562029fa705af7ea23879c75069628740bb162c588c"
+    },
+    "B_rank_synthetic_test_plan_not_admitted": false,
+    "B_external_worker_source_review_pending": false,
+    "B_rank_source_review_scope": "Actual89ece537contract and a5ce42d7test source reviewed;19oldAST/byteprefix preserved perfile,14newtestfunctions/57declaredcases. No numericalvalidation.",
+    "B_final_source_handoff": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_FINAL_SOURCE_TESTPLAN_HANDOFF.json",
+      "sha256": "d01d07d404a56010273b589d55b8b99588432baad621077c9874a97f2105131b"
+    },
+    "B_rank_test_execution_authorized": false,
+    "B_worker_data_source_review": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_ROOT_WORKER_SOURCE_REVIEW_001.json",
+      "sha256": "15fe478370fa366f132e7d5c902c5acfef240f44c25302c8f68f6903c8c66f21"
+    },
+    "B_worker_CLI_source_review": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_ROOT_WORKER_CLI_SOURCE_REVIEW_001.json",
+      "sha256": "03287973e47d8a3190441d7df831d744569b8c0b6ddf59c58f900ba914c5a74f"
+    },
+    "B_rank_actual_terminal": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_RANK_TEST_OUTER_TERMINAL.json",
+      "sha256": "6403254a5cf75666d809cff7e709a425dd5ea12996d5b062bac1ad62c12a5378"
+    },
+    "B_worker_failed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_WORKER_TEST_OUTER_TERMINAL.json",
+      "sha256": "f486bbb973c907ef18e9b853d5b01c541f0fddfc33300f1cb15c1390d7c77015"
+    },
+    "B_worker_only_source_repair_scope": "Completed; no further Bsource changes authorized without new observed failure/exactscope.",
+    "B_worker_current_source": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/diagnose_saved_direction_predictions.py",
+      "sha256": "36e9bd65a21f2e99526079f066fa739a2c741d5c00cd1d0bf22e3ede521bc6c7"
+    },
+    "B_worker_git_repair_handoff": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_GIT_COMMONDIR_REPAIR_HANDOFF.json",
+      "sha256": "8ba7685eb534249a5ec2872e947b91896e98282ff68399f3b686a87c7f07b50b"
+    },
+    "B_source_edits_closed": true,
+    "B_worker_source_qualification_review": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_ACTUAL_SOURCE_QUALIFICATION_REVIEW.json",
+      "sha256": "ccb593e8903e0b4535b9b9d63e614669968a73faaebebece84b7cabf3d5ecfa5"
+    },
+    "B_worker_actual_terminal": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_WORKER_TEST_OUTER_TERMINAL_002.json",
+      "sha256": "465c7a6073f666d6ef4df47f94a4cec12eb41a0f3b0e1033b625950d3d1127d4"
+    }
+  },
+  "direction_diagnostic_B_rank_synthetic_qualification_20261025": {
+    "status": "COMPLETE_CLOSED",
+    "operation": "B_rank_synthetic_qualification_v1",
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_RANK_SYNTHETIC_TEST_ADMISSION.json",
+      "sha256": "9a5f97153286fb2fddf90d3a8e1effa6f1e0d7c567ee55da1a73d0dc60d73ab1"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_RANK_SYNTHETIC_TEST_PLAN_CORRECTED.json",
+      "sha256": "1076599de12fdbff2b71e562029fa705af7ea23879c75069628740bb162c588c"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/diagnose_saved_direction_predictions.py",
+      "sha256": "87c95a99ef0364e1ea5dbd43f39eeb3e560af046d3b3797fe6897568a1109eda"
+    },
+    "source_head": "9e51ddf99b429cc2f9238c5564d5a69312343c51",
+    "tests_authorized": false,
+    "training_enabled": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "max_invocations": 1,
+    "test_data_used": false,
+    "execution_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_RANK_TEST_OUTER_TERMINAL.json",
+      "sha256": "6403254a5cf75666d809cff7e709a425dd5ea12996d5b062bac1ad62c12a5378"
+    }
+  },
+  "direction_diagnostic_B_source_qualification_20261025": {
+    "status": "COMPLETE_CONSUMED_CLOSED",
+    "mode": "source_qualification",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_WORKER_SYNTHETIC_QUALIFICATION_PLAN_002.json",
+      "sha256": "ed6a34201e01aba5cf4b958597fa900fb55e7c13d8226d1191ee629fcf62d312"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/diagnose_saved_direction_predictions.py",
+      "sha256": "36e9bd65a21f2e99526079f066fa739a2c741d5c00cd1d0bf22e3ede521bc6c7"
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/DIAGNOSTIC_B_SOURCE_ADMISSION.json",
+      "sha256": "8e366a7fd22ce5b5103732bf04fe9d8effdea9ffa6b5bcc5ad547d3ec0b37c6d"
+    },
+    "source_commit": "9e51ddf99b429cc2f9238c5564d5a69312343c51",
+    "tests_authorized": false,
+    "payload_reads_authorized": false,
+    "training_enabled": false,
+    "fit_authorized": false,
+    "model_calls_authorized": false,
+    "test_data_used": false,
+    "limits": {
+      "invocations": 1,
+      "json_bytes": 67108864,
+      "memory_bytes": 4294967296,
+      "rchar_bytes": 1073741824,
+      "swap_bytes": 536870912,
+      "tasks": 64,
+      "threads": 1,
+      "wall_seconds": 600
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_WORKER_SYNTHETIC_TEST_ADMISSION_002.json",
+      "sha256": "e7ea5f37fba6064660e990a02aa01401f454000fb956802dcf006e72ad1dc014"
+    },
+    "previous_failed_consumed_attempt": {
+      "status": "FAILED_CONSUMED_CLOSED",
+      "mode": "source_qualification",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_WORKER_SYNTHETIC_QUALIFICATION_PLAN.json",
+        "sha256": "650c06bbb04c505ace596b8d45e2be320248e41e6b1b1146ebb23190db3400f8"
+      },
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/diagnose_saved_direction_predictions.py",
+        "sha256": "87c95a99ef0364e1ea5dbd43f39eeb3e560af046d3b3797fe6897568a1109eda"
+      },
+      "source_admission": {
+        "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/DIAGNOSTIC_B_SOURCE_ADMISSION.json",
+        "sha256": "8e366a7fd22ce5b5103732bf04fe9d8effdea9ffa6b5bcc5ad547d3ec0b37c6d"
+      },
+      "source_commit": "9e51ddf99b429cc2f9238c5564d5a69312343c51",
+      "tests_authorized": false,
+      "payload_reads_authorized": false,
+      "training_enabled": false,
+      "fit_authorized": false,
+      "model_calls_authorized": false,
+      "test_data_used": false,
+      "limits": {
+        "invocations": 1,
+        "json_bytes": 67108864,
+        "memory_bytes": 4294967296,
+        "rchar_bytes": 1073741824,
+        "swap_bytes": 536870912,
+        "tasks": 64,
+        "threads": 1,
+        "wall_seconds": 600
+      },
+      "admission": {
+        "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_WORKER_SYNTHETIC_TEST_ADMISSION.json",
+        "sha256": "1957fdb5bbaf15546fd39ced9bbcb9ed6dd5972e69ee5e4761f18cfc4a74ba6f"
+      },
+      "execution_authorized": false,
+      "actual_outer_terminal": {
+        "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_WORKER_TEST_OUTER_TERMINAL.json",
+        "sha256": "f486bbb973c907ef18e9b853d5b01c541f0fddfc33300f1cb15c1390d7c77015"
+      },
+      "failure": "git_head used worktree gitdir for shared refs/packed-refs; failed before algorithm imports and own earlyclaim",
+      "consumed_invocations": 1,
+      "old_plan_relaunch_authorized": false
+    },
+    "execution_authorized": false,
+    "actual_terminal": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_WORKER_TEST_OUTER_TERMINAL_002.json",
+      "sha256": "465c7a6073f666d6ef4df47f94a4cec12eb41a0f3b0e1033b625950d3d1127d4"
+    },
+    "source_qualification_review": {
+      "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/B_ACTUAL_SOURCE_QUALIFICATION_REVIEW.json",
+      "sha256": "ccb593e8903e0b4535b9b9d63e614669968a73faaebebece84b7cabf3d5ecfa5"
+    },
+    "consumed_invocations": 1,
+    "old_plan_relaunch_authorized": false
   }
 }

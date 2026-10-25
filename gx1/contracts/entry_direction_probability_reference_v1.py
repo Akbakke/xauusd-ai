@@ -168,3 +168,97 @@ def direction_probability_metrics(labels, logit_up):
         "reliability": reliability, "ece_fixed10": ece,
         "probability_condition": PROBABILITY_CONDITION,
     }
+
+
+def direction_rank_diagnostics(labels, scores, *, score_kind):
+    """Exact opposite-label rank pairs on raw scores, without fitting.
+
+    Equal scores contribute half a win. Empty/single-class inputs have no
+    AUC. Sorting needs O(n log n) time and O(n) memory. Inputs are unchanged.
+    """
+    _require(type(score_kind) is str
+             and score_kind in ("logit_up", "probability_up"), "RANK_SCORE_KIND")
+    _require(isinstance(scores, np.ndarray) and scores.dtype == np.float64
+             and scores.ndim == 1 and scores.flags.c_contiguous,
+             "RANK_SCORE_HEADER")
+    _require(bool(np.isfinite(scores).all()), "RANK_SCORE_NONFINITE")
+    if score_kind == "probability_up":
+        _require(bool(((scores >= 0) & (scores <= 1)).all()),
+                 "RANK_PROBABILITY_DOMAIN")
+    n = len(scores)
+    _require(isinstance(labels, np.ndarray) and labels.dtype == np.int8
+             and labels.shape == (n,) and labels.flags.c_contiguous,
+             "RANK_LABEL_HEADER")
+    y = _labels(labels, rows=n) if n else labels
+    up = int(np.count_nonzero(y))
+    down = n - up
+    pairs = up * down
+    concordant = tied = distinct = 0
+    if n:
+        order = np.argsort(scores, kind="mergesort")
+        ordered_scores = scores[order]
+        starts = np.r_[0, np.flatnonzero(
+            ordered_scores[1:] != ordered_scores[:-1]) + 1]
+        counts = np.diff(np.r_[starts, n])
+        positives = np.add.reduceat(y[order], starts, dtype=np.int64)
+        negatives = counts - positives
+        lower_negatives = np.cumsum(negatives, dtype=np.int64) - negatives
+        concordant = sum(int(a) * int(b)
+                         for a, b in zip(positives, lower_negatives))
+        tied = sum(int(a) * int(b)
+                   for a, b in zip(positives, negatives))
+        distinct = len(starts)
+    discordant = pairs - concordant - tied
+    return {
+        "schema_version": "gx1_direction_rank_diagnostics_v1",
+        "score_kind": score_kind,
+        "rows": n, "up_rows": up, "down_rows": down,
+        "distinct_scores": distinct,
+        "up_down_pairs": pairs,
+        "concordant_pairs": concordant,
+        "discordant_pairs": discordant,
+        "tied_pairs": tied,
+        "untied_pairs": concordant + discordant,
+        "auc": (2 * concordant + tied) / (2 * pairs) if pairs else None,
+    }
+
+
+def direction_within_fold_rank_diagnostics(
+        labels, scores, fold_ids, *, score_kind):
+    """Per-fold rank plus pair-weighted within-fold AUC.
+
+    Pooled cross-fold AUC is mixture diagnostics: changing fold priors can
+    rank observations even without discrimination inside any single fold.
+    """
+    pooled = direction_rank_diagnostics(labels, scores, score_kind=score_kind)
+    _require(isinstance(fold_ids, np.ndarray)
+             and fold_ids.dtype.kind == "i"
+             and fold_ids.shape == (len(scores),)
+             and fold_ids.flags.c_contiguous
+             and bool((fold_ids >= 0).all()), "RANK_FOLD_HEADER")
+    per_fold = []
+    for fold in np.unique(fold_ids):
+        take = fold_ids == fold
+        result = direction_rank_diagnostics(
+            labels[take], scores[take], score_kind=score_kind)
+        per_fold.append({"fold_id": int(fold), "diagnostics": result})
+    totals = {
+        key: sum(item["diagnostics"][key] for item in per_fold)
+        for key in ("up_down_pairs", "concordant_pairs",
+                    "discordant_pairs", "tied_pairs")
+    }
+    pairs = totals["up_down_pairs"]
+    within_auc = (
+        (2 * totals["concordant_pairs"] + totals["tied_pairs"]) / (2 * pairs)
+        if pairs else None
+    )
+    return {
+        "schema_version": "gx1_direction_within_fold_rank_diagnostics_v1",
+        "score_kind": score_kind,
+        "primary_scope": "per_fold",
+        "per_fold": per_fold,
+        "within_fold_pair_counts": totals,
+        "pair_weighted_within_fold_auc": within_auc,
+        "pooled_crossfold_diagnostic": pooled,
+        "pooled_crossfold_is_within_fold_evidence": False,
+    }

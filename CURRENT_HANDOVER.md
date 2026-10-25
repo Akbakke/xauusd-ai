@@ -86,30 +86,40 @@ Denne oppgaven01a1691c-e91c-7281-a962-54431293de52 eier integrasjon/policy/launc
 Oppgave01a171d2-e4d8-7021-9fe3-03f99c494306 eier30punktsledger ogavtaltBkode.
 Program/spec/handoff står under DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2.
 
-## Neste avgrensede kildegrense — B, ingen kjøring
+## B — kilde og syntetisk kvalifisert
 
-Etter eksplisittrootcallback påhel277COMPLETE/closed/idle kan den andreoppgaven
-bare endre entry_direction_probability_reference_v1.py, tilhørende test ogén
-ny eksternB-worker. B_SOURCE_ADMISSION står i policyensprogramgate. Source-only:
-ingen test, data-/PT-lesing, modellkall, fit ellerjobb før ny eksaktrootadmisjon.
-Roothar verifisert gammel19ASTnoder ogbyteprefix perfil; foreslåtttillegg er
-2rene rangfunksjoner og10fokuserte testfunksjoner. Ingen ONLINE-/feature-/loss-
-elleroptimizerendring. Ikke importer/kjør gammel259fitworker.
+Root avsluttet277 før avtalt B-kildearbeid. To rene rangfunksjoner og14 nye
+testfunksjoner er lagt til; gamle7867/7664byteprefikser og19AST-noder per fil
+består. Rank57/57PASS,0feil/hopp, én opprinnelig8×2toy-LogReg-fit og ingen
+avviste lesinger. CPUaudit4GiB/512MiB/64tasks/1tråd og låsebevis består.
 
-Rang beregnes primært innenfold påoriginaler: native/R1/259rawlogits og252rawp,
-eksakteties/±0. Pooledprior kan giAUC uten innenfoldsignal ogmerkes mixture.
-Native og259priorformler er algebraisklike, ikke nødvendigvisF64bitlike. Bind
-faktiske modneprefixcounts/egenformel, beholdoriginaler; aktuelle nativeegenprior
-er primær. Akser/labels/masker/cutoffs forblir eksakte.259OUTPUT har20members;
-gammel saved_archivehelper validerer14member252INPUT oggjenbrukes ikke blindt.
+Ekstern B-worker36e9bd65 har root-/peerreview. Første kvalifikasjon feilet ved
+Git-worktree commondir-oppslag før algoritmeimport/payload; original plan/feil
+bevares consumed. Bare git_head ble rettet. Root reverserte deltaen og fikk
+original87c95a99-bytehash; øvrig kode er identisk. Ny eksakt plan002 bestod41
+syntetiske helper-/bindingskontroller,0payload/fit/modell/forward/backward/
+optimizer/checkpoint/rawfeature/TEST. Alle50nativekilder og bokender består.
 
-275s låste48proper-scoreintervaller og firefoldprotokoll beholdes. Bkode/test-
-kvalifikasjon fullføres før nyfold3kilde fryses; Bfullmåling kreveralle4folds.
-Fold3:82,427TRAIN/5,152U/18,072OOF. Fold4:100,499/6,282/17,750. Begge trenger
-ny eksaktadmisjon/freshboot;276/277 gir ingen relans eller nyepoke. C/D/E/F får
-separatfileierskap/plan. C brukerlagrede0U/fastecheckpoints ogfasteTRAINpaneler,
-D én fellesno-fitGC→spot/tidskontroll, E énbegrunnet fysiskkvalifisert informasjons-
-kontrastomgangen, F bare nødvendigeisolerte læringskontroller. All30eruferdig.
+B_ACTUAL_SOURCE_QUALIFICATION_REVIEW binder begge terminaler, datadel-/CLI-
+review, opprinnelig feil og reparasjon i programgaten. Kilde/tests er lukket.
+Påkrevde10+61precommitkontroller håndheves ved kildecommit; faktisk commit-
+kvittering lagres separat etterpå. Ingen gamle planer relanseres.
+
+Rang er primært innenfold på raw native/R1/259logits og252rawp med eksakte ties.
+Pooled AUC merkes blandingsdiagnose; en endret kvartalsprior beviser ikke lokal
+rangering. Native log(up/down) og259log(p)-log1p(-p) beholder egne formler og
+modneprefixcounts; ingen antatt F64bitparitet.259OUTPUT har20medlemmer.
+
+Dette er kilde-/syntetisk evidens. Faktisk arkiv-/rapportparitet, egenprior-
+rekonstruksjon og hele48CI-kallstien er ikke kvalifisert. Full B krever alle4
+faste folds/70,647foreldre i en senere separat read-only-admisjon. Ingen
+terskel-/kalibreringsfit, OOF-utvalg eller retnings-/feature-/økonomipåstand.
+
+Neste rootsteg er kildecommit/push med obligatoriske kontroller, så ny eksakt
+fold3admisjon/freshboot under uendret275firefoldprotokoll. Fold3 har82,427TRAIN/
+5,152U/18,072OOF; fold4 har100,499/6,282/17,750. Begge er uinnrømmet nå.
+C/D/E/F trenger separat eksakt kilde-/operasjonsscope; ingen parallelle tunge
+jobber eller kildeendringer under fryst kjøring. All30 er fortsatt uferdig.
 
 ## Gjenbruk og varige grenser
 

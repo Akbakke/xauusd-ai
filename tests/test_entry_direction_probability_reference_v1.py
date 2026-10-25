@@ -158,3 +158,188 @@ def test_invalid_metrics_reject(fault):
     elif fault == "shape": y = y[:, None]
     with pytest.raises(RuntimeError, match="DIRECTION_PROBABILITY_REFERENCE_"):
         reference.direction_probability_metrics(y, z)
+
+
+@pytest.mark.parametrize("scores,expected", [
+    ([-2., -1., 1., 2.], (4, 0, 0, 1.)),
+    ([2., 1., -1., -2.], (0, 4, 0, 0.)),
+    ([0., 0., 0., 0.], (0, 0, 4, .5)),
+])
+def test_rank_exact_pairs(scores, expected):
+    y = np.array([0, 0, 1, 1], dtype=np.int8)
+    result = reference.direction_rank_diagnostics(
+        y, np.array(scores, dtype=np.float64), score_kind="logit_up")
+    assert (result["concordant_pairs"], result["discordant_pairs"],
+            result["tied_pairs"], result["auc"]) == expected
+    assert result["up_down_pairs"] == 4
+    assert result["untied_pairs"] + result["tied_pairs"] == 4
+
+
+def test_rank_mixed_ties_and_signed_zero():
+    result = reference.direction_rank_diagnostics(
+        np.array([0, 1, 0, 1], dtype=np.int8),
+        np.array([0., 0., 1., 2.]), score_kind="logit_up")
+    assert result["distinct_scores"] == 3
+    assert (result["concordant_pairs"], result["discordant_pairs"],
+            result["tied_pairs"], result["auc"]) == (2, 1, 1, .625)
+    zero = reference.direction_rank_diagnostics(
+        np.array([0, 1], dtype=np.int8),
+        np.array([-0., 0.]), score_kind="logit_up")
+    assert zero["distinct_scores"] == zero["tied_pairs"] == 1
+    assert zero["auc"] == .5
+
+
+@pytest.mark.parametrize("labels", [[], [0, 0], [1, 1]])
+def test_rank_empty_or_single_class_has_no_auc(labels):
+    y = np.array(labels, dtype=np.int8)
+    result = reference.direction_rank_diagnostics(
+        y, np.zeros(len(y)), score_kind="logit_up")
+    assert result["auc"] is None
+    assert result["up_down_pairs"] == result["concordant_pairs"] == 0
+    assert result["discordant_pairs"] == result["tied_pairs"] == 0
+
+
+def test_rank_extreme_logits_and_readonly_inputs_remain_unchanged():
+    limit = np.finfo(np.float64).max
+    y = np.array([0, 0, 1, 1], dtype=np.int8)
+    scores = np.array([-limit, -1000., 1000., limit])
+    before_y, before_scores = y.copy(), scores.copy()
+    y.setflags(write=False)
+    scores.setflags(write=False)
+    result = reference.direction_rank_diagnostics(
+        y, scores, score_kind="logit_up")
+    assert result["auc"] == 1.
+    np.testing.assert_array_equal(y, before_y)
+    np.testing.assert_array_equal(scores, before_scores)
+    assert not y.flags.writeable and not scores.flags.writeable
+
+
+@pytest.mark.parametrize("fault", [
+    "float32", "nan", "inf", "score_shape", "labels_dtype",
+    "labels_domain", "labels_shape", "score_kind", "probability_domain",
+    "scores_noncontiguous", "labels_noncontiguous",
+])
+def test_rank_invalid_inputs_reject(fault):
+    y = np.array([0, 1], dtype=np.int8)
+    scores = np.array([0., 1.])
+    kind = "probability_up"
+    if fault == "float32": scores = scores.astype(np.float32)
+    elif fault == "nan": scores[0] = np.nan
+    elif fault == "inf": scores[0] = np.inf
+    elif fault == "score_shape": scores = scores[:, None]
+    elif fault == "labels_dtype": y = y.astype(np.float64)
+    elif fault == "labels_domain": y[0] = 2
+    elif fault == "labels_shape": y = y[:, None]
+    elif fault == "score_kind": kind = "unknown"
+    elif fault == "probability_domain": scores[0] = -1.
+    elif fault == "scores_noncontiguous": scores = np.array([0., 0., 1., 1.])[::2]
+    elif fault == "labels_noncontiguous": y = np.array([0, 0, 1, 1], dtype=np.int8)[::2]
+    with pytest.raises(RuntimeError, match="DIRECTION_PROBABILITY_REFERENCE_"):
+        reference.direction_rank_diagnostics(y, scores, score_kind=kind)
+
+
+def test_crossfold_prior_auc_does_not_imply_within_fold_ranking():
+    y = np.array([0, 0, 0, 1, 0, 1, 1, 1], dtype=np.int8)
+    scores = np.array([.25] * 4 + [.75] * 4)
+    folds = np.array([1] * 4 + [2] * 4, dtype=np.int8)
+    before = (y.copy(), scores.copy(), folds.copy())
+    result = reference.direction_within_fold_rank_diagnostics(
+        y, scores, folds, score_kind="probability_up")
+    assert result["pooled_crossfold_diagnostic"]["auc"] == .75
+    assert result["pair_weighted_within_fold_auc"] == .5
+    assert [x["diagnostics"]["auc"] for x in result["per_fold"]] == [.5, .5]
+    assert result["within_fold_pair_counts"] == {
+        "up_down_pairs": 6, "concordant_pairs": 0,
+        "discordant_pairs": 0, "tied_pairs": 6}
+    assert result["primary_scope"] == "per_fold"
+    assert not result["pooled_crossfold_is_within_fold_evidence"]
+    for actual, original in zip((y, scores, folds), before):
+        np.testing.assert_array_equal(actual, original)
+
+
+@pytest.mark.parametrize("folds", [
+    np.array([1., 2.]), np.array([-1, 2]), np.array([1]),
+    np.array([1, 0, 2, 0], dtype=np.int8)[::2],
+])
+def test_rank_invalid_fold_headers_reject(folds):
+    with pytest.raises(RuntimeError, match="RANK_FOLD_HEADER"):
+        reference.direction_within_fold_rank_diagnostics(
+            np.array([0, 1], dtype=np.int8), np.array([0., 1.]),
+            folds, score_kind="logit_up")
+
+
+def test_rank_empty_within_fold_aggregation():
+    result = reference.direction_within_fold_rank_diagnostics(
+        np.array([], dtype=np.int8), np.array([], dtype=np.float64),
+        np.array([], dtype=np.int8), score_kind="logit_up")
+    assert result["per_fold"] == []
+    assert result["pair_weighted_within_fold_auc"] is None
+    assert result["pooled_crossfold_diagnostic"]["auc"] is None
+
+
+def test_rank_single_class_folds_do_not_create_within_fold_evidence():
+    result = reference.direction_within_fold_rank_diagnostics(
+        np.array([0, 0, 1, 1], dtype=np.int8),
+        np.array([.25, .25, .75, .75]),
+        np.array([1, 1, 2, 2], dtype=np.int8), score_kind="probability_up")
+    assert result["pooled_crossfold_diagnostic"]["auc"] == 1.
+    assert result["pair_weighted_within_fold_auc"] is None
+    assert all(x["diagnostics"]["auc"] is None for x in result["per_fold"])
+
+
+def test_rank_unsorted_tie_pairs_are_permutation_invariant():
+    y = np.array([0, 1, 0, 1], dtype=np.int8)
+    scores = np.array([0., 0., 1., 2.])
+    before = reference.direction_rank_diagnostics(y, scores, score_kind="logit_up")
+    order = np.array([3, 0, 2, 1])
+    after = reference.direction_rank_diagnostics(
+        y[order], scores[order], score_kind="logit_up")
+    assert before == after
+
+
+
+def test_rank_within_fold_uses_opposite_pair_weights_not_fold_mean():
+    result = reference.direction_within_fold_rank_diagnostics(
+        np.array([0, 1, 0, 0, 1, 1], dtype=np.int8),
+        np.array([0., 1., 1., 1., 0., 0.]),
+        np.array([1, 1, 2, 2, 2, 2], dtype=np.int8), score_kind="logit_up")
+    assert [x["diagnostics"]["auc"] for x in result["per_fold"]] == [1., 0.]
+    assert result["within_fold_pair_counts"] == {
+        "up_down_pairs": 5, "concordant_pairs": 1,
+        "discordant_pairs": 4, "tied_pairs": 0}
+    assert result["pair_weighted_within_fold_auc"] == .2
+
+
+def test_rank_opposite_pair_counts_exceed_signed_int32_without_overflow():
+    labels = np.repeat(np.array([0, 1], dtype=np.int8), 50_000)
+    result = reference.direction_rank_diagnostics(
+        labels, np.zeros(len(labels)), score_kind="logit_up")
+    assert result["up_down_pairs"] == result["tied_pairs"] == 2_500_000_000
+    assert type(result["up_down_pairs"]) is type(result["tied_pairs"]) is int
+    assert result["concordant_pairs"] == result["discordant_pairs"] == 0
+    assert result["auc"] == .5
+
+
+def test_rank_within_fold_preserves_readonly_labels_scores_and_folds():
+    labels = np.array([0, 1, 0, 1], dtype=np.int8)
+    scores = np.array([0., 1., 1., 0.])
+    folds = np.array([1, 1, 2, 2], dtype=np.int8)
+    originals = [a.copy() for a in (labels, scores, folds)]
+    for array in (labels, scores, folds):
+        array.setflags(write=False)
+    result = reference.direction_within_fold_rank_diagnostics(
+        labels, scores, folds, score_kind="logit_up")
+    assert result["pair_weighted_within_fold_auc"] == .5
+    for array, original in zip((labels, scores, folds), originals):
+        np.testing.assert_array_equal(array, original)
+        assert not array.flags.writeable
+
+
+def test_rank_single_class_fold_does_not_change_valid_fold_pair_denominator():
+    result = reference.direction_within_fold_rank_diagnostics(
+        np.array([0, 1, 1, 1], dtype=np.int8),
+        np.array([0., 1., -10., 10.]),
+        np.array([1, 1, 2, 2], dtype=np.int8), score_kind="logit_up")
+    assert [x["diagnostics"]["auc"] for x in result["per_fold"]] == [1., None]
+    assert result["within_fold_pair_counts"]["up_down_pairs"] == 1
+    assert result["pair_weighted_within_fold_auc"] == 1.
