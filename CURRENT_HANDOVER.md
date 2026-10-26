@@ -9,6 +9,12 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+DIRECTION_1_60_SAVED_TARGET_QUALIFICATION_PLAN_001 åpner én avgrenset
+kontroll av den eksisterende 245-prisfasiten: ett TRAIN-NPZ, én sammensetning,
+60 sekunder og eksisterende 4 GiB/éntråds capped CPU-rute. Ingen rådata,
+featurepayloads, fit eller nativekall. Planen bruker kvalifisert matematikk og
+eksisterende 247-leser og D-lesevakt; ingen gammel plan relanseres.
+
 Ny direkte 1–60-avklaring: DIRECTION_1_60_SAVED_TARGET_DESIGN_001 binder
 gjenbruk av lagrede 15-minutters prisendringer til 30/60, med eksakte delte
 klokker/prisrader og konservative avrundingsintervaller. Direkte 15-minutters-

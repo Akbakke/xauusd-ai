@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Bind one saved245-target-only qualification under existing capped CPU audit: validate complete TRAIN axes, compose30/60through the qualified math, compare15from3x5against all available directly saved15labels, and publish aggregate coverage/ambiguity/array witnesses. No raw data, feature reads, fits or native calls in that next unit.",
+    "next_action": "Execute only the once-admitted saved-target qualification:1TRAIN NPZ load,1composition,0raw reads/features/fits/native calls; compare15from3x5 and report30/60coverage and matched fold populations.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -35509,5 +35509,21 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_HORIZONS_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "651561ac1843a24feb8a5994989b9158c344801e6296a7b3f115391f0b25342b"
     }
+  },
+  "direction_1_60_saved_target_qualification": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_TARGET_QUALIFICATION_PLAN_001.json",
+      "sha256": "88c81242214a319cc74dc0da6fbcd67388af255077e45e8be50fee3a0bfc7365"
+    },
+    "execution_authorized": true,
+    "saved_target_reads_authorized": true,
+    "raw_data_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
   }
 }
