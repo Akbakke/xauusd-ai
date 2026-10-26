@@ -9,12 +9,37 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-DIRECTION_1_60_RET1_REFERENCE_PLAN_001 er ferskt engangsadmittért: 20 faste
-CPU-fits på siste M5-avkastning alene, sammenlignet med lagrede 002-prediksjoner
-fra66felt. Samme foreldre, fem horisonter, normalisering og 4000 resamplevekter.
-6 lagrede TRAIN-inputs, 300s, 4GiB, én tråd, 0 native/rådata/normaliseringsfits.
-Global training_enabled=true gjelder bare denne enheten; kilde/policy fryses.
-Ingen resultat fra denne kontrasten foreligger ennå.
+DIRECTION_1_60_CAUSE_SYNTHESIS_001 samler fire prioriterte hypoteser med
+mekanisme, støtte, motbevis, eksakte eiere, avgrenset test og stoppkriterier.
+Ingen enkelt hovedårsak er isolert. DIRECTION_RET1_NATIVE_SOURCE_TRACE_001
+viser at ret_1 er aktivt i momentum-, snapshot- og sekvensrutene. Normalisering
+er asinh uten hard klipping; readout er allerede mean+last. Begge koordinater
+har positiv skala, men native/reference-prefixstatistikk er ikke bitidentisk.
+Ingen nye payloads eller modellkall ble brukt til kildesporingen.
+Neste mest informative kontroll er eksakt matchetret1-inputparitet, deretter
+eventuelt en liten frosset0U/terminal-probe av om signalet kan leses fra hidden.
+Ingen slik numerisk enhet eller arkitekturendring er admittért.
+
+DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001 bekrefter COMPLETE/consumed:
+20 CPU-fits, 40 prediksjonspopulasjoner, 6 lagrede TRAIN-inputs, 113.37s,
+0 native/rådata/optimizersteg. Samme 67112 senere foreldre og nøyaktig samme
+4000 uke-/dagvekter som66felt; alle originale66feltsskårer er reprodusert.
+Kilde/policy/input er uendret, cgroup borte og tunglås ledig.
+Begge numeriske sammenligninger er lukket. Global training/native/epoch/VAL=false.
+
+R1 (kun siste M5-avkastning) AUC1/5/15/30/60:
+.492832/.505184/.510752/.505291/.502516.
+15m uke99% .504354–.516752 og dag99% .505436–.516217 er over.5.
+15m logloss minusprior er−.000194735; uke95%-øvre er bare−.000002075.
+Dette er et svakt signal på gjenbrukt kronologisk TRAIN-utvikling, ikke
+urørt bekreftelse eller økonomisk edge. Ingen vinnerhorisont/terskel velges.
+30/60 er svakere enn15 i de forhåndsvalgte parvise kontrastene.
+
+Tillegg av61D1/makro+4sesjon tilret1 svekker proper scores ved alle fem
+horisonter med parvise95%-intervaller. Alle99%-intervaller for AUC-forskjellen
+inkluderer0: ikke påstå at rangeringstap er bevist, eller forkast D1/familier.
+Native er ikke målt på nytt mot denne felleskohorten. Neste arbeid er kun
+kildesporing av local.ret_1 frem til nativekonsum og minste begrunnede test.
 
 DIRECTION_1_60_REFERENCE_ROOT_REVIEW_002 bekrefter COMPLETE/consumed:
 20faste CPU-logistikkfits,40prediksjonspopulasjoner,5lagrede TRAIN-inputs og
@@ -34,9 +59,9 @@ den er gyldig for247, men er ikkeB_R1forlenget. Ingennativeindikatorforkastes.
 DIRECTION_1_60_RET1_REFERENCE_DESIGN_001 og SOURCE_ADMISSION_001 åpner bare
 minstekildearbeid for det konkrete spørsmålet: gir tillegg av61D1/makro+
 4sesjonsfelt svakere senere rangering/kalibrering ennret1alene, ved uendret
-metode/foreldre/hori­sonter? Gjenbruk002s lagredeprediksjoner og15beståtte
-blokkranktester/20targettester. RET1_PLAN_001 ovenfor har nå egen engangsadmisjon.
-Native/epoch/VAL er false; CPU-autoriteten er begrenset til den oppgitte enheten.
+metode/foreldre/horisonter? Gjenbruk002s lagredeprediksjoner og15beståtte
+blokkranktester/20targettester. RET1_PLAN_001 ovenfor er nå fullført og consumed.
+Alle eksekveringstillatelser er lukket.
 
 30/60fasit er kvalifisert utenrådata:116811fortegn fra3×5 stemmer meddirekte15.
 115554/112969sertifiserte30/60utfall;72/52avrundingsuavklarte maskeres.

@@ -46,11 +46,11 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-26T19:49:32.072865+00:00",
   "status": "F_TIMING_SOURCE_AND56CASES_QUALIFIED_GENUINE_ADMISSION_PENDING",
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "F attempts001/002 are consumed and cannot be relaunched. All F execution, payload, constructor, forward and fit ports are closed. Only bounded throughput design/source review is current; fresh admission required for changes or execution. TEST/CONTROL/Exit/trading remain closed.",
-  "next_action": "Execute only newly admitted RET1_REFERENCE001; compare actualR1 versus saved S_PRICE66 at all5horizons, exact samecohorts/resampleweights;20fits/6savedinputs/0native.",
+  "next_action": "Use bounded matched ret1 input parity to locate any delivery mismatch; if parity passes, design one fixed frozen0U/terminal recoverability probe. No fullF/performance work, native change or new numerical execution currently admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "S_PRICE66 horizon comparison complete; correct R1 identity and isolate addedcontext effect",
+    "current_activity": "Direction-cause synthesis and source-only trace of last-return consumption",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -272,8 +272,8 @@
     "latest_terminal_role": "Actual16F candidate with original exact output parity; execution succeeded, predefined speed/projection gates failed.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_002.json",
-      "sha256": "6ca2ccd67c2281c6a4933938d732dce806bbd8eb032e2a0b93afb4d5ffa95dd2"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
+      "sha256": "33b44e65afbb470f42cf1bb8c90dc89c3fa76bfc90f8c955a4aa1910ac0c8d2f"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute only newly admitted RET1_REFERENCE001; compare actualR1 versus saved S_PRICE66 at all5horizons, exact samecohorts/resampleweights;20fits/6savedinputs/0native.",
+    "next_action": "Use bounded matched ret1 input parity to locate any delivery mismatch; if parity passes, design one fixed frozen0U/terminal recoverability probe. No fullF/performance work, native change or new numerical execution currently admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17638,7 +17638,20 @@
       "goal_tracker_update": "create_goal rejected because existing goal is unfinished; existing goal not falsely marked complete; this user-directed project objective governs work.",
       "genuine_execution_authorized": false,
       "test_data_used": false
-    }
+    },
+    "latest_direction_cause_evidence": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
+      "sha256": "33b44e65afbb470f42cf1bb8c90dc89c3fa76bfc90f8c955a4aa1910ac0c8d2f"
+    },
+    "latest_direction_cause_synthesis": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_001.json",
+      "sha256": "760852f8a2fb56c9e27acfd989dc896a43a3fb4637e369c1356758ea9025d25f"
+    },
+    "ret1_native_source_trace": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_NATIVE_SOURCE_TRACE_001.json",
+      "sha256": "3d96a127b7084894c3155f014143f4cfdc8a0574316c30c313b2ffa8f9d008c0"
+    },
+    "source_trace_completed": true
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -20202,7 +20215,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T22:34:26.250880+00:00",
+  "updated_utc": "2026-10-26T22:46:55.554514+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35601,7 +35614,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Only direction_1_60_ret1_reference:20 fixed CPU fits, once,300s; no native/epoch/VAL.",
+  "training_enabled_scope": "Closed; both fixed horizon/reference contrasts complete. Any new numerical unit needs fresh bounded admission.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -35644,21 +35657,26 @@
     }
   },
   "direction_1_60_ret1_reference": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_PLAN_001.json",
       "sha256": "7a10e9ebab9eac2f6b73753adec618bac1ac1802318f94a773aa69b361992a70"
     },
-    "execution_authorized": true,
-    "training_enabled": true,
-    "genuine_fits_authorized": true,
-    "saved_inputs_authorized": true,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "genuine_fits_authorized": false,
+    "saved_inputs_authorized": false,
     "raw_data_reads_authorized": false,
     "native_forwards_authorized": false,
     "test_data_used": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "relaunch_allowed": false
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "consumed_invocations": 1,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
+      "sha256": "33b44e65afbb470f42cf1bb8c90dc89c3fa76bfc90f8c955a4aa1910ac0c8d2f"
+    }
   }
 }
