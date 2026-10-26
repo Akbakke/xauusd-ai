@@ -20,12 +20,12 @@ Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integr
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
 retningslæring. INTEGRATOR_TAKEOVER_20261026_001 binder mandatet. Root eier
 kilde/policy/launch og arbeider alene; tidligere kontroller er bevart.
-Ingen aktiv tung jobb. Timing256-002 er COMPLETE/consumed med16forwards,
-0reverse/0steg og bitidentisk original INITIAL-paritet. Batchklargjøring tok
-138.933s av145.917s evaluering; forward5.815s. FullF er fortsatt stengt.
-Bounded cache av ren Python-vaktklassifisering er kvalifisert med26kontroller;
-alle dynamiske/data-/kausalitetsvakter beholdes. Timing003-kandidat er admittért,
-men kanonisk kampanje/fersk fysiskboot gjenstår.
+Ingen aktiv tung jobb. Timing003 er COMPLETE/consumed med eksakt original-
+og representasjonsparitet, men bare1.01755prosent kortere evaluate. Kandidaten
+avvises mot20prosentkravet og36033s konservativ fullprojeksjon mot9600s.
+Den opprinnelige, kvalifiserte profilvakten er gjenopprettet eksakt fraGit.
+Batchklargjøring er fortsatt flaskehals; neste steg er kildeanalyse av GC-layout/
+vindusarbeid. Ingen ny numerisk kjøring eller fullF er admittért.
 D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
 inner/outerexit0 og1277.12s. D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001 binder35egne
 readerEOF/CRC-kvitteringer,878400slots/876959valgte og23felt. GCG6prefix har nå
@@ -372,3 +372,18 @@ som timing002. Identiske output-/foreldre-/hodehasher og tellere kreves.
 Forhåndskriterier: minst20prosent kortere evaluate; fullF vurderes bare hvis
 konservativ full2976F-projeksjon<=9600s. Kandidaten kan feile disse kriteriene.
 Ingen fullF, readoutfit, parameterjakt eller effektendring er admittért.
+
+## Timing003 avvist som ytelsesløsning
+
+ACTUAL_ROOT_REVIEW i timing256_CAMPAIGN_20261026_003 binder COMPLETE,
+guard/observerexit0,16F/0steg og identiske foreldre/head/freshidentity/tellere/
+representasjonsfilhash mot timing002; original INITIAL-bitparitet er også bevart.
+Evaluate144.43253s mot145.91731s gir1.01755prosent kortere tid; dette kan være
+kjøringsvariasjon. Forhåndskrav20prosent og fullprojeksjon<=9600s er ikke bestått
+(projeksjon36033.1067s). Ingen fullF eller tidsbudsjettutvidelse følger.
+Cgroup/prosesser er borte, tunglås ledig, eksakt Windowsoppgave Disabled,
+LastResult0/Restart0. Oppfølgingen er deaktivert. Alle originaler er beholdt.
+F_PROFILE_CLASSIFICATION_CACHE_REJECTION_AND_RESTORE_001 binder eksakt
+restaurering av audit_entry_native_direction_checkpoints_v1.py til kvalifisert
+4560ed95-versjon/SHA. De26meningsfulle guardregresjonene beholdes.
+Ingen ny modellrunde, fit, TEST, CONTROL, Exit eller handel er åpnet.
