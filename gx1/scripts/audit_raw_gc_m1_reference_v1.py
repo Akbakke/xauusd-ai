@@ -825,6 +825,150 @@ class RawMBPBatchReader134:
                     'compressed_payload_passes':1,'CSV_parse_passes':1}
 
 
+def extract_raw_gc_train_prefix134(item,destination,*,cutoff_ns,compression_level,max_line_bytes):
+    """Copy a hash-bound receive-time prefix without parsing market fields.
+
+    The caller binds the selected crossing source and its prior full-file time-order
+    qualification. Only the header and ts_recv tokens are interpreted here.
+    The derived gzip is a new local artifact; the original source never receives
+    a full-EOF/CRC receipt from this prefix operation. Failed sibling stages
+    remain for the caller's evidence inventory; this function never unlinks.
+    """
+    from gx1.contracts.immutable_event_authority_v1 import (
+        _publish_file_noreplace, _fsync_directory,
+    )
+    declared=RawMBPBatchReader134(item)
+    item=declared.item;source_path=declared.path;before=declared.before
+    if (type(cutoff_ns) is not int or cutoff_ns%RAW134_MINUTE
+            or not item['start_ns']<cutoff_ns<item['end_ns']):
+        raise RuntimeError('RAW134_PREFIX_CUTOFF')
+    if type(compression_level) is not int or not 0<=compression_level<=9:
+        raise RuntimeError('RAW134_PREFIX_COMPRESSION_LEVEL')
+    if type(max_line_bytes) is not int or max_line_bytes<1:
+        raise RuntimeError('RAW134_PREFIX_LINE_LIMIT')
+    destination=Path(destination);parent=destination.parent
+    if (not destination.is_absolute() or parent.resolve(strict=True)!=parent
+            or any(p.is_symlink() for p in (parent,*parent.parents)) or not parent.is_dir()):
+        raise RuntimeError('RAW134_PREFIX_DESTINATION')
+    stage=parent/('.'+destination.name+'.stage')
+    if destination.exists() or destination.is_symlink():
+        raise RuntimeError('RAW134_PREFIX_OUTPUT_EXISTS')
+    if stage.exists() or stage.is_symlink():
+        raise RuntimeError('RAW134_PREFIX_STAGE_EXISTS')
+
+    def same_source(raw):
+        opened={k:getattr(os.fstat(raw.fileno()),k) for k in RAW134_IDENTITY}
+        if opened!=before or raw134_identity(source_path)!=before:
+            raise RuntimeError('RAW134_PREFIX_SOURCE_IDENTITY')
+
+    source_csv_bytes=rows=inspected=derived_csv_bytes=0
+    csv_digest=hashlib.sha256();previous=None;first_outside=None
+    buffer=bytearray(1024*1024)
+    with source_path.open('rb',buffering=0) as raw:
+        same_source(raw)
+        opaque=_Raw134HashReader(raw)
+        while opaque.readinto(buffer):
+            pass
+        if opaque.bytes_read!=item['bytes'] or opaque.digest.hexdigest()!=item['sha256']:
+            raise RuntimeError('RAW134_PREFIX_COMPRESSED_SHA_OR_SIZE')
+        same_source(raw)
+        raw.seek(0)
+        fd=os.open(stage,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+        with os.fdopen(fd,'wb') as output:
+            with gzip.GzipFile(fileobj=raw,mode='rb') as compressed:
+                def bounded_line(limit):
+                    nonlocal source_csv_bytes
+                    value=compressed.readline(min(limit,item['max_records']-source_csv_bytes+1))
+                    source_csv_bytes+=len(value)
+                    if source_csv_bytes>item['max_records']:
+                        raise RuntimeError('RAW134_PREFIX_DECOMPRESSED_BYTE_CAP')
+                    return value
+
+                with gzip.GzipFile(filename='',fileobj=output,mode='wb',
+                        compresslevel=compression_level,mtime=0) as derived:
+                    header=bounded_line(min(8193,max_line_bytes+1))
+                    if len(header)>min(8192,max_line_bytes) or not header.endswith(b'\n'):
+                        raise RuntimeError('RAW134_PREFIX_CSV_HEADER')
+                    try:
+                        names=next(csv.reader([header.decode('utf-8').rstrip('\r\n')],strict=True))
+                    except (UnicodeError,csv.Error,StopIteration) as exc:
+                        raise RuntimeError('RAW134_PREFIX_CSV_HEADER') from exc
+                    if (len(names)!=20 or len(set(names))!=20 or set(names)!=set(RAW134_COLUMN_TYPES)
+                            or names[0]!='ts_recv'):
+                        raise RuntimeError('RAW134_PREFIX_HEADER_TWENTY_COLUMNS_RECV_FIRST')
+                    derived.write(header);csv_digest.update(header);derived_csv_bytes+=len(header)
+                    # A uint64 has at most twenty decimal digits. Interpret only
+                    # that token before the cutoff gate; the bounded read may
+                    # include opaque bytes after its separator or gzip read-ahead.
+                    token_limit=len(str((1<<64)-1))+1
+                    while True:
+                        head=bounded_line(token_limit)
+                        if not head:
+                            raise RuntimeError('RAW134_PREFIX_BOUNDARY_NOT_FOUND')
+                        token,separator,_=head.partition(b',')
+                        if not separator or not token or not token.isdigit() or len(token)>=token_limit:
+                            raise RuntimeError('RAW134_PREFIX_RECEIVE_TOKEN')
+                        recv=int(token)
+                        if recv>(1<<64)-1:
+                            raise RuntimeError('RAW134_PREFIX_RECEIVE_TOKEN')
+                        if (recv<item['start_ns'] or recv>=item['end_ns']
+                                or (previous is not None and recv<previous)):
+                            raise RuntimeError('RAW134_PREFIX_RECEIVE_ORDER_OR_WINDOW')
+                        inspected+=1
+                        if inspected>item['max_records']:
+                            raise RuntimeError('RAW134_PREFIX_RECORD_CAP')
+                        if recv>=cutoff_ns:
+                            first_outside=recv
+                            break
+                        previous=recv
+                        line=head if head.endswith(b'\n') else head+bounded_line(max_line_bytes-len(head)+1)
+                        if len(line)>max_line_bytes or not line.endswith(b'\n'):
+                            raise RuntimeError('RAW134_PREFIX_CSV_LINE')
+                        derived.write(line);csv_digest.update(line)
+                        derived_csv_bytes+=len(line);rows+=1
+                    if not rows:
+                        raise RuntimeError('RAW134_PREFIX_EMPTY_TRAIN')
+                same_source(raw)
+            output.flush();os.fsync(output.fileno())
+        # Hash the completed new gzip, not its ancestor's bytes or identity.
+        stage_identity=raw134_identity(stage)
+        with stage.open('rb',buffering=0) as staged:
+            opened={k:getattr(os.fstat(staged.fileno()),k) for k in RAW134_IDENTITY}
+            if opened!=stage_identity:
+                raise RuntimeError('RAW134_PREFIX_STAGE_IDENTITY')
+            hashed=_Raw134HashReader(staged)
+            while hashed.readinto(buffer):
+                pass
+            if hashed.bytes_read!=stage_identity['st_size'] or raw134_identity(stage)!=stage_identity:
+                raise RuntimeError('RAW134_PREFIX_STAGE_IDENTITY')
+        same_source(raw)
+        _publish_file_noreplace(stage,destination)
+        _fsync_directory(parent)
+
+    ancestor={'path':str(source_path),'sha256':item['sha256'],'bytes':item['bytes'],
+        'start_ns':item['start_ns'],'end_ns':item['end_ns'],'file_identity':before}
+    provenance={'schema_version':'gx1_local_raw_gc_train_csv_prefix134_v1','source':ancestor,
+        'cutoff_exclusive_ns':cutoff_ns,'copied_csv_bytes_sha256':csv_digest.hexdigest(),
+        'original_header_and_train_line_bytes_preserved':True}
+    derived_item={k:item[k] for k in ('start_ns','instrument_id','publisher_id','raw_symbol',
+        'compression','pretty_ts','pretty_px')}
+    derived_item.update(path=str(destination),end_ns=cutoff_ns,bytes=hashed.bytes_read,
+        sha256=hashed.digest.hexdigest(),max_records=derived_csv_bytes,local_derivation=provenance)
+    return {'derived_item':derived_item,'extraction_receipt':{
+        'schema_version':'gx1_raw_gc_train_prefix_extraction134_v1','source':ancestor,
+        'source_full_opaque_SHA_verified':True,'source_opaque_hash_bytes':opaque.bytes_read,
+        'source_same_descriptor_hash_then_prefix':True,'source_identity_bookends':True,
+        'source_full_EOF_and_gzip_CRC_verified':False,'source_full_file_admitted':False,
+        'stop_reason':'FIRST_RECEIVE_AT_OR_AFTER_CUTOFF','first_outside_receive_ns':first_outside,
+        'receive_order_scope':'TRAIN_prefix_and_first_outside_timestamp',
+        'source_decompressed_bytes_returned':source_csv_bytes,
+        'timestamps_inspected':inspected,'raw_records_copied':rows,
+        'derived_decompressed_csv_bytes':derived_csv_bytes,'copied_csv_bytes_sha256':csv_digest.hexdigest(),
+        'header_fields':names,'compression_level':compression_level,'max_line_bytes':max_line_bytes,
+        'market_fields_parsed':0,'derived_reader_EOF_CRC_qualification_pending':True,
+        'derived_item':derived_item}}
+
+
 def compare_raw_values134(reference,target,*,bounds=None,label='M1'):
     """Exact integer/domain comparisons or precomputed F64 per-cell radii."""
     if set(reference)!=set(target) or (bounds is not None and set(bounds)!=set(reference)):

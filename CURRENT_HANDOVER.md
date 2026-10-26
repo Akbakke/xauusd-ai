@@ -10,13 +10,15 @@ policy og launch. Programrot:
 ## Aktuell status
 
 A, B og faktisk C003 er fullført innen sine avgrensede måleoppgaver.
-PROGRAM_EXECUTION_LEDGER_008 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
+PROGRAM_EXECUTION_LEDGER_009 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
 med oppgitte grenser; øvrige trenger videre evidens eller eksplisitt sluttavklaring.
 Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integrasjon
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
 retningslæring. INTEGRATOR_TAKEOVER_20261026_001 binder mandatet. Root eier
 kilde/policy/launch; to avgrensede lesere vurderer D-ekstraksjon og F-design.
-Ingen aktiv tung jobb eller ny data-/modellkjøring er admittért.
+Ingen aktiv tung jobb. D_TRAIN_PREFIX_EXTRACTION_PLAN_001 åpner én GCG6-prefix-
+ekstraksjon med fersk sameFDopaqueSHA og cutoff2026-01-01, ingen markedsreduksjon
+eller modell. PROGRAM_EXECUTION_LEDGER_009 binder kildescope og kvalifisering.
 Trening/native/epoch/VAL er false. TEST, Exit og handel forblir lukket.
 
 ## Nye faktiske C-funn
@@ -115,7 +117,19 @@ krever begge-ikke-null-interseksjon; målspesifikke ties/counts beholdes.
 Fem eksakte avsluttede M1-slots, sluttmasker, ukjentvolum, rullering og separate
 endpoint-/pathmasker består. Ingen verdier eller sammenhenger er målt i D ennå.
 
-Neste grense er en fullstendig TRAIN-isolerbar kilde/ekstraksjon for OFI,
+D_TRAIN_CSV_PREFIX_SOURCE_ADMISSION_001 bandt den nå kvalifiserte kildeimplementasjonen:
+ny ts_recv-portet prefixhelper hos eksisterende134rådataeier, fokuserte tester
+og én ekstern engangsworker. Kvalifisert roll krever35råfiler:34hele TRAIN-filer
+og kun GCG6-prefix fra fil6; GCJ6 er aldri valgt iTRAIN og åpnes ikke. Opprinnelig
+15kontraktindeks,878400slots og1441uvalgte slots beholdes. Hver fil leses fra
+egen start for å bevare BBO-state. Originalreader/reduksjoner og gamle testbytes
+er uendret.33nye syntetiske pytesttilfeller og16guardtilfeller bestod under4GiB/
+512MiB/64tasks/éntråd. Tre mislykkede testinnpakninger før testtilfellene kunne kjøres er bevart
+og consumed; bare innpakningens output/testkodeavgrensning ble rettet.
+D_TRAIN_PREFIX_SOURCE_REVIEW_001 og D_TRAIN_PREFIX_SYNTHETIC_REVIEW_001 binder dette.
+D_TRAIN_PREFIX_EXTRACTION_PLAN_001 åpner kun GCG6avledningen med ny identitet.
+Den er fortsatt ukvalifisert inntil vanlig134reader har nådd ekte EOF/CRC.
+Ingen markedsreduksjon eller D-skåring er admittért. Neste grense er en fullstendig TRAIN-isolerbar kilde/ekstraksjon for OFI,
 BBO-endepunkter og sluttmasker. D_TRAIN_SOURCE_REUSE_REVIEW_001 binder kilde-/JSON-kontrollen.
 Den deklarerte024-kjeden har bare fullstudie
 kontrakt-M1-filer; valgte event-/ladderdelmengder erstatter ikke disse seriene.

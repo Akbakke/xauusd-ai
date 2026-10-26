@@ -643,6 +643,198 @@ class TestRaw134SharedReader:
         assert reader.receipt is None
 
 
+class TestRaw134TrainPrefixExtraction:
+    """Synthetic-only qualification of the separate TRAIN byte-copy boundary."""
+    @staticmethod
+    def _source(tmp_path,rows=None,header=None):
+        if rows is None:
+            rows=[dict(ts_recv=0),dict(ts_recv=a.RAW134_MINUTE)]
+        item,_,data=_raw_reader_fixture134(tmp_path,rows,header)
+        item['end_ns']=2*a.RAW134_MINUTE
+        return item,data
+
+    @staticmethod
+    def _extract(tmp_path,item,**changes):
+        args=dict(cutoff_ns=a.RAW134_MINUTE,compression_level=1,max_line_bytes=4096)
+        args.update(changes)
+        return a.extract_raw_gc_train_prefix134(item,tmp_path/'prefix.csv.gz',**args)
+
+    @pytest.mark.parametrize('count',(1,257))
+    def test_exact_prefix_ties_buffers_and_unchanged_reader_roundtrip(self,tmp_path,count):
+        rows=[dict(ts_recv=i//2,ts_event=i,sequence=i+1) for i in range(count)]
+        rows.append(dict(ts_recv=a.RAW134_MINUTE,ts_event=a.RAW134_MINUTE))
+        item,data=self._source(tmp_path,rows)
+        result=self._extract(tmp_path,item);derived=result['derived_item'];receipt=result['extraction_receipt']
+        expected=b''.join(data.splitlines(keepends=True)[:-1])
+        path=Path(derived['path'])
+        assert gzip.decompress(path.read_bytes())==expected
+        assert derived['sha256']==hashlib.sha256(path.read_bytes()).hexdigest()!=item['sha256']
+        assert derived['bytes']==path.stat().st_size
+        assert derived['max_records']==len(expected) and derived['end_ns']==a.RAW134_MINUTE
+        assert derived['local_derivation']['source']['sha256']==item['sha256']
+        assert 'receipt_path' not in derived and 'receipt_sha256' not in derived
+        assert receipt['copied_csv_bytes_sha256']==hashlib.sha256(expected).hexdigest()
+        assert receipt['source_opaque_hash_bytes']==item['bytes']
+        assert receipt['source_same_descriptor_hash_then_prefix'] and receipt['source_identity_bookends']
+        assert receipt['source_full_EOF_and_gzip_CRC_verified'] is False
+        assert receipt['source_full_file_admitted'] is False and receipt['market_fields_parsed']==0
+        assert receipt['first_outside_receive_ns']==a.RAW134_MINUTE
+        assert receipt['raw_records_copied']==count and receipt['timestamps_inspected']==count+1
+        assert not (tmp_path/'.prefix.csv.gz.stage').exists()
+        reader=a.RawMBPBatchReader134(derived,block_size=1024);batches=list(reader)
+        assert np.concatenate([v['ts_recv'] for v in batches]).tolist()==[i//2 for i in range(count)]
+        assert np.concatenate([v['sequence'] for v in batches]).tolist()==list(range(1,count+1))
+        assert reader.receipt['actual_EOF_and_gzip_CRC_verified']
+        assert reader.receipt['full_file_admitted'] and reader.receipt['raw_records']==count
+        assert reader.receipt['decompressed_csv_bytes']==len(expected)
+
+    def test_future_poison_and_overlong_market_tail_are_opaque(self,tmp_path,monkeypatch):
+        item,data=self._source(tmp_path)
+        expected=b''.join(data.splitlines(keepends=True)[:-1])
+        poisoned=expected+str(a.RAW134_MINUTE).encode()+b',\xff"'+b'X'*100000+b'\n'
+        body=gzip.compress(poisoned,mtime=0);Path(item['path']).write_bytes(body)
+        item.update(bytes=len(body),max_records=len(poisoned),sha256=hashlib.sha256(body).hexdigest())
+        def forbidden(*args,**kwargs):
+            raise AssertionError('Extractor must not call the market CSV parser')
+        with monkeypatch.context() as patch:
+            patch.setattr(a.pacsv,'open_csv',forbidden)
+            result=self._extract(tmp_path,item,max_line_bytes=len(expected.splitlines(keepends=True)[0])+1)
+        assert gzip.decompress(Path(result['derived_item']['path']).read_bytes())==expected
+        assert result['extraction_receipt']['source_decompressed_bytes_returned']<=len(expected)+21
+        assert result['extraction_receipt']['market_fields_parsed']==0
+
+    @pytest.mark.parametrize('token',('',-1,'+1','1.0','"1"',str(1<<64),'0'*21))
+    def test_timestamp_tokens_fail_without_publishing(self,tmp_path,token):
+        item,_=self._source(tmp_path,[dict(ts_recv=token),dict(ts_recv=a.RAW134_MINUTE)])
+        with pytest.raises(RuntimeError,match='RECEIVE_TOKEN'):
+            self._extract(tmp_path,item)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+        assert (tmp_path/'.prefix.csv.gz.stage').exists()
+
+    @pytest.mark.parametrize('fault',('missing','duplicate','receive_not_first'))
+    def test_header_owner_and_receive_position_are_explicit(self,tmp_path,fault):
+        names=list(a.RAW134_COLUMN_TYPES)
+        if fault=='missing':names=names[:-1]
+        elif fault=='duplicate':names[-1]='ts_recv'
+        else:names[0],names[1]=names[1],names[0]
+        item,_=self._source(tmp_path,header=names)
+        with pytest.raises(RuntimeError,match='HEADER_TWENTY_COLUMNS_RECV_FIRST'):
+            self._extract(tmp_path,item)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+
+    @pytest.mark.parametrize('fault',('decreasing','below_start','outside_source_end'))
+    def test_receive_order_and_original_source_window(self,tmp_path,fault):
+        changes={}
+        if fault=='decreasing':
+            rows=[dict(ts_recv=2),dict(ts_recv=1),dict(ts_recv=a.RAW134_MINUTE)]
+        elif fault=='below_start':
+            rows=[dict(ts_recv=a.RAW134_MINUTE-1),dict(ts_recv=2*a.RAW134_MINUTE)]
+            changes['cutoff_ns']=2*a.RAW134_MINUTE
+        else:
+            rows=[dict(ts_recv=0),dict(ts_recv=2*a.RAW134_MINUTE)]
+        item,_=self._source(tmp_path,rows)
+        if fault=='below_start':item.update(start_ns=a.RAW134_MINUTE,end_ns=3*a.RAW134_MINUTE)
+        with pytest.raises(RuntimeError,match='RECEIVE_ORDER_OR_WINDOW'):
+            self._extract(tmp_path,item,**changes)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+
+    @pytest.mark.parametrize('fault',('decompressed_cap','train_line_cap'))
+    def test_explicit_byte_and_train_line_limits(self,tmp_path,fault):
+        rows=None if fault=='decompressed_cap' else [
+            dict(ts_recv=0,symbol='X'*5000),dict(ts_recv=a.RAW134_MINUTE)]
+        item,_=self._source(tmp_path,rows)
+        if fault=='decompressed_cap':item['max_records']=12
+        with pytest.raises(RuntimeError,match='DECOMPRESSED_BYTE_CAP|CSV_LINE'):
+            self._extract(tmp_path,item)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+
+    def test_natural_original_EOF_before_boundary_is_explicitly_rejected(self,tmp_path):
+        item,_=self._source(tmp_path,[dict(ts_recv=0)])
+        with pytest.raises(RuntimeError,match='BOUNDARY_NOT_FOUND'):
+            self._extract(tmp_path,item)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+        assert (tmp_path/'.prefix.csv.gz.stage').exists()
+
+    def test_empty_train_prefix_is_not_an_admitted_source(self,tmp_path):
+        item,_=self._source(tmp_path,[dict(ts_recv=a.RAW134_MINUTE)])
+        with pytest.raises(RuntimeError,match='EMPTY_TRAIN'):
+            self._extract(tmp_path,item)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+
+    @pytest.mark.parametrize('change',(
+        {'cutoff_ns':0},{'cutoff_ns':2*a.RAW134_MINUTE},{'cutoff_ns':True},
+        {'compression_level':-1},{'max_line_bytes':0},
+    ))
+    def test_explicit_recipe_arguments_fail_closed(self,tmp_path,change):
+        item,_=self._source(tmp_path)
+        with pytest.raises(RuntimeError,match='PREFIX_CUTOFF|COMPRESSION_LEVEL|LINE_LIMIT'):
+            self._extract(tmp_path,item,**change)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+
+    def test_wrong_opaque_SHA_stops_before_prefix_and_stage(self,tmp_path):
+        item,_=self._source(tmp_path);item['sha256']='0'*64
+        with pytest.raises(RuntimeError,match='COMPRESSED_SHA_OR_SIZE'):
+            self._extract(tmp_path,item)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+        assert not (tmp_path/'.prefix.csv.gz.stage').exists()
+
+    @pytest.mark.parametrize('identity_call',(3,4))
+    def test_source_identity_changes_after_hash_or_prefix_cannot_publish(self,tmp_path,monkeypatch,identity_call):
+        item,_=self._source(tmp_path);original=a.raw134_identity;calls=0
+        def tamper(path):
+            nonlocal calls
+            if Path(path)==Path(item['path']):
+                calls+=1
+                if calls==identity_call:
+                    stat=Path(path).stat()
+                    a.os.utime(path,ns=(stat.st_atime_ns,stat.st_mtime_ns+1000000))
+            return original(path)
+        monkeypatch.setattr(a,'raw134_identity',tamper)
+        with pytest.raises(RuntimeError,match='SOURCE_IDENTITY'):
+            self._extract(tmp_path,item)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+
+    @pytest.mark.parametrize('existing',('destination','stage'))
+    def test_existing_outputs_and_failed_stages_are_never_replaced(self,tmp_path,existing):
+        item,_=self._source(tmp_path)
+        path=tmp_path/('prefix.csv.gz' if existing=='destination' else '.prefix.csv.gz.stage')
+        path.write_bytes(b'preserve')
+        with pytest.raises(RuntimeError,match='OUTPUT_EXISTS|STAGE_EXISTS'):
+            self._extract(tmp_path,item)
+        assert path.read_bytes()==b'preserve'
+
+    def test_publication_failure_preserves_completed_stage(self,tmp_path,monkeypatch):
+        from gx1.contracts import immutable_event_authority_v1 as publication
+        item,data=self._source(tmp_path)
+        def fail(source,destination):
+            raise OSError('injected publication failure')
+        monkeypatch.setattr(publication,'_publish_file_noreplace',fail)
+        with pytest.raises(OSError,match='injected publication failure'):
+            self._extract(tmp_path,item)
+        assert not (tmp_path/'prefix.csv.gz').exists()
+        assert gzip.decompress((tmp_path/'.prefix.csv.gz.stage').read_bytes())==b''.join(
+            data.splitlines(keepends=True)[:-1])
+
+    def test_publication_race_uses_real_no_replace_authority(self,tmp_path,monkeypatch):
+        from gx1.contracts import immutable_event_authority_v1 as publication
+        item,_=self._source(tmp_path);original=publication._publish_file_noreplace
+        def race(source,destination):
+            Path(destination).write_bytes(b'concurrent output')
+            original(source,destination)
+        monkeypatch.setattr(publication,'_publish_file_noreplace',race)
+        with pytest.raises(publication.ImmutableEventAuthorityError,match='already exists'):
+            self._extract(tmp_path,item)
+        assert (tmp_path/'prefix.csv.gz').read_bytes()==b'concurrent output'
+        assert (tmp_path/'.prefix.csv.gz.stage').exists()
+
+    def test_derived_reader_prefix_still_cannot_emit_full_file_receipt(self,tmp_path):
+        item,_=self._source(tmp_path)
+        result=self._extract(tmp_path,item)
+        reader=a.RawMBPBatchReader134(result['derived_item'],block_size=1024)
+        stream=iter(reader);next(stream);stream.close()
+        assert reader.receipt is None
+
+
 class TestRaw134Comparison:
     def test_integer_sign_and_above_float_precision_are_exact(self):
         huge=np.array([2**63+1],np.uint64)

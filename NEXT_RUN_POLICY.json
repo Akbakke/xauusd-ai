@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-26T10:23:53.778005+00:00",
-  "status": "DIRECTION_IMPROVEMENT_TAKEOVER_D_TRAIN_SOURCE_PLANNING",
+  "observed_utc": "2026-10-26T10:57:27.253419+00:00",
+  "status": "D_TRAIN_PREFIX_EXTRACTION_ADMITTED_NO_REDUCTION_OR_MODEL",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only exact C003 read-only saved276 diagnostic is admitted under dynamic_m5_direction_checkpoint_diagnostic_c after clean source, metadata preparation and fresh physical boot. C001/C002 and all completed testplans consumed. Global training/native-fit/epoch/VAL closed; TEST/Exit/trading closed.",
-  "next_action": "New user-appointed integrator resolves minimum TRAIN-only D extraction in existing source owners, reviews bounded frozen-readout F, then prepares exact source/test/data admissions. No current data/model/training launch.",
+  "rule": "Only exact D TRAIN-prefix extraction of sourcefile6 is admitted under its new plan. No market reduction/native model/training/VAL; TEST/CONTROL/Exit/trading closed. All prior plans consumed.",
+  "next_action": "Commit qualified source/policy/handover; bind cleanHEAD/frozenpolicy/handover externally; launch exact GCG6prefix extraction once under existing audit cap.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Dmetadata complete and consumed:0eligible TRAIN-only rowgroups. Source/metadata search for complete TRAIN-isolated input continues; no heavyjob or new operation admitted.",
+    "current_activity": "33new helper cases and16guardcases passed. Fresh one-source GCG6prefix extraction admitted; no active heavy job.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,11 +269,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Ddata-access qualification only:two opaque fullhashes and footer clockmetadata, zero decoded data columns/model/training.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_RUNTIME_20261026_003",
+    "latest_terminal_role": "Focused Dprefix source synthetic qualification only:33helpercases+16guardcases;0genuinepayload/model/optimizer.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_EXTRACTION_20261026_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_METADATA_OUTER_TERMINAL_001.json",
-      "sha256": "f25a1f49070b2ab2b95220e9d33f8ea01193660d6293aee231beb2d47bf22a8d"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_HANDOVER_TERMINAL_001.json",
+      "sha256": "678ff9e32d56b0fd4b838e162181a1ee2aad03346a4a932ffdd1fca4408a4d36"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "D full-M1 source has no TRAIN-only entire Parquet rowgroup; alternative complete TRAIN input/extraction is unresolved.",
+    "current_blocker": "No fully reader-qualified TRAIN-only GCG6prefix yet; D causal scoring/reduction remains closed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -20149,7 +20149,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T09:18:08.867749+00:00",
+  "updated_utc": "2026-10-26T10:56:23.611089+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -33045,8 +33045,8 @@
     "B_saved_prediction_comparison_complete": true,
     "data_read_scope": "Closed. Dmetadata001consumed; no further payload hashing/footer/body or model operation admitted.",
     "execution_ledger": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_008.json",
-      "sha256": "7251338eb9f9df03fd204cee925119016598a20c3bf4dabd9082efeb321cd227"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_009.json",
+      "sha256": "4b67cd1d0148edbeff456cce326d627fd2834bb72c645bfa1d05146cda3dae41"
     },
     "B_actual_root_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_SAVED_PREDICTION_ACTUAL_ROOT_REVIEW_001.json",
@@ -34485,15 +34485,15 @@
     }
   },
   "direction_improvement_takeover_20261026": {
-    "status": "ACTIVE_SOURCE_PLANNING_NO_COMPUTE_ADMITTED",
+    "status": "ACTIVE_D_TRAIN_PREFIX_EXTRACTION_ADMITTED",
     "integrator_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
     "takeover": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/INTEGRATOR_TAKEOVER_20261026_001.json",
       "sha256": "b1fe4105471ae0d6b9d657855398fc37b472ab20177b93a1fe1537899daca0d7"
     },
     "execution_ledger": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_008.json",
-      "sha256": "7251338eb9f9df03fd204cee925119016598a20c3bf4dabd9082efeb321cd227"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_009.json",
+      "sha256": "4b67cd1d0148edbeff456cce326d627fd2834bb72c645bfa1d05146cda3dae41"
     },
     "source_preparation_authorized": true,
     "data_reads_authorized": false,
@@ -34501,5 +34501,204 @@
     "training_enabled": false,
     "native_launch_authorized": false,
     "test_data_used": false
+  },
+  "direction_diagnostic_D_train_prefix_source_20261026": {
+    "schema_version": "gx1_D_train_csv_prefix_source_admission_v1",
+    "observed_utc": "2026-10-26T10:32:39.110332+00:00",
+    "source_head": "777389cf804e32d71b4582dbcdf1bb2df20fb374",
+    "authorization_basis": "Current human user explicitly gives this integrator free authority to take over and improve GX1. New bounded D TRAIN isolation work, not relaunch of consumed plans.",
+    "integrator_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
+    "takeover": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/INTEGRATOR_TAKEOVER_20261026_001.json",
+      "sha256": "b1fe4105471ae0d6b9d657855398fc37b472ab20177b93a1fe1537899daca0d7"
+    },
+    "observed_blocker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_SOURCE_REUSE_REVIEW_001.json",
+      "sha256": "6236b4e8ebba56fc4e7276893f62ed3eb8532568c86d2e039498241cd9880578"
+    },
+    "allowed_repo_files": [
+      "gx1/scripts/audit_raw_gc_m1_reference_v1.py",
+      "tests/test_raw_gc_m1_reference_v1.py"
+    ],
+    "allowed_external_file": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/extract_direction_train_csv_prefixes.py",
+    "file_owners": {
+      "gx1/scripts/audit_raw_gc_m1_reference_v1.py": "/root/d_train_extraction_review",
+      "tests/test_raw_gc_m1_reference_v1.py": "/root/d_train_extraction_review",
+      "external_worker": "root",
+      "policy_handover": "root"
+    },
+    "minimum_change": "Add one explicit sameFD/hash-bound gzip CSV TRAIN-prefix extractor beside existing134reader; original reader and reducers stay byte-identical. Add focused cases in existing source test file. One external single-use worker binds the two crossing sources and caller policy.",
+    "source_edits_authorized": false,
+    "test_execution_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "opaque_payload_hashing_authorized": false,
+    "model_calls_or_fits_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "requirements": [
+      "Reuse RAW134_COLUMN_TYPES/raw134_identity and existing immutable no-replace publisher.",
+      "Fresh full opaque source SHA on same descriptor before prefix read; source identity bookends.",
+      "Only ts_recv token interpreted before cutoff gate; later market fields remain opaque and never reach Arrow.",
+      "Exact original header and TRAIN record bytes copied to newly compressed local derived files with their own hashes/provenance.",
+      "Original reader wholefile EOF/CRC receipt unchanged; original prefix termination never relabeled as full-file EOF/CRC.",
+      "Fail closed on header/order/timestamp/window/identity/byte-limit violations; preserve failed staging evidence.",
+      "Explicit compression level and max line bytes in future immutable recipe; do not infer market settings.",
+      "Separate fresh capped synthetic admission and actual extraction admission after source review. No data reduction or native computation opened here."
+    ],
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_CSV_PREFIX_SOURCE_ADMISSION_001.json",
+      "sha256": "673a0be7d324201f93c174a64b87f6e492c6e1bd01cb50e3e4bb6c1e77db15fe"
+    },
+    "status": "COMPLETE_SOURCE_QUALIFIED",
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SOURCE_REVIEW_001.json",
+      "sha256": "14e41508ab1cd06ec24c42cc5667481f33ebc3ca7daf81a29a4d22f0327f9cb2"
+    }
+  },
+  "direction_diagnostic_D_train_prefix_synthetic_20261026": {
+    "status": "COMPLETE_33_PLUS16_CASES_CONSUMED_CLOSED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_PLAN_004.json",
+      "sha256": "5e5bea78819f01aa8f80440a01c87ceab7ba3a4eed4c46fcb16082be2c8fa12a"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "synthetic_tests_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "opaque_payload_hashing_authorized": false,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "authorization_basis": "Fresh bounded synthetic qualification of newly admitted source helper and extraction guard. No real datasets/weights/fit.",
+    "previous_consumed_attempts": [
+      {
+        "status": "FAILED_CAPTURE_TEMPFILE_CONSUMED_CLOSED",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_PLAN_001.json",
+          "sha256": "2cf49f0989d8d3982434d775cae70a6a932cfe9a5864bc827c2c9af4eeaf1ef3"
+        },
+        "execution_authorized": false,
+        "max_invocations": 1,
+        "claimed_invocations": 1,
+        "completed_invocations": 1,
+        "relaunch_allowed": false,
+        "synthetic_tests_authorized": false,
+        "genuine_payload_reads_authorized": false,
+        "opaque_payload_hashing_authorized": false,
+        "model_calls_authorized": false,
+        "training_enabled": false,
+        "test_data_used": false,
+        "authorization_basis": "Fresh bounded synthetic qualification of newly admitted source helper and extraction guard. No real datasets/weights/fit.",
+        "outer_terminal": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_OUTER_TERMINAL_001.json",
+          "sha256": "cb9fff4b1238c1c5a40efb9482ba8a6592af3b024494008b5fb3e82776d22ec0"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_20261026_001/TERMINAL.json",
+          "sha256": "ebb568cf740515600ff8ff69ff3db6ee83d2745ca41d96e8348a227bb3ca9b0e"
+        }
+      },
+      {
+        "status": "FAILED_PYTEST_DEFAULT_LOG_CONSUMED_CLOSED",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_PLAN_002.json",
+          "sha256": "6d54e48e0e732e1320b293ae205f9d479d5bf6017006ca2a52512b22a7e48ff9"
+        },
+        "execution_authorized": false,
+        "max_invocations": 1,
+        "claimed_invocations": 1,
+        "completed_invocations": 1,
+        "relaunch_allowed": false,
+        "synthetic_tests_authorized": false,
+        "genuine_payload_reads_authorized": false,
+        "opaque_payload_hashing_authorized": false,
+        "model_calls_authorized": false,
+        "training_enabled": false,
+        "test_data_used": false,
+        "authorization_basis": "Fresh bounded synthetic qualification of newly admitted source helper and extraction guard. No real datasets/weights/fit.",
+        "outer_terminal": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_OUTER_TERMINAL_002.json",
+          "sha256": "05ec58f85e2ffa26f77078ec1ed792b43f5e5e14c63dd01211b2af3e5d0687fc"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_20261026_002/TERMINAL.json",
+          "sha256": "96ddf6455e6904a415b623089c7d1a980fd5fc86907d446cd734a114271125ad"
+        }
+      },
+      {
+        "status": "FAILED_SYNTHETIC_TEST_PATH_CONSUMED_CLOSED",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_PLAN_003.json",
+          "sha256": "3da6e12cb82e903ec9cc525d74f85d541b4c13166a86bc55580c81f0e32d3bac"
+        },
+        "execution_authorized": false,
+        "max_invocations": 1,
+        "claimed_invocations": 1,
+        "completed_invocations": 1,
+        "relaunch_allowed": false,
+        "synthetic_tests_authorized": false,
+        "genuine_payload_reads_authorized": false,
+        "opaque_payload_hashing_authorized": false,
+        "model_calls_authorized": false,
+        "training_enabled": false,
+        "test_data_used": false,
+        "authorization_basis": "Fresh bounded synthetic qualification of newly admitted source helper and extraction guard. No real datasets/weights/fit.",
+        "outer_terminal": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_OUTER_TERMINAL_003.json",
+          "sha256": "3f2d6cb4666bb49a1c97aaf74a5334c29a3cb9c2060270e031288a525e847ccc"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_20261026_003/TERMINAL.json",
+          "sha256": "c1d84f2eafa1d8436ee26244cc7602697336f72d7744cd8315a9db9866853953"
+        }
+      }
+    ],
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_20261026_004/TERMINAL.json",
+      "sha256": "b56cd4861b656be96f6dde57be19c2ea5fff0f8ff2dd68727eef097c45ccbd6b"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_OUTER_TERMINAL_004.json",
+      "sha256": "f33a66ab6560ed39e2ad43577efd3b76ae8b5239fba4b4a859852000a2586f97"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_REVIEW_001.json",
+      "sha256": "80b298cbdd6236aa0468697616f0be9d0f16820bd1e28af2edc39dd94087bbb3"
+    },
+    "handover_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_HANDOVER_TERMINAL_001.json",
+      "sha256": "678ff9e32d56b0fd4b838e162181a1ee2aad03346a4a932ffdd1fca4408a4d36"
+    }
+  },
+  "direction_diagnostic_D_train_prefix_extraction_20261026": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_EXTRACTION_PLAN_001.json",
+      "sha256": "de73995b91d9995dd62253cda54c2f202ac0445aef56a553606c539ec9c12cc1"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/extract_direction_train_csv_prefixes.py",
+      "sha256": "cbdf5b334a1ee5678eee7383c05efb232cc04c75d4bf24f420621a83a6153f98"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "test_data_used": false,
+    "opaque_payload_hashing_authorized": true,
+    "train_prefix_extraction_authorized": true,
+    "market_reduction_authorized": false,
+    "source_file_indices": [
+      6
+    ],
+    "opaque_source_hash_bytes": 1887929359,
+    "max_wall_seconds": 1800,
+    "authorization_basis": "Current human-directed takeover/improvement scope; fresh sourcepeer and49syntheticcases. One GCG6 crossing input, ts_recv cutoff before market conversion; all consumed plans remain closed."
   }
 }
