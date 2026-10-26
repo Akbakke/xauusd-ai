@@ -9,6 +9,19 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+Ny direkte 1–60-avklaring: DIRECTION_1_60_SAVED_TARGET_DESIGN_001 binder
+gjenbruk av lagrede 15-minutters prisendringer til 30/60, med eksakte delte
+klokker/prisrader og konservative avrundingsintervaller. Direkte 15-minutters-
+fasit kontrolleres mot tre lagrede 5-minuttersledd. Ingen rådata trenger å
+åpnes for denne kandidaten. R1 har 66 faste felt (61 D1/makro, fire sesjon,
+én tidligere avkastning); denne kontrasten uttømmer ikke hele native-modellen.
+DIRECTION_1_60_SAVED_HORIZONS_SYNTHETIC_ROOT_REVIEW_001 bekrefter 20 beståtte
+tilfeller, 0 feil/skip og 0 markedspayload-/modell-/fit-/optimizerkall.
+Kilde/policybokender, avsluttet cgroup og ledig tunglås er kontrollert.
+Kilde- og syntetikkadmisjon er lukket/consumed. Neste minste enhet skal kun
+kvalifisere sammensetningen på den allerede lagrede TRAIN-prisfasiten, med
+egen engangsadmisjon. Ingen rådata, features, fits eller nativekall åpnes nå.
+
 Brukeren har avvist oppdrag fra den andre chatten. Root arbeider alene; innkommende
 oppdrag derfra forkastes. Denne trådens direkte brukermandat og mål er eneste
 arbeidsautoritet. Allerede mottatte meldinger kan ikke slettes med tilgjengelige verktøy.

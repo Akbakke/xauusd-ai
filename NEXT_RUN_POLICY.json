@@ -272,8 +272,8 @@
     "latest_terminal_role": "Actual16F candidate with original exact output parity; execution succeeded, predefined speed/projection gates failed.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261026_003/ACTUAL_ROOT_REVIEW.json",
-      "sha256": "eb2e66c27b7ce2c7d2cbcb557ed8375ef4de1c63f1082741df3c220409858219"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_HORIZONS_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "651561ac1843a24feb8a5994989b9158c344801e6296a7b3f115391f0b25342b"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Trace the existing TRAIN-only M1 price-source/target owner for a fixed 1/5/15/30/60 minute direction comparison, identify exactly which 30/60 labels and same-input reference results are missing, and bind the smallest one-factor target/reference comparison before any new code or run. Do not continue F partitioning or throughput work. No model, target materialization or fit is newly admitted by this status update.",
+    "next_action": "Bind one saved245-target-only qualification under existing capped CPU audit: validate complete TRAIN axes, compose30/60through the qualified math, compare15from3x5against all available directly saved15labels, and publish aggregate coverage/ambiguity/array witnesses. No raw data, feature reads, fits or native calls in that next unit.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -35464,6 +35464,50 @@
     "restore": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_REJECTION_AND_RESTORE_001.json",
       "sha256": "11cc562667524634a17c81f505fae7405da8ad07096c1311de12bdd41535ad6c"
+    }
+  },
+  "direction_1_60_saved_horizons_source": {
+    "status": "SOURCE_QUALIFIED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_TARGET_DESIGN_001.json",
+      "sha256": "50448070008050ba577159b1fe52567274383248525b3047355ea3a5808502ff"
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_TARGET_SOURCE_ADMISSION_001.json",
+      "sha256": "7eed39769cea7f002817a0958ad871ac99834ab34eb4b4a3b10ec8ae74447683"
+    },
+    "source_edits_authorized": false,
+    "synthetic_execution_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "predictor_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "test_data_used": false,
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_TARGET_SOURCE_REVIEW_001.json",
+      "sha256": "6a5963a390bbbb8f0974984916b3c72586e65f098442401c97c5da9bbcc3fbf6"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_HORIZONS_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "651561ac1843a24feb8a5994989b9158c344801e6296a7b3f115391f0b25342b"
+    }
+  },
+  "direction_1_60_saved_horizons_synthetic": {
+    "status": "COMPLETE_CONSUMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_HORIZONS_SYNTHETIC_PLAN_001.json",
+      "sha256": "f49f1ede246304f6a182d399886844382e90e68e59070d509ff99b38408a1f6f"
+    },
+    "execution_authorized": false,
+    "synthetic_tests_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "consumed_invocations": 1,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_HORIZONS_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "651561ac1843a24feb8a5994989b9158c344801e6296a7b3f115391f0b25342b"
     }
   }
 }
