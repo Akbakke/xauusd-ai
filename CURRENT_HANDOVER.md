@@ -24,8 +24,13 @@ Ingen aktiv tung jobb. Timing003 er COMPLETE/consumed med eksakt original-
 og representasjonsparitet, men bare1.01755prosent kortere evaluate. Kandidaten
 avvises mot20prosentkravet og36033s konservativ fullprojeksjon mot9600s.
 Den opprinnelige, kvalifiserte profilvakten er gjenopprettet eksakt fraGit.
-Batchklargjøring er fortsatt flaskehals; neste steg er kildeanalyse av GC-layout/
-vindusarbeid. Ingen ny numerisk kjøring eller fullF er admittért.
+Brukeren presiserte at oppdraget er å finne årsakene til svak retningsedge.
+Videre ytelsesendringer og timingkampanjer er utsatt. Neste arbeid er direkte
+årsaksanalyse med eksisterende B/C/D og kilde: avgrenset endpointmål mot Entry,
+fremoversignal i input, og representasjon/readout. F-kontrasten mellom frossen
+0U og terminal er fortsatt en ufullført målekandidat, ikke et resultat. Ingen
+ny kode eller kjøring før konkret ubesvart årsakskontrast, minste nødvendige
+test og faste suksess-/stoppkriterier er begrunnet. Ingen ny kjøreautoritet.
 D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
 inner/outerexit0 og1277.12s. D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001 binder35egne
 readerEOF/CRC-kvitteringer,878400slots/876959valgte og23felt. GCG6prefix har nå
