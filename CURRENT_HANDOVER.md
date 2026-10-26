@@ -20,9 +20,10 @@ Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integr
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
 retningslæring. INTEGRATOR_TAKEOVER_20261026_001 binder mandatet. Root eier
 kilde/policy/launch og arbeider alene; tidligere kontroller er bevart.
-Ingen aktiv tung jobb. F002 er kontrollert stoppet/consumed etter vedvarende
-for lav fremdrift til12000sekundersgrensen. Ny, avgrenset timing256-autoritet er
-admittért: original0U/B16/første256,16forwards/600s/0reverse/0fit/0steg.
+Ingen aktiv tung jobb. FullF002 og timing256-001 er avsluttet/consumed.
+Timing001 feilet før data-/modellkall på cachedfunksjonens kodeidentitet.
+Minste rettelse og én eksakt regresjonskontroll har bestått. Ny timing256-002
+er admittért: original0U/B16/første256,16forwards/600s/0reverse/0fit/0steg.
 Kanonisk kampanje/fersk fysiskboot gjenstår. FullF er fortsatt stengt.
 D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
 inner/outerexit0 og1277.12s. D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001 binder35egne
@@ -313,3 +314,29 @@ og helmaskin-idle må verifiseres gjennom eksisterende eiere. Ingen fullF eller
 readoutfit er åpnet. F001/F002 forblir consumed; ingen relaunch.
 Tidsfaser er inklusive/overlappende med observatøroverhead, ingen CUDA-kerneltid.
 Resultatet kan lokalisere tidsbruk, ikke dokumentere retningsedge.
+
+## Timing001 faktisk avslutning og minste rettelse
+
+Timing001 er FAILED/consumed med egen kanonisk kvittering: guardexit1,
+observerexit0,0payload-/modell-/fit-/optimizerkall. Boot547,20:02:58–20:03:04Z.
+Tidsmåleren feilet førPREPARE fordi cached _canonical ikke har __code__.
+ACTUAL_ROOT_REVIEW i timing256_CAMPAIGN_20261026_001 binder originalresultat,
+alle57uendrede kildeeiere, avsluttet cgroup, ledig tunglås og Disabledoppgave.
+Dette er en ny instrumenteringsfeil, ingen retningsforklaring. Ingen relaunch001.
+Kun tidsmålerens Python-kodeidentitet unwrap-es; faktisk cache/model/kallvakter
+beholdes. Egen regresjonskontroll dekker cachedbody,cachehits og aktuell eier.
+Kildeadmisjon F_TIMING_CACHED_FUNCTION_SOURCE_ADMISSION_001; tester og eventuell
+ny timing002 må admittéres separat. Ingen tung jobb eller fullFautoritet.
+
+## Cachedfunksjon-rettelse kvalifisert og timing002 admittért
+
+F_TIMING_CACHED_FUNCTION_SYNTHETIC_ROOT_REVIEW_001 binder én bestått kontroll,
+inner/outerexit0,0numeriske modell-/payload-/fit-/optimizer-/CUDAkall og57
+kildebookends. Første regresjonsforsøk stoppet på en korrekt blokkert Numba-
+cachewrite ved import; original feilkvittering beholdes/consumed. Ny kontroll
+kompilerer eksakt cachedfunksjonsdeklarasjon uten å kalle funksjonskroppen og
+verifiserer to cachemiss/tokall/ett cachehit på syntetisk funksjon. Vaktene er
+uendret. Tidligere56kontroller gjenbrukes; ingen ny fullsuite.
+F_FROZEN_EXTRACTION_own0U_prefix_timing256_RUNTIME_ADMISSION_002 åpner kun
+ny16forward/600s-tidsdiagnose. Timing001 og opprinnelige fullF001/F002 skal
+aldri relanseres. Alle originale artefakter er bevart. Ingen rootcause/edge bevist.

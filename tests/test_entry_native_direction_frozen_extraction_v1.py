@@ -509,3 +509,41 @@ def test_timing_result_cannot_be_promoted_to_full_cohort_or_partial_success(monk
     with pytest.raises(RuntimeError, match='RESULT_COMPLETE_DOMAIN'): validate()
     result['representation_rows'] = 256; phases['forward']['returns'] = 15
     with pytest.raises(RuntimeError, match='RESULT_TIMING_COMPLETE'): validate()
+
+
+def test_phase_timing_cached_body_identity_and_cache_hits():
+    from functools import lru_cache
+    import sys
+    import ast
+    source = Path(contract.REPO) / 'gx1/contracts/entry_native_direction_feature_view_v1.py'
+    node = next(n for n in ast.parse(source.read_text()).body
+        if isinstance(n, ast.FunctionDef) and n.name == '_canonical')
+    # Compile the exact cached owner declaration, without unrelated import side effects.
+    module = ast.Module(body=ast.parse('from __future__ import annotations').body + [node],
+        type_ignores=[])
+    namespace = {'lru_cache': lru_cache}
+    exec(compile(ast.fix_missing_locations(module), str(source), 'exec'), namespace)
+    actual_cached = namespace['_canonical']
+
+    @lru_cache(maxsize=2)
+    def cached(value):
+        return value + 1
+
+    # Include the actual decorated owner that failed at timing001 startup.
+    codes = worker.phase_codes({cached: 'cached', actual_cached: 'canonical_layout'})
+    assert codes[actual_cached.__wrapped__.__code__] == 'canonical_layout'
+    timer = worker.PhaseTimings(codes)
+    previous = sys.getprofile()
+    def guard(frame, event, arg):
+        if previous is not None:
+            previous(frame, event, arg)
+    sys.setprofile(timer.profile(guard))
+    try:
+        assert cached(3) == cached(3) == 4
+        assert cached(7) == 8
+    finally:
+        sys.setprofile(previous)
+    phase = timer.report()['phases']['cached']
+    assert phase['calls'] == phase['returns'] == 2
+    assert cached.cache_info().hits == 1 and cached.cache_info().misses == 2
+    assert timer.report()['pending_frames'] == 0

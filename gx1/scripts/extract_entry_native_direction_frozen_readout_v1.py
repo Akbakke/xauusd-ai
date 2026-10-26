@@ -19,6 +19,12 @@ from gx1.scripts import audit_entry_native_direction_checkpoints_v1 as saved
 require = authority.require
 
 
+def phase_codes(functions):
+    """Map Python bodies; cached functions emit body events only on cache misses."""
+    from inspect import unwrap
+    return {unwrap(function).__code__: name for function, name in functions.items()}
+
+
 class PhaseTimings:
     """Inclusive observer; the original operation guard receives every event first."""
     def __init__(self, codes, *, wall=time.perf_counter_ns, cpu=time.process_time_ns):
@@ -309,17 +315,17 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         profile_guard = saved._profile_budget(budget, codes, phase, old_profile)
         if spec['diagnostic_only']:
             from gx1.contracts import entry_native_direction_context_report_v1 as reporter
-            timings = PhaseTimings({prefix._prepare.__code__: 'prepare', common._load_state.__code__: 'checkpoint_load',
-                view_owner.build_native_direction_research_model.__code__: 'model_build',
-                state_owner.restore_native_direction_research_state.__code__: 'restore',
-                prefix._evaluate.__code__: 'evaluate', prefix._batch.__code__: 'batch',
-                reporter.tag_native_direction_contexts.__code__: 'context_tags',
-                reporter.score_native_direction_logits.__code__: 'scoring',
-                prefix._device_batch.__code__: 'device_batch', prefix._forward.__code__: 'forward',
-                view_owner._canonical.__code__: 'canonical_layout',
-                view_owner.history.require_gc_mtf_history_surfaces.__code__: 'gc_surface_validation',
-                view_owner.get_model_native_multi_tf_route_windows.__code__: 'mtf_windows',
-                view_owner.history.gather_gc_mtf_history_rows.__code__: 'gc_windows'})
+            timings = PhaseTimings(phase_codes({prefix._prepare: 'prepare', common._load_state: 'checkpoint_load',
+                view_owner.build_native_direction_research_model: 'model_build',
+                state_owner.restore_native_direction_research_state: 'restore',
+                prefix._evaluate: 'evaluate', prefix._batch: 'batch',
+                reporter.tag_native_direction_contexts: 'context_tags',
+                reporter.score_native_direction_logits: 'scoring',
+                prefix._device_batch: 'device_batch', prefix._forward: 'forward',
+                view_owner._canonical: 'canonical_layout',
+                view_owner.history.require_gc_mtf_history_surfaces: 'gc_surface_validation',
+                view_owner.get_model_native_multi_tf_route_windows: 'mtf_windows',
+                view_owner.history.gather_gc_mtf_history_rows: 'gc_windows'}))
         sys.setprofile(timings.profile(profile_guard) if timings is not None else profile_guard)
         phase['name'] = 'PREPARE'
         prepared, targets, view, context_map, order = prefix._prepare(context, recipe, np)
