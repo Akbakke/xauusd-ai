@@ -12,10 +12,12 @@ policy og launch. Programrot:
 DIRECTION_NATIVE_R1_SAVED_RANK_DESIGN_001 prioriteres før en ny GPU-probe:
 Native15m-AUC er bare litt underret1; rangeringstap er ennå ikke dokumentert
 med parvis usikkerhet. Sammenlign frosne prediksjoner på de samme67112foreldrene,
-med eksisterende4folder/4000uke- ogdagvekter. PLAN_001 er nå admittért:
+med eksisterende4folder/4000uke- ogdagvekter. PLAN_002 er nå admittért:
 180s/4GiB/512MiB/éntråd,5lagredeprediksjonsarkiver,48parviseblokkrangberegninger,
 0fit/0forward. Dette utfordrer informasjonstap-hypotesen; ingen ny modell,
-kalibreringsfit eller annen numerisk kjøring er åpnet.
+kalibreringsfit eller annen numerisk kjøring er åpnet.001ble erstattet før
+launch etter en kildekontroll: rank-eieren krever contiguous labels. Ingen
+kjøring eller payloadlesing fra001; verdier/metode er uendret.
 
 DIRECTION_RET1_INPUT_PARITY_ROOT_REVIEW_001 bekrefter COMPLETE/consumed:
 Alle118249TRAIN-foreldre har bit-identisk råret_1 i native current051 og245s

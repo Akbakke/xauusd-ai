@@ -35752,12 +35752,12 @@
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_PLAN_001.json",
-      "sha256": "20ca3e904f57b89eb68786e5990a6e28a23b37cb300033b52b1368e8f8970321"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_PLAN_002.json",
+      "sha256": "bb8bcfe837fd3d5f0712e199af80ad5c98dcb2a2cc5ed1e52fca78d6464da492"
     },
     "source_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_SOURCE_REVIEW_001.json",
-      "sha256": "489ec1de5165a4f936a26b10c1957a638892ade8522b61805bdf8b0144923d9a"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_SOURCE_REVIEW_002.json",
+      "sha256": "3bcea4f97785518c991038e593e07c5b5fc1019e9c40685d16b14ee4bceac132"
     },
     "budget": {
       "wall_seconds": 180,
@@ -35772,6 +35772,10 @@
       "fits": 0,
       "native_forwards": 0,
       "optimizer_steps": 0
+    },
+    "superseded_unexecuted_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_PLAN_001.json",
+      "sha256": "20ca3e904f57b89eb68786e5990a6e28a23b37cb300033b52b1368e8f8970321"
     }
   }
 }
