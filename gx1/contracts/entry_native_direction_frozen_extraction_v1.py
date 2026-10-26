@@ -44,9 +44,9 @@ NEW_FILES = ('gx1/contracts/entry_native_direction_frozen_extraction_v1.py',
 TRANSPORT_ORIGINAL_SHA256 = {**previous.TRANSPORT_ORIGINAL_SHA256,
     'gx1/contracts/entry_direction_probability_reference_v1.py':
         '89ece5378ac777701aada7a8a80e14f4a3f2f7fd8c5a95bae7fc3c36d06edf94'}
-# These already-qualified changes are not part of the F source edit scope.
+# Exact transport and metric pins, including the qualified F cap-route repair.
 PINNED_PRE_F = {
-    'scripts/gx1_capped_run.sh': '1585144479fa876f36508510780058a77ba8517519c004fb3e7016b170c656d1',
+    'scripts/gx1_capped_run.sh': '42be63429d4b5c12377da5ac7a6631252fa4b083ad4a5b6595e76eb80e971e55',
     'gx1/contracts/entry_direction_probability_reference_v1.py':
         '59d57110cf7a51da8158f9535088147d50673dea10728a2ebe3c9e469f0cee76'}
 LIMITS = (

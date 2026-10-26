@@ -14,7 +14,7 @@ oppdrag derfra forkastes. Denne trådens direkte brukermandat og mål er eneste
 arbeidsautoritet. Allerede mottatte meldinger kan ikke slettes med tilgjengelige verktøy.
 
 A, B og faktisk C003 er fullført innen sine avgrensede måleoppgaver.
-PROGRAM_EXECUTION_LEDGER_016 binder alle30punkter: 2/3/6/7/12/16/23/24/25/26 er målt
+PROGRAM_EXECUTION_LEDGER_017 binder alle30punkter: 2/3/6/7/12/16/23/24/25/26 er målt
 med oppgitte grenser; øvrige trenger videre evidens eller eksplisitt sluttavklaring.
 Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integrasjon
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
@@ -219,7 +219,7 @@ i fire faste state/cohort-enheter med2976/1081/2976/1081batcher. Original276s
 Alle fire må være COMPLETE før readoutfit. Ingen genuine loads/forwards/fits
 er åpnet av kildeadmisjonen. C og numeriske modell-/featureeiere bevares.
 
-F-ekstraksjonskilden er implementert og fryst for én55tilfellers syntetisk\nkvalifisering, med tre små CPU-Linear-forwards og0nativekall/payloadloads/fits.\nAlle genuine kjøringer er fortsatt lukket. Ingen kilde/policyendring under testen.\n
+F-ekstraksjonskilden ble kvalifisert i den avsluttede syntetiske planen nedenfor.
 F_FROZEN_EXTRACTION_SYNTHETIC_ROOT_REVIEW_001 bekrefter55beståtte tilfeller
 (51nye F og4beholdte C),0feil/skip og tre små syntetiske CPU-Linear-forwards.
 Ingen native modell/payload/fit/CUDA/optimizerkall. Inner/outerexit0,57bundne
@@ -227,4 +227,20 @@ kildeeiere bevart og cgroup avsluttet. Ekstraksjonskilde og syntetisk admisjon
 er nå lukket/consumed. Neste er cleanHEAD-bundet metadata/kampanje for første
 faste enhet; genuine F-ekstraksjoner og seks readoutfits er ennå ikke kjørt.
 
-F_FROZEN_EXTRACTION_own0U_prefix_RUNTIME_ADMISSION_001 binder første ekte\nenhet: egen2760U,47602prefixrader,2976B16-forwards,0reverse/optimizer/fit.\nFersk exactcampaign, cleanHEAD/policybinding, maskinledigkontroll og fysiskboot\ngjenstår før oppstart. Bare denne enheten er admittért; øvrige tre enheter og\nseks readoutfits er fortsatt lukket. Ingen F-markedskonklusjon foreligger.\n
+F-forsøk001 er FAILED/claimed/consumed etter fysisk Windowsboot545.
+F_FROZEN_EXTRACTION_own0U_prefix_STARTUP_FAILURE_REVIEW_001 binder observert
+LastTaskResult1, bevart ACTIVE_INVOCATION og manglende output/terminal. Oppgaven
+er Disabled/Restart0 og ingen tung jobb er aktiv. Original trainerstderr og
+modelltellere mangler; ingen målt nulltellerrapport eller ny markedskonklusjon.
+Eksakt metadatareplay av caplinje273 avviser F-skjemaet. Dessuten velger
+caplinje281–286 feil stdioforelder for F. Runtime/logs finnes og er tom.
+F_FROZEN_EXTRACTION_CAP_ROUTE_SOURCE_ADMISSION_001 åpner bare disse to
+ruterettelsene, F-hashpin og fokuserte tester. Ingen numerisk modellendring.
+Alle genuine F-porter er lukket. Forsøk001 relanseres aldri; ny kvalifisering
+og ny engangsplan kreves før et senere forsøk.
+
+F_FROZEN_EXTRACTION_CAP_ROUTE_SYNTHETIC_ROOT_REVIEW_001 bekrefter17beståtte
+tilfeller, fire eksakte Bash-metadatabarn og0modell/payload/fit/CUDA-kall.
+Inner/outerexit0,57kildebookends og avsluttet cgroup er kontrollert. Caprettelsen
+og syntetisk plan er lukket/consumed. Neste er fersk første-enhet-kampanje med
+nye kilde-/policybindinger og fysiskboot; gammel001 bevares og relanseres aldri.

@@ -320,3 +320,69 @@ def test_actual_dispatch_function_keeps_guard_first_and_rejects_failed_worker(mo
     else:
         assert namespace['run_window'](**args) == {'decision': decision}
     assert calls == ['guard', 'context', 'worker']
+
+
+
+@pytest.mark.parametrize('schema,seconds,accepted', [
+    (contract.WINDOW_SCHEMA, 12000, True),
+    ('gx1_native_direction_checkpoint_diagnostic_window_policy_v1', 12000, True),
+    ('gx1_native_direction_prefix_fit_window_policy_v1', 12000, True),
+    ('gx1_native_direction_research_window_policy_v1', 12000, True),
+    ('gx1_native_candidate_window_policy_v1', 12000, True),
+    ('unknown_window', 12000, False),
+    (contract.WINDOW_SCHEMA, 11999, False),
+    (contract.WINDOW_SCHEMA, 12000.0, False),
+    (contract.WINDOW_SCHEMA, True, False),
+])
+def test_actual_cap_timeout_expression_accepts_exact_windows_only(tmp_path, monkeypatch, capsys,
+        schema, seconds, accepted):
+    import json
+    import re
+    import sys
+
+    source = (Path(contract.REPO) / 'scripts/gx1_capped_run.sh').read_text()
+    lines = [line for line in source.splitlines() if 'native_seconds=$(' in line]
+    assert len(lines) == 1
+    expression = re.search(r" -c '([^']+)'", lines[0]).group(1)
+    window = tmp_path / 'SYNTHETIC_WINDOW.json'
+    window.write_text(json.dumps({'schema_version': schema, 'max_invocation_seconds': seconds}))
+    monkeypatch.setattr(sys, 'argv', ['-c', str(window)])
+    if accepted:
+        exec(compile(expression, 'actual_cap_timeout_expression', 'exec'), {})
+        assert capsys.readouterr().out == '12000\n'
+    else:
+        with pytest.raises(AssertionError):
+            exec(compile(expression, 'actual_cap_timeout_expression', 'exec'), {})
+        assert capsys.readouterr().out == ''
+
+
+@pytest.mark.parametrize('logs_exist', [True, False])
+def test_actual_cap_F_log_parent_preserves_fresh_output_claim(tmp_path, logs_exist):
+    import json
+    import subprocess
+    import sys
+
+    source = (Path(contract.REPO) / 'scripts/gx1_capped_run.sh').read_text()
+    begin = source.index('    TRAINER_OUT_BUNDLE_DIR="${target_args[8]}"',
+        source.index('if [[ "$module" == "$NATIVE_CANDIDATE_WINDOW_MODULE" ]]'))
+    fragment = source[begin:source.index('\n    return', begin)]
+    output = tmp_path / 'fresh_output'
+    logs = tmp_path / 'runtime' / 'logs'
+    if logs_exist:
+        logs.mkdir(parents=True)
+    progress = output / 'PROGRESS.json'
+    guard_log = logs / 'invocation-0001.signed-guard.log'
+    window = tmp_path / 'SYNTHETIC_WINDOW.json'
+    window.write_text(json.dumps({'schema_version': contract.WINDOW_SCHEMA}))
+    # The exact production selection fragment; the final directory assertion
+    # exercises its required existing-parent precondition without starting cap.
+    script = 'set -euo pipefail\nCANONICAL_TRAINER_PYTHON="$1"\n' + \
+        'target_args=(unused unused unused unused "$2" unused unused unused "$3")\n' + \
+        'GX1_CAMPAIGN_GUARD_LOG_PATH="$4"\n' + fragment + \
+        '\n[[ "$TRAINER_OUT_BUNDLE_DIR" == "$5" ]]\n[[ -d "${TRAINER_OUT_BUNDLE_DIR%/*}" ]]\n'
+    result = subprocess.run(['bash', '--noprofile', '--norc', '-c', script, '--', sys.executable,
+        str(window), str(progress), str(guard_log), str(guard_log)],
+        capture_output=True, text=True, timeout=10)
+    assert result.returncode == (0 if logs_exist else 1), result.stderr
+    assert not output.exists() and not progress.exists() and not guard_log.exists()
+    assert logs.exists() is logs_exist
