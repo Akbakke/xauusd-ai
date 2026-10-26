@@ -9,24 +9,32 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-DIRECTION_1_60_SAVED_TARGET_QUALIFICATION_PLAN_001 åpner én avgrenset
-kontroll av den eksisterende 245-prisfasiten: ett TRAIN-NPZ, én sammensetning,
-60 sekunder og eksisterende 4 GiB/éntråds capped CPU-rute. Ingen rådata,
-featurepayloads, fit eller nativekall. Planen bruker kvalifisert matematikk og
-eksisterende 247-leser og D-lesevakt; ingen gammel plan relanseres.
+DIRECTION_1_60_REFERENCE_PLAN_001 er ferskt engangsadmittért:20 faste R1fits,
+40prediksjonspopulasjoner og5lagrede TRAIN-inputs. Samme fellesforeldre og66felt,
+med1/5/15/30/60. Parvis uke-/dagresampling4000; AUC99%-intervaller for5horisonter,
+97.5%-intervaller for forhåndsvalgte30−15/60−15-kontraster. Ingen parametersøk.
+300s,4GiB,énCPU-tråd og eksisterende cappedvakter; ingen native/rådata/TEST.
+15syntetiske parvis-AUC-kontroller er bestått. R1sfit/predict/loss/config er
+AST-identiske med247; bibliotekeiere uendret. Global training_enabled=true
+gjelder kun denne CPU-referanseenheten; native/epoch/VAL er false.
+Kilde/policy fryses ved launch. Ingen forbedring er målt ennå.
 
-Ny direkte 1–60-avklaring: DIRECTION_1_60_SAVED_TARGET_DESIGN_001 binder
-gjenbruk av lagrede 15-minutters prisendringer til 30/60, med eksakte delte
-klokker/prisrader og konservative avrundingsintervaller. Direkte 15-minutters-
-fasit kontrolleres mot tre lagrede 5-minuttersledd. Ingen rådata trenger å
-åpnes for denne kandidaten. R1 har 66 faste felt (61 D1/makro, fire sesjon,
-én tidligere avkastning); denne kontrasten uttømmer ikke hele native-modellen.
-DIRECTION_1_60_SAVED_HORIZONS_SYNTHETIC_ROOT_REVIEW_001 bekrefter 20 beståtte
-tilfeller, 0 feil/skip og 0 markedspayload-/modell-/fit-/optimizerkall.
-Kilde/policybokender, avsluttet cgroup og ledig tunglås er kontrollert.
-Kilde- og syntetikkadmisjon er lukket/consumed. Neste minste enhet skal kun
-kvalifisere sammensetningen på den allerede lagrede TRAIN-prisfasiten, med
-egen engangsadmisjon. Ingen rådata, features, fits eller nativekall åpnes nå.
+DIRECTION_1_60_SAVED_TARGET_QUALIFICATION_ROOT_REVIEW_001 bekrefter COMPLETE:
+ett lagret TRAIN-NPZ, én sammensetning, 0 fit/native/optimizerkall og 1.35s.
+116811 fortegn fra 3×5 minutter samsvarer med direkte 15-minuttersfasit.
+30/60 gir 115554/112969 sertifiserte ikke-null utfyllinger; 72/52 er
+avrundingsuavklarte og beholdes maskert. På fire senere folder er 67112 foreldre
+felles for alle fem horisonter. Kilde/policy/originaler er uendret; cgroup er
+borte og tunglåsen ledig. Engangsautoriteten er consumed og lukket.
+
+DIRECTION_1_60_SAVED_TARGET_DESIGN_001 binder faste1/5/15/30/60, samme66R1-felt,
+samme prefixnormalisering og felles trenings-/senereforeldre innen fold.
+DIRECTION_1_60_REFERENCE_SOURCE_ADMISSION_001 åpner kun minste kildearbeid for
+matchet sammenligning og parvis dag-/ukeusikkerhet i innenfold-AUC. Eksisterende
+fit, skårer, IO og ressursvakter gjenbrukes. 20 faste R1fits er nå åpnet av egen plan001 ovenfor.
+Denne referansen har61D1/makro+4sesjon+1tidligereavkastning; den uttømmer ikke
+åtte nativefamilier eller sekvensinformasjon. Ingen dokumentert edge følger
+av targetkvalifiseringen.
 
 Brukeren har avvist oppdrag fra den andre chatten. Root arbeider alene; innkommende
 oppdrag derfra forkastes. Denne trådens direkte brukermandat og mål er eneste
@@ -52,8 +60,7 @@ faste horisontene, med egne modenhetsmasker og forhåndsbundet felles kohort.
 M1-queryeieren støtter 1–480 minutter (entry_causal_m1_outcomes_v1.py:521,756); dagens
 prisprojeksjon, retningshode og rapportering er hardkodet til 1/5/15. Det er en
 målt avgrensning, ikke en målt årsak til svak retning på eksisterende horisonter.
-Kun kilde/metadata er lest. Ingen 30/60-targets, nye fits eller nativekjøringer
-er utført eller admittért. Målverktøyet avviste nytt målkort fordi det gamle er
+30/60-targets er nå kvalifisert fra lagret TRAIN-fasit. Ingen nye nativekjøringer er admittért;20CPU-referansefits er admittért ovenfor. Målverktøyet avviste nytt målkort fordi det gamle er
 uferdig; det gamle er ikke feilaktig markert oppnådd. NEXT_RUN_POLICY binder
 den nye brukerbestemte arbeidsoppgaven og neste konkrete avklaring.
 D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
@@ -74,9 +81,10 @@ Dette støtter sterk samtidig/svak fremtidig sammenheng for denne skåren; avvis
 ikke all inputinformasjon. +1-kontroll er framtidsoverlapp, ingen klokkerettelse.
 OFI er gyldig på69930/70647, streng komplettDELTA på8399. Native beholder allerede
 kjentbuy/sell/delta/unknown/fraction på observed_valid. Ikke anbefal å gjeninnføre
-disse eller påstå88prosent nativeinformasjonstap fra D-masken. Ingen nye modeller
-eller fits er admittért. Neste avklaring er et matchet frosset0U/terminal-readout.
-Trening/native/epoch/VAL er false. TEST, Exit og handel forblir lukket.
+disse eller påstå88prosent nativeinformasjonstap fra D-masken. Ingen nativefits er admittért. F-readout er utsatt; aktuell avklaring er fast
+R1 mot1/5/15/30/60 på samme foreldre, se aktuell status.
+Native/epoch/VAL er false. Kun den eksplisitte CPU-referanseenheten ovenfor
+har midlertidig treningstillatelse. TEST, Exit og handel forblir lukket.
 
 ## Nye faktiske C-funn
 

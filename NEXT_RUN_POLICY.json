@@ -46,11 +46,11 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-26T19:49:32.072865+00:00",
   "status": "F_TIMING_SOURCE_AND56CASES_QUALIFIED_GENUINE_ADMISSION_PENDING",
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "F attempts001/002 are consumed and cannot be relaunched. All F execution, payload, constructor, forward and fit ports are closed. Only bounded throughput design/source review is current; fresh admission required for changes or execution. TEST/CONTROL/Exit/trading remain closed.",
-  "next_action": "Commit qualified timing source, then bind a fresh own0U_prefix_timing256 canonical campaign for16forwards/600seconds/0reverse/optimizer/fit. Original001/002 remain consumed; no full F extraction admitted.",
+  "next_action": "Execute only one freshly-admitted20fit fixedCPU horizon reference. Five saved TRAIN inputs,67,112 common laterparents,4000 paired day/week replicates;0native/raw/normalization fits. No retuning.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Timing003 COMPLETE with exact parity but only1.01755percent faster; candidate rejected and original profiler owner restored. No active job.",
+    "current_activity": "Fixed five-horizon direction reference admitted",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -272,8 +272,8 @@
     "latest_terminal_role": "Actual16F candidate with original exact output parity; execution succeeded, predefined speed/projection gates failed.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_HORIZONS_SYNTHETIC_ROOT_REVIEW_001.json",
-      "sha256": "651561ac1843a24feb8a5994989b9158c344801e6296a7b3f115391f0b25342b"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RANK_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "5ee8ee36f3f3122cc137d666047ae88c13a4e3600e7beef0cfd95f70cd7cce4f"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute only the once-admitted saved-target qualification:1TRAIN NPZ load,1composition,0raw reads/features/fits/native calls; compare15from3x5 and report30/60coverage and matched fold populations.",
+    "next_action": "Execute only one freshly-admitted20fit fixedCPU horizon reference. Five saved TRAIN inputs,67,112 common laterparents,4000 paired day/week replicates;0native/raw/normalization fits. No retuning.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20202,7 +20202,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T11:46:55.544035+00:00",
+  "updated_utc": "2026-10-26T22:20:45.125059+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35511,19 +35511,89 @@
     }
   },
   "direction_1_60_saved_target_qualification": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_TARGET_QUALIFICATION_PLAN_001.json",
       "sha256": "88c81242214a319cc74dc0da6fbcd67388af255077e45e8be50fee3a0bfc7365"
     },
-    "execution_authorized": true,
-    "saved_target_reads_authorized": true,
+    "execution_authorized": false,
+    "saved_target_reads_authorized": false,
     "raw_data_reads_authorized": false,
     "genuine_fits_authorized": false,
     "native_forwards_authorized": false,
     "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "consumed_invocations": 1,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_SAVED_TARGET_QUALIFICATION_ROOT_REVIEW_001.json",
+      "sha256": "e84455653528ced719fec85d33e23b53efd66c98f175453a149a8f065cfa089b"
+    }
+  },
+  "direction_1_60_reference_source": {
+    "status": "SOURCE_QUALIFIED",
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_SOURCE_ADMISSION_001.json",
+      "sha256": "24809d3bff31d5d869f76c13a1fd64884e5f66eabcc92fc8f89495cecba37f9e"
+    },
+    "source_edits_authorized": false,
+    "genuine_execution_authorized": false,
+    "synthetic_execution_authorized": false,
+    "test_data_used": false,
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_DESIGN_001.json",
+      "sha256": "df9b760e501de29d3f8b865c03a97edebef0fb887936adbb332b13ce86f420b8"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_SOURCE_REVIEW_001.json",
+      "sha256": "2fab35250636749c2e578ec184f660932de89859d3cf99aa1b344bcb7da47654"
+    },
+    "execution_source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_EXECUTION_SOURCE_REVIEW_001.json",
+      "sha256": "93be73ea90bcbbd98947394df597067404353a47298f10dfe5f96b411f5a2843"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RANK_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "5ee8ee36f3f3122cc137d666047ae88c13a4e3600e7beef0cfd95f70cd7cce4f"
+    }
+  },
+  "direction_1_60_rank_synthetic": {
+    "status": "COMPLETE_CONSUMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RANK_SYNTHETIC_PLAN_001.json",
+      "sha256": "4ba55693ed413048e70cec749d96eb491a92a31a7566a4bc23bd40c3e13d41f6"
+    },
+    "execution_authorized": false,
+    "synthetic_tests_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "consumed_invocations": 1,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RANK_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "5ee8ee36f3f3122cc137d666047ae88c13a4e3600e7beef0cfd95f70cd7cce4f"
+    }
+  },
+  "direction_1_60_reference": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_PLAN_001.json",
+      "sha256": "a4e9f46ae0725582e95dd35bc0420554917cadb79a4fe438ee130eac4fc1cee6"
+    },
+    "execution_authorized": true,
+    "training_enabled": true,
+    "genuine_fits_authorized": true,
+    "saved_inputs_authorized": true,
+    "raw_data_reads_authorized": false,
+    "native_forwards_authorized": false,
+    "test_data_used": false,
+    "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "relaunch_allowed": false
-  }
+  },
+  "training_enabled_scope": "Only direction_1_60_reference20 fixed CPU R1fits, once,300s; native/epoch/VAL remainfalse."
 }
