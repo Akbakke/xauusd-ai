@@ -10,7 +10,7 @@ policy og launch. Programrot:
 ## Aktuell status
 
 A, B og faktisk C003 er fullført innen sine avgrensede måleoppgaver.
-PROGRAM_EXECUTION_LEDGER_006 binder alle30punkter: 2/3/6/7/23/24/25/26 er målt
+PROGRAM_EXECUTION_LEDGER_007 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
 med oppgitte grenser; øvrige trenger videre evidens eller eksplisitt sluttavklaring.
 Hele målet er aktivt og uferdig. Ingen aktiv tung jobb eller ny kjøring admittért.
 Trening/native/epoch/VAL er false. TEST, Exit og handel forblir lukket.
@@ -84,29 +84,47 @@ Dette er gjenbrukt TRAIN/utvikling, ikke urørt bekreftelse eller økonomisk edg
 
 ## Neste konkrete arbeid — D, deretter begrunnet E/F og samlet G
 
-D_TRAIN_READER_FEASIBILITY_001 binder kildegjennomgang av024M1_GC_INPUTS,
-sluttkvalitetsmasker/roll og245PRICE_TARGETS:118249TRAINforeldre,1/5/15min.
-M1-tabellene er skrevet samlet uten eksplisittTRAIN-radgruppegrense. Faktisk
-Parquet-footer/layout er ikke lest. Neste minste gate er en kvalifisert eksakt
-header/trailer/footer-leser og metadata-buffer, uten original rowgroup-prefetch.
-Skill arvet fullfilSHA, fersk fysisk hash, footerbytes og dekodede rader. Footer-
-hash/stat alene beviser ikke helefilidentitet. Ingen kolonne-body før eksplisitt
-TRAIN-only radgruppe-/kolonneallowlist. Kryssende/manglende stats stopper denne
-ruten; ingen stille parentdropping eller ubegrunnet rådatarebuild.
+D_EXACT_FOOTER_ACTUAL_ROOT_REVIEW_001 binder en faktisk, fullført metadata-
+undersøkelse av024s to M1-filer. Leseren bestod15syntetiske kontroller før ekte
+kjøring. SammeFD/fersk fysiskSHA, eksakte header/trailer/footerbytes og Arrow
+på metadata-buffer ble brukt.107634618bytes ble strømmet som opaque fullfilhash;
+22533originale metadata-bytes ble lest separat. Ingen datakolonner ble dekodet.
+Eksisterende4GiB/512MiB/64tasks/éntråds capped audit og låsvakter var aktive.
+Begge operasjoner er konsumerte og lukket; ingen ny lesing eller kjøring åpnes.
 
-Når leseruten er kvalifisert: sammenhold fem avsluttede M1-minutters OFI/kjent
-volumdelta med samtidigGC-respons, senereGC og uendrede senereXAU-mål på samme
-foreldre. Behold sluttmasker volume_valid/signed_valid/ofi_valid/bbo_valid,
-nuller/ukjent/dekning/roll. Faste−1/0/+1min timingkontroller; +1er ikke-kausal
-negativkontroll og aldri kandidat. GC opening/closingmid er integrertts_recv-
-boktilstand som kan være båret over minuttgrensen. Subminuttquotealder,
-interfeed-ledelse og eksakt hendelsesrekkefølge kan ikke identifiseres her.
+Begge filer har1139040rader. Radgruppe0 har1048576rader fra2024-05-01 til
+2026-04-29T04:15Z og krysser TRAIN-slutt2026-01-01. Gruppe1 har90464rader
+etter cutoff. Ingen hel radgruppe er kvalifisert som TRAIN-only. Direkte
+Parquet-read+filter er derfor stengt i denne ruten. Dette er en målt lagrings-
+begrensning for Ddiagnosen, ingen forklaring på modellens svake retning.
 
-Deretter begrunnetF: identiske readoutfits på frossen0U og frossenterminal-
-representasjon, sammenlignbarTRAIN-fit og identiskkronologiskOOF. Dette kan skille
-representasjon fra readout/optimering; ingen nye fits, baseline eller kjøringer er
-admittért ennå. Valgfri etteranalyse av bias-sentrering er heller ikke admittért;
-D har prioritet. Ingen checkpointvalg, HPO, indikatorfjerning eller ekstraepoke.
+D_ESTIMAND_SOURCE_REVIEW_001 korrigerer endpoint- og kohortdesignet:
+GC G(t−) hentes fra closing_mid i raden[t−1min,t), publisert vedt. Closing i
+raden som starterD+h ville gitt omtrent ett ekstra minutt mot245s XAU-open.
+GC-tilstanden kan være båret fra tidligere ts_recv; eksakt quotealder og
+subminutt/interfeed-ledelse kan ikke identifiseres. Aktuelle54/13kolonneskjema
+og kilde binder denne grensen. Ledgerpunkt12 er avklart med dette omfanget.
+
+Hovedkohorten må være uavhengig av+1-kontrollens fremtidige flowmasker.
+Behold separat felles timingkohort og visdelta0påbegge. GC/XAU-AUC-kontraster
+krever begge-ikke-null-interseksjon; målspesifikke ties/counts beholdes.
+Fem eksakte avsluttede M1-slots, sluttmasker, ukjentvolum, rullering og separate
+endpoint-/pathmasker består. Ingen verdier eller sammenhenger er målt i D ennå.
+
+Neste grense er en fullstendig TRAIN-isolerbar kilde/ekstraksjon for OFI,
+BBO-endepunkter og sluttmasker. D_TRAIN_SOURCE_REUSE_REVIEW_001 binder kilde-/JSON-kontrollen.
+Den deklarerte024-kjeden har bare fullstudie
+kontrakt-M1-filer; valgte event-/ladderdelmengder erstatter ikke disse seriene.
+134s per-raw-file-referanser er JSON-vitner; de numeriske M1-seriene ble ikke
+bevart. Ikke gjør en ny bred cachescan, stille parentdropping eller kall en
+ufullstendig delmengde heleD. En konkret minimal TRAIN-only ekstraksjon/reduksjon
+må kvalifiseres før noen datakolonne leses. Ingen rå-MBP-rebuild er admittért.
+
+Etter D står begrunnetF ved lag: identiske readoutfits på frossen0U og frossen-
+terminalrepresentasjon, sammenlignbarTRAIN-fit og identiskkronologiskOOF.
+Dette kan skille representasjon fra readout/optimering; ingen nye fits eller
+baseline er admittért. Ingen checkpointvalg, HPO, indikatorfjerning eller
+ekstraepoke følger av diagnosefunnene.
 
 ## Indikatorer og varige grenser
 

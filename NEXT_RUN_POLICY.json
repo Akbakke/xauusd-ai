@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-26T09:18:08.867749+00:00",
-  "status": "DIRECTION_A_B_C_COMPLETE_CAUSAL_DIAGNOSIS_D_NEXT_NO_LAUNCH",
+  "status": "D_METADATA_COMPLETE_TRAIN_EXTRACTION_ROUTE_PENDING_NO_LAUNCH",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only exact C003 read-only saved276 diagnostic is admitted under dynamic_m5_direction_checkpoint_diagnostic_c after clean source, metadata preparation and fresh physical boot. C001/C002 and all completed testplans consumed. Global training/native-fit/epoch/VAL closed; TEST/Exit/trading closed.",
-  "next_action": "C003 consumed and reviewed. Qualify fixed D exact-footer reader and TRAIN rowgroup boundary before any column-body read; then matched GC contemporaneous/futureGC/futureXAU. Frozen-representation/readout F follows evidence, no new training or raw-data operation admitted.",
+  "next_action": "Resolve a complete TRAIN-only input route for D after measured mixed Parquet rowgroups; inspect only declared alternative cache metadata/source first. No body/model/training operation admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "C003 complete and consumed; actual four-checkpoint/three-panel diagnosis and three scoped reviews are closed. D exact-footer/TRAIN-rowgroup qualification is next.",
+    "current_activity": "Dmetadata complete and consumed:0eligible TRAIN-only rowgroups. Source/metadata search for complete TRAIN-isolated input continues; no heavyjob or new operation admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,11 +269,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Successful read-only saved-checkpoint diagnosis:194F/6R/4PT/0updates; genuine TRAIN measurements, not fit or edge.",
+    "latest_terminal_role": "Ddata-access qualification only:two opaque fullhashes and footer clockmetadata, zero decoded data columns/model/training.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_RUNTIME_20261026_003",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_ACTUAL_OUTER_TERMINAL_003.json",
-      "sha256": "455334c6752a6e4f3b3d23588e18665eef82fec793d96b73bd859df2f2fda140"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_METADATA_OUTER_TERMINAL_001.json",
+      "sha256": "f25a1f49070b2ab2b95220e9d33f8ea01193660d6293aee231beb2d47bf22a8d"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": null,
+    "current_blocker": "D full-M1 source has no TRAIN-only entire Parquet rowgroup; alternative complete TRAIN input/extraction is unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Commit/push qualified minimum two-file C repair with required existing hook; prepare fresh C003 at clean HEAD/external policy binding; verify whole-host idle and fresh physical Windows boot after543; execute fixed194F6R4PT0steps once.",
+    "next_action": "Resolve a complete TRAIN-only input route for D after measured mixed Parquet rowgroups; inspect only declared alternative cache metadata/source first. No body/model/training operation admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16212,7 +16212,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Four fixed baseline fits and B complete; C002 parameter geometry preserved, no new forward/gradient quality measurement. Six temp/failure metadata tests passed; no predictive qualification.",
+    "latest_terminal_evidence_scope": "Actual Dmetadata qualification only:107634618opaque hashbytes,22533metadata bytes,0decoded columns; mixed TRAIN/postTRAIN rowgroups block the direct route. Cactual learning/representation evidence remains linked separately.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17437,8 +17437,8 @@
       "sha256": "b347f518c0da11045fe9ef6ba3ce477efe432396e5b8a8c5263285276fe6e357"
     },
     "latest_direction_analysis": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_ACTUAL_ROOT_SYNTHESIS_001.json",
-      "sha256": "11c301d382416763c955798719c7c9794598473988012cc28c6d10513e56bfd1"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "55a1aa08203acb6599c352c605df7f8ffeb353ce14257e1cd7e66cfdb421432d"
     },
     "latest_reference_direction_decision": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
@@ -17513,8 +17513,8 @@
       "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed."
     },
     "latest_direction_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD4_20261025_280/OUTER_TERMINAL.json",
-      "sha256": "10e20adfd83debd0253c94e0871b6aeb0a9861b72f67b1b2a9d20fc23b8491a3"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_METADATA_OUTER_TERMINAL_001.json",
+      "sha256": "f25a1f49070b2ab2b95220e9d33f8ea01193660d6293aee231beb2d47bf22a8d"
     },
     "research_direction_optimizer_resume_seam": {
       "status": "SOURCE_REVIEW_ONLY_CONCRETE_WRAPPER_GAPS_NO_CODE_OR_LAUNCH",
@@ -17565,8 +17565,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_ACTUAL_OUTER_TERMINAL_003.json",
-      "sha256": "455334c6752a6e4f3b3d23588e18665eef82fec793d96b73bd859df2f2fda140"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_METADATA_OUTER_TERMINAL_001.json",
+      "sha256": "f25a1f49070b2ab2b95220e9d33f8ea01193660d6293aee231beb2d47bf22a8d"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -20790,8 +20790,8 @@
     }
   },
   "latest_terminal_receipt": {
-    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_ACTUAL_OUTER_TERMINAL_003.json",
-    "sha256": "455334c6752a6e4f3b3d23588e18665eef82fec793d96b73bd859df2f2fda140"
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_METADATA_OUTER_TERMINAL_001.json",
+    "sha256": "f25a1f49070b2ab2b95220e9d33f8ea01193660d6293aee231beb2d47bf22a8d"
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -32862,7 +32862,7 @@
     }
   },
   "direction_diagnostic_execution_program_20261025": {
-    "status": "A_B_C_COMPLETE_D_SOURCE_READER_GATE_PENDING_E_F_G_PENDING",
+    "status": "A_B_C_COMPLETE_D_METADATA_COMPLETE_TRAIN_EXTRACTION_PENDING_E_F_G_PENDING",
     "program": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_DESIGN.json",
       "sha256": "41497f9d9d8899f5012d4020b286b1367d2350f67f07df529b04c0da64eb5aea"
@@ -33043,10 +33043,10 @@
       "sha256": "743d4fa38af387b520306f59c3e2960e0d078d2db52e6a0e19e9d934e6732f5b"
     },
     "B_saved_prediction_comparison_complete": true,
-    "data_read_scope": "Closed.B001consumed; no new payload or model operation admitted.",
+    "data_read_scope": "Closed. Dmetadata001consumed; no further payload hashing/footer/body or model operation admitted.",
     "execution_ledger": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_006.json",
-      "sha256": "4fc9bb9577b52eac112ee669d072ead9f82b1fdc041561ac6238f018030c63f6"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_007.json",
+      "sha256": "849636be02293174936e2d799353925e20dfeef8f10b997bf38629c3ba38f124"
     },
     "B_actual_root_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_SAVED_PREDICTION_ACTUAL_ROOT_REVIEW_001.json",
@@ -33168,6 +33168,31 @@
     "C_actual_outer_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_ACTUAL_OUTER_TERMINAL_003.json",
       "sha256": "455334c6752a6e4f3b3d23588e18665eef82fec793d96b73bd859df2f2fda140"
+    },
+    "D_footer_source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_SOURCE_ADMISSION_001.json",
+      "sha256": "8851a1ebb06610e3ecf2a5230bb3c6647825fda392cf4d2ecc209b4253a86a6f"
+    },
+    "D_estimand_source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_ESTIMAND_SOURCE_REVIEW_001.json",
+      "sha256": "5ad22964a1b6bd012fedd633912528caeaaa297383c374ea9300c8dc882555af"
+    },
+    "D_footer_synthetic_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_SYNTHETIC_REVIEW_001.json",
+      "sha256": "c98bd0e248fc6498e48ec6a425c405647c9361764893872f2a3e2b65f981cf05"
+    },
+    "D_footer_metadata_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_METADATA_PLAN_001.json",
+      "sha256": "b1f5404b9b1d0c7f3c802d8d9317491046d8c3d706c3b6dd08d4e37452de5790"
+    },
+    "D_footer_metadata_authorized": false,
+    "D_actual_footer_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "55a1aa08203acb6599c352c605df7f8ffeb353ce14257e1cd7e66cfdb421432d"
+    },
+    "D_TRAIN_source_reuse_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_SOURCE_REUSE_REVIEW_001.json",
+      "sha256": "6236b4e8ebba56fc4e7276893f62ed3eb8532568c86d2e039498241cd9880578"
     }
   },
   "direction_diagnostic_B_rank_synthetic_qualification_20261025": {
@@ -34332,6 +34357,127 @@
     "actual_peer": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_TEMP_WRITE_REPAIR_ACTUAL_PEER_001.json",
       "sha256": "ce3ea937d9827329ae649d0fc6cff91ad27ccf3adeff7c64ac95b0bedd0828a9"
+    }
+  },
+  "direction_diagnostic_D_exact_footer_source_20261026": {
+    "schema_version": "gx1_D_exact_parquet_metadata_source_admission_v1",
+    "observed_utc": "2026-10-26T09:39:37.107894+00:00",
+    "source_head": "4b2a1b09fb7d45fad900e369ebb8059a5675fc5a",
+    "authorization_basis": "Explicit continuous user-authorized full30item direction diagnosis, phaseD; root is sole integrator. Concrete unresolved layout prevents TRAIN-only GC self/cross-market diagnosis.",
+    "minimum_change": "One external bounded metadata worker with synthetic qualification mode. No model, trainer, capped wrapper, or shared IO-owner changes. Reuse existing capped audit and lock authorities.",
+    "allowed_external_file": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/inspect_direction_gc_parquet_metadata.py",
+    "owner": "root",
+    "source_edits_authorized": false,
+    "test_execution_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "opaque_payload_hashing_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "requirements": [
+      "Same canonical FD and six-field identity bookends for fresh full SHA and exact header/trailer/footer reads.",
+      "Opaque whole-file hashing is explicit and separately counted; only footer schema/rowgroup/time statistics are decoded.",
+      "Arrow receives an in-memory metadata-only container; never the original path/FD/body.",
+      "Inspect exact bar_start_ns/available_ns statistics only; no feature-value statistics or columns decoded.",
+      "No data-body authority follows from metadata; crossing/missing TRAIN stats stops that route.",
+      "Fresh immutable single-use plan and policy binding before each synthetic or genuine operation.",
+      "Existing 4GiB audit/512MiB swap/64tasks/one numerical thread limits, canonical lock and 600s budget from B qualification."
+    ],
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_SOURCE_ADMISSION_001.json",
+      "sha256": "8851a1ebb06610e3ecf2a5230bb3c6647825fda392cf4d2ecc209b4253a86a6f"
+    },
+    "status": "COMPLETE_QUALIFIED_SOURCE_AND_ACTUAL_METADATA",
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_SOURCE_REVIEW_001.json",
+      "sha256": "04cfc1da38bc4e52fb8d5b694ed79f37b454a2e6becf558f8fd1c75032fa0298"
+    }
+  },
+  "direction_diagnostic_D_footer_synthetic_20261026": {
+    "status": "COMPLETE_15_CASES_CONSUMED_CLOSED",
+    "mode": "synthetic",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_SYNTHETIC_PLAN_001.json",
+      "sha256": "6c1e4eab71a222dede6e095c715ffc88469a91b0f779ad6f3d6f84d9e5af3df3"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/inspect_direction_gc_parquet_metadata.py",
+      "sha256": "a648c47880b6b195d1213741a0826d34c7e475bd75193313a4c26f7723798c7a"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_SOURCE_REVIEW_001.json",
+      "sha256": "04cfc1da38bc4e52fb8d5b694ed79f37b454a2e6becf558f8fd1c75032fa0298"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "synthetic_tests_authorized": false,
+    "opaque_payload_hashing_authorized": false,
+    "genuine_footer_metadata_authorized": false,
+    "decoded_data_columns_authorized": false,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "authorization_basis": "Fresh15case synthetic qualification of the admitted minimal Dmetadatareader after scoped peer/root review. No genuine Parquet/NPZ/weights/data.",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_SYNTHETIC_20261026_001/TERMINAL.json",
+      "sha256": "07902ac90440369ee640584a4f0868130fcf4cc360d8d9f947736df0bf2681e5"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_SYNTHETIC_OUTER_TERMINAL_001.json",
+      "sha256": "b6d054b0381d6df35d68c6c776186dde1e6ce8d2e6a0c5db0ceb7fd1f629320e"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_SYNTHETIC_REVIEW_001.json",
+      "sha256": "c98bd0e248fc6498e48ec6a425c405647c9361764893872f2a3e2b65f981cf05"
+    }
+  },
+  "direction_diagnostic_D_footer_metadata_20261026": {
+    "status": "COMPLETE_CONSUMED_NO_TRAIN_ROWGROUP_ROUTE",
+    "mode": "actual_metadata",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_METADATA_PLAN_001.json",
+      "sha256": "b1f5404b9b1d0c7f3c802d8d9317491046d8c3d706c3b6dd08d4e37452de5790"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/inspect_direction_gc_parquet_metadata.py",
+      "sha256": "a648c47880b6b195d1213741a0826d34c7e475bd75193313a4c26f7723798c7a"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_SOURCE_REVIEW_001.json",
+      "sha256": "04cfc1da38bc4e52fb8d5b694ed79f37b454a2e6becf558f8fd1c75032fa0298"
+    },
+    "synthetic_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_SYNTHETIC_REVIEW_001.json",
+      "sha256": "c98bd0e248fc6498e48ec6a425c405647c9361764893872f2a3e2b65f981cf05"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "synthetic_tests_authorized": false,
+    "opaque_payload_hashing_authorized": false,
+    "genuine_footer_metadata_authorized": false,
+    "decoded_data_columns_authorized": false,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "exact_opaque_hash_bytes": 107634618,
+    "authorization_basis": "Fresh Dmetadata operation after15case qualification. Exactly two024Parquet files, sameFD fresh opaque fullhash plus schema/clock footer metadata only. TRAIN rowgroup eligibility remains to be measured; no body/model/fit.",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_METADATA_20261026_001/TERMINAL.json",
+      "sha256": "f25d9a2b268a182da98178ce9053e035db6e264626a771614f6fcead92b4e9b8"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_METADATA_OUTER_TERMINAL_001.json",
+      "sha256": "f25a1f49070b2ab2b95220e9d33f8ea01193660d6293aee231beb2d47bf22a8d"
+    },
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "55a1aa08203acb6599c352c605df7f8ffeb353ce14257e1cd7e66cfdb421432d"
     }
   }
 }
