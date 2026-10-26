@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Design one intercept-only native probability control using original full-prefix class priors and the predeclared saved256 final-TRAIN logits only; evaluate unchanged later parents. No later calibration fit, native forward, architecture change or numerical execution admitted.",
+  "next_action": "Run only20 synthetic scalar-offset controls; no genuine data fit or model forward until fresh exact numerical admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Weak native15m ranking measured; isolate probability offset before architecture changes",
+    "current_activity": "Qualify one TRAIN-only intercept diagnostic for measured native probability deficit",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -20227,7 +20227,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T23:21:12.322690+00:00",
+  "updated_utc": "2026-10-26T23:34:18.535532+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35801,5 +35801,37 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_002/SUMMARY.json",
       "sha256": "0420cb4b94051260661c45950230fc42b285b9f2178226455366ed654512f182"
     }
+  },
+  "direction_prior_offset_synthetic": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_SYNTHETIC_PLAN_001.json",
+      "sha256": "cf6f57929e6dd161243279d41488781b5fcdd7c7d24a25179b987e5a7cda2816"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_DESIGN_001.json",
+      "sha256": "e0f8ed2f283345e5f50de806321473650ce4e3eea6574e35e31925a41986f3e2"
+    },
+    "execution_authorized": true,
+    "synthetic_tests_authorized": true,
+    "genuine_payload_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
+  },
+  "direction_prior_offset": {
+    "status": "SOURCE_PREPARATION",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_DESIGN_001.json",
+      "sha256": "e0f8ed2f283345e5f50de806321473650ce4e3eea6574e35e31925a41986f3e2"
+    },
+    "source_preparation_authorized": true,
+    "execution_authorized": false,
+    "saved_predictions_authorized": false,
+    "scalar_calibrations_authorized": false,
+    "raw_data_reads_authorized": false,
+    "native_forwards_authorized": false,
+    "test_data_used": false
   }
 }

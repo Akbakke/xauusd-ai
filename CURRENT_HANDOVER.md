@@ -9,6 +9,14 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+DIRECTION_PRIOR_OFFSET_DESIGN_001 binder ett konkret spørsmål: skyldes de svake
+proper scores et feil sannsynlighetsnivå? Kun 20 syntetiske kontroller er nå
+admittert gjennom DIRECTION_PRIOR_OFFSET_SYNTHETIC_PLAN_001; ingen ekte
+kalibrering, payloadlesing eller modellforward er åpnet. Den planlagte testen
+bestemmer 12 konstante offsetter fra de originale FINAL_TRAIN256-logits og
+full-prefix-priorene, før de samme senere observasjonene scores. Rangeringen
+skal være eksakt uendret. Native modell, features og trening er uendret.
+
 Gjeldende årsaksanalyse er tilgjengelig i docs/DIRECTION_1_60_CURRENT_ANALYSIS.json.
 Arbeidsmålet er retning ved 1, 5, 15, 30 og 60 minutter; ingen robust fremtidig
 eller økonomisk edge er dokumentert. Root arbeider alene.
