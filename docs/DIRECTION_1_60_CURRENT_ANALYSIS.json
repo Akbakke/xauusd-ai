@@ -1,0 +1,351 @@
+{
+  "already_excluded_with_scope": [
+    "Heleoptimizer-modellen står stille.",
+    "Ret1 mangler i aktivinput eller er forskjøvet i den kontrollerteprepared-ruten.",
+    "Hardasinh-klipping avret1 eller renmeanpooling som eneste aktuellefeil.",
+    "Alle prediksjoner er identiske fordi fold4velgerUP.",
+    "30/60 alene redder de to konkretefaste referansene."
+  ],
+  "changes_from_previous_synthesis": [
+    "Ret1-leveringsfeil er ikke observert:118249eksakte råverdier og fire eksakte referansekoordinater.",
+    "Native15mhar et svakt positivt innenfold-rangeringssignal i gjenbrukt utvikling, med99%intervaller over.5 i begge blokkmetoder; dagsgrensen er bare.500074.",
+    "Native-rangering er ikke påvist dårligere ennR1ved5/15. Informasjonstap som hovedforklaring nedprioriteres; manglende signifikant forskjell beviser ikke likeverdighet.",
+    "Native-sannsynligheter er målt dårligere ennprior/R1ved5/15. Nivå/konfidens er nå den første avgrensede feilkilden å isolere."
+  ],
+  "created_utc": "2026-10-26T23:21:12.322690+00:00",
+  "economic_edge_claimed": false,
+  "evidence": [
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002.json",
+      "sha256": "3877ec7651de78ac3afab83d069495af80f5283b638b5b01e18b6c173e62ed92"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_ROOT_REVIEW_001.json",
+      "sha256": "6e95ffb973a7b3ce93cf6606c685ff24a7fad6aecedbad7fbc60c925cfa64835"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
+      "sha256": "33b44e65afbb470f42cf1bb8c90dc89c3fa76bfc90f8c955a4aa1910ac0c8d2f"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_002.json",
+      "sha256": "6ca2ccd67c2281c6a4933938d732dce806bbd8eb032e2a0b93afb4d5ffa95dd2"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_NATIVE_SOURCE_TRACE_001.json",
+      "sha256": "3d96a127b7084894c3155f014143f4cfdc8a0574316c30c313b2ffa8f9d008c0"
+    }
+  ],
+  "highest_information_next": "Én prefix-only interceptkontroll medallerede lagredeprediksjoner; uendretAUC skiller sannsynlighetsrettelse fra ny retningsinformasjon.",
+  "hypotheses": [
+    {
+      "classification": "Påvist kvalitetsproblem i sannsynlighetene; offset som hovedmekanisme er plausibel, ingen påvist implementasjonsfeil.",
+      "counterevidence": "Proper scores avhenger også av rangering, spread og tidsregimer. PositiveAUCintervaller er svake og utviklingsbetingede. De småTRAIN-panelene beskriver ikke fullprefix-kalibrering.",
+      "exact_code": {
+        "lines": [
+          110,
+          125,
+          151,
+          156,
+          185,
+          191,
+          208,
+          212
+        ],
+        "source": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+          "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+        }
+      },
+      "expected_if_true": "Parvis senere logloss/Brier forbedres i beggeblokkmetoder, samtidig som innenfold-AUC er eksakt uendret. Dette lokaliserer en korrigerbar sannsynlighetsforskyvning.",
+      "measured_support": {
+        "existing_TRAIN_panels": [
+          {
+            "field": "rank_and_bias[horizon_minutes=15]",
+            "mean_probability_up": 0.4862583498371176,
+            "observed_up_fraction": 0.5,
+            "panel": "early",
+            "rows": 254,
+            "source": {
+              "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/terminal_u2976__training_order_early.json",
+              "sha256": "833dae435fefe875461a55869803043d1d9367cfbc77686e09056b4171b047c4"
+            }
+          },
+          {
+            "field": "rank_and_bias[horizon_minutes=15]",
+            "mean_probability_up": 0.48831555731790777,
+            "observed_up_fraction": 0.4505928853754941,
+            "panel": "middle",
+            "rows": 253,
+            "source": {
+              "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/terminal_u2976__training_order_middle.json",
+              "sha256": "fedde11a925ec8410d7eaafb8adaa875d58440b2700c174b79682707375dd518"
+            }
+          },
+          {
+            "field": "rank_and_bias[horizon_minutes=15]",
+            "mean_probability_up": 0.4871607369542374,
+            "observed_up_fraction": 0.525691699604743,
+            "panel": "late",
+            "rows": 253,
+            "source": {
+              "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/terminal_u2976__training_order_late.json",
+              "sha256": "cc3989778c5b0e4c12f442a9b5eaa8b83fb7061191b9bbc4c1624d9bf32398d8"
+            }
+          }
+        ],
+        "fields": [
+          "aggregate[horizon_minutes=15]",
+          "intervals",
+          "panels"
+        ],
+        "fold1_mean_probability_up": 0.4857779407621894,
+        "fold1_observed_up_fraction": 0.522383508172725,
+        "native15_auc": 0.5084724875819473,
+        "native15_logloss_minus_own_prior": 0.0008472174192497572,
+        "native15_mean_probability_up": 0.5007215909443498,
+        "observed15_up_fraction": 0.5181934676361902,
+        "paired_native15_minus_R1_auc99_week": [
+          -0.010353682212376153,
+          0.006230365588633346
+        ],
+        "source": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002.json",
+          "sha256": "3877ec7651de78ac3afab83d069495af80f5283b638b5b01e18b6c173e62ed92"
+        }
+      },
+      "mechanism": "Det lineære hodet lærer både ubetinget klasseandel og featureavvik. Egen prefix-prior beregnes til rapportering, men inngår ikke eksplisitt i logits. En lært forskyvning kan gi dårlige sannsynligheter ogUP/DOWN-valg selv medAUCover.5.",
+      "minimum_improvement": "Hvis bekreftet, behold én fast prefixbasert sannsynlighetskalibrering som forskningskandidat før større modellendring. Ingen påstand om ny rangering. IntegrertONLINE-funksjon krever ferskinitialbaseline.",
+      "name": "Feil sannsynlighetsnivå eller konfidens skjuler et svakt rangeringssignal.",
+      "priority": 1,
+      "smallest_test": "Én forhåndsbundet interceptkontroll: For hverfold/h1/5/15, finn delta fra bare de opprinnelig forhåndsvalgte256FINAL_TRAIN-logits slik at mean(sigmoid(z_train+delta)) er lik modellens lagrede fullprefix-UP-andel. Bruk bare modne observerte ikke-nullprefix-celler. Evaluer z_later+delta mot uendretnative, egenprior ogR1på samme67112foreldre; ingen senereutfall brukes tilfit.",
+      "stop": "Én konstant per fold/horisont, ingen scale/HPO/terskelsøk. Ingen senere labels eller fremtidige inputfordelinger tilkalibrering. Ikke tilpass tilresultatet eller kallpropergevinst handelsedge.",
+      "weakens_if": "Offsetkontrollen hjelper bareTRAIN, gir liten seneregevinst eller fortsetter å være dårligere ennprior; da forklarer nivå alene for lite."
+    },
+    {
+      "classification": "Plausibel begrensning; total mangel på fremoversignal er avkreftet som generell påstand innen denne utviklingsevidensen.",
+      "counterevidence": "Ret1 ognative har svakt15msignal. En lineærreferanse og toflowskårer representerer ikke alle genuinefamilier eller nonlinearitet. Native30/60 er ikke undersøkt av de eksisterende trelogit-modellene.",
+      "expected_if_true": "Sterk samtidighet, gjennomgående svakekausale fremtidskontraster og stor regimesensitivitet også etter sannsynlighetsrettelse.",
+      "measured_support": {
+        "existing_D": "D_FLOW_SCORE_ACTUAL_ROOT_REVIEW_001.json: samtidigGC OFI-AUC.901483; framtidigXAU1/5/15 .502490/.496552/.490430.",
+        "fields": [
+          "aggregate",
+          "intervals"
+        ],
+        "native15_day99": [
+          0.5000743900941954,
+          0.5176139462912274
+        ],
+        "native15_week99": [
+          0.5009784153998853,
+          0.5158730002842918
+        ],
+        "native_auc_1_5_15": [
+          0.49989640174996436,
+          0.5037353141585355,
+          0.5084724875819473
+        ],
+        "other_sources": [
+          {
+            "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
+            "sha256": "33b44e65afbb470f42cf1bb8c90dc89c3fa76bfc90f8c955a4aa1910ac0c8d2f"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_002.json",
+            "sha256": "6ca2ccd67c2281c6a4933938d732dce806bbd8eb032e2a0b93afb4d5ffa95dd2"
+          }
+        ],
+        "ret1_auc30_60": [
+          0.5052914513,
+          0.5025164453
+        ],
+        "source": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002.json",
+          "sha256": "3877ec7651de78ac3afab83d069495af80f5283b638b5b01e18b6c173e62ed92"
+        }
+      },
+      "mechanism": "Mange inputs beskriver avsluttet pris/flow. Når sammebevegelse er ferdig, kan framtidig XAU-retning bare ha svak sammenheng med de observerte forholdene.",
+      "minimum_improvement": "Bevar familier ogkontext, men bind eksplisitte matematiske relasjoner ogtidspunkter til påvist inkrementellinformasjon. Ikke leggtilindikatornavn uten en testbar representasjon.",
+      "name": "Fremoversignalet er lite og kan være tidsavhengig.",
+      "priority": 2,
+      "smallest_test": "GjenbrukD-forhåndsvalgte samtidige/fremtidigeGC/XAUogtidsforskyvninger. Før ny modell: mål bare en konkret manglende kausal kontrast på sammeforeldre. Uavhengig bekreftelse krever egen legitim urørtperiode; TEST/CONTROL åpnes ikke.",
+      "stop": "Ingen ikke-kausal shift i kandidat, signalinversjon, terskelvalg eller vinnersubgruppe.30/60funn gjelder de testedereferansene, ikke allemodeller.",
+      "weakens_if": "En fast, kausal referanse viser stabilt inkrementelt fremoversignal som native ikke utnytter."
+    },
+    {
+      "classification": "Målt effekt i66feltsreferansen; plausibelnativeforklaring, ikke påvist feil iD1eller deåttefamiliene.",
+      "counterevidence": "Alle parvise99%AUCforskjeller mellom1og66felt inkluderer0. Resultatet isolerer ikke individuellefelt, ogkontext kan ha nytte i en bedre tidsrepresentasjon.",
+      "expected_if_true": "Konfidenskorreksjon fjerner mye avproperdefisitten uten rangeringstap; ellers forblir det et generelt generaliseringsproblem.",
+      "measured_support": {
+        "context_source": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_002.json",
+          "sha256": "6ca2ccd67c2281c6a4933938d732dce806bbd8eb032e2a0b93afb4d5ffa95dd2"
+        },
+        "contrast": "61D1/makro+4sesjon lagt tilret1 under sammefaste metode/observasjoner svekker proper scores ved alle femhorisonter.",
+        "fields": [
+          "primary",
+          "intervals"
+        ],
+        "fit_gap60": "TRAINAUC.547-.577 mot senere.494958.",
+        "source": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
+          "sha256": "33b44e65afbb470f42cf1bb8c90dc89c3fa76bfc90f8c955a4aa1910ac0c8d2f"
+        }
+      },
+      "mechanism": "Langsomme makrofelt ogsesjonsfelt kan lære tidsavhengige klasseandeler som ikke varer. Flere korrelerte beskrivelser kan øke sikkerheten uten å tilføre senere retningsinformasjon.",
+      "minimum_improvement": "Krev inkrementellverdi fra kompleks kontekst over en bevart enkel prior/ret1-referanse. Beholdfamiliestrukturen; ikke slett D1.",
+      "name": "Kontekst gir in-samplefit og feil senere konfidens.",
+      "priority": 3,
+      "smallest_test": "Etter interceptkontrollen, skill nivå fra spread med én på forhånd bestemt prefixbasert kalibrering på eksisterende prediksjoner, eller én kontroll av tidsstabilitet med uendredeperioder. Ikke åpne bred featureseleksjon.",
+      "stop": "Ingen kasting av indikatorer ellerfamilier fra denne korte referansestudien; ingen statistikkfit på senereutfall.",
+      "weakens_if": "Kontekstens inkrementelle framtidsrangering ogpropergevinst blir stabil under samme skille og fastprotokoll."
+    },
+    {
+      "classification": "Foreløpig spekulasjon om dominerende mekanisme; nedprioritert informasjonstaphypotese.",
+      "counterevidence": "Native15m rangerer svakt positivt, og dårligere rangering ennR1erikke bevist. Allret1 er levert. Lossmask/count i source er konsistent med modne ikke-null-endepunktmål. Innenprefix-rekkefølgen er fast stokket, ikke kronologisk selv om foldskillet er kronologisk.",
+      "exact_code": [
+        {
+          "lines": [
+            110,
+            125,
+            151,
+            156,
+            185,
+            191,
+            208,
+            212
+          ],
+          "source": {
+            "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+            "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+          }
+        },
+        {
+          "lines": [
+            6,
+            93,
+            143,
+            237,
+            241,
+            247,
+            267,
+            280
+          ],
+          "source": {
+            "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+            "sha256": "db7bd2823b5fd1c36a42da2433bef22ac106ed682e700b476234d6b7f9b19bba"
+          }
+        },
+        {
+          "lines": [
+            355,
+            367,
+            1946,
+            2026,
+            2037,
+            2284,
+            2357,
+            4222,
+            4230
+          ],
+          "source": {
+            "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+            "sha256": "3e5cea0ef2b77de3384e0779f93ba57ea36743f8dd7b2a392edd39a490606bee"
+          }
+        }
+      ],
+      "expected_if_true": "Målt tap av senere lineærrecoverability støtter representasjonsproblem; godrecoverability men svakretning peker motreadout/optimalisering. Kun bedre senere rangering i kontrollert treningskontrast støtter oppgavekonflikt.",
+      "measured_support": {
+        "existing_C": "Alle560optimizer-tensorer endret;9/12TRAINlogloss og3/12AUC forbedringer iB. Aktiveringsvariansendring og én gradientbatch viser ikke informasjonstap.",
+        "fields": [
+          "prepared_raw_ret1_bit_parity",
+          "four_reference_transforms_exact"
+        ],
+        "new_rank_comparison": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002.json",
+          "sha256": "3877ec7651de78ac3afab83d069495af80f5283b638b5b01e18b6c173e62ed92"
+        },
+        "source": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_ROOT_REVIEW_001.json",
+          "sha256": "6e95ffb973a7b3ce93cf6606c685ff24a7fad6aecedbad7fbc60c925cfa64835"
+        }
+      },
+      "mechanism": "Et lite retningssignal må konkurrere med støy ogbase-rategradienter gjennom store projeksjoner ogtrehorisonter. Én gjennomgang er ikke dokumentert konvergens. Mean+last og snapshot finnes allerede.",
+      "minimum_improvement": "Eventuelt explicitprefixprior+ret1-baseline ognative residual, eller separat horizon-readout; bare etter den isolerende testen ogmedferskinitialbaseline.",
+      "name": "En gjennomgang og deltBCE utnytter signalet utilstrekkelig.",
+      "priority": 4,
+      "smallest_test": "Bare hvis enklere sannsynlighetsforklaring ikke er tilstrekkelig: fastfrosset0U/terminal-probe forret1-rekonstruksjon medprefixfit ogsenereholdout, ingen nativeoppdateringer. En etterfølgende treningskontrast må endre kunbidraget fra1/5m-gradienter, med original15m-koeffisient, sammefriskeinit/B16/foreldre/updates.",
+      "stop": "Ingen flereepoker/LRsøk ellerarkitekturrefaktorering uten konkretmåltmekanisme. CsinTRAINstatistikk ogAUCintervall sominneholder0er ikkeinformasjonstapbevis.",
+      "weakens_if": "Signalet er godtbevarti begge tilstander ogkalibrering løser hoveddefisitten, eller kontrollert trening bare senkerTRAINloss."
+    }
+  ],
+  "native_improvement_claimed": false,
+  "new_execution_admitted": false,
+  "objective": "Finn hvorfor GX1 mangler robust retningsedge på1/5/15/30/60minutter. Skill tilgjengelig signal, feilbehandling, læring og måleproblem. Entry-path og GPU-ytelsesarbeid er utsatt.",
+  "schema_version": "gx1_direction_1_60_cause_synthesis_v2",
+  "source_owners": {
+    "fit_order_prior": {
+      "lines": [
+        6,
+        93,
+        143,
+        237,
+        241,
+        247,
+        267,
+        280
+      ],
+      "source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "db7bd2823b5fd1c36a42da2433bef22ac106ed682e700b476234d6b7f9b19bba"
+      }
+    },
+    "head_loss": {
+      "lines": [
+        110,
+        125,
+        151,
+        156,
+        185,
+        191,
+        208,
+        212
+      ],
+      "source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+      }
+    },
+    "model_fusion": {
+      "lines": [
+        355,
+        367,
+        1946,
+        2026,
+        2037,
+        2284,
+        2357,
+        4222,
+        4230
+      ],
+      "source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "3e5cea0ef2b77de3384e0779f93ba57ea36743f8dd7b2a392edd39a490606bee"
+      }
+    }
+  },
+  "status": "PROGRESS_WEAK_NATIVE15M_RANKING_AND_PROBABILITY_DEFICIT_CAUSE_NOT_FULLY_ISOLATED",
+  "still_unresolved": [
+    "Sannsynlighetsnivå motspredeffekt ogregimeskift.",
+    "Hvor mye av detsvake15msignalet er reproduserbart på virkelig uavhengig fremtid.",
+    "Inkrementellnytte fra helekausale familie-/MTF-representasjonen.",
+    "Nativeoppgavene30/60, som ikke finnes i de lagrede trelogit-modellene."
+  ],
+  "test_data_used": false,
+  "would_change_assessment": [
+    "Prefixoffsetkontrollen forbedrer ikke senereproper scores: prioriter spread/regimedrift ellerreadout fremfor renbias.",
+    "Faste matchedkontroller dokumenterer senere native-rangeringstap: oppgrader representasjons/optimaliseringshypotesen.",
+    "Et lovligurørt bekreftelsesspor avviser15msignalet: svekk påstanden omfremoversignal.",
+    "Et nytt dokumentert input/clock/maskavvik finnes: rett detførmodellendring."
+  ]
+}

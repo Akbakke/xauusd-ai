@@ -9,15 +9,31 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-DIRECTION_NATIVE_R1_SAVED_RANK_DESIGN_001 prioriteres før en ny GPU-probe:
-Native15m-AUC er bare litt underret1; rangeringstap er ennå ikke dokumentert
-med parvis usikkerhet. Sammenlign frosne prediksjoner på de samme67112foreldrene,
-med eksisterende4folder/4000uke- ogdagvekter. PLAN_002 er nå admittért:
-180s/4GiB/512MiB/éntråd,5lagredeprediksjonsarkiver,48parviseblokkrangberegninger,
-0fit/0forward. Dette utfordrer informasjonstap-hypotesen; ingen ny modell,
-kalibreringsfit eller annen numerisk kjøring er åpnet.001ble erstattet før
-launch etter en kildekontroll: rank-eieren krever contiguous labels. Ingen
-kjøring eller payloadlesing fra001; verdier/metode er uendret.
+Gjeldende årsaksanalyse er tilgjengelig i docs/DIRECTION_1_60_CURRENT_ANALYSIS.json.
+Arbeidsmålet er retning ved 1, 5, 15, 30 og 60 minutter; ingen robust fremtidig
+eller økonomisk edge er dokumentert. Root arbeider alene.
+
+DIRECTION_1_60_CAUSE_SYNTHESIS_002 oppdaterer de fire prioriterte hypotesene
+med dagens inputparitet ogparvise AUC-intervaller. Den avløser001s prioritering:
+sannsynlighetsnivå først; informasjonstap er ikke hovedforklaring utennyttbevis.
+Målet er fortsatt uferdig; ingen forbedret nativefunksjon ellerøkonomi er bevist.
+
+DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002 bekrefter COMPLETE/consumed:
+67112samme senereTRAIN-foreldre;5lagredeprediksjonsarkiver,48blokkrangpar,
+13.81s og0fit/forward/optimizer. AlleR1punkter/intervaller og4000uke-/dagvekter
+reprodusert; kilde/policy/input uendret; cgroup borte og tunglås ledig.
+NativeAUC1/5/15 = .499896/.503735/.508472.
+Native15m99%uke = [.500978,.515873],dag = [.500074,.517614]: svakt betinget
+rangeringssignal i gjenbrukt utvikling, daggrensen er svært nær.5.
+Parvisnative−R1AUC5/15 inkluderer0; ikke påvist dårligere native-rangering og
+heller ikke bevist likeverdighet. Native proper scores er dårligere ennR1 og
+egenprior ved5/15 i beggeblokkmetoder. Informasjonstap som hovedårsak er derfor
+nedprioritert. Målt sannsynlighetsfeil er første konkrete forbedringsmål.
+Neste avgrensede kontroll skal kun korrigere sannsynlighetsnivå fra egen
+fullprefix-prior og allerede forhåndsvalgte256FINAL_TRAIN-logits; ingen bruk av
+senereutfall tilkalibrering. AUCskal væreuendret; eventuell proper-scoregevinst
+er ikke bedre rangering eller handelsedge. Ingen nyfit/kjøring er admittért.
+001ble erstattet førlaunch på contiguous-label-kontrakten;002er nåconsumed.
 
 DIRECTION_RET1_INPUT_PARITY_ROOT_REVIEW_001 bekrefter COMPLETE/consumed:
 Alle118249TRAIN-foreldre har bit-identisk råret_1 i native current051 og245s
@@ -27,11 +43,11 @@ referansekolonner gjenskapes eksakt. 5lagredeNPY/NPZ-lesinger,1TRAIN-mmap,
 borte og tunglås ledig. Alle tillatelser er konsumert, ingen relaunch.
 Dette avkrefter den undersøkte ret1-leveringsfeilen i ferdige inputs;
 checkpoint-buffer, faktisk torch-normalisering og hidden-bevaring er ikke målt.
-Neste spørsmål er representasjon mot readout/optimering. Gjenbruk eksisterende
-lagret representasjonsevidens hvis den er tilstrekkelig; ellers krev én liten
-forhåndsbundet0U/terminal-probe. Ingen native-kjøring er admittért.
+Den nye parvise rangmålingen ovenfor prioriteres nå foran en hidden-probe.
+Ingen native-kjøring er admittért.
 
-DIRECTION_1_60_CAUSE_SYNTHESIS_001 samler fire prioriterte hypoteser med
+Tidligere DIRECTION_1_60_CAUSE_SYNTHESIS_001 samlet fire hypoteser;002ovenfor
+oppdaterer prioriteringen. Den opprinnelige samlingen inneholder
 mekanisme, støtte, motbevis, eksakte eiere, avgrenset test og stoppkriterier.
 Ingen enkelt hovedårsak er isolert. DIRECTION_RET1_NATIVE_SOURCE_TRACE_001
 viser at ret_1 er aktivt i momentum-, snapshot- og sekvensrutene. Normalisering

@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-26T19:49:32.072865+00:00",
-  "status": "DIRECTION_1_60_SAVED_NATIVE_RANK_COMPARISON_ADMITTED",
+  "status": "DIRECTION_1_60_WEAK15M_RANKING_PROBABILITY_DEFICIT_ESTABLISHED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the exact saved-native/R1 rank comparison is admitted. All earlier units consumed; no fitting, native calls, checkpoints, raw data, fullF/performance work, CONTROL/TEST/Exit or trading.",
-  "next_action": "Execute once the admitted saved-native-versus-ret1 rank/probability comparison; consume authority after terminal and revise cause priorities from measured paired intervals.",
+  "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
+  "next_action": "Design one intercept-only native probability control using original full-prefix class priors and the predeclared saved256 final-TRAIN logits only; evaluate unchanged later parents. No later calibration fit, native forward, architecture change or numerical execution admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "One admitted saved native/R1 paired ranking comparison",
+    "current_activity": "Weak native15m ranking measured; isolate probability offset before architecture changes",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,11 +269,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Exact ret1 input and reference-normalization parity on all118249TRAINparents, zero native/model calls.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_001",
+    "latest_terminal_role": "Matched native/R1 uncertainty on67112laterTRAINparents: weak15m nativeAUC; no established5/15ranking inferiority; proper scores worse.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_002",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_001/TERMINAL.json",
-      "sha256": "9d4f0e4585827ae631350fe2d3adbdc64622b70981a8bc7f9fead3aebf8ec675"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_002/TERMINAL.json",
+      "sha256": "3a39d6c8529ac49616097ebf521b051459be38167a4defe1db10fcd77ebb01cb"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Preparedret1 delivery defect not observed; hidden preservation versus readout/optimization versus weak/transient forward information unresolved.",
+    "current_blocker": "Probability defect measured; offset versus confidence spread versus regime dependence not isolated. Weak ranking is not independent or economic edge.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute once the admitted saved-native-versus-ret1 rank/probability comparison; consume authority after terminal and revise cause priorities from measured paired intervals.",
+    "next_action": "Design one intercept-only native probability control using original full-prefix class priors and the predeclared saved256 final-TRAIN logits only; evaluate unchanged later parents. No later calibration fit, native forward, architecture change or numerical execution admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16211,7 +16211,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Five saved NPY/NPZ reads and one immutable TRAIN snapshot view; exact raw parity and four encoded column parities. Runtime torch/checkpoint buffers not measured.",
+    "latest_terminal_evidence_scope": "Five saved prediction archives,48exactblockrank summaries/paired4000week-day resamples,13.81s; zero fits/models/optimizer.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Zero fitting and model calls; one capped CPU saved-prediction comparison only.",
+    "current_training_scope": "No execution admitted; all current numerical units consumed. Next is a predeclared prefix-only probability-offset control design.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17655,6 +17655,14 @@
     "ret1_input_parity_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_ROOT_REVIEW_001.json",
       "sha256": "6e95ffb973a7b3ce93cf6606c685ff24a7fad6aecedbad7fbc60c925cfa64835"
+    },
+    "native_saved_rank_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002.json",
+      "sha256": "3877ec7651de78ac3afab83d069495af80f5283b638b5b01e18b6c173e62ed92"
+    },
+    "direction_cause_synthesis": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_002.json",
+      "sha256": "f5ebedb67763a6a7fb0d3205edaffba8f3ad53ae8f98eaa8c47a33b2b6592a40"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -20219,7 +20227,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T23:09:23.777232+00:00",
+  "updated_utc": "2026-10-26T23:21:12.322690+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -34563,7 +34571,7 @@
     }
   },
   "direction_improvement_takeover_20261026": {
-    "status": "ACTIVE_DIRECTION_1_60_SAVED_RANK_ONLY",
+    "status": "ACTIVE_DIRECTION_1_60_PROBABILITY_CAUSE_NO_EXECUTION",
     "integrator_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
     "takeover": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/INTEGRATOR_TAKEOVER_20261026_001.json",
@@ -34582,6 +34590,10 @@
     "independent_improvement_priorities": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_IMPROVEMENT_PRIORITIES_002.json",
       "sha256": "ba7b88f97ecba6b542901fcedf5b42929027217735cb26f088ed0b16e92886ff"
+    },
+    "latest_cause_synthesis": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_002.json",
+      "sha256": "f5ebedb67763a6a7fb0d3205edaffba8f3ad53ae8f98eaa8c47a33b2b6592a40"
     }
   },
   "direction_diagnostic_D_train_prefix_source_20261026": {
@@ -35735,21 +35747,21 @@
     }
   },
   "direction_native_r1_saved_rank": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_DESIGN_001.json",
       "sha256": "63090c5a3be8d37b969a165f3c7d3bea5b8e73c492982f2e1c7e6ba643ebdb1f"
     },
     "source_preparation_authorized": false,
-    "execution_authorized": true,
-    "saved_predictions_authorized": true,
+    "execution_authorized": false,
+    "saved_predictions_authorized": false,
     "raw_data_reads_authorized": false,
     "native_forwards_authorized": false,
     "genuine_fits_authorized": false,
     "test_data_used": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_PLAN_002.json",
@@ -35776,6 +35788,18 @@
     "superseded_unexecuted_plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_PLAN_001.json",
       "sha256": "20ca3e904f57b89eb68786e5990a6e28a23b37cb300033b52b1368e8f8970321"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002.json",
+      "sha256": "3877ec7651de78ac3afab83d069495af80f5283b638b5b01e18b6c173e62ed92"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_002/TERMINAL.json",
+      "sha256": "3a39d6c8529ac49616097ebf521b051459be38167a4defe1db10fcd77ebb01cb"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_002/SUMMARY.json",
+      "sha256": "0420cb4b94051260661c45950230fc42b285b9f2178226455366ed654512f182"
     }
   }
 }
