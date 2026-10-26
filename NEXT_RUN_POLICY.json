@@ -46,11 +46,11 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-26T19:49:32.072865+00:00",
   "status": "DIRECTION_1_60_WEAK15M_RANKING_PROBABILITY_DEFICIT_ESTABLISHED",
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Execute exactly one DIRECTION_PRIOR_OFFSET_001 CPU unit. Freeze source/policy; verify immutable prefix offset receipt precedes later reads, reproduce baseline scores, compare later proper scores, consume authority at terminal.",
+  "next_action": "Én forhåndsbestemt, parvis rangsammenligning native mot eksisterende252ET_FULL og259R1_EXPLICIT_PREV_RET1 på samme67112senereforeldre. Skill dokumentert modellunderutnyttelse fra bare proper-score-forskjell før nyGPU/trening. Kun design/sourceanalyse er nååpen.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "One admitted prefix-only scalar probability diagnostic; all native execution remains closed",
+    "current_activity": "Partial probability cause isolated; next resolve native versus fixed-reference direction ranking",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,11 +269,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "20 synthetic prior-offset controls; genuine probability correction still unmeasured",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_SYNTHETIC_002",
+    "latest_terminal_role": "12prefix-only scalar offsets:5m proper improvement;15m borderline99%week;ranking unchanged; no direction/economic edge",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_SYNTHETIC_002/TERMINAL.json",
-      "sha256": "748b8e2fd1520f27f6c88ea97fc1d65120056dc9b4afccb68425e3b34723cc0a"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_001/TERMINAL.json",
+      "sha256": "a5f94da475cf1cbcf9baebe9be2ca97f2bff0087e522bb4a522c4b8d1f761b5b"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Probability defect measured; offset versus confidence spread versus regime dependence not isolated. Weak ranking is not independent or economic edge.",
+    "current_blocker": "Miscentering partly isolated, but unchanged weak AUC and no accuracy benefit over alwaysUP. Need distinguish existing input signal from native underuse; no more calibration search admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17663,6 +17663,15 @@
     "direction_cause_synthesis": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_002.json",
       "sha256": "f5ebedb67763a6a7fb0d3205edaffba8f3ad53ae8f98eaa8c47a33b2b6592a40"
+    },
+    "prior_offset_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
+      "sha256": "cb8aefe756ebaabf9661410626bec88746fe5fe63e9f33cad4226fdaea3ac5c1"
+    },
+    "current_direction_objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved1,5,15,30og60minutter; skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings-/evalueringsmål. Bevar åtte familier,D1/makro,kausal M5/MTF ogforsegling. Handel er utsatt.",
+    "current_direction_cause_synthesis": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_003.json",
+      "sha256": "0b3081970d6e813d05485e50d87ff0505de13d4f1471d8677414fb5f87ffe005"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -20227,7 +20236,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T23:41:57.896453+00:00",
+  "updated_utc": "2026-10-26T23:49:31.911958+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35630,7 +35639,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Only DIRECTION_PRIOR_OFFSET_PLAN_001:12 scalar offsets from saved FINAL_TRAIN256 logits and original full-prefix priors; no native training, SGD, later fit, raw inputs or checkpoint/forward access.",
+  "training_enabled_scope": "Closed. The12 TRAIN-only scalar offsets are consumed; probability improvement at5m does not improve ranking. No further fit/forward admitted.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -35830,15 +35839,15 @@
     }
   },
   "direction_prior_offset": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_DESIGN_001.json",
       "sha256": "e0f8ed2f283345e5f50de806321473650ce4e3eea6574e35e31925a41986f3e2"
     },
     "source_preparation_authorized": false,
-    "execution_authorized": true,
-    "saved_predictions_authorized": true,
-    "scalar_calibrations_authorized": true,
+    "execution_authorized": false,
+    "saved_predictions_authorized": false,
+    "scalar_calibrations_authorized": false,
     "raw_data_reads_authorized": false,
     "native_forwards_authorized": false,
     "test_data_used": false,
@@ -35851,8 +35860,8 @@
       "sha256": "d1b6b9f3e20f8bc48de4ba0ffa3c7093e7292e7776d6da3679bccb07daf8bdcf"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "max_scalar_calibration_fits": 12,
     "budget": {
@@ -35866,6 +35875,19 @@
       "swap_bytes": 536870912,
       "numerical_threads": 1,
       "tasks": 64
+    },
+    "consumed_invocations": 1,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
+      "sha256": "cb8aefe756ebaabf9661410626bec88746fe5fe63e9f33cad4226fdaea3ac5c1"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_001/TERMINAL.json",
+      "sha256": "a5f94da475cf1cbcf9baebe9be2ca97f2bff0087e522bb4a522c4b8d1f761b5b"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_001/SUMMARY.json",
+      "sha256": "83f86daa005cf2d8a7540c4304eda49b9b8f69d9a2e11564161e06946ae86a57"
     }
   },
   "direction_prior_offset_synthetic_attempt001": {

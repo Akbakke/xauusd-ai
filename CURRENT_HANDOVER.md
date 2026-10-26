@@ -9,24 +9,33 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-DIRECTION_PRIOR_OFFSET_SYNTHETIC_002 er COMPLETE: 20 kontroller bestått,
-ingen ekte payload eller modellkall.001s testimportfeil er bevart og konsumert.
-DIRECTION_PRIOR_OFFSET_PLAN_001 er nå eneste numeriske autoritet: 12
-skalarkalibreringer, 9 lagrede prediksjonsarkiver, samme 67112 senere foreldre,
-180s/4G CPU og ingen native forward/optimizer. Kilde og policy fryses under
-kjøringen. Alle offsetter låses fra FINAL_TRAIN256 og opprinnelig full-prefix-
-prior før senere prediksjoner leses. Rangering og ties må bevares eksakt.
-training_enabled=true gjelder kun disse 12 skalarkalibreringene; native
-trening, CONTROL, VAL, TEST, Exit og handel er fortsatt lukket.
+DIRECTION_PRIOR_OFFSET_001 er COMPLETE/consumed: 12 skalarkalibreringer,
+9 lagrede prediksjonsarkiver, 29.67s og null native forward/optimizer.
+Alle offsetter er låst fra TRAIN før senere payloadlesing; opprinnelige skårer
+og blokkvekter er reprodusert. Kilde/policy/input uendret, cgroup borte, lås ledig.
+training_enabled=false; ingen numerisk autoritet er åpen.
+
+Kun5m består forhåndsbestemt senere logloss-forbedring ved99% både uke/dag.
+15m fjerner omtrent85.3% av priorunderskuddet i punktestimatet, men99%uke
+inkluderer så vidt0; resultatet er svakere enn full primærbekreftelse.
+Alle tre horisontene har eksakt uendret AUC. Justert treffprosent slår ikke
+alltidUP. Ingen horisont slår egenprior med95%intervall, og15m er fortsatt
+dårligere ennR1. Ingen ny handelsedge eller forbedret native rangering er bevist.
+Syntetisk002 bestod20kontroller;001s importfeil er bevart og konsumert.
 
 Gjeldende årsaksanalyse er tilgjengelig i docs/DIRECTION_1_60_CURRENT_ANALYSIS.json.
 Arbeidsmålet er retning ved 1, 5, 15, 30 og 60 minutter; ingen robust fremtidig
 eller økonomisk edge er dokumentert. Root arbeider alene.
 
-DIRECTION_1_60_CAUSE_SYNTHESIS_002 oppdaterer de fire prioriterte hypotesene
-med dagens inputparitet ogparvise AUC-intervaller. Den avløser001s prioritering:
-sannsynlighetsnivå først; informasjonstap er ikke hovedforklaring utennyttbevis.
-Målet er fortsatt uferdig; ingen forbedret nativefunksjon ellerøkonomi er bevist.
+DIRECTION_1_60_CAUSE_SYNTHESIS_003 avløser002 og er kopiert til
+docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Nivårettelse er undersøkt og delvis
+støttet; videre kalibreringssøk er stoppet. Neste høyeste informasjonsverdi er
+parvis rangering mot allerede lagrede252ET_FULL og259R1_EXPLICIT_PREV_RET1.
+259harcurrentret1,eksaktforrige5minret1ogpresence;252s eksakte faste definisjon
+og arkivets foldmapping skal kildekontrolleres før én eventuell frisk admisjon.
+Samme67112foreldre ogblokkvekter;seksAUCkontraster forhåndsbundet utenvalg.
+Ingen nye payloadlesinger, fits, forwards eller modellendringer er admittért.
+Målet omretningsedge1–60minutter er fortsatt uferdig.
 
 DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002 bekrefter COMPLETE/consumed:
 67112samme senereTRAIN-foreldre;5lagredeprediksjonsarkiver,48blokkrangpar,
