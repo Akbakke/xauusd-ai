@@ -10,9 +10,13 @@ policy og launch. Programrot:
 ## Aktuell status
 
 A, B og faktisk C003 er fullført innen sine avgrensede måleoppgaver.
-PROGRAM_EXECUTION_LEDGER_007 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
+PROGRAM_EXECUTION_LEDGER_008 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
 med oppgitte grenser; øvrige trenger videre evidens eller eksplisitt sluttavklaring.
-Hele målet er aktivt og uferdig. Ingen aktiv tung jobb eller ny kjøring admittért.
+Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integrasjon
+til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
+retningslæring. INTEGRATOR_TAKEOVER_20261026_001 binder mandatet. Root eier
+kilde/policy/launch; to avgrensede lesere vurderer D-ekstraksjon og F-design.
+Ingen aktiv tung jobb eller ny data-/modellkjøring er admittért.
 Trening/native/epoch/VAL er false. TEST, Exit og handel forblir lukket.
 
 ## Nye faktiske C-funn

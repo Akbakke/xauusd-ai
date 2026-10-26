@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-26T09:18:08.867749+00:00",
-  "status": "D_METADATA_COMPLETE_TRAIN_EXTRACTION_ROUTE_PENDING_NO_LAUNCH",
+  "observed_utc": "2026-10-26T10:23:53.778005+00:00",
+  "status": "DIRECTION_IMPROVEMENT_TAKEOVER_D_TRAIN_SOURCE_PLANNING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only exact C003 read-only saved276 diagnostic is admitted under dynamic_m5_direction_checkpoint_diagnostic_c after clean source, metadata preparation and fresh physical boot. C001/C002 and all completed testplans consumed. Global training/native-fit/epoch/VAL closed; TEST/Exit/trading closed.",
-  "next_action": "Resolve a complete TRAIN-only input route for D after measured mixed Parquet rowgroups; inspect only declared alternative cache metadata/source first. No body/model/training operation admitted.",
+  "next_action": "New user-appointed integrator resolves minimum TRAIN-only D extraction in existing source owners, reviews bounded frozen-readout F, then prepares exact source/test/data admissions. No current data/model/training launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -32879,8 +32879,8 @@
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/COORDINATION_DECISION.json",
       "sha256": "1544c712b066603dbfe7c170d91895913790865002227690105c148c0f2a45ea"
     },
-    "integrator_thread": "01a171d2-e4d8-7021-9fe3-03f99c494306",
-    "implementation_owner_thread": "01a171d2-e4d8-7021-9fe3-03f99c494306",
+    "integrator_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
+    "implementation_owner_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
     "B_source_admission": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/DIAGNOSTIC_B_SOURCE_ADMISSION.json",
       "sha256": "8e366a7fd22ce5b5103732bf04fe9d8effdea9ffa6b5bcc5ad547d3ec0b37c6d"
@@ -33045,8 +33045,8 @@
     "B_saved_prediction_comparison_complete": true,
     "data_read_scope": "Closed. Dmetadata001consumed; no further payload hashing/footer/body or model operation admitted.",
     "execution_ledger": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_007.json",
-      "sha256": "849636be02293174936e2d799353925e20dfeef8f10b997bf38629c3ba38f124"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_008.json",
+      "sha256": "7251338eb9f9df03fd204cee925119016598a20c3bf4dabd9082efeb321cd227"
     },
     "B_actual_root_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_SAVED_PREDICTION_ACTUAL_ROOT_REVIEW_001.json",
@@ -33193,6 +33193,10 @@
     "D_TRAIN_source_reuse_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_SOURCE_REUSE_REVIEW_001.json",
       "sha256": "6236b4e8ebba56fc4e7276893f62ed3eb8532568c86d2e039498241cd9880578"
+    },
+    "integrator_takeover": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/INTEGRATOR_TAKEOVER_20261026_001.json",
+      "sha256": "b1fe4105471ae0d6b9d657855398fc37b472ab20177b93a1fe1537899daca0d7"
     }
   },
   "direction_diagnostic_B_rank_synthetic_qualification_20261025": {
@@ -34479,5 +34483,23 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_EXACT_FOOTER_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "55a1aa08203acb6599c352c605df7f8ffeb353ce14257e1cd7e66cfdb421432d"
     }
+  },
+  "direction_improvement_takeover_20261026": {
+    "status": "ACTIVE_SOURCE_PLANNING_NO_COMPUTE_ADMITTED",
+    "integrator_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
+    "takeover": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/INTEGRATOR_TAKEOVER_20261026_001.json",
+      "sha256": "b1fe4105471ae0d6b9d657855398fc37b472ab20177b93a1fe1537899daca0d7"
+    },
+    "execution_ledger": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_008.json",
+      "sha256": "7251338eb9f9df03fd204cee925119016598a20c3bf4dabd9082efeb321cd227"
+    },
+    "source_preparation_authorized": true,
+    "data_reads_authorized": false,
+    "model_calls_or_fits_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false
   }
 }
