@@ -33045,8 +33045,8 @@
     "B_saved_prediction_comparison_complete": true,
     "data_read_scope": "Closed. Dmetadata001consumed; no further payload hashing/footer/body or model operation admitted.",
     "execution_ledger": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_011.json",
-      "sha256": "966cd0a202805a6ece6318437054a854047509a7f5b7caeb90607d363f96e842"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_013.json",
+      "sha256": "4e0059b67e66d32611db4f0729ce641f67d4eb00575d6c31644612ccbab78901"
     },
     "B_actual_root_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_SAVED_PREDICTION_ACTUAL_ROOT_REVIEW_001.json",
@@ -34492,8 +34492,8 @@
       "sha256": "b1fe4105471ae0d6b9d657855398fc37b472ab20177b93a1fe1537899daca0d7"
     },
     "execution_ledger": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_011.json",
-      "sha256": "966cd0a202805a6ece6318437054a854047509a7f5b7caeb90607d363f96e842"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_013.json",
+      "sha256": "4e0059b67e66d32611db4f0729ce641f67d4eb00575d6c31644612ccbab78901"
     },
     "source_preparation_authorized": true,
     "data_reads_authorized": false,
@@ -34739,7 +34739,7 @@
     }
   },
   "direction_diagnostic_D_flow_scoring_source_20261026": {
-    "status": "SOURCE_WRITTEN_UNQUALIFIED_NO_EXECUTION",
+    "status": "SOURCE_QUALIFIED_CLOSED",
     "admission": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SCORING_SOURCE_ADMISSION_001.json",
       "sha256": "ae1cfa854fdd354bc62906309565b549074ba3f1db92c8866833ded096d5d1d1"
@@ -34752,7 +34752,20 @@
     "test_data_used": false,
     "worker": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/score_direction_train_gc_flow.py",
-      "sha256": "e3272535dfb5f1b97e6635d83462ab1796dd32a00a6b93c7732cd03423a6b747"
+      "sha256": "b8a09bc681921a399301d078092f53638fe52aa49b8f72395511ceffaa32b618"
+    },
+    "reporting_fix_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SCORING_REPORTING_FIX_ADMISSION_001.json",
+      "sha256": "ccdfc94abc162aaef264f64438188708d9cb72b9522796cac977aa802efba2c2"
+    },
+    "file_owner": "/root",
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SCORING_SOURCE_REVIEW_001.json",
+      "sha256": "fb9f04a8252313b79de36f4e32c17e4bd78e7c37a8f4110fd3438a7d865c2e11"
+    },
+    "synthetic_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "81f3ab0a4cd541c2a84d40950640b268b6108d4867313fccab2bf64c3910a37d"
     }
   },
   "direction_diagnostic_D_train_m1_synthetic_20261026": {
@@ -34834,7 +34847,7 @@
     }
   },
   "direction_diagnostic_D_train_m1_reduction_20261026": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_35_TRAIN_FILES_CONSUMED_CLOSED",
     "mode": "reduction",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_PLAN_001.json",
@@ -34844,14 +34857,14 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/reduce_direction_train_gc_m1.py",
       "sha256": "27ec64c88ace5ec957f66829661efa440ca9ce25929401877109514dcbd9cfcc"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "genuine_raw_reads_authorized": true,
-    "opaque_payload_hashing_authorized": true,
-    "market_reduction_authorized": true,
+    "genuine_raw_reads_authorized": false,
+    "opaque_payload_hashing_authorized": false,
+    "market_reduction_authorized": false,
     "model_calls_authorized": false,
     "training_enabled": false,
     "test_data_used": false,
@@ -34894,6 +34907,90 @@
       63
     ],
     "exact_compressed_input_bytes": 13528864799,
-    "authorization_basis": "Current user-directed improvement mandate; fresh exactsource/syntheticqualified minimalDseries. No consumedplanrelaunch."
+    "authorization_basis": "Current user-directed improvement mandate; fresh exactsource/syntheticqualified minimalDseries. No consumedplanrelaunch.",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_20261026_001/TERMINAL.json",
+      "sha256": "5297a51ce298c52bfbef733630b2af1ef292d8d3354b62fa8f8dacce02f78ac9"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_OUTER_TERMINAL_001.json",
+      "sha256": "2f550a52a7e9f1492e48f4006a5704500ddb2f53aa5e31461b9eccf51a39d058"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001.json",
+      "sha256": "f89244376ca6675621e5e7b5af6df89d66f44f774e3a2798619e5ac8054d171b"
+    },
+    "train_table": {
+      "bytes": 13689826,
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_20261026_001/FINAL/TRAIN_M1.npz",
+      "sha256": "74a0f8b659c6d8f736766cdb0edc3b0baecfd52d2406d8fe2453d60db701ad55"
+    }
+  },
+  "direction_diagnostic_D_flow_synthetic_20261026": {
+    "status": "COMPLETE_CONSUMED_CLOSED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SYNTHETIC_PLAN_001.json",
+      "sha256": "7ce0e47278ba9da32b812cb3a1d113361ee573d8b2fcc42f62575aac9d66792e"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "synthetic_tests_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SYNTHETIC_20261026_001/TERMINAL.json",
+      "sha256": "dda9efc3f41630d0a1909aa0fce4cb2f249ce08599e3bfafa3c450c6c5944785"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SYNTHETIC_OUTER_TERMINAL_001.json",
+      "sha256": "3313402c73fbdbf83e590945ee5f62e094247d92fb4d8f26dabb3312691326f5"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "81f3ab0a4cd541c2a84d40950640b268b6108d4867313fccab2bf64c3910a37d"
+    }
+  },
+  "direction_diagnostic_D_flow_score_20261026": {
+    "status": "ADMITTED",
+    "mode": "score",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SCORE_PLAN_001.json",
+      "sha256": "de2e0cd29eadf7e1a31e7df8d43fdce89c9da7cac1cc6c1bf789407677d925d4"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/score_direction_train_gc_flow.py",
+      "sha256": "b8a09bc681921a399301d078092f53638fe52aa49b8f72395511ceffaa32b618"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": true,
+    "opaque_payload_hashing_authorized": true,
+    "scoring_authorized": true,
+    "predictor_fit_authorized": false,
+    "proper_metrics_authorized": false,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "max_wall_seconds": 1800,
+    "primary_parent_rows": 70647,
+    "fixed_panels": 106,
+    "fixed_contrasts": 47
+  },
+  "cross_chat_task_policy_20261026": {
+    "status": "EXTERNAL_CHAT_ASSIGNMENTS_DISMISSED",
+    "user_instruction": "Slett de oppgavene du får av den andre chaten!",
+    "external_chat_tasks_accepted": false,
+    "current_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
+    "work_authority": "Direct human instructions and active improvement goal in this thread only.",
+    "applied_utc": "2026-10-26T12:23:34.654265+00:00",
+    "scope": "Incoming external task messages are dismissed. Existing chat messages/immutable evidence cannot be deleted by available tools. No other chat is messaged or modified."
   }
 }
