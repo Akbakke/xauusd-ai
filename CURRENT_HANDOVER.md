@@ -88,9 +88,14 @@ føråpning, ekte SourceFileLoader går til SHA-bundet.py; C-dispatch reiser fei
 etter publisertFAILED.12fokuserte cases PASS beviser sourcefallback/0cachebytes,
 payload-/skrivevakter ogsuccess/failure-retur. Alle12målefunksjoner, gamlecases,
 modell ogtrener er uendret. Tidligere125+9/actual50/7/6/54/69pins gjenbrukes.
-C002recipe010ae1dd/window31bba75b er nye, med samme fire276states, tre256TRAINpaneler
-og194forward/6reverse/4PT-loads/0optimizersteg. Materializer707d6508 er tidligere
-57linjerskode med bare femferske binding-/rotnavn. Ingen fit ellercheckpointvalg.
+C002recipe010ae1dd/window15a3135b er nye, med samme fire276states, tre256TRAINpaneler
+og194forward/6reverse/4PT-loads/0optimizersteg. Materializer4b3e38f7 gjenbruker samme
+57linjerslogikk med ferske binding-/claim-/bootnavn. Ingen fit ellercheckpointvalg.
+Koden er committed/pushed9f730283;12fokustester og10guardhooktester PASS.
+Metadataforberedelse002 stoppet førclaim: root utelot sluttlinjeskift i windowseal.
+Bootseal hadde sammefeil. Begge er rettet i nye003filer med sammeformat som
+beståttwindow001/boot001; alleC002native-/runtime-/campaignrøtter er fortsattborte.
+Ny003admisjon krever metadatarecommit/preparasjon, ikke ny kodekvalifikasjon.
 Commit/push får uendret obligatorisk guardhook; nativecontract-hook trigges ikke
 av disse3filene. Deretter faktisk C002metadatapreparasjon ved cleanHEAD og ekstern
 policybinding, wholehostidle og ny fysiskWindowsboot etter542. C001 forblir lukket.
