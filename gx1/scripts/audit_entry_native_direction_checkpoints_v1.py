@@ -3,12 +3,12 @@
 All numerical imports follow the existing native guard and fresh exact admission.
 The 194 forwards and six reverse calls are additional genuine computation, not
 synthetic qualification. Original state files are decoded once and never written.
-This component has no admitted capped-runner/dispatcher launch route. Genuine
-execution needs separate integration admission; there is no alternate cap class.
+Only the canonical native window may call this worker. Actual campaign/ACTIVE,
+external clean-source/policy binding and a once-only output claim precede payload.
+Runtime admission is separate; there is no direct CLI or alternate cap class.
 """
 from __future__ import annotations
 
-import argparse
 from contextlib import contextmanager
 import hashlib
 import json
@@ -276,6 +276,10 @@ def _install_guard(phase, output):
         writing = isinstance(flags, int) and flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND)
         if writing:
             authority.require(path.startswith(str(output) + '/'), 'ORIGINAL_OR_UNBOUND_WRITE:' + path)
+        if path == str(output):
+            authority.require(isinstance(flags, int) and flags & os.O_DIRECTORY and not writing,
+                'READONLY_OUTPUT_DIRECTORY')
+            return
         if path.startswith(('/home/andre2/GX1_RUNS/', '/home/andre2/GX1_DATA/')) and not path.startswith(str(output) + '/'):
             allowed = (phase['name'] != 'METADATA' or Path(path).suffix in ('.json', '.py'))
             if Path(path).suffix == '.pt':
@@ -493,26 +497,12 @@ def _baseline_arrays(ref, *, common, np, contexts):
     return arrays
 
 
-def run_checkpoint_diagnostic(*, plan_path, plan_sha256, admission_path, admission_sha256):
-    # Must remain before context, numpy, torch, rank/view/state or device imports.
-    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
-    limits = require_guarded_cuda_trainer_execution()
-    sys.dont_write_bytecode = True
-    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
-    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as prefix
-    metadata = {}
-    plan_ref = authority.plain_ref({'path': str(Path(plan_path)), 'sha256': plan_sha256})
-    admission_ref = authority.plain_ref({'path': str(Path(admission_path)), 'sha256': admission_sha256})
-    plan = authority.require_plan(common._read(plan_ref, metadata))
-    authority.require_admission(common._read(admission_ref, metadata), plan_ref)
+def _checkpoint_metadata(plan, route, common, metadata):
+    # Only hash-bound JSON/source and readonly file stats; no payload body here.
+    for ref in [route['recipe_ref'], *route['metadata_refs']]:
+        common._read(ref, metadata)
+    authority.require_admission(common._read(route['admission_ref'], metadata), route['recipe_ref'])
     proposal = authority.require_proposal(common._read(authority.PROPOSAL, metadata))
-    policy = common._read(plan['policy'], metadata)
-    gate = policy.get(authority.STAGE, {})
-    authority.require(gate.get('plan') == plan_ref and gate.get('admission') == admission_ref
-        and gate.get('execution_authorized') is True
-        and gate.get('claimed_invocations') == gate.get('completed_invocations') == 0
-        and gate.get('max_invocations') == 1 and gate.get('test_data_used') is False
-        and gate.get('optimizer_steps_authorized') is False, 'CURRENT_POLICY_ADMISSION')
     recipe = common._read(proposal['existing_input_refs']['recipe'], metadata)
     qualified = common._read(proposal['existing_input_refs']['first_prefix_qualification'], metadata)
     authority.require(qualified['technical_fit_resume_scoring_qualified'] is True
@@ -546,41 +536,123 @@ def run_checkpoint_diagnostic(*, plan_path, plan_sha256, admission_path, admissi
         authority.require(observed['st_size'] == item['stat_size_bytes']
             and not observed['st_mode'] & 0o222, 'CHECKPOINT_READONLY_STAT_SIZE')
         refs.append(ref)
-    required_sources = {**recipe['source_owners'], **proposal['existing_sources_reused_without_change']}
-    authority.require(set(plan['source_owners']) == set(required_sources) | set(authority.NEW_FILES)
-        and all(plan['source_owners'][key] == ref for key, ref in required_sources.items()), 'EXACT_SOURCE_CLOSURE')
+    authority.require_source_closure(plan, recipe, proposal)
     for ref in plan['source_owners'].values():
         authority.require(common._hash_file(ref['path']) == ref, 'CURRENT_SOURCE_BYTES')
+    return recipe, proposal, initial, refs
+
+
+
+def _read_guard_context(context, output, refs, originals):
+    # This extra key is solely a readonly O_DIRECTORY allowance in the delegated
+    # open filter, never a file ref/stat or a member of the frozen input proof.
+    return {**context, 'info': {**context['info'], 'metadata': {
+        **context['info']['metadata'], str(output): {'read_guard_directory_only': True},
+        **{ref['path']: {'ref': ref, 'stat': originals[ref['path']]}
+            for ref in refs + [authority.INITIAL_PREDICTIONS]}}}}
+
+def _json_bytes(value):
+    return (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + '\n').encode()
+
+
+
+def _publish_progress(path, value, counts, limit, common):
+    """Reuse immutable JSON staging, then replace only the observer's slot."""
+    from gx1.contracts.immutable_event_authority_v1 import _fsync_directory
+    path = Path(path)
+    authority.require(path.name == 'PROGRESS.json' and not path.is_symlink(), 'PROGRESS_SLOT')
+    stage = path.with_name('.PROGRESS.json.stage')
+    created = False
+    try:
+        common._json(stage, value, counts, limit); created = True
+        os.replace(stage, path)
+        _fsync_directory(path.parent)
+    finally:
+        if created and stage.exists():
+            stage.unlink()
+    return common._hash_file(path)
+
+
+def _publish_running_progress(*, route, output, budget, counts, common):
+    progress = authority.build_checkpoint_diagnostic_running_progress(window=route['window'], plan=route['plan'],
+        invocation=route['invocation'], calls=budget.calls, returns=budget.returns)
+    return _publish_progress(output / 'PROGRESS.json', progress, counts,
+        route['recipe']['budget']['max_json_output_bytes'] - authority.TERMINAL_JSON_RESERVE_BYTES, common)
+
+def _publish_terminal(result, *, route, output, budget, counts, common):
+    """Three immutable terminal JSONs share the original total write budget."""
+    limit = route['recipe']['budget']['max_json_output_bytes']
+    reserve = authority.TERMINAL_JSON_RESERVE_BYTES
+    result = dict(result)
+    for compact in (False, True):
+        if compact:
+            result = {key: result[key] for key in ('recipe', 'admission', 'campaign_plan', 'operation',
+                'optimizer_steps', 'test_data_used', 'observed_calls', 'observed_returns')}
+            result.update(decision='FAILED', error={'type': 'RuntimeError', 'message': 'TERMINAL_JSON_RESERVE_EXCEEDED'})
+        result_ref = {'path': str(output / 'RESULT.json'), 'sha256': hashlib.sha256(_json_bytes(result)).hexdigest()}
+        outcome = 'COMPLETE' if result['decision'] == 'COMPLETE_READONLY_TRAIN_DIAGNOSIS' else 'FAILED'
+        pointer = authority.build_checkpoint_diagnostic_pointer(recipe_ref=route['recipe_ref'], result_ref=result_ref,
+            outcome=outcome, calls=budget.calls, returns=budget.returns)
+        authority.require_checkpoint_diagnostic_pointer(pointer, expected_recipe=route['recipe_ref'], verify_files=False)
+        pointer_ref = {'path': route['window']['campaign_cursor_path'], 'sha256': hashlib.sha256(_json_bytes(pointer)).hexdigest()}
+        progress = authority.build_checkpoint_diagnostic_progress(window=route['window'], plan=route['plan'],
+            invocation=route['invocation'], checkpoint_pointer=pointer_ref, pointer=pointer)
+        authority.require_checkpoint_diagnostic_progress(progress, plan_sha256=route['plan']['plan_sha256'],
+            invocation=route['invocation'], expected_selection_receipt_sha256=None, verify_file=False)
+        total = sum(len(_json_bytes(value)) for value in (result, pointer, progress))
+        if total <= reserve:
+            break
+    authority.require(total <= reserve and counts['json_bytes'] + total <= limit, 'TERMINAL_JSON_BUDGET')
+    authority.require(common._json(output / 'RESULT.json', result, counts, limit) == result_ref, 'RESULT_PUBLISH_HASH')
+    authority.require(common._json(Path(pointer_ref['path']), pointer, counts, limit) == pointer_ref, 'POINTER_PUBLISH_HASH')
+    _publish_progress(Path(route['window']['progress_path']), progress, counts, limit, common)
+    return result
+
+
+def run_native_direction_checkpoint_diagnostic_window(*, policy_path, policy_file_sha256, progress_path):
+    # No common/prefix/numerical import or payload can precede both proofs.
+    from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
+    limits = require_guarded_cuda_trainer_execution()
+    route = authority.require_native_direction_checkpoint_diagnostic_context(
+        policy_path, policy_file_sha256, progress_path)
+    sys.dont_write_bytecode = True
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as prefix
+    plan, plan_ref, admission_ref = route['recipe'], route['recipe_ref'], route['admission_ref']
+    binding = route['binding']
     output = Path(plan['run_root'])
-    authority.require(not output.is_symlink() and not output.exists(), 'CONSUMED_RUN_ROOT')
+    # Exclusive mkdir is the once-only claim. Existing controller creates neither
+    # this output directory nor its same-parent PROGRESS/DIAGNOSTIC_POINTER files.
     output.mkdir()
     counts = {'json_bytes': 0, 'resume_state_load_calls': 0, 'resume_state_load_returns': 0}
     budget = authority.CallBudget()
     phase = {'name': 'METADATA'}
-    denied = _install_guard(phase, output)
-    started = time.monotonic()
-    before_io = common._io()
-    old_alarm = signal.getsignal(signal.SIGALRM)
+    denied, delegated_denied, originals, metadata = [], [], {}, {}
+    started = time.monotonic(); before_io = common._io()
+    old_alarm, old_profile = signal.getsignal(signal.SIGALRM), sys.getprofile()
+    context = None
+    body_json_limit = plan['budget']['max_json_output_bytes'] - authority.TERMINAL_JSON_RESERVE_BYTES
+    result = {'decision': 'FAILED', 'error': None, 'operation': authority.OPERATION,
+        'recipe': plan_ref, 'admission': admission_ref, 'campaign_plan': binding['plan'],
+        'test_data_used': False, 'optimizer_steps': 0, 'limits': list(authority.LIMITS),
+        'source_transport_transitions': plan['transport_source_transitions']}
     def deadline(_signum, _frame):
         raise TimeoutError('NATIVE_DIRECTION_CHECKPOINT_DIAGNOSTIC_WALL_LIMIT')
-    signal.signal(signal.SIGALRM, deadline)
-    signal.alarm(plan['budget']['max_wall_seconds'])
-    old_profile = sys.getprofile()
-    context = None
-    result = {'decision': 'FAILED', 'error': None, 'operation': authority.OPERATION,
-        'plan': plan_ref, 'admission': admission_ref, 'test_data_used': False,
-        'optimizer_steps': 0, 'limits': list(authority.LIMITS)}
-    binding = {'source_head': plan['source_head'], 'policy': plan['policy']}
-    common._json(output / 'CLAIM.json', {'plan': plan_ref, 'admission': admission_ref,
-        'limits': limits, 'operation_limits': authority.CALL_LIMITS}, counts, plan['budget']['max_json_output_bytes'])
-    originals = {ref['path']: common._stat(ref['path']) for ref in refs + [authority.INITIAL_PREDICTIONS]}
     try:
+        denied = _install_guard(phase, output)
+        signal.signal(signal.SIGALRM, deadline)
+        signal.alarm(plan['budget']['max_wall_seconds'])
+        common._json(output / 'CLAIM.json', {'recipe': plan_ref, 'admission': admission_ref,
+            'campaign_plan': binding['plan'], 'invocation_sha256': route['invocation']['invocation_sha256'],
+            'active_marker_sha256': route['marker']['marker_sha256'], 'limits': limits,
+            'operation_limits': authority.CALL_LIMITS}, counts, body_json_limit)
+        _publish_running_progress(route=route, output=output, budget=budget, counts=counts, common=common)
+        recipe, proposal, initial, refs = _checkpoint_metadata(plan, route, common, metadata)
+        originals = {ref['path']: common._stat(ref['path']) for ref in refs + [authority.INITIAL_PREDICTIONS]}
         context = prefix._metadata(recipe, common)
         context['info']['metadata'].update(metadata)
         common._freeze(plan, binding, context)
-        guard_context = {**context, 'info': {**context['info'], 'metadata': {
-            **context['info']['metadata'], **{ref['path']: {'ref': ref, 'stat': originals[ref['path']]}
-                for ref in refs + [authority.INITIAL_PREDICTIONS]}}}}
+        guard_context = _read_guard_context(context, output, refs, originals)
         delegated_denied = common._install_read_guard(guard_context, output, output)
         import numpy as np
         import torch
@@ -611,7 +683,7 @@ def run_checkpoint_diagnostic(*, plan_path, plan_sha256, admission_path, admissi
         phase['name'] = 'GEOMETRY'
         geometry = parameter_geometry(states, torch)
         common._json(output / 'PARAMETER_GEOMETRY.json', {'states': geometry,
-            'limits': list(authority.LIMITS)}, counts, plan['budget']['max_json_output_bytes'])
+            'limits': list(authority.LIMITS)}, counts, body_json_limit)
         device = torch.device('cuda', 0)
         trainer._set_deterministic(recipe['numerical_recipe']['seed'], device,
             recipe['numerical_recipe']['precision_policy'])
@@ -663,7 +735,8 @@ def run_checkpoint_diagnostic(*, plan_path, plan_sha256, admission_path, admissi
                     'seen_status': authority.panel_seen_status(left, right, spec[1]),
                     'own_initial_reproduction': parity})
                 panel_refs.append(common._json(output / (spec[0] + '__' + panel_name + '.json'),
-                    measured, counts, plan['budget']['max_json_output_bytes']))
+                    measured, counts, body_json_limit))
+                _publish_running_progress(route=route, output=output, budget=budget, counts=counts, common=common)
                 del arrays, measured, tag_arrays, recorder
             if spec[0] in ('own0U', 'terminal_u2976'):
                 phase['name'] = 'GRADIENT'
@@ -673,13 +746,14 @@ def run_checkpoint_diagnostic(*, plan_path, plan_sha256, admission_path, admissi
                     prefix=prefix, trainer=trainer, tree_sha=tree_sha)
                 gradient.update({'state': spec[0], 'horizons_minutes': [1, 5, 15]})
                 gradient_refs.append(common._json(output / (spec[0] + '__HORIZON_GRADIENTS.json'),
-                    gradient, counts, plan['budget']['max_json_output_bytes']))
+                    gradient, counts, body_json_limit))
+                _publish_running_progress(route=route, output=output, budget=budget, counts=counts, common=common)
         authority.require(counts['resume_state_load_calls'] == counts['resume_state_load_returns'] == 4
             and forward_counts['forward_calls'] == forward_counts['forward_returns'] == 194,
             'DELEGATED_LOADER_AND_FORWARD_COUNTS')
         authority.require(not denied and not delegated_denied, 'FORBIDDEN_INPUT_OPEN')
         result.update({'decision': 'COMPLETE_READONLY_TRAIN_DIAGNOSIS', 'calls': budget.complete(),
-            'source_function_unchanged': True, 'initial_report': authority.INITIAL_REPORT,
+            'numerical_model_function_unchanged': True, 'initial_report': authority.INITIAL_REPORT,
             'initial_predictions': authority.INITIAL_PREDICTIONS,
             'states': [{'role': item['role'], 'ref': item['planned_PT_ref']}
                 for item in proposal['planned_saved_states']], 'panels': panel_refs,
@@ -695,9 +769,10 @@ def run_checkpoint_diagnostic(*, plan_path, plan_sha256, admission_path, admissi
         signal.alarm(0)
         signal.signal(signal.SIGALRM, old_alarm)
         phase['name'] = 'FINAL'
+        originals_preserved = False
         try:
-            authority.require(all(common._stat(path) == before for path, before in originals.items()),
-                'ORIGINAL_FILE_STAT_BOOKENDS')
+            originals_preserved = len(originals) == 5 and all(common._stat(path) == before for path, before in originals.items())
+            authority.require(not originals or originals_preserved, 'ORIGINAL_FILE_STAT_BOOKENDS')
             if context is not None:
                 common._freeze(plan, binding, context)
             authority.require(common._io()['rchar'] - before_io['rchar'] <= plan['budget']['max_rchar_bytes'], 'RCHAR_CEILING')
@@ -705,23 +780,15 @@ def run_checkpoint_diagnostic(*, plan_path, plan_sha256, admission_path, admissi
             result.update({'decision': 'FAILED', 'error': {'type': type(exc).__name__, 'message': str(exc)[:4096]}})
         result.update({'elapsed_seconds': time.monotonic() - started, 'limits_proof': limits,
             'observed_calls': dict(budget.calls), 'observed_returns': dict(budget.returns),
-            'denied_phase_opens': denied, 'originals_stat_preserved': all(
-                common._stat(path) == before for path, before in originals.items())})
-        common._json(output / 'RESULT.json', result, counts, plan['budget']['max_json_output_bytes'])
+            'denied_phase_opens': denied, 'originals_stat_inventory_count': len(originals),
+            'originals_stat_preserved': originals_preserved})
+        result = _publish_terminal(result, route=route, output=output, budget=budget, counts=counts, common=common)
     return result
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--plan', required=True)
-    parser.add_argument('--plan-sha256', required=True)
-    parser.add_argument('--admission', required=True)
-    parser.add_argument('--admission-sha256', required=True)
-    args = parser.parse_args()
-    result = run_checkpoint_diagnostic(plan_path=args.plan, plan_sha256=args.plan_sha256,
-        admission_path=args.admission, admission_sha256=args.admission_sha256)
-    return 0 if result['decision'] == 'COMPLETE_READONLY_TRAIN_DIAGNOSIS' else 1
+    authority.require(False, 'DIRECT_C_MODULE_FORBIDDEN_USE_CANONICAL_NATIVE_WINDOW')
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    main()

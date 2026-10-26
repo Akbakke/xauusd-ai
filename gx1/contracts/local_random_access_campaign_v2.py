@@ -38,6 +38,7 @@ _KINDS = {
     "native_candidate_window",
     "native_direction_research_window",
     "native_direction_prefix_fit_window",
+    "native_direction_checkpoint_diagnostic_window",
 }
 _SUCCESS_OUTCOMES = {"COMPLETE", "RESUMABLE"}
 _EXPECTED_SUCCESS_OUTCOMES = _SUCCESS_OUTCOMES | {"RESUMABLE_OR_COMPLETE"}
@@ -393,17 +394,22 @@ def require_invocation(
         raise RandomAccessCampaignError("invocation number invalid")
     batch_size = result.get("batch_size")
     if ((kind == "native_direction_research_window" and (type(batch_size) is not int or batch_size != 2))
-            or (kind == "native_direction_prefix_fit_window" and (type(batch_size) is not int or batch_size != 16))
-            or (kind not in {"native_direction_research_window", "native_direction_prefix_fit_window"}
+            or (kind in {"native_direction_prefix_fit_window", "native_direction_checkpoint_diagnostic_window"} and (type(batch_size) is not int or batch_size != 16))
+            or (kind not in {"native_direction_research_window", "native_direction_prefix_fit_window", "native_direction_checkpoint_diagnostic_window"}
                 and batch_size not in (4, 8, 16))):
         raise RandomAccessCampaignError("invocation batch size invalid")
     for name in ("epoch_index", "window_index", "window_count"):
-        if name == "epoch_index" and kind in {"native_candidate_window", "native_direction_research_window", "native_direction_prefix_fit_window"} and result[name] is None:
+        if name == "epoch_index" and kind in {"native_candidate_window", "native_direction_research_window", "native_direction_prefix_fit_window", "native_direction_checkpoint_diagnostic_window"} and result[name] is None:
             continue
         if type(result.get(name)) is not int or result[name] < 0:
             raise RandomAccessCampaignError(f"invocation {name} invalid")
     budget = result.get("optimizer_step_budget")
-    if kind in {"full_val_window", "native_candidate_window"}:
+    if kind == "native_direction_checkpoint_diagnostic_window":
+        if (type(budget) is not int or budget != 0
+                or result["expected_success_outcome"] != "COMPLETE"
+                or result["window_count"] != 1 or result["window_index"] != 0):
+            raise RandomAccessCampaignError("checkpoint diagnostic zero-step window invalid")
+    elif kind in {"full_val_window", "native_candidate_window"}:
         if (
             budget is not None
             or result["expected_success_outcome"] != "RESUMABLE_OR_COMPLETE"
@@ -415,7 +421,7 @@ def require_invocation(
     if result["expected_success_outcome"] not in _EXPECTED_SUCCESS_OUTCOMES:
         raise RandomAccessCampaignError("expected outcome invalid")
     maximum_wall = result.get("maximum_wall_seconds")
-    wall_ceiling = 13800 if kind in {"native_candidate_window", "native_direction_research_window", "native_direction_prefix_fit_window"} else 7200
+    wall_ceiling = 13800 if kind in {"native_candidate_window", "native_direction_research_window", "native_direction_prefix_fit_window", "native_direction_checkpoint_diagnostic_window"} else 7200
     if type(maximum_wall) is not int or not 1 <= maximum_wall <= wall_ceiling:
         raise RandomAccessCampaignError("invocation wall bound invalid")
     result["execution_manifest"] = require_binding(
@@ -498,7 +504,10 @@ def require_invocation(
             or execution.get("artifact_sha256") != canonical_sha256(unsigned)
         ):
             raise RandomAccessCampaignError("execution manifest binding invalid")
-        if kind == "native_direction_prefix_fit_window":
+        if kind == "native_direction_checkpoint_diagnostic_window":
+            from gx1.contracts.entry_native_direction_checkpoint_diagnostic_v1 import require_checkpoint_diagnostic_invocation_execution
+            require_checkpoint_diagnostic_invocation_execution(result, execution, source_repo=source_repo, source_commit=source_commit)
+        elif kind == "native_direction_prefix_fit_window":
             from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import require_prefix_fit_invocation_execution
             require_prefix_fit_invocation_execution(result, execution, source_repo=source_repo, source_commit=source_commit)
         elif kind == "native_direction_research_window":
@@ -843,12 +852,15 @@ def campaign_hardware_policy(phase: str) -> dict[str, Any]:
         "fresh_physical_windows_boot_before_every_invocation": True,
         "automatic_power_limit_change": False,
     }
-    if phase in {"native_candidate", "native_direction_research", "native_direction_prefix_fit"}:
+    if phase in {"native_candidate", "native_direction_research", "native_direction_prefix_fit", "native_direction_checkpoint_diagnostic"}:
         expected_policy.update(physical_power_limit_w=300, maximum_actual_power_draw_w=310, maximum_core_temperature_c=85, automatic_power_limit_change=True, power_reduction_core_temperature_c=80, reduced_power_limit_w=200)
     return expected_policy
 
 
 def require_plan(value: Any, *, verify_files: bool = True) -> dict[str, Any]:
+    if isinstance(value, Mapping) and value.get("phase") == "native_direction_checkpoint_diagnostic":
+        from gx1.contracts.entry_native_direction_checkpoint_diagnostic_v1 import require_checkpoint_diagnostic_campaign_plan
+        return require_checkpoint_diagnostic_campaign_plan(value, verify_files=verify_files)
     if isinstance(value, Mapping) and value.get("phase") == "native_direction_prefix_fit":
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import require_prefix_fit_plan
         return require_prefix_fit_plan(value, verify_files=verify_files)
@@ -1218,6 +1230,10 @@ def require_progress(
     expected_selection_receipt_sha256: str | None,
     verify_file: bool = True,
 ) -> dict[str, Any]:
+    if invocation.get("kind") == "native_direction_checkpoint_diagnostic_window":
+        from gx1.contracts.entry_native_direction_checkpoint_diagnostic_v1 import require_checkpoint_diagnostic_progress
+        return require_checkpoint_diagnostic_progress(value, plan_sha256=plan_sha256, invocation=invocation,
+            expected_selection_receipt_sha256=expected_selection_receipt_sha256, verify_file=verify_file)
     if invocation.get("kind") == "native_direction_prefix_fit_window":
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import require_prefix_fit_progress
         return require_prefix_fit_progress(value, plan_sha256=plan_sha256, invocation=invocation,

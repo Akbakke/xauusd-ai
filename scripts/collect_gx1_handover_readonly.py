@@ -224,6 +224,14 @@ def next_run_readiness(
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import (
             WINDOW_SCHEMA as PREFIX_FIT_WINDOW_SCHEMA, require_native_direction_prefix_fit_readiness,
         )
+        from gx1.contracts.entry_native_direction_checkpoint_diagnostic_v1 import (
+            WINDOW_SCHEMA as CHECKPOINT_DIAGNOSTIC_WINDOW_SCHEMA, require_native_direction_checkpoint_diagnostic_readiness,
+        )
+        if isinstance(window, dict) and window.get("schema_version") == CHECKPOINT_DIAGNOSTIC_WINDOW_SCHEMA:
+            return require_native_direction_checkpoint_diagnostic_readiness(
+                repo, window_path=window_path,
+                window_file_sha256=native_window_policy_file_sha256,
+            )
         if isinstance(window, dict) and window.get("schema_version") == PREFIX_FIT_WINDOW_SCHEMA:
             return require_native_direction_prefix_fit_readiness(
                 repo, window_path=window_path,

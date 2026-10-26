@@ -270,7 +270,7 @@ validate_target_command() {
       --native-window-policy-file-sha256 "${target_args[6]}") || exit 78
     # Read the hash-bound window; callers cannot supply a free-form guard timeout.
     local native_seconds
-    native_seconds=$("$CANONICAL_TRAINER_PYTHON" -c 'import json,sys; p=json.load(open(sys.argv[1])); n=p["max_invocation_seconds"]; assert p["schema_version"] in ("gx1_native_candidate_window_policy_v1", "gx1_native_direction_research_window_policy_v1", "gx1_native_direction_prefix_fit_window_policy_v1") and type(n) is int and n == 12000; print(n)' "${target_args[4]}") || exit 75
+    native_seconds=$("$CANONICAL_TRAINER_PYTHON" -c 'import json,sys; p=json.load(open(sys.argv[1])); n=p["max_invocation_seconds"]; assert p["schema_version"] in ("gx1_native_candidate_window_policy_v1", "gx1_native_direction_research_window_policy_v1", "gx1_native_direction_prefix_fit_window_policy_v1", "gx1_native_direction_checkpoint_diagnostic_window_policy_v1") and type(n) is int and n == 12000; print(n)' "${target_args[4]}") || exit 75
     TRAINER_MAX_WALL_SECONDS=$((native_seconds + 1800))
     TRAINER_MODEL_MAX_WALL_SECONDS=$TRAINER_MAX_WALL_SECONDS
     # Operator-authorized native main training; legacy invocations retain their limits.
@@ -279,6 +279,11 @@ validate_target_command() {
     TRAINER_GPU_MAX_CORE_TEMP_C=85
     TRAINER_DEVICE=cuda
     TRAINER_OUT_BUNDLE_DIR="${target_args[8]}"
+    # C claims its fresh output itself; stdio uses the bound existing guard-log
+    # directory so no output/progress parent is created ahead of that claim.
+    if [[ "$("$CANONICAL_TRAINER_PYTHON" -c 'import json,sys; print(json.load(open(sys.argv[1]))["schema_version"])' "${target_args[4]}")" == gx1_native_direction_checkpoint_diagnostic_window_policy_v1 ]]; then
+      TRAINER_OUT_BUNDLE_DIR="$GX1_CAMPAIGN_GUARD_LOG_PATH"
+    fi
     return
   fi
   for ((target_index = 0; target_index < ${#target_args[@]}; target_index++)); do
