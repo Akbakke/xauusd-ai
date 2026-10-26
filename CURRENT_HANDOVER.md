@@ -9,13 +9,25 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-DIRECTION_RET1_INPUT_PARITY_DESIGN_001 åpner avgrenset kildeforberedelse for én
-inputkontroll: native current051 ret_1 mot245s lagrede rå ret_1 og fire
-normaliserte referansekolonner på samme118249TRAIN-foreldre. Eksisterende
-sekvens/snapshot-paritet gjenbrukes. Ingen modellkjøring, fit, labels eller
-rådatasett trengs. PLAN_001 er nå admittért for én capped CPU-kontroll:
-90s/4GiB/512MiB/éntråd; fem lagrede NPY/NPZ-lesinger og én read-only
-TRAIN-snapshot-mmap. Ingen native-kildeendring. Alle øvrige tillatelser er lukket.
+DIRECTION_NATIVE_R1_SAVED_RANK_DESIGN_001 prioriteres før en ny GPU-probe:
+Native15m-AUC er bare litt underret1; rangeringstap er ennå ikke dokumentert
+med parvis usikkerhet. Sammenlign frosne prediksjoner på de samme67112foreldrene,
+med eksisterende4folder/4000uke- ogdagvekter. PLAN_001 er nå admittért:
+180s/4GiB/512MiB/éntråd,5lagredeprediksjonsarkiver,48parviseblokkrangberegninger,
+0fit/0forward. Dette utfordrer informasjonstap-hypotesen; ingen ny modell,
+kalibreringsfit eller annen numerisk kjøring er åpnet.
+
+DIRECTION_RET1_INPUT_PARITY_ROOT_REVIEW_001 bekrefter COMPLETE/consumed:
+Alle118249TRAIN-foreldre har bit-identisk råret_1 i native current051 og245s
+referansevitne, med samme rad-/beslutningsklokke. Alle fire lagrede
+referansekolonner gjenskapes eksakt. 5lagredeNPY/NPZ-lesinger,1TRAIN-mmap,
+1.52s,0modell/fit/optimizer/rådatasett. Kilde/policy/input uendret; cgroup
+borte og tunglås ledig. Alle tillatelser er konsumert, ingen relaunch.
+Dette avkrefter den undersøkte ret1-leveringsfeilen i ferdige inputs;
+checkpoint-buffer, faktisk torch-normalisering og hidden-bevaring er ikke målt.
+Neste spørsmål er representasjon mot readout/optimering. Gjenbruk eksisterende
+lagret representasjonsevidens hvis den er tilstrekkelig; ellers krev én liten
+forhåndsbundet0U/terminal-probe. Ingen native-kjøring er admittért.
 
 DIRECTION_1_60_CAUSE_SYNTHESIS_001 samler fire prioriterte hypoteser med
 mekanisme, støtte, motbevis, eksakte eiere, avgrenset test og stoppkriterier.
@@ -24,9 +36,9 @@ viser at ret_1 er aktivt i momentum-, snapshot- og sekvensrutene. Normalisering
 er asinh uten hard klipping; readout er allerede mean+last. Begge koordinater
 har positiv skala, men native/reference-prefixstatistikk er ikke bitidentisk.
 Ingen nye payloads eller modellkall ble brukt til kildesporingen.
-Neste mest informative kontroll er eksakt matchetret1-inputparitet, deretter
-eventuelt en liten frosset0U/terminal-probe av om signalet kan leses fra hidden.
-Inputparitet er admittért ovenfor; ingen hidden-probe eller arkitekturendring er admittért.
+Matchetret1-inputparitet er nå bestått ovenfor. En eventuell frosset0U/terminal-
+probe må skille bevaring av signalet fra læring i readout. Ingen slik probe eller
+arkitekturendring er admittért.
 
 DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001 bekrefter COMPLETE/consumed:
 20 CPU-fits, 40 prediksjonspopulasjoner, 6 lagrede TRAIN-inputs, 113.37s,
