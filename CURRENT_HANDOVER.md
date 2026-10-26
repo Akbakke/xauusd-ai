@@ -14,12 +14,12 @@ oppdrag derfra forkastes. Denne trådens direkte brukermandat og mål er eneste
 arbeidsautoritet. Allerede mottatte meldinger kan ikke slettes med tilgjengelige verktøy.
 
 A, B og faktisk C003 er fullført innen sine avgrensede måleoppgaver.
-PROGRAM_EXECUTION_LEDGER_014 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
+PROGRAM_EXECUTION_LEDGER_015 binder alle30punkter: 2/3/6/7/12/16/23/24/25/26 er målt
 med oppgitte grenser; øvrige trenger videre evidens eller eksplisitt sluttavklaring.
 Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integrasjon
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
 retningslæring. INTEGRATOR_TAKEOVER_20261026_001 binder mandatet. Root eier
-kilde/policy/launch; to avgrensede lesere vurderer D-ekstraksjon og F-design.
+kilde/policy/launch og arbeider alene; tidligere kontroller er bevart.
 Ingen aktiv tung jobb. D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
 inner/outerexit0 og1277.12s. D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001 binder35egne
 readerEOF/CRC-kvitteringer,878400slots/876959valgte og23felt. GCG6prefix har nå
@@ -109,7 +109,7 @@ samme som rangering. PooledcrossfoldAUC er bare blandingsdiagnose.
 Alle9kontekster/75kategorier beholdes; ingen valgt vinnerstratum eller kausalattribusjon.
 Dette er gjenbrukt TRAIN/utvikling, ikke urørt bekreftelse eller økonomisk edge.
 
-## Neste konkrete arbeid — D, deretter begrunnet E/F og samlet G
+## Fullført D og neste konkrete F-avklaring
 
 D_EXACT_FOOTER_ACTUAL_ROOT_REVIEW_001 binder en faktisk, fullført metadata-
 undersøkelse av024s to M1-filer. Leseren bestod15syntetiske kontroller før ekte
@@ -136,7 +136,7 @@ Hovedkohorten må være uavhengig av+1-kontrollens fremtidige flowmasker.
 Behold separat felles timingkohort og visdelta0påbegge. GC/XAU-AUC-kontraster
 krever begge-ikke-null-interseksjon; målspesifikke ties/counts beholdes.
 Fem eksakte avsluttede M1-slots, sluttmasker, ukjentvolum, rullering og separate
-endpoint-/pathmasker består. Ingen verdier eller sammenhenger er målt i D ennå.
+endpoint-/pathmasker består. De forhåndsbundne D-sammenhengene er nå målt med avgrensningene ovenfor.
 
 D_TRAIN_CSV_PREFIX_SOURCE_ADMISSION_001 bandt den nå kvalifiserte kildeimplementasjonen:
 ny ts_recv-portet prefixhelper hos eksisterende134rådataeier, fokuserte tester
@@ -196,3 +196,18 @@ D_FLOW_SCORING_SOURCE_ADMISSION_001: låst2score×3delta×7response med106
 forhåndsbundne paneler og47parede kontraster; råAUCpunkt og separatA-assosiasjon.
 Koden er syntetisk kvalifisert og faktisk kjørt i D_FLOW_SCORE_001; konklusjonene
 er avgrensede toskårssammenhenger på gjenbruktTRAIN, ingen modell-/handelsedge.
+
+F_FROZEN_READOUT_DESIGN_001 binder neste kontrast:2760U/terminal128D-hidden på
+identisk47602prefix/17288senereforeldre,1/5/15. Ny matematikk-eier er implementert;
+F_FROZEN_READOUT_SYNTHETIC_ROOT_REVIEW_001 bekrefter21tilfeller/0feil og seks
+eksplisitte SciPyfits på kunstige data under600s/4GiB/512MiB/64tasks/éntråd.
+Fsyntetikk er COMPLETE/consumed. Genuine feature-/checkpointloads,forwards og
+readoutfits er fortsatt stengt; nativekilden er fysisk uendret.
+
+F_FROZEN_READOUT_INTERPRETATION_LIMITS_001 presiserer at BCE-ekvivalens gjelder én
+fast hiddenmatrise. Originalt brukes TRAIN/dropout0.05 og AdamWweightdecay0.0001;
+proben bruker deterministisk EVAL-representasjon og uregularisert L-BFGS-B. Bedre
+senere probe identifiserer en bedre decoder, men ikke alene Adam/dropout/decay
+eller headlag som årsak. Konvergens,gradient og kandidat/priorobjektiv må bestå.
+Neste kildearbeid er begrenset ekstraksjon gjennom eksisterende native campaign
+og alle vakter,uten ny GPU-whitelist. Ingen ny native epoke eller modellvariant.
