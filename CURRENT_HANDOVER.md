@@ -8,27 +8,36 @@ Root eier integrasjon, policy og launch. Prosess/terminal overstyrer prosa.
 ## Aktuell status
 
 A og faktisk B er ferdige innen vedtatt scope: fire faste nativeprefixer og
-identisk sammenligning på70,647senereforeldre. PROGRAM_EXECUTION_LEDGER_005
-binder bevisene. Punktene2/23/24/25/26 er målt med eksplisitte grenser; hele
-30punktsprogrammet er fortsatt uferdig. GLOBAL training/native/epoch/launch
-og VAL er false. Ingen aktiv tung jobb. Croute er kildekvalifisert:125cases PASS,
-deretter9fokuserte PASS og separat actualmetadata50/7/6/54/69sourcepins PASS.
-Begge jobbene har0genuine modelldata/PT/modell/fit og21bodyceilings0; faktisk
-owner/cgroup er avsluttet. Første fokusforsøk med manglende sourcepin er bevart
-FAILED/consumed; minste pinrettelse endret ingen guard-/counter-AST.
-C001 startet etter fysiskWindowsboot542 (05:42:52Z), men FAILED etter0.078sekunder:
-C-vakten avviste267-hjelperens .pyc med RuntimeError før fysisk/numerisk arbeid.
-Alle26calls/returns er0;0PT/forward/reverse/steg. Femoriginalstat er bevart som
-workerassert. Guardchildexit0 mot funksjonellFAILED er separat dispatchfeil;
-WindowsLastResult1. OriginalACTIVE/progress/pointer/logger er urørt; ingen
-kanonisk kvittering er fabrikkert. C_GUARDED_CHECKPOINT_FAILED_RUNTIME_CLOSURE_001
-binder peer, frystpolicy/handover og faktisk disabledtask. PID/cgroup er borte,
-tunglås ledig. C001 er consumed, autoritet revokert, aldri relaunch. Ingen genuine
-C-læringsmåling er utført eller kvalifisert.
-Minste3filrettelse er nå kvalifisert med12/12fokuserte metadata-tester,0feil/skips,
-21calls/returns0 og69kilde-/policybookends. IngenPopen eller payload.
-C_CACHE_EXIT_REPAIR_ACTUAL_ROOT_REVIEW_001 og ACTUAL_PEER_001 binder dette.
-Ny C0020step-admisjon er gitt; cleancommit/preparation/fysiskboot etter542 gjenstår.
+identisk sammenligning på 70,647 senere foreldre. PROGRAM_EXECUTION_LEDGER_005
+binder bevisene. Punktene 2/23/24/25/26 er målt med eksplisitte grenser; hele
+30punktsprogrammet er fortsatt uferdig. GLOBAL trening/native/epoch/launch og VAL
+er false. Ingen aktiv tung jobb. C001 er failed/consumed og bevares uendret.
+
+C002 startet etter fysisk Windowsboot543, 26.10 kl07:13:35Z. Kilden8872ee90 og
+policy3a733993 var fryst. Fire checkpoints, 33numpy-loads og modellkonstruksjon
+ble registrert. Etter150.93sekunder kom FAILED på skriveforsøk /tmp/4_yz6szp
+under optimizer-build;0forward/reverse/optimizersteg. Eksakt temp-caller er ennå
+ikke bevist, siden workerRESULT ikke bevarte den opprinnelige tracebacken.
+Retur-events i profiler beviser ikke at en funksjon fullførte uten exception.
+
+Denne gangen er ekte kanonisk FAILED-kvittering publisert: guardexit1,
+observerexit0, WindowsLastResult2; ACTIVE er borte. C_GUARDED_CHECKPOINT_FAILED_
+RUNTIME_CLOSURE_002 og FAILED_TERMINAL_OBSERVATION_002 binder originalene.
+Eksakt bundet task er Disabled/Restart0; PID421/cgroup er borte og tunglås ledig.
+Alle54kildeeiere er rehashet uendret; frystpolicy/handover er bevart. C002 er
+consumed, autoritet revokert, aldri relaunch. Ingen genuine C-læringsmåling er
+utført på prediksjoner eller gradienter. PARAMETER_GEOMETRY ble likevel publisert
+før feilen: alle560optimizer-eligible tensorgrupper endres ved u256/u1536/terminal,
+alle171ineligible er uendret;108identiske lagpar ved0U er alleulike vedu256.
+C002_PRESERVED_PARAMETER_GEOMETRY_SUMMARY_001 binder denne JSON-opptellingen.
+Vektendringer skiller ikke weightdecay fra nyttig oppgavegradient og beviser ingen
+prediktiv læring. Minste2filrettelse er nå kildeadmittert: prosesslokaltempdir til
+claimetoutput medeksaktrestore, og maks16feilframes utenlocals/sourceåpning.
+Skrivevakt/modell/trener/målematematikk beholdes uendret. Seks fokuserte metadata-cases er faktisk PASS/0feil/0skips (1.37spytest/5.35souter),
+21calls/returns0,69kilde-/policybookends,0Popen. ACTUAL_ROOT_REVIEW/ACTUAL_PEER_001
+under C_TEMP_WRITE_REPAIR binder dette; owner/cgroup borte og tunglås ledig.
+Testplanen er consumed. Ny C003 er særskilt admittért etter disse bevisene;
+cleancommit/metadatapreparasjon/fysiskboot etter543 gjenstår.
 
 ## Faktisk B001 — lagrede prediksjoner, ingen modellkjøring
 
@@ -83,23 +92,28 @@ Unused280vinduer3/4 er revokert. Ingen ny epoke eller checkpointutvelgelse.
 
 ## Neste konkrete arbeid — C, deretter D/E og begrunnet F
 
-Minste3filrettelse er gjennomført: METADATA-cacheprobe avvises medPermissionError
-føråpning, ekte SourceFileLoader går til SHA-bundet.py; C-dispatch reiser feil
-etter publisertFAILED.12fokuserte cases PASS beviser sourcefallback/0cachebytes,
-payload-/skrivevakter ogsuccess/failure-retur. Alle12målefunksjoner, gamlecases,
-modell ogtrener er uendret. Tidligere125+9/actual50/7/6/54/69pins gjenbrukes.
-C002recipe010ae1dd/window15a3135b er nye, med samme fire276states, tre256TRAINpaneler
-og194forward/6reverse/4PT-loads/0optimizersteg. Materializer4b3e38f7 gjenbruker samme
-57linjerslogikk med ferske binding-/claim-/bootnavn. Ingen fit ellercheckpointvalg.
-Koden er committed/pushed9f730283;12fokustester og10guardhooktester PASS.
-Metadataforberedelse002 stoppet førclaim: root utelot sluttlinjeskift i windowseal.
-Bootseal hadde sammefeil. Begge er rettet i nye003filer med sammeformat som
-beståttwindow001/boot001; alleC002native-/runtime-/campaignrøtter er fortsattborte.
-Ny003admisjon krever metadatarecommit/preparasjon, ikke ny kodekvalifikasjon.
-Commit/push får uendret obligatorisk guardhook; nativecontract-hook trigges ikke
-av disse3filene. Deretter faktisk C002metadatapreparasjon ved cleanHEAD og ekstern
-policybinding, wholehostidle og ny fysiskWindowsboot etter542. C001 forblir lukket.
-TekniskPASS er ingen lærings-, kapasitet-, konvergens- elleredgekvalifikasjon.
+C bruker fire forhåndsvalgte276states og tre256TRAINpaneler. Vedtatt målebudsjett
+er194forward/6reverse/4PT-loads/0optimizersteg; ingen fit ellercheckpointvalg.
+Tidligere125+9kildetester/actualmetadata50/7/6/54, og12cache-/exitfokustester er
+bestått og gjenbrukes. Cache-rettelsen fungerte i C002: to .pyc-prober avvist før
+åpning medPermissionError og kildefallback;0beskyttede cachebytes. Dispatch-
+rettelsen ga faktisk failedexit og kanoniskkvittering. Modell/trener/målematematikk
+ble ikke endret av disse transportrettelsene.
+
+Minste2filrettelse er fullført: prosesslokaltempfile.tempdir settes til eksklusivt
+claimetoutput før imports, og eksaktgammelverdi gjenopprettes ogsåvedterminalfeil.
+FeilJSON beholdermaks16frames utenlocals/sourceoppslag. Beggevirkeligeopenfiltre,
+None/str/bytes-tilstand, cleanup, utenforskriving ogtilbakeføring er kvalifisert.
+C002s eksakteførstetmp-caller var ikke bevart; CPython-proben er kildestøttet
+inferens. Ingen guard, profiler, modell, trener eller12målefunksjoner er endret.
+
+Fresh C003recipef604b566/windowc6d69862/materializerb90c37f9 bevarer54kildeeiere
+(52uendret),57materializerlinjer ogallemålebudsjetter. Windowsealens sluttlinjeskift
+er kontrollert. Røttene003erfriske, runtimeadmission004erbundet. Neste: commit/push
+medeksisterende10guardhooktester, metadata004vedcleanHEAD/eksternpolicybinding,
+wholehostidle ogfysiskWindowsbootetter543. Kilde/policy frysesgjennomC003kjøringen.
+C001/C002/testplaner forblirconsumed. Ingen ekstraepoke, HPO, OOF/CONTROL/TEST,
+normaliseringsrefit, Exit/trades ellercheckpointvalg. TekniskPASS eringenedge.
 
 Dgjenbruker024M1_GC_INPUTS/kvalitetsmasker/roll og245mål. Skill samtidigGCrespons,
 senereGC ogsenereXAU; faste1/5/15min og-1/0/+1min timingkontroller. Ikke-kausal

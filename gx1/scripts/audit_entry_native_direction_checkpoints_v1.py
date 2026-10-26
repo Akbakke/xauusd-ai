@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 import signal
 import sys
+import tempfile
 import time
 
 from gx1.contracts import entry_native_direction_checkpoint_diagnostic_v1 as authority
@@ -620,6 +621,19 @@ def _publish_terminal(result, *, route, output, budget, counts, common):
     return result
 
 
+def _failure_metadata(exc):
+    frames = []
+    current = exc.__traceback__
+    while current is not None:
+        code = current.tb_frame.f_code
+        frames.append({'filename': code.co_filename[:1024],
+            'function': code.co_name[:256], 'line': current.tb_lineno})
+        if len(frames) > 16:
+            del frames[0]
+        current = current.tb_next
+    return {'type': type(exc).__name__, 'message': str(exc)[:4096], 'frames': frames}
+
+
 def run_native_direction_checkpoint_diagnostic_window(*, policy_path, policy_file_sha256, progress_path):
     # No common/prefix/numerical import or payload can precede both proofs.
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
@@ -652,7 +666,11 @@ def run_native_direction_checkpoint_diagnostic_window(*, policy_path, policy_fil
         'metadata_blocked_bytecode_cache_probes': cache_probes}
     def deadline(_signum, _frame):
         raise TimeoutError('NATIVE_DIRECTION_CHECKPOINT_DIAGNOSTIC_WALL_LIMIT')
+    previous_tempdir = tempfile.tempdir
     try:
+        # The exclusive output claim precedes any numerical/lazy import. Keep
+        # all process-local stdlib temp allocation inside the existing guard.
+        tempfile.tempdir = str(output)
         denied = _install_guard(phase, output, cache_probes)
         signal.signal(signal.SIGALRM, deadline)
         signal.alarm(plan['budget']['max_wall_seconds'])
@@ -777,26 +795,29 @@ def run_native_direction_checkpoint_diagnostic_window(*, policy_path, policy_fil
             'activation_causality_qualified': False, 'capacity_or_convergence_qualified': False,
             'predictive_value_qualified': False, 'economic_edge_qualified': False})
     except Exception as exc:
-        result['error'] = {'type': type(exc).__name__, 'message': str(exc)[:4096]}
+        result['error'] = _failure_metadata(exc)
     finally:
-        sys.setprofile(old_profile)
-        signal.alarm(0)
-        signal.signal(signal.SIGALRM, old_alarm)
-        phase['name'] = 'FINAL'
-        originals_preserved = False
         try:
-            originals_preserved = len(originals) == 5 and all(common._stat(path) == before for path, before in originals.items())
-            authority.require(not originals or originals_preserved, 'ORIGINAL_FILE_STAT_BOOKENDS')
-            if context is not None:
-                common._freeze(plan, binding, context)
-            authority.require(common._io()['rchar'] - before_io['rchar'] <= plan['budget']['max_rchar_bytes'], 'RCHAR_CEILING')
-        except Exception as exc:
-            result.update({'decision': 'FAILED', 'error': {'type': type(exc).__name__, 'message': str(exc)[:4096]}})
-        result.update({'elapsed_seconds': time.monotonic() - started, 'limits_proof': limits,
-            'observed_calls': dict(budget.calls), 'observed_returns': dict(budget.returns),
-            'denied_phase_opens': denied, 'originals_stat_inventory_count': len(originals),
-            'originals_stat_preserved': originals_preserved})
-        result = _publish_terminal(result, route=route, output=output, budget=budget, counts=counts, common=common)
+            sys.setprofile(old_profile)
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, old_alarm)
+            phase['name'] = 'FINAL'
+            originals_preserved = False
+            try:
+                originals_preserved = len(originals) == 5 and all(common._stat(path) == before for path, before in originals.items())
+                authority.require(not originals or originals_preserved, 'ORIGINAL_FILE_STAT_BOOKENDS')
+                if context is not None:
+                    common._freeze(plan, binding, context)
+                authority.require(common._io()['rchar'] - before_io['rchar'] <= plan['budget']['max_rchar_bytes'], 'RCHAR_CEILING')
+            except Exception as exc:
+                result.update({'decision': 'FAILED', 'error': _failure_metadata(exc)})
+            result.update({'elapsed_seconds': time.monotonic() - started, 'limits_proof': limits,
+                'observed_calls': dict(budget.calls), 'observed_returns': dict(budget.returns),
+                'denied_phase_opens': denied, 'originals_stat_inventory_count': len(originals),
+                'originals_stat_preserved': originals_preserved})
+            result = _publish_terminal(result, route=route, output=output, budget=budget, counts=counts, common=common)
+        finally:
+            tempfile.tempdir = previous_tempdir
     return result
 
 

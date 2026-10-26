@@ -905,3 +905,118 @@ def test_route_native_main_requires_C_complete_and_preserves_terminal(tmp_path, 
         assert json.loads(capsys.readouterr().out) == expected
     assert calls == ['guard', 'context', 'C_worker']
     assert json.loads(progress.read_text()) == terminal
+
+
+# C002 repair: exercise actual public claim/finally with synthetic metadata,
+# real stdlib temporary allocation, and both captured real C open filters.
+@pytest.mark.parametrize('previous,terminal_error', [
+    (None, False), ('/tmp', False), (b'/tmp', False), (None, True)],
+    ids=['cold', 'warm', 'bytes', 'terminal_error'])
+def test_route_public_tempfile_lifecycle_is_output_only_and_restored(tmp_path, monkeypatch, previous, terminal_error):
+    import tempfile
+    from gx1.contracts import gx1_capped_execution_v1 as guard
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as prefix
+    output = tmp_path / 'output'
+    route, _, _ = _terminal_case(output, complete=False)
+    route['recipe'].update(run_root=str(output), transport_source_transitions={})
+    route['admission_ref'] = {'path': str(tmp_path / 'SYNTHETIC_ADMISSION.json'), 'sha256': '0' * 64}
+    route['binding'] = {'plan': {'path': str(tmp_path / 'SYNTHETIC_CAMPAIGN.json'), 'sha256': '0' * 64}}
+    route['marker'] = {'marker_sha256': '0' * 64}
+    refs = [{'path': str(tmp_path / f'SYNTHETIC_STATE_{i}.pt'), 'sha256': '0' * 64} for i in range(4)]
+    initial = {'path': str(tmp_path / 'SYNTHETIC_INITIAL.npz'), 'sha256': '0' * 64}
+    originals = {r['path'] for r in refs + [initial]}
+    original_stat = common._stat
+    hooks, writes, reads, temporary_paths = [], [], [], []
+    monkeypatch.setattr(sys, 'addaudithook', hooks.append)
+    monkeypatch.setattr(tempfile, 'tempdir', previous)
+    monkeypatch.setattr(contract, 'INITIAL_PREDICTIONS', initial)
+    monkeypatch.setattr(guard, 'require_guarded_cuda_trainer_execution', lambda: {})
+    monkeypatch.setattr(contract, 'require_native_direction_checkpoint_diagnostic_context', lambda *_args: route)
+    monkeypatch.setattr(worker, '_checkpoint_metadata', lambda *_args: ({}, {}, {}, refs))
+    monkeypatch.setattr(common, '_stat', lambda path: {'synthetic': 1} if str(path) in originals else original_stat(path))
+    monkeypatch.setattr(common, '_io', lambda: {'rchar': 0})
+    monkeypatch.setattr(worker.signal, 'signal', lambda *_args: None)
+    monkeypatch.setattr(worker.signal, 'alarm', lambda *_args: None)
+    monkeypatch.setattr(sys, 'dont_write_bytecode', True)
+    def metadata(*_args):
+        assert output.is_dir() and tempfile.tempdir == tempfile.gettempdir() == str(output)
+        assert len(hooks) == 1
+        delegated = {'ancestor_plan': {'payloads': {}, 'native_cache_dir': '/synthetic/cache',
+            'gc_surfaces': {'path': '/synthetic/gc/layout.json'}},
+            'info': {'metadata': {str(output): {'read_guard_directory_only': True}},
+                'audit': {'manifest_path': '/synthetic/forbidden.json'}}}
+        common._install_read_guard(delegated, output, output)
+        assert len(hooks) == 2
+        original_open = os.open
+        def checked_open(path, flags, mode=0o777, *, dir_fd=None):
+            for hook in hooks:
+                hook('open', (os.fsdecode(path), None, flags))
+            if flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND):
+                writes.append(Path(path))
+            if dir_fd is None:
+                return original_open(path, flags, mode)
+            return original_open(path, flags, mode, dir_fd=dir_fd)
+        with monkeypatch.context() as local:
+            local.setattr(os, 'open', checked_open)
+            with tempfile.TemporaryDirectory() as directory:
+                assert Path(directory).parent == output
+                temporary_paths.append(Path(directory))
+            with tempfile.NamedTemporaryFile() as handle:
+                filename = Path(handle.name)
+                assert filename.parent == output
+                temporary_paths.append(filename)
+                handle.write(b'SYNTHETIC_METADATA_ONLY')
+                handle.flush()
+                for hook in hooks:
+                    hook('open', (str(filename), 'rb', os.O_RDONLY))
+                assert filename.read_bytes() == b'SYNTHETIC_METADATA_ONLY'
+                reads.append(filename)
+            with pytest.raises(RuntimeError, match='ORIGINAL_OR_UNBOUND_WRITE'):
+                os.open('/tmp/GX1_SYNTHETIC_FORBIDDEN_NO_OPEN', os.O_WRONLY | os.O_CREAT, 0o600)
+        assert writes and reads and all(path.parent == output for path in writes + reads)
+        assert all(not path.exists() for path in temporary_paths)
+        raise RuntimeError('SYNTHETIC_STOP_BEFORE_NUMERICAL_IMPORTS')
+    monkeypatch.setattr(prefix, '_metadata', metadata)
+    if terminal_error:
+        def terminal(*_args, **_kwargs):
+            assert tempfile.tempdir == str(output)
+            raise RuntimeError('SYNTHETIC_TERMINAL_PUBLICATION_ERROR')
+        monkeypatch.setattr(worker, '_publish_terminal', terminal)
+    arguments = {'policy_path': tmp_path / 'SYNTHETIC_WINDOW.json', 'policy_file_sha256': '0' * 64,
+        'progress_path': output / 'PROGRESS.json'}
+    if terminal_error:
+        with pytest.raises(RuntimeError, match='SYNTHETIC_TERMINAL_PUBLICATION_ERROR'):
+            worker.run_native_direction_checkpoint_diagnostic_window(**arguments)
+    else:
+        result = worker.run_native_direction_checkpoint_diagnostic_window(**arguments)
+        assert result['decision'] == 'FAILED' and result['originals_stat_preserved'] is True
+        assert result['error']['message'] == 'SYNTHETIC_STOP_BEFORE_NUMERICAL_IMPORTS'
+        assert result['error']['frames'][-1]['function'] == 'metadata'
+        assert json.loads((output / 'PROGRESS.json').read_text())['outcome'] == 'FAILED'
+    assert tempfile.tempdir is previous
+    assert len(hooks) == 2 and writes and reads
+    assert all(not path.exists() for path in temporary_paths)
+
+
+def test_route_failure_metadata_keeps_last16_frames_without_locals_or_source_reads(monkeypatch):
+    import linecache
+    def descend(depth):
+        private_local = 'SYNTHETIC_LOCAL_MUST_NOT_BE_SERIALIZED'
+        if depth:
+            return descend(depth - 1)
+        raise RuntimeError('SYNTHETIC_FRAME_ERROR')
+    def forbidden_source_read(*_args, **_kwargs):
+        raise AssertionError('trace metadata must not consult source/linecache')
+    try:
+        descend(20)
+    except RuntimeError as exc:
+        with monkeypatch.context() as local:
+            local.setattr(linecache, 'getline', forbidden_source_read)
+            value = worker._failure_metadata(exc)
+    assert value['type'] == 'RuntimeError' and value['message'] == 'SYNTHETIC_FRAME_ERROR'
+    assert len(value['frames']) == 16
+    assert all(set(frame) == {'filename', 'function', 'line'} and type(frame['line']) is int
+        and frame['line'] > 0 for frame in value['frames'])
+    assert all(frame['function'] == 'descend' for frame in value['frames'])
+    assert 'SYNTHETIC_LOCAL_MUST_NOT_BE_SERIALIZED' not in json.dumps(value)
