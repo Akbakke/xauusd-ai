@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-26T14:59:25.155272+00:00",
-  "status": "F_CAP_ROUTE_17_QUALIFIED_FRESH_FIRST_UNIT_CAMPAIGN_REQUIRED",
+  "status": "F_OWN0U_PREFIX_ATTEMPT002_ADMITTED_FRESH_CAMPAIGN_BOOT_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "D actual signal scoring complete. F startup001 failed/consumed; minimal cap route repair passed17focused metadata cases. No active heavy job.",
+    "current_activity": "F cap route17cases passed and committed; fresh first-unit attempt002 admitted. No active heavy job.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No genuine F representation result yet. First unit requires fresh cleanHEAD/policy/campaign and physicalboot after qualified cap repair.",
+    "current_blocker": "Fresh exact campaign, bound cleanHEAD/policy, machine idle proof and physicalboot required before attempt002.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -34484,7 +34484,7 @@
     }
   },
   "direction_improvement_takeover_20261026": {
-    "status": "ACTIVE_F_CAP_ROUTE_REPAIRED_FRESH_PLAN_REQUIRED",
+    "status": "ACTIVE_F_OWN0U_PREFIX_ATTEMPT002_ADMITTED",
     "integrator_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
     "takeover": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/INTEGRATOR_TAKEOVER_20261026_001.json",
@@ -35138,31 +35138,31 @@
     }
   },
   "dynamic_m5_direction_frozen_extraction_f": {
-    "status": "FAILED_001_CLAIMED_CONSUMED_NO_RELAUNCH",
+    "status": "ADMITTED_ATTEMPT002_PRELAUNCH_UNCLAIMED",
     "unit": "own0U_prefix",
     "recipe": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_RECIPE_001.json",
-      "sha256": "46f68507bc919893fdb28ee91da567124e03371c8071204bc2c0e232e6cc1c40"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_RECIPE_002.json",
+      "sha256": "83b8eab3316631d75dcd5ce645b6245cc93497fbbe9f3e761ead3671b5380668"
     },
     "window": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_WINDOW_001.json",
-      "sha256": "b3385f82e448fe7dce8cdf495382d3c3d19b110920daf24073b2ff140795bf45"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_WINDOW_002.json",
+      "sha256": "48235013dd5c32ce1cf807ccb228e38896e864acc11f1ba793e2a257bb397118"
     },
     "admission": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_RUNTIME_ADMISSION_001.json",
-      "sha256": "44202addd87cab5412babe5468c835318bfc87a39ce39c16fa3a258e756c9e32"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_RUNTIME_ADMISSION_002.json",
+      "sha256": "1805b2cb7047a9fc69d2de33f84d9b0f3dfe17074f7dab2619fd14b19c2082d4"
     },
-    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_20261026_001",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_20261026_001_RUNTIME",
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_20261026_002",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_20261026_002_RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 1,
+    "claimed_invocations": 0,
     "completed_invocations": 0,
     "relaunch_allowed": false,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "checkpoint_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forwards_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forwards_authorized": true,
     "gradient_reverse_authorized": false,
     "optimizer_steps_authorized": false,
     "training_enabled": false,
@@ -35176,10 +35176,21 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "failure_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_STARTUP_FAILURE_REVIEW_001.json",
-      "sha256": "cae40d9b3dd6726366e4b1e3af497442a22f1a722a1e29ba1f029f3677854cfc"
-    }
+    "consumed_previous_attempts": [
+      {
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_RECIPE_001.json",
+          "sha256": "46f68507bc919893fdb28ee91da567124e03371c8071204bc2c0e232e6cc1c40"
+        },
+        "failure_review": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_STARTUP_FAILURE_REVIEW_001.json",
+          "sha256": "cae40d9b3dd6726366e4b1e3af497442a22f1a722a1e29ba1f029f3677854cfc"
+        },
+        "claimed_invocations": 1,
+        "completed_invocations": 0,
+        "relaunch_allowed": false
+      }
+    ]
   },
   "direction_diagnostic_F_cap_route_repair_20261026": {
     "status": "COMPLETE_SOURCE_AND_17_FOCUSED_CASES_CLOSED",

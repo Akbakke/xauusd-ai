@@ -244,3 +244,10 @@ tilfeller, fire eksakte Bash-metadatabarn og0modell/payload/fit/CUDA-kall.
 Inner/outerexit0,57kildebookends og avsluttet cgroup er kontrollert. Caprettelsen
 og syntetisk plan er lukket/consumed. Neste er fersk første-enhet-kampanje med
 nye kilde-/policybindinger og fysiskboot; gammel001 bevares og relanseres aldri.
+
+F_FROZEN_EXTRACTION_own0U_prefix_RUNTIME_ADMISSION_002 binder et nytt engangsforsøk
+for første faste enhet etter den kvalifiserte caprettelsen: samme2760U,
+47602prefixforeldre og2976forwards,0reverse/optimizer/fit. Nytt output/runtime;
+001 forblir konsumert. CleanHEAD-bundet kampanje, maskinledigkontroll og fysisk
+Windowsboot kreves før start. Bare denne enheten er åpen; øvrige tre og readoutfit
+er fortsatt lukket. Ingen dokumentert forbedret retningskvalitet foreligger.
