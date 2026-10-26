@@ -343,3 +343,70 @@ def test_rank_single_class_fold_does_not_change_valid_fold_pair_denominator():
     assert [x["diagnostics"]["auc"] for x in result["per_fold"]] == [1., None]
     assert result["within_fold_pair_counts"]["up_down_pairs"] == 1
     assert result["pair_weighted_within_fold_auc"] == 1.
+
+
+class TestRawSignedFlowRank:
+    """Synthetic raw-contract ranks only; no fit or probability scoring."""
+    KIND = "raw_signed_flow_contracts"
+
+    @pytest.mark.parametrize("scores,expected", [
+        ([-120., -10., 10., 120.], (4, 0, 0, 1.)),
+        ([120., 10., -10., -120.], (0, 4, 0, 0.)),
+        ([0., -0., 0., -0.], (0, 0, 4, .5)),
+    ])
+    def test_raw_contract_pairs_keep_fixed_orientation_and_zero_ties(self, scores, expected):
+        labels = np.array([0, 0, 1, 1], dtype=np.int8)
+        result = reference.direction_rank_diagnostics(
+            labels, np.array(scores, dtype=np.float64), score_kind=self.KIND)
+        assert result["score_kind"] == self.KIND
+        assert result["up_down_pairs"] == 4
+        assert (result["concordant_pairs"], result["discordant_pairs"],
+                result["tied_pairs"], result["auc"]) == expected
+
+    def test_raw_mixed_negative_and_signed_zero_ties_preserve_readonly_inputs(self):
+        labels = np.array([0, 1, 0, 1], dtype=np.int8)
+        scores = np.array([-50., -0., 0., 20.], dtype=np.float64)
+        originals = (labels.copy(), scores.copy())
+        labels.setflags(write=False)
+        scores.setflags(write=False)
+        result = reference.direction_rank_diagnostics(labels, scores, score_kind=self.KIND)
+        assert result["distinct_scores"] == 3
+        assert (result["concordant_pairs"], result["discordant_pairs"],
+                result["tied_pairs"], result["auc"]) == (3, 0, 1, .875)
+        for actual, original in zip((labels, scores), originals):
+            np.testing.assert_array_equal(actual, original)
+            assert not actual.flags.writeable
+        np.testing.assert_array_equal(np.signbit(scores), np.signbit(originals[1]))
+
+    def test_raw_within_fold_pair_and_tie_weights_match_monotone_probability_ranks(self):
+        labels = np.array([0, 1, 0, 0, 1, 1], dtype=np.int8)
+        scores = np.array([-10., 10., 10., 0., 0., 0.], dtype=np.float64)
+        folds = np.array([1, 1, 2, 2, 2, 2], dtype=np.int8)
+        raw = reference.direction_within_fold_rank_diagnostics(
+            labels, scores, folds, score_kind=self.KIND)
+        probability_rank = reference.direction_within_fold_rank_diagnostics(
+            labels, np.array([0., 1., 1., .5, .5, .5]), folds,
+            score_kind="probability_up")
+        assert raw["score_kind"] == self.KIND
+        assert all(row["diagnostics"]["score_kind"] == self.KIND for row in raw["per_fold"])
+        assert [row["diagnostics"]["auc"] for row in raw["per_fold"]] == [1., .25]
+        assert raw["within_fold_pair_counts"] == probability_rank["within_fold_pair_counts"] == {
+            "up_down_pairs": 5, "concordant_pairs": 1,
+            "discordant_pairs": 2, "tied_pairs": 2}
+        assert raw["pair_weighted_within_fold_auc"] == probability_rank["pair_weighted_within_fold_auc"] == .4
+        assert raw["pooled_crossfold_diagnostic"]["auc"] == probability_rank["pooled_crossfold_diagnostic"]["auc"]
+        assert not raw["pooled_crossfold_is_within_fold_evidence"]
+
+    @pytest.mark.parametrize("nonfinite", [np.nan, np.inf])
+    def test_raw_kind_does_not_bypass_finite_score_validation(self, nonfinite):
+        with pytest.raises(RuntimeError, match="RANK_SCORE_NONFINITE"):
+            reference.direction_rank_diagnostics(
+                np.array([0, 1], dtype=np.int8), np.array([nonfinite, 10.]),
+                score_kind=self.KIND)
+
+    def test_raw_contracts_are_not_admitted_as_probability_kind(self):
+        labels = np.array([0, 1], dtype=np.int8)
+        scores = np.array([-10., 10.], dtype=np.float64)
+        assert reference.direction_rank_diagnostics(labels, scores, score_kind=self.KIND)["auc"] == 1.
+        with pytest.raises(RuntimeError, match="RANK_PROBABILITY_DOMAIN"):
+            reference.direction_rank_diagnostics(labels, scores, score_kind="probability_up")

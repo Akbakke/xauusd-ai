@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-26T10:57:27.253419+00:00",
-  "status": "D_TRAIN_PREFIX_EXTRACTION_ADMITTED_NO_REDUCTION_OR_MODEL",
+  "observed_utc": "2026-10-26T11:46:55.544035+00:00",
+  "status": "D_TRAIN_M1_REDUCTION_ADMITTED_SCORING_AND_MODEL_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only exact D TRAIN-prefix extraction of sourcefile6 is admitted under its new plan. No market reduction/native model/training/VAL; TEST/CONTROL/Exit/trading closed. All prior plans consumed.",
-  "next_action": "Commit qualified source/policy/handover; bind cleanHEAD/frozenpolicy/handover externally; launch exact GCG6prefix extraction once under existing audit cap.",
+  "rule": "Only fresh exact35fileTRAIN M1reduction admitted underD_TRAIN_M1_REDUCTION_PLAN_001. All completedprefix/synthetic plans consumed. No targetscoring/fit/model/training/VAL; TEST/CONTROL/Exit/trading closed.",
+  "next_action": "Commit/push qualified ranksource+policy/handover; bind cleanHEAD and frozenmetadata externally, then exact35fileM1reduction once. Scoring needs separate qualification/admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "33new helper cases and16guardcases passed. Fresh one-source GCG6prefix extraction admitted; no active heavy job.",
+    "current_activity": "DminimalM1source/19+25+4+8syntheticchecks complete. ExactTRAINreduction admitted, noactiveheavyjob yet.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,11 +269,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Focused Dprefix source synthetic qualification only:33helpercases+16guardcases;0genuinepayload/model/optimizer.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_EXTRACTION_20261026_001",
+    "latest_terminal_role": "D M1 syntheticqualification only,0genuinepayload/model; genuineM1reduction admittedbutnotstarted.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_20261026_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_SYNTHETIC_HANDOVER_TERMINAL_001.json",
-      "sha256": "678ff9e32d56b0fd4b838e162181a1ee2aad03346a4a932ffdd1fca4408a4d36"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_20261026_003/TERMINAL.json",
+      "sha256": "468223468a7cf28e23274e5a24239212fc4063a96d091aab5090e399abb9e14c"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No fully reader-qualified TRAIN-only GCG6prefix yet; D causal scoring/reduction remains closed.",
+    "current_blocker": "No actualcompleteTRAINM1table/35fullreaderreceipts yet; Dsignalmeasurements remain pending.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -20149,7 +20149,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T10:56:23.611089+00:00",
+  "updated_utc": "2026-10-26T11:46:55.544035+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -33045,8 +33045,8 @@
     "B_saved_prediction_comparison_complete": true,
     "data_read_scope": "Closed. Dmetadata001consumed; no further payload hashing/footer/body or model operation admitted.",
     "execution_ledger": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_009.json",
-      "sha256": "4b67cd1d0148edbeff456cce326d627fd2834bb72c645bfa1d05146cda3dae41"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_011.json",
+      "sha256": "966cd0a202805a6ece6318437054a854047509a7f5b7caeb90607d363f96e842"
     },
     "B_actual_root_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/B_SAVED_PREDICTION_ACTUAL_ROOT_REVIEW_001.json",
@@ -34485,22 +34485,26 @@
     }
   },
   "direction_improvement_takeover_20261026": {
-    "status": "ACTIVE_D_TRAIN_PREFIX_EXTRACTION_ADMITTED",
+    "status": "ACTIVE_D_TRAIN_M1_REDUCTION_ADMITTED",
     "integrator_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
     "takeover": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/INTEGRATOR_TAKEOVER_20261026_001.json",
       "sha256": "b1fe4105471ae0d6b9d657855398fc37b472ab20177b93a1fe1537899daca0d7"
     },
     "execution_ledger": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_009.json",
-      "sha256": "4b67cd1d0148edbeff456cce326d627fd2834bb72c645bfa1d05146cda3dae41"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/PROGRAM_EXECUTION_LEDGER_011.json",
+      "sha256": "966cd0a202805a6ece6318437054a854047509a7f5b7caeb90607d363f96e842"
     },
     "source_preparation_authorized": true,
     "data_reads_authorized": false,
     "model_calls_or_fits_authorized": false,
     "training_enabled": false,
     "native_launch_authorized": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "independent_improvement_priorities": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_IMPROVEMENT_PRIORITIES_001.json",
+      "sha256": "7e31d8a8a6a784b5f8283e2dcfaec581b248283c4721dfae5249835e085673fe"
+    }
   },
   "direction_diagnostic_D_train_prefix_source_20261026": {
     "schema_version": "gx1_D_train_csv_prefix_source_admission_v1",
@@ -34674,7 +34678,7 @@
     }
   },
   "direction_diagnostic_D_train_prefix_extraction_20261026": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_EXTRACTION_ONLY_CONSUMED_CLOSED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_EXTRACTION_PLAN_001.json",
       "sha256": "de73995b91d9995dd62253cda54c2f202ac0445aef56a553606c539ec9c12cc1"
@@ -34683,22 +34687,213 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/extract_direction_train_csv_prefixes.py",
       "sha256": "cbdf5b334a1ee5678eee7383c05efb232cc04c75d4bf24f420621a83a6153f98"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
     "model_calls_authorized": false,
     "test_data_used": false,
-    "opaque_payload_hashing_authorized": true,
-    "train_prefix_extraction_authorized": true,
+    "opaque_payload_hashing_authorized": false,
+    "train_prefix_extraction_authorized": false,
     "market_reduction_authorized": false,
     "source_file_indices": [
       6
     ],
     "opaque_source_hash_bytes": 1887929359,
     "max_wall_seconds": 1800,
-    "authorization_basis": "Current human-directed takeover/improvement scope; fresh sourcepeer and49syntheticcases. One GCG6 crossing input, ts_recv cutoff before market conversion; all consumed plans remain closed."
+    "authorization_basis": "Current human-directed takeover/improvement scope; fresh sourcepeer and49syntheticcases. One GCG6 crossing input, ts_recv cutoff before market conversion; all consumed plans remain closed.",
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_EXTRACTION_20261026_001/TERMINAL.json",
+      "sha256": "da546d96339ae149a4b7e77e483020e01d8ad05ddd348ded931febc4ac7d462d"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_EXTRACTION_OUTER_TERMINAL_001.json",
+      "sha256": "94660ff66c1b941462c7c41e1781096c51f5be8f4d893f5062bca2c974fa485a"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_EXTRACTION_ACTUAL_REVIEW_001.json",
+      "sha256": "84cad723a836a4a2f8326d1ed257b23d05bae7f5958dc6bf95526558f4cf864e"
+    },
+    "corrected_actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_PREFIX_EXTRACTION_ACTUAL_REVIEW_002.json",
+      "sha256": "10dabd38272edb666990d0fb2bc3b59677a0e677a39c40a0de5b2909e0f396d8"
+    }
+  },
+  "direction_diagnostic_D_train_m1_source_20261026": {
+    "status": "COMPLETE_SOURCE_QUALIFIED",
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_COORDINATOR_SOURCE_ADMISSION_001.json",
+      "sha256": "537069f6597107cfd33185e373eb61105efb80adcc49e2780e66c48c7d779130"
+    },
+    "source_edits_authorized": false,
+    "synthetic_execution_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SOURCE_REVIEW_001.json",
+      "sha256": "e5b98215d21f6f156b2bea482175cdc05fe405031afb0f0600c0c3a328f4a683"
+    }
+  },
+  "direction_diagnostic_D_flow_scoring_source_20261026": {
+    "status": "SOURCE_WRITTEN_UNQUALIFIED_NO_EXECUTION",
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FLOW_SCORING_SOURCE_ADMISSION_001.json",
+      "sha256": "ae1cfa854fdd354bc62906309565b549074ba3f1db92c8866833ded096d5d1d1"
+    },
+    "source_edits_authorized": false,
+    "execution_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/score_direction_train_gc_flow.py",
+      "sha256": "e3272535dfb5f1b97e6635d83462ab1796dd32a00a6b93c7732cd03423a6b747"
+    }
+  },
+  "direction_diagnostic_D_train_m1_synthetic_20261026": {
+    "status": "COMPLETE_19_COORD25_GUARD4_IO8_RANK_CONSUMED_CLOSED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_PLAN_003.json",
+      "sha256": "aefb90f6a71dab65a020ae8cc16607c49f6858d5cba3e496c47e868c7e1837b4"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "synthetic_tests_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "model_calls_authorized": false,
+    "previous_consumed_attempts": [
+      {
+        "status": "FAILED_DIRECTORY_FSYNC_CONSUMED_CLOSED",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_PLAN_001.json",
+          "sha256": "4eea4ae0b04d73ba12b119c9ee395cfce6ba2c1aac8a8acc6597d5eefc302ac9"
+        },
+        "execution_authorized": false,
+        "max_invocations": 1,
+        "claimed_invocations": 1,
+        "completed_invocations": 1,
+        "relaunch_allowed": false,
+        "synthetic_tests_authorized": false,
+        "genuine_payload_reads_authorized": false,
+        "training_enabled": false,
+        "test_data_used": false,
+        "model_calls_authorized": false,
+        "outer_terminal": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_OUTER_TERMINAL_001.json",
+          "sha256": "9aa95738846255a7ab3ff0e845b1f80cd5b75cd68851f865a00feb9a4569c3fd"
+        },
+        "terminal_fsync_unconfirmed": true
+      },
+      {
+        "status": "FAILED_SHARED_TEST_FIT_IMPORT_CONSUMED_CLOSED",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_PLAN_002.json",
+          "sha256": "5b9482e83a7a318d8c457b1295464714da1b696cec6fbe98fcff89dec03a4216"
+        },
+        "execution_authorized": false,
+        "max_invocations": 1,
+        "claimed_invocations": 1,
+        "completed_invocations": 1,
+        "relaunch_allowed": false,
+        "synthetic_tests_authorized": false,
+        "genuine_payload_reads_authorized": false,
+        "training_enabled": false,
+        "test_data_used": false,
+        "model_calls_authorized": false,
+        "outer_terminal": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_OUTER_TERMINAL_002.json",
+          "sha256": "d2355529b11ff2e592267a35f046a942ddcd32f97ba69b8ce8eaca15fb52ac36"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_20261026_002/TERMINAL.json",
+          "sha256": "148bd50f54231474e1aabae9c7752fa610780124a77ec3c1d6699cff3ff08953"
+        }
+      }
+    ],
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_20261026_003/TERMINAL.json",
+      "sha256": "468223468a7cf28e23274e5a24239212fc4063a96d091aab5090e399abb9e14c"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_OUTER_TERMINAL_003.json",
+      "sha256": "1cafb5e5a5c9ad1a9172c36f034d78da22fe2e80a6c7d62b175384527dbb0baf"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_SYNTHETIC_REVIEW_001.json",
+      "sha256": "b3b4aea7c854bdddd2acbd16227510589bdd0e93d2d2ab0efcd8f82d1aacb3ea"
+    }
+  },
+  "direction_diagnostic_D_train_m1_reduction_20261026": {
+    "status": "ADMITTED",
+    "mode": "reduction",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_PLAN_001.json",
+      "sha256": "1d5e349f8a1ba0ade04a9200b9d9fcb762346179128c6d7adc985942d6b7d81e"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/reduce_direction_train_gc_m1.py",
+      "sha256": "27ec64c88ace5ec957f66829661efa440ca9ce25929401877109514dcbd9cfcc"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_raw_reads_authorized": true,
+    "opaque_payload_hashing_authorized": true,
+    "market_reduction_authorized": true,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "max_wall_seconds": 1800,
+    "source_file_indices": [
+      0,
+      1,
+      2,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      16,
+      18,
+      19,
+      20,
+      27,
+      28,
+      29,
+      30,
+      31,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      52,
+      53,
+      54,
+      55,
+      60,
+      61,
+      62,
+      63
+    ],
+    "exact_compressed_input_bytes": 13528864799,
+    "authorization_basis": "Current user-directed improvement mandate; fresh exactsource/syntheticqualified minimalDseries. No consumedplanrelaunch."
   }
 }

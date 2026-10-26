@@ -177,7 +177,8 @@ def direction_rank_diagnostics(labels, scores, *, score_kind):
     AUC. Sorting needs O(n log n) time and O(n) memory. Inputs are unchanged.
     """
     _require(type(score_kind) is str
-             and score_kind in ("logit_up", "probability_up"), "RANK_SCORE_KIND")
+             and score_kind in ("logit_up", "probability_up",
+                                "raw_signed_flow_contracts"), "RANK_SCORE_KIND")
     _require(isinstance(scores, np.ndarray) and scores.dtype == np.float64
              and scores.ndim == 1 and scores.flags.c_contiguous,
              "RANK_SCORE_HEADER")

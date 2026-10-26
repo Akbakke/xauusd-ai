@@ -10,15 +10,19 @@ policy og launch. Programrot:
 ## Aktuell status
 
 A, B og faktisk C003 er fullført innen sine avgrensede måleoppgaver.
-PROGRAM_EXECUTION_LEDGER_009 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
+PROGRAM_EXECUTION_LEDGER_011 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
 med oppgitte grenser; øvrige trenger videre evidens eller eksplisitt sluttavklaring.
 Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integrasjon
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
 retningslæring. INTEGRATOR_TAKEOVER_20261026_001 binder mandatet. Root eier
 kilde/policy/launch; to avgrensede lesere vurderer D-ekstraksjon og F-design.
-Ingen aktiv tung jobb. D_TRAIN_PREFIX_EXTRACTION_PLAN_001 åpner én GCG6-prefix-
-ekstraksjon med fersk sameFDopaqueSHA og cutoff2026-01-01, ingen markedsreduksjon
-eller modell. PROGRAM_EXECUTION_LEDGER_009 binder kildescope og kvalifisering.
+Ingen aktiv tung jobb. GCG6prefix-ekstraksjonen er COMPLETE/consumed med inner/
+outerexit0,43,323,992TRAINrader og209.24s. Kun D_TRAIN_M1_COORDINATOR_SOURCE_ADMISSION_001
+har nå bestått19koordinator-/25guard-/4IO-kontroller og8råranktester.
+D_TRAIN_M1_SOURCE_REVIEW_001/SYNTHETIC_REVIEW_001 binder gjenbruk og avgrensning.
+Scoringskilden er skrevet/ukvalifisert. D_TRAIN_M1_REDUCTION_PLAN_001 åpner nå
+én35filTRAINreduksjon under eksisterende1800s/4GiB/512MiB/64tasks/éntråd.
+Ingen scoring, modell eller fit er admittért. Cleancommit og runtimebinding gjenstår.
 Trening/native/epoch/VAL er false. TEST, Exit og handel forblir lukket.
 
 ## Nye faktiske C-funn
@@ -127,9 +131,14 @@ er uendret.33nye syntetiske pytesttilfeller og16guardtilfeller bestod under4GiB/
 512MiB/64tasks/éntråd. Tre mislykkede testinnpakninger før testtilfellene kunne kjøres er bevart
 og consumed; bare innpakningens output/testkodeavgrensning ble rettet.
 D_TRAIN_PREFIX_SOURCE_REVIEW_001 og D_TRAIN_PREFIX_SYNTHETIC_REVIEW_001 binder dette.
-D_TRAIN_PREFIX_EXTRACTION_PLAN_001 åpner kun GCG6avledningen med ny identitet.
+D_TRAIN_PREFIX_EXTRACTION_ACTUAL_REVIEW_002 binder den fullførte GCG6avledningen:
+SHA16c9ba887167755d768f78908c2cecf7f84b0c2d73df9983210fbcea7b10335e,1,332,072,953bytes.
 Den er fortsatt ukvalifisert inntil vanlig134reader har nådd ekte EOF/CRC.
-Ingen markedsreduksjon eller D-skåring er admittért. Neste grense er en fullstendig TRAIN-isolerbar kilde/ekstraksjon for OFI,
+D_TRAIN_M1_COORDINATOR_SOURCE_ADMISSION_001 bandt35filkoordinator og sannferdig
+rawscore-kind. Kvalifisering fant og rettet kun readonlykatalog-fsyncvakten.
+EksaktASTisolasjon av nye8rankcases unngikk gamlefitimports; gamletester bevares.
+Bare D_TRAIN_M1_REDUCTION_PLAN_001 er admittért for nye TRAIN M1data.
+D-skåring er stengt. Neste faktiske grense er fullført TRAIN M1 for OFI,
 BBO-endepunkter og sluttmasker. D_TRAIN_SOURCE_REUSE_REVIEW_001 binder kilde-/JSON-kontrollen.
 Den deklarerte024-kjeden har bare fullstudie
 kontrakt-M1-filer; valgte event-/ladderdelmengder erstatter ikke disse seriene.
@@ -161,3 +170,11 @@ kilde/policy fryst gjennom kampanjer ogRESUMABLEpauser. Stabil drift observeres
 15–30min eller sjeldnere; ingen minuttpolling/fyllarbeid. DATA/RUNS bare med
 retentioneier. Stående push:Akbakke/xauusd-ai work/gx1-current; aldri rådata,
 vekter, hemmeligheter ellerforcepush. TekniskPASS er ingen retningsedge.
+
+Uavhengig årsaksprioritering: DIRECTION_IMPROVEMENT_PRIORITIES_001 binder fem
+hypoteser med støtte/motbevis/minstetest/stopp. C_CHECKPOINT_LAST_BATCH_AND_GRADIENT_SUM_REVIEW_001
+svekker siste-delbatch-som-enesteårsak og presiserer rågradient kontraAdamW.
+
+D_FLOW_SCORING_SOURCE_ADMISSION_001: låst2score×3delta×7response med106
+forhåndsbundne paneler og47parede kontraster; råAUCpunkt og separatA-assosiasjon.
+Koden er skrevet, ikke testet eller kjørt; ingen signal-/edgepåstand.
