@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "F attempts001/002 are consumed and cannot be relaunched. All F execution, payload, constructor, forward and fit ports are closed. Only bounded throughput design/source review is current; fresh admission required for changes or execution. TEST/CONTROL/Exit/trading remain closed.",
-  "next_action": "Execute only one freshly-admitted20fit fixedCPU horizon reference. Five saved TRAIN inputs,67,112 common laterparents,4000 paired day/week replicates;0native/raw/normalization fits. No retuning.",
+  "next_action": "Execute only fresh reference002 with repaired bounded source suffix reader; unchanged20fit/fivehorizon/commoncohort/300s scope.001failed andconsumed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -272,10 +272,10 @@
     "latest_terminal_role": "Actual16F candidate with original exact output parity; execution succeeded, predefined speed/projection gates failed.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RANK_SYNTHETIC_ROOT_REVIEW_001.json",
-      "sha256": "5ee8ee36f3f3122cc137d666047ae88c13a4e3600e7beef0cfd95f70cd7cce4f"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_001.json",
+      "sha256": "a30200ffc76e39a6431728ad53be27b5d225b5c9de59b2fd3e52065fe14f252c"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute only one freshly-admitted20fit fixedCPU horizon reference. Five saved TRAIN inputs,67,112 common laterparents,4000 paired day/week replicates;0native/raw/normalization fits. No retuning.",
+    "next_action": "Execute only fresh reference002 with repaired bounded source suffix reader; unchanged20fit/fivehorizon/commoncohort/300s scope.001failed andconsumed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20202,7 +20202,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T22:20:45.125059+00:00",
+  "updated_utc": "2026-10-26T22:24:52.107097+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35580,8 +35580,8 @@
   "direction_1_60_reference": {
     "status": "ADMITTED",
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_PLAN_001.json",
-      "sha256": "a4e9f46ae0725582e95dd35bc0420554917cadb79a4fe438ee130eac4fc1cee6"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_PLAN_002.json",
+      "sha256": "941b9bb8954a56e7346542840a2d601a678d581ef77341ca393f915ae0d93733"
     },
     "execution_authorized": true,
     "training_enabled": true,
@@ -35595,5 +35595,28 @@
     "completed_invocations": 0,
     "relaunch_allowed": false
   },
-  "training_enabled_scope": "Only direction_1_60_reference20 fixed CPU R1fits, once,300s; native/epoch/VAL remainfalse."
+  "training_enabled_scope": "Only direction_1_60_reference20 fixed CPU R1fits, once,300s; native/epoch/VAL remainfalse.",
+  "direction_1_60_reference_attempt001": {
+    "status": "FAILED_BEFORE_DATA_CONSUMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_PLAN_001.json",
+      "sha256": "a4e9f46ae0725582e95dd35bc0420554917cadb79a4fe438ee130eac4fc1cee6"
+    },
+    "execution_authorized": false,
+    "training_enabled": false,
+    "genuine_fits_authorized": false,
+    "saved_inputs_authorized": false,
+    "raw_data_reads_authorized": false,
+    "native_forwards_authorized": false,
+    "test_data_used": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "consumed_invocations": 1,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_001.json",
+      "sha256": "a30200ffc76e39a6431728ad53be27b5d225b5c9de59b2fd3e52065fe14f252c"
+    }
+  }
 }

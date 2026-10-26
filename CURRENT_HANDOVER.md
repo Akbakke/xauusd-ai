@@ -9,7 +9,13 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-DIRECTION_1_60_REFERENCE_PLAN_001 er ferskt engangsadmittért:20 faste R1fits,
+Forsøk001 stoppet før outputclaim/datalesing/fit: D-metadatahjelperen tillater
+ikke METADATA/txt-suffiks i R1s bibliotekbinding. Originalouterexit1 ogstderr er
+bevart; lås er ledig.001 er consumed og relanseres aldri.002 bruker eksisterende
+247 small_ref for kildepinner og bokender. Numerikk,IO-/fitvakter,input,metode,
+horisonter og budsjett er uendret; eksisterende15+20kvalifiseringer gjenbrukes.
+
+DIRECTION_1_60_REFERENCE_PLAN_002 er ferskt engangsadmittért:20 faste R1fits,
 40prediksjonspopulasjoner og5lagrede TRAIN-inputs. Samme fellesforeldre og66felt,
 med1/5/15/30/60. Parvis uke-/dagresampling4000; AUC99%-intervaller for5horisonter,
 97.5%-intervaller for forhåndsvalgte30−15/60−15-kontraster. Ingen parametersøk.
