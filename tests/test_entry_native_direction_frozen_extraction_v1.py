@@ -42,19 +42,19 @@ def plan(unit='own0U_prefix'):
     root = contract.PROGRAM + '/F_FROZEN_EXTRACTION_' + unit + '_SYNTHETIC'
     return {'schema_version': contract.SCHEMA, 'operation': contract.OPERATION, 'unit': unit,
         'admission_stage': contract.STAGE, 'proposal': deepcopy(contract.PROPOSAL),
-        'design': deepcopy(contract.DESIGN), 'units_design': deepcopy(contract.UNITS_DESIGN),
+        'design': deepcopy(contract.DESIGN), 'units_design': contract.unit_design(unit),
         'initial_report': deepcopy(contract.INITIAL_REPORT), 'initial_predictions': deepcopy(contract.INITIAL_PREDICTIONS),
         'terminal_report': deepcopy(contract.TERMINAL_REPORT), 'terminal_predictions': deepcopy(contract.TERMINAL_PREDICTIONS),
         'source_owners': owners, 'transport_source_transitions': transitions,
         'run_root': root, 'runtime_root': root + '_RUNTIME',
         'execution_binding_path': root + '_RUNTIME/EXECUTION_BINDING.json',
-        'budget': deepcopy(contract.RESOURCE_LIMITS), 'operation_limits': contract.call_limits(unit),
+        'budget': contract.resource_limits(unit), 'operation_limits': contract.call_limits(unit),
         'max_invocations': 1, 'execution_authorized': True, 'data_reads_authorized': True,
         'checkpoint_reads_authorized': True, 'genuine_forwards_authorized': True,
         'gradient_reverse_authorized': False, 'optimizer_steps_authorized': False, 'test_data_used': False}
 
 
-@pytest.mark.parametrize('unit', list(contract.UNITS))
+@pytest.mark.parametrize('unit', [*contract.UNITS, contract.TIMING_UNIT])
 def test_exact_units_and_original_numerical_source_closure(unit):
     recipe = plan(unit)
     assert contract.require_plan(recipe) == recipe
@@ -107,7 +107,7 @@ def window(unit):
         'campaign_cursor_path': root + '/DIAGNOSTIC_POINTER.json', 'test_data_used': False}, 'policy_sha256')
 
 
-@pytest.mark.parametrize('unit', list(contract.UNITS))
+@pytest.mark.parametrize('unit', [*contract.UNITS, contract.TIMING_UNIT])
 def test_complete_pointer_progress_and_partial_rejection(unit):
     w = window(unit)
     assert contract.require_frozen_extraction_window_policy(w, verify_files=False) == w
@@ -255,7 +255,7 @@ def invocation(unit):
     return contract._seal(value, 'invocation_sha256')
 
 
-@pytest.mark.parametrize('unit', list(contract.UNITS))
+@pytest.mark.parametrize('unit', [*contract.UNITS, contract.TIMING_UNIT])
 def test_canonical_invocation_binds_same_unit_recipe_and_window(monkeypatch, unit):
     p = plan(unit); w = window(unit); inv = invocation(unit)
     execution = {'prelaunch_manifest': w['recipe'], 'train_session_manifest': ref('SYNTHETIC_WINDOW.json'),
@@ -386,3 +386,126 @@ def test_actual_cap_F_log_parent_preserves_fresh_output_claim(tmp_path, logs_exi
     assert result.returncode == (0 if logs_exist else 1), result.stderr
     assert not output.exists() and not progress.exists() and not guard_log.exists()
     assert logs.exists() is logs_exist
+
+def test_timing_unit_does_not_replace_full_readout_cohorts():
+    spec = contract.unit_spec(contract.TIMING_UNIT)
+    assert spec['diagnostic_only'] and spec['rows'] == 256 and spec['forwards'] == 16
+    assert spec['state'] == contract.unit_spec('own0U_prefix')['state']
+    assert spec['parity'] == contract.INITIAL_PREDICTIONS
+    assert contract.TIMING_UNIT not in contract.UNITS and len(contract.UNITS) == 4
+    assert contract.resource_limits(contract.TIMING_UNIT)['max_wall_seconds'] == 600
+    assert all(contract.resource_limits(u) == contract.RESOURCE_LIMITS for u in contract.UNITS)
+
+
+@pytest.mark.parametrize('fault', ['full_design', 'forward17', 'wall601', 'full_wall', 'another_unit'])
+def test_timing_plan_cannot_expand_scope(fault):
+    value = plan(contract.TIMING_UNIT)
+    if fault == 'full_design': value['units_design'] = deepcopy(contract.UNITS_DESIGN)
+    elif fault == 'forward17': value['operation_limits']['panel_forward'] = 17
+    elif fault == 'wall601': value['budget']['max_wall_seconds'] = 601
+    elif fault == 'full_wall': value['budget'] = deepcopy(contract.RESOURCE_LIMITS)
+    elif fault == 'another_unit': value['unit'] = 'terminal_prefix_timing256'
+    with pytest.raises(RuntimeError):
+        contract.require_plan(value)
+
+
+def test_timing_canonical_rows_require_original_parity_parent_order():
+    spec = contract.unit_spec(contract.TIMING_UNIT)
+    parents = np.arange(1000, 1256, dtype=np.int64)[::-1].copy()
+    hidden = np.zeros((256, 128), np.float32); hidden[:, 0] = parents
+    measured = {'arrays': {'parent_rows': parents.copy(), 'logit_up': np.zeros((256, 3), np.float32)}}
+    kwargs = dict(selected=parents, spec=spec, weight=np.zeros((3, 128), np.float32),
+        bias=np.zeros(3, np.float32), np=np)
+    result = worker.canonical_arrays(measured, [hidden], reference_parents=parents.copy(), **kwargs)
+    assert np.array_equal(result['parent_rows'], np.sort(parents))
+    assert np.array_equal(result['hidden'][:, 0], result['parent_rows'])
+    for reference in (None, parents[::-1].copy(), parents.astype(np.int32)):
+        with pytest.raises(RuntimeError, match='TIMING_ORIGINAL_PARENTS'):
+            worker.canonical_arrays(measured, [hidden], reference_parents=reference, **kwargs)
+
+
+def test_phase_timing_inclusive_nested_wall_and_cpu():
+    outer, inner = object(), object()
+    clocks = iter((0, 10, 40, 100)); cpus = iter((0, 5, 15, 50))
+    timer = worker.PhaseTimings({outer: 'outer', inner: 'inner'},
+        wall=lambda: next(clocks), cpu=lambda: next(cpus))
+    a, b = SimpleNamespace(f_code=outer), SimpleNamespace(f_code=inner)
+    for frame, event in ((a, 'call'), (b, 'call'), (b, 'return'), (a, 'return')):
+        timer.observe(frame, event)
+    report = timer.report()
+    assert report['pending_frames'] == 0
+    assert report['phases']['outer']['wall_seconds'] == 100 / 1e9
+    assert report['phases']['inner']['wall_seconds'] == 30 / 1e9
+    assert report['phases']['outer']['cpu_seconds'] == 50 / 1e9
+    assert report['phases']['inner']['cpu_seconds'] == 10 / 1e9
+    with pytest.raises(RuntimeError, match='TIMING_COMPLETE'):
+        timer.require_complete(16)
+
+
+def test_phase_timing_delegates_real_profile_events_and_preserves_result():
+    import sys
+    def sample(value):
+        return sum(range(value))
+    budget = contract.CallBudget(contract.TIMING_UNIT)
+    prior_events = []
+    old = sys.getprofile()
+    def prior(frame, event, arg):
+        if old is not None: old(frame, event, arg)
+        if frame.f_code is sample.__code__: prior_events.append(event)
+    guard = worker.saved._profile_budget(budget, {sample.__code__: 'batch'}, {'name': 'EXTRACT'}, prior)
+    timer = worker.PhaseTimings({sample.__code__: 'sample'})
+    old = sys.getprofile()
+    try:
+        sys.setprofile(timer.profile(guard))
+        result = sample(11)
+    finally:
+        sys.setprofile(old)
+    assert result == 55 and budget.calls['batch'] == budget.returns['batch'] == 1
+    assert prior_events == ['call', 'c_call', 'c_return', 'return']
+    assert timer.report()['phases']['sample']['calls'] == timer.report()['phases']['sample']['returns'] == 1
+
+
+def test_timing_observer_cannot_bypass_original_forbidden_operation_guard():
+    import sys
+    namespace = {}
+    exec(compile('def fit_forbidden():\n    return 123\n', contract.REPO + '/tests/synthetic_timing_guard.py', 'exec'), namespace)
+    forbidden = namespace['fit_forbidden']
+    budget = contract.CallBudget(contract.TIMING_UNIT)
+    old = sys.getprofile()
+    guard = worker.saved._profile_budget(budget, {}, {'name': 'EXTRACT'}, old)
+    timer = worker.PhaseTimings({forbidden.__code__: 'forbidden'})
+    try:
+        sys.setprofile(timer.profile(guard))
+        with pytest.raises(RuntimeError, match='FORBIDDEN_OPERATION'):
+            forbidden()
+    finally:
+        sys.setprofile(old)
+    assert timer.report()['phases'] == {} and not any(budget.calls.values())
+
+def test_timing_result_cannot_be_promoted_to_full_cohort_or_partial_success(monkeypatch):
+    unit = contract.TIMING_UNIT
+    limits = contract.call_limits(unit)
+    recipe_ref, result_ref = ref('TIMING_RECIPE.json'), ref('TIMING_RESULT.json')
+    pointer = contract.build_frozen_extraction_pointer(recipe_ref=recipe_ref, result_ref=result_ref,
+        outcome='COMPLETE', calls=limits, returns=limits, unit=unit)
+    phases = {name: {'calls': count, 'returns': count} for name, count in
+        {'prepare': 1, 'evaluate': 1, 'batch': 16, 'context_tags': 16,
+            'device_batch': 16, 'forward': 16, 'hidden_capture': 16}.items()}
+    result = {'recipe': recipe_ref, 'unit': unit, 'optimizer_steps': 0, 'native_optimizer_steps': 0,
+        'test_data_used': False, 'observed_calls': limits, 'observed_returns': limits,
+        'decision': 'COMPLETE_FROZEN_READOUT_EXTRACTION', 'representation_rows': 256, 'hidden_width': 128,
+        'originals_stat_preserved': True, 'source_unchanged': True, 'representations': ref('SYNTHETIC_HIDDEN.npz'),
+        'diagnostic_only': True, 'phase_timings': {'pending_frames': 0,
+            'scope': 'inclusive_wall_and_process_cpu', 'phases': phases}}
+    monkeypatch.setattr(campaign, 'require_binding', lambda value, **kwargs: value)
+    monkeypatch.setattr(campaign, 'read_bound_json', lambda *args: result)
+    def validate():
+        return contract.require_frozen_extraction_pointer(pointer, expected_recipe=recipe_ref,
+            expected_unit=unit, verify_files=True)
+    assert validate() == pointer
+    result['diagnostic_only'] = False
+    with pytest.raises(RuntimeError, match='RESULT_DIAGNOSTIC_ROLE'): validate()
+    result['diagnostic_only'] = True; result['representation_rows'] = contract.FOLD['prefix_rows']
+    with pytest.raises(RuntimeError, match='RESULT_COMPLETE_DOMAIN'): validate()
+    result['representation_rows'] = 256; phases['forward']['returns'] = 15
+    with pytest.raises(RuntimeError, match='RESULT_TIMING_COMPLETE'): validate()

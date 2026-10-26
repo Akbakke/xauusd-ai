@@ -281,3 +281,20 @@ Eksakt parent/logit/hidden-paritet, tilstandsbevaring og uendrede vakter kreves.
 fokusert kvalifisering og fersk engangsadmisjon kreves før genuin måling.
 Ingen ny modellvariant, hardwareendring eller full F-kjøring er åpnet.
 Ingen dokumentert forbedret retningskvalitet foreligger.
+
+F_FROZEN_EXTRACTION_TIMING_SOURCE_ADMISSION_001 og SOURCE_REVIEW_001 binder
+kun tre endrede F-filer. Original modell/feature/loss/profilvakt og øvrige54eiere
+er uendret. En separat own0U_prefix_timing256-enhet bruker original første256
+presentasjoner/B16,16forwards og600sekunders intern grense. De fire fulle
+readout-enhetene er uendret. Den valgfrie faseobservatøren måler overlappende
+wall-/prosess-CPU-tid og videresender alle profilerhendelser til original vakt først.
+Ingen ekstra CUDA-synkronisering. Foreldreparitet og eksplisitt diagnostic_only
+hindrer at det lille panelet behandles som en full F-enhet.
+F_FROZEN_EXTRACTION_TIMING_SYNTHETIC_ROOT_REVIEW_001 bekrefter56beståtte
+tilfeller/0feil/skip. Første testinnpakning feilet etter pytest fordi kildeetterkontrollen
+avviste en bundet tests/*.py-fil som TEST-sti. Original FAILED-kvittering bevares.
+En fersk, avgrenset kildeetterkontroll tillot bare eksakte skrivebeskyttede
+testkodeeiere;57bookends og inner/outerexit0 bestod på0.24sekunder. De56tilfellene
+ble gjenbrukt uten omkjøring. Begge kjøringer hadde0native/Linear-forward/payload/
+fit/optimizer/CUDA; cgroup er borte og tunglåsen ledig. Begge engangsplaner er
+konsumert. Genuin timingkjøring krever nå fersk cleanHEAD-bundet kampanje.

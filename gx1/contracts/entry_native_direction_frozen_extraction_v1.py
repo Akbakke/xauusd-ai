@@ -32,6 +32,10 @@ TERMINAL_REPORT = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.json',
     'sha256': '76cf81ac015abe30e9c1d27d3e837ee477a83703d6775cc518c6100662ca395f'}
 TERMINAL_PREDICTIONS = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.npz',
     'sha256': 'fd7d3177f1a4d588f235156a2dbc02d670137ab91862e779606bb932e0e4ef57'}
+TIMING_UNIT = 'own0U_prefix_timing256'
+TIMING_DESIGN = {'path': PROGRAM + '/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json',
+    'sha256': '572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684'}
+# These four full cohorts remain the complete readout study; timing is separate.
 UNITS = {
     'own0U_prefix': ('own0U', 'prefix'),
     'own0U_later': ('own0U', 'later'),
@@ -64,15 +68,28 @@ def require(ok, reason):
 
 
 def unit_spec(unit):
-    require(type(unit) is str and unit in UNITS, 'FIXED_UNIT')
-    role, cohort = UNITS[unit]
+    require(type(unit) is str and (unit in UNITS or unit == TIMING_UNIT), 'FIXED_UNIT')
+    diagnostic = unit == TIMING_UNIT
+    role, cohort = ('own0U', 'prefix') if diagnostic else UNITS[unit]
     state = next(s for s in STATE_SPEC if s[0] == role)
-    rows = FOLD['prefix_rows'] if cohort == 'prefix' else FOLD['oof_end_row'] - FOLD['oof_start_row']
-    parity = INITIAL_PREDICTIONS if unit == 'own0U_prefix' else (
+    rows = 256 if diagnostic else (FOLD['prefix_rows'] if cohort == 'prefix'
+        else FOLD['oof_end_row'] - FOLD['oof_start_row'])
+    parity = INITIAL_PREDICTIONS if diagnostic or unit == 'own0U_prefix' else (
         TERMINAL_PREDICTIONS if unit == 'terminal_later' else None)
     return {'unit': unit, 'state': state, 'cohort': cohort, 'rows': rows,
-        'forwards': (rows + 15) // 16, 'parity': deepcopy(parity),
+        'forwards': (rows + 15) // 16, 'parity': deepcopy(parity), 'diagnostic_only': diagnostic,
         'cutoff_ns': FOLD['train_cutoff_ns'] if cohort == 'prefix' else FOLD['oof_cutoff_ns']}
+
+
+def unit_design(unit):
+    return deepcopy(TIMING_DESIGN if unit_spec(unit)['diagnostic_only'] else UNITS_DESIGN)
+
+
+def resource_limits(unit):
+    limits = dict(RESOURCE_LIMITS)
+    if unit_spec(unit)['diagnostic_only']:
+        limits['max_wall_seconds'] = 600
+    return limits
 
 
 def call_limits(unit):
@@ -99,7 +116,7 @@ def require_plan(value):
     require(type(value) is dict and set(value) == fields and value['schema_version'] == SCHEMA
         and value['operation'] == OPERATION and value['admission_stage'] == STAGE, 'PLAN_SCHEMA')
     unit_spec(value['unit'])
-    require(value['proposal'] == PROPOSAL and value['design'] == DESIGN and value['units_design'] == UNITS_DESIGN
+    require(value['proposal'] == PROPOSAL and value['design'] == DESIGN and value['units_design'] == unit_design(value['unit'])
         and value['initial_report'] == INITIAL_REPORT and value['initial_predictions'] == INITIAL_PREDICTIONS
         and value['terminal_report'] == TERMINAL_REPORT and value['terminal_predictions'] == TERMINAL_PREDICTIONS,
         'FIXED_INPUT_IDENTITIES')
@@ -122,7 +139,7 @@ def require_plan(value):
     require(value['execution_binding_path'] == str(runtime / 'EXECUTION_BINDING.json'), 'EXTERNAL_BINDING_PATH')
     require(type(value['max_invocations']) is int and value['max_invocations'] == 1, 'SINGLE_INVOCATION')
     require(type(value['budget']) is type(value['operation_limits']) is dict
-        and value['budget'] == RESOURCE_LIMITS and value['operation_limits'] == call_limits(value['unit'])
+        and value['budget'] == resource_limits(value['unit']) and value['operation_limits'] == call_limits(value['unit'])
         and all(type(n) is int for n in (*value['budget'].values(), *value['operation_limits'].values())), 'FIXED_CEILINGS')
     for key in ('execution_authorized', 'data_reads_authorized', 'checkpoint_reads_authorized', 'genuine_forwards_authorized'):
         require(value[key] is True, 'ADMISSION_' + key)
@@ -396,6 +413,16 @@ def require_frozen_extraction_pointer(value, *, expected_recipe, expected_unit, 
             require(result['representation_rows'] == unit_spec(expected_unit)['rows']
                 and result['hidden_width'] == 128 and result['originals_stat_preserved'] is True
                 and result['source_unchanged'] is True and result['native_optimizer_steps'] == 0, 'RESULT_COMPLETE_DOMAIN')
+            diagnostic = unit_spec(expected_unit)['diagnostic_only']
+            require(result.get('diagnostic_only', False) is diagnostic, 'RESULT_DIAGNOSTIC_ROLE')
+            if diagnostic:
+                timing = result.get('phase_timings', {})
+                require(timing.get('pending_frames') == 0 and timing.get('scope') == 'inclusive_wall_and_process_cpu'
+                    and all(timing.get('phases', {}).get(name, {}).get('calls') == count
+                        and timing['phases'][name].get('returns') == count
+                        for name, count in {'prepare': 1, 'evaluate': 1, 'batch': 16, 'context_tags': 16,
+                            'device_batch': 16, 'forward': 16, 'hidden_capture': 16}.items()),
+                    'RESULT_TIMING_COMPLETE')
             campaign.require_binding(result['representations'], label='F hidden output')
     return pointer
 

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-26T16:57:31.258964+00:00",
-  "status": "F_ATTEMPT002_CONTROLLED_STOP_CONSUMED_THROUGHPUT_DESIGN_ONLY",
+  "observed_utc": "2026-10-26T19:49:32.072865+00:00",
+  "status": "F_TIMING_SOURCE_AND56CASES_QUALIFIED_GENUINE_ADMISSION_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "F attempts001/002 are consumed and cannot be relaunched. All F execution, payload, constructor, forward and fit ports are closed. Only bounded throughput design/source review is current; fresh admission required for changes or execution. TEST/CONTROL/Exit/trading remain closed.",
-  "next_action": "Prepare the minimum bounded phase-timing/parity source scope from F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001. No execution, payload/model/fit, hardware change or full F unit admitted;001/002 remain consumed.",
+  "next_action": "Commit qualified timing source, then bind a fresh own0U_prefix_timing256 canonical campaign for16forwards/600seconds/0reverse/optimizer/fit. Original001/002 remain consumed; no full F extraction admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "F002 controlled guard stop verified;57source owners unchanged, task Disabled and heavy lock free. Throughput measurement design prepared only.",
+    "current_activity": "Diagnostic256source and56cases qualified; source-only closing check exit0. No active heavy job; genuine timing admission pending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,13 +269,13 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Root-derived controlled stop; Windows LastResult1, canonical worker/campaign terminal missing, at least497forwards and no complete F result.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_20261026_002_RUNTIME",
+    "latest_terminal_role": "Synthetic metadata-only closure after56passing mechanics cases; no native/payload/fit/CUDA.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_ATTEMPT002_CONTROLLED_STOP_ROOT_REVIEW_001.json",
-      "sha256": "fc1ffddf0f564a0950d4f7c5693ba86254943d559a18cadc54634da74225f73d"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001/TERMINAL.json",
+      "sha256": "59380d06fc0fa0ee5f2805d53193e9bc77236256d09043480c364daf4c2c3177"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Repeated5.57seconds/forward makes2976-forward extraction infeasible inside12000seconds at observed pace. Exact CPU phase cost and useful readout signal unmeasured. Canonical terminal receipt is missing; preserve this evidence gap during fresh admission.",
+    "current_blocker": "Need actual bounded phase timing before full F extraction. Readout/representation signal remains unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17564,8 +17564,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_ATTEMPT002_CONTROLLED_STOP_ROOT_REVIEW_001.json",
-      "sha256": "fc1ffddf0f564a0950d4f7c5693ba86254943d559a18cadc54634da74225f73d"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001/TERMINAL.json",
+      "sha256": "59380d06fc0fa0ee5f2805d53193e9bc77236256d09043480c364daf4c2c3177"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -17582,10 +17582,14 @@
     "canonical_guard_child_exit_code": null,
     "windows_task_last_result": 1,
     "canonical_terminal_receipt": null,
-    "terminal_exit_code_origin": "Windows ScheduledTask LastTaskResult, not a recovered trainer/guard exit code",
+    "terminal_exit_code_origin": "Capped CPU qualification worker and outer process",
     "latest_throughput_measurement_design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json",
       "sha256": "572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684"
+    },
+    "latest_timing_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "e55ccb06c14ba9a4d5aea13da9c60829f0c9cea04f34edc88f49902f8017e734"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -35261,7 +35265,7 @@
     }
   },
   "direction_diagnostic_F_throughput_design_20261026": {
-    "status": "DESIGN_PREPARED_NOT_EXECUTION_ADMITTED",
+    "status": "SOURCE_AND_FOCUSED_CASES_QUALIFIED_CLOSED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json",
       "sha256": "572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684"
@@ -35279,6 +35283,55 @@
     "synthetic_test_execution_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "training_enabled": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_SOURCE_ADMISSION_001.json",
+      "sha256": "ca9fda5ad0519f45f850f7aedb5506c2fd7fd891f05587669237abe81cbf55e8"
+    },
+    "allowed_repo_files": [
+      "gx1/contracts/entry_native_direction_frozen_extraction_v1.py",
+      "gx1/scripts/extract_entry_native_direction_frozen_readout_v1.py",
+      "tests/test_entry_native_direction_frozen_extraction_v1.py"
+    ],
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_SOURCE_REVIEW_001.json",
+      "sha256": "4320ebb38796fb6941709aafc11c3674c4f23c76c4c832d1d20d23de703edb51"
+    },
+    "synthetic_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "e55ccb06c14ba9a4d5aea13da9c60829f0c9cea04f34edc88f49902f8017e734"
+    }
+  },
+  "direction_diagnostic_F_timing_synthetic_20261026": {
+    "status": "COMPLETE_CLOSURE_AND_REUSED56CASES_CONSUMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_PLAN_001.json",
+      "sha256": "efcd34e2246bee0314c2db20f9692ec30522604d34800bfbbc00cbb431f9be72"
+    },
+    "execution_authorized": false,
+    "synthetic_tests_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "native_model_calls_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "consumed_previous_attempt": {
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_SYNTHETIC_PLAN_001.json",
+        "sha256": "642101c2296c21a39583169e1698edceda6572c401616495398cf696ae0ed1fc"
+      },
+      "status": "FAILED_SOURCE_BOOKEND_GUARD_AFTER_56_PASS",
+      "claimed_invocations": 1,
+      "relaunch_allowed": false
+    },
+    "consumed_invocations": 1,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "e55ccb06c14ba9a4d5aea13da9c60829f0c9cea04f34edc88f49902f8017e734"
+    }
   }
 }

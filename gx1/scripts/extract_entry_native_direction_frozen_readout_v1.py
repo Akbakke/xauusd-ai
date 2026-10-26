@@ -19,6 +19,60 @@ from gx1.scripts import audit_entry_native_direction_checkpoints_v1 as saved
 require = authority.require
 
 
+class PhaseTimings:
+    """Inclusive observer; the original operation guard receives every event first."""
+    def __init__(self, codes, *, wall=time.perf_counter_ns, cpu=time.process_time_ns):
+        self.codes = dict(codes)
+        self.wall, self.cpu = wall, cpu
+        self.pending, self.stats = {}, {}
+
+    def observe(self, frame, event):
+        name = self.codes.get(frame.f_code)
+        if name is None or event not in ('call', 'return'):
+            return
+        if event == 'call':
+            require(id(frame) not in self.pending, 'TIMING_DUPLICATE_FRAME')
+            self.pending[id(frame)] = (frame, name, self.wall(), self.cpu())
+            stats = self.stats.setdefault(name, {'calls': 0, 'returns': 0,
+                'wall_ns': 0, 'cpu_ns': 0, 'min_wall_ns': None, 'max_wall_ns': 0})
+            stats['calls'] += 1
+        else:
+            require(id(frame) in self.pending, 'TIMING_UNMATCHED_RETURN')
+            original, entered_name, wall, cpu = self.pending.pop(id(frame))
+            require(original is frame and entered_name == name, 'TIMING_FRAME_IDENTITY')
+            wall, cpu = self.wall() - wall, self.cpu() - cpu
+            require(wall >= 0 and cpu >= 0, 'TIMING_MONOTONIC_CLOCK')
+            stats = self.stats[name]
+            stats['returns'] += 1
+            stats['wall_ns'] += wall
+            stats['cpu_ns'] += cpu
+            stats['min_wall_ns'] = wall if stats['min_wall_ns'] is None else min(stats['min_wall_ns'], wall)
+            stats['max_wall_ns'] = max(stats['max_wall_ns'], wall)
+
+    def profile(self, guard):
+        def profile(frame, event, arg):
+            guard(frame, event, arg)
+            self.observe(frame, event)
+        return profile
+
+    def require_complete(self, forwards):
+        expected = {'prepare': 1, 'evaluate': 1, 'batch': forwards, 'context_tags': forwards,
+            'device_batch': forwards, 'forward': forwards, 'hidden_capture': forwards}
+        require(not self.pending and all(self.stats.get(name, {}).get('calls') == count
+            and self.stats[name]['returns'] == count for name, count in expected.items()), 'TIMING_COMPLETE')
+
+    def report(self):
+        return {'scope': 'inclusive_wall_and_process_cpu', 'pending_frames': len(self.pending),
+            'phases': {name: {'calls': value['calls'], 'returns': value['returns'],
+                **{key.removesuffix('_ns') + '_seconds': (number / 1e9 if number is not None else None)
+                    for key, number in value.items() if key.endswith('_ns')}}
+                for name, value in self.stats.items()},
+            'limits': ['Nested phase times overlap and must not be summed.',
+                'Process CPU includes all process threads; this is not CUDA kernel timing.',
+                'No extra CUDA synchronization; existing hidden/logit host copies are preserved.',
+                'Observer overhead is included and has not been subtracted.']}
+
+
 class HiddenCapture:
     """Observe exactly the FP32 128D argument of the existing linear head."""
     def __init__(self, model, *, torch, np, budget, progress):
@@ -47,6 +101,7 @@ class HiddenCapture:
             if time.monotonic() - self.last_progress >= 900:
                 progress()
                 self.last_progress = time.monotonic()
+        self.timing_codes = {before.__code__: 'hidden_capture'}
         self.handles = [model.direction_head.register_forward_pre_hook(before),
             model.direction_head.register_forward_hook(after)]
 
@@ -55,7 +110,7 @@ class HiddenCapture:
             handle.remove()
 
 
-def canonical_arrays(measured, hidden_parts, *, selected, spec, weight, bias, np):
+def canonical_arrays(measured, hidden_parts, *, selected, spec, weight, bias, np, reference_parents=None):
     arrays = measured['arrays']
     require(np.array_equal(arrays['parent_rows'], selected), 'EXTRACTION_PRESENTATION_JOIN')
     hidden = np.ascontiguousarray(np.concatenate(hidden_parts))
@@ -66,8 +121,16 @@ def canonical_arrays(measured, hidden_parts, *, selected, spec, weight, bias, np
         and np.isfinite(weight).all() and np.isfinite(bias).all(), 'HEAD_PARAMETER_DOMAIN')
     # The forward order remains historical. Only the stored row layout changes.
     permutation = np.argsort(selected, kind='stable')
-    expected = np.arange(0, authority.FOLD['prefix_rows'], dtype=np.int64) if spec['cohort'] == 'prefix' else np.arange(
-        authority.FOLD['oof_start_row'], authority.FOLD['oof_end_row'], dtype=np.int64)
+    if spec.get('diagnostic_only', False):
+        require(spec == authority.unit_spec(authority.TIMING_UNIT)
+            and isinstance(reference_parents, np.ndarray) and reference_parents.dtype == np.int64
+            and reference_parents.shape == (256,) and np.array_equal(selected, reference_parents)
+            and np.all((selected >= 0) & (selected < authority.FOLD['prefix_rows'])), 'TIMING_ORIGINAL_PARENTS')
+        expected = np.sort(reference_parents)
+    else:
+        require(reference_parents is None, 'FULL_COHORT_NOT_SUBSET')
+        expected = np.arange(0, authority.FOLD['prefix_rows'], dtype=np.int64) if spec['cohort'] == 'prefix' else np.arange(
+            authority.FOLD['oof_start_row'], authority.FOLD['oof_end_row'], dtype=np.int64)
     require(np.array_equal(selected[permutation], expected), 'CANONICAL_PARENT_COHORT')
     result = {name: np.ascontiguousarray(value[permutation]) for name, value in arrays.items()}
     result.update(hidden=np.ascontiguousarray(hidden[permutation]),
@@ -104,7 +167,7 @@ def _baseline_arrays(ref, *, rows, common, np, contexts):
 
 
 def _metadata(plan, route, common, metadata):
-    for ref in [route['recipe_ref'], *route['metadata_refs'], authority.DESIGN, authority.UNITS_DESIGN]:
+    for ref in [route['recipe_ref'], *route['metadata_refs'], authority.DESIGN, plan['units_design']]:
         common._read(ref, metadata)
     authority.require_admission(common._read(route['admission_ref'], metadata), route['recipe_ref'], plan['unit'])
     proposal = authority.require_proposal(common._read(authority.PROPOSAL, metadata))
@@ -203,8 +266,10 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
     old_alarm, old_profile = signal.getsignal(signal.SIGALRM), sys.getprofile()
     previous_tempdir = tempfile.tempdir
     context = None
+    timings = None
     body_limit = plan['budget']['max_json_output_bytes'] - authority.TERMINAL_JSON_RESERVE_BYTES
     result = {'decision': 'FAILED', 'error': None, 'operation': authority.OPERATION, 'unit': plan['unit'],
+        'diagnostic_only': spec['diagnostic_only'],
         'recipe': plan_ref, 'admission': route['admission_ref'], 'campaign_plan': binding['plan'],
         'test_data_used': False, 'optimizer_steps': 0, 'native_optimizer_steps': 0,
         'limits': list(authority.LIMITS), 'source_transport_transitions': plan['transport_source_transitions'],
@@ -241,7 +306,21 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
         from gx1.contracts.entry_native_direction_context_report_v1 import CONTEXT_SPEC
         codes = saved._monitored_codes(context, np, torch, prefix, view_owner, trainer, state_owner)
-        sys.setprofile(saved._profile_budget(budget, codes, phase, old_profile))
+        profile_guard = saved._profile_budget(budget, codes, phase, old_profile)
+        if spec['diagnostic_only']:
+            from gx1.contracts import entry_native_direction_context_report_v1 as reporter
+            timings = PhaseTimings({prefix._prepare.__code__: 'prepare', common._load_state.__code__: 'checkpoint_load',
+                view_owner.build_native_direction_research_model.__code__: 'model_build',
+                state_owner.restore_native_direction_research_state.__code__: 'restore',
+                prefix._evaluate.__code__: 'evaluate', prefix._batch.__code__: 'batch',
+                reporter.tag_native_direction_contexts.__code__: 'context_tags',
+                reporter.score_native_direction_logits.__code__: 'scoring',
+                prefix._device_batch.__code__: 'device_batch', prefix._forward.__code__: 'forward',
+                view_owner._canonical.__code__: 'canonical_layout',
+                view_owner.history.require_gc_mtf_history_surfaces.__code__: 'gc_surface_validation',
+                view_owner.get_model_native_multi_tf_route_windows.__code__: 'mtf_windows',
+                view_owner.history.gather_gc_mtf_history_rows.__code__: 'gc_windows'})
+        sys.setprofile(timings.profile(profile_guard) if timings is not None else profile_guard)
         phase['name'] = 'PREPARE'
         prepared, targets, view, context_map, order = prefix._prepare(context, recipe, np)
         prior = prefix._prefix_prior(prepared['arrays'], targets, authority.FOLD, np)
@@ -283,10 +362,15 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             feature_view_identity=model.feature_view_identity, parent_order=parent_order, device=device)
         selected = order if spec['cohort'] == 'prefix' else prepared['arrays']['parent_rows'][
             authority.FOLD['oof_start_row']:authority.FOLD['oof_end_row']]
+        if spec['diagnostic_only']:
+            selected = selected[:256]
+            require(np.array_equal(selected, baseline['parent_rows']), 'TIMING_INITIAL_PRESENTATION_ORDER')
         require(selected.dtype == np.int64 and selected.shape == (spec['rows'],), 'EXACT_PRESENTATION_ROWS')
         forward_counts = {'forward_calls': 0, 'forward_returns': 0, 'forward_kind_calls': {}}
         phase['name'] = 'EXTRACT'
         recorder = HiddenCapture(model, torch=torch, np=np, budget=budget, progress=progress)
+        if timings is not None:
+            timings.codes.update(recorder.timing_codes)
         try:
             with saved._measurement(model, optimizer, device=device, trainer=trainer,
                     prefix=prefix, tree_sha=tree_sha, evaluation=True):
@@ -302,7 +386,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             parity = {'reference': spec['parity'], 'rows': baseline_rows, 'bit_identical': True}
         arrays = canonical_arrays(measured, recorder.parts, selected=selected, spec=spec,
             weight=model.direction_head.weight.detach().cpu().numpy().copy(),
-            bias=model.direction_head.bias.detach().cpu().numpy().copy(), np=np)
+            bias=model.direction_head.bias.detach().cpu().numpy().copy(), np=np,
+            reference_parents=baseline['parent_rows'] if spec['diagnostic_only'] else None)
         representation = prefix._save_predictions(output / 'REPRESENTATIONS.npz', arrays, np=np, common=common, tree_sha=tree_sha)
         report_ref = common._json(output / 'NATIVE_REPORT.json', {'report': measured['report'],
             'unit': plan['unit'], 'cutoff_ns': spec['cutoff_ns'], 'own_prefix_prior': prior,
@@ -310,6 +395,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         require(counts['resume_state_load_calls'] == counts['resume_state_load_returns'] == 1
             and forward_counts['forward_calls'] == forward_counts['forward_returns'] == spec['forwards'], 'DELEGATED_COUNTS')
         require(not denied and not delegated_denied, 'FORBIDDEN_INPUT_OPEN')
+        if timings is not None:
+            timings.require_complete(spec['forwards'])
         result.update(decision='COMPLETE_FROZEN_READOUT_EXTRACTION', calls=budget.complete(),
             state=state_ref, state_role=spec['state'][0], cohort=spec['cohort'], representations=representation,
             representation_rows=spec['rows'], hidden_width=128, native_report=report_ref,
@@ -342,6 +429,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
                 denied_phase_opens=denied, delegated_denied_opens=delegated_denied,
                 originals_stat_inventory_count=len(originals), originals_stat_preserved=originals_preserved,
                 source_unchanged=source_unchanged)
+            if timings is not None:
+                result['phase_timings'] = timings.report()
             result = _publish_terminal(result, route=route, output=output, budget=budget, counts=counts, common=common)
         finally:
             tempfile.tempdir = previous_tempdir
