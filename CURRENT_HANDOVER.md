@@ -14,7 +14,7 @@ oppdrag derfra forkastes. Denne trådens direkte brukermandat og mål er eneste
 arbeidsautoritet. Allerede mottatte meldinger kan ikke slettes med tilgjengelige verktøy.
 
 A, B og faktisk C003 er fullført innen sine avgrensede måleoppgaver.
-PROGRAM_EXECUTION_LEDGER_015 binder alle30punkter: 2/3/6/7/12/16/23/24/25/26 er målt
+PROGRAM_EXECUTION_LEDGER_016 binder alle30punkter: 2/3/6/7/12/16/23/24/25/26 er målt
 med oppgitte grenser; øvrige trenger videre evidens eller eksplisitt sluttavklaring.
 Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integrasjon
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
@@ -94,7 +94,7 @@ kvitteringer/checkpoints beholdes. Tidligere125+9+12 og6fokuserte testbevis gjen
 ## Beholdt A/B-evidens
 
 276/277/279/280 er COMPLETE/consumed på uendret275-funksjon: egenfersk0U og én
-kronologiskB16pass hver. Modellvektene akkumulerer ikke automatisk toårs utvikling.
+B16-gjennomgang hver, med fast shuffle av TRAIN-prefixet og kronologiske TRAIN/OOF-skiller. Modellvektene akkumulerer ikke automatisk toårs utvikling.
 B analyserte14lagredeNPZ,70,647senere foreldre,24native/72referanseskårer,
 48forhåndsvalgteproper-CI og96foldkontraster. Ingen modellkjøring/fit/TEST iB.
 
@@ -211,3 +211,18 @@ senere probe identifiserer en bedre decoder, men ikke alene Adam/dropout/decay
 eller headlag som årsak. Konvergens,gradient og kandidat/priorobjektiv må bestå.
 Neste kildearbeid er begrenset ekstraksjon gjennom eksisterende native campaign
 og alle vakter,uten ny GPU-whitelist. Ingen ny native epoke eller modellvariant.
+
+F_FROZEN_READOUT_EXTRACTION_SOURCE_ADMISSION_001 åpner bare kildearbeid for
+den faste ekstraksjonen. F_FROZEN_READOUT_EXTRACTION_UNITS_001 deler8114forwards
+i fire faste state/cohort-enheter med2976/1081/2976/1081batcher. Original276s
+1081OOF-forwards tok3039.35s; én12000s-kjøring for alt mangler tidsgrunnlag.
+Alle fire må være COMPLETE før readoutfit. Ingen genuine loads/forwards/fits
+er åpnet av kildeadmisjonen. C og numeriske modell-/featureeiere bevares.
+
+F-ekstraksjonskilden er implementert og fryst for én55tilfellers syntetisk\nkvalifisering, med tre små CPU-Linear-forwards og0nativekall/payloadloads/fits.\nAlle genuine kjøringer er fortsatt lukket. Ingen kilde/policyendring under testen.\n
+F_FROZEN_EXTRACTION_SYNTHETIC_ROOT_REVIEW_001 bekrefter55beståtte tilfeller
+(51nye F og4beholdte C),0feil/skip og tre små syntetiske CPU-Linear-forwards.
+Ingen native modell/payload/fit/CUDA/optimizerkall. Inner/outerexit0,57bundne
+kildeeiere bevart og cgroup avsluttet. Ekstraksjonskilde og syntetisk admisjon
+er nå lukket/consumed. Neste er cleanHEAD-bundet metadata/kampanje for første
+faste enhet; genuine F-ekstraksjoner og seks readoutfits er ennå ikke kjørt.

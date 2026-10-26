@@ -1,0 +1,452 @@
+"""Exact frozen276 head-input extraction authority; no fitting or updates.
+
+One separately admitted state/cohort per canonical invocation. Four fixed units
+are required by the paired readout study. This module imports no numerics.
+"""
+from __future__ import annotations
+
+from copy import deepcopy
+from pathlib import Path, PurePosixPath
+from gx1.contracts import local_random_access_campaign_v2 as campaign
+from gx1.contracts import entry_native_direction_checkpoint_diagnostic_v1 as previous
+
+SCHEMA = 'gx1_native_direction_frozen_extraction_plan_v1'
+OPERATION = 'F_saved276_frozen_readout_extraction_v1'
+STAGE = 'dynamic_m5_direction_frozen_extraction_f'
+PHASE = 'native_direction_frozen_extraction'
+KIND = 'native_direction_frozen_extraction_window'
+WINDOW_SCHEMA = 'gx1_native_direction_frozen_extraction_window_policy_v1'
+POINTER_SCHEMA = 'gx1_native_direction_frozen_extraction_pointer_v1'
+MODULE = previous.MODULE
+REPO, PROGRAM, BASE = previous.REPO, previous.PROGRAM, previous.BASE
+PROPOSAL, INITIAL_REPORT, INITIAL_PREDICTIONS = previous.PROPOSAL, previous.INITIAL_REPORT, previous.INITIAL_PREDICTIONS
+FOLD = dict(previous.FOLD)
+STATE_SPEC = (previous.STATE_SPEC[0], previous.STATE_SPEC[-1])
+TERMINAL_JSON_RESERVE_BYTES = previous.TERMINAL_JSON_RESERVE_BYTES
+RESOURCE_LIMITS = dict(previous.RESOURCE_LIMITS)
+DESIGN = {'path': PROGRAM + '/F_FROZEN_READOUT_DESIGN_001.json',
+    'sha256': 'f09158bc72287bfd9b154273812355c3634e39ddce018d72720f110856d14713'}
+UNITS_DESIGN = {'path': PROGRAM + '/F_FROZEN_READOUT_EXTRACTION_UNITS_001.json',
+    'sha256': 'd2933f31c243f67c874a6203848bf1940ba26579ccef8ad67c749f34f08fca79'}
+TERMINAL_REPORT = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.json',
+    'sha256': '76cf81ac015abe30e9c1d27d3e837ee477a83703d6775cc518c6100662ca395f'}
+TERMINAL_PREDICTIONS = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.npz',
+    'sha256': 'fd7d3177f1a4d588f235156a2dbc02d670137ab91862e779606bb932e0e4ef57'}
+UNITS = {
+    'own0U_prefix': ('own0U', 'prefix'),
+    'own0U_later': ('own0U', 'later'),
+    'terminal_prefix': ('terminal_u2976', 'prefix'),
+    'terminal_later': ('terminal_u2976', 'later'),
+}
+NEW_FILES = ('gx1/contracts/entry_native_direction_frozen_extraction_v1.py',
+    'gx1/scripts/extract_entry_native_direction_frozen_readout_v1.py',
+    'tests/test_entry_native_direction_frozen_extraction_v1.py')
+TRANSPORT_ORIGINAL_SHA256 = {**previous.TRANSPORT_ORIGINAL_SHA256,
+    'gx1/contracts/entry_direction_probability_reference_v1.py':
+        '89ece5378ac777701aada7a8a80e14f4a3f2f7fd8c5a95bae7fc3c36d06edf94'}
+# These already-qualified changes are not part of the F source edit scope.
+PINNED_PRE_F = {
+    'scripts/gx1_capped_run.sh': '1585144479fa876f36508510780058a77ba8517519c004fb3e7016b170c656d1',
+    'gx1/contracts/entry_direction_probability_reference_v1.py':
+        '59d57110cf7a51da8158f9535088147d50673dea10728a2ebe3c9e469f0cee76'}
+LIMITS = (
+    'Frozen EVAL representation; no native optimizer steps or reverse passes.',
+    'All four fixed units required before separately admitted readout fitting.',
+    'Prefix and later cohorts are reused development TRAIN, never sealed confirmation.',
+    'No predictive information, convergence, economics or checkpoint-selection claim.')
+plain_ref, _identity, _seal, _path = previous.plain_ref, previous._identity, previous._seal, previous._path
+require_proposal = previous.require_proposal
+
+
+def require(ok, reason):
+    if not ok:
+        raise RuntimeError('NATIVE_DIRECTION_FROZEN_EXTRACTION_' + reason)
+
+
+def unit_spec(unit):
+    require(type(unit) is str and unit in UNITS, 'FIXED_UNIT')
+    role, cohort = UNITS[unit]
+    state = next(s for s in STATE_SPEC if s[0] == role)
+    rows = FOLD['prefix_rows'] if cohort == 'prefix' else FOLD['oof_end_row'] - FOLD['oof_start_row']
+    parity = INITIAL_PREDICTIONS if unit == 'own0U_prefix' else (
+        TERMINAL_PREDICTIONS if unit == 'terminal_later' else None)
+    return {'unit': unit, 'state': state, 'cohort': cohort, 'rows': rows,
+        'forwards': (rows + 15) // 16, 'parity': deepcopy(parity),
+        'cutoff_ns': FOLD['train_cutoff_ns'] if cohort == 'prefix' else FOLD['oof_cutoff_ns']}
+
+
+def call_limits(unit):
+    spec = unit_spec(unit)
+    result = dict(previous.CALL_LIMITS)
+    result.update(checkpoint_load=1, panel_forward=spec['forwards'], gradient_forward=0,
+        reverse=0, batch=spec['forwards'], torch_load=1,
+        # C preparation consumed32 loads; one roundtrip of our new output,
+        # plus a saved-prediction load only in the two exact parity units.
+        numpy_load=33 + int(spec['parity'] is not None),
+        native_forward=spec['forwards'], research_forward=spec['forwards'],
+        trainer_forward=spec['forwards'], autograd_grad=0, engine_reverse=0,
+        gather=spec['forwards'])
+    return result
+
+
+def require_plan(value):
+    fields = {'schema_version', 'operation', 'admission_stage', 'proposal', 'design', 'units_design', 'unit',
+        'source_owners', 'transport_source_transitions', 'run_root', 'runtime_root',
+        'execution_binding_path', 'budget', 'operation_limits', 'initial_report',
+        'initial_predictions', 'terminal_report', 'terminal_predictions', 'max_invocations',
+        'execution_authorized', 'data_reads_authorized', 'checkpoint_reads_authorized',
+        'genuine_forwards_authorized', 'gradient_reverse_authorized', 'optimizer_steps_authorized', 'test_data_used'}
+    require(type(value) is dict and set(value) == fields and value['schema_version'] == SCHEMA
+        and value['operation'] == OPERATION and value['admission_stage'] == STAGE, 'PLAN_SCHEMA')
+    unit_spec(value['unit'])
+    require(value['proposal'] == PROPOSAL and value['design'] == DESIGN and value['units_design'] == UNITS_DESIGN
+        and value['initial_report'] == INITIAL_REPORT and value['initial_predictions'] == INITIAL_PREDICTIONS
+        and value['terminal_report'] == TERMINAL_REPORT and value['terminal_predictions'] == TERMINAL_PREDICTIONS,
+        'FIXED_INPUT_IDENTITIES')
+    owners = value['source_owners']
+    require(type(owners) is dict and all(plain_ref(ref)['path'] == REPO + '/' + name for name, ref in owners.items())
+        and all(name in owners for name in (*NEW_FILES, *previous.NEW_FILES)), 'SOURCE_OWNERS')
+    transitions = value['transport_source_transitions']
+    require(type(transitions) is dict and set(transitions) == set(TRANSPORT_ORIGINAL_SHA256), 'EXACT_TRANSITIONS')
+    for name, digest in TRANSPORT_ORIGINAL_SHA256.items():
+        item = transitions[name]
+        require(type(item) is dict and set(item) == {'old276', 'current'}
+            and item['old276'] == {'path': REPO + '/' + name, 'sha256': digest}
+            and plain_ref(item['current']) == owners.get(name)
+            and item['current']['sha256'] != digest, 'SOURCE_TRANSITION:' + name)
+    require(all(owners[name]['sha256'] == digest for name, digest in PINNED_PRE_F.items()), 'PRE_F_PINNED_SOURCES')
+    root, runtime = (PurePosixPath(value[k]) for k in ('run_root', 'runtime_root'))
+    require(all(str(p) == value[k] and p.parent == PurePosixPath(PROGRAM)
+        and p.name.startswith('F_FROZEN_EXTRACTION_' + value['unit'] + '_') for k, p in
+        (('run_root', root), ('runtime_root', runtime))) and root != runtime, 'SEPARATE_UNIT_ROOTS')
+    require(value['execution_binding_path'] == str(runtime / 'EXECUTION_BINDING.json'), 'EXTERNAL_BINDING_PATH')
+    require(type(value['max_invocations']) is int and value['max_invocations'] == 1, 'SINGLE_INVOCATION')
+    require(type(value['budget']) is type(value['operation_limits']) is dict
+        and value['budget'] == RESOURCE_LIMITS and value['operation_limits'] == call_limits(value['unit'])
+        and all(type(n) is int for n in (*value['budget'].values(), *value['operation_limits'].values())), 'FIXED_CEILINGS')
+    for key in ('execution_authorized', 'data_reads_authorized', 'checkpoint_reads_authorized', 'genuine_forwards_authorized'):
+        require(value[key] is True, 'ADMISSION_' + key)
+    for key in ('gradient_reverse_authorized', 'optimizer_steps_authorized', 'test_data_used'):
+        require(value[key] is False, 'CLOSED_' + key)
+    return deepcopy(value)
+
+
+def require_admission(admission, recipe_ref, unit):
+    unit_spec(unit)
+    require(type(admission) is dict and admission.get('operation') == OPERATION
+        and admission.get('unit') == unit and admission.get('execution_authorized') is True
+        and admission.get('recipe') == plain_ref(recipe_ref)
+        and type(admission.get('max_invocations')) is int and admission['max_invocations'] == 1
+        and admission.get('genuine_payload_reads_authorized') is True
+        and admission.get('genuine_forwards_authorized') is True
+        and all(admission.get(k) is False for k in ('gradient_reverse_authorized',
+            'optimizer_steps_authorized', 'genuine_predictor_fit_authorized', 'test_data_used')), 'ROOT_EXECUTION_ADMISSION')
+    return deepcopy(admission)
+
+
+def require_source_closure(recipe, original, proposal):
+    previous_owners, reused = original['source_owners'], proposal['existing_sources_reused_without_change']
+    overlap = set(previous_owners) & set(reused)
+    require(len(previous_owners) == 50 and len(reused) == 7 and len(overlap) == 6
+        and all(previous_owners[n] == reused[n] for n in overlap), 'ORIGINAL_SOURCE_INVENTORY')
+    required = {**previous_owners, **reused}
+    require(set(recipe['source_owners']) == set(required) | set(previous.NEW_FILES) | set(NEW_FILES),
+        'EXACT_SOURCE_CLOSURE')
+    for name, ref in required.items():
+        expected = recipe['transport_source_transitions'][name]['current'] if name in TRANSPORT_ORIGINAL_SHA256 else ref
+        require(recipe['source_owners'][name] == expected, 'UNCHANGED_SOURCE_OWNER:' + name)
+        if name in TRANSPORT_ORIGINAL_SHA256:
+            require(recipe['transport_source_transitions'][name]['old276'] == ref, 'ORIGINAL_SOURCE:' + name)
+    return deepcopy(recipe['source_owners'])
+
+
+class CallBudget:
+    def __init__(self, unit):
+        self.limits = call_limits(unit)
+        self.calls = {k: 0 for k in self.limits}
+        self.returns = dict(self.calls)
+
+    def start(self, key):
+        require(key in self.limits and self.calls[key] < self.limits[key], 'CALL_CEILING_' + key)
+        self.calls[key] += 1
+
+    def returned(self, key):
+        require(key in self.limits and self.returns[key] < self.calls[key], 'RETURN_' + key)
+        self.returns[key] += 1
+
+    def complete(self):
+        require(self.calls == self.returns == self.limits, 'EXACT_COMPLETED_CALLS')
+        return {'calls': dict(self.calls), 'returns': dict(self.returns), 'optimizer_steps': 0, 'reverse_calls': 0}
+
+
+def require_frozen_extraction_recipe(binding, *, source_repo, source_commit, verify_files=True):
+    require(verify_files is True and Path(source_repo) == Path(REPO)
+        and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
+    ref = campaign.require_binding(binding, label='F static recipe')
+    recipe = require_plan(campaign.read_bound_json(Path(ref['path']), ref['sha256']))
+    proposal = require_proposal(campaign.read_bound_json(Path(PROPOSAL['path']), PROPOSAL['sha256']))
+    original_ref = proposal['existing_input_refs']['recipe']
+    original = campaign.read_bound_json(Path(original_ref['path']), original_ref['sha256'])
+    require_source_closure(recipe, original, proposal)
+    for name, owner in recipe['source_owners'].items():
+        require(campaign.require_binding(owner, label='F source owner')['path'] == REPO + '/' + name, 'CURRENT_SOURCE:' + name)
+    for key in ('run_root', 'runtime_root', 'execution_binding_path'):
+        _path(recipe[key], key)
+    return recipe
+
+
+def require_frozen_extraction_window_policy(value, *, verify_files=True):
+    fields = {'schema_version', 'recipe', 'invocation_number', 'max_invocation_seconds',
+        'progress_path', 'campaign_cursor_path', 'output_directory', 'unit', 'test_data_used'}
+    window = _identity(value, fields, WINDOW_SCHEMA, 'policy_sha256')
+    unit_spec(window['unit'])
+    require(type(window['invocation_number']) is int and window['invocation_number'] == 1
+        and type(window['max_invocation_seconds']) is int and window['max_invocation_seconds'] == 12000
+        and window['test_data_used'] is False, 'WINDOW_SCOPE')
+    campaign.require_binding(window['recipe'], label='F window recipe', verify_file=verify_files)
+    output = _path(window['output_directory'], 'F output')
+    require(_path(window['progress_path'], 'F progress') == output / 'PROGRESS.json'
+        and _path(window['campaign_cursor_path'], 'F pointer') == output / 'DIAGNOSTIC_POINTER.json', 'WINDOW_LAYOUT')
+    return window
+
+
+def require_frozen_extraction_invocation_execution(result, execution, *, source_repo, source_commit):
+    recipe_ref = campaign.require_binding(execution['prelaunch_manifest'], label='F recipe')
+    recipe = require_frozen_extraction_recipe(recipe_ref, source_repo=source_repo, source_commit=source_commit)
+    window_ref = campaign.require_binding(execution['train_session_manifest'], label='F window')
+    window = require_frozen_extraction_window_policy(campaign.read_bound_json(Path(window_ref['path']), window_ref['sha256']))
+    separator = result['launcher_argv'].index('--')
+    require(result['launcher_argv'][separator + 1:] == [str(Path(source_repo) / '.venv/bin/python'), '-m', MODULE,
+        '--window-policy', window_ref['path'], '--window-policy-file-sha256', window_ref['sha256'],
+        '--progress-path', window['progress_path']], 'INVOCATION_ARGV')
+    require(result['kind'] == KIND and type(result['batch_size']) is int and result['batch_size'] == 16
+        and result['epoch_index'] is None and type(result['invocation_number']) is int and result['invocation_number'] == 1
+        and type(result['window_index']) is int and result['window_index'] == 0
+        and type(result['window_count']) is int and result['window_count'] == 1
+        and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == 0
+        and result['expected_success_outcome'] == 'COMPLETE' and result['maximum_wall_seconds'] == 13800
+        and result['checkpoint'] == {'pointer_path': window['campaign_cursor_path'], 'before_mode': 'GENESIS',
+            'predecessor_invocation_number': None, 'write_mode': 'ATOMIC_UPDATE'}
+        and result['progress_path'] == window['progress_path'] and window['recipe'] == recipe_ref
+        and window['output_directory'] == recipe['run_root'] and window['unit'] == recipe['unit']
+        and execution['prelaunch_manifest_sha256'] == campaign.canonical_sha256(recipe)
+        and execution['train_session_manifest_sha256'] == window['policy_sha256'], 'INVOCATION_BINDING')
+    result['frozen_extraction_recipe'] = recipe_ref
+    result['frozen_extraction_window'] = window
+
+
+def require_frozen_extraction_campaign_plan(value, *, verify_files=True):
+    fields = {'schema_version', 'decision', 'campaign_id', 'phase', 'created_utc', 'source_repo', 'source_commit',
+        'runtime_root', 'gpu_uuid', 'prepared_windows_boot', 'recipe', 'invocations', 'signed_guard_sources',
+        'controller_sources', 'policy', 'authority', 'test_data_used'}
+    plan = _identity(value, fields, campaign.PLAN_SCHEMA, 'plan_sha256')
+    require(plan['phase'] == PHASE and plan['decision'] == 'PASS_PREPARED'
+        and type(plan['campaign_id']) is str and bool(plan['campaign_id']) and plan['source_repo'] == REPO
+        and type(plan['source_commit']) is str and campaign._COMMIT.fullmatch(plan['source_commit']) is not None
+        and type(plan['gpu_uuid']) is str and plan['gpu_uuid'].startswith('GPU-')
+        and plan['test_data_used'] is False, 'CAMPAIGN_IDENTITY')
+    campaign._utc(plan['created_utc'], 'F campaign creation')
+    runtime = _path(plan['runtime_root'], 'F runtime')
+    plan['prepared_windows_boot'] = campaign.require_boot_identity(plan['prepared_windows_boot'])
+    require(plan['policy'] == campaign.campaign_hardware_policy(PHASE)
+        and plan['authority'] == {'test': False, 'promotion': False, 'paper': False, 'live': False, 'cloud_spend': False}, 'CAMPAIGN_AUTHORITY')
+    for key, names in (('signed_guard_sources', {'runner', 'guard', 'query', 'certificate'}),
+            ('controller_sources', {'controller', 'observer', 'campaign_cli'})):
+        require(type(plan[key]) is dict and set(plan[key]) == names, 'CAMPAIGN_SOURCES:' + key)
+        plan[key] = {name: campaign.require_binding(ref, label=key, verify_file=verify_files) for name, ref in plan[key].items()}
+    plan['recipe'] = campaign.require_binding(plan['recipe'], label='F campaign recipe', verify_file=verify_files)
+    require(type(plan['invocations']) is list and len(plan['invocations']) == 1, 'ONE_CAMPAIGN_INVOCATION')
+    plan['invocations'] = [campaign.require_binding(plan['invocations'][0], label='F invocation', verify_file=verify_files)]
+    plan['selection_artifact_sha256'] = None
+    if verify_files:
+        recipe = require_frozen_extraction_recipe(plan['recipe'], source_repo=Path(REPO), source_commit=plan['source_commit'])
+        invocation_ref = plan['invocations'][0]
+        invocation = campaign.require_invocation(campaign.read_bound_json(Path(invocation_ref['path']), invocation_ref['sha256']),
+            source_repo=Path(REPO), source_commit=plan['source_commit'], verify_files=True)
+        window = invocation.get('frozen_extraction_window', {})
+        require(invocation['kind'] == KIND and invocation.get('frozen_extraction_recipe') == plan['recipe']
+            and recipe['runtime_root'] == str(runtime) and window['output_directory'] == recipe['run_root'] and window['unit'] == recipe['unit']
+            and invocation['guard_log_path'] == str(runtime / 'logs/invocation-0001.signed-guard.log'), 'CAMPAIGN_LAYOUT')
+        plan['checked_invocations'] = [invocation]
+    return plan
+
+
+def require_native_direction_frozen_extraction_readiness(repo, *, window_path, window_file_sha256):
+    import subprocess
+    repo = Path(repo)
+    window = require_frozen_extraction_window_policy(campaign.read_bound_json(Path(window_path), window_file_sha256))
+    policy_ref = {'path': str(repo / 'NEXT_RUN_POLICY.json'), 'sha256': campaign.file_sha256(repo / 'NEXT_RUN_POLICY.json')}
+    policy = campaign.read_bound_json(Path(policy_ref['path']), policy_ref['sha256'])
+    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
+    branch = subprocess.check_output(['git', '-C', str(repo), 'branch', '--show-current'], text=True).strip()
+    dirty = subprocess.check_output(['git', '-C', str(repo), 'status', '--porcelain=v1', '--untracked-files=all'], text=True)
+    recipe = require_frozen_extraction_recipe(window['recipe'], source_repo=repo, source_commit=head)
+    require(repo == Path(REPO) and branch == 'work/gx1-current' and not dirty
+        and policy.get('schema_version') == 'gx1_next_native_run_policy_v1'
+        and policy.get('canonical_source_repo') == REPO and policy.get('canonical_branch') == branch
+        and policy.get('training_module') == MODULE and all(policy.get(key) is False for key in
+            ('training_enabled', 'native_training_enabled', 'full_epoch_training_allowed', 'full_val_allowed')), 'READINESS_GLOBAL')
+    require(window['output_directory'] == recipe['run_root'] and window['unit'] == recipe['unit'], 'READINESS_OUTPUT')
+    gate = policy.get(STAGE)
+    require(type(gate) is dict and gate.get('recipe') == window['recipe']
+        and gate.get('unit') == window['unit'] and gate.get('run_root') == recipe['run_root'] and gate.get('runtime_root') == recipe['runtime_root']
+        and type(gate.get('max_invocations')) is int and gate['max_invocations'] == 1
+        and type(gate.get('claimed_invocations')) is int and gate['claimed_invocations'] == 0
+        and type(gate.get('completed_invocations')) is int and gate['completed_invocations'] == 0
+        and gate.get('relaunch_allowed') is False, 'READINESS_ONCE')
+    for key in ('execution_authorized', 'data_reads_authorized', 'checkpoint_reads_authorized',
+            'genuine_constructor_authorized', 'genuine_forwards_authorized'):
+        require(gate.get(key) is True, 'READINESS_GATE:' + key)
+    for key in ('gradient_reverse_authorized', 'optimizer_steps_authorized', 'training_enabled', 'native_training_enabled',
+            'full_epoch_training_allowed', 'full_val_allowed', 'genuine_predictor_fit_authorized',
+            'normalization_fit_authorized', 'synthetic_test_execution_authorized', 'native_launch_authorized',
+            'test_data_used', 'exit_evaluation', 'broker_access_allowed'):
+        require(gate.get(key) is False, 'READINESS_CLOSED_GATE:' + key)
+    admission_ref = campaign.require_binding(gate.get('admission'), label='F runtime admission')
+    require_admission(campaign.read_bound_json(Path(admission_ref['path']), admission_ref['sha256']), window['recipe'], window['unit'])
+    campaign.require_binding(policy.get('gpu_clock_launcher'), label='existing GPU clock launcher')
+    return {'decision': 'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES', 'blocked_reasons': [],
+        'canonical_source_repo': REPO, 'source_commit': head, 'policy_sha256': policy_ref['sha256'],
+        'training_started': False, 'native_invocation_seconds': 12000, 'outer_guard_seconds': 13800,
+        'native_window_scope': {'frozen_extraction_only': True, 'invocation_number': 1,
+            'optimizer_step_ceiling': 0, 'forward_ceiling': unit_spec(window['unit'])['forwards'], 'reverse_ceiling': 0,
+            'checkpoint_load_ceiling': 1, 'full_epoch_training_allowed': False,
+            'window_policy_file_sha256': window_file_sha256}}
+
+
+def require_native_direction_frozen_extraction_context(policy_path, policy_file_sha256, progress_path):
+    import os
+    with campaign.file_verification_scope():
+        window = require_frozen_extraction_window_policy(campaign.read_bound_json(Path(policy_path), policy_file_sha256))
+        names = ('GX1_CAMPAIGN_PLAN_PATH', 'GX1_CAMPAIGN_PLAN_FILE_SHA256', 'GX1_CAMPAIGN_PLAN_SHA256', 'GX1_CAMPAIGN_INVOCATION_SHA256')
+        require(all(os.environ.get(name) for name in names), 'CAMPAIGN_ENV')
+        plan_ref = {'path': os.environ[names[0]], 'sha256': os.environ[names[1]]}
+        plan = campaign.require_plan(campaign.read_bound_json(Path(plan_ref['path']), plan_ref['sha256']))
+        require(plan['phase'] == PHASE and len(plan['checked_invocations']) == 1, 'CAMPAIGN_PHASE')
+        invocation = plan['checked_invocations'][0]
+        recipe = require_frozen_extraction_recipe(window['recipe'], source_repo=Path(REPO), source_commit=plan['source_commit'])
+        marker_path = Path(plan['runtime_root']) / 'ACTIVE_INVOCATION.json'
+        marker_ref = {'path': str(marker_path), 'sha256': campaign.file_sha256(marker_path)}
+        marker = campaign.read_bound_json(marker_path, marker_ref['sha256'])
+        require(plan['plan_sha256'] == os.environ[names[2]] and invocation['invocation_sha256'] == os.environ[names[3]]
+            and invocation['frozen_extraction_window'] == window and plan['recipe'] == window['recipe']
+            and str(progress_path) == window['progress_path'], 'WINDOW_CONTEXT')
+        require(marker.get('schema_version') == campaign.ACTIVE_SCHEMA
+            and type(marker.get('invocation_number')) is int
+            and marker.get('marker_sha256') == campaign.canonical_sha256({k: v for k, v in marker.items() if k != 'marker_sha256'})
+            and all(marker.get(key) == value for key, value in {'plan_sha256': plan['plan_sha256'],
+                'invocation_sha256': invocation['invocation_sha256'], 'invocation_number': 1,
+                'invocation_id': 'invocation-0001', 'kind': KIND, 'launcher_argv_sha256': invocation['launcher_argv_sha256'],
+                'pointer_before_sha256': 'GENESIS'}.items()), 'ACTIVE_MARKER')
+        require(campaign.fresh_boot(marker.get('boot'), plan['prepared_windows_boot']), 'ACTIVE_FRESH_BOOT')
+        campaign._utc(marker.get('started_utc'), 'F active start')
+        require(os.environ.get('GX1_CAMPAIGN_GUARD_LOG_PATH') == invocation['guard_log_path'], 'ACTIVE_GUARD_LOG')
+        binding_ref = {'path': recipe['execution_binding_path'], 'sha256': campaign.file_sha256(recipe['execution_binding_path'])}
+        binding = campaign.read_bound_json(Path(binding_ref['path']), binding_ref['sha256'])
+        policy_ref = {'path': REPO + '/NEXT_RUN_POLICY.json', 'sha256': campaign.file_sha256(REPO + '/NEXT_RUN_POLICY.json')}
+        require(set(binding) == {'plan', 'source_head', 'policy'} and binding['plan'] == plan_ref
+            and binding['source_head'] == plan['source_commit'] and binding['policy'] == policy_ref, 'FROZEN_EXECUTION_BINDING')
+        campaign.require_clean_source(plan)
+        require_native_direction_frozen_extraction_readiness(Path(REPO), window_path=Path(policy_path), window_file_sha256=policy_file_sha256)
+        policy = campaign.read_bound_json(Path(policy_ref['path']), policy_ref['sha256'])
+        admission_ref = campaign.require_binding(policy[STAGE]['admission'], label='F execution admission')
+        output = Path(recipe['run_root'])
+        require(not output.exists() and not output.is_symlink(), 'GENESIS_NOT_FRESH')
+        return {'window': window, 'plan': plan, 'invocation': invocation, 'marker': marker,
+            'recipe': recipe, 'recipe_ref': window['recipe'], 'admission_ref': admission_ref, 'binding': binding,
+            'metadata_refs': [plan_ref, {'path': str(Path(policy_path)), 'sha256': policy_file_sha256},
+                marker_ref, binding_ref, policy_ref, admission_ref]}
+
+
+def _operation_counts(calls, returns, outcome, unit):
+    limits = call_limits(unit)
+    require(type(calls) is type(returns) is dict and set(calls) == set(returns) == set(limits), 'POINTER_COUNTER_KEYS')
+    require(all(type(calls[k]) is type(returns[k]) is int and 0 <= returns[k] <= calls[k] <= limit
+        for k, limit in limits.items()), 'POINTER_COUNTER_BOUNDS')
+    require(outcome in ('COMPLETE', 'FAILED') and (outcome != 'COMPLETE' or calls == returns == limits), 'POINTER_COMPLETE')
+    return {'completed_units': returns['panel_forward'], 'forward_calls': calls['panel_forward'],
+        'forward_returns': returns['panel_forward'], 'reverse_calls': calls['reverse'],
+        'reverse_returns': returns['reverse'], 'checkpoint_loads': calls['checkpoint_load'],
+        'checkpoint_load_returns': returns['checkpoint_load'], 'optimizer_steps': 0}
+
+
+def build_frozen_extraction_pointer(*, recipe_ref, result_ref, outcome, calls, returns, unit):
+    return _seal({'schema_version': POINTER_SCHEMA, 'recipe': plain_ref(recipe_ref), 'result': plain_ref(result_ref),
+        'unit': unit, 'outcome': outcome, 'operation_calls': dict(calls), 'operation_returns': dict(returns),
+        **_operation_counts(calls, returns, outcome, unit), 'test_data_used': False}, 'pointer_sha256')
+
+
+def require_frozen_extraction_pointer(value, *, expected_recipe, expected_unit, verify_files=True):
+    fields = {'schema_version', 'recipe', 'result', 'unit', 'outcome', 'operation_calls', 'operation_returns',
+        'completed_units', 'forward_calls', 'forward_returns', 'reverse_calls', 'reverse_returns',
+        'checkpoint_loads', 'checkpoint_load_returns', 'optimizer_steps', 'test_data_used'}
+    pointer = _identity(value, fields, POINTER_SCHEMA, 'pointer_sha256')
+    counters = _operation_counts(pointer['operation_calls'], pointer['operation_returns'], pointer['outcome'], pointer['unit'])
+    require(pointer['recipe'] == expected_recipe and pointer['unit'] == expected_unit and pointer['test_data_used'] is False
+        and all(type(pointer[k]) is int and pointer[k] == v for k, v in counters.items()), 'POINTER_ROLE')
+    ref = campaign.require_binding(pointer['result'], label='F terminal result', verify_file=verify_files)
+    if verify_files:
+        result = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+        require(result['recipe'] == expected_recipe and result['unit'] == expected_unit
+            and type(result['optimizer_steps']) is int and result['optimizer_steps'] == 0
+            and result['test_data_used'] is False and result['observed_calls'] == pointer['operation_calls']
+            and result['observed_returns'] == pointer['operation_returns']
+            and (result['decision'] == 'COMPLETE_FROZEN_READOUT_EXTRACTION') == (pointer['outcome'] == 'COMPLETE'), 'POINTER_RESULT')
+        if pointer['outcome'] == 'COMPLETE':
+            require(result['representation_rows'] == unit_spec(expected_unit)['rows']
+                and result['hidden_width'] == 128 and result['originals_stat_preserved'] is True
+                and result['source_unchanged'] is True and result['native_optimizer_steps'] == 0, 'RESULT_COMPLETE_DOMAIN')
+            campaign.require_binding(result['representations'], label='F hidden output')
+    return pointer
+
+
+def _progress(*, window, plan, invocation, calls, returns, outcome, checkpoint_pointer):
+    from datetime import datetime, timezone
+    fields = _operation_counts(calls, returns, outcome if outcome != 'RUNNING' else 'FAILED', window['unit'])
+    return _seal({'schema_version': campaign.PROGRESS_SCHEMA, 'plan_sha256': plan['plan_sha256'],
+        'invocation_sha256': invocation['invocation_sha256'], 'phase': KIND, 'recipe': window['recipe'],
+        'unit': window['unit'], **fields, 'total_units': unit_spec(window['unit'])['forwards'],
+        'checkpoint_pointer': checkpoint_pointer, 'terminal': outcome != 'RUNNING', 'outcome': outcome,
+        'observed_utc': datetime.now(timezone.utc).isoformat()}, 'progress_sha256')
+
+
+def build_frozen_extraction_progress(*, window, plan, invocation, checkpoint_pointer, pointer):
+    return _progress(window=window, plan=plan, invocation=invocation, calls=pointer['operation_calls'],
+        returns=pointer['operation_returns'], outcome=pointer['outcome'], checkpoint_pointer=plain_ref(checkpoint_pointer))
+
+
+def build_frozen_extraction_running_progress(*, window, plan, invocation, calls, returns):
+    return _progress(window=window, plan=plan, invocation=invocation, calls=calls,
+        returns=returns, outcome='RUNNING', checkpoint_pointer=None)
+
+
+def require_frozen_extraction_progress(value, *, plan_sha256, invocation, expected_selection_receipt_sha256, verify_file=True):
+    fields = {'schema_version', 'plan_sha256', 'invocation_sha256', 'phase', 'recipe', 'unit', 'completed_units',
+        'forward_calls', 'forward_returns', 'reverse_calls', 'reverse_returns', 'checkpoint_loads',
+        'checkpoint_load_returns', 'optimizer_steps', 'total_units', 'checkpoint_pointer', 'terminal', 'outcome', 'observed_utc'}
+    progress = _identity(value, fields, campaign.PROGRESS_SCHEMA, 'progress_sha256')
+    unit = invocation['frozen_extraction_window']['unit']
+    require(expected_selection_receipt_sha256 is None and invocation['kind'] == KIND
+        and progress['plan_sha256'] == plan_sha256 and progress['invocation_sha256'] == invocation['invocation_sha256']
+        and progress['phase'] == KIND and progress['recipe'] == invocation['frozen_extraction_recipe']
+        and progress['unit'] == unit and progress['terminal'] is True and progress['outcome'] in ('COMPLETE', 'FAILED'),
+        'PROGRESS_IDENTITY')
+    campaign._utc(progress['observed_utc'], 'F progress')
+    n = unit_spec(unit)['forwards']
+    require(type(progress['total_units']) is int and progress['total_units'] == n
+        and type(progress['optimizer_steps']) is int and progress['optimizer_steps'] == 0, 'PROGRESS_ZERO_STEPS')
+    for calls, returns, limit in (('forward_calls', 'forward_returns', n), ('reverse_calls', 'reverse_returns', 0),
+            ('checkpoint_loads', 'checkpoint_load_returns', 1)):
+        require(type(progress[calls]) is type(progress[returns]) is int and 0 <= progress[returns] <= progress[calls] <= limit,
+            'PROGRESS_COUNTER:' + calls)
+        require(progress['outcome'] != 'COMPLETE' or progress[calls] == progress[returns] == limit, 'PROGRESS_COMPLETE:' + calls)
+    require(type(progress['completed_units']) is int and progress['completed_units'] == progress['forward_returns'], 'PROGRESS_UNITS')
+    ref = campaign.require_binding(progress['checkpoint_pointer'], label='F extraction pointer', verify_file=verify_file)
+    require(ref['path'] == invocation['checkpoint']['pointer_path'], 'PROGRESS_POINTER_PATH')
+    if verify_file:
+        pointer = require_frozen_extraction_pointer(campaign.read_bound_json(Path(ref['path']), ref['sha256']),
+            expected_recipe=progress['recipe'], expected_unit=unit, verify_files=True)
+        require(all(progress[k] == pointer[k] for k in ('unit', 'outcome', 'completed_units', 'forward_calls', 'forward_returns',
+            'reverse_calls', 'reverse_returns', 'checkpoint_loads', 'checkpoint_load_returns', 'optimizer_steps')),
+            'PROGRESS_DURABLE_POINTER')
+    return progress

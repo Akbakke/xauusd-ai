@@ -227,6 +227,14 @@ def next_run_readiness(
         from gx1.contracts.entry_native_direction_checkpoint_diagnostic_v1 import (
             WINDOW_SCHEMA as CHECKPOINT_DIAGNOSTIC_WINDOW_SCHEMA, require_native_direction_checkpoint_diagnostic_readiness,
         )
+        from gx1.contracts.entry_native_direction_frozen_extraction_v1 import (
+            WINDOW_SCHEMA as FROZEN_EXTRACTION_WINDOW_SCHEMA, require_native_direction_frozen_extraction_readiness,
+        )
+        if isinstance(window, dict) and window.get("schema_version") == FROZEN_EXTRACTION_WINDOW_SCHEMA:
+            return require_native_direction_frozen_extraction_readiness(
+                repo, window_path=window_path,
+                window_file_sha256=native_window_policy_file_sha256,
+            )
         if isinstance(window, dict) and window.get("schema_version") == CHECKPOINT_DIAGNOSTIC_WINDOW_SCHEMA:
             return require_native_direction_checkpoint_diagnostic_readiness(
                 repo, window_path=window_path,

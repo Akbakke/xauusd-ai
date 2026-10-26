@@ -29,8 +29,9 @@ def _context(
     from gx1.contracts.entry_native_direction_research_campaign_v1 import WINDOW_SCHEMA as RESEARCH_WINDOW_SCHEMA
     from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import WINDOW_SCHEMA as PREFIX_FIT_WINDOW_SCHEMA
     from gx1.contracts.entry_native_direction_checkpoint_diagnostic_v1 import WINDOW_SCHEMA as CHECKPOINT_DIAGNOSTIC_WINDOW_SCHEMA
+    from gx1.contracts.entry_native_direction_frozen_extraction_v1 import WINDOW_SCHEMA as FROZEN_EXTRACTION_WINDOW_SCHEMA
     raw = read_bound_json(policy_path, policy_file_sha256)
-    if raw.get("schema_version") in {RESEARCH_WINDOW_SCHEMA, PREFIX_FIT_WINDOW_SCHEMA, CHECKPOINT_DIAGNOSTIC_WINDOW_SCHEMA}:
+    if raw.get("schema_version") in {RESEARCH_WINDOW_SCHEMA, PREFIX_FIT_WINDOW_SCHEMA, CHECKPOINT_DIAGNOSTIC_WINDOW_SCHEMA, FROZEN_EXTRACTION_WINDOW_SCHEMA}:
         # This is a bound-schema dispatch only. The specialized runner owns its
         # strict context validation after the same canonical CUDA guard.
         return raw, {}, {}, {}
@@ -122,10 +123,12 @@ def run_window(*, policy_path: Path, policy_file_sha256: str, progress_path: Pat
         from gx1.contracts.entry_native_direction_research_campaign_v1 import WINDOW_SCHEMA as RESEARCH_WINDOW_SCHEMA
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import WINDOW_SCHEMA as PREFIX_FIT_WINDOW_SCHEMA
         from gx1.contracts.entry_native_direction_checkpoint_diagnostic_v1 import WINDOW_SCHEMA as CHECKPOINT_DIAGNOSTIC_WINDOW_SCHEMA
+        from gx1.contracts.entry_native_direction_frozen_extraction_v1 import WINDOW_SCHEMA as FROZEN_EXTRACTION_WINDOW_SCHEMA
         research_window = policy.get("schema_version") == RESEARCH_WINDOW_SCHEMA
         prefix_fit_window = policy.get("schema_version") == PREFIX_FIT_WINDOW_SCHEMA
         checkpoint_diagnostic_window = policy.get("schema_version") == CHECKPOINT_DIAGNOSTIC_WINDOW_SCHEMA
-        if not (research_window or prefix_fit_window or checkpoint_diagnostic_window):
+        frozen_extraction_window = policy.get("schema_version") == FROZEN_EXTRACTION_WINDOW_SCHEMA
+        if not (research_window or prefix_fit_window or checkpoint_diagnostic_window or frozen_extraction_window):
             if str(progress_path) != policy["progress_path"]:
                 raise RuntimeError("NATIVE_CANDIDATE_PROGRESS_ARGUMENT_MISMATCH")
             expected_pointer = _expected_training_pointer(policy=policy, invocation=invocation, marker=marker)
@@ -134,6 +137,13 @@ def run_window(*, policy_path: Path, policy_file_sha256: str, progress_path: Pat
                 raise RuntimeError("NATIVE_CANDIDATE_WINDOW_PROGRESS_EXISTS")
             recipe = read_bound_json(Path(policy["recipe"]["path"]), policy["recipe"]["sha256"])
             step_ceiling = require_native_run_scope(recipe, invocation_number=policy["invocation_number"])
+    if frozen_extraction_window:
+        from gx1.scripts.extract_entry_native_direction_frozen_readout_v1 import run_native_direction_frozen_extraction_window
+        result = run_native_direction_frozen_extraction_window(policy_path=policy_path,
+            policy_file_sha256=policy_file_sha256, progress_path=progress_path)
+        if result.get("decision") != "COMPLETE_FROZEN_READOUT_EXTRACTION":
+            raise RuntimeError("NATIVE_DIRECTION_FROZEN_EXTRACTION_FAILED")
+        return result
     if checkpoint_diagnostic_window:
         from gx1.scripts.audit_entry_native_direction_checkpoints_v1 import run_native_direction_checkpoint_diagnostic_window
         result = run_native_direction_checkpoint_diagnostic_window(policy_path=policy_path,
