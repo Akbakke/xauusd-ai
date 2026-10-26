@@ -253,13 +253,16 @@ def _profile_budget(budget, codes, phase, previous=None):
     return profile
 
 
-def _install_guard(phase, output):
+def _install_guard(phase, output, cache_probes=None):
     """Metadata-only preparation, then the existing exact physical read guard.
 
     All original paths are readonly even when the inherited read guard admits
     them. PT body opens are confined to the four counted load operations.
     """
     denied = []
+    if cache_probes is None:
+        cache_probes = {'total_count': 0, 'sample_paths': [],
+            'protected_cache_bytes_read': 0, 'protected_cache_reads_authorized': False}
     def guard(event, args):
         if event in ('os.system', 'os.posix_spawn'):
             denied.append(event)
@@ -281,6 +284,14 @@ def _install_guard(phase, output):
                 'READONLY_OUTPUT_DIRECTORY')
             return
         if path.startswith(('/home/andre2/GX1_RUNS/', '/home/andre2/GX1_DATA/')) and not path.startswith(str(output) + '/'):
+            if (phase['name'] == 'METADATA' and isinstance(flags, int) and not writing
+                    and Path(path).parent.name == '__pycache__' and Path(path).suffix == '.pyc'):
+                cache_probes['total_count'] += 1
+                if len(cache_probes['sample_paths']) < 16:
+                    cache_probes['sample_paths'].append(path)
+                # SourceFileLoader catches OSError and falls back to the same
+                # hash-bound .py. No protected cache file is opened or admitted.
+                raise PermissionError('NATIVE_DIRECTION_CHECKPOINT_DIAGNOSTIC_BLOCKED_CACHE_PROBE:' + path)
             allowed = (phase['name'] != 'METADATA' or Path(path).suffix in ('.json', '.py'))
             if Path(path).suffix == '.pt':
                 allowed = phase['name'] == 'LOAD'
@@ -628,6 +639,8 @@ def run_native_direction_checkpoint_diagnostic_window(*, policy_path, policy_fil
     budget = authority.CallBudget()
     phase = {'name': 'METADATA'}
     denied, delegated_denied, originals, metadata = [], [], {}, {}
+    cache_probes = {'total_count': 0, 'sample_paths': [],
+        'protected_cache_bytes_read': 0, 'protected_cache_reads_authorized': False}
     started = time.monotonic(); before_io = common._io()
     old_alarm, old_profile = signal.getsignal(signal.SIGALRM), sys.getprofile()
     context = None
@@ -635,11 +648,12 @@ def run_native_direction_checkpoint_diagnostic_window(*, policy_path, policy_fil
     result = {'decision': 'FAILED', 'error': None, 'operation': authority.OPERATION,
         'recipe': plan_ref, 'admission': admission_ref, 'campaign_plan': binding['plan'],
         'test_data_used': False, 'optimizer_steps': 0, 'limits': list(authority.LIMITS),
-        'source_transport_transitions': plan['transport_source_transitions']}
+        'source_transport_transitions': plan['transport_source_transitions'],
+        'metadata_blocked_bytecode_cache_probes': cache_probes}
     def deadline(_signum, _frame):
         raise TimeoutError('NATIVE_DIRECTION_CHECKPOINT_DIAGNOSTIC_WALL_LIMIT')
     try:
-        denied = _install_guard(phase, output)
+        denied = _install_guard(phase, output, cache_probes)
         signal.signal(signal.SIGALRM, deadline)
         signal.alarm(plan['budget']['max_wall_seconds'])
         common._json(output / 'CLAIM.json', {'recipe': plan_ref, 'admission': admission_ref,

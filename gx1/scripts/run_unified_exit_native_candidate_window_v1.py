@@ -136,8 +136,11 @@ def run_window(*, policy_path: Path, policy_file_sha256: str, progress_path: Pat
             step_ceiling = require_native_run_scope(recipe, invocation_number=policy["invocation_number"])
     if checkpoint_diagnostic_window:
         from gx1.scripts.audit_entry_native_direction_checkpoints_v1 import run_native_direction_checkpoint_diagnostic_window
-        return run_native_direction_checkpoint_diagnostic_window(policy_path=policy_path,
+        result = run_native_direction_checkpoint_diagnostic_window(policy_path=policy_path,
             policy_file_sha256=policy_file_sha256, progress_path=progress_path)
+        if result.get("decision") != "COMPLETE_READONLY_TRAIN_DIAGNOSIS":
+            raise RuntimeError("NATIVE_DIRECTION_CHECKPOINT_DIAGNOSTIC_FAILED")
+        return result
     if prefix_fit_window:
         from gx1.scripts.run_entry_native_direction_prefix_fit_window_v1 import run_native_direction_prefix_fit_window
         return run_native_direction_prefix_fit_window(policy_path=policy_path,

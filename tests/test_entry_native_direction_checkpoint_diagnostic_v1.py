@@ -774,3 +774,134 @@ def test_route_actual_capped_log_parent_fragment_keeps_C_output_absent(tmp_path,
     assert result.returncode == 0, result.stderr
     assert output.exists() is (not C_schema)
     assert not progress.exists() and not guard_log.exists()
+
+
+# C001 repair: exercise actual CPython cache fallback without installing a
+# persistent audit hook, starting a child, executing code or using real payloads.
+def _captured_metadata_cache_guard(monkeypatch):
+    hooks = []
+    monkeypatch.setattr(sys, 'addaudithook', hooks.append)
+    probes = {'total_count': 0, 'sample_paths': [],
+        'protected_cache_bytes_read': 0, 'protected_cache_reads_authorized': False}
+    denied = worker._install_guard({'name': 'METADATA'},
+        Path(contract.PROGRAM + '/C_CHECKPOINT_DIAGNOSTIC_SYNTHETIC_CACHE_OUTPUT'), probes)
+    assert len(hooks) == 1
+    return hooks[0], denied, probes
+
+
+def test_route_metadata_cache_probe_uses_real_source_loader_fallback(tmp_path, monkeypatch):
+    from importlib import _bootstrap_external, machinery, util
+    from types import CodeType
+    source = tmp_path / 'synthetic_cache_fallback.py'
+    source_bytes = b'marker = "SOURCE_ONLY_SENTINEL"\n'
+    source.write_bytes(source_bytes)
+    cache = Path(util.cache_from_source(str(source)))
+    cache.parent.mkdir()
+    cached_code = compile('marker = "CACHE_ONLY_SENTINEL"\n', str(source), 'exec')
+    source_stat = source.stat()
+    # This cache is valid for the current source timestamp and source size.
+    cache.write_bytes(_bootstrap_external._code_to_timestamp_pyc(
+        cached_code, int(source_stat.st_mtime), len(source_bytes)))
+    monkeypatch.setattr(sys, 'dont_write_bytecode', True)
+    control = machinery.SourceFileLoader('synthetic_cache_control', str(source)).get_code('synthetic_cache_control')
+    assert 'CACHE_ONLY_SENTINEL' in control.co_consts
+    assert 'SOURCE_ONLY_SENTINEL' not in control.co_consts
+    before_source_sha = hashlib.sha256(source.read_bytes()).hexdigest()
+    hook, denied, probes = _captured_metadata_cache_guard(monkeypatch)
+    logical_root = Path(contract.BASE) / 'SYNTHETIC_CACHE_FALLBACK'
+    attempted, returned = [], []
+    class CapturedGuardSourceLoader(machinery.SourceFileLoader):
+        def get_data(self, path):
+            path = Path(path)
+            logical = logical_root / path.relative_to(tmp_path)
+            attempted.append(str(logical))
+            # Run the actual captured C audit callback before the actual stdlib
+            # get_data/open_code body. It must deny the cache before super().
+            hook('open', (str(logical), 'r', os.O_RDONLY))
+            data = super().get_data(str(path))
+            returned.append((str(logical), len(data)))
+            return data
+    code = CapturedGuardSourceLoader('synthetic_guarded_source', str(source)).get_code('synthetic_guarded_source')
+    assert isinstance(code, CodeType) and 'SOURCE_ONLY_SENTINEL' in code.co_consts
+    assert 'CACHE_ONLY_SENTINEL' not in code.co_consts
+    logical_cache = str(logical_root / cache.relative_to(tmp_path))
+    logical_source = str(logical_root / source.name)
+    assert attempted == [logical_cache, logical_source]
+    assert returned == [(logical_source, len(source_bytes))]
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == before_source_sha
+    assert probes == {'total_count': 1, 'sample_paths': [logical_cache],
+        'protected_cache_bytes_read': 0, 'protected_cache_reads_authorized': False}
+    assert denied == []
+    # get_code returns a CodeType only; neither the cache nor source is exec'd.
+
+
+@pytest.mark.parametrize('relative,flags,error', [
+    ('GX1_RUNS/SYNTHETIC/raw.npz', os.O_RDONLY, RuntimeError),
+    ('GX1_RUNS/SYNTHETIC/state.pt', os.O_RDONLY, RuntimeError),
+    ('GX1_RUNS/SYNTHETIC/raw.parquet', os.O_RDONLY, RuntimeError),
+    ('GX1_RUNS/SYNTHETIC/stray.pyc', os.O_RDONLY, RuntimeError),
+    ('GX1_RUNS/SYNTHETIC/__pycache__/write.pyc', os.O_WRONLY | os.O_CREAT, RuntimeError),
+    ('GX1_DATA/SYNTHETIC/__pycache__/read.pyc', os.O_RDONLY, PermissionError)],
+    ids=['npz', 'pt', 'parquet', 'stray_pyc', 'cache_write', 'data_cache'])
+def test_route_metadata_cache_scope_keeps_payload_and_write_guards(monkeypatch, relative, flags, error):
+    hook, denied, probes = _captured_metadata_cache_guard(monkeypatch)
+    path = '/home/andre2/' + relative
+    with pytest.raises(error):
+        hook('open', (path, None, flags))
+    assert probes['protected_cache_bytes_read'] == 0
+    assert probes['protected_cache_reads_authorized'] is False
+    if error is PermissionError:
+        assert probes['total_count'] == 1 and probes['sample_paths'] == [path] and denied == []
+    else:
+        assert probes['total_count'] == 0 and probes['sample_paths'] == []
+        if not flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT):
+            assert denied == [path]
+
+
+def test_route_metadata_cache_probe_evidence_has_total_and_bounded_samples(monkeypatch):
+    hook, denied, probes = _captured_metadata_cache_guard(monkeypatch)
+    paths = [contract.BASE + f'/SYNTHETIC/__pycache__/probe_{i}.pyc' for i in range(18)]
+    for path in paths:
+        with pytest.raises(PermissionError):
+            hook('open', (path, 'r', os.O_RDONLY))
+    assert probes['total_count'] == 18 and probes['sample_paths'] == paths[:16]
+    assert probes['protected_cache_bytes_read'] == 0 and probes['protected_cache_reads_authorized'] is False
+    assert denied == []
+
+
+@pytest.mark.parametrize('decision', ['FAILED', 'COMPLETE_READONLY_TRAIN_DIAGNOSIS'])
+def test_route_native_main_requires_C_complete_and_preserves_terminal(tmp_path, monkeypatch, capsys, decision):
+    from gx1.scripts import run_unified_exit_native_candidate_window_v1 as dispatcher
+    calls = []
+    progress = tmp_path / 'SYNTHETIC_PROGRESS.json'
+    policy = tmp_path / 'SYNTHETIC_WINDOW.json'
+    def guarded(*, execution_tier):
+        assert execution_tier == 'canonical'
+        calls.append('guard')
+    def context(policy_path, policy_file_sha256):
+        assert policy_path == policy and policy_file_sha256 == '0' * 64
+        calls.append('context')
+        return {'schema_version': contract.WINDOW_SCHEMA}, {}, {}, {}
+    terminal = {'terminal': True, 'outcome': 'COMPLETE' if decision.startswith('COMPLETE') else 'FAILED',
+        'optimizer_steps': 0, 'test_data_used': False}
+    expected = {'decision': decision, 'progress': {'path': str(progress)}}
+    def diagnostic(*, policy_path, policy_file_sha256, progress_path):
+        assert policy_path == policy and policy_file_sha256 == '0' * 64 and progress_path == progress
+        calls.append('C_worker')
+        progress.write_text(json.dumps(terminal, sort_keys=True) + '\n')
+        return expected
+    monkeypatch.setattr(dispatcher, 'native', SimpleNamespace(trainer=SimpleNamespace(
+        _require_cuda_trainer_guard_execution=guarded)))
+    monkeypatch.setattr(dispatcher, '_context', context)
+    monkeypatch.setattr(worker, 'run_native_direction_checkpoint_diagnostic_window', diagnostic)
+    argv = ['--window-policy', str(policy), '--window-policy-file-sha256', '0' * 64,
+        '--progress-path', str(progress)]
+    if decision == 'FAILED':
+        with pytest.raises(RuntimeError, match='NATIVE_DIRECTION_CHECKPOINT_DIAGNOSTIC_FAILED'):
+            dispatcher.main(argv)
+        assert capsys.readouterr().out == ''
+    else:
+        assert dispatcher.main(argv) == 0
+        assert json.loads(capsys.readouterr().out) == expected
+    assert calls == ['guard', 'context', 'C_worker']
+    assert json.loads(progress.read_text()) == terminal
