@@ -9,6 +9,14 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+DIRECTION_RET1_INPUT_PARITY_DESIGN_001 åpner avgrenset kildeforberedelse for én
+inputkontroll: native current051 ret_1 mot245s lagrede rå ret_1 og fire
+normaliserte referansekolonner på samme118249TRAIN-foreldre. Eksisterende
+sekvens/snapshot-paritet gjenbrukes. Ingen modellkjøring, fit, labels eller
+rådatasett trengs. PLAN_001 er nå admittért for én capped CPU-kontroll:
+90s/4GiB/512MiB/éntråd; fem lagrede NPY/NPZ-lesinger og én read-only
+TRAIN-snapshot-mmap. Ingen native-kildeendring. Alle øvrige tillatelser er lukket.
+
 DIRECTION_1_60_CAUSE_SYNTHESIS_001 samler fire prioriterte hypoteser med
 mekanisme, støtte, motbevis, eksakte eiere, avgrenset test og stoppkriterier.
 Ingen enkelt hovedårsak er isolert. DIRECTION_RET1_NATIVE_SOURCE_TRACE_001
@@ -18,7 +26,7 @@ har positiv skala, men native/reference-prefixstatistikk er ikke bitidentisk.
 Ingen nye payloads eller modellkall ble brukt til kildesporingen.
 Neste mest informative kontroll er eksakt matchetret1-inputparitet, deretter
 eventuelt en liten frosset0U/terminal-probe av om signalet kan leses fra hidden.
-Ingen slik numerisk enhet eller arkitekturendring er admittért.
+Inputparitet er admittért ovenfor; ingen hidden-probe eller arkitekturendring er admittért.
 
 DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001 bekrefter COMPLETE/consumed:
 20 CPU-fits, 40 prediksjonspopulasjoner, 6 lagrede TRAIN-inputs, 113.37s,

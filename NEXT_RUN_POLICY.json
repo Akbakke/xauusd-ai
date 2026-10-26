@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-26T19:49:32.072865+00:00",
-  "status": "F_TIMING_SOURCE_AND56CASES_QUALIFIED_GENUINE_ADMISSION_PENDING",
+  "status": "DIRECTION_1_60_RET1_INPUT_PARITY_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "F attempts001/002 are consumed and cannot be relaunched. All F execution, payload, constructor, forward and fit ports are closed. Only bounded throughput design/source review is current; fresh admission required for changes or execution. TEST/CONTROL/Exit/trading remain closed.",
-  "next_action": "Use bounded matched ret1 input parity to locate any delivery mismatch; if parity passes, design one fixed frozen0U/terminal recoverability probe. No fullF/performance work, native change or new numerical execution currently admitted.",
+  "rule": "Current objective is causal diagnosis of missing XAUUSD direction edge at1/5/15/30/60minutes. Only the exact ret1 input-parity plan is admitted; all previous numerical plans are consumed. FullF/performance work, native training, CONTROL/TEST/Exit and trading remain closed.",
+  "next_action": "Execute exactly one capped input-only ret1 parity check, then consume authority and use the observed result to decide the next cause-isolation step. No model, labels, raw dataset or training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Direction-cause synthesis and source-only trace of last-return consumption",
+    "current_activity": "One admitted prepared-input ret1 parity check",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,8 +269,8 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Actual16F candidate with original exact output parity; execution succeeded, predefined speed/projection gates failed.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001",
+    "latest_terminal_role": "Completed matched five-horizon ret1 and66field CPU reference comparisons; weak reused-development15m signal, no native improvement.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
       "sha256": "33b44e65afbb470f42cf1bb8c90dc89c3fa76bfc90f8c955a4aa1910ac0c8d2f"
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Batch preparation remains too slow for fullF within existing budget; no full readout comparison yet.",
+    "current_blocker": "Awaiting exact native/reference prepared input parity; no new native operation admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Use bounded matched ret1 input parity to locate any delivery mismatch; if parity passes, design one fixed frozen0U/terminal recoverability probe. No fullF/performance work, native change or new numerical execution currently admitted.",
+    "next_action": "Execute exactly one capped input-only ret1 parity check, then consume authority and use the observed result to decide the next cause-isolation step. No model, labels, raw dataset or training.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16211,7 +16211,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "C003 and D actual results remain preserved. Latest terminal qualifies only exact cap window/log routing; native model and features unchanged.",
+    "latest_terminal_evidence_scope": "Twenty fixed ret1 fits on the same four TRAIN folds as saved66reference; source/input/policy bookends verified.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17418,7 +17418,7 @@
     },
     "current_training_started": false,
     "private_optimizer_qualification_admitted": false,
-    "active_continuous_goal_thread_id": "01a171d2-e4d8-7021-9fe3-03f99c494306",
+    "active_continuous_goal_thread_id": "01a1777e-c109-7351-b0ba-0d4bf5324429",
     "current_generation_initial_baseline_is_current_function": false,
     "current_function_initial_baseline_required_after184": false,
     "current_generation_saved_state_audit_pending": false,
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "No active native operation. C003 consumed; D source-only feasibility completed, footer/body/fit execution not yet admitted.",
+    "current_training_scope": "One input-only CPU parity check admitted; zero fits, native forwards and optimizer steps. All earlier numerical authorities consumed.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -20215,7 +20215,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T22:46:55.554514+00:00",
+  "updated_utc": "2026-10-26T22:58:13.733958+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -34559,7 +34559,7 @@
     }
   },
   "direction_improvement_takeover_20261026": {
-    "status": "ACTIVE_F_THROUGHPUT_DESIGN_ONLY_NO_EXECUTION",
+    "status": "ACTIVE_DIRECTION_1_60_INPUT_PARITY_ONLY",
     "integrator_thread": "01a1777e-c109-7351-b0ba-0d4bf5324429",
     "takeover": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/INTEGRATOR_TAKEOVER_20261026_001.json",
@@ -35677,6 +35677,45 @@
     "actual_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
       "sha256": "33b44e65afbb470f42cf1bb8c90dc89c3fa76bfc90f8c955a4aa1910ac0c8d2f"
+    }
+  },
+  "direction_ret1_input_parity": {
+    "status": "ADMITTED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_DESIGN_001.json",
+      "sha256": "0f18d75a92aef50d969c10070c5d2634e346d0efcb9865e40e1f0a82278f8d1b"
+    },
+    "source_preparation_authorized": false,
+    "execution_authorized": true,
+    "saved_inputs_authorized": true,
+    "raw_data_reads_authorized": false,
+    "native_forwards_authorized": false,
+    "genuine_fits_authorized": false,
+    "test_data_used": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_PLAN_001.json",
+      "sha256": "65a1d75bc12a04b78b169bf3cc1048a95c4d613b4f6c409a766a004b59e1895b"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_SOURCE_REVIEW_001.json",
+      "sha256": "ee4be84ef85df4675871495248a185127adc1dde6d0a0b930d96c3d7818fc08c"
+    },
+    "budget": {
+      "wall_seconds": 90,
+      "outer_timeout_seconds": 120,
+      "memory_bytes": 4294967296,
+      "swap_bytes": 536870912,
+      "numerical_threads": 1,
+      "tasks": 64,
+      "payload_loads": 5,
+      "prepared_memmap_reads": 1,
+      "fits": 0,
+      "native_forwards": 0,
+      "optimizer_steps": 0
     }
   }
 }
