@@ -537,6 +537,18 @@ Ren prisretning prioriteres etter operatørpresisering24.10; trades, MFE/MAE og
 Exit er utsatt. En separat forskningskomponent kan bruke uendret native
 forward sitt `entry_q_joint_hidden` til et trelogitthode for245s1/5/15min.
 Dette er første faste sammenligningsdomene, ikke hele minutt-til-timer-målet.
+
+Operatørpresisering 26.10: denne undersøkelsen skal direkte forklare manglende
+retningsedge for XAUUSD på 1–60 minutter. Faste sammenligningspunkter er 1/5/15/30/60,
+med samme kausale inputgrunnlag, referansemetode og kronologiske skiller. Ingen
+horisont velges som vinner etter utfallet. Eksisterende 1/5/15-resultater beholdes;
+30/60 må ha egne eksakte D+h-mål, observerbarhets-/modenhetsmasker og kvalifisert
+sammenligning. M1-queryeieren støtter 1–480 minutter; dagens trehorisontprojeksjon og
+modell-/rapporteringskontrakter gjør ikke 30/60 til allerede målte resultater.
+Første avklaring er fremoversignal på dette faste domenet; Entry-path/MAE/MFE,
+Exit, videre F-oppdeling og ytelseseksperimenter overtar ikke oppgaven. Denne
+presiseringen åpner ingen datalesing, modellkjøring eller fit.
+
 Full native M5-/TF-/GC-/familie-/makrokontekst beholdes. Ingen gammel fase,
 path-head, targetkvittering eller bundle får ny målbetydning ved ommerking.
 

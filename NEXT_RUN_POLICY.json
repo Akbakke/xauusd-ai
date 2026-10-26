@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Direct user steering: return to causal direction diagnosis using existing B/C/D results and source only. Further throughput changes and timing campaigns are deferred. Distinguish the limited endpoint objective from the full Entry objective, weak forward input information, and representation/readout learning. The matched frozen0U/terminal readout contrast remains an uncompleted candidate measurement, not a result or launch authority. Before any new code or run, identify the exact unresolved causal contrast, why existing evidence cannot answer it, and a bounded single-factor test with fixed success and stop criteria. No genuine measurement, model change or full F unit is newly admitted.",
+    "next_action": "Trace the existing TRAIN-only M1 price-source/target owner for a fixed 1/5/15/30/60 minute direction comparison, identify exactly which 30/60 labels and same-input reference results are missing, and bind the smallest one-factor target/reference comparison before any new code or run. Do not continue F partitioning or throughput work. No model, target materialization or fit is newly admitted by this status update.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17605,6 +17605,39 @@
     "latest_throughput_candidate_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261026_003/ACTUAL_ROOT_REVIEW.json",
       "sha256": "eb2e66c27b7ce2c7d2cbcb557ed8375ef4de1c63f1082741df3c220409858219"
+    },
+    "direction_cause_objective": {
+      "authority": "Direct user instruction 2026-10-26: replace prior working objective; investigate direction from 1 to 60 minutes.",
+      "objective": "Finn og dokumenter hvorfor GX1 ikke viser robust retningsedge for XAUUSD på kausale horisonter fra 1 til 60 minutter, og test den minste relevante rettelsen som følger av funnene. Skill feil i data/tid/fortegn/targets fra svakt fremoversignal og dårlig bevaring eller læring av informasjon. Retning er den aktuelle oppgaven; det bredere Entry-pathmålet skal ikke overta denne undersøkelsen.",
+      "fixed_horizons_minutes": [
+        1,
+        5,
+        15,
+        30,
+        60
+      ],
+      "direction_definition": "sign(XAUUSD_M1_open_mid_at_D_plus_h - XAUUSD_M1_open_mid_at_D), with own observed/mature masks and exact wall-clock joins",
+      "scope": "M5 decisions; causal closed M15/H1/H4/D1; preserve eight families plus D1/macro; TRAIN and fixed chronological development folds only.",
+      "first_contrast": "Hold input representation, reference estimator specification, prefix-only preprocessing and chronological folds fixed; compare predictive information at fixed 1/5/15/30/60 minute targets. Reuse verified 1/5/15 evidence and materialize only missing targets through the existing qualified M1 owner after fresh bounded admission.",
+      "comparison_requirements": [
+        "Report each horizon on its own eligible observations and a predeclared matched-parent intersection; do not choose a winning horizon after seeing outcomes.",
+        "Include fixed-prefix prior, class shares, coverage, within-fold AUC, proper scores and paired uncertainty accounting for overlapping targets.",
+        "Retain an always-UP/LONG baseline at longer horizons; no economic-edge claim from direction scores.",
+        "Do not mix expansion of horizon with new indicators, architecture, optimizer or hyperparameter search."
+      ],
+      "stop_criteria": [
+        "Any endpoint clock/sign/mask/source/causality mismatch stops the comparison.",
+        "TRAIN-only improvement or isolated AUC points do not establish later edge.",
+        "Weak reference results do not prove absence of all nonlinear or temporal information."
+      ],
+      "deferred": [
+        "Further F partition implementation",
+        "Further throughput changes and timing campaigns",
+        "Entry path/MAE/MFE/Exit changes"
+      ],
+      "goal_tracker_update": "create_goal rejected because existing goal is unfinished; existing goal not falsely marked complete; this user-directed project objective governs work.",
+      "genuine_execution_authorized": false,
+      "test_data_used": false
     }
   },
   "gc_order_flow_research_20261006": {

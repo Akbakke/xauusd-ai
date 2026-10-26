@@ -24,13 +24,19 @@ Ingen aktiv tung jobb. Timing003 er COMPLETE/consumed med eksakt original-
 og representasjonsparitet, men bare1.01755prosent kortere evaluate. Kandidaten
 avvises mot20prosentkravet og36033s konservativ fullprojeksjon mot9600s.
 Den opprinnelige, kvalifiserte profilvakten er gjenopprettet eksakt fraGit.
-Brukeren presiserte at oppdraget er å finne årsakene til svak retningsedge.
-Videre ytelsesendringer og timingkampanjer er utsatt. Neste arbeid er direkte
-årsaksanalyse med eksisterende B/C/D og kilde: avgrenset endpointmål mot Entry,
-fremoversignal i input, og representasjon/readout. F-kontrasten mellom frossen
-0U og terminal er fortsatt en ufullført målekandidat, ikke et resultat. Ingen
-ny kode eller kjøring før konkret ubesvart årsakskontrast, minste nødvendige
-test og faste suksess-/stoppkriterier er begrunnet. Ingen ny kjøreautoritet.
+Brukeren erstattet 26.10 arbeidsmålet: finn hvorfor GX1 mangler dokumentert
+retningsedge på 1–60 minutter. Faste sammenligningspunkter er 1/5/15/30/60 minutter;
+retning er oppgaven, mens Entry-path/MAE/MFE og Exit er utsatt. Behold M5, alle
+åtte familier og D1/makro. F-oppdeling og videre ytelsesarbeid er lagt til side.
+Første avklaring er samme input/referansemetode og kronologiske skiller mot de
+faste horisontene, med egne modenhetsmasker og forhåndsbundet felles kohort.
+M1-queryeieren støtter 1–480 minutter (entry_causal_m1_outcomes_v1.py:521,756); dagens
+prisprojeksjon, retningshode og rapportering er hardkodet til 1/5/15. Det er en
+målt avgrensning, ikke en målt årsak til svak retning på eksisterende horisonter.
+Kun kilde/metadata er lest. Ingen 30/60-targets, nye fits eller nativekjøringer
+er utført eller admittért. Målverktøyet avviste nytt målkort fordi det gamle er
+uferdig; det gamle er ikke feilaktig markert oppnådd. NEXT_RUN_POLICY binder
+den nye brukerbestemte arbeidsoppgaven og neste konkrete avklaring.
 D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
 inner/outerexit0 og1277.12s. D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001 binder35egne
 readerEOF/CRC-kvitteringer,878400slots/876959valgte og23felt. GCG6prefix har nå
@@ -189,7 +195,7 @@ familie-/TF-strukturer, ingen språklig indikatorundervisning. Bestemte ikke-GC
 candlefelt og XAUtickvolumrelasjoner er parkert i compact; GCvolum/flow og61D1/
 makrofelt er aktive. Bibliotektilstedeværelse er ikke aktivt konsum eller bevist samspill.
 
-M5beslutningsklokke; åttefamilier ogD1/makro beholdes. Ingen fast tapsgrense eller
+M5beslutningsklokke; åttefamilier og D1/makro beholdes. Ingen fast tapsgrense eller
 maksimal holdetid. Retningførst, ingenExit dennebølgen. TRAINmai2024–desember2025;
 CONTROLjanuar–mars2026lukket, juni2026gjenbruktVAL, TESTfrajuli2026forseglet.
 Bare vedtatt månedligforwardjournal kan score sin forseglete periode utenrefit.
