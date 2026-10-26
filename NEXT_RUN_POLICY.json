@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "F attempts001/002 are consumed and cannot be relaunched. All F execution, payload, constructor, forward and fit ports are closed. Only bounded throughput design/source review is current; fresh admission required for changes or execution. TEST/CONTROL/Exit/trading remain closed.",
-  "next_action": "Execute only fresh reference002 with repaired bounded source suffix reader; unchanged20fit/fivehorizon/commoncohort/300s scope.001failed andconsumed.",
+  "next_action": "Execute only newly admitted RET1_REFERENCE001; compare actualR1 versus saved S_PRICE66 at all5horizons, exact samecohorts/resampleweights;20fits/6savedinputs/0native.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Fixed five-horizon direction reference admitted",
+    "current_activity": "S_PRICE66 horizon comparison complete; correct R1 identity and isolate addedcontext effect",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -272,10 +272,10 @@
     "latest_terminal_role": "Actual16F candidate with original exact output parity; execution succeeded, predefined speed/projection gates failed.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_001.json",
-      "sha256": "a30200ffc76e39a6431728ad53be27b5d225b5c9de59b2fd3e52065fe14f252c"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_002.json",
+      "sha256": "6ca2ccd67c2281c6a4933938d732dce806bbd8eb032e2a0b93afb4d5ffa95dd2"
     },
-    "terminal_exit_code": 1,
+    "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute only fresh reference002 with repaired bounded source suffix reader; unchanged20fit/fivehorizon/commoncohort/300s scope.001failed andconsumed.",
+    "next_action": "Execute only newly admitted RET1_REFERENCE001; compare actualR1 versus saved S_PRICE66 at all5horizons, exact samecohorts/resampleweights;20fits/6savedinputs/0native.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17618,7 +17618,7 @@
       ],
       "direction_definition": "sign(XAUUSD_M1_open_mid_at_D_plus_h - XAUUSD_M1_open_mid_at_D), with own observed/mature masks and exact wall-clock joins",
       "scope": "M5 decisions; causal closed M15/H1/H4/D1; preserve eight families plus D1/macro; TRAIN and fixed chronological development folds only.",
-      "first_contrast": "Hold input representation, reference estimator specification, prefix-only preprocessing and chronological folds fixed; compare predictive information at fixed 1/5/15/30/60 minute targets. Reuse verified 1/5/15 evidence and materialize only missing targets through the existing qualified M1 owner after fresh bounded admission.",
+      "first_contrast": "Completed fixed S_PRICE66_247 comparison at1/5/15/30/60 on matchedparents. Its designation as B_R1 was incorrect; B_R1 is249local.ret_1 only. Next isolate feature-view factor with exactsamecohorts/method.",
       "comparison_requirements": [
         "Report each horizon on its own eligible observations and a predeclared matched-parent intersection; do not choose a winning horizon after seeing outcomes.",
         "Include fixed-prefix prior, class shares, coverage, within-fold AUC, proper scores and paired uncertainty accounting for overlapping targets.",
@@ -20202,7 +20202,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T22:24:52.107097+00:00",
+  "updated_utc": "2026-10-26T22:34:26.250880+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35578,24 +35578,30 @@
     }
   },
   "direction_1_60_reference": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_PLAN_002.json",
       "sha256": "941b9bb8954a56e7346542840a2d601a678d581ef77341ca393f915ae0d93733"
     },
-    "execution_authorized": true,
-    "training_enabled": true,
-    "genuine_fits_authorized": true,
-    "saved_inputs_authorized": true,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "genuine_fits_authorized": false,
+    "saved_inputs_authorized": false,
     "raw_data_reads_authorized": false,
     "native_forwards_authorized": false,
     "test_data_used": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "relaunch_allowed": false
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "consumed_invocations": 1,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_002.json",
+      "sha256": "6ca2ccd67c2281c6a4933938d732dce806bbd8eb032e2a0b93afb4d5ffa95dd2"
+    },
+    "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Only direction_1_60_reference20 fixed CPU R1fits, once,300s; native/epoch/VAL remainfalse.",
+  "training_enabled_scope": "Only direction_1_60_ret1_reference:20 fixed CPU fits, once,300s; no native/epoch/VAL.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -35618,5 +35624,41 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_REFERENCE_ROOT_REVIEW_001.json",
       "sha256": "a30200ffc76e39a6431728ad53be27b5d225b5c9de59b2fd3e52065fe14f252c"
     }
+  },
+  "direction_1_60_ret1_reference_source": {
+    "status": "SOURCE_QUALIFIED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_DESIGN_001.json",
+      "sha256": "54e4e47f901dd0bff3a187c6bdd7345d6272eed1504025ae3d70d82219f598f2"
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_SOURCE_ADMISSION_001.json",
+      "sha256": "8c77a5fe66a15171ca12e6831e14f5edd0dfec7f87055490dd02f2697c7f7eaf"
+    },
+    "source_edits_authorized": false,
+    "genuine_execution_authorized": false,
+    "test_data_used": false,
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_SOURCE_REVIEW_001.json",
+      "sha256": "43f11e9616214f9eb4391763613def4164eececee728443a0915c85a6f5b920b"
+    }
+  },
+  "direction_1_60_ret1_reference": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_PLAN_001.json",
+      "sha256": "7a10e9ebab9eac2f6b73753adec618bac1ac1802318f94a773aa69b361992a70"
+    },
+    "execution_authorized": true,
+    "training_enabled": true,
+    "genuine_fits_authorized": true,
+    "saved_inputs_authorized": true,
+    "raw_data_reads_authorized": false,
+    "native_forwards_authorized": false,
+    "test_data_used": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
   }
 }

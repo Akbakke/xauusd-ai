@@ -9,38 +9,39 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-Forsøk001 stoppet før outputclaim/datalesing/fit: D-metadatahjelperen tillater
-ikke METADATA/txt-suffiks i R1s bibliotekbinding. Originalouterexit1 ogstderr er
-bevart; lås er ledig.001 er consumed og relanseres aldri.002 bruker eksisterende
-247 small_ref for kildepinner og bokender. Numerikk,IO-/fitvakter,input,metode,
-horisonter og budsjett er uendret; eksisterende15+20kvalifiseringer gjenbrukes.
+DIRECTION_1_60_RET1_REFERENCE_PLAN_001 er ferskt engangsadmittért: 20 faste
+CPU-fits på siste M5-avkastning alene, sammenlignet med lagrede 002-prediksjoner
+fra66felt. Samme foreldre, fem horisonter, normalisering og 4000 resamplevekter.
+6 lagrede TRAIN-inputs, 300s, 4GiB, én tråd, 0 native/rådata/normaliseringsfits.
+Global training_enabled=true gjelder bare denne enheten; kilde/policy fryses.
+Ingen resultat fra denne kontrasten foreligger ennå.
 
-DIRECTION_1_60_REFERENCE_PLAN_002 er ferskt engangsadmittért:20 faste R1fits,
-40prediksjonspopulasjoner og5lagrede TRAIN-inputs. Samme fellesforeldre og66felt,
-med1/5/15/30/60. Parvis uke-/dagresampling4000; AUC99%-intervaller for5horisonter,
-97.5%-intervaller for forhåndsvalgte30−15/60−15-kontraster. Ingen parametersøk.
-300s,4GiB,énCPU-tråd og eksisterende cappedvakter; ingen native/rådata/TEST.
-15syntetiske parvis-AUC-kontroller er bestått. R1sfit/predict/loss/config er
-AST-identiske med247; bibliotekeiere uendret. Global training_enabled=true
-gjelder kun denne CPU-referanseenheten; native/epoch/VAL er false.
-Kilde/policy fryses ved launch. Ingen forbedring er målt ennå.
+DIRECTION_1_60_REFERENCE_ROOT_REVIEW_002 bekrefter COMPLETE/consumed:
+20faste CPU-logistikkfits,40prediksjonspopulasjoner,5lagrede TRAIN-inputs og
+96.97sekunder;0native/rådata/optimizersteg.67112felles senereforeldre, firefolder.
+Innenfold-AUC1/5/15/30/60 = .49745/.50317/.50518/.49761/.49496. Alle99%uke-/dag-
+intervaller inkluderer.5; alle95%loglossforskjeller motprior er positive.
+60mTRAIN-AUC.547–.577 overføres ikke til senere.495.30/60løser ikke denne
+referansen. Kilde/policy/originaler er uendret; cgroup borte,lås ledig.
+001feilet førdatalesing påkildesuffiks; begge001/002erconsumed, aldri relaunch.
 
-DIRECTION_1_60_SAVED_TARGET_QUALIFICATION_ROOT_REVIEW_001 bekrefter COMPLETE:
-ett lagret TRAIN-NPZ, én sammensetning, 0 fit/native/optimizerkall og 1.35s.
-116811 fortegn fra 3×5 minutter samsvarer med direkte 15-minuttersfasit.
-30/60 gir 115554/112969 sertifiserte ikke-null utfyllinger; 72/52 er
-avrundingsuavklarte og beholdes maskert. På fire senere folder er 67112 foreldre
-felles for alle fem horisonter. Kilde/policy/originaler er uendret; cgroup er
-borte og tunglåsen ledig. Engangsautoriteten er consumed og lukket.
+VIKTIG RETTELSE: de66feltene er S_PRICE66-referanse247. «R1» iB er249s ene
+local.ret_1-felt (245kolonne65), videreført via252/259. NavnetR1 ble feilaktig
+brukt i den nyehorisontdesignen. Originalene bevares; review002 binder
+rettelsen. Metoden/inputene i selve66feltskontrasten var eksplisitte ogfaste;
+den er gyldig for247, men er ikkeB_R1forlenget. Ingennativeindikatorforkastes.
 
-DIRECTION_1_60_SAVED_TARGET_DESIGN_001 binder faste1/5/15/30/60, samme66R1-felt,
-samme prefixnormalisering og felles trenings-/senereforeldre innen fold.
-DIRECTION_1_60_REFERENCE_SOURCE_ADMISSION_001 åpner kun minste kildearbeid for
-matchet sammenligning og parvis dag-/ukeusikkerhet i innenfold-AUC. Eksisterende
-fit, skårer, IO og ressursvakter gjenbrukes. 20 faste R1fits er nå åpnet av egen plan001 ovenfor.
-Denne referansen har61D1/makro+4sesjon+1tidligereavkastning; den uttømmer ikke
-åtte nativefamilier eller sekvensinformasjon. Ingen dokumentert edge følger
-av targetkvalifiseringen.
+DIRECTION_1_60_RET1_REFERENCE_DESIGN_001 og SOURCE_ADMISSION_001 åpner bare
+minstekildearbeid for det konkrete spørsmålet: gir tillegg av61D1/makro+
+4sesjonsfelt svakere senere rangering/kalibrering ennret1alene, ved uendret
+metode/foreldre/hori­sonter? Gjenbruk002s lagredeprediksjoner og15beståtte
+blokkranktester/20targettester. RET1_PLAN_001 ovenfor har nå egen engangsadmisjon.
+Native/epoch/VAL er false; CPU-autoriteten er begrenset til den oppgitte enheten.
+
+30/60fasit er kvalifisert utenrådata:116811fortegn fra3×5 stemmer meddirekte15.
+115554/112969sertifiserte30/60utfall;72/52avrundingsuavklarte maskeres.
+Faste1/5/15/30/60 er forskningshorisonter, ingenmaksimalholdetid.
+Behold åttefamilier ogD1/makro; ingenTEST/CONTROL/Exit/handel.
 
 Brukeren har avvist oppdrag fra den andre chatten. Root arbeider alene; innkommende
 oppdrag derfra forkastes. Denne trådens direkte brukermandat og mål er eneste
