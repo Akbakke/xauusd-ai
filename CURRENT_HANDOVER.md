@@ -14,7 +14,7 @@ oppdrag derfra forkastes. Denne trådens direkte brukermandat og mål er eneste
 arbeidsautoritet. Allerede mottatte meldinger kan ikke slettes med tilgjengelige verktøy.
 
 A, B og faktisk C003 er fullført innen sine avgrensede måleoppgaver.
-PROGRAM_EXECUTION_LEDGER_013 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
+PROGRAM_EXECUTION_LEDGER_014 binder alle30punkter: 2/3/6/7/12/23/24/25/26 er målt
 med oppgitte grenser; øvrige trenger videre evidens eller eksplisitt sluttavklaring.
 Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integrasjon
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
@@ -30,9 +30,16 @@ minste rapporteringsrettelsen,15mekanikk-/20guard-/6avgrensedeIO-kontroller og
 106/47-konstruksjon på40kunstige foreldre. Årsakstellere overlapper og summeres ikke.
 En IO-fixture merket decoded_budget traff compressedsizeporten; ikke selvstendig
 bevis for decodedbyteporten. Denne er kildebekreftet; ekteinputs er SHA-kvalifiserte.
-D_FLOW_SCORE_PLAN_001 åpner én fast no-fit-score på egenTRAIN_M1 og245TRAINtargets,
-106paneler/47kontraster. RawAUCpunkt og separat fortegns-A; A=0 avviser ikke rå rang.
-Ingen resultater foreligger. Cleancommit/runtimebinding før launch; kilde/policy fryst.
+D_FLOW_SCORE_PLAN_001 er COMPLETE/consumed:2payloads,106paneler/47kontraster,
+106rankkall/0fit/proper/model/optimizer,inner/outerexit0 og7.15s. D_FLOW_SCORE_ACTUAL_ROOT_REVIEW_001
+binder alle råAUC-parcountreproduksjoner,47identiske foreldre og rapporterte grenser.
+OFI samtidigGC AUC0.901483; fremtidigXAU1/5/15:0.502490/0.496552/0.490430.
+Dette støtter sterk samtidig/svak fremtidig sammenheng for denne skåren; avviser
+ikke all inputinformasjon. +1-kontroll er framtidsoverlapp, ingen klokkerettelse.
+OFI er gyldig på69930/70647, streng komplettDELTA på8399. Native beholder allerede
+kjentbuy/sell/delta/unknown/fraction på observed_valid. Ikke anbefal å gjeninnføre
+disse eller påstå88prosent nativeinformasjonstap fra D-masken. Ingen nye modeller
+eller fits er admittért. Neste avklaring er et matchet frosset0U/terminal-readout.
 Trening/native/epoch/VAL er false. TEST, Exit og handel forblir lukket.
 
 ## Nye faktiske C-funn
@@ -148,7 +155,7 @@ D_TRAIN_M1_COORDINATOR_SOURCE_ADMISSION_001 bandt35filkoordinator og sannferdig
 rawscore-kind. Kvalifisering fant og rettet kun readonlykatalog-fsyncvakten.
 EksaktASTisolasjon av nye8rankcases unngikk gamlefitimports; gamletester bevares.
 D_TRAIN_M1_REDUCTION_PLAN_001 er COMPLETE/consumed; ingen relaunch.
-D-skåring er stengt. Neste faktiske grense er fullført TRAIN M1 for OFI,
+D-skåring er fullført/consumed. TRAIN M1 finnes for OFI,
 BBO-endepunkter og sluttmasker. D_TRAIN_SOURCE_REUSE_REVIEW_001 binder kilde-/JSON-kontrollen.
 Den deklarerte024-kjeden har bare fullstudie
 kontrakt-M1-filer; valgte event-/ladderdelmengder erstatter ikke disse seriene.
@@ -181,10 +188,11 @@ kilde/policy fryst gjennom kampanjer ogRESUMABLEpauser. Stabil drift observeres
 retentioneier. Stående push:Akbakke/xauusd-ai work/gx1-current; aldri rådata,
 vekter, hemmeligheter ellerforcepush. TekniskPASS er ingen retningsedge.
 
-Uavhengig årsaksprioritering: DIRECTION_IMPROVEMENT_PRIORITIES_001 binder fem
+Uavhengig årsaksprioritering: DIRECTION_IMPROVEMENT_PRIORITIES_002 binder fem
 hypoteser med støtte/motbevis/minstetest/stopp. C_CHECKPOINT_LAST_BATCH_AND_GRADIENT_SUM_REVIEW_001
 svekker siste-delbatch-som-enesteårsak og presiserer rågradient kontraAdamW.
 
 D_FLOW_SCORING_SOURCE_ADMISSION_001: låst2score×3delta×7response med106
 forhåndsbundne paneler og47parede kontraster; råAUCpunkt og separatA-assosiasjon.
-Koden er skrevet, ikke testet eller kjørt; ingen signal-/edgepåstand.
+Koden er syntetisk kvalifisert og faktisk kjørt i D_FLOW_SCORE_001; konklusjonene
+er avgrensede toskårssammenhenger på gjenbruktTRAIN, ingen modell-/handelsedge.
