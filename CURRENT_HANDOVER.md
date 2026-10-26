@@ -226,3 +226,5 @@ Ingen native modell/payload/fit/CUDA/optimizerkall. Inner/outerexit0,57bundne
 kildeeiere bevart og cgroup avsluttet. Ekstraksjonskilde og syntetisk admisjon
 er nå lukket/consumed. Neste er cleanHEAD-bundet metadata/kampanje for første
 faste enhet; genuine F-ekstraksjoner og seks readoutfits er ennå ikke kjørt.
+
+F_FROZEN_EXTRACTION_own0U_prefix_RUNTIME_ADMISSION_001 binder første ekte\nenhet: egen2760U,47602prefixrader,2976B16-forwards,0reverse/optimizer/fit.\nFersk exactcampaign, cleanHEAD/policybinding, maskinledigkontroll og fysiskboot\ngjenstår før oppstart. Bare denne enheten er admittért; øvrige tre enheter og\nseks readoutfits er fortsatt lukket. Ingen F-markedskonklusjon foreligger.\n

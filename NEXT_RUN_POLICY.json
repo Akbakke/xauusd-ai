@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-26T14:50:59.638744+00:00",
-  "status": "F_FROZEN_EXTRACTION_SOURCE_QUALIFIED_GENUINE_EXECUTION_CLOSED",
+  "observed_utc": "2026-10-26T14:59:25.155272+00:00",
+  "status": "F_OWN0U_PREFIX_EXTRACTION_ADMITTED_CAMPAIGN_AND_FRESH_BOOT_REQUIRED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only fresh exact35fileTRAIN M1reduction admitted underD_TRAIN_M1_REDUCTION_PLAN_001. All completedprefix/synthetic plans consumed. No targetscoring/fit/model/training/VAL; TEST/CONTROL/Exit/trading closed.",
-  "next_action": "Commit/push qualified frozen extraction source; prepare exact first unit recipe/campaign on clean source and qualify metadata before fresh-boot guarded extraction. No actual F payloads/forwards/fits yet.",
+  "next_action": "Bind cleanHEAD/policy and fresh exact canonical native campaign for own0U_prefix once; validate metadata, machine idle and fresh physical boot before launch. Other F units and all readout fits remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35137,5 +35137,45 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "f72bdca0761bdac6ff07e54e6908a907438b7e482f50a379a2bf7790ba995206"
     }
+  },
+  "dynamic_m5_direction_frozen_extraction_f": {
+    "status": "ADMITTED_PRELAUNCH_UNCLAIMED",
+    "unit": "own0U_prefix",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_RECIPE_001.json",
+      "sha256": "46f68507bc919893fdb28ee91da567124e03371c8071204bc2c0e232e6cc1c40"
+    },
+    "window": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_WINDOW_001.json",
+      "sha256": "b3385f82e448fe7dce8cdf495382d3c3d19b110920daf24073b2ff140795bf45"
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_RUNTIME_ADMISSION_001.json",
+      "sha256": "44202addd87cab5412babe5468c835318bfc87a39ce39c16fa3a258e756c9e32"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_20261026_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_20261026_001_RUNTIME",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forwards_authorized": true,
+    "gradient_reverse_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "genuine_predictor_fit_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }
