@@ -9,11 +9,19 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+DIRECTION_NATIVE_REFERENCE_RANK_PLAN_001 er nå eneste admisjon: én parvis
+rangmåling native mot252ET_FULL og259R1_EXPLICIT_PREV_RET1 på samme67112foreldre.
+252er32ExtraTrees,depth8,minleaf256,på3345kompakte snapshotfelt;259erfastlogistisk
+currentret1/forrige5minret1/presence. SeksforhåndsbundneAUCkontraster,
+Bonferroni0.05/6 perintervall, samme4000uke/dagvekter.6lagredearkiver,
+180s/4G CPU;nullfit/forward/optimizer. Kilde ogpolicy fryses under kjøringen.
+training_enabled=false ogallemodell-/data-/handelsgrenserbestår.
+
 DIRECTION_PRIOR_OFFSET_001 er COMPLETE/consumed: 12 skalarkalibreringer,
 9 lagrede prediksjonsarkiver, 29.67s og null native forward/optimizer.
 Alle offsetter er låst fra TRAIN før senere payloadlesing; opprinnelige skårer
 og blokkvekter er reprodusert. Kilde/policy/input uendret, cgroup borte, lås ledig.
-training_enabled=false; ingen numerisk autoritet er åpen.
+training_enabled=false; offsetautoriteten er konsumert. Ny rangadmisjon står øverst.
 
 Kun5m består forhåndsbestemt senere logloss-forbedring ved99% både uke/dag.
 15m fjerner omtrent85.3% av priorunderskuddet i punktestimatet, men99%uke
@@ -34,8 +42,8 @@ parvis rangering mot allerede lagrede252ET_FULL og259R1_EXPLICIT_PREV_RET1.
 259harcurrentret1,eksaktforrige5minret1ogpresence;252s eksakte faste definisjon
 og arkivets foldmapping skal kildekontrolleres før én eventuell frisk admisjon.
 Samme67112foreldre ogblokkvekter;seksAUCkontraster forhåndsbundet utenvalg.
-Ingen nye payloadlesinger, fits, forwards eller modellendringer er admittért.
-Målet omretningsedge1–60minutter er fortsatt uferdig.
+Den nye rangadmisjonen øverst erstatter denne kildestatusen; ingen fits,
+forwards eller modellendringer er admittért. Retningsedge1–60 er fortsatt uferdig.
 
 DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002 bekrefter COMPLETE/consumed:
 67112samme senereTRAIN-foreldre;5lagredeprediksjonsarkiver,48blokkrangpar,
@@ -47,11 +55,8 @@ rangeringssignal i gjenbrukt utvikling, daggrensen er svært nær.5.
 Parvisnative−R1AUC5/15 inkluderer0; ikke påvist dårligere native-rangering og
 heller ikke bevist likeverdighet. Native proper scores er dårligere ennR1 og
 egenprior ved5/15 i beggeblokkmetoder. Informasjonstap som hovedårsak er derfor
-nedprioritert. Målt sannsynlighetsfeil er første konkrete forbedringsmål.
-Neste avgrensede kontroll skal kun korrigere sannsynlighetsnivå fra egen
-fullprefix-prior og allerede forhåndsvalgte256FINAL_TRAIN-logits; ingen bruk av
-senereutfall tilkalibrering. AUCskal væreuendret; eventuell proper-scoregevinst
-er ikke bedre rangering eller handelsedge. Ingen nyfit/kjøring er admittért.
+nedprioritert. Sannsynlighetskontrollen som dette begrunnet er nå fullført og konsumert,
+som beskrevet øverst. Rangeringen forble uendret; ingen nykalibrering er åpen.
 001ble erstattet førlaunch på contiguous-label-kontrakten;002er nåconsumed.
 
 DIRECTION_RET1_INPUT_PARITY_ROOT_REVIEW_001 bekrefter COMPLETE/consumed:
