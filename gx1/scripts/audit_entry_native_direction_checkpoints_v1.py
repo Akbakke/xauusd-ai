@@ -226,6 +226,8 @@ class ActivationRecorder:
 
 
 def _profile_budget(budget, codes, phase, previous=None):
+    # Only immutable filename/name classification is cached; live guards remain per event.
+    classified = {}
     def profile(frame, event, arg):
         code = frame.f_code
         key = codes.get(code)
@@ -236,18 +238,26 @@ def _profile_budget(budget, codes, phase, previous=None):
                 budget.returned(key)
         if event == 'call':
             filename, name = code.co_filename, code.co_name
-            owner = filename.startswith(authority.REPO + '/') or filename.startswith('/home/andre2/GX1_RUNS/')
-            forbidden = ((owner and (name == 'fit' or name.startswith('fit_')
-                or name in ('partial_fit', '_optimizer_step_with_finite_gradients', '_save_state',
-                    '_save_snapshot', 'load_m1_feature_surface', 'load_current',
-                    'query_dynamic_m1_prefix', 'read_dynamic_m5_target_source',
-                    'build_dynamic_m5_batch_targets', '_dynamic_m5_optimizer_task_losses')))
-                or ('/torch/optim/' in filename and name == 'step')
-                or ('/torch/' in filename and name == 'backward')
-                or (filename.endswith('/torch/serialization.py') and name == 'save')
-                or ('/site-packages/sklearn/' in filename and (name == 'fit' or name.startswith('fit_'))))
+            identity = (filename, name)
+            classification = classified.get(identity)
+            if classification is None:
+                owner = filename.startswith(authority.REPO + '/') or filename.startswith('/home/andre2/GX1_RUNS/')
+                forbidden = ((owner and (name == 'fit' or name.startswith('fit_')
+                    or name in ('partial_fit', '_optimizer_step_with_finite_gradients', '_save_state',
+                        '_save_snapshot', 'load_m1_feature_surface', 'load_current',
+                        'query_dynamic_m1_prefix', 'read_dynamic_m5_target_source',
+                        'build_dynamic_m5_batch_targets', '_dynamic_m5_optimizer_task_losses')))
+                    or ('/torch/optim/' in filename and name == 'step')
+                    or ('/torch/' in filename and name == 'backward')
+                    or (filename.endswith('/torch/serialization.py') and name == 'save')
+                    or ('/site-packages/sklearn/' in filename and (name == 'fit' or name.startswith('fit_'))))
+                classification = (forbidden,
+                    filename.endswith('/torch/nn/modules/module.py') and name == '__init__')
+                if len(classified) < 4096:
+                    classified[identity] = classification
+            forbidden, module_constructor = classification
             authority.require(not forbidden, 'FORBIDDEN_OPERATION:' + name)
-            if filename.endswith('/torch/nn/modules/module.py') and name == '__init__':
+            if module_constructor:
                 authority.require(phase['name'] == 'CONSTRUCT', 'EXTRA_MODULE_CONSTRUCTION')
         if previous is not None:
             previous(frame, event, arg)

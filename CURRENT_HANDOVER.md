@@ -20,11 +20,12 @@ Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integr
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
 retningslæring. INTEGRATOR_TAKEOVER_20261026_001 binder mandatet. Root eier
 kilde/policy/launch og arbeider alene; tidligere kontroller er bevart.
-Ingen aktiv tung jobb. FullF002 og timing256-001 er avsluttet/consumed.
-Timing001 feilet før data-/modellkall på cachedfunksjonens kodeidentitet.
-Minste rettelse og én eksakt regresjonskontroll har bestått. Ny timing256-002
-er admittért: original0U/B16/første256,16forwards/600s/0reverse/0fit/0steg.
-Kanonisk kampanje/fersk fysiskboot gjenstår. FullF er fortsatt stengt.
+Ingen aktiv tung jobb. Timing256-002 er COMPLETE/consumed med16forwards,
+0reverse/0steg og bitidentisk original INITIAL-paritet. Batchklargjøring tok
+138.933s av145.917s evaluering; forward5.815s. FullF er fortsatt stengt.
+Bounded cache av ren Python-vaktklassifisering er kvalifisert med26kontroller;
+alle dynamiske/data-/kausalitetsvakter beholdes. Timing003-kandidat er admittért,
+men kanonisk kampanje/fersk fysiskboot gjenstår.
 D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
 inner/outerexit0 og1277.12s. D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001 binder35egne
 readerEOF/CRC-kvitteringer,878400slots/876959valgte og23felt. GCG6prefix har nå
@@ -340,3 +341,34 @@ uendret. Tidligere56kontroller gjenbrukes; ingen ny fullsuite.
 F_FROZEN_EXTRACTION_own0U_prefix_timing256_RUNTIME_ADMISSION_002 åpner kun
 ny16forward/600s-tidsdiagnose. Timing001 og opprinnelige fullF001/F002 skal
 aldri relanseres. Alle originale artefakter er bevart. Ingen rootcause/edge bevist.
+
+## Timing002 faktisk avsluttet og CPU-avgrensning
+
+ACTUAL_ROOT_REVIEW i timing256_CAMPAIGN_20261026_002 binder COMPLETE,
+guard/observerexit0,16forward/0reverse/0steg,256identiske TRAIN-presentasjoner,
+B16 og bitidentisk originalprediksjon. Worker377.789s; evaluate145.917s,
+batch138.933s, forward5.815s. GCsurfacevalidation48.404s/17kall og GCwindows
+43.522s/1280kall er inklusive; de summeres ikke som disjunkte kostnader.
+Prosess/cgroup er borte, tunglås ledig, eksakt Windowsoppgave Disabled,
+LastResult0/Restart0; oppfølgingen er deaktivert. Kilde/policybokender er bekreftet.
+Alle originalartefakter bevares; timing001/002 og fullF001/002 relanseres aldri.
+F_PROFILE_CLASSIFICATION_CACHE_SOURCE_ADMISSION_001 åpner kun minste kildeendring
+av vaktens rene(filename,name)-klassifisering, ikke datavalidering eller modell.
+Andelen vaktkostnad er ukjent. En senere separat16F-kandidat må bevise identiske
+outputs/foreldre/tellere og minst20prosent kortere evaluering; full2976F vurderes
+bare ved konservativ projeksjon<=9600s innen eksisterende12000s-grense.
+Ingen retningsforbedring eller full readoutmåling følger av tidsdiagnosen.
+
+## Profilklassifisering kvalifisert og timing003 kandidat
+
+F_PROFILE_CLASSIFICATION_CACHE_SYNTHETIC_ROOT_REVIEW_001 binder26beståtte
+kontroller, inner/outerexit0 og0native/payload/fit/optimizer/CUDAkall.
+Kun _profile_budget og tilhørende tester er endret. ØvrigAST og eksakt
+forbiddenuttrykk er uendret; nøkkel er(filename,name), maks4096elementer.
+Tellere, forbudsavvisning, aktivkonstruksjonsfase og callback kjøres fortsatt
+for hvert relevant event. Ingen datakontroll, feature eller modell er endret.
+Timing256_RUNTIME_ADMISSION_003 åpner kun16F/600s/0U/B16 på samme256TRAIN
+som timing002. Identiske output-/foreldre-/hodehasher og tellere kreves.
+Forhåndskriterier: minst20prosent kortere evaluate; fullF vurderes bare hvis
+konservativ full2976F-projeksjon<=9600s. Kandidaten kan feile disse kriteriene.
+Ingen fullF, readoutfit, parameterjakt eller effektendring er admittért.

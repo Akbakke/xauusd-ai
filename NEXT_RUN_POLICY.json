@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Timing instrumentation cache bug repaired and one exact regression passed. New timing256 attempt002 admitted; canonical campaign/fresh boot pending.",
+    "current_activity": "Pure profile classification cache qualified by26guard cases; timing003 one-factor candidate admitted, canonical campaign/fresh boot pending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,11 +269,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "One cached-body timing regression, capped CPU, source bookends and zero native/payload/fit/CUDA calls.",
+    "latest_terminal_role": "26cappedCPU classifier/guard regression cases, zero native/data/fit/CUDA.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TIMING_CACHED_FUNCTION_SYNTHETIC_20261026_002/TERMINAL.json",
-      "sha256": "a1412617745d2b2b145254cd32947b646df09851ea1b9a3158f27b761dac4fed"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_SYNTHETIC_20261026_001/TERMINAL.json",
+      "sha256": "39b1e16c4ca27b1423cb34fdf2d149de3112c7a5c7a83cb04f7dbc2588f3cf96"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No actual phase timing yet; full frozen readout comparison remains unmeasured.",
+    "current_blocker": "Throughput effect unmeasured; full F representation/readout comparison remains unavailable.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Bind clean commit/policy to fresh timing256 attempt002 canonical campaign and run16F/600s/B16/own0U with exact initial parity. No full extraction or fit admitted.",
+    "next_action": "Bind clean HEAD/policy and run admitted timing003 with original256/B16/0U, exact output/counter parity and600s/16F cap. Compare predefined speed/projection criteria with completed timing002; no full F admission yet.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17579,11 +17579,11 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/INTEGRATOR_TAKEOVER_RECEIPT.json",
       "sha256": "d7eb40354da8367f9b37cee83cfa5534461f821ba3b2278bbbf5016c885f3aaa"
     },
-    "canonical_guard_child_exit_code": 1,
-    "windows_task_last_result": 2,
+    "canonical_guard_child_exit_code": 0,
+    "windows_task_last_result": 0,
     "canonical_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_001_RUNTIME/receipts/invocation-0001.json",
-      "sha256": "ab56e25d8c5c8a5288df7410f18bd33a4b2d351d3a1cb6f97e3c19426d3e1da9"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_002_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "97881da2dd6d1e9ff05df3e2db8303c67f956c733dbb8839438e7882e674f5e9"
     },
     "terminal_exit_code_origin": "Capped CPU regression worker and outer process, both exit0",
     "latest_throughput_measurement_design": {
@@ -17593,6 +17593,14 @@
     "latest_timing_qualification": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TIMING_CACHED_FUNCTION_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "1d2805f778735c5375a4054e176b6db65784e3f9f4963fa60a98a6667334ff4f"
+    },
+    "latest_timing_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261026_002/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "eae9350d2f8053836eba6a982f721abe2f1b9a2d4c52901b3da34d36ab7d1cb0"
+    },
+    "latest_profile_cache_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "d20fde127f6681736ea94c4b0e76dcc6e557908457ddcfda446b8f64965b78d1"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -35155,22 +35163,22 @@
     }
   },
   "dynamic_m5_direction_frozen_extraction_f": {
-    "status": "ADMITTED_TIMING256_ATTEMPT002_ONCE",
+    "status": "ADMITTED_TIMING256_ATTEMPT003_PROFILE_CACHE_CANDIDATE",
     "unit": "own0U_prefix_timing256",
     "recipe": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_RECIPE_002.json",
-      "sha256": "8f8e13e93f719cd687f6ad05f39f8b9dc80b590224a7aaf36d5b14d93c4d1d55"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_RECIPE_003.json",
+      "sha256": "ab43fefe50fd875390e94d2dd3bb4e9bdc1130f3b72314f1ba2a4c339ddd7ff1"
     },
     "window": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_WINDOW_002.json",
-      "sha256": "9af04829a3ff97f025f5df58cfcecc08e298495b4cc8014ab968867a55afb3a3"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_WINDOW_003.json",
+      "sha256": "eb00e7fb88d03bd2583faf03204c5f4f4dd7e28ce00ef9efe0c682a5fa934df9"
     },
     "admission": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_RUNTIME_ADMISSION_002.json",
-      "sha256": "20f3a3d9850c5910a2f00cc092fe2bbaad50f99a2f7ca81dad99f9c2c0a1052d"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_RUNTIME_ADMISSION_003.json",
+      "sha256": "ac178b234f48a1c1c8f490cd144f7b8e51b88d7d95e3a098e06acbc0b0d00f7f"
     },
-    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_002",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_002_RUNTIME",
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_003",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_003_RUNTIME",
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
@@ -35213,6 +35221,19 @@
         },
         "claimed_invocations": 1,
         "completed_invocations": 0,
+        "relaunch_allowed": false
+      },
+      {
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_RECIPE_002.json",
+          "sha256": "8f8e13e93f719cd687f6ad05f39f8b9dc80b590224a7aaf36d5b14d93c4d1d55"
+        },
+        "terminal_root_review": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261026_002/ACTUAL_ROOT_REVIEW.json",
+          "sha256": "eae9350d2f8053836eba6a982f721abe2f1b9a2d4c52901b3da34d36ab7d1cb0"
+        },
+        "claimed_invocations": 1,
+        "completed_invocations": 1,
         "relaunch_allowed": false
       }
     ],
@@ -35324,10 +35345,10 @@
     }
   },
   "direction_diagnostic_F_timing_synthetic_20261026": {
-    "status": "COMPLETE_ONE_REGRESSION_CONSUMED",
+    "status": "COMPLETE26PROFILE_GUARD_CASES_CONSUMED",
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TIMING_CACHED_FUNCTION_SYNTHETIC_PLAN_002.json",
-      "sha256": "10e0ace88f0b9cdcd66639e62abb74cad38ff3a58e27588fadb9687ad27c4e18"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_SYNTHETIC_PLAN_001.json",
+      "sha256": "f3da5bc8174eb5dd37713a305be82e68b895dc93c13400dd32778ffdd147feed"
     },
     "execution_authorized": false,
     "synthetic_tests_authorized": false,
@@ -35340,17 +35361,13 @@
     "claimed_invocations": 1,
     "completed_invocations": 1,
     "relaunch_allowed": false,
-    "previous_failed_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TIMING_CACHED_FUNCTION_SYNTHETIC_20261026_001/TERMINAL.json",
-      "sha256": "ea983ca268cb91f47758bc31201e4707dccc7ff54d256fe5820a4ff206a91e88"
-    },
     "terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TIMING_CACHED_FUNCTION_SYNTHETIC_20261026_002/TERMINAL.json",
-      "sha256": "a1412617745d2b2b145254cd32947b646df09851ea1b9a3158f27b761dac4fed"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_SYNTHETIC_20261026_001/TERMINAL.json",
+      "sha256": "39b1e16c4ca27b1423cb34fdf2d149de3112c7a5c7a83cb04f7dbc2588f3cf96"
     },
     "review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TIMING_CACHED_FUNCTION_SYNTHETIC_ROOT_REVIEW_001.json",
-      "sha256": "1d2805f778735c5375a4054e176b6db65784e3f9f4963fa60a98a6667334ff4f"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "d20fde127f6681736ea94c4b0e76dcc6e557908457ddcfda446b8f64965b78d1"
     }
   },
   "direction_diagnostic_F_timing_cached_function_source": {
@@ -35374,6 +35391,29 @@
     "qualification": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TIMING_CACHED_FUNCTION_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "1d2805f778735c5375a4054e176b6db65784e3f9f4963fa60a98a6667334ff4f"
+    }
+  },
+  "direction_diagnostic_F_profile_classification_cache_source": {
+    "status": "SOURCE_AND26CASES_QUALIFIED_CLOSED",
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_SOURCE_ADMISSION_001.json",
+      "sha256": "22a65241498cba50fa8f92db4055e25a58e8c2cf30d40c7107b818d123a071da"
+    },
+    "source_edits_authorized": false,
+    "file_owner": "/root",
+    "synthetic_tests_authorized": false,
+    "execution_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "genuine_forwards_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_SOURCE_REVIEW_001.json",
+      "sha256": "2f9dc5d62ab3b4a7fb8e6d7d70ea294048d59b6b15df237df4c37b098e506f68"
+    },
+    "qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "d20fde127f6681736ea94c4b0e76dcc6e557908457ddcfda446b8f64965b78d1"
     }
   }
 }

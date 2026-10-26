@@ -547,3 +547,78 @@ def test_phase_timing_cached_body_identity_and_cache_hits():
     assert phase['calls'] == phase['returns'] == 2
     assert cached.cache_info().hits == 1 and cached.cache_info().misses == 2
     assert timer.report()['pending_frames'] == 0
+
+
+def _profile_fixture_code(filename, name):
+    from types import CodeType
+    module = compile('def ' + name + '():\n    return None\n', filename, 'exec')
+    return next(value for value in module.co_consts if isinstance(value, CodeType))
+
+
+@pytest.mark.parametrize('filename,name,blocked', [('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', 'fit', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', 'fit_more', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', 'partial_fit', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', '_optimizer_step_with_finite_gradients', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', '_save_state', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', '_save_snapshot', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', 'load_m1_feature_surface', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', 'load_current', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', 'query_dynamic_m1_prefix', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', 'read_dynamic_m5_target_source', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', 'build_dynamic_m5_batch_targets', True), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', '_dynamic_m5_optimizer_task_losses', True), ('/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/synthetic_guard.py', 'fit', True), ('/site-packages/torch/optim/adam.py', 'step', True), ('/site-packages/torch/autograd/x.py', 'backward', True), ('/site-packages/torch/serialization.py', 'save', True), ('/site-packages/sklearn/linear.py', 'fit', True), ('/site-packages/sklearn/linear.py', 'fit_more', True), ('/external/analysis.py', 'fit', False), ('/site-packages/torch/optim/adam.py', 'forward', False), ('/site-packages/torch/serialization.py', 'load', False), ('/home/andre2/src/GX1_CURRENT/gx1/synthetic_guard.py', 'evaluate', False)])
+def test_profile_cache_preserves_forbidden_misses_and_hits(filename, name, blocked):
+    seen = []
+    budget = SimpleNamespace(start=lambda key: None, returned=lambda key: None)
+    profile = worker.saved._profile_budget(budget, {}, {'name': 'EVALUATE'},
+        lambda frame, event, arg: seen.append(event))
+    frame = SimpleNamespace(f_code=_profile_fixture_code(filename, name))
+    for _ in range(2):
+        if blocked:
+            with pytest.raises(RuntimeError, match='FORBIDDEN_OPERATION:' + name):
+                profile(frame, 'call', None)
+        else:
+            for event in ('call', 'return', 'c_call', 'c_return'):
+                profile(frame, event, None)
+    assert seen == ([] if blocked else ['call', 'return', 'c_call', 'c_return'] * 2)
+
+
+def test_profile_cached_constructor_still_checks_live_phase():
+    seen = []
+    budget = SimpleNamespace(start=lambda key: None, returned=lambda key: None)
+    phase = {'name': 'CONSTRUCT'}
+    profile = worker.saved._profile_budget(budget, {}, phase,
+        lambda frame, event, arg: seen.append(event))
+    frame = SimpleNamespace(f_code=_profile_fixture_code('/site-packages/torch/nn/modules/module.py', '__init__'))
+    profile(frame, 'call', None)
+    phase['name'] = 'EVALUATE'
+    with pytest.raises(RuntimeError, match='EXTRA_MODULE_CONSTRUCTION'):
+        profile(frame, 'call', None)
+    phase['name'] = 'CONSTRUCT'
+    profile(frame, 'call', None)
+    assert seen == ['call', 'call']
+
+
+def test_profile_cached_calls_keep_every_budget_check_and_return():
+    budget = contract.CallBudget(contract.TIMING_UNIT)
+    code = _profile_fixture_code('/synthetic/batch.py', 'batch')
+    frame = SimpleNamespace(f_code=code)
+    seen = []
+    profile = worker.saved._profile_budget(budget, {code: 'batch'}, {'name': 'EVALUATE'},
+        lambda frame, event, arg: seen.append(event))
+    for _ in range(16):
+        profile(frame, 'call', None)
+        profile(frame, 'return', None)
+    with pytest.raises(RuntimeError, match='CALL_CEILING_batch'):
+        profile(frame, 'call', None)
+    assert budget.calls['batch'] == budget.returns['batch'] == 16
+    assert seen == ['call', 'return'] * 16
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+def test_profile_cache_keeps_distinct_filename_authority(reverse):
+    # Code objects may compare equal despite different filenames. The guard's
+    # original authority is the exact filename/name pair, not code equality.
+    allowed = _profile_fixture_code('/external/synthetic.py', 'fit')
+    forbidden = allowed.replace(co_filename=contract.REPO + '/gx1/synthetic.py')
+    order = [(allowed, False), (forbidden, True)]
+    if reverse:
+        order.reverse()
+    profile = worker.saved._profile_budget(
+        SimpleNamespace(start=lambda key: None, returned=lambda key: None), {}, {'name': 'EVALUATE'})
+    for code, blocked in order * 2:
+        frame = SimpleNamespace(f_code=code)
+        if blocked:
+            with pytest.raises(RuntimeError, match='FORBIDDEN_OPERATION:fit'):
+                profile(frame, 'call', None)
+        else:
+            profile(frame, 'call', None)
