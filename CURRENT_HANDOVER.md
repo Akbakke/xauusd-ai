@@ -21,8 +21,9 @@ til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
 retningslæring. INTEGRATOR_TAKEOVER_20261026_001 binder mandatet. Root eier
 kilde/policy/launch og arbeider alene; tidligere kontroller er bevart.
 Ingen aktiv tung jobb. F002 er kontrollert stoppet/consumed etter vedvarende
-for lav fremdrift til12000sekundersgrensen; alle F-porter er lukket. Neste steg er
-avgrenset ytelsesdiagnose, kun design foreløpig. Se aktuell F-avslutning nederst.
+for lav fremdrift til12000sekundersgrensen. Ny, avgrenset timing256-autoritet er
+admittért: original0U/B16/første256,16forwards/600s/0reverse/0fit/0steg.
+Kanonisk kampanje/fersk fysiskboot gjenstår. FullF er fortsatt stengt.
 D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
 inner/outerexit0 og1277.12s. D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001 binder35egne
 readerEOF/CRC-kvitteringer,878400slots/876959valgte og23felt. GCG6prefix har nå
@@ -298,3 +299,17 @@ testkodeeiere;57bookends og inner/outerexit0 bestod på0.24sekunder. De56tilfell
 ble gjenbrukt uten omkjøring. Begge kjøringer hadde0native/Linear-forward/payload/
 fit/optimizer/CUDA; cgroup er borte og tunglåsen ledig. Begge engangsplaner er
 konsumert. Genuin timingkjøring krever nå fersk cleanHEAD-bundet kampanje.
+
+## Avgrenset faktisk tidsdiagnose admittért
+
+F_FROZEN_EXTRACTION_own0U_prefix_timing256_RUNTIME_ADMISSION_001 binder én
+ny engangsinvokasjon på eksakt første256 av original276prefixrekkefølge, original
+B16/0U og bitlik INITIAL-prediksjon. Intern workergrense600s,16forwards,
+0reverse/fit/optimizersteg. Eksisterende kanonisk rute, alle datavakter og
+maskinvaregrenser beholdes; ingen effekt-/klokke-/numerisk modellendring.
+Kilde6ea97caa,56beståtte tilfeller og separat vellykket kildeavslutning gjenbrukes.
+Ny kampanje skal bindes til ren HEAD og frystpolicy før start; fysisk ferskboot
+og helmaskin-idle må verifiseres gjennom eksisterende eiere. Ingen fullF eller
+readoutfit er åpnet. F001/F002 forblir consumed; ingen relaunch.
+Tidsfaser er inklusive/overlappende med observatøroverhead, ingen CUDA-kerneltid.
+Resultatet kan lokalisere tidsbruk, ikke dokumentere retningsedge.
