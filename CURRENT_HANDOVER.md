@@ -1,106 +1,102 @@
 # CURRENT HANDOVER — XAUUSD, retning først
 
-Autoritet er `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current` på
+Autoritet: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current` på
 `gx1-3090-lan`. Les GX1_RULES helt ved første arbeid. Start overtakelse med
 `bash scripts/gx1_handover.sh --check`; NEXT_RUN_POLICY er eneste arbeidsstatus.
-Root eier integrasjon, policy og launch. Prosess og terminal overstyrer prosa.
-Historikken og originale kvitteringer bevares; ingen gamle planer relanseres.
+Root eier integrasjon, policy og launch. Prosess/terminal overstyrer prosa.
 
 ## Aktuell status
 
-276, 277, 279 og 280 er COMPLETE/consumed: alle fire faste nativeprefixer er
-kjørt med uendret 275-protokoll, egen fersk 0U, én full B16-pass og samme
-første 256 TRAIN før/etter. Rapportert senere kohort er 70,647 foreldre.
-Selve identiske firefold-joinsammenligningen, R1/252/259, rang og 48 blokk-CIs
-står fortsatt igjen. Alle 30 programpunkter er uferdige i ledger004.
-GLOBAL training/native/epoch/launch er false. Ingen aktiv tung jobb.
+A og faktisk B er ferdige innen vedtatt scope: fire faste nativeprefixer og
+identisk sammenligning på70,647senereforeldre. PROGRAM_EXECUTION_LEDGER_005
+binder bevisene. Punktene2/23/24/25/26 er målt med eksplisitte grenser; hele
+30punktsprogrammet er fortsatt uferdig. GLOBAL training/native/epoch/launch
+og VAL er false. Ingen aktiv tung jobb eller genuineC-admisjon.
 
-## Siste faktiske kjøring — 280
+## Faktisk B001 — lagrede prediksjoner, ingen modellkjøring
 
-Fryst d72ef7bb / policy da3bd836 gjennom begge vinduer, inkludert pausen.
-Alle 50 nativekilder er fysisk SHA-kontrollert uendret. Prefix4-normalisering
-267, view268, direction260 og AdamW/fullstate270 er gjenbrukt uten refit.
-Boot540 ga RESUMABLE: 61,472 foreldre / 3,842 oppdateringer. Etter kontrollert
-maskinledighet og fysisk boot541 fortsatte samme pass med 2,440 oppdateringer.
-Terminal er COMPLETE: 100,499 TRAIN / 6,282 oppdateringer / 17,750 OOF.
-7,425 forwardkall/returer, én resume, null tomme batcher eller legacy/forbudte
-åpninger. Siste batch har tre foreldre. Ingen ny epoke eller checkpointvalg.
-Worker-tider 12007.302 / 10518.978 sekunder og receipt-UTC er ulike tidsbaser.
+Én capped CPUaudit exit0,77.75sekunder outer/77.25worker,4GiB/512MiB/64tasks/
+én numerisk tråd. f3c840dc og faktisk workingpolicy61dbd31b/handover7f95fa60
+var fryst til terminal. De eksakte arbeidsmetadata er bevart i FROZEN_POLICY/
+FROZEN_HANDOVER under programroten. Ingen sourcecommit under jobben.
 
-| Horisont | Balansert OOF-treff | Modell minus egen prior, logloss |
+14NPZ/44,086,753bytes/223medlemmer er faktisk lest av kvalifisert36e9bd65worker.
+Foreldre/decision/terminal/sign/mask/prior er sammenholdt bitvis;24opprinnelige
+native- og72referanseskårer gjenskapt. Alle48forhåndsvalgteproper-CI og96faste
+foldkontraster er faktisk beregnet.0fit/forward/reverse/optimizer/checkpoint/
+rawfeatures/TEST. Tre uavhengige JSON/kildepeerreviews og rootreview er bundet.
+Ingen andre numeriske payloadreplay er gjennomført av root/peers.
+
+| Horisont | Native AUC innenfold, punkt | Native minus egenprior, logloss |
 | --- | ---: | ---: |
-| 1 min | 50.0010 % | -0.0000391008 |
-| 5 min | 50.0000 % | +0.0000713974 |
-| 15 min | 50.0000 % | -0.0001404696 |
+| 1min | 0.4995335605 | +0.0000367678 |
+| 5min | 0.5039998166 | +0.0002170454 |
+| 15min | 0.5086968681 | +0.0008413107 |
 
-Lavere logloss er bedre. De små positive proper-punktene på 1/15 min beholdes;
-5 min er svakere. Modellen velger OPP i 17,710/17,720, 17,662/17,662 og
-17,536/17,536 kvalifiserte celler. Dette beviser ingen nyttig tosidig retning.
-På samme TRAIN256 forbedres 5 min fra egen0U og egenprior; 1/15 min forverres
-fra egen0U. Mot egenprior er final5/15 litt bedre, final1 svakere. Alle tre
-finalTRAIN-klasser er OPP. Dette er ikke hel-TRAIN-kapasitet eller glemselbevis.
+Lavere proper-score er bedre. Alle32dag-/ukeintervaller på5/15min viser svakere
+native mot hver av4referansene(prior/R1/ET252/259);16på1min inkluderer0.
+Ingen intervall støtter nativebedring.22/96enkeltfoldpunkter er bedre,74svakere.
+Svake positive råAUC-punkter på5/15min finnes likevel i alle4foldene. Fold4
+velger alltidOPP på5/15min, men AUC er0.505909134/0.517894030 med varierende
+logits. Ensidig klasse er ikke konstant skår eller bevis på nullinformasjon.
+Alle3lærte referanser har høyere5/15innenfoldAUC-punkter; ownprior er0.5.
+IngenAUC-CI er lagt til. Pooled crossfoldAUC er bare en blandingsdiagnose.
 
-Alle ni kontekster / 75 kategorier og masketellere er bevart, også ukjent,
-observert null, begge sider og tomme kategorier. Ikke-null head-/GC-gradienter
-beviser ikke individuell featurelæring eller nyttig samspill. Bare INITIAL
-har faktisk grad/no-grad-paritet; FINAL/OOF true-flagg er standardbokføring.
-Root har verifisert 0U/terminalPT og tre NPZ med opake SHA-er, uten numerisk
-replay. Uavhengig fysisk arrayakse-/scoreparitet hører til neste B-admisjon.
+På sammeTRAIN256 forbedres logloss fra egen0U i9/12fold×horisonter, råAUC i3/12;
+final slår egenprior på logloss i4/12. Dette er forenlig med mye bias-/konfidens-
+justering, men beviser ikke årsaken, kapasitet, konvergens eller glemsel.
+Alle9kontekster/75kategorier er bevart for15paneler;249av1125kategoriceller er
+uteneligible og91harénklasse. Ingen valgt vinnerstratum eller kausalattribusjon.
+Mikroskopiske ikke-nullutfall beholdes: OOF33/14/9på to minste positive float-
+størrelser, mens eksakte ties205/82/47 er separate. Ingen epsilon/relabel valgt.
+Dette er gjenbrukt TRAIN/utvikling, ikke urørt bekreftelse eller økonomisk edge.
 
-Begge guards og observers exit0; peak57C core / 66C minne, 136.94/135.06W,
-2186/2231MiB VRAM. Maskinen er prosjektledig, taskReady/restart0 og GPU160Widle.
-OUTER_TERMINAL, ACTUAL_ROOT_CHECKS, ACTUAL_NATIVE_SOURCE_CHECKS, tre ACTUAL_*
-PEER_REVIEW, ACTUAL_QUALIFICATION_REVIEW og postterminalidle under280 binder
-faktiske resultater og grenser. Ubrukte vinduer3/4 er revokert. Ingen relansering.
+B_SAVED_PREDICTION_OUTER_TERMINAL_001, ACTUAL_ROOT_REVIEW_001 og tre ACTUAL_*
+PEER_001 samt SUMMARY underB_SAVED_PREDICTION_DIAGNOSTIC_20261026_001 binder
+faktiske filer og alle begrensninger. Bplan001 er consumed/lukket; ingen relansering.
 
-## Neste arbeid — faktisk B, deretter C/D og begrunnede kontraster
+## Bevarte nativebaselines
 
-Neste er ny eksakt, capped read-only B-admisjon: alle 70,647 senereforeldre,
-identiske prior/R1/252/259-celler, innenfold råskårrang/ties, bias, alle ni
-kontekster og opprinnelig 48 dag/uke-proper-CIs. Ingen ny fit, terskel eller
-kalibreringsutvelgelse. Rangkontrakt57syntetiskePASS og worker41helpergrupper
-samt påkrevde10+61kontroller er kvalifisert; faktisk arkiv-/rapportparitet og
-hele CI-kallstien gjenstår. Original mislykket plan er consumed/bevart.
+276/277/279/280 er COMPLETE/consumed med275uendret: egenfersk0U, én B16pass,
+samme256TRAINfør/etter.280:100,499TRAIN/6,282oppdateringer/17,750OOF,
+7,425forward,énresume. d72ef7bb/policyda3bd836 var fryst gjennom boot540/541.
+50nativeeiere er SHA-kontrollert. Alle opprinnelige receipts/PT/NPZ bevares.
+Kun INITIAL har faktisk grad/no-grad-paritet; senere true-flagg er bokføring.
+Unused280vinduer3/4 er revokert. Ingen ny epoke eller checkpointutvelgelse.
 
-B må kjøres før C-ruteintegrasjon: den forventer de 50 historiske nativebytes.
-C-komponentene har34unike syntetiskePASS, men genuine C er ikke innrømmet.
-Den konkrete ruteblokkeringen står i C_GUARDED_LAUNCH_ROUTE_GAP_001. Minimal
-integrasjon etter B berører fire eksisterende transporteiere og de to C-filene;
-C må binde eksakte gamle276ref til nye transportref, øvrige46eiere uendret.
-Ingen vaktomgåelse eller endring av modell/trener/Windows-vakter. Deretter egen
-kvalifikasjon og nøyaktig194forward /6reverse /0optimizersteg på fire276states.
+## Neste konkrete arbeid — C, deretter D/E og begrunnet F
 
-D er fortsatt forberedelse: gjenbruk024 M1_GC_INPUTS/kvalitetsmasker/roll og245
-mål. Skill samtidig GC-respons, senere GC og senere XAU; faste1/5/15min og
--1/0/+1min kontroller, der ikke-kausal arm aldri blir kandidat. E/F-kontraster
-krever konkret målt begrunnelse og egen avgrenset admisjon, én mekanisme av gangen.
+Ckomponentene har34unikesyntetiskePASS, men genuineC har ennå ingen kvalifisert
+kjøringsrute. Minimal integrasjon følger C_GUARDED_LAUNCH_ROUTE_GAP_001: fire
+transporteiere og de toC-filene, med fokuserte tester. Historiske276ref må bindes
+eksakt til bare4nye transportref; øvrige46eiere og7gjenbrukskilder uendret.
+KnyttCplanens runtime-policy/sourceHEAD via eksisterende eksterne executionbinding
+slik somprefixruta; unngå sirkulær plan/policy/commitbinding. Ingen modell-/trener-
+eller Windows-/hardwarevaktendring. Deretter egen faktisk kvalifikasjon og freshboot
+før nøyaktig194forward/6reverse/0optimizersteg på fire faste276states og tre
+256TRAINpaneler. Ingen ekstra fit eller checkpointvalg.
 
-## Indikatorbetydning og aktivt utvalg
+Dgjenbruker024M1_GC_INPUTS/kvalitetsmasker/roll og245mål. Skill samtidigGCrespons,
+senereGC ogsenereXAU; faste1/5/15min og-1/0/+1min timingkontroller. Ikke-kausal
+arm blir aldri kandidat. Subminuttquotealder er ikke bevart og forblir grense.
+E/F krever konkrete målte begrunnelser og egenavgrensetadmisjon, én mekanisme avgangen.
 
-ACTIVE_FEATURE_RELATION_SOURCE_REVIEW_001 binder kildefunnet fra brukerens
-spørsmål: pris/EMA-avstander og EMA-helninger i ATR-enheter, stack, kryss og
-alder er allerede kodet og aktive. Modellen mottar tall og lærbare familie-/TF-
-strukturer, ingen språklig indikatorundervisning. Prediktiv betydning må læres.
-Bestemte ikke-GC MTF-candlefelt og XAU-tickvolumrelasjoner er parkert i compact;
-GC-kontraktsvolum/flow og61D1/makrofelt er aktive. Fullt bibliotek er derfor
-ikke identisk med aktivt konsum. Kildemekanisme beviser ikke lært samspill,
-og parkeringen er ingen bevist årsak. Dette skal inngå i begrunnede E/F-vurderinger.
+## Indikatorbetydning og varige grenser
 
-## Varige grenser og gjenbruk
+ACTIVE_FEATURE_RELATION_SOURCE_REVIEW_001: pris/EMA-avstand og EMA-helning i
+ATR-enheter, stack/kryss/alder er kodet og aktive. Modellen mottar tall og lærbare
+familie-/TF-strukturer; ingen språklig indikatorundervisning. Bestemte ikke-GC
+MTF-candlefelt og XAUtickvolumrelasjoner er parkert i compact; GCkontraktsvolum/
+flow og61D1/makrofelt er aktive. Fullt bibliotek er ikke identisk med aktivt
+konsum. Verken kilde eller B beviser nyttig lært samspill eller at parkering er årsaken.
 
-275s177syntetiskePASS, 273sprivateCUDA4U/bitexactresume, 271fullstate og267/268
-fysiske inputs/normalisering/view gjenbrukes. Ingen kvalifiseringsvekter i fit.
-M5 er beslutningsklokken. Åtte familieeiere og D1/makro beholdes; kompakt aktivt
-utvalg er eksplisitt avgrenset. Ingen fast tapsgrense eller maksimal holdetid.
-Horisonter er beregningsmål. Retning først; ingen Exit denne bølgen.
-
-TRAIN mai2024–desember2025. CONTROL januar–mars2026 er lukket; juni2026 er
-gjenbrukt utviklingsVAL. TEST fra juli2026 er forseglet; bare vedtatt månedlig
-forwardjournal uten refit. Ingen live/paper/broker/ordre/spending/promotion.
-Teknikk, TRAIN-fit, senere overføring, generalisering og økonomisk edge er ulike
-bevis. Én capped CURRENT-tungjobb. Kilde/policy fryses gjennom hele kampanjen,
-også RESUMABLE-pauser. Stabil drift kontrolleres15–30min eller sjeldnere etter
-flere stabile kontroller; ingen minuttpolling eller fyllarbeid. DATA/RUNS ryddes
-bare med retentioneier. Push ferdig kode/docs/interne refs/aggregater til
-Akbakke/xauusd-ai work/gx1-current er stående autorisert; aldri rådata/vekter/
-hemmeligheter eller forcepush. Målet er fortsatt aktivt og ikke oppnådd.
+M5beslutningsklokke; åttefamilier ogD1/makro beholdes. Ingen fast tapsgrense eller
+maksimal holdetid. Horisonter er beregningsmål. Retningførst, ingenExit dennebølgen.
+TRAINmai2024–desember2025. CONTROLjanuar–mars2026lukket. Juni2026gjenbruktVAL.
+TESTfrajuli2026forseglet; bare vedtatt månedligforwardjournal utenrefit.
+Ingenlive/paper/broker/ordre/spending/promotion. Teknikk, TRAIN-fit, overføring,
+generalisering og økonomi er ulike bevis. ÉncappedCURRENTtungjobb; kilde/policy
+fryst gjennom nativekampanjer ogRESUMABLEpauser. Stabil drift kontrolleres15–30min
+eller sjeldnere; ingen minuttpolling eller fyllarbeid. DATA/RUNS bare med retentioneier.
+Stående pushautorisasjon:Akbakke/xauusd-ai work/gx1-current; aldri rådata/vekter/
+hemmeligheter ellerforcepush. Målet er fortsatt aktivt og ikke oppnådd.
