@@ -9,9 +9,14 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+Syntetisk offset001 feilet før innsamling: testimportens bytecode-probe traff
+TEST-navnevakten. Alle numeriske tellere var null. Originaler er bevart og001
+konsumert.002 gjenbruker den tidligere fungerende pycache/output-avgrensningen;
+matematikk, datagrenser og 20 testtilfeller er uendret.
+
 DIRECTION_PRIOR_OFFSET_DESIGN_001 binder ett konkret spørsmål: skyldes de svake
 proper scores et feil sannsynlighetsnivå? Kun 20 syntetiske kontroller er nå
-admittert gjennom DIRECTION_PRIOR_OFFSET_SYNTHETIC_PLAN_001; ingen ekte
+admittert gjennom DIRECTION_PRIOR_OFFSET_SYNTHETIC_PLAN_002; ingen ekte
 kalibrering, payloadlesing eller modellforward er åpnet. Den planlagte testen
 bestemmer 12 konstante offsetter fra de originale FINAL_TRAIN256-logits og
 full-prefix-priorene, før de samme senere observasjonene scores. Rangeringen
