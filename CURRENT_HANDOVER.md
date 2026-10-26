@@ -14,13 +14,16 @@ oppdrag derfra forkastes. Denne trådens direkte brukermandat og mål er eneste
 arbeidsautoritet. Allerede mottatte meldinger kan ikke slettes med tilgjengelige verktøy.
 
 A, B og faktisk C003 er fullført innen sine avgrensede måleoppgaver.
-PROGRAM_EXECUTION_LEDGER_017 binder alle30punkter: 2/3/6/7/12/16/23/24/25/26 er målt
+PROGRAM_EXECUTION_LEDGER_018 binder alle30punkter: 2/3/6/7/12/16/23/24/25/26 er målt
 med oppgitte grenser; øvrige trenger videre evidens eller eksplisitt sluttavklaring.
 Hele målet er aktivt og uferdig. Brukeren har26.10 uttrykkelig overført integrasjon
 til tråd01a1777e-c109-7351-b0ba-0d4bf5324429 med mål om dokumentert forbedret
 retningslæring. INTEGRATOR_TAKEOVER_20261026_001 binder mandatet. Root eier
 kilde/policy/launch og arbeider alene; tidligere kontroller er bevart.
-Ingen aktiv tung jobb. D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
+Ingen aktiv tung jobb. F002 er kontrollert stoppet/consumed etter vedvarende
+for lav fremdrift til12000sekundersgrensen; alle F-porter er lukket. Neste steg er
+avgrenset ytelsesdiagnose, kun design foreløpig. Se aktuell F-avslutning nederst.
+D TRAIN M1-reduksjonen er COMPLETE/consumed med35filer,
 inner/outerexit0 og1277.12s. D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001 binder35egne
 readerEOF/CRC-kvitteringer,878400slots/876959valgte og23felt. GCG6prefix har nå
 egen fullført readerkvalifisering. TRAIN_M1 SHA74a0f8b659c6d8f736766cdb0edc3b0baecfd52d2406d8fe2453d60db701ad55.
@@ -242,12 +245,39 @@ og ny engangsplan kreves før et senere forsøk.
 F_FROZEN_EXTRACTION_CAP_ROUTE_SYNTHETIC_ROOT_REVIEW_001 bekrefter17beståtte
 tilfeller, fire eksakte Bash-metadatabarn og0modell/payload/fit/CUDA-kall.
 Inner/outerexit0,57kildebookends og avsluttet cgroup er kontrollert. Caprettelsen
-og syntetisk plan er lukket/consumed. Neste er fersk første-enhet-kampanje med
+og syntetisk plan er lukket/consumed. Dette var grunnlaget for forsøk002 med
 nye kilde-/policybindinger og fysiskboot; gammel001 bevares og relanseres aldri.
 
-F_FROZEN_EXTRACTION_own0U_prefix_RUNTIME_ADMISSION_002 binder et nytt engangsforsøk
-for første faste enhet etter den kvalifiserte caprettelsen: samme2760U,
-47602prefixforeldre og2976forwards,0reverse/optimizer/fit. Nytt output/runtime;
-001 forblir konsumert. CleanHEAD-bundet kampanje, maskinledigkontroll og fysisk
-Windowsboot kreves før start. Bare denne enheten er åpen; øvrige tre og readoutfit
-er fortsatt lukket. Ingen dokumentert forbedret retningskvalitet foreligger.
+F-forsøk 002 er CONTROLLED_STOP/claimed/consumed. Det startet på clean80ea5cf9
+etter fysisk Windowsboot546. To etterfølgende intervaller med166forwards tok
+924.69 og924.44sekunder: cirka5.57sekunder perB16. Ved497/2976 gjenstod anslagsvis
+13805sekunder arbeid mot9069sekunder av den uendrede12000sekundersgrensen.
+Root signaliserte bare eksakt vaktPID456; original vaktlogg viser
+event=stop reason=signal pid=511 kl.16:45:40Z. Ingen tids- eller effektgrense ble hevet.
+
+F_FROZEN_EXTRACTION_ATTEMPT002_CONTROLLED_STOP_ROOT_REVIEW_001 binder original
+vaktlogg, periodisk fremdrift,57uendrede kildeeiere og bevart fryst policy/handover.
+Cap423/vakt456/worker511 er borte, CURRENT-tunglåsen er ledig og ingen run-scope
+er aktiv. Windowsoppgaven er Disabled/LastResult1/Restart0. LastResult1 er
+Windowsobservasjonen; vaktens exit130 er kildeforventning, ikke gjenfunnet
+exitkvittering. Kanonisk worker-/kampanjeterminal mangler. Siste originale
+PROGRESS er fortsatt RUNNING; minst497forwards er dokumentert, eksakt sluttall
+er ukjent. Ingen fullført hiddenmatrise eller F-readoutfit. Midlertidige filer,
+CLAIM og ACTIVE_INVOCATION beholdes;001/002 relanseres aldri. Alle F-kjøreporter
+er lukket. Manglende terminalvitne skjules ikke som teknisk PASS.
+
+F_FROZEN_EXTRACTION_ATTEMPT002_GPU_THROUGHPUT_REVIEW_001 binder den korte
+GPU-/CPU-observasjonen: cirka119W av160W, lav GPU-aktivitet og omtrent én full
+CPU-kjerne. Komponenten som bruker CPU-tiden er ennå ikke målt. Gjentatt
+Python-profilkontroll og inputvalidering er kandidater; eksisterende MTF-cache
+har allerede memoiserte helmatrisekontroller. Ingen påvist GPU-effektgevinst.
+
+F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001 er neste minste forslag:
+mål forberedelse, input/kontroller, overføring og forward/capture på originalt
+fast256TRAIN-panel/B16/0U. Maks32foreslåtte forwards dekker baseline og én
+begrunnet kandidat,0reverse/optimizer/fit; dette er ikke en kjøreautorisasjon.
+Eksakt parent/logit/hidden-paritet, tilstandsbevaring og uendrede vakter kreves.
+Én faktors endring velges først etter faseattribusjon. Ny kildeadmisjon,
+fokusert kvalifisering og fersk engangsadmisjon kreves før genuin måling.
+Ingen ny modellvariant, hardwareendring eller full F-kjøring er åpnet.
+Ingen dokumentert forbedret retningskvalitet foreligger.
