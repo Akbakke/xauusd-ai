@@ -533,21 +533,22 @@ trengs for denne sammenligningen. Ingen nye forwards, refits eller Exit-arbeid.
 
 ## Retningsinformasjon i inputs og modellens lærte prognoser
 
-Operatørpresisering 27.10: Opp/ned må vurderes mot det ønskede prisforløpet,
-inkludert en tidlig gunstig bevegelse som senere reverseres. Følgende 24.–26.10-
-avgrensning beskriver den eksisterende endepunktsdiagnosen, men er ikke lenger
-en tilstrekkelig definisjon av hovedmålet. Kildegjennomgangen i
-`docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json` viser at dagens BCE utelater
-nullutfall, ignorerer bevegelsesstørrelse/path og ikke trener FLAT. Eksisterende
-MFE/pre-MFE-MAE brukes ikke i dette tapet. Pre-MFE-MAE gjelder dessuten første
-forekomst av maksimumet i vinduet, ikke første gunstige terskelpassering.
+Operatørpresisering 27.10: Endepunktsretning ved flere tidspunkter er fortsatt
+et gyldig delmål: tidligere punkter kan fange en oppgang selv når sluttprisen
+senere er tilbake ved entry. Opp/ned-prognosene beholdes som baseline.
+Kildegjennomgangen i `docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json` viser
+at dagens BCE utelater nullutfall og bevegelsesstørrelse, og ikke trener FLAT
+eller prisbanekvalitet. Dette er en begrensning mot hele strategimålet,
+ikke en påvist årsak til svak endepunktsrangering.
 
-Avklar minste presise path-target/loss og kjente syntetiske prisbaner før ny
-modellkjøring. En senere motsatt bevegelse krever en ny kausal beslutning;
-MFE er ikke realisert gevinst. Behold 1/5/15/30/60-endepunkter som diagnostikk.
-Mer enn én epoke kan avklare undertrening på et fast mål, men 30 epoker er ikke
-målt og reparerer ikke målbetydningen. Ingen automatisk fler-epoketrening,
-ny payloadlesing, Exit eller handel er åpnet av denne kildeanalysen.
+Undersøk treningsdybde på uendret mål separat fra et eventuelt tillegg for
+størrelse/usikkerhet/prisbanekvalitet. En ny målmodell er ingen forutsetning
+for en avgrenset 1-mot-3-epokers sammenligning. 10/30 epoker er ikke målt og
+skal ikke åpnes automatisk. For et måltillegg skal treningsmengden holdes
+fast mot baseline; ikke bland mål-, horisont-, input- og optimizerendringer.
+Eksisterende pre-MFE-MAE betyr første maksimum i vinduet. En senere motsatt
+handel krever egen kausal beslutning; MFE er ikke realisert gevinst. Ingen
+ny payloadlesing, modellkjøring, fit, Exit eller handel åpnes av denne analysen.
 
 Ren prisretning prioriteres etter operatørpresisering24.10; trades, MFE/MAE og
 Exit er utsatt. En separat forskningskomponent kan bruke uendret native

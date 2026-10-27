@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T05:33:33.720257+00:00",
-  "status": "DIRECTION_TARGET_PATH_ALIGNMENT_REVIEW_COMPLETE_NO_FIT_ADMITTED",
+  "observed_utc": "2026-10-27T05:45:29.349784+00:00",
+  "status": "DIRECTION_ENDPOINT_BASELINE_RETAINED_DEPTH_COMPARISON_DESIGN_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -239,8 +239,8 @@
     }
   },
   "current_work": {
-    "operator_request": "27.10: Dobbeltsjekk opp/ned-målet mot +50bps og tilbake til start, senere motsatt bevegelse, og om30epoker kan hjelpe. Avklar mål før videre modellarbeid.",
-    "current_activity": "Target/loss source review complete: endpoint-sign BCE does not fully encode requested early favorable price path. Third frozen extraction authority consumed and closed; no next unit or fit admitted.",
+    "operator_request": "27.10 presisering: pris ved1og5minutter relativt til entry er relevant. Behold opp/ned-målet og definer nødvendige tillegg presist; ikke anta at målet er hovedårsaken.",
+    "current_activity": "Endpoint target retained as valid baseline. Source/algebra confirms it captures sampled upswing but discards magnitude. Corrected mandatory target-redesign-before-depth-test ordering; no numerical work started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Primary path target/loss/evaluation needs exact qualification. Endpoint weakness, path-signal scarcity and undertraining remain distinct unresolved questions.",
+    "current_blocker": "Undertraining versus weak signal remains unmeasured on unchanged target; no fresh bounded multi-epoch comparison admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Specify the smallest ordered-path target/loss acceptance cases using existing quote-side outcome owner. Keep endpoint diagnostics. Do not resume F partitions or launch extra epochs as a substitute for target alignment.",
+    "next_action": "Prepare the smallest matched1versus3epoch comparison on unchanged endpoint BCE, preserving original observations, initialization, B16order, optimizer and guards. Keep magnitude/path complement as a separate hypothesis; no broad target redesign or thirty-epoch launch.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Source and metadata review only. No native training, new numerical experiment, further F extraction, TEST, CONTROL or Exit is admitted.",
+    "current_training_scope": "Source/design only. Training and all new numerical execution remain closed pending exact bounded admission.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17501,19 +17501,19 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "direction_only_goal": {
-      "status": "RETAINED_ENDPOINT_DIAGNOSTIC_SUPERSEDED_AS_PRIMARY_STRATEGY_TARGET",
+      "status": "RETAINED_VALID_ENDPOINT_BASELINE_IN_BROADER_ENTRY_OBJECTIVE",
       "operator_request": "Et mål: retningen. Så tar vi selve trades i2.omgang.",
       "observed_utc": "2026-10-24T06:04:44.651388+00:00",
       "objective": "Forutsi senere prisretning LONG/SHORT med kalibrert sannsynlighet på M5-beslutninger, med samme genuine kausale features/TF. Dokumenter gevinst mot enkle retningsreferanser og prefix-only fit i kronologisk evaluering. Trades/risiko/Exit/MFE/MAE er utsatt.",
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Use as unchanged endpoint diagnostic only; follow current_direction_objective for primary target qualification.",
+      "next_step": "Keep unchanged endpoint baseline and isolate training depth; magnitude/path quality are separate extension hypotheses.",
       "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed.",
       "superseded_by_user_clarification_utc": "2026-10-27T05:33:33.720257+00:00",
       "superseding_review": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
-        "sha256": "58ecbccae34b104de69a4775aca502402e6ce433724540a5633fa87040a1aeef"
+        "sha256": "2a6a67cd3628253ed2a3e0b1dcd956cfc1d175f453a02ee247a8b57d13338c26"
       }
     },
     "latest_direction_terminal": {
@@ -17613,7 +17613,7 @@
     },
     "direction_cause_objective": {
       "authority": "Direct user clarification 2026-10-27: price-path opportunity and causal later reversal, not only terminal sign; reassess training depth.",
-      "objective": "Finn hvorfor GX1 ikke lærer nyttig kausal retning for XAUUSD: gunstig prisbevegelse tidlig, liten ugunstig bevegelse før denne, begge retninger og mulighet til å avstå. Prisforløp innen 1–60 minutter må ikke reduseres til fortegnet ved ett sluttpunkt. Behold endepunktsretning som diagnostikk, og skill målavvik, svakt fremoversignal og utilstrekkelig læring. Ingen Exit eller handel åpnes.",
+      "objective": "Finn hvorfor GX1 ikke lærer nyttig retningsinformasjon for XAUUSD ved faste1/5/15/30/60minutter. Endepunktsretning er et gyldig delmål og beholdes som baseline. Skill utilstrekkelig trening, svakt fremoversignal og manglende størrelse/prisbanekvalitet. Det langsiktige M5 Entry-målet omfatter gunstig bevegelse tidlig, liten forutgående motgang, begge retninger og FLAT; ingen Exit eller handel åpnes.",
       "fixed_horizons_minutes": [
         1,
         5,
@@ -17622,7 +17622,7 @@
         60
       ],
       "scope": "M5 decisions; causal closed M15/H1/H4/D1; preserve eight families plus D1/macro; TRAIN and fixed chronological development folds only.",
-      "first_contrast": "Current source-only endpoint/path semantic audit is complete. Next qualify the smallest path-target contract before any training-depth comparison.",
+      "first_contrast": "Unchanged endpoint BCE exposure depth: qualify a bounded1versus3epoch comparison before considering target/horizon changes.",
       "comparison_requirements": [
         "Report each horizon on its own eligible observations and a predeclared matched-parent intersection; do not choose a winning horizon after seeing outcomes.",
         "Include fixed-prefix prior, class shares, coverage, within-fold AUC, proper scores and paired uncertainty accounting for overlapping targets.",
@@ -17637,17 +17637,18 @@
       "deferred": [
         "Further F extraction and readout fitting pending priority reassessment",
         "Throughput work",
-        "Extra epochs before target qualification",
+        "Simultaneous target/horizon/epoch changes",
+        "Unbounded thirty-epoch training",
         "Exit training, execution and trading"
       ],
       "goal_tracker_update": "create_goal rejected because existing goal is unfinished; existing goal not falsely marked complete; this user-directed project objective governs work.",
       "genuine_execution_authorized": false,
       "test_data_used": false,
       "endpoint_reference_definition": "sign(XAUUSD_M1_open_mid_at_D_plus_h - XAUUSD_M1_open_mid_at_D), with own observed/mature masks and exact wall-clock joins",
-      "strategy_direction_definition": "Early favorable move with preceding adverse excursion and time, evaluated separately for each side from each current causal M5 decision. Exact mathematical target/loss remains to be qualified.",
+      "strategy_direction_definition": "Retain fixed endpoint forecasts relative to current entry; complement their sign with size, uncertainty and separately evaluated path quality only in a matched target-change comparison.",
       "source_review": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
-        "sha256": "58ecbccae34b104de69a4775aca502402e6ce433724540a5633fa87040a1aeef"
+        "sha256": "2a6a67cd3628253ed2a3e0b1dcd956cfc1d175f453a02ee247a8b57d13338c26"
       }
     },
     "latest_direction_cause_evidence": {
@@ -17679,7 +17680,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
       "sha256": "cb8aefe756ebaabf9661410626bec88746fe5fe63e9f33cad4226fdaea3ac5c1"
     },
-    "current_direction_objective": "Finn hvorfor GX1 ikke lærer nyttig kausal retning for XAUUSD: gunstig prisbevegelse tidlig, liten ugunstig bevegelse før denne, begge retninger og mulighet til å avstå. Prisforløp innen 1–60 minutter må ikke reduseres til fortegnet ved ett sluttpunkt. Behold endepunktsretning som diagnostikk, og skill målavvik, svakt fremoversignal og utilstrekkelig læring. Ingen Exit eller handel åpnes.",
+    "current_direction_objective": "Finn hvorfor GX1 ikke lærer nyttig retningsinformasjon for XAUUSD ved faste1/5/15/30/60minutter. Endepunktsretning er et gyldig delmål og beholdes som baseline. Skill utilstrekkelig trening, svakt fremoversignal og manglende størrelse/prisbanekvalitet. Det langsiktige M5 Entry-målet omfatter gunstig bevegelse tidlig, liten forutgående motgang, begge retninger og FLAT; ingen Exit eller handel åpnes.",
     "current_direction_cause_synthesis": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_008.json",
       "sha256": "ed4da77dcf102b3bd1de461ad44bd3ba9a07ddea345c4d21585c486fe14fd62d"
@@ -17760,7 +17761,7 @@
     "frozen_partition_required_count": 8,
     "latest_target_path_source_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
-      "sha256": "58ecbccae34b104de69a4775aca502402e6ce433724540a5633fa87040a1aeef"
+      "sha256": "2a6a67cd3628253ed2a3e0b1dcd956cfc1d175f453a02ee247a8b57d13338c26"
     }
   },
   "gc_order_flow_research_20261006": {

@@ -9,21 +9,31 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-Brukeren presiserte 27.10 at opp/ned gjelder nyttige prisforløp: eksempelvis
-+50 bps før retur til start og en senere mulighet motsatt vei. Kildekontrollen
-bekrefter et målavvik: dagens 1/5/15-BCE bruker bare ikke-null fortegn på
-midpoint-endepunkter. Nullutfall utelates, og MFE/pre-MFE-MAE er ikke supervisert
-i forskningshodet. En forlengelse til 60 min eller 30 epoker retter ikke dette
-semantiske gapet. Det beviser ikke årsaken til svak endepunkts-AUC eller edge.
+Brukeren presiserte 27.10 at endepunktsretning ved flere tidspunkter fortsatt
+er riktig og nyttig: +10/+50/0 bps etter 1/5/15 minutter fanger en oppgang før
+retur til start. Dagens tap bruker UP/UP/utelatt nullutfall. +0,1/+0,2/0 gir
+samme labels og samme tap ved like logits; bevegelsesstørrelsen går derfor
+tapt i supervisjonen. Dette er kilde/algebra, ingen ny datamåling.
 
-Eksakt analyse: docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json.
-Fortegn, klokke, masker, faktisk loss-konsum, eksisterende path-eier og
-treningsløkken er kildekontrollert. Ingen payload, nye forwards, fit eller
-numeriske forsøk ble åpnet. Én fast shufflet gjennomgang innen hvert
-kronologisk TRAIN-prefiks er bekreftet; konvergens og 30 epoker er ikke målt.
-Neste steg er minste presise path-target/loss-kontrakt med kjente prisbaner,
-inkludert ukjent rekkefølge innen M1. Epochdybde må senere isoleres fra
-målendringen. Ingen ny trenings- eller Exit-autoritet følger av denne analysen.
+Endepunktsmålet beholdes som gyldig baseline. Det er ufullstendig for hele
+Entry-strategien, men er ikke påvist feildefinert eller årsak til svak AUC.
+En ny prisbanemodell er heller ikke en forutsetning for å undersøke
+undertrening. Forrige anbefaling om obligatorisk målendring før epoch-test
+er korrigert i docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json.
+
+Neste steg er å forberede en avgrenset sammenligning av 1 mot 3 epoker på
+uendret BCE, samme observasjoner, initialtilstand, B16-rekkefølge, optimizer
+og læringsrate. Ingen slik kjøring er admittért eller startet. 10/30 epoker
+krever egen begrunnelse og kapasitet. Størrelse, usikkerhet og prisbanekvalitet
+vurderes som separate tillegg med fast treningsmengde; ingen samtidig endring
+av mål, horisonter og epoch-antall. Den eksisterende labelberegningen lager
+mid_return_bps, mens treningsadapteren velger bare fortegn/masker/klokker.
+Det er kildekontrollert uten åpning av targetarkivet.
+
+MFE/pre-MFE-MAE er fortsatt ikke supervisert i retningshodet. Eksisterende
+pre-MFE-MAE gjelder første maksimum i vinduet; behold denne betydningen
+presis. FLAT er et senere avståelsesvalg, ikke automatisk null sluttavkastning.
+Ingen ny modellkode, numerisk måling, trening, Exit eller handel er åpnet.
 
 Tre av åtte faste F-uttrekksenheter er COMPLETE/consumed:
 - terminal_later_full001: 17 288 rader, 1 081 B16-forwards, alle originale senere
