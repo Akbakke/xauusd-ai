@@ -1,0 +1,28 @@
+{
+  "schema_version": "gx1_direction_exposure_metric_review_v1",
+  "status": "COMPLETE_SOURCE_AND_EXISTING_AGGREGATES_ONLY",
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_EXPOSURE_METRIC_INTERPRETATION_REVIEW_20261027_001.json",
+    "sha256": "1d87b132545c47f7149bb1089ea605059ffbcf2e778b3f0a5dd0b04242cbd38c"
+  },
+  "finding": "The proposed joint gate requires AUC, logloss and Brier intervals to favor the candidate under both day and week blocks. Passing supports the joint claim; failing any component does not establish that AUC did not improve. Conversely, better proper scores alone do not establish improved ranking.",
+  "existing_fixed_example": {
+    "horizon_minutes": 5,
+    "native_auc": 0.5037353141585355,
+    "adjusted_auc": 0.5037353141585355,
+    "native_logloss": 0.6931122007125737,
+    "adjusted_logloss": 0.6928874988293939,
+    "interpretation": "A frozen, strictly increasing per-fold logit offset can change logloss while preserving within-fold ranks and AUC; these are reused-development point estimates."
+  },
+  "classification": "Evaluation interpretation limitation, not a proven implementation bug or evidence that extra passes improve outcomes.",
+  "recommended_preregistered_reporting": [
+    "Preserve the existing strict joint gate as a separate comprehensive outcome.",
+    "Report the fixed five-minute paired AUC difference and its predeclared day/week intervals separately; report logloss, Brier and TRAIN-prior comparison separately.",
+    "If ranking improves but proper scores worsen, report the distinction and consider a separately specified TRAIN-only calibration; do not use later labels to fit or select it.",
+    "If only proper scores improve, call it calibration or probability improvement, not directional ranking improvement.",
+    "Report 1/15 minutes as fixed secondary outcomes and preserve the same observations, chronology, seed, model state, costs and stops.",
+    "Three passes are an intermediate exposure test, not evidence about 30 epochs; neither result proves FLAT, path or net trading edge."
+  ],
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}

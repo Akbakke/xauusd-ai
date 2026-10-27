@@ -238,6 +238,12 @@ ikke i seg selv svar på retningsedge. Mer støttekode utsettes til en konkret
 1-mot-3-pass-sammenligning er aktuell. Eksisterende énpassfunksjon og alle
 treningsporter beholdes; eksponeringssammenligningen er ikke utført.
 
+Den planlagte fellesgaten for 1 mot 3 pass krever både AUC, logloss og Brier
+på dag- og ukeblokker. Feil i én komponent betyr ikke at retningsrangeringen
+ikke forbedret seg. Behold fellesgaten, men forhåndsbind og rapporter 5min AUC
+og sannsynlighetsskårer separat; senere data må ikke brukes til kalibreringsfit.
+Se docs/DIRECTION_EXPOSURE_METRIC_REVIEW_20261027.json.
+
 ## Bps-hodets separate retningsrangering
 
 Begge tidligere lagrede bps-sammenligninger beregnet retnings-AUC fra

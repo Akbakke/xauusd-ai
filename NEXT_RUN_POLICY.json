@@ -38421,5 +38421,21 @@
     "model_forwards_authorized": false,
     "training_authorized": false,
     "test_control_authorized": false
+  },
+  "direction_exposure_metric_review": {
+    "status": "COMPLETE_SOURCE_AND_EXISTING_AGGREGATES_ONLY",
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_EXPOSURE_METRIC_INTERPRETATION_REVIEW_20261027_001.json",
+      "sha256": "1d87b132545c47f7149bb1089ea605059ffbcf2e778b3f0a5dd0b04242cbd38c"
+    },
+    "document": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_EXPOSURE_METRIC_REVIEW_20261027.json",
+      "sha256": "82bd7c91f449ec841835f1812de89d3e3d2aa321d78344c250ee6bf3874e6542"
+    },
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "training_authorized": false,
+    "test_control_authorized": false
   }
 }
