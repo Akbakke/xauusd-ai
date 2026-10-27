@@ -9,34 +9,33 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-Terminal-prefix part1 forsøk002 er COMPLETE/claimed/consumed: 15 872 rader,
+Terminal-prefix part2 forsøk001 er COMPLETE/claimed/consumed: 15 872 rader,
 992 originale B16-forwards og 0 reverse/optimizer/fit. Worker brukte
-2449,9818 sekunder. Original kampanjekvittering viser guard/observerexit0.
-Alle 57 kildeeiere og fryst policy var uendret. Tilstands-/inputbokender,
-original presentasjonsrekkefølge og samme terminalmodell som senere-kohorten
-er kontrollert. Ingen historisk per-rad prediksjonsfil dekker denne prefiksdelen;
-numerisk originalprediksjonsparitet er derfor ikke målt.
+2466,0925 sekunder. Original kampanjekvittering viser guard/observerexit0.
+Alle 57 kildeeiere og fryst policy var uendret. Original rekkefølge og
+tilstands-/inputbokender er kontrollert. Modell og buffers samsvarer med
+terminal-prefixpart1 og terminal_later_full. Historisk per-rad prediksjonsfil
+mangler for denne prefiksdelen; numerisk originalprediksjonsparitet er ikke målt.
 
 Prosesser/cgroup er borte, originallåsen ledig og eksakt Windowsoppgave er
 Disabled/LastResult0/Restart0. Oppfølgingen er PAUSED. Engangsautoriteten er
-lukket, alle artefakter beholdes, og forsøk001/002 relanseres aldri.
-Forsøk001s opprinnelige oppsettfeil og kvitteringer er bevart separat.
-
+lukket. Alle artefakter beholdes; ingen claimet eller konsumert plan relanseres.
 Siste ACTUAL_ROOT_REVIEW og VERIFIED_TERMINAL ligger i
-F_FROZEN_EXTRACTION_terminal_prefix_part1_CAMPAIGN_20261027_002.
-Terminal_prefix_part2 er nå ferskt admittért for originalt intervall
-[15872,31744): 15 872 rader, 992 B16-forwards, 0 reverse/optimizer/fit.
-Kampanjen er ikke startet. Ren HEAD, eksakt fysisk EXECUTION_BINDING, ledig
-maskin og fersk fysisk boot må bekreftes før én start gjennom eksisterende
-capped-rute. Grensene 12000s/13800s og alle maskinvare-/datavakter beholdes.
-Del3, readout-fit og modell-/målendringer er ikke åpnet.
+F_FROZEN_EXTRACTION_terminal_prefix_part2_CAMPAIGN_20261027_001.
 
-F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001 binder separat terminal-only-spørsmål:
+Siste terminal-prefixdel3 er nå ferskt admittért:
+[31744,47602), 15 858 rader, 992 B16-forwards med original siste batch på 2 rader.
+Kampanjen er ikke startet. Ren HEAD, eksakt fysisk EXECUTION_BINDING, ledig
+maskin og fersk fysisk boot må bekreftes før én start gjennom eksisterende rute.
+Grensene 12000s/13800s og alle maskinvare-/datavakter beholdes.
+Readout-fit, native trening og mål-/modellendringer er ikke åpnet.
+
+F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001 binder terminal-only-spørsmålet:
 kan et fast lineært hode hente bedre senere AUC5 fra samme frosne slutt-hidden?
-To av fire nødvendige uttrekksenheter er klare: terminal_later_full og
-terminal_prefix_part1. Del2 og del3 av prefikset mangler. Hele prefikset
-må foreligge før separat admisjon av tre faste CPU-fits. Original åtte-enhets-
-studie forblir uferdig og uendret. Ingen bedre retningsbeslutning er målt her.
+Tre av fire nødvendige uttrekksenheter er klare: terminal_later_full og
+terminal_prefix_part1/part2. Del3 og eksakt full sammenstilling mangler.
+Tre faste CPU-fits krever separat admisjon. Original åtte-enhetsstudie
+forblir uferdig og uendret. Ingen bedre retningsbeslutning er målt her.
 
 Brukerens siste presisering 27.10 er innarbeidet: 10 minutter er med i
 faste sammenligningspunkter 1/5/10/15/30/60. En kurve for hvert minutt 1–60
@@ -75,9 +74,10 @@ beholdes; M5/M15/H1/H4/D1 finnes allerede i faktisk Entry-rute.
 Bare den eksakte uttrekkstillatelsen øverst åpner payload/model-forward.
 Fit, reverse, optimizersteg og trening forblir lukket.
 
-Fire av åtte opprinnelige F-uttrekksenheter er COMPLETE/consumed:
+Fem av åtte opprinnelige F-uttrekksenheter er COMPLETE/consumed:
 terminal_later_full001, own0U_prefix_part1_001, own0U_prefix_part2_001 og
-terminal_prefix_part1_002. De to own0U-delene er bevart, men er ikke nødvendige
+terminal_prefix_part1_002 og terminal_prefix_part2_001. De to own0U-delene
+er bevart, men er ikke nødvendige
 for den separate terminal-only-sammenligningen. 86 beståtte syntetiske
 partisjonskontroller og tidligere paritet gjenbrukes; ingen modellkode er endret.
 
