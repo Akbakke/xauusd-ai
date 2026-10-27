@@ -445,6 +445,12 @@ ikke relanseres. En ny eksakt 1-mot-3-pass-kampanje og alle vakter kreves før
 trening; TEST og CONTROL er stengt. Se dynamic_m5_direction_continuation_zero_update
 og direction_matched_exposure_continuation_source_20261027 i NEXT_RUN_POLICY.json.
 
+En ny 1-mot-3-oppskrift er forberedt som metadata, med originalt mål og
+samme 47 602 foreldre per pass: 5 952 ekstra optimizersteg, totalt 8 928.
+Den er ennå ikke fysisk forhåndskontrollert eller admittért for trening.
+Recipe SHA-256 61f0911ae432813af809a03134f1e7c7ee9b0ff1f7a05c972b256ac1a034dd45.
+Ingen checkpoint eller markedsdata ble åpnet ved denne forberedelsen.
+
 Den planlagte fellesgaten for 1 mot 3 pass krever både AUC, logloss og Brier
 på dag- og ukeblokker. Feil i én komponent betyr ikke at retningsrangeringen
 ikke forbedret seg. Behold fellesgaten, men forhåndsbind og rapporter 5min AUC

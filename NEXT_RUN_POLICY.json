@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Prepare a fresh exact 1-versus-3-pass campaign using the verified continuation proof and unchanged baseline; keep training disabled until every campaign and hardware gate is satisfied.",
+    "next_action": "Physically preflight the prepared exact 1-versus-3-pass recipe in a separately admitted capped worker, then bind a fresh campaign; training remains closed.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -38876,7 +38876,7 @@
     }
   },
   "direction_matched_exposure_continuation_source_20261027": {
-    "status": "SOURCE_INTEGRATED_SYNTHETIC_ONLY_NATIVE_ZERO_UPDATE_PENDING",
+    "status": "SOURCE_QUALIFIED_ORIGINAL_NATIVE_ZERO_UPDATE_COMPLETE",
     "purpose": "Integrate exact opt-in continuation from baseline276 into the existing native prefix owner; compare fixed one and three passes without changing the original sign target.",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
@@ -38928,7 +38928,12 @@
     "zero_update_proof": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TERMINAL_CONTINUATION_ZERO_UPDATE_PROOF_20261027_001.json",
       "sha256": "743de80de51229ffb8ace855d288e8a66ea115364b9e9070e00b4e9676242cd7"
-    }
+    },
+    "candidate_recipe": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_RECIPE_20261027_001.json",
+      "sha256": "61f0911ae432813af809a03134f1e7c7ee9b0ff1f7a05c972b256ac1a034dd45"
+    },
+    "candidate_recipe_status": "METADATA_PREPARED_NOT_ADMITTED_OR_PHYSICALLY_PREFLIGHTED"
   },
   "independent_direction_last_m1_ofi_sign_refinement_20261027": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
