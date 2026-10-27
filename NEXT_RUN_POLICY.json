@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-26T19:49:32.072865+00:00",
-  "status": "DIRECTION_1_60_WEAK15M_RANKING_PROBABILITY_DEFICIT_ESTABLISHED",
+  "observed_utc": "2026-10-27T00:24:35.719037+00:00",
+  "status": "DIRECTION_1_60_CONDITIONAL_NATIVE5M_RANKING_DEFICIT_MECHANISM_UNRESOLVED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Eksakt inputverdi-/mask-/clock-paritet mot252 på eksisterende TRAIN-only ferdige kilder. Felt-/indekskartet er nå kontrollert; kvalifiser artefakteierne først og åpne ingen mixed2026råkilde. Denne deterministiske testen skal skille faktisk inputavvik fra native behandling/læring før mertrening.",
+  "next_action": "Kontroller faktiske inputverdier, gyldighetsmasker og tilgjengelighetstidspunkt mot referanse 252 på identiske foreldre i eksisterende TRAIN-only artefakter. Kvalifiser først de eksakte artefakteierne og radkontraktene fra kilde og metadata. Ingen åpning av blandede 2026-råkilder og ingen ny numerisk kjøring er admittért.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Design one intercept-only native probability control using original full-prefix class priors and the predeclared saved256 final-TRAIN logits only; evaluate unchanged later parents. No later calibration fit, native forward, architecture change or numerical execution admitted.",
+    "next_action": "Kontroller faktiske inputverdier, gyldighetsmasker og tilgjengelighetstidspunkt mot referanse 252 på identiske foreldre i eksisterende TRAIN-only artefakter. Kvalifiser først de eksakte artefakteierne og radkontraktene fra kilde og metadata. Ingen åpning av blandede 2026-råkilder og ingen ny numerisk kjøring er admittért.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16211,7 +16211,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Five saved prediction archives,48exactblockrank summaries/paired4000week-day resamples,13.81s; zero fits/models/optimizer.",
+    "latest_terminal_evidence_scope": "Six saved prediction archives; 96 block-rank and 96 weighted-rank calls; paired 4000 UTC week/day resamples; 25.481176689 seconds; zero fits, native forwards or optimizer updates. Only native-minus-ET252 at 5 minutes excludes zero under both family-of-six corrected intervals.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "No execution admitted; all current numerical units consumed. Next is a predeclared prefix-only probability-offset control design.",
+    "current_training_scope": "Closed. Prior-offset and matched-reference rank units are complete and consumed. Current work is source/metadata qualification of actual input parity; no new numerical execution admitted.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17668,10 +17668,10 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
       "sha256": "cb8aefe756ebaabf9661410626bec88746fe5fe63e9f33cad4226fdaea3ac5c1"
     },
-    "current_direction_objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved1,5,15,30og60minutter; skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings-/evalueringsmål. Bevar åtte familier,D1/makro,kausal M5/MTF ogforsegling. Handel er utsatt.",
+    "current_direction_objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved 1, 5, 15, 30 og 60 minutter. Skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings- eller evalueringsmål. Bevar åtte familier, D1/makro, kausal M5/MTF og forsegling. Handel er utsatt.",
     "current_direction_cause_synthesis": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_004.json",
-      "sha256": "55be907e20b16f655ac4463b0c2ffa7274255047e8e201bd01961bfc36f3c649"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_005.json",
+      "sha256": "d8d5ab40f725664c8c7c5c975d9a9f9819008952f033b93abe4fb3b4f7daa230"
     },
     "native_reference_rank_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_003.json",
@@ -20244,7 +20244,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-27T00:18:08.608705+00:00",
+  "updated_utc": "2026-10-27T00:24:35.719037+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35647,7 +35647,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Closed. The12 TRAIN-only scalar offsets are consumed; probability improvement at5m does not improve ranking. No further fit/forward admitted.",
+  "training_enabled_scope": "Closed. Prior-offset and matched-reference rank units are complete and consumed. Current work is source/metadata qualification of actual input parity; no new numerical execution admitted.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {

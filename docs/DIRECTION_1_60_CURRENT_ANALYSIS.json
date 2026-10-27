@@ -11,13 +11,9 @@
     "Manglende feltdeklarasjoner eller feil deklarerte ikke-konstante indekser som generell forklaring på252fordelen: alle3316direkteskalarer ogsessionfeltet finnes ialle4nativekontrakter. Dette er ikke faktiskverdiparitet."
   ],
   "changes_from_previous_synthesis": [
-    "Six predeclared paired AUC contrasts completed on same67112parents. Only native-vsET252 at5m excludes0 under both week/day after family6correction.",
-    "Native5mAUC.5037353142 versus full3345snapshot ET252.5130918603; difference-.0093565462.",
-    "Native underuse/input-path explanation upgraded; probability offset alone cannot explain this rank deficit.",
-    "Fourfold source/metadata map finds3316nonconstant scalar name/index matches, one session category and one declared D1constant; no declared field missing.",
-    "Actual all-field raw values, availability clocks and normalization consumption remain unmeasured. No native-code change, extra training, feature discard or economic-edge claim."
+    "Metadata correction only: remove a stale pending-reference-comparison sentence after completed rank003; align the current policy status, next action and terminal scope. No new measurement or result."
   ],
-  "created_utc": "2026-10-27T00:18:08.594449+00:00",
+  "created_utc": "2026-10-27T00:24:35.719037+00:00",
   "declared_input_mapping": {
     "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_ET_NATIVE_DECLARED_INPUT_MAP_001.json",
     "sha256": "ad1039a6856a51e57a5935f3b534aae219b36f4b8c20155573dc6a9bb44cccc4"
@@ -65,7 +61,7 @@
       "sha256": "3d96a127b7084894c3155f014143f4cfdc8a0574316c30c313b2ffa8f9d008c0"
     }
   ],
-  "highest_information_next": "Eksakt inputverdi-/mask-/clock-paritet mot252 på eksisterende TRAIN-only ferdige kilder. Felt-/indekskartet er nå kontrollert; kvalifiser artefakteierne først og åpne ingen mixed2026råkilde. Denne deterministiske testen skal skille faktisk inputavvik fra native behandling/læring før mertrening.",
+  "highest_information_next": "Kontroller faktiske inputverdier, gyldighetsmasker og tilgjengelighetstidspunkt mot referanse 252 på identiske foreldre i eksisterende TRAIN-only artefakter. Kvalifiser først de eksakte artefakteierne og radkontraktene fra kilde og metadata. Ingen åpning av blandede 2026-råkilder og ingen ny numerisk kjøring er admittért.",
   "hypotheses": [
     {
       "classification": "Målt senere rangeringsmangel mot252ved5m under den faste utviklingskontrakten. Input-/representasjons-/læringsmekanisme er fortsatt plausibel og uisolert; ingen påvist implementasjonsfeil.",
@@ -319,7 +315,7 @@
     },
     {
       "classification": "Plausibel begrensning på signalstyrke/stabilitet; en ren forklaring om fravær av utnyttbart fremoversignal passer ikke den målte252fordelen ved5m.",
-      "counterevidence": "Ret1 ognative har svakt15msignal. En lineærreferanse og toflowskårer representerer ikke alle genuinefamilier eller nonlinearitet. Native30/60 er ikke undersøkt av de eksisterende trelogit-modellene. Offsetrettelsen endrer ikkeAUC, ogbekrefter derfor heller ikke en årsak til svakrangering. En kontrollert sammenligning med allerede lagrede ikke-lineære og laggede referanser gjenstår.252 medgenuine3345snapshotfelt rangerer5m bedreennnative under begge korrigerteintervaller. Feltmangel kan derfor ikke antas som eneste årsak; først må data-/modellstien skilles.",
+      "counterevidence": "Ret1 ognative har svakt15msignal. En lineærreferanse og toflowskårer representerer ikke alle genuinefamilier eller nonlinearitet. Native30/60 er ikke undersøkt av de eksisterende trelogit-modellene. Offsetrettelsen endrer ikkeAUC, ogbekrefter derfor heller ikke en årsak til svakrangering. Den kontrollerte sammenligningen med lagrede ikke-lineære og laggede referanser er fullført i DIRECTION_NATIVE_REFERENCE_RANK_003.252 medgenuine3345snapshotfelt rangerer5m bedreennnative under begge korrigerteintervaller. Feltmangel kan derfor ikke antas som eneste årsak; først må data-/modellstien skilles.",
       "expected_if_true": "Sterk samtidighet, gjennomgående svakekausale fremtidskontraster og stor regimesensitivitet også etter sannsynlighetsrettelse.",
       "measured_support": {
         "existing_D": "D_FLOW_SCORE_ACTUAL_ROOT_REVIEW_001.json: samtidigGC OFI-AUC.901483; framtidigXAU1/5/15 .502490/.496552/.490430.",
@@ -430,7 +426,11 @@
     "raw_or_mixed_2026_source_access": false,
     "source_metadata_only_now": true
   },
-  "objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved1,5,15,30og60minutter; skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings-/evalueringsmål. Bevar åtte familier,D1/makro,kausal M5/MTF ogforsegling. Handel er utsatt.",
+  "objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved 1, 5, 15, 30 og 60 minutter. Skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings- eller evalueringsmål. Bevar åtte familier, D1/makro, kausal M5/MTF og forsegling. Handel er utsatt.",
+  "previous_synthesis": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_004.json",
+    "sha256": "55be907e20b16f655ac4463b0c2ffa7274255047e8e201bd01961bfc36f3c649"
+  },
   "saved_probability_diagnostic_improvement_measured": {
     "h15_point_improvement_only_not_full_primary99": true,
     "h1_improved": false,

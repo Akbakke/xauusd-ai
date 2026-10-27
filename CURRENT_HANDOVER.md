@@ -44,8 +44,9 @@ Gjeldende årsaksanalyse er tilgjengelig i docs/DIRECTION_1_60_CURRENT_ANALYSIS.
 Arbeidsmålet er retning ved 1, 5, 15, 30 og 60 minutter; ingen robust fremtidig
 eller økonomisk edge er dokumentert. Root arbeider alene.
 
-DIRECTION_1_60_CAUSE_SYNTHESIS_004 avløser003 og er kopiert til
-docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Native-underutnyttelse ved5m er
+DIRECTION_1_60_CAUSE_SYNTHESIS_005 avløser004 og er kopiert til
+docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. 005 retter bare en foreldet
+statussetning og samordner aktuell policy; ingen ny måling. Native-underutnyttelse ved5m er
 nå første hypotese; mekanismen er ikke identifisert. Ingen modell er forbedret.
 
 DIRECTION_ET_NATIVE_DECLARED_INPUT_MAP_001 kontrollerer allefirefold:
