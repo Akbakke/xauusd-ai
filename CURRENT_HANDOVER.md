@@ -90,8 +90,8 @@ informasjonstap og årsak er ubevist; konteksten mates også direkte i joint-kil
 Treningsprefikset var tidsavgrenset, men presentasjonsrekkefølgen var en fast
 MT19937-permutasjon, ikke kronologisk. Se docs/DIRECTION_REPRESENTATION_GEOMETRY_REVIEW_20261027.json.
 En målrettet offline-kontroll av lav-GELU-bidrag fra de allerede lagrede
-representasjonene er implementert; syntetisk kvalifisering er admittért, og
-faktisk måling gjenstår.
+representasjonene er syntetisk kvalifisert; en avgrenset engangsanalyse av
+fire lagrede representasjons-/prediksjonsfiler er admittért uten modellkjøring.
 
 M5 Entry: prisforløp minutter–timer, litenMAE før førsteMFE, begge retninger/FLAT.
 Åtte spesialistfamilier og D1/makro, kausale avsluttede M5/M15/H1/H4/D1 beholdes.
