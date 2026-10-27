@@ -365,6 +365,13 @@ avklarer kontakt i disse batchene, ikke om treningsmengden var tilstrekkelig
 eller om signalene gir retning. Original kvittering: window-0001/RESULT.json
 SHA-256 889103d6a81cf725e7ee4e676c0ecf294774dd6eacd7af44b77f9ab871441912.
 
+En separat engangskontroll av eksisterende M1-bok-OFI er admittért. Den
+bruker en tidligere train-only 2024–2025-reduksjon, krever fem kvalifiserte
+minutter i samme kontrakt og eksakt M1-sum/M5-paritet før retning scores.
+Fast fortegn-forfining sammenlignes på samme gjenbrukte 2025-Q1-fold; ingen
+modellkall, trening, nye indikatorer, CONTROL, TEST, Exit eller broker.
+Status: `independent_direction_last_m1_ofi_sign_refinement_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
