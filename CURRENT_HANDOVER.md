@@ -110,70 +110,40 @@ Juni2026gjenbrukt utviklings-VAL; TESTfrajuli2026forseglet for tilpasning/utvalg
 Ingen Exit,broker,live/paper,ordre,spending ellerpromotion.
 Målet er aktivt og uferdig. Teknisk PASS er ikke dokumentert retningsforbedring.
 
-## Selvstendig retningsmål — candle-fasit og ferskere GC-input
+## Selvstendig retningsmål — kompakt input og manglende edge
 
-Eget mål 01a17d63-d1bd-7772-bf86-654e3a6db841 følger den godkjente planen i
-/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json.
-Arbeidsstatus eies av NEXT_RUN_POLICY.independent_direction_edge_20261027.
-Ingen kontakt eller oppdrag til/fra andre chatter inngår i dette målet.
+Egen undersøkelse uten kontakt med den andre chatten. Autoritet/status ligger i
+`independent_direction_edge_20261027` i NEXT_RUN_POLICY.json. Brukeren har
+bekreftet kompaktprofilen som første scope; ingen fullprofil eller nye felt nå.
+Egen bevisrot: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63`.
 
-To rene kontrollfunksjoner og en avgrenset audit-rute er implementert.
-Native open sammenlignes med rekonstruert bid/ask-mid først etter bitidentisk
-reproduksjon av gammel fasit. Siste-M1-OFI velges på eksakt lukket minutt,
-med egne masker og kontraktkontroll; ingen eldre gyldig rad fyller et hull.
-Eksisterende mål, modell, trening og feature-registry er ikke endret.
-Kilde-/peerreview, AST og diffkontroll er utført. Syntetisk forsøk 001 feilet
-før testkjøring; originalkvitteringene er bevart. 002 ble erstattet før kjøring.
-003 besto alle128 tester (55prisfasit,27snapshot,46auditgrenser), uten
-markedsdata, native-kall eller fit. Kilde-/inputidentitet besto sluttkontroll.
-Genuin måling er fullført på118249TRAIN-foreldre fra2024/2025, med bitidentisk
-replay av gammel fasit og uendrede kilder/inputs. Native-mid gir56/40/18færre
-ikke-nullfortegn ved1/5/15min; ingen LONG/SHORT-fortegn snur. Maksimalt avvik
-i5min-avkastning er0.002966bps. Et lite fasitkonsistensavvik er målt;
-hovedårsaken til svak retning er ikke dermed påvist. Eksisterende245fasit
-beholdes fast i neste A/B-test. En endret fasit krever egen nybaseline.
-Brukeren har bekreftet kompaktprofilen som bevisst første scope. Parkerte
-fullprofilindikatorer er derfor ikke en feil eller en grunn til utvidelse nå.
-Den selvstendige lagrede bps-sammenligningen prioriteres med uendret input.
-Alle40 nye syntetiske cases besto. Den genuine sammenligningen er fullført:
-initiale retningslogits er bitidentiske på samme256TRAIN-rader; senere17288
-foreldre er eksakt joinet til245fasiten. Ingen fit, native-kall eller vekter.
-AUC5 går0.503021→0.496823; begge korrigerte dag-/ukeintervaller inkluderer0.
-Bps-MSE slår ikke egetTRAIN-gjennomsnitt. Kombinert forhåndsregel erFALSE.
-Forsøket er ikke kvalifisert for retningsforbedring eller automatisk utvidelse.
-Litt bedre logloss er beskrivende, og er ikke en rang-/edgekvalifisering.
-Før native uttrekksutvidelse må det separate returhodets rangering dekkes.
-DårligMSE utelukker ikke god rangering. Et eget eksplorativt9-cellers kart
-forberedes med samme kompaktinput/foreldre/masker, alle tre hoder og1/5/15min.
-Den opprinnelige testen og densFALSE-vedtak bevares bitidentisk; ingen beste-
-hodevalg eller promotion følger. Fullprefix0U-arbeid er foreløpig kun metadata.
-Ingen ekstra pass, ny genuin enhet eller nye indikatorfelt er admittért nå.
-Last-M1-OFI-proposalfiler er kun forberedelse; dagens native profil er uendret.
-En kildebevist rekkefølgefeil i proposalens inputhashing er rettet før bruk.
-Forberedelsestest001 ga32PASS/5feil: tidligere sealed-path-avvisning og
-Numba-cacheforsøk utenfor output. Begge er rettet uten svakere vakter.
-Originalkvitteringer er bevart. Nytt forsøk002 besto37/37; samlet205
-fokuserte cases er bestått på sine uendrede komponenter. Dette er teknisk
-kvalifisering av forberedelsen, med0 genuine OFI-fits og uendret native input.
-Neste kilde-design skal avgrense fersk egen0U256-paritet før kun manglende
-prefikstredjedel; ingen av disse native enhetene er åpnet ennå.
-Ingen CONTROL/TEST, Exit, broker, ordre, spending eller promotion er åpnet.
-Målet er fortsatt aktivt; fullprefix-konvergens og treningsutvidelse er uavklart.
-Eget9-cellers uttrekk er kildeimplementert og separat kildevurdert. Bare ny
-66-case syntetikk er åpnet; lagrede genuine outputs krever ny egen admisjon.
-Intervallene gjelder relative AUC-forskjeller, ikke absolutt AUC-over0.5.
-Den nye66-case syntetikken besto alle faser med0native/fit/Torch-kall.
-Én egen600sek/4G lagret-outputenhet er nå åpnet; alt originalt C-resultat
-må gjenskapes eksakt før det nye utforskende resultatområdet publiseres.
-Eget9-cellers uttrekk er fullført på17288senere utviklingsforeldre. Alle
-gamle C-felter gjenskapt eksakt; original combinedFALSE er bevart. Returhodets
-AUC1/5/15 er0.496283/0.496262/0.496172. Alle12korrigerte relative intervaller
-inkluderer0, ingen udefinerte resampler. Ved nullterskel er5alltidUP og15
-alltidDOWN; dette er retningsandel, ikke dokumentert skilleevne. Ingen ny fit
-eller native-kall.231fokuserte cases er nå bestått på sine komponenter.
-ALL_HEADS_ROOT_REVIEW_001 og QUALIFICATION_STATE_002 binder bevisene.
-Neste avgrensning er fersk egen0U256-paritet og kun manglende prefikstredjedel.
-Kompaktinput holdes fast; ingen slik nativeenhet eller ekstra epoch er åpnet.
+Gjort: candle-fasit118249TRAINforeldre kontrollert mot original245. Nativeopen
+versus legacyquote-midpoint ga små null/ikke-null-avvik, ingen fortegnssnuing;
+ingen hovedårsak til svak retning dokumentert. Gamle targets beholdes i parene.
+Egen lagret bps-sammenligning har256initialbitparitet og17288eksaktesenere
+foreldre. AUC5fortegn går0.503021→0.496823; forhåndsregelFALSE. Retur-MSE
+slår ikke egetTRAIN-gjennomsnitt. ORIGINALRESULT/kvitteringer er bevart.
+Separat utforskende9-cellers head/horizon-kart gjenskaper hele gamle RESULT
+kanonisk eksakt. Returhodets AUC1/5/15=.496283/.496262/.496172. Alle12
+korrigerte relative intervaller inkluderer0;0udefinerte resampler. Ved
+nullterskel er retur5alltidUP og15alltidDOWN; treffrate alene er retningsandel.
+0nye model/fit/Torch-kall. ALL_HEADS_ROOT_REVIEW_001 og QUALIFICATION_STATE_002
+binder resultatene;231fokuserte cases bestått på respektive komponenter.
+
+Ikke gjort: genuine last-M1-OFI-fits, inpututvidelse, ekstra nativepass eller
+fullprefix0U-sammenligning. OFI-proposalen er kun37-case testet forberedelse.
+Dagens nativeinput er uendret. Nåværende TRAINprobe256 er ikke hel-TRAIN-
+konvergensbevis. Ingen skjult retningsforbedring eller økonomisk edge er påvist.
+
+Neste minste steg: NATIVE_0U_COMPATIBILITY_DESIGN_001 er kun kildeadoptert.
+Rett bare konkret gammel metadata-/kildebinding i eksisterendeF-rute, med
+strengt opt-in og bevarte legacyregler. Bare fersk egen0U256-paritet og så
+manglende presentasjonsdel[31744,47602) kan senere kvalifiseres/admitteres.
+Gjenbruk ferdige deler; ikke relanser gamle enheter. Tre metadata-kodefiler og
+to eksisterende testfiler er avgrenset. Ingen slik numerisk enhet er åpnet.
+Kompaktinput, original276state,267prefixstats, GC, mål og permutasjon beholdes.
+TEST/CONTROL, Exit, broker, ordre, spending og promotion er fortsatt stengt.
+Målet er aktivt; mer trening og konvergens er uavklart.
 
 ## Bps-hodets separate retningsrangering
 

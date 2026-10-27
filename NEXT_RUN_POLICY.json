@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_ALL_HEAD_COVERAGE_COMPLETE_NO_DIRECTION_IMPROVEMENT",
+    "status": "COMPACT_NATIVE_0U_METADATA_COMPATIBILITY_SOURCE_ONLY",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37185,14 +37185,14 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Resolve missing whole-prefix native0U fit measurement with fresh source-only compatibility design and new exact qualification before only missing prefixpart3. Keep compact inputs fixed; no extra-pass or new-feature launch admitted.",
+    "next_action": "Implement only adopted strict metadata opt-in in existing F route and two existing testfiles; qualify fresh source under new synthetic admission. No native/data/fit execution authority yet. Compact inputs fixed.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_002.json",
       "sha256": "17f6c2b68e6c5a2dbbb8183b912b9f93f52c774bd885356f498ee96898f785d5"
     },
     "current_design": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/EXPLORATORY_HEAD_RANK_PROTOCOL_001.json",
-      "sha256": "ca4dfbbd0fac33a47fb8b65657ef7ebaaf08126b424e77da5402d91daf1d2b7c"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_COMPATIBILITY_DESIGN_001.json",
+      "sha256": "3c1b5694ecd97c7c6ac8d4b1315f86d9b24c45d7b3d61c3a9e0533564047b5ed"
     },
     "prepared_all_heads_actual_plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_RANK_PLAN_001.json",
@@ -37800,5 +37800,25 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_ROOT_REVIEW_001.json",
       "sha256": "bd9cea17e198b385d8ef394dcc3e8daa37508a1eea19849f168d8bda7228e4dd"
     }
+  },
+  "independent_direction_0u_source_20261027": {
+    "status": "SOURCE_DESIGN_ADOPTED_EXECUTION_CLOSED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_COMPATIBILITY_DESIGN_001.json",
+      "sha256": "3c1b5694ecd97c7c6ac8d4b1315f86d9b24c45d7b3d61c3a9e0533564047b5ed"
+    },
+    "allowed_repo_files": [
+      "gx1/contracts/entry_native_direction_frozen_extraction_v1.py",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "gx1/scripts/extract_entry_native_direction_frozen_readout_v1.py",
+      "tests/test_entry_native_direction_frozen_extraction_v1.py",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py"
+    ],
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "fits_authorized": false,
+    "test_data_used": false,
+    "observed_blocker": "Existing F metadata/source pins predate exact current source. New own scope requires explicit qualified transition before original276 own0U timing256 and missingpart3; no numerical or input change."
   }
 }
