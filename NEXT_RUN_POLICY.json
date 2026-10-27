@@ -37626,5 +37626,24 @@
     },
     "bps_head_rank_improvement_supported": false,
     "economic_edge_qualified": false
+  },
+  "direction_gelu_contribution_diagnostic_20261027": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GELU_CONTRIBUTION_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "507ab0f8839156c9a8a6129d8cfe39e79e4c0dabb6b1b3ba76f0f0ab7bbb6267"
+    },
+    "mode": "synthetic",
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "native_forwards_authorized": false,
+    "fit_authorized": false
   }
 }
