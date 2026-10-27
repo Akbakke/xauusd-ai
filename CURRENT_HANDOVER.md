@@ -262,6 +262,13 @@ cf6de22b1fe5c4ecaa2864463f90c22d75e690d896fda08b560076652ff62c71;
 `COMPACT_INPUT_PROFILE_INVENTORY_001.json` SHA-256
 82ae3e43660d0754d85240f9e391653bf4b68202a6856f396c6f2500b16c6c3b.
 
+Én lesekjøring er admittért for å sammenligne lagret 5min-retning med det
+allerede definerte 95min MFE/før-MFE-MAE Entry-målet på fold1 2025-Q1.
+Kun radgrupper med ferdig modnet mål før periodens slutt leses. FLAT=0 og
+nytteberegningen er eksisterende målkontrakt; dette er ikke Exit, handler,
+holdingregel eller økonomi. Ingen indikator, modell, trening, CONTROL eller
+TEST. Hashbundet engangsscope i `independent_direction_path_alignment_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
