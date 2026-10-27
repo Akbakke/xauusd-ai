@@ -118,6 +118,14 @@
     "last_m1_trade_count_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_ROOT_REVIEW_002.json",
       "sha256": "09cd9311bbd834bbc78aa7900ce87de1afc457bf0ca751907fc686560555765a"
+    },
+    "last_m1_trade_count_independent_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VERIFY_RESULT_001.json",
+      "sha256": "fac78552283ce0e707c7f442a6119caca759876e9fddcc67940dd5b2c1073e92"
+    },
+    "last_m1_trade_count_verified_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VERIFIED_ROOT_REVIEW_001.json",
+      "sha256": "55b14e74936b740988ba6047647bf9d10a69a0ce796e178980d1273ca3cde405"
     }
   },
   "execution_authorized_by_report": false,
@@ -289,10 +297,12 @@
       "type": "MEASURED_LAST_M1_TRADE_RECORD_RANK_REFINEMENT",
       "evidence": [
         "last_m1_trade_count_result",
-        "last_m1_trade_count_review"
+        "last_m1_trade_count_review",
+        "last_m1_trade_count_independent_result",
+        "last_m1_trade_count_verified_review"
       ],
       "finding": "On 2530 strictly qualified later-development rows, a fixed last-closed-M1 known-side trade-record sign refinement changed AUC from 0.517398 for the same M5 count sign to 0.514226, a difference of -0.003172. Corrected paired day/week intervals both include zero. The strict five-M1 counts match the existing M5 inputs exactly on 2562 strict rows.",
-      "implication": "No added ranking value is documented for this one predefined trade-record-count refinement. The eligible sample covers only 2530 of 17197 original eligible rows; no inference applies to excluded/unknown observations, other fresh GC signals, M1 OFI, signed volume or the trained network. The same reused fold is not generalization or economic edge."
+      "implication": "No added ranking value is documented for this one predefined trade-record-count refinement. The eligible sample covers only 2530 of 17197 original eligible rows; no inference applies to excluded/unknown observations, other fresh GC signals, M1 OFI, signed volume or the trained network. The same reused fold is not generalization or economic edge. Independent joins, point values and every one of the 4096 physically duplicated day/week block resamples matched on the same data; this is not an independent future period."
     }
   ],
   "main_cause_established": false,
@@ -323,7 +333,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:16:59.328000+00:00",
+  "updated_utc": "2026-10-27T21:19:03.228090+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

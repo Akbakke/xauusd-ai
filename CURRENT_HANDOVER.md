@@ -329,15 +329,14 @@ ukeintervaller inkluderer null. Ingen tilført verdi er dokumentert for denne
 ene testen. 2530/17197 opprinnelige rader er bare om lag 15%; ingen general
 dom over ukjente/utelatte, M1-OFI, volum eller modellen. Ingen nye
 modellindikatorer, fit, CONTROL, TEST, Exit eller broker. 001 er fortsatt
-FEILET/KONSUMERT, og 002 er FULLFØRT/KONSUMERT. Aritmetikk-/kildekontroll
-uten uavhengig rådatareplay: `LAST_M1_TRADE_COUNT_ROOT_REVIEW_002.json`
-SHA-256 09cd9311bbd834bbc78aa7900ce87de1afc457bf0ca751907fc686560555765a.
+FEILET/KONSUMERT, og 002 er FULLFØRT/KONSUMERT. Uavhengig rådatajoin,
+punkttall og alle 4096 fysiske dag-/ukeblokkresamples samsvarer. Dette er
+samme fold, ikke en ny framtidsperiode. `LAST_M1_TRADE_COUNT_VERIFIED_ROOT_REVIEW_001.json`
+SHA-256 55b14e74936b740988ba6047647bf9d10a69a0ce796e178980d1273ca3cde405.
 
-En uavhengig, separat engangskontroll er admittért for M1-/M5-tellingene:
-annen tidsjoin, kontroll av alle fem minutters paritet og fysisk duplisering
-av samtlige 2048 dag- og 2048 ukeblokkresamples. Samme strenge utvalg, uten
-fit, modell, nye indikatorer, CONTROL, TEST, Exit eller broker. Status:
-`independent_direction_last_m1_trade_count_verify_20261027`.
+Den uavhengige M1-/M5-kontrollen er fullført og konsumert uten modell,
+fit, nye indikatorer, CONTROL, TEST, Exit eller broker. Ingen bedre
+rangering er dokumentert for denne strenge delpopulasjonen.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
