@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T08:44:11.689058+00:00",
-  "status": "DIRECTION_TERMINAL_PREFIX_PART3_EXTRACTION_ADMITTED_PENDING_BOOT",
+  "observed_utc": "2026-10-27T09:37:47.709069+00:00",
+  "status": "DIRECTION_TERMINAL_READOUT_SYNTHETIC_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Bind fresh terminal_prefix_part3 canonical campaign to clean HEAD and exact physical EXECUTION_BINDING; verify idle/fresh physical boot and launch once. Original15858rows,992B16forwards,lastbatch2;0reverse/optimizer/fit, unchanged guards. Fullassembly and readout fit need separate admission.",
+  "next_action": "Run one capped CPU synthetic qualification of exact terminal readout assembly/scoring/observer; genuine payload reads and fits remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "27.10 presisering: pris ved1og5minutter relativt til entry er relevant. Behold opp/ned-målet og definer nødvendige tillegg presist; ikke anta at målet er hovedårsaken.",
-    "current_activity": "Terminal-prefixpart2 verified complete and consumed; final fixed terminal-prefix partition freshly admitted, campaign not yet materialized or started.",
+    "current_activity": "Final terminal-prefixpart3 verified COMPLETE/consumed:15858rows,992originalB16forwards,0reverse/optimizer/fit. All57sourceowners and original receipts verified; same model/buffers as part1/part2/later. All4terminal-only extraction units available; exact payload assembly and fits unperformed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,11 +269,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PATH_TARGET_ALIGNMENT_AND_DIRECTION_CAUSE_UNRESOLVED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Fifth preserved F partition, second trained-terminal prefix partition; no historical per-row prefix output-parity target.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part2_20261027_001_RUNTIME",
+    "latest_terminal_role": "Sixth preserved F partition, final trained-terminal prefix partition. No historical per-row prefix output-parity target.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_20261027_001_RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part2_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
-      "sha256": "c11b05130d365bb80fb7e39e6baf13de3d3870cd5c5e93dbeb7f789e4f143f7a"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
+      "sha256": "b2169f91c855126c05708c216e6e7daa6b4c6e8eb8fc4bbfedc1ad1f3c2f9e6b"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Full terminal prefix incomplete: final partition and exact assembly required before separately admitted decoder fit.",
+    "current_blocker": "Minimal qualified CPU assembly/fit/scoring execution binding and fresh admission still required.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Bind fresh terminal_prefix_part3 canonical campaign to clean HEAD and exact physical EXECUTION_BINDING; verify idle/fresh physical boot and launch once. Original15858rows,992B16forwards,lastbatch2;0reverse/optimizer/fit, unchanged guards. Fullassembly and readout fit need separate admission.",
+    "next_action": "Qualify minimal existing-owner CPU assembly/readout/scoring route under the predeclared terminal-only protocol. All4required extraction units now complete. No payload reopening, genuine fit or scoring before fresh bounded admission; no native model/target change.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8893,9 +8893,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Final terminal-prefixpart3 and exact fullassembly remain required before separate fixed CPUfit admission.",
-      "Original eight-piece study remains incomplete.",
-      "Original numeric per-row output parity unavailable for this prefix partition.",
+      "All required extraction units complete, but exact fullpayload assembly and three separately admitted fixedCPUfits remain unperformed.",
+      "Original eight-piece study remains incomplete; own0U prefixpart3/later are deferred for separate terminal-only question.",
+      "No historical numeric per-row original output parity for fullprefix partitions.",
       "Native10/30/60anddense1..60unimplemented and unmeasured.",
       "No robust direction improvement or economic edge established."
     ],
@@ -16211,7 +16211,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Original guard/observerexit0;992forwardcalls/returns;15872rows;0reverse/optimizer/fit;57unchangedsourceowners;originalorder and terminalstate/inputbookends; same terminalmodel/buffers as later and part1.",
+    "latest_terminal_evidence_scope": "Original guard/observerexit0;992forwardcalls/returns;15858rows;0reverse/optimizer/fit;57unchangedsourceowners;originalorder and terminalstate/inputbookends; same terminalmodel/buffers across4requiredunits.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Only one fresh frozen extraction for terminal_prefix_part3:15858original TRAIN rows,992B16forwards,original finalbatch2,0reverse/optimizer/fit;12000sworker/13800souter and unchanged hardware/data guards.",
+    "current_training_scope": "No active numerical authorization. Native training and readout fitting closed.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17587,8 +17587,8 @@
     "canonical_guard_child_exit_code": 0,
     "windows_task_last_result": 0,
     "canonical_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part2_20261027_001_RUNTIME/receipts/invocation-0001.json",
-      "sha256": "c715cd8506526cfc8803b37c7a1c0f037d83e04a4bbdeb65abb00f91f897dad3"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_20261027_001_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "b85fffb36ed5ad0ed844a97d2d516a9406a33f5510874a283ff0a40e8fdca118"
     },
     "terminal_exit_code_origin": "Original canonical receipt and signed guard exit0",
     "latest_throughput_measurement_design": {
@@ -17752,8 +17752,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part2_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
-      "sha256": "e2bee8b4221db992aba8583cd7f95f3f2f88d11ad49745f4097b0c7435d51908"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "3ff71fefe7a046f8314fa3a7e7121e487a00a6ba102edeba72c81fba7247aaad"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -17775,9 +17775,13 @@
       "terminal_prefix_part2": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part2_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
         "sha256": "e2bee8b4221db992aba8583cd7f95f3f2f88d11ad49745f4097b0c7435d51908"
+      },
+      "terminal_prefix_part3": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
+        "sha256": "3ff71fefe7a046f8314fa3a7e7121e487a00a6ba102edeba72c81fba7247aaad"
       }
     },
-    "frozen_partition_completed_count": 5,
+    "frozen_partition_completed_count": 6,
     "frozen_partition_required_count": 8,
     "latest_target_path_source_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
@@ -17795,7 +17799,9 @@
     "terminal_only_readout_protocol": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001.json",
       "sha256": "d765f66512cbb7b6e6b62bcbef806246d9270ef7c3698db4e68a400cc8e1d268"
-    }
+    },
+    "terminal_only_required_extractions_complete": true,
+    "terminal_only_exact_payload_assembly_complete": false
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -20359,7 +20365,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-27T08:44:11.689058+00:00",
+  "updated_utc": "2026-10-27T09:37:47.709069+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35374,12 +35380,12 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forwards_authorized": true,
-    "status": "TERMINAL_PREFIX_PART3_001_ADMITTED_PENDING_CANONICAL_CAMPAIGN",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forwards_authorized": false,
+    "status": "TERMINAL_PREFIX_PART3_001_COMPLETE_CONSUMED",
     "unit": "terminal_prefix_part3",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_RECIPE_001.json",
@@ -35396,8 +35402,8 @@
     "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_20261027_001",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_20261027_001_RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "consumed_previous_attempts": [
       {
@@ -35553,6 +35559,14 @@
     "scientific_subquestion": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001.json",
       "sha256": "d765f66512cbb7b6e6b62bcbef806246d9270ef7c3698db4e68a400cc8e1d268"
+    },
+    "terminal_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "3ff71fefe7a046f8314fa3a7e7121e487a00a6ba102edeba72c81fba7247aaad"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
+      "sha256": "b2169f91c855126c05708c216e6e7daa6b4c6e8eb8fc4bbfedc1ad1f3c2f9e6b"
     }
   },
   "direction_diagnostic_F_cap_route_repair_20261026": {
@@ -36569,5 +36583,36 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_READOUT_PARTITION_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     }
+  },
+  "direction_terminal_readout_source": {
+    "status": "SOURCE_ONLY_ADMITTED",
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_WORKER_SOURCE_ADMISSION_001.json",
+      "sha256": "50a9e89ae8122f33cdb66c9e00a660db1e9171362eedea190cd3fb6d8e96cee9"
+    },
+    "source_changes_authorized": true,
+    "execution_authorized": false,
+    "genuine_fits_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false
+  },
+  "direction_terminal_readout": {
+    "status": "ADMITTED",
+    "mode": "synthetic",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_SYNTHETIC_PLAN_001.json",
+      "sha256": "71452c006e15cde9025c4cbe0736fd63e51914dde871433e95f29972d59373fc"
+    },
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "genuine_readout_fits_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "native_forwards_authorized": false,
+    "test_data_used": false
   }
 }

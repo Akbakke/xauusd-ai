@@ -9,33 +9,38 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-Terminal-prefix part2 forsøk001 er COMPLETE/claimed/consumed: 15 872 rader,
+Minste nye kilde er gx1/scripts/fit_entry_native_direction_frozen_readout_v1.py.
+Den gjenbruker kvalifisert fitmatematikk, score-/rang-/IO-eiere og eksisterende
+CPU-vakter. F_TERMINAL_READOUT_SYNTHETIC_PLAN_001 er engangsadmittért for
+kunstige sammenstillings-/klokke-/head-/join-/usikkerhets-/fitvaktkontroller.
+Ingen genuine payloadlesinger, readout-fit eller native modellkall er åpnet.
+
+Siste terminal-prefixpart3 er COMPLETE/claimed/consumed: 15 858 rader,
 992 originale B16-forwards og 0 reverse/optimizer/fit. Worker brukte
-2466,0925 sekunder. Original kampanjekvittering viser guard/observerexit0.
-Alle 57 kildeeiere og fryst policy var uendret. Original rekkefølge og
-tilstands-/inputbokender er kontrollert. Modell og buffers samsvarer med
-terminal-prefixpart1 og terminal_later_full. Historisk per-rad prediksjonsfil
-mangler for denne prefiksdelen; numerisk originalprediksjonsparitet er ikke målt.
+2472,4795 sekunder. Original kampanjekvittering viser guard/observerexit0.
+Alle 57 kildeeiere og fryst policy var uendret. Modell og buffers samsvarer
+med del1, del2 og terminal_later_full. Originale intervaller og fullrekkefølge
+er bundet. Ingen historisk per-rad prediksjonsfil dekker hele prefikset;
+numerisk originalprediksjonsparitet er derfor ikke målt for disse delene.
 
 Prosesser/cgroup er borte, originallåsen ledig og eksakt Windowsoppgave er
 Disabled/LastResult0/Restart0. Oppfølgingen er PAUSED. Engangsautoriteten er
 lukket. Alle artefakter beholdes; ingen claimet eller konsumert plan relanseres.
 Siste ACTUAL_ROOT_REVIEW og VERIFIED_TERMINAL ligger i
-F_FROZEN_EXTRACTION_terminal_prefix_part2_CAMPAIGN_20261027_001.
+F_FROZEN_EXTRACTION_terminal_prefix_part3_CAMPAIGN_20261027_001.
 
-Siste terminal-prefixdel3 er nå ferskt admittért:
-[31744,47602), 15 858 rader, 992 B16-forwards med original siste batch på 2 rader.
-Kampanjen er ikke startet. Ren HEAD, eksakt fysisk EXECUTION_BINDING, ledig
-maskin og fersk fysisk boot må bekreftes før én start gjennom eksisterende rute.
-Grensene 12000s/13800s og alle maskinvare-/datavakter beholdes.
-Readout-fit, native trening og mål-/modellendringer er ikke åpnet.
+Alle fire uttrekksenheter som F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001
+krever, er nå ferdige: tre terminal-prefixdeler på 15 872/15 872/15 858 rader
+og terminal_later_full på 17 288 rader. Eksakt sammenstilling av de 47 602
+prefiksradene og tre faste CPU-fits er ennå ikke utført. Neste minste steg
+er kvalifisert sammenstilling/fit/scoring gjennom eksisterende matematikk-
+og usikkerhetseiere, med fersk avgrenset admisjon før genuine payloads åpnes.
 
-F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001 binder terminal-only-spørsmålet:
-kan et fast lineært hode hente bedre senere AUC5 fra samme frosne slutt-hidden?
-Tre av fire nødvendige uttrekksenheter er klare: terminal_later_full og
-terminal_prefix_part1/part2. Del3 og eksakt full sammenstilling mangler.
-Tre faste CPU-fits krever separat admisjon. Original åtte-enhetsstudie
-forblir uferdig og uendret. Ingen bedre retningsbeslutning er målt her.
+Det forhåndsbundne spørsmålet er bedre senere AUC5 fra et fast lineært hode
+mot originalt hode på samme frosne slutt-hidden. Modell og 1/5/15-mål beholdes.
+Ingen native trening, målendring eller genuine readout-fit er åpnet nå.
+Original åtte-enhetsstudie forblir uferdig og uendret; own0U-restene er utsatt.
+Fullført ekstraksjon dokumenterer ingen forbedret retning eller økonomisk edge.
 
 Brukerens siste presisering 27.10 er innarbeidet: 10 minutter er med i
 faste sammenligningspunkter 1/5/10/15/30/60. En kurve for hvert minutt 1–60
@@ -71,13 +76,13 @@ En 1-mot-3-epokers sammenligning på uendret BCE er fortsatt en separat
 test av eksponering. Horisonter, bps-supervisjon og epoch-antall endres ikke
 samtidig. Ingen automatisk 30-epokerskjøring. Åtte familier og D1/makro
 beholdes; M5/M15/H1/H4/D1 finnes allerede i faktisk Entry-rute.
-Bare den eksakte uttrekkstillatelsen øverst åpner payload/model-forward.
-Fit, reverse, optimizersteg og trening forblir lukket.
+Alle uttrekkstillatelser er nå konsumert og lukket. Payloadlesing, modellforward,
+fit, reverse, optimizersteg og trening krever ny avgrenset admisjon.
 
-Fem av åtte opprinnelige F-uttrekksenheter er COMPLETE/consumed:
-terminal_later_full001, own0U_prefix_part1_001, own0U_prefix_part2_001 og
-terminal_prefix_part1_002 og terminal_prefix_part2_001. De to own0U-delene
-er bevart, men er ikke nødvendige
+Seks av åtte opprinnelige F-uttrekksenheter er COMPLETE/consumed:
+terminal_later_full001, own0U_prefix_part1_001, own0U_prefix_part2_001,
+terminal_prefix_part1_002, terminal_prefix_part2_001 og terminal_prefix_part3_001.
+De to own0U-delene er bevart, men er ikke nødvendige
 for den separate terminal-only-sammenligningen. 86 beståtte syntetiske
 partisjonskontroller og tidligere paritet gjenbrukes; ingen modellkode er endret.
 
