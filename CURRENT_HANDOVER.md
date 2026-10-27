@@ -9,13 +9,19 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-F_GC_LAYOUT_METADATA_TRANSITION_SOURCE_ADMISSION_001 åpner bare en eksakt
-kildeovergang for den kvalifiserte GC-metadatarettelsen og dens metadatakaller.
-Kun timing256 kan få denne overgangen; full F og andre kildeendringer avvises.
-Originale manifest- og checkpointidentiteter beholdes. Én capped CPU-kontroll
-med 33 fokuserte syntetiske tilfeller og 60 sekunders grense er admittért i
-F_GC_LAYOUT_METADATA_TRANSITION_SYNTHETIC_PLAN_001. Ingen payload-, forward-
-eller fit-kjøring er nå åpnet.
+F_GC_LAYOUT_METADATA_TRANSITION_SYNTHETIC_001 er COMPLETE/consumed: alle
+33 fokuserte kontroller bestod med null payload-, modell-, fit- eller optimizerkall.
+Kilde/policy var uendret, cgroup er borte og originallåsen er ledig.
+Overgangen tillates bare for timing256; originale manifestidentiteter bevares.
+
+F_FROZEN_EXTRACTION_own0U_prefix_timing256_RUNTIME_ADMISSION_004 åpner én
+kontroll på samme 256 TRAIN-observasjoner og original276 own0U: B16,
+16 forwards, null reverse/optimizer og 600 sekunders workergrense. Samme
+opprinnelige profil-, kapasitets-, fersk fysisk boot- og signerte maskinvarevakter.
+Originale output må være bitidentiske. Før full F kan vurderes kreves minst
+20 prosent kortere evaluate og konservativ fullprefixprojeksjon <=9600 sekunder.
+Full F, readout-fit, ny native baseline og TEST/CONTROL forblir lukket.
+Neste steg er denne engangskontrollen; dette dokumenterer ikke bedre retning.
 
 GC-oppsettet beregner nå det uendrede boolske feltdomenet én gang per tidsramme,
 i stedet for én gang per feltnavn. DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003
@@ -33,9 +39,8 @@ fortsatt av de to opprinnelige forbrukerne når disse kjøres.
 
 Det finnes ingen fullført trent hiddenmatrise i F-uttakene. De to komplette
 timingfilene inneholder samme 256 initialobservasjoner. C003 har aggregerte
-rapporter. Neste kildearbeid gjelder eksakt kompatibilitet for den endrede
-GC-metadatakilden; deretter kan én ny avgrenset B16-paritet/tidskontroll vurderes.
-Ingen slik kjøring, full F, fit eller ny native baseline er nå admittért.
+rapporter. Den eksakte GC-metadatakildeovergangen er kvalifisert ovenfor.
+Kun timing004 er nå admittért; full F, fit og ny native baseline er lukket.
 De historiske baseline-resultatene beholder sine opprinnelige kildeidentiteter.
 
 DIRECTION_LOCAL_SNAPSHOT_PARITY_001 er COMPLETE/consumed. På alle 118 249
