@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_NATIVE_0U_RECIPE_METADATA_VALIDATED_EXECUTION_CLOSED",
+    "status": "COMPACT_NATIVE_0U_CAMPAIGN_METADATA_INSPECTED_EXECUTION_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Prepare and inspect a fresh bound own0U timing256 campaign using existing F machinery; its plan must bind this exact recipe and clean committed source. Native forward authority, task installation and reboot remain closed until campaign preparation and independent hardware/idle gates are satisfied.",
+    "next_action": "Prepare fresh exact timing256 one-shot admission and campaign bound to the resulting clean committed source. Inspect final bindings; verify machine-wide idle and preserve all task owners before any scheduled task or reboot. No additional training or input expansion.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37217,6 +37217,10 @@
     "native0u_recipe_metadata_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_RECIPE_METADATA_REVIEW_001.json",
       "sha256": "264be1dae28f0d02ce85329a928054b2ca8d9489c36124fea774c78585bb55ed"
+    },
+    "native0u_campaign_inspect_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_INSPECT_ROOT_REVIEW_001.json",
+      "sha256": "2896c0f42a42167413eda948547ea5cb4025e282b031eb8c8aace2cae9ccb0a2"
     }
   },
   "independent_direction_candle_synthetic_20261027": {

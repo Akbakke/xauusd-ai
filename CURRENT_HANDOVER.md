@@ -145,9 +145,11 @@ mot eksisterende F-kontrakt og 57 faktiske kildehashes uten payload eller modell
 `NATIVE_0U_RECIPE_METADATA_REVIEW_001.json` binder resultatet. Dette er ikke en
 måling av 0U-paritet og åpner ikke native kjøring.
 
-Neste steg er å forberede og inspisere ny egen timing256-kampanje med eksisterende
-F-maskineri, eksakt recipe og ren committet kilde. Selve forward-kjøringen krever
-ny enhetsadmisjon og alle maskinvare-/maskinvid-ledighetsvakter. Bare fersk egen
+En egen timing256-kampanje er inspisert med eksisterende F-kontroller. Alle
+bindinger besto og svaret var REBOOT_REQUIRED. Ingen payload, modell, CUDA,
+oppgaveinstallasjon eller reboot. Dette var metadata-repetisjon på daværende
+HEAD; etter ny admisjon må hele kampanjen bindes og inspiseres mot nytt HEAD.
+Selve forward-kjøringen krever ny enhetsadmisjon og alle maskinvid-ledighetsvakter. Bare fersk egen
 256-paritet og deretter manglende TRAIN-del [31744,47602) er planlagt. Tidligere
 fullførte deler gjenbrukes. Kompakt input, GC, mål, 267-statistikk og permutasjon
 beholdes. Ingen nye indikatorer, ekstra treningspass, TEST/CONTROL, Exit, broker,
