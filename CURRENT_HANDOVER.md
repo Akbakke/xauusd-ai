@@ -492,3 +492,7 @@ forskjellen omfatter null. Ingen bedre rangering er dokumentert; dette er
 gjenbrukt utvikling, uten ny modellkjøring, trening eller økonomisk vurdering.
 Ingen ny modellkjøring, trening, terskeltilpasning eller payloadlesing er
 autorisert av designet. Resultatene blir utviklingsdiagnostikk, ikke edge.
+
+Ny separat nullstegskontroll 002 er admittert på reparert kilde: 256 faste
+TRAIN-rader, 16 forwards og null optimizersteg. Den tidligere 001 er konsumert.
+Trening er fortsatt stengt; resultat krever opprinnelige guard-/terminalkvitteringer.

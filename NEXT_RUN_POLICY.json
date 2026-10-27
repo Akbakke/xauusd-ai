@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "CONTINUATION_GUARD_REPAIRED_FRESH_ZERO_UPDATE_REQUIRED_TRAINING_CLOSED",
+    "status": "ZERO_UPDATE_REQUALIFICATION_002_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "dynamic_m5_direction_continuation_zero_update_002",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Run a new separately admitted terminal zero-update parity unit on the repaired source; preserve old one-shot results and require a fresh exposure recipe afterward.",
+    "next_action": "Prepare one fresh capped parity campaign on repaired source; 16 forwards, zero optimizer steps; verify terminal before exposure admission.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -39197,7 +39197,7 @@
     }
   },
   "direction_continuation_guard_repair_source_20261027": {
-    "status": "SOURCE_REPAIRED_SYNTHETIC_PASS_NATIVE_PARITY_PENDING",
+    "status": "SOURCE_REPAIRED_002_REQUALIFICATION_ADMITTED",
     "observed_blocker": "The continuation read guard admits only the terminal checkpoint, but canonical cursor/progress verification physically reads the original initial checkpoint. The first durable checkpoint or resume would fail before completion.",
     "source_edits_authorized": false,
     "synthetic_tests_authorized": false,
@@ -39227,5 +39227,46 @@
       "tests/test_entry_native_direction_prefix_fit_window_v1.py": "8693a59d8719405e095a76392146e818174a6087cf7935dbe67928a19ec45343",
       "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "94d952e4ae61e3bf7b25401ac1368211be89cb5eeee93642ce7f9c1d414db93a"
     }
+  },
+  "dynamic_m5_direction_continuation_zero_update_002": {
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forwards_authorized": true,
+    "gradient_reverse_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "genuine_predictor_fit_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "status": "ADMITTED_NOT_STARTED",
+    "unit": "terminal_resume_parity256",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_RECIPE_002.json",
+      "sha256": "65a0d3352b0aff7620521482bcb22c62585844a6aff62178cee6d56a6d1e0c49"
+    },
+    "window": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_WINDOW_002.json",
+      "sha256": "93f8eefd266b5e044a40bed7769f4287b622940286af29eae94003f32afa93a3"
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_RUNTIME_ADMISSION_002.json",
+      "sha256": "b8f9b5f1d3f8a19a3520d835d1ab2f221b65e1d4953bafe6cf41de85205fca81"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_20261027_002",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_20261027_002_RUNTIME",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "campaign_preparation_authorized": true
   }
 }
