@@ -452,9 +452,10 @@ Recipe SHA-256 61f0911ae432813af809a03134f1e7c7ee9b0ff1f7a05c972b256ac1a034dd45.
 Ingen checkpoint eller markedsdata ble åpnet ved denne forberedelsen.
 
 Forhåndskontrollens filvakt bestod tre positive og sju negative syntetiske
-kontroller. En separat CPU-engangskontroll av den eksakte 1-mot-3-oppskriften
-er admittért, med hashing av bare originalens to navngitte checkpoints, ingen
-deserialisering, modellkall, markedsdata eller trening. Den er ikke startet.
+kontroller. Den separate CPU-engangskontrollen av 1-mot-3-oppskriften er
+FULLFØRT og KONSUMERT: originalens to navngitte checkpoints fikk eksakt hash,
+ingen ble deserialisert, og ingen modell, markedsdata eller trening ble åpnet.
+En fersk kampanje med kilde-, maskinvare- og tidsvakter kreves før trening.
 
 Den planlagte fellesgaten for 1 mot 3 pass krever både AUC, logloss og Brier
 på dag- og ukeblokker. Feil i én komponent betyr ikke at retningsrangeringen

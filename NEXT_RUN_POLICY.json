@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "EXPOSURE_RECIPE_PREFLIGHT_ADMITTED_TRAINING_CLOSED",
+    "status": "EXPOSURE_RECIPE_PREFLIGHT_COMPLETE_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_exposure_recipe_preflight_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Physically preflight the prepared exact 1-versus-3-pass recipe in a separately admitted capped worker, then bind a fresh campaign; training remains closed.",
+    "next_action": "Prepare and admit the exact matched one-versus-three-pass campaign with the verified checkpoint parity and recipe preflight; keep training closed until every fixed source, hardware and campaign gate is met.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -38933,7 +38933,11 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_RECIPE_20261027_001.json",
       "sha256": "61f0911ae432813af809a03134f1e7c7ee9b0ff1f7a05c972b256ac1a034dd45"
     },
-    "candidate_recipe_status": "METADATA_PREPARED_NOT_ADMITTED_OR_PHYSICALLY_PREFLIGHTED"
+    "candidate_recipe_status": "PHYSICAL_PREFLIGHT_PASS_TRAINING_NOT_ADMITTED",
+    "candidate_preflight_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_PREFLIGHT_ACTUAL_20261027_001/TERMINAL.json",
+      "sha256": "2579211d75ae361ae936141140a36a34d3fe237442c8a693d51920531e724816"
+    }
   },
   "independent_direction_last_m1_ofi_sign_refinement_20261027": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -39152,7 +39156,7 @@
     "direction_edge_qualified": false
   },
   "direction_exposure_recipe_preflight_20261027": {
-    "status": "ADMITTED_NOT_STARTED",
+    "status": "COMPLETE_CONSUMED_EXACT_RECIPE_PREFLIGHT",
     "worker": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_RECIPE_PREFLIGHT_WORKER_20261027_001.py",
       "sha256": "ddc5ea36db901b807d26bef98e054fe47a04b65b28b62b1a9645f26ee1906390"
@@ -39162,8 +39166,8 @@
       "sha256": "61f0911ae432813af809a03134f1e7c7ee9b0ff1f7a05c972b256ac1a034dd45"
     },
     "synthetic_tests_authorized": false,
-    "execution_authorized": true,
-    "checkpoint_hash_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_hash_authorized": false,
     "model_calls_authorized": false,
     "optimizer_steps_authorized": false,
     "training_enabled": false,
@@ -39184,7 +39188,11 @@
       "sha256": "e7ac004a6b8e627148b06569dfefce23393a6a9fab2be0a6291c6ff882d03484"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "actual_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_PREFLIGHT_ACTUAL_20261027_001/TERMINAL.json",
+      "sha256": "2579211d75ae361ae936141140a36a34d3fe237442c8a693d51920531e724816"
+    }
   }
 }
