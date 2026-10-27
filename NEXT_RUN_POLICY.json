@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T11:58:44.749118+00:00",
-  "status": "DIRECTION_BPS_SUPERVISION_SOURCE_QUALIFIED_GENUINE_QUALIFICATION_NEXT",
+  "observed_utc": "2026-10-27T12:31:19.741540+00:00",
+  "status": "DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Fresh bounded genuine qualification of own-prefix bps scales, matched fresh baseline, actual native gradient and exact resume before a fixed magnitude-versus-BCE comparison. Reuse qualified inputs and guards; no consumed-plan relaunch or training admitted by this closure.",
+  "next_action": "One68case synthetic CPUaudit of fixed B16 bps private campaign scope, unchanged B2 guards and bps-only-probe/exact-resume mechanics.180sworker/210souter,4G/512M,one thread. Then fresh genuine qualification preparation, not a fit launch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -245,7 +245,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Opt-in bps learning route implemented;144synthetic checks passed, authority consumed. Genuine native qualification and later comparison remain.",
+    "current_activity": "One68case synthetic CPUaudit of fixed B16 bps private campaign scope, unchanged B2 guards and bps-only-probe/exact-resume mechanics.180sworker/210souter,4G/512M,one thread. Then fresh genuine qualification preparation, not a fit launch.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -36865,5 +36865,38 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_VERIFIED_TERMINAL_001.json",
       "sha256": "5f24d94e21ebd661a7878c4bdb9d5a57e6028b10acc1532b5f679187c6dcaff5"
     }
+  },
+  "direction_bps_genuine_source": {
+    "status": "SOURCE_PREPARED_FROZEN_FOR_SYNTHETIC",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_QUALIFICATION_SOURCE_DESIGN_001.json",
+      "sha256": "a374d33275545127332b053aa3dced0430711951617288cca3419afa5b844c11"
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_QUALIFICATION_SOURCE_ADMISSION_001.json",
+      "sha256": "b46e97db900ce4a8cf8a78db302dd893964857a3b0d2ab35bfe06a8e5aec2875"
+    },
+    "source_changes_authorized": false,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "native_training_authorized": false,
+    "test_data_used": false
+  },
+  "direction_bps_genuine_route_synthetic": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_PLAN_001.json",
+      "sha256": "02587ac86958bb529b3f0f7fc9d89b8aabb42251c706f33907348c346627f8cd"
+    },
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "synthetic_optimizer_steps_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false
   }
 }

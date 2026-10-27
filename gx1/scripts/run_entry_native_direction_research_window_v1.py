@@ -227,12 +227,13 @@ def _load_state(ref, *, torch, maximum, counters):
     _require(_stat(ref['path'])==before,'CHECKPOINT_LOAD_BOOKEND');return value
 
 
-def _fresh(context, view, recipe, device, counters):
+def _fresh(context, view, recipe, device, counters, *, max_constructions=3):
     from gx1.contracts.entry_native_direction_feature_view_v1 import build_native_direction_research_model
     from gx1.contracts.entry_native_direction_research_state_v1 import build_native_direction_research_optimizer
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     trainer._set_deterministic(recipe['seed'],device,recipe['precision_policy'])
-    counters['model_constructions']+=1;_require(counters['model_constructions']<=3,'CONSTRUCTOR_BUDGET')
+    _require(type(max_constructions) is int and max_constructions in (3,4),'CONSTRUCTOR_PROFILE')
+    counters['model_constructions']+=1;_require(counters['model_constructions']<=max_constructions,'CONSTRUCTOR_BUDGET')
     model=build_native_direction_research_model(view,prefix_normalization=context['fitted'],constructor_metadata=context['constructor'],device=device)
     counters['model_construction_returns']+=1;model.train()
     optimizer,binding=build_native_direction_research_optimizer(model,recipe=recipe);counters['optimizer_constructions']+=1
@@ -245,6 +246,7 @@ def _gradient_evidence(model, torch):
         for label,modules in (('gc_projection',model.backbone.gc_mtf_family_proj),('gc_gate',model.backbone.gc_mtf_feature_context_gate)):
             keys=[key for key in modules if key.startswith(tf+'__')];_require(len(keys)==5,'GC_FAMILY_COUNT')
             groups[label+'_'+tf]=[p for key in keys for p in modules[key].parameters()]
+    if getattr(model,'signed_bps',False):groups['bps_mean_head']=list(model.bps_mean_head.parameters())
     claimed={id(p) for values in groups.values() for p in values}
     inactive=[p for name,p in model.named_parameters() if not p.requires_grad]
     groups['base_backbone']=[p for p in model.parameters() if p.requires_grad and id(p) not in claimed]
@@ -302,6 +304,9 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     limits=require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(policy_path,policy_file_sha256,progress_path)
+    if launch['run_scope'] == authority.BPS_SCOPE:
+        from gx1.scripts.run_entry_native_direction_bps_qualification_v1 import run_bps_qualification
+        return run_bps_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     sys.dont_write_bytecode=True
     import numpy as np
     import torch

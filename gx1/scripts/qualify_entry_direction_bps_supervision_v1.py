@@ -21,6 +21,12 @@ TEST_FILES = (
     "tests/test_entry_native_direction_feature_view_v1.py",
     "tests/test_entry_native_direction_prefix_fit_window_v1.py",
 )
+ROUTE_TEST_FILES = (
+    "tests/test_entry_native_direction_bps_qualification_v1.py",
+    "tests/test_entry_native_direction_research_campaign_v1.py",
+    "tests/test_entry_native_direction_research_window_v1.py",
+)
+METADATA_IMPORT = 'import sys; import gx1.contracts.entry_native_direction_research_campaign_v1; assert "torch" not in sys.modules'
 
 
 def require(ok, reason):
@@ -39,10 +45,13 @@ def main():
     polref = {"path": str(R / "NEXT_RUN_POLICY.json"), "sha256": sys.argv[3]}
     head = sys.argv[4]
     plan, policy = meta.read_json(pref), meta.read_json(polref)
-    stage = policy["direction_bps_supervision_synthetic"]
-    require(plan["schema_version"] == "gx1_direction_bps_supervision_synthetic_plan_v1"
+    route = plan["schema_version"] == "gx1_direction_bps_genuine_route_synthetic_plan_v1"
+    tests = ROUTE_TEST_FILES if route else TEST_FILES
+    stage = policy["direction_bps_genuine_route_synthetic" if route else "direction_bps_supervision_synthetic"]
+    require(plan["schema_version"] == ("gx1_direction_bps_genuine_route_synthetic_plan_v1" if route
+        else "gx1_direction_bps_supervision_synthetic_plan_v1")
         and plan["wall_seconds"] == 180 and plan["outer_timeout_seconds"] == 210
-        and plan["test_files"] == list(TEST_FILES) and plan["synthetic_only"] is True
+        and plan["test_files"] == list(tests) and plan["synthetic_only"] is True
         and plan["test_data_used"] is False and plan["payload_paths"] == [], "PLAN")
     require(stage["status"] == "ADMITTED" and stage["plan"] == pref
         and stage["execution_authorized"] is True and stage["saved_payload_reads_authorized"] is False
@@ -72,7 +81,7 @@ def main():
     counters = {"payload_open_attempts": 0, "synthetic_payload_accesses": 0,
         "synthetic_module_constructions": 0, "synthetic_module_calls": 0,
         "synthetic_backwards": 0, "synthetic_optimizer_steps": 0,
-        "genuine_native_calls": 0}
+        "genuine_native_calls": 0, "metadata_child_imports": 0, "synthetic_autograd_grad_calls": 0}
     records = []
     used = None
 
@@ -82,6 +91,7 @@ def main():
     signal.signal(signal.SIGALRM, expired)
     signal.alarm(plan["wall_seconds"])
     try:
+        os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
         os.environ["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
         os.environ.pop("PYTEST_ADDOPTS", None)
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
@@ -104,8 +114,12 @@ def main():
         before = io.io_state()
 
         def guard(event, args):
-            require(event not in ("subprocess.Popen", "os.system", "socket.connect",
-                "socket.bind", "os.exec"), "PROCESS_NETWORK")
+            if event == "subprocess.Popen":
+                require(route and counters["metadata_child_imports"] == 0
+                    and args[0] == sys.executable and args[1] == [sys.executable, "-c", METADATA_IMPORT]
+                    and args[2] is None and args[3] is None, "ONLY_FIXED_METADATA_IMPORT_CHILD")
+                counters["metadata_child_imports"] += 1
+            require(event not in ("os.system", "socket.connect", "socket.bind", "os.exec"), "PROCESS_NETWORK")
             if event == "open" and isinstance(args[0], (str, bytes, os.PathLike)):
                 path = Path(os.fsdecode(args[0]))
                 writing = bool(args[2] & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC))
@@ -134,6 +148,8 @@ def main():
                 counters["synthetic_module_calls"] += 1
             elif code.co_name == "backward" and "/torch/" in code.co_filename:
                 counters["synthetic_backwards"] += 1
+            elif code.co_name == "grad" and "/torch/autograd/" in code.co_filename:
+                counters["synthetic_autograd_grad_calls"] += 1
             elif code.co_name == "step" and "/torch/optim/adamw.py" in code.co_filename:
                 counters["synthetic_optimizer_steps"] += 1
             for key, maximum in plan["synthetic_work_limits"].items():
@@ -145,7 +161,7 @@ def main():
                     "outcome": report.outcome, "duration_seconds": report.duration})
 
         sys.setprofile(watch)
-        exit_code = int(pytest.main([*TEST_FILES, "-q", "-s", "--assert=plain",
+        exit_code = int(pytest.main([*tests, "-q", "-s", "--assert=plain",
             "-p", "no:cacheprovider", "-p", "no:logging", "-o", "addopts=",
             "--confcutdir", str(R / "tests"), "--basetemp", str(out / "tmp")], plugins=[Results()]))
         sys.setprofile(previous)
@@ -155,6 +171,7 @@ def main():
             and len(records) == 3 * len(calls) and all(row["outcome"] == "passed" for row in records),
             "ALL_FIXED_CASES_PASSED")
         require(counters["genuine_native_calls"] == counters["payload_open_attempts"] == 0
+            and counters["metadata_child_imports"] == (1 if route else 0)
             and not torch.cuda.is_initialized(), "NO_GENUINE_OR_NATIVE_WORK")
         used = io.io_state()["rchar"] - before["rchar"]
         require(used <= plan["max_rchar_bytes"], "IO_CAP")
@@ -165,8 +182,9 @@ def main():
         summary = meta.publish(out, "SUMMARY.json", {"status": "PASS_SYNTHETIC_ONLY",
             "plan": pref, "source_head": head, "cases": calls,
             "passed": len(calls), "scope": design["scope"], "horizons": design["horizons"],
-            "legacy_parity_scope": "Synthetic unchanged direction tests, RNG/shared-parameter identity and report/optimizer branches; genuine qualification still required.",
-            "native_heads_or_loss_changed": True, "genuine_targets_materialized": False,
+            "legacy_parity_scope": ("Synthetic B16 campaign scope, unchanged B2 guards, probe/update/exact-resume mechanics; genuine qualification still required." if route else
+                "Synthetic unchanged direction tests, RNG/shared-parameter identity and report/optimizer branches; genuine qualification still required."),
+            "native_heads_or_loss_changed": not route, "genuine_targets_materialized": False,
             "direction_improvement_qualified": False, "economic_edge_qualified": False, "test_data_used": False})
         terminal = {"status": "COMPLETE", "exit_code": 0, "plan": pref, "policy": polref,
             "claim": claim, "summary": summary, "source_head": head, "source_unchanged": True,

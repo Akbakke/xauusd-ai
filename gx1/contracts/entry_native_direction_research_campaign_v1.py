@@ -22,6 +22,19 @@ KIND = 'native_direction_research_window'
 WINDOW_SCHEMA = 'gx1_native_direction_research_window_policy_v1'
 RECIPE_SCHEMA = 'gx1_native_direction_research_launch_recipe_v1'
 CURSOR_SCHEMA = 'gx1_native_direction_research_cursor_v1'
+BPS_SCOPE = 'private_bps_b16_matched_initialization_resume_qualification'
+BPS_CURSOR_SCHEMA = 'gx1_native_direction_bps_research_cursor_v1'
+BPS_FOLD = {'fold_id':1,'prefix_rows':47602,'oof_start_row':47602,'oof_end_row':64890,
+    'train_cutoff_ns':1735689600000000000,'oof_cutoff_ns':1743465600000000000}
+BPS_GC_PARITY = {'path':'/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_ROOT_REVIEW_003.json',
+    'sha256':'1d3347ee52f02af7afcac5d55c02532c0e2823e1ce20397633785a2512d39263'}
+BPS_DESIGN = {'path':'/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_QUALIFICATION_SOURCE_DESIGN_001.json',
+    'sha256':'a374d33275545127332b053aa3dced0430711951617288cca3419afa5b844c11'}
+BPS_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_native_direction_bps_v1.py',
+    'gx1/contracts/entry_native_direction_frozen_extraction_v1.py',
+    'gx1/contracts/entry_native_direction_checkpoint_diagnostic_v1.py',
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py',
+    'gx1/scripts/run_entry_native_direction_bps_qualification_v1.py')
 MODULE = 'gx1.scripts.run_unified_exit_native_candidate_window_v1'
 CANONICAL_REPO = Path('/home/andre2/src/GX1_CURRENT')
 REPO_SOURCE_PATHS = (
@@ -103,13 +116,16 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         'max_checkpoint_bytes', 'max_published_json_bytes', 'training_enabled',
         'full_epoch_training_allowed', 'test_data_used', 'predictive_value_claimed',
         'qualification_weights_for_main_fit'}
+    bps = value.get('run_scope') == BPS_SCOPE
+    if bps: fields |= {'fold','gc_layout_metadata_parity','qualification_design'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     _path(recipe['runtime_root'], 'runtime root')
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] == 'private_four_update_resume_qualification', 'RECIPE_SCOPE')
-    for key, expected in {'max_private_updates':4, 'max_model_constructions':3, 'max_forwards':4, 'max_backwards':4,
+        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE), 'RECIPE_SCOPE')
+    for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if bps else 3,
+            'max_forwards':6 if bps else 4, 'max_backwards':5 if bps else 4,
             'max_checkpoint_bytes':1073741824, 'max_published_json_bytes':33554432}.items():
         _require(type(recipe[key]) is int and recipe[key] == expected, 'RECIPE_BUDGET:' + key)
     for key, expected in {'training_enabled':True, 'full_epoch_training_allowed':False,
@@ -117,7 +133,8 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         _require(recipe[key] is expected, 'RECIPE_AUTHORITY:' + key)
     numerical = recipe['numerical_recipe']
     _require(isinstance(numerical, Mapping) and numerical.get('schema_version') == 'gx1_native_direction_research_recipe_v1'
-        and type(numerical.get('batch_size')) is int and numerical['batch_size'] == 2
+        and type(numerical.get('batch_size')) is int and numerical['batch_size'] == (16 if bps else 2)
+        and numerical.get('signed_bps_supervision',False) is bps
         and type(numerical.get('max_updates')) is int and numerical['max_updates'] == 2
         and numerical.get('genuine_updates_authorized') is False and numerical.get('native_launch_authorized') is False,
         'NUMERICAL_RECIPE_ROLE')
@@ -130,8 +147,14 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     campaign.require_binding(recipe['input_manifest'], label='research input metadata', verify_file=True)
     _require(_path(recipe['execution_binding_path'], 'execution binding')
         == str(Path(recipe['runtime_root']) / 'EXECUTION_BINDING.json'), 'EXECUTION_BINDING_PATH')
+    if bps:
+        _require(recipe['fold'] == BPS_FOLD and recipe['gc_layout_metadata_parity'] == BPS_GC_PARITY
+            and recipe['qualification_design'] == BPS_DESIGN, 'BPS_FIXED_INPUT_SCOPE')
+        campaign.require_binding(recipe['gc_layout_metadata_parity'],label='bps GC metadata proof',verify_file=True)
+        campaign.require_binding(recipe['qualification_design'],label='bps qualification design',verify_file=True)
     owners = recipe['source_owners']
-    _require(isinstance(owners, Mapping) and set(owners) == set(REQUIRED_SOURCE_PATHS), 'SOURCE_OWNER_SET')
+    required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if bps else ())
+    _require(isinstance(owners, Mapping) and set(owners) == set(required_sources), 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='research source', verify_file=True)
         _require(checked['path'] == str(source_repo / key), 'SOURCE_OWNER_PATH:' + key)
@@ -161,7 +184,7 @@ def require_research_invocation_execution(result: dict[str, Any], execution: Map
     _require(result['launcher_argv'][separator+1:] == [str(source_repo/'.venv/bin/python'),'-m',MODULE,
         '--window-policy',policy_ref['path'],'--window-policy-file-sha256',policy_ref['sha256'],
         '--progress-path',window['progress_path']], 'INVOCATION_ARGV')
-    _require(result['kind'] == KIND and result['batch_size'] == 2 and result['epoch_index'] is None
+    _require(result['kind'] == KIND and result['batch_size'] == recipe['numerical_recipe']['batch_size'] and result['epoch_index'] is None
         and result['invocation_number'] == 1 and result['window_index'] == 0 and result['window_count'] == 1
         and type(result['optimizer_step_budget']) is int and result['optimizer_step_budget'] == 4
         and result['expected_success_outcome'] == 'COMPLETE' and result['maximum_wall_seconds'] == 13800
@@ -246,6 +269,8 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     for key in ('genuine_predictor_fit_authorized','native_launch_authorized','normalization_fit_authorized',
             'synthetic_test_execution_authorized','test_data_used','exit_evaluation','broker_access_allowed'):
         _require(gate.get(key) is False, 'READINESS_CLOSED_GATE:' + key)
+    if recipe['run_scope'] == BPS_SCOPE:
+        _require(gate.get('signed_bps_scale_fit_authorized') is True,'READINESS_BPS_SCALE')
     clock = campaign.require_binding(policy.get('gpu_clock_launcher'),label='existing GPU clock launcher')
     _require(clock == policy['gpu_clock_launcher'], 'READINESS_CLOCK')
     return {'decision':'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES','blocked_reasons':[],
@@ -291,26 +316,27 @@ def require_native_direction_research_context(policy_path: Path, policy_file_sha
 
 
 def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_cursor,
-        parent_order_sha256, full_state, result) -> dict[str, Any]:
-    value = _seal({'schema_version':CURSOR_SCHEMA,'recipe':dict(recipe_ref),'outcome':outcome,
+        parent_order_sha256, full_state, result, batch_size=2) -> dict[str, Any]:
+    value = _seal({'schema_version':BPS_CURSOR_SCHEMA if batch_size == 16 else CURSOR_SCHEMA,'recipe':dict(recipe_ref),'outcome':outcome,
         'optimizer_updates':optimizer_updates,'parent_cursor':parent_cursor,'parent_order_sha256':parent_order_sha256,
         'full_state':full_state,'result':result,'test_data_used':False}, 'cursor_sha256')
-    return require_research_cursor(value,expected_recipe=recipe_ref,verify_files=False)
+    return require_research_cursor(value,expected_recipe=recipe_ref,verify_files=False,batch_size=batch_size)
 
 
-def require_research_cursor(value, *, expected_recipe, verify_files=True) -> dict[str, Any]:
+def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
     fields = {'schema_version','recipe','outcome','optimizer_updates','parent_cursor',
         'parent_order_sha256','full_state','result','test_data_used'}
-    result = _identity(value,fields,CURSOR_SCHEMA,'cursor_sha256')
+    _require(type(batch_size) is int and batch_size in (2,16),'CURSOR_BATCH_SIZE')
+    result = _identity(value,fields,BPS_CURSOR_SCHEMA if batch_size == 16 else CURSOR_SCHEMA,'cursor_sha256')
     _require(result['recipe'] == expected_recipe and result['test_data_used'] is False
         and result['outcome'] in {'COMPLETE','FAILED'}, 'CURSOR_ROLE')
     for key in ('optimizer_updates','parent_cursor'):
-        _require(type(result[key]) is int and 0 <= result[key] <= 4, 'CURSOR_COUNTER:' + key)
+        _require(type(result[key]) is int and 0 <= result[key] <= (2*batch_size if key=='parent_cursor' else 4), 'CURSOR_COUNTER:' + key)
     campaign._sha(result['parent_order_sha256'],'parent order')
     campaign.require_binding(result['result'],label='research terminal result',verify_file=verify_files)
     if result['full_state'] is not None:
         campaign.require_binding(result['full_state'],label='research full state',verify_file=verify_files)
-    _require(result['outcome'] != 'COMPLETE' or (result['optimizer_updates'] == result['parent_cursor'] == 4
+    _require(result['outcome'] != 'COMPLETE' or (result['optimizer_updates'] == 4 and result['parent_cursor'] == 2*batch_size
         and result['full_state'] is not None), 'CURSOR_COMPLETE')
     return result
 
@@ -338,16 +364,18 @@ def require_research_progress(value, *, plan_sha256, invocation,
         and result['phase'] == KIND and result['recipe'] == invocation['direction_research_recipe']
         and result['terminal'] is True and result['outcome'] in {'COMPLETE','FAILED'}, 'PROGRESS_IDENTITY')
     campaign._utc(result['observed_utc'],'research progress')
+    batch_size=invocation['batch_size']
+    _require(type(batch_size) is int and batch_size in (2,16),'PROGRESS_BATCH_SIZE')
     for key in ('completed_units','total_units','optimizer_updates','parent_cursor'):
-        _require(type(result[key]) is int and 0 <= result[key] <= 4,'PROGRESS_COUNTER:' + key)
+        _require(type(result[key]) is int and 0 <= result[key] <= (2*batch_size if key=='parent_cursor' else 4),'PROGRESS_COUNTER:' + key)
     _require(result['total_units'] == 4 and result['completed_units'] == result['optimizer_updates']
-        and (result['outcome'] != 'COMPLETE' or result['optimizer_updates'] == result['parent_cursor'] == 4), 'PROGRESS_COMPLETE')
+        and (result['outcome'] != 'COMPLETE' or result['optimizer_updates'] == 4 and result['parent_cursor'] == 2*batch_size), 'PROGRESS_COMPLETE')
     campaign._sha(result['parent_order_sha256'],'parent order')
     ref = campaign.require_binding(result['checkpoint_pointer'],label='research cursor',verify_file=verify_file)
     _require(ref['path'] == invocation['checkpoint']['pointer_path'],'PROGRESS_CURSOR_PATH')
     if verify_file:
         cursor = require_research_cursor(campaign.read_bound_json(Path(ref['path']),ref['sha256']),
-            expected_recipe=result['recipe'],verify_files=True)
+            expected_recipe=result['recipe'],verify_files=True,batch_size=batch_size)
         _require(all(cursor[k] == result[k] for k in ('outcome','optimizer_updates','parent_cursor','parent_order_sha256')),
             'PROGRESS_DURABLE_CURSOR')
     return result

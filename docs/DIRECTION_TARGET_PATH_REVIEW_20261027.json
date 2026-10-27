@@ -748,5 +748,24 @@
     "passed": 144,
     "genuine_qualification_complete": false
   },
-  "source_reference_note": "Historical finding references describe the measured baseline before the bps change; current source owners above are updated for commit b6209ff13239125e361c7c7824d678b5a40ded24."
+  "source_reference_note": "Historical finding references describe the measured baseline before the bps change; current source owners above are updated for commit b6209ff13239125e361c7c7824d678b5a40ded24.",
+  "bps_genuine_route_preparation": {
+    "status": "IMPLEMENTED_SYNTHETIC_QUALIFICATION_PENDING",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_QUALIFICATION_SOURCE_DESIGN_001.json",
+      "sha256": "a374d33275545127332b053aa3dced0430711951617288cca3419afa5b844c11"
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_QUALIFICATION_SOURCE_ADMISSION_001.json",
+      "sha256": "b46e97db900ce4a8cf8a78db302dd893964857a3b0d2ab35bfe06a8e5aec2875"
+    },
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_PLAN_001.json",
+      "sha256": "02587ac86958bb529b3f0f7fc9d89b8aabb42251c706f33907348c346627f8cd"
+    },
+    "genuine_execution_authorized": false,
+    "scope": "Reuse signed canonical campaign with an exact B16 scope; matched fresh baseline, one own-prefix bps scale and exact two-logical-step resume.",
+    "input_scope_note": "Existing qualified reader opens saved TRAIN archive for fixed geometry/domain checks; only mature own-prefix labels contribute to bps scale and only first32original presentations to qualification updates. No later-cohort scoring or selection.",
+    "direction_improvement_measured": false
+  }
 }

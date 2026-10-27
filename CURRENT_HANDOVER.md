@@ -12,6 +12,16 @@ Programrot:
 
 ## Aktuell status
 
+B16 bps-kvalifiseringsruten er implementert, genuin kontroll er ikke kjørt.
+DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_PLAN_001 er engangsadmittért for 68
+syntetiske tester: 24 nye og 44 eksisterende B2-kampanje-/vaktkontroller.
+CPU audit 4G/512M, én tråd, 64 tasks, 180 s worker / 210 s outer.
+Kun syntetiske tensorer og egne testfiler; ett fast metadata-importbarn.
+Kilde og policy fryses ved commit. Ingen ekte payloads eller native-kjøring.
+Den nye genuine profilen er B16 med 4 konstruksjoner, 6 forwards, 5 reverse-pass
+og 4 private optimizersteg, men får ingen numerisk autoritet av disse testene.
+Samme signed hardware-/boot-/kapasitetsvakter beholdes.
+
 DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001 er COMPLETE/claimed/consumed.
 Alle 144 tester bestod: 31 nye bps-kontroller og 113 eksisterende kontroller.
 Original worker/outer exit 0; worker 52,321 s, outer 53,016 s. Kilde/policy var

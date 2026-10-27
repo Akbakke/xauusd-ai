@@ -394,7 +394,7 @@ def require_invocation(
     ):
         raise RandomAccessCampaignError("invocation number invalid")
     batch_size = result.get("batch_size")
-    if ((kind == "native_direction_research_window" and (type(batch_size) is not int or batch_size != 2))
+    if ((kind == "native_direction_research_window" and (type(batch_size) is not int or batch_size not in (2, 16)))
             or (kind in {"native_direction_prefix_fit_window", "native_direction_checkpoint_diagnostic_window", "native_direction_frozen_extraction_window"} and (type(batch_size) is not int or batch_size != 16))
             or (kind not in {"native_direction_research_window", "native_direction_prefix_fit_window", "native_direction_checkpoint_diagnostic_window", "native_direction_frozen_extraction_window"}
                 and batch_size not in (4, 8, 16))):
