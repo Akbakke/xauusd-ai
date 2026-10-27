@@ -12,8 +12,14 @@ Programrot:
 
 ## Aktuell status
 
+Forsøk001 er FAILED/claimed/consumed: 66 bestod, 2 avviste numerisk recipe-seal
+i den nye syntetiske fixture. Testdata brukte kampanjeformat i stedet for
+numerisk eiers kompakte JSON-format. Kun testdata er rettet; produksjonsvakten
+beholdes. Originale kvitteringer er bevart, eier/cgroup er borte og låsen fri.
+Forsøk002 er ny admisjon av de samme 68 testene, ikke relansering av001.
+
 B16 bps-kvalifiseringsruten er implementert, genuin kontroll er ikke kjørt.
-DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_PLAN_001 er engangsadmittért for 68
+DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_PLAN_002 er engangsadmittért for 68
 syntetiske tester: 24 nye og 44 eksisterende B2-kampanje-/vaktkontroller.
 CPU audit 4G/512M, én tråd, 64 tasks, 180 s worker / 210 s outer.
 Kun syntetiske tensorer og egne testfiler; ett fast metadata-importbarn.

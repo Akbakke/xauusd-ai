@@ -760,12 +760,20 @@
       "sha256": "b46e97db900ce4a8cf8a78db302dd893964857a3b0d2ab35bfe06a8e5aec2875"
     },
     "synthetic_plan": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_PLAN_001.json",
-      "sha256": "02587ac86958bb529b3f0f7fc9d89b8aabb42251c706f33907348c346627f8cd"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_PLAN_002.json",
+      "sha256": "2b647bf386648fdd51e3ae7b1cbd10afdb6026d22a089e7a6da5225c9ccc2160"
     },
     "genuine_execution_authorized": false,
     "scope": "Reuse signed canonical campaign with an exact B16 scope; matched fresh baseline, one own-prefix bps scale and exact two-logical-step resume.",
     "input_scope_note": "Existing qualified reader opens saved TRAIN archive for fixed geometry/domain checks; only mature own-prefix labels contribute to bps scale and only first32original presentations to qualification updates. No later-cohort scoring or selection.",
-    "direction_improvement_measured": false
+    "direction_improvement_measured": false,
+    "preserved_failed_attempt": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "fd11d9da3a61175ce1cf7dcb9d66f22c1ebc62ba67c8235c0a19c9f8f14f194a"
+    },
+    "test_repair_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_TEST_REPAIR_ADMISSION_002.json",
+      "sha256": "6a36e4097edc1135ba1ed23c6c37731fa3e5c57ec6a9f5b98d9535fcd38d6e29"
+    }
   }
 }

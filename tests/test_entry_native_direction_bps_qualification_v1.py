@@ -3,6 +3,8 @@
 No genuine native constructor, saved input, later cohort, or CUDA execution.
 """
 import copy
+import hashlib
+import json
 from pathlib import Path
 
 import pytest
@@ -12,6 +14,14 @@ from gx1.contracts import entry_native_direction_research_campaign_v1 as owner
 from gx1.contracts import local_random_access_campaign_v2 as campaign
 from gx1.scripts import run_entry_native_direction_bps_qualification_v1 as worker
 from tests.test_entry_native_direction_research_campaign_v1 import fixture as legacy_fixture, write, reseal
+
+
+
+def reseal_numerical(value):
+    unsigned = {k:v for k,v in value.items() if k != "contract_sha256"}
+    value["contract_sha256"] = hashlib.sha256(json.dumps(unsigned, sort_keys=True,
+        separators=(",", ":"), ensure_ascii=True, allow_nan=False).encode()).hexdigest()
+    return value
 
 
 @pytest.fixture
@@ -25,7 +35,7 @@ def bps_fixture(legacy_fixture, monkeypatch):
         qualification_design=f["dummy"], gc_layout_metadata_parity=f["dummy"],
         max_model_constructions=4, max_forwards=6, max_backwards=5)
     recipe["numerical_recipe"].update(batch_size=16, signed_bps_supervision=True)
-    reseal(recipe["numerical_recipe"], "contract_sha256")
+    reseal_numerical(recipe["numerical_recipe"])
     reseal(recipe, "recipe_sha256")
     f["recipe_ref"] = write(f["runtime"]/"RECIPE.json", recipe)
     f["window"]["recipe"] = f["recipe_ref"]
@@ -79,7 +89,7 @@ def test_resealed_bps_recipe_cannot_broaden_or_mix_profile(bps_fixture, fault):
     elif fault == "missing_parity": del item["gc_layout_metadata_parity"]
     elif fault == "wrong_design": item["qualification_design"]["sha256"] = "0"*64
     else: item["run_scope"] = "private_four_update_resume_qualification"
-    reseal(item["numerical_recipe"], "contract_sha256")
+    reseal_numerical(item["numerical_recipe"])
     reseal(item, "recipe_sha256")
     ref = write(f["runtime"]/"BAD_RECIPE.json", item)
     with pytest.raises(RuntimeError):
