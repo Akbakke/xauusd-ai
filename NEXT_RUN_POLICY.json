@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T16:19:56.955463+00:00",
-  "status": "DIRECTION_BPS_FIRST_PREFIX_COMPLETE_PAIRED_COMPARISON_PENDING",
+  "status": "DIRECTION_BPS_PAIRED_COMPARISON_COMPLETE_NO_DOCUMENTED_IMPROVEMENT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -37325,17 +37325,17 @@
     }
   },
   "direction_bps_saved_comparison": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_ACTUAL_PLAN_20261027_001.json",
       "sha256": "9d502be4402d3a842a3a1821a7d6e6e6bda9398f350c5b256f4062b62609387e"
     },
     "mode": "actual",
-    "execution_authorized": true,
-    "saved_payload_reads_authorized": true,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
     "native_launch_authorized": false,
@@ -37345,7 +37345,21 @@
     "source_qualification": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
       "sha256": "3cf3dbbd0c81002b5b180db40deb0bdbe6a2d153b6682643fdb59994a8a57948"
-    }
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_ACTUAL_ROOT_REVIEW_20261027_001.json",
+      "sha256": "2c50cae6ee915497584f28c6f35a5d3a857cf9934205508313defeb23aec71a0"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_ACTUAL_20261027_001/SUMMARY.json",
+      "sha256": "d6dfa7bd1648019604a6bde7ff240d01db23703a764f15f820aa9177c2522d4b"
+    },
+    "result_document": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_BPS_SAVED_COMPARISON_RESULT_20261027.json",
+      "sha256": "17f867ab7f28234819cb28446ab8a2174a7c8d32ec8e0782cd7f506d317a5300"
+    },
+    "direction_improvement_supported": false,
+    "economic_edge_qualified": false
   },
   "direction_bps_saved_comparison_synthetic_20261027": {
     "status": "COMPLETE_CONSUMED",

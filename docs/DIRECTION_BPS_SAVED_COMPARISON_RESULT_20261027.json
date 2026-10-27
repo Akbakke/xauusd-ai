@@ -1,0 +1,208 @@
+{
+  "initial_comparability": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_ACTUAL_20261027_001/INITIAL_COMPARABILITY.json",
+    "sha256": "e57c9b7a775830cffab7b39bf945e350ce416fff14caff19fc70974718148ab7"
+  },
+  "interpretation": {
+    "all_primary_replicates_defined": true,
+    "auc5_improvement_supported": false,
+    "automatic_multifold_expansion_authorized": false,
+    "bps_mse5_improvement_supported": false,
+    "combined_advance_criterion_met": false,
+    "economic_edge_qualified": false,
+    "scope": "Fixed reused TRAIN development split; no test or economic qualification."
+  },
+  "later_horizons": [
+    {
+      "auc": {
+        "ET252": 0.5103611139748926,
+        "R1": 0.48951702796340163,
+        "candidate": 0.5015122655646206,
+        "native276": 0.5008823371328807,
+        "prior": 0.5
+      },
+      "candidate_up_predictions": 9180,
+      "eligible_direction_rows": 17215,
+      "horizon_minutes": 1,
+      "logloss": {
+        "ET252": 0.6931987126846327,
+        "R1": 0.693405201371589,
+        "candidate": 0.6931531342299733,
+        "native276": 0.6932100209568366,
+        "prior": 0.6932284266546842
+      },
+      "mature_zero_rows": 73,
+      "mse_bps2": {
+        "candidate": 5.65817542896605,
+        "own_prefix_mean": 5.658144677996037,
+        "zero": 5.658165715981958
+      },
+      "observed_mature_return_rows": 17288,
+      "parents": 17288
+    },
+    {
+      "auc": {
+        "ET252": 0.5013435938483484,
+        "R1": 0.5012386189152008,
+        "candidate": 0.49682269234877807,
+        "native276": 0.5030210874582608,
+        "prior": 0.5
+      },
+      "candidate_up_predictions": 2024,
+      "eligible_direction_rows": 17197,
+      "horizon_minutes": 5,
+      "logloss": {
+        "ET252": 0.6932168048228513,
+        "R1": 0.6928430210540718,
+        "candidate": 0.6934647310262035,
+        "native276": 0.6935141662580235,
+        "prior": 0.6927400868267916
+      },
+      "mature_zero_rows": 27,
+      "mse_bps2": {
+        "candidate": 22.85658755468887,
+        "own_prefix_mean": 22.854280813911004,
+        "zero": 22.858728018482303
+      },
+      "observed_mature_return_rows": 17224,
+      "parents": 17288
+    },
+    {
+      "auc": {
+        "ET252": 0.515787655485376,
+        "R1": 0.5104181831207683,
+        "candidate": 0.5026764422821026,
+        "native276": 0.5078696881640574,
+        "prior": 0.5
+      },
+      "candidate_up_predictions": 12760,
+      "eligible_direction_rows": 17080,
+      "horizon_minutes": 15,
+      "logloss": {
+        "ET252": 0.6917663968550678,
+        "R1": 0.6919536686780607,
+        "candidate": 0.6929399638499713,
+        "native276": 0.6948129937765292,
+        "prior": 0.6921812595551456
+      },
+      "mature_zero_rows": 16,
+      "mse_bps2": {
+        "candidate": 69.93813317387969,
+        "own_prefix_mean": 69.88661678065104,
+        "zero": 69.92417782646478
+      },
+      "observed_mature_return_rows": 17096,
+      "parents": 17288
+    }
+  ],
+  "limitations": [
+    "Reused TRAIN development split; not independent TEST or CONTROL generalization.",
+    "Endpoint midpoint forecast does not measure early favourable movement or preceding adverse movement.",
+    "Magnitude bands are retrospective outcome diagnostics, never executable filters.",
+    "No spread, fees, slippage, order policy, realized PnL or economic edge.",
+    "Initial output equality does not establish full numerical multi-timeframe feature parity.",
+    "A separate TRAIN audit found 56/40/18 arithmetic-mid nonzero labels whose native candle open is unchanged at 1/5/15 minutes; no opposite nonzero signs flipped. Both candidate and baseline used the same original targets.",
+    "One fold and seed cannot establish that magnitude supervision or additional training can never help.",
+    "The pointwise prior logloss and prediction proportions are descriptive, not a causal diagnosis."
+  ],
+  "primary_five_minute_intervals": [
+    {
+      "block_resampling_population": "all fixed later parents; masks retained within each resample",
+      "blocks": 77,
+      "confirmatory": true,
+      "contrasts": {
+        "candidate_minus_native276_auc": {
+          "alpha": 0.008333333333333333,
+          "high": 0.004828074618269567,
+          "low": -0.016829074653685817,
+          "point": -0.006198395109482724,
+          "replicates_invalid": 0,
+          "replicates_requested": 10000,
+          "replicates_valid": 10000
+        },
+        "candidate_minus_own_prefix_mean_mse_bps2": {
+          "alpha": 0.008333333333333333,
+          "high": 0.005033574495363165,
+          "low": -0.0007986221252799649,
+          "point": 0.0023067407778669317,
+          "replicates_invalid": 0,
+          "replicates_requested": 10000,
+          "replicates_valid": 10000
+        },
+        "candidate_minus_zero_mse_bps2": {
+          "alpha": 0.008333333333333333,
+          "high": 0.00010114109342098957,
+          "low": -0.004215690633211677,
+          "point": -0.0021404637934338343,
+          "replicates_invalid": 0,
+          "replicates_requested": 10000,
+          "replicates_valid": 10000
+        }
+      },
+      "horizon_minutes": 5,
+      "scheme": "UTC_DAY",
+      "seed_sequence": [
+        20261027,
+        0
+      ],
+      "weights_sha256": "76dce3ce952315686516fe6dc9983e8c8327e1a024e82df5e3991fd4e94e5003"
+    },
+    {
+      "block_resampling_population": "all fixed later parents; masks retained within each resample",
+      "blocks": 14,
+      "confirmatory": true,
+      "contrasts": {
+        "candidate_minus_native276_auc": {
+          "alpha": 0.008333333333333333,
+          "high": 0.005526731305871742,
+          "low": -0.020244262130294167,
+          "point": -0.006198395109482724,
+          "replicates_invalid": 0,
+          "replicates_requested": 10000,
+          "replicates_valid": 10000
+        },
+        "candidate_minus_own_prefix_mean_mse_bps2": {
+          "alpha": 0.008333333333333333,
+          "high": 0.004432234858524853,
+          "low": -0.0006868830910826801,
+          "point": 0.0023067407778669317,
+          "replicates_invalid": 0,
+          "replicates_requested": 10000,
+          "replicates_valid": 10000
+        },
+        "candidate_minus_zero_mse_bps2": {
+          "alpha": 0.008333333333333333,
+          "high": -7.101731818603445e-05,
+          "low": -0.0037660174000761853,
+          "point": -0.0021404637934338343,
+          "replicates_invalid": 0,
+          "replicates_requested": 10000,
+          "replicates_valid": 10000
+        }
+      },
+      "horizon_minutes": 5,
+      "scheme": "UTC_WEEK_MONDAY",
+      "seed_sequence": [
+        20261027,
+        1
+      ],
+      "weights_sha256": "7c4be681665576f25f8edd91a220fef6011852157ae880ea8cccfc56c71cff7c"
+    }
+  ],
+  "protocol": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/COMPARISON_PROTOCOL.json",
+    "sha256": "25458f5185c55070333729eededff4d33a11dd5b1ee334e74a4358c15a928888"
+  },
+  "root_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_ACTUAL_ROOT_REVIEW_20261027_001.json",
+    "sha256": "2c50cae6ee915497584f28c6f35a5d3a857cf9934205508313defeb23aec71a0"
+  },
+  "schema_version": "gx1_signed_bps_saved_comparison_result_v1",
+  "scope": "First chronological TRAIN development split; same 47,602 prefix parents and 17,288 later parents; one pass, one seed.",
+  "status": "COMPLETE_NO_DOCUMENTED_DIRECTION_IMPROVEMENT",
+  "summary": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_ACTUAL_20261027_001/SUMMARY.json",
+    "sha256": "d6dfa7bd1648019604a6bde7ff240d01db23703a764f15f820aa9177c2522d4b"
+  },
+  "synthetic_case_count": 16
+}

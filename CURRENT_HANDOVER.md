@@ -21,14 +21,17 @@ ubrukte vinduer2–4 er lukket. Ingen privat kvalifiseringsvekt ble gjenbrukt.
 Kilde84086af8 og policy var fryst gjennom hele kjøringen på fysisk boot560.
 Modell/eier/cgroup er borte; originallåsen device78/inode35 er ledig.
 Windows-task er Disabled. Alle trenings- og launchautorisasjoner er lukket.
-BPS-treningsadgangen er lukket; videre BPS-sammenligning krever egen admisjon.
+BPS-treningsadgangen og denne sammenligningsadgangen er lukket etter konsum.
 Originale artefakter, prediksjoner og checkpoints bevares.
 
 Se docs/DIRECTION_BPS_PREFIX_FIT_RESULT_20261027.json og originale
 ACTUAL_ROOT_REVIEW.json, VERIFIED_TERMINAL.json og RUNTIME-kvitteringer.
 Root har kun kontrollert kilde, JSON, vaktlogg og prosess-/låsmetadata.
-Det foreligger ennå ingen ferdig parvis resultatsammenligning eller dokumentert
-retningsforbedring. Nyere TRAIN-fit eller teknisk COMPLETE kvalifiserer ikke edge.
+Den forhåndsbundne parvise sammenligningen er fullført på 17 288 senere
+utviklingsforeldre. Ved5min er kandidatens AUC 0,496823 mot 0,503021 for
+baseline276; korrigerte dag-/ukeintervaller for differansen omfatter null.
+BPS-MSE forbedres ikke dokumentert mot både prefiksmean og null. Ingen
+retningsforbedring er dokumentert. Se docs/DIRECTION_BPS_SAVED_COMPARISON_RESULT_20261027.json.
 
 Forutgående mekanikk er kvalifisert og konsumeres ikke på nytt:
 81 syntetiske prefiks-/vaktkontroller, 54-bindingers metadata-preflight og
@@ -38,21 +41,14 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 
 ## Neste minste steg
 
-Implementer og kvalifiser den lagrede sammenligningen som er låst i
-DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/COMPARISON_PROTOCOL.json
-før senere prediksjoner åpnes. Gjenbruk eksisterende score-/bootstrap-eiere.
-Sammenligningskoden i gx1/scripts/compare_entry_direction_signed_bps_v1.py er
-implementert. 16 syntetiske regne- og maskekontroller bestod uten datalesing.
-Én separat, avgrenset sammenligning av lagrede prediksjoner er admittért.
-Deretter fersk, avgrenset CPU-admisjon for lagrede outputs; root åpner ikke
-PT/NPZ/NPY/Parquet. Ingen ny modellforward, refit, epoke eller horisontendring.
-
-Primært senere5m bps-MSE mot egen prefiksmean og null, samt AUC5 mot uendret276,
-på identiske observasjoner. Seks forhåndsbundne, korrigerte UTC-dag-/uke-
-intervaller, 10 000 blokkreplikater, seed20261027. Rapporter alle1/5/15,
-proper scores, coverage og faste bps-bånd. Ingen terskel-/undergruppeutvalg.
-Ingen automatisk flerfoldutvidelse uten støttet senere nytte og rangering.
-En beregningshorisont er ikke en maksimal holdetid eller handelsregel.
+Undersøk årsaken til at det nye bps-tapet ikke forbedret senere5min-rangering,
+uten å velge terskel, delgruppe eller horisont etterpå. Bruk først ferdige
+aggregerte resultater og eksisterende kausale kontroller. Kandidaten spådde OPP
+på 2 024 av 17 197 kvalifiserte5min-rader; logloss var 0,693465 mot 0,692740
+for egen prior. Dette peker mot et mulig kalibreringsproblem, men forklarer ikke
+svak rangering alene. Videre ny måling krever avgrenset plan og admisjon.
+Ingen automatisk flerfoldutvidelse er autorisert. En beregningshorisont er ikke
+en maksimal holdetid eller handelsregel.
 
 ## Hva som er endret og fortsatt åpent
 
@@ -69,7 +65,8 @@ Genuin modell og eksisterende targets bruker fortsatt1/5/15.
 Ingen ekte utvidet fasit eller10/30/60-/60-outputnative er målt.
 Fasit R_h=10000*(mid(D+h)-mid(D))/mid(D), D=M5bar_start+5minutter.
 60 marginale utganger er ikke en felles prisbane eller intraminuttrekkefølge.
-Senere short krever en ny kausal beslutning. Ingen fortegnsfeil er funnet.
+Senere short krever en ny kausal beslutning. Kontroll mot native open viser
+noen null/ikke-null-avvik, men ingen snudde LONG/SHORT-fortegn på målt TRAIN.
 
 ## Beholdt årsaksevidens
 
