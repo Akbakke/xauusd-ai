@@ -61,6 +61,20 @@ _OBJECTIVE = {
 }
 _OBJECTIVE_JSON = json.dumps(_OBJECTIVE, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 _OBJECTIVE_SHA256 = hashlib.sha256(_OBJECTIVE_JSON).hexdigest()
+_BPS_OBJECTIVE = {**_OBJECTIVE,
+    "schema_version": "gx1_entry_native_direction_with_signed_bps_v1",
+    "research_objective": "observed_nonzero_direction_plus_observed_signed_midpoint_bps",
+    "head": "original_direction_Linear_plus_zero_initialized_normalized_mean_Linear",
+    "bps_head_initialization": "zero_weight_and_bias_preserving_CPU_and_active_CUDA_RNG",
+    "bps_prediction": "unbounded_normalized_mean_times_frozen_own_prefix_RMS_bps",
+    "loss": "original_direction_BCE_plus_observed_mature_signed_bps_normalized_MSE",
+    "bps_relative_weight": 1.0,
+    "bps_eligible": "observed_and_terminal_time_strictly_before_cutoff_including_zero",
+    "bps_scale": "own_prefix_float32_target_RMS_in_float64_no_center_or_fallback",
+    "bps_uncertainty_estimated": False,
+    "empty_eligible": "no_observed_mature_cells_loss_None_no_optimizer_step"}
+_BPS_OBJECTIVE_JSON = json.dumps(_BPS_OBJECTIVE, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+_BPS_OBJECTIVE_SHA256 = hashlib.sha256(_BPS_OBJECTIVE_JSON).hexdigest()
 
 
 def _require(condition: bool, reason: str) -> None:
@@ -68,9 +82,11 @@ def _require(condition: bool, reason: str) -> None:
         raise RuntimeError("NATIVE_DIRECTION_RESEARCH_" + reason)
 
 
-def native_direction_research_contract() -> dict[str, Any]:
+def native_direction_research_contract(*, signed_bps: bool = False) -> dict[str, Any]:
     """Return a copy; mutating it cannot alter the canonical research identity."""
-    return {**json.loads(_OBJECTIVE_JSON), "contract_sha256": _OBJECTIVE_SHA256}
+    _require(type(signed_bps) is bool, "OBJECTIVE_MODE")
+    raw = _BPS_OBJECTIVE_JSON if signed_bps else _OBJECTIVE_JSON
+    return {**json.loads(raw), "contract_sha256": hashlib.sha256(raw).hexdigest()}
 
 
 def _backbone_width(backbone: nn.Module) -> int:
@@ -101,24 +117,47 @@ class NativeEntryDirectionResearch(nn.Module):
     grad=None/no-update state must be checked by genuine qualification.
     """
 
-    def __init__(self, backbone: EntryV10CtxHybridTransformer):
+    def __init__(self, backbone: EntryV10CtxHybridTransformer, *, bps_scale=None):
         super().__init__()
         width = _backbone_width(backbone)
         self.backbone = backbone
         self._bound_hidden_width = width
-        self._research_contract_json = _OBJECTIVE_JSON
+        self._research_contract_json = _OBJECTIVE_JSON if bps_scale is None else _BPS_OBJECTIVE_JSON
         self.direction_head = nn.Linear(width, len(HORIZONS_MINUTES),
             device=backbone.entry_q_joint_in.weight.device, dtype=torch.float32)
         self.register_buffer("direction_horizon_minutes", torch.tensor(HORIZONS_MINUTES,
             dtype=torch.int64, device=backbone.entry_q_joint_in.weight.device))
+        if bps_scale is not None:
+            from gx1.contracts.entry_native_direction_bps_v1 import require_direction_bps_scale
+            scale = require_direction_bps_scale(bps_scale)
+            self._bps_scale_json = json.dumps(scale, sort_keys=True, separators=(",", ":"), allow_nan=False)
+            device = self.direction_head.weight.device
+            with torch.random.fork_rng(devices=[device.index] if device.type == "cuda" else []):
+                self.bps_mean_head = nn.Linear(width, 3, device=device, dtype=torch.float32)
+                nn.init.zeros_(self.bps_mean_head.weight)
+                nn.init.zeros_(self.bps_mean_head.bias)
+            self.register_buffer("bps_rms", torch.tensor(scale["rms_bps"], dtype=torch.float32, device=device))
+            self.register_buffer("bps_scale_sha256", torch.tensor(list(bytes.fromhex(scale["contract_sha256"])),
+                dtype=torch.uint8, device=device))
+
+    @property
+    def signed_bps(self) -> bool:
+        return self._research_contract_json == _BPS_OBJECTIVE_JSON
+
+    @property
+    def bps_scale(self):
+        _require(self.signed_bps, "BPS_MODE_REQUIRED")
+        return json.loads(self._bps_scale_json)
 
     @property
     def research_objective(self) -> dict[str, Any]:
-        _require(self._research_contract_json == _OBJECTIVE_JSON, "RESEARCH_OBJECTIVE_IDENTITY")
-        return native_direction_research_contract()
+        expected = _BPS_OBJECTIVE_JSON if self.signed_bps else _OBJECTIVE_JSON
+        _require(self._research_contract_json == expected, "RESEARCH_OBJECTIVE_IDENTITY")
+        return native_direction_research_contract(signed_bps=self.signed_bps)
 
     def _require_binding(self) -> None:
-        _require(self._research_contract_json == _OBJECTIVE_JSON, "RESEARCH_OBJECTIVE_IDENTITY")
+        expected = _BPS_OBJECTIVE_JSON if self.signed_bps else _OBJECTIVE_JSON
+        _require(self._research_contract_json == expected, "RESEARCH_OBJECTIVE_IDENTITY")
         width = _backbone_width(self.backbone)
         _require(type(self._bound_hidden_width) is int and self._bound_hidden_width == width, "BOUND_HIDDEN_WIDTH")
         head = self.direction_head
@@ -131,6 +170,24 @@ class NativeEntryDirectionResearch(nn.Module):
         _require(isinstance(horizons, torch.Tensor) and horizons.dtype == torch.int64
             and tuple(horizons.shape) == (3,) and horizons.device == head.weight.device
             and torch.equal(horizons, torch.tensor(HORIZONS_MINUTES, dtype=torch.int64, device=horizons.device)), "HORIZON_IDENTITY")
+        if self.signed_bps:
+            from gx1.contracts.entry_native_direction_bps_v1 import require_direction_bps_scale
+            scale = require_direction_bps_scale(self.bps_scale)
+            mean = self.bps_mean_head
+            _require(type(mean) is nn.Linear and mean.in_features == width and mean.out_features == 3
+                and mean.bias is not None and mean.weight.shape == head.weight.shape
+                and mean.bias.shape == head.bias.shape and mean.weight.dtype == mean.bias.dtype == torch.float32
+                and mean.weight.device == mean.bias.device == head.weight.device
+                and bool(torch.isfinite(mean.weight).all()) and bool(torch.isfinite(mean.bias).all()), "BPS_HEAD")
+            _require(self.bps_rms.dtype == torch.float32 and self.bps_rms.device == head.weight.device
+                and not self.bps_rms.requires_grad
+                and torch.equal(self.bps_rms, torch.tensor(scale["rms_bps"], dtype=torch.float32, device=head.weight.device))
+                and self.bps_scale_sha256.dtype == torch.uint8 and self.bps_scale_sha256.device == head.weight.device
+                and torch.equal(self.bps_scale_sha256, torch.tensor(list(bytes.fromhex(scale["contract_sha256"])),
+                    dtype=torch.uint8, device=head.weight.device)), "BPS_SCALE_BINDING")
+        else:
+            _require(not any(hasattr(self, name) for name in ("bps_mean_head", "bps_rms", "bps_scale_sha256", "_bps_scale_json")),
+                "BASELINE_HAS_BPS_STATE")
 
     def forward(
         self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,
@@ -157,7 +214,13 @@ class NativeEntryDirectionResearch(nn.Module):
         _require(logits.dtype == torch.float32 and tuple(logits.shape) == (seq_x.shape[0], 3)
             and bool(torch.isfinite(logits).all()), "FINITE_LOGITS")
         # Legacy curve/forecast outputs leave scope; they are not research predictions.
-        return {"logit_up": logits, "horizons_minutes": HORIZONS_MINUTES}
+        result = {"logit_up": logits, "horizons_minutes": HORIZONS_MINUTES}
+        if self.signed_bps:
+            mean_bps = self.bps_mean_head(hidden) * self.bps_rms
+            _require(mean_bps.dtype == torch.float32 and mean_bps.shape == logits.shape
+                and bool(torch.isfinite(mean_bps).all()), "FINITE_BPS_MEAN")
+            result["mean_return_bps"] = mean_bps
+        return result
 
 
 def native_direction_binary_loss(

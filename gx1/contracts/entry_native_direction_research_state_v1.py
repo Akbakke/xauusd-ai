@@ -24,7 +24,7 @@ SCHEMA_VERSION = 'gx1_native_direction_research_state_v1'
 INACTIVE_PREFIXES = ('backbone.head_', 'backbone.dynamic_m5_query_projection.',
     'backbone.task_log_variances.', 'backbone.entry_decision_token.', 'backbone.exit_')
 IMMUTABLE_BUFFER_NAMES = frozenset(('backbone.gc_mtf_layout_sha256', 'backbone.gc_mtf_normalization_sha256',
-    'backbone.entry_execution_profile_contract_sha256', 'direction_horizon_minutes'))
+    'backbone.entry_execution_profile_contract_sha256', 'direction_horizon_minutes', 'bps_rms', 'bps_scale_sha256'))
 IMMUTABLE_BUFFER_PREFIXES = ('backbone.input_norm_', 'backbone.gc_mtf_specialist_idx_')
 STATE_KEYS = frozenset(('schema_version', 'binding', 'model_state', 'buffer_state', 'optimizer_state',
     'rng_state', 'module_training', 'parent_order', 'cursor', 'optimizer_updates', 'model_state_sha256',
@@ -45,7 +45,7 @@ def _view(model, expected):
     value = getattr(model, 'feature_view_identity', None)
     _require(isinstance(value, Mapping) and set(value) == {'contract_sha256', 'prefix_normalization',
         'research_objective_sha256'} and value == expected, 'VIEW_IDENTITY')
-    _require(value['research_objective_sha256'] == native_direction_research_contract()['contract_sha256'], 'OBJECTIVE_IDENTITY')
+    _require(value['research_objective_sha256'] == model.research_objective['contract_sha256'], 'OBJECTIVE_IDENTITY')
     prefix = value['prefix_normalization']
     _require(isinstance(prefix, Mapping) and set(prefix) == {'binding', 'contract_sha256', 'base_sha256',
         'gc_layout_sha256', 'gc_normalization_sha256', 'qualification_sha256'}, 'PREFIX_IDENTITY')
@@ -83,6 +83,7 @@ def _kwargs(recipe):
 
 def _binding(model, optimizer, recipe, feature_view_identity):
     pairs, active, inactive = _parameters(model)
+    _require(recipe['research_objective_sha256'] == model.research_objective['contract_sha256'], 'RECIPE_OBJECTIVE')
     _require(all(p.requires_grad for _, p in active) and all(not p.requires_grad for _, p in inactive), 'REQUIRES_GRAD_PARTITION')
     _require(type(optimizer) is torch.optim.AdamW and _tree_sha(optimizer.defaults) == _tree_sha(_kwargs(recipe))
         and len(optimizer.param_groups) == 1, 'OPTIMIZER_TYPE_DEFAULTS')
@@ -93,6 +94,7 @@ def _binding(model, optimizer, recipe, feature_view_identity):
     return _sealed({'schema_version': 'gx1_native_direction_research_optimizer_binding_v1',
         'recipe': recipe, 'feature_view_identity': _view(model, feature_view_identity),
         'research_objective': model.research_objective,
+        **({'bps_scale_contract_sha256':model.bps_scale['contract_sha256']} if model.signed_bps else {}),
         'active_parameter_names': [name for name, _ in active],
         'inactive_parameter_names': [name for name, _ in inactive],
         'parameter_inventory': [{'name': name, 'shape': list(p.shape), 'dtype': str(p.dtype)} for name, p in pairs],
@@ -108,6 +110,7 @@ def build_native_direction_research_optimizer(model, *, recipe):
     This builder neither seeds nor changes model modes/numerical policy.
     """
     recipe = require_native_direction_research_recipe(recipe)
+    _require(recipe['research_objective_sha256'] == model.research_objective['contract_sha256'], 'RECIPE_OBJECTIVE')
     _no_partial_gradients(model)
     pairs, active, inactive = _parameters(model)
     _require(float(trainer._GRAD_CLIP_NORM) == recipe['grad_clip_norm'], 'CANONICAL_GRAD_CLIP')

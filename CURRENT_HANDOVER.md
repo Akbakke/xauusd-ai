@@ -12,6 +12,17 @@ Programrot:
 
 ## Aktuell status
 
+Bps-supervisjon er implementert som opt-in i eksisterende native retningsrute,
+men ennå ikke kvalifisert. DIRECTION_BPS_SUPERVISION_SYNTHETIC_PLAN_001 er
+engangsadmittért for 144 syntetiske kontroller. Kilde og policy fryses ved commit.
+CPU audit 4G/512M, én tråd, 64 tasks, 180 s worker / 210 s outer.
+Syntetiske heads/gradienter/AdamW/resume og filrundtur er tillatt i eget output;
+ingen ekte payloads, full native-konstruksjon/forward eller trening er tillatt.
+Bps-head er initialt null med bevart RNG; den deler udetechet native hidden.
+Skala er egen prefiks-RMS; nuller deltar i bps-loss. Original BCE er default.
+Måltilførsel, modell, loss, recipe, feature-view, state og rapport er koblet.
+Ingen ny horisont/epokeendring eller genuin kjøring er admittért.
+
 DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002 er COMPLETE/claimed/consumed.
 Original worker og capped outer avsluttet med exit 0. Alle 36 fokuserte
 syntetiske tester bestod; worker 4,612 s, outer 5,124 s. Kilde og policy var
@@ -128,7 +139,8 @@ Minste kandidat er tre betingede middelverdiutganger i bps fra samme hidden,
 med prefiksfryst RMS-normalisert kvadratfeil i tillegg til uendret BCE.
 Konkrete formel, masker, gradientkontroller, initialisering, referanser og
 stopp står i docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json.
-Dette er neste design, ikke implementert eller numerisk admittért.
+Dette er nå implementert som opt-in; syntetisk kontroll er admittért.
+Genuin baseline/gradient/resume-kvalifisering og sammenligning gjenstår.
 Middelverdi er ikke et usikkerhetsmål eller en handelsbeslutning.
 Kvadratfeil kan overvekte sjeldne store feil; de faste bps-båndene rapporteres,
 men brukes ikke til etterpåvalgte filtre eller et nytt terskelsøk.

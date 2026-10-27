@@ -708,5 +708,23 @@
       "sha256": "721d64e9ce17ffe44d8d7fea19d1dfac2fe73bcd59f988d5a49767bdc12c4cfc"
     },
     "status": "36synthetic endpoint cases passed; target projector supports1..60. Native outputs/loss remain1/5/15sign-only; genuine extension not materialized."
+  },
+  "bps_supervision_source_preparation": {
+    "status": "IMPLEMENTED_SYNTHETIC_QUALIFICATION_PENDING",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SOURCE_DESIGN_001.json",
+      "sha256": "c5c6399437d3e9e78ff64178b4335e2ead05103ca442dafa130e4dff6dd21b94"
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SOURCE_ADMISSION_001.json",
+      "sha256": "a3c6a9f15a497e982b0f7bbbee3b8ff4b1775e3d95a3e176d8b571d43ccdbdec"
+    },
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_PLAN_001.json",
+      "sha256": "5fa338fd994a1595af38b76b457e190254b65eaa51cb0ad0e9f452acf1f1885a"
+    },
+    "scope": "Opt-in three signed-bps means from unchanged shared hidden; target ingress, own-prefix RMS, joint loss, state and reports connected. Default baseline unchanged. No genuine qualification or fit.",
+    "genuine_training_authorized": false,
+    "direction_improvement_measured": false
   }
 }

@@ -74,7 +74,7 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None):
         'info':info,'fitted':fitted,'constructor':constructor}
 
 
-def _qualify_axes_targets(axes, targets, fold, np):
+def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False):
     parents,starts,decisions=(axes[k] for k in ('parent_rows','bar_start_ns','decision_ns'))
     size=len(parents)
     _require(size==118249 and parents.dtype==starts.dtype==decisions.dtype==np.int64
@@ -84,13 +84,18 @@ def _qualify_axes_targets(axes, targets, fold, np):
     _require(int(np.searchsorted(decisions,fold['train_cutoff_ns'],side='left'))==fold['prefix_rows']
         and fold['oof_start_row']==fold['prefix_rows']
         and int(np.searchsorted(decisions,fold['oof_cutoff_ns'],side='left'))==fold['oof_end_row'],'FOLD_CLOCK_AND_ROW_COHORT')
-    _require(set(targets)==set(TARGET_MEMBERS) and targets['terminal_time_ns'].dtype==np.int64
+    _require(set(targets)==set(TARGET_MEMBERS + (('mid_return_bps',) if signed_bps else ())) and targets['terminal_time_ns'].dtype==np.int64
         and targets['terminal_time_ns'].shape==(size,3) and targets['observed'].dtype==np.bool_
         and targets['observed'].shape==(size,3) and targets['sign'].dtype==np.int8 and targets['sign'].shape==(size,3),
         'TARGET_HEADERS')
     _require(np.all(decisions>0) and np.all(decisions<=np.iinfo(np.int64).max-15*MINUTE_NS)
         and np.array_equal(targets['terminal_time_ns'],decisions[:,None]+np.asarray([1,5,15],np.int64)[None,:]*MINUTE_NS)
         and np.isin(targets['sign'],(-1,0,1)).all() and np.all(targets['sign'][~targets['observed']]==0),'TARGET_CLOCK_AND_DOMAIN')
+    if signed_bps:
+        value=targets['mid_return_bps']
+        _require(value.dtype==np.float64 and value.shape==(size,3) and np.isfinite(value).all()
+            and np.all(value[~targets['observed']]==0)
+            and np.array_equal(np.sign(value).astype(np.int8),targets['sign']),'BPS_TARGET_DOMAIN')
 
 
 def _fixed_order(parents, prefix_rows, seed, np):
@@ -98,7 +103,14 @@ def _fixed_order(parents, prefix_rows, seed, np):
     return np.ascontiguousarray(parents[:prefix_rows][np.random.RandomState(seed).permutation(prefix_rows)],dtype=np.int64)
 
 
-def _prepare(context, launch, np):
+def _select_price_targets(archive, *, signed_bps=False):
+    _require(type(signed_bps) is bool,'OBJECTIVE_MODE')
+    _require(archive.files==list(PRICE_MEMBERS),'EXACT_ELEVEN_ARCHIVE_NAMES')
+    members=TARGET_MEMBERS + (('mid_return_bps',) if signed_bps else ())
+    return {key:archive[key] for key in members}
+
+
+def _prepare(context, launch, np, *, signed_bps=False):
     from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
     from gx1.contracts import entry_native_direction_context_report_v1 as report_owner
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
@@ -111,15 +123,21 @@ def _prepare(context, launch, np):
         and prepared['gc']['transition']==common._read(manifest['view_source_bindings']['raw_gc_transition'],info['metadata']),
         'CURRENT_QUALIFIED_RAW_GC_DOMAIN')
     with np.load(manifest['targets']['path'],allow_pickle=False) as archive:
-        _require(archive.files==list(PRICE_MEMBERS),'EXACT_ELEVEN_ARCHIVE_NAMES')
-        targets={key:archive[key] for key in TARGET_MEMBERS}
-    _qualify_axes_targets(prepared['arrays'],targets,launch['fold'],np)
+        targets=_select_price_targets(archive,signed_bps=signed_bps)
+    _qualify_axes_targets(prepared['arrays'],targets,launch['fold'],np,signed_bps=signed_bps)
+    bps_scale=None
+    if signed_bps:
+        from gx1.contracts.entry_native_direction_bps_v1 import fit_direction_bps_scale
+        n=launch['fold']['prefix_rows']
+        bps_scale=fit_direction_bps_scale(parent_rows=prepared['arrays']['parent_rows'][:n],
+            decision_ns=prepared['arrays']['decision_ns'][:n], **{key:value[:n] for key,value in targets.items()},
+            cutoff_ns=launch['fold']['train_cutoff_ns'],target_source=manifest['targets'],fit_partition='train')
     for value in prepared['arrays'].values():value.setflags(write=False)
     for value in targets.values():value.setflags(write=False)
     for key in ('times_ns','sample_positions'):prepared['entry_sequence_source'][key].setflags(write=False)
     view=view_owner.bind_native_direction_feature_view(prefix_normalization=context['fitted'],
         prefix_normalization_ref=manifest['prefix_normalization']['output'],constructor_metadata=context['constructor'],
-        constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=manifest['view_source_bindings'],max_batch_rows=BATCH_SIZE)
+        constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=manifest['view_source_bindings'],max_batch_rows=BATCH_SIZE,bps_scale=bps_scale)
     context_map=report_owner.native_direction_context_map(gc_layout=prepared['gc']['layout'],
         mtf_field_names=context['fitted']['base_normalization']['surfaces']['mtf_m5']['field_names'])
     order=_fixed_order(prepared['arrays']['parent_rows'],launch['fold']['prefix_rows'],SEED,np)
@@ -154,7 +172,7 @@ def _prefix_prior(axes, targets, fold, np):
         'scope':'own mature observed nonzero prefix labels; no weights fit or OOF use'}
 
 
-def _forward(model, features, *, kind, counters, ceiling, torch, grad=False):
+def _forward(model, features, *, kind, counters, ceiling, torch, grad=False, return_outputs=False):
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as hybrid
     counters['forward_calls']+=1;counters['forward_kind_calls'][kind]=counters['forward_kind_calls'].get(kind,0)+1
@@ -163,7 +181,7 @@ def _forward(model, features, *, kind, counters, ceiling, torch, grad=False):
         _require(not torch.backends.mha.get_fastpath_enabled() and not hybrid._BATCH_EQUAL_LENGTH_MTF_EVAL.get(),'CANONICAL_FP32_MHA')
         output=trainer._model_forward_fp32(model,**features)
     counters['forward_returns']+=1
-    return output['logit_up']
+    return output if return_outputs else output['logit_up']
 
 
 def _online_identity(model, device, tree_sha, trainer):
@@ -177,7 +195,8 @@ def _evaluate(model, prepared, targets, view, context_map, selected, *, cutoff, 
     from gx1.contracts import entry_native_direction_context_report_v1 as reporter
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     before=_online_identity(model,device,tree_sha,trainer);modes=[(module,module.training) for module in model.modules()]
-    predictions=[];tags=[];decisions=[];sign=[];observed=[];terminal=[];starts=[];completed=0;parity_passed=not parity;context_header=None
+    signed_bps=getattr(model,'signed_bps',False)
+    predictions=[];bps_predictions=[];bps_targets=[];tags=[];decisions=[];sign=[];observed=[];terminal=[];starts=[];completed=0;parity_passed=not parity;context_header=None
     _require(all(p.grad is None for p in model.parameters()),'EVAL_PARTIAL_GRADIENT')
     try:
         model.eval()
@@ -191,16 +210,23 @@ def _evaluate(model, prepared, targets, view, context_map, selected, *, cutoff, 
             _require(np.array_equal(context['parent_rows'],ids) and np.array_equal(context['decision_ns'],target['decision_ns']),
                 'REPORT_CONTEXT_EXACT_INPUT_JOIN')
             features,_unused=_device_batch(raw,target,torch,device)
-            logits=_forward(model,features,kind=kind,counters=counters,ceiling=ceiling,torch=torch)
+            outputs=(_forward(model,features,kind=kind,counters=counters,ceiling=ceiling,torch=torch,return_outputs=True)
+                if signed_bps else {'logit_up':_forward(model,features,kind=kind,counters=counters,ceiling=ceiling,torch=torch)})
+            logits=outputs['logit_up']
+            if signed_bps:
+                bps_predictions.append(outputs['mean_return_bps'].detach().cpu().numpy().copy())
+                bps_targets.append(target['mid_return_bps'])
             if parity and left==0:
-                with_grad=_forward(model,features,kind='INITIAL_PARITY_GRAD',counters=counters,ceiling=ceiling,torch=torch,grad=True)
-                _require(torch.equal(logits.detach(),with_grad.detach()) and all(p.grad is None for p in model.parameters()),
+                with_grad=(_forward(model,features,kind='INITIAL_PARITY_GRAD',counters=counters,ceiling=ceiling,torch=torch,grad=True,return_outputs=True)
+                    if signed_bps else {'logit_up':_forward(model,features,kind='INITIAL_PARITY_GRAD',counters=counters,ceiling=ceiling,torch=torch,grad=True)})
+                _require(set(outputs)==set(with_grad)
+                    and all(torch.equal(outputs[k].detach(),with_grad[k].detach()) for k in outputs if k!='horizons_minutes') and all(p.grad is None for p in model.parameters()),
                     'OWN_INITIAL_GRAD_NOGRAD_LOGIT_PARITY')
                 del with_grad;parity_passed=True
             predictions.append(logits.detach().cpu().numpy().copy());tags.append(context['tags'])
             decisions.append(target['decision_ns']);sign.append(target['sign']);observed.append(target['observed']);terminal.append(target['terminal_time_ns'])
             starts.append(np.asarray(raw['witness']['bar_start_ns'],np.int64));completed+=len(ids)
-            del logits,features,_unused,raw,target,context
+            del logits,outputs,features,_unused,raw,target,context
     finally:
         for module,training in modes:module.training=training
         _require(_online_identity(model,device,tree_sha,trainer)==before and all(p.grad is None for p in model.parameters()),
@@ -214,6 +240,12 @@ def _evaluate(model, prepared, targets, view, context_map, selected, *, cutoff, 
         'decision_ns':arrays['decision_ns'],'tags':tag_arrays}
     report=reporter.score_native_direction_logits(arrays['logit_up'],sign=arrays['sign'],observed=arrays['observed'],
         decision_ns=arrays['decision_ns'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff,context_tags=context)
+    if signed_bps:
+        from gx1.contracts.entry_native_direction_bps_v1 import score_direction_bps
+        arrays['mean_return_bps']=np.concatenate(bps_predictions)
+        arrays['mid_return_bps']=np.concatenate(bps_targets)
+        report['signed_bps']=score_direction_bps(arrays['mean_return_bps'],mid_return_bps=arrays['mid_return_bps'],
+            observed=arrays['observed'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff,scale=model.bps_scale)
     arrays.update({'context__'+key:value for key,value in tag_arrays.items()})
     return {'arrays':arrays,'report':report,'context_tags':context,'state_preservation':before,'initial_parity_passed':parity_passed},completed
 
@@ -247,7 +279,7 @@ def _publish_measurement(name, measured, *, output, view, prior, own_initial_sta
     prior_report=score_native_direction_logits(prior_logits,sign=arrays['sign'],observed=arrays['observed'],
         decision_ns=arrays['decision_ns'],terminal_time_ns=arrays['terminal_time_ns'],
         cutoff_ns=launch['fold']['train_cutoff_ns'] if name!='OOF' else launch['fold']['oof_cutoff_ns'],context_tags=measured['context_tags'])
-    return common._json(output/(name+'.json'),{'schema_version':'gx1_native_direction_prefix_measurement_v1',
+    return common._json(output/(name+'.json'),{'schema_version':'gx1_native_direction_bps_prefix_measurement_v1' if 'mean_return_bps' in arrays else 'gx1_native_direction_prefix_measurement_v1',
         'role':name,'fold':launch['fold'],'feature_view_identity':view,'context_map':context_map,
         'predictions':prediction,'model_metrics':measured['report'],'own_prefix_prior':prior,'prior_metrics':prior_report,
         'own_initial_state':own_initial_state,'fresh_identity_sha256':fresh_identity,'preservation':measured['state_preservation'],
@@ -260,8 +292,12 @@ def _gradient_summary(model, torch):
     _require(all(p.grad is None for p in model.parameters() if not p.requires_grad),'INACTIVE_GRADIENT')
     _require(all(p.grad is None or bool(torch.isfinite(p.grad).all()) for p in model.parameters()),'FINITE_GRADIENT')
     head=model.direction_head
-    out={'head_weight_rows':[int(torch.count_nonzero(row)) for row in head.weight.grad],
-        'head_bias_rows':[int(value!=0) for value in head.bias.grad]}
+    out={'head_weight_rows':[int(torch.count_nonzero(row)) for row in head.weight.grad] if head.weight.grad is not None else [0]*3,
+        'head_bias_rows':[int(value!=0) for value in head.bias.grad] if head.bias.grad is not None else [0]*3}
+    if getattr(model,'signed_bps',False):
+        mean=model.bps_mean_head
+        out['bps_head_weight_rows']=[int(torch.count_nonzero(row)) for row in mean.weight.grad] if mean.weight.grad is not None else [0]*3
+        out['bps_head_bias_rows']=[int(value!=0) for value in mean.bias.grad] if mean.bias.grad is not None else [0]*3
     for tf in ('m5','m15','h1','h4','d1'):
         for label,modules in (('gc_projection',model.backbone.gc_mtf_family_proj),('gc_gate',model.backbone.gc_mtf_feature_context_gate)):
             out[label+'_'+tf]=sum(int(torch.count_nonzero(p.grad)) for key in modules if key.startswith(tf+'__')
@@ -273,9 +309,21 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
     from gx1.contracts.entry_native_direction_research_v1 import native_direction_binary_loss
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     _require(model.training and all(module.training for module in model.modules()),'TRAIN_MODE')
-    logits=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True)
-    loss=native_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
+    signed_bps=getattr(model,'signed_bps',False)
+    if signed_bps:
+        outputs=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True,return_outputs=True)
+        from gx1.contracts.entry_native_direction_bps_v1 import native_direction_bps_loss
+        loss=native_direction_bps_loss(outputs['logit_up'],outputs['mean_return_bps'],
+            rms_bps=model.bps_rms,**target,cutoff_ns=cutoff)
+    else:
+        logits=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True)
+        loss=native_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
     record={'eligible_cells':loss['counts']['eligible_cells'],'counts':loss['counts'],'per_horizon_counts':loss['per_horizon_counts']}
+    if signed_bps:
+        record['bps_eligible_cells']=loss['bps_eligible_cells']
+        record['bps_per_horizon_counts']=loss['bps_per_horizon_counts']
+        for key in ('direction_loss','bps_loss','bps_raw_sse','bps_normalized_sse'):
+            record[key]=None if loss[key] is None else float(loss[key].detach())
     if not loss['update_allowed']:
         _require(loss['loss'] is None and all(p.grad is None for p in model.parameters()),'EMPTY_BATCH_NO_UPDATE')
         counters['empty_batches']+=1;return record,False
@@ -348,7 +396,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     previous_profile=sys.getprofile()
     try:
         sys.setprofile(common._deny_legacy_work(previous_profile,counters))
-        prepared,targets,view,context_map,ordered=_prepare(context,launch,np)
+        prepared,targets,view,context_map,ordered=_prepare(context,launch,np,signed_bps=recipe.get('signed_bps_supervision',False))
         order=torch.from_numpy(ordered.copy());order_sha=tree_sha(order)
         prior=_prefix_prior(prepared['arrays'],targets,fold,np)
         if number>1:

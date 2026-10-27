@@ -395,7 +395,7 @@ NATIVE_DIRECTION_RESEARCH_RECIPE_ORIGINS = [{'path': '/home/andre2/GX1_RUNS/NATI
 NATIVE_DIRECTION_RESEARCH_ADAMW_OWNERS = {'torch/optim/adamw.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/adamw.py', 'sha256': 'e680a255db9c53c4248a55f414b7af9aab90bb672312ac960bb459903a161c1d'}, 'torch/optim/optimizer.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/optimizer.py', 'sha256': '354f41f784630a031195509d6b65bd5faaaa7a92402102c3b4c50423082e7ec9'}, 'torch/utils/_foreach_utils.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py', 'sha256': '723a4e8aea24cb778a260e36a7986f44807ea0fd728ec81bae98bc2dec88c901'}, 'torch/version.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/version.py', 'sha256': 'fb37823f3a4c3c29cd008fac7d3ce5aeb8e7da6f883b17aa9ea6d73ce6eecbfd'}}
 
 
-def native_direction_research_recipe(*, batch_size: int, max_updates: int) -> dict[str, Any]:
+def native_direction_research_recipe(*, batch_size: int, max_updates: int, signed_bps: bool = False) -> dict[str, Any]:
     """Explicit ONLINE/BCE research controls; never a native launch recipe.
 
     LR/WD/clip/seed/precision are the bound229/231 controls. EMA and scheduler
@@ -408,7 +408,7 @@ def native_direction_research_recipe(*, batch_size: int, max_updates: int) -> di
     from gx1.contracts.entry_native_direction_research_v1 import native_direction_research_contract
     value = {
         'schema_version': 'gx1_native_direction_research_recipe_v1',
-        'research_objective_sha256': native_direction_research_contract()['contract_sha256'],
+        'research_objective_sha256': native_direction_research_contract(signed_bps=signed_bps)['contract_sha256'],
         'batch_size': batch_size, 'max_updates': max_updates, 'grad_accum_steps': 1,
         'grad_clip_norm': 1.0, 'seed': 20260911, 'precision_policy': 'deterministic_fp32',
         'weight_ema': '0.0', 'lr_cosine_decay': '0',
@@ -420,6 +420,8 @@ def native_direction_research_recipe(*, batch_size: int, max_updates: int) -> di
         'installed_adamw_runtime_owners': json.loads(json.dumps(NATIVE_DIRECTION_RESEARCH_ADAMW_OWNERS)),
         'predictions': 'ONLINE', 'genuine_updates_authorized': False, 'native_launch_authorized': False,
     }
+    if signed_bps:
+        value['signed_bps_supervision'] = True
     value['contract_sha256'] = hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'),
         ensure_ascii=True, allow_nan=False).encode()).hexdigest()
     return value
@@ -428,7 +430,8 @@ def native_direction_research_recipe(*, batch_size: int, max_updates: int) -> di
 def require_native_direction_research_recipe(value: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_MAPPING')
-    expected = native_direction_research_recipe(batch_size=value.get('batch_size'), max_updates=value.get('max_updates'))
+    expected = native_direction_research_recipe(batch_size=value.get('batch_size'), max_updates=value.get('max_updates'),
+        signed_bps=value.get('signed_bps_supervision', False))
     if json.dumps(dict(value), sort_keys=True, separators=(',', ':'), allow_nan=False) != json.dumps(expected, sort_keys=True, separators=(',', ':'), allow_nan=False):
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_MISMATCH')
     return expected
