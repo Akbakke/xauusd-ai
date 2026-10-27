@@ -353,6 +353,12 @@ Aritmetikk-/kildekontroll uten uavhengig rådatareplay:
 Engangsscope er konsumert; ingen fit, modellendring, nye modellindikatorer,
 CONTROL, TEST, Exit eller broker.
 
+En separat uavhengig engangskontroll er admittért for volumgyldig M1-/M5-
+kontroll: alternativ join, separate ukjente sider og fysisk replikering av
+alle 4096 parrede blokkresamples. Samme utforskende fold og populasjon, uten
+fit, modell, nye indikatorer, CONTROL, TEST, Exit eller broker. Status:
+`independent_direction_last_m1_trade_count_volume_verify_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
