@@ -196,6 +196,13 @@ matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
 CONTROL, Exit, broker, ordre, spending eller promotion er åpnet. Målet er aktivt.
 
+Et konkret 1-mot-3-pass design står i
+`docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json`. Det gjenbruker terminal276
+og foreslår to pass med samme data, rekkefølge, AdamW og RNG. Eksisterende
+énpass-state/cursor kan ikke representere dette; passbevisst tilstand og resume
+må kvalifiseres uten å svekke gammel kontrakt. Designet åpner ikke kode,
+checkpoint, modell eller trening.
+
 ## Bps-hodets separate retningsrangering
 
 Begge tidligere lagrede bps-sammenligninger beregnet retnings-AUC fra

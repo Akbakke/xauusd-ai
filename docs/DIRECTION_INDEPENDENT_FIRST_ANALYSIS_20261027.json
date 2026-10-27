@@ -58,6 +58,10 @@
     "whole_prefix_aggregate_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_AGGREGATE_DIAGNOSIS_001.json",
       "sha256": "0beb6cb9f234e46ed2e2e35d3b4313dbf645ee5b67a3450dc454fdc097361ff2"
+    },
+    "matched_exposure_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
+      "sha256": "d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01"
     }
   },
   "execution_authorized_by_report": false,
@@ -166,7 +170,7 @@
     {
       "action": "If still justified, separately predeclare unchanged-sign1pass versus additional exposure. Preserve same unique order per pass, original lastB2, Adam/RNG and existing hardware guards. No bps or feature factor mixed in.",
       "priority": 3,
-      "status": "NOT_ADMITTED_CHECK_MATCHED_EXISTING_EXPOSURE_FIRST"
+      "status": "DESIGN_ONLY_EXISTING_ONE_PASS_CURSOR_BLOCKS_CONTINUATION"
     },
     {
       "action": "Consider a new input field or path-quality supervision only as a separate fixed comparison after the compact learning diagnosis.",
@@ -177,7 +181,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T20:16:28.403341+00:00",
+  "updated_utc": "2026-10-27T20:22:59.424945+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

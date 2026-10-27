@@ -1,0 +1,149 @@
+{
+  "authority": {
+    "broker_live_paper_orders": false,
+    "genuine_checkpoint_reads_authorized": false,
+    "genuine_model_calls_authorized": false,
+    "optimizer_steps_authorized": false,
+    "promotion": false,
+    "source_edits_authorized_by_this_document": false,
+    "spending": false,
+    "test": false,
+    "training_enabled": false
+  },
+  "created_utc": "2026-10-27T20:22:59.381521+00:00",
+  "deferred": [
+    "Fresh M1 GC augmentation is deferred by compact-input-first.",
+    "A new LONG/SHORT/FLAT path-quality objective requires a separate matched design.",
+    "No HPO or extra epochs beyond this exact experiment."
+  ],
+  "evaluation": {
+    "later_development": "Fixed 3-pass versus saved 1-pass276 OOF on the same 17288 later parents; five-minute primary, 1/15 secondary; no new fit or threshold selection.",
+    "limitations": "One repeatedly used development fold; a positive result is not untouched TEST, FLAT/path quality or net economic edge.",
+    "primary_rule": "Paired day/week block intervals for AUC3-minus1, logloss3-minus1 and Brier3-minus1; family correction across six intervals, no undefined draws and all six must favor the stated direction.",
+    "train": "Fixed 3-pass terminal versus saved 1-pass final and fixed prefix prevalence on the same 47602 TRAIN parents."
+  },
+  "evidence": {
+    "baseline_input_manifest": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/INPUT_MANIFEST.json",
+      "sha256": "befabac7ebff4e5e8b6233b299b2fc8f03b87b94d99bc7ec4d43b0fb76f9246f"
+    },
+    "baseline_oof_expected": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/OOF.json",
+      "sha256": "76cf81ac015abe30e9c1d27d3e837ee477a83703d6775cc518c6100662ca395f"
+    },
+    "baseline_recipe": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RECIPE.json",
+      "sha256": "8ba298a148af3b923c7b4a567f98bf8ddd2eaef1e4eeb5144e2a785e9f9e2d93"
+    },
+    "baseline_terminal_state_expected": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/states/w0002_TERMINAL_u002976_p047602.pt",
+      "sha256": "be9e9a54851085c6719f03a29d958f7c83b470236a0fc5ae5801c1bdd543af29"
+    },
+    "baseline_terminal_window": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/RESULT.json",
+      "sha256": "af6dcf99a393199cd86f2ab99c267e6c7c21338fa06d21aae7a87d65b93edfeb"
+    },
+    "baseline_train_window": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "889103d6a81cf725e7ee4e676c0ecf294774dd6eacd7af44b77f9ab871441912"
+    },
+    "diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_AGGREGATE_DIAGNOSIS_001.json",
+      "sha256": "0beb6cb9f234e46ed2e2e35d3b4313dbf645ee5b67a3450dc454fdc097361ff2"
+    },
+    "independent_replay": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_VERIFY_001/RESULT.json",
+      "sha256": "c5df54350f2ef39c08014252f46914f3446e3f2704363f8691180738e966e236"
+    },
+    "whole_prefix_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_COMPARISON_001/RESULT.json",
+      "sha256": "25183b69807753897028f8c611c6302b26861c6b3d3972910bba1653d20faa5e"
+    }
+  },
+  "fixed_factor": {
+    "additional_optimizer_steps": 5952,
+    "additional_passes": 2,
+    "batch_size": 16,
+    "ema_scheduler": "The original research recipe creates no EMA, scheduler or target model.",
+    "input_profile": "Original compact276 and existing GC M5/M15/H1/H4/D1; no added indicators.",
+    "last_batch_rows": 2,
+    "normalization": "Original prefix267 frozen normalization; no refit.",
+    "one_pass": "Reuse original276 terminal at 2976 updates; no rerun.",
+    "optimizer": "Preserve AdamW moments and groups, lr 0.0001, weight decay 0.0001, full RNG and module modes; no reset.",
+    "order": "Repeat original RandomState(20260911) prefix permutation; exactly once per parent per pass.",
+    "rows_per_pass": 47602,
+    "target": "Original245 observed/mature/nonzero endpoint sign; horizons 1,5,15 minutes; no bps supervision.",
+    "three_pass": "Continue two more passes from the original terminal state; total 8928 optimizer updates.",
+    "updates_per_pass": 2976
+  },
+  "hardware_and_timing": {
+    "elapsed_expectation": "Several hours for two passes, full fixed-state TRAIN and later evaluations, tests and restarts; no reliable ETA.",
+    "fresh_physical_boot": "before each native invocation after machine-wide idle proof",
+    "memory_max_bytes": 21474836480,
+    "native_window_seconds": 12000,
+    "observed_old_train_record_interval_seconds": 9018.046314954758,
+    "observed_old_window_seconds": 12007.749400724,
+    "old_window_scope": "2976 updates plus 976 OOF forwards and diagnostics; not pure training time.",
+    "one_heavy_job": true,
+    "record_interval_basis": "Historical initial/final file mtimes including diagnostic overhead; not a runtime guarantee.",
+    "runner": "scripts/gx1_capped_run.sh",
+    "signed_host_guard": "unchanged",
+    "swap_max_bytes": 536870912
+  },
+  "known_implementation_blocker": {
+    "implication": "A separate opt-in pass-aware state and cursor is needed; never reset Adam/RNG, relaunch old plans, fake unique IDs or weaken the existing contract.",
+    "minimum_candidate": "Preserve old path/schema; add a sealed pass-aware state and qualified exact migration of original terminal state, using existing native loader, loss, capped campaign and guards.",
+    "one_pass_recipe": "Existing prefix campaign accepts train_passes=1 and max_updates=2976 only.",
+    "state_cursor": "The current state owner enforces unique one-pass order, cursor no larger than its length and total updates no larger than within-pass batch count."
+  },
+  "question": "Does increasing only unchanged compact sign-task exposure from one to three passes improve fixed later-development direction?",
+  "required_qualification_before_any_genuine_update": [
+    "Synthetic legacy regression and pass-aware boundary tests, including final batch of two and missing/empty batches.",
+    "Checkpoint/resume equality within and between passes for model, optimizer, RNG, modes, buffers, order, pass index and total updates.",
+    "Negative tests for mismatched state/prefix/source, TEST access, extra pass, optimizer reset and old-plan reuse.",
+    "A fresh zero-update original-terminal restore and prediction parity under the new source; original checkpoint unchanged.",
+    "A new exact source-pinned recipe, policy and one-shot campaign with existing lock, resource and signed-host guards.",
+    "Explicit fresh authority for extra exposure before opening training; the earlier one-epoch approval is not reused."
+  ],
+  "schema_version": "gx1_independent_direction_matched_exposure_design_v1",
+  "source_head_observed": "678b4954282e5104f1b6530fa82faee62ebf8e56",
+  "source_owner_refs": {
+    "gx1/contracts/entry_direction_block_rank_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_block_rank_v1.py",
+      "sha256": "6e5a7184914463e0fefee22cdd509c01c029bd4fa7a4dcc9a33e326dbeb6eb5c"
+    },
+    "gx1/contracts/entry_direction_probability_reference_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_probability_reference_v1.py",
+      "sha256": "59d57110cf7a51da8158f9535088147d50673dea10728a2ebe3c9e469f0cee76"
+    },
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+      "sha256": "9e8e0896e07090b503d4cfde3b1fe6e31620a861c41a448388b71b0acf9966ca"
+    },
+    "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+      "sha256": "edeab49ba18126495a9f6679be4beee6803d124dcf719b13e2d31f2aa7fe8dc4"
+    },
+    "gx1/contracts/entry_native_direction_research_state_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_state_v1.py",
+      "sha256": "3387892bc161f54db853f9681d2a735e3c17fb5e816d599b41d5556e9619c42a"
+    },
+    "gx1/contracts/entry_native_direction_research_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+      "sha256": "da7be399a42a1cad721ddf7631bc8ff1b5c02fc347f1fb3ce9bfe8ca39f2f539"
+    },
+    "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "sha256": "ce131484218e9f0858c8b881f82c6d34e511049b46b5a85dbbf5f1e2aade530b"
+    },
+    "scripts/gx1_capped_run.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "42be63429d4b5c12377da5ac7a6631252fa4b083ad4a5b6595e76eb80e971e55"
+    },
+    "scripts/gx1_guarded_trainer_exec.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_guarded_trainer_exec.sh",
+      "sha256": "6c4a4bfe704828aeb1c5ad2d89160e4cbb8fadb210be5fc33d26f12b96db0c45"
+    }
+  },
+  "status": "DESIGN_ONLY_NOT_EXECUTION_AUTHORITY"
+}

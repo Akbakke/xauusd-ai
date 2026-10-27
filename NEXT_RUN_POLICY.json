@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Check for an already completed exactly matched exposure comparison; otherwise prepare a concrete separate unchanged-sign exposure plan with training gates closed and obtain any required fresh authority before optimizer updates. Additional input fields remain deferred.",
+    "next_action": "Review and qualify the exact pass-aware state and continuation design; keep training disabled until a newly authorized campaign and all gates exist.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37241,6 +37241,10 @@
     "whole_prefix_aggregate_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_AGGREGATE_DIAGNOSIS_001.json",
       "sha256": "0beb6cb9f234e46ed2e2e35d3b4313dbf645ee5b67a3450dc454fdc097361ff2"
+    },
+    "exposure_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
+      "sha256": "d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
