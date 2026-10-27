@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "LAST_M1_OFI_SIGN_VERIFIED_EXPOSURE_DEFERRED_TRAINING_CLOSED",
+    "status": "LAST_M1_OFI_WEIGHT_AUDIT_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "independent_direction_last_m1_ofi_weight_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37204,7 +37204,7 @@
     },
     "first_analysis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
-      "sha256": "7554655f7fe2b642a86d600211afa01e28fbe0b74a7768e5dc9d001f0a65c41b"
+      "sha256": "9eb47e8e1639cdfbcc81c5b1598f44f87283144646fd245d58e7c0b71a02b9ac"
     },
     "native_0u_metadata_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
@@ -39019,5 +39019,22 @@
       "tests/test_entry_native_direction_prefix_fit_window_v1.py": "45ce1efb200e48a9073d34257bb88056c7af7319090a2c41495b307f37abad9c"
     },
     "cross_consumer_synthetic_tests_passed": 154
+  },
+  "independent_direction_last_m1_ofi_weight_20261027": {
+    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_PLAN_001.json",
+    "plan_sha256": "6ca6293ba63983645f14c19217514bbe28291e4378a3d28bd1093457bfac8b0b",
+    "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_WORKER_001.py",
+    "worker_sha256": "69388102a645252ed72cd3301357a8240fee0bd98f2db8cf7387119c5e192b8c",
+    "source_commit": "3b42b38e08b3ead3fd462cf06aa0bde8cfcb8f7b",
+    "scope": "One fixed continuous M5 OFI versus M5 plus four times last closed M1 OFI, using the identical parity-qualified reused development cohort; exploratory after sign results.",
+    "max_invocations": 1,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "test_control_authorized": false,
+    "exit_authorized": false,
+    "new_indicators_authorized": false,
+    "broker_authorized": false,
+    "relaunch_allowed": false
   }
 }

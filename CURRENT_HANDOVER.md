@@ -381,6 +381,20 @@ TEST, Exit eller broker.
 Den uavhengige OFI-engangskontrollen er fullført og konsumert. Ingen modell,
 trening, nye indikatorer, CONTROL, TEST, Exit eller broker ble brukt.
 
+På samme senere utviklingsfold er AUC-punktene for 1/5/15 minutt henholdsvis
+.500882/.503021/.507870. Ved opprinnelig nullterskel svarer modellen NED på
+90.86%/86.35%/91.51%, mens faktisk OPP-andel er 49.69%/51.58%/52.39%.
+Dette er en terskelskjevhet, ikke en påvist årsak. 1/15-minuttstallene har
+ikke egne intervaller og folden er gjenbrukt; ingen horisontseleksjon.
+`MULTIHORIZON_SIGN_DIAGNOSIS_002.json` SHA-256
+fe243fe3fe95a238026f40c30ee572e2aefeea54ca37de66b94d45c0742443a0.
+
+En separat engangsmåling av kontinuerlig M5-OFI mot en fast femdobbel vekt
+på siste kvalifiserte M1 er admittért. Samme paritetskontrollerte utvalg;
+utforskende oppfølging etter fortegnsresultatet, uten modell, trening, nye
+indikatorer, CONTROL, TEST, Exit eller broker. Status:
+`independent_direction_last_m1_ofi_weight_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
