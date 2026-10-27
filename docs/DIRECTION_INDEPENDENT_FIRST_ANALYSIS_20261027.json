@@ -90,6 +90,14 @@
     "compact_profile_inventory": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/COMPACT_INPUT_PROFILE_INVENTORY_001.json",
       "sha256": "82ae3e43660d0754d85240f9e391653bf4b68202a6856f396c6f2500b16c6c3b"
+    },
+    "sign_vs_path_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_EXISTING_PATH_RESULT_001.json",
+      "sha256": "34c4c23437644a7e8e1cc92a0b543f2cc10ea073edc2f164d9ce886d5e4dd871"
+    },
+    "sign_vs_path_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_EXISTING_PATH_ROOT_REVIEW_001.json",
+      "sha256": "ba320eb9362c0be27c0cff398b0ab994b0d166e1bb96539640e3569e78e22fd0"
     }
   },
   "execution_authorized_by_report": false,
@@ -234,6 +242,16 @@
       ],
       "finding": "The bound compact profile has 2622 active signal fields and 2525 active context fields; 2410 GC fields form 1205 value/mask pairs, and overlapping aliases must not be counted twice. Seven local specialist families and 139 base MTF fields are selected; GC MTF sidecars are additional routed inputs.",
       "implication": "Compact describes a selected scope rather than a small number of independent numerical indicators. Size alone does not demonstrate noise, redundancy, overfitting or insufficiency."
+    },
+    {
+      "id": "F16",
+      "type": "MEASURED_TERMINAL_SIGN_VERSUS_EXISTING_PATH_TARGET",
+      "evidence": [
+        "sign_vs_path_result",
+        "sign_vs_path_review"
+      ],
+      "finding": "On 15113 matched non-FLAT, non-TIE rows in one reused fold, the future 5-minute sign agrees with the hindsight preferred 95-minute MFE-minus-pre-MFE-MAE side in 10163 cases (67.25%), versus 51.82% for the majority side. The fixed direction model scores AUC 0.508985 against that path label; corrected day/week intervals both include 0.5. The separate 95-minute valid population has 592 hindsight FLAT labels among 15730 rows.",
+      "implication": "The endpoint sign has partial outcome alignment, so the objectives are not unrelated; the true 5-minute sign is future information and cannot be traded as an oracle. The actual model has no qualified path-direction ranking here. This fixed 95-minute research label is neither an Exit rule nor realized PnL, and does not establish the optimal entry horizon."
     }
   ],
   "main_cause_established": false,
@@ -264,7 +282,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T20:56:06.872004+00:00",
+  "updated_utc": "2026-10-27T21:01:13.479117+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,
