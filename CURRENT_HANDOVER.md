@@ -365,12 +365,17 @@ avklarer kontakt i disse batchene, ikke om treningsmengden var tilstrekkelig
 eller om signalene gir retning. Original kvittering: window-0001/RESULT.json
 SHA-256 889103d6a81cf725e7ee4e676c0ecf294774dd6eacd7af44b77f9ab871441912.
 
-En separat engangskontroll av eksisterende M1-bok-OFI er admittért. Den
-bruker en tidligere train-only 2024–2025-reduksjon, krever fem kvalifiserte
-minutter i samme kontrakt og eksakt M1-sum/M5-paritet før retning scores.
-Fast fortegn-forfining sammenlignes på samme gjenbrukte 2025-Q1-fold; ingen
-modellkall, trening, nye indikatorer, CONTROL, TEST, Exit eller broker.
-Status: `independent_direction_last_m1_ofi_sign_refinement_20261027`.
+M1-bok-OFI: Fem kvalifiserte minutter i samme kontrakt gjenskaper M5-OFI
+nøyaktig på alle 17066 kvalifiserte barer. På 16977/17197 retningsegnede
+rader ga M5-fortegn AUC .498154 og fast siste-M1-forfining .494998;
+differanse -.003156, korrigerte dag-/ukeintervaller inkluderer null. Ingen
+merverdi er dokumentert for dette fortegnet. Samme gjenbrukte 2025-Q1-fold;
+ikke kontinuerlig/ikke-lineær OFI, modellintervensjon eller økonomi. Uavhengig
+rådatajoin og full resampling er ikke ennå gjennomført. Resultat:
+`LAST_M1_OFI_SIGN_RESULT_001.json` SHA-256
+859d41d9c74bfe1d89e1f170eae6f733f882d7d43b2cba4aa7b9c4be7d627003.
+Engangsscope konsumert; ingen modell, trening, nye indikatorer, CONTROL,
+TEST, Exit eller broker.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat

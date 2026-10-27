@@ -146,6 +146,14 @@
     "native_training_window_gradient_receipt": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0001/RESULT.json",
       "sha256": "889103d6a81cf725e7ee4e676c0ecf294774dd6eacd7af44b77f9ab871441912"
+    },
+    "last_m1_ofi_sign_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_SIGN_RESULT_001.json",
+      "sha256": "859d41d9c74bfe1d89e1f170eae6f733f882d7d43b2cba4aa7b9c4be7d627003"
+    },
+    "last_m1_ofi_sign_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_SIGN_ROOT_REVIEW_001.json",
+      "sha256": "077d78291de825b85203eb6b2fef85f51908346628a99c916fac1bfbc682d7e0"
     }
   },
   "execution_authorized_by_report": false,
@@ -344,6 +352,16 @@
       ],
       "finding": "The bound original one-pass native window consumed 47602 parents and recorded 2976 returned backward calls and optimizer steps. Both first and last training batches recorded nonzero gradients for all three direction-head rows and for each GC M5/M15/H1/H4/D1 gate and projection.",
       "implication": "These two observations rule out a completely disconnected gradient path for the inspected groups at those batches; they do not establish learning quality, gradients at every step, feature importance, sufficient exposure, later generalization or trading edge."
+    },
+    {
+      "id": "F21",
+      "type": "MEASURED_LAST_M1_OFI_SIGN_REFINEMENT",
+      "evidence": [
+        "last_m1_ofi_sign_result",
+        "last_m1_ofi_sign_review"
+      ],
+      "finding": "On 16977 of 17197 direction-eligible rows in one reused development fold, five complete same-contract M1 OFI values reproduce the existing M5 OFI exactly on all 17066 qualifying bars. AUC is 0.498154 for M5 OFI sign and 0.494998 for the fixed last-M1 sign refinement, a difference of -0.003156; corrected paired day and week intervals both include zero.",
+      "implication": "No incremental ranking value is documented for this one sign refinement. The result uses a stricter incident-qualified complete-minute subset on the same previously reused fold. It does not test continuous or nonlinear OFI, native-model inputs, latest quote age, untouched generalization or economics. Independent timestamp-join and full bootstrap replay are pending."
     }
   ],
   "main_cause_established": false,
@@ -374,7 +392,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:27:02.972708+00:00",
+  "updated_utc": "2026-10-27T21:38:17.058751+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

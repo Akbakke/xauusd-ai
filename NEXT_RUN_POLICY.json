@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "LAST_M1_OFI_SIGN_AUDIT_ADMITTED_TRAINING_CLOSED",
+    "status": "LAST_M1_OFI_SIGN_MEASURED_VERIFY_PENDING_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_last_m1_ofi_sign_refinement_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37204,7 +37204,7 @@
     },
     "first_analysis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
-      "sha256": "45261622fb2512245377c14cde24f883d1d2fc57b72084ccd68efef0474cd67f"
+      "sha256": "5ed03403556e79b54759a90d34cd91dedb93d4c36a335bcd25497a1c87ce2d91"
     },
     "native_0u_metadata_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
@@ -37247,7 +37247,8 @@
       "sha256": "d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01"
     },
     "last_m1_trade_record_refinement_measured": true,
-    "last_m1_volume_domain_measured": true
+    "last_m1_volume_domain_measured": true,
+    "last_m1_ofi_sign_refinement_measured": true
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -38923,7 +38924,7 @@
     "genuine_qualification_status": "NOT_RUN_NO_EXECUTION_AUTHORITY"
   },
   "independent_direction_last_m1_ofi_sign_refinement_20261027": {
-    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_SIGN_PLAN_001.json",
     "plan_sha256": "35fc03c707a25f471832f940960d580df6bcab0a7fbce688e6929934d537bee0",
     "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_SIGN_WORKER_001.py",
@@ -38936,6 +38937,16 @@
     "exit_authorized": false,
     "new_indicators_authorized": false,
     "broker_authorized": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_SIGN_RESULT_001.json",
+      "sha256": "859d41d9c74bfe1d89e1f170eae6f733f882d7d43b2cba4aa7b9c4be7d627003"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_SIGN_ROOT_REVIEW_001.json",
+      "sha256": "077d78291de825b85203eb6b2fef85f51908346628a99c916fac1bfbc682d7e0"
+    }
   }
 }
