@@ -37145,10 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_006.json",
       "sha256": "5205c3490eac4de7aaa3c67f57d36c219ee1d390a23be0e2515a4ce1ed54045f"
     },
-    "current_unit": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_PLAN_002.json",
-      "sha256": "19d5ded43cb1e5c5e3cb8d6b5db729eebc69dea93ec147fe9dc7a8563a1f4c78"
-    },
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37180,7 +37177,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_PLAN_001.json",
       "sha256": "b5e445cf1015feecbc5707c3ae8d4a5e25a94107e32ed60259e7166461627e74"
     },
-    "phase_B_status": "ONLY_PREPARATION_SYNTHETIC_002_ADMITTED_GENUINE_FITS_CLOSED",
+    "phase_B_status": "PREPARATION_SYNTHETIC_37_PASS_GENUINE_FITS_CLOSED_COMPACT_FIRST",
     "compact_profile_confirmed_by_user": true,
     "latest_operator_instruction": "Ja, vi kjører kun den kompakte nå med viktige indikatorer, så ser vi om dette er nok eller vi må tilføre noe senere. Vi holder oss til dette kompakte men viktige først",
     "saved_bps_comparison_complete": true,
@@ -37188,7 +37185,11 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Determine minimal fresh own namespace for missing own0U prefix part3 and full-prefix learning review. No extraction, fit or extra pass admitted yet."
+    "next_action": "Bind exact source-only compatibility design for fresh own0U timing256 then only missing prefix part3. Reuse old completed extractions; all native execution and extra passes remain closed until fresh exact gates.",
+    "qualification_state": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_001.json",
+      "sha256": "79911925aec654d115665f5ea964e98331bd956f31a08b941caa60ce770308b1"
+    }
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -37478,15 +37479,15 @@
     }
   },
   "independent_direction_last_m1_ofi_synthetic_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_SYNTHETIC_ONLY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_PLAN_002.json",
       "sha256": "19d5ded43cb1e5c5e3cb8d6b5db729eebc69dea93ec147fe9dc7a8563a1f4c78"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "synthetic_only": true,
     "saved_payload_reads_authorized": false,
@@ -37497,6 +37498,18 @@
     "source_admission": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_006.json",
       "sha256": "5205c3490eac4de7aaa3c67f57d36c219ee1d390a23be0e2515a4ce1ed54045f"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_002/OUTPUT/RESULT.json",
+      "sha256": "67c0ea6ec1f0deab7cba9f9902a54b8c2da5fe978485918d894b4123a08d4f71"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_002/OUTPUT/TERMINAL.json",
+      "sha256": "8bcb6d6b06ea3f72f1a27a043b65842d56248ff9b90caee861798c9954c09dee"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_002_OUTER_TERMINAL.json",
+      "sha256": "897b2872f6fb558430310d8ca3d5a928d3d82b6cbc8427a053528bfd5f544769"
     }
   },
   "independent_direction_last_m1_ofi_synthetic_20261027_attempt001": {

@@ -138,7 +138,10 @@ Last-M1-OFI-proposalfiler er kun forberedelse; dagens native profil er uendret.
 En kildebevist rekkefølgefeil i proposalens inputhashing er rettet før bruk.
 Forberedelsestest001 ga32PASS/5feil: tidligere sealed-path-avvisning og
 Numba-cacheforsøk utenfor output. Begge er rettet uten svakere vakter.
-Originalkvitteringer bevares; kun nytt37-casers forsøk002 er admittért.
-Ingen genuine OFI-fits eller feltendring i dagens kompaktprofil er åpnet.
+Originalkvitteringer er bevart. Nytt forsøk002 besto37/37; samlet205
+fokuserte cases er bestått på sine uendrede komponenter. Dette er teknisk
+kvalifisering av forberedelsen, med0 genuine OFI-fits og uendret native input.
+Neste kilde-design skal avgrense fersk egen0U256-paritet før kun manglende
+prefikstredjedel; ingen av disse native enhetene er åpnet ennå.
 Ingen CONTROL/TEST, Exit, broker, ordre, spending eller promotion er åpnet.
 Målet er fortsatt aktivt; fullprefix-konvergens og treningsutvidelse er uavklart.
