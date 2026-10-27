@@ -283,6 +283,12 @@ kildeforankring er kontrollert uten uavhengig rådatareplay. Bevis:
 ba320eb9362c0be27c0cff398b0ab994b0d166e1bb96539640e3569e78e22fd0.
 Engangskjøringen er konsumert; CONTROL, TEST og trening er stengt.
 
+En separat, hashbundet engangskontroll er admittért for uavhengig join og
+punkttall i 5min-/95min-analysen samt seks fysisk replikerte blokkresamples.
+Dette leser de samme tillatte 2025-Q1-radene, uten modell, trening, Exit,
+CONTROL, TEST eller nye indikatorer. Plan/status står i
+`independent_direction_path_alignment_verify_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/

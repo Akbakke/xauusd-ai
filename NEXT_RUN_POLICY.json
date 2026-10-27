@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "SAVED_PATH_ALIGNMENT_COMPLETE_EXPOSURE_DEFERRED_TRAINING_CLOSED",
+    "status": "SAVED_PATH_ALIGNMENT_INDEPENDENT_REPLAY_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "independent_direction_path_alignment_verify_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -38590,5 +38590,22 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_SYNTHETIC_REVIEW_20261027_001.json",
       "sha256": "1a3ab612dda897e6079df37cc65cced16a048b7d395de88742d13ae53d22973c"
     }
+  },
+  "independent_direction_path_alignment_verify_20261027": {
+    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_PATH_VERIFY_PLAN_001.json",
+    "plan_sha256": "a491586e8374f73704cb6b185779b7e10f487698d29d1b6cce33868126fdd412",
+    "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_PATH_VERIFY_WORKER_001.py",
+    "worker_sha256": "856d7a8cd9370ee9620bccbea534ed00f6731b74f888df009a548ec4f791d1aa",
+    "scope": "Independent exact join, point metrics and six physical block resamples on the already-used 2025-Q1 fold1 target rows.",
+    "max_invocations": 1,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_control_authorized": false,
+    "exit_authorized": false,
+    "new_indicators_authorized": false,
+    "broker_authorized": false,
+    "relaunch_allowed": false
   }
 }
