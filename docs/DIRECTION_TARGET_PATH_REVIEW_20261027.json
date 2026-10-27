@@ -1,9 +1,9 @@
 {
   "schema_version": "gx1_direction_target_path_source_review_v1",
-  "status": "SOURCE_REVIEW_COMPLETE_DENSE_HORIZONS_AND_TRIGGERS_DEFINED_NOT_IMPLEMENTED",
+  "status": "TARGET_TRIGGER_REVIEW_UPDATED_WITH_COMPLETED_TERMINAL_READOUT_NEGATIVE_PRIMARY",
   "role": "User-requested independent direction/bps/trigger review, including10minutes and proposed1..60minute endpoint curve.",
-  "evidence_scope": "Source, contracts and original aggregate terminal metadata only. No model construction, forward, backward, optimizer, raw data or checkpoint payload access.",
-  "primary_conclusion": "Endpoint direction remains a valid baseline. Signed bps magnitude is proven absent from active supervision, and a naive60-horizon extension changes loss emphasis. No sign bug or single root cause is established. The measured5minute deficit againstET252 makes head/representation/optimization the leading discriminating question.",
+  "evidence_scope": "Original independent source/contract/aggregate review, now reconciled with one separately admitted qualified CPU frozen-readout comparison. Root inspected source and JSON aggregates; the bounded worker alone read five saved TRAIN NPZ archives and performed three fixed CPU fits. No native forward/update or raw-data read.",
+  "primary_conclusion": "Endpoint direction is valid but discards bps magnitude. The fixed terminal readout now improves TRAIN fitting substantially without supported later AUC5 improvement and with worse later proper scores. Simple final-head underfit is therefore weakened as the sole actionable explanation on fold1. Stable forward signal, upstream representation learning and target mismatch remain unresolved; no sign bug or economic edge established.",
   "active_target": {
     "formula": "m(D)=(bid_open(D)+ask_open(D))/2; y_h=sign(m(D+h)-m(D)); h in {1,5,15}; D=M5 bar_start+5min.",
     "eligible": "Observed, sign nonzero, and exact terminal timestamp strictly before own prefix cutoff.",
@@ -18,7 +18,7 @@
     {
       "id": "D1_HEAD_OPTIMIZATION_OR_TRAINING_DEPTH",
       "priority": 1,
-      "classification": "Plausible mechanism supported by a measured five-minute ranking deficit; no isolated implementation defect.",
+      "classification": "Prefix head underfit is measured; a simple final-head refit is not supported as a later-direction remedy on the tested fold. Backbone exposure and representation learning remain plausible, not isolated errors.",
       "mechanism": "The fixed nonlinear ET252 comparator ranks five-minute outcomes better than the native three-logit decoder after checked equal local input values. The gap may arise from head fitting, shared representation learning or insufficient exposure.",
       "measured_support": {
         "source": "DIRECTION_NATIVE_REFERENCE_RANK_003/SUMMARY.json",
@@ -41,19 +41,48 @@
         "input_parity_source": "DIRECTION_LOCAL_SNAPSHOT_PARITY_ROOT_REVIEW_001.json",
         "local_TRAIN_parents": 118249,
         "local_fields": 2622,
-        "bit_mismatches": 0
+        "bit_mismatches": 0,
+        "terminal_readout": {
+          "root_review": {
+            "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_ACTUAL_ROOT_REVIEW_001.json",
+            "sha256": "d52af9c879e7fe2f3bd99f4f841b1b33ee2c7bb528d639eeb433d1e8aa807ff8"
+          },
+          "result_fields": [
+            "comparisons",
+            "intervals",
+            "fit_diagnostics",
+            "primary_auc5_supported"
+          ],
+          "prefix_auc5_native": 0.515888213111177,
+          "prefix_auc5_fitted": 0.5394211193126529,
+          "later_auc5_native": 0.5030210874582608,
+          "later_auc5_fitted": 0.5033602268276314,
+          "later_auc5_delta": 0.000339139369370578,
+          "week_99": [
+            -0.009622866533856852,
+            0.01085883971734649
+          ],
+          "day_99": [
+            -0.01049711610309393,
+            0.010879058131460475
+          ],
+          "later_logloss_delta5": 0.006567333860575841,
+          "solver_converged_heads": 3,
+          "primary_supported": false
+        }
       },
       "code": [
         "gx1/contracts/entry_native_direction_research_v1.py:110,146-160",
         "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:96-98,394-415",
         "gx1/contracts/entry_model_native_train_recipe_v1.py:398-422"
       ],
-      "counterevidence": "Representations, normalization fit populations, history and learners differ. The result is reused development evidence, not independent or economic edge. One pass does not demonstrate convergence.",
-      "smallest_decisive_test": "Fresh bounded terminal-only frozen readout comparison: fit the same fixed linear method on complete terminal-prefix hidden and score the already completed terminal_later_full cohort against the original head, prior and saved reference. Preserve observations, targets and chronology. The original eight-piece plan is not reinterpreted or relaunched.",
+      "counterevidence": "Representations, normalization fit populations, history and learners differ. The result is reused development evidence, not independent or economic edge. One pass does not demonstrate convergence. The tested fold1ET252AUC5 is .50134359, below native .50302109: the earlier fourfold ET advantage cannot be assigned to this one fold.",
+      "smallest_decisive_test": "Completed: full47602prefix/17288later terminal-only frozen-linear readout, same original head and masks, three fixed converged fits and paired4000day/week replicates. Do not rerun it or relabel the outcome as an optimization failure.",
       "expected_if_true": "Better later ranking with the same frozen hidden localizes a correctable decoder/optimization contribution.",
       "weakens_if": "A numerically qualified, adequately fitted linear readout does not improve later ranking; this weakens simple head underfit but does not prove all predictive information absent.",
-      "minimum_improvement": "Change only the demonstrated head-fitting limitation. A separate unchanged-target one-versus-three-pass comparison can test backbone exposure if needed.",
-      "stop": "Require complete cohorts, exact representation/label identity and qualified solver convergence. Stop on guard or identity failure; no repeat hyperparameter or threshold search."
+      "minimum_improvement": "Do not replace the native head with this fitted candidate. Further exposure is a separate unchanged-target one-versus-three-pass hypothesis and requires fresh bounded design; no30-epoch escalation.",
+      "stop": "Require complete cohorts, exact representation/label identity and qualified solver convergence. Stop on guard or identity failure; no repeat hyperparameter or threshold search.",
+      "actual_outcome": "The prespecified weakening outcome occurred: all3TRAINAUC/proper scores improved, no supported laterAUC5gain, laterproperworse3/3. This is one reused fold, not proof that all backbone optimization or more epochs cannot help."
     },
     {
       "id": "D2_BPS_MAGNITUDE_DISCARDED",
@@ -71,8 +100,8 @@
         "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:29-31,113-115",
         "gx1/contracts/entry_native_direction_research_v1.py:187-212"
       ],
-      "counterevidence": "Sign-only BCE is appropriate for probability of a positive nonzero endpoint. Adding magnitude may add noise and cannot be presumed to fix directional ranking.",
-      "smallest_decisive_test": "Keep the existing sign baseline and fixed exposure; separately compare an explicit signed-bps distribution or quantile complement, retaining observed zeros. Predeclare quantile levels, prefix-only scale, relative loss weight, same observations and chronological splits.",
+      "counterevidence": "Sign-only BCE is appropriate for probability of a positive nonzero endpoint. Adding magnitude may add noise and cannot be presumed to fix directional ranking. The fact that +0.1 and +50bps share a target does not show that small moves dominate this dataset; that empirical distribution has not yet been measured in this analysis.",
+      "smallest_decisive_test": "First measure the unmeasured premise using existing saved TRAIN targets/predictions: exactjoin per horizon, full magnitude/missing/zero distribution and contribution of fixed absolute-bps bands to eligible-cell loss. Report every predeclared band; conditioning on realized magnitude is diagnostic and is not an executable filter. Then compare one magnitude component at unchanged horizons/exposure if the mechanism is supported.",
       "expected_if_true": "Improved later magnitude/distribution proper scores with preserved or improved direction, not merely TRAIN fit.",
       "weakens_if": "Later magnitude or direction does not improve, or any gain disappears when training exposure is matched.",
       "minimum_improvement": "Add only the measured useful magnitude component. Do not relabel inactive legacy path heads as current supervision.",
@@ -109,7 +138,7 @@
         "gx1/contracts/entry_direction_price_projection_v1.py:107-115",
         "gx1/contracts/entry_native_direction_context_report_v1.py:272-287"
       ],
-      "counterevidence": "Dense endpoints can capture excursions missed between sparse endpoints. Longer-horizon emphasis may be a legitimate choice if declared;60marginal probabilities still do not determine a joint price path or intraminute order.",
+      "counterevidence": "Dense endpoints can capture excursions missed between sparse endpoints. Longer-horizon emphasis may be a legitimate choice if declared;60marginal probabilities still do not determine a joint price path or intraminute order. This potential60-horizon weighting problem cannot explain the currently observed1/5/15results: no60-horizon native model has been trained.",
       "smallest_decisive_test": "First qualify exact D+h targets, per-horizon masks and legacy1/5/15parity on synthetic clocks. Then, only under fresh admission, compare one declared horizon extension at fixed exposure and predeclared horizon weighting. Report all six anchors and one fixed curve score.",
       "expected_if_true": "The declared extension improves later curve/anchor scores without masking deterioration at original horizons.",
       "weakens_if": "Only posthoc selected minutes improve, or the apparent gain follows changed eligibility or changed relative horizon weight.",
@@ -132,7 +161,7 @@
         "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py:355-367,2503-2508,2610-2645,4222-4231"
       ],
       "counterevidence": "Low variance can preserve ranking; asinh has no hard continuous clip and is invertible before finite precision. Temporal positions, latest-bar state, M5 and higher-timeframe identities already exist. Gate weights and parameter changes are not utility evidence.",
-      "smallest_decisive_test": "Only after qualified final-hidden readout, compare the same fixed learner on one justified earlier representation versus final hidden using the same prefix/later observations.",
+      "smallest_decisive_test": "Now that the qualified final-hidden readout failed the primary later criterion, a separately justified earlier-representation comparison may test lost accessible signal. Keep identical prefix/later rows and learner; explicitly control width, scaling and fitting capacity, since simply moving from128to512features confounds representation with decoder capacity.",
       "expected_if_true": "Earlier representation predicts later outcomes better under the same fitted learner while final-hidden fitting is adequate.",
       "weakens_if": "Final-hidden readout recovers the ranking, or earlier representation has no controlled advantage.",
       "minimum_improvement": "One narrow connection preserving the specific earlier information shown useful; retain all eight families and D1/macro.",
@@ -190,11 +219,11 @@
     "priority": "Optional later alternative only. First-passage amplitudes, loss and masks are unselected and are not required before an unchanged-target training-depth comparison."
   },
   "minimal_comparison_sequence": [
-    "Bind10minutes and the proposed1..60endpoint definition, exact clocks, masks, units and immutable original1/5/15baseline. This source review is complete; expanded targets/model remain unimplemented.",
-    "Prepare a fresh terminal-only frozen-readout protocol using complete terminal-prefix hidden and the already completed terminal_later_full. Original eight-piece plan remains preserved and confers no new execution authority.",
-    "Use an unchanged-endpoint one-versus-three-pass comparison as a separate exposure test; same initial state, B16order, masks, optimizer and learning rate. Do not silently cross the original short final batch into the next epoch.",
-    "Compare dense horizons or signed-bps supervision separately at fixed exposure and predeclared scaling/weighting. All actual numerical work requires a fresh bounded admission.",
-    "No automatic10/30epoch escalation, winning minute selection, or broad architecture/indicator search."
+    "10minutes and every minute1..60 are included in the explicit target contract below; active native heads remain1/5/15. Legacy baseline is preserved.",
+    "COMPLETED: fixed terminal-only linear readout. Three converged fits improvedTRAIN but did not support laterAUC5gain. Reject this replacement; no repetition or posthoc head tuning.",
+    "Next smallest information measurement: existing savedTRAINtargets/predictions only, no fit/forward, to quantify bps sizes, exact zero/missing/maturity masks and each fixed magnitude band contribution to current loss. Bind all bands/rows before reading payloads; no magnitude-based trading selection.",
+    "Qualify the additional10minute target and dense-minute clock contract without altering model exposure. Missing minute residues2/3/4mod5 require an admitted TRAIN-only M1source; no interpolation or mixed2026Parquet access.",
+    "Compare magnitude supervision, dense horizons and one-versus-three native passes separately. No automatic30epochs, threshold search or simultaneous changes."
   ],
   "evaluation_and_stops": {
     "metrics": [
@@ -214,23 +243,25 @@
     "permitted_now": "Source, metadata, protocol preparation and analysis-document updates only. No new data/model execution or fit."
   },
   "execution_disposition": {
-    "completed_unit": "own0U_prefix_part2_20261027_001",
-    "result_sha256": "9c1b3c6a04ed63fc6204eeeefeb6f46616ae915699538d17db6fdf5b81fc8498",
-    "root_review_sha256": "9d6ac091e992c2d6197350aca33b64f2e6239e40103c7146baf4eb481e0a5ebb",
-    "completed_fixed_units": 3,
-    "required_for_original_f_readout": 8,
+    "completed_terminal_extraction_units": 4,
+    "completed_original_extraction_units": 6,
+    "required_for_original_study": 8,
+    "terminal_only_readout_complete": true,
+    "original_study_complete": false,
+    "readout_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "d52af9c879e7fe2f3bd99f4f841b1b33ee2c7bb528d639eeb433d1e8aa807ff8"
+    },
     "consumed_authority_closed": true,
-    "next_partition_admitted": false,
-    "original_prediction_parity_for_part2": null,
-    "original_prediction_parity_note": "No historical saved-prediction target covers this interval. Original bookends and presentation identity are verified; do not claim numerical saved-output parity.",
     "new_fit_authorized": false,
-    "training_enabled": false,
-    "exit_evaluation": false,
+    "native_training_enabled": false,
+    "native_10_30_60_or_dense_heads_implemented": false,
     "test_data_used": false,
-    "heartbeat": "Paused after original terminal verification; no active run to follow."
+    "exit_evaluation": false,
+    "heartbeat": "Paused; no active run."
   },
   "limits": "No edge, causal feature value, thirty-epoch convergence or realized profitability established by this source review. No new numerical sign/label validation on payloads was performed; this is a current-source audit.",
-  "observed_utc": "2026-10-27T06:08:54.753109+00:00",
+  "observed_utc": "2026-10-27T10:16:25.415526+00:00",
   "source_head_before_review": "2439500dd8cee5377570dd7b7332c6eb14926ded",
   "source_evidence": {
     "gx1/contracts/entry_direction_price_projection_v1.py": {
@@ -300,7 +331,9 @@
       "first": 1,
       "last": 60,
       "step": 1
-    }
+    },
+    "required_outputs_to_distinguish": "Separate P(positive nonzero return), signed bps magnitude/distribution and the action decision. Current p_h is not expected bps and endpoint zero is not FLAT.",
+    "joint_path_warning": "Minute-specific probabilities and marginal quantiles describe endpoints, not the probability of an entire rise-and-reversal trajectory. A claim about first movement, first favorable excursion or a turn requires explicit path/order supervision."
   },
   "algebraic_acceptance_examples": [
     {
@@ -521,21 +554,54 @@
       "Checked saved local inputs/masks differ between native and reference: contradicted by fullTRAINparity; common upstream errors and full numericalMTFparity remain outside that proof.",
       "Pure probability offset as complete explanation: cannot repair the measured5minute ranking deficit.",
       "The idea that endpoint forecasts cannot see an upswing followed by a return: earlier sampled endpoints can.",
-      "The claim that10/30/60native outputs already exist because the older dynamic query owner supports1..480: false."
+      "The claim that10/30/60native outputs already exist because the older dynamic query owner supports1..480: false.",
+      "The claim that a more completely fitted final linear head by itself fixes later direction: not supported by the fixedfold1primary comparison, although TRAINfit improved."
     ],
     "still_unresolved": [
-      "Head/optimization versus signal lost or poorly represented upstream.",
-      "Insufficient exposure versus weak or unstable forward information for the fixed targets.",
-      "Whether magnitude or dense-minute supervision improves later direction rather than only TRAIN fit.",
-      "Which actual feature interactions drive useful predictions and whetherGCflow predicts XAUUSD rather than mostly contemporaneousGC."
+      "Weak/unstable forward signal versus information lost or poorly learned before the final hidden layer.",
+      "Whether further end-to-end exposure improves later direction; the frozen-head test is not a multi-epoch test.",
+      "Whether bps magnitude or dense-minute supervision improves the desired task; source limitations alone do not prove empirical gain.",
+      "Actual useful input interactions, causal source timing and common upstream errors beyond the completed local-input parity scope."
     ],
-    "highest_information_single_measurement": "A fully fitted fixed linear readout on complete frozen terminal hidden, evaluated against the original head on the same later cohort. Prepare a fresh terminal-only protocol that reuses the completed terminal_later_full and qualified extraction/readout owners; do not silently revise the original eight-piece plan.",
+    "highest_information_single_measurement": "Quantify bps magnitude and current loss allocation on the exact existing saved TRAIN outcomes/predictions, with fixed bands and no fitting. The formerly highest-priority frozen-final-head test is now complete and negative for the primary later criterion.",
     "would_change_assessment": [
-      "Improved later frozen-hidden readout shifts suspicion toward decoder fitting/optimization.",
-      "No qualified readout gain plus better earlier-representation readout shifts suspicion toward compression/fusion.",
-      "A matched one-versus-three-pass gain on unchanged endpoints supports insufficient exposure.",
-      "A concrete causal-clock/sign/normalization defect would take priority over all architectural hypotheses.",
-      "No robust later improvement across qualified comparisons would increase concern about insufficient/unstable predictive information, without proving impossibility."
+      "A concrete verified clock/sign/unit/normalization defect takes priority immediately.",
+      "A matched earlier-representation advantage, controlling decoder capacity and chronology, would support representation information loss.",
+      "A fixed one-versus-three-pass later gain with unchanged targets would support insufficient end-to-end exposure.",
+      "A predeclared magnitude or dense-target comparison improving later proper scores and retained direction would support target redesign.",
+      "A later frozen-readout advantage on separately admitted other folds could change the scope of the presentfold1negative finding; it would not retroactively change this result."
     ]
+  },
+  "latest_verified_source_head": "b48cc0503365f11cbc5e457a9b62bfed1e3dc86e",
+  "completed_terminal_readout": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_ACTUAL_ROOT_REVIEW_001.json",
+    "sha256": "d52af9c879e7fe2f3bd99f4f841b1b33ee2c7bb528d639eeb433d1e8aa807ff8"
+  },
+  "next_measurement_proposal_not_admitted": {
+    "question": "Does the sign objective devote most of its examples and loss to small bps moves, and are probability scores related to signed future bps on the same parents?",
+    "scope": "Existing savedTRAINprice targets and original fourfold native/ET/R1predictions; exact parent/clock/sign/mask join. No model, fit, checkpoint or raw-source access.",
+    "fixed_absolute_bps_bands": [
+      "observed_exact_zero",
+      "(0,1]",
+      "(1,5]",
+      "(5,10]",
+      "(10,25]",
+      "(25,50]",
+      "(50,+infinity)"
+    ],
+    "metrics": [
+      "counts and shares for each horizon1/5/15 and each fold",
+      "missing/zero/cutoff-censored counts separately",
+      "share of current eligible BCE contributed by every nonzero band",
+      "native/prior/fixed-reference proper scores and AUC only where both classes exist; report undefined values",
+      "signed bps by prespecified probability bins, with all bins retained"
+    ],
+    "interpretation": "Bands condition on realized outcomes and cannot be used as a live selection rule or evidence of tradable large-move detection. This measurement tests a premise for target redesign, not economic edge.",
+    "stops": [
+      "Any identity/sign/unit/clock discrepancy stops before interpretation.",
+      "No newfit,threshold selection,horizon selection or exclusion of weak bands.",
+      "Sparse/oneclass bands are markedundefined, never silently discarded."
+    ],
+    "execution_authorized": false
   }
 }
