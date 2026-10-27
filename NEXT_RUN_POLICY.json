@@ -38405,5 +38405,21 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_ACTUAL_ABORT_ROOT_REVIEW_20261027_002.json",
       "sha256": "cda607711abc62bf443c9bf3ab17410f22ec811533a9325f57e5d930026e42bc"
     }
+  },
+  "direction_5min_common_mask_review": {
+    "status": "COMPLETE_EXISTING_AGGREGATES_ONLY",
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_COMMON_MASK_EXISTING_AGGREGATE_REVIEW_20261027_001.json",
+      "sha256": "1608a11aa41324fc822e4ec26f63fa67828fe6e7e804c69982a4d2b0b296b470"
+    },
+    "document": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FIVE_MINUTE_COHORT_REVIEW_20261027.json",
+      "sha256": "322f10bf3f7ad57de49a04b8df9a4e8dd73c006b61c1e4e3f4e3d190c0314108"
+    },
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "training_authorized": false,
+    "test_control_authorized": false
   }
 }

@@ -26,6 +26,13 @@ For 15min-skår omfatter intervallene null. Skårene er ikke trent for 10min,
 og gjenbrukte utviklingsdata dokumenterer ikke handelsedge. Se
 docs/DIRECTION_10_CROSS_HEAD_RESULT_20261027.json. Adgangen er konsumert.
 
+Tidligere 5min-referansesammenligning brukte felles 1/5/15/30/60-maske og
+utelot 3 182 av 70 294 gyldige 5min-rader. Eksisterende per-horisontresultat
+viser native AUC 0,504000 mot ET252 0,512791 på hele 5min-utvalget;
+fellesutvalget viser 0,503735 mot 0,513092. Punktforskjellen består på begge;
+korrekt felles ukeusikkerhet er fortsatt åpen. Se
+docs/DIRECTION_FIVE_MINUTE_COHORT_REVIEW_20261027.json.
+
 
 10-minuttersutfall kan nå forberedes fra to lagrede femminuttersutfall med
 delt prisrad og eksplisitt avrundingsusikkerhet; bps må sammensettes, ikke

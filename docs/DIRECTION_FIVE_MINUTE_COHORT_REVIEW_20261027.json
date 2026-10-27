@@ -1,0 +1,30 @@
+{
+  "schema_version": "gx1_five_minute_cohort_review_v1",
+  "status": "COMPLETE_EXISTING_AGGREGATES_ONLY",
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_COMMON_MASK_EXISTING_AGGREGATE_REVIEW_20261027_001.json",
+    "sha256": "1608a11aa41324fc822e4ec26f63fa67828fe6e7e804c69982a4d2b0b296b470"
+  },
+  "individual_five_minute": {
+    "rows": 70294,
+    "native_auc": 0.5039998166122098,
+    "ET252_auc": 0.5127910586824572,
+    "native_minus_ET252_auc": -0.008791242070247396
+  },
+  "common_1_5_15_30_60": {
+    "rows": 67112,
+    "native_auc": 0.5037353141585355,
+    "ET252_auc": 0.5130918603105985,
+    "native_minus_ET252_auc": -0.00935654615206305
+  },
+  "excluded_from_common": 3182,
+  "excluded_fraction_of_valid_5min": 0.045267021367399775,
+  "interpretation": "The negative native-minus-ET252 point difference remains on the full mature nonzero five-minute cohort; the all-horizon filter does not explain the full point-estimate gap. This is not a confidence interval, causal attribution, model-input leakage claim or prospective edge.",
+  "limits": [
+    "The common cohort depends on future outcome availability/nonzero status at other horizons and cannot be used as a decision-time trading filter.",
+    "Both existing comparisons use reused TRAIN-development observations; changes in uncertainty under shared calendar-week sampling are still unmeasured.",
+    "The references differ in features and learner; the difference does not isolate a causal model component."
+  ],
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}
