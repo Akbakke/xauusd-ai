@@ -12,16 +12,24 @@ Programrot:
 
 ## Aktuell status
 
-Bps-supervisjon er implementert som opt-in i eksisterende native retningsrute,
-men ennå ikke kvalifisert. DIRECTION_BPS_SUPERVISION_SYNTHETIC_PLAN_001 er
-engangsadmittért for 144 syntetiske kontroller. Kilde og policy fryses ved commit.
-CPU audit 4G/512M, én tråd, 64 tasks, 180 s worker / 210 s outer.
-Syntetiske heads/gradienter/AdamW/resume og filrundtur er tillatt i eget output;
-ingen ekte payloads, full native-konstruksjon/forward eller trening er tillatt.
-Bps-head er initialt null med bevart RNG; den deler udetechet native hidden.
-Skala er egen prefiks-RMS; nuller deltar i bps-loss. Original BCE er default.
-Måltilførsel, modell, loss, recipe, feature-view, state og rapport er koblet.
-Ingen ny horisont/epokeendring eller genuin kjøring er admittért.
+DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001 er COMPLETE/claimed/consumed.
+Alle 144 tester bestod: 31 nye bps-kontroller og 113 eksisterende kontroller.
+Original worker/outer exit 0; worker 52,321 s, outer 53,016 s. Kilde/policy var
+fryst. Cgroup/eier er borte og identitetskontrollert originallås er ledig.
+Ingen ekte native-kall eller ekte payloads: 570 syntetiske modul-konstruksjoner,
+165 modulkall, 42 backward-funksjonskall og 11 syntetiske AdamW-steg ble observert.
+Fire payload-åpninger gjaldt kun nylagde syntetiske testfiler i eget output.
+Engangsautoriteten er lukket; ingen jobb kjører. Oppfølgingen forblir PAUSED.
+Se docs/DIRECTION_BPS_SUPERVISION_QUALIFICATION_20261027.json og bundne originaler.
+
+Opt-in bps-supervisjon er koblet gjennom måltilførsel, prefiksskala, modell,
+tap, recipe, feature-view, state og rapport. Default retningsbaseline er bevart.
+Egen nullinitialisert mean-head deler udetechet native hidden. Skala er egen
+prefiks-RMS, og observerte nuller deltar i bps-loss. Testene bekrefter ulike
+størrelsesgradienter, faktisk syntetisk head-oppdatering og eksakt gjenopptak.
+Dette er ikke kvalifisering av ekte encoder/MTF/GC, CUDA eller markedslæring.
+Genuin prefiksskala, fersk baseline/gradient/resume og senere forbedring gjenstår.
+Ingen genuin trening, horisont- eller epokeendring er admittért.
 
 DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002 er COMPLETE/claimed/consumed.
 Original worker og capped outer avsluttet med exit 0. Alle 36 fokuserte
@@ -33,7 +41,8 @@ med uendret 1/5/15-default og egen schema-identitet for andre horisontvalg.
 Testene dekker gammel syntetisk paritet, oppgang/retur og speilvendt fall,
 klokker, felles entry-opphav, null/manglende/cutoff og feil horisontakse.
 Ingen ekte payloads, native-kall, fit eller optimizersteg i denne enheten.
-Native head/loss/state er uendret. Ingen ekte utvidet fasit er materialisert.
+Minuttkontrollen endret ikke head/loss/state. Bps-endringen over kom senere.
+Ingen ekte utvidet minuttfasit er materialisert.
 Se docs/DIRECTION_MINUTE_TARGET_QUALIFICATION_20261027.json og bundne originaler.
 Begge engangsautoritetene er lukket; ingen trening er admittért.
 
@@ -117,8 +126,9 @@ Native 10/30/60 og fulle 1–60-utganger er ikke implementert eller målt.
 Selve prisfasiteieren støtter nå domenet; ekte fasitparitet gjenstår.
 
 Endepunktsretning er gyldig: tidligere endepunkter kan se oppgangen selv om
-et senere endepunkt returnerer til entry. Dagens BCE gir derimot samme
-supervisjon for +0,1 og +50 bps; mid_return_bps velges bort i treningsadapteren.
+et senere endepunkt returnerer til entry. Den målte default-BCE gir samme
+supervisjon for +0,1 og +50 bps; default-adapteren velger bort mid_return_bps.
+Den nye opt-in-ruten beholder bps og tilføyer et separat størrelsestap.
 Observerte nuller utelates og lærer ikke FLAT. Dette er en påvist målbegrensning,
 ikke bevist årsak til svak retnings-AUC. Små-bevegelse-dominans er nå svekket.
 
@@ -133,29 +143,21 @@ intraminuttrekkefølge. Senere short krever en ny kausal beslutning.
 
 ## Neste minste steg
 
-Bruker presiserte at +0,1 og +50 bps ikke skal gi samme læringsinformasjon.
-Prioriter et separat signert bps-mål ved uendrede 1/5/15-horisonter.
-Minste kandidat er tre betingede middelverdiutganger i bps fra samme hidden,
-med prefiksfryst RMS-normalisert kvadratfeil i tillegg til uendret BCE.
-Konkrete formel, masker, gradientkontroller, initialisering, referanser og
-stopp står i docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json.
-Dette er nå implementert som opt-in; syntetisk kontroll er admittért.
-Genuin baseline/gradient/resume-kvalifisering og sammenligning gjenstår.
-Middelverdi er ikke et usikkerhetsmål eller en handelsbeslutning.
-Kvadratfeil kan overvekte sjeldne store feil; de faste bps-båndene rapporteres,
-men brukes ikke til etterpåvalgte filtre eller et nytt terskelsøk.
+Bps-ruten er implementert og syntetisk kvalifisert. Bind nå minste genuine
+kvalifisering: gjenbruk eget kvalifisert TRAIN-prefiks og lagrede bps-targets,
+beregn prefiksfryst skala, kontroller fersk delt initialisering og mål faktisk
+native gradient samt eksakt lagring/gjenopptak. Bruk eksisterende guards og
+kvalifiseringseiere; ingen gamle engangsplaner gir autoritet til dette.
+Først deretter kan den forhåndsbundne størrelsessammenligningen starte.
 
-Først må mid_return_bps faktisk nå dette tapet, med eksakt samme foreldre/
-klokker og kun egen prefiksmoden fasit. Behold P(UP)-semantikken og ta med
-observerte nuller i bps-komponenten uten å lage en FLAT-fasit av dem.
-Ny funksjon krever fersk baseline/state/resume-kvalifisering. Ikke relabel gamle
-checkpoints. Ingen genuin numerisk enhet eller native-trening er admittért her.
-
-Bps-supervisjon, horisontutvidelse og én-mot-tre epoker er separate faktorer
-med samme observasjoner, kronologi og eksponering. Ingen automatisk 30 epoker.
-Eksakte nye minutter krever kvalifisert TRAIN-M1-kilde og avgrenset admisjon;
-aldri interpolasjon eller selvstendig åpning av blandet 2026-Parquet.
-Ikke gjenta den avsluttede små-bevegelse-målingen.
+Behold 1/5/15, B16, seed, presentasjonsrekkefølge, optimizer og én gjennomgang
+i første sammenligning. Skille horisontutvidelse og én-mot-tre epoker som egne
+faktorer. Ingen automatisk 30 epoker, beste-minutt-seleksjon eller terskelsøk.
+Bps-middelverdi er ikke usikkerhet eller handelsregel. Kvadratfeil kan overvekte
+sjeldne store feil; rapporter alle forhåndsvalgte bps-bånd uten etterpåfiltrering.
+Ekte minuttfasit utover arkivene krever kvalifisert TRAIN-M1-kilde og avgrenset
+admisjon, aldri interpolasjon eller selvstendig åpning av blandet 2026-Parquet.
+Ingen genuin numerisk enhet eller native-trening er admittért av denne avslutningen.
 
 ## Bevarte bevis og grenser
 

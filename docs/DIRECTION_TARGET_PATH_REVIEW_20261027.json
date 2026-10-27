@@ -3,7 +3,7 @@
   "status": "TARGET_TRIGGER_REVIEW_UPDATED_WITH_COMPLETED_TERMINAL_READOUT_NEGATIVE_PRIMARY",
   "role": "User-requested independent direction/bps/trigger review, including10minutes and proposed1..60minute endpoint curve.",
   "evidence_scope": "Original independent source/contract/aggregate review, now reconciled with one separately admitted qualified CPU frozen-readout comparison. Root inspected source and JSON aggregates; the bounded worker alone read five saved TRAIN NPZ archives and performed three fixed CPU fits. No native forward/update or raw-data read.",
-  "primary_conclusion": "Endpoint direction is valid. Current native BCE uses identical supervision for +0.1bp and +50bp at the same logit; the training adapter drops stored bps magnitude. This is a verified task limitation, not a proven cause of weak AUC. Continuous price movement does not establish conditional predictability. The <=1bp-majority premise was rejected, and a refitted frozen linear head did not improve later ranking. The minute projector now passes36synthetic tests for explicit1..60targets including10; native magnitude supervision remains the next direct change.",
+  "primary_conclusion": "The measured default native objective remains sign-only; its magnitude omission is a verified task limitation, not an established cause of weak AUC. An opt-in1/5/15signed-bps mean objective is now connected through target ingress, own-prefix scale, hidden readout, loss, state and reports, with144synthetic cases passed. No genuine candidate fit or later directional improvement yet. The tiny-move-majority and simple refitted-linear-head remedies remain unsupported by completed measurements.",
   "active_target": {
     "formula": "m(D)=(bid_open(D)+ask_open(D))/2; y_h=sign(m(D+h)-m(D)); h in {1,5,15}; D=M5 bar_start+5min.",
     "eligible": "Observed, sign nonzero, and exact terminal timestamp strictly before own prefix cutoff.",
@@ -340,10 +340,10 @@
     "core": "At each causal M5 decision D, define XAUUSD signed bps change from the same entry for each elapsed minute1..60, with fixed report anchors1/5/10/15/30/60. This is the proposed expanded domain; the unchanged measured native baseline still emits1/5/15only.",
     "return_formula": "R_h = 10000 * (mid(D+h)-mid(D)) / mid(D).",
     "current_component": "p_h=P(R_h>0 | causal inputs, observed nonzero outcome); assess probability ranking and proper scores on the original qualified masks.",
-    "proposed_complement": "Expected signed return in bps and uncertainty at each fixed horizon, with observed zero returns retained for magnitude supervision. Quote-side costs belong to a separately explicit action-value definition. Do not select a loss scale or weight ad hoc.",
+    "proposed_complement": "Signed-bps conditional mean implemented as an opt-in target. Distribution/uncertainty remains future work and is not inferred from the mean. Costs/path/action semantics remain separate.",
     "path_quality": "Report favorable movement, prior adverse movement and timing separately. Keep the existing first-maximum definition explicit; do not replace it with first-passage semantics by relabeling.",
     "flat": "Abstention is a decision under insufficient expected net benefit or confidence. Endpoint zero and missing outcome are not automatic FLAT labels.",
-    "implementation_now": "Pure endpoint target projector supports explicitly selected minutes1..60with36synthetic cases passed. No genuine expanded targets, native heads, optimizer or loss changed. Native baseline remains1/5/15sign-only.",
+    "implementation_now": "Minute target projector supports explicit1..60including10. Opt-in native signed-bps means/joint loss at1/5/15are implemented and synthetic-qualified. Default baseline stays BCE; no genuine expanded targets or new candidate fit.",
     "anchor_horizons_minutes": [
       1,
       5,
@@ -501,15 +501,16 @@
         "file": "gx1/contracts/entry_native_direction_research_v1.py",
         "lines": [
           28,
+          85,
           110,
-          125,
-          133,
-          157,
-          173,
-          187,
-          212
+          126,
+          136,
+          219,
+          226,
+          250,
+          275
         ],
-        "binding": "Head, horizon buffer, output and target shapes, exact timestamps and loss."
+        "binding": "Fixed1/5/15default direction head and strict loss; opt-in separately identified signed-bps mean head. No native60horizon outputs."
       },
       {
         "file": "gx1/contracts/entry_native_direction_context_report_v1.py",
@@ -528,21 +529,24 @@
           29,
           31,
           77,
-          115,
-          129
+          106,
+          113,
+          247,
+          308
         ],
-        "binding": "Archive shapes, selected target members and exact parent/time alignment."
+        "binding": "Default archive selection and opt-in bps selection, own-prefix scale, exact parent/time joins, separate bps report and joint-loss training branch."
       },
       {
         "file": "gx1/contracts/entry_native_direction_research_state_v1.py",
         "lines": [
-          27,
+          26,
           44,
-          126,
-          132,
-          209
+          84,
+          106,
+          212,
+          232
         ],
-        "binding": "Immutable horizon identity and exact state/order restoration; old snapshots cannot be silently relabeled."
+        "binding": "Recipe/objective identity, immutable bps scale and full state/order restoration; no cross-objective checkpoint reuse."
       }
     ],
     "saved_endpoint_reuse": {
@@ -599,7 +603,7 @@
       "Whether bps magnitude or dense-minute supervision improves the desired task; source limitations alone do not prove empirical gain.",
       "Actual useful input interactions, causal source timing and common upstream errors beyond the completed local-input parity scope."
     ],
-    "highest_information_single_measurement": "After source qualification of the requested bps/horizon contract, a fixed magnitude-supervision versus unchanged sign baseline comparison at identical existing horizons and exposure tests the actual task gap. First verify target clocks and legacy parity; do not simultaneously change horizon count or epochs.",
+    "highest_information_single_measurement": "After minimum genuine fresh-function/gradient/resume qualification, a fixed signed-bps-supervision versus unchanged sign baseline comparison at identical1/5/15horizons, observations and exposure. No additional tiny-move audit or simultaneous horizon/epoch change.",
     "would_change_assessment": [
       "A concrete verified clock/sign/unit/normalization defect takes priority immediately.",
       "A matched earlier-representation advantage, controlling decoder capacity and chronology, would support representation information loss.",
@@ -662,7 +666,7 @@
   },
   "next_step_proposal_not_admitted": {
     "question": "Does explicit signed-bps supervision improve later predictions on identical observations, compared with unchanged sign-only learning?",
-    "smallest_next_step": "Bind a separate signed-bps mean readout and its loss/target/state/report contract over the existing shared hidden state; retain original1/5/15,B16,seed,presentation order,optimizer and one-pass exposure. Qualify exact target ingress and loss gradients before a genuine paired run.",
+    "smallest_next_step": "Source route is implemented and144synthetic checks pass. Bind the smallest genuine own-prefix scale/fresh native baseline/gradient/resume qualification using existing input and capped execution owners; then the fixed first-prefix magnitude comparison.",
     "concrete_candidate": {
       "output": "Retain logit_up with its original P(UP|observed nonzero) meaning. Add three unbounded signed-bps conditional-mean predictions mu_h from the same undetached native hidden state.",
       "target": "Reuse saved mid_return_bps for the exact same parents and clocks; do not recompute or interpolate. Include observed mature zero returns in the bps component, while preserving the existing BCE mask.",
@@ -672,7 +676,7 @@
       "tradeoff": "Squared error targets the conditional mean and can be dominated by rare large errors. Report residual contributions in the already fixed bps bands without filtering or changing the loss after seeing later results.",
       "uncertainty": "A mean output is not uncertainty. A later explicit distribution/interval component needs its own score and calibration; do not derive confidence or trade authority from mu alone.",
       "reuse_limit": "Reuse the established TRAIN-RMS arithmetic, not the old dynamic path owner whole-TRAIN population or quote-side target contract.",
-      "initialization": "Changed function needs a fresh bound initialization and complete state/optimizer identity. Old checkpoints must not be relabeled; ensure shared initialization and RNG/dropout exposure are matched."
+      "initialization": "Implemented zero-initialized normalized-mean Linear, multiplied by own-prefix RMS. Shared parameters and CPU RNG matched synthetically. Genuine fresh baseline/CUDA RNG and exact genuine resume still require separate measurement. Never relabel old checkpoints."
     },
     "synthetic_checks": [
       "Same-logit BCE gradients equal for+0.1and+50, while the signed-bps residual/gradient differ; mirror negative targets.",
@@ -710,7 +714,7 @@
     "status": "36synthetic endpoint cases passed; target projector supports1..60. Native outputs/loss remain1/5/15sign-only; genuine extension not materialized."
   },
   "bps_supervision_source_preparation": {
-    "status": "IMPLEMENTED_SYNTHETIC_QUALIFICATION_PENDING",
+    "status": "QUALIFIED_SYNTHETIC_ONLY",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SOURCE_DESIGN_001.json",
       "sha256": "c5c6399437d3e9e78ff64178b4335e2ead05103ca442dafa130e4dff6dd21b94"
@@ -725,6 +729,24 @@
     },
     "scope": "Opt-in three signed-bps means from unchanged shared hidden; target ingress, own-prefix RMS, joint loss, state and reports connected. Default baseline unchanged. No genuine qualification or fit.",
     "genuine_training_authorized": false,
-    "direction_improvement_measured": false
-  }
+    "direction_improvement_measured": false,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "a9c2bc2c7f1b9ddcd663b6371305f1b18192492734cf47bd0e8db3c7c634d3e1"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_VERIFIED_TERMINAL_001.json",
+      "sha256": "5f24d94e21ebd661a7878c4bdb9d5a57e6028b10acc1532b5f679187c6dcaff5"
+    }
+  },
+  "completed_bps_supervision_qualification": {
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "a9c2bc2c7f1b9ddcd663b6371305f1b18192492734cf47bd0e8db3c7c634d3e1"
+    },
+    "repo_report": "docs/DIRECTION_BPS_SUPERVISION_QUALIFICATION_20261027.json",
+    "passed": 144,
+    "genuine_qualification_complete": false
+  },
+  "source_reference_note": "Historical finding references describe the measured baseline before the bps change; current source owners above are updated for commit b6209ff13239125e361c7c7824d678b5a40ded24."
 }

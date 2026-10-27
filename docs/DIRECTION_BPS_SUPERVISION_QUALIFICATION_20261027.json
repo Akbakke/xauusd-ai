@@ -1,0 +1,71 @@
+{
+  "schema_version": "gx1_bps_supervision_synthetic_root_review_v1",
+  "status": "COMPLETE_SYNTHETIC_ONLY_CONSUMED",
+  "observed_utc": "2026-10-27T11:58:44.749118+00:00",
+  "source_head": "b6209ff13239125e361c7c7824d678b5a40ded24",
+  "frozen_policy_sha256": "49018ed318501c53ff1b7d6d74fc31714a3efb3503e94157715ffbbb9ebf31a7",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_PLAN_001.json",
+    "sha256": "5fa338fd994a1595af38b76b457e190254b65eaa51cb0ad0e9f452acf1f1885a"
+  },
+  "original_terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001/TERMINAL.json",
+    "sha256": "e141e8363c4765a1fc8fee0a2c7645d632f1bb7cc5bf291a20d06e5eb48952e8"
+  },
+  "original_outer_terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001_RUNTIME/OUTER_TERMINAL.json",
+    "sha256": "fdc13a45bae5ce0728b04e4ff8f5db9513dd411f29559bf24ed3cddda490087c"
+  },
+  "original_claim": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001/INVOCATION_CLAIM.json",
+    "sha256": "8b6b6cf5235fb2001d7bd25a0d325144d0975173c54ab1f63c7adfbfb279ac26"
+  },
+  "summary": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001/SUMMARY.json",
+    "sha256": "172933eab9343152847d344b8f39ae13cf9d337f02864ced617374cf7d2a7efe"
+  },
+  "source_policy_unchanged": true,
+  "all_plan_source_pins_verified": true,
+  "cgroup_absent": true,
+  "owner_absent": true,
+  "original_lock_identity_verified_and_free": true,
+  "claimed_invocations": 1,
+  "completed_invocations": 1,
+  "relaunch_allowed": false,
+  "passed": 144,
+  "new_bps_cases_passed": 31,
+  "existing_baseline_cases_passed": 113,
+  "counters": {
+    "genuine_native_calls": 0,
+    "payload_open_attempts": 0,
+    "synthetic_backwards": 42,
+    "synthetic_module_calls": 165,
+    "synthetic_module_constructions": 570,
+    "synthetic_optimizer_steps": 11,
+    "synthetic_payload_accesses": 4
+  },
+  "worker_elapsed_seconds": 52.32095328900141,
+  "outer_elapsed_seconds": 53.016039046000515,
+  "source_change": "Opt-in signed-bps means and joint loss at1/5/15; original direction baseline remains default.",
+  "verified_synthetic_scope": [
+    "+0.1and+50bp retain equal BCE output gradients and distinct magnitude gradients at identical predictions; mirrored negative case.",
+    "Observed zero contributes to bps loss without becoming a direction/FLAT class; missing and immature cells contribute no bps gradient.",
+    "Own-prefix scale excludes immature outcomes, retains zero denominator cells and rejects invalid/zero/empty inputs.",
+    "Shared initial parameters and CPU RNG identical with zero-initialized bps head; one synthetic backbone call per research forward.",
+    "Bps-only gradient reaches the undetached shared hidden after the mean head has nonzero weights; unused legacy heads remain unsupervised.",
+    "Actual training adapter updates synthetic bps head; uninterrupted two-step state exactly matches one-step/save/restore/one-step state.",
+    "New recipe/objective/scale cannot be restored as legacy direction state; altered immutable scale rejects before mutation.",
+    "Original saved bps target selection and device transfer preserved; feature routes unchanged, objective and scale separately bound; bps reports retain units and frozen references."
+  ],
+  "limitations": [
+    "Synthetic native shells/spies are not genuine encoder/MTF/GC qualification.",
+    "No genuine own-prefix scale, fresh native initialization, CUDA gradient or genuine resume measurement in this unit.",
+    "No fitted genuine candidate, later AUC/proper-score gain, economic edge or uncertainty prediction established.",
+    "Source supports an opt-in candidate; old consumed launch plans cannot admit it."
+  ],
+  "genuine_payloads_read": false,
+  "genuine_native_training_started": false,
+  "direction_improvement_measured": false,
+  "economic_edge_qualified": false,
+  "test_data_used": false
+}
