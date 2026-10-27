@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_NATIVE_0U_METADATA_SYNTHETIC002_ADMITTED",
+    "status": "COMPACT_NATIVE_0U_METADATA_QUALIFIED_TIMING_PREPARATION_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_0u_metadata_synthetic_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,10 +37185,10 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "One fresh002 corrected inline harness,137expected cases, exact owned-root read positive and three escape negatives. 001 consumed/failed despite137testpasses; repo source unchanged. Genuine native timing/part3 remain closed.",
+    "next_action": "Prepare and validate fresh fixed own0U timing256 recipe and canonical one-shot campaign from existing F route. Genuine reads/constructor/forwards remain closed until new exact admission; extra training and feature expansion stay closed.",
     "qualification_state": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_002.json",
-      "sha256": "17f6c2b68e6c5a2dbbb8183b912b9f93f52c774bd885356f498ee96898f785d5"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
+      "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
     },
     "current_design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_COMPATIBILITY_DESIGN_001.json",
@@ -37205,6 +37205,10 @@
     "first_analysis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
       "sha256": "3d338ca099298a43c433f8395e51de152414897fd4650f65a8848d89a9c6701b"
+    },
+    "native_0u_metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "987ed6dc911162f9b12003004fd65bfa102d4fd18fffe4296f0f8a9b263732a3"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -37806,7 +37810,7 @@
     }
   },
   "independent_direction_0u_source_20261027": {
-    "status": "SOURCE_DESIGN_ADOPTED_EXECUTION_CLOSED",
+    "status": "SOURCE_SYNTHETIC_QUALIFIED_GENUINE_EXECUTION_CLOSED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_COMPATIBILITY_DESIGN_001.json",
       "sha256": "3c1b5694ecd97c7c6ac8d4b1315f86d9b24c45d7b3d61c3a9e0533564047b5ed"
@@ -37823,22 +37827,26 @@
     "model_calls_authorized": false,
     "fits_authorized": false,
     "test_data_used": false,
-    "observed_blocker": "Existing F metadata/source pins predate exact current source. New own scope requires explicit qualified transition before original276 own0U timing256 and missingpart3; no numerical or input change."
+    "observed_blocker": "Existing F metadata/source pins predate exact current source. New own scope requires explicit qualified transition before original276 own0U timing256 and missingpart3; no numerical or input change.",
+    "synthetic_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "987ed6dc911162f9b12003004fd65bfa102d4fd18fffe4296f0f8a9b263732a3"
+    }
   },
   "independent_direction_0u_metadata_synthetic_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_137_METADATA_CASES_ONLY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_PLAN_002.json",
       "sha256": "000fd0485d8d0b87f3c509155d3e2c9edce570decc40a287f5861e9d0a00b1ad"
     },
-    "execution_authorized": true,
-    "synthetic_tests_authorized": true,
+    "execution_authorized": false,
+    "synthetic_tests_authorized": false,
     "genuine_payload_reads_authorized": false,
     "genuine_forwards_authorized": false,
     "genuine_fits_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "test_data_used": false,
     "expected_test_cases": 137,
@@ -37849,6 +37857,22 @@
     "source_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SOURCE_REVIEW_002.json",
       "sha256": "fbbdbb7c2348c80adb6023375776950990f36a73c94440a9b85d9535c52dd03c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_002/TERMINAL.json",
+      "sha256": "c474e8a566ecd9d9e7fcf1eddb9843e8ef8887895c31408d211a3b11ba353525"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_002_OUTER_TERMINAL.json",
+      "sha256": "d42fae9b1e39362aa618bc46866ce42ef2526204def03ac5c746a48f54e8bf92"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_002/RESULTS.xml",
+      "sha256": "47c4b07e77e6a1e01c7dde9b6ca16d1520caeed6de865fc759f4bb918465c491"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "987ed6dc911162f9b12003004fd65bfa102d4fd18fffe4296f0f8a9b263732a3"
     }
   },
   "independent_direction_0u_metadata_synthetic_20261027_attempt001": {

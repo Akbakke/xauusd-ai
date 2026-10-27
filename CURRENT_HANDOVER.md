@@ -145,13 +145,15 @@ to eksisterende testfiler er avgrenset. Ingen slik numerisk enhet er åpnet.
 Kompaktinput, original276state,267prefixstats, GC, mål og permutasjon beholdes.
 TEST/CONTROL, Exit, broker, ordre, spending og promotion er fortsatt stengt.
 Målet er aktivt; mer trening og konvergens er uavklart.
-Metadata-optin er implementert og separat kildevurdert i de fem avgrensede
-filene. Bare136valgte syntetiske/metadatacases er nå åpnet. Kopiert testguard
-er rettet for faktisk påvist sti-/mutasjonsavgrensning før bruk; tre eksplisitte
-negativer inngår. Ingen genuine nativeenhet eller ekstra trening er åpnet.
-Syntetikk001 ga137PASS, men enheten feilet: feil forventet136 og egen
-outputroot ble avvist ved kvitterings-fsync. Originaler bevart som consumed
-FAILED. Ny002 retter bare antall137 og eksakt owned-root-lesing; kode uendret.
+Metadata-optin er implementert og separat kildevurdert i fem avgrensede filer.
+Syntetikk001 hadde137PASS, men enheten feilet feil forventet136 og avvisning
+av egen outputroot ved kvitterings-fsync. Originaler bevart som consumedFAILED.
+Ny002 rettet bare antall137 og eksakt owned-root-lesing; kildekode uendret.
+002 er COMPLETE med137/137PASS, tre escape-negativer og owned-root-positiv,
+0payload/model/fit/update/CUDA.368fokuserte cases er bestått på komponentene.
+NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001 og QUALIFICATION_STATE_003 binder dette.
+Fersk timing256-recipe forberedes som metadata; genuin admisjon er fortsatt
+stengt. Ingen extra epoch, ny indikator eller større nativejobb er åpnet.
 
 ## Bps-hodets separate retningsrangering
 
