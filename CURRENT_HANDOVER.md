@@ -13,8 +13,8 @@ Programrot:
 
 10-minuttersutfall kan nå forberedes fra to lagrede femminuttersutfall med
 delt prisrad og eksplisitt avrundingsusikkerhet; bps må sammensettes, ikke
-adderes direkte. Kilde er foreløpig utestet. Ingen lagrede datapayloads,
-modellforwards eller trening er åpnet av kildearbeidet.
+adderes direkte. En syntetisk engangskontroll er åpnet, men ikke utført.
+Ingen lagrede datapayloads, modellforwards eller trening er åpnet.
 
 
 Forskningskontrakt for første gunstige quote-bevegelse er implementert separat

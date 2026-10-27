@@ -37990,10 +37990,27 @@
       "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_direction_saved_horizons_v1.py",
       "sha256": "83bbbbf8108a60201a84e20ab5d676723d6f9eaf6558dc1aa71ee2d58de45229"
     },
-    "synthetic_execution_authorized": false,
+    "synthetic_execution_authorized": true,
     "saved_payload_reads_authorized": false,
     "model_forwards_authorized": false,
     "training_authorized": false,
+    "test_control_authorized": false
+  },
+  "direction_10_saved_endpoint_synthetic": {
+    "status": "ADMITTED_SYNTHETIC_ONLY",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_SAVED_ENDPOINT_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "fffdbbe8ca281e84ca8ccd790441835361a51fef7927d516aea3aeb753772f0c"
+    },
+    "execution_authorized": true,
+    "synthetic_execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "training_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
     "test_control_authorized": false
   }
 }
