@@ -50,6 +50,14 @@
     "whole_prefix_sign_result": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_COMPARISON_001/RESULT.json",
       "sha256": "25183b69807753897028f8c611c6302b26861c6b3d3972910bba1653d20faa5e"
+    },
+    "whole_prefix_independent_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_VERIFY_001/RESULT.json",
+      "sha256": "c5df54350f2ef39c08014252f46914f3446e3f2704363f8691180738e966e236"
+    },
+    "whole_prefix_aggregate_diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_AGGREGATE_DIAGNOSIS_001.json",
+      "sha256": "0beb6cb9f234e46ed2e2e35d3b4313dbf645ee5b67a3450dc454fdc097361ff2"
     }
   },
   "execution_authorized_by_report": false,
@@ -105,10 +113,10 @@
         "native0u_inventory",
         "native0u_design"
       ],
-      "finding": "Existing same256 initial/final measurements do not demonstrate whole-prefix convergence. Original one-pass default-sign0U full-prefix extraction is still missing the final presentation third. More exposure has not been compared.",
+      "finding": "All 47602 prefix parents have been joined from separately qualified initial and terminal partitions. On 47308 eligible five-minute TRAIN cells AUC rises from 0.507550 to 0.515888, but final log loss is worse than the fixed TRAIN prevalence. Initial predictions for the later cohort do not exist.",
       "id": "F6",
-      "implication": "Distinguish inability to fit TRAIN from later generalization before attributing failure to indicator insufficiency. Complete only the missing measurement with fixed compact inputs and archived states.",
-      "type": "EXPERIMENTAL_BOUNDARY"
+      "implication": "The model has some in-sample ranking change but has not beaten a feasible constant prevalence probability on the primary TRAIN objective. Do not infer later initial-to-final improvement; assess extra exposure separately.",
+      "type": "MEASURED_WEAK_TRAIN_LEARNING"
     },
     {
       "evidence": [
@@ -129,6 +137,16 @@
       "id": "F8",
       "implication": "Technical validity supports trusting this measurement, not claiming improved trading decisions.",
       "type": "QUALIFICATION_LIMIT"
+    },
+    {
+      "id": "F9",
+      "type": "MEASURED_LATER_DEVELOPMENT_NO_EDGE",
+      "evidence": [
+        "whole_prefix_independent_review",
+        "whole_prefix_aggregate_diagnosis"
+      ],
+      "finding": "On 17197 eligible later five-minute rows terminal AUC is 0.503021, corrected day/week intervals include 0.5, and logloss/Brier are worse than fixed TRAIN prevalence. At the predefined zero threshold 14849 predictions are DOWN; accuracy is 48.85% versus 51.58% always-UP.",
+      "implication": "Do not promote or trade this direction head. Threshold behavior is diagnostic, not an execution strategy; no sealed TEST or economic edge was evaluated."
     }
   ],
   "main_cause_established": false,
@@ -143,12 +161,12 @@
     {
       "action": "Compare fixed whole-prefix initial/final learning with chronological later development using saved outputs. Reuse all completed extraction parts.",
       "priority": 2,
-      "status": "COMPARISON_COMPLETE_INDEPENDENT_VALIDATION_ADMITTED"
+      "status": "COMPLETE_ONE_REUSED_FOLD_WITH_INDEPENDENT_REPLAY"
     },
     {
       "action": "If still justified, separately predeclare unchanged-sign1pass versus additional exposure. Preserve same unique order per pass, original lastB2, Adam/RNG and existing hardware guards. No bps or feature factor mixed in.",
       "priority": 3,
-      "status": "NOT_ADMITTED"
+      "status": "NOT_ADMITTED_CHECK_MATCHED_EXISTING_EXPOSURE_FIRST"
     },
     {
       "action": "Consider a new input field or path-quality supervision only as a separate fixed comparison after the compact learning diagnosis.",
@@ -159,7 +177,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T20:13:59.900180+00:00",
+  "updated_utc": "2026-10-27T20:16:28.403341+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

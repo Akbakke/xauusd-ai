@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "WHOLE_PREFIX_COMPARISON_COMPLETE_INDEPENDENT_REPLAY_ADMITTED",
+    "status": "COMPACT_SIGN_ONE_FOLD_DIAGNOSED_NO_EDGE_RESEARCH_ACTIVE",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_whole_prefix_verify_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Build and inspect the final fresh campaign bound to this committed policy, current source and current boot; prove machine-wide idle and use only the unique independent scheduled task. No training, extra features, part3 or trading is admitted.",
+    "next_action": "Check for an already completed exactly matched exposure comparison; otherwise prepare a concrete separate unchanged-sign exposure plan with training gates closed and obtain any required fresh authority before optimizer updates. Additional input fields remain deferred.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37233,6 +37233,14 @@
     "whole_prefix_result": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_COMPARISON_001/RESULT.json",
       "sha256": "25183b69807753897028f8c611c6302b26861c6b3d3972910bba1653d20faa5e"
+    },
+    "whole_prefix_independent_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_VERIFY_001/RESULT.json",
+      "sha256": "c5df54350f2ef39c08014252f46914f3446e3f2704363f8691180738e966e236"
+    },
+    "whole_prefix_aggregate_diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_AGGREGATE_DIAGNOSIS_001.json",
+      "sha256": "0beb6cb9f234e46ed2e2e35d3b4313dbf645ee5b67a3450dc454fdc097361ff2"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -38185,7 +38193,7 @@
     }
   },
   "independent_direction_whole_prefix_sign_20261027": {
-    "status": "COMPLETE_AWAITING_INDEPENDENT_REPLAY",
+    "status": "COMPLETE_AND_INDEPENDENTLY_REPLAYED",
     "operation": "whole_prefix_initial_vs_terminal_saved_sign_comparison",
     "protocol": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_PROTOCOL_004.json",
@@ -38226,10 +38234,14 @@
     "outer_terminal": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_COMPARISON_001_OUTER_TERMINAL.json",
       "sha256": "95de1596cd6c4c4dde6c498d67ab943807b966d6b295dc0bc90bbf60a3ecc98d"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_VERIFY_001/RESULT.json",
+      "sha256": "c5df54350f2ef39c08014252f46914f3446e3f2704363f8691180738e966e236"
     }
   },
   "independent_direction_whole_prefix_verify_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_AND_INDEPENDENTLY_REPLAYED",
     "protocol": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_PROTOCOL_004.json",
       "sha256": "0bc3ffdaf210368cbb7c8fed20f83348eba674e37351a2d323812f854508914c"
@@ -38262,14 +38274,22 @@
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_VERIFY_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "saved_payload_reads_authorized": true,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
     "model_calls_authorized": false,
     "fit_authorized": false,
     "test_data_used": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_VERIFY_001/RESULT.json",
+      "sha256": "c5df54350f2ef39c08014252f46914f3446e3f2704363f8691180738e966e236"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_VERIFY_001_OUTER_TERMINAL.json",
+      "sha256": "a6ee75d10a976ed37d610837d6d801d3553e9862e2634135acae6f0a229a7a18"
+    }
   }
 }

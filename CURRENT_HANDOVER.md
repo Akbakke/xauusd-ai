@@ -155,8 +155,8 @@ F-kildens strenge metadata-optin er kvalifisert med 137 syntetiske tilfeller;
 outputroot. Ny002 rettet disse to forholdene og besto; ingen payload/model/fit.
 En fersk metadata-preflight av `NATIVE_0U_TIMING256_RECIPE_001.json` har bestått
 mot eksisterende F-kontrakt og 57 faktiske kildehashes uten payload eller modell.
-`NATIVE_0U_RECIPE_METADATA_REVIEW_001.json` binder resultatet. Dette er ikke en
-måling av 0U-paritet og åpner ikke native kjøring.
+`NATIVE_0U_RECIPE_METADATA_REVIEW_001.json` binder resultatet. Preflighten var ikke i seg selv en
+måling av 0U-paritet og ga ikke kjøreautoritet.
 
 Egen 0U-timing256 er fullført på ny fysisk boot med bestått maskinvakt.
 Uavhengig bytekontroll mot originale 256 TRAIN-foreldre besto på alle 16
@@ -171,16 +171,25 @@ kontroll: `NATIVE_0U_PREFIX_PART3_001/ACTUAL_ROOT_REVIEW.json`
 (SHA-256 6663b1a04d3e3335c47cab5cdd0ed7b0325a44349b72faf847ea85dbbfef29d8).
 Oppstartsoppgaven er deaktivert; ingen edge følger av teknisk PASS.
 
-Den faste analysen av lagrede utdata er fullført uten modellkall eller fit.
-Foreløpig TRAIN5min AUC start/slutt .507550/.515888; senere utvikling AUC
-.503021 og logloss/Brier dårligere enn fast TRAIN-prevalens. Dette er ikke
-ny TEST eller økonomisk edge. `WHOLE_PREFIX_SIGN_COMPARISON_001/RESULT.json`
-(SHA-256 25183b69807753897028f8c611c6302b26861c6b3d3972910bba1653d20faa5e).
-Egen uavhengig rankdata-replay og full telling av manglende/null/umodne
-observasjoner er admittért; fem syntetiske kontroller besto. Startmodellens
-senere prediksjoner finnes ikke, så ingen direkte før/etter-test der hevdes.
-Ingen nye indikatorer, treningspass, TEST/CONTROL, Exit, broker, ordre,
-spending eller promotion er åpnet. Målet er aktivt.
+Den faste analysen av lagrede utdata er uavhengig reprodusert uten nye
+modellkall eller fit. TRAIN5min (47308 kvalifiserte) AUC start/slutt
+.507550/.515888; sluttmodellens logloss .693095 er samtidig dårligere enn
+fast TRAIN-prevalens .692984 på de samme radene. Alle tre horisonters samlet
+eval-BCE er .693073 mot .692944 for samme TRAIN-referanse; dette er en
+beskrivende aggregasjon, ikke egen signifikansprøve.
+
+Senere gjenbrukt utvikling5min: 17197 kvalifiserte av 17288, AUC .503021
+med korrigerte dag-/ukeintervaller som inkluderer .5. Logloss og Brier er
+dårligere enn fast TRAIN-prevalens; 14849/17197 prediksjoner er DOWN ved
+den forhåndsdefinerte nullterskelen. Dette er ikke TEST eller økonomisk edge.
+Uavhengig review `WHOLE_PREFIX_SIGN_VERIFY_001/RESULT.json` SHA-256
+c5df54350f2ef39c08014252f46914f3446e3f2704363f8691180738e966e236;
+aggregert diagnose `WHOLE_PREFIX_AGGREGATE_DIAGNOSIS_001.json` SHA-256
+0beb6cb9f234e46ed2e2e35d3b4313dbf645ee5b67a3450dc454fdc097361ff2.
+Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
+matchet eksponeringssammenligning allerede finnes; ellers forbered separat
+plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
+CONTROL, Exit, broker, ordre, spending eller promotion er åpnet. Målet er aktivt.
 
 ## Bps-hodets separate retningsrangering
 
