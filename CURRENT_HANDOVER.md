@@ -524,3 +524,9 @@ Den valgfrie capped kontrollveien er implementert. 18 Windows-controller-
 kontraktstester, PowerShell-syntaks og et faktisk CPU-capped parserstopp
 bestod uten modell eller payload. Opprinnelig installasjon er uendret uten
 overstyring; den nye veien må bindes eksplisitt ved neste kampanje.
+
+Den ferske 1-mot-3-pass-kampanjen 002 er avgrenset admittert: to ekstra
+pass fra original276, maks 5952 nye optimizersteg, samme mål og data, fire
+tidsbegrensede vinduer og full TRAIN-vurdering som separat gjenstående steg.
+Kampanjen er ikke materialisert eller startet. TEST/CONTROL og all handel er
+stengt. Opt-in capped kontrollør må være bundet før den første oppstarten.
