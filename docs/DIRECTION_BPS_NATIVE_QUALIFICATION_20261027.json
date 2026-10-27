@@ -1,73 +1,155 @@
 {
   "schema_version": "gx1_bps_native_private_root_review_v1",
-  "status": "FAILED_BEFORE_MODEL_CONSTRUCTION_CONSUMED",
-  "observed_utc": "2026-10-27T13:09:07.311534+00:00",
-  "source_head": "7216e395ea107099d6a693d62ef96119683f74c0",
+  "status": "PASS_PRIVATE_NATIVE_MECHANICS_CONSUMED",
+  "observed_utc": "2026-10-27T13:36:43.253811+00:00",
+  "source_head": "375a63a7ff6a880e5c046cd8a989be2897b32434",
   "frozen_policy": {
     "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
-    "sha256": "c697057ea80c893271d57e37127973590ce2f4452944430ddf35732e2c236553"
+    "sha256": "91dc9fcacaa435e18ce21f6579350df7cb2a5d423b91f379d46fbeb359ad77f3"
   },
   "plan": {
-    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/CAMPAIGN/CAMPAIGN_PLAN.json",
-    "sha256": "302ae3512c8c87b330c9351883f9de303b63a80cccc117be2714f7a25ccf207e"
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "f031c8bbb7aecc99b4c8a35860b9c7d26f6a653115c58097c6573b5e02a28d23"
   },
   "admission": {
-    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/ADMISSION.json",
-    "sha256": "c7e81636da4b11a62bcd1df36c6c87bd1996c2bf0665daa82ec86210db8c88dc"
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/ADMISSION.json",
+    "sha256": "7fac9da89a74ca19b8f876048b388c5ad3c08bea149d182dee3bd65e0600dd64"
   },
-  "original_active_claim": {
-    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/RUNTIME/ACTIVE_INVOCATION.json",
-    "sha256": "12f07fcec2ba86709cb6ed9d5483ed07737c44aac3741776109cef45d461025a"
+  "recipe": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RECIPE.json",
+    "sha256": "f959cdf139b6a6fb262d75312c42539b057edae1a00a00a0e776133c207adca3"
+  },
+  "original_worker_claim": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/private-research/CLAIM.json",
+    "sha256": "0e0552c0b39b170ac9cbda6fe7a47f13b47b0bc81ee4a86b69b4fbc5c3b8c8b0"
+  },
+  "original_worker_result": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/private-research/RESULT.json",
+    "sha256": "4a9c06ae979c7896d85c006e00aa2225915ad9a3632234512d20b09a3b1b3bdb"
+  },
+  "original_canonical_receipt": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "315e18305a5edb2272fb48c6faba26c838dca0a0d376c868fb18296d2defa5c7"
+  },
+  "original_progress": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/invocation-evidence/invocation-0001/PROGRESS.json",
+    "sha256": "cab01eaca7c061f959f0fa7a0e80ab01c837f29d3944912e6ec7cb0efe6f765e"
   },
   "original_signed_guard_log": {
-    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/RUNTIME/logs/invocation-0001.signed-guard.log",
-    "sha256": "d043a271fa9f8128e9a5bcd923dd85861b7c67a7aa827c2801ecbe1c9bf1f200"
-  },
-  "original_trainer_traceback": {
-    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/RUNTIME/progress/.invocation-0001.json.trainer.U436bA9Z.log",
-    "sha256": "745b28466c8352a17729c909a881fa71740478cc659d546b98ec9c3f5bcb1da0"
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
+    "sha256": "f70ad628b16f2120540b676bd3b34a12955f1e36b2c37e1de9ec75099c30e6b0"
   },
   "windows_terminal_observation": {
-    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/WINDOWS_TERMINAL_DISABLE_OBSERVATION_001.json",
-    "sha256": "ee12d80eafab100057568c66e036723109ec32ed60271c856936b4911061f213"
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/WINDOWS_TERMINAL_DISABLE_OBSERVATION_001.json",
+    "sha256": "80dde2b170a49cf27be86f5669c4ffa9f13a6ff4144034f1109da319e589a8b6"
   },
-  "signed_guard_child_exit_code": 1,
-  "signed_guard_start_utc": "2026-10-27T12:59:52Z",
-  "signed_guard_exit_utc": "2026-10-27T12:59:57Z",
-  "worker_result_available": false,
-  "worker_progress_available": false,
-  "canonical_receipt_available": false,
-  "canonical_receipt_limitation": "Existing controller record path requires a checkpoint pointer/progress; failure preceded their creation. No replacement worker progress or counters were invented.",
-  "root_cause": "Historical input manifest still binds direction_component_source595cad... while current opt-in bps component is da7be3... . GC transition is separately qualified and not this mismatch.",
-  "old_component": {
-    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
-    "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+  "signed_guard_child_exit_code": 0,
+  "observer_exit_code": 0,
+  "windows_task_last_result": 0,
+  "physical_boot": {
+    "boot_id": 559,
+    "computer_name": "ANDRE2",
+    "identity_sha256": "e8967a5db4750f8c0357268f8c347f18965d2ae773630d9b390b78fe443d9484",
+    "last_boot_utc": "2026-10-27T13:21:08.5000000Z",
+    "schema_version": "gx1_windows_boot_identity_v1"
   },
-  "current_component": {
-    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
-    "sha256": "da7be399a42a1cad721ddf7631bc8ff1b5c02fc347f1fb3ce9bfe8ca39f2f539"
+  "elapsed_seconds": 126.832039941,
+  "counts": {
+    "backward_returns": 5,
+    "backwards": 5,
+    "bps_scale_fits": 1,
+    "forbidden_legacy_calls": 0,
+    "forward_returns": 6,
+    "forwards": 6,
+    "model_construction_returns": 4,
+    "model_constructions": 4,
+    "optimizer_constructions": 4,
+    "optimizer_step_calls": 4,
+    "optimizer_updates": 4,
+    "resume_state_load_calls": 1,
+    "resume_state_load_returns": 1,
+    "staged_state_load_calls": 3,
+    "staged_state_load_returns": 3
   },
-  "minimal_repair": "Fresh input manifest for next attempt changes only the direction_component_source binding to the actual qualified component; retain all saved input/target/normalization bindings and exact source checks.",
-  "numerical_boundary": "Trace stops in prefix._metadata before _prepare, _fresh, forwards or optimizer calls. Private numerical counters were not yet initialized.",
-  "observed_numerical_counters": null,
-  "constructor_and_update_not_reached_from_source_trace": true,
+  "verified_unique_parents": 32,
+  "logical_optimizer_steps": 2,
+  "physical_optimizer_updates": 4,
+  "matched_shared_parameters_buffers_rng_initial_direction_predictions": true,
+  "bit_exact_native_resume": true,
+  "bps_only_shared_projection_gradient": {
+    "joint_projection_l2": 0.005984652321785688,
+    "joint_projection_nonzero": 65536,
+    "scope": "One bps-only reverse after first mean-head update; no causal/predictive-value claim."
+  },
+  "all_required_gradient_groups_nonzero": true,
+  "own_prefix_bps_scale": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/private-research/OWN_PREFIX_BPS_SCALE.json",
+    "sha256": "80dc55c58f7aa890fe8a085cc1bc2ebeed9ede4bf586f5de1fa8f1e24c8f188e"
+  },
+  "prefix_rows": 47602,
+  "prefix_cutoff_ns": 1735689600000000000,
+  "scale_counts": [
+    47596,
+    47420,
+    47073
+  ],
+  "scale_rms_bps": [
+    2.7634159598485524,
+    5.256305368706633,
+    9.117405271194336
+  ],
+  "scale_mean_bps": [
+    -0.0032619127510387373,
+    0.02729999100012076,
+    0.0760517835696521
+  ],
+  "canonical_json_seals_and_json_refs_verified": true,
   "source_policy_unchanged": true,
-  "source_pins_verified": true,
-  "process512_start1038_missing": true,
+  "recipe_source_pins_verified": true,
+  "worker_metadata_bookend_count": 58,
+  "worker_payload_bookend_count": 48,
+  "worker_payload_verification_scope": "Worker verified admitted input/state payloads and exact complete resume. Root independently verified original JSON/guard receipts and current source pins; root did not open or hash PT/NPZ/NPY/Parquet.",
+  "rchar_delta": 7220833557,
+  "rchar_scope": "proc counter excludes mmap faults",
+  "worker_peak_rss_bytes": 5707255808,
+  "guard_terminal_line": "2026-10-27T13:24:44Z event=exit child_status=0 stage=canonical telemetry_samples=108 peak_core_temp_c=50 peak_memory_temp_c=56 peak_power_draw_w=132.6 peak_memory_used_mib=2126",
+  "limits": {
+    "cgroup_path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-r11e233ff6657482b921cc09daf7f8071.scope",
+    "lock": {
+      "lock_device": 78,
+      "lock_inode": 35,
+      "lock_path": "/run/user/1000/gx1-current-heavy-job.lock",
+      "owner_pid": 420,
+      "owner_start_ticks": 938,
+      "scope": "/user.slice/user-1000.slice/user@1000.service/app.slice/run-r11e233ff6657482b921cc09daf7f8071.scope"
+    },
+    "memory_high": 21474836480,
+    "memory_max": 21474836480,
+    "pids": 128,
+    "swap": 536870912
+  },
   "capped_cgroup_absent": true,
-  "current_project_lock": {
+  "original_owner_absent": true,
+  "original_model_process_absent": true,
+  "original_project_lock": {
     "path": "/run/user/1000/gx1-current-heavy-job.lock",
     "device": 78,
     "inode": 35,
+    "matches_original_worker_lock": true,
     "free": true
   },
-  "active_marker_preserved_as_consumed_evidence": true,
   "windows_task_disabled": true,
   "claimed_invocations": 1,
-  "completed_invocations": 0,
+  "completed_invocations": 1,
+  "failed_attempt001": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/ACTUAL_ROOT_REVIEW.json",
+    "sha256": "f1f86453a2b34861e40bdb288ef0efe10c73e0bc0a18fda2bda4a9dfc7c37374"
+  },
   "relaunch_allowed": false,
-  "genuine_learning_measured": false,
+  "private_weights_for_main_fit": false,
+  "predictive_value_qualified": false,
   "direction_improvement_measured": false,
   "economic_edge_qualified": false,
-  "test_data_used": false
+  "test_data_used": false,
+  "next_step": "Fresh bounded first-prefix signed-bps candidate versus unchanged sign-only baseline, identical1/5/15,B16,seed/order/optimizer/exposure and later cohort. No new numerical authority from this closure."
 }

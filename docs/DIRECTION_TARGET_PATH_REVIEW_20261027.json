@@ -666,7 +666,7 @@
   },
   "next_step_proposal_not_admitted": {
     "question": "Does explicit signed-bps supervision improve later predictions on identical observations, compared with unchanged sign-only learning?",
-    "smallest_next_step": "Bps supervision144tests and strict B16 route68tests are qualified synthetically. Prepare fresh one-shot canonical genuine prefix-scale/shared-initialization/gradient/resume unit; then the unchanged first-prefix magnitude comparison.",
+    "smallest_next_step": "144synthetic bps checks,68route checks and genuine B16 shared initialization/gradient/exact resume have passed. Prepare the fixed first-prefix magnitude comparison using fresh candidate weights; qualification weights excluded.",
     "concrete_candidate": {
       "output": "Retain logit_up with its original P(UP|observed nonzero) meaning. Add three unbounded signed-bps conditional-mean predictions mu_h from the same undetached native hidden state.",
       "target": "Reuse saved mid_return_bps for the exact same parents and clocks; do not recompute or interpolate. Include observed mature zero returns in the bps component, while preserving the existing BCE mask.",
@@ -676,7 +676,7 @@
       "tradeoff": "Squared error targets the conditional mean and can be dominated by rare large errors. Report residual contributions in the already fixed bps bands without filtering or changing the loss after seeing later results.",
       "uncertainty": "A mean output is not uncertainty. A later explicit distribution/interval component needs its own score and calibration; do not derive confidence or trade authority from mu alone.",
       "reuse_limit": "Reuse the established TRAIN-RMS arithmetic, not the old dynamic path owner whole-TRAIN population or quote-side target contract.",
-      "initialization": "Implemented zero-initialized normalized-mean Linear, multiplied by own-prefix RMS. Shared parameters and CPU RNG matched synthetically. Genuine fresh baseline/CUDA RNG and exact genuine resume still require separate measurement. Never relabel old checkpoints."
+      "initialization": "Genuine002 verified shared parameters,all buffers,CPU/CUDA RNG,initial direction predictions,zero mean head and bit-exact complete resume. The main candidate still starts fresh; private qualification weights are never reused."
     },
     "synthetic_checks": [
       "Same-logit BCE gradients equal for+0.1and+50, while the signed-bps residual/gradient differ; mirror negative targets.",
@@ -700,7 +700,11 @@
     ],
     "execution_authorized": false,
     "saved_payload_reads_authorized": false,
-    "native_training_authorized": false
+    "native_training_authorized": false,
+    "genuine_private_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "07b26101961ce4218b51f5d87487239bf8b0a913c5ec93db872417e35e1293f9"
+    }
   },
   "completed_minute_target_qualification": {
     "root_review": {
