@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T10:11:20.973250+00:00",
-  "status": "DIRECTION_TERMINAL_READOUT_COMPLETE_NO_SUPPORTED_LATER_GAIN",
+  "status": "DIRECTION_BPS_ALLOCATION_SYNTHETIC_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Prepare minimal bps magnitude/loss-allocation analysis on existing saved TRAIN targets and predictions only. Exactjoins and fixedbands required; no fit,forward,rawdata,or new numerical execution admitted. Native horizon/exposure changes remain separate.",
+  "next_action": "One capped synthetic qualification of fixedbpsband/mask/targetjoin/B16lossallocation report; no genuine reads/fits/forwards.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -36681,5 +36681,38 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "7ec905a48970e2a7f4f45fa1d79f039f1b2c3c66b421a11627f1be9ace340103"
     }
+  },
+  "direction_bps_allocation_source": {
+    "status": "SOURCE_ONLY_ADMITTED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_DESIGN_001.json",
+      "sha256": "31ad98bd960e3eb6769e80f8eb5b028fa876e76fa6c18bf8d0190b4e06a9fbef"
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_SOURCE_ADMISSION_001.json",
+      "sha256": "888a65bf9b9c46d5d2b93568a450a4d4cc1cbd0b2240534e599b3fc787f2c5a2"
+    },
+    "source_changes_authorized": true,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "test_data_used": false
+  },
+  "direction_bps_allocation": {
+    "status": "ADMITTED",
+    "mode": "synthetic",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_SYNTHETIC_PLAN_001.json",
+      "sha256": "f3ee6d279fee2bab6b3dde2507b7a1e1b3203933cbf605167830e74cae49e697"
+    },
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false
   }
 }

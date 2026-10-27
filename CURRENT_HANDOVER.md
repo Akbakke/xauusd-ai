@@ -12,6 +12,11 @@ Programrot:
 
 ## Aktuell status
 
+DIRECTION_BPS_ALLOCATION_SYNTHETIC_PLAN_001 er engangsadmittért, ikke startet.
+Den tester bare kunstige bps-bånd, masker, klokker, join, rangaggregering og
+B16/B2-lossvekter gjennom eksisterende CPUauditvakter. Genuine payloads, fit
+og nativekall er lukket. Kilde: diagnose_entry_direction_bps_allocation_v1.py.
+
 F_TERMINAL_READOUT_20261027_001 er COMPLETE/claimed/consumed. Ingen jobb kjører,
 cgroup er borte, original tunglås er identitetskontrollert og ledig. Alle nye
 payload-/fit-/forward-/treningsautorisasjoner er lukket. Oppfølgingen er PAUSED.
