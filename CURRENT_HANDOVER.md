@@ -339,6 +339,14 @@ Den uavhengige M1-/M5-kontrollen er fullført og konsumert uten modell,
 fit, nye indikatorer, CONTROL, TEST, Exit eller broker. Ingen bedre
 rangering er dokumentert for denne strenge delpopulasjonen.
 
+En separat utforskende M1-/M5-kontroll er admittért for volumgyldige
+femminuttsbøtter, også når ukjent side forekommer. Kjent kjøp/salg telles
+for seg; ukjente registreringer rapporteres og tilordnes aldri retning.
+Fem M1-tellinger må matche M5 eksakt, og tidligere streng delgruppe må
+reproduseres. Samme gjenbrukte fold etter kjent delgrupperesultat; ingen fit,
+modellendring, nye modellindikatorer, CONTROL, TEST, Exit eller broker.
+Status `independent_direction_last_m1_trade_count_volume_domain_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/

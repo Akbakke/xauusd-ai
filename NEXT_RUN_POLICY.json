@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "LAST_M1_TRADE_COUNT_INDEPENDENT_REPLAY_COMPLETE_EXPOSURE_DEFERRED_TRAINING_CLOSED",
+    "status": "LAST_M1_TRADE_COUNT_VOLUME_VALID_EXPLORATORY_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "independent_direction_last_m1_trade_count_volume_domain_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37246,7 +37246,8 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
       "sha256": "d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01"
     },
-    "last_m1_trade_record_refinement_measured": true
+    "last_m1_trade_record_refinement_measured": true,
+    "last_m1_volume_domain_measured": false
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -38817,5 +38818,22 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VERIFIED_ROOT_REVIEW_001.json",
       "sha256": "55b14e74936b740988ba6047647bf9d10a69a0ce796e178980d1273ca3cde405"
     }
+  },
+  "independent_direction_last_m1_trade_count_volume_domain_20261027": {
+    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_DOMAIN_PLAN_001.json",
+    "plan_sha256": "3f5d885d05dae8ba57dbb19fef298f9928cdbff01f5969f53b24dcaca2b22b96",
+    "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_DOMAIN_WORKER_001.py",
+    "worker_sha256": "3f63bbd26ba7aee8d3ef37c7b1c65a05275ccd7ed219b47dcc7c3a682acbb44d",
+    "scope": "Exploratory same fixed last-M1 refinement on strict volume-valid bars; unknown-side records stay separate and are never assigned direction. Declared after prior signed-valid result.",
+    "max_invocations": 1,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_control_authorized": false,
+    "exit_authorized": false,
+    "new_indicators_authorized": false,
+    "broker_authorized": false,
+    "relaunch_allowed": false
   }
 }
