@@ -1,0 +1,73 @@
+{
+  "schema_version": "gx1_bps_native_private_root_review_v1",
+  "status": "FAILED_BEFORE_MODEL_CONSTRUCTION_CONSUMED",
+  "observed_utc": "2026-10-27T13:09:07.311534+00:00",
+  "source_head": "7216e395ea107099d6a693d62ef96119683f74c0",
+  "frozen_policy": {
+    "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
+    "sha256": "c697057ea80c893271d57e37127973590ce2f4452944430ddf35732e2c236553"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "302ae3512c8c87b330c9351883f9de303b63a80cccc117be2714f7a25ccf207e"
+  },
+  "admission": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/ADMISSION.json",
+    "sha256": "c7e81636da4b11a62bcd1df36c6c87bd1996c2bf0665daa82ec86210db8c88dc"
+  },
+  "original_active_claim": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/RUNTIME/ACTIVE_INVOCATION.json",
+    "sha256": "12f07fcec2ba86709cb6ed9d5483ed07737c44aac3741776109cef45d461025a"
+  },
+  "original_signed_guard_log": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/RUNTIME/logs/invocation-0001.signed-guard.log",
+    "sha256": "d043a271fa9f8128e9a5bcd923dd85861b7c67a7aa827c2801ecbe1c9bf1f200"
+  },
+  "original_trainer_traceback": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/RUNTIME/progress/.invocation-0001.json.trainer.U436bA9Z.log",
+    "sha256": "745b28466c8352a17729c909a881fa71740478cc659d546b98ec9c3f5bcb1da0"
+  },
+  "windows_terminal_observation": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/WINDOWS_TERMINAL_DISABLE_OBSERVATION_001.json",
+    "sha256": "ee12d80eafab100057568c66e036723109ec32ed60271c856936b4911061f213"
+  },
+  "signed_guard_child_exit_code": 1,
+  "signed_guard_start_utc": "2026-10-27T12:59:52Z",
+  "signed_guard_exit_utc": "2026-10-27T12:59:57Z",
+  "worker_result_available": false,
+  "worker_progress_available": false,
+  "canonical_receipt_available": false,
+  "canonical_receipt_limitation": "Existing controller record path requires a checkpoint pointer/progress; failure preceded their creation. No replacement worker progress or counters were invented.",
+  "root_cause": "Historical input manifest still binds direction_component_source595cad... while current opt-in bps component is da7be3... . GC transition is separately qualified and not this mismatch.",
+  "old_component": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+    "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+  },
+  "current_component": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+    "sha256": "da7be399a42a1cad721ddf7631bc8ff1b5c02fc347f1fb3ce9bfe8ca39f2f539"
+  },
+  "minimal_repair": "Fresh input manifest for next attempt changes only the direction_component_source binding to the actual qualified component; retain all saved input/target/normalization bindings and exact source checks.",
+  "numerical_boundary": "Trace stops in prefix._metadata before _prepare, _fresh, forwards or optimizer calls. Private numerical counters were not yet initialized.",
+  "observed_numerical_counters": null,
+  "constructor_and_update_not_reached_from_source_trace": true,
+  "source_policy_unchanged": true,
+  "source_pins_verified": true,
+  "process512_start1038_missing": true,
+  "capped_cgroup_absent": true,
+  "current_project_lock": {
+    "path": "/run/user/1000/gx1-current-heavy-job.lock",
+    "device": 78,
+    "inode": 35,
+    "free": true
+  },
+  "active_marker_preserved_as_consumed_evidence": true,
+  "windows_task_disabled": true,
+  "claimed_invocations": 1,
+  "completed_invocations": 0,
+  "relaunch_allowed": false,
+  "genuine_learning_measured": false,
+  "direction_improvement_measured": false,
+  "economic_edge_qualified": false,
+  "test_data_used": false
+}

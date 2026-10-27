@@ -12,18 +12,24 @@ Programrot:
 
 ## Aktuell status
 
-DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001 er ferskt admittért for
-én privat genuin kontroll. Kildekode er uendret etter de beståtte testene.
-Numerisk scope: 4 konstruksjoner, 6 forwards, 5 reverse-pass, 4 fysiske
-optimizersteg (=2 logiske B16-steg gjentatt for eksakt resume), én prefiksskala.
-Samme første32presentasjoner fra original seed/rekkefølge, 1/5/15-horisonter.
-Top-level training/native_training=true gjelder bare denne bundne private
-unntaksruten; full fit, native launch, TEST og alle handelsporter er fortsatt stengt.
-Ingen modell er startet. Kampanje skal bindes til ny commit/policy, deretter
-kreves fersk helmaskin-idle-kontroll og fysisk Windows-boot. Alle hardware-,
-effekt-, minne-, CPU- og tidsvakter beholdes. Ikke start uten fersk bundet gate.
-Se programrot/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/ADMISSION.json.
-
+DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001 er FAILED/claimed/consumed.
+Boot558 ble bekreftet. Original signed guard viser child_status=1 kl12:59:57Z;
+trainer-trace stopper i prefix._metadata med VIEW_SOURCE_SHA før konstruksjon.
+Inputmanifestet beholdt gammel direction_component_source595cad..., mens den
+nye kvalifiserte bps-komponenten har da7be3... . GC-kildeovergangen er separat
+kvalifisert; dette er den ekstra retningskomponent-bindingen som ble glemt.
+Ingen private numeriske tellere/resultat/progress ble opprettet. At modell-
+konstruksjon og oppdatering ikke ble nådd følger av eksakt trace/kilderekkefølge.
+Controller fikk derfor heller ingen vanlig checkpoint/progress-kvittering.
+Vi har bevart original guard, traceback og claim; ikke fabrikert nye runtime-tellere.
+Root-verifisert feilkvittering ligger i forsøksroten/VERIFIED_TERMINAL.json.
+Prosess/cgroup er borte, aktuell prosjektlås er identitetskontrollert ledig,
+Windows-task er Disabled og engangsautoriteten er lukket. Kilde/policy var
+uendret gjennom forsøket. Ingen videre kjøring er admittért av avslutningen.
+Neste minste rettelse er et nytt inputmanifest med kun oppdatert kildebinding;
+markedsdata, targets og normalisering beholdes. Kjør hele metadata-kjeden uten
+payload-åpning eller numeriske imports før et nytt avgrenset forsøk.
+Se docs/DIRECTION_BPS_NATIVE_QUALIFICATION_20261027.json.
 
 DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_20261027_002 er COMPLETE/claimed/consumed.
 Alle 68 tester bestod: 24 nye B16-kontroller og 44 eksisterende B2-kontroller.
