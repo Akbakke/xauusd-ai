@@ -122,8 +122,11 @@ beholdes fast i neste A/B-test. En endret fasit krever egen nybaseline.
 Brukeren har bekreftet kompaktprofilen som bevisst første scope. Parkerte
 fullprofilindikatorer er derfor ikke en feil eller en grunn til utvidelse nå.
 Den selvstendige lagrede bps-sammenligningen prioriteres med uendret input.
-Kun40 nye syntetiske cases for dens worker er admittért; ingen genuine
-prediksjonspayloads eller vekter er åpnet av den nye sammenligningen ennå.
+Alle40 nye syntetiske cases besto; kilder og inputs besto sluttkontroll.
+Kun én fersk CPU-sammenligning av åtte eksakte inputfiler er admittért:
+initial/final/senere prognoser fra begge modeller, original245fasit og egen
+TRAIN-skala. Initial bitparitet må bestås før senere prediksjoner åpnes.
+Det er ingen modellkall, fit, vekter eller nye indikatorer i denne enheten.
 To separate last-M1-OFI-proposalfiler er klargjort, med36 ukjørte tester.
 Disse er ikke admittért til numerikk og endrer ikke dagens native input.
 Ingen ny native-trening, CONTROL/TEST, Exit, broker eller promotion er åpnet.

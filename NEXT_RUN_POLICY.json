@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_FIRST_SAVED_BPS_SYNTHETIC_ADMITTED_NEW_FIELDS_PREPARATION_ONLY",
+    "status": "COMPACT_FIRST_SAVED_BPS_40_SYNTHETIC_PASS_ACTUAL_COMPARISON_ADMITTED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37146,8 +37146,8 @@
       "sha256": "6b7eedc735655aad69c044c4dcf7a9e8247b2cbc381f8593c669280507e7f22e"
     },
     "current_unit": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_SYNTHETIC_PLAN_001.json",
-      "sha256": "e43a3fa53dd2ed1ab492814b5c8770180bff2a0598d4023756e7202c3f9492ad"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_PLAN_001.json",
+      "sha256": "b5e445cf1015feecbc5707c3ae8d4a5e25a94107e32ed60259e7166461627e74"
     },
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
@@ -37399,15 +37399,15 @@
     }
   },
   "independent_direction_bps_comparison_synthetic_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_SYNTHETIC_ONLY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_SYNTHETIC_PLAN_001.json",
       "sha256": "e43a3fa53dd2ed1ab492814b5c8770180bff2a0598d4023756e7202c3f9492ad"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "synthetic_only": true,
     "saved_payload_reads_authorized": false,
@@ -37417,6 +37417,46 @@
     "source_admission": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_004.json",
       "sha256": "6b7eedc735655aad69c044c4dcf7a9e8247b2cbc381f8593c669280507e7f22e"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_SYNTHETIC_001/OUTPUT/RESULT.json",
+      "sha256": "5bf46b4623b5333789e6c7650363e6e425cd3779d52ee0ccf9e11a6034cc875a"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_SYNTHETIC_001/OUTPUT/TERMINAL.json",
+      "sha256": "dfd90b236fec25568335d4b26d6e2b05e6bdcf9d7a73a6e7af3ec2409055bfe7"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_SYNTHETIC_001_OUTER_TERMINAL.json",
+      "sha256": "a1ddacaa915ed8ab307d21647ca1ac0188bb34fa727072c0d124d3a2237b7983"
     }
+  },
+  "independent_direction_bps_comparison_20261027": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_PLAN_001.json",
+      "sha256": "b5e445cf1015feecbc5707c3ae8d4a5e25a94107e32ed60259e7166461627e74"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "read_only_saved_TRAIN_development_predictions": true,
+    "saved_payload_reads_authorized": true,
+    "native_model_calls_authorized": false,
+    "weight_reads_authorized": false,
+    "fits_authorized": false,
+    "test_data_used": false,
+    "required_synthetic": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_SYNTHETIC_001/OUTPUT/RESULT.json",
+      "sha256": "5bf46b4623b5333789e6c7650363e6e425cd3779d52ee0ccf9e11a6034cc875a"
+    },
+    "max_later_parents": 17288,
+    "train_measurement_parents": 256,
+    "cutoff_exclusive_utc": "2025-04-01T00:00:00Z",
+    "primary_horizon_minutes": 5,
+    "confirmatory_interval_count": 6,
+    "bootstrap_replicates": 10000
   }
 }
