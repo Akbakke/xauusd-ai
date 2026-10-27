@@ -119,7 +119,11 @@ ikke-nullfortegn ved1/5/15min; ingen LONG/SHORT-fortegn snur. Maksimalt avvik
 i5min-avkastning er0.002966bps. Et lite fasitkonsistensavvik er målt;
 hovedårsaken til svak retning er ikke dermed påvist. Eksisterende245fasit
 beholdes fast i neste A/B-test. En endret fasit krever egen nybaseline.
-Neste scope er implementasjon av én fast last-M1-OFI-sammenligning og en
-selvstendig sammenligning av lagrede bps-outputs, med egne protokoller i
-målets RUNS-mappe. Ingen ny numerisk enhet er admittért ennå. Ingen native-
-trening, CONTROL/TEST, Exit, broker eller økonomikvalifisering er åpnet.
+Brukeren har bekreftet kompaktprofilen som bevisst første scope. Parkerte
+fullprofilindikatorer er derfor ikke en feil eller en grunn til utvidelse nå.
+Den selvstendige lagrede bps-sammenligningen prioriteres med uendret input.
+Kun40 nye syntetiske cases for dens worker er admittért; ingen genuine
+prediksjonspayloads eller vekter er åpnet av den nye sammenligningen ennå.
+To separate last-M1-OFI-proposalfiler er klargjort, med36 ukjørte tester.
+Disse er ikke admittért til numerikk og endrer ikke dagens native input.
+Ingen ny native-trening, CONTROL/TEST, Exit, broker eller promotion er åpnet.

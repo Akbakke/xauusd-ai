@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "MIDPOINT_AUDIT_COMPLETE_SMALL_LABEL_DEFECT_INPUT_AND_SAVED_BPS_IMPLEMENTATION_ONLY",
+    "status": "COMPACT_FIRST_SAVED_BPS_SYNTHETIC_ADMITTED_NEW_FIELDS_PREPARATION_ONLY",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37142,10 +37142,13 @@
       "sha256": "ab4741e33c7a20362447ceb80027fee1feb4d95604297526d844ffe3949404b7"
     },
     "source_admission": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_003.json",
-      "sha256": "2cbaf89a78267ab1408deb20a7d4f2cc9b976fe0559bc923e669649e9bf2a16e"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_004.json",
+      "sha256": "6b7eedc735655aad69c044c4dcf7a9e8247b2cbc381f8593c669280507e7f22e"
     },
-    "current_unit": null,
+    "current_unit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_SYNTHETIC_PLAN_001.json",
+      "sha256": "e43a3fa53dd2ed1ab492814b5c8770180bff2a0598d4023756e7202c3f9492ad"
+    },
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37172,7 +37175,14 @@
     "phase_C_protocol": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_PROTOCOL_001.json",
       "sha256": "14a7a98be7d5f75fa7d1c0a2534413cc8159cae01d7773144182abcea7fd23eb"
-    }
+    },
+    "prepared_phase_C_actual_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_PLAN_001.json",
+      "sha256": "b5e445cf1015feecbc5707c3ae8d4a5e25a94107e32ed60259e7166461627e74"
+    },
+    "phase_B_status": "PREPARED_UNEXECUTED_AWAIT_COMPACT_RESULT_AND_NEED",
+    "compact_profile_confirmed_by_user": true,
+    "latest_operator_instruction": "Ja, vi kjører kun den kompakte nå med viktige indikatorer, så ser vi om dette er nok eller vi må tilføre noe senere. Vi holder oss til dette kompakte men viktige først"
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -37386,6 +37396,27 @@
     "review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
       "sha256": "3cf3dbbd0c81002b5b180db40deb0bdbe6a2d153b6682643fdb59994a8a57948"
+    }
+  },
+  "independent_direction_bps_comparison_synthetic_20261027": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_SYNTHETIC_PLAN_001.json",
+      "sha256": "e43a3fa53dd2ed1ab492814b5c8770180bff2a0598d4023756e7202c3f9492ad"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "synthetic_only": true,
+    "saved_payload_reads_authorized": false,
+    "native_model_calls_authorized": false,
+    "test_data_used": false,
+    "expected_test_cases": 40,
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_004.json",
+      "sha256": "6b7eedc735655aad69c044c4dcf7a9e8247b2cbc381f8593c669280507e7f22e"
     }
   }
 }
