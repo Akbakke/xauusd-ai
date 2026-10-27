@@ -3,7 +3,7 @@
   "status": "TARGET_TRIGGER_REVIEW_UPDATED_WITH_COMPLETED_TERMINAL_READOUT_NEGATIVE_PRIMARY",
   "role": "User-requested independent direction/bps/trigger review, including10minutes and proposed1..60minute endpoint curve.",
   "evidence_scope": "Original independent source/contract/aggregate review, now reconciled with one separately admitted qualified CPU frozen-readout comparison. Root inspected source and JSON aggregates; the bounded worker alone read five saved TRAIN NPZ archives and performed three fixed CPU fits. No native forward/update or raw-data read.",
-  "primary_conclusion": "Endpoint direction is valid but discards bps magnitude. The fixed terminal readout now improves TRAIN fitting substantially without supported later AUC5 improvement and with worse later proper scores. Simple final-head underfit is therefore weakened as the sole actionable explanation on fold1. Stable forward signal, upstream representation learning and target mismatch remain unresolved; no sign bug or economic edge established.",
+  "primary_conclusion": "Endpoint direction is valid, but sign-only training discards bps magnitude. The fixed terminal readout improved TRAINfit without supported laterAUC5gain. The new saved-target audit rejects the predeclared <=1bp majority-of-loss premise; small-move domination is not a supported explanation. Weak/unstable forward signal, upstream representation learning and the broader target mismatch remain unresolved. No sign bug or economic edge established.",
   "active_target": {
     "formula": "m(D)=(bid_open(D)+ask_open(D))/2; y_h=sign(m(D+h)-m(D)); h in {1,5,15}; D=M5 bar_start+5min.",
     "eligible": "Observed, sign nonzero, and exact terminal timestamp strictly before own prefix cutoff.",
@@ -90,22 +90,47 @@
       "classification": "Proven source-level supervision limitation, not a sign bug or demonstrated explanation for weak endpoint AUC.",
       "mechanism": "The projector computes signed mid_return_bps, but the training adapter selects terminal_time_ns, observed and sign. Equal logits receive equal BCE and gradients for +0.1 and +50bps. Observed zero returns are excluded from BCE.",
       "measured_support": {
-        "evidence_class": "source/algebra only; no new market measurement",
+        "evidence_class": "Source proof plus completed fixed saved-target bps/loss audit; no native model change.",
         "produced": "entry_direction_price_projection_v1.py:127-159",
         "selected": "run_entry_native_direction_prefix_fit_window_v1.py:29-31,113-115",
-        "consumed": "entry_native_direction_research_v1.py:187-212"
+        "consumed": "entry_native_direction_research_v1.py:187-212",
+        "bps_allocation": {
+          "root_review": {
+            "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
+            "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
+          },
+          "summary": {
+            "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_20261027_001/SUMMARY.json",
+            "sha256": "a3919cf57c0db85341eee1ae3e12b4cd6dfa1afe90d11f22d5385c5061e461ad"
+          },
+          "result_fields": [
+            "full_TRAIN_label_distribution",
+            "prefix_small_move_shares",
+            "terminal_prefix_native",
+            "frozen_prefix_batch_allocation",
+            "aggregate_later_all_fixed_magnitude_bands"
+          ],
+          "full_TRAIN_small_nonzero_shares": {
+            "1": 0.3916746630887985,
+            "5": 0.20204923260065474,
+            "15": 0.11842139048417881
+          },
+          "prefix_B16_small_loss_share": 0.26269391695914934,
+          "predeclared_small_move_majority_supported": false
+        }
       },
       "code": [
         "gx1/contracts/entry_direction_price_projection_v1.py:127-159",
         "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:29-31,113-115",
         "gx1/contracts/entry_native_direction_research_v1.py:187-212"
       ],
-      "counterevidence": "Sign-only BCE is appropriate for probability of a positive nonzero endpoint. Adding magnitude may add noise and cannot be presumed to fix directional ranking. The fact that +0.1 and +50bps share a target does not show that small moves dominate this dataset; that empirical distribution has not yet been measured in this analysis.",
-      "smallest_decisive_test": "First measure the unmeasured premise using existing saved TRAIN targets/predictions: exactjoin per horizon, full magnitude/missing/zero distribution and contribution of fixed absolute-bps bands to eligible-cell loss. Report every predeclared band; conditioning on realized magnitude is diagnostic and is not an executable filter. Then compare one magnitude component at unchanged horizons/exposure if the mechanism is supported.",
+      "counterevidence": "Sign-only BCE is correct for positive nonzero endpoint probability. The fixed <=1bp dominance premise is now contradicted: fullTRAINshares39.17%,20.20%,11.84% at1/5/15 and first-prefix batchloss share26.27%. No posthoc redefinition of small is permitted. A magnitude target can add noise and has not been shown to improve later direction.",
+      "smallest_decisive_test": "The saved-target premise check is complete; do not repeat it. For the broader objective, qualify the explicit signed-bps horizon contract, then compare one fixed magnitude-supervision component against unchanged sign supervision at identical original horizons, chronology and exposure. Horizon expansion is a separate factor.",
       "expected_if_true": "Improved later magnitude/distribution proper scores with preserved or improved direction, not merely TRAIN fit.",
       "weakens_if": "Later magnitude or direction does not improve, or any gain disappears when training exposure is matched.",
-      "minimum_improvement": "Add only the measured useful magnitude component. Do not relabel inactive legacy path heads as current supervision.",
-      "stop": "No arbitrary weighting after results, no target-dependent filtering to select big winning moves, no simultaneous horizon/epoch/input change."
+      "minimum_improvement": "Do not discard or downweight small moves based on the rejected premise. A separate signed-bps magnitude/distribution component remains a candidate justified by the stated task, requiring matched later evidence before adoption.",
+      "stop": "No arbitrary weighting after results, no target-dependent filtering to select big winning moves, no simultaneous horizon/epoch/input change.",
+      "actual_outcome": "Magnitude is ignored by the current loss, but <=1bp examples do not dominate supervision. Retrospective larger-move bands show no monotonic native ranking improvement and are not executable selectors."
     },
     {
       "id": "D3_DENSE_HORIZONS_CHANGE_OBJECTIVE_WEIGHT",
@@ -261,7 +286,7 @@
     "heartbeat": "Paused; no active run."
   },
   "limits": "No edge, causal feature value, thirty-epoch convergence or realized profitability established by this source review. No new numerical sign/label validation on payloads was performed; this is a current-source audit.",
-  "observed_utc": "2026-10-27T10:16:25.415526+00:00",
+  "observed_utc": "2026-10-27T10:50:55.571767+00:00",
   "source_head_before_review": "2439500dd8cee5377570dd7b7332c6eb14926ded",
   "source_evidence": {
     "gx1/contracts/entry_direction_price_projection_v1.py": {
@@ -555,7 +580,8 @@
       "Pure probability offset as complete explanation: cannot repair the measured5minute ranking deficit.",
       "The idea that endpoint forecasts cannot see an upswing followed by a return: earlier sampled endpoints can.",
       "The claim that10/30/60native outputs already exist because the older dynamic query owner supports1..480: false.",
-      "The claim that a more completely fitted final linear head by itself fixes later direction: not supported by the fixedfold1primary comparison, although TRAINfit improved."
+      "The claim that a more completely fitted final linear head by itself fixes later direction: not supported by the fixedfold1primary comparison, although TRAINfit improved.",
+      "The predeclared claim that nonzero moves <=1bp dominate eligible cells or frozen first-prefix BCE: false in this fixed audit. This does not establish a noise threshold."
     ],
     "still_unresolved": [
       "Weak/unstable forward signal versus information lost or poorly learned before the final hidden layer.",
@@ -563,21 +589,36 @@
       "Whether bps magnitude or dense-minute supervision improves the desired task; source limitations alone do not prove empirical gain.",
       "Actual useful input interactions, causal source timing and common upstream errors beyond the completed local-input parity scope."
     ],
-    "highest_information_single_measurement": "Quantify bps magnitude and current loss allocation on the exact existing saved TRAIN outcomes/predictions, with fixed bands and no fitting. The formerly highest-priority frozen-final-head test is now complete and negative for the primary later criterion.",
+    "highest_information_single_measurement": "After source qualification of the requested bps/horizon contract, a fixed magnitude-supervision versus unchanged sign baseline comparison at identical existing horizons and exposure tests the actual task gap. First verify target clocks and legacy parity; do not simultaneously change horizon count or epochs.",
     "would_change_assessment": [
       "A concrete verified clock/sign/unit/normalization defect takes priority immediately.",
       "A matched earlier-representation advantage, controlling decoder capacity and chronology, would support representation information loss.",
       "A fixed one-versus-three-pass later gain with unchanged targets would support insufficient end-to-end exposure.",
       "A predeclared magnitude or dense-target comparison improving later proper scores and retained direction would support target redesign.",
-      "A later frozen-readout advantage on separately admitted other folds could change the scope of the presentfold1negative finding; it would not retroactively change this result."
+      "A later frozen-readout advantage on separately admitted other folds could change the scope of the presentfold1negative finding; it would not retroactively change this result.",
+      "A matched signed-bps target improves later distribution scores and preserves or improves direction; alternatively, no such gain would weaken target redesign as the remedy."
     ]
   },
-  "latest_verified_source_head": "b48cc0503365f11cbc5e457a9b62bfed1e3dc86e",
+  "latest_verified_source_head": "31540e604705e1eda47849a25480889804efa91a",
   "completed_terminal_readout": {
     "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_ACTUAL_ROOT_REVIEW_001.json",
     "sha256": "d52af9c879e7fe2f3bd99f4f841b1b33ee2c7bb528d639eeb433d1e8aa807ff8"
   },
-  "next_measurement_proposal_not_admitted": {
+  "completed_bps_allocation": {
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_VERIFIED_TERMINAL_001.json",
+      "sha256": "ade489fd0871d6a1213a19fdaa341d5ad60cbf1f9409e295d2d21b6e44998b6a"
+    },
+    "repo_aggregate": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_BPS_ALLOCATION_RESULT_20261027.json",
+    "predeclared_small_move_majority_supported": false,
+    "native_training_started": false,
+    "direction_improvement_qualified": false
+  },
+  "completed_bps_allocation_protocol": {
     "question": "Does the sign objective devote most of its examples and loss to small bps moves, and are probability scores related to signed future bps on the same parents?",
     "scope": "Existing savedTRAINprice targets and original fourfold native/ET/R1predictions; exact parent/clock/sign/mask join. No model, fit, checkpoint or raw-source access.",
     "fixed_absolute_bps_bands": [
@@ -602,6 +643,33 @@
       "No newfit,threshold selection,horizon selection or exclusion of weak bands.",
       "Sparse/oneclass bands are markedundefined, never silently discarded."
     ],
-    "execution_authorized": false
+    "execution_authorized": false,
+    "status": "COMPLETE_CONSUMED",
+    "completed_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
+    }
+  },
+  "next_step_proposal_not_admitted": {
+    "question": "Make the requested1..60minute signed-bps target explicit, including10, while preserving the valid endpoint-direction baseline.",
+    "smallest_next_step": "Source-only preparation of one explicit horizon/return contract reusing qualified clock and target owners. No extra diagnostics of the failed tiny-move-majority premise.",
+    "fixed_definition": "R_h=10000*(mid(D+h)-mid(D))/mid(D), h=1..60, same causal M5 decision D; report anchors1,5,10,15,30,60.",
+    "required_checks": [
+      "Exact old1/5/15values, masks and source identity preserved.",
+      "10meansD+10; no interpolation, trading-bar shift or summing simple bps.",
+      "Observed zero, missing entry/endpoint and cutoff-censoring remain distinct.",
+      "Rise/return and later-decline examples preserve the common origin; later short requires its own causal origin.",
+      "Future horizon weighting explicit;60labels are correlated and do not give intraminute order."
+    ],
+    "later_comparison": "Magnitude supervision, horizon extension and one-versus-three exposure are separate one-factor comparisons at matched chronology; no automatic30epochs.",
+    "stops": [
+      "Stop target qualification on any clock/sign/unit/source/mask or legacy parity defect.",
+      "No raw/mixed2026source or saved payload access without fresh bounded numerical admission.",
+      "No native model change or launch is authorized by this closure.",
+      "No threshold, favorable outcome band or best minute selection after seeing results."
+    ],
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "native_training_authorized": false
   }
 }

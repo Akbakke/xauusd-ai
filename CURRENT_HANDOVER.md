@@ -4,7 +4,7 @@ Eneste repo er /home/andre2/src/GX1_CURRENT, branch work/gx1-current på
 gx1-3090-lan, WSL Ubuntu-22.04. Root i denne tråden eier integrasjon, policy
 og launch. Bruker har avvist oppdrag fra andre chatter. Den særskilt bestilte
 uavhengige retningsagenten har fullført; ingen ny delegering er nødvendig.
-GX1_RULES skal leses helt ved første arbeid. Kjør scripts/gx1_handover.sh --check.
+Les GX1_RULES helt ved første arbeid. Kjør scripts/gx1_handover.sh --check.
 NEXT_RUN_POLICY er eneste arbeidsstatus; originale terminaler overstyrer prosa.
 
 Programrot:
@@ -12,135 +12,137 @@ Programrot:
 
 ## Aktuell status
 
-DIRECTION_BPS_ALLOCATION_PLAN_001 er engangsadmittért, ikke startet.
-15 fokuserte syntetiske kontroller bestod; originalene er verifisert,
-cgroup borte og originallås ledig. Syntetisk autoritet er konsumert.
-Den nye enheten leser9eksisterendeTRAINarkiver, med0fit/nativeforward/update,
-CPUaudit4G/512M, én tråd,64tasks,180sworker/210souter. Faste bps-bånd,
-originale kohorter, masker og B16-rekkefølge beholdes. Utfallsbånd er kun
-diagnostikk. Sluttmodellens batchloss er ikke historiske optimizergradienter.
+DIRECTION_BPS_ALLOCATION_20261027_001 er COMPLETE/claimed/consumed.
+Original worker og capped outer avsluttet med exit 0. Worker brukte 14,0709 s:
+9 lagrede TRAIN-NPZ, 54 proper-score-kall og 362 rangkall. Ingen fit, native
+konstruksjon, forward, reverse, optimizersteg eller rådatasettlesing.
+CPU audit 4G/512M, én numerisk tråd, 64 tasks, 180 s worker / 210 s outer.
+Kildecommit 31540e604705e1eda47849a25480889804efa91a og policy var fryst;
+originalinputs og reproduserte native-/prior-skårer ble kontrollert.
 
-F_TERMINAL_READOUT_20261027_001 er COMPLETE/claimed/consumed. Ingen jobb kjører,
-cgroup er borte, original tunglås er identitetskontrollert og ledig. Alle nye
-payload-/fit-/forward-/treningsautorisasjoner er lukket. Oppfølgingen er PAUSED.
-Ingen engangsplan relanseres. Alle originaler og checkpoints bevares.
+Root har bare lest kilde og JSON-aggregater/metadata, ikke payloads.
+Originale terminaler og hashbindinger er verifisert. Cgroup og opprinnelig eier
+er borte; den identitetskontrollerte originallåsen er ledig. Ingen jobb kjører.
+Alle autoriteter for denne engangsenheten er lukket. Oppfølgingen er PAUSED.
+Ingen engangsplan relanseres. Originaler og checkpoints bevares.
 
-Original worker og capped outer avsluttet med exit0. Worker brukte 12,4590s,
-leste fem lagrede TRAIN-NPZ, utførte én prefikskoordinattilpasning og tre faste
-L-BFGS-B-fits, med to prediksjonspopulasjoner og 12+12 blokk-/vektede rangkall.
-Ingen native konstruksjon, forward, reverse, optimizersteg eller rådatasettlesing.
-CPUaudit4G/512M, én numerisk tråd, 64tasks. Kilde, policy og originalinputs var
-uendret. Root har bare lest kilde og JSON-aggregater/metadata, ikke payloads.
+DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json binder originalene.
+DIRECTION_BPS_ALLOCATION_VERIFIED_TERMINAL_001.json er metadatakonvolutten.
+Aggregert repo-kopi: docs/DIRECTION_BPS_ALLOCATION_RESULT_20261027.json.
+Kilde: gx1/scripts/diagnose_entry_direction_bps_allocation_v1.py.
+15 fokuserte syntetiske kontroller bestod før den genuine enheten og gjenbrukes.
 
-F_TERMINAL_READOUT_ACTUAL_ROOT_REVIEW_001.json binder originalene.
-F_TERMINAL_READOUT_VERIFIED_TERMINAL_001.json er en verifisert metadatakonvolutt.
-Aggregert repo-kopi: docs/DIRECTION_FROZEN_READOUT_RESULT_20261027.json.
-Kilde: gx1/scripts/fit_entry_native_direction_frozen_readout_v1.py.
+## Hva den nye målingen avklarer
 
-18 nye fokuserte syntetiske kontroller bestod. Før genuin admisjon ble en feil
-i det nye verktøyets feltnavn for original receipt-status funnet og rettet.
-16 originale metadata-/avvisningskontroller kvalifiserte den eneste endringen.
-De 18 numeriske kontrollene og tidligere 21 readout-matematikktester gjenbrukes.
-Dette var en diagnoseverktøyfeil før genuin kjøring, ikke en modellårsaksforklaring.
+Den forhåndsdefinerte hypotesen var at 0 < absolutt avkastning <= 1 bp utgjør
+over halvparten av både gyldige retningsceller og målt sluttmodell-BCE.
+Denne hypotesen er ikke støttet. På hele TRAIN er celleandelene:
 
-## Resultatet og betydningen
+- 1 minutt: 39,17 %.
+- 5 minutter: 20,20 %.
+- 15 minutter: 11,84 %.
 
-Samme frosne trente modell, 128Dhidden, 47 602 komplette prefiksforeldre,
-17 288 senere foreldre og uendret 1/5/15-fasit. Alle tre fits konvergerte med
-gradientmaksimum under 1e-6 og bedre prefiks-BCE enn originalhode/prior.
-Fittet tilstand ble lagret før senere payload ble åpnet. Originale native-/prior-
-skårer ble reprodusert. Identitet, klokker, fortegn, masker og presentasjonsrekkefølge
-er kontrollert. Resultatet er én gjenbrukt utviklingsfold innen TRAIN.
+Alle de fire opprinnelige prefiksene ligger også under 50 % ved hver horisont.
+På første prefiks, 47 602 foreldre, utgjør disse cellene 26,2642 % av den
+opprinnelige B16-koeffisientmassen og 26,2694 % av frossen, batchvektet BCE.
+Grensen for «små bevegelser» skal ikke endres etterpå for å redde hypotesen.
+Dette beviser verken at små bevegelser er støy eller at størrelsesmål gir edge.
 
-Ved 5min steg TRAIN-AUC fra 0,515888 til 0,539421.
-Senere AUC var 0,503021 originalt og 0,503360 etter fast head-fit:
-delta +0,000339. Forhåndsbestemte parvise 99%-intervaller:
-UTCuke [-0,009623; +0,010859], UTCdag [-0,010497; +0,010879].
-Begge inkluderer0. Primærkravet om bedre senere rangering er ikke støttet.
+Den korte sluttbatchen har 2 foreldre / 6 gyldige celler; cellekoeffisienten er
+8 ganger en full batch med 48 celler. Frossen batchgjennomsnitts-loss er
+0,6930733897 mot globalt cellegjennomsnitt 0,6930726337. Dette er ikke historiske
+treningslogits eller optimizergradienter og beviser ikke at siste steg skadet
+generaliseringen. Ingen batchrettelse er innført.
 
-TRAIN-AUC og proper scores ble bedre ved alle tre horisonter. Senere logloss
-ble dårligere ved alle tre; alle seks deskriptive 99%uke-/dagintervaller for
-forskjellen ligger over0. Ved5min ble logloss 0,693514 → 0,700082.
-Disse sekundære intervallene er ikke en familievis eller økonomisk påstand.
+Alle faste bps-bånd er rapportert for native, prior, ET252 og R1. Native-rangering
+blir ikke jevnt bedre ved større faktiske bevegelser. Båndene velges etter kjent
+utfall og kan ikke bli et handelsfilter. Sparse bånd har begrenset bevisverdi.
+Ingen ny prediktor, bedre retningsbeslutning eller økonomisk edge er dokumentert.
 
-En bedre tilpasset siste lineær head er dermed ikke en dokumentert løsning
-på senere retning i denne folden. Kandidaten tas ikke inn som ny native head.
-Dette svekker enkel head-underfitting som eneste forklaring; det avkrefter ikke
-bedre backbone-læring, flere epoker eller ikke-lineær informasjon. Svakt eller
-ustabilt fremoversignal og informasjonstap før slutt-hidden er fortsatt uavklart.
-Fold1 ET252-AUC5 er 0,501344, under native i akkurat denne folden; tidligere
-samlet firefold-ET-fordel må ikke tilskrives denne folden.
+## Beholdt resultat fra fast terminal-readout
 
-Ingen robust ny generalisering, Entry-/handelsedge eller økonomi er dokumentert.
-Arbeidsmålet er aktivt og uferdig.
+F_TERMINAL_READOUT_20261027_001 er komplett og konsumert. Samme frosne modell,
+128D hidden, 47 602 prefiksforeldre og 17 288 senere foreldre ble brukt.
+Tre faste lineære fits konvergerte og forbedret TRAIN-fit ved alle horisonter.
+
+Ved 5 minutter steg TRAIN-AUC fra 0,515888 til 0,539421.
+Senere AUC gikk fra 0,503021 til 0,503360, delta +0,000339.
+Parvise 99 %-intervaller: UTC-uke [-0,009623; +0,010859] og
+UTC-dag [-0,010497; +0,010879]. Begge inkluderer null.
+Senere logloss ble dårligere ved alle tre horisonter; ved 5 minutter
+0,693514 til 0,700082. Kandidathodet innføres ikke.
+
+Dette svekker enkel slutt-head-underfitting som løsningen i denne folden.
+Det avkrefter ikke bedre backbone-læring, flere epoker eller ikke-lineært signal.
+Se docs/DIRECTION_FROZEN_READOUT_RESULT_20261027.json og de bundne originalene.
+Ikke relanser eller utvid forsøket uten en ny konkret begrunnelse.
 
 ## Mål og uavhengig gjennomgang
 
-docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json er oppdatert med dette
-resultatet, fem prioriterte hypoteser, kildelinjer, motargumenter, tester og stopp.
-Agent direction_target_independent_review_20261027 er ferdig og hadde kun
-lesende kilde-/aggregatmandat. Ingen ny fortegnsfeil er funnet i undersøkt kjede.
+docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json inneholder fem hypoteser,
+kildelinjer, motargumenter, avgjørende tester og stopp, oppdatert med begge funn.
+Agent direction_target_independent_review_20261027 fullførte et lesende mandat.
+Ingen fortegnsfeil er funnet i den undersøkte mål-/modell-/losskjeden.
 
-Brukerens 10min er eksplisitt inkludert i målkontrakten. Faste rapportpunkter er
-1/5/10/15/30/60; foreslått full fasitkurve er hvert minutt1–60 fra samme M5-entry:
-R_h = 10000 * (mid(D+h)-mid(D)) / mid(D), D=M5bar_start+5min.
-Den målte native-modellen har fortsatt bare1/5/15utganger. 10/30/60 og dense
-native-utganger er ikke implementert eller målt. Ingen mål-/modellkode er endret.
+10 minutter er eksplisitt med i målutformingen. Rapportpunktene er
+1/5/10/15/30/60; foreslått full fasitkurve er hvert minutt 1–60 fra samme M5-entry:
+R_h = 10000 * (mid(D+h)-mid(D)) / mid(D), D = M5 bar_start + 5 minutter.
+Den målte native-modellen har fortsatt bare 1/5/15-utganger.
+10/30/60 og fulle 1–60-utganger er ikke implementert eller målt.
 
 Endepunktsretning er gyldig: tidligere endepunkter kan se oppgangen selv om
-et senere endepunkt går tilbake til entry. Men +0,1 og +50bps gir samme BCE-
-supervisjon; eksisterende mid_return_bps velges bort av treningsadapteren.
-Observerte nuller utelates, de lærer ikke FLAT. Det er en påvist målbegrensning,
-ikke bevist årsak til svak retnings-AUC. Om små bevegelser dominerer faktiske
-eksempler/loss er ennå ikke målt i denne undersøkelsen.
+et senere endepunkt returnerer til entry. Dagens BCE gir derimot samme
+supervisjon for +0,1 og +50 bps; mid_return_bps velges bort i treningsadapteren.
+Observerte nuller utelates og lærer ikke FLAT. Dette er en påvist målbegrensning,
+ikke bevist årsak til svak retnings-AUC. Små-bevegelse-dominans er nå svekket.
 
-Modellens harde trigger er z_h=b_h+w_h·hidden >0 for UP, ellers DOWN.
-Featurefølsomhet, prediktiv verdi, markedets årsak og en handelsordre er ulike
-spørsmål. Gatevekter forklarer ikke kausalt markedet. Ingen handel er åpnet.
+Modellens harde trigger er z_h = b_h + w_h·hidden > 0 for UP, ellers DOWN.
+Featurefølsomhet, prediktiv verdi, markedsårsak og handelsordre er ulike spørsmål.
+Gatevekter forklarer ikke kausalt markedet. Ingen handel er åpnet.
 
-60 likevektede horisonter gir45/60vekten etter15min ved komplette masker.
-Dette er et fremtidig designvalg, ikke årsaken til dagens1/5/15resultater.
-60 marginale sannsynligheter er ingen felles prisbane. Ingen intraminuttrekkefølge
-gjenopprettes. Senere short krever en ny kausal beslutning; ingen fasittopp.
+60 likevektede horisonter gir 45/60 av vekten etter 15 minutter ved komplette
+masker. Det er et fremtidig designvalg, ikke årsaken til dagens tre-horisontresultat.
+60 marginale sannsynligheter er ingen felles prisbane og gjenoppretter ikke
+intraminuttrekkefølge. Senere short krever en ny kausal beslutning.
 
 ## Neste minste steg
 
-Neste foreslåtte måling er bps-fordeling og lossbidrag på eksisterende lagrede
-TRAIN-fasiter og prediksjoner, uten fit eller modellkall. Bruk samme foreldre,
-klokker og modenhetsmasker; bind alle bps-bånd før payloadlesing. Skill eksakt
-null, manglende og umodne utfall. Rapportér alle bånd og eventuelle udefinerte
-skårer. Utvalget etter realisert bevegelse er kun diagnostikk, ingen handelsfilter.
+Kildearbeid: gjør den foreslåtte signerte bps-/horisontkontrakten eksplisitt,
+inkludert 10 minutter og domenet 1–60, ved gjenbruk av eksisterende klokke- og
+fasiteiere. Kontroller gamle 1/5/15-verdier/masker, felles entry-opphav,
+D+10/D+60, null/manglende/modenhet og oppgang/retur-eksemplet.
+Ingen genuin numerisk enhet eller native-trening er admittért av denne avslutningen.
 
-Denne målingen er foreslått, ikke admittért eller startet. Deretter vurderes
-størrelsessupervisjon, horisontutvidelse og én-mot-tre native epoker som separate
-faktorer. Ingen automatisk30epoker, beste-minutt-seleksjon eller terskelsøk.
-Eksakt10-fasit kan eventuelt bygges av kvalifisert5+5kjede. Alleminuttfasiter
-krever en avgrenset kvalifisert TRAIN-M1kilde for manglende minutter; aldri
-interpolasjon eller selvstendig åpning av Parquet med senere2026data.
+Deretter må bps-supervisjon, horisontutvidelse og én-mot-tre epoker testes som
+separate faktorer med samme observasjoner, kronologi, eksponering og uendret
+baseline. Første størrelsessammenligning beholder gamle horisonter.
+Ingen automatisk 30-epokerskjøring, beste-minutt-seleksjon eller terskelsøk.
 
-## Bevarte tidligere bevis og grenser
+Eksakt 10-fasit kan eventuelt bygges av en kvalifisert 5+5-kjede. Minutter som
+mangler i eksisterende arkiver krever kvalifisert TRAIN-M1-kilde og avgrenset
+admisjon; aldri interpolasjon eller selvstendig åpning av Parquet med senere
+2026-data. Ikke gjenta den avsluttede små-bevegelse-målingen.
 
-Alle fire terminal-uttrekksenheter er komplette. Den opprinnelige åtte-enhets
-0U-versus-terminal-studien er fortsatt uferdig: seks av åtte uttrekk fullført.
-To manglende own0U-enheter er utsatt. Den gamle planen er uendret og gir ingen
-ny autoritet. Prefiksuttrekkene mangler historisk per-rad saved-output-paritet;
-state/input/order-kontroller er ikke en erstatning for denne.
+## Bevarte bevis og grenser
 
-Firefoldsanalysen på67 112samme senere foreldre viste nativeAUC5=0,503735
-mot ET252=0,513092, med negative parvise uke-/dagintervaller korrigert for seks
-kontraster. Alle118 249TRAIN-foreldre hadde bitidentiske2622lokale felt/masker
-mellom native og referanse. Full numeriskMTFparitet eller felles upstreamfeil
-er ikke avklart. DIRECTION_1_60_CAUSE_SYNTHESIS_008 bevarer disse bevisene.
+Fire terminal-uttrekksenheter er komplette. Opprinnelig åtte-enhets
+0U-versus-terminal-studie er fortsatt uferdig: seks av åtte uttrekk fullført.
+To own0U-enheter er utsatt. Den gamle planen gir ingen ny autoritet.
 
-Tidligere TRAIN-only biasjustering forbedret5mproper score, men AUC var eksakt
-uendret. GC-OFI hadde sterk samtidigGC-respons og svak fremtidigXAU-sammenheng
-i det avgrensede sporet; dette avviser ikke alle inputenes fremoversignal.
-731tensordiagnosen avkrefter helt stillestående trenbare vekter, ikke uproduktiv
-læring. Ikke gjenta beståtte råinputkontroller eller avsluttede forsøk.
+Firefoldanalysen på 67 112 samme senere foreldre viste native AUC5 = 0,503735
+mot ET252 = 0,513092, med negative parvise uke-/dagintervaller korrigert for seks
+kontraster. Alle 118 249 TRAIN-foreldre hadde bitidentiske 2 622 lokale felt/masker.
+Full numerisk MTF-paritet eller felles upstreamfeil er ikke avklart.
+DIRECTION_1_60_CAUSE_SYNTHESIS_008 bevarer disse bevisene.
+TRAIN-only biasjustering forbedret 5m proper score uten å endre AUC.
+GC-OFI viste sterk samtidig GC-respons og svak fremtidig XAU-sammenheng i
+avgrenset analyse; det avviser ikke alle inputenes fremoversignal.
+Endrede parametre avkrefter helt stillestående modell, ikke uproduktiv læring.
 
-M5 Entry, åtte spesialistfamilier og D1/makro beholdes. M5/M15/H1/H4/D1 er
-allerede i faktisk Entry-rute; 61D1/makrofelt eies av session_regime_encoder.
-TRAIN mai2024–desember2025. CONTROL januar–mars2026 er lukket. Juni2026 er
-gjenbrukt utviklings-VAL. TEST fra juli2026 er forseglet for tilpasning/utvalg;
-forward-journalen gir ikke denne oppgaven TEST-autoritet. Ingen Exit-trening,
-broker, live/paper, ordre, spending eller promotion. Teknisk PASS er ikke edge.
+M5 Entry, åtte spesialistfamilier og D1/makro beholdes. M5/M15/H1/H4/D1 er i
+faktisk Entry-rute; 61 D1/makrofelt eies av session_regime_encoder.
+TRAIN mai 2024–desember 2025. CONTROL januar–mars 2026 er lukket.
+Juni 2026 er gjenbrukt utviklings-VAL. TEST fra juli 2026 er forseglet for
+tilpasning/utvalg; forward-journalen gir ikke denne oppgaven TEST-autoritet.
+Ingen Exit-trening, broker, live/paper, ordre, spending eller promotion.
+Arbeidsmålet er aktivt og uferdig. Teknisk PASS er ikke edge.
