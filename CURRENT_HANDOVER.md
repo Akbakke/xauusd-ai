@@ -12,12 +12,14 @@ policy og launch. Programrot:
 En avgrenset kilderettelse fjerner gjentatt beregning av GC-feltdomener i
 batchklargjøringen. Den eksisterende timingmålingen viser 95,2 % batcharbeid
 og 4,0 % forward. DIRECTION_GC_LAYOUT_REUSE_SOURCE_ADMISSION_001 tillater bare
-denne rettelsen og testkilde. DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_002
+denne rettelsen og testkilde. DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_003
 åpner nå én capped CPU-kontroll: 60 sekunder, fem gamle/nye metadatapar og seks
 fokuserte testtilfeller. Ingen markedsinput, modell-, fit- eller full F-kjøring.
 Dette er en blokkering for diagnosen, ikke en påvist årsak til svak retning.
 Første kontroll stoppet korrekt på Numba-cache utenfor output og er konsumert.
-002 binder cache under egen output; samme seks tester og ingen markedsdata.
+Andre kontroll stoppet på en uvedkommende syntetisk fit under testimport.
+Vakten nektet inngangen før fit-kroppen. 003 isolerer importen til de to
+testene som trenger den; samme seks metadatatester og ingen markedsdata.
 
 DIRECTION_LOCAL_SNAPSHOT_PARITY_001 er COMPLETE/consumed. På alle 118 249
 TRAIN-rader er 2 622 lokale felt og sesjonskategorien sammenlignet: 310 167 127

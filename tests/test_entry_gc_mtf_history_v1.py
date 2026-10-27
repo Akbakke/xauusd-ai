@@ -14,7 +14,6 @@ from gx1.features import gc_native_context_v1 as gc
 from gx1.features.htf_features import (
     MULTI_TF_SHIFT, multi_tf_bar_label, slice_multi_tf_v4_window,
 )
-from tests.test_entry_v10_input_normalization_fit import _mtf_frame, _mtf_values
 
 MINUTE = 60_000_000_000
 # The SMC builder writes these event columns as float(False/True), retaining
@@ -103,6 +102,7 @@ def gc_history_fixture():
 
     Also reused by model tests. This does not read 024/049 payloads or 055.
     """
+    from tests.test_entry_v10_input_normalization_fit import _mtf_frame, _mtf_values
     from gx1.models.entry_v10.entry_v10_input_normalization import (
         select_shared_causal_mtf_fit_population,
     )
@@ -307,6 +307,7 @@ def test_missing_own_tf_bucket_stays_unknown_instead_of_carrying_previous_state(
 
 
 def test_native_row_index_option_returns_the_existing_exact_closed_window():
+    from tests.test_entry_v10_input_normalization_fit import _mtf_frame, _mtf_values
     start = pd.Timestamp("2025-01-02T00:00:00Z")
     stamps = pd.date_range(start, periods=24, freq="5min").as_unit("ns").asi8
     values = _mtf_values(len(stamps))
