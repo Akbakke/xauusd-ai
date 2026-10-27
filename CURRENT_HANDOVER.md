@@ -12,7 +12,10 @@ Programrot:
 
 ## Aktuell status
 
-DIRECTION_MINUTE_TARGET_SYNTHETIC_PLAN_001 er engangsadmittért, ikke startet.
+DIRECTION_MINUTE_TARGET_SYNTHETIC_PLAN_002 er engangsadmittért, ikke startet.
+Forsøk 001 er FAILED/consumed før teststart: Pytests standardlogg ble avvist
+av skrivevakten. Kun den ubrukte logg-pluginen er deaktivert. Fasit- og
+testkode er uendret; originaler bevares, 001 relanseres aldri.
 Eksisterende prisfasiteier støtter nå eksplisitte minutter 1–60, inkludert 10,
 med uendret 1/5/15-default og egen schema-identitet for andre horisontvalg.
 36 fokuserte syntetiske kontroller er bundet: originalparitet, oppgang/retur,

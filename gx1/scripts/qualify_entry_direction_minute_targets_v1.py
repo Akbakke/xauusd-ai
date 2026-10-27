@@ -123,7 +123,7 @@ def main():
 
         sys.setprofile(watch)
         exit_code = int(pytest.main([TEST_FILE, "-q", "-s", "--assert=plain",
-            "-p", "no:cacheprovider", "-o", "addopts=",
+            "-p", "no:cacheprovider", "-p", "no:logging", "-o", "addopts=",
             "--confcutdir", str(R / "tests")], plugins=[Results()]))
         sys.setprofile(previous)
         calls = [row for row in records if row["phase"] == "call"]
