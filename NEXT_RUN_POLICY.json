@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "LAST_M1_OFI_WEIGHT_INDEPENDENT_REPLAY_ADMITTED_TRAINING_CLOSED",
+    "status": "LAST_M1_OFI_WEIGHT_VERIFIED_EXPOSURE_DEFERRED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_last_m1_ofi_weight_verify_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37204,7 +37204,7 @@
     },
     "first_analysis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
-      "sha256": "f598abe54b340ee6cc3f4527b4fd2f14142e3699e8b69bc86a3b02bd2c33e421"
+      "sha256": "7172bc9cb7d908226a97318332103474bb082784c86259f657e47b2095e0e8b5"
     },
     "native_0u_metadata_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
@@ -39049,7 +39049,7 @@
     }
   },
   "independent_direction_last_m1_ofi_weight_verify_20261027": {
-    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_VERIFY_PLAN_001.json",
     "plan_sha256": "62f6ecfc686907e11719904c823f7a3cc5a443e3eb9262eb5fc33f2eba55a7d2",
     "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_VERIFY_WORKER_001.py",
@@ -39062,6 +39062,16 @@
     "exit_authorized": false,
     "new_indicators_authorized": false,
     "broker_authorized": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_VERIFY_RESULT_001.json",
+      "sha256": "48475ee8b9a58b15a0fd38ab107fe7d09247d07df4db0a982212d84269b85d3e"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_VERIFIED_ROOT_REVIEW_001.json",
+      "sha256": "3a871185b5234b38e9f18bf7c3ab2b0ae7117cb859e6c0efff571e0a1e74bbb0"
+    }
   }
 }

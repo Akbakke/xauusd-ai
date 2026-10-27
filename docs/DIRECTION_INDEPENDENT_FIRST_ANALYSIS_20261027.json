@@ -174,6 +174,14 @@
     "last_m1_ofi_weight_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_ROOT_REVIEW_001.json",
       "sha256": "a16b187189a038931e5ae1cd98cbd4281241de5b3ceec761ab5cf9668c7ed8d7"
+    },
+    "last_m1_ofi_weight_independent_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_VERIFY_RESULT_001.json",
+      "sha256": "48475ee8b9a58b15a0fd38ab107fe7d09247d07df4db0a982212d84269b85d3e"
+    },
+    "last_m1_ofi_weight_verified_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_VERIFIED_ROOT_REVIEW_001.json",
+      "sha256": "3a871185b5234b38e9f18bf7c3ab2b0ae7117cb859e6c0efff571e0a1e74bbb0"
     }
   },
   "execution_authorized_by_report": false,
@@ -400,10 +408,12 @@
       "type": "EXPLORATORY_CONTINUOUS_LAST_M1_OFI_WEIGHT",
       "evidence": [
         "last_m1_ofi_weight_result",
-        "last_m1_ofi_weight_review"
+        "last_m1_ofi_weight_review",
+        "last_m1_ofi_weight_independent_result",
+        "last_m1_ofi_weight_verified_review"
       ],
       "finding": "On the identical 16977 eligible later-development rows, existing continuous M5 OFI yields AUC 0.495971; weighting the last closed M1 fivefold yields 0.489661, difference -0.006309. Corrected paired day/week intervals both include zero. All 17066 complete five-minute OFI bars match the M1 reconstruction exactly.",
-      "implication": "No incremental value is documented for this one fixed weighting. The weight was declared after seeing prior sign results, so the reused-fold comparison is exploratory and is not a new future test. It does not evaluate other weights, nonlinear combinations, model intervention, last quote age or economic edge. Independent timestamp-join and full bootstrap replay are pending."
+      "implication": "No incremental value is documented for this one fixed weighting. The weight was declared after seeing prior sign results, so the reused-fold comparison is exploratory and is not a new future test. It does not evaluate other weights, nonlinear combinations, model intervention, last quote age or economic edge. Independent timestamp joins and all 4096 physically duplicated day/week resamples matched on the same reduced data; this is not a new future period."
     }
   ],
   "main_cause_established": false,
@@ -434,7 +444,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:48:41.641415+00:00",
+  "updated_utc": "2026-10-27T21:49:15.837128+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

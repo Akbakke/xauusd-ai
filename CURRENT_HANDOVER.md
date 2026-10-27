@@ -395,9 +395,12 @@ parrede dag-/ukeintervaller inkluderer null. Vekten ble valgt etter tidligere
 fortegnsresultat; utforskende gjenbrukt fold, ingen modellintervensjon eller
 økonomi. Resultat: `LAST_M1_OFI_WEIGHT_RESULT_001.json` SHA-256
 85364044ea0d70d2c415ef7a5e8b3958741c2ec8cf16e9793e2c3c8f629752b9.
-En separat uavhengig kontroll av tidskobling og alle 4096 fysisk dupliserte
-blokkresamples er admittért; ingen modell, trening, nye indikatorer, CONTROL,
-TEST, Exit eller broker. Status: `independent_direction_last_m1_ofi_weight_verify_20261027`.
+Uavhengig tidskobling og alle 4096 fysisk dupliserte dag-/ukeresamples
+stemmer på de samme reduserte historiske dataene. Kvittering:
+`LAST_M1_OFI_WEIGHT_VERIFIED_ROOT_REVIEW_001.json` SHA-256
+3a871185b5234b38e9f18bf7c3ab2b0ae7117cb859e6c0efff571e0a1e74bbb0.
+Kontrollen er konsumert uten modell, trening, nye indikatorer, CONTROL,
+TEST, Exit eller broker.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
