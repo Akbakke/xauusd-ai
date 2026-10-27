@@ -508,3 +508,9 @@ Fersk 1-mot-3-oppskrift 002 er bundet til parity-beviset på reparert kilde.
 Én CPU-begrenset metadataforhåndskontroll er admittert for de to eksakt
 bundne checkpoint-hashene; ingen modell, markedsdata eller trening er åpnet.
 Den tidligere beståtte syntetiske filvakten gjenbrukes etter bytekontroll.
+
+Fersk 1-mot-3-oppskrift 002 har bestått én konsumert, CPU-begrenset
+metadataforhåndskontroll: to eksakt bundne checkpoint-hasher, null
+deserialiseringer, modellkall eller optimizersteg. Terminal SHA-256
+651a20a8f3a3c127008dbfec2fef0de54522e4499bda833e71f9828fde09a5be.
+Trening er stengt til separat kampanje og fersk avgrenset admisjon.

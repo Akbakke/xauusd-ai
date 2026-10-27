@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "MATCHED_EXPOSURE_RECIPE_PREFLIGHT_002_ADMITTED_TRAINING_CLOSED",
+    "status": "MATCHED_EXPOSURE_RECIPE_002_PREFLIGHT_COMPLETE_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_exposure_recipe_preflight_20261027_002",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Run exactly one bounded CPU-only metadata preflight of the fresh recipe; no model loads, forwards or optimizer steps.",
+    "next_action": "Prepare a fresh one-vs-three-pass campaign and explicit bounded training admission with fixed later scoring and complete TRAIN assessment; keep all guards and data seals.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -38876,7 +38876,7 @@
     }
   },
   "direction_matched_exposure_continuation_source_20261027": {
-    "status": "CURRENT_SOURCE_PARITY_PASS_FRESH_RECIPE_PREFLIGHT_ADMITTED",
+    "status": "NATIVE_PARITY_AND_MATCHED_EXPOSURE_RECIPE_PREFLIGHT_PASS",
     "purpose": "Integrate exact opt-in continuation from baseline276 into the existing native prefix owner; compare fixed one and three passes without changing the original sign target.",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
@@ -38933,10 +38933,10 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_RECIPE_20261027_002.json",
       "sha256": "f893d82cff61339b752f29a7901cac8f09d7f62333a1b8bde8f946d3e7153f71"
     },
-    "candidate_recipe_status": "CURRENT_SOURCE_UNVERIFIED_PREFLIGHT_ADMITTED",
+    "candidate_recipe_status": "CURRENT_SOURCE_EXACT_PREFLIGHT_PASS",
     "candidate_preflight_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_PREFLIGHT_ACTUAL_20261027_001/TERMINAL.json",
-      "sha256": "2579211d75ae361ae936141140a36a34d3fe237442c8a693d51920531e724816"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_PREFLIGHT_ACTUAL_20261027_002/TERMINAL.json",
+      "sha256": "651a20a8f3a3c127008dbfec2fef0de54522e4499bda833e71f9828fde09a5be"
     },
     "full_train_evaluation_note": "The native runner publishes a fixed 256-row FINAL_TRAIN measurement. The predeclared full 47602-row final-TRAIN assessment requires a separate complete fixed-prefix extraction after training; do not claim it from the 256-row panel."
   },
@@ -39297,7 +39297,7 @@
     "direction_edge_qualified": false
   },
   "direction_exposure_recipe_preflight_20261027_002": {
-    "status": "ADMITTED_NOT_STARTED",
+    "status": "COMPLETE_CONSUMED_EXACT_RECIPE_PREFLIGHT",
     "worker": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_RECIPE_PREFLIGHT_WORKER_20261027_002.py",
       "sha256": "962a156c6afc91ead73492e094984e22db93158b944dac547f61b57402274c32"
@@ -39307,8 +39307,8 @@
       "sha256": "f893d82cff61339b752f29a7901cac8f09d7f62333a1b8bde8f946d3e7153f71"
     },
     "synthetic_tests_authorized": false,
-    "execution_authorized": true,
-    "checkpoint_hash_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_hash_authorized": false,
     "model_calls_authorized": false,
     "optimizer_steps_authorized": false,
     "training_enabled": false,
@@ -39329,8 +39329,12 @@
       "sha256": "8a261106f974ba6a5bf43b39ffdf3a5d9b01d88b605ad6bdc2fc3493a8239fcb"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "synthetic_reuse_basis": "OpenGuard class and synthetic function byte-identical to the passed worker; stage-name change only."
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "synthetic_reuse_basis": "OpenGuard class and synthetic function byte-identical to the passed worker; stage-name change only.",
+    "actual_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_PREFLIGHT_ACTUAL_20261027_002/TERMINAL.json",
+      "sha256": "651a20a8f3a3c127008dbfec2fef0de54522e4499bda833e71f9828fde09a5be"
+    }
   }
 }
