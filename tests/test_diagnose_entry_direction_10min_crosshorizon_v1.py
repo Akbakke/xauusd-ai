@@ -44,6 +44,9 @@ def test_ten_minute_join_respects_fold_end_and_common_parent_identity():
     assert joined["control15_bps_rows"] > 0
     for spec, cohort in zip(specs, joined["cohorts"]):
         assert cohort["counts"]["fold_end_censored"] == 1
+        counts = cohort["counts"]
+        assert sum(counts[k] for k in ("chain_observed", "chain_right_censored",
+                                       "missing_intermediate_parent", "unobserved_component")) == counts["parents"]
         assert cohort["counts"]["eligible"] == spec["right"] - spec["left"] - 1
         assert np.all(cohort["decision_ns"] + 10 * diag.saved_horizons.MINUTE_NS < spec["holdout_end_ns"])
         assert np.isin(cohort["labels"], (0, 1)).all()
@@ -84,6 +87,7 @@ def simple_rank_cohorts():
                          "r1": np.zeros(len(labels), np.float64), "ref259": np.zeros(len(labels), np.float64)}
                   for head in ("head_5", "head_15")}
         cohorts.append({"fold_id": fid, "decision_ns": days * diag._DAY_NS,
+                        "all_parent_decision_ns": days * diag._DAY_NS,
                         "labels": labels, "scores": scores})
     return cohorts
 
@@ -121,3 +125,31 @@ def test_fewer_than_eight_blocks_stops_instead_of_pretending_uncertainty():
             cohort["scores"][head][arm] = cohort["scores"][head][arm][:14]
     with pytest.raises(RuntimeError, match="FEWER_THAN_EIGHT_BLOCKS"):
         diag.rank_with_block_uncertainty(cohorts, scheme="utc_week_monday", draws=64, seed=5)
+
+def test_shared_calendar_block_weights_keep_opposite_fold_differences_paired():
+    cohorts = simple_rank_cohorts()
+    varying = np.arange(16, dtype=np.float64)
+    zero = np.zeros(16, np.float64)
+    for index, cohort in enumerate(cohorts):
+        for head in ("head_5", "head_15"):
+            cohort["scores"][head]["native"] = varying.copy() if index % 2 == 0 else zero.copy()
+            cohort["scores"][head]["et252"] = zero.copy() if index % 2 == 0 else varying.copy()
+    for scheme in ("utc_day", "utc_week_monday"):
+        out = diag.rank_with_block_uncertainty(cohorts, scheme=scheme, draws=128, seed=9)
+        assert out["global_blocks"] == 8
+        assert out["shared_calendar_block_weights_across_folds"]
+        for head in ("head_5", "head_15"):
+            interval = out["primary_native_minus_et252"][head]
+            assert interval["point_difference"] == pytest.approx(0.0)
+            assert interval["low"] == pytest.approx(0.0)
+            assert interval["high"] == pytest.approx(0.0)
+
+def test_calendar_resampling_keeps_parent_blocks_without_eligible_labels():
+    cohorts = simple_rank_cohorts()
+    for cohort in cohorts:
+        extra_days = np.asarray([20100], dtype=np.int64) * diag._DAY_NS
+        cohort["all_parent_decision_ns"] = np.concatenate((cohort["decision_ns"], extra_days))
+    out = diag.rank_with_block_uncertainty(cohorts, scheme="utc_week_monday", draws=64, seed=13)
+    assert out["global_blocks"] == 9
+    assert out["calendar_population"] == "all_fixed_holdout_parents_before_ten_minute_eligibility_mask"
+    assert all(fold["blocks"] == 8 and fold["parent_blocks"] == 9 for fold in out["per_fold"])

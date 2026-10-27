@@ -11,10 +11,14 @@ Programrot:
 
 ## Aktuell status
 
-Fast 10min-krysshodeanalyse er kildeforberedt for fire TRAIN-utviklingsfolder:
-native5/15-skårer sammenlignes med ET252 på identiske modne 10min-fasiter.
-En syntetisk engangskontroll er åpnet, men ikke utført; ekte payloadlesing
-er ikke åpnet.
+Fast 10min-krysshodeanalyse gjelder fire TRAIN-utviklingsfolder: native5/15-
+skårer sammenlignes med ET252 på identiske modne 10min-fasiter. Den første
+syntetiske engangskontrollen bestod 8 tilfeller og er konsumert. En senere
+kildekontroll fant at ukeblokker på tvers av folder ble resamplet uavhengig,
+og at kalenderen ble valgt etter kvalifiseringsmasken. Kilden er rettet til
+felles kalendervekter før maskering. Den endrede kilden er ennå ikke syntetisk
+rekvalifisert; fersk engangsadgang kreves før test og senere payloadanalyse.
+Ingen ekte 10min-skårer eller dokumentert retningsforbedring foreligger.
 
 
 10-minuttersutfall kan nå forberedes fra to lagrede femminuttersutfall med

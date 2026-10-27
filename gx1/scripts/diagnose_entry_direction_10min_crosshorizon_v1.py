@@ -69,6 +69,9 @@ def ten_minute_cohorts(targets, native_folds, controls, fold_specs, *, cutoff_ns
         et = controls[ref_fields["et252"]][at]
         _require(np.all((et >= 0.0) & (et <= 1.0)), "REFERENCE_ET_DOMAIN")
         seen = target["observed_chain"][rows]
+        chain_reason = target["chain_reason"][rows]
+        _require(np.isin(chain_reason, (0, 1, 2, 3)).all()
+                 and np.array_equal(chain_reason == 0, seen), "CHAIN_REASON_PARTITION")
         resolved = target["label_resolved"][rows]
         nonzero = target["sign"][rows] != 0
         mature = target["terminal_time_ns"][rows] < end
@@ -88,10 +91,14 @@ def ten_minute_cohorts(targets, native_folds, controls, fold_specs, *, cutoff_ns
             "fold_id": fid,
             "parent_rows": rows[mask],
             "decision_ns": native["decision_ns"][mask],
+            "all_parent_decision_ns": native["decision_ns"].copy(),
             "labels": y,
             "scores": score,
             "bps": target["mid_return_bps_approx"][rows][bps_ok],
             "counts": {"parents": len(rows), "chain_observed": int(seen.sum()),
+                       "chain_right_censored": int((chain_reason == 1).sum()),
+                       "missing_intermediate_parent": int((chain_reason == 2).sum()),
+                       "unobserved_component": int((chain_reason == 3).sum()),
                        "rounding_ambiguous": int((seen & ~resolved).sum()),
                        "certified_zero": int((seen & resolved & ~nonzero).sum()),
                        "fold_end_censored": int((seen & resolved & nonzero & ~mature).sum()),
@@ -103,40 +110,56 @@ def ten_minute_cohorts(targets, native_folds, controls, fold_specs, *, cutoff_ns
             "control15_bps_max_abs_error": ten["control15_bps_max_abs_error"]}
 
 
-def _block_ids(decision_ns, scheme):
+def _block_values(decision_ns, scheme):
     days = decision_ns // _DAY_NS
     if scheme == "utc_day":
-        value = days
-    elif scheme == "utc_week_monday":
-        value = (days - 4) // 7
-    else:
-        raise RuntimeError("DIRECTION_10_CROSS_HEAD_BLOCK_SCHEME")
-    return np.unique(value, return_inverse=True)
+        return days
+    if scheme == "utc_week_monday":
+        return (days - 4) // 7
+    raise RuntimeError("DIRECTION_10_CROSS_HEAD_BLOCK_SCHEME")
 
 
 def rank_with_block_uncertainty(cohorts, *, scheme, draws=4000, seed=20261027):
     """Within-fold pair-weighted AUC and paired fixed-block bootstrap."""
     _require(type(draws) is int and draws > 0 and type(seed) is int, "BOOTSTRAP_ARGS")
     rng = np.random.RandomState(seed)
+    block_values = [_block_values(cohort["decision_ns"], scheme) for cohort in cohorts]
+    parent_block_values = [
+        _block_values(cohort["all_parent_decision_ns"], scheme) for cohort in cohorts
+    ]
+    global_blocks = np.unique(np.concatenate(parent_block_values))
+    _require(len(global_blocks) >= 8, "FEWER_THAN_EIGHT_BLOCKS")
+    global_weights = rng.multinomial(
+        len(global_blocks), np.full(len(global_blocks), 1.0 / len(global_blocks)), size=draws
+    )
     point_wins = {(h, a): 0 for h, _ in _SCORE_COLUMNS for a in _ARMS}
     draw_wins = {key: np.zeros(draws, np.float64) for key in point_wins}
     point_pairs = 0
     draw_pairs = np.zeros(draws, np.float64)
     details = []
-    for cohort in cohorts:
+    for cohort, values, parent_values in zip(cohorts, block_values, parent_block_values):
         labels = cohort["labels"]
-        days, inverse = _block_ids(cohort["decision_ns"], scheme)
-        _require(len(days) >= 8, "FEWER_THAN_EIGHT_BLOCKS")
+        local_blocks, inverse = np.unique(values, return_inverse=True)
+        parent_blocks = np.unique(parent_values)
+        _require(np.all(np.isin(local_blocks, parent_blocks)), "ELIGIBLE_OUTSIDE_PARENT_CALENDAR")
+        _require(len(local_blocks) >= 8, "FEWER_THAN_EIGHT_BLOCKS")
         block_ids = np.ascontiguousarray(inverse, dtype=np.int64)
-        weights = rng.multinomial(len(days), np.full(len(days), 1.0 / len(days)), size=draws)
-        ones = np.ones((1, len(days)), np.int64)
-        fold_detail = {"fold_id": cohort["fold_id"], "blocks": len(days), "auc": {}}
+        positions = np.searchsorted(global_blocks, local_blocks)
+        _require(np.array_equal(global_blocks[positions], local_blocks), "GLOBAL_BLOCK_JOIN")
+        weights = global_weights[:, positions]
+        active = weights.sum(axis=1) > 0
+        ones = np.ones((1, len(local_blocks)), np.int64)
+        fold_detail = {"fold_id": cohort["fold_id"], "blocks": len(local_blocks),
+                       "parent_blocks": len(parent_blocks), "auc": {}}
         first = True
         for head, _ in _SCORE_COLUMNS:
             fold_detail["auc"][head] = {}
             for arm in _ARMS:
                 summary = block_rank.block_rank_pairs(labels, cohort["scores"][head][arm], block_ids)
-                w, pair = block_rank.weighted_rank_pairs(summary, weights)
+                w = np.zeros(draws, np.float64)
+                pair = np.zeros(draws, np.float64)
+                if active.any():
+                    w[active], pair[active] = block_rank.weighted_rank_pairs(summary, weights[active])
                 p, onepair = block_rank.weighted_rank_pairs(summary, ones)
                 if first:
                     point_pairs += int(onepair[0])
@@ -156,7 +179,10 @@ def rank_with_block_uncertainty(cohorts, *, scheme, draws=4000, seed=20261027):
         lo, hi = np.quantile(delta, [0.005, 0.995])
         intervals[head] = {"point_difference": float(points[head][first] - points[head][second]),
                            "low": float(lo), "high": float(hi), "level": 0.99}
-    return {"scheme": scheme, "draws": draws, "seed": seed, "point_auc": points,
+    return {"scheme": scheme, "draws": draws, "seed": seed, "global_blocks": len(global_blocks),
+            "shared_calendar_block_weights_across_folds": True,
+            "calendar_population": "all_fixed_holdout_parents_before_ten_minute_eligibility_mask",
+            "point_auc": points,
             "primary_native_minus_et252": intervals, "per_fold": details,
             "within_fold_pairs": point_pairs}
 
