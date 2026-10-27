@@ -37628,17 +37628,17 @@
     "economic_edge_qualified": false
   },
   "direction_gelu_contribution_diagnostic_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GELU_CONTRIBUTION_ACTUAL_PLAN_20261027_001.json",
       "sha256": "50d0045d247521fda6037fdbda9aceaffc838b7216068543fb849ec691dc779d"
     },
     "mode": "actual",
-    "execution_authorized": true,
-    "saved_payload_reads_authorized": true,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
     "native_launch_authorized": false,
@@ -37675,6 +37675,16 @@
         "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GELU_CONTRIBUTION_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
         "sha256": "69100c73463b656102075372640465a0402d2820d38fdbc02c385874babe72a9"
       }
-    }
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GELU_CONTRIBUTION_ACTUAL_ROOT_REVIEW_20261027_001.json",
+      "sha256": "6e81713b31e3fee4d6e4e8bbf3eb07df150f57dd62bd1182cd044a5a54177e07"
+    },
+    "result_document": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_GELU_CONTRIBUTION_RESULT_20261027.json",
+      "sha256": "a97cdfe51f9a6ca88956ae4f26c58fb3b79b17ec6d791881e39537d4c0f987f1"
+    },
+    "gelu_change_justified": false,
+    "economic_edge_qualified": false
   }
 }

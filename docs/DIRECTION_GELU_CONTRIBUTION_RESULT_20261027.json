@@ -1,0 +1,166 @@
+{
+  "schema_version": "gx1_gelu_contribution_result_v1",
+  "status": "COMPLETE_CONSUMED_INCONCLUSIVE_FOR_RANK_CONTRIBUTION",
+  "scope": "One reused TRAIN-development fold; no model fitting, forward, checkpoint or raw-data access.",
+  "root_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GELU_CONTRIBUTION_ACTUAL_ROOT_REVIEW_20261027_001.json",
+    "sha256": "6e81713b31e3fee4d6e4e8bbf3eb07df150f57dd62bd1182cd044a5a54177e07"
+  },
+  "design": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GELU_CONTRIBUTION_DESIGN_20261027_001.json",
+    "sha256": "783ba4641cf42ba8096be8ae656855ad90c0ac89675fff7db58d543915d56d7b"
+  },
+  "source_qualification": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GELU_CONTRIBUTION_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
+    "sha256": "69100c73463b656102075372640465a0402d2820d38fdbc02c385874babe72a9"
+  },
+  "input_metadata_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GELU_CONTRIBUTION_INPUT_REVIEW_20261027_001.json",
+    "sha256": "445e094a61e6b4d1bf3196e5c44aa808bfb7c38c947efd2397be52f76dc701db"
+  },
+  "summary": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GELU_CONTRIBUTION_ACTUAL_20261027_001/SUMMARY.json",
+    "sha256": "204f5c61d596637a678dba5ee5ddab6d31b342ed6b4453bc6ce36bc670896f8e"
+  },
+  "ideal_low_slope_definition": {
+    "interpretation": "Post-GELU criterion identifies a subset of low-slope preactivations. Deep negative preactivations can map near zero and are not counted; finite-precision error is not independently bounded.",
+    "maximum_absolute_ideal_derivative": 0.13250487534383712,
+    "post_gelu_strictly_less_than": -0.15426876936299344,
+    "pre_gelu_x_less_than": -0.5
+  },
+  "panels": {
+    "initial256": {
+      "coordinates_per_parent": 128,
+      "guaranteed_low_slope_coordinate_fraction": 0.138946533203125,
+      "guaranteed_low_slope_coordinates": 4553,
+      "guaranteed_low_slope_output_energy_fraction": 0.005652721466517718,
+      "h5_low_slope_contribution_mean": 0.014932374842045421,
+      "h5_low_slope_contribution_std": 0.0271525672475935,
+      "h5_original_logit_std": 0.20590605643830448,
+      "h5_remainder_std": 0.20280489015502137,
+      "mean_low_slope_coordinates_per_parent": 17.78515625,
+      "negative_output_fraction": 0.47503662109375,
+      "parents": 256,
+      "zero_output_fraction": 0.0
+    },
+    "terminal_later_full": {
+      "coordinates_per_parent": 128,
+      "guaranteed_low_slope_coordinate_fraction": 0.28188582759717723,
+      "guaranteed_low_slope_coordinates": 623775,
+      "guaranteed_low_slope_output_energy_fraction": 0.03548865664288008,
+      "h5_low_slope_contribution_mean": -0.04084115425085867,
+      "h5_low_slope_contribution_std": 0.022790269693078843,
+      "h5_original_logit_std": 0.017556883297947804,
+      "h5_remainder_std": 0.027078976090718517,
+      "mean_low_slope_coordinates_per_parent": 36.081385932438685,
+      "negative_output_fraction": 0.960490567879454,
+      "parents": 17288,
+      "zero_output_fraction": 0.0
+    },
+    "terminal_same256": {
+      "coordinates_per_parent": 128,
+      "guaranteed_low_slope_coordinate_fraction": 0.29022216796875,
+      "guaranteed_low_slope_coordinates": 9510,
+      "guaranteed_low_slope_output_energy_fraction": 0.03801884514643194,
+      "h5_low_slope_contribution_mean": -0.0470591467324151,
+      "h5_low_slope_contribution_std": 0.0212261079519737,
+      "h5_original_logit_std": 0.016969638616570727,
+      "h5_remainder_std": 0.022575362949452647,
+      "mean_low_slope_coordinates_per_parent": 37.1484375,
+      "negative_output_fraction": 0.96038818359375,
+      "parents": 256,
+      "zero_output_fraction": 0.0
+    }
+  },
+  "later_5m": {
+    "actual_down_rows": 8327,
+    "actual_up_rows": 8870,
+    "eligible_nonzero_rows": 17197,
+    "horizon_minutes": 5,
+    "intervals": [
+      {
+        "blocks": 14,
+        "contribution_only_auc_99_descriptive": {
+          "alpha": 0.01,
+          "high": 0.5065628254575157,
+          "low": 0.4883830485428832,
+          "point": 0.4981013394305941,
+          "replicates_invalid": 0,
+          "replicates_requested": 4000,
+          "replicates_valid": 4000
+        },
+        "original_minus_remainder_auc_99_descriptive": {
+          "alpha": 0.01,
+          "high": 0.010697558117748572,
+          "low": -0.010123125591974856,
+          "point": 0.00027717119125525436,
+          "replicates_invalid": 0,
+          "replicates_requested": 4000,
+          "replicates_valid": 4000
+        },
+        "scheme": "UTC_WEEK_MONDAY",
+        "weights_sha256": "17799b582381a8b4d8b83ebb82d9e2742464f45ac31ca9ebd23794db31d0c737"
+      },
+      {
+        "blocks": 77,
+        "contribution_only_auc_99_descriptive": {
+          "alpha": 0.01,
+          "high": 0.5090765472677725,
+          "low": 0.4872587372706065,
+          "point": 0.4981013394305941,
+          "replicates_invalid": 0,
+          "replicates_requested": 4000,
+          "replicates_valid": 4000
+        },
+        "original_minus_remainder_auc_99_descriptive": {
+          "alpha": 0.01,
+          "high": 0.011686530905255395,
+          "low": -0.011398052747668978,
+          "point": 0.00027717119125525436,
+          "replicates_invalid": 0,
+          "replicates_requested": 4000,
+          "replicates_valid": 4000
+        },
+        "scheme": "UTC_DAY",
+        "weights_sha256": "df92bf805165df61f6a9d3a67b02d096f51df98cdfa4def5cc3d08d70dbb49a1"
+      }
+    ],
+    "later_parents": 17288,
+    "points": {
+      "guaranteed_low_slope_contribution_only": {
+        "auc": 0.4981013394305941,
+        "distinct_scores": 17197,
+        "up_down_pairs": 73860490
+      },
+      "original": {
+        "auc": 0.5030210874582608,
+        "distinct_scores": 17189,
+        "up_down_pairs": 73860490
+      },
+      "without_guaranteed_low_slope_contributions": {
+        "auc": 0.5027439162670055,
+        "distinct_scores": 17197,
+        "up_down_pairs": 73860490
+      }
+    }
+  },
+  "posthoc_correlations_from_std_identity": {
+    "initial256": 0.048143285318907485,
+    "terminal_later_full": -0.7651647287298977,
+    "terminal_same256": -0.7014233572949045
+  },
+  "posthoc_correlation_note": "Derived from Var(total)=Var(part)+Var(remainder)+2Cov; descriptive on all saved parents, not evidence of causation or predictive information loss.",
+  "interpretation": "The predeclared 5m original-minus-remainder AUC contrast is uncertain on reused data. This neither justifies changing GELU nor excludes an information bottleneck.",
+  "limitations": [
+    "Changing or omitting a head contribution is an exploratory diagnostic, not an Entry rule or retrained model.",
+    "Input value before GELU cannot be reconstructed uniquely from negative GELU outputs.",
+    "Intervals are descriptive on reused development data and do not prove economic edge or generalization.",
+    "No attribution to a specific indicator, family, timeframe, or training mechanism."
+  ],
+  "qualification": "99% UTC-day and UTC-week paired block intervals are descriptive because TRAIN-development data were reused.",
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "fits": 0,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}

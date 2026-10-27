@@ -89,9 +89,13 @@ med ca.98% på tre faste TRAIN-paneler fra initial til slutt. Både faktisk
 informasjonstap og årsak er ubevist; konteksten mates også direkte i joint-kilden.
 Treningsprefikset var tidsavgrenset, men presentasjonsrekkefølgen var en fast
 MT19937-permutasjon, ikke kronologisk. Se docs/DIRECTION_REPRESENTATION_GEOMETRY_REVIEW_20261027.json.
-En målrettet offline-kontroll av lav-GELU-bidrag fra de allerede lagrede
-representasjonene er syntetisk kvalifisert; en avgrenset engangsanalyse av
-fire lagrede representasjons-/prediksjonsfiler er admittért uten modellkjøring.
+En offline-kontroll av lav-GELU-bidrag er fullført og konsumert. På de samme
+256 TRAIN-foreldrene økte den identifiserbare delmengden med lav ideal
+GELU-derivert fra 13,9% til 29,0% av koordinatene. På 17 197 senere 5min-rader
+var AUC 0,503021 med hele skåren mot 0,502744 uten delmengdens bidrag;
+parrede 99% dag-/ukeintervaller for differansen omfatter null. Dette viser
+ikke at GELU bør endres og utelukker ikke informasjonstap. Se
+docs/DIRECTION_GELU_CONTRIBUTION_RESULT_20261027.json.
 
 M5 Entry: prisforløp minutter–timer, litenMAE før førsteMFE, begge retninger/FLAT.
 Åtte spesialistfamilier og D1/makro, kausale avsluttede M5/M15/H1/H4/D1 beholdes.
