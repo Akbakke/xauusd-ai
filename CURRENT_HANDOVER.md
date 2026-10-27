@@ -9,29 +9,28 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-Førlaunch ble002 erstattet av003 uten invokasjon: tidligereB dokumenterer
-samme klasseprior med to numeriske uttrykk(log(up/down)motlog(p)-log1p(-p)).
-003 verifiserer begge originalformlene eksakt og rapporterer avrundingsresidual;
-ingen skårer, data, kontraster eller grenser er endret.
+DIRECTION_NATIVE_REFERENCE_RANK_003 er COMPLETE/consumed.6lagredearkiver,
+96blokkrang/96vektederang,25.48s,0fit/forward/optimizer; samme67112foreldre,
+opprinnelige native/R1punkter/intervaller og4000uke/dagvekter reprodusert.
+Kilde/policy/input uendret; cgroup borte ogtunglås ledig. Alle tillatelser lukket.
 
-Rangforsøk001 stoppet i metadata før claim/payload: feil forventet statusnavn
-for259RESULT. Originalterminal bekrefter COMPLETE/exit0.001 er konsumert;
-002 binder korrekt eksakt status og originalterminal. Metode/data/budsjett er
-uendret, og originalfeilen er bevart. Ingen numeriske tellere var startet.
-
-DIRECTION_NATIVE_REFERENCE_RANK_PLAN_003 er nå eneste admisjon: én parvis
-rangmåling native mot252ET_FULL og259R1_EXPLICIT_PREV_RET1 på samme67112foreldre.
-252er32ExtraTrees,depth8,minleaf256,på3345kompakte snapshotfelt;259erfastlogistisk
-currentret1/forrige5minret1/presence. SeksforhåndsbundneAUCkontraster,
-Bonferroni0.05/6 perintervall, samme4000uke/dagvekter.6lagredearkiver,
-180s/4G CPU;nullfit/forward/optimizer. Kilde ogpolicy fryses under kjøringen.
-training_enabled=false ogallemodell-/data-/handelsgrenserbestår.
+Kun5m native−ET252 består seks-kontrast-korreksjonen i bådeuke/dag:
+AUCnative=.5037353142,ET252=.5130918603,diff=-.0093565462.
+Ukeintervall[-.0158669540,-.0018177844],dag[-.0156047236,-.0028827483].
+252 bruker32ExtraTrees/depth8/minleaf256 og3345kompakte snapshotfelt.
+Dette dokumenterer en betinget rangeringsmangel mot denne faste referansen,
+men isolerer ikkeinput/normalisering/representasjon/optimalisering.
+Fem andre kontraster inkluderer0; ingen nyfeature-/horizonseleksjon.
+5mET-treffprosent er fortsatt underalltidUP. Ingen økonomiskedge eller
+uavhengigfremtidsbekreftelse. Neste arbeid er kun presis kildemapping.
+001s metadatafeil er konsumert;002ble erstattet førlaunch på kjent priorformel;
+003 bevarer begge originale formler, med residualer<3.3e-16 oguendrede skårer.
 
 DIRECTION_PRIOR_OFFSET_001 er COMPLETE/consumed: 12 skalarkalibreringer,
 9 lagrede prediksjonsarkiver, 29.67s og null native forward/optimizer.
 Alle offsetter er låst fra TRAIN før senere payloadlesing; opprinnelige skårer
 og blokkvekter er reprodusert. Kilde/policy/input uendret, cgroup borte, lås ledig.
-training_enabled=false; offsetautoriteten er konsumert. Ny rangadmisjon står øverst.
+training_enabled=false; både offset- og rangautoriteten er konsumert.
 
 Kun5m består forhåndsbestemt senere logloss-forbedring ved99% både uke/dag.
 15m fjerner omtrent85.3% av priorunderskuddet i punktestimatet, men99%uke
@@ -45,15 +44,23 @@ Gjeldende årsaksanalyse er tilgjengelig i docs/DIRECTION_1_60_CURRENT_ANALYSIS.
 Arbeidsmålet er retning ved 1, 5, 15, 30 og 60 minutter; ingen robust fremtidig
 eller økonomisk edge er dokumentert. Root arbeider alene.
 
-DIRECTION_1_60_CAUSE_SYNTHESIS_003 avløser002 og er kopiert til
-docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Nivårettelse er undersøkt og delvis
-støttet; videre kalibreringssøk er stoppet. Neste høyeste informasjonsverdi er
-parvis rangering mot allerede lagrede252ET_FULL og259R1_EXPLICIT_PREV_RET1.
-259harcurrentret1,eksaktforrige5minret1ogpresence;252s eksakte faste definisjon
-og arkivets foldmapping skal kildekontrolleres før én eventuell frisk admisjon.
-Samme67112foreldre ogblokkvekter;seksAUCkontraster forhåndsbundet utenvalg.
-Den nye rangadmisjonen øverst erstatter denne kildestatusen; ingen fits,
-forwards eller modellendringer er admittért. Retningsedge1–60 er fortsatt uferdig.
+DIRECTION_1_60_CAUSE_SYNTHESIS_004 avløser003 og er kopiert til
+docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Native-underutnyttelse ved5m er
+nå første hypotese; mekanismen er ikke identifisert. Ingen modell er forbedret.
+
+DIRECTION_ET_NATIVE_DECLARED_INPUT_MAP_001 kontrollerer allefirefold:
+3318råreferansefelt→3345kodetfelt;3316ikke-konstante navn/indekser samsvarer,
+session_idfinnes, ogD1session_change_flag=0 er referansens ene eksplisitte
+konstant.0manglende feltdeklarasjoner. Native har nominalembeddings.
+Referansen normaliserer gjentatte aktuelleHTFverdier perM5forelder;native
+normaliserer unike fysiske historiske rader. Dette er ulik design, ikke påvistfeil.
+Navn/indekser bekrefter ikke råverdier, masker, availability eller hiddenbevaring.
+
+Neste steg er å kvalifisere eksakte eksisterendeTRAIN-only artefakteiere og
+sisteavsluttedeMTFrader for én deterministisk verdi-/maske-/clock-paritet.
+Ingen payloadlesing, raw/mixed2026Parquet, forwards, fits eller kodeendring er
+admittért av denne kildestatusen. Hvis inputparitet holder, begrunnes først da
+en matched frosset readout-kontroll før nytrening. Retningsedge1–60 er uferdig.
 
 DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002 bekrefter COMPLETE/consumed:
 67112samme senereTRAIN-foreldre;5lagredeprediksjonsarkiver,48blokkrangpar,

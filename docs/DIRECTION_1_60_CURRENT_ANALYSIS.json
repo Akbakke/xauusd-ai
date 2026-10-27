@@ -6,18 +6,36 @@
     "Alle prediksjoner er identiske fordi fold4velgerUP.",
     "30/60 alene redder de to konkretefaste referansene.",
     "En ren konstant offset kan forklare eller forbedre rangeringen; eksakt AUC/order/ties forblir uendret.",
-    "Én TRAIN-only nivåjustering alene løser retningsoppgaven: ingen justert horisont slår alltidUP i treffprosent eller egenprior i95%properintervall."
+    "Én TRAIN-only nivåjustering alene løser retningsoppgaven: ingen justert horisont slår alltidUP i treffprosent eller egenprior i95%properintervall.",
+    "At sannsynlighetsnivå alene forklarer alle nativeunderskudd: et korrigert parvis5mAUCunderskudd mot252er nå målt.",
+    "Manglende feltdeklarasjoner eller feil deklarerte ikke-konstante indekser som generell forklaring på252fordelen: alle3316direkteskalarer ogsessionfeltet finnes ialle4nativekontrakter. Dette er ikke faktiskverdiparitet."
   ],
   "changes_from_previous_synthesis": [
-    "Forhåndsbundet TRAIN-only offsetkontroll er fullført; dette erstatter hypotesen om et uprøvd sannsynlighetsnivå.",
-    "5m består99%uke/dag proper-forbedring.15m får stor punktforbedring, men99%uke inkluderer så vidt0; hovedkriteriet består derfor ikke ved15m.",
-    "Ingen rangering er forbedret. Ingen justert horisont slår egenprior i95%intervall;15m er fortsatt dårligere ennR1.",
-    "Videre kalibreringssøk er stoppet. Neste avgrensning gjelder rangering mot allerede lagrede252/259referanser.",
-    "Nativemodell/input/loss/optimizer er uendret. Kun en ren diagnostisk skalarfunksjon og20syntetiske kontroller er lagt til."
+    "Six predeclared paired AUC contrasts completed on same67112parents. Only native-vsET252 at5m excludes0 under both week/day after family6correction.",
+    "Native5mAUC.5037353142 versus full3345snapshot ET252.5130918603; difference-.0093565462.",
+    "Native underuse/input-path explanation upgraded; probability offset alone cannot explain this rank deficit.",
+    "Fourfold source/metadata map finds3316nonconstant scalar name/index matches, one session category and one declared D1constant; no declared field missing.",
+    "Actual all-field raw values, availability clocks and normalization consumption remain unmeasured. No native-code change, extra training, feature discard or economic-edge claim."
   ],
-  "created_utc": "2026-10-26T23:49:31.898449+00:00",
+  "created_utc": "2026-10-27T00:18:08.594449+00:00",
+  "declared_input_mapping": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_ET_NATIVE_DECLARED_INPUT_MAP_001.json",
+    "sha256": "ad1039a6856a51e57a5935f3b534aae219b36f4b8c20155573dc6a9bb44cccc4"
+  },
   "economic_edge_claimed": false,
   "evidence": [
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_003.json",
+      "sha256": "799913f16742c50ccc06a696527ce6301253fb19e4ae6bec947d9e8715fd8906"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_003/SUMMARY.json",
+      "sha256": "b867253ff64db7f11ca958bc4ba0fec6a0317ad290246f0ecaa9338e8516879e"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_ET_NATIVE_DECLARED_INPUT_MAP_001.json",
+      "sha256": "ad1039a6856a51e57a5935f3b534aae219b36f4b8c20155573dc6a9bb44cccc4"
+    },
     {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
       "sha256": "cb8aefe756ebaabf9661410626bec88746fe5fe63e9f33cad4226fdaea3ac5c1"
@@ -47,11 +65,131 @@
       "sha256": "3d96a127b7084894c3155f014143f4cfdc8a0574316c30c313b2ffa8f9d008c0"
     }
   ],
-  "highest_information_next": "Én forhåndsbestemt, parvis rangsammenligning native mot eksisterende252ET_FULL og259R1_EXPLICIT_PREV_RET1 på samme67112senereforeldre. Skill dokumentert modellunderutnyttelse fra bare proper-score-forskjell før nyGPU/trening. Kun design/sourceanalyse er nååpen.",
+  "highest_information_next": "Eksakt inputverdi-/mask-/clock-paritet mot252 på eksisterende TRAIN-only ferdige kilder. Felt-/indekskartet er nå kontrollert; kvalifiser artefakteierne først og åpne ingen mixed2026råkilde. Denne deterministiske testen skal skille faktisk inputavvik fra native behandling/læring før mertrening.",
   "hypotheses": [
     {
+      "classification": "Målt senere rangeringsmangel mot252ved5m under den faste utviklingskontrakten. Input-/representasjons-/læringsmekanisme er fortsatt plausibel og uisolert; ingen påvist implementasjonsfeil.",
+      "counterevidence": "Modellene har forskjellige inputfunksjoner, normaliseringspopulasjoner og læringsmetoder. Navn/indeks er ikke numerisk inputparitet. Fordelen gjelder den forhåndsdefinerte5mkontrasten;1/15og259forskjellene inkluderer0.252s hardtreffprosent ved5m er fortsatt lavere enn alltidUP. All evidens er gjenbrukt utvikling, ikke urørt framtid.",
+      "exact_code": [
+        {
+          "lines": [
+            110,
+            125,
+            151,
+            156,
+            185,
+            191,
+            208,
+            212
+          ],
+          "source": {
+            "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+            "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+          }
+        },
+        {
+          "lines": [
+            6,
+            93,
+            143,
+            237,
+            241,
+            247,
+            267,
+            280
+          ],
+          "source": {
+            "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+            "sha256": "db7bd2823b5fd1c36a42da2433bef22ac106ed682e700b476234d6b7f9b19bba"
+          }
+        },
+        {
+          "lines": [
+            355,
+            367,
+            1946,
+            2026,
+            2037,
+            2284,
+            2357,
+            4222,
+            4230
+          ],
+          "source": {
+            "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+            "sha256": "3e5cea0ef2b77de3384e0779f93ba57ea36743f8dd7b2a392edd39a490606bee"
+          }
+        }
+      ],
+      "expected_if_true": "Et faktisk raw-/mask-/clock-avvik lokaliserer en konkret inputfeil. Ved eksakt samsvar svekkes denneforklaringen, og et matched frosset readout av input versus native hidden blir den nødvendige testen av behandling/læring.",
+      "measured_support": {
+        "declared_field_mapping": {
+          "actual_value_parity": false,
+          "category_matches": 1,
+          "fields": [
+            "folds",
+            "summary"
+          ],
+          "missing_fields": 0,
+          "nonconstant_scalar_name_index_matches_per_fold": 3316,
+          "reference_constant_fields": 1,
+          "source": {
+            "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_ET_NATIVE_DECLARED_INPUT_MAP_001.json",
+            "sha256": "ad1039a6856a51e57a5935f3b534aae219b36f4b8c20155573dc6a9bb44cccc4"
+          }
+        },
+        "existing_C": "Alle560optimizer-tensorer endret;9/12TRAINlogloss og3/12AUC forbedringer iB. Aktiveringsvariansendring og én gradientbatch viser ikke informasjonstap.",
+        "fields": [
+          "prepared_raw_ret1_bit_parity",
+          "four_reference_transforms_exact"
+        ],
+        "matched_reference_rank": {
+          "ET252_auc5": 0.5130918603105985,
+          "all_other_primary_contrasts_include_zero": true,
+          "alpha_per_interval": 0.008333333333333333,
+          "day_interval": [
+            -0.015604723639671449,
+            -0.0028827483002596284
+          ],
+          "difference": -0.00935654615206305,
+          "fields": [
+            "aggregate[horizon_minutes=5]",
+            "intervals[primary_paired_family6][ET252]",
+            "panels",
+            "joins"
+          ],
+          "native_auc5": 0.5037353141585355,
+          "primary_family": 6,
+          "reference_config": "32ExtraTrees,max_depth8,min_samples_leaf256,3345snapshotfields",
+          "source": {
+            "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_003/SUMMARY.json",
+            "sha256": "b867253ff64db7f11ca958bc4ba0fec6a0317ad290246f0ecaa9338e8516879e"
+          },
+          "week_interval": [
+            -0.01586695399730436,
+            -0.0018177843572795662
+          ]
+        },
+        "new_rank_comparison": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002.json",
+          "sha256": "3877ec7651de78ac3afab83d069495af80f5283b638b5b01e18b6c173e62ed92"
+        },
+        "source": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_ROOT_REVIEW_001.json",
+          "sha256": "6e95ffb973a7b3ce93cf6606c685ff24a7fad6aecedbad7fbc60c925cfa64835"
+        }
+      },
+      "mechanism": "Referansen gir et direkte ikke-lineært readout av3345kompakte felt. Native fører tilsvarende navngitte råfelt gjennom egne normaliseringer, tidsvinduer, projeksjoner, familiesamspill og delt retningslæring. Feil verdier/tidspunkt, uhensiktsmessig behandling eller utilstrekkelig læring kan derfor svekke rangeringsinformasjonen i sluttlogits.",
+      "minimum_improvement": "Rett kun et målt input-/tids-/maskavvik dersom det finnes. Ellers bruk én fersk, kontrollert endring i readout eller læring etter mekanismetesten; sammeforeldre/B16/kausalitet og åttefamilier+D1beholdes. Ingen forbedring velges fra etterpåtilpassede undergrupper.",
+      "name": "Native utnytter mindre retningsinformasjon ved5m enn en fast referanse med samme underliggende feltdeklarasjoner.",
+      "priority": 1,
+      "smallest_test": "Før nytrening: kvalifiser eksakte eksisterende TRAIN-only artefakter og native sisteavsluttede MTF-rader. Deretter én avgrenset deterministisk sammenligning av referansens råfelt/gyldighetsmasker/tidspunkt mot native-input på sammeforeldre. Bruk begge etablerte normaliseringskontrakter etter råparitet; ikke krev like statistikker fra ulike deklarertefitpopulasjoner.",
+      "stop": "Ingen rådatasett eller mixed2026Parquet under denneautoriteten. Ingen fullF, ekstraepoker, LR/HPO eller normendring før konkret forskjell/isolertmekanisme. Manglende nytt bevis er ikke tillatelse til å forkaste genuinefelt.",
+      "weakens_if": "Numeriske inputs og tidskontrakter er like, og et fast native-hidden-readout bevarer referansens senere retningssignal; da ligger underskuddet trolig nær sluttreadout/optimalisering snarere enn inputtap. En kausalitetsfeil i referansen ville svekke selve sammenligningsgrunnlaget."
+    },
+    {
       "classification": "Påvist sannsynlighetsdefekt med isolert korrigerbart nivåbidrag ved5m.15m støttes av punktestimat/95%, men ikke hele forhåndsbundne99%kriteriet. Ingen påvist implementasjonsfeil.",
-      "counterevidence": "15m99%uke har øvregrense+0.000000810367; derfor ingen full primærbekreftelse.15mgevinsten er størst ifold1 ogfold4forverres. Alleh har uendretrangering; justerttreffprosent er underalltidUP ogjustertpriorforskjell inkluderer0ved95%.256prefixprediksjoner gir ekstra kalibreringsusikkerhet som blokkintervallene ikke modellerer.",
+      "counterevidence": "15m99%uke har øvregrense+0.000000810367; derfor ingen full primærbekreftelse.15mgevinsten er størst ifold1 ogfold4forverres. Alleh har uendretrangering; justerttreffprosent er underalltidUP ogjustertpriorforskjell inkluderer0ved95%.256prefixprediksjoner gir ekstra kalibreringsusikkerhet som blokkintervallene ikke modellerer. Ny252kontrast viser at et reelt5m-rangeringsunderskudd består uavhengig av nivåjusteringen; renbias er derfor ikke heleforklaringen.",
       "exact_code": {
         "lines": [
           110,
@@ -174,14 +312,14 @@
       "mechanism": "Det lineære hodet lærer både ubetinget klasseandel og featureavvik. Egen prefix-prior beregnes til rapportering, men inngår ikke eksplisitt i logits. En lært forskyvning kan gi dårlige sannsynligheter ogUP/DOWN-valg selv medAUCover.5.",
       "minimum_improvement": "Bevar TRAIN-only offset som en målt forskningskontroll for sannsynligheter. Ikke integrer automatisk iONLINE eller kall det nyedge. Flytt hovedprioriteten til rangering/inkrementellinformasjon.",
       "name": "Feil sannsynlighetsnivå forklarer en del av proper-score-underskuddet, men ikke svak rangering.",
-      "priority": 1,
+      "priority": 2,
       "smallest_test": "Utført én gang: DIRECTION_PRIOR_OFFSET_PLAN_001. Ingen ny offset/scale/terskeltest foreslås nå; det ville ikke forklare svak rangering.",
       "stop": "Alle12fits er konsumert. Ingen videre kalibreringssøk eller valgavhorisont etter resultatet. NyONLINEfunksjon kreverferskinitialbaseline.",
       "weakens_if": "Resultatet avkrefter at én nivårettelse alene er tilstrekkelig til å løse retningsoppgaven. Høyere treffprosent skyldes merUP; ingen gevinst over alltidUP er dokumentert."
     },
     {
-      "classification": "Plausibel begrensning; total mangel på fremoversignal er avkreftet som generell påstand innen denne utviklingsevidensen.",
-      "counterevidence": "Ret1 ognative har svakt15msignal. En lineærreferanse og toflowskårer representerer ikke alle genuinefamilier eller nonlinearitet. Native30/60 er ikke undersøkt av de eksisterende trelogit-modellene. Offsetrettelsen endrer ikkeAUC, ogbekrefter derfor heller ikke en årsak til svakrangering. En kontrollert sammenligning med allerede lagrede ikke-lineære og laggede referanser gjenstår.",
+      "classification": "Plausibel begrensning på signalstyrke/stabilitet; en ren forklaring om fravær av utnyttbart fremoversignal passer ikke den målte252fordelen ved5m.",
+      "counterevidence": "Ret1 ognative har svakt15msignal. En lineærreferanse og toflowskårer representerer ikke alle genuinefamilier eller nonlinearitet. Native30/60 er ikke undersøkt av de eksisterende trelogit-modellene. Offsetrettelsen endrer ikkeAUC, ogbekrefter derfor heller ikke en årsak til svakrangering. En kontrollert sammenligning med allerede lagrede ikke-lineære og laggede referanser gjenstår.252 medgenuine3345snapshotfelt rangerer5m bedreennnative under begge korrigerteintervaller. Feltmangel kan derfor ikke antas som eneste årsak; først må data-/modellstien skilles.",
       "expected_if_true": "Sterk samtidighet, gjennomgående svakekausale fremtidskontraster og stor regimesensitivitet også etter sannsynlighetsrettelse.",
       "measured_support": {
         "existing_D": "D_FLOW_SCORE_ACTUAL_ROOT_REVIEW_001.json: samtidigGC OFI-AUC.901483; framtidigXAU1/5/15 .502490/.496552/.490430.",
@@ -202,6 +340,18 @@
           0.5037353141585355,
           0.5084724875819473
         ],
+        "new_ET252_rank": {
+          "auc15": 0.5128953676141227,
+          "auc5": 0.5130918603105985,
+          "fields": [
+            "aggregate",
+            "intervals"
+          ],
+          "source": {
+            "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_003/SUMMARY.json",
+            "sha256": "b867253ff64db7f11ca958bc4ba0fec6a0317ad290246f0ecaa9338e8516879e"
+          }
+        },
         "other_sources": [
           {
             "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
@@ -224,14 +374,14 @@
       "mechanism": "Mange inputs beskriver avsluttet pris/flow. Når sammebevegelse er ferdig, kan framtidig XAU-retning bare ha svak sammenheng med de observerte forholdene.",
       "minimum_improvement": "Bevar familier ogkontext, men bind eksplisitte matematiske relasjoner ogtidspunkter til påvist inkrementellinformasjon. Ikke leggtilindikatornavn uten en testbar representasjon.",
       "name": "Fremoversignalet er lite og kan være tidsavhengig.",
-      "priority": 2,
-      "smallest_test": "Før nye GPU-runder: forhåndsbind parvis innenfold-AUC native mot eksisterende252ET_FULL og259R1_EXPLICIT_PREV_RET1 på de samme67112foreldrene og sammeuke/dagvektene. Ingen refit eller featurevalg. Hvis også disse faste referansene bare viser svakt ogusikkert signal, styrkes en begrensning i den undersøkte informasjonen; dette er ikke en generell dom over allefamilier.",
+      "priority": 3,
+      "smallest_test": "Gjenbruk den målte252fordelen til å kontrollere samme råfelt ogtidsstempler i native. Først etter slikparitet kan en fast input/readout-kontrast skille tilgjengeligsignal fra representasjons-/læringssvikt. Ingen nyhorizon- ellerfeaturejakt.",
       "stop": "Ingen ikke-kausal shift i kandidat, signalinversjon, terskelvalg eller vinnersubgruppe.30/60funn gjelder de testedereferansene, ikke allemodeller.",
       "weakens_if": "En fast, kausal referanse viser stabilt inkrementelt fremoversignal som native ikke utnytter."
     },
     {
       "classification": "Målt effekt i66feltsreferansen; plausibelnativeforklaring, ikke påvist feil iD1eller deåttefamiliene.",
-      "counterevidence": "Alle parvise99%AUCforskjeller mellom1og66felt inkluderer0. Resultatet isolerer ikke individuellefelt, ogkontext kan ha nytte i en bedre tidsrepresentasjon.",
+      "counterevidence": "Alle parvise99%AUCforskjeller mellom1og66felt inkluderer0. Resultatet isolerer ikke individuellefelt, ogkontext kan ha nytte i en bedre tidsrepresentasjon.252s bredere ikke-lineære3345feltsreferanse har målbar5m-rangfordel motnative. Den tidligere66feltslineære kontekstsvakheten kan ikke generaliseres til at flerefelt ellerD1er skadelige.",
       "expected_if_true": "BedreTRAIN-fit kan sameksistere med svak senereAUCogfor sterk konfidens. Nivårettelse kan forbedreproper uten å gi bedre retning; målt resultat er forenlig med dette, men isolerer ikkeD1eller kontekst som årsak.",
       "measured_support": {
         "context_source": {
@@ -252,106 +402,33 @@
       "mechanism": "Langsomme makrofelt ogsesjonsfelt kan lære tidsavhengige klasseandeler som ikke varer. Flere korrelerte beskrivelser kan øke sikkerheten uten å tilføre senere retningsinformasjon.",
       "minimum_improvement": "Krev inkrementellverdi fra kompleks kontekst over en bevart enkel prior/ret1-referanse. Beholdfamiliestrukturen; ikke slett D1.",
       "name": "Kontekst gir in-samplefit og feil senere konfidens.",
-      "priority": 3,
+      "priority": 4,
       "smallest_test": "Ingen ytterligere kalibrering nå. Gjenbruk faste lagrede prediksjoner til å skille virkelig senere rangeringsforskjell fra allerede målt proper-score-forskjell; behandle individuelleD1/familieårsaker som uidentifiserte.",
       "stop": "Ingen kasting av indikatorer ellerfamilier fra denne korte referansestudien; ingen statistikkfit på senereutfall.",
       "weakens_if": "Kontekstens inkrementelle framtidsrangering ogpropergevinst blir stabil under samme skille og fastprotokoll."
-    },
-    {
-      "classification": "Foreløpig spekulasjon om dominerende mekanisme; nedprioritert informasjonstaphypotese.",
-      "counterevidence": "Native15m rangerer svakt positivt, og dårligere rangering ennR1erikke bevist. Allret1 er levert. Lossmask/count i source er konsistent med modne ikke-null-endepunktmål. Innenprefix-rekkefølgen er fast stokket, ikke kronologisk selv om foldskillet er kronologisk.",
-      "exact_code": [
-        {
-          "lines": [
-            110,
-            125,
-            151,
-            156,
-            185,
-            191,
-            208,
-            212
-          ],
-          "source": {
-            "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
-            "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
-          }
-        },
-        {
-          "lines": [
-            6,
-            93,
-            143,
-            237,
-            241,
-            247,
-            267,
-            280
-          ],
-          "source": {
-            "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
-            "sha256": "db7bd2823b5fd1c36a42da2433bef22ac106ed682e700b476234d6b7f9b19bba"
-          }
-        },
-        {
-          "lines": [
-            355,
-            367,
-            1946,
-            2026,
-            2037,
-            2284,
-            2357,
-            4222,
-            4230
-          ],
-          "source": {
-            "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
-            "sha256": "3e5cea0ef2b77de3384e0779f93ba57ea36743f8dd7b2a392edd39a490606bee"
-          }
-        }
-      ],
-      "expected_if_true": "En fast referanse har konsistent bedre senere rangering med parvis intervall som utelukker0. Da er en del fremoversignal tilgjengelig for den referansen; nativens behandling/læring må undersøkes videre. Ulik input/metode betyr at årsaken ikke er isolert.",
-      "measured_support": {
-        "existing_C": "Alle560optimizer-tensorer endret;9/12TRAINlogloss og3/12AUC forbedringer iB. Aktiveringsvariansendring og én gradientbatch viser ikke informasjonstap.",
-        "fields": [
-          "prepared_raw_ret1_bit_parity",
-          "four_reference_transforms_exact"
-        ],
-        "new_rank_comparison": {
-          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002.json",
-          "sha256": "3877ec7651de78ac3afab83d069495af80f5283b638b5b01e18b6c173e62ed92"
-        },
-        "source": {
-          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_INPUT_PARITY_ROOT_REVIEW_001.json",
-          "sha256": "6e95ffb973a7b3ce93cf6606c685ff24a7fad6aecedbad7fbc60c925cfa64835"
-        }
-      },
-      "mechanism": "Et lite retningssignal må konkurrere med støy ogbase-rategradienter gjennom store projeksjoner ogtrehorisonter. Én gjennomgang er ikke dokumentert konvergens. Mean+last og snapshot finnes allerede.",
-      "minimum_improvement": "Bare ved bekreftet referansefordel: isoler nøyaktig den matematiske relasjonen/lagsignalet og verifiser tilsvarende native konsum før én fersk, avgrenset læringskontrast. Beholdåttefamilier,D1/MTF ogB16; ikke gjør flereepoker ellerLR-søk på spekulasjon.",
-      "name": "En gjennomgang og deltBCE utnytter signalet utilstrekkelig.",
-      "priority": 4,
-      "smallest_test": "Før dyr frozen-hidden-probe eller nytrening: mål parvis native−252 ognative−259 AUC på identiske senere foreldre. Referanse259 bruker nøyaktigcurrentret1, forrige kvalifiserte5minret1 ogpresence. Referanse252 er den allerede lagredeET_FULL-kontrollen. Dette tester sterkere kjent rangering; bare en senere matched input/learning-kontrast kan isolere mekanismen.",
-      "stop": "Ingen nyGPU/fullF/epoke ellerkonvergenspåstand fra disse skårene. Bare allerede lagrede sammenligningsarmer; ingen vinnerseleksjon eller snuing av signal.",
-      "weakens_if": "De forhåndsvalgte parvise rangeringsintervallene inkluderer0, eller ingen referanse har robust bedre rangering. Det avkrefter ikke en liten effekt, men gir ikke grunnlag for å hevde at native ødelegger informasjon."
     }
   ],
   "native_improvement_claimed": false,
   "new_execution_admitted": false,
-  "next_comparison_constraints": {
-    "authorization": "No new numerical execution or payload read admitted by this synthesis.",
-    "horizons_minutes": [
-      1,
-      5,
-      15
+  "next_step_scope": {
+    "conditional_followup": "If raw input parity holds, design the smallest matched frozen-readout comparison before any new native optimization.",
+    "new_numerical_execution_admitted": false,
+    "preserve": [
+      "eight_specialists",
+      "D1_macro",
+      "causal_closed_M5_M15_H1_H4_D1",
+      "originalB16",
+      "unchanged_reference_and_native_outputs"
     ],
-    "primary_family": "Six paired AUC differences (2references x3horizons); predeclare Bonferroni alpha0.05/6 for each interval, no horizon/reference selection.",
-    "resampling": "Reuse4000 paired UTC_WEEK_MONDAY /UTC_DAY weights; no crossfold score pairing.",
-    "same_observations": "Same67112 later common parents, identical chronological folds1-4 and original saved model predictions.",
-    "source_check_first": "Verify exact fixed252 model/feature definitions and259 archive fold mappings against original JSON/source.259three fields confirmed from originalMETRICS.",
-    "stop": "Stop if row/clock/labels/mask/original-score or block-weight parity fails. No rerun of consumedB/F/offset units.",
-    "zero_forwards": true,
-    "zero_refits": true
+    "qualify_before_admission": [
+      "exactTRAIN-only prepared artifact paths/headers/identity",
+      "same-parent raw scalar mapping",
+      "last-closed MTFrow/time mapping",
+      "missing/observed masks",
+      "budget and existing guard support"
+    ],
+    "raw_or_mixed_2026_source_access": false,
+    "source_metadata_only_now": true
   },
   "objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved1,5,15,30og60minutter; skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings-/evalueringsmål. Bevar åtte familier,D1/makro,kausal M5/MTF ogforsegling. Handel er utsatt.",
   "saved_probability_diagnostic_improvement_measured": {
@@ -428,21 +505,20 @@
       }
     }
   },
-  "status": "PARTIAL_CAUSE_ISOLATED_DIRECTION_RANKING_UNRESOLVED",
+  "status": "CONDITIONAL_NATIVE5M_RANKING_DEFICIT_ESTABLISHED_MECHANISM_UNRESOLVED",
   "still_unresolved": [
-    "Hvorfor native ikke oppnår stabilt sterkere rangering: lite signal versus underutnyttelse av genuine inputs.",
-    "Hvorfor sannsynlighetsnivået blir feil: init/optimalisering, train-eval-regime, sharedBCE, vektforfall ellerendrede markedsforhold er ikke isolert.",
-    "Resten av15mproperdefisitten etteroffset: spread, feil rangering ogregimeskift.",
-    "Inkrementell nytte av hele familie-/MTF-representasjonen og alle genuine indikatorer.",
-    "Native30/60oppgaver; nåværende trelogit-modeller har ingen slike prediksjoner.",
-    "Virkelig uavhengig fremtidig bekreftelse og handelsøkonomi."
+    "Hvilket ledd gir5m-rangeringsunderskuddet: faktiske inputverdier/availability, normalisering, tids-/familiefusjon, readout eller optimalisering.",
+    "Om referanse ognative faktisk mottar samme sisteavsluttede råfelt på de sammeforeldrene; bare ret1har full tidligere numeriskparitet.",
+    "Hvorfor feil sannsynlighetsnivå oppstår; korreksjon av symptomet identifiserer ikke treningsårsaken.",
+    "Inkrementell nytte fra de enkelte genuinefelt/familier ogfulltemporalhistorikk.",
+    "Native30/60oppgaver, uavhengigfremtidsbekreftelse og økonomiskedge."
   ],
   "test_data_used": false,
   "would_change_assessment": [
-    "Parvis252/259AUCviser klart bedre senere rangering: oppgrader underutnyttelse, men isolerinput/metode førmodelfeil hevdes.",
-    "Ingen fast referanse har tydelig mer fremoversignal: prioriter konkrete nye kausale relasjoner/targets fremforarkitekturombygging, uten å forkastefamilier.",
-    "Et faktisk input/clock/mask/target-avvik dokumenteres: rett dette førtrening.",
-    "En enkel TRAIN-fast rettelse øker senere rangering utoveruendretbaseline medsammeskille: dokumenterrettelsen, krev fortsattuavhengigbekreftelse.",
-    "Lovlig uavhengigbekreftelse avviser15msignalet: nedgrader selvden svakepositive rankingevidensen."
+    "Et dokumentert råverdi-/maske-/tidspunktavvik finnes: oppgrader dette til konkret feil ogrettførtrening.",
+    "Full faktisk inputparitet ogtilstrekkelig hidden-readout-signal: flytt hovedmistanken til sluttreadout/optimalisering.",
+    "Full inputparitet men tap av senere readout-signal gjennomfrossetnative: oppgrader representasjons-/fusjonshypotesen.",
+    "Referansens kausalitet eller observasjonskontrakt viserfeil: trekktilbake berørte rangeringskonklusjoner.",
+    "En forhåndsbundet korrigert modell forbedrer senere rangering på sammeskille ogsenere lovliguavhengigbekreftelse: dokumenter reellfremgang, fortsatt uten automatiskhandelsautoritet."
   ]
 }

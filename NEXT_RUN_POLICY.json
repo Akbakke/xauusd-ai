@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Execute fresh DIRECTION_NATIVE_REFERENCE_RANK_003 once. Same six contrasts and limits;002never launched. Verify original prior formulas separately and consume authority at terminal.",
+  "next_action": "Eksakt inputverdi-/mask-/clock-paritet mot252 på eksisterende TRAIN-only ferdige kilder. Felt-/indekskartet er nå kontrollert; kvalifiser artefakteierne først og åpne ingen mixed2026råkilde. Denne deterministiske testen skal skille faktisk inputavvik fra native behandling/læring før mertrening.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Rank003: original equivalent prior formulas bound exactly; no invocation of002",
+    "current_activity": "Native5m rank deficit confirmed; all declared reference fields mapped; next actual TRAIN-only value/clock parity",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,11 +269,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "12prefix-only scalar offsets:5m proper improvement;15m borderline99%week;ranking unchanged; no direction/economic edge",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_001",
+    "latest_terminal_role": "Six paired native-reference AUC contrasts: onlyET2525m establishes native inferiority under both corrected block intervals",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_003",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_001/TERMINAL.json",
-      "sha256": "a5f94da475cf1cbcf9baebe9be2ca97f2bff0087e522bb4a522c4b8d1f761b5b"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_003/TERMINAL.json",
+      "sha256": "4df45235780d3aa9e988a20a4c4d389cb45bbd5f2bff19229056cc94ae28cff6"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Miscentering partly isolated, but unchanged weak AUC and no accuracy benefit over alwaysUP. Need distinguish existing input signal from native underuse; no more calibration search admitted.",
+    "current_blocker": "5m ranking deficit measured, but ET snapshot inputs/normalization versus native tensor consumption are not yet matched; training/representation mechanism remains unidentified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17670,8 +17670,16 @@
     },
     "current_direction_objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved1,5,15,30og60minutter; skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings-/evalueringsmål. Bevar åtte familier,D1/makro,kausal M5/MTF ogforsegling. Handel er utsatt.",
     "current_direction_cause_synthesis": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_003.json",
-      "sha256": "0b3081970d6e813d05485e50d87ff0505de13d4f1471d8677414fb5f87ffe005"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_004.json",
+      "sha256": "55be907e20b16f655ac4463b0c2ffa7274255047e8e201bd01961bfc36f3c649"
+    },
+    "native_reference_rank_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_003.json",
+      "sha256": "799913f16742c50ccc06a696527ce6301253fb19e4ae6bec947d9e8715fd8906"
+    },
+    "declared_ET_native_input_mapping": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_ET_NATIVE_DECLARED_INPUT_MAP_001.json",
+      "sha256": "ad1039a6856a51e57a5935f3b534aae219b36f4b8c20155573dc6a9bb44cccc4"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -20236,7 +20244,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-27T00:00:32.154067+00:00",
+  "updated_utc": "2026-10-27T00:18:08.608705+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35914,7 +35922,7 @@
     }
   },
   "direction_native_reference_rank": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_DESIGN_001.json",
       "sha256": "ac3ae02a2a551cf7504e353351b0f307129838b22372091cd52b1118c016b11f"
@@ -35927,15 +35935,15 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_PLAN_003.json",
       "sha256": "2cc053e00ae5bb4d94b2bafb34f7b5fb496c2ce2fb3fd4273df4b867554e03fd"
     },
-    "execution_authorized": true,
-    "saved_predictions_authorized": true,
+    "execution_authorized": false,
+    "saved_predictions_authorized": false,
     "raw_data_reads_authorized": false,
     "native_forwards_authorized": false,
     "genuine_fits_authorized": false,
     "test_data_used": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "budget": {
       "block_rank_calls": 96,
@@ -35953,8 +35961,11 @@
       "wall_seconds": 180,
       "weighted_rank_calls": 96
     },
-    "consumed_invocations": 0,
-    "root_review": null,
+    "consumed_invocations": 1,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_003.json",
+      "sha256": "799913f16742c50ccc06a696527ce6301253fb19e4ae6bec947d9e8715fd8906"
+    },
     "previous_failed_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_001.json",
       "sha256": "fb256f24460f9841fdc518f696e0bf591b2e5aece6a2b2aeda584e3fb5ff8b33"
@@ -35962,6 +35973,14 @@
     "superseded_unexecuted_plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_PLAN_002.json",
       "sha256": "3e866425b62630bf27db59a9c07542368507617103879b7b28fceef29748b26a"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_003/TERMINAL.json",
+      "sha256": "4df45235780d3aa9e988a20a4c4d389cb45bbd5f2bff19229056cc94ae28cff6"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_003/SUMMARY.json",
+      "sha256": "b867253ff64db7f11ca958bc4ba0fec6a0317ad290246f0ecaa9338e8516879e"
     }
   },
   "direction_native_reference_rank_attempt001": {
