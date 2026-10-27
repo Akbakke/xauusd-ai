@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "LAST_M1_VOLUME_DOMAIN_INDEPENDENT_REPLAY_ADMITTED_TRAINING_CLOSED",
+    "status": "LAST_M1_VOLUME_DOMAIN_INDEPENDENT_REPLAY_COMPLETE_EXPOSURE_DEFERRED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_last_m1_trade_count_volume_verify_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37204,7 +37204,7 @@
     },
     "first_analysis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
-      "sha256": "cccf3ab9b83cb8b2d891af3cd005da629c4368e7751bf3491719e67339c47340"
+      "sha256": "8f831d5e65de095886db8832eb3c38c83f9fe937e491ab83f9d79ffb20f1b87e"
     },
     "native_0u_metadata_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
@@ -38847,7 +38847,7 @@
     }
   },
   "independent_direction_last_m1_trade_count_volume_verify_20261027": {
-    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_VERIFY_PLAN_001.json",
     "plan_sha256": "7ca21dbeeb86c17396eecf1f322e06c721d428cfc457c20433b0e07ee6dbcd02",
     "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_VERIFY_WORKER_001.py",
@@ -38861,6 +38861,16 @@
     "exit_authorized": false,
     "new_indicators_authorized": false,
     "broker_authorized": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_VERIFY_RESULT_001.json",
+      "sha256": "fd93fce81f9f0f95540fa8f8c04acec33d811df4af912eb6caad3e221c442d29"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_VERIFIED_ROOT_REVIEW_001.json",
+      "sha256": "6ee0b7f6266481ad1dbe2834e5fbe678055965f63ccba1f1499de5e2d84ab5ff"
+    }
   }
 }

@@ -134,6 +134,14 @@
     "last_m1_trade_count_volume_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_DOMAIN_ROOT_REVIEW_001.json",
       "sha256": "6921ae3923f947ee71380b0995d5f999d9a7cca3cf92dcf5d3fa10b18b3c59cf"
+    },
+    "last_m1_trade_count_volume_independent_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_VERIFY_RESULT_001.json",
+      "sha256": "fd93fce81f9f0f95540fa8f8c04acec33d811df4af912eb6caad3e221c442d29"
+    },
+    "last_m1_trade_count_volume_verified_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_VERIFIED_ROOT_REVIEW_001.json",
+      "sha256": "6ee0b7f6266481ad1dbe2834e5fbe678055965f63ccba1f1499de5e2d84ab5ff"
     }
   },
   "execution_authorized_by_report": false,
@@ -317,10 +325,12 @@
       "type": "EXPLORATORY_LAST_M1_WITH_UNKNOWN_SIDE_RETAINED",
       "evidence": [
         "last_m1_trade_count_volume_result",
-        "last_m1_trade_count_volume_review"
+        "last_m1_trade_count_volume_review",
+        "last_m1_trade_count_volume_independent_result",
+        "last_m1_trade_count_volume_verified_review"
       ],
       "finding": "On 16959 of 17197 direction-eligible rows in one reused fold, strict volume-valid M5 source bars retain known buy/sell record counts while separately reporting unknown side. The fixed M5 count-sign AUC is 0.508177, and its predetermined last-M1 sign refinement is 0.507971 (difference -0.000206); corrected paired day/week intervals include zero. Unknown-side records appear in 14429 qualified M5 bars and 7912 last M1 bars; 8 last minutes have no known-side records.",
-      "implication": "No incremental value is documented for this one sign refinement; unknown records were not assigned a direction. This broader-domain follow-up was declared after the signed-valid result and remains exploratory on the same reused fold. It does not evaluate M1 OFI, signed volume, actual quote age, native-model ablation, later generalization or economics."
+      "implication": "No incremental value is documented for this one sign refinement; unknown records were not assigned a direction. This broader-domain follow-up was declared after the signed-valid result and remains exploratory on the same reused fold. It does not evaluate M1 OFI, signed volume, actual quote age, native-model ablation, later generalization or economics. Independent timestamp joins, five-minute count parity and all 4096 physically duplicated day/week block resamples matched on the same data; this is not a new future period."
     }
   ],
   "main_cause_established": false,
@@ -351,7 +361,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:22:29.074322+00:00",
+  "updated_utc": "2026-10-27T21:25:51.399250+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

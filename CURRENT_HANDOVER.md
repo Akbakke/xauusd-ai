@@ -347,17 +347,16 @@ ukeintervaller inkluderer null. 14429 rader har ukjente registreringer i M5,
 tilordnet kjøp/salg. Fem M1-tellinger matcher M5, og tidligere 2530-raders
 strenge punktresultat er reprodusert. Etteranalyse på samme gjenbrukte fold,
 ikke M1-OFI, volumdelta, modellablasjon, ny generalisering eller økonomi.
-Aritmetikk-/kildekontroll uten uavhengig rådatareplay:
-`LAST_M1_TRADE_COUNT_VOLUME_DOMAIN_ROOT_REVIEW_001.json` SHA-256
-6921ae3923f947ee71380b0995d5f999d9a7cca3cf92dcf5d3fa10b18b3c59cf.
+Uavhengig kontroll med alternativ tidskobling og fysisk gjentakelse av alle
+4096 dag-/ukeresamples gjenskaper resultatene på samme data. Kvittering:
+`LAST_M1_TRADE_COUNT_VOLUME_VERIFIED_ROOT_REVIEW_001.json` SHA-256
+6ee0b7f6266481ad1dbe2834e5fbe678055965f63ccba1f1499de5e2d84ab5ff.
 Engangsscope er konsumert; ingen fit, modellendring, nye modellindikatorer,
 CONTROL, TEST, Exit eller broker.
 
-En separat uavhengig engangskontroll er admittért for volumgyldig M1-/M5-
-kontroll: alternativ join, separate ukjente sider og fysisk replikering av
-alle 4096 parrede blokkresamples. Samme utforskende fold og populasjon, uten
-fit, modell, nye indikatorer, CONTROL, TEST, Exit eller broker. Status:
-`independent_direction_last_m1_trade_count_volume_verify_20261027`.
+Den uavhengige volumgyldige M1-/M5-kontrollen er fullført og konsumert på
+samme utforskende fold og populasjon. Den er ikke en ny fremtidig test;
+ingen fit, modell, nye indikatorer, CONTROL, TEST, Exit eller broker.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
