@@ -154,6 +154,14 @@
     "last_m1_ofi_sign_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_SIGN_ROOT_REVIEW_001.json",
       "sha256": "077d78291de825b85203eb6b2fef85f51908346628a99c916fac1bfbc682d7e0"
+    },
+    "last_m1_ofi_independent_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_VERIFY_RESULT_001.json",
+      "sha256": "62b64879e3fa5641c3ef04cad4335e031dbb96df2d27f6e457c3509daaa376a6"
+    },
+    "last_m1_ofi_verified_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_VERIFIED_ROOT_REVIEW_001.json",
+      "sha256": "421f3a3b91865d8743998844b8ab69690dd9aa79f0cdb667bbda9b2b458840f9"
     }
   },
   "execution_authorized_by_report": false,
@@ -358,10 +366,12 @@
       "type": "MEASURED_LAST_M1_OFI_SIGN_REFINEMENT",
       "evidence": [
         "last_m1_ofi_sign_result",
-        "last_m1_ofi_sign_review"
+        "last_m1_ofi_sign_review",
+        "last_m1_ofi_independent_result",
+        "last_m1_ofi_verified_review"
       ],
       "finding": "On 16977 of 17197 direction-eligible rows in one reused development fold, five complete same-contract M1 OFI values reproduce the existing M5 OFI exactly on all 17066 qualifying bars. AUC is 0.498154 for M5 OFI sign and 0.494998 for the fixed last-M1 sign refinement, a difference of -0.003156; corrected paired day and week intervals both include zero.",
-      "implication": "No incremental ranking value is documented for this one sign refinement. The result uses a stricter incident-qualified complete-minute subset on the same previously reused fold. It does not test continuous or nonlinear OFI, native-model inputs, latest quote age, untouched generalization or economics. Independent timestamp-join and full bootstrap replay are pending."
+      "implication": "No incremental ranking value is documented for this one sign refinement. The result uses a stricter incident-qualified complete-minute subset on the same previously reused fold. It does not test continuous or nonlinear OFI, native-model inputs, latest quote age, untouched generalization or economics. Independent timestamp joins and all 4096 physically duplicated day/week resamples matched on the same reduced historical data; this is not a new future period."
     }
   ],
   "main_cause_established": false,
@@ -392,7 +402,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:38:17.058751+00:00",
+  "updated_utc": "2026-10-27T21:40:04.468092+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

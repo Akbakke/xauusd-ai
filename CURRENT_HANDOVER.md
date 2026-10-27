@@ -370,17 +370,16 @@ nøyaktig på alle 17066 kvalifiserte barer. På 16977/17197 retningsegnede
 rader ga M5-fortegn AUC .498154 og fast siste-M1-forfining .494998;
 differanse -.003156, korrigerte dag-/ukeintervaller inkluderer null. Ingen
 merverdi er dokumentert for dette fortegnet. Samme gjenbrukte 2025-Q1-fold;
-ikke kontinuerlig/ikke-lineær OFI, modellintervensjon eller økonomi. Uavhengig
-rådatajoin og full resampling er ikke ennå gjennomført. Resultat:
-`LAST_M1_OFI_SIGN_RESULT_001.json` SHA-256
-859d41d9c74bfe1d89e1f170eae6f733f882d7d43b2cba4aa7b9c4be7d627003.
+ikke kontinuerlig/ikke-lineær OFI, modellintervensjon eller økonomi.
+Uavhengig tidskobling og fysisk gjentakelse av alle 4096 dag-/ukeresamples
+stemmer på samme reduserte historiske data, ikke en ny fremtidsperiode.
+Kvittering: `LAST_M1_OFI_VERIFIED_ROOT_REVIEW_001.json` SHA-256
+421f3a3b91865d8743998844b8ab69690dd9aa79f0cdb667bbda9b2b458840f9.
 Engangsscope konsumert; ingen modell, trening, nye indikatorer, CONTROL,
 TEST, Exit eller broker.
 
-En separat engangskontroll er admittért for uavhengig OFI-tidskobling og
-fysisk replikering av alle 4096 parrede dag-/ukeresamples. Samme gjenbrukte
-fold; ingen modell, trening, nye indikatorer, CONTROL, TEST, Exit eller broker.
-Status: `independent_direction_last_m1_ofi_verify_20261027`.
+Den uavhengige OFI-engangskontrollen er fullført og konsumert. Ingen modell,
+trening, nye indikatorer, CONTROL, TEST, Exit eller broker ble brukt.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
