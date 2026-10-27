@@ -112,7 +112,7 @@ def synthetic(rank, paired, io):
     cases=[]
     h=np.zeros((2,WIDTH),np.float32)
     h[0,:4]=[-.16,-.10,.20,0.]
-    h[1,:4]=[-.17,-.01,.10,0.]
+    h[1,:4]=[-.165,-.01,.10,0.]
     w=np.zeros((3,WIDTH),np.float32)
     w[1,:4]=[2.,-1.,3.,7.]
     logits=np.zeros((2,3),np.float32)
