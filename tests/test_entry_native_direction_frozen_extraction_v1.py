@@ -1022,3 +1022,103 @@ def test_independent_prefix_metadata_preserves_original_manifest_and_exact_compo
     else:
         with pytest.raises(RuntimeError): prefix._metadata(launch, common, **arguments)
         assert manifest == before
+
+
+def continuation_plan(monkeypatch):
+    value=plan(contract.TIMING_UNIT)
+    unit=contract.CONTINUATION_UNIT
+    root=contract.PROGRAM+'/F_FROZEN_EXTRACTION_'+unit+'_SYNTHETIC'
+    value.update(unit=unit,admission_stage=contract.CONTINUATION_STAGE,
+        units_design=deepcopy(contract.CONTINUATION_DESIGN),run_root=root,runtime_root=root+'_RUNTIME',
+        execution_binding_path=root+'_RUNTIME/EXECUTION_BINDING.json',gc_layout_metadata_parity=deepcopy(contract.GC_LAYOUT_METADATA_PARITY),
+        budget=contract.resource_limits(unit),operation_limits=contract.call_limits(unit))
+    gc_name='gx1/contracts/entry_gc_mtf_history_v1.py'
+    gc_digest=contract.GC_METADATA_SOURCE_TRANSITIONS[gc_name][1]
+    value['source_owners'][gc_name]={'path':contract.REPO+'/'+gc_name,'sha256':gc_digest}
+    prefix='gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py'
+    fake_pins={prefix:'3'*64,'gx1/synthetic_owner_0.py':'4'*64}
+    monkeypatch.setattr(contract,'CONTINUATION_PINNED_SOURCES',fake_pins)
+    prior=deepcopy(value);prior['source_owners'][prefix]['sha256']='5'*64
+    prior['source_owners']['gx1/synthetic_owner_0.py']['sha256']='6'*64
+    for name,digest in fake_pins.items():value['source_owners'][name]={'path':contract.REPO+'/'+name,'sha256':digest}
+    review={'status':'COMPLETE_AND_QUALIFIED_CURRENT_SIGN_ONLY_OWN0U256','recipe':deepcopy(contract.CONTINUATION_PRIOR_RECIPE),
+        'state_preserved':True,'all_original_fields_bit_identical':True,'test_data_used':False}
+    def read(path,sha):
+        if str(path)==contract.CONTINUATION_PRIOR_RECIPE['path']:return prior
+        if str(path)==contract.CONTINUATION_PRIOR_REVIEW['path']:return review
+        raise AssertionError(str(path))
+    monkeypatch.setattr(campaign,'read_bound_json',read)
+    return value,prior,review
+
+
+def test_continuation_unit_is_terminal_exact_b16_zero_update(monkeypatch):
+    p,_,_=continuation_plan(monkeypatch);spec=contract.unit_spec(contract.CONTINUATION_UNIT)
+    assert spec['rows']==256 and spec['forwards']==16 and spec['state'][0]=='terminal_u2976'
+    assert spec['parity']==contract.CONTINUATION_TRAIN_PREDICTIONS and spec['diagnostic_only'] is True
+    assert contract.call_limits(contract.CONTINUATION_UNIT)['reverse']==0
+    assert contract.require_plan(p)==p
+    assert contract.require_source_closure(p,*source_inputs())==p['source_owners']
+
+
+@pytest.mark.parametrize('fault',['prior_parity','source_pin','unrelated_source','steps','wrong_stage','missing_gc'])
+def test_continuation_unit_rejects_unqualified_or_expanded_scope(monkeypatch,fault):
+    p,prior,review=continuation_plan(monkeypatch)
+    if fault=='prior_parity':review['all_original_fields_bit_identical']=False
+    elif fault=='source_pin':p['source_owners']['gx1/synthetic_owner_0.py']['sha256']='9'*64
+    elif fault=='unrelated_source':p['source_owners']['gx1/synthetic_owner_1.py']['sha256']='9'*64
+    elif fault=='steps':p['optimizer_steps_authorized']=True
+    elif fault=='wrong_stage':p['admission_stage']=contract.STAGE
+    else:del p['gc_layout_metadata_parity']
+    with pytest.raises(RuntimeError):
+        contract.require_plan(p);contract.require_source_closure(p,*source_inputs())
+
+
+def test_continuation_diagnostic_rows_are_bound_to_original_terminal_order():
+    spec=contract.unit_spec(contract.CONTINUATION_UNIT)
+    original=np.arange(256,dtype=np.int64)
+    selected=original.copy()
+    arrays={'parent_rows':selected,'bar_start_ns':selected*300_000_000_000,
+        'decision_ns':selected*300_000_000_000+300_000_000_000,'terminal_time_ns':np.zeros((256,3),np.int64),
+        'observed':np.ones((256,3),np.bool_),'sign':np.ones((256,3),np.int8),'logit_up':np.zeros((256,3),np.float32)}
+    measured={'arrays':arrays,'context_tags':{'tags':{'synthetic':np.zeros(256,np.int8)}}}
+    hidden=[np.zeros((16,128),np.float32) for _ in range(16)]
+    result=worker.canonical_arrays(measured,hidden,selected=selected,spec=spec,
+        weight=np.zeros((3,128),np.float32),bias=np.zeros(3,np.float32),np=np,reference_parents=original)
+    assert np.array_equal(result['parent_rows'],original)
+    with pytest.raises(RuntimeError,match='TIMING_ORIGINAL_PARENTS'):
+        worker.canonical_arrays(measured,hidden,selected=selected,spec=spec,
+            weight=np.zeros((3,128),np.float32),bias=np.zeros(3,np.float32),np=np,reference_parents=original[::-1].copy())
+
+
+def test_worker_restores_original_or_checks_every_migrated_state_component():
+    components={'model_state_sha256':'1'*64,'buffer_state_sha256':'2'*64,'optimizer_state_sha256':'3'*64,
+        'rng_state_sha256':'4'*64,'module_training':{'':True}}
+    old={**components,'contract_sha256':'a'*64}
+    new={**components,'contract_sha256':'b'*64,'cursor':47602,'optimizer_updates':2976}
+    calls=[]
+    class StateOwner:
+        def restore_native_direction_research_state(self,*args,**kwargs):calls.append(('legacy',kwargs))
+        def migrate_one_pass_terminal_to_three_pass(self,*args,**kwargs):calls.append(('migration',kwargs));return deepcopy(new)
+    owner=StateOwner();model=SimpleNamespace(feature_view_identity={'synthetic':True});recipe={'contract_sha256':'c'*64}
+    args=dict(original_recipe={'old':True},parent_order=object(),device=object(),state_owner=owner)
+    assert worker._restore_extraction_state(old,model,object(),continuation_recipe=None,**args) is None
+    assert calls[-1][0]=='legacy'
+    result=worker._restore_extraction_state(old,model,object(),continuation_recipe=recipe,**args)
+    assert calls[-1][0]=='migration' and all(result['unchanged_state_components'].values())
+    assert result['numerical_recipe_sha256']==recipe['contract_sha256'] and result['optimizer_updates_before_continuation']==2976
+    new['rng_state_sha256']='f'*64
+    with pytest.raises(RuntimeError,match='CONTINUATION_STATE_PARITY'):
+        worker._restore_extraction_state(old,model,object(),continuation_recipe=recipe,**args)
+
+
+def test_continuation_reuses_qualified_independent_metadata_transition():
+    completion={'design':contract.INDEPENDENT_DESIGN,'initial_parity':None}
+    seen=[]
+    def read(ref,metadata):
+        seen.append(ref);metadata[ref['path']]=ref
+        assert ref==contract.CONTINUATION_PRIOR_RECIPE
+        return {'independent_completion':completion}
+    p={'unit':contract.CONTINUATION_UNIT,'gc_layout_metadata_parity':contract.GC_LAYOUT_METADATA_PARITY}
+    metadata={};options=worker._prefix_metadata_options(p,metadata,SimpleNamespace(_read=read))
+    assert options=={'gc_layout_metadata_parity':contract.GC_LAYOUT_METADATA_PARITY,'independent_completion':completion}
+    assert seen==[contract.CONTINUATION_PRIOR_RECIPE]

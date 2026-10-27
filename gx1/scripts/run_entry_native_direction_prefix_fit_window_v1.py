@@ -91,7 +91,17 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
 
 
 def _launch_metadata(launch, common):
-    context = _metadata(launch, common, gc_layout_metadata_parity=launch.get('gc_layout_metadata_parity'))
+    if 'native_continuation_qualification' in launch:
+        from gx1.contracts.entry_native_direction_frozen_extraction_v1 import CONTINUATION_PRIOR_RECIPE
+        metadata = {}
+        prior = common._read(CONTINUATION_PRIOR_RECIPE,metadata)
+        original = common._read(launch['continuation_origin']['launch_recipe'],metadata)
+        historical_launch = {**launch,'numerical_recipe':original['numerical_recipe']}
+        context = _metadata(historical_launch,common,gc_layout_metadata_parity=launch.get('gc_layout_metadata_parity'),
+            independent_completion=prior['independent_completion'])
+        context['info']['metadata'].update(metadata)
+    else:
+        context = _metadata(launch, common, gc_layout_metadata_parity=launch.get('gc_layout_metadata_parity'))
     if 'native_continuation_qualification' in launch:
         metadata = context['info']['metadata']
         for ref in (launch['gc_layout_metadata_parity'],launch['native_continuation_qualification'],

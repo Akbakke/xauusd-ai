@@ -38910,18 +38910,20 @@
     "synthetic_qualification": {
       "changed_owner_tests_passed": 132,
       "cross_consumer_tests_passed": 365,
-      "scope": "Artificial CPU models and synthetic metadata only; no genuine checkpoint, native model, market data or optimizer update."
+      "scope": "Artificial CPU models and synthetic metadata only; no genuine checkpoint, native model, market data or optimizer update.",
+      "current_source_focused_tests_passed": 353,
+      "current_source_cross_consumer_tests_passed": 154
     },
     "source_sha256": {
       "gx1/contracts/entry_native_direction_research_state_v1.py": "00fddca5832b299c3035db5b1c5aedb85ab39d37efae592fd2680fb8fdc343d0",
       "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": "8d440ad791bba90785f1f388940b5bf54dce3ed0e55c686bd6947f3b66d92e5c",
-      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "d7744877b95e881c028de0589866ff87e8019832087810c638932de46626c2a3",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "87315f478b5150779225d7bd8bef5b452e4cc18447b1c297ff3ca188ccf7787f",
       "gx1/scripts/run_entry_native_direction_research_window_v1.py": "1758123a58a7ecad0ac2d1c3c0a46f16489f73068a2cf3be6d8474cf9a6cb8cc",
       "tests/test_entry_native_direction_research_state_v1.py": "571756a3da26b8d09b95143c74e605f2cf0d8d41f33a2b14fc33b17c797c8392",
       "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "59839028be84d6786d7cdc674cf9f2764234b10b683e83cbf1f084200b7fe8da",
-      "tests/test_entry_native_direction_prefix_fit_window_v1.py": "28e5d01c6198e4231fd27b255ecd99aef366475a839460e82d208190f6360f41"
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py": "45ce1efb200e48a9073d34257bb88056c7af7319090a2c41495b307f37abad9c"
     },
-    "genuine_qualification_status": "NOT_RUN_NO_EXECUTION_AUTHORITY"
+    "genuine_qualification_status": "NOT_RUN_SYNTHETIC_METADATA_TRANSITION_REPAIR_QUALIFIED"
   },
   "independent_direction_last_m1_ofi_sign_refinement_20261027": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -38974,5 +38976,48 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_VERIFIED_ROOT_REVIEW_001.json",
       "sha256": "421f3a3b91865d8743998844b8ab69690dd9aa79f0cdb667bbda9b2b458840f9"
     }
+  },
+  "direction_continuation_zero_update_source_20261027": {
+    "status": "SOURCE_QUALIFIED_SYNTHETIC_ONLY_ZERO_UPDATE_NOT_ADMITTED",
+    "purpose": "Add one narrowly bound terminal checkpoint migration and original TRAIN256 prediction parity unit to the existing frozen diagnostic owner.",
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": false,
+    "allowed_source_paths": [
+      "gx1/contracts/entry_native_direction_frozen_extraction_v1.py",
+      "gx1/scripts/extract_entry_native_direction_frozen_readout_v1.py",
+      "tests/test_entry_native_direction_frozen_extraction_v1.py",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py"
+    ],
+    "actual_execution_authorized": false,
+    "genuine_checkpoint_reads_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "genuine_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_enabled": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "fixed_next_unit": "terminal_resume_parity256",
+    "fixed_rows": 256,
+    "fixed_batch_size": 16,
+    "fixed_forwards": 16,
+    "constraints": "Original terminal276 and FINAL_TRAIN predictions only. Preserve old F units and all host, read-only, source, time and one-shot guards. No additional optimizer, target or selection changes.",
+    "relaunch_allowed": false,
+    "observed_source_blocker": "Continuation metadata previously omitted the already-qualified historical direction-component source transition and used the new update ceiling for the old input identity. Reuse the qualified compatibility design and original numerical identity only for metadata checks.",
+    "synthetic_tests_passed": 353,
+    "metadata_only_precheck": {
+      "source_owners": 57,
+      "fixed_forward_count": 16,
+      "max_wall_seconds": 600,
+      "passed": true
+    },
+    "source_sha256": {
+      "gx1/contracts/entry_native_direction_frozen_extraction_v1.py": "d4233122d6c609a96264a8716c90d4f215ef05962544872a4a668e851ae81c8d",
+      "gx1/scripts/extract_entry_native_direction_frozen_readout_v1.py": "e0515556f8543b66519758daff31128e3ab42cc67af6a76d1004149b379c5a9a",
+      "tests/test_entry_native_direction_frozen_extraction_v1.py": "27f75d27d56c314797079e484f88dca9e5bb920ab8580c95b58b14d46615802e",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "87315f478b5150779225d7bd8bef5b452e4cc18447b1c297ff3ca188ccf7787f",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py": "45ce1efb200e48a9073d34257bb88056c7af7319090a2c41495b307f37abad9c"
+    },
+    "cross_consumer_synthetic_tests_passed": 154
   }
 }

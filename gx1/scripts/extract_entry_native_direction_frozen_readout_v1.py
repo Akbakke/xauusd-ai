@@ -146,7 +146,8 @@ def canonical_arrays(measured, hidden_parts, *, selected, spec, weight, bias, np
         require(np.array_equal(selected, original), 'PARTITION_PRESENTATION_JOIN')
         expected = np.sort(original)
     elif spec.get('diagnostic_only', False):
-        require(spec == authority.unit_spec(authority.TIMING_UNIT)
+        require(spec['unit'] in (authority.TIMING_UNIT,authority.CONTINUATION_UNIT)
+            and spec == authority.unit_spec(spec['unit'])
             and isinstance(reference_parents, np.ndarray) and reference_parents.dtype == np.int64
             and reference_parents.shape == (256,) and np.array_equal(selected, reference_parents)
             and np.all((selected >= 0) & (selected < authority.FOLD['prefix_rows'])), 'TIMING_ORIGINAL_PARENTS')
@@ -208,6 +209,12 @@ def _metadata(plan, route, common, metadata):
             and proof['original_bit_parity']['rows'] == 256
             and all(proof['parity_fields'].values()), 'QUALIFIED_PARTITION_OUTPUT_PARITY')
     authority.require_independent_completion(plan, lambda ref: common._read(ref, metadata))
+    if plan['unit'] == authority.CONTINUATION_UNIT:
+        for ref in (authority.CONTINUATION_PRIOR_RECIPE,authority.CONTINUATION_PRIOR_REVIEW,authority.CONTINUATION_TRAIN_REPORT):
+            common._read(ref,metadata)
+        train_report=common._read(authority.CONTINUATION_TRAIN_REPORT,metadata)
+        require(train_report['role']=='FINAL_TRAIN' and train_report['fold']==authority.FOLD
+            and train_report['predictions']==authority.CONTINUATION_TRAIN_PREDICTIONS, 'CONTINUATION_TRAIN_REFERENCE')
     proposal = authority.require_proposal(common._read(authority.PROPOSAL, metadata))
     original = common._read(proposal['existing_input_refs']['recipe'], metadata)
     qualified = common._read(proposal['existing_input_refs']['first_prefix_qualification'], metadata)
@@ -243,6 +250,37 @@ def _metadata(plan, route, common, metadata):
     for owner in plan['source_owners'].values():
         require(common._hash_file(owner['path']) == owner, 'CURRENT_SOURCE_BYTES')
     return original, initial, ref
+
+
+def _prefix_metadata_options(plan, metadata, common):
+    options={'gc_layout_metadata_parity':plan.get('gc_layout_metadata_parity')}
+    if 'independent_completion' in plan:
+        options['independent_completion']=plan['independent_completion']
+    elif plan['unit']==authority.CONTINUATION_UNIT:
+        prior=common._read(authority.CONTINUATION_PRIOR_RECIPE,metadata)
+        options['independent_completion']=prior['independent_completion']
+    return options
+
+
+def _restore_extraction_state(state, model, optimizer, *, original_recipe, continuation_recipe,
+        parent_order, device, state_owner):
+    if continuation_recipe is None:
+        state_owner.restore_native_direction_research_state(state,model,optimizer,recipe=original_recipe,
+            feature_view_identity=model.feature_view_identity,parent_order=parent_order,device=device)
+        return None
+    migrated=state_owner.migrate_one_pass_terminal_to_three_pass(state,model,optimizer,
+        original_recipe=original_recipe,continuation_recipe=continuation_recipe,
+        feature_view_identity=model.feature_view_identity,parent_order=parent_order,device=device)
+    require(migrated['cursor']==authority.FOLD['prefix_rows'] and migrated['optimizer_updates']==2976,
+        'CONTINUATION_MIGRATED_PROGRESS')
+    migration={'original_state_contract_sha256':state['contract_sha256'],
+        'migrated_state_contract_sha256':migrated['contract_sha256'],
+        'numerical_recipe_sha256':continuation_recipe['contract_sha256'],
+        'unchanged_state_components':{key: migrated[key]==state[key] for key in (
+            'model_state_sha256','buffer_state_sha256','optimizer_state_sha256','rng_state_sha256','module_training')},
+        'parent_cursor':migrated['cursor'],'optimizer_updates_before_continuation':migrated['optimizer_updates']}
+    require(all(migration['unchanged_state_components'].values()),'CONTINUATION_STATE_PARITY')
+    return migration
 
 
 def _publish_running(route, output, budget, counts, common):
@@ -330,9 +368,7 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         recipe, initial, state_ref = _metadata(plan, route, common, metadata)
         payload_refs = [state_ref] + ([spec['parity']] if spec['parity'] is not None else [])
         originals = {ref['path']: common._stat(ref['path']) for ref in payload_refs}
-        metadata_options = {'gc_layout_metadata_parity': plan.get('gc_layout_metadata_parity')}
-        if 'independent_completion' in plan:
-            metadata_options['independent_completion'] = plan['independent_completion']
+        metadata_options = _prefix_metadata_options(plan,metadata,common)
         context = prefix._metadata(recipe, common, **metadata_options)
         context['info']['metadata'].update(metadata)
         common._freeze(plan, binding, context)
@@ -386,8 +422,13 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             prefix_normalization=context['fitted'], constructor_metadata=context['constructor'], device=device)
         budget.returned('model_build')
         model.train()
+        continuation_recipe=None
+        if plan['unit'] == authority.CONTINUATION_UNIT:
+            from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_research_recipe
+            continuation_recipe=native_direction_research_recipe(batch_size=16,max_updates=8928)
         budget.start('optimizer_build')
-        optimizer, _binding = state_owner.build_native_direction_research_optimizer(model, recipe=recipe['numerical_recipe'])
+        optimizer, _binding = state_owner.build_native_direction_research_optimizer(model,
+            recipe=continuation_recipe if continuation_recipe is not None else recipe['numerical_recipe'])
         budget.returned('optimizer_build')
         parent_order = torch.from_numpy(order.copy())
         fresh = state_owner.capture_native_direction_research_state(model, optimizer, recipe=recipe['numerical_recipe'],
@@ -400,8 +441,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             require(fresh_identity == tree_sha({key: state[key] for key in identity_keys}), 'SAVED_0U_IDENTITY')
         del fresh
         phase['name'] = 'RESTORE'
-        state_owner.restore_native_direction_research_state(state, model, optimizer, recipe=recipe['numerical_recipe'],
-            feature_view_identity=model.feature_view_identity, parent_order=parent_order, device=device)
+        migration=_restore_extraction_state(state,model,optimizer,original_recipe=recipe['numerical_recipe'],
+            continuation_recipe=continuation_recipe,parent_order=parent_order,device=device,state_owner=state_owner)
         selected = order if spec['cohort'] == 'prefix' else prepared['arrays']['parent_rows'][
             authority.FOLD['oof_start_row']:authority.FOLD['oof_end_row']]
         full_selected = selected
@@ -451,6 +492,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             feature_view_identity=model.feature_view_identity, own_prefix_prior=prior,
             original_prediction_parity=parity, fresh_identity_sha256=fresh_identity,
             predictive_value_qualified=False, economic_edge_qualified=False)
+        if migration is not None:
+            result['continuation_migration']=migration
         if plan['unit'] in authority.PARTITION_UNITS:
             result['partition'] = {**spec['partition'],
                 'full_presentation_parent_rows_sha256': tree_sha(full_selected)}

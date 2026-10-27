@@ -240,14 +240,27 @@ def test_read_guard_allows_only_the_bound_original_terminal_path(monkeypatch):
 
 
 def test_continuation_binds_qualification_and_original_measurement_to_freeze(monkeypatch):
+    from gx1.contracts import entry_native_direction_frozen_extraction_v1 as frozen
     proof={'path':'/synthetic/proof.json','sha256':'1'*64}
     gc={'path':'/synthetic/gc.json','sha256':'2'*64}
     terminal={'path':'/synthetic/terminal.json','sha256':'3'*64}
-    launch={'native_continuation_qualification':proof,'gc_layout_metadata_parity':gc,
-        'continuation_origin':{'terminal_train_measurement':terminal}}
+    original_ref={'path':'/synthetic/original.json','sha256':'4'*64}
+    old_numerical={'max_updates':2976};new_numerical={'max_updates':8928}
+    completion={'design':{'path':'/synthetic/design','sha256':'5'*64},'initial_parity':None}
+    launch={'native_continuation_qualification':proof,'gc_layout_metadata_parity':gc,'numerical_recipe':new_numerical,
+        'continuation_origin':{'terminal_train_measurement':terminal,'launch_recipe':original_ref}}
     context={'info':{'metadata':{}}};seen=[]
-    monkeypatch.setattr(runner,'_metadata',lambda actual,common,**kwargs:context)
-    def read(ref,metadata):seen.append(ref);metadata[ref['path']]=ref;return {}
+    def check_metadata(actual,common,**kwargs):
+        assert actual is not launch and actual['numerical_recipe']==old_numerical
+        assert kwargs=={'gc_layout_metadata_parity':gc,'independent_completion':completion}
+        return context
+    monkeypatch.setattr(runner,'_metadata',check_metadata)
+    def read(ref,metadata):
+        seen.append(ref);metadata[ref['path']]=ref
+        if ref==frozen.CONTINUATION_PRIOR_RECIPE:return {'independent_completion':completion}
+        if ref==original_ref:return {'numerical_recipe':old_numerical}
+        return {}
     runner._launch_metadata(launch,SimpleNamespace(_read=read))
-    assert seen==[gc,proof,terminal]
-    assert set(context['info']['metadata'])=={gc['path'],proof['path'],terminal['path']}
+    assert launch['numerical_recipe']==new_numerical
+    assert seen==[frozen.CONTINUATION_PRIOR_RECIPE,original_ref,gc,proof,terminal]
+    assert set(context['info']['metadata'])=={item['path'] for item in seen}

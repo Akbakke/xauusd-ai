@@ -33,6 +33,24 @@ TERMINAL_REPORT = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.json',
 TERMINAL_PREDICTIONS = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.npz',
     'sha256': 'fd7d3177f1a4d588f235156a2dbc02d670137ab91862e779606bb932e0e4ef57'}
 TIMING_UNIT = 'own0U_prefix_timing256'
+CONTINUATION_UNIT = 'terminal_resume_parity256'
+CONTINUATION_STAGE = 'dynamic_m5_direction_continuation_zero_update'
+CONTINUATION_DESIGN = {'path':REPO+'/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json',
+    'sha256':'d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01'}
+CONTINUATION_PRIOR_RECIPE = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_RECIPE_001.json',
+    'sha256':'005b26ad2e31a5f94ce8edaf9de6435414452d55770452516d1d467d022dbd34'}
+CONTINUATION_PRIOR_REVIEW = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_001/ACTUAL_ROOT_REVIEW.json',
+    'sha256':'1cd4148e6db49cdbfd792938225126133f2cc2d3c3dd8747c6b2d05808b15d01'}
+CONTINUATION_TRAIN_REPORT = {'path':BASE+'/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json',
+    'sha256':'b25e7ef3539f19604dfbde58bfb6ff379dd7e0d813a464ab680cea4977578301'}
+CONTINUATION_TRAIN_PREDICTIONS = {'path':BASE+'/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.npz',
+    'sha256':'6153ead92654ead6f92518084631491f588e8a487fb2ee21d3571a159d982d7c'}
+CONTINUATION_PINNED_SOURCES = {
+    'gx1/contracts/entry_native_direction_research_state_v1.py':'00fddca5832b299c3035db5b1c5aedb85ab39d37efae592fd2680fb8fdc343d0',
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py':'8d440ad791bba90785f1f388940b5bf54dce3ed0e55c686bd6947f3b66d92e5c',
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py':'87315f478b5150779225d7bd8bef5b452e4cc18447b1c297ff3ca188ccf7787f',
+    'gx1/scripts/run_entry_native_direction_research_window_v1.py':'1758123a58a7ecad0ac2d1c3c0a46f16489f73068a2cf3be6d8474cf9a6cb8cc',
+}
 TIMING_DESIGN = {'path': PROGRAM + '/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json',
     'sha256': '572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684'}
 # Exact metadata transition; full observations use only the separately bound partitions.
@@ -237,7 +255,7 @@ def require(ok, reason):
 
 
 def unit_spec(unit):
-    require(type(unit) is str and (unit in UNITS or unit in PARTITION_UNITS or unit == TIMING_UNIT), 'FIXED_UNIT')
+    require(type(unit) is str and (unit in UNITS or unit in PARTITION_UNITS or unit in (TIMING_UNIT,CONTINUATION_UNIT)), 'FIXED_UNIT')
     if unit in PARTITION_UNITS:
         parent, start, end = PARTITION_UNITS[unit]
         base = unit_spec(parent)
@@ -247,12 +265,12 @@ def unit_spec(unit):
             'parity': base['parity'] if start == 0 else None,
             'partition': {'parent_unit': parent, 'presentation_start': start,
                 'presentation_end': end, 'full_rows': base['rows']}}
-    diagnostic = unit == TIMING_UNIT
-    role, cohort = ('own0U', 'prefix') if diagnostic else UNITS[unit]
+    diagnostic = unit in (TIMING_UNIT, CONTINUATION_UNIT)
+    role, cohort = (('terminal_u2976','prefix') if unit == CONTINUATION_UNIT else ('own0U','prefix')) if diagnostic else UNITS[unit]
     state = next(s for s in STATE_SPEC if s[0] == role)
     rows = 256 if diagnostic else (FOLD['prefix_rows'] if cohort == 'prefix'
         else FOLD['oof_end_row'] - FOLD['oof_start_row'])
-    parity = INITIAL_PREDICTIONS if diagnostic or unit == 'own0U_prefix' else (
+    parity = CONTINUATION_TRAIN_PREDICTIONS if unit == CONTINUATION_UNIT else INITIAL_PREDICTIONS if diagnostic or unit == 'own0U_prefix' else (
         TERMINAL_PREDICTIONS if unit == 'terminal_later' else None)
     return {'unit': unit, 'state': state, 'cohort': cohort, 'rows': rows,
         'forwards': (rows + 15) // 16, 'parity': deepcopy(parity), 'diagnostic_only': diagnostic,
@@ -261,7 +279,7 @@ def unit_spec(unit):
 
 def unit_design(unit):
     spec = unit_spec(unit)
-    return deepcopy(PARTITION_DESIGN if unit in PARTITION_UNITS else (
+    return deepcopy(CONTINUATION_DESIGN if unit == CONTINUATION_UNIT else PARTITION_DESIGN if unit in PARTITION_UNITS else (
         TIMING_DESIGN if spec['diagnostic_only'] else UNITS_DESIGN))
 
 
@@ -308,6 +326,8 @@ def require_plan(value):
         'genuine_forwards_authorized', 'gradient_reverse_authorized', 'optimizer_steps_authorized', 'test_data_used'}
     require(type(value) is dict, 'PLAN_TYPE')
     independent = 'independent_completion' in value
+    continuation = value.get('unit') == CONTINUATION_UNIT
+    require(not (independent and continuation), 'CONTINUATION_INDEPENDENT_SCOPE')
     if independent:
         fields.add('independent_completion')
         _independent_scope(value)
@@ -316,9 +336,9 @@ def require_plan(value):
         fields.add('gc_layout_metadata_parity')
     require(set(value) == fields and value['schema_version'] == SCHEMA
         and value['operation'] == OPERATION
-        and (independent or value['admission_stage'] == STAGE), 'PLAN_SCHEMA')
+        and (independent or value['admission_stage'] == (CONTINUATION_STAGE if continuation else STAGE)), 'PLAN_SCHEMA')
     unit_spec(value['unit'])
-    require(value['unit'] not in PARTITION_UNITS or metadata_transition, 'PARTITION_METADATA_PROOF_REQUIRED')
+    require((value['unit'] not in PARTITION_UNITS and not continuation) or metadata_transition, 'PARTITION_METADATA_PROOF_REQUIRED')
     require(value['proposal'] == PROPOSAL and value['design'] == DESIGN and value['units_design'] == unit_design(value['unit'])
         and value['initial_report'] == INITIAL_REPORT and value['initial_predictions'] == INITIAL_PREDICTIONS
         and value['terminal_report'] == TERMINAL_REPORT and value['terminal_predictions'] == TERMINAL_PREDICTIONS,
@@ -336,11 +356,11 @@ def require_plan(value):
             and item['current']['sha256'] != digest, 'SOURCE_TRANSITION:' + name)
     require(all(owners[name]['sha256'] == digest for name, digest in PINNED_PRE_F.items()), 'PRE_F_PINNED_SOURCES')
     if metadata_transition:
-        require((value['unit'] == TIMING_UNIT or value['unit'] in PARTITION_UNITS)
+        require((value['unit'] in (TIMING_UNIT,CONTINUATION_UNIT) or value['unit'] in PARTITION_UNITS)
             and value['gc_layout_metadata_parity'] == GC_LAYOUT_METADATA_PARITY
             and type(value['gc_layout_metadata_parity']) is dict, 'GC_METADATA_TIMING_SCOPE')
         for name, (_old, current) in GC_METADATA_SOURCE_TRANSITIONS.items():
-            if independent and name in INDEPENDENT_CODE_FILES:
+            if (independent and name in INDEPENDENT_CODE_FILES) or (continuation and name == 'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py'):
                 continue
             require(owners.get(name) == {'path': REPO + '/' + name, 'sha256': current},
                 'GC_METADATA_CURRENT_SOURCE:' + name)
@@ -383,6 +403,22 @@ def require_source_closure(recipe, original, proposal):
     required = {**previous_owners, **reused}
     require(set(recipe['source_owners']) == set(required) | set(previous.NEW_FILES) | set(NEW_FILES),
         'EXACT_SOURCE_CLOSURE')
+    if recipe['unit'] == CONTINUATION_UNIT:
+        prior = campaign.read_bound_json(Path(CONTINUATION_PRIOR_RECIPE['path']), CONTINUATION_PRIOR_RECIPE['sha256'])
+        review = campaign.read_bound_json(Path(CONTINUATION_PRIOR_REVIEW['path']), CONTINUATION_PRIOR_REVIEW['sha256'])
+        require(review.get('status') == 'COMPLETE_AND_QUALIFIED_CURRENT_SIGN_ONLY_OWN0U256'
+            and review.get('recipe') == CONTINUATION_PRIOR_RECIPE and review.get('state_preserved') is True
+            and review.get('all_original_fields_bit_identical') is True and review.get('test_data_used') is False,
+            'CONTINUATION_PRIOR_PARITY')
+        prior_owners = prior.get('source_owners')
+        require(type(prior_owners) is dict and set(prior_owners) == set(recipe['source_owners']), 'CONTINUATION_SOURCE_INVENTORY')
+        changed = set(CONTINUATION_PINNED_SOURCES) | set(NEW_FILES)
+        for name, owner in recipe['source_owners'].items():
+            if name in CONTINUATION_PINNED_SOURCES:
+                require(owner == {'path':REPO+'/'+name,'sha256':CONTINUATION_PINNED_SOURCES[name]}, 'CONTINUATION_PINNED_SOURCE:'+name)
+            elif name not in changed:
+                require(owner == prior_owners[name], 'CONTINUATION_UNCHANGED_SOURCE:'+name)
+        return deepcopy(recipe['source_owners'])
     if 'independent_completion' in recipe:
         require_independent_completion(recipe)
         for name in TRANSPORT_ORIGINAL_SHA256:
