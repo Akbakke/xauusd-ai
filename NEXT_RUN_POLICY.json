@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T09:37:47.709069+00:00",
-  "status": "DIRECTION_TERMINAL_READOUT_SYNTHETIC_ADMITTED",
+  "status": "DIRECTION_TERMINAL_READOUT_ACTUAL_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Run one capped CPU synthetic qualification of exact terminal readout assembly/scoring/observer; genuine payload reads and fits remain closed.",
+  "next_action": "Run one capped CPU terminal-hidden readout comparison:5savedNPZ,3fixedL-BFGS-Bfits,0nativeforwards/updates,600seconds; exact same later parents, primary5minute paired99percent week/dayAUC.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "27.10 presisering: pris ved1og5minutter relativt til entry er relevant. Behold opp/ned-målet og definer nødvendige tillegg presist; ikke anta at målet er hovedårsaken.",
-    "current_activity": "Final terminal-prefixpart3 verified COMPLETE/consumed:15858rows,992originalB16forwards,0reverse/optimizer/fit. All57sourceowners and original receipts verified; same model/buffers as part1/part2/later. All4terminal-only extraction units available; exact payload assembly and fits unperformed.",
+    "current_activity": "All4terminal extraction units complete/consumed. New assembly/scoring route passed18synthetic cases; original receipt predicate repaired before genuine admission and passed16metadata checks. One fixedCPUterminalreadout comparison admitted, not started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Minimal qualified CPU assembly/fit/scoring execution binding and fresh admission still required.",
+    "current_blocker": "None for the fresh bounded terminal-readout unit; broader direction cause remains unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -36585,34 +36585,66 @@
     }
   },
   "direction_terminal_readout_source": {
-    "status": "SOURCE_ONLY_ADMITTED",
+    "status": "SOURCE_SYNTHETIC_QUALIFIED_CLOSED",
     "source_admission": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_WORKER_SOURCE_ADMISSION_001.json",
       "sha256": "50a9e89ae8122f33cdb66c9e00a660db1e9171362eedea190cd3fb6d8e96cee9"
     },
-    "source_changes_authorized": true,
+    "source_changes_authorized": false,
     "execution_authorized": false,
     "genuine_fits_authorized": false,
     "saved_payload_reads_authorized": false,
     "training_enabled": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_SOURCE_QUALIFICATION_002.json",
+      "sha256": "c9ddc7d7cc4894d3d812d577e537e2d761bd391edfd7842ee5133f037d6e77d1"
+    }
   },
   "direction_terminal_readout": {
     "status": "ADMITTED",
+    "mode": "actual",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_PLAN_001.json",
+      "sha256": "624d37fab4a27a6d25aad7424901f977d33dddf44bbea0903ed49de1bf02ad0d"
+    },
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_SOURCE_QUALIFICATION_002.json",
+      "sha256": "c9ddc7d7cc4894d3d812d577e537e2d761bd391edfd7842ee5133f037d6e77d1"
+    },
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": true,
+    "genuine_readout_fits_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "native_forwards_authorized": false,
+    "native_training_enabled": false,
+    "training_enabled": false,
+    "scope": "Exactly3fixedCPUreadoutfits; global native training stays closed; existing128Dterminalhidden,1/5/15targets,onefold.",
+    "test_data_used": false
+  },
+  "direction_terminal_readout_synthetic": {
+    "status": "COMPLETE_CONSUMED",
     "mode": "synthetic",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_SYNTHETIC_PLAN_001.json",
       "sha256": "71452c006e15cde9025c4cbe0736fd63e51914dde871433e95f29972d59373fc"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "saved_payload_reads_authorized": false,
     "genuine_readout_fits_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
     "native_forwards_authorized": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "7ec905a48970e2a7f4f45fa1d79f039f1b2c3c66b421a11627f1be9ace340103"
+    }
   }
 }

@@ -9,11 +9,21 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-Minste nye kilde er gx1/scripts/fit_entry_native_direction_frozen_readout_v1.py.
-Den gjenbruker kvalifisert fitmatematikk, score-/rang-/IO-eiere og eksisterende
-CPU-vakter. F_TERMINAL_READOUT_SYNTHETIC_PLAN_001 er engangsadmittért for
-kunstige sammenstillings-/klokke-/head-/join-/usikkerhets-/fitvaktkontroller.
-Ingen genuine payloadlesinger, readout-fit eller native modellkall er åpnet.
+Ny sammenstillings-/scoringrute bestod 18 fokuserte syntetiske kontroller.
+Originale terminaler, uendret kilde/policy, avsluttet cgroup og ledig originallås
+er kontrollert. Syntetisk engangsautoritet er konsumert. Før genuin admisjon
+ble feil feltnavn i ny receiptkontroll funnet og rettet; 16 faktiske metadata-/
+avvisningskontroller bestod. Numeriske funksjoner og 18 beståtte tester gjenbrukes.
+
+F_TERMINAL_READOUT_PLAN_001 er nå ferskt engangsadmittért, ikke startet:
+fem lagrede NPZ-arkiver, tre faste L-BFGS-B-fits på 47 602 prefiksrader,
+17 288 senere foreldre, 128Dhidden og uendret 1/5/15-fasit. CPUaudit4G/512M,
+én numerisk tråd, 64 tasks, 600sworker/630souter. Ingen native forward/update.
+Prefiks-fit lagres før senere payload åpnes. Primærtest er AUC5-forbedring
+mot originalt hode med positiv nedre99%-grense både UTCuke og UTCdag;
+4000 faste replikater, seed [20260911,scheme_index,1]. Ingen nytt seed-/
+horisont-/terskelvalg, ingen ny ET-fit. Stopp på feil/ikke-konvergens/tidsgrense.
+Dette tester mulig begrensning i utgangslaget, ikke full Entry eller økonomi.
 
 Siste terminal-prefixpart3 er COMPLETE/claimed/consumed: 15 858 rader,
 992 originale B16-forwards og 0 reverse/optimizer/fit. Worker brukte

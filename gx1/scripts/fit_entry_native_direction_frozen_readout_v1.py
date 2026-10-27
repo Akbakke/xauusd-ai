@@ -433,7 +433,9 @@ def main():
                 v = meta.read_json(item['verified_terminal'])
                 original = meta.read_json(v['exit_code_source'])
                 review = meta.read_json(v['actual_root_review'])
-                require(v['status'] == 'COMPLETE' and v['exit_code'] == 0 and original['exit_code'] == 0
+                require(v['status'] == 'COMPLETE' and v['exit_code'] == 0
+                        and original['trainer_guard_exit_code'] == original['progress_observer_exit_code'] == 0
+                        and original['outcome'] == 'COMPLETE'
                         and v['result'] == item['result'] and review['result'] == item['result'], 'ORIGINAL_TERMINAL')
                 require(r['decision'] == 'COMPLETE_FROZEN_READOUT_EXTRACTION'
                         and r['representations'] == {k: item['payload'][k] for k in ('path', 'sha256')}
