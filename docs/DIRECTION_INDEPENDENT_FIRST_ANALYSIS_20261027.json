@@ -62,6 +62,10 @@
     "matched_exposure_design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
       "sha256": "d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01"
+    },
+    "probability_level_diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/PROBABILITY_LEVEL_DIAGNOSIS_002.json",
+      "sha256": "87f7853fc719bcb9bad987d36f01a155feaa8fad22b1b39550454d379e8e58c6"
     }
   },
   "execution_authorized_by_report": false,
@@ -151,6 +155,15 @@
       ],
       "finding": "On 17197 eligible later five-minute rows terminal AUC is 0.503021, corrected day/week intervals include 0.5, and logloss/Brier are worse than fixed TRAIN prevalence. At the predefined zero threshold 14849 predictions are DOWN; accuracy is 48.85% versus 51.58% always-UP.",
       "implication": "Do not promote or trade this direction head. Threshold behavior is diagnostic, not an execution strategy; no sealed TEST or economic edge was evaluated."
+    },
+    {
+      "id": "F10",
+      "type": "POST_HOC_PROBABILITY_LEVEL_DIAGNOSIS",
+      "evidence": [
+        "probability_level_diagnosis"
+      ],
+      "finding": "On the same 17197 eligible later five-minute rows, mean model probability UP was 0.495043 and observed UP fraction 0.515788. Model logloss 0.693514 is close to 0.693509 for a constant at the model cohort mean, versus 0.692740 for the fixed TRAIN prevalence.",
+      "implication": "The cohort-average offset accounts arithmetically for most of this observed score gap, but this descriptive decomposition does not establish cause. A strictly increasing calibration preserves continuous-score AUC; a decision-threshold shift leaves those underlying score rankings unchanged; assess ranking and calibration separately. Do not select a calibration on this reused development cohort."
     }
   ],
   "main_cause_established": false,
@@ -181,7 +194,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T20:22:59.424945+00:00",
+  "updated_utc": "2026-10-27T20:34:01.759609+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

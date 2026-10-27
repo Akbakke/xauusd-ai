@@ -196,6 +196,16 @@ Uavhengig review `WHOLE_PREFIX_SIGN_VERIFY_001/RESULT.json` SHA-256
 c5df54350f2ef39c08014252f46914f3446e3f2704363f8691180738e966e236;
 aggregert diagnose `WHOLE_PREFIX_AGGREGATE_DIAGNOSIS_001.json` SHA-256
 0beb6cb9f234e46ed2e2e35d3b4313dbf645ee5b67a3450dc454fdc097361ff2.
+På de samme 17197 senere femminuttsradene var gjennomsnittlig oppsannsynlighet
+49,504% mot 51,579% observerte opp. Logloss .693514 ligger nær konstanten
+.693509 med modellens eget kohortgjennomsnitt; fast TRAIN-referanse .692740.
+Dette er en beskrivende etteranalyse, ikke årsaksbevis eller kalibreringsvalg.
+En strengt stigende kalibrering endrer ikke skårens AUC på samme rader.
+Bevis: `PROBABILITY_LEVEL_DIAGNOSIS_002.json` SHA-256
+87f7853fc719bcb9bad987d36f01a155feaa8fad22b1b39550454d379e8e58c6.
+Policyens referanse til førsteanalysen er samtidig rettet til aktuell filhash;
+tidligere hash pekte på en eldre dokumentversjon, ikke på en modellfil.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
