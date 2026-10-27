@@ -9,14 +9,22 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-F_FROZEN_READOUT_PARTITION_SOURCE_REVIEW_001 binder endring av tre
-filer: uttrekkskontrakt, worker og fokuserte tester. Alle54andre kildeeiere,
-inkludert modell/gather/normalisering/loss og maskinvarevakter, er uendret.
-Åtte eksakte enheter bevarer samme foreldre, B16-grenser og8114forwards.
-Originale fulle enheter får fortsatt ikke den nye kildeovergangen.
-Én capped CPU-kontroll med86fokuserte syntetiske tilfeller/60sekunder er
-admittért. Null payload-, modell-, fit- eller optimizerkall; ingen ekte
-kjøring åpnes før original terminal er verifisert og autoriteten konsumert.
+F_FROZEN_READOUT_PARTITION_SYNTHETIC_001 er COMPLETE/consumed:
+86 tilfeller bestod; alle fire syntetiske fullkohorter rekonstrueres bit-for-bit
+med identiske B16-kall. Null ekte data/modell/fit/optimizer. Kilde/policy uendret,
+cgroup borte og originallås ledig. Ingen ny numerisk performance-runde trengs.
+
+F_FROZEN_EXTRACTION_terminal_later_full_RUNTIME_ADMISSION_001 åpner én
+ekte enhet: original276terminal_u2976 på alle17288senere TRAIN-foreldre,
+1081B16-forwards/siste8, null reverse/optimizer og12000sekunders workergrense.
+Alle opprinnelige OOF-prediksjonsmedlemmer må være bitidentiske. Konservativ
+projeksjon7295,84sekunder består9600grensen. Samme fersk fysisk boot-, capped-
+og signerte maskinvarevakter; kilde/policy fryses under kjøringen.
+Dette er første av åtte faste enheter; hele vitenskapelige sammenligningen
+beholder47602prefix+17288senereforeldre per state og8114forwards.
+Ingen readout-fit, ny native trening, TEST/CONTROL eller handel er åpnet.
+Kontroller ordinær drift omtrent hvert20.minutt, verifiser original terminal
+og konsumer autoriteten før neste enhet.
 
 Timing004 er COMPLETE/consumed. Originale 256 own0U-prediksjoner er bitidentiske;
 parent-/hode-/featureidentiteter og workerens komplette outputhash er identiske
