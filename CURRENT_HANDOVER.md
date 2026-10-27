@@ -153,6 +153,9 @@ Neste kilde-design skal avgrense fersk egen0U256-paritet før kun manglende
 prefikstredjedel; ingen av disse native enhetene er åpnet ennå.
 Ingen CONTROL/TEST, Exit, broker, ordre, spending eller promotion er åpnet.
 Målet er fortsatt aktivt; fullprefix-konvergens og treningsutvidelse er uavklart.
+Eget9-cellers uttrekk er kildeimplementert og separat kildevurdert. Bare ny
+66-case syntetikk er åpnet; lagrede genuine outputs krever ny egen admisjon.
+Intervallene gjelder relative AUC-forskjeller, ikke absolutt AUC-over0.5.
 
 ## Bps-hodets separate retningsrangering
 

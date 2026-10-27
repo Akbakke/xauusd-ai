@@ -352,3 +352,205 @@ def test_work_observer_allows_plain_c_methods_without_module_name():
     frame=SimpleNamespace(f_code=SimpleNamespace(co_filename='/synthetic/pure.py',co_name='run'))
     audit.work_observer(counters)(frame,'c_call',SimpleNamespace(__name__='get',__module__=None))
     assert not any(counters.values())
+
+
+@pytest.mark.parametrize('factor,offset', [(100., 0.), (1., 1000.)])
+def test_return_magnitude_error_does_not_erase_raw_direction_rank(factor, offset):
+    base, candidate, target, scale = fixture_arrays()
+    candidate['mean_return_bps'] = (factor*target['mid_return_bps']+offset).astype(np.float32)
+    points = audit.point_report(base, candidate, target, scale, cutoff=audit.LATER_CUTOFF,
+        probability=probability, bps=bps, np=np)
+    extra = audit.all_head_rank_report(base, candidate, rank=rank, np=np, replicates=7)
+    means = [item for item in extra['rank_points'] if item['head'] == 'candidate_mean_return_bps']
+    assert all(item['auc'] == 1. for item in means)
+    assert all(item['signed_bps']['sse_bps2'] > item['signed_bps']['zero_reference_sse_bps2'] for item in points)
+    assert not extra['proper_scores_for_bps_head'] and not extra['advance_authorized']
+    assert all('logloss' not in item and 'brier' not in item for item in means)
+
+
+def test_raw_rank_exact_ties_and_zero_threshold_have_three_by_two_accounting():
+    labels = np.array([0, 1, 0, 1], np.int8)
+    scores = np.array([-0., 0., 1., 1.], np.float64)
+    point = audit.raw_rank_point(labels, scores, rank=rank, np=np)
+    zero = point['zero_threshold']
+    assert point['auc'] == .5 and point['twice_rank_wins'] == 4 and point['up_down_pairs'] == 4
+    assert zero['confusion_3x2'] == [[0, 0], [1, 1], [1, 1]]
+    assert zero['down_recall'] == 0 and zero['up_recall'] == .5
+    assert zero['all_rows_accuracy'] == .25 and zero['zero_forecasts'] == 2
+    assert not zero['trading_actions_defined']
+
+
+def test_all_heads_share_original_observed_mature_nonzero_masks_without_forecast_selection():
+    base, candidate, target, scale = fixture_arrays()
+    for arrays in (base, candidate):
+        arrays['observed'][0, :] = False; arrays['sign'][0:2, :] = 0
+        arrays['terminal_time_ns'][2, 0] = audit.LATER_CUTOFF
+    candidate['mean_return_bps'][3, :] = 0  # Forecast zero remains in rank population.
+    candidate['mean_return_bps'][:2, :] = 1e20  # Excluded truth rows cannot change rank.
+    report = audit.all_head_rank_report(base, candidate, rank=rank, np=np, replicates=7)
+    for j, horizon in enumerate(audit.HORIZONS):
+        keep = candidate['observed'][:, j] & (candidate['sign'][:, j] != 0)
+        keep &= candidate['terminal_time_ns'][:, j] < audit.LATER_CUTOFF
+        panel = [item for item in report['rank_points'] if item['horizon_minutes'] == horizon]
+        assert len(panel) == 3 and all(item['rows'] == int(keep.sum()) for item in panel)
+        assert all(item['direction_mask_sha256'] == audit.digest(keep, np) for item in panel)
+        assert panel[2]['zero_threshold']['zero_forecasts'] == 1
+
+
+def test_all_twelve_exploratory_intervals_share_exact_draws_across_nine_heads(monkeypatch):
+    base, candidate, target, scale = fixture_arrays()
+    original = audit.block_weights; calls = []; seen = []
+    def draw(blocks, *, seed, np, replicates):
+        weights = original(blocks, seed=seed, np=np, replicates=replicates)
+        calls.append((seed, weights.copy())); return weights
+    def weighted(summary, weights):
+        seen.append(weights.copy()); return rank.weighted_rank_pairs(summary, weights)
+    monkeypatch.setattr(audit, 'block_weights', draw)
+    observer = SimpleNamespace(block_rank_pairs=rank.block_rank_pairs, weighted_rank_pairs=weighted)
+    report = audit.all_head_rank_report(base, candidate, rank=observer, np=np, replicates=17)
+    assert len(report['rank_points']) == 9 and report['family_size'] == 12
+    assert [seed for seed, weights in calls] == [20261027, 20261028] and len(seen) == 18
+    expected = {(h, name) for h in audit.HORIZONS for name in audit.EXPLORATORY_CONTRASTS}
+    for j, grouping in enumerate(report['groupings']):
+        assert grouping['weights_sha256'] == audit.digest(calls[j][1], np)
+        assert all(np.array_equal(value, calls[j][1]) for value in seen[j*9:(j+1)*9])
+        assert {(item['horizon_minutes'], item['contrast']) for item in grouping['contrasts']} == expected
+        assert all(item['interval']['per_interval_alpha'] == .05/12 for item in grouping['contrasts'])
+    assert not report['model_or_head_selection_authorized']
+
+
+def test_all_head_undefined_draws_are_counted_without_extra_draws(monkeypatch):
+    base, candidate, target, scale = fixture_arrays(paired_classes=False)
+    seeds = []
+    def only_first(blocks, *, seed, np, replicates):
+        seeds.append(seed); weights = np.zeros((replicates, blocks), np.int64); weights[:, 0] = blocks
+        return weights
+    monkeypatch.setattr(audit, 'block_weights', only_first)
+    report = audit.all_head_rank_report(base, candidate, rank=rank, np=np, replicates=3)
+    assert seeds == [20261027, 20261028] and report['undefined_draws_prohibit_supported_interpretation']
+    for grouping in report['groupings']:
+        assert len(grouping['contrasts']) == 6
+        for item in grouping['contrasts']:
+            assert item['interval']['undefined_replicates'] == 3 and item['interval']['valid_replicates'] == 0
+            assert item['interval']['low'] is None and not item['exploratory_positive_difference']
+
+
+def legacy_replay_case():
+    return {'initial_same256_logit_bit_parity': True,
+        'points': {'saved_value': -0.0}, 'prediction_array_sha256': {'candidate_oof': {'logit_up': 'a'*64}},
+        'paired_primary': {'combined_advance_rule_supported': False,
+            'groupings': [{'scheme': 'UTC_DAY', 'seed': 20261027, 'weights_sha256': 'b'*64}]}}
+
+
+@pytest.mark.parametrize('fault', ['initial', 'points', 'intervals', 'hashes', 'advance', 'signed_zero'])
+def test_legacy_replay_rejects_every_changed_original_measurement(fault):
+    previous = legacy_replay_case(); current = copy.deepcopy(previous)
+    audit.require_legacy_replay(current, previous)
+    if fault == 'initial': current['initial_same256_logit_bit_parity'] = False
+    elif fault == 'points': current['points']['changed'] = 1.
+    elif fault == 'intervals': current['paired_primary']['groupings'][0]['seed'] += 1
+    elif fault == 'hashes': current['prediction_array_sha256']['candidate_oof']['logit_up'] = 'c'*64
+    elif fault == 'advance': current['paired_primary']['combined_advance_rule_supported'] = True
+    else: current['points']['saved_value'] = 0.0
+    with pytest.raises(RuntimeError, match='LEGACY_RESULT_REPLAY'):
+        audit.require_legacy_replay(current, previous)
+
+
+def test_new_result_namespace_requires_legacy_replay_and_preserves_original_failure():
+    base, candidate, target, scale = fixture_arrays()
+    previous = legacy_replay_case()
+    primary = audit.paired_intervals(base, candidate, target, scale,
+        probability=probability, rank=rank, np=np, replicates=11)
+    primary['combined_advance_rule_supported'] = False  # Explicit negative fixture.
+    previous['paired_primary'] = primary; current = copy.deepcopy(previous)
+    before = json.dumps(current, sort_keys=True)
+    report = audit.add_exploratory_report(current, previous, base, candidate, rank=rank, np=np, replicates=11)
+    assert json.dumps(current, sort_keys=True) == before
+    assert {key: report[key] for key in current} == current
+    assert not report['paired_primary']['combined_advance_rule_supported'] and report['legacy_result_replayed_exactly']
+    assert report['exploratory_protocol'] == audit.EXPLORATORY_PROTOCOL_REF
+    assert report['previous_comparison'] == audit.PREVIOUS_COMPARISON_REF
+    assert len(report['exploratory_all_head_rank']['rank_points']) == 9
+
+
+def exploratory_plan(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit, 'ROOT', tmp_path)
+    return {'schema_version': audit.SCHEMA+'_synthetic', 'mode': 'synthetic',
+        'design': audit.DESIGN_REF, 'protocol': audit.PROTOCOL_REF,
+        'independent_protocol': audit.INDEPENDENT_PROTOCOL_REF, 'metadata': {}, 'inputs': {},
+        'sources': {name: {'path': str(audit.REPO/name), 'sha256': 'a'*64}
+            for name in audit.SOURCE_PATHS+(audit.TEST_FILE,)},
+        'out_dir': str(tmp_path/'new_head_rank'), 'wall_seconds': 180,
+        'exploratory_protocol': audit.EXPLORATORY_PROTOCOL_REF,
+        'previous_comparison': audit.PREVIOUS_COMPARISON_REF}
+
+
+@pytest.mark.parametrize('fault', ['missing_protocol', 'missing_previous', 'changed_protocol', 'changed_previous'])
+def test_optional_extension_requires_both_exact_references(tmp_path, monkeypatch, fault):
+    plan = exploratory_plan(tmp_path, monkeypatch)
+    assert audit.require_plan(plan) == tmp_path/'new_head_rank'
+    if fault == 'missing_protocol': del plan['exploratory_protocol']
+    elif fault == 'missing_previous': del plan['previous_comparison']
+    elif fault == 'changed_protocol': plan['exploratory_protocol'] = {**plan['exploratory_protocol'], 'sha256': 'b'*64}
+    else: plan['previous_comparison'] = {**plan['previous_comparison'], 'sha256': 'c'*64}
+    with pytest.raises(RuntimeError, match='PLAN_SCHEMA|EXPLORATORY_BINDINGS'):
+        audit.require_plan(plan)
+
+
+@pytest.mark.parametrize('mode', ['actual', 'synthetic'])
+def test_new_optional_refs_select_only_new_policy_stage_and_legacy_stays_unchanged(mode):
+    plan = {'mode': mode}
+    expected = audit.STAGE if mode == 'actual' else audit.SYNTHETIC_STAGE
+    assert audit.selected_stage(plan) == expected
+    plan.update(exploratory_protocol=audit.EXPLORATORY_PROTOCOL_REF, previous_comparison=audit.PREVIOUS_COMPARISON_REF)
+    new = audit.EXPLORATORY_STAGE if mode == 'actual' else audit.EXPLORATORY_SYNTHETIC_STAGE
+    assert audit.selected_stage(plan) == new and new != expected
+
+
+@pytest.mark.parametrize('fault', ['heads', 'family', 'seed', 'selection', 'fits'])
+def test_exploratory_protocol_rejects_changed_statistical_or_execution_scope(fault):
+    protocol = {'schema_version': 'gx1_independent_exploratory_all_head_rank_protocol_v1',
+        'design': audit.DESIGN_REF, 'previous_comparison': audit.PREVIOUS_COMPARISON_REF,
+        'heads': list(audit.HEADS), 'horizons_minutes': [1, 5, 15],
+        'new_auc_contrasts': list(audit.EXPLORATORY_CONTRASTS), 'advance_authorized': False,
+        'execution_authorized': False, 'model_or_head_selection_authorized': False, 'test_data_used': False,
+        'execution_limits': {'fits': 0, 'max_invocations': 1, 'memory_bytes': 4294967296,
+            'model_forwards': 0, 'new_input_fields': 0, 'wall_seconds': 600, 'weight_reads': 0},
+        'uncertainty': {'day_seed': 20261027, 'week_seed': 20261028,
+            'groupings': ['UTC_DAY', 'UTC_WEEK_MONDAY'], 'interval_count': 12,
+            'per_interval_alpha': .05/12, 'min_blocks': 8, 'replicates': 10000,
+            'shared_draws_across_all_heads_horizons': True}}
+    audit.require_exploratory_protocol(protocol)
+    if fault == 'heads': protocol['heads'].pop()
+    elif fault == 'family': protocol['uncertainty']['interval_count'] = 6
+    elif fault == 'seed': protocol['uncertainty']['week_seed'] += 1
+    elif fault == 'selection': protocol['model_or_head_selection_authorized'] = True
+    else: protocol['execution_limits']['fits'] = 1
+    with pytest.raises(RuntimeError, match='EXPLORATORY_'):
+        audit.require_exploratory_protocol(protocol)
+
+
+def test_new_metadata_guard_accepts_only_bound_readonly_refs_without_later_gate_bypass(tmp_path):
+    metadata = [audit.EXPLORATORY_PROTOCOL_REF['path'], audit.PREVIOUS_COMPARISON_REF['path']]
+    gate = {'later_allowed': False}; inputs = {'candidate_oof': '/synthetic/later.npz'}
+    guard = audit.make_guard(tmp_path, inputs, metadata, synthetic=False, source_paths=[], gate=gate)
+    for path in metadata:
+        guard('open', (path, 'rb', 0))
+        with pytest.raises(RuntimeError, match='OUTPUT_ONLY_WRITE'):
+            guard('open', (path, 'wb', os.O_WRONLY))
+    with pytest.raises(RuntimeError, match='DECLARED_DATA'):
+        guard('open', (str(audit.ROOT/'unbound_head_rank.json'), 'rb', 0))
+    with pytest.raises(RuntimeError, match='INITIAL_PARITY_BEFORE_LATER_OPEN'):
+        guard('open', (inputs['candidate_oof'], 'rb', 0))
+
+
+def test_any_undefined_horizon_blocks_supported_interpretation_of_entire_exploratory_family():
+    base, candidate, target, scale = fixture_arrays()
+    for arrays in (base, candidate):
+        arrays['observed'][1::2, 0] = False; arrays['sign'][1::2, 0] = 0
+    report = audit.all_head_rank_report(base, candidate, rank=rank, np=np, replicates=7)
+    assert report['undefined_draws_prohibit_supported_interpretation']
+    for grouping in report['groupings']:
+        later = [item for item in grouping['contrasts'] if item['horizon_minutes'] == 5]
+        assert later[0]['interval']['low'] == .5  # Defined descriptive point/CI retained.
+        assert all(not item['exploratory_positive_difference'] for item in grouping['contrasts'])

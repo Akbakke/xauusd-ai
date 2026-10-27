@@ -24,6 +24,14 @@ TEST_FILE = 'tests/test_compare_entry_direction_saved_bps_v1.py'
 DESIGN_REF = {'path': str(ROOT/'DESIGN.json'), 'sha256': 'a6638b593ebe41eebf1b45d60007cd2a52b04ef0a28cdb174782acb4b77b72b6'}
 PROTOCOL_REF = {'path': '/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/COMPARISON_PROTOCOL.json', 'sha256': '25458f5185c55070333729eededff4d33a11dd5b1ee334e74a4358c15a928888'}
 INDEPENDENT_PROTOCOL_REF = {'path': str(ROOT/'SAVED_BPS_PROTOCOL_001.json'), 'sha256': '14a7a98be7d5f75fa7d1c0a2534413cc8159cae01d7773144182abcea7fd23eb'}
+EXPLORATORY_PROTOCOL_REF = {'path': str(ROOT/'EXPLORATORY_HEAD_RANK_PROTOCOL_001.json'), 'sha256': 'ca4dfbbd0fac33a47fb8b65657ef7ebaaf08126b424e77da5402d91daf1d2b7c'}
+PREVIOUS_COMPARISON_REF = {'path': str(ROOT/'SAVED_BPS_COMPARISON_001/OUTPUT/RESULT.json'), 'sha256': '5e8d6a2de22ff9d6d53c814d139ae62b58cdb9925f1bf1b14f40e8ac905f8c21'}
+EXPLORATORY_STAGE = 'independent_direction_all_heads_20261027'
+EXPLORATORY_SYNTHETIC_STAGE = 'independent_direction_all_heads_synthetic_20261027'
+HEADS = ('baseline_logit_up', 'candidate_logit_up', 'candidate_mean_return_bps')
+EXPLORATORY_CONTRASTS = ('candidate_mean_return_bps_minus_baseline_logit_up',
+    'candidate_mean_return_bps_minus_candidate_logit_up')
+EXPLORATORY_ALPHA = 0.05 / 12
 HORIZONS = (1, 5, 15)
 MINUTE, DAY = 60_000_000_000, 86_400_000_000_000
 PREFIX, LATER, PARENTS = 47602, 17288, 118249
@@ -64,10 +72,14 @@ def require_plan(plan):
     fields = {'schema_version', 'mode', 'design', 'protocol', 'independent_protocol',
         'metadata', 'inputs', 'sources', 'out_dir', 'wall_seconds'}
     mode = plan.get('mode')
-    require(mode in ('actual', 'synthetic') and set(plan) == fields
+    optional = {'exploratory_protocol', 'previous_comparison'}
+    require(mode in ('actual', 'synthetic') and set(plan) in (fields, fields | optional)
         and plan['schema_version'] == SCHEMA + ('_synthetic' if mode == 'synthetic' else ''), 'PLAN_SCHEMA')
     require(plan['design'] == DESIGN_REF and plan['protocol'] == PROTOCOL_REF
         and plan['independent_protocol'] == INDEPENDENT_PROTOCOL_REF, 'PROTOCOL_BINDINGS')
+    if 'exploratory_protocol' in plan:
+        require(plan['exploratory_protocol'] == EXPLORATORY_PROTOCOL_REF
+            and plan['previous_comparison'] == PREVIOUS_COMPARISON_REF, 'EXPLORATORY_BINDINGS')
     require(set(plan['inputs']) == (INPUT_KEYS if mode == 'actual' else set())
         and set(plan['metadata']) == (METADATA_KEYS if mode == 'actual' else set()), 'INPUT_METADATA_KEYS')
     require(plan['wall_seconds'] == (600 if mode == 'actual' else 180), 'WALL')
@@ -80,6 +92,41 @@ def require_plan(plan):
         require(relative.startswith(('gx1/', 'tests/', 'scripts/')) and '..' not in Path(relative).parts
             and set(ref) == {'path', 'sha256'} and ref['path'] == str(REPO/relative), 'SOURCE_PATH')
     return out
+
+
+def selected_stage(plan):
+    if 'exploratory_protocol' in plan:
+        return EXPLORATORY_SYNTHETIC_STAGE if plan['mode'] == 'synthetic' else EXPLORATORY_STAGE
+    return SYNTHETIC_STAGE if plan['mode'] == 'synthetic' else STAGE
+
+
+def require_exploratory_protocol(protocol):
+    require(protocol['schema_version'] == 'gx1_independent_exploratory_all_head_rank_protocol_v1'
+        and protocol['design'] == DESIGN_REF and protocol['previous_comparison'] == PREVIOUS_COMPARISON_REF
+        and protocol['heads'] == list(HEADS) and protocol['horizons_minutes'] == list(HORIZONS)
+        and protocol['new_auc_contrasts'] == list(EXPLORATORY_CONTRASTS)
+        and protocol['advance_authorized'] is False and protocol['execution_authorized'] is False
+        and protocol['model_or_head_selection_authorized'] is False and protocol['test_data_used'] is False,
+        'EXPLORATORY_PROTOCOL')
+    require(protocol['execution_limits'] == {'fits': 0, 'max_invocations': 1,
+        'memory_bytes': 4294967296, 'model_forwards': 0, 'new_input_fields': 0,
+        'wall_seconds': 600, 'weight_reads': 0}, 'EXPLORATORY_LIMITS')
+    uncertainty = protocol['uncertainty']
+    require(uncertainty['day_seed'] == 20261027 and uncertainty['week_seed'] == 20261028
+        and uncertainty['groupings'] == ['UTC_DAY', 'UTC_WEEK_MONDAY']
+        and uncertainty['interval_count'] == 12 and uncertainty['per_interval_alpha'] == EXPLORATORY_ALPHA
+        and uncertainty['min_blocks'] == 8 and uncertainty['replicates'] == REPLICATES
+        and uncertainty['shared_draws_across_all_heads_horizons'] is True, 'EXPLORATORY_UNCERTAINTY')
+
+
+def require_legacy_replay(current, previous):
+    # JSON-canonical comparison also preserves signed zero in old point values.
+    require(previous['initial_same256_logit_bit_parity'] is True
+        and previous['paired_primary']['combined_advance_rule_supported'] is False,
+        'ORIGINAL_NEGATIVE_COMPARISON')
+    require(json.dumps(current, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        == json.dumps(previous, sort_keys=True, separators=(',', ':'), allow_nan=False),
+        'EXACT_LEGACY_RESULT_REPLAY')
 
 
 def require_protocol(protocol, independent):
@@ -273,13 +320,13 @@ def block_weights(blocks, *, seed, np, replicates=REPLICATES):
     return weights
 
 
-def percentile_interval(values, *, np):
+def percentile_interval(values, *, np, alpha=ALPHA):
     finite = np.isfinite(values)
     count = int(finite.sum()); invalid = int((~finite).sum())
-    bounds = np.quantile(values[finite], [ALPHA/2, 1-ALPHA/2], method='linear') if count else (None, None)
+    bounds = np.quantile(values[finite], [alpha/2, 1-alpha/2], method='linear') if count else (None, None)
     return {'low': None if bounds[0] is None else float(bounds[0]),
         'high': None if bounds[1] is None else float(bounds[1]),
-        'per_interval_alpha': ALPHA, 'valid_replicates': count, 'undefined_replicates': invalid}
+        'per_interval_alpha': alpha, 'valid_replicates': count, 'undefined_replicates': invalid}
 
 
 def paired_intervals(baseline, candidate, target, scale, *, probability, rank, np,
@@ -360,6 +407,119 @@ def paired_intervals(baseline, candidate, target, scale, *, probability, rank, n
         'undefined_primary_auc_blocks_qualification': any(
             item['contrasts'][2]['interval']['undefined_replicates'] for item in reports),
         'interpretation': 'One reused-development fold only; no generalization, trading or economic qualification.'}
+
+
+def head_values(baseline, candidate):
+    return (baseline['logit_up'], candidate['logit_up'], candidate['mean_return_bps'])
+
+
+def raw_rank_point(labels, scores, *, rank, np):
+    require(labels.dtype == np.int8 and labels.ndim == 1 and scores.dtype == np.float64
+        and scores.shape == labels.shape and np.isin(labels, (0, 1)).all()
+        and np.isfinite(scores).all(), 'RAW_HEAD_POINT_INPUT')
+    down, up = int((labels == 0).sum()), int((labels == 1).sum())
+    twice_wins = 0
+    if len(labels):
+        summary = rank.block_rank_pairs(labels, scores, np.zeros(len(labels), np.int64))
+        twice_wins = int(summary['twice_wins'][0, 0])
+    confusion = [[int(((scores < 0) & (labels == column)).sum()) for column in (0, 1)],
+        [int(((scores == 0) & (labels == column)).sum()) for column in (0, 1)],
+        [int(((scores > 0) & (labels == column)).sum()) for column in (0, 1)]]
+    correct = confusion[0][0] + confusion[2][1]
+    return {'rows': len(labels), 'down_rows': down, 'up_rows': up,
+        'auc': twice_wins/(2*down*up) if down and up else None,
+        'twice_rank_wins': twice_wins, 'up_down_pairs': down*up,
+        'raw_score_sha256': digest(scores, np),
+        'zero_threshold': {'predicted_rows': ['negative', 'zero', 'positive'],
+            'truth_columns': ['down', 'up'], 'confusion_3x2': confusion,
+            'down_recall': confusion[0][0]/down if down else None,
+            'up_recall': confusion[2][1]/up if up else None,
+            'correct_rows': correct, 'all_rows_accuracy': correct/len(labels) if len(labels) else None,
+            'zero_forecasts': sum(confusion[1]), 'trading_actions_defined': False}}
+
+
+def raw_rank_replicates(labels, scores, parent_block_ids, weights, *, rank, np):
+    # Empty/one-class resamples stay undefined. Never redraw or replace them.
+    samples = np.full(len(weights), np.nan, np.float64)
+    if not len(labels):
+        return samples
+    used = np.unique(parent_block_ids)
+    lookup = np.full(weights.shape[1], -1, np.int64)
+    lookup[used] = np.arange(len(used), dtype=np.int64)
+    summary = rank.block_rank_pairs(labels, scores, lookup[parent_block_ids])
+    selected = weights[:, used]
+    has_cells = selected.sum(axis=1) > 0
+    numerator, pairs = np.zeros(len(weights)), np.zeros(len(weights))
+    if has_cells.any():
+        numerator[has_cells], pairs[has_cells] = rank.weighted_rank_pairs(summary, selected[has_cells])
+    np.divide(numerator, 2*pairs, out=samples, where=pairs > 0)
+    return samples
+
+
+def all_head_rank_report(baseline, candidate, *, rank, np,
+        replicates=REPLICATES, min_blocks=8):
+    require_pair(baseline, candidate, np=np)
+    require(type(replicates) is int and replicates > 0 and type(min_blocks) is int and min_blocks >= 1,
+        'EXPLORATORY_RESAMPLE_SCOPE')
+    eligible = (candidate['observed'] & (candidate['sign'] != 0)
+        & (candidate['terminal_time_ns'] < LATER_CUTOFF))
+    arrays = head_values(baseline, candidate)
+    points, panels = [], []
+    for j, horizon in enumerate(HORIZONS):
+        keep = eligible[:, j]
+        labels = (candidate['sign'][keep, j] == 1).astype(np.int8)
+        scores = [np.ascontiguousarray(value[keep, j], dtype=np.float64) for value in arrays]
+        head_points = [raw_rank_point(labels, value, rank=rank, np=np) for value in scores]
+        for head, point in zip(HEADS, head_points):
+            points.append({'head': head, 'horizon_minutes': horizon, 'direction_mask_sha256': digest(keep, np), **point})
+        panels.append((keep, labels, scores, head_points))
+    days = candidate['decision_ns']//DAY
+    groupings = []
+    for scheme, block_labels, seed in (('UTC_DAY', days, 20261027), ('UTC_WEEK_MONDAY', (days+3)//7, 20261028)):
+        unique, inverse = np.unique(block_labels, return_inverse=True); count = len(unique)
+        require(count >= min_blocks, 'EXPLORATORY_MINIMUM_BLOCK_COUNT')
+        # Exactly one full-parent draw matrix, shared by every head and horizon.
+        weights = block_weights(count, seed=seed, np=np, replicates=replicates)
+        contrasts = []
+        for horizon, (keep, labels, scores, head_points) in zip(HORIZONS, panels):
+            samples = [raw_rank_replicates(labels, value, inverse[keep], weights, rank=rank, np=np) for value in scores]
+            for name, reference in zip(EXPLORATORY_CONTRASTS, (0, 1)):
+                interval = percentile_interval(samples[2]-samples[reference], np=np, alpha=EXPLORATORY_ALPHA)
+                mean_auc, reference_auc = head_points[2]['auc'], head_points[reference]['auc']
+                supported = (interval['undefined_replicates'] == 0
+                    and interval['low'] is not None and interval['low'] > 0)
+                contrasts.append({'contrast': name, 'horizon_minutes': horizon,
+                    'point_difference': None if mean_auc is None or reference_auc is None else mean_auc-reference_auc,
+                    'interval': interval, 'exploratory_positive_difference': bool(supported)})
+        groupings.append({'scheme': scheme, 'blocks': count, 'seed': seed,
+            'replicates': replicates, 'weights_sha256': digest(weights, np), 'contrasts': contrasts})
+    undefined = any(item['interval']['undefined_replicates']
+        for grouping in groupings for item in grouping['contrasts'])
+    if undefined:
+        for grouping in groupings:
+            for item in grouping['contrasts']:
+                item['exploratory_positive_difference'] = False
+    return {'evidence_class': 'Exploratory after original confirmatory failure.',
+        'heads': list(HEADS), 'horizons_minutes': list(HORIZONS), 'rank_points': points,
+        'family_size': 12, 'groupings': groupings,
+        'undefined_draws_prohibit_supported_interpretation': bool(undefined),
+        'score_semantics': 'Raw finite head values and exact ties; bps is never a probability or logit.',
+        'proper_scores_for_bps_head': False, 'advance_authorized': False,
+        'model_or_head_selection_authorized': False, 'economic_edge_qualified': False}
+
+
+def add_exploratory_report(current, previous, baseline, candidate, *, rank, np,
+        replicates=REPLICATES, min_blocks=8):
+    require_legacy_replay(current, previous)
+    extra = all_head_rank_report(baseline, candidate, rank=rank, np=np,
+        replicates=replicates, min_blocks=min_blocks)
+    require([(row['scheme'], row['seed'], row['weights_sha256']) for row in extra['groupings']]
+        == [(row['scheme'], row['seed'], row['weights_sha256']) for row in current['paired_primary']['groupings']],
+        'EXPLORATORY_SHARED_LEGACY_DRAWS')
+    # Return a new namespace only after every old result field replayed exactly.
+    return {**current, 'exploratory_protocol': EXPLORATORY_PROTOCOL_REF,
+        'previous_comparison': PREVIOUS_COMPARISON_REF,
+        'exploratory_all_head_rank': extra, 'legacy_result_replayed_exactly': True}
 
 
 def make_guard(out, inputs, metadata, *, synthetic, source_paths, gate):
@@ -471,8 +631,13 @@ def main(argv=None):
         protocol=binding.read_bound_json(Path(plan['protocol']['path']),plan['protocol']['sha256'])
         independent=binding.read_bound_json(Path(plan['independent_protocol']['path']),plan['independent_protocol']['sha256'])
         require_protocol(protocol,independent)
+        previous = None
+        if 'exploratory_protocol' in plan:
+            extra=binding.read_bound_json(Path(plan['exploratory_protocol']['path']),plan['exploratory_protocol']['sha256'])
+            require_exploratory_protocol(extra)
+            previous=binding.read_bound_json(Path(plan['previous_comparison']['path']),plan['previous_comparison']['sha256'])
         policy=binding.read_bound_json(Path(policy_ref['path']),policy_ref['sha256'])
-        admitted=policy[SYNTHETIC_STAGE if synthetic else STAGE]
+        admitted=policy[selected_stage(plan)]
         require(admitted['status']=='ADMITTED' and admitted['plan']==plan_ref
             and admitted['execution_authorized'] is True and admitted['max_invocations']==1
             and admitted['claimed_invocations']==admitted['completed_invocations']==0
@@ -488,6 +653,7 @@ def main(argv=None):
     publish(out/'INVOCATION_CLAIM.json',{'plan':plan_ref,'policy':policy_ref,'source_head':args.source_head,'execution':proof,'lock':lock})
     meta_paths=[plan_ref['path'],policy_ref['path'],plan['design']['path'],plan['protocol']['path'],plan['independent_protocol']['path']]
     meta_paths += [ref['path'] for ref in plan['metadata'].values()]
+    meta_paths += [plan[key]['path'] for key in ('exploratory_protocol', 'previous_comparison') if key in plan]
     gate={'later_allowed':False}
     sys.addaudithook(make_guard(out,{key:ref['path'] for key,ref in plan['inputs'].items()},meta_paths,
         synthetic=synthetic,source_paths=[ref['path'] for ref in plan['sources'].values()],gate=gate))
@@ -555,6 +721,8 @@ def main(argv=None):
                 'scope':'One reused-development fold; raw logit direction, no recalibration or head selection.',
                 'TRAIN_scope':'Same256 diagnostic rows only; not a whole-TRAIN fit measurement.',
                 'economic_edge_qualified':False,'test_data_used':False}
+            if previous is not None:
+                report=add_exploratory_report(report,previous,baseline_oof,candidate_oof,rank=rank,np=np)
         require(not any(counters.values()),'NO_FORBIDDEN_WORK')
         inputs_snapshot.require_unchanged(); control.require_unchanged()
         require(git_state()==initial and cap.require_capped_lock_ancestry()==lock,'FINAL_SOURCE_LOCK_BOOKENDS')
