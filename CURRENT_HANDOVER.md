@@ -9,34 +9,34 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-Terminal-prefix part1 forsøk001 er FAILED/claimed/consumed. Root utelot
-obligatorisk EXECUTION_BINDING.json i kampanjeoppsettet. Original stderr
-viser stopp i kontekstbinding før workerforberedelse; signert vakt viser
-child_status=1 og Windows LastResult1. Ingen kanonisk terminalkvittering,
-RESULT eller modelltellere finnes; ingen slik kvittering er konstruert.
-Alle 57 kildeeiere og fryst policy var uendret. Prosesser/cgroup er borte,
-låsen ledig og eksakt Windowsoppgave Disabled/Restart0. ACTIVE beholdes.
+Terminal-prefix part1 forsøk002 er COMPLETE/claimed/consumed: 15 872 rader,
+992 originale B16-forwards og 0 reverse/optimizer/fit. Worker brukte
+2449,9818 sekunder. Original kampanjekvittering viser guard/observerexit0.
+Alle 57 kildeeiere og fryst policy var uendret. Tilstands-/inputbokender,
+original presentasjonsrekkefølge og samme terminalmodell som senere-kohorten
+er kontrollert. Ingen historisk per-rad prediksjonsfil dekker denne prefiksdelen;
+numerisk originalprediksjonsparitet er derfor ikke målt.
 
-ACTUAL_ROOT_REVIEW og VERIFIED_TERMINAL i
-F_FROZEN_EXTRACTION_terminal_prefix_part1_CAMPAIGN_20261027_001 binder feilen.
-Dette er oppsettfeil, ingen ny forklaring på svak retningslæring.
-Fersk002 er admittért for samme 992 forwards/0updates og alle samme vakter.
-Eneste rettelse er å opprette og fysisk kontrollere plan/HEAD/policy-bindingen
-før arming og ny fysisk boot.001 relanseres aldri. Ingen kildeendring eller fit.
+Prosesser/cgroup er borte, originallåsen ledig og eksakt Windowsoppgave er
+Disabled/LastResult0/Restart0. Oppfølgingen er PAUSED. Engangsautoriteten er
+lukket, alle artefakter beholdes, og forsøk001/002 relanseres aldri.
+Forsøk001s opprinnelige oppsettfeil og kvitteringer er bevart separat.
 
-Fersk terminal-only-protokoll er forhåndsbundet i
-F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001.json: komplett terminal-prefix mot
-allerede bevart terminal_later_full. Primær sammenligning er senere AUC5
-for nytt fast lineært hode mot originalt hode, med paret dag/uke-usikkerhet.
-Original åtte-enhetsstudie og alle originale kvitteringer bevares.
+Siste ACTUAL_ROOT_REVIEW og VERIFIED_TERMINAL ligger i
+F_FROZEN_EXTRACTION_terminal_prefix_part1_CAMPAIGN_20261027_002.
+Terminal_prefix_part2 er nå ferskt admittért for originalt intervall
+[15872,31744): 15 872 rader, 992 B16-forwards, 0 reverse/optimizer/fit.
+Kampanjen er ikke startet. Ren HEAD, eksakt fysisk EXECUTION_BINDING, ledig
+maskin og fersk fysisk boot må bekreftes før én start gjennom eksisterende
+capped-rute. Grensene 12000s/13800s og alle maskinvare-/datavakter beholdes.
+Del3, readout-fit og modell-/målendringer er ikke åpnet.
 
-Bare første faste terminal-prefix-del er nå admittért: [0,15872) i original
-presentasjonsrekkefølge, 992 B16-forwards, 0 reverse/optimizer/fit. De 57
-kildeeierne er uendret; 86 beståtte syntetiske kontroller gjenbrukes.
-Ingen modell-/mål-/lossendring. Kanonisk kampanje må bindes til ren HEAD,
-ledig maskin og fersk fysisk boot før start; kampanjen er ennå ikke startet.
-Maks 12000s intern og 13800s ytre vakt; alle øvrige vakter består.
-Readout-fit og de øvrige delene er ikke åpnet av denne engangstillatelsen.
+F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001 binder separat terminal-only-spørsmål:
+kan et fast lineært hode hente bedre senere AUC5 fra samme frosne slutt-hidden?
+To av fire nødvendige uttrekksenheter er klare: terminal_later_full og
+terminal_prefix_part1. Del2 og del3 av prefikset mangler. Hele prefikset
+må foreligge før separat admisjon av tre faste CPU-fits. Original åtte-enhets-
+studie forblir uferdig og uendret. Ingen bedre retningsbeslutning er målt her.
 
 Brukerens siste presisering 27.10 er innarbeidet: 10 minutter er med i
 faste sammenligningspunkter 1/5/10/15/30/60. En kurve for hvert minutt 1–60
@@ -65,7 +65,8 @@ kohort. Neste steg er en fersk, avgrenset terminal-only readout-protokoll:
 kan et tilstrekkelig fittet lineært hode hente mer senere signal fra samme
 frosne slutt-hidden? Den trenger komplett terminal-prefix og allerede
 fullført terminal_later_full, ikke matematisk alle 0U-kohortene. Den gamle
-åtte-enhetsplanen bevares uendret; ingen ny kjøring er åpnet.
+åtte-enhetsplanen bevares uendret; bare den eksakte uttrekksenheten øverst
+kan startes under sin nye engangsadmisjon.
 
 En 1-mot-3-epokers sammenligning på uendret BCE er fortsatt en separat
 test av eksponering. Horisonter, bps-supervisjon og epoch-antall endres ikke
@@ -74,32 +75,11 @@ beholdes; M5/M15/H1/H4/D1 finnes allerede i faktisk Entry-rute.
 Bare den eksakte uttrekkstillatelsen øverst åpner payload/model-forward.
 Fit, reverse, optimizersteg og trening forblir lukket.
 
-Tre av åtte faste F-uttrekksenheter er COMPLETE/consumed:
-- terminal_later_full001: 17 288 rader, 1 081 B16-forwards, alle originale senere
-  prediksjonsmedlemmer bitidentiske; 2 735,9624 sekunder.
-- own0U_prefix_part1_001: [0,15872), 992 B16-forwards, kontrollens 256 originale
-  initialprediksjoner bitidentiske; 2 577,0872 sekunder.
-- own0U_prefix_part2_001: [15872,31744), 15 872 rader, 992 B16-forwards;
-  2 542,6183 sekunder. Ingen historisk prediksjonsfil dekker dette intervallet;
-  originalprediksjonsparitet er derfor null, ikke et målt numerisk PASS.
-
-Alle tre har null reverse/optimizer/fit. Siste originalkvitteringer,
-57 kildeeiere, fryst policy, tilstand/inputbokender og tellere er verifisert.
-Prosesser/cgroup er borte, originallåsen ledig og Windowsoppgaven er
-Disabled/LastResult0/Restart0. Den tredje engangsautoriteten er nå også lukket.
-Neste tillatelse står øverst. Oppfølgingsautomatikken er foreløpig PAUSED;
-ingen ny kjøring er startet. Alle opprinnelige artefakter beholdes; ingen relansering.
-
-Siste review: F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/
-ACTUAL_ROOT_REVIEW.json, SHA256
-9d6ac091e992c2d6197350aca33b64f2e6239e40103c7146baf4eb481e0a5ebb.
-VERIFIED_TERMINAL.json binder exit 0 til originalkvittering og resultat.
-Fullprefix-presentasjonshash er fortsatt
-5a92eba23f101f139b758098e04abdc432e8e3bba032a94a3b0a656a21f0f43f.
-Den tidligere F-planen krever alle åtte enheter og full sammenstilling før
-separat readout-fit; det arbeidet er uferdig og overtar ikke målavklaringen.
-Ingen modellkode, indikator, target eller numerisk oppskrift er endret her.
-86 beståtte syntetiske partisjonskontroller og tidligere timing/paritet gjenbrukes.
+Fire av åtte opprinnelige F-uttrekksenheter er COMPLETE/consumed:
+terminal_later_full001, own0U_prefix_part1_001, own0U_prefix_part2_001 og
+terminal_prefix_part1_002. De to own0U-delene er bevart, men er ikke nødvendige
+for den separate terminal-only-sammenligningen. 86 beståtte syntetiske
+partisjonskontroller og tidligere paritet gjenbrukes; ingen modellkode er endret.
 
 Tidligere retningsfunn står i DIRECTION_1_60_CAUSE_SYNTHESIS_008 og den
 identiske kopien docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. De dokumenterer
