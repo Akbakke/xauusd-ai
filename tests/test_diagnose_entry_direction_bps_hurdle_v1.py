@@ -63,3 +63,25 @@ def test_absolute_intervals_are_opt_in_and_share_paired_draws():
     for head in ('head_5','head_15'):
         assert absolute[head]['native'] == {'low':1.,'high':1.,'level':.99}
         assert absolute[head]['et252'] == {'low':0.,'high':0.,'level':.99}
+
+
+def test_magnitude_regime_uses_causal_tags_without_future_selection():
+    fixture=synthetic_join_inputs();native_folds=fixture[1]
+    for native in native_folds:
+        n=len(native['parent_rows']);native['context__h1_atr_z_sign']=np.resize(np.array([-1,1],np.int8),n)
+    cohorts=joined(fixture);result=diag.magnitude_h1_regime_cohorts(cohorts,native_folds,fixture[3])
+    assert len(result['overall'])==4 and len(result['stratified'])==8
+    for source,overall,cnt in zip(cohorts,result['overall'],result['counts']):
+        np.testing.assert_array_equal(overall['labels'],source['labels_long']|source['labels_short'])
+        assert cnt['positive']['parents']+cnt['nonpositive']['parents']==len(source['parent_rows'])
+        assert set(np.unique(overall['scores']['head_5']['et252'])).issubset({0.,1.})
+
+
+@pytest.mark.parametrize('fault,match',[('missing','REGIME_TAG_DOMAIN'),('parent','REGIME_PARENT_JOIN')])
+def test_magnitude_regime_rejects_invalid_tags_or_parent_join(fault,match):
+    fixture=synthetic_join_inputs();natives=fixture[1]
+    for native in natives:native['context__h1_atr_z_sign']=np.full(len(native['parent_rows']),1,np.int8)
+    cohorts=joined(fixture)
+    if fault=='missing':natives[0]['context__h1_atr_z_sign'][0]=-2
+    else:cohorts[0]['parent_rows'][0]+=1
+    with pytest.raises(RuntimeError,match=match):diag.magnitude_h1_regime_cohorts(cohorts,natives,fixture[3])

@@ -38647,5 +38647,61 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_HURDLE_H1_ATR_SIGN_AGGREGATE_REVIEW_20261027_001.json",
       "sha256": "4ac42e1e81fabd6675631270de35e1eea7bdabc9a13997a21171b521306a813b"
     }
+  },
+  "direction_magnitude_h1_regime_source": {
+    "status": "SYNTHETIC_22_PASS_ACTUAL_NOT_ADMITTED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_DESIGN_20261027_001.json",
+      "sha256": "7e5730787062e0dd2e5f9fc2c520f064e90dab8144ce9816e855f5920c717c77"
+    },
+    "sources": {
+      "gx1/scripts/diagnose_entry_direction_bps_allocation_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/diagnose_entry_direction_bps_allocation_v1.py",
+        "sha256": "83bfe782750879f56d028b5f53791942b525385aa8915b73be5733f28c604111"
+      },
+      "tests/test_diagnose_entry_direction_bps_hurdle_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_diagnose_entry_direction_bps_hurdle_v1.py",
+        "sha256": "70029ad4e1238c5aba2ca80394018e1bf8c8f0714708c432b13f942375086ac5"
+      },
+      "gx1/scripts/diagnose_entry_direction_10min_crosshorizon_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/diagnose_entry_direction_10min_crosshorizon_v1.py",
+        "sha256": "739fe7c9f9abad17c6217aadc994bc6599a7d64fb222c07912a09a958850b7b1"
+      },
+      "tests/test_diagnose_entry_direction_10min_crosshorizon_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_diagnose_entry_direction_10min_crosshorizon_v1.py",
+        "sha256": "0db382c760434b58cea3805071b0496a203d506b2e6d4adf635cbcc6069505a5"
+      }
+    },
+    "synthetic_execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "raw_data_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_SYNTHETIC_REVIEW_20261027_001.json",
+      "sha256": "72f9c00c92558bfade26a675ac7a96c096ff5038f719b5d580351dfdb9dd77e0"
+    }
+  },
+  "direction_magnitude_h1_regime_synthetic": {
+    "status": "CONSUMED_22_SYNTHETIC_PASS",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "67e530b76bc14378d7980d008025a8504e74af5cdd89109568d265ac785c0a3f"
+    },
+    "execution_authorized": false,
+    "claimed_invocations": 1,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "saved_payload_reads_authorized": false,
+    "raw_data_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "completed_invocations": 1,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_SYNTHETIC_REVIEW_20261027_001.json",
+      "sha256": "72f9c00c92558bfade26a675ac7a96c096ff5038f719b5d580351dfdb9dd77e0"
+    }
   }
 }

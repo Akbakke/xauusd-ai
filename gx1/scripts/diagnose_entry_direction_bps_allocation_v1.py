@@ -299,6 +299,44 @@ def hurdle_rank_cohorts(cohorts, *, side):
     return result
 
 
+
+def magnitude_h1_regime_cohorts(cohorts, native_folds, fold_specs):
+    """Build full and within-H1-state magnitude ranks from saved causal tags."""
+    require(len(cohorts)==len(native_folds)==len(fold_specs)==4, 'REGIME_FOLDS')
+    overall=[];stratified=[];counts=[]
+    for c,native,spec in zip(cohorts,native_folds,fold_specs):
+        require(c['fold_id']==spec['fold_id'], 'REGIME_FOLD_ID')
+        positions=c['parent_rows']-spec['left'];n=len(native['parent_rows'])
+        require((positions>=0).all() and (positions<n).all()
+                and (np.diff(c['parent_rows'])>0).all()
+                and np.array_equal(native['parent_rows'][positions],c['parent_rows'])
+                and np.array_equal(native['decision_ns'][positions],c['decision_ns'])
+                and np.array_equal(native['decision_ns'],c['all_parent_decision_ns'])
+                and np.array_equal(native['logit_up'][positions,1].astype(np.float64),c['native_score']),
+                'REGIME_PARENT_JOIN')
+        full=native['context__h1_atr_z_sign']
+        require(full.dtype==np.int8 and full.shape==(n,) and np.isin(full,(-1,0,1)).all(), 'REGIME_TAG_DOMAIN')
+        tag=full[positions];large=np.ascontiguousarray((c['labels_long'] | c['labels_short']).astype(np.int8))
+        require(not np.any(c['labels_long'] & c['labels_short']), 'REGIME_SIDE_OVERLAP')
+        high=(tag>0).astype(np.float64)
+        def make(selected,reference,name):
+            score=np.ascontiguousarray(c['native_score'][selected],dtype=np.float64)
+            other=np.ascontiguousarray(reference[selected],dtype=np.float64)
+            zeros=np.zeros(len(score),dtype=np.float64)
+            scores={h:{'native':score,'et252':other,'r1':zeros,'ref259':zeros} for h in ('head_5','head_15')}
+            return {'fold_id':name,'decision_ns':c['decision_ns'][selected],
+                'all_parent_decision_ns':c['all_parent_decision_ns'],'labels':np.ascontiguousarray(large[selected]),'scores':scores}
+        every=np.ones(len(tag),dtype=bool);overall.append(make(every,high,c['fold_id']))
+        fold_counts={'fold_id':c['fold_id']}
+        for value,label in ((False,'nonpositive'),(True,'positive')):
+            select=(tag>0)==value
+            require(select.any(), 'REGIME_EMPTY_STATE')
+            stratified.append(make(select,c['et_score'],str(c['fold_id'])+'_'+label))
+            fold_counts[label]={'parents':int(select.sum()),'large_events':int(large[select].sum())}
+        counts.append(fold_counts)
+    return {'overall':overall,'stratified':stratified,'counts':counts}
+
+
 def synthetic(owner, dtypes):
     cases = []
     values = np.array([-50.001,-50.,-25.,-10.,-5.,-1.,-.001,0,.001,1,5,10,25,50,50.001])
