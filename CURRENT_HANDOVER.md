@@ -13,8 +13,9 @@ Programrot:
 
 10-minuttersutfall kan nå forberedes fra to lagrede femminuttersutfall med
 delt prisrad og eksplisitt avrundingsusikkerhet; bps må sammensettes, ikke
-adderes direkte. En syntetisk engangskontroll er åpnet, men ikke utført.
-Ingen lagrede datapayloads, modellforwards eller trening er åpnet.
+adderes direkte. 27 syntetiske kontroller bestod, inkludert prisrad-,
+tids-, 15min-paritets- og bpskontroll. Engangsadgangen er konsumert.
+Ingen lagrede datapayloads, modellforwards eller trening ble åpnet.
 
 
 Forskningskontrakt for første gunstige quote-bevegelse er implementert separat

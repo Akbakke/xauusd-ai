@@ -37977,7 +37977,7 @@
     "test_data_used": false
   },
   "direction_10_saved_endpoint_source": {
-    "status": "SOURCE_ONLY_SYNTHETIC_NOT_RUN",
+    "status": "SYNTHETIC_27_PASS_NO_GENUINE_DATA",
     "source_admission": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_SAVED_OWNER_SOURCE_ADMISSION_20261027_001.json",
       "sha256": "dd32770901f0f258c68b7bd55bdc3ed6249bb2fe8d7a68757ef685733dc35a4f"
@@ -37990,27 +37990,40 @@
       "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_direction_saved_horizons_v1.py",
       "sha256": "83bbbbf8108a60201a84e20ab5d676723d6f9eaf6558dc1aa71ee2d58de45229"
     },
-    "synthetic_execution_authorized": true,
+    "synthetic_execution_authorized": false,
     "saved_payload_reads_authorized": false,
     "model_forwards_authorized": false,
     "training_authorized": false,
-    "test_control_authorized": false
+    "test_control_authorized": false,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_SAVED_ENDPOINT_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
+      "sha256": "47adad315c0b4f5ead0b7652c5415f5ceb56824a40c4913d9198db4019d1609f"
+    }
   },
   "direction_10_saved_endpoint_synthetic": {
-    "status": "ADMITTED_SYNTHETIC_ONLY",
+    "status": "COMPLETE_CONSUMED_27_SYNTHETIC_CASES",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_SAVED_ENDPOINT_SYNTHETIC_PLAN_20261027_001.json",
       "sha256": "fffdbbe8ca281e84ca8ccd790441835361a51fef7927d516aea3aeb753772f0c"
     },
-    "execution_authorized": true,
-    "synthetic_execution_authorized": true,
+    "execution_authorized": false,
+    "synthetic_execution_authorized": false,
     "saved_payload_reads_authorized": false,
     "model_forwards_authorized": false,
     "training_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "test_control_authorized": false
+    "test_control_authorized": false,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_SAVED_ENDPOINT_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
+      "sha256": "47adad315c0b4f5ead0b7652c5415f5ceb56824a40c4913d9198db4019d1609f"
+    },
+    "original_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_SAVED_ENDPOINT_SYNTHETIC_20261027_001/TERMINAL.json",
+      "sha256": "45151b45913c4a52866dde1a1cdd5f61e2df86fea68302e2b964ac1acbd17507"
+    },
+    "test_data_used": false
   }
 }
