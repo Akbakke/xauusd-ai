@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T11:21:53.154866+00:00",
-  "status": "DIRECTION_MINUTE_TARGET_SYNTHETIC_ADMITTED",
+  "observed_utc": "2026-10-27T11:33:51.470119+00:00",
+  "status": "DIRECTION_MINUTE_TARGET_SOURCE_QUALIFIED_MAGNITUDE_SUPERVISION_NEXT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "One fixed CPUaudit qualification:36synthetic endpoint tests for explicit1..60targets, including10; no actual market payload/model/fit/update.120sworker/150souter. Preserve baseline and all guards.",
+  "next_action": "Prepare the separately bound signed-bps mean supervision over existing1/5/15targets; preserve P(UP), prefix-only scales, B16, seed/order and exposure. Minute target synthetic002is COMPLETE/consumed. No numerical or training launch admitted; qualify fresh function/state before a matched comparison.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -244,8 +244,8 @@
     "predeclared_small_move_majority_supported": false
   },
   "current_work": {
-    "operator_request": "27.10 presisering: pris ved1og5minutter relativt til entry er relevant. Behold opp/ned-målet og definer nødvendige tillegg presist; ikke anta at målet er hovedårsaken.",
-    "current_activity": "Attempt001 consumed after pytest configuration write guard,0tests. Only unused logging plugin disabled; identical36synthetic endpoint cases freshly admitted as002.",
+    "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
+    "current_activity": "Minute endpoint source qualified:36synthetic cases passed; one-shot002consumed. Next: bind signed-bps supervision at unchanged1/5/15before a matched comparison.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -271,14 +271,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_NOT_COMPLETE_PATH_TARGET_ALIGNMENT_AND_DIRECTION_CAUSE_UNRESOLVED",
+    "gc_goal_status": "ACTIVE_NOT_COMPLETE_MAGNITUDE_SUPERVISION_AND_DIRECTION_CAUSE_UNRESOLVED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Fixed saved-target bps/loss allocation premise test; no fit, forward or training.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_20261027_001_RUNTIME",
+    "latest_terminal_role": "Synthetic minute endpoint target-source qualification; no genuine data, native model or fit.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002_RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_VERIFIED_TERMINAL_001.json",
-      "sha256": "ade489fd0871d6a1213a19fdaa341d5ad60cbf1f9409e295d2d21b6e44998b6a"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_VERIFIED_TERMINAL_002.json",
+      "sha256": "721d64e9ce17ffe44d8d7fea19d1dfac2fe73bcd59f988d5a49767bdc12c4cfc"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -298,7 +298,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No runtime blocker. Signed-bps task alignment, representation and amount/stability of forward signal remain unresolved; next target contract requires source qualification and fresh numerical admission.",
+    "current_blocker": "No runtime blocker. Current native learner still discards mid_return_bps. Magnitude supervision, weak/unstable signal and representation learning remain unresolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17573,8 +17573,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_VERIFIED_TERMINAL_001.json",
-      "sha256": "ade489fd0871d6a1213a19fdaa341d5ad60cbf1f9409e295d2d21b6e44998b6a"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_VERIFIED_TERMINAL_002.json",
+      "sha256": "721d64e9ce17ffe44d8d7fea19d1dfac2fe73bcd59f988d5a49767bdc12c4cfc"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -21016,34 +21016,34 @@
   "latest_terminal_receipt": {
     "schema_version": "gx1_verified_terminal_metadata_envelope_v1",
     "status": "COMPLETE",
-    "observed_utc": "2026-10-27T10:50:04.306511+00:00",
+    "observed_utc": "2026-10-27T11:32:13.025496+00:00",
     "exit_code": 0,
     "exit_code_source": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_20261027_001_RUNTIME/OUTER_TERMINAL.json",
-      "sha256": "4856d041f9103e3e4b4d82db2291ad7fe63aca34aeadcfac2e90a7d0f6e4d0ea"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002_RUNTIME/OUTER_TERMINAL.json",
+      "sha256": "66a8b7954413bfa84d24679a954d1f21237628312f996f5d8a177c2c5d50ec53"
     },
     "worker_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_20261027_001/TERMINAL.json",
-      "sha256": "593add808281cd5c0eb2f3c4e1c8d4c0259b7de05f62426be8978ea8a8db623d"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002/TERMINAL.json",
+      "sha256": "1fb97f6dde6773821b3fd8d23237ffaba3a8a618d50fc5d39266c3e600a3b901"
     },
     "result": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_20261027_001/SUMMARY.json",
-      "sha256": "a3919cf57c0db85341eee1ae3e12b4cd6dfa1afe90d11f22d5385c5061e461ad"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002/SUMMARY.json",
+      "sha256": "f95c6a7f1a9ae66be6a9d0ab040364060a7f09fcb1bd063e1ab9f3ca90dcaf42"
     },
     "actual_root_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
-      "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_ROOT_REVIEW_002.json",
+      "sha256": "d482d66de2cd0c3b593a78f6d1d61f69910266bbc5a74a7c21ae01fc31f422db"
     },
     "source_unchanged": true,
     "source_bookend_scope": {
-      "source_head": "31540e604705e1eda47849a25480889804efa91a",
-      "policy_sha256": "80fc0ccf9977fee435539472968bd89d79c30580b6023a98f3091ce2808acd81",
+      "source_head": "ed0bb832f4a85e6019f89fba5aa9e0266ed0392d",
+      "policy_sha256": "fbc27888a3c83a6d2838dc24906b2e09aaf2bdf82b9b00ca63443907079d482e",
       "verified_before_closure": true
     },
     "native_training_started": false,
     "direction_improvement_measured": false,
     "test_data_used": false,
-    "role": "Verified summary of original worker and capped outer terminal, not a replacement receipt."
+    "role": "Verified summary of original worker and capped outer terminal; synthetic endpoint-source qualification only."
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -36758,7 +36758,7 @@
     }
   },
   "direction_minute_target_source": {
-    "status": "SOURCE_PREPARED_FROZEN_FOR_SYNTHETIC",
+    "status": "QUALIFIED_SYNTHETIC_ONLY",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SOURCE_DESIGN_001.json",
       "sha256": "d2f607f8af95ac44421983eb0fc36c450544cf38015279634895fb18d191a504"
@@ -36771,23 +36771,35 @@
     "execution_authorized": false,
     "saved_payload_reads_authorized": false,
     "native_training_authorized": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_ROOT_REVIEW_002.json",
+      "sha256": "d482d66de2cd0c3b593a78f6d1d61f69910266bbc5a74a7c21ae01fc31f422db"
+    }
   },
   "direction_minute_target_synthetic": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_PLAN_002.json",
       "sha256": "32505183268ba5f8dc090424e10ca8aa25a261b07ad3277e2b249c801519493e"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "saved_payload_reads_authorized": false,
     "genuine_fits_authorized": false,
     "native_forwards_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_ROOT_REVIEW_002.json",
+      "sha256": "d482d66de2cd0c3b593a78f6d1d61f69910266bbc5a74a7c21ae01fc31f422db"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_VERIFIED_TERMINAL_002.json",
+      "sha256": "721d64e9ce17ffe44d8d7fea19d1dfac2fe73bcd59f988d5a49767bdc12c4cfc"
+    }
   },
   "direction_minute_target_synthetic_attempt001": {
     "status": "FAILED_CONSUMED",

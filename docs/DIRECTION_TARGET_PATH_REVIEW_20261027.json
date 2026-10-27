@@ -3,7 +3,7 @@
   "status": "TARGET_TRIGGER_REVIEW_UPDATED_WITH_COMPLETED_TERMINAL_READOUT_NEGATIVE_PRIMARY",
   "role": "User-requested independent direction/bps/trigger review, including10minutes and proposed1..60minute endpoint curve.",
   "evidence_scope": "Original independent source/contract/aggregate review, now reconciled with one separately admitted qualified CPU frozen-readout comparison. Root inspected source and JSON aggregates; the bounded worker alone read five saved TRAIN NPZ archives and performed three fixed CPU fits. No native forward/update or raw-data read.",
-  "primary_conclusion": "Endpoint direction is valid, but sign-only training discards bps magnitude. The fixed terminal readout improved TRAINfit without supported laterAUC5gain. The new saved-target audit rejects the predeclared <=1bp majority-of-loss premise; small-move domination is not a supported explanation. Weak/unstable forward signal, upstream representation learning and the broader target mismatch remain unresolved. No sign bug or economic edge established.",
+  "primary_conclusion": "Endpoint direction is valid. Current native BCE uses identical supervision for +0.1bp and +50bp at the same logit; the training adapter drops stored bps magnitude. This is a verified task limitation, not a proven cause of weak AUC. Continuous price movement does not establish conditional predictability. The <=1bp-majority premise was rejected, and a refitted frozen linear head did not improve later ranking. The minute projector now passes36synthetic tests for explicit1..60targets including10; native magnitude supervision remains the next direct change.",
   "active_target": {
     "formula": "m(D)=(bid_open(D)+ask_open(D))/2; y_h=sign(m(D+h)-m(D)); h in {1,5,15}; D=M5 bar_start+5min.",
     "eligible": "Observed, sign nonzero, and exact terminal timestamp strictly before own prefix cutoff.",
@@ -343,7 +343,7 @@
     "proposed_complement": "Expected signed return in bps and uncertainty at each fixed horizon, with observed zero returns retained for magnitude supervision. Quote-side costs belong to a separately explicit action-value definition. Do not select a loss scale or weight ad hoc.",
     "path_quality": "Report favorable movement, prior adverse movement and timing separately. Keep the existing first-maximum definition explicit; do not replace it with first-passage semantics by relabeling.",
     "flat": "Abstention is a decision under insufficient expected net benefit or confidence. Endpoint zero and missing outcome are not automatic FLAT labels.",
-    "implementation_now": "Definition and audit only. No change to target generation, model heads, optimizer, loss or runtime authorities.",
+    "implementation_now": "Pure endpoint target projector supports explicitly selected minutes1..60with36synthetic cases passed. No genuine expanded targets, native heads, optimizer or loss changed. Native baseline remains1/5/15sign-only.",
     "anchor_horizons_minutes": [
       1,
       5,
@@ -447,7 +447,7 @@
       "last_minute": 60,
       "step_minutes": 1
     },
-    "implementation_status": "Definition and source review only. Native10/30/60or full1..60outputs have not been implemented or measured; training remains closed.",
+    "implementation_status": "Pure endpoint projector implemented and synthetically qualified, including10and full1..60. Genuine targets not materialized or compared; native10/30/60and full1..60outputs remain unimplemented. Training is closed.",
     "common_origin": "Every R_h uses the same causal M5 decision D and the same M1 opening midpoint m(D), not the previous minute or the previous horizon.",
     "endpoint_formula": "R_h=10000*(m(D+h)-m(D))/m(D). Indexed opening quote timestamps are exact; subminute quote age is not supplied by these aggregates.",
     "return_between_forecast_points": "R_(a->b)=10000*(R_b-R_a)/(10000+R_a). This algebra uses realized endpoints, not a valid tradable forecast obtained by subtracting marginal quantiles or claiming clairvoyant turning-point entries.",
@@ -476,16 +476,26 @@
       {
         "file": "gx1/contracts/entry_direction_price_projection_v1.py",
         "lines": [
-          73,
-          107,
-          108,
-          109,
-          115,
-          127,
-          144,
-          147
+          18,
+          19,
+          20,
+          21,
+          40,
+          80,
+          87,
+          121,
+          122,
+          124,
+          146,
+          147,
+          148,
+          154,
+          157,
+          158,
+          167,
+          174
         ],
-        "binding": "Decision/end clocks, fixed three-column midpoint labels and source-row identity."
+        "binding": "Explicit selected horizon axis, exact D+h clocks, common-entry midpoint return, observed/source identity and distinct legacy/nonlegacy schema; synthetic qualification only."
       },
       {
         "file": "gx1/contracts/entry_native_direction_research_v1.py",
@@ -651,25 +661,52 @@
     }
   },
   "next_step_proposal_not_admitted": {
-    "question": "Make the requested1..60minute signed-bps target explicit, including10, while preserving the valid endpoint-direction baseline.",
-    "smallest_next_step": "Source-only preparation of one explicit horizon/return contract reusing qualified clock and target owners. No extra diagnostics of the failed tiny-move-majority premise.",
-    "fixed_definition": "R_h=10000*(mid(D+h)-mid(D))/mid(D), h=1..60, same causal M5 decision D; report anchors1,5,10,15,30,60.",
-    "required_checks": [
-      "Exact old1/5/15values, masks and source identity preserved.",
-      "10meansD+10; no interpolation, trading-bar shift or summing simple bps.",
-      "Observed zero, missing entry/endpoint and cutoff-censoring remain distinct.",
-      "Rise/return and later-decline examples preserve the common origin; later short requires its own causal origin.",
-      "Future horizon weighting explicit;60labels are correlated and do not give intraminute order."
+    "question": "Does explicit signed-bps supervision improve later predictions on identical observations, compared with unchanged sign-only learning?",
+    "smallest_next_step": "Bind a separate signed-bps mean readout and its loss/target/state/report contract over the existing shared hidden state; retain original1/5/15,B16,seed,presentation order,optimizer and one-pass exposure. Qualify exact target ingress and loss gradients before a genuine paired run.",
+    "concrete_candidate": {
+      "output": "Retain logit_up with its original P(UP|observed nonzero) meaning. Add three unbounded signed-bps conditional-mean predictions mu_h from the same undetached native hidden state.",
+      "target": "Reuse saved mid_return_bps for the exact same parents and clocks; do not recompute or interpolate. Include observed mature zero returns in the bps component, while preserving the existing BCE mask.",
+      "loss": "L = L_direction_BCE + L_bps, where L_bps=sum_eligible(((mu_h-R_h)/s_h)^2)/N_bps. Candidate relative coefficient1is fixed in advance, not selected on later rows.",
+      "scale": "s_h is RMS(R_h) computed only from the own training prefix and strictly mature observed targets, then frozen. No later-fold/full-TRAIN scaling. Zero, empty or nonfinite scale rejects before optimizer.",
+      "units_and_gradients": "mu_h and target remain bps. At equal prediction and scale, dL_bps/dmu=2*(mu-R)/(N_bps*s_h^2), so0.1and50bps produce different supervision. RMS does not guarantee equal gradient size versus BCE; report both components separately.",
+      "tradeoff": "Squared error targets the conditional mean and can be dominated by rare large errors. Report residual contributions in the already fixed bps bands without filtering or changing the loss after seeing later results.",
+      "uncertainty": "A mean output is not uncertainty. A later explicit distribution/interval component needs its own score and calibration; do not derive confidence or trade authority from mu alone.",
+      "reuse_limit": "Reuse the established TRAIN-RMS arithmetic, not the old dynamic path owner whole-TRAIN population or quote-side target contract.",
+      "initialization": "Changed function needs a fresh bound initialization and complete state/optimizer identity. Old checkpoints must not be relabeled; ensure shared initialization and RNG/dropout exposure are matched."
+    },
+    "synthetic_checks": [
+      "Same-logit BCE gradients equal for+0.1and+50, while the signed-bps residual/gradient differ; mirror negative targets.",
+      "Missing and immature values contribute no loss/gradient; observed zero contributes to magnitude without becoming a FLAT class.",
+      "Exact parent/time/sign/bps consistency and prefix-only scale; empty/zero-RMS scope rejects.",
+      "One native forward, undetached shared hidden, separate P(UP) and bps outputs, frozen unused legacy decoder and exact new resume identity."
     ],
-    "later_comparison": "Magnitude supervision, horizon extension and one-versus-three exposure are separate one-factor comparisons at matched chronology; no automatic30epochs.",
+    "later_fixed_comparison": {
+      "first_scope": "Existing first chronological prefix and exact later cohort; existing inputs,1/5/15horizons,B16,seed,order,optimizer and exposure. Any initial runtime qualification must have fresh finite bounds.",
+      "return_reference": "Own-prefix constant mean and zero-return forecast; saved signed-bps targets. Report raw bps MSE/MAE and prefix-scaled MSE per horizon with numerator/count.",
+      "direction_reference": "Unchanged sign-only native, own prior, ET252 and R1 on identical original masks. Preserve AUC/logloss/Brier and class coverage; mean sign is not a calibrated UP probability.",
+      "primary": "Predeclare5minute later squared-error comparison and paired UTC-day/week uncertainty. Direction improvement additionally requires a supported later AUC5gain; lower TRAINloss or return error alone is not directional edge.",
+      "all_horizons": "Report1and15alongside5; correct confirmatory contrasts and preserve all results. Do not choose best minute, outcome band, threshold or fold after seeing results.",
+      "economic_scope": "No trading or economic-edge claim from midpoint forecasts. Costs, path timing and a later causal action rule remain separate."
+    },
     "stops": [
-      "Stop target qualification on any clock/sign/unit/source/mask or legacy parity defect.",
-      "No raw/mixed2026source or saved payload access without fresh bounded numerical admission.",
-      "No native model change or launch is authorized by this closure.",
-      "No threshold, favorable outcome band or best minute selection after seeing results."
+      "Stop on any source/time/sign/unit/mask/prefix or baseline parity defect.",
+      "Stop numerical work at existing resource/time caps; no budget expansion or relaunch of consumed units.",
+      "No larger multi-fold campaign if the fixed initial comparison lacks later benefit; preserve a negative result rather than trying more epochs/thresholds.",
+      "No simultaneous60horizon or30epoch change, no genuine payload/model access without fresh bounded admission, no CONTROL/TEST/Exit/trading."
     ],
     "execution_authorized": false,
     "saved_payload_reads_authorized": false,
     "native_training_authorized": false
+  },
+  "completed_minute_target_qualification": {
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_ROOT_REVIEW_002.json",
+      "sha256": "d482d66de2cd0c3b593a78f6d1d61f69910266bbc5a74a7c21ae01fc31f422db"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_VERIFIED_TERMINAL_002.json",
+      "sha256": "721d64e9ce17ffe44d8d7fea19d1dfac2fe73bcd59f988d5a49767bdc12c4cfc"
+    },
+    "status": "36synthetic endpoint cases passed; target projector supports1..60. Native outputs/loss remain1/5/15sign-only; genuine extension not materialized."
   }
 }

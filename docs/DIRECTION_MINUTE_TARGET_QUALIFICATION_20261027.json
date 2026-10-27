@@ -1,0 +1,65 @@
+{
+  "schema_version": "gx1_minute_target_synthetic_root_review_v1",
+  "observed_utc": "2026-10-27T11:32:13.025496+00:00",
+  "status": "COMPLETE_SYNTHETIC_ONLY_CONSUMED",
+  "source_head": "ed0bb832f4a85e6019f89fba5aa9e0266ed0392d",
+  "frozen_policy_sha256": "fbc27888a3c83a6d2838dc24906b2e09aaf2bdf82b9b00ca63443907079d482e",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_PLAN_002.json",
+    "sha256": "32505183268ba5f8dc090424e10ca8aa25a261b07ad3277e2b249c801519493e"
+  },
+  "original_terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002/TERMINAL.json",
+    "sha256": "1fb97f6dde6773821b3fd8d23237ffaba3a8a618d50fc5d39266c3e600a3b901"
+  },
+  "original_outer_terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002_RUNTIME/OUTER_TERMINAL.json",
+    "sha256": "66a8b7954413bfa84d24679a954d1f21237628312f996f5d8a177c2c5d50ec53"
+  },
+  "original_claim": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002/INVOCATION_CLAIM.json",
+    "sha256": "2b661e8e673516db98e0559d3b2df0417c9459e7ba7bb42d5c8fa242bff21c2b"
+  },
+  "summary": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002/SUMMARY.json",
+    "sha256": "f95c6a7f1a9ae66be6a9d0ab040364060a7f09fcb1bd063e1ab9f3ca90dcaf42"
+  },
+  "source_policy_unchanged": true,
+  "all_plan_source_pins_verified": true,
+  "cgroup_absent": true,
+  "owner_absent": true,
+  "original_lock_identity_verified_and_free": true,
+  "claimed_invocations": 1,
+  "completed_invocations": 1,
+  "relaunch_allowed": false,
+  "qualification_passed": true,
+  "test_cases_passed": 36,
+  "counters": {
+    "Dataset_constructions": 0,
+    "native_backwards": 0,
+    "native_forwards": 0,
+    "native_model_constructions": 0,
+    "native_optimizer_updates": 0,
+    "payload_open_attempts": 0,
+    "source_reads": 0,
+    "synthetic_query_calls": 5,
+    "unapproved_fits": 0
+  },
+  "worker_elapsed_seconds": 4.611985958999867,
+  "outer_elapsed_seconds": 5.124317865998819,
+  "implemented_scope": "Existing pure endpoint projector accepts explicit elapsed minutes1..60, including10, with unchanged1/5/15default and distinct nonlegacy schema.",
+  "verified_semantics": [
+    "Exact synthetic legacy-column parity and source-row identity.",
+    "Common entry origin for rise/return and mirrored decline; later entry rebases its denominator.",
+    "Observed zero, unavailable quote and strict cutoff censoring remain distinct.",
+    "D+10 means ten elapsed minutes; intraminute extremes do not become endpoint labels.",
+    "Invalid horizon types/order/duplicates, clock overflow and legacy adapter misuse fail."
+  ],
+  "genuine_targets_materialized": false,
+  "genuine_legacy_parity_measured": false,
+  "native_heads_or_loss_changed": false,
+  "native_training_started": false,
+  "direction_improvement_measured": false,
+  "economic_edge_qualified": false,
+  "test_data_used": false
+}

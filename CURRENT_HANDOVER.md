@@ -12,17 +12,19 @@ Programrot:
 
 ## Aktuell status
 
-DIRECTION_MINUTE_TARGET_SYNTHETIC_PLAN_002 er engangsadmittért, ikke startet.
-Forsøk 001 er FAILED/consumed før teststart: Pytests standardlogg ble avvist
-av skrivevakten. Kun den ubrukte logg-pluginen er deaktivert. Fasit- og
-testkode er uendret; originaler bevares, 001 relanseres aldri.
-Eksisterende prisfasiteier støtter nå eksplisitte minutter 1–60, inkludert 10,
+DIRECTION_MINUTE_TARGET_SYNTHETIC_20261027_002 er COMPLETE/claimed/consumed.
+Original worker og capped outer avsluttet med exit 0. Alle 36 fokuserte
+syntetiske tester bestod; worker 4,612 s, outer 5,124 s. Kilde og policy var
+uendret; cgroup/eier er borte, originallåsens identitet er kontrollert og ledig.
+Forsøk 001 bevares som FAILED før teststart og relanseres aldri.
+Eksisterende prisfasiteier støtter eksplisitte minutter 1–60, inkludert 10,
 med uendret 1/5/15-default og egen schema-identitet for andre horisontvalg.
-36 fokuserte syntetiske kontroller er bundet: originalparitet, oppgang/retur,
-klokker, null/manglende/cutoff og feil horisontakse. CPU audit 4G/512M, én tråd,
-64 tasks, 120 s worker / 150 s outer. Ingen ekte payloads, modellkall eller fit.
-Native head, loss, state og læringsrute er uendret; ingen trening er admittért.
-Kilde og policy fryses ved commit før denne kontrollen.
+Testene dekker gammel syntetisk paritet, oppgang/retur og speilvendt fall,
+klokker, felles entry-opphav, null/manglende/cutoff og feil horisontakse.
+Ingen ekte payloads, native-kall, fit eller optimizersteg i denne enheten.
+Native head/loss/state er uendret. Ingen ekte utvidet fasit er materialisert.
+Se docs/DIRECTION_MINUTE_TARGET_QUALIFICATION_20261027.json og bundne originaler.
+Begge engangsautoritetene er lukket; ingen trening er admittért.
 
 DIRECTION_BPS_ALLOCATION_20261027_001 er COMPLETE/claimed/consumed.
 Original worker og capped outer avsluttet med exit 0. Worker brukte 14,0709 s:
@@ -100,7 +102,8 @@ Ingen fortegnsfeil er funnet i den undersøkte mål-/modell-/losskjeden.
 1/5/10/15/30/60; foreslått full fasitkurve er hvert minutt 1–60 fra samme M5-entry:
 R_h = 10000 * (mid(D+h)-mid(D)) / mid(D), D = M5 bar_start + 5 minutter.
 Den målte native-modellen har fortsatt bare 1/5/15-utganger.
-10/30/60 og fulle 1–60-utganger er ikke implementert eller målt.
+Native 10/30/60 og fulle 1–60-utganger er ikke implementert eller målt.
+Selve prisfasiteieren støtter nå domenet; ekte fasitparitet gjenstår.
 
 Endepunktsretning er gyldig: tidligere endepunkter kan se oppgangen selv om
 et senere endepunkt returnerer til entry. Dagens BCE gir derimot samme
@@ -119,21 +122,28 @@ intraminuttrekkefølge. Senere short krever en ny kausal beslutning.
 
 ## Neste minste steg
 
-Kildearbeid: gjør den foreslåtte signerte bps-/horisontkontrakten eksplisitt,
-inkludert 10 minutter og domenet 1–60, ved gjenbruk av eksisterende klokke- og
-fasiteiere. Kontroller gamle 1/5/15-verdier/masker, felles entry-opphav,
-D+10/D+60, null/manglende/modenhet og oppgang/retur-eksemplet.
-Ingen genuin numerisk enhet eller native-trening er admittért av denne avslutningen.
+Bruker presiserte at +0,1 og +50 bps ikke skal gi samme læringsinformasjon.
+Prioriter et separat signert bps-mål ved uendrede 1/5/15-horisonter.
+Minste kandidat er tre betingede middelverdiutganger i bps fra samme hidden,
+med prefiksfryst RMS-normalisert kvadratfeil i tillegg til uendret BCE.
+Konkrete formel, masker, gradientkontroller, initialisering, referanser og
+stopp står i docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json.
+Dette er neste design, ikke implementert eller numerisk admittért.
+Middelverdi er ikke et usikkerhetsmål eller en handelsbeslutning.
+Kvadratfeil kan overvekte sjeldne store feil; de faste bps-båndene rapporteres,
+men brukes ikke til etterpåvalgte filtre eller et nytt terskelsøk.
 
-Deretter må bps-supervisjon, horisontutvidelse og én-mot-tre epoker testes som
-separate faktorer med samme observasjoner, kronologi, eksponering og uendret
-baseline. Første størrelsessammenligning beholder gamle horisonter.
-Ingen automatisk 30-epokerskjøring, beste-minutt-seleksjon eller terskelsøk.
+Først må mid_return_bps faktisk nå dette tapet, med eksakt samme foreldre/
+klokker og kun egen prefiksmoden fasit. Behold P(UP)-semantikken og ta med
+observerte nuller i bps-komponenten uten å lage en FLAT-fasit av dem.
+Ny funksjon krever fersk baseline/state/resume-kvalifisering. Ikke relabel gamle
+checkpoints. Ingen genuin numerisk enhet eller native-trening er admittért her.
 
-Eksakt 10-fasit kan eventuelt bygges av en kvalifisert 5+5-kjede. Minutter som
-mangler i eksisterende arkiver krever kvalifisert TRAIN-M1-kilde og avgrenset
-admisjon; aldri interpolasjon eller selvstendig åpning av Parquet med senere
-2026-data. Ikke gjenta den avsluttede små-bevegelse-målingen.
+Bps-supervisjon, horisontutvidelse og én-mot-tre epoker er separate faktorer
+med samme observasjoner, kronologi og eksponering. Ingen automatisk 30 epoker.
+Eksakte nye minutter krever kvalifisert TRAIN-M1-kilde og avgrenset admisjon;
+aldri interpolasjon eller selvstendig åpning av blandet 2026-Parquet.
+Ikke gjenta den avsluttede små-bevegelse-målingen.
 
 ## Bevarte bevis og grenser
 
