@@ -203,9 +203,10 @@ og foreslår to pass med samme data, rekkefølge, AdamW og RNG. Eksisterende
 må kvalifiseres uten å svekke gammel kontrakt. Designet åpner ikke kode,
 checkpoint, modell eller trening.
 
-Et avgrenset neste steg er admittért kun for ren pass-/cursor-/steptelling og
-syntetiske tester. Eksisterende énpassfunksjon og alle treningsporter beholdes;
-dette åpner ikke checkpointmigrering, native kall eller optimizersteg.
+En uintegrert forberedelse for pass-/cursor-/steptelling ble fjernet: den ga
+ikke i seg selv svar på retningsedge. Mer støttekode utsettes til en konkret
+1-mot-3-pass-sammenligning er aktuell. Eksisterende énpassfunksjon og alle
+treningsporter beholdes; eksponeringssammenligningen er ikke utført.
 
 ## Bps-hodets separate retningsrangering
 
