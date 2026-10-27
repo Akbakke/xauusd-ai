@@ -213,6 +213,14 @@ Bevis: `PROBABILITY_LEVEL_DIAGNOSIS_002.json` SHA-256
 Policyens referanse til førsteanalysen er samtidig rettet til aktuell filhash;
 tidligere hash pekte på en eldre dokumentversjon, ikke på en modellfil.
 
+Eksisterende GC-M5-bok-OFI var merket observert på 17192 av de samme
+17197 kvalifiserte radene; fortegn alene ga AUC .498132. Fortegn av kjent
+volumdelta og bok-midrespons ga .491888/.493144. Dette er utforskende
+punktverdier uten intervaller: observasjonsmasken beviser ikke full dekning
+eller siste-minutt-aktualitet, og måler ikke kombinasjoner eller årsaksbidrag.
+Bevis `COMPACT_GC_SIGNS_DIAGNOSIS_001.json` SHA-256
+edf74e390f25fde88c0c3de64389746c70c79cdcf29215b4010417ea819a565e.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/

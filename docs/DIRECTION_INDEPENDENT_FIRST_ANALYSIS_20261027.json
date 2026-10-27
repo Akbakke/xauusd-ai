@@ -66,6 +66,10 @@
     "probability_level_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/PROBABILITY_LEVEL_DIAGNOSIS_002.json",
       "sha256": "87f7853fc719bcb9bad987d36f01a155feaa8fad22b1b39550454d379e8e58c6"
+    },
+    "compact_gc_signs_diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/COMPACT_GC_SIGNS_DIAGNOSIS_001.json",
+      "sha256": "edf74e390f25fde88c0c3de64389746c70c79cdcf29215b4010417ea819a565e"
     }
   },
   "execution_authorized_by_report": false,
@@ -164,6 +168,15 @@
       ],
       "finding": "On the same 17197 eligible later five-minute rows, mean model probability UP was 0.495043 and observed UP fraction 0.515788. Model logloss 0.693514 is close to 0.693509 for a constant at the model cohort mean, versus 0.692740 for the fixed TRAIN prevalence.",
       "implication": "The cohort-average offset accounts arithmetically for most of this observed score gap, but this descriptive decomposition does not establish cause. A strictly increasing calibration preserves continuous-score AUC; a decision-threshold shift leaves those underlying score rankings unchanged; assess ranking and calibration separately. Do not select a calibration on this reused development cohort."
+    },
+    {
+      "id": "F11",
+      "type": "EXPLORATORY_EXISTING_COMPACT_GC_SIGNS",
+      "evidence": [
+        "compact_gc_signs_diagnosis"
+      ],
+      "finding": "On 17197 mature nonzero five-minute fold1 later-development targets, the last closed M5 book-OFI tag had 17192 observed and 5 unknown. Ranking by its sign produced AUC 0.498132. Known-trade delta and book-mid-response signs produced 0.491888 and 0.493144 on the same rows.",
+      "implication": "The existing OFI field was generally marked observed, but validity is not a guarantee of full within-bar coverage or last-minute freshness. These descriptive sign-only results have no intervals and do not establish importance or reject continuous, nonlinear, combined, fresher or other-timeframe signals."
     }
   ],
   "main_cause_established": false,
@@ -194,7 +207,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T20:34:01.759609+00:00",
+  "updated_utc": "2026-10-27T20:41:28.767136+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,
