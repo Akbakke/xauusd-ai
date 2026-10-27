@@ -221,12 +221,19 @@ eller siste-minutt-aktualitet, og måler ikke kombinasjoner eller årsaksbidrag.
 Bevis `COMPACT_GC_SIGNS_DIAGNOSIS_001.json` SHA-256
 edf74e390f25fde88c0c3de64389746c70c79cdcf29215b4010417ea819a565e.
 
-Én avgrenset lesekjøring er admittért for allerede aktive GC-M5-felters
-kildealder og bokdekning på fold1s lagrede 2025-Q1-foreldre. Kun Parquet-
-radgrupper helt innen perioden leses; grensegrupper hoppes over. Ingen ny
-indikator, modell, fit, CONTROL eller TEST. Aldersfeltene viser profil-/
-spotbasis-kilder, ikke siste faktiske GC-quote. Plan og worker er hashbundet
-i `independent_direction_gc_context_clock_20261027`; engangskjøring.
+GC-M5-kildeklokke på 17128 kvalifiserte fold1-foreldre: profil-snapshot-alder
+var 0 på alle; spotbasis-alder var høyst ett minutt på 17111, eldre på 13
+og manglet på fire. Bokdekning var full på 16977, delvis på 146 og manglet
+på fem. Siste M5-OFI-fortegn stemte med lokal input på alle valgte rader.
+Profilklokken er snapshottilgjengelighet, ikke siste quote; full bokstøtte
+beviser heller ikke siste quote eller executionlatens. Ingen variasjon i
+profilalder og bare 13 eldre basisrader betyr at tilført verdi av ferskere
+informasjon fortsatt ikke er målt. 69 kvalifiserte rader ble ikke koblet;
+grense-radgrupper ble hoppet over. Kun én gjenbrukt fold, ingen modell/fit.
+Uavhengig aritmetikk-/kildekontroll, uten ny rådatareplay:
+`GC_EXISTING_CONTEXT_CLOCK_REVIEW_001.json`, SHA-256
+ae221fc07ce2da847d62907de4fb3501afa1bfd271da3546aba99f473387e4e3.
+Engangskjøringen er konsumert; CONTROL, TEST og treningsporter er stengt.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat

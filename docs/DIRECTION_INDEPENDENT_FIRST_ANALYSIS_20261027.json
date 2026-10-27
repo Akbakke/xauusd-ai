@@ -70,6 +70,14 @@
     "compact_gc_signs_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/COMPACT_GC_SIGNS_DIAGNOSIS_001.json",
       "sha256": "edf74e390f25fde88c0c3de64389746c70c79cdcf29215b4010417ea819a565e"
+    },
+    "existing_gc_clock_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_RESULT_001.json",
+      "sha256": "43a293ba718b3de1775744e8db3b6196bb9984596ebbd1022c1c0ad0f9ba9c67"
+    },
+    "existing_gc_clock_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_REVIEW_001.json",
+      "sha256": "ae221fc07ce2da847d62907de4fb3501afa1bfd271da3546aba99f473387e4e3"
     }
   },
   "execution_authorized_by_report": false,
@@ -177,6 +185,16 @@
       ],
       "finding": "On 17197 mature nonzero five-minute fold1 later-development targets, the last closed M5 book-OFI tag had 17192 observed and 5 unknown. Ranking by its sign produced AUC 0.498132. Known-trade delta and book-mid-response signs produced 0.491888 and 0.493144 on the same rows.",
       "implication": "The existing OFI field was generally marked observed, but validity is not a guarantee of full within-bar coverage or last-minute freshness. These descriptive sign-only results have no intervals and do not establish importance or reject continuous, nonlinear, combined, fresher or other-timeframe signals."
+    },
+    {
+      "id": "F12",
+      "type": "MEASURED_EXISTING_GC_CONTEXT_AVAILABILITY_SCOPE_LIMIT",
+      "evidence": [
+        "existing_gc_clock_result",
+        "existing_gc_clock_review"
+      ],
+      "finding": "On 17128 eligible fold1 2025-Q1 rows, existing profile snapshot age was 0 minutes on all rows; spot-basis age was at most one minute on 17111, older on 13 and missing on 4. BBO coverage was full on 16977, partial on 146 and missing on 5; local and last-closed-M5 OFI tags matched on all joined eligible rows.",
+      "implication": "These are source snapshot clocks and accepted support, not the last actual quote timestamp or future execution latency. Profile age has no variation here, and 13 older basis cases are too few to establish an incremental benefit. Latest-minute information value remains unmeasured; no indicators or models changed."
     }
   ],
   "main_cause_established": false,
@@ -207,7 +225,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T20:41:28.767136+00:00",
+  "updated_utc": "2026-10-27T20:46:52.431363+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

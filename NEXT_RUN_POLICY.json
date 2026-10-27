@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "EXISTING_GC_CONTEXT_CLOCK_READ_ONLY_ADMITTED_TRAINING_CLOSED",
+    "status": "EXISTING_GC_CONTEXT_CLOCK_COMPLETE_EXPOSURE_DEFERRED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_gc_context_clock_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37204,7 +37204,7 @@
     },
     "first_analysis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
-      "sha256": "aa28047750f9331253475528bb1613d14f4b9334b918db97baff3f0fe601747c"
+      "sha256": "ecc0733480a284f14b276be31484b2748317dbe951276404d84f4128518927bb"
     },
     "native_0u_metadata_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
@@ -38439,7 +38439,7 @@
     "test_control_authorized": false
   },
   "independent_direction_gc_context_clock_20261027": {
-    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_PLAN_001.json",
     "plan_sha256": "bc58b5882a13a98305aff7cd24ccee48fe25538f183092ed37629a52b3ad0ee8",
     "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_WORKER_001.py",
@@ -38452,6 +38452,16 @@
     "test_control_authorized": false,
     "broker_authorized": false,
     "new_indicators_authorized": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_RESULT_001.json",
+      "sha256": "43a293ba718b3de1775744e8db3b6196bb9984596ebbd1022c1c0ad0f9ba9c67"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_REVIEW_001.json",
+      "sha256": "ae221fc07ce2da847d62907de4fb3501afa1bfd271da3546aba99f473387e4e3"
+    }
   }
 }
