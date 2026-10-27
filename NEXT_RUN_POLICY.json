@@ -38329,5 +38329,23 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_CALENDAR_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
       "sha256": "d33f867c677c8af3a4e67c2b298322125847abb1e31653d0db126184d3969db3"
     }
+  },
+  "direction_10_cross_head_actual": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_ACTUAL_PLAN_20261027_002.json",
+      "sha256": "7f148230852a7ee179a65de554f0cb92289b1169a4fac656f99d5dd2f4784c06"
+    },
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": true,
+    "raw_data_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_control_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
   }
 }

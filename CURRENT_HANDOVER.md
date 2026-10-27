@@ -17,8 +17,9 @@ syntetiske engangskontrollen bestod 8 tilfeller og er konsumert. En senere
 kildekontroll fant at ukeblokker på tvers av folder ble resamplet uavhengig,
 og at kalenderen ble valgt etter kvalifiseringsmasken. Kilden er rettet til
 felles kalendervekter før maskering. Rettelsen bestod 10 syntetiske tilfeller,
-og engangsadgangen er konsumert. Senere payloadanalyse krever separat adgang.
-Ingen ekte 10min-skårer eller dokumentert retningsforbedring foreligger.
+og engangsadgangen er konsumert. Fersk avgrenset adgang til de seks lagrede
+TRAIN-payloadene er åpnet, men sammenligningen er ennå ikke kjørt. Ingen ekte
+10min-skårer eller dokumentert retningsforbedring foreligger.
 
 
 10-minuttersutfall kan nå forberedes fra to lagrede femminuttersutfall med
