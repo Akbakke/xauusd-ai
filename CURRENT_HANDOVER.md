@@ -156,7 +156,7 @@ er forhåndsspesifisert i
 /home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_DESIGN_20261027_001.json.
 5min er fast primær; 1/15min er sekundære. Samme observasjoner, parrede
 dag-/ukeblokker og uendret baseline brukes. Mean-bps er ikke sannsynlighet.
-Fire syntetiske tilfeller bestod. Eksplisitt kontroll av feil retningsfasit og
-enklasses utvalg er lagt til; ny kvalifisering og faktisk måling gjenstår.
+Fire syntetiske tilfeller bestod. Ny, utvidet syntetisk kvalifisering er
+admittért; faktisk måling fra lagrede utganger gjenstår.
 Ingen ny modellkjøring, trening, terskeltilpasning eller payloadlesing er
 autorisert av designet. Resultatene blir utviklingsdiagnostikk, ikke edge.
