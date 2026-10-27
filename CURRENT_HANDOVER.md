@@ -496,3 +496,10 @@ autorisert av designet. Resultatene blir utviklingsdiagnostikk, ikke edge.
 Ny separat nullstegskontroll 002 er admittert på reparert kilde: 256 faste
 TRAIN-rader, 16 forwards og null optimizersteg. Den tidligere 001 er konsumert.
 Trening er fortsatt stengt; resultat krever opprinnelige guard-/terminalkvitteringer.
+
+Nullstegskontroll 002 er FULLFØRT og KONSUMERT på reparert kilde. Alle 256
+TRAIN-prediksjoner var bitidentiske; modell, buffere, AdamW, RNG og moduser
+ble bevart. 16 forwards, null optimizersteg, vakt PASS, oppstartsoppgave
+deaktivert. Bevis DIRECTION_TERMINAL_CONTINUATION_ZERO_UPDATE_PROOF_20261027_002.json
+SHA-256 4afa60e4f9cac17b6b69c672491f504538b7daf19a419aeb030da8e1eba018fe.
+Dette er teknisk paritet, ikke retningsedge. Fersk 1-mot-3-oppskrift kreves.
