@@ -9,6 +9,20 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+Fersk terminal-only-protokoll er forhåndsbundet i
+F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001.json: komplett terminal-prefix mot
+allerede bevart terminal_later_full. Primær sammenligning er senere AUC5
+for nytt fast lineært hode mot originalt hode, med paret dag/uke-usikkerhet.
+Original åtte-enhetsstudie og alle originale kvitteringer bevares.
+
+Bare første faste terminal-prefix-del er nå admittért: [0,15872) i original
+presentasjonsrekkefølge, 992 B16-forwards, 0 reverse/optimizer/fit. De 57
+kildeeierne er uendret; 86 beståtte syntetiske kontroller gjenbrukes.
+Ingen modell-/mål-/lossendring. Kanonisk kampanje må bindes til ren HEAD,
+ledig maskin og fersk fysisk boot før start; kampanjen er ennå ikke startet.
+Maks 12000s intern og 13800s ytre vakt; alle øvrige vakter består.
+Readout-fit og de øvrige delene er ikke åpnet av denne engangstillatelsen.
+
 Brukerens siste presisering 27.10 er innarbeidet: 10 minutter er med i
 faste sammenligningspunkter 1/5/10/15/30/60. En kurve for hvert minutt 1–60
 er definert fra samme M5-entrytid; dette endrer ikke M5-beslutningsrytmen.
@@ -42,7 +56,8 @@ En 1-mot-3-epokers sammenligning på uendret BCE er fortsatt en separat
 test av eksponering. Horisonter, bps-supervisjon og epoch-antall endres ikke
 samtidig. Ingen automatisk 30-epokerskjøring. Åtte familier og D1/makro
 beholdes; M5/M15/H1/H4/D1 finnes allerede i faktisk Entry-rute.
-Modell-, payload-, forward-, fit- og treningsporter forblir lukket.
+Bare den eksakte uttrekkstillatelsen øverst åpner payload/model-forward.
+Fit, reverse, optimizersteg og trening forblir lukket.
 
 Tre av åtte faste F-uttrekksenheter er COMPLETE/consumed:
 - terminal_later_full001: 17 288 rader, 1 081 B16-forwards, alle originale senere
@@ -57,8 +72,8 @@ Alle tre har null reverse/optimizer/fit. Siste originalkvitteringer,
 57 kildeeiere, fryst policy, tilstand/inputbokender og tellere er verifisert.
 Prosesser/cgroup er borte, originallåsen ledig og Windowsoppgaven er
 Disabled/LastResult0/Restart0. Den tredje engangsautoriteten er nå også lukket.
-Neste partisjon er ikke admittért. Oppfølgingsautomatikken er PAUSED fordi
-ingen kjøring pågår. Alle opprinnelige artefakter beholdes; ingen relansering.
+Neste tillatelse står øverst. Oppfølgingsautomatikken er foreløpig PAUSED;
+ingen ny kjøring er startet. Alle opprinnelige artefakter beholdes; ingen relansering.
 
 Siste review: F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/
 ACTUAL_ROOT_REVIEW.json, SHA256
