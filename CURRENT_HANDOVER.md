@@ -9,7 +9,18 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-Kildekontrollen finner samme MTF-cache og siste-avsluttede-rad-regel i referanse og native. D1-konstanten er felles. Én TRAIN-only kontroll av 2622 lokale felt og sesjonskategori er admittért gjennom DIRECTION_LOCAL_SNAPSHOT_PARITY_PLAN_001: 120 sekunder, fire ferdige inputstier, null modeller/fit/optimizer. Kilde og policy fryses under kjøringen. Se DIRECTION_ET_NATIVE_SOURCE_CLOCK_PROOF_001 og DIRECTION_LOCAL_SNAPSHOT_PARITY_DESIGN_001.
+DIRECTION_LOCAL_SNAPSHOT_PARITY_001 er COMPLETE/consumed. På alle 118 249
+TRAIN-rader er 2 622 lokale felt og sesjonskategorien sammenlignet: 310 167 127
+F32-celler, inkludert 142 490 045 maskeceller. Ingen bitavvik eller numeriske
+avvik; identiske projiserte hashes. Seks syntetiske kontroller bestod før
+payloadlesing. Kontrollen tok 11,0002 sekunder, uten fit, forward eller optimizer.
+Originale kvitteringer er kontrollert; kilde/policy/input uendret, cgroup borte,
+tunglås ledig og engangsautoriteten lukket.
+
+Kildekontrollen finner samme MTF-cache og siste-avsluttede-rad-regel i referanse
+og native; D1-konstanten er felles. Ingen nye MTF-/rådatasett-payloads er åpnet.
+Normalisering bruker samme asinh-/maskesemantikk med forskjellige prefiks-
+fitpopulasjoner. Ingen bestemt projeksjon, gate eller læringsfeil er bevist.
 
 DIRECTION_NATIVE_REFERENCE_RANK_003 er COMPLETE/consumed.6lagredearkiver,
 96blokkrang/96vektederang,25.48s,0fit/forward/optimizer; samme67112foreldre,
@@ -21,10 +32,11 @@ AUCnative=.5037353142,ET252=.5130918603,diff=-.0093565462.
 Ukeintervall[-.0158669540,-.0018177844],dag[-.0156047236,-.0028827483].
 252 bruker32ExtraTrees/depth8/minleaf256 og3345kompakte snapshotfelt.
 Dette dokumenterer en betinget rangeringsmangel mot denne faste referansen,
-men isolerer ikkeinput/normalisering/representasjon/optimalisering.
+men isolerer ikke normalisering, representasjon eller optimalisering.
+Den nyere paritetskontrollen ovenfor avkrefter forskjeller i lagrede lokale input.
 Fem andre kontraster inkluderer0; ingen nyfeature-/horizonseleksjon.
 5mET-treffprosent er fortsatt underalltidUP. Ingen økonomiskedge eller
-uavhengigfremtidsbekreftelse. Neste arbeid er kun presis kildemapping.
+uavhengig fremtidsbekreftelse. Gjeldende neste steg står under årsaksanalysen.
 001s metadatafeil er konsumert;002ble erstattet førlaunch på kjent priorformel;
 003 bevarer begge originale formler, med residualer<3.3e-16 oguendrede skårer.
 
@@ -46,24 +58,20 @@ Gjeldende årsaksanalyse er tilgjengelig i docs/DIRECTION_1_60_CURRENT_ANALYSIS.
 Arbeidsmålet er retning ved 1, 5, 15, 30 og 60 minutter; ingen robust fremtidig
 eller økonomisk edge er dokumentert. Root arbeider alene.
 
-DIRECTION_1_60_CAUSE_SYNTHESIS_005 avløser004 og er kopiert til
-docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. 005 retter bare en foreldet
-statussetning og samordner aktuell policy; ingen ny måling. Native-underutnyttelse ved5m er
-nå første hypotese; mekanismen er ikke identifisert. Ingen modell er forbedret.
+DIRECTION_1_60_CAUSE_SYNTHESIS_006 avløser005 og er kopiert til
+docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Forskjeller i de lagrede lokale
+råinputene, maskene og sesjonskategoriene er avkreftet i full TRAIN-kohort.
+Dette utelukker ikke en felles kildefeil. Første hypotese er nå behandling,
+representasjon eller læring etter disse inputene. DIRECTION_ET_NATIVE_SOURCE_CLOCK_PROOF_001
+og DIRECTION_NORMALIZATION_FUSION_SOURCE_TRACE_001 avgrenser kildebeviset.
+Ingen ny MTF-forward eller bedre native-modell er målt.
 
-DIRECTION_ET_NATIVE_DECLARED_INPUT_MAP_001 kontrollerer allefirefold:
-3318råreferansefelt→3345kodetfelt;3316ikke-konstante navn/indekser samsvarer,
-session_idfinnes, ogD1session_change_flag=0 er referansens ene eksplisitte
-konstant.0manglende feltdeklarasjoner. Native har nominalembeddings.
-Referansen normaliserer gjentatte aktuelleHTFverdier perM5forelder;native
-normaliserer unike fysiske historiske rader. Dette er ulik design, ikke påvistfeil.
-Navn/indekser bekrefter ikke råverdier, masker, availability eller hiddenbevaring.
-
-Neste steg er å kvalifisere eksakte eksisterendeTRAIN-only artefakteiere og
-sisteavsluttedeMTFrader for én deterministisk verdi-/maske-/clock-paritet.
-Ingen payloadlesing, raw/mixed2026Parquet, forwards, fits eller kodeendring er
-admittért av denne kildestatusen. Hvis inputparitet holder, begrunnes først da
-en matched frosset readout-kontroll før nytrening. Retningsedge1–60 er uferdig.
+Neste skille er fast readout på frosset trent representasjon mot originalt hode,
+med identiske prefiks- og senere observasjoner. Avklar eksisterende komplette
+representasjoner og minste gjennomførbare uttrekk før ny avgrenset admisjon.
+Ikke gjenta råinputkontrollen, relanser F001/F002, eller anta at ufullstendige
+F-data dekker fullkohorten. Alle nye numeriske tillatelser er lukket.
+Retningsedge1–60 er uferdig.
 
 DIRECTION_NATIVE_R1_SAVED_RANK_ROOT_REVIEW_002 bekrefter COMPLETE/consumed:
 67112samme senereTRAIN-foreldre;5lagredeprediksjonsarkiver,48blokkrangpar,
@@ -74,8 +82,8 @@ Native15m99%uke = [.500978,.515873],dag = [.500074,.517614]: svakt betinget
 rangeringssignal i gjenbrukt utvikling, daggrensen er svært nær.5.
 Parvisnative−R1AUC5/15 inkluderer0; ikke påvist dårligere native-rangering og
 heller ikke bevist likeverdighet. Native proper scores er dårligere ennR1 og
-egenprior ved5/15 i beggeblokkmetoder. Informasjonstap som hovedårsak er derfor
-nedprioritert. Sannsynlighetskontrollen som dette begrunnet er nå fullført og konsumert,
+egenprior ved5/15 i beggeblokkmetoder. Denne R1-sammenligningen begrunnet
+sannsynlighetskontrollen, som nå er fullført og konsumert,
 som beskrevet øverst. Rangeringen forble uendret; ingen nykalibrering er åpen.
 001ble erstattet førlaunch på contiguous-label-kontrakten;002er nåconsumed.
 
@@ -87,7 +95,8 @@ referansekolonner gjenskapes eksakt. 5lagredeNPY/NPZ-lesinger,1TRAIN-mmap,
 borte og tunglås ledig. Alle tillatelser er konsumert, ingen relaunch.
 Dette avkrefter den undersøkte ret1-leveringsfeilen i ferdige inputs;
 checkpoint-buffer, faktisk torch-normalisering og hidden-bevaring er ikke målt.
-Den nye parvise rangmålingen ovenfor prioriteres nå foran en hidden-probe.
+Den etterfølgende ET252-sammenligningen og lokale inputpariteten er nå fullført.
+Gjeldende neste steg er kontroll av frosset representasjon, som beskrevet øverst.
 Ingen native-kjøring er admittért.
 
 Tidligere DIRECTION_1_60_CAUSE_SYNTHESIS_001 samlet fire hypoteser;002ovenfor
