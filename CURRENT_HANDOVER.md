@@ -451,6 +451,9 @@ Den er ennå ikke fysisk forhåndskontrollert eller admittért for trening.
 Recipe SHA-256 61f0911ae432813af809a03134f1e7c7ee9b0ff1f7a05c972b256ac1a034dd45.
 Ingen checkpoint eller markedsdata ble åpnet ved denne forberedelsen.
 
+En engangskontroll av forhåndskontrollens filvakt er admittért med bare
+syntetiske stier. Faktisk checkpoint-hashing og trening er fortsatt stengt.
+
 Den planlagte fellesgaten for 1 mot 3 pass krever både AUC, logloss og Brier
 på dag- og ukeblokker. Feil i én komponent betyr ikke at retningsrangeringen
 ikke forbedret seg. Behold fellesgaten, men forhåndsbind og rapporter 5min AUC
