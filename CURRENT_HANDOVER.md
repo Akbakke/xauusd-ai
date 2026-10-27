@@ -11,6 +11,11 @@ Programrot:
 
 ## Aktuell status
 
+Fast 10min-krysshodeanalyse er kildeforberedt for fire TRAIN-utviklingsfolder:
+native5/15-skårer sammenlignes med ET252 på identiske modne 10min-fasiter.
+Syntetisk kvalifisering er ikke utført, og ekte payloadlesing er ikke åpnet.
+
+
 10-minuttersutfall kan nå forberedes fra to lagrede femminuttersutfall med
 delt prisrad og eksplisitt avrundingsusikkerhet; bps må sammensettes, ikke
 adderes direkte. 27 syntetiske kontroller bestod, inkludert prisrad-,
