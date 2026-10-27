@@ -317,6 +317,13 @@ er FEILET OG KONSUMERT; minste rettelse krever ny separat binding. Bevis:
 de75d6834b048a922e7f15e1b7fa4105f293718209ec48608e172aed5bfe2e18.
 Ingen modell/trening, nye modellindikatorer, CONTROL, TEST, Exit eller broker.
 
+En ny, separat hashbundet lesekjøring er admittért kun for å rette
+lagringsfeilen: et eget tidsvariabelnavn, uendret rangering, utvalg og mål.
+Original 001 er fortsatt FEILET/KONSUMERT. Utvalgsstørrelsen 2530 er kjent;
+ingen tidligere AUC ble publisert. Null fit, modell, nye indikatorer,
+CONTROL, TEST, Exit og broker. Ny status/autoritet:
+`independent_direction_last_m1_trade_count_repair_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/

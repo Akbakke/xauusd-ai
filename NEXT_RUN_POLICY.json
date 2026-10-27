@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "LAST_M1_TRADE_COUNT_PUBLICATION_FAILED_CONSUMED_TRAINING_CLOSED",
+    "status": "LAST_M1_TRADE_COUNT_TIMER_REPAIR_SEPARATE_READ_ONLY_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "independent_direction_last_m1_trade_count_repair_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -38745,5 +38745,24 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_FAILURE_REVIEW_001.json",
       "sha256": "de75d6834b048a922e7f15e1b7fa4105f293718209ec48608e172aed5bfe2e18"
     }
+  },
+  "independent_direction_last_m1_trade_count_repair_20261027": {
+    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_STUDY_PLAN_002.json",
+    "plan_sha256": "f6193f8457bca65344da7a63bcb6bce5bf786cce8a38089ca44b44bb7c4679da",
+    "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_STUDY_WORKER_002.py",
+    "worker_sha256": "f7efd3735b04f8a647e626149354788b870f16d753f5d683f6c8519a9e742de9",
+    "scope": "Fresh separately bound repair for publication only; same fixed M1/M5 trade-record comparison, no parameter or population changes.",
+    "previous_qualified_row_count_known": 2530,
+    "previous_auc_published": false,
+    "max_invocations": 1,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_control_authorized": false,
+    "exit_authorized": false,
+    "new_indicators_authorized": false,
+    "broker_authorized": false,
+    "relaunch_allowed": false
   }
 }
