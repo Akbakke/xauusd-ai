@@ -1,0 +1,154 @@
+{
+  "schema_version": "gx1_direction_target_path_source_review_v1",
+  "status": "SOURCE_REVIEW_COMPLETE_TARGET_ALIGNMENT_GAP_PROVEN_NO_NEW_FIT",
+  "role": "Focused response to user 2026-10-27: +50bps excursion then return to entry, later opposite opportunity, and whether thirty epochs could help.",
+  "evidence_scope": "Source, contracts and original aggregate terminal metadata only. No model construction, forward, backward, optimizer, raw data or checkpoint payload access.",
+  "primary_conclusion": "Current endpoint-sign research is implemented consistently with its narrow contract but does not fully represent the requested trading price-path skill. This does not explain by itself why endpoint AUC is weak.",
+  "active_target": {
+    "formula": "m(D)=(bid_open(D)+ask_open(D))/2; y_h=sign(m(D+h)-m(D)); h in {1,5,15}; D=M5 bar_start+5min.",
+    "eligible": "Observed, sign nonzero, and exact terminal timestamp strictly before own prefix cutoff.",
+    "loss": "Sum BCEWithLogits over eligible cells divided by eligible cell count, with target 1 for positive sign and 0 for negative sign.",
+    "magnitude_and_path_used_in_loss": false,
+    "flat_class_trained": false,
+    "zero_outcome": "Distinct observed tie in metadata, excluded from BCE, not a learned FLAT action.",
+    "costs_in_target": false,
+    "native_path_heads_supervised": false
+  },
+  "findings": [
+    {
+      "id": "T1_ENDPOINT_PATH_MISMATCH",
+      "classification": "Proven mismatch between current research objective and user strategy objective; not a demonstrated sign inversion or failed implementation of endpoint BCE.",
+      "mechanism": "Equal start/end prices produce identical endpoint labels despite different intervening tradable excursions. Tiny and large positive endpoint moves share one class. Separate sampled earlier horizons may capture part of an excursion but do not represent the full ordered path.",
+      "evidence": [
+        "gx1/contracts/entry_direction_price_projection_v1.py:73,107-110,127-144",
+        "gx1/contracts/entry_native_direction_research_v1.py:28-55,187-212",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:29-31,129-141,272-287"
+      ],
+      "counterevidence": "The endpoint task was explicitly introduced as a simpler diagnostic. It remains informative about endpoint prediction. Path mismatch alone cannot explain low endpoint AUC or prove an exploitable path edge.",
+      "smallest_decisive_check": "Source algebra already establishes non-identifiability of an intervening excursion from a single endpoint label. Before an admitted target change, require deterministic synthetic round-trip/monotone/opposite-order/tie cases through target, loss and reported score; no new market experiment needed for this semantic check.",
+      "expected_if_confirmed": "At a returned-to-entry endpoint the current loss excludes that cell while an order-aware path target distinguishes the initial UP opportunity. Extending endpoint horizon to 60min preserves the same structural limitation.",
+      "would_weaken": "A separately active ordered-path target and corresponding evaluated decision loss were found in the actual training path. Current wrapper and loss explicitly exclude them.",
+      "minimum_improvement": "Retain endpoint scores as diagnostics and define the primary Entry target around early favorable movement, preceding adverse movement, timing and side, then verify actual loss consumption."
+    },
+    {
+      "id": "T2_EXISTING_PATH_FIELDS_ARE_NOT_A_COMPLETE_STRATEGY",
+      "classification": "Proven source semantics; its effect on learned performance remains unmeasured.",
+      "mechanism": "Existing MFE and conservative pre-MFE-MAE fields exist but are inactive in the direction wrapper. Pre-MFE-MAE is measured before the first occurrence of the maximum within the query window, not before the first positive move or first favorable amplitude crossing. The older native candidate is predicted terminal net markout minus predicted pre-MFE-MAE, then max across horizons; MFE is not a direct operand.",
+      "evidence": [
+        "gx1/contracts/entry_native_direction_research_v1.py:49-55,95-101,159-160",
+        "gx1/contracts/entry_causal_m1_outcomes_v1.py:487-511,900-941",
+        "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py:4070-4093,4117-4140"
+      ],
+      "counterevidence": "The older dynamic candidate considers multiple horizons, so a correct early endpoint forecast can value the upswing. Existing path components and bounds are reusable. Simply substituting MFE minus MAE can reward both sides in oscillating prices and does not define executable profit.",
+      "smallest_decisive_check": "Trace known synthetic paths through the proposed primary target and loss, including early favorable move followed by drawdown and a larger late maximum. Keep within-M1 high/low ordering unknown rather than inventing ticks.",
+      "expected_if_confirmed": "Targets distinguish a promptly favorable entry from a long adverse move before eventual success; they do not erase the early opportunity solely because the final price returns to entry.",
+      "would_weaken": "A qualified existing active target/loss already makes those distinctions and later causal decisions improve on matched chronological observations.",
+      "minimum_improvement": "Reuse the quote-side path owner and missingness/order bounds; add only the minimum ordered-path supervision needed after an exact target contract is agreed. Do not blindly reactivate the old candidate."
+    },
+    {
+      "id": "T3_TRAINING_DEPTH_UNRESOLVED",
+      "classification": "Plausible undertraining explanation; no thirty-epoch comparison or convergence proof.",
+      "mechanism": "Each baseline starts fresh and consumes one fixed shuffled TRAIN prefix, in B16, once. Chronological separation applies to prefixes and later evaluation, not to minibatch order. AdamW uses constant lr 1e-4, weight_decay 1e-4 and clip norm 1; no scheduler or EMA. More exposure may improve fitting or overfit noise; it cannot repair missing target semantics.",
+      "evidence": [
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:4-7,96-98,394-415",
+        "gx1/contracts/entry_model_native_train_recipe_v1.py:398-422",
+        "gx1/contracts/entry_native_direction_research_state_v1.py:84-117"
+      ],
+      "counterevidence": "Changed weights or lower TRAIN loss do not establish useful learning. One pass does not establish convergence. No new training-depth evidence was collected in this review.",
+      "smallest_decisive_test": "After target qualification, compare exposure depth while fixing target, fresh initial state, prefix normalization, observations, original B16 order, optimizer and learning-rate rule. Predeclare checkpoints 1/3/10/30; first bounded continuation is only to 3. Further stages require their own capacity admission and evidence that extending is justified.",
+      "expected_if_confirmed": "More exposure improves the predeclared target score on the same later chronological cohorts as well as fitting, with stable coverage and paired day/week uncertainty.",
+      "would_weaken": "Only TRAIN improves, or later scores deteriorate relative to one pass and prior/simple references. This weakens the case for spending on more epochs without proving that all longer schedules must fail.",
+      "minimum_improvement": "Use the smallest measured sufficient exposure depth; no broad learning-rate search or automatic 30-epoch launch."
+    }
+  ],
+  "proposed_target_design_not_implemented": {
+    "decision_origin": "Each causal M5 decision with closed M15/H1/H4/D1 and the same eight families plus D1/macro. Re-evaluate at a later eligible M5 decision to recognize the opposite move; no hindsight bottom/top inputs.",
+    "executable_path_definitions": [
+      "r_LONG(D,u)=10000*(bid(D+u)-ask(D))/ask(D)-c_LONG(D,u).",
+      "r_SHORT(D,u)=10000*(bid(D)-ask(D+u))/bid(D)-c_SHORT(D,u).",
+      "Bid/ask already includes spread; c is separately declared additional cost, never a second spread charge.",
+      "For positive favorable amplitude a and adverse amplitude b, tau_plus_s(a)=first u with r_s(D,u)>=a; tau_minus_s(b)=first u with r_s(D,u)<=-b.",
+      "Candidate supervision: probability tau_plus_s(a)<=h and tau_plus_s(a)<tau_minus_s(b), together with time-to-favorable and prior adverse excursion bounds, for each side.",
+      "Amplitude scales must be fixed before outcome inspection, e.g. known-at-D ATR in bps times declared dimensionless constants; no constants or loss weights selected in this review."
+    ],
+    "limitations": [
+      "This is a candidate target representation, not an approved trading rule, fixed stop, take-profit or maximum holding time.",
+      "Same-M1 competing crossings remain order-ambiguous; retain bounded outcomes or mask the order comparison.",
+      "FLAT means abstaining when neither side has adequately supported useful opportunity after costs; endpoint zero is not a FLAT label. Missing outcomes are not FLAT.",
+      "Entry quality and coverage can be evaluated without opening Exit training. Realized long-plus-short capture needs a later causal execution/exit policy and cannot be claimed from MFE.",
+      "M5 decisions cannot guarantee capture of turning points that occur between eligible decisions."
+    ]
+  },
+  "minimal_comparison_sequence": [
+    "Finish exact target/loss/evaluation contract with synthetic price-path acceptance cases, preserving existing endpoint diagnostic and all inputs.",
+    "If numerical work is later admitted, qualify path labels and ambiguity/coverage on the same permitted TRAIN observation IDs; never open mixed later-2026 raw source ad hoc.",
+    "Compare the target change against unchanged baseline with fixed initialization, optimizer exposure and chronological cohorts; no simultaneous epoch/feature/architecture search.",
+    "Only then isolate training depth on the fixed qualified target. Report all predeclared checkpoints, not a retrospectively selected winner."
+  ],
+  "evaluation_and_stops": {
+    "metrics": [
+      "Ordered-path probability proper score and calibration on observable labels",
+      "Timing and pre-favorable adverse excursion with declared masks",
+      "Both-side coverage and abstention under a rule fixed before evaluation",
+      "Endpoint AUC/log-loss retained as secondary diagnostics",
+      "Same-cohort prior/simple reference and always-UP/LONG at longer horizons; no economic claim"
+    ],
+    "uncertainty": "Paired day/week blocks for overlapping targets; repeated development comparisons are not fresh generalization.",
+    "stops": [
+      "Any causal clock, sign, quote-side, unit, maturity or intrabar-order violation stops qualification.",
+      "No checkpoint or threshold selection on TEST or CONTROL; both remain sealed.",
+      "Stop extending exposure on nonfinite/numerical/hardware/time failure or clear later deterioration despite TRAIN improvement.",
+      "Lack of later improvement by the first bounded stage does not justify automatically consuming a thirty-epoch budget."
+    ],
+    "permitted_now": "Source and metadata review only; no new training, model round, target generation or performance test."
+  },
+  "execution_disposition": {
+    "completed_unit": "own0U_prefix_part2_20261027_001",
+    "result_sha256": "9c1b3c6a04ed63fc6204eeeefeb6f46616ae915699538d17db6fdf5b81fc8498",
+    "root_review_sha256": "9d6ac091e992c2d6197350aca33b64f2e6239e40103c7146baf4eb481e0a5ebb",
+    "completed_fixed_units": 3,
+    "required_for_original_f_readout": 8,
+    "consumed_authority_closed": true,
+    "next_partition_admitted": false,
+    "original_prediction_parity_for_part2": null,
+    "original_prediction_parity_note": "No historical saved-prediction target covers this interval. Original bookends and presentation identity are verified; do not claim numerical saved-output parity.",
+    "new_fit_authorized": false,
+    "training_enabled": false,
+    "exit_evaluation": false,
+    "test_data_used": false,
+    "heartbeat": "Paused after original terminal verification; no active run to follow."
+  },
+  "limits": "No edge, causal feature value, thirty-epoch convergence or realized profitability established by this source review. No new numerical sign/label validation on payloads was performed; this is a current-source audit.",
+  "observed_utc": "2026-10-27T05:33:33.720257+00:00",
+  "source_head_before_review": "1540b8a0368be31e8337ae185f904dc3ea42a6b8",
+  "source_evidence": {
+    "gx1/contracts/entry_direction_price_projection_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_price_projection_v1.py",
+      "sha256": "b034ee5b7fcb819c399100957a180737694243fb2a7e938cf36c0cc69b444165"
+    },
+    "gx1/contracts/entry_native_direction_research_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+      "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+    },
+    "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "sha256": "407725139b0df536e30713e560621cb056739753ff401242657d1e836f46982f"
+    },
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_outcomes_v1.py",
+      "sha256": "4cba6a5fb49c518eedd67bd8264af51bb319a3af604aeda483c415d4ea864ac7"
+    },
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+      "sha256": "3e5cea0ef2b77de3384e0779f93ba57ea36743f8dd7b2a392edd39a490606bee"
+    },
+    "gx1/contracts/entry_model_native_train_recipe_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_train_recipe_v1.py",
+      "sha256": "231d9b8f364a1663fb5940e12fdf80855709abe629fcb843e1e1cc6c44afa2f5"
+    },
+    "gx1/contracts/entry_native_direction_research_state_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_state_v1.py",
+      "sha256": "ad9a3f91106aec73faf191320824eae92555918a9e067eea24c8faf6eb407f5e"
+    }
+  }
+}

@@ -9,54 +9,52 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-To av åtte faste uttrekksenheter er COMPLETE/consumed:
-- terminal_later_full001: alle 17 288 trente senere TRAIN-observasjoner,
-  1 081 B16-forwards, alle originale OOF-prediksjonsmedlemmer bitidentiske,
-  2 735,9624 sekunder.
-- own0U_prefix_part1_001: presentasjonsintervallet [0,15872) fra original
-  initialmodell og opprinnelig shuffle-rekkefølge, 992 B16-forwards,
-  kontrollens 256 originale initialprediksjoner bitidentiske, 2 577,0872 sekunder.
+Brukeren presiserte 27.10 at opp/ned gjelder nyttige prisforløp: eksempelvis
++50 bps før retur til start og en senere mulighet motsatt vei. Kildekontrollen
+bekrefter et målavvik: dagens 1/5/15-BCE bruker bare ikke-null fortegn på
+midpoint-endepunkter. Nullutfall utelates, og MFE/pre-MFE-MAE er ikke supervisert
+i forskningshodet. En forlengelse til 60 min eller 30 epoker retter ikke dette
+semantiske gapet. Det beviser ikke årsaken til svak endepunkts-AUC eller edge.
 
-Begge har null reverse, optimizer eller fit. Originale terminalkvitteringer,
-alle 57 kildeeiere, policy, partisjoner, tilstand/inputbokender og tellere er
-verifisert. Prosesser/cgroup er borte, originallåsen ledig og Windowsoppgaven
-Disabled/LastResult0/Restart0. Engangsautoritetene er lukket; ingen relansering.
-Root har bare lest metadata og kilde; de admittérte workerne utførte payloadarbeidet.
+Eksakt analyse: docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json.
+Fortegn, klokke, masker, faktisk loss-konsum, eksisterende path-eier og
+treningsløkken er kildekontrollert. Ingen payload, nye forwards, fit eller
+numeriske forsøk ble åpnet. Én fast shufflet gjennomgang innen hvert
+kronologisk TRAIN-prefiks er bekreftet; konvergens og 30 epoker er ikke målt.
+Neste steg er minste presise path-target/loss-kontrakt med kjente prisbaner,
+inkludert ukjent rekkefølge innen M1. Epochdybde må senere isoleres fra
+målendringen. Ingen ny trenings- eller Exit-autoritet følger av denne analysen.
 
-Siste ACTUAL_ROOT_REVIEW.json er i
-F_FROZEN_EXTRACTION_own0U_prefix_part1_CAMPAIGN_20261027_001,
-SHA256 829fdbd0cb1af56d4e8cd4c5cb1db9aeb73f0b47c0bb2e4e17518e127e6afadf.
-Den bevarte fullprefix-presentasjonshashen er
+Tre av åtte faste F-uttrekksenheter er COMPLETE/consumed:
+- terminal_later_full001: 17 288 rader, 1 081 B16-forwards, alle originale senere
+  prediksjonsmedlemmer bitidentiske; 2 735,9624 sekunder.
+- own0U_prefix_part1_001: [0,15872), 992 B16-forwards, kontrollens 256 originale
+  initialprediksjoner bitidentiske; 2 577,0872 sekunder.
+- own0U_prefix_part2_001: [15872,31744), 15 872 rader, 992 B16-forwards;
+  2 542,6183 sekunder. Ingen historisk prediksjonsfil dekker dette intervallet;
+  originalprediksjonsparitet er derfor null, ikke et målt numerisk PASS.
+
+Alle tre har null reverse/optimizer/fit. Siste originalkvitteringer,
+57 kildeeiere, fryst policy, tilstand/inputbokender og tellere er verifisert.
+Prosesser/cgroup er borte, originallåsen ledig og Windowsoppgaven er
+Disabled/LastResult0/Restart0. Den tredje engangsautoriteten er nå også lukket.
+Neste partisjon er ikke admittért. Oppfølgingsautomatikken er PAUSED fordi
+ingen kjøring pågår. Alle opprinnelige artefakter beholdes; ingen relansering.
+
+Siste review: F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/
+ACTUAL_ROOT_REVIEW.json, SHA256
+9d6ac091e992c2d6197350aca33b64f2e6239e40103c7146baf4eb481e0a5ebb.
+VERIFIED_TERMINAL.json binder exit 0 til originalkvittering og resultat.
+Fullprefix-presentasjonshash er fortsatt
 5a92eba23f101f139b758098e04abdc432e8e3bba032a94a3b0a656a21f0f43f.
-De gjenværende prefixdelene må stemme med denne før full sammenstilling.
+Den tidligere F-planen krever alle åtte enheter og full sammenstilling før
+separat readout-fit; det arbeidet er uferdig og overtar ikke målavklaringen.
+Ingen modellkode, indikator, target eller numerisk oppskrift er endret her.
+86 beståtte syntetiske partisjonskontroller og tidligere timing/paritet gjenbrukes.
 
-F_FROZEN_EXTRACTION_own0U_prefix_part2_RUNTIME_ADMISSION_001 åpner nå én
-ny enhet: originalt presentasjonsintervall [15872,31744), 992 B16-forwards,
-null reverse/optimizer/fit. Denne delen har ingen historisk lagret prediksjonsfil;
-fullprefix-rekkefølgehash og eksakte batchgrenser skal bevares. Konservativ
-projeksjon 6705,63 sekunder består 9600-grensen. Alle opprinnelige boot-,
-capped-, 12000/13800-sekunders- og maskinvarevakter gjelder. Kjør bare denne
-nye identiteten via eksisterende rute, frys kilde/policy og følg omtrent hvert20.minutt.
-Alle åtte faste enheter og eksakt fullkohortsammenstilling kreves før separat
-admittért readout-fit. Samlet beholdes 47 602 prefixforeldre og 17 288 senere
-foreldre per state, 8 114 forwards og opprinnelige batchgrenser.
-Ingen modellkode, indikator eller target er endret i denne bølgen.
-Ingen fit, ny native trening, TEST/CONTROL eller handel er åpnet.
-
-F_FROZEN_READOUT_PARTITION_SYNTHETIC_001 er COMPLETE/consumed:
-86 tilfeller bestod, med bitidentisk syntetisk fullkohortsammenstilling og
-identiske B16-kall. Null ekte data/modell/fit/optimizer. Koden gjenbrukes.
-Timing004 kvalifiserte tidligere eksakt GC-metadatagjenbruk på 256 own0U-rader.
-Fullprefixprojeksjonen overskred grensen; de åtte faste enhetene bevarer hele
-sammenligningen uten å heve noen per-invokasjonsgrense. Eldre kvitteringer beholdes.
-
-Kildepariteten omfatter nå 256 initialobservasjoner og alle 17 288 trente
-senereobservasjoner. Dette er ingen fersk baseline eller dokumentasjon av
-bedre rangering. Readout-sammenligningen skal skille svak utnyttelse i hodet
-fra svak eller tapt retningsinformasjon i representasjonen.
-Vitenskapelige hypoteser er fortsatt DIRECTION_1_60_CAUSE_SYNTHESIS_008,
-med identisk kopi docs/DIRECTION_1_60_CURRENT_ANALYSIS.json.
-Målet er nyttige opp/ned-prognoser ved 1/5/15/30/60 minutter og er uferdig.
+Tidligere retningsfunn står i DIRECTION_1_60_CAUSE_SYNTHESIS_008 og den
+identiske kopien docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. De dokumenterer
+begrensede forskjeller på utviklingsdata, ikke oppnådd Entry- eller handelsedge.
 
 DIRECTION_LOCAL_SNAPSHOT_PARITY_001 er COMPLETE/consumed. På alle 118 249
 TRAIN-rader er 2 622 lokale felt og sesjonskategorien sammenlignet: 310 167 127

@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T04:33:08.584122+00:00",
-  "status": "DIRECTION_F_OWN0U_PREFIX_PART2_001_ONCE_ADMITTED",
+  "observed_utc": "2026-10-27T05:33:33.720257+00:00",
+  "status": "DIRECTION_TARGET_PATH_ALIGNMENT_REVIEW_COMPLETE_NO_FIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -239,8 +239,8 @@
     }
   },
   "current_work": {
-    "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Two fixed extraction units complete and consumed; second initial prefix interval15872:31744 admitted once under unchanged qualified source.",
+    "operator_request": "27.10: Dobbeltsjekk opp/ned-målet mot +50bps og tilbake til start, senere motsatt bevegelse, og om30epoker kan hjelpe. Avklar mål før videre modellarbeid.",
+    "current_activity": "Target/loss source review complete: endpoint-sign BCE does not fully encode requested early favorable price path. Third frozen extraction authority consumed and closed; no next unit or fit admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -266,14 +266,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
+    "gc_goal_status": "ACTIVE_NOT_COMPLETE_PATH_TARGET_ALIGNMENT_AND_DIRECTION_CAUSE_UNRESOLVED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "First fixed own0U prefix piece15872rows,992B16forwards, saved256initial bit parity,0reverse/optimizer/fit.",
+    "latest_terminal_role": "Third fixed extraction unit:15872rows,992B16forwards,0reverse/optimizer/fit. No historical saved-output parity target for this interval.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_20261027_001_RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part1_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
-      "sha256": "6bc83faa2df203b39b8892426e745be254ff513c666d1ce2e6ec62f2611024f0"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
+      "sha256": "eed9b7d444b40d13b956609409abf61831b801b98573f4cb94df93ce94478677"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Full fixed-cohort readout comparison incomplete:2of8units verified; next15872-row initial prefix piece pending existing launch guards.",
+    "current_blocker": "Primary path target/loss/evaluation needs exact qualification. Endpoint weakness, path-signal scarcity and undertraining remain distinct unresolved questions.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Materialize and start only own0U_prefix_part2_001 through existing canonical fresh-boot/capped/signed guards; freeze source/policy, monitor20-minute metadata cadence and verify original terminal before consuming.",
+    "next_action": "Specify the smallest ordered-path target/loss acceptance cases using existing quote-side outcome owner. Keep endpoint diagnostics. Do not resume F partitions or launch extra epochs as a substitute for target alignment.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "One frozen original276own0U prefix interval15872:31744 in original shuffled presentation order;992B16forwards,0reverse/optimizer/fit,12000second worker. No native training, TEST or CONTROL.",
+    "current_training_scope": "Source and metadata review only. No native training, new numerical experiment, further F extraction, TEST, CONTROL or Exit is admitted.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17501,15 +17501,20 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "direction_only_goal": {
-      "status": "ACTIVE_NOT_ACHIEVED",
+      "status": "RETAINED_ENDPOINT_DIAGNOSTIC_SUPERSEDED_AS_PRIMARY_STRATEGY_TARGET",
       "operator_request": "Et mål: retningen. Så tar vi selve trades i2.omgang.",
       "observed_utc": "2026-10-24T06:04:44.651388+00:00",
       "objective": "Forutsi senere prisretning LONG/SHORT med kalibrert sannsynlighet på M5-beslutninger, med samme genuine kausale features/TF. Dokumenter gevinst mot enkle retningsreferanser og prefix-only fit i kronologisk evaluering. Trades/risiko/Exit/MFE/MAE er utsatt.",
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "273onecanonicalprivateGPU4U/resume, no qualificationweightsreuse; fixedchronologicalpure-directionfit only after actual qualification and newscope.",
-      "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed."
+      "next_step": "Use as unchanged endpoint diagnostic only; follow current_direction_objective for primary target qualification.",
+      "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed.",
+      "superseded_by_user_clarification_utc": "2026-10-27T05:33:33.720257+00:00",
+      "superseding_review": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
+        "sha256": "58ecbccae34b104de69a4775aca502402e6ce433724540a5633fa87040a1aeef"
+      }
     },
     "latest_direction_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_FOOTER_METADATA_OUTER_TERMINAL_001.json",
@@ -17564,8 +17569,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part1_20261027_001_RUNTIME/receipts/invocation-0001.json",
-      "sha256": "b1b20d516d6e15817fde0a3d3524129427285bddb8079ea20af894256bf6f52b"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_20261027_001_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "df0e12bf13d40259f026f5510061610d395a7cc36f97fddf63593be9d2a5b465"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -17582,8 +17587,8 @@
     "canonical_guard_child_exit_code": 0,
     "windows_task_last_result": 0,
     "canonical_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part1_20261027_001_RUNTIME/receipts/invocation-0001.json",
-      "sha256": "b1b20d516d6e15817fde0a3d3524129427285bddb8079ea20af894256bf6f52b"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_20261027_001_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "df0e12bf13d40259f026f5510061610d395a7cc36f97fddf63593be9d2a5b465"
     },
     "terminal_exit_code_origin": "Original canonical receipt and signed guard exit0",
     "latest_throughput_measurement_design": {
@@ -17607,8 +17612,8 @@
       "sha256": "97296dc91e9ffb843499eb89f463358407fd6203b457f46d0ef8cfed57e6f7cb"
     },
     "direction_cause_objective": {
-      "authority": "Direct user instruction 2026-10-26: replace prior working objective; investigate direction from 1 to 60 minutes.",
-      "objective": "Finn og dokumenter hvorfor GX1 ikke viser robust retningsedge for XAUUSD på kausale horisonter fra 1 til 60 minutter, og test den minste relevante rettelsen som følger av funnene. Skill feil i data/tid/fortegn/targets fra svakt fremoversignal og dårlig bevaring eller læring av informasjon. Retning er den aktuelle oppgaven; det bredere Entry-pathmålet skal ikke overta denne undersøkelsen.",
+      "authority": "Direct user clarification 2026-10-27: price-path opportunity and causal later reversal, not only terminal sign; reassess training depth.",
+      "objective": "Finn hvorfor GX1 ikke lærer nyttig kausal retning for XAUUSD: gunstig prisbevegelse tidlig, liten ugunstig bevegelse før denne, begge retninger og mulighet til å avstå. Prisforløp innen 1–60 minutter må ikke reduseres til fortegnet ved ett sluttpunkt. Behold endepunktsretning som diagnostikk, og skill målavvik, svakt fremoversignal og utilstrekkelig læring. Ingen Exit eller handel åpnes.",
       "fixed_horizons_minutes": [
         1,
         5,
@@ -17616,9 +17621,8 @@
         30,
         60
       ],
-      "direction_definition": "sign(XAUUSD_M1_open_mid_at_D_plus_h - XAUUSD_M1_open_mid_at_D), with own observed/mature masks and exact wall-clock joins",
       "scope": "M5 decisions; causal closed M15/H1/H4/D1; preserve eight families plus D1/macro; TRAIN and fixed chronological development folds only.",
-      "first_contrast": "Completed fixed S_PRICE66_247 comparison at1/5/15/30/60 on matchedparents. Its designation as B_R1 was incorrect; B_R1 is249local.ret_1 only. Next isolate feature-view factor with exactsamecohorts/method.",
+      "first_contrast": "Current source-only endpoint/path semantic audit is complete. Next qualify the smallest path-target contract before any training-depth comparison.",
       "comparison_requirements": [
         "Report each horizon on its own eligible observations and a predeclared matched-parent intersection; do not choose a winning horizon after seeing outcomes.",
         "Include fixed-prefix prior, class shares, coverage, within-fold AUC, proper scores and paired uncertainty accounting for overlapping targets.",
@@ -17631,13 +17635,20 @@
         "Weak reference results do not prove absence of all nonlinear or temporal information."
       ],
       "deferred": [
-        "Further F partition implementation",
-        "Further throughput changes and timing campaigns",
-        "Entry path/MAE/MFE/Exit changes"
+        "Further F extraction and readout fitting pending priority reassessment",
+        "Throughput work",
+        "Extra epochs before target qualification",
+        "Exit training, execution and trading"
       ],
       "goal_tracker_update": "create_goal rejected because existing goal is unfinished; existing goal not falsely marked complete; this user-directed project objective governs work.",
       "genuine_execution_authorized": false,
-      "test_data_used": false
+      "test_data_used": false,
+      "endpoint_reference_definition": "sign(XAUUSD_M1_open_mid_at_D_plus_h - XAUUSD_M1_open_mid_at_D), with own observed/mature masks and exact wall-clock joins",
+      "strategy_direction_definition": "Early favorable move with preceding adverse excursion and time, evaluated separately for each side from each current causal M5 decision. Exact mathematical target/loss remains to be qualified.",
+      "source_review": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
+        "sha256": "58ecbccae34b104de69a4775aca502402e6ce433724540a5633fa87040a1aeef"
+      }
     },
     "latest_direction_cause_evidence": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
@@ -17668,7 +17679,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
       "sha256": "cb8aefe756ebaabf9661410626bec88746fe5fe63e9f33cad4226fdaea3ac5c1"
     },
-    "current_direction_objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved 1, 5, 15, 30 og 60 minutter. Skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings- eller evalueringsmål. Bevar åtte familier, D1/makro, kausal M5/MTF og forsegling. Handel er utsatt.",
+    "current_direction_objective": "Finn hvorfor GX1 ikke lærer nyttig kausal retning for XAUUSD: gunstig prisbevegelse tidlig, liten ugunstig bevegelse før denne, begge retninger og mulighet til å avstå. Prisforløp innen 1–60 minutter må ikke reduseres til fortegnet ved ett sluttpunkt. Behold endepunktsretning som diagnostikk, og skill målavvik, svakt fremoversignal og utilstrekkelig læring. Ingen Exit eller handel åpnes.",
     "current_direction_cause_synthesis": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_008.json",
       "sha256": "ed4da77dcf102b3bd1de461ad44bd3ba9a07ddea345c4d21585c486fe14fd62d"
@@ -17728,8 +17739,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part1_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
-      "sha256": "829fdbd0cb1af56d4e8cd4c5cb1db9aeb73f0b47c0bb2e4e17518e127e6afadf"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "9d6ac091e992c2d6197350aca33b64f2e6239e40103c7146baf4eb481e0a5ebb"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -17739,10 +17750,18 @@
       "own0U_prefix_part1": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part1_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
         "sha256": "829fdbd0cb1af56d4e8cd4c5cb1db9aeb73f0b47c0bb2e4e17518e127e6afadf"
+      },
+      "own0U_prefix_part2": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
+        "sha256": "9d6ac091e992c2d6197350aca33b64f2e6239e40103c7146baf4eb481e0a5ebb"
       }
     },
-    "frozen_partition_completed_count": 2,
-    "frozen_partition_required_count": 8
+    "frozen_partition_completed_count": 3,
+    "frozen_partition_required_count": 8,
+    "latest_target_path_source_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
+      "sha256": "58ecbccae34b104de69a4775aca502402e6ce433724540a5633fa87040a1aeef"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -35321,12 +35340,12 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forwards_authorized": true,
-    "status": "PARTITION_OWN0U_PREFIX_PART2_001_ONCE_ADMITTED_PENDING_GUARDS",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forwards_authorized": false,
+    "status": "PARTITION_OWN0U_PREFIX_PART2_001_COMPLETE_CONSUMED",
     "unit": "own0U_prefix_part2",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_RECIPE_001.json",
@@ -35343,8 +35362,8 @@
     "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_20261027_001",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_20261027_001_RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "consumed_previous_attempts": [
       {
@@ -35451,7 +35470,23 @@
         "completed_invocations": 1,
         "relaunch_allowed": false
       }
-    ]
+    ],
+    "terminal_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "9d6ac091e992c2d6197350aca33b64f2e6239e40103c7146baf4eb481e0a5ebb"
+    },
+    "canonical_terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_20261027_001_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "df0e12bf13d40259f026f5510061610d395a7cc36f97fddf63593be9d2a5b465"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_20261027_001/RESULT.json",
+      "sha256": "9c1b3c6a04ed63fc6204eeeefeb6f46616ae915699538d17db6fdf5b81fc8498"
+    },
+    "handover_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
+      "sha256": "eed9b7d444b40d13b956609409abf61831b801b98573f4cb94df93ce94478677"
+    }
   },
   "direction_diagnostic_F_cap_route_repair_20261026": {
     "status": "COMPLETE_SOURCE_AND_17_FOCUSED_CASES_CLOSED",

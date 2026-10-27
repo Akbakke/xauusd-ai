@@ -533,6 +533,22 @@ trengs for denne sammenligningen. Ingen nye forwards, refits eller Exit-arbeid.
 
 ## Retningsinformasjon i inputs og modellens lærte prognoser
 
+Operatørpresisering 27.10: Opp/ned må vurderes mot det ønskede prisforløpet,
+inkludert en tidlig gunstig bevegelse som senere reverseres. Følgende 24.–26.10-
+avgrensning beskriver den eksisterende endepunktsdiagnosen, men er ikke lenger
+en tilstrekkelig definisjon av hovedmålet. Kildegjennomgangen i
+`docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json` viser at dagens BCE utelater
+nullutfall, ignorerer bevegelsesstørrelse/path og ikke trener FLAT. Eksisterende
+MFE/pre-MFE-MAE brukes ikke i dette tapet. Pre-MFE-MAE gjelder dessuten første
+forekomst av maksimumet i vinduet, ikke første gunstige terskelpassering.
+
+Avklar minste presise path-target/loss og kjente syntetiske prisbaner før ny
+modellkjøring. En senere motsatt bevegelse krever en ny kausal beslutning;
+MFE er ikke realisert gevinst. Behold 1/5/15/30/60-endepunkter som diagnostikk.
+Mer enn én epoke kan avklare undertrening på et fast mål, men 30 epoker er ikke
+målt og reparerer ikke målbetydningen. Ingen automatisk fler-epoketrening,
+ny payloadlesing, Exit eller handel er åpnet av denne kildeanalysen.
+
 Ren prisretning prioriteres etter operatørpresisering24.10; trades, MFE/MAE og
 Exit er utsatt. En separat forskningskomponent kan bruke uendret native
 forward sitt `entry_q_joint_hidden` til et trelogitthode for245s1/5/15min.
