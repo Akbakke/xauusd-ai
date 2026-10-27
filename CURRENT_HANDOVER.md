@@ -433,6 +433,12 @@ bestod. Ingen ekte checkpoint-/data-/modelltilgang eller kjøring er åpnet;
 fersk eksakt engangsadmisjon og alle vakter kreves for faktisk paritetstest.
 Se direction_continuation_zero_update_source_20261027 i NEXT_RUN_POLICY.json.
 
+Den nye terminal-restorekontrollen er admittért én gang, men ikke startet:
+256 faste TRAIN-observasjoner, 16 forwards, null reverse-/optimizersteg og
+høyst 600 sekunder i selve enheten. Originalcheckpoint og prediksjoner skal
+bevares; kilden fryses ved kampanjebinding. Se dynamic_m5_direction_continuation_zero_update
+i NEXT_RUN_POLICY.json. TEST, CONTROL og trening er stengt.
+
 Den planlagte fellesgaten for 1 mot 3 pass krever både AUC, logloss og Brier
 på dag- og ukeblokker. Feil i én komponent betyr ikke at retningsrangeringen
 ikke forbedret seg. Behold fellesgaten, men forhåndsbind og rapporter 5min AUC
