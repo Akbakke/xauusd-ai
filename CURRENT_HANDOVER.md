@@ -145,3 +145,17 @@ Neste kilde-design skal avgrense fersk egen0U256-paritet før kun manglende
 prefikstredjedel; ingen av disse native enhetene er åpnet ennå.
 Ingen CONTROL/TEST, Exit, broker, ordre, spending eller promotion er åpnet.
 Målet er fortsatt aktivt; fullprefix-konvergens og treningsutvidelse er uavklart.
+
+## Bps-hodets separate retningsrangering
+
+Begge tidligere lagrede bps-sammenligninger beregnet retnings-AUC fra
+logit_up; mean_return_bps ble vurdert med regresjonsfeil, ikke separat
+opp/ned-rangering. Det utelukker ikke at dette andre hodet rangerer retning
+annerledes. En uforsøkt, eksplorativ kontroll av de to lagrede OOF-utgangene
+er forhåndsspesifisert i
+/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_DESIGN_20261027_001.json.
+5min er fast primær; 1/15min er sekundære. Samme observasjoner, parrede
+dag-/ukeblokker og uendret baseline brukes. Mean-bps er ikke sannsynlighet.
+Kilde er forberedt; syntetisk kvalifisering og faktisk måling gjenstår.
+Ingen ny modellkjøring, trening, terskeltilpasning eller payloadlesing er
+autorisert av designet. Resultatene blir utviklingsdiagnostikk, ikke edge.
