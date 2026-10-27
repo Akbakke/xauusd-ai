@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "BASELINE_ANALYSIS_COMPLETE_EXPOSURE_DEFERRED_TRAINING_CLOSED",
+    "status": "EXISTING_GC_CONTEXT_CLOCK_READ_ONLY_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "independent_direction_gc_context_clock_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -38437,5 +38437,21 @@
     "model_forwards_authorized": false,
     "training_authorized": false,
     "test_control_authorized": false
+  },
+  "independent_direction_gc_context_clock_20261027": {
+    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_PLAN_001.json",
+    "plan_sha256": "bc58b5882a13a98305aff7cd24ccee48fe25538f183092ed37629a52b3ad0ee8",
+    "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_WORKER_001.py",
+    "worker_sha256": "973a5a3c50411854ccd386ed970fe5eb2bbfef5cfc776fbd70951e0ad3221244",
+    "scope": "Already active GC context fields on saved fold1 OOF parents; read only surface rowgroups wholly within 2025 Q1.",
+    "max_invocations": 1,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_control_authorized": false,
+    "broker_authorized": false,
+    "new_indicators_authorized": false,
+    "relaunch_allowed": false
   }
 }

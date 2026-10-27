@@ -221,6 +221,13 @@ eller siste-minutt-aktualitet, og måler ikke kombinasjoner eller årsaksbidrag.
 Bevis `COMPACT_GC_SIGNS_DIAGNOSIS_001.json` SHA-256
 edf74e390f25fde88c0c3de64389746c70c79cdcf29215b4010417ea819a565e.
 
+Én avgrenset lesekjøring er admittért for allerede aktive GC-M5-felters
+kildealder og bokdekning på fold1s lagrede 2025-Q1-foreldre. Kun Parquet-
+radgrupper helt innen perioden leses; grensegrupper hoppes over. Ingen ny
+indikator, modell, fit, CONTROL eller TEST. Aldersfeltene viser profil-/
+spotbasis-kilder, ikke siste faktiske GC-quote. Plan og worker er hashbundet
+i `independent_direction_gc_context_clock_20261027`; engangskjøring.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
