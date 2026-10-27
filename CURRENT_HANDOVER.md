@@ -24,8 +24,14 @@ ACTUAL_ROOT_REVIEW.json ligger i
 F_FROZEN_EXTRACTION_terminal_later_full_CAMPAIGN_20261027_001,
 SHA256 7622a60449149206ce75d6f2e8eb0c25c67816d011ddee3d0d080730c7713ea7.
 
-Neste minste steg er fersk, avgrenset admisjon for own0U_prefix_part1.
-Den beholder kontrollen mot de opprinnelige 256 initialprediksjonene.
+F_FROZEN_EXTRACTION_own0U_prefix_part1_RUNTIME_ADMISSION_001 åpner nå én
+ny enhet på original276 own0U: presentasjonsintervallet [0,15872) i den
+opprinnelige faste shuffle-rekkefølgen, 992 B16-forwards, null reverse/fit/optimizer.
+De første 256 prediksjonene må være bitidentiske med original INITIAL_TRAIN.
+Konservativ projeksjon 6705,63 sekunder er under 9600-grensen; alle opprinnelige
+boot-, capped-, 12000/13800-sekunders- og maskinvarevakter består. Kjør bare
+denne nye identiteten gjennom eksisterende rute. Frys kilde/policy under kjøringen
+og kontroller status omtrent hvert 20. minutt. Ingen modellkode er endret.
 Alle åtte faste enheter og eksakt fullkohortsammenstilling må være ferdige
 før separat admittért readout-fit. Samlet beholdes 47 602 prefixforeldre og
 17 288 senere foreldre per state, 8 114 forwards og opprinnelige B16-grenser.
