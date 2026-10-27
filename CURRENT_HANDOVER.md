@@ -12,6 +12,15 @@ Programrot:
 
 ## Aktuell status
 
+DIRECTION_MINUTE_TARGET_SYNTHETIC_PLAN_001 er engangsadmittért, ikke startet.
+Eksisterende prisfasiteier støtter nå eksplisitte minutter 1–60, inkludert 10,
+med uendret 1/5/15-default og egen schema-identitet for andre horisontvalg.
+36 fokuserte syntetiske kontroller er bundet: originalparitet, oppgang/retur,
+klokker, null/manglende/cutoff og feil horisontakse. CPU audit 4G/512M, én tråd,
+64 tasks, 120 s worker / 150 s outer. Ingen ekte payloads, modellkall eller fit.
+Native head, loss, state og læringsrute er uendret; ingen trening er admittért.
+Kilde og policy fryses ved commit før denne kontrollen.
+
 DIRECTION_BPS_ALLOCATION_20261027_001 er COMPLETE/claimed/consumed.
 Original worker og capped outer avsluttet med exit 0. Worker brukte 14,0709 s:
 9 lagrede TRAIN-NPZ, 54 proper-score-kall og 362 rangkall. Ingen fit, native

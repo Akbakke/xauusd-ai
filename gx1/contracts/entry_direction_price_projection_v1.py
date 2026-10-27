@@ -16,6 +16,9 @@ from gx1.contracts.entry_causal_m1_outcomes_v1 import (
 from gx1.contracts.entry_direction_snapshot_data_v1 import HORIZONS, MAX_BLOCK_ROWS
 
 SCHEMA_VERSION = "gx1_direction_price_projection_v1"
+CURVE_SCHEMA_VERSION = "gx1_direction_price_projection_minute_curve_v1"
+DENSE_HORIZONS_MINUTES = tuple(range(1, 61))
+REPORT_HORIZONS_MINUTES = (1, 5, 10, 15, 30, 60)
 _MINUTE_NS = 60 * 10**9
 _BAR_NS = 300 * 10**9
 
@@ -27,14 +30,25 @@ def _require(value, reason):
 
 def project_direction_price_endpoints(
     index, *, fill_surface, parent_rows, bar_start_ns, dynamic_entry_m1_row,
+    horizons_minutes=HORIZONS,
 ):
-    """Project fixed1/5/15 endpoints without prices at or beyond the split cutoff.
+    """Project explicit elapsed-minute endpoints before the strict split cutoff.
+
+    Every horizon uses the same M5 decision and opening midpoint. The legacy
+    default remains 1/5/15; callers may explicitly select ordered minutes 1..60.
+    Nonlegacy selections have a separate schema, even if they have three columns.
+    Midpoint bps, sign and observation masks are targets, not action/FLAT labels.
 
     The qualified index is reused, not rebuilt or exhaustively revalidated on
     every block. Parent IDs address the original complete fill surface; passed
     clocks/pointers must match it exactly. Only selected pre-cutoff entry and
     endpoint quotes are inspected. Source row offsets stay explicit.
     """
+    _require(type(horizons_minutes) is tuple and 0 < len(horizons_minutes) <= 60
+        and all(type(h) is int and 1 <= h <= 60 for h in horizons_minutes)
+        and all(a < b for a, b in zip(horizons_minutes, horizons_minutes[1:])),
+        "HORIZON_DOMAIN")
+    width = len(horizons_minutes)
     _require(isinstance(index, DynamicM1PrefixIndex)
         and isinstance(index.source, CausalM1QuoteSource), "QUALIFIED_INDEX")
     offset = index.source_row_offset
@@ -63,7 +77,7 @@ def project_direction_price_endpoints(
     _require(isinstance(bar_start_ns, np.ndarray) and bar_start_ns.dtype == np.int64
         and bar_start_ns.shape == (size,) and np.all(bar_start_ns >= 0)
         and np.all(bar_start_ns % _BAR_NS == 0) and np.all(np.diff(bar_start_ns) > 0)
-        and np.all(bar_start_ns <= np.iinfo(np.int64).max - _BAR_NS - 15 * _MINUTE_NS),
+        and np.all(bar_start_ns <= np.iinfo(np.int64).max - _BAR_NS - max(horizons_minutes) * _MINUTE_NS),
         "BAR_CLOCK")
     _require(isinstance(dynamic_entry_m1_row, np.ndarray)
         and dynamic_entry_m1_row.dtype == np.int64
@@ -104,16 +118,16 @@ def project_direction_price_endpoints(
         entry_ok[before] = declared
         local_entry[before] = np.where(declared, local, -1)
 
-    horizons = np.asarray(HORIZONS, np.int64)
+    horizons = np.asarray(horizons_minutes, np.int64)
     times = decisions[:, None] + horizons[None, :] * _MINUTE_NS
-    elapsed = np.broadcast_to(horizons * 60, (size, 3)).copy()
+    elapsed = np.broadcast_to(horizons * 60, (size, width)).copy()
     allowed = entry_ok[:, None] & (times < cutoff_ns)
-    observed = np.zeros((size, 3), np.bool_)
-    terminal_rows = np.full((size, 3), -1, np.int64)
-    move = np.zeros((size, 3), np.float64)
+    observed = np.zeros((size, width), np.bool_)
+    terminal_rows = np.full((size, width), -1, np.int64)
+    move = np.zeros((size, width), np.float64)
     returns = np.zeros_like(move)
-    signs = np.zeros((size, 3), np.int8)
-    gross = np.full((size * 3, 2), np.nan, np.float64)
+    signs = np.zeros((size, width), np.int8)
+    gross = np.full((size * width, 2), np.nan, np.float64)
     candidates = np.flatnonzero(allowed.reshape(-1))
     if len(candidates):
         target_times = times.reshape(-1)[candidates]
@@ -123,7 +137,7 @@ def project_direction_price_endpoints(
         output = candidates[exact]
         if len(output):
             ends = end[exact]
-            starts = local_entry[output // 3]
+            starts = local_entry[output // width]
             bid0, ask0 = prices["bid_open"][starts], prices["ask_open"][starts]
             bidT, askT = prices["bid_open"][ends], prices["ask_open"][ends]
             _require(all(np.isfinite(v).all() and np.all(v > 0)
@@ -145,12 +159,13 @@ def project_direction_price_endpoints(
             gross[output] = np.column_stack((long_gross, short_gross))
 
     observations = {"endpoint_kind": "terminal_open_inclusive", "side_order": ("long", "short"),
-        "query_entry_rows": np.repeat(parent_rows, 3),
+        "query_entry_rows": np.repeat(parent_rows, width),
         "horizon_minutes": np.tile(horizons, size),
         "terminal_time_ns": times.reshape(-1), "elapsed_wall_seconds": elapsed.reshape(-1),
         "terminal_gross_return_bps": gross,
         "terminal_gross_observed": np.repeat(observed.reshape(-1, 1), 2, axis=1)}
-    result = {"schema_version": SCHEMA_VERSION, "horizons_minutes": HORIZONS,
+    result = {"schema_version": SCHEMA_VERSION if horizons_minutes == HORIZONS else CURVE_SCHEMA_VERSION,
+        "horizons_minutes": horizons_minutes,
         "cutoff_ns_exclusive": cutoff_ns, "source_row_offset": offset,
         "parent_rows": parent_rows.copy(), "bar_start_ns": bar_start_ns.copy(),
         "dynamic_entry_m1_row": dynamic_entry_m1_row.copy(), "decision_ns": decisions,

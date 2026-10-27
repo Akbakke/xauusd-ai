@@ -21,11 +21,11 @@ def _case(frame=None, *, cutoff=None, offset=0, bars=3):
     return index, fill
 
 
-def _project(index, fill, parents=(0,)):
+def _project(index, fill, parents=(0,), **options):
     rows = np.asarray(parents, np.int64)
     return price.project_direction_price_endpoints(index, fill_surface=fill, parent_rows=rows,
         bar_start_ns=pd.DatetimeIndex(fill.iloc[rows].time).as_unit("ns").asi8.copy(),
-        dynamic_entry_m1_row=fill.iloc[rows].entry_m1_row.to_numpy(np.int64, copy=True))
+        dynamic_entry_m1_row=fill.iloc[rows].entry_m1_row.to_numpy(np.int64, copy=True), **options)
 
 
 def _targets(result, index, economics):
@@ -173,3 +173,178 @@ def test_clock_pointer_and_original_quote_tampering_fail(fault, error):
     with pytest.raises(RuntimeError, match=error):
         price.project_direction_price_endpoints(index, fill_surface=fill, parent_rows=rows,
             bar_start_ns=clocks, dynamic_entry_m1_row=pointers)
+
+
+@pytest.mark.parametrize("offset", [0, 37])
+def test_dense_minutes_preserve_legacy_columns_and_quote_identity(offset):
+    index, fill = _case(_m1_frame(periods=90), offset=offset)
+    parents = (0, 2)
+    old = _project(index, fill, parents)
+    dense = _project(index, fill, parents, horizons_minutes=price.DENSE_HORIZONS_MINUTES)
+    assert dense["schema_version"] == price.CURVE_SCHEMA_VERSION
+    assert old["schema_version"] == price.SCHEMA_VERSION
+    assert dense["horizons_minutes"] == tuple(range(1, 61))
+    assert dense["observed"].shape == (2, 60) and dense["observed"].all()
+    columns = [0, 4, 14]
+    for key, value in old.items():
+        if isinstance(value, np.ndarray):
+            candidate = dense[key][:, columns] if value.ndim == 2 else dense[key]
+            assert candidate.dtype == value.dtype and candidate.tobytes() == value.tobytes(), key
+    original = quote.query_dynamic_m1_prefix(index, fill_surface=fill,
+        query_entry_rows=np.repeat(np.array(parents, np.int64), 60),
+        horizon_minutes=np.tile(np.arange(1, 61, dtype=np.int64), 2))
+    obs = dense["terminal_observations"]
+    for key in ("query_entry_rows", "horizon_minutes", "terminal_time_ns", "elapsed_wall_seconds",
+                "terminal_gross_return_bps", "terminal_gross_observed"):
+        assert obs[key].dtype == original[key].dtype
+        assert obs[key].tobytes() == original[key].tobytes(), key
+    select = (np.arange(2)[:, None] * 60 + np.array(columns)[None, :]).reshape(-1)
+    for key, value in old["terminal_observations"].items():
+        if isinstance(value, np.ndarray):
+            assert obs[key][select].tobytes() == value.tobytes(), key
+    np.testing.assert_array_equal(dense["terminal_source_row"],
+        original["terminal_source_row"].reshape(2, 60))
+    assert all(not x.flags.writeable for group in (dense, obs)
+        for x in group.values() if isinstance(x, np.ndarray))
+
+
+def _with_midpoints(frame, midpoints):
+    frame = frame.copy()
+    for side, spread in (("bid", -.01), ("ask", .01)):
+        frame[side + "_open"] = midpoints + spread
+        frame[side + "_high"] = midpoints + spread + .001
+        frame[side + "_low"] = midpoints + spread - .001
+    return frame
+
+
+@pytest.mark.parametrize("direction", [1, -1])
+def test_dense_signed_bps_rise_return_from_same_entry(direction):
+    mid = np.full(80, 100.0)
+    mid[10], mid[15], mid[20] = 100 + direction * .2, 100 + direction * .5, 100 + direction * .3
+    index, fill = _case(_with_midpoints(_m1_frame(periods=80), mid))
+    result = _project(index, fill, parents=(0, 1),
+        horizons_minutes=price.DENSE_HORIZONS_MINUTES)
+    np.testing.assert_allclose(result["mid_return_bps"][0, [4, 9, 14, 59]],
+        direction * np.array([20., 50., 30., 0.]), rtol=0, atol=1e-10)
+    np.testing.assert_array_equal(result["sign"][0, [4, 9, 14, 59]],
+        direction * np.array([1, 1, 1, 0], np.int8))
+    # A later M5 origin has its own denominator; it cannot inherit the old entry.
+    assert result["mid_return_bps"][1, 4] == pytest.approx(
+        10000 * (mid[15] - mid[10]) / mid[10], abs=1e-10)
+    assert result["mid_return_bps"][1, 4] != pytest.approx(result["mid_return_bps"][0, 9])
+    assert result["observed"][0, 59]  # Known return to entry, not missing/FLAT.
+
+
+@pytest.mark.parametrize("horizons", [
+    (), (0,), (61,), (1, 1), (5, 1), (True,), (1.0,),
+    [1, 5, 15], None, (np.int64(10),), (1, "10"),
+])
+def test_horizon_domain_rejects_implicit_or_invalid_axes_before_source_access(horizons):
+    with pytest.raises(RuntimeError, match="HORIZON_DOMAIN"):
+        price.project_direction_price_endpoints(None, fill_surface=None,
+            parent_rows=None, bar_start_ns=None, dynamic_entry_m1_row=None,
+            horizons_minutes=horizons)
+
+
+def test_ten_minute_target_ignores_intraminute_extremes():
+    frame = _m1_frame(periods=80)
+    index, fill = _case(frame)
+    original = _project(index, fill, horizons_minutes=(10,))
+    frame.loc[9, ["bid_high", "ask_high"]] += 1000
+    index, fill = _case(frame)
+    changed = _project(index, fill, horizons_minutes=(10,))
+    for key in ("terminal_time_ns", "terminal_source_row", "observed", "mid_move", "mid_return_bps", "sign"):
+        assert changed[key].tobytes() == original[key].tobytes()
+    assert changed["terminal_time_ns"][0, 0] == changed["decision_ns"][0] + 10 * 60 * 10**9
+
+
+def test_dense_observed_zero_missing_minute_and_cutoff_are_distinct():
+    frame = _with_midpoints(_m1_frame(periods=80), np.full(80, 100.0))
+    cutoff = frame.time.iloc[35]  # Exactly D+30 is censored.
+    frame.loc[35:, [x for x in frame if x != "time"]] = np.nan
+    frame = frame.drop(index=15).reset_index(drop=True)  # D+10 quote is absent.
+    index, fill = _case(frame, cutoff=cutoff)
+    result = _project(index, fill, horizons_minutes=price.DENSE_HORIZONS_MINUTES)
+    assert result["observed"][0, 8] and result["sign"][0, 8] == 0
+    assert not result["observed"][0, 9] and result["terminal_source_row"][0, 9] == -1
+    assert result["terminal_time_ns"][0, 9] < cutoff.value
+    assert result["observed"][0, 10]  # A missing minute does not shift later targets.
+    assert not result["observed"][0, 29:].any()
+    assert result["terminal_time_ns"][0, 29] == cutoff.value
+    assert np.all(result["mid_return_bps"][~result["observed"]] == 0)
+    assert np.all(result["terminal_source_row"][~result["observed"]] == -1)
+    assert np.isnan(result["terminal_observations"]["terminal_gross_return_bps"]
+        [~result["observed"].reshape(-1)]).all()
+
+
+def test_nonlegacy_three_column_axis_cannot_enter_old_cost_adapter():
+    index, fill = _case(_m1_frame(periods=80))
+    result = _project(index, fill, horizons_minutes=(1, 10, 60))
+    assert result["schema_version"] == price.CURVE_SCHEMA_VERSION
+    assert result["mid_return_bps"].shape == (1, 3)
+    with pytest.raises(RuntimeError, match="TARGET_QUERY"):
+        _targets(result, index, _economics())
+
+
+def test_dense_missing_entry_is_not_replaced_by_a_later_quote():
+    index, fill = _case(_m1_frame(periods=80).drop(index=5).reset_index(drop=True))
+    result = _project(index, fill, horizons_minutes=price.DENSE_HORIZONS_MINUTES)
+    assert result["dynamic_entry_m1_row"].tolist() == [-1]
+    assert not result["observed"].any()
+    assert np.all(result["terminal_source_row"] == -1)
+    assert np.all(result["mid_return_bps"] == 0) and np.all(result["sign"] == 0)
+
+
+def test_dense_cutoff_entry_never_inspects_future_fill_prices():
+    frame = _m1_frame(periods=80)
+    cutoff = frame.time.iloc[20]
+    frame.loc[20:, [x for x in frame if x != "time"]] = np.nan
+    index, fill = _case(frame, cutoff=cutoff, bars=4)
+    fill = fill.copy()
+    for key in ("entry_bid", "entry_ask"):
+        fill[key] = fill[key].astype(object)
+        fill.loc[3, key] = "future quote must not be inspected"
+    result = _project(index, fill, parents=(0, 3),
+        horizons_minutes=price.DENSE_HORIZONS_MINUTES)
+    assert result["observed"][0, :14].all()
+    assert not result["observed"][0, 14:].any()
+    assert not result["observed"][1].any()
+
+
+def test_clock_overflow_guard_uses_the_requested_maximum_horizon():
+    index, fill = _case()
+    bar_ns = 300 * 10**9
+    near_end = ((np.iinfo(np.int64).max - bar_ns - 30 * 60 * 10**9) // bar_ns) * bar_ns
+    kwargs = dict(fill_surface=fill, parent_rows=np.array([0], np.int64),
+        bar_start_ns=np.array([near_end], np.int64),
+        dynamic_entry_m1_row=fill.iloc[[0]].entry_m1_row.to_numpy(np.int64, copy=True))
+    with pytest.raises(RuntimeError, match="BAR_CLOCK"):
+        price.project_direction_price_endpoints(index, **kwargs, horizons_minutes=(60,))
+    with pytest.raises(RuntimeError, match="FILL_CLOCK_MISMATCH"):
+        price.project_direction_price_endpoints(index, **kwargs)
+
+
+def test_explicit_legacy_horizons_preserve_default_schema_and_values():
+    index, fill = _case()
+    left, right = _project(index, fill), _project(index, fill, horizons_minutes=(1, 5, 15))
+    assert left.keys() == right.keys() and left["schema_version"] == price.SCHEMA_VERSION
+    for group_left, group_right in ((left, right), (left["terminal_observations"], right["terminal_observations"])):
+        for key, value in group_left.items():
+            if isinstance(value, np.ndarray):
+                assert value.dtype == group_right[key].dtype and value.tobytes() == group_right[key].tobytes()
+            elif not isinstance(value, dict):
+                assert value == group_right[key]
+
+
+@pytest.mark.parametrize("horizons", [price.REPORT_HORIZONS_MINUTES, (10,)])
+def test_report_anchors_and_ten_only_use_elapsed_minutes_and_price_bps(horizons):
+    assert price.REPORT_HORIZONS_MINUTES == (1, 5, 10, 15, 30, 60)
+    index, fill = _case(_m1_frame(periods=80))
+    result = _project(index, fill, horizons_minutes=horizons)
+    assert result["horizons_minutes"] == horizons and result["observed"].all()
+    np.testing.assert_array_equal(result["elapsed_wall_seconds"], [np.array(horizons) * 60])
+    np.testing.assert_array_equal(result["terminal_time_ns"],
+        result["decision_ns"][:, None] + np.array(horizons, np.int64)[None, :] * 60 * 10**9)
+    # This synthetic fixture increases its midpoint by exactly 1 price unit/minute.
+    np.testing.assert_allclose(result["mid_return_bps"][0],
+        10000 * np.array(horizons, np.float64) / 105.05, rtol=0, atol=1e-10)

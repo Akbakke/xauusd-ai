@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T10:50:55.571767+00:00",
-  "status": "DIRECTION_BPS_ALLOCATION_COMPLETE_NO_TINY_MOVE_DOMINANCE",
+  "observed_utc": "2026-10-27T11:12:24.843647+00:00",
+  "status": "DIRECTION_MINUTE_TARGET_SYNTHETIC_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Source-only preparation of one explicit horizon/return contract reusing qualified clock and target owners. No extra diagnostics of the failed tiny-move-majority premise. Preserve1/5/15baseline; no genuine numerical or native execution admitted.",
+  "next_action": "One fixed CPUaudit qualification:36synthetic endpoint tests for explicit1..60targets, including10; no actual market payload/model/fit/update.120sworker/150souter. Preserve baseline and all guards.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -245,7 +245,7 @@
   },
   "current_work": {
     "operator_request": "27.10 presisering: pris ved1og5minutter relativt til entry er relevant. Behold opp/ned-målet og definer nødvendige tillegg presist; ikke anta at målet er hovedårsaken.",
-    "current_activity": "Fixed saved-target bps audit complete; <=1bp majority premise rejected. No model changes or new edge. One-shot authority consumed.",
+    "current_activity": "Price target axis implemented;36focused synthetic cases admitted but not started. Native head/loss remain1/5/15.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7769,7 +7769,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Source-only preparation of one explicit horizon/return contract reusing qualified clock and target owners. No extra diagnostics of the failed tiny-move-majority premise. Preserve1/5/15baseline; no genuine numerical or native execution admitted.",
+    "next_action": "One fixed CPUaudit qualification:36synthetic endpoint tests for explicit1..60targets, including10; no actual market payload/model/fit/update.120sworker/150souter. Preserve baseline and all guards.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20373,7 +20373,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-27T10:50:55.571767+00:00",
+  "updated_utc": "2026-10-27T11:12:24.843647+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -36756,5 +36756,37 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "64b2eeb4923f4a6ec45513ad449f2f671eb7991a815b040d0ef267d079bd7fa9"
     }
+  },
+  "direction_minute_target_source": {
+    "status": "SOURCE_PREPARED_FROZEN_FOR_SYNTHETIC",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SOURCE_DESIGN_001.json",
+      "sha256": "d2f607f8af95ac44421983eb0fc36c450544cf38015279634895fb18d191a504"
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SOURCE_ADMISSION_001.json",
+      "sha256": "eedc2a9f7e70c49caf59539cebfd9a538802bd75fec4556d82ca72fc1cf820c9"
+    },
+    "source_changes_authorized": false,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "native_training_authorized": false,
+    "test_data_used": false
+  },
+  "direction_minute_target_synthetic": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MINUTE_TARGET_SYNTHETIC_PLAN_001.json",
+      "sha256": "a5dd7123dfe0600ec6d6149c34a203ff3415d9dcd196cd4f9d51e487168a6a29"
+    },
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false
   }
 }
