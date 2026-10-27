@@ -34,7 +34,7 @@ TERMINAL_PREDICTIONS = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.npz'
     'sha256': 'fd7d3177f1a4d588f235156a2dbc02d670137ab91862e779606bb932e0e4ef57'}
 TIMING_UNIT = 'own0U_prefix_timing256'
 CONTINUATION_UNIT = 'terminal_resume_parity256'
-CONTINUATION_STAGE = 'dynamic_m5_direction_continuation_zero_update'
+CONTINUATION_STAGE = 'dynamic_m5_direction_continuation_zero_update_002'
 CONTINUATION_DESIGN = {'path':REPO+'/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json',
     'sha256':'d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01'}
 CONTINUATION_PRIOR_RECIPE = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_RECIPE_001.json',
@@ -48,8 +48,8 @@ CONTINUATION_TRAIN_PREDICTIONS = {'path':BASE+'/RUNTIME/prefix-fit/window-0001/F
 CONTINUATION_PINNED_SOURCES = {
     'gx1/contracts/entry_native_direction_research_state_v1.py':'00fddca5832b299c3035db5b1c5aedb85ab39d37efae592fd2680fb8fdc343d0',
     'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py':'8d440ad791bba90785f1f388940b5bf54dce3ed0e55c686bd6947f3b66d92e5c',
-    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py':'87315f478b5150779225d7bd8bef5b452e4cc18447b1c297ff3ca188ccf7787f',
-    'gx1/scripts/run_entry_native_direction_research_window_v1.py':'1758123a58a7ecad0ac2d1c3c0a46f16489f73068a2cf3be6d8474cf9a6cb8cc',
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py':'525d484918f6dbc3788d062ef4cdc0c2642d4c3a02c0303b5768c7569c510024',
+    'gx1/scripts/run_entry_native_direction_research_window_v1.py':'88a162fb485aa4e04c662d9f8e2f57a0424fcd49ddec656330abbaecebc76b08',
 }
 TIMING_DESIGN = {'path': PROGRAM + '/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json',
     'sha256': '572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684'}

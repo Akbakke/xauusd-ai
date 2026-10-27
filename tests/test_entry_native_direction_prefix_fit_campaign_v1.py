@@ -415,3 +415,27 @@ def test_three_pass_cursor_and_progress_track_partial_boundaries(fixture,monkeyp
     assert finished['parent_cursor']==142806
     with pytest.raises(RuntimeError):cursor(f,recipe_ref=ref,train_passes=3,parent_cursor=47602,optimizer_updates=2976,
         phase_state='SCORING',final_train_measurement=f['dummy'])
+
+
+def test_continuation_cursor_verification_can_read_exact_initial_under_worker_guard(fixture,monkeypatch):
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    f=fixture;value,_=continuation_fixture(f,monkeypatch)
+    recipe_ref=write(f['runtime']/'GUARDED_CONTINUATION.json',value)
+    initial={'path':'/home/andre2/GX1_RUNS/synthetic/INITIAL_0U.pt','sha256':'e'*64}
+    terminal={'path':'/home/andre2/GX1_RUNS/synthetic/TERMINAL.pt','sha256':'f'*64}
+    owner.CONTINUATION_ORIGIN['initial_state']=initial;owner.CONTINUATION_ORIGIN['terminal_state']=terminal
+    hooks=[];monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
+    context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache','gc_surfaces':{'path':'/synthetic/gc/surface'}},
+        'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/audit'}}}
+    denied=common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',extra_read_paths=(terminal['path'],initial['path']))
+    original_regular=campaign._regular;original_sha=campaign.file_sha256
+    def regular(path,label):
+        return path if str(path)==initial['path'] else original_regular(path,label)
+    def sha(path):
+        if str(path)==initial['path']:
+            hooks[0]('open',(str(path),'rb',0));return initial['sha256']
+        return original_sha(path)
+    monkeypatch.setattr(campaign,'_regular',regular);monkeypatch.setattr(campaign,'file_sha256',sha)
+    state=cursor(f,recipe_ref=recipe_ref,train_passes=3,parent_cursor=47602,optimizer_updates=2976,own_initial_state=initial)
+    checked=owner.require_prefix_fit_cursor(state,expected_recipe=recipe_ref,expected_fold=f['fold'],verify_files=True)
+    assert checked['own_initial_state']==initial and denied==[]

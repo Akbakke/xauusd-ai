@@ -446,7 +446,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
-        extra_read_paths=(origin['terminal_state']['path'],) if continuation else ())
+        extra_read_paths=(origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else ())
     counters={k:0 for k in ('model_constructions','model_construction_returns','optimizer_constructions','forward_calls','forward_returns',
         'backward_calls','backward_returns','optimizer_step_calls','optimizer_step_returns','empty_batches',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns','forbidden_legacy_calls')}

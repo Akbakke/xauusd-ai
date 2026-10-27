@@ -105,7 +105,8 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=()):
     _require(isinstance(extra_read_paths, tuple), 'EXTRA_READ_PATHS')
     if extra_read_paths:
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import CONTINUATION_ORIGIN
-        _require(extra_read_paths == (CONTINUATION_ORIGIN['terminal_state']['path'],), 'EXTRA_READ_PATHS')
+        _require(extra_read_paths == (CONTINUATION_ORIGIN['terminal_state']['path'],
+            CONTINUATION_ORIGIN['initial_state']['path']), 'EXTRA_READ_PATHS')
     allowed={p for p,v in plan['payloads'].items() if v['verification'] not in ('inherited_stat_only_no_open','reused_original051_stat_only_no_open')}|set(info['metadata'])|set(extra_read_paths)
     directories={plan['native_cache_dir'],str(Path(plan['gc_surfaces']['path']).parent)}
     relative={Path(p).name:p for p in allowed if p.endswith('.npy')};denied=[]
@@ -120,6 +121,10 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=()):
             flags=args[2] if len(args)>2 else None
             _require(isinstance(flags,int) and flags&os.O_DIRECTORY and not flags&(os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC),'READONLY_EXACT_DIRECTORY');return
         if path.startswith(('/home/andre2/GX1_DATA/','/home/andre2/GX1_RUNS/')):
+            flags=args[2] if len(args)>2 else None
+            if path in extra_read_paths and isinstance(flags,int) and flags & (os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC|os.O_APPEND):
+                if len(denied)<16:denied.append(path)
+                raise RuntimeError('NATIVE_DIRECTION_RESEARCH_WINDOW_ORIGINAL_WRITE:'+path)
             permitted=path in allowed or path.startswith(str(output)+'/') or path.startswith(str(runtime)+'/')
             if not permitted or path==info['audit']['manifest_path']:
                 if len(denied)<16:denied.append(path)

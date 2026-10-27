@@ -457,6 +457,18 @@ FULLFØRT og KONSUMERT: originalens to navngitte checkpoints fikk eksakt hash,
 ingen ble deserialisert, og ingen modell, markedsdata eller trening ble åpnet.
 En fersk kampanje med kilde-, maskinvare- og tidsvakter kreves før trening.
 
+En konkret kildekontroll fant at videreføringens filvakt ville avvise den
+opprinnelige initialtilstanden under checkpoint-/resumeverifikasjon. Den tillater
+nå kun lesing av begge eksakt bundne checkpoints og avviser skriving. 354
+fokuserte og 154 tilknyttede syntetiske kontroller bestod, inkludert selve
+cursor-verifikasjonen under filvakten. Siden kilde er endret må en ny separat
+nullstegskontroll bekrefte paritet. Forrige oppskrift og forhåndskontroll er
+historiske og skal ikke relanseres. Trening er stengt.
+
+Runnerens faste FINAL_TRAIN-måling omfatter 256 foreldre. Designets fulle
+47 602-raders TRAIN-vurdering krever en separat komplett, fast prefiksuttrekking
+etter 3-pass-treningen; den kan ikke hevdes fra 256-raderspanelet.
+
 Den planlagte fellesgaten for 1 mot 3 pass krever både AUC, logloss og Brier
 på dag- og ukeblokker. Feil i én komponent betyr ikke at retningsrangeringen
 ikke forbedret seg. Behold fellesgaten, men forhåndsbind og rapporter 5min AUC

@@ -221,7 +221,7 @@ def test_continuation_repeats_exact_order_and_preserves_partial_pass_boundaries(
         runner._next_training_parent_range(3*n,n,3)
 
 
-def test_read_guard_allows_only_the_bound_original_terminal_path(monkeypatch):
+def test_read_guard_allows_only_the_two_bound_original_checkpoints_as_readonly(monkeypatch):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     hooks=[];monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
@@ -229,14 +229,17 @@ def test_read_guard_allows_only_the_bound_original_terminal_path(monkeypatch):
         'gc_surfaces':{'path':'/synthetic/gc/surface'}},
         'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/audit'}}}
     terminal=authority.CONTINUATION_ORIGIN['terminal_state']['path']
-    denied=common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',extra_read_paths=(terminal,))
-    hooks[0]('open',(terminal,'r',0))
+    initial=authority.CONTINUATION_ORIGIN['initial_state']['path']
+    denied=common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',extra_read_paths=(terminal,initial))
+    hooks[0]('open',(terminal,'rb',0));hooks[0]('open',(initial,'rb',0))
+    with pytest.raises(RuntimeError,match='ORIGINAL_WRITE'):
+        hooks[0]('open',(initial,'wb',__import__('os').O_WRONLY))
     with pytest.raises(RuntimeError,match='UNBOUND_OPEN'):
         hooks[0]('open',('/home/andre2/GX1_RUNS/unbound.pt','r',0))
-    assert denied==['/home/andre2/GX1_RUNS/unbound.pt']
-    with pytest.raises(RuntimeError,match='EXTRA_READ_PATHS'):
-        common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',
-            extra_read_paths=('/home/andre2/GX1_RUNS/unbound.pt',))
+    assert denied==[initial,'/home/andre2/GX1_RUNS/unbound.pt']
+    for invalid in ((terminal,), (initial,terminal), (terminal,'/home/andre2/GX1_RUNS/unbound.pt')):
+        with pytest.raises(RuntimeError,match='EXTRA_READ_PATHS'):
+            common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',extra_read_paths=invalid)
 
 
 def test_continuation_binds_qualification_and_original_measurement_to_freeze(monkeypatch):
