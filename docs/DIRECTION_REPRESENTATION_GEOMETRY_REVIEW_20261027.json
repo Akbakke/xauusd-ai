@@ -1,6 +1,6 @@
 {
   "classification": {
-    "deduced": "At terminal, recorded pre/post GELU RMS implies about 76% or more of preactivation squared energy is on the negative side in ideal real arithmetic.",
+    "deduced": "At terminal, pre/post GELU RMS implies at least about 76% of preactivation squared energy is negative, and at least about 37% lies below -0.5 where the absolute local GELU derivative is at most about 0.133, in ideal real arithmetic.",
     "measured": "Reduced between-parent variance at the actual sign-head input on all three fixed TRAIN panels; same parents across four snapshots.",
     "plausible": "The shared fusion/normalization/GELU path may suppress useful sample-specific signals while BCE rewards near-prior probabilities.",
     "unproven": "No evidence here establishes causal loss of forward signal, which features matter, generalized predictive improvement, GELU gradient saturation, or whether extra epochs help."
@@ -51,7 +51,18 @@
       "Float32 numerical error is not independently bounded.",
       "Negative inputs need not all be saturated, and a small scale alone does not prove information loss."
     ],
-    "explanation": "For x>=0, GELU(x)=x*Phi(x)>=x/2. On the same hooked inputs and outputs, sum(x^2 for x<0)/sum(x^2) is at least max(0,1-4*(RMS(GELU(x))/RMS(x))^2). Reported bound is an ideal real-arithmetic implication of the recorded aggregate moments."
+    "explanation": "For x>=0, GELU(x)=x*Phi(x)>=x/2. On the same hooked inputs and outputs, sum(x^2 for x<0)/sum(x^2) is at least max(0,1-4*(RMS(GELU(x))/RMS(x))^2). Reported bound is an ideal real-arithmetic implication of the recorded aggregate moments.",
+    "low_derivative_region": {
+      "derivation": "For x>=cutoff, abs(GELU(x))>=Phi(cutoff)*abs(x). Subtract this maximum possible share of preactivation energy from total energy. GELU double derivative is (2-x^2)*phi(x), so extrema for x<=cutoff occur at cutoff, -sqrt(2), or negative infinity.",
+      "ideal_maximum_absolute_derivative": 0.13250487534383712,
+      "interpretation": "At least about 37% of preactivation squared energy lies in a region with local GELU derivative magnitude at most about 0.133 in ideal arithmetic. This does not bound coordinate counts, model-wide gradients, target information, or improvement from changing GELU.",
+      "per_panel_minimum_preactivation_squared_energy_fraction": {
+        "training_order_early": 0.373886428197599,
+        "training_order_late": 0.3756644572401613,
+        "training_order_middle": 0.3769765587765498
+      },
+      "preactivation_less_than": -0.5
+    }
   },
   "model_source_changed": false,
   "new_model_forwards": 0,
