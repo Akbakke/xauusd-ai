@@ -38331,25 +38331,33 @@
     }
   },
   "direction_10_cross_head_actual": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_REUSED_DEV_10MIN_DIAGNOSTIC",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_ACTUAL_PLAN_20261027_003.json",
       "sha256": "c8096b4904d82730ecabbd6fceadac32616e5a205ff9580b8044a5c0b216714a"
     },
-    "execution_authorized": true,
-    "saved_payload_reads_authorized": true,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
     "raw_data_reads_authorized": false,
     "genuine_fits_authorized": false,
     "native_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "test_control_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "predecessor_abort_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_ACTUAL_ABORT_ROOT_REVIEW_20261027_002.json",
       "sha256": "cda607711abc62bf443c9bf3ab17410f22ec811533a9325f57e5d930026e42bc"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_ACTUAL_ROOT_REVIEW_20261027_003.json",
+      "sha256": "c723f364a2dc4a02b8ace00a68f0e6222d43fabbd9cbf07d87188cc67363b2a3"
+    },
+    "result_document": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_10_CROSS_HEAD_RESULT_20261027.json",
+      "sha256": "d7c9b8b52914b82d4996fb11b9e74b6b7fe7614cd8f790e81c663af95726dd16"
     }
   },
   "independent_direction_exposure_geometry_20261027": {

@@ -1,0 +1,140 @@
+{
+  "schema_version": "gx1_direction_10min_crosshead_result_v1",
+  "status": "COMPLETE_REUSED_DEVELOPMENT_NO_EDGE_CLAIM",
+  "source_head": "c7cd5833a74fc95aaeee89421659b3196353d40a",
+  "root_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_ACTUAL_ROOT_REVIEW_20261027_003.json",
+    "sha256": "c723f364a2dc4a02b8ace00a68f0e6222d43fabbd9cbf07d87188cc67363b2a3"
+  },
+  "summary": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_ACTUAL_20261027_003/SUMMARY.json",
+    "sha256": "d808ce717e733caf021257ca4f6fee6550d0eba5130dfa3865bc8060b424b75a"
+  },
+  "result": {
+    "population": "Four reused chronological TRAIN-development folds; matched eligible 10-minute sign outcomes, not sealed TEST.",
+    "eligible_parents": 70043,
+    "up": 36031,
+    "down": 34012,
+    "ten_minute_target": "Derived from two adjacent saved 5-minute midpoint changes with shared source-row identity; 15-minute direct control passed.",
+    "scores": "Previously trained 5- and 15-minute heads; no head was trained specifically for 10 minutes.",
+    "head_5": {
+      "auc": {
+        "et252": 0.5152277465215023,
+        "native": 0.5056404856907366,
+        "r1": 0.5107138616587176,
+        "ref259": 0.5135987036582004
+      },
+      "native_minus_et252_day_99": {
+        "high": -0.0009331612499696582,
+        "level": 0.99,
+        "low": -0.017707141771609945,
+        "point_difference": -0.009587260830765665
+      },
+      "native_minus_et252_week_99": {
+        "high": -0.0001929643705949314,
+        "level": 0.99,
+        "low": -0.02004215574021269,
+        "point_difference": -0.009587260830765665
+      }
+    },
+    "head_15": {
+      "auc": {
+        "et252": 0.5129481644436484,
+        "native": 0.5094511194474209,
+        "r1": 0.5107138616587176,
+        "ref259": 0.514223325866392
+      },
+      "native_minus_et252_day_99": {
+        "high": 0.003662095183276608,
+        "level": 0.99,
+        "low": -0.010486399395871133,
+        "point_difference": -0.003497044996227494
+      },
+      "native_minus_et252_week_99": {
+        "high": 0.00392107435172293,
+        "level": 0.99,
+        "low": -0.010945642660549119,
+        "point_difference": -0.003497044996227494
+      }
+    },
+    "absolute_midpoint_bps_quantiles_10_50_90": [
+      0.7564307877947055,
+      4.379797061509999,
+      14.335083294577483
+    ],
+    "bootstrap_draws": 4000,
+    "shared_calendar_block_weights": true,
+    "global_day_blocks": 312,
+    "global_week_blocks": 53,
+    "fold_counts": [
+      {
+        "bps_sign_disagreement": 0,
+        "certified_zero": 0,
+        "chain_observed": 17162,
+        "chain_right_censored": 0,
+        "down": 8242,
+        "eligible": 17137,
+        "fold_end_censored": 2,
+        "fold_id": 1,
+        "missing_intermediate_parent": 0,
+        "parents": 17288,
+        "rounding_ambiguous": 23,
+        "unobserved_component": 126,
+        "up": 8895
+      },
+      {
+        "bps_sign_disagreement": 0,
+        "certified_zero": 0,
+        "chain_observed": 17409,
+        "chain_right_censored": 0,
+        "down": 8547,
+        "eligible": 17394,
+        "fold_end_censored": 2,
+        "fold_id": 2,
+        "missing_intermediate_parent": 0,
+        "parents": 17537,
+        "rounding_ambiguous": 13,
+        "unobserved_component": 128,
+        "up": 8847
+      },
+      {
+        "bps_sign_disagreement": 0,
+        "certified_zero": 0,
+        "chain_observed": 17940,
+        "chain_right_censored": 0,
+        "down": 8780,
+        "eligible": 17915,
+        "fold_end_censored": 2,
+        "fold_id": 3,
+        "missing_intermediate_parent": 0,
+        "parents": 18072,
+        "rounding_ambiguous": 23,
+        "unobserved_component": 132,
+        "up": 9135
+      },
+      {
+        "bps_sign_disagreement": 0,
+        "certified_zero": 0,
+        "chain_observed": 17605,
+        "chain_right_censored": 0,
+        "down": 8443,
+        "eligible": 17597,
+        "fold_end_censored": 0,
+        "fold_id": 4,
+        "missing_intermediate_parent": 0,
+        "parents": 17750,
+        "rounding_ambiguous": 8,
+        "unobserved_component": 145,
+        "up": 9154
+      }
+    ],
+    "limitations": [
+      "Development folds have been reused; intervals are descriptive, per-contrast and not familywise 99% coverage.",
+      "Adjacent day/week blocks can share overlapping 10-minute outcomes; no inference of independent live events or economic edge.",
+      "ET252 uses a different learner and features; the difference does not identify a causal architecture or feature defect.",
+      "Midpoint changes omit spread, fees, execution and intraminute path; neither FLAT nor a dedicated 10-minute head is evaluated."
+    ]
+  },
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}

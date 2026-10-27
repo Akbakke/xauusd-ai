@@ -19,8 +19,12 @@ og at kalenderen ble valgt etter kvalifiseringsmasken. Kilden er rettet til
 felles kalendervekter før maskering. Rettelsen bestod 10 syntetiske tilfeller,
 og engangsadgangen er konsumert. Første faktiske forsøk stoppet før claim og
 payloadlesing da arbeidsområdet ble endret parallelt; forsøket er konsumert.
-Ny engangsplan for de samme seks lagrede TRAIN-payloadene er åpnet. Ingen ekte
-10min-skårer eller dokumentert retningsforbedring foreligger.
+En ny engangsplan ble fullført på 70 043 sammenlignbare TRAIN-utviklingsutfall.
+På 10min-fasit er AUC for 5min-skår native 0,505640 mot ET252 0,515228; begge
+99%-intervaller for forskjellen er negative, med ukeintervallet nær null.
+For 15min-skår omfatter intervallene null. Skårene er ikke trent for 10min,
+og gjenbrukte utviklingsdata dokumenterer ikke handelsedge. Se
+docs/DIRECTION_10_CROSS_HEAD_RESULT_20261027.json. Adgangen er konsumert.
 
 
 10-minuttersutfall kan nå forberedes fra to lagrede femminuttersutfall med
