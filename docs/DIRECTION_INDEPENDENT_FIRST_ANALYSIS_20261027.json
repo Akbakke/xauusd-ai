@@ -46,6 +46,10 @@
     "own_0u_prefix_part3_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_PREFIX_PART3_001/ACTUAL_ROOT_REVIEW.json",
       "sha256": "6663b1a04d3e3335c47cab5cdd0ed7b0325a44349b72faf847ea85dbbfef29d8"
+    },
+    "whole_prefix_sign_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_COMPARISON_001/RESULT.json",
+      "sha256": "25183b69807753897028f8c611c6302b26861c6b3d3972910bba1653d20faa5e"
     }
   },
   "execution_authorized_by_report": false,
@@ -139,7 +143,7 @@
     {
       "action": "Compare fixed whole-prefix initial/final learning with chronological later development using saved outputs. Reuse all completed extraction parts.",
       "priority": 2,
-      "status": "SAVED_OUTPUT_COMPARISON_ADMITTED_NOT_RUN"
+      "status": "COMPARISON_COMPLETE_INDEPENDENT_VALIDATION_ADMITTED"
     },
     {
       "action": "If still justified, separately predeclare unchanged-sign1pass versus additional exposure. Preserve same unique order per pass, original lastB2, Adam/RNG and existing hardware guards. No bps or feature factor mixed in.",
@@ -155,7 +159,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T20:10:59.514909+00:00",
+  "updated_utc": "2026-10-27T20:13:59.900180+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

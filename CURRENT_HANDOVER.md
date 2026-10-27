@@ -171,12 +171,16 @@ kontroll: `NATIVE_0U_PREFIX_PART3_001/ACTUAL_ROOT_REVIEW.json`
 (SHA-256 6663b1a04d3e3335c47cab5cdd0ed7b0325a44349b72faf847ea85dbbfef29d8).
 Oppstartsoppgaven er deaktivert; ingen edge følger av teknisk PASS.
 
-En fastlagt engangsanalyse av lagrede utdata er admittért: parvis start/slutt
-på hele TRAIN-prefikset og sluttmodell mot fast TRAIN-prevalens på senere
-gjenbrukt utvikling. Ingen startmodellprediksjoner for senere del finnes;
-ingen direkte før/etter-generaliseringspåstand er dermed mulig. Syv syntetiske
-kontroller besto; ingen nye modellkall, fit, indikatorer, TEST/CONTROL, Exit,
-broker, ordre, spending eller promotion er åpnet. Målet er aktivt.
+Den faste analysen av lagrede utdata er fullført uten modellkall eller fit.
+Foreløpig TRAIN5min AUC start/slutt .507550/.515888; senere utvikling AUC
+.503021 og logloss/Brier dårligere enn fast TRAIN-prevalens. Dette er ikke
+ny TEST eller økonomisk edge. `WHOLE_PREFIX_SIGN_COMPARISON_001/RESULT.json`
+(SHA-256 25183b69807753897028f8c611c6302b26861c6b3d3972910bba1653d20faa5e).
+Egen uavhengig rankdata-replay og full telling av manglende/null/umodne
+observasjoner er admittért; fem syntetiske kontroller besto. Startmodellens
+senere prediksjoner finnes ikke, så ingen direkte før/etter-test der hevdes.
+Ingen nye indikatorer, treningspass, TEST/CONTROL, Exit, broker, ordre,
+spending eller promotion er åpnet. Målet er aktivt.
 
 ## Bps-hodets separate retningsrangering
 
