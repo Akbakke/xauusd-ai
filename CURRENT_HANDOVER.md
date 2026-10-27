@@ -9,33 +9,38 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-F_FROZEN_EXTRACTION_terminal_later_full_20261027_001 er COMPLETE/consumed.
-Alle 17 288 senere TRAIN-foreldre fra original276 terminal_u2976 er bevart.
-Alle originale OOF-prediksjonsmedlemmer er bitidentiske. Worker brukte
-2 735,9624 sekunder: 1 081 opprinnelige B16-forwards (siste batch 8),
-null reverse, optimizer eller fit. Dette er første av åtte faste uttrekksenheter.
+To av åtte faste uttrekksenheter er COMPLETE/consumed:
+- terminal_later_full001: alle 17 288 trente senere TRAIN-observasjoner,
+  1 081 B16-forwards, alle originale OOF-prediksjonsmedlemmer bitidentiske,
+  2 735,9624 sekunder.
+- own0U_prefix_part1_001: presentasjonsintervallet [0,15872) fra original
+  initialmodell og opprinnelig shuffle-rekkefølge, 992 B16-forwards,
+  kontrollens 256 originale initialprediksjoner bitidentiske, 2 577,0872 sekunder.
 
-Original RESULT, kanonisk terminalkvittering, signert vakt, alle 57 kildeeiere,
-policy, partisjon, input-/tilstandsbokender og kall/returtellere er verifisert.
-Prosesser/cgroup er borte, originallåsen er ledig, og den eksakte Windowsoppgaven
-er Disabled/LastResult0/Restart0. Alle engangstillatelser er lukket; ingen relansering.
-Root åpnet bare metadata og kilde; worker utførte den faktiske payloadpariteten.
-ACTUAL_ROOT_REVIEW.json ligger i
-F_FROZEN_EXTRACTION_terminal_later_full_CAMPAIGN_20261027_001,
-SHA256 7622a60449149206ce75d6f2e8eb0c25c67816d011ddee3d0d080730c7713ea7.
+Begge har null reverse, optimizer eller fit. Originale terminalkvitteringer,
+alle 57 kildeeiere, policy, partisjoner, tilstand/inputbokender og tellere er
+verifisert. Prosesser/cgroup er borte, originallåsen ledig og Windowsoppgaven
+Disabled/LastResult0/Restart0. Engangsautoritetene er lukket; ingen relansering.
+Root har bare lest metadata og kilde; de admittérte workerne utførte payloadarbeidet.
 
-F_FROZEN_EXTRACTION_own0U_prefix_part1_RUNTIME_ADMISSION_001 åpner nå én
-ny enhet på original276 own0U: presentasjonsintervallet [0,15872) i den
-opprinnelige faste shuffle-rekkefølgen, 992 B16-forwards, null reverse/fit/optimizer.
-De første 256 prediksjonene må være bitidentiske med original INITIAL_TRAIN.
-Konservativ projeksjon 6705,63 sekunder er under 9600-grensen; alle opprinnelige
-boot-, capped-, 12000/13800-sekunders- og maskinvarevakter består. Kjør bare
-denne nye identiteten gjennom eksisterende rute. Frys kilde/policy under kjøringen
-og kontroller status omtrent hvert 20. minutt. Ingen modellkode er endret.
-Alle åtte faste enheter og eksakt fullkohortsammenstilling må være ferdige
-før separat admittért readout-fit. Samlet beholdes 47 602 prefixforeldre og
-17 288 senere foreldre per state, 8 114 forwards og opprinnelige B16-grenser.
-Ingen generell ytelsesjakt eller nye modell-/targetendringer er nødvendig.
+Siste ACTUAL_ROOT_REVIEW.json er i
+F_FROZEN_EXTRACTION_own0U_prefix_part1_CAMPAIGN_20261027_001,
+SHA256 829fdbd0cb1af56d4e8cd4c5cb1db9aeb73f0b47c0bb2e4e17518e127e6afadf.
+Den bevarte fullprefix-presentasjonshashen er
+5a92eba23f101f139b758098e04abdc432e8e3bba032a94a3b0a656a21f0f43f.
+De gjenværende prefixdelene må stemme med denne før full sammenstilling.
+
+F_FROZEN_EXTRACTION_own0U_prefix_part2_RUNTIME_ADMISSION_001 åpner nå én
+ny enhet: originalt presentasjonsintervall [15872,31744), 992 B16-forwards,
+null reverse/optimizer/fit. Denne delen har ingen historisk lagret prediksjonsfil;
+fullprefix-rekkefølgehash og eksakte batchgrenser skal bevares. Konservativ
+projeksjon 6705,63 sekunder består 9600-grensen. Alle opprinnelige boot-,
+capped-, 12000/13800-sekunders- og maskinvarevakter gjelder. Kjør bare denne
+nye identiteten via eksisterende rute, frys kilde/policy og følg omtrent hvert20.minutt.
+Alle åtte faste enheter og eksakt fullkohortsammenstilling kreves før separat
+admittért readout-fit. Samlet beholdes 47 602 prefixforeldre og 17 288 senere
+foreldre per state, 8 114 forwards og opprinnelige batchgrenser.
+Ingen modellkode, indikator eller target er endret i denne bølgen.
 Ingen fit, ny native trening, TEST/CONTROL eller handel er åpnet.
 
 F_FROZEN_READOUT_PARTITION_SYNTHETIC_001 er COMPLETE/consumed:
