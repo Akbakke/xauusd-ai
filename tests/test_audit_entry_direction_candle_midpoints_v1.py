@@ -52,7 +52,7 @@ def test_synthetic_plan_has_no_payload_or_optional_test_selection(admission):
     plan, design = admission
     plan.update(schema_version=audit.SCHEMA+'_synthetic', mode='synthetic', inputs={}, tests=list(audit.TEST_FILES))
     plan.pop('expected_counts')
-    for name in audit.TEST_FILES:
+    for name in audit.TEST_FILES + audit.TEST_HELPERS:
         plan['sources'][name] = {'path': str(audit.REPO/name), 'sha256': 'd'*64}
     assert audit.require_plan(plan, design) == Path(plan['out_dir'])
     plan['tests'] = plan['tests'][:2]
@@ -125,7 +125,7 @@ def test_guards_separate_synthetic_fixture_payload_from_genuine_data(tmp_path):
     fake = str(tmp_path/'fixture.npz')
     flags = os.O_WRONLY | os.O_CREAT
     audit.make_guard(tmp_path, [], [], synthetic=True)('open', (fake, 'wb', flags))
-    with pytest.raises(RuntimeError, match='PAYLOAD'):
+    with pytest.raises(RuntimeError, match='TEST_PATH|PAYLOAD'):
         audit.make_guard(tmp_path, [], [])('open', (fake, 'wb', flags))
     with pytest.raises(RuntimeError, match='UNDECLARED_DATA'):
         audit.make_guard(tmp_path, [], [], synthetic=True)('open', ('/home/andre2/GX1_DATA/fake.parquet', 'rb', 0))
@@ -220,3 +220,138 @@ def test_target_reader_rejects_archive_dtype_or_elapsed_clock(tmp_path, monkeypa
     path = tmp_path/'synthetic_targets.npz'; np.savez(path, **saved)
     with pytest.raises(RuntimeError, match='TARGET_DTYPE_SHAPE|PARENT_DECISION_CLOCK'):
         audit.read_targets(path, np=np)
+
+
+@pytest.mark.parametrize('relative', audit.TEST_FILES + audit.TEST_HELPERS)
+def test_synthetic_guard_allows_only_bound_readonly_test_sources(tmp_path, relative):
+    path = str(audit.REPO/relative)
+    guard = audit.make_guard(tmp_path, [], [], synthetic=True, source_paths=[path])
+    guard('open', (path, 'rb', 0))
+    with pytest.raises(RuntimeError, match='TEST_PATH'):
+        audit.make_guard(tmp_path, [], [], synthetic=True)('open', (path, 'rb', 0))
+    with pytest.raises(RuntimeError, match='TEST_PATH'):
+        guard('open', (path, 'wb', os.O_WRONLY))
+
+
+def test_synthetic_source_exception_does_not_admit_unplanned_test_module(tmp_path):
+    path = str(audit.REPO/'tests/test_unplanned.py')
+    with pytest.raises(RuntimeError, match='TEST_PATH'):
+        audit.make_guard(tmp_path, [], [], synthetic=True, source_paths=[path])('open', (path, 'rb', 0))
+
+
+def test_synthetic_source_exception_does_not_admit_sealed_data(tmp_path):
+    path = '/home/andre2/GX1_DATA/TEST/quotes.parquet'
+    with pytest.raises(RuntimeError, match='TEST_PATH'):
+        audit.make_guard(tmp_path, [], [], synthetic=True, source_paths=[path])('open', (path, 'rb', 0))
+
+
+def test_synthetic_own_fixture_test_names_do_not_weaken_genuine_seal(tmp_path):
+    path = str(tmp_path/'test_fixture'/'prices.npz')
+    guard = audit.make_guard(tmp_path, [], [], synthetic=True)
+    guard('open', (path, 'wb', os.O_WRONLY | os.O_CREAT))
+    guard('open', (path, 'rb', 0))
+    with pytest.raises(RuntimeError, match='TEST_PATH'):
+        audit.make_guard(tmp_path, [], [])('open', (path, 'rb', 0))
+
+
+def test_synthetic_plan_requires_source_bound_transitive_helper(admission):
+    plan, design = admission
+    plan.update(schema_version=audit.SCHEMA+'_synthetic', mode='synthetic', inputs={}, tests=list(audit.TEST_FILES))
+    plan.pop('expected_counts')
+    for name in audit.TEST_FILES:
+        plan['sources'][name] = {'path': str(audit.REPO/name), 'sha256': 'd'*64}
+    with pytest.raises(RuntimeError, match='SOURCE_SET'):
+        audit.require_plan(plan, design)
+
+
+def _fake_collection(plugin):
+    nodes = [name+'::synthetic_case' for name in audit.TEST_FILES]
+    plugin.pytest_collection_finish(SimpleNamespace(items=[SimpleNamespace(nodeid=node) for node in nodes]))
+    return nodes
+
+
+def _synthetic_environment(monkeypatch):
+    monkeypatch.setenv('PYTEST_DISABLE_PLUGIN_AUTOLOAD', '1')
+    monkeypatch.setenv('CUDA_VISIBLE_DEVICES', '')
+    monkeypatch.delenv('PYTEST_ADDOPTS', raising=False)
+    monkeypatch.setattr(audit.sys, 'dont_write_bytecode', True)
+
+
+def test_collection_diagnostics_are_preserved_before_empty_collection_failure(tmp_path, monkeypatch):
+    _synthetic_environment(monkeypatch)
+    previous_prefix = audit.sys.pycache_prefix; publications = []
+    def fake_main(args, *, plugins):
+        assert audit.sys.pycache_prefix == str(tmp_path/'python-cache')
+        plugin = plugins[0]
+        plugin.pytest_collectreport(SimpleNamespace(nodeid=audit.TEST_FILES[0], outcome='failed',
+            passed=False, longrepr='original import failure'))
+        plugin.pytest_collection_finish(SimpleNamespace(items=[]))
+        return 2
+    monkeypatch.setattr(pytest, 'main', fake_main)
+    with pytest.raises(RuntimeError, match='COLLECTED_CASES'):
+        audit.run_synthetic(tmp_path, np=np, publish=lambda path, value: publications.append((path, value)))
+    assert audit.sys.pycache_prefix == previous_prefix
+    assert len(publications) == 1 and publications[0][0].name == 'SYNTHETIC_DIAGNOSTICS.json'
+    diagnostic = publications[0][1]
+    assert diagnostic['pytest_exit_code'] == 2
+    assert diagnostic['collection_reports'][0]['longrepr'] == 'original import failure'
+    assert diagnostic['bytecode_prefix_restored']
+
+
+@pytest.mark.parametrize('outcome', ['failed', 'skipped'])
+def test_runtest_diagnostics_survive_failed_or_skipped_case(tmp_path, monkeypatch, outcome):
+    _synthetic_environment(monkeypatch); publications = []
+    def fake_main(args, *, plugins):
+        plugin = plugins[0]; nodes = _fake_collection(plugin)
+        for node in nodes:
+            for phase in ('setup', 'call', 'teardown'):
+                this = outcome if node == nodes[0] and phase == 'call' else 'passed'
+                plugin.pytest_runtest_logreport(SimpleNamespace(nodeid=node, when=phase,
+                    outcome=this, passed=this=='passed', longrepr='original case detail'))
+        return 1
+    monkeypatch.setattr(pytest, 'main', fake_main)
+    with pytest.raises(RuntimeError, match='ALL_TEST_PHASES_PASSED'):
+        audit.run_synthetic(tmp_path, np=np, publish=lambda path, value: publications.append(value))
+    failed = [item for item in publications[0]['runtest_reports'] if item['outcome'] == outcome]
+    assert len(failed) == 1 and failed[0]['longrepr'] == 'original case detail'
+
+
+def test_synthetic_all_phases_pass_and_diagnostics_published(tmp_path, monkeypatch):
+    _synthetic_environment(monkeypatch); publications = []
+    def fake_main(args, *, plugins):
+        plugin = plugins[0]
+        for node in _fake_collection(plugin):
+            for phase in ('setup', 'call', 'teardown'):
+                plugin.pytest_runtest_logreport(SimpleNamespace(nodeid=node, when=phase,
+                    outcome='passed', passed=True))
+        return 0
+    monkeypatch.setattr(pytest, 'main', fake_main)
+    result = audit.run_synthetic(tmp_path, np=np, publish=lambda path, value: publications.append(value))
+    assert result['tests'] == 3 and len(publications) == 1
+    assert result['tests_by_file'] == dict.fromkeys(audit.TEST_FILES, 1)
+
+
+def test_deselection_is_recorded_before_failure(tmp_path, monkeypatch):
+    _synthetic_environment(monkeypatch); publications = []
+    def fake_main(args, *, plugins):
+        plugin = plugins[0]; nodes = _fake_collection(plugin)
+        plugin.pytest_deselected([SimpleNamespace(nodeid=nodes[0])])
+        return 0
+    monkeypatch.setattr(pytest, 'main', fake_main)
+    with pytest.raises(RuntimeError, match='DESELECTED_TESTS'):
+        audit.run_synthetic(tmp_path, np=np, publish=lambda path, value: publications.append(value))
+    assert publications[0]['deselected_nodeids'] == [audit.TEST_FILES[0]+'::synthetic_case']
+
+
+@pytest.mark.parametrize('out,path,mode,flags,error', [
+    ('/home/andre2/GX1_RUNS/synthetic/stage',
+     '/home/andre2/GX1_RUNS/synthetic/stage/../../../GX1_DATA/TEST/quotes.parquet',
+     'rb', 0, 'TEST_PATH'),
+    ('/tmp/gx1-candle-output', '/tmp/gx1-candle-output/../escaped.json',
+     'wb', os.O_WRONLY | os.O_CREAT, 'OUTSIDE_OUTPUT_WRITE'),
+])
+def test_synthetic_owned_scope_rejects_parent_traversal(out, path, mode, flags, error):
+    # Exercise the audit callback only: neither path is opened or written.
+    guard = audit.make_guard(Path(out), [], [], synthetic=True)
+    with pytest.raises(RuntimeError, match=error):
+        guard('open', (path, mode, flags))

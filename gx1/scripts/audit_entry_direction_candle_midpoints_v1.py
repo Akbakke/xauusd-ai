@@ -24,6 +24,7 @@ SYNTHETIC_STAGE = 'independent_direction_candle_synthetic_20261027'
 TEST_FILES = ('tests/test_entry_direction_price_projection_v1.py',
     'tests/test_entry_direction_snapshot_data_v1.py',
     'tests/test_audit_entry_direction_candle_midpoints_v1.py')
+TEST_HELPERS = ('tests/test_entry_causal_m1_outcomes.py',)
 SCHEMA = 'gx1_direction_candle_midpoint_audit_plan_v1'
 SUBSET_SHA = 'd938827ef160896f0a27a5cea86bd60e0e8eb5a3561cc0aeb7f1bc006c5e8aab'
 DESIGN_SHA = 'a6638b593ebe41eebf1b45d60007cd2a52b04ef0a28cdb174782acb4b77b72b6'
@@ -85,7 +86,7 @@ def require_plan(plan, design):
     require(out.parent == ROOT and out.name not in ('', '.', '..') and not out.is_symlink()
         and ROOT.resolve(strict=True) == ROOT, 'OUTPUT_ROOT')
     require(isinstance(plan['sources'], dict)
-        and (set(SOURCE_PATHS) | (set(TEST_FILES) if mode == 'synthetic' else set())) <= set(plan['sources']), 'SOURCE_SET')
+        and (set(SOURCE_PATHS) | (set(TEST_FILES + TEST_HELPERS) if mode == 'synthetic' else set())) <= set(plan['sources']), 'SOURCE_SET')
     for relative, ref in plan['sources'].items():
         require(set(ref) == {'path', 'sha256'} and ref['path'] == str(REPO/relative)
             and relative.startswith(('gx1/', 'tests/', 'scripts/'))
@@ -183,13 +184,15 @@ def read_targets(path, *, np):
     return saved
 
 
-def make_guard(out, inputs, metadata, *, synthetic=False):
+def make_guard(out, inputs, metadata, *, synthetic=False, source_paths=()):
     allowed = set(inputs) | set(metadata)
+    test_sources = {str(REPO/name) for name in TEST_FILES + TEST_HELPERS} & set(source_paths)
     git_prefix = ('git', '-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=/dev/null', '-C', str(REPO))
     git_tails = {('rev-parse', 'HEAD'), ('branch', '--show-current'), ('status', '--porcelain', '--untracked-files=all')}
     def owned(value):
         p = Path(os.fsdecode(value))
-        return p.is_absolute() and (p == out or out in p.parents) and not any(x.is_symlink() for x in (p, *p.parents))
+        return (p.is_absolute() and '..' not in p.parts and (p == out or out in p.parents)
+            and not any(x.is_symlink() for x in (p, *p.parents)))
     def guard(event, args):
         if event == 'subprocess.Popen':
             command = tuple(args[1])
@@ -203,7 +206,8 @@ def make_guard(out, inputs, metadata, *, synthetic=False):
         if event == 'open' and isinstance(args[0], (str, bytes, os.PathLike)):
             name = os.fsdecode(args[0]); p = Path(name)
             writing = bool(args[2] & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND))
-            require(not any(part.upper() == 'TEST' or part.upper().startswith(('TEST_', 'TEST.')) for part in p.parts), 'TEST_PATH')
+            sealed = any(part.upper() == 'TEST' or part.upper().startswith(('TEST_', 'TEST.')) for part in p.parts)
+            require(not sealed or (synthetic and (owned(name) or (name in test_sources and not writing))), 'TEST_PATH')
             if writing:
                 require(owned(name), 'OUTSIDE_OUTPUT_WRITE')
             if '/GX1_DATA/' in name or '/GX1_RUNS/' in name:
@@ -238,31 +242,61 @@ def no_native_models(frame, event, arg):
         require(not getattr(arg, '__name__', '').startswith('_cuda'), 'SYNTHETIC_CUDA')
 
 
-def run_synthetic(stage, *, np):
+def run_synthetic(stage, *, np, publish):
     import pytest
     require(os.environ.get('PYTEST_DISABLE_PLUGIN_AUTOLOAD') == '1'
         and os.environ.get('CUDA_VISIBLE_DEVICES') == ''
-        and not os.environ.get('PYTEST_ADDOPTS'), 'SYNTHETIC_ENVIRONMENT')
+        and not os.environ.get('PYTEST_ADDOPTS') and sys.dont_write_bytecode,
+        'SYNTHETIC_ENVIRONMENT')
     class Results:
         def __init__(self):
             self.collected = []; self.phases = {}; self.by_file = {}
+            self.collection_reports = []; self.runtest_reports = []
+            self.deselected = []; self.internal_errors = []
+        def pytest_collectreport(self, report):
+            self.collection_reports.append({'nodeid': report.nodeid, 'outcome': report.outcome,
+                'longrepr': None if report.passed else str(report.longrepr)})
         def pytest_collection_finish(self, session):
             self.collected = [item.nodeid for item in session.items]
-            require(len(self.collected) > 0 and len(set(self.collected)) == len(self.collected), 'COLLECTED_CASES')
-            require({node.split('::')[0] for node in self.collected} == set(TEST_FILES), 'COLLECTED_FILES')
             self.by_file = {name: sum(node.split('::')[0] == name for node in self.collected) for name in TEST_FILES}
         def pytest_deselected(self, items):
-            require(not items, 'DESELECTED_TESTS')
+            self.deselected.extend(item.nodeid for item in items)
         def pytest_runtest_logreport(self, report):
-            require(report.outcome == 'passed' and report.nodeid in self.collected, 'FAILED_OR_SKIPPED_TEST')
-            phases = self.phases.setdefault(report.nodeid, [])
-            require(report.when not in phases, 'DUPLICATE_TEST_PHASE')
-            phases.append(report.when)
-    result = Results()
-    code = pytest.main(['-c', '/dev/null', '--rootdir', str(REPO), '--noconftest', '-s', '-q',
-        '-p', 'no:cacheprovider', '-p', 'no:logging', '--assert=plain',
-        '--basetemp', str(stage/'pytest-temp'), *TEST_FILES], plugins=[result])
-    require(int(code) == 0 and set(result.phases) == set(result.collected)
+            self.phases.setdefault(report.nodeid, []).append(report.when)
+            self.runtest_reports.append({'nodeid': report.nodeid, 'when': report.when,
+                'outcome': report.outcome, 'longrepr': None if report.passed else str(report.longrepr)})
+        def pytest_internalerror(self, excrepr, excinfo):
+            self.internal_errors.append(str(excrepr))
+    result = Results(); code = None; error = None
+    cache = stage/'python-cache'; cache.mkdir(exist_ok=False)
+    require(not any(cache.iterdir()), 'SYNTHETIC_EMPTY_BYTECODE_PREFIX')
+    previous_prefix = sys.pycache_prefix
+    try:
+        sys.pycache_prefix = str(cache)
+        code = pytest.main(['-c', '/dev/null', '--rootdir', str(REPO), '--noconftest', '-s', '-q',
+            '-p', 'no:cacheprovider', '-p', 'no:logging', '--assert=plain',
+            '--basetemp', str(stage/'pytest-temp'), *TEST_FILES], plugins=[result])
+    except Exception as exc:
+        error = exc
+    finally:
+        sys.pycache_prefix = previous_prefix
+        publish(stage/'SYNTHETIC_DIAGNOSTICS.json', {
+            'schema_version': 'gx1_direction_candle_synthetic_diagnostics_v1',
+            'pytest_exit_code': None if code is None else int(code),
+            'pytest_exception': None if error is None else type(error).__name__ + ': ' + str(error),
+            'collected_nodeids': result.collected, 'tests_by_file': result.by_file,
+            'collection_reports': result.collection_reports, 'runtest_reports': result.runtest_reports,
+            'runtest_phases': result.phases, 'deselected_nodeids': result.deselected,
+            'internal_errors': result.internal_errors, 'bytecode_prefix_restored': sys.pycache_prefix == previous_prefix})
+    if error is not None:
+        raise error
+    require(len(result.collected) > 0 and len(set(result.collected)) == len(result.collected), 'COLLECTED_CASES')
+    require({node.split('::')[0] for node in result.collected} == set(TEST_FILES), 'COLLECTED_FILES')
+    require(not result.deselected, 'DESELECTED_TESTS')
+    require(int(code) == 0 and not result.internal_errors
+        and all(report['outcome'] == 'passed' for report in result.collection_reports)
+        and all(report['outcome'] == 'passed' for report in result.runtest_reports)
+        and set(result.phases) == set(result.collected)
         and all(value == ['setup', 'call', 'teardown'] for value in result.phases.values()), 'ALL_TEST_PHASES_PASSED')
     return {'schema_version': 'gx1_direction_candle_synthetic_qualification_v1', 'status': 'PASS_SYNTHETIC_ONLY',
         'tests': len(result.collected), 'tests_by_file': result.by_file, 'collected_nodeids': result.collected,
@@ -316,7 +350,8 @@ def main(argv=None):
     publish(out/'INVOCATION_CLAIM.json', {'plan': plan_ref, 'policy': policy_ref,
         'source_head': args.source_head, 'execution': proof, 'lock': lock})
     metadata_paths = [plan_ref['path'], policy_ref['path'], plan['design']['path'], plan['metadata_review']['path']]
-    sys.addaudithook(make_guard(out, [x['path'] for x in plan['inputs'].values()], metadata_paths, synthetic=synthetic))
+    sys.addaudithook(make_guard(out, [x['path'] for x in plan['inputs'].values()], metadata_paths, synthetic=synthetic,
+        source_paths=[ref['path'] for ref in plan['sources'].values()]))
     started = time.monotonic(); previous_profile = sys.getprofile()
     previous_handler = signal.getsignal(signal.SIGALRM)
     def expired(*unused):
@@ -327,7 +362,7 @@ def main(argv=None):
     try:
         stage.mkdir(exist_ok=False)
         if synthetic:
-            report = run_synthetic(stage, np=np)
+            report = run_synthetic(stage, np=np, publish=publish)
             input_snapshot = control_snapshot
         else:
             with binding.fresh_file_verification_scope():
