@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T01:26:46.605730+00:00",
-  "status": "DIRECTION_GC_METADATA_REPEAT_FIXED_EXACT_LAYOUT_PARITY_READOUT_STILL_PENDING",
+  "status": "F_GC_METADATA_TRANSITION_SYNTHETIC_ONCE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Qualify the exact historical extraction source transition for the metadata-only GC helper change; reuse original checkpoints and tests without relaunching consumed F attempts. Then one fresh bounded B16 prediction/hidden parity and batch-timing check may be considered. Full readout diagnosis remains the scientific next measurement, not performance as an independent objective.",
+  "next_action": "Run exactly33 focused synthetic cases under the60-second CPU audit. No payload, model or fit authority. Then verify and consume before genuine timing admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify the exact historical extraction source transition for the metadata-only GC helper change; reuse original checkpoints and tests without relaunching consumed F attempts. Then one fresh bounded B16 prediction/hidden parity and batch-timing check may be considered. Full readout diagnosis remains the scientific next measurement, not performance as an independent objective.",
+    "next_action": "Run exactly33 focused synthetic cases under the60-second CPU audit. No payload, model or fit authority. Then verify and consume before genuine timing admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20273,7 +20273,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-27T01:28:46.765248+00:00",
+  "updated_utc": "2026-10-27T01:42:41.313415+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -36306,6 +36306,32 @@
     "failure_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_FAILURE_REVIEW_002.json",
       "sha256": "a9b0b80b897911a3f5193c5b0319680d93e3d8e1eca05301351e2c18f466fac2"
+    }
+  },
+  "direction_diagnostic_F_gc_layout_metadata_transition": {
+    "status": "ADMITTED",
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_GC_LAYOUT_METADATA_TRANSITION_SOURCE_ADMISSION_001.json",
+      "sha256": "a4fd703159f88010a60cb351e3613cd508deccad7ce38c7fc5261c012ff0de3f"
+    },
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
+    "execution_authorized": true,
+    "genuine_payload_reads_authorized": false,
+    "genuine_forwards_authorized": false,
+    "genuine_fits_authorized": false,
+    "test_data_used": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_GC_LAYOUT_METADATA_TRANSITION_SOURCE_REVIEW_001.json",
+      "sha256": "a505b44ee580524cca0fd0b233dff74cb0153d827c8d071cce9111b01ea56940"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_GC_LAYOUT_METADATA_TRANSITION_SYNTHETIC_PLAN_001.json",
+      "sha256": "00d3e3d727af9df1920d22c5cae057d003fe75f5d1cbbe225ff1350dc9d72a7d"
     }
   }
 }

@@ -23,6 +23,9 @@ def source_inputs():
     previous.update({n: {'path': contract.REPO + '/' + n, 'sha256': '0' * 64} for n in shared})
     previous.update({f'gx1/synthetic_owner_{i}.py': {'path': contract.REPO + f'/gx1/synthetic_owner_{i}.py',
         'sha256': '0' * 64} for i in range(40)})
+    for index, (name, (old, _current)) in enumerate(contract.GC_METADATA_SOURCE_TRANSITIONS.items(), start=38):
+        del previous[f'gx1/synthetic_owner_{index}.py']
+        previous[name] = {'path': contract.REPO + '/' + name, 'sha256': old}
     reused = {n: deepcopy(previous[n]) for n in shared}
     name = 'gx1/contracts/entry_direction_probability_reference_v1.py'
     reused[name] = {'path': contract.REPO + '/' + name, 'sha256': contract.TRANSPORT_ORIGINAL_SHA256[name]}
@@ -622,3 +625,98 @@ def test_profile_cache_keeps_distinct_filename_authority(reverse):
                 profile(frame, 'call', None)
         else:
             profile(frame, 'call', None)
+
+
+def metadata_transition_plan(unit=None):
+    value = plan(contract.TIMING_UNIT if unit is None else unit)
+    value['gc_layout_metadata_parity'] = deepcopy(contract.GC_LAYOUT_METADATA_PARITY)
+    for name, (_old, current) in contract.GC_METADATA_SOURCE_TRANSITIONS.items():
+        value['source_owners'][name] = {'path': contract.REPO + '/' + name, 'sha256': current}
+    return value
+
+
+def test_exact_gc_metadata_transition_preserves_all_other_owners_and_caps():
+    value = metadata_transition_plan()
+    original, proposal = source_inputs()
+    assert contract.require_plan(value) == value
+    assert contract.require_source_closure(value, original, proposal) == value['source_owners']
+    assert value['budget'] == plan(contract.TIMING_UNIT)['budget']
+    assert value['operation_limits'] == plan(contract.TIMING_UNIT)['operation_limits']
+
+
+@pytest.mark.parametrize('fault', ['proof', 'gc_source', 'prefix_source', 'other_source', 'original_gc', 'missing_bridge'])
+def test_gc_metadata_transition_rejects_unqualified_changes(fault):
+    value = metadata_transition_plan()
+    original, proposal = source_inputs()
+    paths = tuple(contract.GC_METADATA_SOURCE_TRANSITIONS)
+    if fault == 'proof': value['gc_layout_metadata_parity']['sha256'] = '9' * 64
+    elif fault == 'gc_source': value['source_owners'][paths[0]]['sha256'] = '9' * 64
+    elif fault == 'prefix_source': value['source_owners'][paths[1]]['sha256'] = '9' * 64
+    elif fault == 'other_source': value['source_owners']['gx1/synthetic_owner_0.py']['sha256'] = '9' * 64
+    elif fault == 'original_gc': original['source_owners'][paths[0]]['sha256'] = '9' * 64
+    else: del value['gc_layout_metadata_parity']
+    with pytest.raises(RuntimeError):
+        contract.require_plan(value)
+        contract.require_source_closure(value, original, proposal)
+
+
+@pytest.mark.parametrize('unit', list(contract.UNITS))
+def test_gc_metadata_transition_does_not_admit_full_extraction(unit):
+    with pytest.raises(RuntimeError, match='GC_METADATA_TIMING_SCOPE'):
+        contract.require_plan(metadata_transition_plan(unit))
+
+
+def _prefix_metadata_case():
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as prefix
+    fold = {'fold_id': 1, 'prefix_rows': 4, 'train_cutoff_ns': 10}
+    fitted_ref, constructor_ref = ref('SYNTHETIC_FITTED.json'), ref('SYNTHETIC_CONSTRUCTOR.json')
+    item = {'fold_id': 1, 'prefix_parent_rows': 4, 'cutoff_ns': 10, 'output': fitted_ref,
+        'combined_contract_sha256': 'a' * 64, 'base_normalization_sha256': 'b' * 64,
+        'gc_layout_sha256': 'c' * 64, 'gc_normalization_sha256': 'd' * 64}
+    gc_path = contract.REPO + '/gx1/contracts/entry_gc_mtf_history_v1.py'
+    old_gc, current_gc = contract.GC_METADATA_SOURCE_TRANSITIONS['gx1/contracts/entry_gc_mtf_history_v1.py']
+    other = {'path': contract.REPO + '/gx1/synthetic_view.py', 'sha256': '5' * 64}
+    manifest = {'schema_version': 'gx1_native_direction_prefix_fit_input_manifest_v1',
+        'source_design': prefix.SOURCE_DESIGN, 'physical_provider_plan': ref('SYNTHETIC_PROVIDER.json'),
+        'physical_provider_worker': ref('SYNTHETIC_PROVIDER.py'), 'prefix_normalization': item,
+        'constructor_metadata': constructor_ref, 'view_source_bindings': {
+            'gc_gather_source': {'path': gc_path, 'sha256': old_gc}, 'other': other},
+        'targets': ref('SYNTHETIC_TARGETS.npz'), 'archive_members': list(prefix.PRICE_MEMBERS),
+        'state_qualification': ref('SYNTHETIC_STATE.json'),
+        'native_private_qualification': prefix.PRIVATE_QUALIFICATION,
+        'input_qualification': prefix.INPUT_QUALIFICATION}
+    fitted = {'contract_sha256': item['combined_contract_sha256'],
+        'base_normalization': {'contract_sha256': item['base_normalization_sha256']},
+        'gc_mtf_history': {'layout': {'contract_sha256': item['gc_layout_sha256']},
+            'normalization': {'contract_sha256': item['gc_normalization_sha256']}}}
+    launch = {'input_manifest': ref('SYNTHETIC_INPUT_MANIFEST.json'), 'fold': fold}
+    old_plan = {'worker': manifest['physical_provider_worker']}
+    docs = {launch['input_manifest']['path']: manifest, prefix.SOURCE_DESIGN['path']: {'folds': [fold]},
+        prefix.INPUT_QUALIFICATION['path']: {'normalizations': [item]}, prefix.PRIVATE_QUALIFICATION['path']: {},
+        manifest['state_qualification']['path']: {}, manifest['physical_provider_plan']['path']: old_plan,
+        fitted_ref['path']: fitted, constructor_ref['path']: {}}
+    physical = SimpleNamespace(provider_module=lambda: object(), validate_inputs=lambda *args: (
+        {}, {'axes': {'source': manifest['targets']}}, {'metadata': {}}))
+    hashes = {gc_path: {'path': gc_path, 'sha256': current_gc}, other['path']: deepcopy(other)}
+    common = SimpleNamespace(STATE_QUALIFICATION=manifest['state_qualification'],
+        _read=lambda binding, metadata: deepcopy(docs[binding['path']]), _module=lambda binding: physical,
+        _hash_file=lambda path: deepcopy(hashes[path]))
+    return prefix, launch, common, manifest, hashes
+
+
+@pytest.mark.parametrize('mode', ['default', 'qualified', 'wrong_proof', 'other_source', 'wrong_gc'])
+def test_actual_prefix_metadata_checks_exact_transition_without_relabeling_manifest(mode):
+    prefix, launch, common, manifest, hashes = _prefix_metadata_case()
+    proof = None if mode == 'default' else deepcopy(contract.GC_LAYOUT_METADATA_PARITY)
+    if mode == 'wrong_proof': proof['sha256'] = '8' * 64
+    if mode in ('other_source', 'wrong_gc'):
+        key = 'other' if mode == 'other_source' else 'gc_gather_source'
+        hashes[manifest['view_source_bindings'][key]['path']]['sha256'] = '8' * 64
+    if mode != 'qualified':
+        with pytest.raises(RuntimeError, match='VIEW_SOURCE_SHA|GC_METADATA_PARITY_REF'):
+            prefix._metadata(launch, common, gc_layout_metadata_parity=proof)
+    else:
+        actual = prefix._metadata(launch, common, gc_layout_metadata_parity=proof)
+        assert actual['manifest'] == manifest
+        assert actual['manifest']['view_source_bindings']['gc_gather_source']['sha256'] != hashes[
+            manifest['view_source_bindings']['gc_gather_source']['path']]['sha256']

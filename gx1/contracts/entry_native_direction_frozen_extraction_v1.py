@@ -35,6 +35,16 @@ TERMINAL_PREDICTIONS = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.npz'
 TIMING_UNIT = 'own0U_prefix_timing256'
 TIMING_DESIGN = {'path': PROGRAM + '/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json',
     'sha256': '572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684'}
+# One measured metadata-only transition is allowed solely in the timing unit.
+GC_LAYOUT_METADATA_PARITY = {'path': PROGRAM + '/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_ROOT_REVIEW_003.json',
+    'sha256': '1d3347ee52f02af7afcac5d55c02532c0e2823e1ce20397633785a2512d39263'}
+GC_METADATA_SOURCE_TRANSITIONS = {
+    'gx1/contracts/entry_gc_mtf_history_v1.py': (
+        '82ead3da60383ac816f7b75963cbe5118520e2d058ec120edb1dff169e0362cd',
+        'de3a254f605c8e84543855b09f9ab98e6401225f7c212af5926c6b58ae250d12'),
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py': (
+        'db7bd2823b5fd1c36a42da2433bef22ac106ed682e700b476234d6b7f9b19bba',
+        '407725139b0df536e30713e560621cb056739753ff401242657d1e836f46982f')}
 # These four full cohorts remain the complete readout study; timing is separate.
 UNITS = {
     'own0U_prefix': ('own0U', 'prefix'),
@@ -106,6 +116,19 @@ def call_limits(unit):
     return result
 
 
+def historical_gc_view_source(ref, metadata_parity):
+    """Keep historical manifest identity while checking one qualified current file."""
+    require(type(metadata_parity) is dict and metadata_parity == GC_LAYOUT_METADATA_PARITY,
+        'GC_METADATA_PARITY_REF')
+    source = plain_ref(ref)
+    name = 'gx1/contracts/entry_gc_mtf_history_v1.py'
+    if source['path'] == REPO + '/' + name:
+        old, current = GC_METADATA_SOURCE_TRANSITIONS[name]
+        require(source['sha256'] == old, 'HISTORICAL_GC_SOURCE')
+        return {'path': source['path'], 'sha256': current}
+    return source
+
+
 def require_plan(value):
     fields = {'schema_version', 'operation', 'admission_stage', 'proposal', 'design', 'units_design', 'unit',
         'source_owners', 'transport_source_transitions', 'run_root', 'runtime_root',
@@ -113,7 +136,11 @@ def require_plan(value):
         'initial_predictions', 'terminal_report', 'terminal_predictions', 'max_invocations',
         'execution_authorized', 'data_reads_authorized', 'checkpoint_reads_authorized',
         'genuine_forwards_authorized', 'gradient_reverse_authorized', 'optimizer_steps_authorized', 'test_data_used'}
-    require(type(value) is dict and set(value) == fields and value['schema_version'] == SCHEMA
+    require(type(value) is dict, 'PLAN_TYPE')
+    metadata_transition = 'gc_layout_metadata_parity' in value
+    if metadata_transition:
+        fields.add('gc_layout_metadata_parity')
+    require(set(value) == fields and value['schema_version'] == SCHEMA
         and value['operation'] == OPERATION and value['admission_stage'] == STAGE, 'PLAN_SCHEMA')
     unit_spec(value['unit'])
     require(value['proposal'] == PROPOSAL and value['design'] == DESIGN and value['units_design'] == unit_design(value['unit'])
@@ -132,6 +159,12 @@ def require_plan(value):
             and plain_ref(item['current']) == owners.get(name)
             and item['current']['sha256'] != digest, 'SOURCE_TRANSITION:' + name)
     require(all(owners[name]['sha256'] == digest for name, digest in PINNED_PRE_F.items()), 'PRE_F_PINNED_SOURCES')
+    if metadata_transition:
+        require(value['unit'] == TIMING_UNIT and value['gc_layout_metadata_parity'] == GC_LAYOUT_METADATA_PARITY
+            and type(value['gc_layout_metadata_parity']) is dict, 'GC_METADATA_TIMING_SCOPE')
+        for name, (_old, current) in GC_METADATA_SOURCE_TRANSITIONS.items():
+            require(owners.get(name) == {'path': REPO + '/' + name, 'sha256': current},
+                'GC_METADATA_CURRENT_SOURCE:' + name)
     root, runtime = (PurePosixPath(value[k]) for k in ('run_root', 'runtime_root'))
     require(all(str(p) == value[k] and p.parent == PurePosixPath(PROGRAM)
         and p.name.startswith('F_FROZEN_EXTRACTION_' + value['unit'] + '_') for k, p in
@@ -171,6 +204,12 @@ def require_source_closure(recipe, original, proposal):
         'EXACT_SOURCE_CLOSURE')
     for name, ref in required.items():
         expected = recipe['transport_source_transitions'][name]['current'] if name in TRANSPORT_ORIGINAL_SHA256 else ref
+        if 'gc_layout_metadata_parity' in recipe and name in GC_METADATA_SOURCE_TRANSITIONS:
+            require(recipe['unit'] == TIMING_UNIT and recipe['gc_layout_metadata_parity'] == GC_LAYOUT_METADATA_PARITY,
+                'GC_METADATA_TIMING_SCOPE')
+            old, current = GC_METADATA_SOURCE_TRANSITIONS[name]
+            require(ref == {'path': REPO + '/' + name, 'sha256': old}, 'GC_METADATA_ORIGINAL_SOURCE:' + name)
+            expected = {'path': REPO + '/' + name, 'sha256': current}
         require(recipe['source_owners'][name] == expected, 'UNCHANGED_SOURCE_OWNER:' + name)
         if name in TRANSPORT_ORIGINAL_SHA256:
             require(recipe['transport_source_transitions'][name]['old276'] == ref, 'ORIGINAL_SOURCE:' + name)

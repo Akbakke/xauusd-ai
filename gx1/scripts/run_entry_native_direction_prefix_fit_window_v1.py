@@ -38,7 +38,7 @@ def _require(ok, reason):
     if not ok:raise RuntimeError('NATIVE_DIRECTION_PREFIX_WINDOW_'+reason)
 
 
-def _metadata(launch, common):
+def _metadata(launch, common, *, gc_layout_metadata_parity=None):
     metadata={};manifest=common._read(launch['input_manifest'],metadata)
     _require(set(manifest)==MANIFEST_KEYS and manifest['schema_version']=='gx1_native_direction_prefix_fit_input_manifest_v1'
         and manifest['source_design']==SOURCE_DESIGN and manifest['state_qualification']==common.STATE_QUALIFICATION
@@ -63,7 +63,12 @@ def _metadata(launch, common):
         and fitted['gc_mtf_history']['normalization']['contract_sha256']==item['gc_normalization_sha256'],'PREFIX_IDENTITIES')
     for ref in manifest['view_source_bindings'].values():
         if ref['path'].endswith('.json'):common._read(ref,metadata)
-        else:_require(common._hash_file(ref['path'])==ref,'VIEW_SOURCE_SHA')
+        else:
+            expected = ref
+            if gc_layout_metadata_parity is not None:
+                from gx1.contracts import entry_native_direction_frozen_extraction_v1 as frozen
+                expected = frozen.historical_gc_view_source(ref, gc_layout_metadata_parity)
+            _require(common._hash_file(ref['path'])==expected,'VIEW_SOURCE_SHA')
     info['metadata'].update(metadata)
     return {'manifest':manifest,'design':design,'physical':physical,'ancestor':ancestor,'ancestor_plan':ancestral_plan,
         'info':info,'fitted':fitted,'constructor':constructor}

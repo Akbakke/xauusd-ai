@@ -176,6 +176,12 @@ def _metadata(plan, route, common, metadata):
     for ref in [route['recipe_ref'], *route['metadata_refs'], authority.DESIGN, plan['units_design']]:
         common._read(ref, metadata)
     authority.require_admission(common._read(route['admission_ref'], metadata), route['recipe_ref'], plan['unit'])
+    if 'gc_layout_metadata_parity' in plan:
+        proof = common._read(plan['gc_layout_metadata_parity'], metadata)
+        require(proof['status'] == 'COMPLETE_CONSUMED' and proof['metadata_exact_parity'] is True
+            and proof['test_cases_passed'] == 6
+            and proof['layout_contract_sha256'] == 'b67b9b94b78b4cf933c23e6738666911cd2c262ae3ab696448d42571e13bec6f'
+            and all(value == 0 for value in proof['counters'].values()), 'QUALIFIED_GC_METADATA_PARITY')
     proposal = authority.require_proposal(common._read(authority.PROPOSAL, metadata))
     original = common._read(proposal['existing_input_refs']['recipe'], metadata)
     qualified = common._read(proposal['existing_input_refs']['first_prefix_qualification'], metadata)
@@ -297,7 +303,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         recipe, initial, state_ref = _metadata(plan, route, common, metadata)
         payload_refs = [state_ref] + ([spec['parity']] if spec['parity'] is not None else [])
         originals = {ref['path']: common._stat(ref['path']) for ref in payload_refs}
-        context = prefix._metadata(recipe, common)
+        context = prefix._metadata(recipe, common,
+            gc_layout_metadata_parity=plan.get('gc_layout_metadata_parity'))
         context['info']['metadata'].update(metadata)
         common._freeze(plan, binding, context)
         guard_context = {**context, 'info': {**context['info'], 'metadata': {

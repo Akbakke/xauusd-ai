@@ -9,6 +9,14 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+F_GC_LAYOUT_METADATA_TRANSITION_SOURCE_ADMISSION_001 åpner bare en eksakt
+kildeovergang for den kvalifiserte GC-metadatarettelsen og dens metadatakaller.
+Kun timing256 kan få denne overgangen; full F og andre kildeendringer avvises.
+Originale manifest- og checkpointidentiteter beholdes. Én capped CPU-kontroll
+med 33 fokuserte syntetiske tilfeller og 60 sekunders grense er admittért i
+F_GC_LAYOUT_METADATA_TRANSITION_SYNTHETIC_PLAN_001. Ingen payload-, forward-
+eller fit-kjøring er nå åpnet.
+
 GC-oppsettet beregner nå det uendrede boolske feltdomenet én gang per tidsramme,
 i stedet for én gang per feltnavn. DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003
 bekrefter identisk komplett oppsett/hash i fem gamle/nye par: 2 415 helperkall
