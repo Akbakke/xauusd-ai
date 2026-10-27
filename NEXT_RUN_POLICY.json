@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Execute fresh DIRECTION_NATIVE_REFERENCE_RANK_002 once; same six AUC contrasts, rows and limits; no relaunch001. Freeze source/policy and consume at terminal.",
+  "next_action": "Execute fresh DIRECTION_NATIVE_REFERENCE_RANK_003 once. Same six contrasts and limits;002never launched. Verify original prior formulas separately and consume authority at terminal.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Matched native-reference rank002 admitted after exact original result-status binding repair",
+    "current_activity": "Rank003: original equivalent prior formulas bound exactly; no invocation of002",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -20236,7 +20236,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-26T23:59:07.687680+00:00",
+  "updated_utc": "2026-10-27T00:00:32.154067+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35920,12 +35920,12 @@
       "sha256": "ac3ae02a2a551cf7504e353351b0f307129838b22372091cd52b1118c016b11f"
     },
     "source_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_SOURCE_REVIEW_002.json",
-      "sha256": "27cc528370090429ecb350ce2bee010984dea98c2e9f690015769b2083cf1476"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_SOURCE_REVIEW_003.json",
+      "sha256": "4db6129b83168448c91a3167a9b2d32f3aa5fd38611ed64e40591f28d03613c0"
     },
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_PLAN_002.json",
-      "sha256": "3e866425b62630bf27db59a9c07542368507617103879b7b28fceef29748b26a"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_PLAN_003.json",
+      "sha256": "2cc053e00ae5bb4d94b2bafb34f7b5fb496c2ce2fb3fd4273df4b867554e03fd"
     },
     "execution_authorized": true,
     "saved_predictions_authorized": true,
@@ -35958,6 +35958,10 @@
     "previous_failed_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_001.json",
       "sha256": "fb256f24460f9841fdc518f696e0bf591b2e5aece6a2b2aeda584e3fb5ff8b33"
+    },
+    "superseded_unexecuted_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_PLAN_002.json",
+      "sha256": "3e866425b62630bf27db59a9c07542368507617103879b7b28fceef29748b26a"
     }
   },
   "direction_native_reference_rank_attempt001": {
@@ -36004,6 +36008,57 @@
     "root_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_001.json",
       "sha256": "fb256f24460f9841fdc518f696e0bf591b2e5aece6a2b2aeda584e3fb5ff8b33"
+    }
+  },
+  "direction_native_reference_rank_unexecuted002": {
+    "status": "SUPERSEDED_BEFORE_LAUNCH",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_DESIGN_001.json",
+      "sha256": "ac3ae02a2a551cf7504e353351b0f307129838b22372091cd52b1118c016b11f"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_SOURCE_REVIEW_002.json",
+      "sha256": "27cc528370090429ecb350ce2bee010984dea98c2e9f690015769b2083cf1476"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_PLAN_002.json",
+      "sha256": "3e866425b62630bf27db59a9c07542368507617103879b7b28fceef29748b26a"
+    },
+    "execution_authorized": false,
+    "saved_predictions_authorized": false,
+    "raw_data_reads_authorized": false,
+    "native_forwards_authorized": false,
+    "genuine_fits_authorized": false,
+    "test_data_used": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "budget": {
+      "block_rank_calls": 96,
+      "fits": 0,
+      "invocations": 1,
+      "max_rchar_bytes": 536870912,
+      "memory_bytes": 4294967296,
+      "native_forwards": 0,
+      "optimizer_steps": 0,
+      "outer_timeout_seconds": 210,
+      "payload_loads": 6,
+      "swap_bytes": 536870912,
+      "tasks": 64,
+      "threads": 1,
+      "wall_seconds": 180,
+      "weighted_rank_calls": 96
+    },
+    "consumed_invocations": 0,
+    "root_review": null,
+    "previous_failed_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_001.json",
+      "sha256": "fb256f24460f9841fdc518f696e0bf591b2e5aece6a2b2aeda584e3fb5ff8b33"
+    },
+    "superseded_by": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_PLAN_003.json",
+      "sha256": "2cc053e00ae5bb4d94b2bafb34f7b5fb496c2ce2fb3fd4273df4b867554e03fd"
     }
   }
 }

@@ -9,12 +9,17 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+Førlaunch ble002 erstattet av003 uten invokasjon: tidligereB dokumenterer
+samme klasseprior med to numeriske uttrykk(log(up/down)motlog(p)-log1p(-p)).
+003 verifiserer begge originalformlene eksakt og rapporterer avrundingsresidual;
+ingen skårer, data, kontraster eller grenser er endret.
+
 Rangforsøk001 stoppet i metadata før claim/payload: feil forventet statusnavn
 for259RESULT. Originalterminal bekrefter COMPLETE/exit0.001 er konsumert;
 002 binder korrekt eksakt status og originalterminal. Metode/data/budsjett er
 uendret, og originalfeilen er bevart. Ingen numeriske tellere var startet.
 
-DIRECTION_NATIVE_REFERENCE_RANK_PLAN_002 er nå eneste admisjon: én parvis
+DIRECTION_NATIVE_REFERENCE_RANK_PLAN_003 er nå eneste admisjon: én parvis
 rangmåling native mot252ET_FULL og259R1_EXPLICIT_PREV_RET1 på samme67112foreldre.
 252er32ExtraTrees,depth8,minleaf256,på3345kompakte snapshotfelt;259erfastlogistisk
 currentret1/forrige5minret1/presence. SeksforhåndsbundneAUCkontraster,
