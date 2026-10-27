@@ -159,6 +159,15 @@ Intervallene gjelder relative AUC-forskjeller, ikke absolutt AUC-over0.5.
 Den nye66-case syntetikken besto alle faser med0native/fit/Torch-kall.
 Én egen600sek/4G lagret-outputenhet er nå åpnet; alt originalt C-resultat
 må gjenskapes eksakt før det nye utforskende resultatområdet publiseres.
+Eget9-cellers uttrekk er fullført på17288senere utviklingsforeldre. Alle
+gamle C-felter gjenskapt eksakt; original combinedFALSE er bevart. Returhodets
+AUC1/5/15 er0.496283/0.496262/0.496172. Alle12korrigerte relative intervaller
+inkluderer0, ingen udefinerte resampler. Ved nullterskel er5alltidUP og15
+alltidDOWN; dette er retningsandel, ikke dokumentert skilleevne. Ingen ny fit
+eller native-kall.231fokuserte cases er nå bestått på sine komponenter.
+ALL_HEADS_ROOT_REVIEW_001 og QUALIFICATION_STATE_002 binder bevisene.
+Neste avgrensning er fersk egen0U256-paritet og kun manglende prefikstredjedel.
+Kompaktinput holdes fast; ingen slik nativeenhet eller ekstra epoch er åpnet.
 
 ## Bps-hodets separate retningsrangering
 

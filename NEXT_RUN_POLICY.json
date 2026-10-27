@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_ALL_HEADS_SAVED_COMPARISON_ADMITTED",
+    "status": "COMPACT_ALL_HEAD_COVERAGE_COMPLETE_NO_DIRECTION_IMPROVEMENT",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_007.json",
       "sha256": "0320bd32e9deeb0ed234fd70b48d804617e31e7be52edee7da3db9a843564a5c"
     },
-    "current_unit": "independent_direction_all_heads_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,10 +37185,10 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Run only exact-bound saved-output exploratory9cell/12interval measurement, preserving entire original negative C result. No native, fit, feature expansion or selection.",
+    "next_action": "Resolve missing whole-prefix native0U fit measurement with fresh source-only compatibility design and new exact qualification before only missing prefixpart3. Keep compact inputs fixed; no extra-pass or new-feature launch admitted.",
     "qualification_state": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_001.json",
-      "sha256": "79911925aec654d115665f5ea964e98331bd956f31a08b941caa60ce770308b1"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_002.json",
+      "sha256": "17f6c2b68e6c5a2dbbb8183b912b9f93f52c774bd885356f498ee96898f785d5"
     },
     "current_design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/EXPLORATORY_HEAD_RANK_PROTOCOL_001.json",
@@ -37197,6 +37197,10 @@
     "prepared_all_heads_actual_plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_RANK_PLAN_001.json",
       "sha256": "1b3a116030022d586fb29a4b9bb3ca51ac7570cd3303e4920870de27ce50563d"
+    },
+    "all_head_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_ROOT_REVIEW_001.json",
+      "sha256": "bd9cea17e198b385d8ef394dcc3e8daa37508a1eea19849f168d8bda7228e4dd"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -37750,15 +37754,15 @@
     }
   },
   "independent_direction_all_heads_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_EXPLORATORY_NO_DIRECTION_IMPROVEMENT",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_RANK_PLAN_001.json",
       "sha256": "1b3a116030022d586fb29a4b9bb3ca51ac7570cd3303e4920870de27ce50563d"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "read_only_saved_TRAIN_development_predictions": true,
     "saved_payload_reads_authorized": true,
@@ -37779,6 +37783,22 @@
     "bootstrap_replicates": 10000,
     "exploratory_interval_count": 12,
     "head_selection_authorized": false,
-    "advance_authorized": false
+    "advance_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_RANK_001/OUTPUT/RESULT.json",
+      "sha256": "91953bbe22e22124e772f743dde1755319120f165b9e4a912a1e11104bb93465"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_RANK_001/OUTPUT/TERMINAL.json",
+      "sha256": "47ba7439c0fbfe9754e6b54dea97688cceb0e7139c3cef2b99381718641de8bc"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_RANK_001_OUTER_TERMINAL.json",
+      "sha256": "504ab3cdc1544bf9d96c69979416e7021e81cfda79ce19e9c60b5b816cea2783"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_ROOT_REVIEW_001.json",
+      "sha256": "bd9cea17e198b385d8ef394dcc3e8daa37508a1eea19849f168d8bda7228e4dd"
+    }
   }
 }
