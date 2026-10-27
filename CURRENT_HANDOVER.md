@@ -104,10 +104,10 @@ Native open sammenlignes med rekonstruert bid/ask-mid først etter bitidentisk
 reproduksjon av gammel fasit. Siste-M1-OFI velges på eksakt lukket minutt,
 med egne masker og kontraktkontroll; ingen eldre gyldig rad fyller et hull.
 Eksisterende mål, modell, trening og feature-registry er ikke endret.
-Kilde-/peerreview, AST og diffkontroll er utført; faktisk kvalifisering gjenstår.
-Syntetisk forsøk 001 feilet under innsamling, før tester ble kjørt.
-Originale feilkvitteringer er bevart. En målt feil i testfilvakten er rettet
-med eksakt kildeunntak, egen bytecode-prefix og full feildiagnostikk.
-Et traversalavvik i den syntetiske outputvakten ble også rettet ved peerreview.
-002 ble erstattet før kjøring; kun nytt, kildebundet forsøk 003 er admittért.
-Ingen genuin candle-måling, ny fit eller ny native-trening følger av dette.
+Kilde-/peerreview, AST og diffkontroll er utført. Syntetisk forsøk 001 feilet
+før testkjøring; originalkvitteringene er bevart. 002 ble erstattet før kjøring.
+003 besto alle128 tester (55prisfasit,27snapshot,46auditgrenser), uten
+markedsdata, native-kall eller fit. Kilde-/inputidentitet besto sluttkontroll.
+Kun ny engangsmåling av fem eksakte TRAIN-inputfiler er nå admittért:
+2024/2025-nativecandler, manifest og245-fasit/metadata;118249foreldre,1/5/15min.
+Ingen modell, trening, CONTROL/TEST eller økonomikvalifisering inngår.

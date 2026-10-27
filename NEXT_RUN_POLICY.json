@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "SYNTHETIC_001_FAILED_GUARD_REPAIRED_003_ADMITTED_002_UNEXECUTED",
+    "status": "SYNTHETIC_128_PASS_GENUINE_MIDPOINT_AUDIT_ADMITTED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37146,8 +37146,8 @@
       "sha256": "2cbaf89a78267ab1408deb20a7d4f2cc9b976fe0559bc923e669649e9bf2a16e"
     },
     "current_unit": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_PLAN_003.json",
-      "sha256": "189d4a710f9371bd5d99e03bfbc6fcc8526a46a753ab52ac0453e1b848254e3b"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_AUDIT_PLAN_001.json",
+      "sha256": "815b7615de2474ce4de09073cab28bfc92e2002f993faeb04b109518af51a370"
     },
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
@@ -37159,22 +37159,22 @@
     ],
     "other_chat_contact_authorized": false,
     "source_only_review_complete": true,
-    "synthetic_qualification_complete": false,
+    "synthetic_qualification_complete": true,
     "genuine_candle_measurement_complete": false,
     "last_M1_direction_value_measured": false,
     "training_exposure_comparison_complete": false,
     "test_data_used": false
   },
   "independent_direction_candle_synthetic_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_SYNTHETIC_ONLY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_PLAN_003.json",
       "sha256": "189d4a710f9371bd5d99e03bfbc6fcc8526a46a753ab52ac0453e1b848254e3b"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "synthetic_only": true,
     "saved_payload_reads_authorized": false,
@@ -37188,6 +37188,22 @@
     "source_admission": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_003.json",
       "sha256": "2cbaf89a78267ab1408deb20a7d4f2cc9b976fe0559bc923e669649e9bf2a16e"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_003/OUTPUT/RESULT.json",
+      "sha256": "0abc30ff51776a407826b15f0b4c59b91061bc70b6488c84dbdfebf330400032"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_003/OUTPUT/TERMINAL.json",
+      "sha256": "3be1b6485d2561f0524b316428b94e742a9b53838f99696bab39b033894684d7"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_003_OUTER_TERMINAL.json",
+      "sha256": "449939a3f48aa0ddb596df78547ea4f1902377272ce214652a537985412ea558"
+    },
+    "diagnostics": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_003/OUTPUT/SYNTHETIC_DIAGNOSTICS.json",
+      "sha256": "d4db31fba21a9493d1db1ab666b23c264c580d5f3091b45672b9366af2243147"
     }
   },
   "independent_direction_candle_synthetic_20261027_attempt001": {
@@ -37249,5 +37265,42 @@
       "sha256": "79633bc1d73f24c010cdc2d23fb21f05a33d9eff9cf2b71ef8f7e70e154a7a24"
     },
     "superseded_reason": "Peer review found owned-path parent traversal; fixed before any invocation. No outputs or claim exist."
+  },
+  "independent_direction_candle_audit_20261027": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_AUDIT_PLAN_001.json",
+      "sha256": "815b7615de2474ce4de09073cab28bfc92e2002f993faeb04b109518af51a370"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "read_only_TRAIN_candles": true,
+    "saved_payload_reads_authorized": true,
+    "native_model_calls_authorized": false,
+    "test_data_used": false,
+    "max_parents": 118249,
+    "years": [
+      2024,
+      2025
+    ],
+    "columns": [
+      "time",
+      "open",
+      "bid_open",
+      "ask_open"
+    ],
+    "horizons_minutes": [
+      1,
+      5,
+      15
+    ],
+    "cutoff_exclusive_utc": "2026-01-01T00:00:00Z",
+    "required_synthetic": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_003/OUTPUT/RESULT.json",
+      "sha256": "0abc30ff51776a407826b15f0b4c59b91061bc70b6488c84dbdfebf330400032"
+    }
   }
 }
