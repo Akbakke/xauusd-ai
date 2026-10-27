@@ -64,6 +64,13 @@ def score_vectors(candidate, baseline, j, use):
         'native276_logit':np.ascontiguousarray(baseline['logit_up'][use,j],dtype=np.float64)}
 
 
+def direction_labels(arrays, j):
+    use=eligible(arrays,j)
+    labels=np.ascontiguousarray((arrays['sign'][use,j] == 1).astype(np.int8))
+    require(len(labels)>0 and (labels==0).any() and (labels==1).any(), 'BOTH_CLASSES')
+    return use,labels
+
+
 def run_scoring(candidate, baseline, io, rank, paired):
     days = candidate['decision_ns']//DAY
     schemes = []
@@ -76,9 +83,7 @@ def run_scoring(candidate, baseline, io, rank, paired):
         schemes.append((name,blocks,inverse,weights))
     results = []
     for j,h in enumerate((1,5,15)):
-        use = eligible(candidate,j)
-        labels = np.ascontiguousarray((candidate['sign'][use,j] == 1).astype(np.int8))
-        require(len(labels)>0 and (labels==0).any() and (labels==1).any(), 'BOTH_CLASSES')
+        use,labels = direction_labels(candidate,j)
         scores = score_vectors(candidate,baseline,j,use)
         points, intervals = {}, []
         for name,blocks,inverse,weights in schemes:
@@ -153,6 +158,17 @@ def synthetic(rank,paired,io):
     except RuntimeError as exc:require('IDENTITY:parent_rows' in str(exc),'SYNTHETIC_EXPECTED_MISMATCH')
     else:raise RuntimeError('BPS_HEAD_RANK_SYNTHETIC_ACCEPTED_MISMATCH')
     cases.append('mismatched_parents_rejected')
+    baseline['parent_rows'][0]=0
+    baseline['sign'][1,0]=1
+    try:verify_pair(candidate,baseline,rows=5,enforce_scope=False)
+    except RuntimeError as exc:require('IDENTITY:sign' in str(exc),'SYNTHETIC_EXPECTED_LABEL_MISMATCH')
+    else:raise RuntimeError('BPS_HEAD_RANK_SYNTHETIC_ACCEPTED_LABEL_MISMATCH')
+    cases.append('mismatched_direction_label_rejected')
+    candidate['sign'][:,0]=1;candidate['observed'][:,0]=True;candidate['terminal_time_ns'][:,0]=LATER_END-1
+    try:direction_labels(candidate,0)
+    except RuntimeError as exc:require(str(exc).endswith('BOTH_CLASSES'),'SYNTHETIC_EXPECTED_SINGLE_CLASS')
+    else:raise RuntimeError('BPS_HEAD_RANK_SYNTHETIC_ACCEPTED_SINGLE_CLASS')
+    cases.append('single_class_direction_population_rejected')
     return {'status':'PASS_SYNTHETIC_ONLY','passed':len(cases),'cases':cases,'saved_payload_reads':0}
 
 
