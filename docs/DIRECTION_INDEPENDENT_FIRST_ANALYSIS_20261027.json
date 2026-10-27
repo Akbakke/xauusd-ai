@@ -142,6 +142,10 @@
     "last_m1_trade_count_volume_verified_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_VERIFIED_ROOT_REVIEW_001.json",
       "sha256": "6ee0b7f6266481ad1dbe2834e5fbe678055965f63ccba1f1499de5e2d84ab5ff"
+    },
+    "native_training_window_gradient_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "889103d6a81cf725e7ee4e676c0ecf294774dd6eacd7af44b77f9ab871441912"
     }
   },
   "execution_authorized_by_report": false,
@@ -331,6 +335,15 @@
       ],
       "finding": "On 16959 of 17197 direction-eligible rows in one reused fold, strict volume-valid M5 source bars retain known buy/sell record counts while separately reporting unknown side. The fixed M5 count-sign AUC is 0.508177, and its predetermined last-M1 sign refinement is 0.507971 (difference -0.000206); corrected paired day/week intervals include zero. Unknown-side records appear in 14429 qualified M5 bars and 7912 last M1 bars; 8 last minutes have no known-side records.",
       "implication": "No incremental value is documented for this one sign refinement; unknown records were not assigned a direction. This broader-domain follow-up was declared after the signed-valid result and remains exploratory on the same reused fold. It does not evaluate M1 OFI, signed volume, actual quote age, native-model ablation, later generalization or economics. Independent timestamp joins, five-minute count parity and all 4096 physically duplicated day/week block resamples matched on the same data; this is not a new future period."
+    },
+    {
+      "id": "F20",
+      "type": "MEASURED_NONZERO_GRADIENTS_AT_TWO_BATCHES",
+      "evidence": [
+        "native_training_window_gradient_receipt"
+      ],
+      "finding": "The bound original one-pass native window consumed 47602 parents and recorded 2976 returned backward calls and optimizer steps. Both first and last training batches recorded nonzero gradients for all three direction-head rows and for each GC M5/M15/H1/H4/D1 gate and projection.",
+      "implication": "These two observations rule out a completely disconnected gradient path for the inspected groups at those batches; they do not establish learning quality, gradients at every step, feature importance, sufficient exposure, later generalization or trading edge."
     }
   ],
   "main_cause_established": false,
@@ -361,7 +374,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:25:51.399250+00:00",
+  "updated_utc": "2026-10-27T21:27:02.972708+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

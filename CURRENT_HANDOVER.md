@@ -358,6 +358,13 @@ Den uavhengige volumgyldige M1-/M5-kontrollen er fullført og konsumert på
 samme utforskende fold og populasjon. Den er ikke en ny fremtidig test;
 ingen fit, modell, nye indikatorer, CONTROL, TEST, Exit eller broker.
 
+Den originale treningskvitteringen viser 47602 foreldre og 2976 fullførte
+bakover-/optimizersteg. Første og siste batch hadde ikke-null gradienter i
+alle tre retningshoder og GC-gater/projeksjoner på M5/M15/H1/H4/D1. Det
+avklarer kontakt i disse batchene, ikke om treningsmengden var tilstrekkelig
+eller om signalene gir retning. Original kvittering: window-0001/RESULT.json
+SHA-256 889103d6a81cf725e7ee4e676c0ecf294774dd6eacd7af44b77f9ab871441912.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
