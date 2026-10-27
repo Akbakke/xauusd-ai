@@ -14,77 +14,33 @@
     "At D1 session_change_flag=0 alene er et ulikt konstruert referanseinput: konstanten er felles i kildekontrakten."
   ],
   "changes_from_previous_synthesis": [
-    "All118249 TRAIN parents:2622localfields plus session category are bit-identical to ET252 input;310167127cells including142490045maskcells,0mismatches,11.0002s,0fits/forwards/updates.",
-    "All four native prefix contracts share the reference MTF cache manifest and full parent/clock digests; inspected last-closed-row selection is algebraically equal. This is source/metadata proof, not a new MTF payload observation.",
-    "D1 session_change_flag zero is a shared source declaration, not an introduced reference difference.",
-    "Native/reference use the same asinh/identity/missing-mask semantics with different prefix fit populations. Focus moves to conditioning, representation and learning/readout; no model improvement is claimed.",
-    "No new direction scores. Complete trained frozen representations are unavailable in the existing F outputs. A source-identified repeated GC Boolean-domain construction was corrected; whole canonical metadata/hash parity and six focused tests passed. The component median fell from0.592637s to0.044434s. Genuine native batch speed and historical-state output parity remain unqualified."
+    "Qualified exact GC metadata source transition with33 focused synthetic cases and no payload/forward/fit.",
+    "Original256 own0U predictions and saved hidden output hash are exact; evaluate145.9173→58.4002seconds,59.977percent reduction.",
+    "Wholeprefix conservative projection19862.56seconds fails the fixed9600second gate; no full extraction or readout fit admitted.",
+    "Direction hypotheses unchanged; bounded full-cohort extraction feasibility is a metadata proposal only."
   ],
-  "created_utc": "2026-10-27T01:28:46.765248+00:00",
+  "created_utc": "2026-10-27T02:13:04.829273+00:00",
   "declared_input_mapping": {
     "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_ET_NATIVE_DECLARED_INPUT_MAP_001.json",
     "sha256": "ad1039a6856a51e57a5935f3b534aae219b36f4b8c20155573dc6a9bb44cccc4"
   },
   "diagnostic_execution_blocker": {
-    "C003_scope": "C003 saved aggregate activation/gradient JSON reports; no per-parent hidden matrix in its completed output inventory.",
-    "exact_canonical_metadata_parity": true,
-    "existing_frozen_outputs": [
-      {
-        "cohort": "prefix",
-        "representation_rows": 256,
-        "representations": {
-          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_002/REPRESENTATIONS.npz",
-          "sha256": "256c397659a8d9430da59c856502359cd85deb0d7f9d84504abbdeeaaab23913"
-        },
-        "result": {
-          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_002/RESULT.json",
-          "sha256": "ce3c2a1362e57d236ef61457d79e3c52ef67186d0478250a01bd2491e88d7626"
-        },
-        "state_role": "own0U"
-      },
-      {
-        "cohort": "prefix",
-        "representation_rows": 256,
-        "representations": {
-          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_003/REPRESENTATIONS.npz",
-          "sha256": "256c397659a8d9430da59c856502359cd85deb0d7f9d84504abbdeeaaab23913"
-        },
-        "result": {
-          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_003/RESULT.json",
-          "sha256": "fb1197587fb8d420cec22f73f9bdd91e17605c7ada9150fe40136df8cf6d747f"
-        },
-        "state_role": "own0U"
-      }
-    ],
-    "failed_qualification_attempts": [
-      {
-        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_FAILURE_REVIEW_001.json",
-        "sha256": "77da35f16ebc8bd63c1770996a90d84d81e45d56ae286ca6055ac028557e2617"
-      },
-      {
-        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_FAILURE_REVIEW_002.json",
-        "sha256": "a9b0b80b897911a3f5193c5b0319680d93e3d8e1eca05301351e2c18f466fac2"
-      }
-    ],
-    "genuine_batch_speed_measured": false,
-    "helper_calls_after": 5,
-    "helper_calls_before": 2415,
-    "historical_source_transition_qualified": false,
-    "metadata_median_seconds": {
-      "candidate": 0.04443362800157047,
-      "legacy": 0.5926371170025959
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261027_004/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "97296dc91e9ffb843499eb89f463358407fd6203b457f46d0ef8cfed57e6f7cb"
     },
-    "native_direction_improvement_measured": false,
-    "next_bound": "Only qualify exact source transition and one unchanged B16 parity/timing check before considering new full-cohort extraction; consumed F attempts remain closed.",
-    "role": "Feasibility of the existing frozen-representation/readout comparison, not a cause of poor direction.",
-    "root_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_ROOT_REVIEW_003.json",
-      "sha256": "1d3347ee52f02af7afcac5d55c02532c0e2823e1ce20397633785a2512d39263"
+    "bounded_feasibility": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_READOUT_BOUNDED_FEASIBILITY_REVIEW_001.json",
+      "sha256": "a5ec82d4279148f6126232ad297a74bd601f01ab0ce4f4e3b7149b9c024fe4c2"
     },
-    "stopped_full_extraction": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_ATTEMPT002_CONTROLLED_STOP_ROOT_REVIEW_001.json",
-      "sha256": "fc1ffddf0f564a0950d4f7c5693ba86254943d559a18cadc54634da74225f73d"
-    }
+    "direction_improvement_measured": false,
+    "evaluate_reduction_fraction": 0.5997717343764306,
+    "full_admission_gate_seconds": 9600,
+    "full_prefix_conservative_seconds": 19862.560333778998,
+    "full_unit_gate_pass": false,
+    "original_worker_output_hash_equal": true,
+    "same256_original_B16_parity": true,
+    "scope": "own0U only; no trained hidden completeness or full native-function qualification"
   },
   "economic_edge_claimed": false,
   "evidence": [
@@ -520,18 +476,18 @@
       "unchanged_reference_and_native_outputs"
     ],
     "qualify_before_admission": [
-      "Exact source transition after the metadata-only GC layout construction change",
-      "Original B16 rows, logits and hidden parity plus actual batch time within existing bounded measurement",
-      "Complete frozen trained representation and same prefix/later cohort identities before fixed readout fit",
-      "Fixed learner, convergence/fit checks and paired uncertainty rule"
+      "Review exact observation-preserving presentation ranges and complete originalB16 ordering in the existing extractor.",
+      "Bind source-only change and focused qualification if the proposed eight-unit transport is the smallest adequate path.",
+      "Qualify full canonical parent coverage before unchanged six prefix-only head fits.",
+      "Keep original chronology, no extra optimizer/reverse, no raw/mixed2026 input expansion, all hardware and time guards."
     ],
     "raw_or_mixed_2026_source_access": false,
     "source_metadata_only_now": true
   },
   "objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved 1, 5, 15, 30 og 60 minutter. Skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings- eller evalueringsmål. Bevar åtte familier, D1/makro, kausal M5/MTF og forsegling. Handel er utsatt.",
   "previous_synthesis": {
-    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_006.json",
-    "sha256": "423cef8163884f8471d5f1152ca6069cab9c23ef0c6dfe0450fa68e6d3237434"
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_007.json",
+    "sha256": "3b246aede2b983c3cc8d82a0db155197ab5a7f0879f4daae2b19a3c085b2e1b3"
   },
   "saved_probability_diagnostic_improvement_measured": {
     "h15_point_improvement_only_not_full_primary99": true,
@@ -615,7 +571,7 @@
       "sha256": "4ea2dfe9634ba7f9eff2a83a06d8fabbceb054f6df4b367adc0de3de2ad24539"
     }
   },
-  "status": "LOCAL_RAW_VALUE_AND_MASK_DISCREPANCY_EXCLUDED_NATIVE_REPRESENTATION_LEARNING_UNRESOLVED",
+  "status": "DIRECTION_CAUSE_UNRESOLVED_EXACT_TIMING004_CONSUMED",
   "still_unresolved": [
     "Hvor i normalisering/kondisjonering, tids-/familiefusjon, readout eller optimalisering femminutters rangeringsunderskuddet oppstår.",
     "Numerisk MTF og torch-konsum er ikke målt på nytt; metadata-/kildebevis og eksisterende buffervakter må ikke omtales som en ny full forward-paritet.",

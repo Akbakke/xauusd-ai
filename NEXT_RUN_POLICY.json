@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T01:26:46.605730+00:00",
-  "status": "F_GC_METADATA_EXACT_B16_PARITY_TIMING004_ONCE_ADMITTED",
+  "status": "DIRECTION_CAUSE_UNRESOLVED_F_TIMING004_COMPLETE_CONSUMED_NO_FULL_LAUNCH",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "One exact256 TRAIN/B16 original0U timing/parity unit admitted to qualify feasibility of the frozen trained readout comparison.",
+    "current_activity": "Exact256 originalB16 parity verified; repeated metadata correction reduces evaluate59.977%. Full-unit conservative time gate failed; no additional numerical authority.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,8 +269,8 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Pure GC metadata parity and six focused tests; no market inputs or native calls",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003",
+    "latest_terminal_role": "Same256 original0U logit/hidden parity and bounded timing; no improved direction evidence",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261027_004_RUNTIME",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003/TERMINAL.json",
       "sha256": "c28513f5a7bdd64f115ad424eafb5e551ac454e0b61c14b8b70c41702e6216f6"
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Trained full hidden matrices absent; genuine output parity and conservative extraction budget remain unqualified.",
+    "current_blocker": "No full trained hidden matrix yet. Wholeprefix projection19862.56s exceeds9600s admission gate; fixed readout cannot yet be fitted. Directional cause remains unisolated.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Materialize exact timing004 campaign, enforce original fresh-boot/capped/signed hardware guards, execute once, verify original result and consume. No full extraction, fit, native training, TEST or CONTROL.",
+    "next_action": "Source/metadata only: assess the observation-preserving bounded extraction proposal before any source or launch admission. Preserve all47602prefix and17288later rows, originalB16,8114totalforwards and fixed six readout fits; no further generic performance or calibration search.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Only timing004: original276 first256 prefix presentations,16forwards,0reverse/optimizer,600-second worker limit. No full extraction or fit.",
+    "current_training_scope": "Closed. Timing004 complete and consumed. No genuine extraction, fit, reverse, optimizer, TEST or CONTROL authority.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17564,8 +17564,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_TIMING_CLOSURE_20261026_001/TERMINAL.json",
-      "sha256": "59380d06fc0fa0ee5f2805d53193e9bc77236256d09043480c364daf4c2c3177"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261027_004_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "b6c627486b2524e34fdf79c3174ea2dc08451dde01478614206d1939711aaf5e"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -17582,8 +17582,8 @@
     "canonical_guard_child_exit_code": 0,
     "windows_task_last_result": 0,
     "canonical_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261026_003_RUNTIME/receipts/invocation-0001.json",
-      "sha256": "7f2a985078b9f08bed24b33a8cb462a0a1b6d99cbe2685a842370b224e113b0f"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261027_004_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "b6c627486b2524e34fdf79c3174ea2dc08451dde01478614206d1939711aaf5e"
     },
     "terminal_exit_code_origin": "Original canonical guard and campaign receipt",
     "latest_throughput_measurement_design": {
@@ -17595,16 +17595,16 @@
       "sha256": "1d2805f778735c5375a4054e176b6db65784e3f9f4963fa60a98a6667334ff4f"
     },
     "latest_timing_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261026_002/ACTUAL_ROOT_REVIEW.json",
-      "sha256": "eae9350d2f8053836eba6a982f721abe2f1b9a2d4c52901b3da34d36ab7d1cb0"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261027_004/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "97296dc91e9ffb843499eb89f463358407fd6203b457f46d0ef8cfed57e6f7cb"
     },
     "latest_profile_cache_qualification": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_PROFILE_CLASSIFICATION_CACHE_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "d20fde127f6681736ea94c4b0e76dcc6e557908457ddcfda446b8f64965b78d1"
     },
     "latest_throughput_candidate_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261026_003/ACTUAL_ROOT_REVIEW.json",
-      "sha256": "eb2e66c27b7ce2c7d2cbcb557ed8375ef4de1c63f1082741df3c220409858219"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261027_004/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "97296dc91e9ffb843499eb89f463358407fd6203b457f46d0ef8cfed57e6f7cb"
     },
     "direction_cause_objective": {
       "authority": "Direct user instruction 2026-10-26: replace prior working objective; investigate direction from 1 to 60 minutes.",
@@ -17644,8 +17644,8 @@
       "sha256": "33b44e65afbb470f42cf1bb8c90dc89c3fa76bfc90f8c955a4aa1910ac0c8d2f"
     },
     "latest_direction_cause_synthesis": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_001.json",
-      "sha256": "760852f8a2fb56c9e27acfd989dc896a43a3fb4637e369c1356758ea9025d25f"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_008.json",
+      "sha256": "ed4da77dcf102b3bd1de461ad44bd3ba9a07ddea345c4d21585c486fe14fd62d"
     },
     "ret1_native_source_trace": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_RET1_NATIVE_SOURCE_TRACE_001.json",
@@ -17661,8 +17661,8 @@
       "sha256": "3877ec7651de78ac3afab83d069495af80f5283b638b5b01e18b6c173e62ed92"
     },
     "direction_cause_synthesis": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_002.json",
-      "sha256": "f5ebedb67763a6a7fb0d3205edaffba8f3ad53ae8f98eaa8c47a33b2b6592a40"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_008.json",
+      "sha256": "ed4da77dcf102b3bd1de461ad44bd3ba9a07ddea345c4d21585c486fe14fd62d"
     },
     "prior_offset_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
@@ -17670,8 +17670,8 @@
     },
     "current_direction_objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved 1, 5, 15, 30 og 60 minutter. Skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings- eller evalueringsmål. Bevar åtte familier, D1/makro, kausal M5/MTF og forsegling. Handel er utsatt.",
     "current_direction_cause_synthesis": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_007.json",
-      "sha256": "3b246aede2b983c3cc8d82a0db155197ab5a7f0879f4daae2b19a3c085b2e1b3"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_008.json",
+      "sha256": "ed4da77dcf102b3bd1de461ad44bd3ba9a07ddea345c4d21585c486fe14fd62d"
     },
     "native_reference_rank_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_003.json",
@@ -17713,7 +17713,16 @@
     "gc_metadata_transition_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_GC_LAYOUT_METADATA_TRANSITION_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "3d94240c23228701352027c568329c4c03898218d9662ab1d622ec4883a0bde4"
-    }
+    },
+    "gc_metadata_actual_parity_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261027_004/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "97296dc91e9ffb843499eb89f463358407fd6203b457f46d0ef8cfed57e6f7cb"
+    },
+    "frozen_readout_bounded_feasibility_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_READOUT_BOUNDED_FEASIBILITY_REVIEW_001.json",
+      "sha256": "a5ec82d4279148f6126232ad297a74bd601f01ab0ce4f4e3b7149b9c024fe4c2"
+    },
+    "current_source_closure_native_parity_scope": "Exact256 original276 own0U B16 logits and full output hash only. Trained/full cohort/fresh native baseline not qualified."
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -35292,12 +35301,12 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forwards_authorized": true,
-    "status": "TIMING004_ONCE_ADMITTED_PENDING_EXISTING_GUARDS",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forwards_authorized": false,
+    "status": "TIMING004_COMPLETE_PARITY_SPEED_PASS_FULL_BUDGET_FAIL_CONSUMED",
     "unit": "own0U_prefix_timing256",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_RECIPE_004.json",
@@ -35314,8 +35323,8 @@
     "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261027_004",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_20261027_004_RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "consumed_previous_attempts": [
       {
@@ -35383,7 +35392,12 @@
         "completed_invocations": 1,
         "relaunch_allowed": false
       }
-    ]
+    ],
+    "consumed_invocations": 1,
+    "terminal_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261027_004/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "97296dc91e9ffb843499eb89f463358407fd6203b457f46d0ef8cfed57e6f7cb"
+    }
   },
   "direction_diagnostic_F_cap_route_repair_20261026": {
     "status": "COMPLETE_SOURCE_AND_17_FOCUSED_CASES_CLOSED",

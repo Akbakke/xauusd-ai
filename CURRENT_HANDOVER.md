@@ -9,19 +9,32 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-F_GC_LAYOUT_METADATA_TRANSITION_SYNTHETIC_001 er COMPLETE/consumed: alle
-33 fokuserte kontroller bestod med null payload-, modell-, fit- eller optimizerkall.
-Kilde/policy var uendret, cgroup er borte og originallåsen er ledig.
-Overgangen tillates bare for timing256; originale manifestidentiteter bevares.
+Timing004 er COMPLETE/consumed. Originale 256 own0U-prediksjoner er bitidentiske;
+parent-/hode-/featureidentiteter og workerens komplette outputhash er identiske
+med timing002. 16 B16-forwards, null reverse/optimizer. Worker185,5655sekunder.
+Evaluate falt145,9173→58,4002sekunder (59,977prosent). Dette er en kvalifisert
+metadataforbedring; ingen ny retningsscore eller trent representasjon er målt.
 
-F_FROZEN_EXTRACTION_own0U_prefix_timing256_RUNTIME_ADMISSION_004 åpner én
-kontroll på samme 256 TRAIN-observasjoner og original276 own0U: B16,
-16 forwards, null reverse/optimizer og 600 sekunders workergrense. Samme
-opprinnelige profil-, kapasitets-, fersk fysisk boot- og signerte maskinvarevakter.
-Originale output må være bitidentiske. Før full F kan vurderes kreves minst
-20 prosent kortere evaluate og konservativ fullprefixprojeksjon <=9600 sekunder.
-Full F, readout-fit, ny native baseline og TEST/CONTROL forblir lukket.
-Neste steg er denne engangskontrollen; dette dokumenterer ikke bedre retning.
+Konservativ fullprefixprojeksjon er19862,56sekunder mot forhåndsbestemt9600.
+Fullenheten er derfor ikke admittért. Root verifiserte originale terminaler,
+kilde/policy, signert vakt og bokender; cgroup/prosesser er borte, originallås
+ledig, Windowsoppgave Disabled/LastResult0/Restart0 og GPU tilbake i P8.
+Alle tillatelser er lukket; ingen relansering. Kildeparitet gjelder disse256
+own0U-observasjonene, ikke ny full baseline eller trent hidden.
+
+F_FROZEN_READOUT_BOUNDED_FEASIBILITY_REVIEW_001 er bare et metadataforslag:
+tre komplette B16-delintervaller per prefixstate og ett fullt senereintervall
+per state. Samme47602+17288foreldre, tostates og8114forwards; åtte enheter
+med ekstra oppstart, uten økt per-invokasjonsgrense. Ingen kildeendring,
+uttrekk, sammenstilling eller fit er admittért av dette forslaget.
+Neste arbeid er avgrenset kildevurdering av denne gjennomførbarheten, med
+uendret faglig readout-sammenligning. Ingen generell ytelses- eller kalibreringsjakt.
+
+F_GC_LAYOUT_METADATA_TRANSITION_SYNTHETIC_001 er COMPLETE/consumed:
+33 tilfeller bestod, null payload-/modell-/fit-/optimizerkall. Nøyaktig
+kildeovergang er nå verifisert i timing004. Hypotesene om retning er uendret.
+Gjeldende analyse er DIRECTION_1_60_CAUSE_SYNTHESIS_008 og identisk kopi
+docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Målet1/5/15/30/60 er aktivt og uferdig.
 
 GC-oppsettet beregner nå det uendrede boolske feltdomenet én gang per tidsramme,
 i stedet for én gang per feltnavn. DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003
@@ -40,7 +53,7 @@ fortsatt av de to opprinnelige forbrukerne når disse kjøres.
 Det finnes ingen fullført trent hiddenmatrise i F-uttakene. De to komplette
 timingfilene inneholder samme 256 initialobservasjoner. C003 har aggregerte
 rapporter. Den eksakte GC-metadatakildeovergangen er kvalifisert ovenfor.
-Kun timing004 er nå admittért; full F, fit og ny native baseline er lukket.
+Timing004 er nå fullført/konsumert; full F, fit og ny native baseline er lukket.
 De historiske baseline-resultatene beholder sine opprinnelige kildeidentiteter.
 
 DIRECTION_LOCAL_SNAPSHOT_PARITY_001 er COMPLETE/consumed. På alle 118 249
@@ -92,7 +105,7 @@ Gjeldende årsaksanalyse er tilgjengelig i docs/DIRECTION_1_60_CURRENT_ANALYSIS.
 Arbeidsmålet er retning ved 1, 5, 15, 30 og 60 minutter; ingen robust fremtidig
 eller økonomisk edge er dokumentert. Root arbeider alene.
 
-DIRECTION_1_60_CAUSE_SYNTHESIS_007 avløser006 og er kopiert til
+DIRECTION_1_60_CAUSE_SYNTHESIS_008 avløser007 og er kopiert til
 docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Forskjeller i de lagrede lokale
 råinputene, maskene og sesjonskategoriene er avkreftet i full TRAIN-kohort.
 Dette utelukker ikke en felles kildefeil. Første hypotese er nå behandling,
