@@ -106,6 +106,10 @@
     "sign_vs_path_verified_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_PATH_VERIFIED_ROOT_REVIEW_001.json",
       "sha256": "2603916cfdbcffde1d8ba17ff44ef1e8565fa28edff2640c46a2bf9d8db5a980"
+    },
+    "last_m1_trade_count_failure": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_FAILURE_REVIEW_001.json",
+      "sha256": "de75d6834b048a922e7f15e1b7fa4105f293718209ec48608e172aed5bfe2e18"
     }
   },
   "execution_authorized_by_report": false,
@@ -262,6 +266,15 @@
       ],
       "finding": "On 15113 matched non-FLAT, non-TIE rows in one reused fold, the future 5-minute sign agrees with the hindsight preferred 95-minute MFE-minus-pre-MFE-MAE side in 10163 cases (67.25%), versus 51.82% for the majority side. The fixed direction model scores AUC 0.508985 against that path label; corrected day/week intervals both include 0.5. The separate 95-minute valid population has 592 hindsight FLAT labels among 15730 rows.",
       "implication": "The endpoint sign has partial outcome alignment, so the objectives are not unrelated; the true 5-minute sign is future information and cannot be traded as an oracle. The actual model has no qualified path-direction ranking here. This fixed 95-minute research label is neither an Exit rule nor realized PnL, and does not establish the optimal entry horizon. A separate timestamp join and point-score replay matched, as did six physically duplicated block resamples; the full bootstrap interval was not independently replayed."
+    },
+    {
+      "id": "F17",
+      "type": "M1_TRADE_COUNT_FAILED_PUBLICATION_WITH_RESTRICTED_COVERAGE",
+      "evidence": [
+        "last_m1_trade_count_failure"
+      ],
+      "finding": "An admitted no-fit last-M1 trade-record comparison reached publication after exact M5-to-five-M1 parity checks, but a timer variable was overwritten by a NumPy array, causing JSON serialization failure. The incomplete output reports 2530 eligible qualified rows out of 17197 original eligible, with 2562 strict rows parity-checked.",
+      "implication": "The claimed plan is failed and consumed; no AUC or incremental-value result was persisted. The strict-known-side comparison covers only a minority of the original population and cannot justify guessing unknown aggressor direction or a general claim."
     }
   ],
   "main_cause_established": false,
@@ -292,7 +305,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:05:25.378292+00:00",
+  "updated_utc": "2026-10-27T21:14:36.622716+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

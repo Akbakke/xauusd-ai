@@ -306,13 +306,16 @@ Den separate 5min-/95min-kontrollen er fullført og konsumert uten modell,
 trening, Exit, CONTROL, TEST eller nye indikatorer. Samme gjenbrukte fold
 beviser ikke generalisering eller økonomisk edge.
 
-En avgrenset engangsmåling er admittért for siste lukkede M1s kjente
-kjøps-/salgsregistreringer som rangeringsinformasjon utover samme M5-fortegn.
-Kun tre egne, historiske kontraktfiler som slutter før 2026 brukes; fem M1
-må matche M5-tellingene eksakt under streng signert kvalitetsmaske. Null fit,
-modellendring, nye indikatorer, CONTROL, TEST, Exit eller broker. Dette er
-handelsregistreringer, ikke M1-OFI eller volumenhet. Plan/status:
-`independent_direction_last_m1_trade_count_20261027`.
+Engangsmålingen av siste M1s kjente kjøps-/salgsregistreringer feilet ved
+lagring: tidsvariabelen ble overskrevet med en NumPy-array. Ingen AUC eller
+verdiresultat ble lagret. Den ufullstendige kvitteringen viser 2562 strengt
+kvalifiserte rader med eksakt fem-M1/M5-paritet, hvorav 2530 også hadde
+gyldig 5min-retning, mot 17197 opprinnelige kvalifiserte. Dette er ikke
+generaliserbar dekning og ukjent aggressor er ikke gjettet. Original plan
+er FEILET OG KONSUMERT; minste rettelse krever ny separat binding. Bevis:
+`LAST_M1_TRADE_COUNT_FAILURE_REVIEW_001.json` SHA-256
+de75d6834b048a922e7f15e1b7fa4105f293718209ec48608e172aed5bfe2e18.
+Ingen modell/trening, nye modellindikatorer, CONTROL, TEST, Exit eller broker.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat

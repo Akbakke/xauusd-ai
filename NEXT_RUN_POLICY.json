@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "PRECONTROL_LAST_M1_TRADE_COUNT_READ_ONLY_ADMITTED_TRAINING_CLOSED",
+    "status": "LAST_M1_TRADE_COUNT_PUBLICATION_FAILED_CONSUMED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_last_m1_trade_count_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37204,7 +37204,7 @@
     },
     "first_analysis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
-      "sha256": "64b9a6a1958518828f86ab9c523468d43724ba700d9f28036c99b9be9aff1d72"
+      "sha256": "58533f4011908522f333c41bd6759bd2aae5aaee8ddcce4a82f3af44fb31b773"
     },
     "native_0u_metadata_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
@@ -38724,7 +38724,7 @@
     "relaunch_allowed": false
   },
   "independent_direction_last_m1_trade_count_20261027": {
-    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "status": "FAILED_ONE_SHOT_CONSUMED",
     "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_STUDY_PLAN_001.json",
     "plan_sha256": "8aaf39909231e4d36cecfaec39458ad2b8a61520dc1e20b40d97060a2a347b0f",
     "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_STUDY_WORKER_001.py",
@@ -38738,6 +38738,12 @@
     "exit_authorized": false,
     "new_indicators_authorized": false,
     "broker_authorized": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "failure_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_FAILURE_REVIEW_001.json",
+      "sha256": "de75d6834b048a922e7f15e1b7fa4105f293718209ec48608e172aed5bfe2e18"
+    }
   }
 }
