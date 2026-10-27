@@ -1,0 +1,168 @@
+{
+  "schema_version": "gx1_bps_prefix_fit_root_review_v1",
+  "status": "COMPLETE_CONSUMED_PAIRED_COMPARISON_PENDING",
+  "observed_utc": "2026-10-27T16:19:56.955463+00:00",
+  "source_head": "84086af89ffbb6ad378e0514f9512ce55c817d84",
+  "frozen_policy": {
+    "path": "/home/andre2/src/GX1_CURRENT/NEXT_RUN_POLICY.json",
+    "sha256": "3bd769190a7c714119047d81ec6cf44af68df1aff93bfdf2cb5715df4c81b7c1"
+  },
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "7ce8dbf9685ff3db13b0c97dc1b9d7e111e588e81f29cd8eecd3836f0f2fc976"
+  },
+  "admission": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/ADMISSION.json",
+    "sha256": "bc63e0ab364af4da2737768e0641ed73e59dfd1cec85c8d94e2420c311c38de8"
+  },
+  "recipe": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RECIPE.json",
+    "sha256": "7f553f7361717257e9b28a8f7e74622d7ebec87b2f64173999ae75229e65647b"
+  },
+  "comparison_protocol": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/COMPARISON_PROTOCOL.json",
+    "sha256": "25458f5185c55070333729eededff4d33a11dd5b1ee334e74a4358c15a928888"
+  },
+  "original_worker_claim": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/prefix-fit/window-0001/CLAIM.json",
+    "sha256": "460a6567591b0c28a279efbe297f30b99ad804a7f141ac0fd4748fd6fd5a3bb7"
+  },
+  "original_worker_result": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+    "sha256": "1c365b541ec1d900f421ff3ddab7be6ca1a05eb7907e533e1f6ccd1a6a0e8639"
+  },
+  "original_canonical_receipt": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "bc35a384159c3a0ab715a26b16e8a0fecacee320b601d06c77435f287ad186b1"
+  },
+  "original_progress": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/invocation-evidence/invocation-0001/PROGRESS.json",
+    "sha256": "d3ec448c50d08f1659c121043ba444fe08c6fa0e9aaf08246fc6442fb6449bf4"
+  },
+  "original_signed_guard_log": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
+    "sha256": "f1b1f00aa7dd58d9105fba1ddfecf9cb5a407429705617b6b799f8be9bb144cb"
+  },
+  "original_cursor": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/prefix-fit/window-0001/CURSOR.json",
+    "sha256": "511cbf32b29ee6cfbcaa3081e8a19331e4e1f19d29f22ec4769df3b6c6c4962b"
+  },
+  "windows_terminal_observation": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/WINDOWS_TERMINAL_DISABLE_OBSERVATION_001.json",
+    "sha256": "e2dccbc508d7ebdec79b44944e9b082ae05817709779495e529cadf2cef0d8db"
+  },
+  "signed_guard_child_exit_code": 0,
+  "observer_exit_code": 0,
+  "windows_task_last_result": 0,
+  "physical_boot": {
+    "boot_id": 560,
+    "computer_name": "ANDRE2",
+    "identity_sha256": "4d37f3fcf769172c01a5f4e957fd11b352962c696b8ffb832f70d4b74e93db16",
+    "last_boot_utc": "2026-10-27T14:10:20.5000000Z",
+    "schema_version": "gx1_windows_boot_identity_v1"
+  },
+  "elapsed_seconds": 7277.822080545,
+  "counts": {
+    "backward_calls": 2976,
+    "backward_returns": 2976,
+    "empty_batches": 0,
+    "forbidden_legacy_calls": 0,
+    "forward_calls": 4090,
+    "forward_kind_calls": {
+      "FINAL_TRAIN": 16,
+      "INITIAL_PARITY_GRAD": 1,
+      "INITIAL_TRAIN": 16,
+      "OOF": 1081,
+      "TRAIN": 2976
+    },
+    "forward_returns": 4090,
+    "model_construction_returns": 1,
+    "model_constructions": 1,
+    "optimizer_constructions": 1,
+    "optimizer_step_calls": 2976,
+    "optimizer_step_returns": 2976,
+    "resume_state_load_calls": 0,
+    "resume_state_load_returns": 0,
+    "staged_state_load_calls": 13,
+    "staged_state_load_returns": 13
+  },
+  "counter_scope": "actual admitted caller boundaries; no independent delegated-loader callback claim",
+  "parent_cursor": 47602,
+  "optimizer_updates": 2976,
+  "oof_cursor": 17288,
+  "fold": {
+    "fold_id": 1,
+    "oof_cutoff_ns": 1743465600000000000,
+    "oof_end_row": 64890,
+    "oof_start_row": 47602,
+    "prefix_rows": 47602,
+    "train_cutoff_ns": 1735689600000000000
+  },
+  "initial_measurement": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
+    "sha256": "a96a8352548fbc20bdf9d6db369c21f9de2d84fd577ea8986ab89e83263d1f38"
+  },
+  "final_train_measurement": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json",
+    "sha256": "b561b3f65db1f006ad4200816b333e5dce50c4264b3b490fbc65575decc94cee"
+  },
+  "oof_measurement": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+    "sha256": "a0bc6c8b3c85aa99f7033edfcf0f09b015b711deae12bb022d2313a2fce5c15e"
+  },
+  "own_prefix_bps_scale": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/private-research/OWN_PREFIX_BPS_SCALE.json",
+    "sha256": "80dc55c58f7aa890fe8a085cc1bc2ebeed9ede4bf586f5de1fa8f1e24c8f188e"
+  },
+  "qualification_weights_reused": false,
+  "train_passes": 1,
+  "canonical_json_seals_and_json_refs_verified": true,
+  "source_policy_unchanged": true,
+  "recipe_source_pins_verified": true,
+  "worker_metadata_bookend_count": 58,
+  "worker_payload_bookend_count": 48,
+  "worker_payload_verification_scope": "Worker consumed admitted inputs and published predictions/checkpoints. Root verified JSON seals/references, guard, source pins and terminal process/lock identities only; no root PT/NPZ/NPY/Parquet open or hash.",
+  "rchar_delta": 11264021161,
+  "rchar_scope": "process reads; mmap fault bytes excluded",
+  "worker_peak_rss_bytes": 6084055040,
+  "guard_terminal_line": "2026-10-27T16:13:07Z event=exit child_status=0 stage=canonical telemetry_samples=5935 peak_core_temp_c=57 peak_memory_temp_c=66 peak_power_draw_w=136.06 peak_memory_used_mib=2182",
+  "limits": {
+    "cgroup_path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-r701ddd592b45428e87dca3951c095eb5.scope",
+    "lock": {
+      "lock_device": 78,
+      "lock_inode": 35,
+      "lock_path": "/run/user/1000/gx1-current-heavy-job.lock",
+      "owner_pid": 433,
+      "owner_start_ticks": 1388,
+      "scope": "/user.slice/user-1000.slice/user@1000.service/app.slice/run-r701ddd592b45428e87dca3951c095eb5.scope"
+    },
+    "memory_high": 21474836480,
+    "memory_max": 21474836480,
+    "pids": 128,
+    "swap": 536870912
+  },
+  "capped_cgroup_absent": true,
+  "original_owner_absent": true,
+  "original_model_process_absent": true,
+  "original_project_lock": {
+    "path": "/run/user/1000/gx1-current-heavy-job.lock",
+    "device": 78,
+    "inode": 35,
+    "matches_original_worker_lock": true,
+    "free": true
+  },
+  "windows_task_disabled": true,
+  "claimed_invocations": 1,
+  "completed_invocations": 1,
+  "unused_windows_closed": [
+    2,
+    3,
+    4
+  ],
+  "relaunch_allowed": false,
+  "predictive_value_qualified": false,
+  "direction_improvement_measured": false,
+  "economic_edge_qualified": false,
+  "test_data_used": false,
+  "next_step": "Implement and qualify the fixed saved-output comparison under COMPARISON_PROTOCOL.json before reading later predictions; then fresh bounded CPU-only admission. No additional model forward, fitting, epoch, horizon or threshold selection."
+}

@@ -11,77 +11,45 @@ Programrot:
 
 ## Aktuell status
 
-DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001 er ferskt admittért.
-Målet er senere forbedring med signed-bps+BCE mot uendret sign-only276.
-Samme47602TRAIN-/17288senere-foreldre,1/5/15,B16,seed20260911,AdamW og én
-gjennomgang. Maks2976optimizersteg totalt. Ferske vekter, ingen private vekter.
-Fire eksisterende resumable12000s-vinduer/13800s-outer er øvre grense;
-COMPLETE avslutter hele kampanjen. Ingen ekstraepoke eller planrelansering.
-Metadatakjeden54bindinger bestod med nullpayload/numeriske imports/kall.
-Nignumeriske kildeeiere er eksakt de som bestod genuin002.
-Kilde/policy fryses ved commit. Campaign,helmaskin-idle og fersk fysisk boot
-gjenstår; ingen genuin kandidatprosess er startet ved denne commit.
-training/native_training/full_epoch=true gjelder kun denne prefiksenheten.
-Bps-skala må samsvare eksakt med kvalifisert eget prefiks. Normalisering
-refittes ikke. Alle hardware-/kausalitets-/TEST-vakter beholdes.
-COMPARISON_PROTOCOL.json låser5m-MSE mot mean/zero og AUC5mot276, seks
-korrigerte dag-/ukeintervaller,10kblokkreplikater og seed20261027. Alle1/5/15
-rapporteres. Ingen automatisk flerfoldutvidelse uten støttet senere nytte.
-Separat sammenligningsworker må admittéres etter terminal; root leser metadata.
+DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001 er COMPLETE og konsumert.
+Fersk signed-bps+BCE-kandidat brukte samme 47 602 TRAIN-foreldre som baseline276:
+1/5/15 minutter, B16, seed20260911, samme rekkefølge/AdamW og én gjennomgang.
+Originale worker-, progress-, controller- og vaktkvitteringer samsvarer:
+2 976 optimizersteg, 4 090 forwards og alle 17 288 senere utviklingsforeldre.
+Worker brukte 7 277,822 sekunder. Ett av maksimalt fire vinduer var nødvendig;
+ubrukte vinduer2–4 er lukket. Ingen privat kvalifiseringsvekt ble gjenbrukt.
+Kilde84086af8 og policy var fryst gjennom hele kjøringen på fysisk boot560.
+Modell/eier/cgroup er borte; originallåsen device78/inode35 er ledig.
+Windows-task er Disabled. Alle trenings- og launchautorisasjoner er lukket.
+Ingen ny numerisk enhet er admittért; kjøreoppfølgingen settes PAUSED.
+Originale artefakter, prediksjoner og checkpoints bevares.
 
+Se docs/DIRECTION_BPS_PREFIX_FIT_RESULT_20261027.json og originale
+ACTUAL_ROOT_REVIEW.json, VERIFIED_TERMINAL.json og RUNTIME-kvitteringer.
+Root har kun kontrollert kilde, JSON, vaktlogg og prosess-/låsmetadata.
+Det foreligger ennå ingen ferdig parvis resultatsammenligning eller dokumentert
+retningsforbedring. Nyere TRAIN-fit eller teknisk COMPLETE kvalifiserer ikke edge.
 
-DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_20261027_001 er COMPLETE/consumed.
-Alle81kontroller bestod:61eksisterende prefiks-/vaktkontroller og20nye
-opt-inbevis-/kilde-/skalaportkontroller. Worker5,837s/outer6,484s, exit0.
-To syntetiske moduler/tre modulkall, null backward/optimizer/genuine kall.
-Fire payloadtilganger gjaldt egne syntetiske roundtripfiler; ett fast metadatabarn.
-Kilde/policy var fryst, cgroup/eier borte, originallås identitetskontrollert fri.
-Numeriske funksjoner og modellkilder er uendret. Genuine002 gjenbrukes.
-Engangsautoriteten er lukket. Neste er full hovedrute-metadata-kontroll og
-fersk avgrenset første-prefiks-admisjon, ingen ny privat modellkontroll.
-Se docs/DIRECTION_BPS_PREFIX_ROUTE_QUALIFICATION_20261027.json.
-
-DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002 er COMPLETE/consumed.
-Original worker/controller/guard/observer/Windows-task avsluttet med 0/PASS.
-Kilde375a63a7 og policy var fryst. Fersk fysisk boot559 er dokumentert.
-Modellprosessen og cgroup er borte; originallåsens device/inode er bekreftet
-og låsen er ledig. Windows-task er Disabled. Alle002autorisasjoner er lukket.
-Ingen ny numerisk enhet er admittért. Oppfølgingen skal være PAUSED.
-
-Genuin kontroll brukte32unike TRAIN-foreldre, B16, to logiske steg gjentatt
-for resume:4konstruksjoner,6forwards,5reverse-pass og4fysiskeoptimizersteg.
-Worker126,832s. Kandidat og baseline startet med samme delte parametre,
-buffere, CPU/CUDA-RNG og retningsprediksjoner. Mean-head startet på null.
-Ett separat bps-only reverse etter første oppdatering ga L2=0,00598465 til
-delt joint-projection. Eksakt lagring/gjenopptak og alle gradientgrupper bestod.
-Det viser kobling og mekanikk, ikke prediktiv verdi eller økonomisk edge.
-Private kvalifiseringsvekter er forbudt som start for hovedsammenligningen.
-
-Egen prefiksskala:47602foreldre, cutoff2025-01-01, modne observerte targets.
-RMS ved1/5/15minutter:2,763416 /5,256305 /9,117405bps.
-Skalaen bruker ikke senere kohort. Ingen CONTROL eller TEST ble brukt.
-Root har bare lest kilde/JSON/guard-metadata; worker utførte bundet payloadkontroll.
-Se docs/DIRECTION_BPS_NATIVE_QUALIFICATION_20261027.json og originale
-002/ACTUAL_ROOT_REVIEW.json, VERIFIED_TERMINAL.json og RUNTIME-kvitteringer.
-
-001 er bevart FAILED/consumed: gammel direction_component_source-binding
-stoppet i metadata før modellkonstruksjon. Kun denne inputmanifestbindingen
-ble rettet for002; original metadatafeil er ikke årsak til svake prediksjoner.
-Ingen gamle engangsplaner relanseres. Originaler og checkpoints bevares.
+Forutgående mekanikk er kvalifisert og konsumeres ikke på nytt:
+81 syntetiske prefiks-/vaktkontroller, 54-bindingers metadata-preflight og
+genuin002 kontroll av delt initialisering, bps-gradient og eksakt resume.
+Egen prefiksskala er 2,763416 / 5,256305 / 9,117405 bps ved1/5/15 minutter.
+Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 
 ## Neste minste steg
 
-Utfør den forhåndsbeskrevne første-prefiks-sammenligningen i
-docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json, etter fersk avgrenset admisjon.
-Behold eksisterende47602TRAIN-/17288senere-foreldre,1/5/15,B16,seed,
-presentasjonsrekkefølge,optimizer og én gjennomgang. Start kandidaten ferskt.
-Gjenbruk uendret sign-only baseline der eksakt sammenlignbarhet kan bekreftes.
-Ingen samtidig60horisont-/30epokeendring, parametersøk eller terskelseleksjon.
-Primært senere5m bps-MSE mot egen prefiksmean/zero, med parvis UTC-dag/uke-
-usikkerhet. Retningsforbedring krever i tillegg støttet senereAUC5-forbedring.
-Rapporter allehorisonter, proper scores, coverage og faste bps-bånd.
-Ingen større multifoldutvidelse dersom første faste sammenligning mangler
-senere nytte. Beregningshorisont er ikke maksimal holdetid eller handelsregel.
+Implementer og kvalifiser den lagrede sammenligningen som er låst i
+DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/COMPARISON_PROTOCOL.json
+før senere prediksjoner åpnes. Gjenbruk eksisterende score-/bootstrap-eiere.
+Deretter fersk, avgrenset CPU-admisjon for lagrede outputs; root åpner ikke
+PT/NPZ/NPY/Parquet. Ingen ny modellforward, refit, epoke eller horisontendring.
+
+Primært senere5m bps-MSE mot egen prefiksmean og null, samt AUC5 mot uendret276,
+på identiske observasjoner. Seks forhåndsbundne, korrigerte UTC-dag-/uke-
+intervaller, 10 000 blokkreplikater, seed20261027. Rapporter alle1/5/15,
+proper scores, coverage og faste bps-bånd. Ingen terskel-/undergruppeutvalg.
+Ingen automatisk flerfoldutvidelse uten støttet senere nytte og rangering.
+En beregningshorisont er ikke en maksimal holdetid eller handelsregel.
 
 ## Hva som er endret og fortsatt åpent
 

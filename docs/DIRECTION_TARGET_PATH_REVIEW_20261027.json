@@ -666,7 +666,7 @@
   },
   "next_step_proposal_not_admitted": {
     "question": "Does explicit signed-bps supervision improve later predictions on identical observations, compared with unchanged sign-only learning?",
-    "smallest_next_step": "144synthetic bps checks,68route checks and genuine B16 shared initialization/gradient/exact resume have passed. Prepare the fixed first-prefix magnitude comparison using fresh candidate weights; qualification weights excluded.",
+    "smallest_next_step": "Implement and qualify the fixed saved-output comparison under COMPARISON_PROTOCOL.json before reading later predictions; then fresh bounded CPU-only admission. No additional model forward, fitting, epoch, horizon or threshold selection.",
     "concrete_candidate": {
       "output": "Retain logit_up with its original P(UP|observed nonzero) meaning. Add three unbounded signed-bps conditional-mean predictions mu_h from the same undetached native hidden state.",
       "target": "Reuse saved mid_return_bps for the exact same parents and clocks; do not recompute or interpolate. Include observed mature zero returns in the bps component, while preserving the existing BCE mask.",
@@ -789,7 +789,7 @@
     }
   },
   "first_prefix_signed_bps_comparison": {
-    "status": "ADMITTED_NOT_STARTED",
+    "status": "FIT_AND_FIXED_SCORING_COMPLETE_PAIRED_COMPARISON_PENDING",
     "admission": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/ADMISSION.json",
       "sha256": "bc63e0ab364af4da2737768e0641ed73e59dfd1cec85c8d94e2420c311c38de8"
@@ -806,6 +806,17 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/METADATA_PREFLIGHT.json",
       "sha256": "5cc4fbb0e9327cc9f30a3f209eb74272959ffa0ee3eb76bf0ddaa5475b0a7339"
     },
-    "direction_improvement_measured": false
+    "direction_improvement_measured": false,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "32dbd4c59cd22188cdfb8f4070c02795061a321c100a13547a4d355769d663d6"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/VERIFIED_TERMINAL.json",
+      "sha256": "f375d18a37c78ca96539b65bf8fb0d371812bbf27722d6c74b1cb411d80b2626"
+    },
+    "optimizer_updates": 2976,
+    "later_rows": 17288,
+    "predictive_value_qualified": false
   }
 }
