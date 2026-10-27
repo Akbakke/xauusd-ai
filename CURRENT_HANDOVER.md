@@ -165,13 +165,18 @@ Kvittering og bevis finnes i `NATIVE_0U_TIMING256_001/ACTUAL_ROOT_REVIEW.json`
 (SHA-256 1cd4148e6db49cdbfd792938225126133f2cc2d3c3dd8747c6b2d05808b15d01).
 Dette bekrefter målekjeden, ikke læring eller edge. Oppstartsoppgaven er deaktivert.
 
-Én egen 0U-måling for manglende TRAIN-del [31744,47602) er admittért: 15858
-foreldre, 992 fremoverkall, null oppdateringer/reverse; tidligere ferdige deler
-gjenbrukes. Ny kampanje skal bindes til HEAD/policy og inspiseres før eventuell
-ny fysisk Windows-boot ved dokumentert maskinvid ledighet. Kompakt input, GC,
-mål, 267-statistikk og permutasjon beholdes. Ingen nye indikatorer, ekstra
-treningspass, TEST/CONTROL, Exit, broker, ordre, spending eller promotion er åpnet.
-Målet er aktivt.
+Egen 0U-prefiksdel [31744,47602) er fullført med 15858 foreldre, 992
+fremoverkall, null oppdateringer/reverse og bestått maskinvakt. Uavhengig
+kontroll: `NATIVE_0U_PREFIX_PART3_001/ACTUAL_ROOT_REVIEW.json`
+(SHA-256 6663b1a04d3e3335c47cab5cdd0ed7b0325a44349b72faf847ea85dbbfef29d8).
+Oppstartsoppgaven er deaktivert; ingen edge følger av teknisk PASS.
+
+En fastlagt engangsanalyse av lagrede utdata er admittért: parvis start/slutt
+på hele TRAIN-prefikset og sluttmodell mot fast TRAIN-prevalens på senere
+gjenbrukt utvikling. Ingen startmodellprediksjoner for senere del finnes;
+ingen direkte før/etter-generaliseringspåstand er dermed mulig. Syv syntetiske
+kontroller besto; ingen nye modellkall, fit, indikatorer, TEST/CONTROL, Exit,
+broker, ordre, spending eller promotion er åpnet. Målet er aktivt.
 
 ## Bps-hodets separate retningsrangering
 

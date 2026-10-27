@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_NATIVE_0U_PART3_ONE_SHOT_ADMITTED_NOT_LAUNCHED",
+    "status": "SAVED_WHOLE_PREFIX_SIGN_COMPARISON_ONE_SHOT_ADMITTED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_0u_part3_20261027",
+    "current_unit": "independent_direction_whole_prefix_sign_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37225,6 +37225,10 @@
     "last_qualified_timing_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_001/ACTUAL_ROOT_REVIEW.json",
       "sha256": "1cd4148e6db49cdbfd792938225126133f2cc2d3c3dd8747c6b2d05808b15d01"
+    },
+    "last_qualified_part3_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_PREFIX_PART3_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "6663b1a04d3e3335c47cab5cdd0ed7b0325a44349b72faf847ea85dbbfef29d8"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -38124,7 +38128,7 @@
     }
   },
   "independent_direction_0u_part3_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_AND_QUALIFIED_PARTITION_ONLY",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_PART3_RECIPE_001.json",
       "sha256": "c0487863dd20d67f9afb624270342896e234d713e941b25d9b98edb47b0e77b0"
@@ -38137,14 +38141,14 @@
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_PREFIX_PART3_001",
     "runtime_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_PREFIX_PART3_001_RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forwards_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forwards_authorized": false,
     "gradient_reverse_authorized": false,
     "optimizer_steps_authorized": false,
     "training_enabled": false,
@@ -38166,6 +38170,50 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_PART3_RECIPE_METADATA_REVIEW_001.json",
       "sha256": "de7a0af8a9d4def052e31c4570678cea54da69418675ce4c2bee6f1e928e588f"
     },
-    "campaign_requirement": "Fresh exact HEAD/policy-bound campaign and successful metadata inspection; one new physical Windows boot only after machine-wide idle proof."
+    "campaign_requirement": "Fresh exact HEAD/policy-bound campaign and successful metadata inspection; one new physical Windows boot only after machine-wide idle proof.",
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_PREFIX_PART3_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "6663b1a04d3e3335c47cab5cdd0ed7b0325a44349b72faf847ea85dbbfef29d8"
+    },
+    "canonical_terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_PREFIX_PART3_001_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "8f37b43ea0f09bae1cf0e46747995ef0781a225e299595b95b77fc6619d932ee"
+    }
+  },
+  "independent_direction_whole_prefix_sign_20261027": {
+    "status": "ADMITTED",
+    "operation": "whole_prefix_initial_vs_terminal_saved_sign_comparison",
+    "protocol": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_PROTOCOL_004.json",
+      "sha256": "0bc3ffdaf210368cbb7c8fed20f83348eba674e37351a2d323812f854508914c"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/COMPARE_WHOLE_PREFIX_SIGN_003.py",
+      "sha256": "3be6deb1185bd360b67329252b39277d495709f923268c4d1f20e6c55f197264"
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_ADMISSION_001.json",
+      "sha256": "c581f7ae64bdbad82a7d63e1e9922a8cf424e8e238bc04e9dfd4c089bd4029fb"
+    },
+    "synthetic_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_SYNTHETIC_REVIEW_003.json",
+      "sha256": "797d50249e455e3a5d38253f421a5fe6821368a3c9ada22703824fa2a825e9ff"
+    },
+    "part3_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_PREFIX_PART3_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "6663b1a04d3e3335c47cab5cdd0ed7b0325a44349b72faf847ea85dbbfef29d8"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_COMPARISON_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": true,
+    "model_calls_authorized": false,
+    "fit_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false
   }
 }
