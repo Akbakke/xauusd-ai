@@ -14,8 +14,11 @@ Programrot:
 Forskningskontrakt for første gunstige quote-bevegelse er implementert separat
 fra eksisterende retning og global MFE. Den skiller same-side prisbevegelse
 fra gross markout etter spread og beholder bps-størrelse, M1-rekkefølge-
-usikkerhet og hullmasker. Syntetisk engangskontroll er avgrenset åpnet;
-den er ikke utført. Faktiske data, modellkobling og trening er ikke autorisert.
+usikkerhet og hullmasker. Én syntetisk engangskontroll ga 18 passmarkører og
+returkode 0. Kontrollprogrammets terminal ble likevel FAILED fordi dobbel -q
+fjernet den forventede tekstsummeringen; originallogg og avvik er bevart og
+verifisert. Adgangen er konsumert. Ingen faktiske data, modellkobling, trening
+eller dokumentert retningsforbedring følger av testen.
 
 
 DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001 er COMPLETE og konsumert.
