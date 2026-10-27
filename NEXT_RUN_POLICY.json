@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T13:56:51.606511+00:00",
-  "status": "DIRECTION_BPS_PREFIX_ROUTE_QUALIFIED_CONSUMED",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "observed_utc": "2026-10-27T14:03:19.479292+00:00",
+  "status": "DIRECTION_BPS_FIRST_PREFIX_COMPARISON_ADMITTED",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Run actual full main-prefix metadata-only preflight and prepare fresh fixed first-prefix signed-bps comparison admission. Genuine002 mechanics retained, no new private model rerun.",
+  "next_action": "Materialize the fresh fixed signed-bps prefix campaign after54-binding metadata PASS; verify whole-host idle and fresh physical boot, then execute under unchanged canonical guards. No private weight reuse or consumed-plan relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -251,7 +251,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Run actual full main-prefix metadata-only preflight and prepare fresh fixed first-prefix signed-bps comparison admission. Genuine002 mechanics retained, no new private model rerun.",
+    "current_activity": "Materialize the fresh fixed signed-bps prefix campaign after54-binding metadata PASS; verify whole-host idle and fresh physical boot, then execute under unchanged canonical guards. No private weight reuse or consumed-plan relaunch.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -281,7 +281,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "81 bounded synthetic prefix-route cases; genuine numerical mechanics reused from prior private002.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_20261027_001_RUNTIME",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_VERIFIED_TERMINAL_001.json",
       "sha256": "9caffc99138d117031a11d16c09217ce9a9073482fbb1899bdc34ec6f124a7ac"
@@ -17454,7 +17454,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Closed. B16 signed-bps private qualification002 is complete and consumed. No genuine predictor fit or new numerical unit admitted.",
+    "current_training_scope": "Only fresh first-prefix signed-bps candidate:47602parents,onepass,B16,max2976updates and fixed later17288TRAIN-development scoring under bound four-window campaign. All other training scopes closed.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17816,7 +17816,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
     },
-    "native_training_stage": "dynamic_m5_direction_bps_b16_qualification_20261027_002"
+    "native_training_stage": "dynamic_m5_direction_bps_prefix_fit_fold1_20261027_001"
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -31164,7 +31164,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35906,7 +35906,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Closed. B16 signed-bps private qualification002 is complete and consumed. No genuine predictor fit or new numerical unit admitted.",
+  "training_enabled_scope": "Only fresh first-prefix signed-bps candidate:47602parents,onepass,B16,max2976updates and fixed later17288TRAIN-development scoring under bound four-window campaign. All other training scopes closed.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -37069,5 +37069,45 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_VERIFIED_TERMINAL_001.json",
       "sha256": "9caffc99138d117031a11d16c09217ce9a9073482fbb1899bdc34ec6f124a7ac"
     }
+  },
+  "dynamic_m5_direction_bps_prefix_fit_fold1_20261027_001": {
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "signed_bps_scale_fit_authorized": true,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "relaunch_allowed": false,
+    "status": "ADMITTED_PENDING_FRESH_CANONICAL_CAMPAIGN",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RECIPE.json",
+      "sha256": "7f553f7361717257e9b28a8f7e74622d7ebec87b2f64173999ae75229e65647b"
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/ADMISSION.json",
+      "sha256": "bc63e0ab364af4da2737768e0641ed73e59dfd1cec85c8d94e2420c311c38de8"
+    },
+    "comparison_protocol": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/COMPARISON_PROTOCOL.json",
+      "sha256": "25458f5185c55070333729eededff4d33a11dd5b1ee334e74a4358c15a928888"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME",
+    "max_invocations": 4,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_total_optimizer_updates": 2976
   }
 }

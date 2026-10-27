@@ -11,6 +11,25 @@ Programrot:
 
 ## Aktuell status
 
+DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001 er ferskt admittért.
+Målet er senere forbedring med signed-bps+BCE mot uendret sign-only276.
+Samme47602TRAIN-/17288senere-foreldre,1/5/15,B16,seed20260911,AdamW og én
+gjennomgang. Maks2976optimizersteg totalt. Ferske vekter, ingen private vekter.
+Fire eksisterende resumable12000s-vinduer/13800s-outer er øvre grense;
+COMPLETE avslutter hele kampanjen. Ingen ekstraepoke eller planrelansering.
+Metadatakjeden54bindinger bestod med nullpayload/numeriske imports/kall.
+Nignumeriske kildeeiere er eksakt de som bestod genuin002.
+Kilde/policy fryses ved commit. Campaign,helmaskin-idle og fersk fysisk boot
+gjenstår; ingen genuin kandidatprosess er startet ved denne commit.
+training/native_training/full_epoch=true gjelder kun denne prefiksenheten.
+Bps-skala må samsvare eksakt med kvalifisert eget prefiks. Normalisering
+refittes ikke. Alle hardware-/kausalitets-/TEST-vakter beholdes.
+COMPARISON_PROTOCOL.json låser5m-MSE mot mean/zero og AUC5mot276, seks
+korrigerte dag-/ukeintervaller,10kblokkreplikater og seed20261027. Alle1/5/15
+rapporteres. Ingen automatisk flerfoldutvidelse uten støttet senere nytte.
+Separat sammenligningsworker må admittéres etter terminal; root leser metadata.
+
+
 DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_20261027_001 er COMPLETE/consumed.
 Alle81kontroller bestod:61eksisterende prefiks-/vaktkontroller og20nye
 opt-inbevis-/kilde-/skalaportkontroller. Worker5,837s/outer6,484s, exit0.
