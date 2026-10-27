@@ -82,9 +82,14 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 ## Neste minste steg
 
 En avgrenset oppfølging av størrelsesskåren mot eksisterende kausal H1 ATR-z-
-fortegn er syntetisk kvalifisert med 22 tilfeller, men ikke målt på lagrede
-utfall. Begge faste tilstander skal rapporteres; utfallsbasert utvalg gir ingen
-handelsregel. Én lagret-output-måling er admittért uten modell eller rådata.
+fortegn er syntetisk kvalifisert og målt på samme 70376 lagrede foreldre.
+Native oppskår AUC for abs(5min-endepunkt)>10bps er 0,551582; H1 ATR-z-fortegn
+alene 0,557799, parrede 99%-intervaller for forskjellen inkluderer null. Innen
+hver faste H1-tilstand er native størrelses-AUC 0,548139. Fra eksisterende
+sign-aggregater er native retnings-AUC innen samme H1-tilstander 0,503991.
+Parpopulasjonene er ulike; ingen av differansene er et kausalt bidrag.
+Gjenbrukte utviklingsdata og midtprisendepunkt beviser ikke tradingedge.
+Se docs/DIRECTION_MAGNITUDE_H1_REGIME_RESULT_20261027.json.
 Se `direction_magnitude_h1_regime_source` i NEXT_RUN_POLICY.json.
 
 

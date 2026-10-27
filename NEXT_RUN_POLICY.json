@@ -38706,22 +38706,34 @@
     }
   },
   "direction_magnitude_h1_regime_actual": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_REUSED_DEV_REGIME_DIAGNOSTIC",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_ACTUAL_PLAN_20261027_001.json",
       "sha256": "969b1d05dc1ecdadb8808310993a54781c8f5169075dd6dbe8eef06e2cf305b9"
     },
-    "execution_authorized": true,
-    "saved_payload_reads_authorized": true,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
     "raw_data_reads_authorized": false,
     "genuine_fits_authorized": false,
     "native_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "test_control_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "relaunch_allowed": false
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_ACTUAL_ROOT_REVIEW_20261027_001.json",
+      "sha256": "cc322134e725b6ed48b95fb558e8f599badd041057eed83b895675f6062e4311"
+    },
+    "h1_state_direction_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_H1_STATE_DIRECTION_AGGREGATE_REVIEW_20261027_001.json",
+      "sha256": "da01859611e0186f91f66f530e8f78f670f6bc2a10ff233fa569113b3561d265"
+    },
+    "result_document": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAGNITUDE_H1_REGIME_RESULT_20261027.json",
+      "sha256": "61c98c91a686f19bcd4c9cf552b5834ac25064a0e7ce36003357b470ae13a477"
+    }
   },
   "independent_direction_last_m1_trade_count_20261027": {
     "status": "FAILED_ONE_SHOT_CONSUMED",

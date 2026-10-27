@@ -1,0 +1,321 @@
+{
+  "schema_version": "gx1_magnitude_h1_regime_result_v1",
+  "status": "COMPLETE_REUSED_DEV_EXPLORATORY_NO_CAUSAL_OR_EDGE_CLAIM",
+  "root_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_ACTUAL_ROOT_REVIEW_20261027_001.json",
+    "sha256": "cc322134e725b6ed48b95fb558e8f599badd041057eed83b895675f6062e4311"
+  },
+  "result": {
+    "eligible_count": 70376,
+    "fold_state_counts": [
+      {
+        "fold_id": 1,
+        "nonpositive": {
+          "large_events": 337,
+          "parents": 8142
+        },
+        "positive": {
+          "large_events": 461,
+          "parents": 9082
+        }
+      },
+      {
+        "fold_id": 2,
+        "nonpositive": {
+          "large_events": 1120,
+          "parents": 9155
+        },
+        "positive": {
+          "large_events": 1464,
+          "parents": 8317
+        }
+      },
+      {
+        "fold_id": 3,
+        "nonpositive": {
+          "large_events": 258,
+          "parents": 8513
+        },
+        "positive": {
+          "large_events": 521,
+          "parents": 9492
+        }
+      },
+      {
+        "fold_id": 4,
+        "nonpositive": {
+          "large_events": 1075,
+          "parents": 8449
+        },
+        "positive": {
+          "large_events": 1853,
+          "parents": 9226
+        }
+      }
+    ],
+    "horizon_minutes": 5,
+    "hurdle_bps": 10.0,
+    "limits": [
+      "Adaptive explanatory follow-up on reused development data; no untouched validation or causal claim.",
+      "Within-regime AUC uses a different pair population from overall AUC; do not interpret their difference as a causal effect.",
+      "H1 ATR-z sign is only a coarse relative-volatility proxy; within-state magnitude, session and other regimes are not controlled.",
+      "Endpoint midpoint is not path, execution, FLAT or profit.",
+      "Scores trained for endpoint sign are not calibrated magnitude probabilities.",
+      "99-percent intervals are per contrast and not familywise."
+    ],
+    "overall": {
+      "utc_day": {
+        "comparison_auc": 0.5577993194659743,
+        "comparison_auc_interval": {
+          "high": 0.5822639935218291,
+          "level": 0.99,
+          "low": 0.5323485586363057
+        },
+        "comparison_name": "causal_h1_atr_z_positive_binary",
+        "global_blocks": 312,
+        "native_auc": 0.5515817946563594,
+        "native_auc_interval": {
+          "high": 0.5716164216500372,
+          "level": 0.99,
+          "low": 0.5329057842668026
+        },
+        "native_minus_comparison_interval": {
+          "high": 0.01951093959829921,
+          "level": 0.99,
+          "low": -0.030177378118370717,
+          "point_difference": -0.006217524809614905
+        },
+        "per_fold_or_state": [
+          {
+            "comparison_auc": 0.526427782594194,
+            "fold_or_state": 1,
+            "native_auc": 0.517007658254366
+          },
+          {
+            "comparison_auc": 0.5531299336386609,
+            "fold_or_state": 2,
+            "native_auc": 0.5312337668211604
+          },
+          {
+            "comparison_auc": 0.5740118118609553,
+            "fold_or_state": 3,
+            "native_auc": 0.5765141864694784
+          },
+          {
+            "comparison_auc": 0.5664445482289442,
+            "fold_or_state": 4,
+            "native_auc": 0.5724582169347401
+          }
+        ],
+        "within_fold_or_state_pairs": 108176810
+      },
+      "utc_week_monday": {
+        "comparison_auc": 0.5577993194659743,
+        "comparison_auc_interval": {
+          "high": 0.5788833710234064,
+          "level": 0.99,
+          "low": 0.5331546330031268
+        },
+        "comparison_name": "causal_h1_atr_z_positive_binary",
+        "global_blocks": 53,
+        "native_auc": 0.5515817946563594,
+        "native_auc_interval": {
+          "high": 0.5766925589865143,
+          "level": 0.99,
+          "low": 0.5242925798166964
+        },
+        "native_minus_comparison_interval": {
+          "high": 0.024153603802170177,
+          "level": 0.99,
+          "low": -0.037275245053199756,
+          "point_difference": -0.006217524809614905
+        },
+        "per_fold_or_state": [
+          {
+            "comparison_auc": 0.526427782594194,
+            "fold_or_state": 1,
+            "native_auc": 0.517007658254366
+          },
+          {
+            "comparison_auc": 0.5531299336386609,
+            "fold_or_state": 2,
+            "native_auc": 0.5312337668211604
+          },
+          {
+            "comparison_auc": 0.5740118118609553,
+            "fold_or_state": 3,
+            "native_auc": 0.5765141864694784
+          },
+          {
+            "comparison_auc": 0.5664445482289442,
+            "fold_or_state": 4,
+            "native_auc": 0.5724582169347401
+          }
+        ],
+        "within_fold_or_state_pairs": 108176810
+      }
+    },
+    "population": "FOUR_CHRONOLOGICAL_REUSED_TRAIN_DEVELOPMENT_FOLDS",
+    "regime": "closed_H1_ATR_z_nonpositive_or_positive",
+    "schema_version": "gx1_saved_magnitude_h1_regime_aggregate_v1",
+    "target": "absolute_midpoint_endpoint_return_strictly_greater_than_10bps",
+    "within_regime": {
+      "utc_day": {
+        "comparison_auc": 0.5115113684834669,
+        "comparison_auc_interval": {
+          "high": 0.5358619260689166,
+          "level": 0.99,
+          "low": 0.49043219317264514
+        },
+        "comparison_name": "saved_ET252_probability_up",
+        "global_blocks": 312,
+        "native_auc": 0.5481387486803958,
+        "native_auc_interval": {
+          "high": 0.5664175505070062,
+          "level": 0.99,
+          "low": 0.5299566506968947
+        },
+        "native_minus_comparison_interval": {
+          "high": 0.059863146695562135,
+          "level": 0.99,
+          "low": 0.011784014366721274,
+          "point_difference": 0.036627380196928905
+        },
+        "per_fold_or_state": [
+          {
+            "comparison_auc": 0.5057564104270069,
+            "fold_or_state": "1_nonpositive",
+            "native_auc": 0.5123809777267483
+          },
+          {
+            "comparison_auc": 0.511296886153747,
+            "fold_or_state": "1_positive",
+            "native_auc": 0.5225016801781253
+          },
+          {
+            "comparison_auc": 0.4754483731887279,
+            "fold_or_state": "2_nonpositive",
+            "native_auc": 0.5138606765045782
+          },
+          {
+            "comparison_auc": 0.48712626555000843,
+            "fold_or_state": "2_positive",
+            "native_auc": 0.550173869846001
+          },
+          {
+            "comparison_auc": 0.5535803999455345,
+            "fold_or_state": "3_nonpositive",
+            "native_auc": 0.569665553880899
+          },
+          {
+            "comparison_auc": 0.5429216256861789,
+            "fold_or_state": "3_positive",
+            "native_auc": 0.5706525890312804
+          },
+          {
+            "comparison_auc": 0.5538702922272473,
+            "fold_or_state": "4_nonpositive",
+            "native_auc": 0.5751655407749415
+          },
+          {
+            "comparison_auc": 0.5124622232384917,
+            "fold_or_state": "4_positive",
+            "native_auc": 0.5568256402039823
+          }
+        ],
+        "within_fold_or_state_pairs": 54029458
+      },
+      "utc_week_monday": {
+        "comparison_auc": 0.5115113684834669,
+        "comparison_auc_interval": {
+          "high": 0.5408228290666033,
+          "level": 0.99,
+          "low": 0.48119766981082635
+        },
+        "comparison_name": "saved_ET252_probability_up",
+        "global_blocks": 53,
+        "native_auc": 0.5481387486803958,
+        "native_auc_interval": {
+          "high": 0.5701779278363461,
+          "level": 0.99,
+          "low": 0.5231173006696549
+        },
+        "native_minus_comparison_interval": {
+          "high": 0.06340310802218789,
+          "level": 0.99,
+          "low": 0.008735651589635152,
+          "point_difference": 0.036627380196928905
+        },
+        "per_fold_or_state": [
+          {
+            "comparison_auc": 0.5057564104270069,
+            "fold_or_state": "1_nonpositive",
+            "native_auc": 0.5123809777267483
+          },
+          {
+            "comparison_auc": 0.511296886153747,
+            "fold_or_state": "1_positive",
+            "native_auc": 0.5225016801781253
+          },
+          {
+            "comparison_auc": 0.4754483731887279,
+            "fold_or_state": "2_nonpositive",
+            "native_auc": 0.5138606765045782
+          },
+          {
+            "comparison_auc": 0.48712626555000843,
+            "fold_or_state": "2_positive",
+            "native_auc": 0.550173869846001
+          },
+          {
+            "comparison_auc": 0.5535803999455345,
+            "fold_or_state": "3_nonpositive",
+            "native_auc": 0.569665553880899
+          },
+          {
+            "comparison_auc": 0.5429216256861789,
+            "fold_or_state": "3_positive",
+            "native_auc": 0.5706525890312804
+          },
+          {
+            "comparison_auc": 0.5538702922272473,
+            "fold_or_state": "4_nonpositive",
+            "native_auc": 0.5751655407749415
+          },
+          {
+            "comparison_auc": 0.5124622232384917,
+            "fold_or_state": "4_positive",
+            "native_auc": 0.5568256402039823
+          }
+        ],
+        "within_fold_or_state_pairs": 54029458
+      }
+    }
+  },
+  "h1_state_direction_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_H1_STATE_DIRECTION_AGGREGATE_REVIEW_20261027_001.json",
+    "sha256": "da01859611e0186f91f66f530e8f78f670f6bc2a10ff233fa569113b3561d265"
+  },
+  "h1_state_direction_auc": {
+    "native": 0.5039911160363655,
+    "saved_ET252": 0.5126887274146871
+  },
+  "interpretation": "The sign of a closed H1 ATR-z alone ranks the fixed large-move endpoint at AUC 0.5578 versus native score 0.5516; paired 99% intervals include zero. Native within-H1-state AUC is 0.5481. This weakens a pure between-H1-sign explanation but does not establish a cause or exclude finer volatility, session or other regime effects.",
+  "limits": [
+    "Adaptive explanatory follow-up on reused development data; no untouched validation or causal claim.",
+    "Within-regime AUC uses a different pair population from overall AUC; do not interpret their difference as a causal effect.",
+    "H1 ATR-z sign is only a coarse relative-volatility proxy; within-state magnitude, session and other regimes are not controlled.",
+    "Endpoint midpoint is not path, execution, FLAT or profit.",
+    "Scores trained for endpoint sign are not calibrated magnitude probabilities.",
+    "99-percent intervals are per contrast and not familywise.",
+    "Overall and within-state metrics contain different positive-negative pairs; their difference is not a causal decomposition.",
+    "The 10-bps target is an illustrative midpoint endpoint, not an execution cost or trade rule.",
+    "No independent full bootstrap percentile replay.",
+    "Within-state and overall AUC use different sets of positive-negative pairs; differences are not a causal estimate.",
+    "No confidence intervals for this reconstructed quantity.",
+    "A coarse H1 sign does not control volatility magnitude, intraday session or other inputs.",
+    "Reused development data, no new prediction, training, or trading claim."
+  ],
+  "economic_edge_qualified": false,
+  "test_data_used": false
+}
