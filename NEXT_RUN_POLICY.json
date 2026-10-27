@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T03:39:03.175117+00:00",
+  "observed_utc": "2026-10-27T03:39:58.875311+00:00",
   "status": "DIRECTION_F_TRAINED_LATER_COMPLETE_ONE_OF_EIGHT_NO_FIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -272,8 +272,8 @@
     "latest_terminal_role": "Full17288row trained later frozen representation with bit-identical original predictions; no fit or direction improvement claim.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_later_full_20261027_001_RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_later_full_20261027_001/RESULT.json",
-      "sha256": "b47979a3d6742965fec9e8732d7da784f29c9e6af5ecbec719e3e8b11ef5d180"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_later_full_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
+      "sha256": "55a80edd92186b7be0c867a085f0656868c2f5ce0cb09e3828e9324c0238902e"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -35433,6 +35433,10 @@
     "result": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_later_full_20261027_001/RESULT.json",
       "sha256": "b47979a3d6742965fec9e8732d7da784f29c9e6af5ecbec719e3e8b11ef5d180"
+    },
+    "handover_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_later_full_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
+      "sha256": "55a80edd92186b7be0c867a085f0656868c2f5ce0cb09e3828e9324c0238902e"
     }
   },
   "direction_diagnostic_F_cap_route_repair_20261026": {
