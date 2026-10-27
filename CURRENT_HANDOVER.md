@@ -306,6 +306,14 @@ Den separate 5min-/95min-kontrollen er fullført og konsumert uten modell,
 trening, Exit, CONTROL, TEST eller nye indikatorer. Samme gjenbrukte fold
 beviser ikke generalisering eller økonomisk edge.
 
+En avgrenset engangsmåling er admittért for siste lukkede M1s kjente
+kjøps-/salgsregistreringer som rangeringsinformasjon utover samme M5-fortegn.
+Kun tre egne, historiske kontraktfiler som slutter før 2026 brukes; fem M1
+må matche M5-tellingene eksakt under streng signert kvalitetsmaske. Null fit,
+modellendring, nye indikatorer, CONTROL, TEST, Exit eller broker. Dette er
+handelsregistreringer, ikke M1-OFI eller volumenhet. Plan/status:
+`independent_direction_last_m1_trade_count_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/

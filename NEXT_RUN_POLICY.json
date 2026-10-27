@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "INDEPENDENT_PATH_ALIGNMENT_REPLAY_COMPLETE_EXPOSURE_DEFERRED_TRAINING_CLOSED",
+    "status": "PRECONTROL_LAST_M1_TRADE_COUNT_READ_ONLY_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "independent_direction_last_m1_trade_count_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37245,7 +37245,8 @@
     "exposure_design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
       "sha256": "d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01"
-    }
+    },
+    "last_m1_trade_record_refinement_measured": false
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -38720,6 +38721,23 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
+    "relaunch_allowed": false
+  },
+  "independent_direction_last_m1_trade_count_20261027": {
+    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_STUDY_PLAN_001.json",
+    "plan_sha256": "8aaf39909231e4d36cecfaec39458ad2b8a61520dc1e20b40d97060a2a347b0f",
+    "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_STUDY_WORKER_001.py",
+    "worker_sha256": "0eba89e8c9c54fd717ec8662e40615d302a913db66cd01135b6bcb0b8597d280",
+    "scope": "Fixed last-closed-M1 versus existing M5 known-side trade-record count sign, qualified by strict M5 validity and exact five-minute count parity; 2025-Q1 reused development only.",
+    "max_invocations": 1,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_control_authorized": false,
+    "exit_authorized": false,
+    "new_indicators_authorized": false,
+    "broker_authorized": false,
     "relaunch_allowed": false
   }
 }
