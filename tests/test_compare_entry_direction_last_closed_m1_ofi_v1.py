@@ -49,16 +49,18 @@ def test_owned_guard_rejects_parent_traversal_even_inside_lexical_output(tmp_pat
     out = tmp_path/'output'; out.mkdir()
     assert not worker.owned(out/suffix, out)
     guard = worker.make_guard(out, [], [], [], synthetic=True)
-    with pytest.raises(RuntimeError, match='OUTSIDE_OUTPUT_WRITE'):
+    # pytest's test_* ancestor is sealed, so that earlier rejection is exact.
+    with pytest.raises(RuntimeError, match='^DIRECTION_LAST_M1_OFI_TEST_PATH$'):
         guard('open', (str(out/suffix), 'wb', 1))
 
 
-def test_guard_blocks_undeclared_market_inputs_and_weights(tmp_path):
-    out = tmp_path/'output'; out.mkdir()
+def test_guard_blocks_undeclared_market_inputs_and_weights():
+    # Callback-only path: no filesystem operation or sealed pytest ancestor.
+    out = worker.Path('/synthetic/output')
     guard = worker.make_guard(out, [], [], [], synthetic=False)
     with pytest.raises(RuntimeError, match='UNDECLARED_DATA'):
         guard('open', ('/home/andre2/GX1_DATA/unbound.npy', 'rb', 0))
-    with pytest.raises(RuntimeError, match='FORBIDDEN_PAYLOAD'):
+    with pytest.raises(RuntimeError, match='^DIRECTION_LAST_M1_OFI_FORBIDDEN_PAYLOAD$'):
         guard('open', (str(out/'weights.pkl'), 'wb', 1))
 
 
@@ -121,7 +123,10 @@ def test_new_normalization_uses_only_observed_prefix_and_retains_binary_missing_
     values[:3] = [0., 3., 9.]; seen[:3] = True
     values[-2:] = [12., 24.]; seen[-2:] = True
     projection = dict(zip(worker.NEW_FIELDS, (values, seen)))
+    cache_path = worker.os.environ.get('NUMBA_CACHE_DIR')
+    assert cache_path and worker.owned(cache_path, worker.ROOT) and worker.Path(cache_path).is_dir()
     encoded, stats = worker.normalize_new(projection, decisions)
+    assert worker.sys.modules['numba.core.config'].CACHE_DIR == cache_path
     changed = {name: value.copy() for name, value in projection.items()}
     changed[worker.NEW_FIELDS[0]][-2:] = [1e20, -1e20]
     other, other_stats = worker.normalize_new(changed, decisions)
@@ -234,6 +239,7 @@ def test_main_cannot_hash_sealed_input_before_cap_lock_and_guard(monkeypatch, tm
     from gx1.contracts import immutable_event_authority_v1 as publication
 
     events = []; installed = []; hashed = []
+    cache_before = worker.os.environ.get('NUMBA_CACHE_DIR')
     out = tmp_path/'guarded-output'
     source_head = 'a'*40; plan_path = Path('/fixture/plan.json')
     sealed_input = '/home/andre2/GX1_RUNS/TEST/forbidden.npy'
@@ -292,3 +298,4 @@ def test_main_cannot_hash_sealed_input_before_cap_lock_and_guard(monkeypatch, tm
     assert events[:5] == ['scope_enter', 'scope_exit', 'cap', 'lock', 'guard']
     assert events[5:] == ['scope_enter', 'input_binding', 'scope_exit']
     assert not hashed and len(installed) == 1
+    assert worker.os.environ.get('NUMBA_CACHE_DIR') == cache_before

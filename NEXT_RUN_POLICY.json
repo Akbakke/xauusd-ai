@@ -37142,12 +37142,12 @@
       "sha256": "ab4741e33c7a20362447ceb80027fee1feb4d95604297526d844ffe3949404b7"
     },
     "source_admission": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_005.json",
-      "sha256": "02f6c6b844f6d96e22460bb314a636499d68277903a5f5171ba4a68a1d3943db"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_006.json",
+      "sha256": "5205c3490eac4de7aaa3c67f57d36c219ee1d390a23be0e2515a4ce1ed54045f"
     },
     "current_unit": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_PLAN_001.json",
-      "sha256": "ffdb77375e1e5eb7c19f484bbca11d755e772fae3d6e0130115ea19d1137b217"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_PLAN_002.json",
+      "sha256": "19d5ded43cb1e5c5e3cb8d6b5db729eebc69dea93ec147fe9dc7a8563a1f4c78"
     },
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
@@ -37180,7 +37180,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_PLAN_001.json",
       "sha256": "b5e445cf1015feecbc5707c3ae8d4a5e25a94107e32ed60259e7166461627e74"
     },
-    "phase_B_status": "ONLY_PREPARATION_SYNTHETIC_37_ADMITTED_GENUINE_FITS_CLOSED",
+    "phase_B_status": "ONLY_PREPARATION_SYNTHETIC_002_ADMITTED_GENUINE_FITS_CLOSED",
     "compact_profile_confirmed_by_user": true,
     "latest_operator_instruction": "Ja, vi kjører kun den kompakte nå med viktige indikatorer, så ser vi om dette er nok eller vi må tilføre noe senere. Vi holder oss til dette kompakte men viktige først",
     "saved_bps_comparison_complete": true,
@@ -37480,8 +37480,8 @@
   "independent_direction_last_m1_ofi_synthetic_20261027": {
     "status": "ADMITTED",
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_PLAN_001.json",
-      "sha256": "ffdb77375e1e5eb7c19f484bbca11d755e772fae3d6e0130115ea19d1137b217"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_PLAN_002.json",
+      "sha256": "19d5ded43cb1e5c5e3cb8d6b5db729eebc69dea93ec147fe9dc7a8563a1f4c78"
     },
     "execution_authorized": true,
     "max_invocations": 1,
@@ -37495,8 +37495,44 @@
     "test_data_used": false,
     "expected_test_cases": 37,
     "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_006.json",
+      "sha256": "5205c3490eac4de7aaa3c67f57d36c219ee1d390a23be0e2515a4ce1ed54045f"
+    }
+  },
+  "independent_direction_last_m1_ofi_synthetic_20261027_attempt001": {
+    "status": "FAILED_CONSUMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_PLAN_001.json",
+      "sha256": "ffdb77375e1e5eb7c19f484bbca11d755e772fae3d6e0130115ea19d1137b217"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "synthetic_only": true,
+    "saved_payload_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_model_calls_authorized": false,
+    "test_data_used": false,
+    "expected_test_cases": 37,
+    "source_admission": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_005.json",
       "sha256": "02f6c6b844f6d96e22460bb314a636499d68277903a5f5171ba4a68a1d3943db"
-    }
+    },
+    "failed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_001/FAILED_TERMINAL.json",
+      "sha256": "adf2ef1f15a3bc159ee667e331ea767959c9d1e4a76eed54536377e898f798d7"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_001_OUTER_TERMINAL.json",
+      "sha256": "9092f30685cfbaa5afaa273314243ece6ab61194077641fa22659d8f5f5ada1f"
+    },
+    "diagnostics": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_SYNTHETIC_001/.OUTPUT.staging/SYNTHETIC_DIAGNOSTICS.json",
+      "sha256": "4f346acb25dd29868cca4aba66427b2a727a55be2eb7e5efcb2a62ab6bd5e067"
+    },
+    "passed_cases": 32,
+    "failed_cases": 5
   }
 }

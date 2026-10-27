@@ -136,6 +136,9 @@ ferdige uttrekk og kun en eventuell manglende tredjedel under ny egenautoritet.
 Ingen ekstra pass, ny genuin enhet eller nye indikatorfelt er admittért nå.
 Last-M1-OFI-proposalfiler er kun forberedelse; dagens native profil er uendret.
 En kildebevist rekkefølgefeil i proposalens inputhashing er rettet før bruk.
-Kun37 syntetiske forberedelsestester er admittért; ingen genuine OFI-fits.
+Forberedelsestest001 ga32PASS/5feil: tidligere sealed-path-avvisning og
+Numba-cacheforsøk utenfor output. Begge er rettet uten svakere vakter.
+Originalkvitteringer bevares; kun nytt37-casers forsøk002 er admittért.
+Ingen genuine OFI-fits eller feltendring i dagens kompaktprofil er åpnet.
 Ingen CONTROL/TEST, Exit, broker, ordre, spending eller promotion er åpnet.
 Målet er fortsatt aktivt; fullprefix-konvergens og treningsutvidelse er uavklart.

@@ -691,7 +691,7 @@ def main(argv=None):
     def expired(*unused): raise RuntimeError('DIRECTION_LAST_M1_OFI_WALL_LIMIT')
     signal.signal(signal.SIGALRM, expired); signal.alarm(plan['wall_seconds']); sys.setprofile(calls.watch)
     stage = out/'.OUTPUT.staging'; started = time.monotonic()
-    input_snapshot = None
+    input_snapshot = None; previous_numba_cache = os.environ.get('NUMBA_CACHE_DIR')
     try:
         # Genuine payload hashing is itself capped work and subject to the guard.
         if not synthetic:
@@ -700,6 +700,11 @@ def main(argv=None):
                     regular(ref['path']); binding.require_binding(ref, label='input')
                 input_snapshot = binding.capture_verified_file_snapshot()
         stage.mkdir(exist_ok=False)
+        # Numba caches its config at first import; do not reuse an old locator.
+        require(not any(name == 'numba' or name.startswith('numba.') for name in sys.modules),
+            'NUMBA_NOT_PREIMPORTED')
+        numba_cache = stage/'numba-cache'; numba_cache.mkdir(exist_ok=False)
+        os.environ['NUMBA_CACHE_DIR'] = str(numba_cache)
         result = run_synthetic(stage, publish) if synthetic else run_actual(plan, meta, stage, publish, calls)
         snapshot.require_unchanged()
         if input_snapshot is not None: input_snapshot.require_unchanged()
@@ -719,6 +724,8 @@ def main(argv=None):
             'error': type(exc).__name__+': '+str(exc), 'partial_output_is_invalid': True, 'relaunch_allowed': False})
         raise
     finally:
+        if previous_numba_cache is None: os.environ.pop('NUMBA_CACHE_DIR', None)
+        else: os.environ['NUMBA_CACHE_DIR'] = previous_numba_cache
         sys.setprofile(previous_profile); signal.alarm(0); signal.signal(signal.SIGALRM, previous_handler)
 
 
