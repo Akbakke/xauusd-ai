@@ -136,8 +136,11 @@ AUC5 går0.503021→0.496823; begge korrigerte dag-/ukeintervaller inkluderer0.
 Bps-MSE slår ikke egetTRAIN-gjennomsnitt. Kombinert forhåndsregel erFALSE.
 Forsøket er ikke kvalifisert for retningsforbedring eller automatisk utvidelse.
 Litt bedre logloss er beskrivende, og er ikke en rang-/edgekvalifisering.
-Minste neste prioritet er fullprefix-læring mot egen0U/prior, med gjenbruk av
-ferdige uttrekk og kun en eventuell manglende tredjedel under ny egenautoritet.
+Før native uttrekksutvidelse må det separate returhodets rangering dekkes.
+DårligMSE utelukker ikke god rangering. Et eget eksplorativt9-cellers kart
+forberedes med samme kompaktinput/foreldre/masker, alle tre hoder og1/5/15min.
+Den opprinnelige testen og densFALSE-vedtak bevares bitidentisk; ingen beste-
+hodevalg eller promotion følger. Fullprefix0U-arbeid er foreløpig kun metadata.
 Ingen ekstra pass, ny genuin enhet eller nye indikatorfelt er admittért nå.
 Last-M1-OFI-proposalfiler er kun forberedelse; dagens native profil er uendret.
 En kildebevist rekkefølgefeil i proposalens inputhashing er rettet før bruk.

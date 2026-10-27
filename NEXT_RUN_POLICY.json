@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_BPS_COMPARISON_COMPLETE_NO_DIRECTION_IMPROVEMENT_FULL_PREFIX_LEARNING_NEXT",
+    "status": "COMPACT_EXISTING_OUTPUT_ALL_HEAD_COVERAGE_SOURCE_ONLY",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37185,10 +37185,14 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Bind exact source-only compatibility design for fresh own0U timing256 then only missing prefix part3. Reuse old completed extractions; all native execution and extra passes remain closed until fresh exact gates.",
+    "next_action": "Qualify exploratory all-nine-head/horizon saved-output diagnosis under a fresh own source/plan admission; preserve original confirmatory C failure exactly. No head selection or promotion. Native0U compatibility remains metadata-only preparation until this output gap is resolved.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_001.json",
       "sha256": "79911925aec654d115665f5ea964e98331bd956f31a08b941caa60ce770308b1"
+    },
+    "current_design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/EXPLORATORY_HEAD_RANK_PROTOCOL_001.json",
+      "sha256": "ca4dfbbd0fac33a47fb8b65657ef7ebaaf08126b424e77da5402d91daf1d2b7c"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -37686,5 +37690,21 @@
     },
     "gelu_change_justified": false,
     "economic_edge_qualified": false
+  },
+  "independent_direction_all_heads_source_20261027": {
+    "status": "SOURCE_DESIGN_ADOPTED_EXECUTION_CLOSED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/EXPLORATORY_HEAD_RANK_PROTOCOL_001.json",
+      "sha256": "ca4dfbbd0fac33a47fb8b65657ef7ebaaf08126b424e77da5402d91daf1d2b7c"
+    },
+    "allowed_repo_files": [
+      "gx1/scripts/compare_entry_direction_saved_bps_v1.py",
+      "tests/test_compare_entry_direction_saved_bps_v1.py"
+    ],
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "fits_authorized": false,
+    "test_data_used": false
   }
 }
