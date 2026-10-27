@@ -78,6 +78,10 @@
     "existing_gc_clock_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_REVIEW_001.json",
       "sha256": "ae221fc07ce2da847d62907de4fb3501afa1bfd271da3546aba99f473387e4e3"
+    },
+    "m5_book_support_inventory": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M5_BOOK_TRAILING_SUPPORT_INVENTORY_002.json",
+      "sha256": "4c385bf3240ce53b8e0410ac9f43d0326aba849aeb04d9dfaede998dbd057b18"
     }
   },
   "execution_authorized_by_report": false,
@@ -195,6 +199,15 @@
       ],
       "finding": "On 17128 eligible fold1 2025-Q1 rows, existing profile snapshot age was 0 minutes on all rows; spot-basis age was at most one minute on 17111, older on 13 and missing on 4. BBO coverage was full on 16977, partial on 146 and missing on 5; local and last-closed-M5 OFI tags matched on all joined eligible rows.",
       "implication": "These are source snapshot clocks and accepted support, not the last actual quote timestamp or future execution latency. Profile age has no variation here, and 13 older basis cases are too few to establish an incremental benefit. Latest-minute information value remains unmeasured; no indicators or models changed."
+    },
+    {
+      "id": "F13",
+      "type": "EXISTING_LAST_SUPPORTED_GC_MINUTE_INPUT_INVENTORY",
+      "evidence": [
+        "m5_book_support_inventory"
+      ],
+      "finding": "The original compact direction layout already routes the M5 trailing BBO support-gap field and validity gate. Saved pre-control 2024\u20132025 TRAIN source-window counts contain 117992 zero-gap, 79 positive-gap and 649 unknown rows out of 118720 unique M5 source rows.",
+      "implication": "The gap describes the last admitted fully covered minute, not the last actual quote. These are source-window rows, not the exact later prediction cohort. The field being present and mostly zero does not establish feature usefulness or the added predictive value of a fresher source."
     }
   ],
   "main_cause_established": false,
@@ -225,7 +238,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T20:46:52.431363+00:00",
+  "updated_utc": "2026-10-27T20:49:28.691706+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

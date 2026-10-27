@@ -235,6 +235,13 @@ Uavhengig aritmetikk-/kildekontroll, uten ny rådatareplay:
 ae221fc07ce2da847d62907de4fb3501afa1bfd271da3546aba99f473387e4e3.
 Engangskjøringen er konsumert; CONTROL, TEST og treningsporter er stengt.
 
+Kompaktmodellens GC-M5-sidebane inneholder allerede et felt for avstand
+til siste godkjente, fullt dekkede bokminutt. I lagret pre-CONTROL-kildeutvalg
+på 118720 unike M5-rader var 117992 null, 79 positive og 649 ukjent. Dette er
+ikke samme populasjon som fold1-prediksjonene, og feltet beskriver ikke siste
+faktiske quote eller målt nytte. Bevis `M5_BOOK_TRAILING_SUPPORT_INVENTORY_002.json`
+SHA-256 4c385bf3240ce53b8e0410ac9f43d0326aba849aeb04d9dfaede998dbd057b18.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
