@@ -38617,5 +38617,23 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_PATH_VERIFIED_ROOT_REVIEW_001.json",
       "sha256": "2603916cfdbcffde1d8ba17ff44ef1e8565fa28edff2640c46a2bf9d8db5a980"
     }
+  },
+  "direction_five_minute_hurdle_rank_actual": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_ACTUAL_PLAN_20261027_001.json",
+      "sha256": "247d241b15f770efe3dc06a11b9cd9b5c0a1628bbfaf39b1a033132665694a14"
+    },
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": true,
+    "raw_data_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_control_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
   }
 }

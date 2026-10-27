@@ -83,7 +83,8 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 
 En kontroll av eksisterende femminuttsskårer mot større endepunkt er forberedt.
 Den bruker fast +/-10 bps og alle modne, observerte foreldre, også nuller.
-19 syntetiske tilfeller bestod under 4G-vakt. Faktisk måling er ikke admittért.
+19 syntetiske tilfeller bestod under 4G-vakt. Én avgrenset faktisk måling er
+admittért mot seks lagrede TRAIN-payloads, uten modell eller rådata.
 Midtprisendepunkt er ikke første treff eller handel. Trening er stengt.
 Se `direction_five_minute_hurdle_rank_source` i NEXT_RUN_POLICY.json.
 
