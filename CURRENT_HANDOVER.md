@@ -135,5 +135,7 @@ Minste neste prioritet er fullprefix-læring mot egen0U/prior, med gjenbruk av
 ferdige uttrekk og kun en eventuell manglende tredjedel under ny egenautoritet.
 Ingen ekstra pass, ny genuin enhet eller nye indikatorfelt er admittért nå.
 Last-M1-OFI-proposalfiler er kun forberedelse; dagens native profil er uendret.
+En kildebevist rekkefølgefeil i proposalens inputhashing er rettet før bruk.
+Kun37 syntetiske forberedelsestester er admittért; ingen genuine OFI-fits.
 Ingen CONTROL/TEST, Exit, broker, ordre, spending eller promotion er åpnet.
 Målet er fortsatt aktivt; fullprefix-konvergens og treningsutvidelse er uavklart.

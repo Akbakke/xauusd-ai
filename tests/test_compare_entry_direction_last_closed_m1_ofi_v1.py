@@ -224,3 +224,71 @@ def test_primary_requires_both_metrics_under_both_calendar_schemes(fault):
     elif fault == 'undefined': target['contrasts']['B_minus_A']['auc']['undefined_replicates'] = 1
     else: target['status'] = 'INSUFFICIENT_BLOCKS'
     assert not worker.primary_supported(result)
+
+
+def test_main_cannot_hash_sealed_input_before_cap_lock_and_guard(monkeypatch, tmp_path):
+    from contextlib import contextmanager
+    from pathlib import Path
+    from gx1.contracts import local_random_access_campaign_v2 as binding
+    from gx1.contracts import gx1_capped_execution_v1 as cap
+    from gx1.contracts import immutable_event_authority_v1 as publication
+
+    events = []; installed = []; hashed = []
+    out = tmp_path/'guarded-output'
+    source_head = 'a'*40; plan_path = Path('/fixture/plan.json')
+    sealed_input = '/home/andre2/GX1_RUNS/TEST/forbidden.npy'
+    plan = {'mode': 'actual', 'design': worker.DESIGN, 'protocol': worker.PROTOCOL,
+        'inputs': {'train_raw': {'path': sealed_input, 'sha256': 'b'*64}},
+        'metadata': {}, 'sources': {}, 'wall_seconds': 1200}
+    policy = {key: False for key in ('training_enabled', 'native_training_enabled',
+        'full_epoch_training_allowed', 'full_val_allowed', 'native_launch_authorized')}
+    plan_ref = {'path': str(plan_path), 'sha256': 'c'*64}
+    policy[worker.STAGE] = {'status': 'ADMITTED', 'plan': plan_ref,
+        'execution_authorized': True, 'max_invocations': 1, 'claimed_invocations': 0,
+        'completed_invocations': 0, 'relaunch_allowed': False}
+
+    @contextmanager
+    def verification_scope():
+        events.append('scope_enter')
+        try: yield
+        finally: events.append('scope_exit')
+
+    def read_json(path, sha):
+        if path == plan_path: return plan
+        if path == worker.REPO/'NEXT_RUN_POLICY.json': return policy
+        return {}
+
+    def input_binding(ref, *, label):
+        assert label == 'input'
+        events.append('input_binding')
+        assert events.index('cap') < events.index('lock') < events.index('guard') < events.index('input_binding')
+        # Simulate the first attempted input open; the installed guard must stop
+        # the sealed path before any bytes can be hashed.
+        installed[0]('open', (ref['path'], 'rb', 0))
+        hashed.append(ref['path'])
+
+    def install_guard(guard):
+        events.append('guard'); installed.append(guard)
+
+    monkeypatch.setattr(worker, 'regular', lambda path: Path(path))
+    monkeypatch.setattr(worker, 'git_state', lambda: (source_head, 'work/gx1-current', ''))
+    monkeypatch.setattr(worker, 'require_plan', lambda *unused: out)
+    monkeypatch.setattr(binding, 'fresh_file_verification_scope', verification_scope)
+    monkeypatch.setattr(binding, 'read_bound_json', read_json)
+    monkeypatch.setattr(binding, 'require_binding', input_binding)
+    monkeypatch.setattr(binding, 'capture_verified_file_snapshot', lambda: SimpleNamespace(require_unchanged=lambda: None))
+    monkeypatch.setattr(cap, 'require_capped_cpu_audit_execution',
+        lambda: events.append('cap') or {'cgroup_path': '/sys/fs/cgroup/fixture'})
+    monkeypatch.setattr(cap, 'require_capped_lock_ancestry',
+        lambda: events.append('lock') or {'scope': '/fixture'})
+    monkeypatch.setattr(publication, '_publish_bytes', lambda *unused: None)
+    monkeypatch.setattr(worker.sys, 'addaudithook', install_guard)
+    monkeypatch.setattr(worker.sys, 'setprofile', lambda *unused: None)
+    monkeypatch.setattr(worker.signal, 'signal', lambda *unused: None)
+    monkeypatch.setattr(worker.signal, 'alarm', lambda *unused: None)
+    with pytest.raises(RuntimeError, match='TEST_PATH'):
+        worker.main(['--plan', str(plan_path), '--plan-sha256', plan_ref['sha256'],
+            '--policy-sha256', 'd'*64, '--source-head', source_head])
+    assert events[:5] == ['scope_enter', 'scope_exit', 'cap', 'lock', 'guard']
+    assert events[5:] == ['scope_enter', 'input_binding', 'scope_exit']
+    assert not hashed and len(installed) == 1

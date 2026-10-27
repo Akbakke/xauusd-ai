@@ -677,7 +677,6 @@ def main(argv=None):
             'full_epoch_training_allowed', 'full_val_allowed', 'native_launch_authorized')), 'GLOBAL_GATES')
         for ref in plan['sources'].values(): regular(ref['path']); binding.require_binding(ref, label='source')
         meta = {key: binding.read_bound_json(Path(ref['path']), ref['sha256']) for key, ref in plan['metadata'].items()}
-        for ref in plan['inputs'].values(): regular(ref['path']); binding.require_binding(ref, label='input')
         snapshot = binding.capture_verified_file_snapshot()
     proof, lock = cap.require_capped_cpu_audit_execution(), cap.require_capped_lock_ancestry()
     require(lock['scope'] == proof['cgroup_path'][len('/sys/fs/cgroup'):], 'CAPPED_LOCK_SCOPE')
@@ -692,10 +691,19 @@ def main(argv=None):
     def expired(*unused): raise RuntimeError('DIRECTION_LAST_M1_OFI_WALL_LIMIT')
     signal.signal(signal.SIGALRM, expired); signal.alarm(plan['wall_seconds']); sys.setprofile(calls.watch)
     stage = out/'.OUTPUT.staging'; started = time.monotonic()
+    input_snapshot = None
     try:
+        # Genuine payload hashing is itself capped work and subject to the guard.
+        if not synthetic:
+            with binding.fresh_file_verification_scope():
+                for ref in plan['inputs'].values():
+                    regular(ref['path']); binding.require_binding(ref, label='input')
+                input_snapshot = binding.capture_verified_file_snapshot()
         stage.mkdir(exist_ok=False)
         result = run_synthetic(stage, publish) if synthetic else run_actual(plan, meta, stage, publish, calls)
-        snapshot.require_unchanged(); require(git_state() == initial, 'FINAL_HEAD_BRANCH_CLEAN')
+        snapshot.require_unchanged()
+        if input_snapshot is not None: input_snapshot.require_unchanged()
+        require(git_state() == initial, 'FINAL_HEAD_BRANCH_CLEAN')
         require(cap.require_capped_lock_ancestry() == lock, 'FINAL_LOCK_IDENTITY')
         result.update(plan=plan_ref, sources=plan['sources'], inputs=plan['inputs'], metadata=plan['metadata'])
         publish(stage/'RESULT.json', result)
