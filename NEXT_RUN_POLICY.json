@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T13:36:43.253811+00:00",
-  "status": "DIRECTION_BPS_NATIVE_B16_QUALIFIED_CONSUMED",
+  "observed_utc": "2026-10-27T13:52:32.736003+00:00",
+  "status": "DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Fresh bounded first-prefix signed-bps candidate versus unchanged sign-only baseline, identical1/5/15,B16,seed/order/optimizer/exposure and later cohort. No new numerical authority from this closure.",
+  "next_action": "Run one81case capped synthetic qualification of strict signed-bps prefix scope and unchanged prefix baseline guards; then full metadata-only preflight and fresh first-prefix comparison admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -251,7 +251,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Fresh bounded first-prefix signed-bps candidate versus unchanged sign-only baseline, identical1/5/15,B16,seed/order/optimizer/exposure and later cohort. No new numerical authority from this closure.",
+    "current_activity": "Run one81case capped synthetic qualification of strict signed-bps prefix scope and unchanged prefix baseline guards; then full metadata-only preflight and fresh first-prefix comparison admission.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -304,7 +304,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": null,
+    "current_blocker": "Concrete main-route metadata/authority linkage; genuine bps numerical mechanics already qualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -37025,5 +37025,38 @@
     },
     "status": "PASS_METADATA_ONLY",
     "model_or_data_change": false
+  },
+  "direction_bps_prefix_source": {
+    "status": "SOURCE_PREPARED_FROZEN_FOR_SYNTHETIC",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SOURCE_DESIGN_001.json",
+      "sha256": "3b7a722488fcd3047a53c2c15f7c0a8c0b5fcea5bf94e392f4045ad154cc39ce"
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SOURCE_ADMISSION_001.json",
+      "sha256": "668a25394f43d9faf2fcc721be1d79e9df2a12e89f7d260885e4b67c57c721fd"
+    },
+    "source_changes_authorized": false,
+    "execution_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "genuine_training_authorized": false,
+    "test_data_used": false
+  },
+  "direction_bps_prefix_route_synthetic": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_PLAN_001.json",
+      "sha256": "219493930af5193c90ccbfed5019ac94cb615ea21488d4bad64da39ecfa34828"
+    },
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "synthetic_optimizer_steps_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false
   }
 }

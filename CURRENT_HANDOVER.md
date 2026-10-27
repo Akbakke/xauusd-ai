@@ -11,6 +11,15 @@ Programrot:
 
 ## Aktuell status
 
+Prefiksruten for bps er implementert og fryst for81syntetiske kontroller:
+61eksisterende prefiks-/vaktkontroller og20nye opt-inbevis-/kilde-/skalaportkontroller.
+CPUaudit4G/512M,éntråd,64tasks,180sworker/210souter. Ingen ekte inputs/modell.
+Numerisk preparering, forward, loss, batch, rekkefølge og checkpointfunksjoner
+har identisk AST; kvalifiserte modellkilder er uendret. Hovedruten binder nå
+genuin002, kvalifisert GC-mapping og eksakt egen prefiksskala før trening.
+Ingen genuin prediktorsammenligning er admittért ennå.
+Se programrot/DIRECTION_BPS_PREFIX_ROUTE_SOURCE_DESIGN_001.json.
+
 DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002 er COMPLETE/consumed.
 Original worker/controller/guard/observer/Windows-task avsluttet med 0/PASS.
 Kilde375a63a7 og policy var fryst. Fersk fysisk boot559 er dokumentert.

@@ -26,6 +26,12 @@ ROUTE_TEST_FILES = (
     "tests/test_entry_native_direction_research_campaign_v1.py",
     "tests/test_entry_native_direction_research_window_v1.py",
 )
+PREFIX_TEST_FILES = (
+    "tests/test_entry_native_direction_prefix_fit_campaign_v1.py",
+    "tests/test_entry_native_direction_prefix_fit_window_v1.py",
+)
+PREFIX_METADATA_IMPORT = ('import sys; import gx1.contracts.entry_native_direction_prefix_fit_campaign_v1; '
+    'assert not {"torch","numpy","sklearn"} & set(sys.modules)')
 METADATA_IMPORT = 'import sys; import gx1.contracts.entry_native_direction_research_campaign_v1; assert "torch" not in sys.modules'
 
 
@@ -46,10 +52,13 @@ def main():
     head = sys.argv[4]
     plan, policy = meta.read_json(pref), meta.read_json(polref)
     route = plan["schema_version"] == "gx1_direction_bps_genuine_route_synthetic_plan_v1"
-    tests = ROUTE_TEST_FILES if route else TEST_FILES
-    stage = policy["direction_bps_genuine_route_synthetic" if route else "direction_bps_supervision_synthetic"]
-    require(plan["schema_version"] == ("gx1_direction_bps_genuine_route_synthetic_plan_v1" if route
-        else "gx1_direction_bps_supervision_synthetic_plan_v1")
+    prefix = plan["schema_version"] == "gx1_direction_bps_prefix_route_synthetic_plan_v1"
+    tests = PREFIX_TEST_FILES if prefix else (ROUTE_TEST_FILES if route else TEST_FILES)
+    stage = policy["direction_bps_prefix_route_synthetic" if prefix else (
+        "direction_bps_genuine_route_synthetic" if route else "direction_bps_supervision_synthetic")]
+    metadata_import = PREFIX_METADATA_IMPORT if prefix else METADATA_IMPORT
+    require(plan["schema_version"] == ("gx1_direction_bps_prefix_route_synthetic_plan_v1" if prefix else (
+        "gx1_direction_bps_genuine_route_synthetic_plan_v1" if route else "gx1_direction_bps_supervision_synthetic_plan_v1"))
         and plan["wall_seconds"] == 180 and plan["outer_timeout_seconds"] == 210
         and plan["test_files"] == list(tests) and plan["synthetic_only"] is True
         and plan["test_data_used"] is False and plan["payload_paths"] == [], "PLAN")
@@ -115,8 +124,8 @@ def main():
 
         def guard(event, args):
             if event == "subprocess.Popen":
-                require(route and counters["metadata_child_imports"] == 0
-                    and args[0] == sys.executable and args[1] == [sys.executable, "-c", METADATA_IMPORT]
+                require((route or prefix) and counters["metadata_child_imports"] == 0
+                    and args[0] == sys.executable and args[1] == [sys.executable, "-c", metadata_import]
                     and args[2] is None and args[3] is None, "ONLY_FIXED_METADATA_IMPORT_CHILD")
                 counters["metadata_child_imports"] += 1
             require(event not in ("os.system", "socket.connect", "socket.bind", "os.exec"), "PROCESS_NETWORK")
@@ -171,7 +180,7 @@ def main():
             and len(records) == 3 * len(calls) and all(row["outcome"] == "passed" for row in records),
             "ALL_FIXED_CASES_PASSED")
         require(counters["genuine_native_calls"] == counters["payload_open_attempts"] == 0
-            and counters["metadata_child_imports"] == (1 if route else 0)
+            and counters["metadata_child_imports"] == (1 if route or prefix else 0)
             and not torch.cuda.is_initialized(), "NO_GENUINE_OR_NATIVE_WORK")
         used = io.io_state()["rchar"] - before["rchar"]
         require(used <= plan["max_rchar_bytes"], "IO_CAP")
@@ -182,9 +191,10 @@ def main():
         summary = meta.publish(out, "SUMMARY.json", {"status": "PASS_SYNTHETIC_ONLY",
             "plan": pref, "source_head": head, "cases": calls,
             "passed": len(calls), "scope": design["scope"], "horizons": design["horizons"],
-            "legacy_parity_scope": ("Synthetic B16 campaign scope, unchanged B2 guards, probe/update/exact-resume mechanics; genuine qualification still required." if route else
+            "legacy_parity_scope": ("Synthetic first-prefix bps proof/source/scale gates and unchanged prefix campaign/window behavior; genuine mechanics reused from002." if prefix else
+                "Synthetic B16 campaign scope, unchanged B2 guards, probe/update/exact-resume mechanics; genuine qualification still required." if route else
                 "Synthetic unchanged direction tests, RNG/shared-parameter identity and report/optimizer branches; genuine qualification still required."),
-            "native_heads_or_loss_changed": not route, "genuine_targets_materialized": False,
+            "native_heads_or_loss_changed": not (route or prefix), "genuine_targets_materialized": False,
             "direction_improvement_qualified": False, "economic_edge_qualified": False, "test_data_used": False})
         terminal = {"status": "COMPLETE", "exit_code": 0, "plan": pref, "policy": polref,
             "claim": claim, "summary": summary, "source_head": head, "source_unchanged": True,

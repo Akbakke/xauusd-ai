@@ -268,3 +268,81 @@ def test_metadata_import_has_no_numerical_dependency():
     done=subprocess.run([sys.executable,'-c','import sys; import gx1.contracts.entry_native_direction_prefix_fit_campaign_v1; '
         'assert not {"torch","numpy","sklearn"} & set(sys.modules)'],capture_output=True,text=True,timeout=30,check=False)
     assert done.returncode==0,done.stderr
+
+
+def bps_fixture(f, monkeypatch):
+    source=write(f['repo']/'bps_source.py', {'qualified_numerical_source':True})
+    monkeypatch.setattr(owner,'BPS_EXTRA_SOURCE_PATHS',('bps_source.py',))
+    monkeypatch.setattr(owner,'BPS_NUMERICAL_SOURCE_PATHS',('bps_source.py',))
+    qualified_recipe=write(f['runtime']/'qualified_recipe.json',{'source_owners':{'bps_source.py':source}})
+    proof={'status':'PASS_PRIVATE_NATIVE_MECHANICS_CONSUMED',
+        'matched_shared_parameters_buffers_rng_initial_direction_predictions':True,
+        'bit_exact_native_resume':True,'recipe_source_pins_verified':True,'private_weights_for_main_fit':False,
+        'prefix_rows':47602,'prefix_cutoff_ns':f['fold']['train_cutoff_ns'],
+        'recipe':qualified_recipe,'own_prefix_bps_scale':f['dummy']}
+    proof_ref=write(f['runtime']/'qualified_bps.json',proof)
+    monkeypatch.setattr(owner,'BPS_NATIVE_QUALIFICATION',proof_ref)
+    monkeypatch.setattr(owner.private,'BPS_GC_PARITY',f['dummy'])
+    recipe=copy.deepcopy(f['recipe'])
+    recipe.update(run_scope=owner.BPS_SCOPE,native_bps_qualification=proof_ref,gc_layout_metadata_parity=f['dummy'])
+    recipe['source_owners']['bps_source.py']=source
+    recipe['numerical_recipe']['signed_bps_supervision']=True
+    numerical_seal(recipe['numerical_recipe']);reseal(recipe,'recipe_sha256')
+    return recipe,proof
+
+
+def test_qualified_bps_prefix_keeps_one_pass_budget_and_current_numerical_sources(fixture,monkeypatch):
+    f=fixture;recipe,_=bps_fixture(f,monkeypatch)
+    ref=write(f['runtime']/'BPS_RECIPE.json',recipe)
+    actual=owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+    assert actual['fold']==f['fold'] and actual['max_windows']==4
+    assert actual['numerical_recipe']['max_updates']==2976 and actual['train_passes']==1
+
+
+@pytest.mark.parametrize('fault',['old_scope','false_mode','nonboolean_mode','later_fold','gc_proof',
+    'missing_native_proof','unqualified_resume','changed_qualified_numerics','missing_source'])
+def test_bps_recipe_rejects_unqualified_or_expanded_scope(fixture,monkeypatch,fault):
+    f=fixture;recipe,proof=bps_fixture(f,monkeypatch)
+    if fault=='old_scope':recipe['run_scope']=f['recipe']['run_scope']
+    elif fault=='false_mode':recipe['numerical_recipe']['signed_bps_supervision']=False
+    elif fault=='nonboolean_mode':recipe['numerical_recipe']['signed_bps_supervision']=1
+    elif fault=='later_fold':
+        n,end,cut,oof=owner.FOLD_SPECS[2]
+        recipe['fold']={'fold_id':2,'prefix_rows':n,'oof_start_row':n,'oof_end_row':end,
+            'train_cutoff_ns':cut,'oof_cutoff_ns':oof}
+    elif fault=='gc_proof':recipe['gc_layout_metadata_parity']=recipe['native_bps_qualification']
+    elif fault=='missing_native_proof':del recipe['native_bps_qualification']
+    elif fault=='unqualified_resume':
+        proof['bit_exact_native_resume']=False
+        ref=write(f['runtime']/'unqualified_bps.json',proof)
+        recipe['native_bps_qualification']=ref;monkeypatch.setattr(owner,'BPS_NATIVE_QUALIFICATION',ref)
+    elif fault=='changed_qualified_numerics':
+        recipe['source_owners']['bps_source.py']=write(f['repo']/'bps_source.py',{'different_numerics':True})
+    else:del recipe['source_owners']['bps_source.py']
+    numerical_seal(recipe['numerical_recipe']);reseal(recipe,'recipe_sha256')
+    ref=write(f['runtime']/'BAD_BPS_RECIPE.json',recipe)
+    with pytest.raises(RuntimeError):
+        owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
+def test_old_prefix_scope_cannot_silently_enable_signed_bps(fixture):
+    f=fixture;recipe=copy.deepcopy(f['recipe']);recipe['numerical_recipe']['signed_bps_supervision']=True
+    numerical_seal(recipe['numerical_recipe']);reseal(recipe,'recipe_sha256')
+    ref=write(f['runtime']/'UNADMITTED_BPS_RECIPE.json',recipe)
+    with pytest.raises(RuntimeError,match='NUMERICAL_OBJECTIVE_SCOPE'):
+        owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
+@pytest.mark.parametrize('scale_authorized',[False,True])
+def test_bps_readiness_requires_explicit_prefix_scale_authority(fixture,monkeypatch,scale_authorized):
+    f=fixture;recipe,_=bps_fixture(f,monkeypatch);ref=write(f['runtime']/'BPS_RECIPE.json',recipe)
+    window=copy.deepcopy(f['windows'][0]);window['recipe']=ref;reseal(window,'policy_sha256')
+    window_ref=write(f['runtime']/'BPS_WINDOW.json',window)
+    policy=copy.deepcopy(f['policy']);gate=policy[recipe['admission_stage']]
+    gate.update(recipe=ref,signed_bps_scale_fit_authorized=scale_authorized)
+    write(f['repo']/'NEXT_RUN_POLICY.json',policy)
+    def check():return owner.require_native_direction_prefix_fit_readiness(f['repo'],
+        window_path=Path(window_ref['path']),window_file_sha256=window_ref['sha256'])
+    if scale_authorized:assert check()['decision']=='READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES'
+    else:
+        with pytest.raises(RuntimeError,match='READINESS_BPS_SCALE'):check()

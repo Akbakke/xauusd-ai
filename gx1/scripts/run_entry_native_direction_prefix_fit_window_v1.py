@@ -74,6 +74,25 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None):
         'info':info,'fitted':fitted,'constructor':constructor}
 
 
+def _launch_metadata(launch, common):
+    context = _metadata(launch, common, gc_layout_metadata_parity=launch.get('gc_layout_metadata_parity'))
+    if 'native_bps_qualification' in launch:
+        metadata = context['info']['metadata']
+        common._read(launch['gc_layout_metadata_parity'], metadata)
+        proof = common._read(launch['native_bps_qualification'], metadata)
+        context['bps_qualified_scale_ref'] = proof['own_prefix_bps_scale']
+        context['bps_qualified_scale'] = common._read(proof['own_prefix_bps_scale'], metadata)
+    return context
+
+
+def _qualified_bps_scale(context, view):
+    if 'bps_qualified_scale' in context:
+        _require(view.get('bps_scale') == context['bps_qualified_scale'], 'QUALIFIED_OWN_PREFIX_BPS_SCALE')
+        return context['bps_qualified_scale_ref']
+    _require('bps_scale' not in view, 'UNQUALIFIED_BPS_SCALE')
+    return None
+
+
 def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False):
     parents,starts,decisions=(axes[k] for k in ('parent_rows','bar_start_ns','decision_ns'))
     size=len(parents)
@@ -374,7 +393,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
     binding_ref=common._hash_file(launch['execution_binding_path']);extra={};binding=common._read(binding_ref,extra)
-    context=_metadata(launch,common);context['info']['metadata'].update(extra)
+    context=_launch_metadata(launch,common);context['info']['metadata'].update(extra)
     for ref in (window['recipe'],binding['plan'],{'path':str(policy_path),'sha256':policy_file_sha256}):common._read(ref,context['info']['metadata'])
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
@@ -390,13 +409,14 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     phase='TRAINING';outcome='FAILED';error=None;source_unchanged=False;checkpoint_refs=[];first_diagnostic=last_diagnostic=None
     prepared=model=optimizer=None;order_sha='0'*64;prior_cursor=None;fresh_identity=None;prior=None;initial_inactive=None
     ceiling=(fold['prefix_rows']+15)//16+33+(fold['oof_end_row']-fold['oof_start_row']+15)//16
-    durable=None;observed_progress=None
+    durable=None;observed_progress=None;bps_scale_ref=None
     common._json(work/'CLAIM.json',{'recipe':window['recipe'],'fold':fold,'invocation_number':number,
         'source_head':binding['source_head'],'plan_sha256':plan['plan_sha256'],'limits':limits},counters,launch['max_published_json_bytes'])
     previous_profile=sys.getprofile()
     try:
         sys.setprofile(common._deny_legacy_work(previous_profile,counters))
         prepared,targets,view,context_map,ordered=_prepare(context,launch,np,signed_bps=recipe.get('signed_bps_supervision',False))
+        bps_scale_ref=_qualified_bps_scale(context,view)
         order=torch.from_numpy(ordered.copy());order_sha=tree_sha(order)
         prior=_prefix_prior(prepared['arrays'],targets,fold,np)
         if number>1:
@@ -510,7 +530,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         'source_unchanged':source_unchanged,'metadata_bookends':context['info']['metadata'],'payload_stat_bookends':context['ancestor_plan']['payloads'],
         'forbidden_open_paths':denied,'limits':limits,'elapsed_seconds':time.monotonic()-started,'io_before':before,'io_after':after,
         'rchar_delta':after['rchar']-before['rchar'],'rchar_scope':'process reads; mmap fault bytes excluded','error':error,
-        'test_data_used':False,'qualification_weights_reused':False,'predictive_value_qualified':False},counters,launch['max_published_json_bytes'])
+        'test_data_used':False,'qualification_weights_reused':False,'predictive_value_qualified':False,
+        **({'own_prefix_bps_scale':bps_scale_ref} if bps_scale_ref is not None else {})},counters,launch['max_published_json_bytes'])
     cursor=authority.build_prefix_fit_cursor(recipe_ref=window['recipe'],fold=fold,feature_view_identity=view_identity,phase_state=phase,outcome=outcome,
         optimizer_updates=updates,parent_cursor=parent_cursor,parent_order_sha256=order_sha,full_state=full_state,own_initial_state=initial_ref,
         initial_measurement=initial_measurement,final_train_measurement=final_measurement,oof_cursor=oof_cursor,result=result)

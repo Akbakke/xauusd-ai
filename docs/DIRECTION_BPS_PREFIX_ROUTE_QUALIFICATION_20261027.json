@@ -1,0 +1,34 @@
+{
+  "status": "SOURCE_PREPARED_SYNTHETIC_PENDING",
+  "design": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SOURCE_DESIGN_001.json",
+    "sha256": "3b7a722488fcd3047a53c2c15f7c0a8c0b5fcea5bf94e392f4045ad154cc39ce"
+  },
+  "source_admission": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SOURCE_ADMISSION_001.json",
+    "sha256": "668a25394f43d9faf2fcc721be1d79e9df2a12e89f7d260885e4b67c57c721fd"
+  },
+  "synthetic_plan": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_PLAN_001.json",
+    "sha256": "219493930af5193c90ccbfed5019ac94cb615ea21488d4bad64da39ecfa34828"
+  },
+  "expected_cases": 81,
+  "preserved_numeric_function_ast": [
+    "_prepare",
+    "_train_batch",
+    "_evaluate",
+    "_batch",
+    "_device_batch",
+    "_fixed_order",
+    "_prefix_prior",
+    "_forward",
+    "_save_snapshot"
+  ],
+  "genuine_private_qualification": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/ACTUAL_ROOT_REVIEW.json",
+    "sha256": "07b26101961ce4218b51f5d87487239bf8b0a913c5ec93db872417e35e1293f9"
+  },
+  "genuine_execution_authorized": false,
+  "direction_improvement_measured": false,
+  "test_data_used": false
+}

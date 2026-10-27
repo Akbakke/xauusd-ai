@@ -160,3 +160,34 @@ def test_fixed_eval_preserves_order_state_and_parity_without_updates(monkeypatch
         assert count==4 and calls==[False,True,False] and measured['initial_parity_passed']
         assert np.array_equal(measured['arrays']['parent_rows'],selected)
         assert measured['context_tags']['feature_view_sha256']=='b'*64
+
+
+@pytest.mark.parametrize('signed',[False,True])
+def test_launch_metadata_reuses_bound_gc_proof_and_keeps_scale_metadata(signed,monkeypatch):
+    launch={};proof_ref={'path':'proof.json','sha256':'1'*64};gc_ref={'path':'gc.json','sha256':'2'*64}
+    scale_ref={'path':'scale.json','sha256':'3'*64};scale={'synthetic_own_prefix_scale':True};seen=[]
+    if signed:launch.update(native_bps_qualification=proof_ref,gc_layout_metadata_parity=gc_ref)
+    context={'info':{'metadata':{}}}
+    def metadata(actual,common,*,gc_layout_metadata_parity):
+        assert actual is launch;seen.append(gc_layout_metadata_parity);return context
+    def read(ref,bookends):
+        bookends[ref['path']]=ref
+        return {'own_prefix_bps_scale':scale_ref} if ref==proof_ref else (scale if ref==scale_ref else {})
+    monkeypatch.setattr(runner,'_metadata',metadata)
+    assert runner._launch_metadata(launch,SimpleNamespace(_read=read)) is context
+    assert seen==[gc_ref if signed else None]
+    if signed:
+        assert context['bps_qualified_scale']==scale and context['bps_qualified_scale_ref']==scale_ref
+        assert set(context['info']['metadata'])=={'proof.json','gc.json','scale.json'}
+    else:assert context=={'info':{'metadata':{}}}
+
+
+@pytest.mark.parametrize('case',['default','same','different','missing_view_scale','unqualified'])
+def test_recomputed_bps_scale_must_match_qualified_prefix_before_training(case):
+    scale={'synthetic_own_prefix_scale':True};ref={'path':'scale.json','sha256':'3'*64}
+    context={} if case in ('default','unqualified') else {'bps_qualified_scale':scale,'bps_qualified_scale_ref':ref}
+    view={} if case in ('default','missing_view_scale') else {'bps_scale':scale if case!='different' else {}}
+    if case=='default':assert runner._qualified_bps_scale(context,view) is None
+    elif case=='same':assert runner._qualified_bps_scale(context,view)==ref
+    else:
+        with pytest.raises(RuntimeError):runner._qualified_bps_scale(context,view)

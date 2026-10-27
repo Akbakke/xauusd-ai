@@ -29,6 +29,26 @@ MODULE = private.MODULE
 CANONICAL_REPO = private.CANONICAL_REPO
 MAX_WINDOWS = 4
 BATCH_SIZE = 16
+BPS_SCOPE = 'single_prefix_one_pass_direction_signed_bps_fit'
+BPS_NATIVE_QUALIFICATION = {
+    'path':'/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/ACTUAL_ROOT_REVIEW.json',
+    'sha256':'07b26101961ce4218b51f5d87487239bf8b0a913c5ec93db872417e35e1293f9'}
+BPS_EXTRA_SOURCE_PATHS = (
+    'gx1/contracts/entry_native_direction_bps_v1.py',
+    'gx1/contracts/entry_native_direction_frozen_extraction_v1.py',
+    'gx1/contracts/entry_native_direction_checkpoint_diagnostic_v1.py',
+)
+BPS_NUMERICAL_SOURCE_PATHS = (
+    'gx1/contracts/entry_native_direction_bps_v1.py',
+    'gx1/contracts/entry_native_direction_feature_view_v1.py',
+    'gx1/contracts/entry_native_direction_research_v1.py',
+    'gx1/contracts/entry_native_direction_research_state_v1.py',
+    'gx1/contracts/entry_model_native_train_recipe_v1.py',
+    'gx1/contracts/entry_model_native_input_normalization_v1.py',
+    'gx1/models/entry_v10/entry_v10_input_normalization.py',
+    'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
+    'gx1/models/entry_v10/entry_v10_ctx_train_v3.py',
+)
 PARENT_ORDER_ALGORITHM = 'numpy.random.RandomState(MT19937).permutation'
 REQUIRED_SOURCE_PATHS = private.REQUIRED_SOURCE_PATHS + (
     'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py',
@@ -132,13 +152,21 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         'max_checkpoint_total_bytes', 'max_published_json_bytes', 'training_enabled',
         'full_epoch_training_allowed', 'test_data_used', 'predictive_value_claimed',
         'qualification_weights_for_main_fit'}
+    bps = value.get('run_scope') == BPS_SCOPE
+    if bps:
+        fields |= {'gc_layout_metadata_parity', 'native_bps_qualification'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] == 'single_prefix_one_pass_direction_fit', 'RECIPE_SCOPE')
+        and recipe['run_scope'] == (BPS_SCOPE if bps else 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
     fold = _fold(recipe['fold'])
+    if bps:
+        _require(fold == private.BPS_FOLD
+            and recipe['gc_layout_metadata_parity'] == private.BPS_GC_PARITY
+            and recipe['native_bps_qualification'] == BPS_NATIVE_QUALIFICATION, 'BPS_QUALIFIED_SCOPE')
+        campaign.require_binding(recipe['gc_layout_metadata_parity'], label='bps GC metadata proof', verify_file=True)
     for key, expected in {'train_passes':1, 'max_windows':4, 'initial_measurement_rows':256,
             'eval_batch_size':16, 'checkpoint_every_updates':256, 'max_checkpoint_bytes':1073741824,
             'max_checkpoint_total_bytes':4294967296, 'max_published_json_bytes':67108864}.items():
@@ -148,6 +176,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
             'test_data_used':False, 'predictive_value_claimed':False, 'qualification_weights_for_main_fit':False}.items():
         _require(recipe[key] is expected, 'RECIPE_AUTHORITY:' + key)
     numerical = recipe['numerical_recipe']
+    _require(isinstance(numerical, Mapping)
+        and numerical.get('signed_bps_supervision', False) is bps, 'NUMERICAL_OBJECTIVE_SCOPE')
     _require(isinstance(numerical, Mapping) and numerical.get('schema_version') == 'gx1_native_direction_research_recipe_v1'
         and type(numerical.get('batch_size')) is int and numerical['batch_size'] == BATCH_SIZE
         and type(numerical.get('max_updates')) is int and numerical['max_updates'] == (fold['prefix_rows'] + 15) // 16
@@ -162,10 +192,26 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     _require(_path(recipe['execution_binding_path'], 'execution binding') == str(runtime/'EXECUTION_BINDING.json'),
         'EXECUTION_BINDING_PATH')
     owners = recipe['source_owners']
-    _require(isinstance(owners, Mapping) and set(owners) == set(REQUIRED_SOURCE_PATHS), 'SOURCE_OWNER_SET')
+    required_sources = set(REQUIRED_SOURCE_PATHS) | (set(BPS_EXTRA_SOURCE_PATHS) if bps else set())
+    _require(isinstance(owners, Mapping) and set(owners) == required_sources, 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='prefix fit source', verify_file=True)
         _require(checked['path'] == str(source_repo/key), 'SOURCE_OWNER_PATH:' + key)
+    if bps:
+        proof_ref = campaign.require_binding(recipe['native_bps_qualification'], label='native bps proof', verify_file=True)
+        proof = campaign.read_bound_json(Path(proof_ref['path']), proof_ref['sha256'])
+        _require(proof.get('status') == 'PASS_PRIVATE_NATIVE_MECHANICS_CONSUMED'
+            and proof.get('matched_shared_parameters_buffers_rng_initial_direction_predictions') is True
+            and proof.get('bit_exact_native_resume') is True
+            and proof.get('recipe_source_pins_verified') is True
+            and proof.get('private_weights_for_main_fit') is False
+            and proof.get('prefix_rows') == fold['prefix_rows']
+            and proof.get('prefix_cutoff_ns') == fold['train_cutoff_ns'], 'BPS_NATIVE_MECHANICS')
+        qualified_ref = campaign.require_binding(proof['recipe'], label='qualified bps recipe', verify_file=True)
+        qualified = campaign.read_bound_json(Path(qualified_ref['path']), qualified_ref['sha256'])
+        _require(all(owners[key] == qualified['source_owners'][key] for key in BPS_NUMERICAL_SOURCE_PATHS),
+            'BPS_QUALIFIED_NUMERICAL_SOURCE')
+        campaign.require_binding(proof['own_prefix_bps_scale'], label='qualified own-prefix bps scale', verify_file=True)
     return recipe
 
 
@@ -279,6 +325,8 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
     for key in ('normalization_fit_authorized','synthetic_test_execution_authorized','test_data_used',
             'exit_evaluation','broker_access_allowed','full_val_allowed'):
         _require(gate.get(key) is False, 'READINESS_CLOSED_GATE:' + key)
+    if recipe['run_scope'] == BPS_SCOPE:
+        _require(gate.get('signed_bps_scale_fit_authorized') is True, 'READINESS_BPS_SCALE')
     campaign.require_binding(policy.get('gpu_clock_launcher'), label='existing GPU clock launcher')
     return {'decision':'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES', 'blocked_reasons':[],
         'canonical_source_repo':str(repo), 'source_commit':head, 'policy_sha256':campaign.file_sha256(policy_path),
