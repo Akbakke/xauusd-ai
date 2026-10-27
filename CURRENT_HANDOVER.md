@@ -13,7 +13,8 @@ Programrot:
 
 Fast 10min-krysshodeanalyse er kildeforberedt for fire TRAIN-utviklingsfolder:
 native5/15-skårer sammenlignes med ET252 på identiske modne 10min-fasiter.
-Syntetisk kvalifisering er ikke utført, og ekte payloadlesing er ikke åpnet.
+En syntetisk engangskontroll er åpnet, men ikke utført; ekte payloadlesing
+er ikke åpnet.
 
 
 10-minuttersutfall kan nå forberedes fra to lagrede femminuttersutfall med
