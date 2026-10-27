@@ -38703,5 +38703,23 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_SYNTHETIC_REVIEW_20261027_001.json",
       "sha256": "72f9c00c92558bfade26a675ac7a96c096ff5038f719b5d580351dfdb9dd77e0"
     }
+  },
+  "direction_magnitude_h1_regime_actual": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_ACTUAL_PLAN_20261027_001.json",
+      "sha256": "969b1d05dc1ecdadb8808310993a54781c8f5169075dd6dbe8eef06e2cf305b9"
+    },
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": true,
+    "raw_data_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_control_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
   }
 }

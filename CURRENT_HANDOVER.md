@@ -84,7 +84,7 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 En avgrenset oppfølging av størrelsesskåren mot eksisterende kausal H1 ATR-z-
 fortegn er syntetisk kvalifisert med 22 tilfeller, men ikke målt på lagrede
 utfall. Begge faste tilstander skal rapporteres; utfallsbasert utvalg gir ingen
-handelsregel. Faktisk måling er ikke admittért.
+handelsregel. Én lagret-output-måling er admittért uten modell eller rådata.
 Se `direction_magnitude_h1_regime_source` i NEXT_RUN_POLICY.json.
 
 
