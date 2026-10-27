@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T05:45:29.349784+00:00",
-  "status": "DIRECTION_ENDPOINT_BASELINE_RETAINED_DEPTH_COMPARISON_DESIGN_ONLY",
+  "observed_utc": "2026-10-27T06:08:54.753109+00:00",
+  "status": "DIRECTION_INDEPENDENT_REVIEW_COMPLETE_10_AND_DENSE_1_60_DEFINED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Run exactly33 focused synthetic cases under the60-second CPU audit. No payload, model or fit authority. Then verify and consume before genuine timing admission.",
+  "next_action": "Prepare the smallest fresh terminal-only frozen-readout protocol to test whether the existing trained hidden supports better later direction than its original head. Reuse completed terminal_later_full and qualified owners; preserve the original eight-piece plan.10minutes and proposed1..60target semantics are documented; no target/model/epoch change or numerical launch is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "27.10 presisering: pris ved1og5minutter relativt til entry er relevant. Behold opp/ned-målet og definer nødvendige tillegg presist; ikke anta at målet er hovedårsaken.",
-    "current_activity": "Endpoint target retained as valid baseline. Source/algebra confirms it captures sampled upswing but discards magnitude. Corrected mandatory target-redesign-before-depth-test ordering; no numerical work started.",
+    "current_activity": "Independent source/aggregate direction review complete.10minutes included in fixed anchors and dense1..60defined from one entry origin. Bps magnitude is discarded by active BCE; no sign bug found in inspected chain; head versus representation versus exposure unresolved.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Undertraining versus weak signal remains unmeasured on unchanged target; no fresh bounded multi-epoch comparison admitted.",
+    "current_blocker": "No isolated cause of the measured5minute ranking deficit. Expanded horizon targets/model and fresh terminal-only readout execution are not yet admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare the smallest matched1versus3epoch comparison on unchanged endpoint BCE, preserving original observations, initialization, B16order, optimizer and guards. Keep magnitude/path complement as a separate hypothesis; no broad target redesign or thirty-epoch launch.",
+    "next_action": "Prepare the smallest fresh terminal-only frozen-readout protocol to test whether the existing trained hidden supports better later direction than its original head. Reuse completed terminal_later_full and qualified owners; preserve the original eight-piece plan.10minutes and proposed1..60target semantics are documented; no target/model/epoch change or numerical launch is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Source/design only. Training and all new numerical execution remain closed pending exact bounded admission.",
+    "current_training_scope": "Source/metadata/protocol preparation and documentation only. All new payload, constructor, forward, backward, optimizer, readout-fit and training authorities remain closed.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17508,12 +17508,12 @@
       "phase_2_trade_design_authorized_now": false,
       "better_direction_qualified": false,
       "profitability_claimed": false,
-      "next_step": "Keep unchanged endpoint baseline and isolate training depth; magnitude/path quality are separate extension hypotheses.",
+      "next_step": "Prepare the smallest fresh terminal-only frozen-readout protocol to test whether the existing trained hidden supports better later direction than its original head. Reuse completed terminal_later_full and qualified owners; preserve the original eight-piece plan.10minutes and proposed1..60target semantics are documented; no target/model/epoch change or numerical launch is admitted.",
       "baseline_priority": "Direction only. Existing 245/249/252/256/259 measurements are reused; 264 qualifies native prefix inputs, all predictor and normalization fits remain closed.",
       "superseded_by_user_clarification_utc": "2026-10-27T05:33:33.720257+00:00",
       "superseding_review": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
-        "sha256": "2a6a67cd3628253ed2a3e0b1dcd956cfc1d175f453a02ee247a8b57d13338c26"
+        "sha256": "4571fcfb9686ac5d509ee58e976c67a8ab6de0bba4c0f2d538f48b2a21e5c0b1"
       }
     },
     "latest_direction_terminal": {
@@ -17612,17 +17612,18 @@
       "sha256": "97296dc91e9ffb843499eb89f463358407fd6203b457f46d0ef8cfed57e6f7cb"
     },
     "direction_cause_objective": {
-      "authority": "Direct user clarification 2026-10-27: price-path opportunity and causal later reversal, not only terminal sign; reassess training depth.",
-      "objective": "Finn hvorfor GX1 ikke lærer nyttig retningsinformasjon for XAUUSD ved faste1/5/15/30/60minutter. Endepunktsretning er et gyldig delmål og beholdes som baseline. Skill utilstrekkelig trening, svakt fremoversignal og manglende størrelse/prisbanekvalitet. Det langsiktige M5 Entry-målet omfatter gunstig bevegelse tidlig, liten forutgående motgang, begge retninger og FLAT; ingen Exit eller handel åpnes.",
+      "authority": "Direct user request2026-10-27: include10minutes, assess every minute1..60, and commission one independent direction/bps/trigger review.",
+      "objective": "Forklar og forbedre GX1s retningsinformasjon for XAUUSD fra samme kausale M5-entry: eksplisitte punkter1/5/10/15/30/60og foreslått minuttkurve1..60. Behold dagens1/5/15baseline. Skill utilstrekkelig læring, representasjonstap, svakt fremoversignal og manglende bps-størrelse. Bevar åtte familier og D1/makro; ingen Exit eller handel.",
       "fixed_horizons_minutes": [
         1,
         5,
+        10,
         15,
         30,
         60
       ],
       "scope": "M5 decisions; causal closed M15/H1/H4/D1; preserve eight families plus D1/macro; TRAIN and fixed chronological development folds only.",
-      "first_contrast": "Unchanged endpoint BCE exposure depth: qualify a bounded1versus3epoch comparison before considering target/horizon changes.",
+      "first_contrast": "Prepare fresh terminal-only frozen-hidden readout comparison; no new execution admitted. Exposure, magnitude and horizon changes remain separate.",
       "comparison_requirements": [
         "Report each horizon on its own eligible observations and a predeclared matched-parent intersection; do not choose a winning horizon after seeing outcomes.",
         "Include fixed-prefix prior, class shares, coverage, within-fold AUC, proper scores and paired uncertainty accounting for overlapping targets.",
@@ -17648,8 +17649,19 @@
       "strategy_direction_definition": "Retain fixed endpoint forecasts relative to current entry; complement their sign with size, uncertainty and separately evaluated path quality only in a matched target-change comparison.",
       "source_review": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
-        "sha256": "2a6a67cd3628253ed2a3e0b1dcd956cfc1d175f453a02ee247a8b57d13338c26"
-      }
+        "sha256": "4571fcfb9686ac5d509ee58e976c67a8ab6de0bba4c0f2d538f48b2a21e5c0b1"
+      },
+      "proposed_dense_horizons_minutes": {
+        "first": 1,
+        "last": 60,
+        "step": 1,
+        "implemented": false
+      },
+      "active_native_horizons_minutes": [
+        1,
+        5,
+        15
+      ]
     },
     "latest_direction_cause_evidence": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_RET1_REFERENCE_ROOT_REVIEW_001.json",
@@ -17680,7 +17692,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
       "sha256": "cb8aefe756ebaabf9661410626bec88746fe5fe63e9f33cad4226fdaea3ac5c1"
     },
-    "current_direction_objective": "Finn hvorfor GX1 ikke lærer nyttig retningsinformasjon for XAUUSD ved faste1/5/15/30/60minutter. Endepunktsretning er et gyldig delmål og beholdes som baseline. Skill utilstrekkelig trening, svakt fremoversignal og manglende størrelse/prisbanekvalitet. Det langsiktige M5 Entry-målet omfatter gunstig bevegelse tidlig, liten forutgående motgang, begge retninger og FLAT; ingen Exit eller handel åpnes.",
+    "current_direction_objective": "Forklar og forbedre GX1s retningsinformasjon for XAUUSD fra samme kausale M5-entry: eksplisitte punkter1/5/10/15/30/60og foreslått minuttkurve1..60. Behold dagens1/5/15baseline. Skill utilstrekkelig læring, representasjonstap, svakt fremoversignal og manglende bps-størrelse. Bevar åtte familier og D1/makro; ingen Exit eller handel.",
     "current_direction_cause_synthesis": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_008.json",
       "sha256": "ed4da77dcf102b3bd1de461ad44bd3ba9a07ddea345c4d21585c486fe14fd62d"
@@ -17761,7 +17773,16 @@
     "frozen_partition_required_count": 8,
     "latest_target_path_source_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
-      "sha256": "2a6a67cd3628253ed2a3e0b1dcd956cfc1d175f453a02ee247a8b57d13338c26"
+      "sha256": "4571fcfb9686ac5d509ee58e976c67a8ab6de0bba4c0f2d538f48b2a21e5c0b1"
+    },
+    "latest_independent_direction_review": {
+      "agent": "/root/direction_target_independent_review_20261027",
+      "status": "COMPLETE_SOURCE_AND_EXISTING_AGGREGATES_ONLY",
+      "review": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json",
+        "sha256": "4571fcfb9686ac5d509ee58e976c67a8ab6de0bba4c0f2d538f48b2a21e5c0b1"
+      },
+      "other_agents_or_chats_authorized": false
     }
   },
   "gc_order_flow_research_20261006": {

@@ -1,9 +1,9 @@
 {
   "schema_version": "gx1_direction_target_path_source_review_v1",
-  "status": "SOURCE_REVIEW_COMPLETE_TARGET_ALIGNMENT_GAP_PROVEN_NO_NEW_FIT",
-  "role": "Focused response to user 2026-10-27: +50bps excursion then return to entry, later opposite opportunity, and whether thirty epochs could help.",
+  "status": "SOURCE_REVIEW_COMPLETE_DENSE_HORIZONS_AND_TRIGGERS_DEFINED_NOT_IMPLEMENTED",
+  "role": "User-requested independent direction/bps/trigger review, including10minutes and proposed1..60minute endpoint curve.",
   "evidence_scope": "Source, contracts and original aggregate terminal metadata only. No model construction, forward, backward, optimizer, raw data or checkpoint payload access.",
-  "primary_conclusion": "Endpoint direction at multiple fixed horizons is a valid, useful forecast target and can capture an upswing followed by reversal at sampled times. Sign-only supervision is an incomplete description of trading opportunity, but neither its definition nor its limited scope is a demonstrated cause of weak endpoint AUC. Preserve it as the baseline; investigate training depth and complementary magnitude/path information separately.",
+  "primary_conclusion": "Endpoint direction remains a valid baseline. Signed bps magnitude is proven absent from active supervision, and a naive60-horizon extension changes loss emphasis. No sign bug or single root cause is established. The measured5minute deficit againstET252 makes head/representation/optimization the leading discriminating question.",
   "active_target": {
     "formula": "m(D)=(bid_open(D)+ask_open(D))/2; y_h=sign(m(D+h)-m(D)); h in {1,5,15}; D=M5 bar_start+5min.",
     "eligible": "Observed, sign nonzero, and exact terminal timestamp strictly before own prefix cutoff.",
@@ -16,49 +16,158 @@
   },
   "findings": [
     {
-      "id": "T1_ENDPOINT_PATH_MISMATCH",
-      "classification": "Proven limitation of sign-only supervision relative to the full strategy objective; endpoint target remains valid and useful. Not a demonstrated implementation bug or cause of low endpoint AUC.",
-      "mechanism": "Equal start/end prices produce identical endpoint labels despite different intervening tradable excursions. Tiny and large positive endpoint moves share one class. Separate sampled earlier horizons may capture part of an excursion but do not represent the full ordered path.",
-      "evidence": [
-        "gx1/contracts/entry_direction_price_projection_v1.py:73,107-110,127-144",
-        "gx1/contracts/entry_native_direction_research_v1.py:28-55,187-212",
-        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:29-31,129-141,272-287"
+      "id": "D1_HEAD_OPTIMIZATION_OR_TRAINING_DEPTH",
+      "priority": 1,
+      "classification": "Plausible mechanism supported by a measured five-minute ranking deficit; no isolated implementation defect.",
+      "mechanism": "The fixed nonlinear ET252 comparator ranks five-minute outcomes better than the native three-logit decoder after checked equal local input values. The gap may arise from head fitting, shared representation learning or insufficient exposure.",
+      "measured_support": {
+        "source": "DIRECTION_NATIVE_REFERENCE_RANK_003/SUMMARY.json",
+        "fields": [
+          "aggregate[horizon_minutes=5]",
+          "intervals[horizon_minutes=5].primary_paired_family6.ET252"
+        ],
+        "same_later_parents": 67112,
+        "native_auc5": 0.5037353141585355,
+        "ET252_auc5": 0.5130918603105985,
+        "native_minus_ET252": -0.00935654615206305,
+        "week_interval": [
+          -0.01586695399730436,
+          -0.0018177843572795662
+        ],
+        "day_interval": [
+          -0.015604723639671449,
+          -0.0028827483002596284
+        ],
+        "input_parity_source": "DIRECTION_LOCAL_SNAPSHOT_PARITY_ROOT_REVIEW_001.json",
+        "local_TRAIN_parents": 118249,
+        "local_fields": 2622,
+        "bit_mismatches": 0
+      },
+      "code": [
+        "gx1/contracts/entry_native_direction_research_v1.py:110,146-160",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:96-98,394-415",
+        "gx1/contracts/entry_model_native_train_recipe_v1.py:398-422"
       ],
-      "counterevidence": "The endpoint task was explicitly introduced as a simpler diagnostic. It remains informative about endpoint prediction. Path mismatch alone cannot explain low endpoint AUC or prove an exploitable path edge.",
-      "smallest_decisive_check": "Source algebra already establishes non-identifiability of an intervening excursion from a single endpoint label. Before an admitted target change, require deterministic synthetic round-trip/monotone/opposite-order/tie cases through target, loss and reported score; no new market experiment needed for this semantic check.",
-      "expected_if_confirmed": "At a returned-to-entry endpoint the current loss excludes that cell while an order-aware path target distinguishes the initial UP opportunity. Extending endpoint horizon to 60min preserves the same structural limitation.",
-      "would_weaken": "A separately active ordered-path target and corresponding evaluated decision loss were found in the actual training path. Current wrapper and loss explicitly exclude them.",
-      "minimum_improvement": "Retain fixed-horizon endpoint BCE as baseline. First distinguish optimization depth from lack of predictive signal; assess adding magnitude and path quality in a separate matched comparison."
+      "counterevidence": "Representations, normalization fit populations, history and learners differ. The result is reused development evidence, not independent or economic edge. One pass does not demonstrate convergence.",
+      "smallest_decisive_test": "Fresh bounded terminal-only frozen readout comparison: fit the same fixed linear method on complete terminal-prefix hidden and score the already completed terminal_later_full cohort against the original head, prior and saved reference. Preserve observations, targets and chronology. The original eight-piece plan is not reinterpreted or relaunched.",
+      "expected_if_true": "Better later ranking with the same frozen hidden localizes a correctable decoder/optimization contribution.",
+      "weakens_if": "A numerically qualified, adequately fitted linear readout does not improve later ranking; this weakens simple head underfit but does not prove all predictive information absent.",
+      "minimum_improvement": "Change only the demonstrated head-fitting limitation. A separate unchanged-target one-versus-three-pass comparison can test backbone exposure if needed.",
+      "stop": "Require complete cohorts, exact representation/label identity and qualified solver convergence. Stop on guard or identity failure; no repeat hyperparameter or threshold search."
     },
     {
-      "id": "T2_EXISTING_PATH_FIELDS_ARE_NOT_A_COMPLETE_STRATEGY",
-      "classification": "Proven source semantics; its effect on learned performance remains unmeasured.",
-      "mechanism": "Existing MFE and conservative pre-MFE-MAE fields exist but are inactive in the direction wrapper. Pre-MFE-MAE is measured before the first occurrence of the maximum within the query window, not before the first positive move or first favorable amplitude crossing. The older native candidate is predicted terminal net markout minus predicted pre-MFE-MAE, then max across horizons; MFE is not a direct operand.",
-      "evidence": [
-        "gx1/contracts/entry_native_direction_research_v1.py:49-55,95-101,159-160",
-        "gx1/contracts/entry_causal_m1_outcomes_v1.py:487-511,900-941",
-        "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py:4070-4093,4117-4140"
+      "id": "D2_BPS_MAGNITUDE_DISCARDED",
+      "priority": 2,
+      "classification": "Proven source-level supervision limitation, not a sign bug or demonstrated explanation for weak endpoint AUC.",
+      "mechanism": "The projector computes signed mid_return_bps, but the training adapter selects terminal_time_ns, observed and sign. Equal logits receive equal BCE and gradients for +0.1 and +50bps. Observed zero returns are excluded from BCE.",
+      "measured_support": {
+        "evidence_class": "source/algebra only; no new market measurement",
+        "produced": "entry_direction_price_projection_v1.py:127-159",
+        "selected": "run_entry_native_direction_prefix_fit_window_v1.py:29-31,113-115",
+        "consumed": "entry_native_direction_research_v1.py:187-212"
+      },
+      "code": [
+        "gx1/contracts/entry_direction_price_projection_v1.py:127-159",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:29-31,113-115",
+        "gx1/contracts/entry_native_direction_research_v1.py:187-212"
       ],
-      "counterevidence": "The older dynamic candidate considers multiple horizons, so a correct early endpoint forecast can value the upswing. Existing path components and bounds are reusable. Simply substituting MFE minus MAE can reward both sides in oscillating prices and does not define executable profit.",
-      "smallest_decisive_check": "Trace known synthetic paths through the proposed primary target and loss, including early favorable move followed by drawdown and a larger late maximum. Keep within-M1 high/low ordering unknown rather than inventing ticks.",
-      "expected_if_confirmed": "Targets distinguish a promptly favorable entry from a long adverse move before eventual success; they do not erase the early opportunity solely because the final price returns to entry.",
-      "would_weaken": "A qualified existing active target/loss already makes those distinctions and later causal decisions improve on matched chronological observations.",
-      "minimum_improvement": "Reuse the quote-side path owner and missingness/order bounds; add only the minimum ordered-path supervision needed after an exact target contract is agreed. Do not blindly reactivate the old candidate."
+      "counterevidence": "Sign-only BCE is appropriate for probability of a positive nonzero endpoint. Adding magnitude may add noise and cannot be presumed to fix directional ranking.",
+      "smallest_decisive_test": "Keep the existing sign baseline and fixed exposure; separately compare an explicit signed-bps distribution or quantile complement, retaining observed zeros. Predeclare quantile levels, prefix-only scale, relative loss weight, same observations and chronological splits.",
+      "expected_if_true": "Improved later magnitude/distribution proper scores with preserved or improved direction, not merely TRAIN fit.",
+      "weakens_if": "Later magnitude or direction does not improve, or any gain disappears when training exposure is matched.",
+      "minimum_improvement": "Add only the measured useful magnitude component. Do not relabel inactive legacy path heads as current supervision.",
+      "stop": "No arbitrary weighting after results, no target-dependent filtering to select big winning moves, no simultaneous horizon/epoch/input change."
     },
     {
-      "id": "T3_TRAINING_DEPTH_UNRESOLVED",
-      "classification": "Plausible undertraining explanation; no thirty-epoch comparison or convergence proof.",
-      "mechanism": "Each baseline starts fresh and consumes one fixed shuffled TRAIN prefix, in B16, once. Chronological separation applies to prefixes and later evaluation, not to minibatch order. AdamW uses constant lr 1e-4, weight_decay 1e-4 and clip norm 1; no scheduler or EMA. More exposure may improve fitting or overfit noise; it cannot repair missing target semantics.",
-      "evidence": [
-        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:4-7,96-98,394-415",
-        "gx1/contracts/entry_model_native_train_recipe_v1.py:398-422",
-        "gx1/contracts/entry_native_direction_research_state_v1.py:84-117"
+      "id": "D3_DENSE_HORIZONS_CHANGE_OBJECTIVE_WEIGHT",
+      "priority": 3,
+      "classification": "Proven algebraic consequence of the current loss reduction; dense-horizon benefit remains unmeasured.",
+      "mechanism": "The current loss divides the sum of eligible BCE cells by their count. With complete masks each old horizon has one third of weight. A naive 60-horizon extension gives each one sixtieth and places45of60cells after15minutes. Shared hidden couples gradients, but there is no explicit return-size or joint path loss.",
+      "measured_support": {
+        "evidence_class": "source/algebra; no60-output model exists in this comparison",
+        "active_horizons": [
+          1,
+          5,
+          15
+        ],
+        "requested_anchor_horizons": [
+          1,
+          5,
+          10,
+          15,
+          30,
+          60
+        ],
+        "requested_dense_minutes": {
+          "first": 1,
+          "last": 60,
+          "step": 1
+        }
+      },
+      "code": [
+        "gx1/contracts/entry_native_direction_research_v1.py:28-55,156-160,187-212",
+        "gx1/contracts/entry_direction_price_projection_v1.py:107-115",
+        "gx1/contracts/entry_native_direction_context_report_v1.py:272-287"
       ],
-      "counterevidence": "Changed weights or lower TRAIN loss do not establish useful learning. One pass does not establish convergence. No new training-depth evidence was collected in this review.",
-      "smallest_decisive_test": "Compare exposure depth on unchanged current endpoint BCE, fixing fresh initial state, prefix normalization, observations, original B16 order, optimizer and constant learning-rate rule. Predeclare1/3/10/30 checkpoints; first bounded continuation only to3, with later stages separately admitted and no posthoc winning-checkpoint selection. This test does not require a new primary target.",
-      "expected_if_confirmed": "More exposure improves the predeclared target score on the same later chronological cohorts as well as fitting, with stable coverage and paired day/week uncertainty.",
-      "would_weaken": "Only TRAIN improves, or later scores deteriorate relative to one pass and prior/simple references. This weakens the case for spending on more epochs without proving that all longer schedules must fail.",
-      "minimum_improvement": "Use the smallest measured sufficient exposure depth; no broad learning-rate search or automatic 30-epoch launch."
+      "counterevidence": "Dense endpoints can capture excursions missed between sparse endpoints. Longer-horizon emphasis may be a legitimate choice if declared;60marginal probabilities still do not determine a joint price path or intraminute order.",
+      "smallest_decisive_test": "First qualify exact D+h targets, per-horizon masks and legacy1/5/15parity on synthetic clocks. Then, only under fresh admission, compare one declared horizon extension at fixed exposure and predeclared horizon weighting. Report all six anchors and one fixed curve score.",
+      "expected_if_true": "The declared extension improves later curve/anchor scores without masking deterioration at original horizons.",
+      "weakens_if": "Only posthoc selected minutes improve, or the apparent gain follows changed eligibility or changed relative horizon weight.",
+      "minimum_improvement": "Use an explicit horizon contract and weights; do not merely change a constant from3to60. Preserve the original baseline and M5 decision cadence.",
+      "stop": "Stop on timestamp, source-row, maturity, zero/missing, shape or baseline parity failure. Do not interpolate missing labels or automatically extend epochs."
+    },
+    {
+      "id": "D4_REPRESENTATION_COMPRESSION",
+      "priority": 4,
+      "classification": "Plausible explanation; predictive information loss has not been demonstrated.",
+      "mechanism": "GC and base projections are added, sequence representations use mean plus last, family/timeframe tokens are weighted and pooled, and concatenated representations pass through LayerNorm,512-to128projection and GELU.",
+      "measured_support": {
+        "source": "C_CHECKPOINT_ACTUAL_ROOT_SYNTHESIS_001.json",
+        "field": "root_independent_aggregated_JSON_checks.three_panel_mean_variance_traces",
+        "head_input_variance_initial": 22.3734,
+        "head_input_variance_terminal": 0.37409,
+        "evidence_limit": "Variance change does not quantify retained predictive information."
+      },
+      "code": [
+        "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py:355-367,2503-2508,2610-2645,4222-4231"
+      ],
+      "counterevidence": "Low variance can preserve ranking; asinh has no hard continuous clip and is invertible before finite precision. Temporal positions, latest-bar state, M5 and higher-timeframe identities already exist. Gate weights and parameter changes are not utility evidence.",
+      "smallest_decisive_test": "Only after qualified final-hidden readout, compare the same fixed learner on one justified earlier representation versus final hidden using the same prefix/later observations.",
+      "expected_if_true": "Earlier representation predicts later outcomes better under the same fitted learner while final-hidden fitting is adequate.",
+      "weakens_if": "Final-hidden readout recovers the ranking, or earlier representation has no controlled advantage.",
+      "minimum_improvement": "One narrow connection preserving the specific earlier information shown useful; retain all eight families and D1/macro.",
+      "stop": "No broad architecture or indicator search; no family removal from a weak small test."
+    },
+    {
+      "id": "D5_PREDICTION_TRIGGER_VERSUS_MARKET_CAUSE",
+      "priority": 5,
+      "classification": "Prediction rule proven by source; partial probability-level defect measured; raw-feature drivers and market causation unmeasured.",
+      "mechanism": "For each horizon z=b+w^T hidden, UP iff z>0, otherwise DOWN. A shift in bias can make all hard decisions UP while logits still rank outcomes. This does not identify which raw input drives each decision, and the research head does not issue trades.",
+      "measured_support": {
+        "source": "DIRECTION_PRIOR_OFFSET_001/SUMMARY.json",
+        "fields": [
+          "aggregate",
+          "intervals",
+          "within_fold_rank_order_and_ties_exactly_preserved"
+        ],
+        "primary_99_week_day_pass_1_5_15": [
+          false,
+          true,
+          false
+        ],
+        "auc_unchanged": true,
+        "interpretation": "Fixed TRAIN-only offsets improved the predeclared5mproper-score criterion without improving ranking; bias alone cannot explain the ET252 ranking deficit."
+      },
+      "code": [
+        "gx1/contracts/entry_native_direction_research_v1.py:33-59,110,156",
+        "gx1/contracts/entry_native_direction_context_report_v1.py:238-261,314"
+      ],
+      "counterevidence": "AUC and hard decisions answer different questions. Recalibration cannot repair rank. Attention or gate weights are not causal attributions to price movement.",
+      "smallest_decisive_test": "For a separately admitted fixed set of predictions, decompose the exact bias and w^T hidden before investigating one justified raw-family sensitivity with coherent masks and derived relations. Distinguish model sensitivity from predictive value and real-world causation.",
+      "expected_if_true": "The decomposition explains hard direction changes; any proposed feature improvement must subsequently improve predefined later prediction scores.",
+      "weakens_if": "Bias does not dominate the chosen decision changes; raw-feature interventions fail coherence or do not improve later prediction.",
+      "minimum_improvement": "Retain explicit probability, uncertainty and decision threshold in reporting. Do not make further threshold tuning the primary edge investigation.",
+      "stop": "No posthoc winning thresholds or subgroups; no market-causal claims from model sensitivities."
     }
   ],
   "proposed_target_design_not_implemented": {
@@ -81,18 +190,19 @@
     "priority": "Optional later alternative only. First-passage amplitudes, loss and masks are unselected and are not required before an unchanged-target training-depth comparison."
   },
   "minimal_comparison_sequence": [
-    "Keep existing endpoint target, observations and baselines. Use source/algebra examples to distinguish valid direction forecasts from the fuller strategy objective.",
-    "Prepare a bounded1versus3epoch depth comparison on unchanged current BCE; no simultaneous horizon, target, feature, normalization or optimizer change. All actual training still requires fresh admission and initial/resume qualification.",
-    "Evaluate any magnitude/path-target complement in its own matched experiment with training exposure fixed; do not make this redesign a prerequisite for the depth test.",
-    "Only extend toward10/30epochs under predeclared continuation criteria and capacity admission. Report all fixed checkpoints and reuse-aware paired later-cohort metrics; do not choose the best hindsight horizon or checkpoint."
+    "Bind10minutes and the proposed1..60endpoint definition, exact clocks, masks, units and immutable original1/5/15baseline. This source review is complete; expanded targets/model remain unimplemented.",
+    "Prepare a fresh terminal-only frozen-readout protocol using complete terminal-prefix hidden and the already completed terminal_later_full. Original eight-piece plan remains preserved and confers no new execution authority.",
+    "Use an unchanged-endpoint one-versus-three-pass comparison as a separate exposure test; same initial state, B16order, masks, optimizer and learning rate. Do not silently cross the original short final batch into the next epoch.",
+    "Compare dense horizons or signed-bps supervision separately at fixed exposure and predeclared scaling/weighting. All actual numerical work requires a fresh bounded admission.",
+    "No automatic10/30epoch escalation, winning minute selection, or broad architecture/indicator search."
   ],
   "evaluation_and_stops": {
     "metrics": [
-      "Ordered-path probability proper score and calibration on observable labels",
-      "Timing and pre-favorable adverse excursion with declared masks",
-      "Both-side coverage and abstention under a rule fixed before evaluation",
-      "Endpoint AUC/log-loss retained as secondary diagnostics",
-      "Same-cohort prior/simple reference and always-UP/LONG at longer horizons; no economic claim"
+      "Endpoint within-foldAUC, log-loss, calibration, class share and coverage at each admitted horizon; report six fixed anchors for the proposed expanded domain.",
+      "Paired later-cohort comparison to original model, fixed-prefix prior, simple reference and alwaysUP/LONG at longer horizons.",
+      "One predeclared aggregate curve score and explicit horizon weights for any dense extension; retain per-horizon deterioration.",
+      "For a separate magnitude complement: predeclared quantile/distribution proper scores with observed zeros retained.",
+      "For optional later path quality: explicit timing/adverse-excursion semantics and observable-order masks; no realized-profit claim."
     ],
     "uncertainty": "Paired day/week blocks for overlapping targets; repeated development comparisons are not fresh generalization.",
     "stops": [
@@ -101,7 +211,7 @@
       "Stop extending exposure on nonfinite/numerical/hardware/time failure or clear later deterioration despite TRAIN improvement.",
       "Lack of later improvement by the first bounded stage does not justify automatically consuming a thirty-epoch budget."
     ],
-    "permitted_now": "Source and metadata review only; no new training, model round, target generation or performance test."
+    "permitted_now": "Source, metadata, protocol preparation and analysis-document updates only. No new data/model execution or fit."
   },
   "execution_disposition": {
     "completed_unit": "own0U_prefix_part2_20261027_001",
@@ -120,8 +230,8 @@
     "heartbeat": "Paused after original terminal verification; no active run to follow."
   },
   "limits": "No edge, causal feature value, thirty-epoch convergence or realized profitability established by this source review. No new numerical sign/label validation on payloads was performed; this is a current-source audit.",
-  "observed_utc": "2026-10-27T05:45:29.349784+00:00",
-  "source_head_before_review": "1540b8a0368be31e8337ae185f904dc3ea42a6b8",
+  "observed_utc": "2026-10-27T06:08:54.753109+00:00",
+  "source_head_before_review": "2439500dd8cee5377570dd7b7332c6eb14926ded",
   "source_evidence": {
     "gx1/contracts/entry_direction_price_projection_v1.py": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_price_projection_v1.py",
@@ -150,22 +260,47 @@
     "gx1/contracts/entry_native_direction_research_state_v1.py": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_state_v1.py",
       "sha256": "ad9a3f91106aec73faf191320824eae92555918a9e067eea24c8faf6eb407f5e"
+    },
+    "gx1/contracts/entry_direction_snapshot_data_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_snapshot_data_v1.py",
+      "sha256": "5c4072823f162e96cc0fe1eae44cf054f7102c785952b7526f47236b602ed740"
+    },
+    "gx1/contracts/entry_native_direction_context_report_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_context_report_v1.py",
+      "sha256": "2b6e5cf4bc32cec17091d964a8dd3c64fd91698fa5fce6d3d4fc7216bf1fcf49"
+    },
+    "gx1/contracts/entry_direction_saved_horizons_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_saved_horizons_v1.py",
+      "sha256": "c444fa8ea1b56418266f93a24fa6c12aeafd68d97541ef5df918f0ca14df8c7b"
     }
   },
   "latest_user_clarification": {
-    "observed_utc": "2026-10-27T05:45:29.349784+00:00",
-    "meaning": "User correctly notes that1min and5min endpoint prices relative to entry can already capture the favorable movement. Endpoint targets should be retained and defined more completely, not presumed wrong.",
-    "corrected_prior_recommendation": "A new path target is not a prerequisite for investigating undertraining on unchanged endpoint BCE. The previous mandatory order target-change-before-epoch-test was too restrictive.",
-    "evidence_class": "source and algebra; no new numerical experiment"
+    "observed_utc": "2026-10-27T06:08:54.753109+00:00",
+    "meaning": "User requests10minutes, considers all minutes1..60, and explicitly requests a new independent agent to find weaknesses in bps/direction construction and its triggers.",
+    "corrected_prior_recommendation": "Do not treat endpoint direction as wholly wrong, or make a new path target a prerequisite for testing learning. Preserve baseline; separate horizon, magnitude and exposure changes.",
+    "evidence_class": "source and existing aggregates only; no new numerical experiment"
   },
   "preferred_target_definition": {
-    "core": "At each causal M5 decision D, forecast the distribution of XAUUSD price change from entry at fixed h in1/5/15/30/60minutes. Retain the existing1/5/15 probabilities and unchanged baseline;30/60native outputs remain a separate unmeasured extension.",
+    "core": "At each causal M5 decision D, define XAUUSD signed bps change from the same entry for each elapsed minute1..60, with fixed report anchors1/5/10/15/30/60. This is the proposed expanded domain; the unchanged measured native baseline still emits1/5/15only.",
     "return_formula": "R_h = 10000 * (mid(D+h)-mid(D)) / mid(D).",
     "current_component": "p_h=P(R_h>0 | causal inputs, observed nonzero outcome); assess probability ranking and proper scores on the original qualified masks.",
     "proposed_complement": "Expected signed return in bps and uncertainty at each fixed horizon, with observed zero returns retained for magnitude supervision. Quote-side costs belong to a separately explicit action-value definition. Do not select a loss scale or weight ad hoc.",
     "path_quality": "Report favorable movement, prior adverse movement and timing separately. Keep the existing first-maximum definition explicit; do not replace it with first-passage semantics by relabeling.",
     "flat": "Abstention is a decision under insufficient expected net benefit or confidence. Endpoint zero and missing outcome are not automatic FLAT labels.",
-    "implementation_now": "No change to target generation, model heads, optimizer or loss; this is the clarified definition and comparison order."
+    "implementation_now": "Definition and audit only. No change to target generation, model heads, optimizer, loss or runtime authorities.",
+    "anchor_horizons_minutes": [
+      1,
+      5,
+      10,
+      15,
+      30,
+      60
+    ],
+    "proposed_dense_domain_minutes": {
+      "first": 1,
+      "last": 60,
+      "step": 1
+    }
   },
   "algebraic_acceptance_examples": [
     {
@@ -223,5 +358,184 @@
     "selected_for_training": "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:113-115 selects terminal_time_ns, observed and sign;129-145 preserves exact parent mapping.",
     "consumed_by_loss": "gx1/contracts/entry_native_direction_research_v1.py:187-212 filters and consumes only sign/mask/time.",
     "scope": "Source trace only; no target archive opened or magnitude-model benefit measured."
+  },
+  "independent_review": {
+    "agent": "/root/direction_target_independent_review_20261027",
+    "source_head": "2439500dd8cee5377570dd7b7332c6eb14926ded",
+    "scope": "User-requested independent source, contract and existing aggregate review; no writes, model calls, payload reads or process control.",
+    "root_assessment": "Agrees endpoint direction is valid; no sign defect found in the inspected chain. Challenges the need to complete all eight extraction pieces for the first terminal-hidden decoder question. No single root cause isolated.",
+    "verified_consumption": "Active numerical fields -> prefix normalization -> local/MTF/GC projections -> temporal encoders -> family/timeframe fusion ->128D joint hidden -> three linear logits -> eligible-cell BCE.",
+    "architecture_clarifications": [
+      "Eight specialist families and D1/macro remain. The61D1/macro fields are owned by session_regime_encoder, not an independent ninth neural head.",
+      "M5/M15/H1/H4/D1 already enter the actual Entry route. Dense forecast horizons do not require changing the300second decision cadence."
+    ]
+  },
+  "horizon_extension_source_audit": {
+    "active_native_horizons_minutes": [
+      1,
+      5,
+      15
+    ],
+    "requested_anchor_horizons_minutes": [
+      1,
+      5,
+      10,
+      15,
+      30,
+      60
+    ],
+    "proposed_dense_domain": {
+      "first_minute": 1,
+      "last_minute": 60,
+      "step_minutes": 1
+    },
+    "implementation_status": "Definition and source review only. Native10/30/60or full1..60outputs have not been implemented or measured; training remains closed.",
+    "common_origin": "Every R_h uses the same causal M5 decision D and the same M1 opening midpoint m(D), not the previous minute or the previous horizon.",
+    "endpoint_formula": "R_h=10000*(m(D+h)-m(D))/m(D). Indexed opening quote timestamps are exact; subminute quote age is not supplied by these aggregates.",
+    "return_between_forecast_points": "R_(a->b)=10000*(R_b-R_a)/(10000+R_a). This algebra uses realized endpoints, not a valid tradable forecast obtained by subtracting marginal quantiles or claiming clairvoyant turning-point entries.",
+    "reversal_note": "Positive R_10 followed by smaller positive R_60 is still UP relative to D at both endpoints, while the price has fallen between10and60. A later short opportunity requires a new causal decision at its own origin; no hindsight peak entry.",
+    "dense_limits": [
+      "Sixty endpoints resolve only one-minute samples; no intraminute path order is recovered.",
+      "Marginal probabilities or quantiles at60horizons do not constitute a joint sampled path distribution.",
+      "Forecasts and realized outcomes across horizons share events. Sixty labels do not create60independent observations.",
+      "UP probability is not required to be monotone in horizon.",
+      "Loss normalization and horizon weights must be declared before training; the current eligible-cell average changes emphasis under extension."
+    ],
+    "source_owners": [
+      {
+        "file": "gx1/contracts/entry_direction_snapshot_data_v1.py",
+        "lines": [
+          15,
+          204,
+          205,
+          234,
+          240,
+          261,
+          272
+        ],
+        "binding": "Fixed horizon tuple and repeated/reshaped target axes; quote-side schema also has a separate three-action axis that must not be confused with three horizons."
+      },
+      {
+        "file": "gx1/contracts/entry_direction_price_projection_v1.py",
+        "lines": [
+          73,
+          107,
+          108,
+          109,
+          115,
+          127,
+          144,
+          147
+        ],
+        "binding": "Decision/end clocks, fixed three-column midpoint labels and source-row identity."
+      },
+      {
+        "file": "gx1/contracts/entry_native_direction_research_v1.py",
+        "lines": [
+          28,
+          110,
+          125,
+          133,
+          157,
+          173,
+          187,
+          212
+        ],
+        "binding": "Head, horizon buffer, output and target shapes, exact timestamps and loss."
+      },
+      {
+        "file": "gx1/contracts/entry_native_direction_context_report_v1.py",
+        "lines": [
+          17,
+          238,
+          272,
+          287,
+          314
+        ],
+        "binding": "Horizon-specific scores, eligibility and hard prediction rule."
+      },
+      {
+        "file": "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "lines": [
+          29,
+          31,
+          77,
+          115,
+          129
+        ],
+        "binding": "Archive shapes, selected target members and exact parent/time alignment."
+      },
+      {
+        "file": "gx1/contracts/entry_native_direction_research_state_v1.py",
+        "lines": [
+          27,
+          44,
+          126,
+          132,
+          209
+        ],
+        "binding": "Immutable horizon identity and exact state/order restoration; old snapshots cannot be silently relabeled."
+      }
+    ],
+    "saved_endpoint_reuse": {
+      "source": "gx1/contracts/entry_direction_saved_horizons_v1.py:11-20,85-146",
+      "current_implementation": "Only30/60sign bounds through chained15minute absolute mid_move; independent15minute check via5minute differences.",
+      "ten_minutes": "A proposed5+5minute chain can telescope only with existing intermediate parent, exact shared price-row identity and certified outward rounding. This path is not yet implemented or executed.",
+      "all_minutes": "On the M5 origin grid, available endpoints occupy minute residues0or1mod5. Targets at residues2/3/4cannot generally be reconstructed from these saved endpoints. Do not interpolate labels or sum simple bps.",
+      "qualified_owner_for_missing_points": "entry_causal_m1_outcomes_v1.py:521-556,756-849 supports elapsed-minute queries1..480with exact clocks and censoring. A future target extension must reuse a qualified TRAIN-only source through bounded admission; never independently open the mixed2026Parquet."
+    },
+    "minimum_semantic_checks": [
+      "D=M5bar_start+5minutes; h10is exactlyD+10, h60is exactlyD+60.",
+      "Original1/5/15labels and masks remain identical in any declared extension.",
+      "Observed zero, missing quote, unavailable entry and cutoff-censored endpoint remain different states.",
+      "No labels at or after the strict own-prefix cutoff.",
+      "Synthetic rise/return, continued rise, decline after an earlier peak, missing minute and within-minute ambiguity cases.",
+      "Query-horizon axis must remain distinct from LONG/SHORT/FLAT action axis in the reusable quote-side owner."
+    ]
+  },
+  "trigger_chain": [
+    {
+      "meaning": "Observed target",
+      "rule": "sign(m(D+h)-m(D)); positive=UP, negative=DOWN; observed zero excluded from current BCE."
+    },
+    {
+      "meaning": "Prediction",
+      "rule": "z_h=b_h+w_h^T hidden(X_D); p_h=sigmoid(z_h); hardUPiffz_h>0,otherwiseDOWN."
+    },
+    {
+      "meaning": "Learned feature influence",
+      "rule": "Unknown per prediction until measured on the actual model; source shows numeric routes and transformations, not a universal EMA/flow trigger."
+    },
+    {
+      "meaning": "Market cause",
+      "rule": "Predictive association and model sensitivity do not identify what causally moves XAUUSD."
+    },
+    {
+      "meaning": "Trade action",
+      "rule": "Not issued by the research head. No active FLAT loss, cost-adjusted decision policy, Exit or trading authority."
+    }
+  ],
+  "current_conclusions": {
+    "excluded_with_scope": [
+      "A completely static optimizer is contradicted by the existing parameter diagnosis.",
+      "Checked saved local inputs/masks differ between native and reference: contradicted by fullTRAINparity; common upstream errors and full numericalMTFparity remain outside that proof.",
+      "Pure probability offset as complete explanation: cannot repair the measured5minute ranking deficit.",
+      "The idea that endpoint forecasts cannot see an upswing followed by a return: earlier sampled endpoints can.",
+      "The claim that10/30/60native outputs already exist because the older dynamic query owner supports1..480: false."
+    ],
+    "still_unresolved": [
+      "Head/optimization versus signal lost or poorly represented upstream.",
+      "Insufficient exposure versus weak or unstable forward information for the fixed targets.",
+      "Whether magnitude or dense-minute supervision improves later direction rather than only TRAIN fit.",
+      "Which actual feature interactions drive useful predictions and whetherGCflow predicts XAUUSD rather than mostly contemporaneousGC."
+    ],
+    "highest_information_single_measurement": "A fully fitted fixed linear readout on complete frozen terminal hidden, evaluated against the original head on the same later cohort. Prepare a fresh terminal-only protocol that reuses the completed terminal_later_full and qualified extraction/readout owners; do not silently revise the original eight-piece plan.",
+    "would_change_assessment": [
+      "Improved later frozen-hidden readout shifts suspicion toward decoder fitting/optimization.",
+      "No qualified readout gain plus better earlier-representation readout shifts suspicion toward compression/fusion.",
+      "A matched one-versus-three-pass gain on unchanged endpoints supports insufficient exposure.",
+      "A concrete causal-clock/sign/normalization defect would take priority over all architectural hypotheses.",
+      "No robust later improvement across qualified comparisons would increase concern about insufficient/unstable predictive information, without proving impossibility."
+    ]
   }
 }

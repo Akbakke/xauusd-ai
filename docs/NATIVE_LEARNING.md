@@ -555,16 +555,32 @@ Exit er utsatt. En separat forskningskomponent kan bruke uendret native
 forward sitt `entry_q_joint_hidden` til et trelogitthode for245s1/5/15min.
 Dette er første faste sammenligningsdomene, ikke hele minutt-til-timer-målet.
 
-Operatørpresisering 26.10: denne undersøkelsen skal direkte forklare manglende
-retningsedge for XAUUSD på 1–60 minutter. Faste sammenligningspunkter er 1/5/15/30/60,
-med samme kausale inputgrunnlag, referansemetode og kronologiske skiller. Ingen
-horisont velges som vinner etter utfallet. Eksisterende 1/5/15-resultater beholdes;
-30/60 må ha egne eksakte D+h-mål, observerbarhets-/modenhetsmasker og kvalifisert
-sammenligning. M1-queryeieren støtter 1–480 minutter; dagens trehorisontprojeksjon og
-modell-/rapporteringskontrakter gjør ikke 30/60 til allerede målte resultater.
-Første avklaring er fremoversignal på dette faste domenet; Entry-path/MAE/MFE,
-Exit, videre F-oppdeling og ytelseseksperimenter overtar ikke oppgaven. Denne
-presiseringen åpner ingen datalesing, modellkjøring eller fit.
+Operatørpresisering 27.10: undersøkelsen skal direkte forklare manglende
+retningsedge og hva som driver modellens prediksjoner. 10 minutter er lagt
+til de faste sammenligningspunktene 1/5/10/15/30/60. En foreslått minuttkurve
+1–60 bruker samme entry D: R_h=10000*(mid(D+h)-mid(D))/mid(D).
+Prognoseoppløsning er ikke beslutningsrytme; Entry forblir kausal M5.
+
+Dagens native-baseline og målarkiv er fortsatt bundet til 1/5/15.
+M1-queryeieren støtter 1–480, men dette gir ikke retningshodet nye utganger.
+10 minutter kan i prinsippet avledes fra eksakte 5+5-prisforskjeller med
+felles prisrad og avrundingskontroll. Hele 1–60 kan ikke rekonstrueres fra
+lagrede 1/5/15-endepunkter på M5-nettet; ingen interpolasjon av fasit.
+En eventuell utvidelse må ha eksakte D+h-mål, egne masker og bevart
+1/5/15-paritet gjennom mål, hode, loss, lagring og evaluering.
+
+Seksti horisonter er overlappende mål, ikke seksti uavhengige hendelser.
+Dagens like cellevekting ville gi 45/60 av komplettmaskevekten til >15min.
+Velg derfor tapsvekting før trening, rapporter alle seks ankerpunkter og
+én forhåndsbestemt kurveskår. Marginale UP-sannsynligheter er ikke en felles
+prisbanefordeling og skal ikke tvinges monotont over horisont.
+
+Den uavhengige gjennomgangen står i DIRECTION_TARGET_PATH_REVIEW_20261027.json.
+Neste avgrensning er om slutt-hidden støtter bedre senere rangering med
+et kontrollert lineært readout. En fersk terminal-only-protokoll kan bruke
+komplett terminal-prefix og bevart terminal_later_full; original F-plan
+bevares. Horisont, bps-tillegg og eksponering testes hver for seg.
+Denne presiseringen åpner ingen datalesing, modellkjøring, fit eller handel.
 
 Full native M5-/TF-/GC-/familie-/makrokontekst beholdes. Ingen gammel fase,
 path-head, targetkvittering eller bundle får ny målbetydning ved ommerking.

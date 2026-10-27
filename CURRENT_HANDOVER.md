@@ -9,31 +9,40 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-Brukeren presiserte 27.10 at endepunktsretning ved flere tidspunkter fortsatt
-er riktig og nyttig: +10/+50/0 bps etter 1/5/15 minutter fanger en oppgang før
-retur til start. Dagens tap bruker UP/UP/utelatt nullutfall. +0,1/+0,2/0 gir
-samme labels og samme tap ved like logits; bevegelsesstørrelsen går derfor
-tapt i supervisjonen. Dette er kilde/algebra, ingen ny datamåling.
+Brukerens siste presisering 27.10 er innarbeidet: 10 minutter er med i
+faste sammenligningspunkter 1/5/10/15/30/60. En kurve for hvert minutt 1–60
+er definert fra samme M5-entrytid; dette endrer ikke M5-beslutningsrytmen.
+Den målte native-modellen har fortsatt bare 1/5/15-utganger. Utvidelsen er
+ikke implementert eller målt. Ingen mål-/modellkode er endret.
 
-Endepunktsmålet beholdes som gyldig baseline. Det er ufullstendig for hele
-Entry-strategien, men er ikke påvist feildefinert eller årsak til svak AUC.
-En ny prisbanemodell er heller ikke en forutsetning for å undersøke
-undertrening. Forrige anbefaling om obligatorisk målendring før epoch-test
-er korrigert i docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json.
+Den eksplisitt bestilte nye agenten direction_target_independent_review_20261027
+har fullført en uavhengig kilde- og aggregatgjennomgang. Root har kontrollert
+resultatfeltene og samlet fem prioriterte forklaringer, motargumenter, minste
+tester og stopp i docs/DIRECTION_TARGET_PATH_REVIEW_20261027.json.
 
-Neste steg er å forberede en avgrenset sammenligning av 1 mot 3 epoker på
-uendret BCE, samme observasjoner, initialtilstand, B16-rekkefølge, optimizer
-og læringsrate. Ingen slik kjøring er admittért eller startet. 10/30 epoker
-krever egen begrunnelse og kapasitet. Størrelse, usikkerhet og prisbanekvalitet
-vurderes som separate tillegg med fast treningsmengde; ingen samtidig endring
-av mål, horisonter og epoch-antall. Den eksisterende labelberegningen lager
-mid_return_bps, mens treningsadapteren velger bare fortegn/masker/klokker.
-Det er kildekontrollert uten åpning av targetarkivet.
+Endepunktsretning er gyldig. Ingen fortegnsfeil er funnet i den undersøkte
+kjeden. +0,1 og +50 bps gir samme supervisjon fordi treningsadapteren velger
+fortegn/masker/klokker og utelater eksisterende mid_return_bps. Nullutfall
+utelates, de trener ikke FLAT. Dette er en målbegrensning, ikke bevist årsak
+til svak AUC. En naiv utvidelse til 60 likevektede mål legger 45 av 60
+horisonter etter 15 minutter; vekting må derfor bestemmes eksplisitt.
 
-MFE/pre-MFE-MAE er fortsatt ikke supervisert i retningshodet. Eksisterende
-pre-MFE-MAE gjelder første maksimum i vinduet; behold denne betydningen
-presis. FLAT er et senere avståelsesvalg, ikke automatisk null sluttavkastning.
-Ingen ny modellkode, numerisk måling, trening, Exit eller handel er åpnet.
+Modellens harde trigger er z_h=b_h+w_h·hidden > 0 for UP, ellers DOWN.
+Hvilke råfeatures som driver nyttige prediksjoner er ikke isolert. Gatevekter
+beviser verken prediktiv verdi eller hva som kausalt beveger markedet.
+
+Sterkeste målte mangel er native mot ET252 ved 5 minutter på samme senere
+kohort. Neste steg er en fersk, avgrenset terminal-only readout-protokoll:
+kan et tilstrekkelig fittet lineært hode hente mer senere signal fra samme
+frosne slutt-hidden? Den trenger komplett terminal-prefix og allerede
+fullført terminal_later_full, ikke matematisk alle 0U-kohortene. Den gamle
+åtte-enhetsplanen bevares uendret; ingen ny kjøring er åpnet.
+
+En 1-mot-3-epokers sammenligning på uendret BCE er fortsatt en separat
+test av eksponering. Horisonter, bps-supervisjon og epoch-antall endres ikke
+samtidig. Ingen automatisk 30-epokerskjøring. Åtte familier og D1/makro
+beholdes; M5/M15/H1/H4/D1 finnes allerede i faktisk Entry-rute.
+Modell-, payload-, forward-, fit- og treningsporter forblir lukket.
 
 Tre av åtte faste F-uttrekksenheter er COMPLETE/consumed:
 - terminal_later_full001: 17 288 rader, 1 081 B16-forwards, alle originale senere
@@ -112,8 +121,9 @@ dårligere ennR1. Ingen ny handelsedge eller forbedret native rangering er bevis
 Syntetisk002 bestod20kontroller;001s importfeil er bevart og konsumert.
 
 Gjeldende årsaksanalyse er tilgjengelig i docs/DIRECTION_1_60_CURRENT_ANALYSIS.json.
-Arbeidsmålet er retning ved 1, 5, 15, 30 og 60 minutter; ingen robust fremtidig
-eller økonomisk edge er dokumentert. Root arbeider alene.
+Arbeidsmålet og neste steg står øverst og i NEXT_RUN_POLICY. Ingen robust
+fremtidig eller økonomisk edge er dokumentert. Den særskilt bestilte nye
+agentgjennomgangen er ferdig; root eier videre integrasjon.
 
 DIRECTION_1_60_CAUSE_SYNTHESIS_008 avløser007 og er kopiert til
 docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Forskjeller i de lagrede lokale
@@ -123,9 +133,9 @@ representasjon eller læring etter disse inputene. DIRECTION_ET_NATIVE_SOURCE_CL
 og DIRECTION_NORMALIZATION_FUSION_SOURCE_TRACE_001 avgrenser kildebeviset.
 Ingen ny MTF-forward eller bedre native-modell er målt.
 
-Neste skille er fast readout på frosset trent representasjon mot originalt hode,
-med identiske prefiks- og senere observasjoner. Avklar eksisterende komplette
-representasjoner og minste gjennomførbare uttrekk før ny avgrenset admisjon.
+Neste skille er fast readout på frosset trent representasjon mot originalt hode.
+Den aktuelle avgrensningen er terminal-only-protokollen beskrevet øverst;
+ingen gammel plan gir ny autoritet. Identiske prefiks- og senere observasjoner kreves.
 Ikke gjenta råinputkontrollen, relanser F001/F002, eller anta at ufullstendige
 F-data dekker fullkohorten. Alle nye numeriske tillatelser er lukket.
 Retningsedge1–60 er uferdig.
