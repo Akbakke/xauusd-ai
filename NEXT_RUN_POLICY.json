@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_FIRST_SAVED_BPS_40_SYNTHETIC_PASS_ACTUAL_COMPARISON_ADMITTED",
+    "status": "COMPACT_BPS_COMPARISON_COMPLETE_NO_DIRECTION_IMPROVEMENT_FULL_PREFIX_LEARNING_NEXT",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,10 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_004.json",
       "sha256": "6b7eedc735655aad69c044c4dcf7a9e8247b2cbc381f8593c669280507e7f22e"
     },
-    "current_unit": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_PLAN_001.json",
-      "sha256": "b5e445cf1015feecbc5707c3ae8d4a5e25a94107e32ed60259e7166461627e74"
-    },
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37180,9 +37177,15 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_PLAN_001.json",
       "sha256": "b5e445cf1015feecbc5707c3ae8d4a5e25a94107e32ed60259e7166461627e74"
     },
-    "phase_B_status": "PREPARED_UNEXECUTED_AWAIT_COMPACT_RESULT_AND_NEED",
+    "phase_B_status": "PREPARED_ONLY_NO_NEW_FIELDS_ADMITTED_COMPACT_FIRST",
     "compact_profile_confirmed_by_user": true,
-    "latest_operator_instruction": "Ja, vi kjører kun den kompakte nå med viktige indikatorer, så ser vi om dette er nok eller vi må tilføre noe senere. Vi holder oss til dette kompakte men viktige først"
+    "latest_operator_instruction": "Ja, vi kjører kun den kompakte nå med viktige indikatorer, så ser vi om dette er nok eller vi må tilføre noe senere. Vi holder oss til dette kompakte men viktige først",
+    "saved_bps_comparison_complete": true,
+    "saved_bps_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
+      "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
+    },
+    "next_action": "Determine minimal fresh own namespace for missing own0U prefix part3 and full-prefix learning review. No extraction, fit or extra pass admitted yet."
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -37432,15 +37435,15 @@
     }
   },
   "independent_direction_bps_comparison_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_PRIMARY_NOT_SUPPORTED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_PLAN_001.json",
       "sha256": "b5e445cf1015feecbc5707c3ae8d4a5e25a94107e32ed60259e7166461627e74"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "read_only_saved_TRAIN_development_predictions": true,
     "saved_payload_reads_authorized": true,
@@ -37457,6 +37460,18 @@
     "cutoff_exclusive_utc": "2025-04-01T00:00:00Z",
     "primary_horizon_minutes": 5,
     "confirmatory_interval_count": 6,
-    "bootstrap_replicates": 10000
+    "bootstrap_replicates": 10000,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_001/OUTPUT/RESULT.json",
+      "sha256": "5e8d6a2de22ff9d6d53c814d139ae62b58cdb9925f1bf1b14f40e8ac905f8c21"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_001/OUTPUT/TERMINAL.json",
+      "sha256": "d5d0758c1c8b1862483878b7459c253431c268c4eccebb5309d6fd61c67c48e6"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
+      "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
+    }
   }
 }

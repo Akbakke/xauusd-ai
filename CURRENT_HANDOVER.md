@@ -122,11 +122,16 @@ beholdes fast i neste A/B-test. En endret fasit krever egen nybaseline.
 Brukeren har bekreftet kompaktprofilen som bevisst første scope. Parkerte
 fullprofilindikatorer er derfor ikke en feil eller en grunn til utvidelse nå.
 Den selvstendige lagrede bps-sammenligningen prioriteres med uendret input.
-Alle40 nye syntetiske cases besto; kilder og inputs besto sluttkontroll.
-Kun én fersk CPU-sammenligning av åtte eksakte inputfiler er admittért:
-initial/final/senere prognoser fra begge modeller, original245fasit og egen
-TRAIN-skala. Initial bitparitet må bestås før senere prediksjoner åpnes.
-Det er ingen modellkall, fit, vekter eller nye indikatorer i denne enheten.
-To separate last-M1-OFI-proposalfiler er klargjort, med36 ukjørte tester.
-Disse er ikke admittért til numerikk og endrer ikke dagens native input.
-Ingen ny native-trening, CONTROL/TEST, Exit, broker eller promotion er åpnet.
+Alle40 nye syntetiske cases besto. Den genuine sammenligningen er fullført:
+initiale retningslogits er bitidentiske på samme256TRAIN-rader; senere17288
+foreldre er eksakt joinet til245fasiten. Ingen fit, native-kall eller vekter.
+AUC5 går0.503021→0.496823; begge korrigerte dag-/ukeintervaller inkluderer0.
+Bps-MSE slår ikke egetTRAIN-gjennomsnitt. Kombinert forhåndsregel erFALSE.
+Forsøket er ikke kvalifisert for retningsforbedring eller automatisk utvidelse.
+Litt bedre logloss er beskrivende, og er ikke en rang-/edgekvalifisering.
+Minste neste prioritet er fullprefix-læring mot egen0U/prior, med gjenbruk av
+ferdige uttrekk og kun en eventuell manglende tredjedel under ny egenautoritet.
+Ingen ekstra pass, ny genuin enhet eller nye indikatorfelt er admittért nå.
+Last-M1-OFI-proposalfiler er kun forberedelse; dagens native profil er uendret.
+Ingen CONTROL/TEST, Exit, broker, ordre, spending eller promotion er åpnet.
+Målet er fortsatt aktivt; fullprefix-konvergens og treningsutvidelse er uavklart.
