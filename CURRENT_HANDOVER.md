@@ -12,6 +12,19 @@ Programrot:
 
 ## Aktuell status
 
+DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001 er ferskt admittért for
+én privat genuin kontroll. Kildekode er uendret etter de beståtte testene.
+Numerisk scope: 4 konstruksjoner, 6 forwards, 5 reverse-pass, 4 fysiske
+optimizersteg (=2 logiske B16-steg gjentatt for eksakt resume), én prefiksskala.
+Samme første32presentasjoner fra original seed/rekkefølge, 1/5/15-horisonter.
+Top-level training/native_training=true gjelder bare denne bundne private
+unntaksruten; full fit, native launch, TEST og alle handelsporter er fortsatt stengt.
+Ingen modell er startet. Kampanje skal bindes til ny commit/policy, deretter
+kreves fersk helmaskin-idle-kontroll og fysisk Windows-boot. Alle hardware-,
+effekt-, minne-, CPU- og tidsvakter beholdes. Ikke start uten fersk bundet gate.
+Se programrot/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/ADMISSION.json.
+
+
 DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_20261027_002 er COMPLETE/claimed/consumed.
 Alle 68 tester bestod: 24 nye B16-kontroller og 44 eksisterende B2-kontroller.
 Worker/outer exit 0; kilde/policy uendret, cgroup/eier borte og originallås fri.
@@ -23,8 +36,8 @@ egne syntetiske filer. Ett fast metadata-importbarn; null ekte payload/native-ka
 Se docs/DIRECTION_BPS_GENUINE_ROUTE_QUALIFICATION_20261027.json.
 
 B16-profilen er nå syntetisk kvalifisert for 4 genuine konstruksjoner,
-6 forwards, 5 reverse-pass og 4 private optimizersteg. Ingen genuin kjøring
-er admittért av denne avslutningen. Fresh boot, signed hardware-vakter og
+6 forwards, 5 reverse-pass og 4 private optimizersteg. Denne tidligere avslutningen ga ingen genuin autoritet;
+ny avgrenset admisjon er beskrevet øverst. Fresh boot, signed hardware-vakter og
 opprinnelige kapasitetsgrenser beholdes. Oppfølgingen forblir PAUSED.
 
 DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001 er COMPLETE/claimed/consumed.

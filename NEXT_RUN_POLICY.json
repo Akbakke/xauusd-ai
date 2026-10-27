@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T12:38:45.058403+00:00",
-  "status": "DIRECTION_BPS_B16_ROUTE_QUALIFIED_GENUINE_QUALIFICATION_NEXT",
-  "training_enabled": false,
+  "observed_utc": "2026-10-27T12:46:53.225166+00:00",
+  "status": "DIRECTION_BPS_NATIVE_B16_PRIVATE_QUALIFICATION_ADMITTED",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Prepare fresh canonical B16 private genuine qualification using the now-qualified strict route: same own prefix, first32original presentations, matched baseline/candidate initialization, one bps scale, bps-only gradient and exact resume. Preserve fresh-physical-boot/hardware gates; no old-plan relaunch.",
+  "next_action": "Materialize one fresh bound B16 private qualification campaign, verify whole-host idle and unchanged signed hardware sources, then fresh physical boot through existing controller. Four private optimizer steps only; no predictor comparison or full fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -245,7 +245,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Bps learning route and B16 canonical campaign profile synthetic-qualified;68new-route cases pass in002,001failure preserved and consumed.",
+    "current_activity": "Materialize one fresh bound B16 private qualification campaign, verify whole-host idle and unchanged signed hardware sources, then fresh physical boot through existing controller. Four private optimizer steps only; no predictor comparison or full fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -271,7 +271,7 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_NOT_COMPLETE_BPS_B16_ROUTE_QUALIFIED_NO_GENUINE_GAIN",
+    "gc_goal_status": "ACTIVE_NOT_COMPLETE_BPS_NATIVE_PRIVATE_QUALIFICATION_ADMITTED_NO_GAIN",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Synthetic B16 bps qualification route and existing B2 guard regression.",
@@ -298,7 +298,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No runtime blocker. Genuine prefix scale, matched native initialization/CUDA gradient/resume and later prediction gain remain unmeasured.",
+    "current_blocker": "No runtime blocker. Campaign preparation, whole-host idle review and fresh physical Windows boot are required before the private unit.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17809,7 +17809,8 @@
     "latest_bps_allocation_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
-    }
+    },
+    "native_training_stage": "dynamic_m5_direction_bps_b16_qualification_20261027_001"
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -31166,7 +31167,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -36930,5 +36931,39 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_VERIFIED_TERMINAL_002.json",
       "sha256": "5fd51cf25a57be3e568405adcc8c75dde2eac5f707ee93c1f30d7502b79f2ade"
     }
+  },
+  "dynamic_m5_direction_bps_b16_qualification_20261027_001": {
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "signed_bps_scale_fit_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "status": "ADMITTED_PENDING_FRESH_CANONICAL_CAMPAIGN",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/RECIPE.json",
+      "sha256": "f62f9c2870d83a2b4f1b18ca07521bd06477979e9ac732e38932951d5cde1f52"
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/ADMISSION.json",
+      "sha256": "c7e81636da4b11a62bcd1df36c6c87bd1996c2bf0665daa82ec86210db8c88dc"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/RUNTIME",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_private_optimizer_steps": 4
   }
 }
