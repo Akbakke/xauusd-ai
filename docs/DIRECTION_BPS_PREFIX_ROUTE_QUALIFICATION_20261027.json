@@ -1,5 +1,5 @@
 {
-  "status": "SOURCE_PREPARED_SYNTHETIC_PENDING",
+  "status": "SYNTHETIC_QUALIFIED_GENUINE_COMPARISON_NOT_ADMITTED",
   "design": {
     "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SOURCE_DESIGN_001.json",
     "sha256": "3b7a722488fcd3047a53c2c15f7c0a8c0b5fcea5bf94e392f4045ad154cc39ce"
@@ -30,5 +30,25 @@
   },
   "genuine_execution_authorized": false,
   "direction_improvement_measured": false,
-  "test_data_used": false
+  "test_data_used": false,
+  "root_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_ROOT_REVIEW_001.json",
+    "sha256": "ec008ccd16a7f5fa2ff3ebbf736bed130c9558e135d36e8c7b868dfa635219d1"
+  },
+  "verified_terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_VERIFIED_TERMINAL_001.json",
+    "sha256": "9caffc99138d117031a11d16c09217ce9a9073482fbb1899bdc34ec6f124a7ac"
+  },
+  "passed": 81,
+  "counts": {
+    "genuine_native_calls": 0,
+    "metadata_child_imports": 1,
+    "payload_open_attempts": 0,
+    "synthetic_autograd_grad_calls": 0,
+    "synthetic_backwards": 0,
+    "synthetic_module_calls": 3,
+    "synthetic_module_constructions": 2,
+    "synthetic_optimizer_steps": 0,
+    "synthetic_payload_accesses": 4
+  }
 }

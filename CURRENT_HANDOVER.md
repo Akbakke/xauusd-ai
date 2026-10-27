@@ -11,14 +11,16 @@ Programrot:
 
 ## Aktuell status
 
-Prefiksruten for bps er implementert og fryst for81syntetiske kontroller:
-61eksisterende prefiks-/vaktkontroller og20nye opt-inbevis-/kilde-/skalaportkontroller.
-CPUaudit4G/512M,éntråd,64tasks,180sworker/210souter. Ingen ekte inputs/modell.
-Numerisk preparering, forward, loss, batch, rekkefølge og checkpointfunksjoner
-har identisk AST; kvalifiserte modellkilder er uendret. Hovedruten binder nå
-genuin002, kvalifisert GC-mapping og eksakt egen prefiksskala før trening.
-Ingen genuin prediktorsammenligning er admittért ennå.
-Se programrot/DIRECTION_BPS_PREFIX_ROUTE_SOURCE_DESIGN_001.json.
+DIRECTION_BPS_PREFIX_ROUTE_SYNTHETIC_20261027_001 er COMPLETE/consumed.
+Alle81kontroller bestod:61eksisterende prefiks-/vaktkontroller og20nye
+opt-inbevis-/kilde-/skalaportkontroller. Worker5,837s/outer6,484s, exit0.
+To syntetiske moduler/tre modulkall, null backward/optimizer/genuine kall.
+Fire payloadtilganger gjaldt egne syntetiske roundtripfiler; ett fast metadatabarn.
+Kilde/policy var fryst, cgroup/eier borte, originallås identitetskontrollert fri.
+Numeriske funksjoner og modellkilder er uendret. Genuine002 gjenbrukes.
+Engangsautoriteten er lukket. Neste er full hovedrute-metadata-kontroll og
+fersk avgrenset første-prefiks-admisjon, ingen ny privat modellkontroll.
+Se docs/DIRECTION_BPS_PREFIX_ROUTE_QUALIFICATION_20261027.json.
 
 DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002 er COMPLETE/consumed.
 Original worker/controller/guard/observer/Windows-task avsluttet med 0/PASS.
