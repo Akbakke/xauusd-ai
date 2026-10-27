@@ -37327,12 +37327,12 @@
   "direction_bps_saved_comparison": {
     "status": "ADMITTED",
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_SYNTHETIC_PLAN_20261027_001.json",
-      "sha256": "0e05cfc1c105a054f5ba7eba1a205d3388e39af8ebda0cd99357952901cc25b7"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_ACTUAL_PLAN_20261027_001.json",
+      "sha256": "9d502be4402d3a842a3a1821a7d6e6e6bda9398f350c5b256f4062b62609387e"
     },
-    "mode": "synthetic",
+    "mode": "actual",
     "execution_authorized": true,
-    "saved_payload_reads_authorized": false,
+    "saved_payload_reads_authorized": true,
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
@@ -37342,9 +37342,36 @@
     "test_data_used": false,
     "native_forwards_authorized": false,
     "fit_authorized": false,
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
+      "sha256": "3cf3dbbd0c81002b5b180db40deb0bdbe6a2d153b6682643fdb59994a8a57948"
+    }
+  },
+  "direction_bps_saved_comparison_synthetic_20261027": {
+    "status": "COMPLETE_CONSUMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "0e05cfc1c105a054f5ba7eba1a205d3388e39af8ebda0cd99357952901cc25b7"
+    },
+    "mode": "synthetic",
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "native_forwards_authorized": false,
+    "fit_authorized": false,
     "source_admission": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_SOURCE_ADMISSION_20261027_001.json",
       "sha256": "edb48bc9a8cf161ff4ca4085610e204e3aa33c3fc6a49fef5106c1857ee7b049"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
+      "sha256": "3cf3dbbd0c81002b5b180db40deb0bdbe6a2d153b6682643fdb59994a8a57948"
     }
   }
 }

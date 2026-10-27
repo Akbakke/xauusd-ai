@@ -42,8 +42,8 @@ Implementer og kvalifiser den lagrede sammenligningen som er låst i
 DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/COMPARISON_PROTOCOL.json
 før senere prediksjoner åpnes. Gjenbruk eksisterende score-/bootstrap-eiere.
 Sammenligningskoden i gx1/scripts/compare_entry_direction_signed_bps_v1.py er
-implementert. Én avgrenset syntetisk kvalifisering er admittért; faktisk
-sammenligning av lagrede prediksjoner krever etterfølgende separat admisjon.
+implementert. 16 syntetiske regne- og maskekontroller bestod uten datalesing.
+Én separat, avgrenset sammenligning av lagrede prediksjoner er admittért.
 Deretter fersk, avgrenset CPU-admisjon for lagrede outputs; root åpner ikke
 PT/NPZ/NPY/Parquet. Ingen ny modellforward, refit, epoke eller horisontendring.
 
