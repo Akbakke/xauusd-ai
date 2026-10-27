@@ -38619,21 +38619,33 @@
     }
   },
   "direction_five_minute_hurdle_rank_actual": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_REUSED_DEV_HURDLE_DIAGNOSTIC",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_ACTUAL_PLAN_20261027_001.json",
       "sha256": "247d241b15f770efe3dc06a11b9cd9b5c0a1628bbfaf39b1a033132665694a14"
     },
-    "execution_authorized": true,
-    "saved_payload_reads_authorized": true,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
     "raw_data_reads_authorized": false,
     "genuine_fits_authorized": false,
     "native_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "test_control_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "relaunch_allowed": false
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_ACTUAL_ROOT_REVIEW_20261027_001.json",
+      "sha256": "86a3ea48aeb6c5586d4ad3751e012ee8853dd891c7f5467a6740b9089c805f09"
+    },
+    "result_document": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FIVE_MINUTE_HURDLE_RESULT_20261027.json",
+      "sha256": "1831497b7d5044e1afb4adac6fa204f015050de428cb556919e4aab4d4b67429"
+    },
+    "existing_atr_sign_mean_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_HURDLE_H1_ATR_SIGN_AGGREGATE_REVIEW_20261027_001.json",
+      "sha256": "4ac42e1e81fabd6675631270de35e1eea7bdabc9a13997a21171b521306a813b"
+    }
   }
 }

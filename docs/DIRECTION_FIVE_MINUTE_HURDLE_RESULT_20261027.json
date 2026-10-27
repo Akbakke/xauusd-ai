@@ -1,0 +1,184 @@
+{
+  "schema_version": "gx1_five_minute_hurdle_result_v1",
+  "status": "COMPLETE_EXPLORATORY_REUSED_DEVELOPMENT",
+  "root_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_ACTUAL_ROOT_REVIEW_20261027_001.json",
+    "sha256": "86a3ea48aeb6c5586d4ad3751e012ee8853dd891c7f5467a6740b9089c805f09"
+  },
+  "result": {
+    "eligible_parents": 70376,
+    "observed_zero": 82,
+    "long_events": 3569,
+    "short_events": 3520,
+    "positive_10bps_auc": {
+      "native": 0.5368896493156406,
+      "et252": 0.515497286620896
+    },
+    "negative_10bps_auc_using_negative_up_score": {
+      "native": 0.4408929510928166,
+      "et252": 0.4832673841025113
+    },
+    "magnitude_auc_using_positive_up_score": {
+      "native": {
+        "within_fold_pair_weighted_auc": 0.5515817946563594,
+        "within_fold_pairs": 108176810,
+        "per_fold": [
+          {
+            "fold_id": 1,
+            "events": 798,
+            "non_events": 16426,
+            "auc": 0.517007658254366
+          },
+          {
+            "fold_id": 2,
+            "events": 2584,
+            "non_events": 14888,
+            "auc": 0.5312337668211604
+          },
+          {
+            "fold_id": 3,
+            "events": 779,
+            "non_events": 17226,
+            "auc": 0.5765141864694784
+          },
+          {
+            "fold_id": 4,
+            "events": 2928,
+            "non_events": 14747,
+            "auc": 0.5724582169347401
+          }
+        ]
+      },
+      "et252": {
+        "within_fold_pair_weighted_auc": 0.5173391875763391,
+        "within_fold_pairs": 108176810,
+        "per_fold": [
+          {
+            "fold_id": 1,
+            "events": 798,
+            "non_events": 16426,
+            "auc": 0.5093470770558443
+          },
+          {
+            "fold_id": 2,
+            "events": 2584,
+            "non_events": 14888,
+            "auc": 0.48007058222550875
+          },
+          {
+            "fold_id": 3,
+            "events": 779,
+            "non_events": 17226,
+            "auc": 0.549643179019922
+          },
+          {
+            "fold_id": 4,
+            "events": 2928,
+            "non_events": 14747,
+            "auc": 0.5429305849369752
+          }
+        ]
+      }
+    },
+    "confidence_intervals": {
+      "long": {
+        "utc_day": {
+          "native": {
+            "high": 0.5598627544355149,
+            "level": 0.99,
+            "low": 0.5151081690535204
+          },
+          "et252": {
+            "high": 0.5392280479100566,
+            "level": 0.99,
+            "low": 0.49287302897843366
+          },
+          "native_minus_et252": {
+            "high": 0.045903897739215396,
+            "level": 0.99,
+            "low": -0.002868573965059941,
+            "point_difference": 0.02139236269474465
+          }
+        },
+        "utc_week_monday": {
+          "native": {
+            "high": 0.5667085383140132,
+            "level": 0.99,
+            "low": 0.5085907260546962
+          },
+          "et252": {
+            "high": 0.5487931775063479,
+            "level": 0.99,
+            "low": 0.4837017723306077
+          },
+          "native_minus_et252": {
+            "high": 0.04589647937394581,
+            "level": 0.99,
+            "low": -0.006012623797530986,
+            "point_difference": 0.02139236269474465
+          }
+        }
+      },
+      "short": {
+        "utc_day": {
+          "native": {
+            "high": 0.459366064296205,
+            "level": 0.99,
+            "low": 0.4221780807648722
+          },
+          "et252": {
+            "high": 0.5093061525188918,
+            "level": 0.99,
+            "low": 0.45625625325518837
+          },
+          "native_minus_et252": {
+            "high": -0.016184019967679878,
+            "level": 0.99,
+            "low": -0.06651638107663774,
+            "point_difference": -0.04237443300969468
+          }
+        },
+        "utc_week_monday": {
+          "native": {
+            "high": 0.47008578888629515,
+            "level": 0.99,
+            "low": 0.4198513933186872
+          },
+          "et252": {
+            "high": 0.5151604254871127,
+            "level": 0.99,
+            "low": 0.45058826170895344
+          },
+          "native_minus_et252": {
+            "high": -0.013475710438841229,
+            "level": 0.99,
+            "low": -0.07018489815872477,
+            "point_difference": -0.04237443300969468
+          }
+        }
+      }
+    }
+  },
+  "score_placeholder_warning": "Raw worker fields named r1 and ref259 are constant zero padding required by the reused rank adapter; they are NOT scores of the historical R1 or reference259 models. Only native and et252 are compared.",
+  "magnitude_reconstruction": "Within each fold, wins((LONG or SHORT), neutral) = wins(LONG, SHORT or neutral) + wins(SHORT, LONG or neutral) - LONG*SHORT; ties count half. The saved SHORT AUC is reversed to recover positive-up score. Integer pair totals and three tie fixtures checked.",
+  "interpretation": "Native up-score also ranks large moves of either sign higher as a group. This is consistent with magnitude or regime information, but does not establish volatility as the cause, nor an executable directional edge.",
+  "limits": [
+    "Fixed 10 bps is illustrative, not a cost or trading threshold.",
+    "Endpoint midpoint is not first passage, path order, a FLAT decision, execution or profit.",
+    "Scores were trained for endpoint sign, not calibrated hurdle-event probabilities.",
+    "Reused development folds and overlapping targets limit inference.",
+    "ET252 differs in learner and inputs; differences are not causally attributable.",
+    "99-percent intervals are per contrast, not familywise.",
+    "Magnitude AUC was reconstructed from aggregate paired-rank counts after observing results; no independent confidence interval is available for it.",
+    "Future magnitude is a label only; no later-outcome band is usable as a decision-time filter.",
+    "Fixed H1 ATR-z sign is only one crude causal volatility proxy; association with magnitude has not been isolated.",
+    "No independent full numerical bootstrap replay.",
+    "This does not calculate magnitude-event AUC within causal regimes and does not establish or rule out volatility/regime confounding."
+  ],
+  "test_data_used": false,
+  "economic_edge_qualified": false,
+  "existing_causal_atr_sign_mean_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_HURDLE_H1_ATR_SIGN_AGGREGATE_REVIEW_20261027_001.json",
+    "sha256": "4ac42e1e81fabd6675631270de35e1eea7bdabc9a13997a21171b521306a813b"
+  }
+}

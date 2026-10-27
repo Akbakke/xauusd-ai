@@ -83,9 +83,19 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 
 En kontroll av eksisterende femminuttsskårer mot større endepunkt er forberedt.
 Den bruker fast +/-10 bps og alle modne, observerte foreldre, også nuller.
-19 syntetiske tilfeller bestod under 4G-vakt. Én avgrenset faktisk måling er
-admittért mot seks lagrede TRAIN-payloads, uten modell eller rådata.
-Midtprisendepunkt er ikke første treff eller handel. Trening er stengt.
+19 syntetiske tilfeller og én avgrenset måling på seks lagrede TRAIN-payloads
+er fullført og konsumert; ingen modell eller rådata ble åpnet. På 70376 modne,
+observerte 5min-foreldre er native AUC 0,536890 for opp over 10 bps og 0,440893
+for ned over 10 bps med negert oppskår. Dag-/ukeintervallene er nominelle og
+gjelder gjenbrukte utviklingsdata. Fra samme aggregerte parsummer er oppskårens
+AUC mot stor bevegelse i begge retninger 0,551582, ET252 0,517339; egne intervaller
+for størrelsesmålet mangler. R1/ref259 i råresultatet er nullplassholdere, ikke
+referansemodeller. Dette peker mot mulig størrelses-/regimeinformasjon, ikke
+bevist årsak eller edge. H1 ATR-z fortegnets forskjell i gjennomsnittlig
+oppsannsynlighet skifter fortegn mellom folder; dette er kun en grov, etterfølgende
+kildekontroll og hverken bekrefter eller utelukker regimeforklaring.
+Midtprisendepunkt er ikke første treff eller handel.
+Se docs/DIRECTION_FIVE_MINUTE_HURDLE_RESULT_20261027.json. Trening er stengt.
 Se `direction_five_minute_hurdle_rank_source` i NEXT_RUN_POLICY.json.
 
 
