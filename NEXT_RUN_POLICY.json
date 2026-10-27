@@ -37323,5 +37323,28 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_ROOT_REVIEW_001.json",
       "sha256": "8fb4e48dd40607e4cddd1fc8f66417dd5d5a734d325f74f8c738fd73cb4ba36e"
     }
+  },
+  "direction_bps_saved_comparison": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "0e05cfc1c105a054f5ba7eba1a205d3388e39af8ebda0cd99357952901cc25b7"
+    },
+    "mode": "synthetic",
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "native_forwards_authorized": false,
+    "fit_authorized": false,
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SAVED_COMPARISON_SOURCE_ADMISSION_20261027_001.json",
+      "sha256": "edb48bc9a8cf161ff4ca4085610e204e3aa33c3fc6a49fef5106c1857ee7b049"
+    }
   }
 }
