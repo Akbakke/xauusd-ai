@@ -12,21 +12,20 @@ Programrot:
 
 ## Aktuell status
 
-Forsøk001 er FAILED/claimed/consumed: 66 bestod, 2 avviste numerisk recipe-seal
-i den nye syntetiske fixture. Testdata brukte kampanjeformat i stedet for
-numerisk eiers kompakte JSON-format. Kun testdata er rettet; produksjonsvakten
-beholdes. Originale kvitteringer er bevart, eier/cgroup er borte og låsen fri.
-Forsøk002 er ny admisjon av de samme 68 testene, ikke relansering av001.
+DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_20261027_002 er COMPLETE/claimed/consumed.
+Alle 68 tester bestod: 24 nye B16-kontroller og 44 eksisterende B2-kontroller.
+Worker/outer exit 0; kilde/policy uendret, cgroup/eier borte og originallås fri.
+Forsøk001 bevares som FAILED/consumed (66/68): feil hash-format i ny testfixture.
+Kun testdata ble rettet i002; produksjonsvakter og numerisk modellkode uendret.
+002 observerte 32 syntetiske modulkonstruksjoner, 27 modulkall, 6 backward-kall,
+ett autograd.grad-kall og 3 syntetiske AdamW-steg. Fire payload-åpninger gjaldt
+egne syntetiske filer. Ett fast metadata-importbarn; null ekte payload/native-kall.
+Se docs/DIRECTION_BPS_GENUINE_ROUTE_QUALIFICATION_20261027.json.
 
-B16 bps-kvalifiseringsruten er implementert, genuin kontroll er ikke kjørt.
-DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_PLAN_002 er engangsadmittért for 68
-syntetiske tester: 24 nye og 44 eksisterende B2-kampanje-/vaktkontroller.
-CPU audit 4G/512M, én tråd, 64 tasks, 180 s worker / 210 s outer.
-Kun syntetiske tensorer og egne testfiler; ett fast metadata-importbarn.
-Kilde og policy fryses ved commit. Ingen ekte payloads eller native-kjøring.
-Den nye genuine profilen er B16 med 4 konstruksjoner, 6 forwards, 5 reverse-pass
-og 4 private optimizersteg, men får ingen numerisk autoritet av disse testene.
-Samme signed hardware-/boot-/kapasitetsvakter beholdes.
+B16-profilen er nå syntetisk kvalifisert for 4 genuine konstruksjoner,
+6 forwards, 5 reverse-pass og 4 private optimizersteg. Ingen genuin kjøring
+er admittért av denne avslutningen. Fresh boot, signed hardware-vakter og
+opprinnelige kapasitetsgrenser beholdes. Oppfølgingen forblir PAUSED.
 
 DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001 er COMPLETE/claimed/consumed.
 Alle 144 tester bestod: 31 nye bps-kontroller og 113 eksisterende kontroller.

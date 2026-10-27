@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T12:35:45.243965+00:00",
-  "status": "DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_ADMITTED",
+  "observed_utc": "2026-10-27T12:38:45.058403+00:00",
+  "status": "DIRECTION_BPS_B16_ROUTE_QUALIFIED_GENUINE_QUALIFICATION_NEXT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "One fresh68case synthetic route check after compact numerical-hash fixture repair. Attempt001 failed/consumed, never relaunched. Same numerical source and limits; no genuine payload/model/training.",
+  "next_action": "Prepare fresh canonical B16 private genuine qualification using the now-qualified strict route: same own prefix, first32original presentations, matched baseline/candidate initialization, one bps scale, bps-only gradient and exact resume. Preserve fresh-physical-boot/hardware gates; no old-plan relaunch.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -245,7 +245,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "One fresh68case synthetic route check after compact numerical-hash fixture repair. Attempt001 failed/consumed, never relaunched. Same numerical source and limits; no genuine payload/model/training.",
+    "current_activity": "Bps learning route and B16 canonical campaign profile synthetic-qualified;68new-route cases pass in002,001failure preserved and consumed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -271,14 +271,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_NOT_COMPLETE_BPS_ROUTE_SYNTHETIC_QUALIFIED_NO_LATER_GAIN",
+    "gc_goal_status": "ACTIVE_NOT_COMPLETE_BPS_B16_ROUTE_QUALIFIED_NO_GENUINE_GAIN",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Synthetic bps target/head/loss/training-adapter/state qualification.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001_RUNTIME",
+    "latest_terminal_role": "Synthetic B16 bps qualification route and existing B2 guard regression.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_20261027_002_RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_VERIFIED_TERMINAL_001.json",
-      "sha256": "5f24d94e21ebd661a7878c4bdb9d5a57e6028b10acc1532b5f679187c6dcaff5"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_VERIFIED_TERMINAL_002.json",
+      "sha256": "5fd51cf25a57be3e568405adcc8c75dde2eac5f707ee93c1f30d7502b79f2ade"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -298,7 +298,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No runtime blocker. New bps route is synthetic-qualified only; genuine own-prefix statistics, fresh native baseline/gradient/resume and later gain remain unmeasured.",
+    "current_blocker": "No runtime blocker. Genuine prefix scale, matched native initialization/CUDA gradient/resume and later prediction gain remain unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17573,8 +17573,8 @@
     },
     "feature_potential_exhausted": false,
     "latest_terminal_receipt": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_VERIFIED_TERMINAL_001.json",
-      "sha256": "5f24d94e21ebd661a7878c4bdb9d5a57e6028b10acc1532b5f679187c6dcaff5"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_VERIFIED_TERMINAL_002.json",
+      "sha256": "5fd51cf25a57be3e568405adcc8c75dde2eac5f707ee93c1f30d7502b79f2ade"
     },
     "latest_broad_direction_review": {
       "path": "/home/andre2/GX1_RUNS/PROJECT_DIRECTION_ALTERNATIVE_CAUSES_20261025_278/SYNTHESIS.json",
@@ -21016,34 +21016,34 @@
   "latest_terminal_receipt": {
     "schema_version": "gx1_verified_terminal_metadata_envelope_v1",
     "status": "COMPLETE",
-    "observed_utc": "2026-10-27T11:58:44.749118+00:00",
+    "observed_utc": "2026-10-27T12:38:45.058403+00:00",
     "exit_code": 0,
     "exit_code_source": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001_RUNTIME/OUTER_TERMINAL.json",
-      "sha256": "fdc13a45bae5ce0728b04e4ff8f5db9513dd411f29559bf24ed3cddda490087c"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_20261027_002_RUNTIME/OUTER_TERMINAL.json",
+      "sha256": "305001901708b3566af7ef2f08897da2c9c08ce4efa97fde30e54316a44e7dc0"
     },
     "worker_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001/TERMINAL.json",
-      "sha256": "e141e8363c4765a1fc8fee0a2c7645d632f1bb7cc5bf291a20d06e5eb48952e8"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_20261027_002/TERMINAL.json",
+      "sha256": "8b46e6b0d14ca21a059c29712629c34c85f18277d97e15e1eb88646327b9684b"
     },
     "result": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_20261027_001/SUMMARY.json",
-      "sha256": "172933eab9343152847d344b8f39ae13cf9d337f02864ced617374cf7d2a7efe"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_20261027_002/SUMMARY.json",
+      "sha256": "42035b7f9e410cf3259aebdd51d2b345bee65661af62097dc078b923b7cb6748"
     },
     "actual_root_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_ROOT_REVIEW_001.json",
-      "sha256": "a9c2bc2c7f1b9ddcd663b6371305f1b18192492734cf47bd0e8db3c7c634d3e1"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_ROOT_REVIEW_002.json",
+      "sha256": "21bab62310627532836074845a50bec807bb0255f5775e9c19ef6268f5cd2aae"
     },
     "source_unchanged": true,
     "source_bookend_scope": {
-      "source_head": "b6209ff13239125e361c7c7824d678b5a40ded24",
-      "policy_sha256": "49018ed318501c53ff1b7d6d74fc31714a3efb3503e94157715ffbbb9ebf31a7",
+      "source_head": "d3097d35991f3f03d8e7685bfcc21143320fa095",
+      "policy_sha256": "00550899962c22dbb5153ad651295e9520656656a637af96f180e1c0a71c0139",
       "verified_before_closure": true
     },
     "native_training_started": false,
     "direction_improvement_measured": false,
     "test_data_used": false,
-    "role": "Verified original terminal envelope for144synthetic source/state tests; not genuine model qualification."
+    "role": "Verified original terminal envelope for68synthetic B16route/oldB2guard tests; not genuine model qualification."
   },
   "trend_event_numeric_source_128": {
     "status": "COMPLETE_PASS",
@@ -36867,7 +36867,7 @@
     }
   },
   "direction_bps_genuine_source": {
-    "status": "SOURCE_PREPARED_FROZEN_FOR_SYNTHETIC",
+    "status": "QUALIFIED_SYNTHETIC_ONLY",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_QUALIFICATION_SOURCE_DESIGN_001.json",
       "sha256": "a374d33275545127332b053aa3dced0430711951617288cca3419afa5b844c11"
@@ -36884,22 +36884,26 @@
     "test_repair_admission": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_TEST_REPAIR_ADMISSION_002.json",
       "sha256": "6a36e4097edc1135ba1ed23c6c37731fa3e5c57ec6a9f5b98d9535fcd38d6e29"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_ROOT_REVIEW_002.json",
+      "sha256": "21bab62310627532836074845a50bec807bb0255f5775e9c19ef6268f5cd2aae"
     }
   },
   "direction_bps_genuine_route_synthetic": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_PLAN_002.json",
       "sha256": "2b647bf386648fdd51e3ae7b1cbd10afdb6026d22a089e7a6da5225c9ccc2160"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "saved_payload_reads_authorized": false,
     "genuine_fits_authorized": false,
     "native_forwards_authorized": false,
-    "synthetic_optimizer_steps_authorized": true,
+    "synthetic_optimizer_steps_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "test_data_used": false,
     "prior_attempts": [
@@ -36917,6 +36921,14 @@
         "completed_invocations": 0,
         "relaunch_allowed": false
       }
-    ]
+    ],
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_ROOT_REVIEW_002.json",
+      "sha256": "21bab62310627532836074845a50bec807bb0255f5775e9c19ef6268f5cd2aae"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_GENUINE_ROUTE_SYNTHETIC_VERIFIED_TERMINAL_002.json",
+      "sha256": "5fd51cf25a57be3e568405adcc8c75dde2eac5f707ee93c1f30d7502b79f2ade"
+    }
   }
 }
