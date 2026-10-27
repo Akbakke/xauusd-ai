@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_NATIVE_0U_CAMPAIGN_METADATA_INSPECTED_EXECUTION_CLOSED",
+    "status": "COMPACT_NATIVE_0U_TIMING256_ONE_SHOT_ADMITTED_NOT_LAUNCHED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "independent_direction_0u_timing256_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Prepare fresh exact timing256 one-shot admission and campaign bound to the resulting clean committed source. Inspect final bindings; verify machine-wide idle and preserve all task owners before any scheduled task or reboot. No additional training or input expansion.",
+    "next_action": "Build and inspect the final fresh campaign bound to this committed policy, current source and current boot; prove machine-wide idle and use only the unique independent scheduled task. No training, extra features, part3 or trading is admitted.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -38062,5 +38062,53 @@
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "test_control_authorized": false
+  },
+  "independent_direction_0u_timing256_20261027": {
+    "status": "ADMITTED",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_RECIPE_001.json",
+      "sha256": "005b26ad2e31a5f94ce8edaf9de6435414452d55770452516d1d467d022dbd34"
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_ADMISSION_001.json",
+      "sha256": "980bc5bbad573dd47a8186a3e17320d9b1d8fe8a15ad78f289639347d5d6e4d4"
+    },
+    "unit": "own0U_prefix_timing256",
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_001_RUNTIME",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forwards_authorized": true,
+    "gradient_reverse_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "genuine_predictor_fit_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "required_qualification": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "987ed6dc911162f9b12003004fd65bfa102d4fd18fffe4296f0f8a9b263732a3"
+    },
+    "required_recipe_preflight": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_RECIPE_METADATA_REVIEW_001.json",
+      "sha256": "264be1dae28f0d02ce85329a928054b2ca8d9489c36124fea774c78585bb55ed"
+    },
+    "required_campaign_rehearsal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_INSPECT_ROOT_REVIEW_001.json",
+      "sha256": "2896c0f42a42167413eda948547ea5cb4025e282b031eb8c8aace2cae9ccb0a2"
+    }
   }
 }

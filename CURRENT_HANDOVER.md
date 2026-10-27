@@ -162,7 +162,9 @@ En egen timing256-kampanje er inspisert med eksisterende F-kontroller. Alle
 bindinger besto og svaret var REBOOT_REQUIRED. Ingen payload, modell, CUDA,
 oppgaveinstallasjon eller reboot. Dette var metadata-repetisjon på daværende
 HEAD; etter ny admisjon må hele kampanjen bindes og inspiseres mot nytt HEAD.
-Selve forward-kjøringen krever ny enhetsadmisjon og alle maskinvid-ledighetsvakter. Bare fersk egen
+Én egen 256-raders 0U-forward er nå admittért uten treningssteg. Endelig
+kampanje må bindes og inspiseres mot denne policyen og nytt HEAD; før eventuelt
+oppstartsoppsett/omstart må maskinvid ledighet og egne task-eiere bevises. Bare fersk egen
 256-paritet og deretter manglende TRAIN-del [31744,47602) er planlagt. Tidligere
 fullførte deler gjenbrukes. Kompakt input, GC, mål, 267-statistikk og permutasjon
 beholdes. Ingen nye indikatorer, ekstra treningspass, TEST/CONTROL, Exit, broker,
