@@ -84,6 +84,11 @@ negative korrigerte parvise intervaller.118249TRAINlokale2622felt/masker
 hadde eksakt paritet. Full numerisk MTF-paritet er fortsatt åpen.
 GC-flow sterk samtidigGC,svak senereXAU i avgrenset analyse.
 Endrede vekter, gradienter og lavereTRAINloss beviser ikke nyttig læring.
+I C003 falt samlet varians mellom foreldre rett før native276-retningshodet
+med ca.98% på tre faste TRAIN-paneler fra initial til slutt. Både faktisk
+informasjonstap og årsak er ubevist; konteksten mates også direkte i joint-kilden.
+Treningsprefikset var tidsavgrenset, men presentasjonsrekkefølgen var en fast
+MT19937-permutasjon, ikke kronologisk. Se docs/DIRECTION_REPRESENTATION_GEOMETRY_REVIEW_20261027.json.
 
 M5 Entry: prisforløp minutter–timer, litenMAE før førsteMFE, begge retninger/FLAT.
 Åtte spesialistfamilier og D1/makro, kausale avsluttede M5/M15/H1/H4/D1 beholdes.

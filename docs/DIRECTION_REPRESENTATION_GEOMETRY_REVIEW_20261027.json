@@ -1,0 +1,387 @@
+{
+  "classification": {
+    "deduced": "At terminal, recorded pre/post GELU RMS implies about 76% or more of preactivation squared energy is on the negative side in ideal real arithmetic.",
+    "measured": "Reduced between-parent variance at the actual sign-head input on all three fixed TRAIN panels; same parents across four snapshots.",
+    "plausible": "The shared fusion/normalization/GELU path may suppress useful sample-specific signals while BCE rewards near-prior probabilities.",
+    "unproven": "No evidence here establishes causal loss of forward signal, which features matter, generalized predictive improvement, GELU gradient saturation, or whether extra epochs help."
+  },
+  "counterevidence": [
+    "Final frozen hidden representations still support a stronger TRAIN-fitted linear readout; its later AUC gain is unsupported and logloss worsened.",
+    "The direct mtf_repr and global_context_h inputs bypass the measured cross_tf_out correction before joint normalization; a low correction variance does not prove timeframes were absent.",
+    "A low variance trace can reflect a change of coordinates or scaling; per-class information, downstream weights and paired out-of-sample probes matter."
+  ],
+  "economic_edge_qualified": false,
+  "fixed_terminal_readout_5m": {
+    "later_native_auc": 0.5030210874582608,
+    "later_native_logloss": 0.6935141662580235,
+    "later_refit_auc": 0.5033602268276314,
+    "later_refit_logloss": 0.7000815001185994,
+    "paired_99pct_auc_intervals": [
+      {
+        "alpha": 0.01,
+        "high": 0.01085883971734649,
+        "low": -0.009622866533856852,
+        "replicates": 4000,
+        "scheme": "UTC_WEEK_MONDAY"
+      },
+      {
+        "alpha": 0.01,
+        "high": 0.010879058131460475,
+        "low": -0.01049711610309393,
+        "replicates": 4000,
+        "scheme": "UTC_DAY"
+      }
+    ],
+    "prefix_native_auc": 0.515888213111177,
+    "prefix_refit_auc": 0.5394211193126529
+  },
+  "frozen_terminal_readout": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FROZEN_READOUT_RESULT_20261027.json",
+    "sha256": "d52af9c879e7fe2f3bd99f4f841b1b33ee2c7bb528d639eeb433d1e8aa807ff8"
+  },
+  "head_weight_frobenius_norms": {
+    "own0U": 0.9826865373939916,
+    "terminal_u2976": 0.9294555995173461,
+    "u1536": 0.9459320368235038,
+    "u256": 0.9674959974645473
+  },
+  "ideal_gelu_energy_bound": {
+    "caveats": [
+      "It bounds squared activation energy, not percentage of negative coordinates or trades.",
+      "Float32 numerical error is not independently bounded.",
+      "Negative inputs need not all be saturated, and a small scale alone does not prove information loss."
+    ],
+    "explanation": "For x>=0, GELU(x)=x*Phi(x)>=x/2. On the same hooked inputs and outputs, sum(x^2 for x<0)/sum(x^2) is at least max(0,1-4*(RMS(GELU(x))/RMS(x))^2). Reported bound is an ideal real-arithmetic implication of the recorded aggregate moments."
+  },
+  "model_source_changed": false,
+  "new_model_forwards": 0,
+  "next_decisive_check": {
+    "causal_followup": "Only if the diagnostic identifies a concrete suppression mechanism, compare the same fixed regularized linear readout on matched initial and terminal representations, with identical prefix fits and later rows. Reuse the completed terminal readout and proper paired time-block uncertainty.",
+    "execution_authorized": false,
+    "minimum_diagnostic": "On fixed predeclared same-parent panels, compare initial/terminal pre-GELU and post-GELU sign distributions, derivative magnitudes and centered variation; include a separately fixed later development panel. Zero optimizer steps, no checkpoint selection or TEST.",
+    "question": "Does the terminal joint representation suppress predictive input information versus its own initial representation, or is forward signal weak even before this stage?",
+    "stops": "No inference from variance alone; no retuning after seeing later outcomes. Any full initial-representation extraction first requires the previously specified bounded timing/parity check, with B16 and all existing guards."
+  },
+  "observed_utc": "2026-10-27T17:12:49.085879+00:00",
+  "optimizer_steps": 0,
+  "original_checkpoint_diagnostic": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/RESULT.json",
+    "sha256": "1fd3ad279e5bdfcdc39062eb5fc921b70f8b1d593a0c88bf1075a8d89c009077"
+  },
+  "panel_series": {
+    "training_order_early": [
+      {
+        "auc5": 0.44525146484375,
+        "checkpoint": "own0U",
+        "decision_max_ns": 1735643400000000000,
+        "decision_min_ns": 1714567500000000000,
+        "decision_ns_sha256": "038fd2d40b745005a9d89966e05cebb5d33ebb5835caa117048e1dbe7d242109",
+        "family_context_variance_trace": 6.742865055476164,
+        "fuse_variance_trace": 45.97202774938667,
+        "head_input_rms": 0.815904828009041,
+        "head_input_variance_trace": 22.792047216138137,
+        "head_to_pre_gelu_rms_ratio": 0.6979170858005446,
+        "logloss5": 0.7321194394164685,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.0,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/own0U__training_order_early.json",
+          "sha256": "b188abb633767b9961c73464240949bd81e7cd0eddd89df179bb679d4794d1ad"
+        },
+        "parent_rows_sha256": "351f9257dc41803103aea7859c8526fcda4f9705d83585c300d82794de9c5e75",
+        "pre_gelu_rms": 1.169056961935756,
+        "pre_gelu_variance_trace": 54.00555682278442,
+        "prior_logloss5": 0.6933101429333555,
+        "seen_rows": 0
+      },
+      {
+        "auc5": 0.5465087890625,
+        "checkpoint": "u256",
+        "decision_max_ns": 1735643400000000000,
+        "decision_min_ns": 1714567500000000000,
+        "decision_ns_sha256": "038fd2d40b745005a9d89966e05cebb5d33ebb5835caa117048e1dbe7d242109",
+        "family_context_variance_trace": 4.6978265851394765,
+        "fuse_variance_trace": 5.209230804968287,
+        "head_input_rms": 0.6082892751786788,
+        "head_input_variance_trace": 0.913225298897844,
+        "head_to_pre_gelu_rms_ratio": 0.4253326247366301,
+        "logloss5": 0.6928624181826264,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.27636863333859607,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/u256__training_order_early.json",
+          "sha256": "f2b4a7367bb900abf23a750c0495c5365867d5abc4573f656e5787d31eeb1844"
+        },
+        "parent_rows_sha256": "351f9257dc41803103aea7859c8526fcda4f9705d83585c300d82794de9c5e75",
+        "pre_gelu_rms": 1.4301495812961378,
+        "pre_gelu_variance_trace": 5.955043369401268,
+        "prior_logloss5": 0.6933101429333555,
+        "seen_rows": 256
+      },
+      {
+        "auc5": 0.49072265625,
+        "checkpoint": "u1536",
+        "decision_max_ns": 1735643400000000000,
+        "decision_min_ns": 1714567500000000000,
+        "decision_ns_sha256": "038fd2d40b745005a9d89966e05cebb5d33ebb5835caa117048e1dbe7d242109",
+        "family_context_variance_trace": 4.7953639760158255,
+        "fuse_variance_trace": 1.603256954422484,
+        "head_input_rms": 0.5385320290547835,
+        "head_input_variance_trace": 0.17996240300692504,
+        "head_to_pre_gelu_rms_ratio": 0.31615397649067767,
+        "logloss5": 0.6964957387626429,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.6001866525965281,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/u1536__training_order_early.json",
+          "sha256": "f610dbb6c05483378d3f49d63c847ca79460e5e191dfa366fbcfc6081b3cf0dc"
+        },
+        "parent_rows_sha256": "351f9257dc41803103aea7859c8526fcda4f9705d83585c300d82794de9c5e75",
+        "pre_gelu_rms": 1.7033852777450769,
+        "pre_gelu_variance_trace": 2.3317890672469614,
+        "prior_logloss5": 0.6933101429333555,
+        "seen_rows": 256
+      },
+      {
+        "auc5": 0.498046875,
+        "checkpoint": "terminal_u2976",
+        "decision_max_ns": 1735643400000000000,
+        "decision_min_ns": 1714567500000000000,
+        "decision_ns_sha256": "038fd2d40b745005a9d89966e05cebb5d33ebb5835caa117048e1dbe7d242109",
+        "family_context_variance_trace": 11.588236913955662,
+        "fuse_variance_fraction_of_initial": 0.03495563353046928,
+        "fuse_variance_trace": 1.6069813546601248,
+        "head_input_rms": 0.4554814733716351,
+        "head_input_variance_trace": 0.37392223373333583,
+        "head_to_pre_gelu_rms_ratio": 0.24413754305584914,
+        "head_variance_fraction_of_initial": 0.0164058204244407,
+        "logloss5": 0.6934061043755576,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.7615874402826136,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/terminal_u2976__training_order_early.json",
+          "sha256": "833dae435fefe875461a55869803043d1d9367cfbc77686e09056b4171b047c4"
+        },
+        "parent_rows_sha256": "351f9257dc41803103aea7859c8526fcda4f9705d83585c300d82794de9c5e75",
+        "pre_gelu_rms": 1.8656756665542369,
+        "pre_gelu_variance_trace": 3.5285546990198946,
+        "prior_logloss5": 0.6933101429333555,
+        "seen_rows": 256
+      }
+    ],
+    "training_order_late": [
+      {
+        "auc5": 0.5193322162229256,
+        "checkpoint": "own0U",
+        "decision_max_ns": 1735620900000000000,
+        "decision_min_ns": 1714602600000000000,
+        "decision_ns_sha256": "9e696cdd2f8bd6e76f18bf8f5f5ff9f300eb1a969193e6d23efc9738717b382f",
+        "family_context_variance_trace": 6.730259281658657,
+        "fuse_variance_trace": 45.82251068619968,
+        "head_input_rms": 0.8122106130617521,
+        "head_input_variance_trace": 22.61357492951874,
+        "head_to_pre_gelu_rms_ratio": 0.6951473059760492,
+        "logloss5": 0.7149945314614621,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.0,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/own0U__training_order_late.json",
+          "sha256": "15e9770fb3f9908abf931eb09f5b31240121c681754331091cf19c3ecad58d4a"
+        },
+        "parent_rows_sha256": "2d6386969835a1d43464dfcedb16598233d00e9638160a68c883c577c33fc221",
+        "pre_gelu_rms": 1.1684007203643485,
+        "pre_gelu_variance_trace": 54.38538104207829,
+        "prior_logloss5": 0.692741516906205,
+        "seen_rows": 0
+      },
+      {
+        "auc5": 0.494073108670018,
+        "checkpoint": "u256",
+        "decision_max_ns": 1735620900000000000,
+        "decision_min_ns": 1714602600000000000,
+        "decision_ns_sha256": "9e696cdd2f8bd6e76f18bf8f5f5ff9f300eb1a969193e6d23efc9738717b382f",
+        "family_context_variance_trace": 4.415977313063859,
+        "fuse_variance_trace": 4.933239680918487,
+        "head_input_rms": 0.6075693142120986,
+        "head_input_variance_trace": 0.8993833903434132,
+        "head_to_pre_gelu_rms_ratio": 0.42517363159900756,
+        "logloss5": 0.6929239932383908,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.2769095319716456,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/u256__training_order_late.json",
+          "sha256": "76905232cbec673448478a972522e422da64ef8b2652528732ff7d76e2c897fd"
+        },
+        "parent_rows_sha256": "2d6386969835a1d43464dfcedb16598233d00e9638160a68c883c577c33fc221",
+        "pre_gelu_rms": 1.428991049908554,
+        "pre_gelu_variance_trace": 5.62757245664057,
+        "prior_logloss5": 0.692741516906205,
+        "seen_rows": 0
+      },
+      {
+        "auc5": 0.44982312418544035,
+        "checkpoint": "u1536",
+        "decision_max_ns": 1735620900000000000,
+        "decision_min_ns": 1714602600000000000,
+        "decision_ns_sha256": "9e696cdd2f8bd6e76f18bf8f5f5ff9f300eb1a969193e6d23efc9738717b382f",
+        "family_context_variance_trace": 4.190078142179115,
+        "fuse_variance_trace": 1.5644740214722352,
+        "head_input_rms": 0.5384946403670695,
+        "head_input_variance_trace": 0.17239876875756488,
+        "head_to_pre_gelu_rms_ratio": 0.3160638875456401,
+        "logloss5": 0.6952391231918601,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.600414475958148,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/u1536__training_order_late.json",
+          "sha256": "daa8f401ec061096a137297f6f2cb210ba770ae5cd779db4c045792a2cc4373a"
+        },
+        "parent_rows_sha256": "2d6386969835a1d43464dfcedb16598233d00e9638160a68c883c577c33fc221",
+        "pre_gelu_rms": 1.7037525056996907,
+        "pre_gelu_variance_trace": 2.1487815054161636,
+        "prior_logloss5": 0.692741516906205,
+        "seen_rows": 0
+      },
+      {
+        "auc5": 0.4552224911562093,
+        "checkpoint": "terminal_u2976",
+        "decision_max_ns": 1735620900000000000,
+        "decision_min_ns": 1714602600000000000,
+        "decision_ns_sha256": "9e696cdd2f8bd6e76f18bf8f5f5ff9f300eb1a969193e6d23efc9738717b382f",
+        "family_context_variance_trace": 11.95163777583413,
+        "fuse_variance_fraction_of_initial": 0.034949681932466274,
+        "fuse_variance_trace": 1.6014821738297156,
+        "head_input_rms": 0.45487425169619106,
+        "head_input_variance_trace": 0.4182567088635808,
+        "head_to_pre_gelu_rms_ratio": 0.2437906473199167,
+        "head_variance_fraction_of_initial": 0.01849582430762008,
+        "logloss5": 0.6943804070293562,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.762264481117344,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/terminal_u2976__training_order_late.json",
+          "sha256": "cc3989778c5b0e4c12f442a9b5eaa8b83fb7061191b9bbc4c1624d9bf32398d8"
+        },
+        "parent_rows_sha256": "2d6386969835a1d43464dfcedb16598233d00e9638160a68c883c577c33fc221",
+        "pre_gelu_rms": 1.8658396320646287,
+        "pre_gelu_variance_trace": 3.631684878106613,
+        "prior_logloss5": 0.692741516906205,
+        "seen_rows": 256
+      }
+    ],
+    "training_order_middle": [
+      {
+        "auc5": 0.49444961240310076,
+        "checkpoint": "own0U",
+        "decision_max_ns": 1735658700000000000,
+        "decision_min_ns": 1714593300000000000,
+        "decision_ns_sha256": "850c7f124b5ec3f2ae67853b62c2edfa9b0a84b6aab70a217164479cca83fd37",
+        "family_context_variance_trace": 6.531879182550138,
+        "fuse_variance_trace": 44.98316442566549,
+        "head_input_rms": 0.8086003504770681,
+        "head_input_variance_trace": 21.714567059524,
+        "head_to_pre_gelu_rms_ratio": 0.6985335592872748,
+        "logloss5": 0.7183497486250604,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.0,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/own0U__training_order_middle.json",
+          "sha256": "1e7965e08b46f7f7e07d3c75f50dcd871976f5df1197c2a656576de7845ec34b"
+        },
+        "parent_rows_sha256": "b02078df9f9d2b2e8a85010b242870b3c8461e0c787477e2394b0a827850a151",
+        "pre_gelu_rms": 1.1575683655085895,
+        "pre_gelu_variance_trace": 51.91867510050187,
+        "prior_logloss5": 0.6930258299197802,
+        "seen_rows": 0
+      },
+      {
+        "auc5": 0.5253953488372093,
+        "checkpoint": "u256",
+        "decision_max_ns": 1735658700000000000,
+        "decision_min_ns": 1714593300000000000,
+        "decision_ns_sha256": "850c7f124b5ec3f2ae67853b62c2edfa9b0a84b6aab70a217164479cca83fd37",
+        "family_context_variance_trace": 4.586343190901946,
+        "fuse_variance_trace": 4.845930950636943,
+        "head_input_rms": 0.6085131404866174,
+        "head_input_variance_trace": 0.8800148539889022,
+        "head_to_pre_gelu_rms_ratio": 0.4254185684416618,
+        "logloss5": 0.6924195917646084,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.2760761665001884,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/u256__training_order_middle.json",
+          "sha256": "aefbcd2da615c59d49b0845e0cd2ec8bac8d12b64f0c10d867d7966770170122"
+        },
+        "parent_rows_sha256": "b02078df9f9d2b2e8a85010b242870b3c8461e0c787477e2394b0a827850a151",
+        "pre_gelu_rms": 1.4303868839473648,
+        "pre_gelu_variance_trace": 5.560921042176513,
+        "prior_logloss5": 0.6930258299197802,
+        "seen_rows": 0
+      },
+      {
+        "auc5": 0.5826356589147287,
+        "checkpoint": "u1536",
+        "decision_max_ns": 1735658700000000000,
+        "decision_min_ns": 1714593300000000000,
+        "decision_ns_sha256": "850c7f124b5ec3f2ae67853b62c2edfa9b0a84b6aab70a217164479cca83fd37",
+        "family_context_variance_trace": 4.702535534421066,
+        "fuse_variance_trace": 1.5277437715735573,
+        "head_input_rms": 0.5397259238454427,
+        "head_input_variance_trace": 0.16033899682541458,
+        "head_to_pre_gelu_rms_ratio": 0.31665086335379694,
+        "logloss5": 0.6936622567898552,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.5989289229491801,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/u1536__training_order_middle.json",
+          "sha256": "8aa3883075e22288c4ac17fad00749b48c977069eb32e90387d5a03f7bd8e0cc"
+        },
+        "parent_rows_sha256": "b02078df9f9d2b2e8a85010b242870b3c8461e0c787477e2394b0a827850a151",
+        "pre_gelu_rms": 1.7044827167971492,
+        "pre_gelu_variance_trace": 2.1773970844122585,
+        "prior_logloss5": 0.6930258299197802,
+        "seen_rows": 256
+      },
+      {
+        "auc5": 0.5288062015503876,
+        "checkpoint": "terminal_u2976",
+        "decision_max_ns": 1735658700000000000,
+        "decision_min_ns": 1714593300000000000,
+        "decision_ns_sha256": "850c7f124b5ec3f2ae67853b62c2edfa9b0a84b6aab70a217164479cca83fd37",
+        "family_context_variance_trace": 11.529971504463582,
+        "fuse_variance_fraction_of_initial": 0.03481782765646723,
+        "fuse_variance_trace": 1.5662160664153488,
+        "head_input_rms": 0.45454183716148633,
+        "head_input_variance_trace": 0.3300931542414744,
+        "head_to_pre_gelu_rms_ratio": 0.24353433777040132,
+        "head_variance_fraction_of_initial": 0.015201461458412805,
+        "logloss5": 0.6930580242620259,
+        "negative_preactivation_energy_lower_bound_ideal_gelu": 0.7627641053069283,
+        "panel_ref": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/terminal_u2976__training_order_middle.json",
+          "sha256": "fedde11a925ec8410d7eaafb8adaa875d58440b2700c174b79682707375dd518"
+        },
+        "parent_rows_sha256": "b02078df9f9d2b2e8a85010b242870b3c8461e0c787477e2394b0a827850a151",
+        "pre_gelu_rms": 1.866438389439842,
+        "pre_gelu_variance_trace": 3.3405898328199,
+        "prior_logloss5": 0.6930258299197802,
+        "seen_rows": 256
+      }
+    ]
+  },
+  "parameter_geometry": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/PARAMETER_GEOMETRY.json",
+    "sha256": "51e3601e2a39033bff192cb536ed5ca238c752bb5e292796c96bb43f8f00c963"
+  },
+  "presentation_order": "Fixed RandomState(MT19937) permutation of the dated training prefix; training and later evaluation remain chronologically separated. Early/middle/late refer to presentation positions, not chronological market periods.",
+  "schema_version": "gx1_direction_representation_geometry_review_v1",
+  "scope": "Native276 sign-only first prefix; three fixed shuffled-order TRAIN panels of 256 parents, four existing checkpoints. Not the newer signed-bps model or a later test.",
+  "source_contracts": [
+    {
+      "line": 151,
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_native_direction_checkpoints_v1.py",
+      "sha256": "14409536a530e28a58bdf2a68cc08bf08cd6b2161fe645dfca9f549e6a651dd0"
+    },
+    {
+      "line": 4222,
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+      "sha256": "3e5cea0ef2b77de3384e0779f93ba57ea36743f8dd7b2a392edd39a490606bee"
+    },
+    {
+      "baseline_git_commit": "e7e7d9d2ea12a18e0eff71be1572d9ebda13b961",
+      "line": 120,
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py"
+    }
+  ],
+  "status": "OBSERVATIONAL_REVIEW_NO_NEW_RUN",
+  "test_data_used": false
+}
