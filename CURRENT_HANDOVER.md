@@ -519,3 +519,8 @@ En konkret scopekontroll fant at kampanjekontrollørens metadataoperasjoner
 hasher bundne checkpointfiler utenfor capped audit. En liten valgfri capped
 kontrollvei kvalifiseres før videreføring; vanlig installasjonsvei og alle
 øvrige vakter beholdes. Ingen modell eller trening er åpnet.
+
+Den valgfrie capped kontrollveien er implementert. 18 Windows-controller-
+kontraktstester, PowerShell-syntaks og et faktisk CPU-capped parserstopp
+bestod uten modell eller payload. Opprinnelig installasjon er uendret uten
+overstyring; den nye veien må bindes eksplisitt ved neste kampanje.

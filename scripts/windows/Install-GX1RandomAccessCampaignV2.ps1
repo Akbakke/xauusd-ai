@@ -8,6 +8,7 @@ param(
     [string]$LinuxUser = 'andre2',
     [string]$TaskName = 'GX1RandomAccessCampaignV2',
     [string]$CampaignControlRepo = $SourceRepo,
+    [string]$CampaignPython = '',
     [switch]$UseNativeClockProfile
 )
 Set-StrictMode -Version Latest
@@ -35,7 +36,7 @@ if ($null -ne $legacyWslTask) {
         throw 'Legacy WSL SSH Bootstrap task could not be disabled'
     }
 }
-$arguments = @(
+$argumentParts = @(
     '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', ('"' + $launcher + '"'),
     '-PlanJson', ('"' + $PlanJson + '"'),
     '-PlanFileSha256', $PlanFileSha256,
@@ -45,7 +46,14 @@ $arguments = @(
     '-ExpectedControllerSha256', $controllerSha256,
     '-Distro', ('"' + $Distro + '"'),
     '-LinuxUser', ('"' + $LinuxUser + '"')
-) -join ' '
+)
+if ($CampaignPython -cne '') {
+    if ($CampaignPython -cne '/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_campaign_control.sh') {
+        throw 'Campaign Python override must be the canonical capped campaign-control wrapper'
+    }
+    $argumentParts += @('-Python', ('"' + $CampaignPython + '"'))
+}
+$arguments = $argumentParts -join ' '
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument $arguments
 $trigger = New-ScheduledTaskTrigger -AtStartup
 $trigger.Delay = 'PT60S'

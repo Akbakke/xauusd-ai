@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTROLLER = ROOT / "scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1"
@@ -272,3 +273,20 @@ def test_metadata_deadline_is_bounded_with_native_caps_retained() -> None:
     assert source.count("-TimeoutMilliseconds 900000") == 2
     assert source.index("'record'") < source.index("$after = Invoke-Gx1Json")
     assert "metadata_deadline_parameter_binding=PASS" in HARDENING_TEST.read_text(encoding="utf-8")
+
+
+def test_capped_control_wrapper_rejects_other_commands_before_execution() -> None:
+    wrapper = ROOT / "scripts/gx1_capped_campaign_control.sh"
+    for args in ([], ["-m", "os", "inspect"],
+                 ["-m", "gx1.scripts.local_random_access_campaign_v2", "confirm-reboot"]):
+        result = subprocess.run([str(wrapper), *args], capture_output=True, text=True, check=False)
+        assert result.returncode == 64
+        assert result.stdout == ""
+
+
+def test_installer_opt_in_keeps_the_default_and_binds_only_the_capped_wrapper() -> None:
+    source = INSTALLER.read_text(encoding="utf-8")
+    assert "[string]$CampaignPython = ''" in source
+    assert "if ($CampaignPython -cne '')" in source
+    assert "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_campaign_control.sh" in source
+    assert "$argumentParts += @('-Python'" in source
