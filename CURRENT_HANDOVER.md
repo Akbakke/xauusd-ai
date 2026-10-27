@@ -339,13 +339,19 @@ Den uavhengige M1-/M5-kontrollen er fullført og konsumert uten modell,
 fit, nye indikatorer, CONTROL, TEST, Exit eller broker. Ingen bedre
 rangering er dokumentert for denne strenge delpopulasjonen.
 
-En separat utforskende M1-/M5-kontroll er admittért for volumgyldige
-femminuttsbøtter, også når ukjent side forekommer. Kjent kjøp/salg telles
-for seg; ukjente registreringer rapporteres og tilordnes aldri retning.
-Fem M1-tellinger må matche M5 eksakt, og tidligere streng delgruppe må
-reproduseres. Samme gjenbrukte fold etter kjent delgrupperesultat; ingen fit,
-modellendring, nye modellindikatorer, CONTROL, TEST, Exit eller broker.
-Status `independent_direction_last_m1_trade_count_volume_domain_20261027`.
+Utforskende volumgyldig M1-/M5-kontroll er fullført: 16959/17197
+retningsegnede rader, AUC .508177 for M5-fortegn og .507971 med siste M1
+som fast rangeringsforfining; differanse -.000206. Korrigerte parrede dag-/
+ukeintervaller inkluderer null. 14429 rader har ukjente registreringer i M5,
+7912 i siste M1, og åtte siste minutter har ingen kjent side. Ukjent er aldri
+tilordnet kjøp/salg. Fem M1-tellinger matcher M5, og tidligere 2530-raders
+strenge punktresultat er reprodusert. Etteranalyse på samme gjenbrukte fold,
+ikke M1-OFI, volumdelta, modellablasjon, ny generalisering eller økonomi.
+Aritmetikk-/kildekontroll uten uavhengig rådatareplay:
+`LAST_M1_TRADE_COUNT_VOLUME_DOMAIN_ROOT_REVIEW_001.json` SHA-256
+6921ae3923f947ee71380b0995d5f999d9a7cca3cf92dcf5d3fa10b18b3c59cf.
+Engangsscope er konsumert; ingen fit, modellendring, nye modellindikatorer,
+CONTROL, TEST, Exit eller broker.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat

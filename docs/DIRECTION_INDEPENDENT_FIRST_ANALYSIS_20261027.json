@@ -126,6 +126,14 @@
     "last_m1_trade_count_verified_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VERIFIED_ROOT_REVIEW_001.json",
       "sha256": "55b14e74936b740988ba6047647bf9d10a69a0ce796e178980d1273ca3cde405"
+    },
+    "last_m1_trade_count_volume_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_DOMAIN_RESULT_001.json",
+      "sha256": "033e98e52bdd455eade3b899772a483796dd92c0c3736341dadc0d5788e11167"
+    },
+    "last_m1_trade_count_volume_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_DOMAIN_ROOT_REVIEW_001.json",
+      "sha256": "6921ae3923f947ee71380b0995d5f999d9a7cca3cf92dcf5d3fa10b18b3c59cf"
     }
   },
   "execution_authorized_by_report": false,
@@ -303,6 +311,16 @@
       ],
       "finding": "On 2530 strictly qualified later-development rows, a fixed last-closed-M1 known-side trade-record sign refinement changed AUC from 0.517398 for the same M5 count sign to 0.514226, a difference of -0.003172. Corrected paired day/week intervals both include zero. The strict five-M1 counts match the existing M5 inputs exactly on 2562 strict rows.",
       "implication": "No added ranking value is documented for this one predefined trade-record-count refinement. The eligible sample covers only 2530 of 17197 original eligible rows; no inference applies to excluded/unknown observations, other fresh GC signals, M1 OFI, signed volume or the trained network. The same reused fold is not generalization or economic edge. Independent joins, point values and every one of the 4096 physically duplicated day/week block resamples matched on the same data; this is not an independent future period."
+    },
+    {
+      "id": "F19",
+      "type": "EXPLORATORY_LAST_M1_WITH_UNKNOWN_SIDE_RETAINED",
+      "evidence": [
+        "last_m1_trade_count_volume_result",
+        "last_m1_trade_count_volume_review"
+      ],
+      "finding": "On 16959 of 17197 direction-eligible rows in one reused fold, strict volume-valid M5 source bars retain known buy/sell record counts while separately reporting unknown side. The fixed M5 count-sign AUC is 0.508177, and its predetermined last-M1 sign refinement is 0.507971 (difference -0.000206); corrected paired day/week intervals include zero. Unknown-side records appear in 14429 qualified M5 bars and 7912 last M1 bars; 8 last minutes have no known-side records.",
+      "implication": "No incremental value is documented for this one sign refinement; unknown records were not assigned a direction. This broader-domain follow-up was declared after the signed-valid result and remains exploratory on the same reused fold. It does not evaluate M1 OFI, signed volume, actual quote age, native-model ablation, later generalization or economics."
     }
   ],
   "main_cause_established": false,
@@ -333,7 +351,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:19:03.228090+00:00",
+  "updated_utc": "2026-10-27T21:22:29.074322+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,
