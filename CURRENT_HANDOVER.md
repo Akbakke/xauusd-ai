@@ -158,17 +158,20 @@ mot eksisterende F-kontrakt og 57 faktiske kildehashes uten payload eller modell
 `NATIVE_0U_RECIPE_METADATA_REVIEW_001.json` binder resultatet. Dette er ikke en
 måling av 0U-paritet og åpner ikke native kjøring.
 
-En egen timing256-kampanje er inspisert med eksisterende F-kontroller. Alle
-bindinger besto og svaret var REBOOT_REQUIRED. Ingen payload, modell, CUDA,
-oppgaveinstallasjon eller reboot. Dette var metadata-repetisjon på daværende
-HEAD; etter ny admisjon må hele kampanjen bindes og inspiseres mot nytt HEAD.
-Én egen 256-raders 0U-forward er nå admittért uten treningssteg. Endelig
-kampanje må bindes og inspiseres mot denne policyen og nytt HEAD; før eventuelt
-oppstartsoppsett/omstart må maskinvid ledighet og egne task-eiere bevises. Bare fersk egen
-256-paritet og deretter manglende TRAIN-del [31744,47602) er planlagt. Tidligere
-fullførte deler gjenbrukes. Kompakt input, GC, mål, 267-statistikk og permutasjon
-beholdes. Ingen nye indikatorer, ekstra treningspass, TEST/CONTROL, Exit, broker,
-ordre, spending eller promotion er åpnet. Målet er aktivt.
+Egen 0U-timing256 er fullført på ny fysisk boot med bestått maskinvakt.
+Uavhengig bytekontroll mot originale 256 TRAIN-foreldre besto på alle 16
+opprinnelige felt; 16 fremoverkall, null optimizersteg og null reverse.
+Kvittering og bevis finnes i `NATIVE_0U_TIMING256_001/ACTUAL_ROOT_REVIEW.json`
+(SHA-256 1cd4148e6db49cdbfd792938225126133f2cc2d3c3dd8747c6b2d05808b15d01).
+Dette bekrefter målekjeden, ikke læring eller edge. Oppstartsoppgaven er deaktivert.
+
+Én egen 0U-måling for manglende TRAIN-del [31744,47602) er admittért: 15858
+foreldre, 992 fremoverkall, null oppdateringer/reverse; tidligere ferdige deler
+gjenbrukes. Ny kampanje skal bindes til HEAD/policy og inspiseres før eventuell
+ny fysisk Windows-boot ved dokumentert maskinvid ledighet. Kompakt input, GC,
+mål, 267-statistikk og permutasjon beholdes. Ingen nye indikatorer, ekstra
+treningspass, TEST/CONTROL, Exit, broker, ordre, spending eller promotion er åpnet.
+Målet er aktivt.
 
 ## Bps-hodets separate retningsrangering
 

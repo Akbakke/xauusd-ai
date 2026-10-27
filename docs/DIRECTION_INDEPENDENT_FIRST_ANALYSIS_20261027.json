@@ -38,6 +38,10 @@
     "signed_bps_primary": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
+    },
+    "own_0u_timing_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "1cd4148e6db49cdbfd792938225126133f2cc2d3c3dd8747c6b2d05808b15d01"
     }
   },
   "execution_authorized_by_report": false,
@@ -147,5 +151,14 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T18:36:33.866356+00:00"
+  "updated_utc": "2026-10-27T19:14:22.245419+00:00",
+  "zero_update_timing_validation": {
+    "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
+    "rows": 256,
+    "forward_calls": 16,
+    "optimizer_steps": 0,
+    "reverse_calls": 0,
+    "interpretation": "Measurement integrity only; not evidence of training convergence, directional generalization, selected entries, or economic edge.",
+    "next_scope": "Fixed remaining 0U prefix partition, separately admitted; no additional indicators or training."
+  }
 }
