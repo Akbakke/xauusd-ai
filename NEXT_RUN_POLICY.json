@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "CONTINUATION_ZERO_UPDATE_ADMITTED_TRAINING_CLOSED",
+    "status": "CONTINUATION_ZERO_UPDATE_COMPLETE_EXPOSURE_CAMPAIGN_NOT_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "dynamic_m5_direction_continuation_zero_update",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Review and qualify the exact pass-aware state and continuation design; keep training disabled until a newly authorized campaign and all gates exist.",
+    "next_action": "Prepare a fresh exact 1-versus-3-pass campaign using the verified continuation proof and unchanged baseline; keep training disabled until every campaign and hardware gate is satisfied.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -38924,7 +38924,11 @@
       "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "59839028be84d6786d7cdc674cf9f2764234b10b683e83cbf1f084200b7fe8da",
       "tests/test_entry_native_direction_prefix_fit_window_v1.py": "45ce1efb200e48a9073d34257bb88056c7af7319090a2c41495b307f37abad9c"
     },
-    "genuine_qualification_status": "NOT_RUN_SYNTHETIC_METADATA_TRANSITION_REPAIR_QUALIFIED"
+    "genuine_qualification_status": "PASS_ORIGINAL_NATIVE_CONTINUATION_ZERO_UPDATE",
+    "zero_update_proof": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TERMINAL_CONTINUATION_ZERO_UPDATE_PROOF_20261027_001.json",
+      "sha256": "743de80de51229ffb8ace855d288e8a66ea115364b9e9070e00b4e9676242cd7"
+    }
   },
   "independent_direction_last_m1_ofi_sign_refinement_20261027": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -38979,7 +38983,7 @@
     }
   },
   "direction_continuation_zero_update_source_20261027": {
-    "status": "SOURCE_QUALIFIED_SYNTHETIC_ONLY_ZERO_UPDATE_NOT_ADMITTED",
+    "status": "SOURCE_QUALIFIED_GENUINE_ZERO_UPDATE_COMPLETE",
     "purpose": "Add one narrowly bound terminal checkpoint migration and original TRAIN256 prediction parity unit to the existing frozen diagnostic owner.",
     "source_edits_authorized": false,
     "synthetic_tests_authorized": false,
@@ -39019,7 +39023,11 @@
       "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "87315f478b5150779225d7bd8bef5b452e4cc18447b1c297ff3ca188ccf7787f",
       "tests/test_entry_native_direction_prefix_fit_window_v1.py": "45ce1efb200e48a9073d34257bb88056c7af7319090a2c41495b307f37abad9c"
     },
-    "cross_consumer_synthetic_tests_passed": 154
+    "cross_consumer_synthetic_tests_passed": 154,
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TERMINAL_CONTINUATION_ZERO_UPDATE_REVIEW_20261027_001.json",
+      "sha256": "27a44ae633624f3a2cd62c720e82153fad312e3ab790af0cc20856e1b7f2238e"
+    }
   },
   "independent_direction_last_m1_ofi_weight_20261027": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -39075,11 +39083,11 @@
     }
   },
   "dynamic_m5_direction_continuation_zero_update": {
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forwards_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forwards_authorized": false,
     "gradient_reverse_authorized": false,
     "optimizer_steps_authorized": false,
     "training_enabled": false,
@@ -39094,7 +39102,7 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "relaunch_allowed": false,
-    "status": "ADMITTED_NOT_STARTED",
+    "status": "COMPLETE_CONSUMED_ZERO_UPDATE_PARITY_PASS",
     "unit": "terminal_resume_parity256",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_RECIPE_001.json",
@@ -39111,8 +39119,31 @@
     "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_20261027_001",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_20261027_001_RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "campaign_preparation_authorized": true
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "campaign_preparation_authorized": false,
+    "proof": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TERMINAL_CONTINUATION_ZERO_UPDATE_PROOF_20261027_001.json",
+      "sha256": "743de80de51229ffb8ace855d288e8a66ea115364b9e9070e00b4e9676242cd7"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TERMINAL_CONTINUATION_ZERO_UPDATE_REVIEW_20261027_001.json",
+      "sha256": "27a44ae633624f3a2cd62c720e82153fad312e3ab790af0cc20856e1b7f2238e"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_CAMPAIGN_20261027_001/CAMPAIGN_PLAN.json",
+      "sha256": "8a16e81b17d478214d88f6b384e48938327201c072a11bd3abdf8b5137129b2f"
+    },
+    "canonical_terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_resume_parity256_20261027_001_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "d6e2c847bf19d8f23b0484eb4be94106e35c0796de70fa7a2313908dbb79474e"
+    },
+    "checkpoint_state_parity": true,
+    "prediction_bit_parity_rows": 256,
+    "native_forwards": 16,
+    "optimizer_steps": 0,
+    "physical_boot_id": 563,
+    "source_commit_during_run": "dfdb05407a0a59c875814c327b2fad593b2e8292",
+    "direction_edge_qualified": false
   }
 }
