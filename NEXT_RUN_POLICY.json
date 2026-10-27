@@ -38537,7 +38537,7 @@
     }
   },
   "direction_five_minute_hurdle_rank_source": {
-    "status": "SYNTHETIC_19_PASS_ACTUAL_NOT_ADMITTED",
+    "status": "SYNTHETIC_19_PASS_HISTORICAL_SOURCE_ACTUAL_COMPLETE",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_RANK_DESIGN_20261027_001.json",
       "sha256": "e42b4d592d79835a2e8a56286956807e52f4dc5602930980696011c7a769297e"
@@ -38569,7 +38569,10 @@
     "review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_SYNTHETIC_REVIEW_20261027_001.json",
       "sha256": "1a3ab612dda897e6079df37cc65cced16a048b7d395de88742d13ae53d22973c"
-    }
+    },
+    "source_identity_note": "Hashes preserve the 19-case historical source from commit 854a3498; the current additive source successor is direction_magnitude_h1_regime_source.",
+    "actual_status_reference": "direction_five_minute_hurdle_rank_actual",
+    "successor_source_reference": "direction_magnitude_h1_regime_source"
   },
   "direction_five_minute_hurdle_rank_synthetic": {
     "status": "CONSUMED_19_SYNTHETIC_PASS",
@@ -38650,7 +38653,7 @@
     }
   },
   "direction_magnitude_h1_regime_source": {
-    "status": "SYNTHETIC_22_PASS_ACTUAL_NOT_ADMITTED",
+    "status": "SYNTHETIC_22_PASS_CURRENT_SOURCE_ACTUAL_COMPLETE",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_DESIGN_20261027_001.json",
       "sha256": "7e5730787062e0dd2e5f9fc2c520f064e90dab8144ce9816e855f5920c717c77"
@@ -38682,7 +38685,8 @@
     "review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAGNITUDE_H1_REGIME_SYNTHETIC_REVIEW_20261027_001.json",
       "sha256": "72f9c00c92558bfade26a675ac7a96c096ff5038f719b5d580351dfdb9dd77e0"
-    }
+    },
+    "actual_status_reference": "direction_magnitude_h1_regime_actual"
   },
   "direction_magnitude_h1_regime_synthetic": {
     "status": "CONSUMED_22_SYNTHETIC_PASS",

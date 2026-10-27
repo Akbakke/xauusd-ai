@@ -90,6 +90,7 @@ sign-aggregater er native retnings-AUC innen samme H1-tilstander 0,503991.
 Parpopulasjonene er ulike; ingen av differansene er et kausalt bidrag.
 Gjenbrukte utviklingsdata og midtprisendepunkt beviser ikke tradingedge.
 Se docs/DIRECTION_MAGNITUDE_H1_REGIME_RESULT_20261027.json.
+Kildehistorikk i policy skiller nå 19-tilfellers forgjenger fra 22-tilfellers gjeldende kilde; begge faktiske engangsplaner er konsumert.
 Se `direction_magnitude_h1_regime_source` i NEXT_RUN_POLICY.json.
 
 
