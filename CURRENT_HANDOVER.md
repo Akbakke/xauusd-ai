@@ -9,6 +9,8 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+Kildekontrollen finner samme MTF-cache og siste-avsluttede-rad-regel i referanse og native. D1-konstanten er felles. Én TRAIN-only kontroll av 2622 lokale felt og sesjonskategori er admittért gjennom DIRECTION_LOCAL_SNAPSHOT_PARITY_PLAN_001: 120 sekunder, fire ferdige inputstier, null modeller/fit/optimizer. Kilde og policy fryses under kjøringen. Se DIRECTION_ET_NATIVE_SOURCE_CLOCK_PROOF_001 og DIRECTION_LOCAL_SNAPSHOT_PARITY_DESIGN_001.
+
 DIRECTION_NATIVE_REFERENCE_RANK_003 er COMPLETE/consumed.6lagredearkiver,
 96blokkrang/96vektederang,25.48s,0fit/forward/optimizer; samme67112foreldre,
 opprinnelige native/R1punkter/intervaller og4000uke/dagvekter reprodusert.

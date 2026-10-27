@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T00:24:35.719037+00:00",
-  "status": "DIRECTION_1_60_CONDITIONAL_NATIVE5M_RANKING_DEFICIT_MECHANISM_UNRESOLVED",
+  "observed_utc": "2026-10-27T00:41:43.516244+00:00",
+  "status": "DIRECTION_LOCAL_SNAPSHOT_PARITY_SINGLE_INVOCATION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Kontroller faktiske inputverdier, gyldighetsmasker og tilgjengelighetstidspunkt mot referanse 252 på identiske foreldre i eksisterende TRAIN-only artefakter. Kvalifiser først de eksakte artefakteierne og radkontraktene fra kilde og metadata. Ingen åpning av blandede 2026-råkilder og ingen ny numerisk kjøring er admittért.",
+  "next_action": "Execute exactly DIRECTION_LOCAL_SNAPSHOT_PARITY_PLAN_001 once; freeze source/policy, verify original terminal and consume authority.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Native5m rank deficit confirmed; all declared reference fields mapped; next actual TRAIN-only value/clock parity",
+    "current_activity": "One capped deterministic TRAIN-only local snapshot parity check admitted; no native/model/fit authority.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Kontroller faktiske inputverdier, gyldighetsmasker og tilgjengelighetstidspunkt mot referanse 252 på identiske foreldre i eksisterende TRAIN-only artefakter. Kvalifiser først de eksakte artefakteierne og radkontraktene fra kilde og metadata. Ingen åpning av blandede 2026-råkilder og ingen ny numerisk kjøring er admittért.",
+    "next_action": "Execute exactly DIRECTION_LOCAL_SNAPSHOT_PARITY_PLAN_001 once; freeze source/policy, verify original terminal and consume authority.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Closed. Prior-offset and matched-reference rank units are complete and consumed. Current work is source/metadata qualification of actual input parity; no new numerical execution admitted.",
+    "current_training_scope": "Training closed. Only the exact saved local-input parity audit is admitted: four TRAIN-only input paths,120seconds,zero fits/forwards/updates.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -20244,7 +20244,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-27T00:24:35.719037+00:00",
+  "updated_utc": "2026-10-27T00:41:43.516244+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -36078,6 +36078,59 @@
     "superseded_by": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_PLAN_003.json",
       "sha256": "2cc053e00ae5bb4d94b2bafb34f7b5fb496c2ce2fb3fd4273df4b867554e03fd"
+    }
+  },
+  "direction_local_snapshot_input_parity": {
+    "status": "ADMITTED",
+    "source_preparation_authorized": false,
+    "execution_authorized": true,
+    "saved_inputs_authorized": true,
+    "raw_data_reads_authorized": false,
+    "native_forwards_authorized": false,
+    "genuine_fits_authorized": false,
+    "test_data_used": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "budget": {
+      "invocations": 1,
+      "wall_seconds": 120,
+      "outer_timeout_seconds": 150,
+      "memory_bytes": 4294967296,
+      "swap_bytes": 536870912,
+      "numerical_threads": 1,
+      "tasks": 64,
+      "max_rchar_bytes": 4294967296,
+      "payload_paths": 4,
+      "payload_load_calls": 2,
+      "memmap_calls": 3,
+      "block_rows": 256,
+      "blocks": 462,
+      "synthetic_controls": 6,
+      "fits": 0,
+      "native_forwards": 0,
+      "optimizer_steps": 0
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_LOCAL_SNAPSHOT_PARITY_DESIGN_001.json",
+      "sha256": "6e78eea754609d58d1e46fa093cad7c7e24e5432c3ce960e276aaf478128d99e"
+    },
+    "source_clock_proof": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_ET_NATIVE_SOURCE_CLOCK_PROOF_001.json",
+      "sha256": "4ea2dfe9634ba7f9eff2a83a06d8fabbceb054f6df4b367adc0de3de2ad24539"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/check_direction_local_snapshot_parity_001.py",
+      "sha256": "d05bdb79125d81ba203cb3eebad6c6159c1fc33647b977b3bc4a465b18657ac3"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_LOCAL_SNAPSHOT_PARITY_PLAN_001.json",
+      "sha256": "d7987b31849b42439a823e0ba5151a4be0b3bae0a8d66d54d13874c67100954d"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_LOCAL_SNAPSHOT_PARITY_SOURCE_REVIEW_001.json",
+      "sha256": "db12296b1ed4e6af5487a550f372e250e9cd8c4c29c090e7d4864fd088b004cb"
     }
   }
 }
