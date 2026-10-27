@@ -119,9 +119,13 @@ def _block_values(decision_ns, scheme):
     raise RuntimeError("DIRECTION_10_CROSS_HEAD_BLOCK_SCHEME")
 
 
-def rank_with_block_uncertainty(cohorts, *, scheme, draws=4000, seed=20261027):
+def rank_with_block_uncertainty(cohorts, *, scheme, draws=4000, seed=20261027, absolute_auc_intervals=False, calendar_population="all_fixed_holdout_parents_before_ten_minute_eligibility_mask"):
     """Within-fold pair-weighted AUC and paired fixed-block bootstrap."""
-    _require(type(draws) is int and draws > 0 and type(seed) is int, "BOOTSTRAP_ARGS")
+    _require(type(draws) is int and draws > 0 and type(seed) is int
+             and type(absolute_auc_intervals) is bool
+             and calendar_population in ("all_fixed_holdout_parents_before_ten_minute_eligibility_mask",
+                                         "all_fixed_holdout_parents_before_five_minute_hurdle_eligibility_mask"),
+             "BOOTSTRAP_ARGS")
     rng = np.random.RandomState(seed)
     block_values = [_block_values(cohort["decision_ns"], scheme) for cohort in cohorts]
     parent_block_values = [
@@ -179,12 +183,18 @@ def rank_with_block_uncertainty(cohorts, *, scheme, draws=4000, seed=20261027):
         lo, hi = np.quantile(delta, [0.005, 0.995])
         intervals[head] = {"point_difference": float(points[head][first] - points[head][second]),
                            "low": float(lo), "high": float(hi), "level": 0.99}
-    return {"scheme": scheme, "draws": draws, "seed": seed, "global_blocks": len(global_blocks),
+    result = {"scheme": scheme, "draws": draws, "seed": seed, "global_blocks": len(global_blocks),
             "shared_calendar_block_weights_across_folds": True,
-            "calendar_population": "all_fixed_holdout_parents_before_ten_minute_eligibility_mask",
-            "point_auc": points,
+            "calendar_population": calendar_population, "point_auc": points,
             "primary_native_minus_et252": intervals, "per_fold": details,
             "within_fold_pairs": point_pairs}
+    if absolute_auc_intervals:
+        result["absolute_auc_intervals"] = {
+            head: {arm: {"low": float(np.quantile(draws_auc[(head, arm)], .005)),
+                         "high": float(np.quantile(draws_auc[(head, arm)], .995)), "level": .99}
+                   for arm in ("native", "et252")}
+            for head, _ in _SCORE_COLUMNS}
+    return result
 
 
 def build_aggregate(joined, *, draws=4000):

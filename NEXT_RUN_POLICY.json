@@ -38534,5 +38534,61 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_EXISTING_PATH_ROOT_REVIEW_001.json",
       "sha256": "ba320eb9362c0be27c0cff398b0ab994b0d166e1bb96539640e3569e78e22fd0"
     }
+  },
+  "direction_five_minute_hurdle_rank_source": {
+    "status": "SYNTHETIC_19_PASS_ACTUAL_NOT_ADMITTED",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_RANK_DESIGN_20261027_001.json",
+      "sha256": "e42b4d592d79835a2e8a56286956807e52f4dc5602930980696011c7a769297e"
+    },
+    "sources": {
+      "gx1/scripts/diagnose_entry_direction_bps_allocation_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/diagnose_entry_direction_bps_allocation_v1.py",
+        "sha256": "f9dcc953b33871385c48b6df2b4d5653871853352130b354ab04c10d60373277"
+      },
+      "gx1/scripts/diagnose_entry_direction_10min_crosshorizon_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/diagnose_entry_direction_10min_crosshorizon_v1.py",
+        "sha256": "739fe7c9f9abad17c6217aadc994bc6599a7d64fb222c07912a09a958850b7b1"
+      },
+      "tests/test_diagnose_entry_direction_bps_hurdle_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_diagnose_entry_direction_bps_hurdle_v1.py",
+        "sha256": "4bb8098be200cd10e5d46187e51f1636ecad3387074d674a19d7ec9cb594ec50"
+      },
+      "tests/test_diagnose_entry_direction_10min_crosshorizon_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_diagnose_entry_direction_10min_crosshorizon_v1.py",
+        "sha256": "0db382c760434b58cea3805071b0496a203d506b2e6d4adf635cbcc6069505a5"
+      }
+    },
+    "synthetic_execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "raw_data_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_SYNTHETIC_REVIEW_20261027_001.json",
+      "sha256": "1a3ab612dda897e6079df37cc65cced16a048b7d395de88742d13ae53d22973c"
+    }
+  },
+  "direction_five_minute_hurdle_rank_synthetic": {
+    "status": "CONSUMED_19_SYNTHETIC_PASS",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "88a0e6f0c03a242f4f564b0ef945ab8f6eec873df673674ae89d3c2dc35d63cc"
+    },
+    "execution_authorized": false,
+    "claimed_invocations": 1,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "saved_payload_reads_authorized": false,
+    "raw_data_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "completed_invocations": 1,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIVE_MINUTE_HURDLE_SYNTHETIC_REVIEW_20261027_001.json",
+      "sha256": "1a3ab612dda897e6079df37cc65cced16a048b7d395de88742d13ae53d22973c"
+    }
   }
 }

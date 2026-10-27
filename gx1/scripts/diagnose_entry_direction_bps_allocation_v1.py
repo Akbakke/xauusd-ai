@@ -236,6 +236,69 @@ def aggregate_later(reports):
     return aggregate
 
 
+# Fixed research question; this value is not an execution threshold.
+FIVE_MINUTE_HURDLE_BPS = 10.0
+
+
+def five_minute_hurdle_cohorts(targets, native_folds, controls, fold_specs, *, endpoint_owner, cutoff_ns):
+    """Join exact OOF rows and label strict +/-10-bps endpoint events."""
+    endpoint_owner._validate(targets, cutoff_ns)
+    parent = targets['parent_rows']
+    require(np.array_equal(parent, np.arange(len(parent), dtype=np.int64)), 'HURDLE_TARGET_PARENTS')
+    seen = targets['observed']
+    require(np.array_equal(np.sign(targets['mid_return_bps'][seen]).astype(np.int8), targets['sign'][seen])
+            and (targets['mid_return_bps'][seen] > -10000.).all(), 'HURDLE_TARGET_BPS_SIGN')
+    cp = controls['parent_rows']
+    require(cp.dtype == np.int64 and cp.ndim == 1 and len(cp) > 0 and (np.diff(cp) == 1).all()
+            and cp[0] >= 0 and cp[-1] < len(parent), 'HURDLE_CONTROL_PARENTS')
+    for key in ('decision_ns', 'terminal_time_ns', 'observed', 'sign'):
+        require(np.array_equal(controls[key], targets[key][cp]), 'HURDLE_CONTROL_' + key)
+    require(len(native_folds) == len(fold_specs) == 4
+            and [s['fold_id'] for s in fold_specs] == [1,2,3,4], 'HURDLE_FOLDS')
+    out=[]; previous_right=None
+    for native, spec in zip(native_folds, fold_specs):
+        fid,left,right,end=(spec[k] for k in ('fold_id','left','right','holdout_end_ns'))
+        require(all(type(v) is int for v in (fid,left,right,end)) and 0 <= left < right <= len(parent)
+                and (previous_right is None or left == previous_right), 'HURDLE_FOLD_GEOMETRY')
+        previous_right=right; rows=np.arange(left,right,dtype=np.int64)
+        for key in ('parent_rows','bar_start_ns','decision_ns','terminal_time_ns','observed','sign'):
+            require(np.array_equal(native[key],targets[key][rows]), 'HURDLE_NATIVE_' + key)
+        at=np.searchsorted(cp,rows)
+        require((at < len(cp)).all() and np.array_equal(cp[at],rows), 'HURDLE_REFERENCE_JOIN')
+        require((controls['fold_id'][at] == fid).all()
+                and (controls['holdout_end_ns_exclusive'][at] == end).all(), 'HURDLE_REFERENCE_FOLD')
+        ns,et=native['logit_up'],controls['saved_ET_FULL_probability_up']
+        require(ns.dtype == np.float32 and ns.shape == (len(rows),3) and np.isfinite(ns).all(), 'HURDLE_NATIVE_SCORE')
+        require(et.dtype == np.float64 and et.shape == (len(cp),3) and np.isfinite(et).all()
+                and ((et >= 0.) & (et <= 1.)).all(), 'HURDLE_ET_SCORE')
+        mature=targets['terminal_time_ns'][rows,1] < end; observed=targets['observed'][rows,1]; keep=mature & observed
+        require(keep.any(), 'HURDLE_EMPTY_FOLD'); values=targets['mid_return_bps'][rows,1][keep]
+        y_long=np.ascontiguousarray((values > FIVE_MINUTE_HURDLE_BPS).astype(np.int8))
+        y_short=np.ascontiguousarray((values < -FIVE_MINUTE_HURDLE_BPS).astype(np.int8))
+        require(not np.any((y_long == 1) & (y_short == 1)), 'HURDLE_SIDE_OVERLAP')
+        out.append({'fold_id':fid,'parent_rows':rows[keep],'decision_ns':native['decision_ns'][keep],
+            'all_parent_decision_ns':native['decision_ns'].copy(),'labels_long':y_long,'labels_short':y_short,
+            'native_score':np.ascontiguousarray(ns[keep,1],dtype=np.float64),
+            'et_score':np.ascontiguousarray(et[at,1][keep],dtype=np.float64),
+            'counts':{'parents':len(rows),'eligible':int(keep.sum()),'mature_missing':int((mature & ~observed).sum()),
+                      'immature':int((~mature).sum()),'observed_zero':int(np.sum(values == 0.)),
+                      'long_events':int(y_long.sum()),'short_events':int(y_short.sum())}})
+        require(sum(out[-1]['counts'][k] for k in ('eligible','mature_missing','immature')) == len(rows), 'HURDLE_COUNTS')
+    return out
+
+
+def hurdle_rank_cohorts(cohorts, *, side):
+    """Adapt to the existing calendar rank owner; head_15 is an adapter duplicate."""
+    require(side in ('long','short'), 'HURDLE_SIDE'); factor=1. if side == 'long' else -1.; result=[]
+    for c in cohorts:
+        a=np.ascontiguousarray(factor*c['native_score'],dtype=np.float64)
+        b=np.ascontiguousarray(factor*c['et_score'],dtype=np.float64); zero=np.zeros(len(a),dtype=np.float64)
+        scores={h:{'native':a,'et252':b,'r1':zero,'ref259':zero} for h in ('head_5','head_15')}
+        result.append({'fold_id':c['fold_id'],'decision_ns':c['decision_ns'],
+            'all_parent_decision_ns':c['all_parent_decision_ns'],'labels':c['labels_'+side],'scores':scores})
+    return result
+
+
 def synthetic(owner, dtypes):
     cases = []
     values = np.array([-50.001,-50.,-25.,-10.,-5.,-1.,-.001,0,.001,1,5,10,25,50,50.001])

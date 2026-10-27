@@ -81,6 +81,13 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 
 ## Neste minste steg
 
+En kontroll av eksisterende femminuttsskårer mot større endepunkt er forberedt.
+Den bruker fast +/-10 bps og alle modne, observerte foreldre, også nuller.
+19 syntetiske tilfeller bestod under 4G-vakt. Faktisk måling er ikke admittért.
+Midtprisendepunkt er ikke første treff eller handel. Trening er stengt.
+Se `direction_five_minute_hurdle_rank_source` i NEXT_RUN_POLICY.json.
+
+
 Undersøk årsaken til at det nye bps-tapet ikke forbedret senere5min-rangering,
 uten å velge terskel, delgruppe eller horisont etterpå. Bruk først ferdige
 aggregerte resultater og eksisterende kausale kontroller. Kandidaten spådde OPP
