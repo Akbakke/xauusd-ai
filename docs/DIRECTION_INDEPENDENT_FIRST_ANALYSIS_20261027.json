@@ -82,6 +82,14 @@
     "m5_book_support_inventory": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M5_BOOK_TRAILING_SUPPORT_INVENTORY_002.json",
       "sha256": "4c385bf3240ce53b8e0410ac9f43d0326aba849aeb04d9dfaede998dbd057b18"
+    },
+    "profile_age_constant": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M5_PROFILE_SNAPSHOT_AGE_DIAGNOSIS_002.json",
+      "sha256": "cf6de22b1fe5c4ecaa2864463f90c22d75e690d896fda08b560076652ff62c71"
+    },
+    "compact_profile_inventory": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/COMPACT_INPUT_PROFILE_INVENTORY_001.json",
+      "sha256": "82ae3e43660d0754d85240f9e391653bf4b68202a6856f396c6f2500b16c6c3b"
     }
   },
   "execution_authorized_by_report": false,
@@ -208,6 +216,24 @@
       ],
       "finding": "The original compact direction layout already routes the M5 trailing BBO support-gap field and validity gate. Saved pre-control 2024\u20132025 TRAIN source-window counts contain 117992 zero-gap, 79 positive-gap and 649 unknown rows out of 118720 unique M5 source rows.",
       "implication": "The gap describes the last admitted fully covered minute, not the last actual quote. These are source-window rows, not the exact later prediction cohort. The field being present and mostly zero does not establish feature usefulness or the added predictive value of a fresher source."
+    },
+    {
+      "id": "F14",
+      "type": "MEASURED_COMPACT_M5_PROFILE_AGE_CONSTANT",
+      "evidence": [
+        "profile_age_constant"
+      ],
+      "finding": "M5 profile-snapshot age is observed and exactly zero on all 118249 2024\u20132025 physical TRAIN decision rows; a separately extracted fold1 subset agrees, but overlaps that population.",
+      "implication": "This field does not distinguish those historical rows and its snapshot clock is not the latest quote clock. The result neither proves the source stale nor justifies deleting a genuine field or inferring later periods."
+    },
+    {
+      "id": "F15",
+      "type": "COMPACT_PROFILE_ACTUAL_DIMENSION_INVENTORY",
+      "evidence": [
+        "compact_profile_inventory"
+      ],
+      "finding": "The bound compact profile has 2622 active signal fields and 2525 active context fields; 2410 GC fields form 1205 value/mask pairs, and overlapping aliases must not be counted twice. Seven local specialist families and 139 base MTF fields are selected; GC MTF sidecars are additional routed inputs.",
+      "implication": "Compact describes a selected scope rather than a small number of independent numerical indicators. Size alone does not demonstrate noise, redundancy, overfitting or insufficiency."
     }
   ],
   "main_cause_established": false,
@@ -238,7 +264,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T20:49:28.691706+00:00",
+  "updated_utc": "2026-10-27T20:56:06.872004+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

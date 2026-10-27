@@ -251,6 +251,17 @@ ikke samme populasjon som fold1-prediksjonene, og feltet beskriver ikke siste
 faktiske quote eller målt nytte. Bevis `M5_BOOK_TRAILING_SUPPORT_INVENTORY_002.json`
 SHA-256 4c385bf3240ce53b8e0410ac9f43d0326aba849aeb04d9dfaede998dbd057b18.
 
+M5-profil-snapshot-alder var nøyaktig null på alle 118249 observerte
+2024–2025-TRAIN-beslutningsrader, også i den overlappende fold1-delen.
+Dette feltet skiller ikke disse radene og er snapshotklokke, ikke siste quote.
+Kompaktprofilen har 2622 aktive signalfelt, inkludert 2410 GC-verdi-/maskefelt;
+aliaser skal ikke dobbeltelles som selvstendige indikatorer. Dimensjonen
+beviser ikke støy eller årsak til manglende edge. Eget bevis:
+`M5_PROFILE_SNAPSHOT_AGE_DIAGNOSIS_002.json` SHA-256
+cf6de22b1fe5c4ecaa2864463f90c22d75e690d896fda08b560076652ff62c71;
+`COMPACT_INPUT_PROFILE_INVENTORY_001.json` SHA-256
+82ae3e43660d0754d85240f9e391653bf4b68202a6856f396c6f2500b16c6c3b.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
