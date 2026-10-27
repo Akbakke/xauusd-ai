@@ -176,6 +176,39 @@ def test_layout_keeps_each_registry_field_mask_and_owner_on_its_physical_tf():
     assert "gc_book_rolling15_vwap_usd" not in layout["field_names"]["M15"]
 
 
+def test_layout_computes_boolean_domains_once_per_timeframe(monkeypatch):
+    original = gc.mtf_history_binary_fields
+    calls = []
+
+    def observed(names):
+        calls.append(tuple(names))
+        return original(names)
+
+    monkeypatch.setattr(gc, "mtf_history_binary_fields", observed)
+    layout = history.gc_mtf_history_layout()
+    assert calls == [tuple(layout["field_names"][tf]) for tf in history.TIMEFRAMES]
+    for tf in history.TIMEFRAMES:
+        names = layout["field_names"][tf]
+        assert layout["binary_fields"][tf] == [name for name in names if name in original(names)]
+
+
+@pytest.mark.parametrize("fault", ["binary_domain", "field_order", "family_owner"])
+def test_layout_rejects_resealed_metadata_changes(fault):
+    layout = history.gc_mtf_history_layout()
+    tf = history.TIMEFRAMES[0]
+    if fault == "binary_domain":
+        layout["binary_fields"][tf].pop()
+    elif fault == "field_order":
+        layout["field_names"][tf][0:2] = reversed(layout["field_names"][tf][0:2])
+    else:
+        families = layout["family_indices"][tf]
+        family = next(name for name, indices in families.items() if indices)
+        families[family].pop()
+    layout["contract_sha256"] = history._sha({k: v for k, v in layout.items() if k != "contract_sha256"})
+    with pytest.raises(RuntimeError, match="LAYOUT_CONTRACT"):
+        history.require_gc_mtf_history_layout(layout)
+
+
 def test_all_old_values_and_own_masks_are_projected_from_declared_source_columns():
     layout, tables = history.gc_mtf_history_layout(), _source_tables()
     for tf in layout["timeframes"]:

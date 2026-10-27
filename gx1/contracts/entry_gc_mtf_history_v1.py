@@ -87,11 +87,12 @@ def gc_mtf_history_layout():
         names[tf].append(item['name'])
     _require(sum(map(len, names.values())) == 2 * len(gc.VALUE_FIELDS) + 5
         and all(len(v) == len(set(v)) for v in names.values()), 'NO_PADDING_OR_REPLICATION')
+    binary = {tf: gc.mtf_history_binary_fields(names[tf]) for tf in TIMEFRAMES}
     value = {'schema_version': SCHEMA_VERSION, 'timeframes': list(TIMEFRAMES),
         'families': families, 'field_names': names, 'family_indices': owners,
         'value_mask_pairs': {tf: [list(pair) for pair in gc.masking_pairs(names[tf])] for tf in TIMEFRAMES},
         'widths': {tf: len(names[tf]) for tf in TIMEFRAMES}, 'window_rows': dict(WINDOW_ROWS),
-        'binary_fields': {tf: [name for name in names[tf] if name in gc.mtf_history_binary_fields(names[tf])]
+        'binary_fields': {tf: [name for name in names[tf] if name in binary[tf]]
             for tf in TIMEFRAMES}, 'categorical_domains': {tf: {} for tf in TIMEFRAMES},
         'source_registry': {'path': gc.REGISTRY_PATH, 'sha256': gc.REGISTRY_SHA256},
         'source_tables': json.loads(json.dumps(gc.REGISTRY['tables'])), 'source_fields': source}

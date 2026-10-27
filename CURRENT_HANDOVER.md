@@ -9,6 +9,14 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+En avgrenset kilderettelse fjerner gjentatt beregning av GC-feltdomener i
+batchklargjøringen. Den eksisterende timingmålingen viser 95,2 % batcharbeid
+og 4,0 % forward. DIRECTION_GC_LAYOUT_REUSE_SOURCE_ADMISSION_001 tillater bare
+denne rettelsen og testkilde. DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_001
+åpner nå én capped CPU-kontroll: 60 sekunder, fem gamle/nye metadatapar og seks
+fokuserte testtilfeller. Ingen markedsinput, modell-, fit- eller full F-kjøring.
+Dette er en blokkering for diagnosen, ikke en påvist årsak til svak retning.
+
 DIRECTION_LOCAL_SNAPSHOT_PARITY_001 er COMPLETE/consumed. På alle 118 249
 TRAIN-rader er 2 622 lokale felt og sesjonskategorien sammenlignet: 310 167 127
 F32-celler, inkludert 142 490 045 maskeceller. Ingen bitavvik eller numeriske
