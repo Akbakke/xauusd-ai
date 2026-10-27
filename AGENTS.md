@@ -5,8 +5,8 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
 
 - Bruk bare /home/andre2/src/GX1_CURRENT, branch work/gx1-current.
   Andre worktrees/grener er lagring, aldri arbeidssteder.
-- Flere agenter er vedtatt18.10: avgrens oppgaver og fileierskap, én integrator
-  eier policy, launch og samlet kontroll. Ingen parallelle tunge jobber eller
+- Flere agenter er vedtatt18.10: avgrens oppgaver og fileierskap.
+  Ingen parallelle tunge jobber eller
   kildeendringer under en fryst kjøring. Start med git branch --show-current
   og git log -5; bygg på eksisterende arbeid.
 - Kjør bash scripts/gx1_handover.sh --check. Les kun siste CURRENT_HANDOVER.md

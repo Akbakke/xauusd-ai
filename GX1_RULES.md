@@ -167,7 +167,7 @@ dimensjonsløst optimeringstap rapporteres separat. En loss-endring eller fit
 - Eneste kodebase: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`. Andre
   worktrees og grener er git-lagring, aldri arbeidssteder.
 - Operatørbestilling 18.10 åpner flere agenter med eksplisitt oppgave- og
-  fileierskap. Én integrator eier policy, lansering og samlet verifikasjon.
+  fileierskap.
   Ingen agent starter en egen tung jobb eller endrer en annens filer uten
   koordinering. Alle arbeider i CURRENT og bygger på eksisterende arbeid.
 - Én tung CURRENT-jobb om gangen. Ingen kilde- eller policyendringer mens den
