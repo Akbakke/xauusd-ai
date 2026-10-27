@@ -37927,10 +37927,28 @@
       "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_causal_m1_first_positive_quote_v1.py",
       "sha256": "595f14ace936ef4cf01460cf7718b189b2c4ea654cf506832f81044beafed775"
     },
-    "synthetic_tests_authorized": false,
+    "synthetic_tests_authorized": true,
     "data_reads_authorized": false,
     "model_forwards_authorized": false,
     "training_authorized": false,
     "test_control_or_exit_authorized": false
+  },
+  "direction_first_positive_quote_synthetic": {
+    "status": "ADMITTED_SYNTHETIC_ONLY",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_POSITIVE_QUOTE_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "5962fec03e073e34df15055854d3997cdfc3f619d5431e737b47322bb9595752"
+    },
+    "execution_authorized": true,
+    "synthetic_tests_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "native_model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_control_exit_authorized": false
   }
 }

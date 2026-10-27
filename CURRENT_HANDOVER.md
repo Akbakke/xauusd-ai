@@ -14,8 +14,8 @@ Programrot:
 Forskningskontrakt for første gunstige quote-bevegelse er implementert separat
 fra eksisterende retning og global MFE. Den skiller same-side prisbevegelse
 fra gross markout etter spread og beholder bps-størrelse, M1-rekkefølge-
-usikkerhet og hullmasker. Kilden er KUN FORBEREDELSE: syntetiske tester,
-faktiske data, modellkobling og trening er ikke utført eller autorisert.
+usikkerhet og hullmasker. Syntetisk engangskontroll er avgrenset åpnet;
+den er ikke utført. Faktiske data, modellkobling og trening er ikke autorisert.
 
 
 DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001 er COMPLETE og konsumert.
