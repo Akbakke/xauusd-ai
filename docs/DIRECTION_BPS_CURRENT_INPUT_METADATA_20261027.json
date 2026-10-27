@@ -1,0 +1,44 @@
+{
+  "schema_version": "gx1_bps_current_component_metadata_preflight_v1",
+  "status": "PASS_METADATA_ONLY",
+  "observed_utc": "2026-10-27T13:12:00.278792+00:00",
+  "old_input_manifest": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/INPUT_MANIFEST.json",
+    "sha256": "befabac7ebff4e5e8b6233b299b2fc8f03b87b94d99bc7ec4d43b0fb76f9246f"
+  },
+  "new_input_manifest": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_CURRENT_COMPONENT_INPUT_MANIFEST_001.json",
+    "sha256": "7823933b1f8f438aaa1eea46cd6736d883216f42cd7738d5947db64286fe4677"
+  },
+  "only_changed_manifest_field": "view_source_bindings.direction_component_source",
+  "old_component": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+    "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+  },
+  "new_component": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+    "sha256": "da7be399a42a1cad721ddf7631bc8ff1b5c02fc347f1fb3ce9bfe8ca39f2f539"
+  },
+  "proof_of_current_component_synthetic_qualification": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_SUPERVISION_SYNTHETIC_ROOT_REVIEW_001.json",
+    "sha256": "a9c2bc2c7f1b9ddcd663b6371305f1b18192492734cf47bd0e8db3c7c634d3e1"
+  },
+  "existing_gc_transition_proof": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_ROOT_REVIEW_003.json",
+    "sha256": "1d3347ee52f02af7afcac5d55c02532c0e2823e1ce20397633785a2512d39263"
+  },
+  "same_all_other_manifest_fields": true,
+  "called_actual_prefix_metadata_function": true,
+  "metadata_binding_count": 51,
+  "counters": {
+    "payload_open_attempts": 0,
+    "numerical_import_attempts": 0,
+    "forbidden_runtime_calls": 0
+  },
+  "elapsed_seconds": 0.18032855200010545,
+  "error": null,
+  "payload_read_authorized": false,
+  "model_execution_authorized": false,
+  "direction_improvement_measured": false,
+  "test_data_used": false
+}

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T13:09:07.311534+00:00",
-  "status": "DIRECTION_BPS_NATIVE_METADATA_BINDING_FAILURE_CONSUMED",
-  "training_enabled": false,
+  "observed_utc": "2026-10-27T13:14:11.989321+00:00",
+  "status": "DIRECTION_BPS_NATIVE_B16_PRIVATE_QUALIFICATION_002_ADMITTED",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Create a fresh input manifest changing only the qualified direction-component source binding. Run the actual metadata chain with payload/numerical imports denied before preparing a fresh native attempt; never relaunch001.",
+  "next_action": "Prepare fresh002canonical B16 private qualification after51-binding metadata preflight passed without payload/numerical imports. Same fixed observations/model/recipe/budget; whole-host idle and new physical boot mandatory. Never relaunch001.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -245,7 +245,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Create a fresh input manifest changing only the qualified direction-component source binding. Run the actual metadata chain with payload/numerical imports denied before preparing a fresh native attempt; never relaunch001.",
+    "current_activity": "Prepare fresh002canonical B16 private qualification after51-binding metadata preflight passed without payload/numerical imports. Same fixed observations/model/recipe/budget; whole-host idle and new physical boot mandatory. Never relaunch001.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -271,7 +271,7 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_NOT_COMPLETE_BPS_NATIVE_INPUT_METADATA_REPAIR_NEXT",
+    "gc_goal_status": "ACTIVE_NOT_COMPLETE_BPS_NATIVE002_ADMITTED_NO_GAIN",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Early native qualification metadata failure before model construction.",
@@ -298,7 +298,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Concrete stale direction_component_source binding; no numerical or directional finding from this attempt.",
+    "current_blocker": "Stale direction-component source binding is repaired and actual metadata function passes. Fresh002campaign/whole-host idle/physical boot remain before private model qualification.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -17810,7 +17810,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
     },
-    "native_training_stage": "dynamic_m5_direction_bps_b16_qualification_20261027_001"
+    "native_training_stage": "dynamic_m5_direction_bps_b16_qualification_20261027_002"
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -31158,7 +31158,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -36964,5 +36964,51 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_001/VERIFIED_TERMINAL.json",
       "sha256": "c8d5367937171eb00e2980c8b9200aefdb202176d48858f86225c0ea6f6713b3"
     }
+  },
+  "dynamic_m5_direction_bps_b16_qualification_20261027_002": {
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "signed_bps_scale_fit_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "status": "ADMITTED_PENDING_FRESH_CANONICAL_CAMPAIGN",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RECIPE.json",
+      "sha256": "f959cdf139b6a6fb262d75312c42539b057edae1a00a00a0e776133c207adca3"
+    },
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/ADMISSION.json",
+      "sha256": "7fac9da89a74ca19b8f876048b388c5ad3c08bea149d182dee3bd65e0600dd64"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_private_optimizer_steps": 4
+  },
+  "direction_bps_current_input_metadata": {
+    "input_manifest": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_CURRENT_COMPONENT_INPUT_MANIFEST_001.json",
+      "sha256": "7823933b1f8f438aaa1eea46cd6736d883216f42cd7738d5947db64286fe4677"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_CURRENT_COMPONENT_METADATA_PREFLIGHT_001.json",
+      "sha256": "9e9d873792d5e1c128c0a3f216d58b99e9f691c56ae0980610ab84839ec984a0"
+    },
+    "status": "PASS_METADATA_ONLY",
+    "model_or_data_change": false
   }
 }
