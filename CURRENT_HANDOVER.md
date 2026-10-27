@@ -124,46 +124,34 @@ Målet er aktivt og uferdig. Teknisk PASS er ikke dokumentert retningsforbedring
 
 Egen undersøkelse uten kontakt med den andre chatten. Autoritet/status ligger i
 `independent_direction_edge_20261027` i NEXT_RUN_POLICY.json. Brukeren har
-bekreftet kompaktprofilen som første scope; ingen fullprofil eller nye felt nå.
-Første analyse med åtte funn og prioriteringer: `docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json`.
-Egen bevisrot: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63`.
+bekreftet kompaktprofilen som første scope. Førsteanalyse med dokumenterte funn:
+`docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json`. Bevisrot:
+`/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63`.
 
-Gjort: candle-fasit118249TRAINforeldre kontrollert mot original245. Nativeopen
-versus legacyquote-midpoint ga små null/ikke-null-avvik, ingen fortegnssnuing;
-ingen hovedårsak til svak retning dokumentert. Gamle targets beholdes i parene.
-Egen lagret bps-sammenligning har256initialbitparitet og17288eksaktesenere
-foreldre. AUC5fortegn går0.503021→0.496823; forhåndsregelFALSE. Retur-MSE
-slår ikke egetTRAIN-gjennomsnitt. ORIGINALRESULT/kvitteringer er bevart.
-Separat utforskende9-cellers head/horizon-kart gjenskaper hele gamle RESULT
-kanonisk eksakt. Returhodets AUC1/5/15=.496283/.496262/.496172. Alle12
-korrigerte relative intervaller inkluderer0;0udefinerte resampler. Ved
-nullterskel er retur5alltidUP og15alltidDOWN; treffrate alene er retningsandel.
-0nye model/fit/Torch-kall. ALL_HEADS_ROOT_REVIEW_001 og QUALIFICATION_STATE_002
-binder resultatene;231fokuserte cases bestått på respektive komponenter.
+Candle-fasiten for 118249 TRAIN-foreldre har et lite nativeopen/legacy-midpoint-
+avvik uten positiv/negativ fortegnssnuing. Sammenligningene beholder original245.
+Bps-hovedtesten gir AUC5 .503021→.496823 og forhåndsregel FALSE. I et separat
+utforskende ni-cellers kart er returhodets AUC1/5/15 .496283/.496262/.496172;
+alle 12 korrigerte relative intervaller inkluderer null. Nullterskel gir alltid
+UP på 5 minutter og alltid DOWN på 15; treffrate alene er ikke skilleevne.
+Opprinnelig RESULT er gjenskapt eksakt. Ingen økonomisk edge er kvalifisert.
 
-Ikke gjort: genuine last-M1-OFI-fits, inpututvidelse, ekstra nativepass eller
-fullprefix0U-sammenligning. OFI-proposalen er kun37-case testet forberedelse.
-Dagens nativeinput er uendret. Nåværende TRAINprobe256 er ikke hel-TRAIN-
-konvergensbevis. Ingen skjult retningsforbedring eller økonomisk edge er påvist.
+F-kildens strenge metadata-optin er kvalifisert med 137 syntetiske tilfeller;
+368 fokuserte tilfeller er bestått totalt på sine respektive komponenter.
+001 ble bevart som FAILED på grunn av feil testantall og avvist lesing av egen
+outputroot. Ny002 rettet disse to forholdene og besto; ingen payload/model/fit.
+En fersk metadata-preflight av `NATIVE_0U_TIMING256_RECIPE_001.json` har bestått
+mot eksisterende F-kontrakt og 57 faktiske kildehashes uten payload eller modell.
+`NATIVE_0U_RECIPE_METADATA_REVIEW_001.json` binder resultatet. Dette er ikke en
+måling av 0U-paritet og åpner ikke native kjøring.
 
-Neste minste steg: NATIVE_0U_COMPATIBILITY_DESIGN_001 er kun kildeadoptert.
-Rett bare konkret gammel metadata-/kildebinding i eksisterendeF-rute, med
-strengt opt-in og bevarte legacyregler. Bare fersk egen0U256-paritet og så
-manglende presentasjonsdel[31744,47602) kan senere kvalifiseres/admitteres.
-Gjenbruk ferdige deler; ikke relanser gamle enheter. Tre metadata-kodefiler og
-to eksisterende testfiler er avgrenset. Ingen slik numerisk enhet er åpnet.
-Kompaktinput, original276state,267prefixstats, GC, mål og permutasjon beholdes.
-TEST/CONTROL, Exit, broker, ordre, spending og promotion er fortsatt stengt.
-Målet er aktivt; mer trening og konvergens er uavklart.
-Metadata-optin er implementert og separat kildevurdert i fem avgrensede filer.
-Syntetikk001 hadde137PASS, men enheten feilet feil forventet136 og avvisning
-av egen outputroot ved kvitterings-fsync. Originaler bevart som consumedFAILED.
-Ny002 rettet bare antall137 og eksakt owned-root-lesing; kildekode uendret.
-002 er COMPLETE med137/137PASS, tre escape-negativer og owned-root-positiv,
-0payload/model/fit/update/CUDA.368fokuserte cases er bestått på komponentene.
-NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001 og QUALIFICATION_STATE_003 binder dette.
-Fersk timing256-recipe forberedes som metadata; genuin admisjon er fortsatt
-stengt. Ingen extra epoch, ny indikator eller større nativejobb er åpnet.
+Neste steg er å forberede og inspisere ny egen timing256-kampanje med eksisterende
+F-maskineri, eksakt recipe og ren committet kilde. Selve forward-kjøringen krever
+ny enhetsadmisjon og alle maskinvare-/maskinvid-ledighetsvakter. Bare fersk egen
+256-paritet og deretter manglende TRAIN-del [31744,47602) er planlagt. Tidligere
+fullførte deler gjenbrukes. Kompakt input, GC, mål, 267-statistikk og permutasjon
+beholdes. Ingen nye indikatorer, ekstra treningspass, TEST/CONTROL, Exit, broker,
+ordre, spending eller promotion er åpnet. Målet er aktivt.
 
 ## Bps-hodets separate retningsrangering
 

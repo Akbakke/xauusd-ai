@@ -23,9 +23,17 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SOURCE_INVENTORY_001.json",
       "sha256": "fc332013141265703474ecb444af3ca34817fff733f01a2eb1d76b272cda0a8f"
     },
+    "native0u_metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "987ed6dc911162f9b12003004fd65bfa102d4fd18fffe4296f0f8a9b263732a3"
+    },
+    "native0u_recipe_metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_RECIPE_METADATA_REVIEW_001.json",
+      "sha256": "264be1dae28f0d02ce85329a928054b2ca8d9489c36124fea774c78585bb55ed"
+    },
     "qualification": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_002.json",
-      "sha256": "17f6c2b68e6c5a2dbbb8183b912b9f93f52c774bd885356f498ee96898f785d5"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
+      "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
     },
     "signed_bps_primary": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
@@ -105,7 +113,7 @@
         "qualification",
         "all_heads"
       ],
-      "finding": "231focused technical cases pass on their respective components; saved-output measurements make no new model/fit/Torch calls. No sealedTEST/CONTROL, broker or economic evaluation was opened.",
+      "finding": "368focused technical cases pass on their respective components; saved-output measurements make no new model/fit/Torch calls. No sealedTEST/CONTROL, broker or economic evaluation was opened.",
       "id": "F8",
       "implication": "Technical validity supports trusting this measurement, not claiming improved trading decisions.",
       "type": "QUALIFICATION_LIMIT"
@@ -118,7 +126,7 @@
     {
       "action": "Qualify exact current-source original276own0U256bitparity, then only missing presentation rows[31744,47602), using unchanged compact input,267stats,GC,targets and B16order.",
       "priority": 1,
-      "status": "SOURCE_IMPLEMENTATION_ADOPTED_EXECUTION_CLOSED"
+      "status": "RECIPE_METADATA_VALIDATED_NATIVE_PARITY_NOT_MEASURED"
     },
     {
       "action": "Compare fixed whole-prefix initial/final learning with chronological later development using saved outputs. Reuse all completed extraction parts.",
@@ -138,5 +146,6 @@
   ],
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
-  "test_data_used": false
+  "test_data_used": false,
+  "updated_utc": "2026-10-27T18:36:33.866356+00:00"
 }
