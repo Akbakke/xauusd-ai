@@ -824,3 +824,201 @@ def test_partition_result_requires_exact_interval_identity(monkeypatch, fault):
     else: result['partition']['presentation_start'] = False
     with pytest.raises(RuntimeError, match='RESULT_PARTITION_IDENTITY'):
         contract.require_frozen_extraction_pointer(pointer, expected_recipe=recipe, expected_unit=unit)
+
+
+# Only metadata objects: all bound reads below are synthetic and in-memory.
+def _independent_case(monkeypatch, unit=contract.TIMING_UNIT):
+    recipe = metadata_transition_plan(unit)
+    stage, name = contract.INDEPENDENT_UNITS[unit]
+    recipe.update(admission_stage=stage, run_root=contract.INDEPENDENT_ROOT + '/' + name,
+        runtime_root=contract.INDEPENDENT_ROOT + '/' + name + '_RUNTIME')
+    recipe['execution_binding_path'] = recipe['runtime_root'] + '/EXECUTION_BINDING.json'
+    recipe['independent_completion'] = {'design': deepcopy(contract.INDEPENDENT_DESIGN), 'initial_parity': None}
+    design = {'schema_version': 'gx1_independent_default_sign_0u_completion_design_v1',
+        'canonical_repo': contract.REPO, 'canonical_branch': 'work/gx1-current',
+        'authority': {'execution_authorized': False}, 'source_closure': {
+            'baseline_current57_references': deepcopy(recipe['source_owners']),
+            'only_runtime_code_edit_exceptions': {n: {} for n in contract.INDEPENDENT_CODE_FILES},
+            'qualification_test_edit_allowlist': {contract.NEW_FILES[-1]: {}}},
+        'original_bindings': {'own0U_state': {'ref': ref('SYNTHETIC_0U.pt')},
+            'fresh_identity_sha256': 'a' * 64, 'feature_view_identity': {'synthetic_view': True}}}
+    docs = {contract.INDEPENDENT_DESIGN['path']: (deepcopy(contract.INDEPENDENT_DESIGN), design)}
+    seen = []
+    def read(binding):
+        expected, value = docs[binding['path']]
+        contract.require(binding == expected, 'SYNTHETIC_BOUND_REF')
+        seen.append(deepcopy(binding))
+        return deepcopy(value)
+    monkeypatch.setattr(campaign, 'read_bound_json', lambda path, digest: read({'path': str(path), 'sha256': digest}))
+    return recipe, design, docs, read, seen
+
+
+def _independent_part3_case(monkeypatch):
+    recipe, design, docs, read, seen = _independent_case(monkeypatch, 'own0U_prefix_part3')
+    timing = deepcopy(recipe)
+    stage, name = contract.INDEPENDENT_UNITS[contract.TIMING_UNIT]
+    timing.update(unit=contract.TIMING_UNIT, admission_stage=stage, units_design=contract.unit_design(contract.TIMING_UNIT),
+        run_root=contract.INDEPENDENT_ROOT + '/' + name, runtime_root=contract.INDEPENDENT_ROOT + '/' + name + '_RUNTIME',
+        budget=contract.resource_limits(contract.TIMING_UNIT), operation_limits=contract.call_limits(contract.TIMING_UNIT))
+    timing['execution_binding_path'] = timing['runtime_root'] + '/EXECUTION_BINDING.json'
+    timing_ref = {'path': contract.INDEPENDENT_ROOT + '/TIMING_RECIPE.json', 'sha256': '1' * 64}
+    def bind(path, value):
+        binding = {'path': path, 'sha256': '1' * 64};docs[path] = (binding, value);return binding
+    parity = {'reference': deepcopy(contract.INITIAL_PREDICTIONS), 'rows': 256, 'bit_identical': True}
+    report = {'unit': contract.TIMING_UNIT, 'cutoff_ns': contract.FOLD['train_cutoff_ns'],
+        'original_prediction_parity': parity, 'own_prefix_prior': {'synthetic': True},
+        'state_preservation': {'model': 'a' * 64, 'all_buffers': 'b' * 64, 'rng': 'c' * 64, 'modes': {}}}
+    report_ref = bind(timing['run_root'] + '/NATIVE_REPORT.json', report)
+    limits = contract.call_limits(contract.TIMING_UNIT)
+    execution_ref = bind(contract.INDEPENDENT_ROOT + '/TIMING_EXECUTION.json', {
+        'prelaunch_manifest': timing_ref, 'invocation_kind': contract.KIND, 'source_commit': 'a' * 40})
+    invocation = contract._seal({'kind': contract.KIND, 'invocation_number': 1, 'optimizer_step_budget': 0,
+        'test_data_used': False, 'source_commit': 'a' * 40, 'execution_manifest': execution_ref}, 'invocation_sha256')
+    invocation_ref = bind(contract.INDEPENDENT_ROOT + '/TIMING_INVOCATION.json', invocation)
+    bound_campaign = contract._seal({'recipe': timing_ref, 'runtime_root': timing['runtime_root'],
+        'phase': contract.PHASE, 'test_data_used': False, 'source_commit': 'a' * 40,
+        'invocations': [invocation_ref]}, 'plan_sha256')
+    campaign_ref = bind(contract.INDEPENDENT_ROOT + '/TIMING_CAMPAIGN.json', bound_campaign)
+    result = {'decision': 'COMPLETE_FROZEN_READOUT_EXTRACTION', 'error': None, 'recipe': timing_ref,
+        'unit': contract.TIMING_UNIT, 'diagnostic_only': True,
+        'state': design['original_bindings']['own0U_state']['ref'], 'state_role': 'own0U', 'cohort': 'prefix',
+        'representation_rows': 256, 'hidden_width': 128, 'native_report': report_ref,
+        'fresh_identity_sha256': design['original_bindings']['fresh_identity_sha256'],
+        'feature_view_identity': design['original_bindings']['feature_view_identity'],
+        'original_prediction_parity': parity, 'observed_calls': deepcopy(limits), 'observed_returns': deepcopy(limits),
+        'calls': {'calls': deepcopy(limits), 'returns': deepcopy(limits), 'optimizer_steps': 0, 'reverse_calls': 0},
+        'source_unchanged': True, 'originals_stat_preserved': True, 'optimizer_steps': 0,
+        'native_optimizer_steps': 0, 'test_data_used': False, 'denied_phase_opens': [], 'delegated_denied_opens': [],
+        'own_prefix_prior': {'synthetic': True}, 'campaign_plan': campaign_ref}
+    result_ref = bind(timing['run_root'] + '/RESULT.json', result)
+    pointer = contract.build_frozen_extraction_pointer(recipe_ref=timing_ref, result_ref=result_ref,
+        outcome='COMPLETE', calls=limits, returns=limits, unit=contract.TIMING_UNIT)
+    pointer_ref = bind(timing['run_root'] + '/DIAGNOSTIC_POINTER.json', pointer)
+    receipt = contract._seal({'outcome': 'COMPLETE', 'kind': contract.KIND, 'guard_decision': 'PASS',
+        'trainer_guard_exit_code': 0, 'progress_observer_exit_code': 0, 'invocation_number': 1,
+        'test_data_used': False, 'checkpoint_pointer_after': pointer_ref,
+        'plan_sha256': bound_campaign['plan_sha256'], 'invocation_sha256': invocation['invocation_sha256']}, 'receipt_sha256')
+    receipt_ref = bind(timing['runtime_root'] + '/receipts/invocation-0001.json', receipt)
+    review = {'schema_version': contract.INDEPENDENT_REVIEW_SCHEMA,
+        'status': 'COMPLETE_AND_QUALIFIED_CURRENT_SIGN_ONLY_OWN0U256', 'design': deepcopy(contract.INDEPENDENT_DESIGN),
+        'test_data_used': False, 'state_preserved': True, 'all_original_fields_bit_identical': True,
+        'recipe': timing_ref, 'result': result_ref, 'native_report': report_ref, 'pointer': pointer_ref,
+        'canonical_terminal_receipt': receipt_ref}
+    review_ref = bind(timing['run_root'] + '/ACTUAL_ROOT_REVIEW.json', review)
+    docs[timing_ref['path']] = (timing_ref, timing)
+    recipe['independent_completion']['initial_parity'] = review_ref
+    return recipe, design, docs, read, seen, timing, review, result, report, receipt, pointer
+
+
+@pytest.mark.parametrize('unit', [contract.TIMING_UNIT, 'own0U_prefix_part3'])
+def test_independent_exact_fixed_units_keep_original_caps_and_closure(monkeypatch, unit):
+    case = _independent_case(monkeypatch) if unit == contract.TIMING_UNIT else _independent_part3_case(monkeypatch)
+    recipe, design, docs, read, seen = case[:5]
+    assert contract.require_plan(recipe) == recipe
+    assert contract.require_source_closure(recipe, *source_inputs()) == recipe['source_owners']
+    assert contract.require_independent_completion(recipe, read) == design
+    assert contract.call_limits(unit)['reverse'] == contract.call_limits(unit)['autograd_grad'] == 0
+    assert contract.unit_spec(unit)['rows'] == (256 if unit == contract.TIMING_UNIT else 15858)
+    assert {r['path'] for r in seen} == set(docs)
+
+
+@pytest.mark.parametrize('fault', ['unit', 'stage', 'run_root', 'runtime_root', 'binding', 'design',
+    'extra_field', 'presumed_parity', 'gc_proof', 'budget', 'source_drop', 'source_extra', 'source_drift'])
+def test_independent_scope_source_and_authority_expansion_rejected(monkeypatch, fault):
+    recipe, design, docs, read, seen = _independent_case(monkeypatch)
+    if fault == 'unit': recipe['unit'] = 'own0U_later_full'
+    elif fault == 'stage': recipe['admission_stage'] = contract.STAGE
+    elif fault == 'run_root': recipe['run_root'] += '_OTHER'
+    elif fault == 'runtime_root': recipe['runtime_root'] += '_OTHER'
+    elif fault == 'binding': recipe['execution_binding_path'] += '_OTHER'
+    elif fault == 'design': recipe['independent_completion']['design']['sha256'] = '9' * 64
+    elif fault == 'extra_field': recipe['independent_completion']['extra'] = True
+    elif fault == 'presumed_parity': recipe['independent_completion']['initial_parity'] = ref('OLD_REVIEW.json')
+    elif fault == 'gc_proof': recipe['gc_layout_metadata_parity']['sha256'] = '9' * 64
+    elif fault == 'budget': recipe['budget']['max_wall_seconds'] += 1
+    elif fault == 'source_drop': del recipe['source_owners']['gx1/synthetic_owner_0.py']
+    elif fault == 'source_extra': recipe['source_owners']['gx1/extra.py'] = {'path': contract.REPO + '/gx1/extra.py', 'sha256': '9' * 64}
+    else: recipe['source_owners']['gx1/synthetic_owner_0.py']['sha256'] = '9' * 64
+    with pytest.raises(RuntimeError): contract.require_plan(recipe)
+
+
+@pytest.mark.parametrize('fault', ['foreign_review', 'status', 'state_preserved', 'fields', 'same_sources',
+    'result_failed', 'original_parity', 'state', 'fresh_identity', 'feature_view', 'forward_count',
+    'reverse', 'optimizer', 'forbidden_open', 'report', 'pointer', 'receipt', 'campaign', 'invocation', 'execution'])
+def test_independent_part3_requires_fresh_own_complete_timing_proof(monkeypatch, fault):
+    recipe, design, docs, read, seen, timing, review, result, report, receipt, pointer = _independent_part3_case(monkeypatch)
+    if fault == 'foreign_review': recipe['independent_completion']['initial_parity'] = deepcopy(contract.PARTITION_PARITY)
+    elif fault == 'status': review['status'] = 'FAILED'
+    elif fault == 'state_preserved': review['state_preserved'] = False
+    elif fault == 'fields': review['all_original_fields_bit_identical'] = False
+    elif fault == 'same_sources': timing['source_owners'][contract.NEW_FILES[0]]['sha256'] = '9' * 64
+    elif fault == 'result_failed': result['decision'] = 'FAILED'
+    elif fault == 'original_parity': result['original_prediction_parity'] = {**result['original_prediction_parity'], 'rows': 255}
+    elif fault == 'state': result['state'] = ref('OTHER_0U.pt')
+    elif fault == 'fresh_identity': result['fresh_identity_sha256'] = '9' * 64
+    elif fault == 'feature_view': result['feature_view_identity'] = {}
+    elif fault == 'forward_count': result['observed_returns']['panel_forward'] -= 1
+    elif fault == 'reverse': result['observed_calls']['reverse'] = 1
+    elif fault == 'optimizer': result['optimizer_steps'] = 1
+    elif fault == 'forbidden_open': result['denied_phase_opens'] = ['synthetic-forbidden']
+    elif fault == 'report': report['cutoff_ns'] += 1
+    elif fault == 'pointer': pointer['outcome'] = 'FAILED'
+    elif fault == 'receipt': receipt['trainer_guard_exit_code'] = 1
+    elif fault == 'campaign': docs[result['campaign_plan']['path']][1]['recipe'] = ref('OLD_RECIPE.json')
+    elif fault == 'invocation': docs[contract.INDEPENDENT_ROOT + '/TIMING_INVOCATION.json'][1]['optimizer_step_budget'] = 1
+    else: docs[contract.INDEPENDENT_ROOT + '/TIMING_EXECUTION.json'][1]['prelaunch_manifest'] = ref('OTHER.json')
+    with pytest.raises(RuntimeError): contract.require_plan(recipe)
+
+
+def test_independent_optin_absent_preserves_legacy_namespace_and_reads_nothing(monkeypatch):
+    def denied(*args): raise AssertionError('legacy validation must not read independent metadata')
+    monkeypatch.setattr(campaign, 'read_bound_json', denied)
+    recipe = metadata_transition_plan()
+    assert contract.require_plan(recipe) == recipe and contract.require_independent_completion(recipe) is None
+    recipe['run_root'] = contract.INDEPENDENT_ROOT + '/NATIVE_0U_TIMING256_001'
+    with pytest.raises(RuntimeError, match='SEPARATE_UNIT_ROOTS'): contract.require_plan(recipe)
+
+
+@pytest.mark.parametrize('fault', ['none', 'no_optin', 'wrong_component_old', 'wrong_component_current',
+    'other_source', 'manifest', 'numerical_recipe', 'fold', 'design'])
+def test_independent_prefix_metadata_preserves_original_manifest_and_exact_component_transition(monkeypatch, fault):
+    prefix, launch, common, manifest, hashes = _prefix_metadata_case()
+    component = {'path': contract.REPO + '/gx1/contracts/entry_native_direction_research_v1.py', 'sha256': '6' * 64}
+    current = {**component, 'sha256': '7' * 64}
+    manifest['view_source_bindings']['direction_component_source'] = deepcopy(component)
+    hashes[component['path']] = deepcopy(current)
+    launch['numerical_recipe'] = {'synthetic_sign_recipe': True}
+    original = {k: deepcopy(manifest[k]) for k in ('prefix_normalization', 'constructor_metadata', 'targets',
+        'archive_members', 'view_source_bindings', 'physical_provider_plan', 'physical_provider_worker')}
+    original.update(input_manifest=deepcopy(launch['input_manifest']), fold=deepcopy(launch['fold']),
+        original_numerical_recipe=deepcopy(launch['numerical_recipe']))
+    design = {'schema_version': 'gx1_independent_default_sign_0u_completion_design_v1', 'canonical_repo': contract.REPO,
+        'canonical_branch': 'work/gx1-current', 'authority': {'execution_authorized': False},
+        'original_bindings': original, 'historical_source_verification': {
+            'only_new_manifest_source_transition': {'original': component, 'current': current}}}
+    read = common._read; seen = []
+    def bound_read(binding, metadata):
+        if binding['path'] == contract.INDEPENDENT_DESIGN['path']:
+            assert binding == contract.INDEPENDENT_DESIGN
+            metadata[binding['path']] = {'ref': deepcopy(binding)};seen.append(binding);return deepcopy(design)
+        return read(binding, metadata)
+    common._read = bound_read
+    completion = {'design': deepcopy(contract.INDEPENDENT_DESIGN), 'initial_parity': None}
+    if fault == 'wrong_component_old': design['historical_source_verification']['only_new_manifest_source_transition']['original'] = {**component, 'sha256': '9' * 64}
+    elif fault == 'wrong_component_current': hashes[component['path']]['sha256'] = '9' * 64
+    elif fault == 'other_source': hashes[manifest['view_source_bindings']['other']['path']]['sha256'] = '9' * 64
+    elif fault == 'manifest': original['input_manifest'] = ref('OTHER_MANIFEST.json')
+    elif fault == 'numerical_recipe': original['original_numerical_recipe'] = {}
+    elif fault == 'fold': original['fold']['prefix_rows'] += 1
+    elif fault == 'design': completion['design']['sha256'] = '9' * 64
+    before = deepcopy(manifest)
+    arguments = {'gc_layout_metadata_parity': deepcopy(contract.GC_LAYOUT_METADATA_PARITY)}
+    if fault != 'no_optin': arguments['independent_completion'] = completion
+    if fault == 'none':
+        context = prefix._metadata(launch, common, **arguments)
+        assert context['manifest'] == before == manifest and seen == [contract.INDEPENDENT_DESIGN]
+        assert contract.INDEPENDENT_DESIGN['path'] in context['info']['metadata']
+        assert context['manifest']['view_source_bindings']['direction_component_source'] != current
+    else:
+        with pytest.raises(RuntimeError): prefix._metadata(launch, common, **arguments)
+        assert manifest == before

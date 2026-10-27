@@ -191,3 +191,17 @@ def test_recomputed_bps_scale_must_match_qualified_prefix_before_training(case):
     elif case=='same':assert runner._qualified_bps_scale(context,view)==ref
     else:
         with pytest.raises(RuntimeError):runner._qualified_bps_scale(context,view)
+
+
+@pytest.mark.parametrize('signed', [False, True])
+def test_independent_extraction_optin_does_not_change_training_metadata_route(monkeypatch, signed):
+    # Only F's guarded metadata call may supply the new optional argument.
+    launch = {'independent_completion': {'synthetic': 'not a training opt-in'}}
+    if signed: launch['gc_layout_metadata_parity'] = {'path': 'gc.json', 'sha256': '2' * 64}
+    seen = []
+    def metadata(actual, common, *, gc_layout_metadata_parity=None, independent_completion=None):
+        seen.append((actual, gc_layout_metadata_parity, independent_completion))
+        return {'info': {'metadata': {}}}
+    monkeypatch.setattr(runner, '_metadata', metadata)
+    runner._launch_metadata(launch, object())
+    assert seen == [(launch, launch.get('gc_layout_metadata_parity'), None)]

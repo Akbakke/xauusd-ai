@@ -1,0 +1,142 @@
+{
+  "compact_information_insufficiency_established": false,
+  "created_utc": "2026-10-27T18:08:07.947551+00:00",
+  "economic_edge_qualified": false,
+  "evidence": {
+    "all_heads": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_ROOT_REVIEW_001.json",
+      "sha256": "bd9cea17e198b385d8ef394dcc3e8daa37508a1eea19849f168d8bda7228e4dd"
+    },
+    "candle": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_ROOT_REVIEW_001.json",
+      "sha256": "8fb4e48dd40607e4cddd1fc8f66417dd5d5a734d325f74f8c738fd73cb4ba36e"
+    },
+    "input_metadata": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INPUT_METADATA_REVIEW.json",
+      "sha256": "ab4741e33c7a20362447ceb80027fee1feb4d95604297526d844ffe3949404b7"
+    },
+    "native0u_design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_COMPATIBILITY_DESIGN_001.json",
+      "sha256": "3c1b5694ecd97c7c6ac8d4b1315f86d9b24c45d7b3d61c3a9e0533564047b5ed"
+    },
+    "native0u_inventory": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SOURCE_INVENTORY_001.json",
+      "sha256": "fc332013141265703474ecb444af3ca34817fff733f01a2eb1d76b272cda0a8f"
+    },
+    "qualification": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_002.json",
+      "sha256": "17f6c2b68e6c5a2dbbb8183b912b9f93f52c774bd885356f498ee96898f785d5"
+    },
+    "signed_bps_primary": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
+      "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
+    }
+  },
+  "execution_authorized_by_report": false,
+  "findings": [
+    {
+      "evidence": [
+        "candle"
+      ],
+      "finding": "Native candle open versus legacy average bid/ask open creates small target-consistency differences. No positive-to-negative or negative-to-positive flips were observed.",
+      "id": "F1",
+      "implication": "Keep exact legacy245 targets fixed for comparisons. Any native-price target migration needs its own fresh baseline; this does not explain the measured missing direction ranking.",
+      "type": "MEASURED_NOT_A_MAIN_CAUSE"
+    },
+    {
+      "evidence": [
+        "signed_bps_primary"
+      ],
+      "finding": "One fixed reused-development fold: signed-bps supervision did not improve the direction logit head. At5min AUC0.5030210874582608 to0.49682269234877807; corrected day/week difference intervals include zero. Return MSE did not beat own-prefix mean.",
+      "id": "F2",
+      "implication": "Do not admit signed-bps training as a direction remedy on this evidence. Slight proper-loss improvements do not establish ranking improvement.",
+      "type": "MEASURED_NEGATIVE_RESULT"
+    },
+    {
+      "evidence": [
+        "all_heads"
+      ],
+      "finding": "Separate raw return-mean ranking was explicitly checked across all1/5/15min heads. AUC0.49628269472177233/0.49626199338780447/0.49617224480586425; all12corrected relative intervals include zero. Entire original comparison replays exactly and remains negative.",
+      "id": "F3",
+      "implication": "The missing raw-head measurement is resolved for this fold. No best-head selection, inversion or horizon selection is justified.",
+      "type": "MEASURED_EXPLORATORY_NEGATIVE_RESULT"
+    },
+    {
+      "evidence": [
+        "all_heads"
+      ],
+      "finding": "At zero threshold the candidate return head predictsUP for all17197eligible5min rows, yielding51.57876373786126percent accuracy; at15min all17080areDOWN. Raw scores need not be constant, but their signs are.",
+      "id": "F4",
+      "implication": "Accuracy matching direction prevalence does not demonstrate ability to distinguish both directions or selective trade quality.",
+      "type": "MEASURED_NONDISCRIMINATING_THRESHOLD"
+    },
+    {
+      "evidence": [
+        "signed_bps_primary",
+        "all_heads"
+      ],
+      "finding": "The current1/5/15 terminal-sign comparison measures direction on observed mature nonzero returns. It does not measure small adverse excursion before first favorable excursion, an executable entry policy, or economic edge. Exact-zero forecasts in our diagnostics are not FLAT decisions.",
+      "id": "F5",
+      "implication": "Preserve this declared direction task while diagnosing learning. A later path-quality and LONG/SHORT/FLAT target/action alignment must be separately declared and tested; it must not retroactively change this result.",
+      "type": "TASK_DEFINITION_LIMIT"
+    },
+    {
+      "evidence": [
+        "native0u_inventory",
+        "native0u_design"
+      ],
+      "finding": "Existing same256 initial/final measurements do not demonstrate whole-prefix convergence. Original one-pass default-sign0U full-prefix extraction is still missing the final presentation third. More exposure has not been compared.",
+      "id": "F6",
+      "implication": "Distinguish inability to fit TRAIN from later generalization before attributing failure to indicator insufficiency. Complete only the missing measurement with fixed compact inputs and archived states.",
+      "type": "EXPERIMENTAL_BOUNDARY"
+    },
+    {
+      "evidence": [
+        "qualification",
+        "input_metadata"
+      ],
+      "finding": "Compact important indicators are the user-confirmed first input scope. No new last-M1OFI field or full-profile restoration has been admitted. OFI preparation passes synthetic tests only.",
+      "id": "F7",
+      "implication": "Keep input population, normalization and feature profile fixed for the next learning diagnosis. Adding indicators now would mix causal factors.",
+      "type": "SCOPE_DECISION_NOT_DEFECT"
+    },
+    {
+      "evidence": [
+        "qualification",
+        "all_heads"
+      ],
+      "finding": "231focused technical cases pass on their respective components; saved-output measurements make no new model/fit/Torch calls. No sealedTEST/CONTROL, broker or economic evaluation was opened.",
+      "id": "F8",
+      "implication": "Technical validity supports trusting this measurement, not claiming improved trading decisions.",
+      "type": "QUALIFICATION_LIMIT"
+    }
+  ],
+  "main_cause_established": false,
+  "operator_scope": "Hold existing compact important indicators fixed first. No other-chat contact. Offline direction research before entry placement.",
+  "other_chat_contacted": false,
+  "priority_order": [
+    {
+      "action": "Qualify exact current-source original276own0U256bitparity, then only missing presentation rows[31744,47602), using unchanged compact input,267stats,GC,targets and B16order.",
+      "priority": 1,
+      "status": "SOURCE_IMPLEMENTATION_ADOPTED_EXECUTION_CLOSED"
+    },
+    {
+      "action": "Compare fixed whole-prefix initial/final learning with chronological later development using saved outputs. Reuse all completed extraction parts.",
+      "priority": 2,
+      "status": "NOT_COMPLETE"
+    },
+    {
+      "action": "If still justified, separately predeclare unchanged-sign1pass versus additional exposure. Preserve same unique order per pass, original lastB2, Adam/RNG and existing hardware guards. No bps or feature factor mixed in.",
+      "priority": 3,
+      "status": "NOT_ADMITTED"
+    },
+    {
+      "action": "Consider a new input field or path-quality supervision only as a separate fixed comparison after the compact learning diagnosis.",
+      "priority": 4,
+      "status": "DEFERRED_BY_COMPACT_FIRST_SCOPE"
+    }
+  ],
+  "schema_version": "gx1_independent_direction_first_analysis_v1",
+  "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
+  "test_data_used": false
+}

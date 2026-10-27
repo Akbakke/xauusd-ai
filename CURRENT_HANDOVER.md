@@ -115,6 +115,7 @@ Målet er aktivt og uferdig. Teknisk PASS er ikke dokumentert retningsforbedring
 Egen undersøkelse uten kontakt med den andre chatten. Autoritet/status ligger i
 `independent_direction_edge_20261027` i NEXT_RUN_POLICY.json. Brukeren har
 bekreftet kompaktprofilen som første scope; ingen fullprofil eller nye felt nå.
+Første analyse med åtte funn og prioriteringer: `docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json`.
 Egen bevisrot: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63`.
 
 Gjort: candle-fasit118249TRAINforeldre kontrollert mot original245. Nativeopen
@@ -144,6 +145,10 @@ to eksisterende testfiler er avgrenset. Ingen slik numerisk enhet er åpnet.
 Kompaktinput, original276state,267prefixstats, GC, mål og permutasjon beholdes.
 TEST/CONTROL, Exit, broker, ordre, spending og promotion er fortsatt stengt.
 Målet er aktivt; mer trening og konvergens er uavklart.
+Metadata-optin er implementert og separat kildevurdert i de fem avgrensede
+filene. Bare136valgte syntetiske/metadatacases er nå åpnet. Kopiert testguard
+er rettet for faktisk påvist sti-/mutasjonsavgrensning før bruk; tre eksplisitte
+negativer inngår. Ingen genuine nativeenhet eller ekstra trening er åpnet.
 
 ## Bps-hodets separate retningsrangering
 

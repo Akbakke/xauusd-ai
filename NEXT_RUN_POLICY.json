@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_NATIVE_0U_METADATA_COMPATIBILITY_SOURCE_ONLY",
+    "status": "COMPACT_NATIVE_0U_METADATA_SYNTHETIC_ADMITTED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37142,10 +37142,10 @@
       "sha256": "ab4741e33c7a20362447ceb80027fee1feb4d95604297526d844ffe3949404b7"
     },
     "source_admission": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_007.json",
-      "sha256": "0320bd32e9deeb0ed234fd70b48d804617e31e7be52edee7da3db9a843564a5c"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_008.json",
+      "sha256": "a6e7bc15b57c61de61b37dab1e6539c1d05d76c170633dcca8fc57886f6b8cc2"
     },
-    "current_unit": null,
+    "current_unit": "independent_direction_0u_metadata_synthetic_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Implement only adopted strict metadata opt-in in existing F route and two existing testfiles; qualify fresh source under new synthetic admission. No native/data/fit execution authority yet. Compact inputs fixed.",
+    "next_action": "Run exact136selected metadata/synthetic cases with three explicit guard negatives. Genuine native timing256 and part3 remain closed pending qualification and separate fresh authority.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_002.json",
       "sha256": "17f6c2b68e6c5a2dbbb8183b912b9f93f52c774bd885356f498ee96898f785d5"
@@ -37201,6 +37201,10 @@
     "all_head_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_ROOT_REVIEW_001.json",
       "sha256": "bd9cea17e198b385d8ef394dcc3e8daa37508a1eea19849f168d8bda7228e4dd"
+    },
+    "first_analysis": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
+      "sha256": "3d338ca099298a43c433f8395e51de152414897fd4650f65a8848d89a9c6701b"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -37820,5 +37824,31 @@
     "fits_authorized": false,
     "test_data_used": false,
     "observed_blocker": "Existing F metadata/source pins predate exact current source. New own scope requires explicit qualified transition before original276 own0U timing256 and missingpart3; no numerical or input change."
+  },
+  "independent_direction_0u_metadata_synthetic_20261027": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_PLAN_001.json",
+      "sha256": "79358ff8bab8c55d184ea89f47c2bc6cfb35de479abe2b885b05f01985967f49"
+    },
+    "execution_authorized": true,
+    "synthetic_tests_authorized": true,
+    "genuine_payload_reads_authorized": false,
+    "genuine_forwards_authorized": false,
+    "genuine_fits_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "expected_test_cases": 136,
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_008.json",
+      "sha256": "a6e7bc15b57c61de61b37dab1e6539c1d05d76c170633dcca8fc57886f6b8cc2"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SOURCE_REVIEW_001.json",
+      "sha256": "599afd109eec315a3f60f14d696a8431c891b6df8f2ddfcea6c51175480754f1"
+    }
   }
 }

@@ -207,6 +207,7 @@ def _metadata(plan, route, common, metadata):
             and proof['original_bit_parity']['bit_identical'] is True
             and proof['original_bit_parity']['rows'] == 256
             and all(proof['parity_fields'].values()), 'QUALIFIED_PARTITION_OUTPUT_PARITY')
+    authority.require_independent_completion(plan, lambda ref: common._read(ref, metadata))
     proposal = authority.require_proposal(common._read(authority.PROPOSAL, metadata))
     original = common._read(proposal['existing_input_refs']['recipe'], metadata)
     qualified = common._read(proposal['existing_input_refs']['first_prefix_qualification'], metadata)
@@ -329,8 +330,10 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         recipe, initial, state_ref = _metadata(plan, route, common, metadata)
         payload_refs = [state_ref] + ([spec['parity']] if spec['parity'] is not None else [])
         originals = {ref['path']: common._stat(ref['path']) for ref in payload_refs}
-        context = prefix._metadata(recipe, common,
-            gc_layout_metadata_parity=plan.get('gc_layout_metadata_parity'))
+        metadata_options = {'gc_layout_metadata_parity': plan.get('gc_layout_metadata_parity')}
+        if 'independent_completion' in plan:
+            metadata_options['independent_completion'] = plan['independent_completion']
+        context = prefix._metadata(recipe, common, **metadata_options)
         context['info']['metadata'].update(metadata)
         common._freeze(plan, binding, context)
         guard_context = {**context, 'info': {**context['info'], 'metadata': {

@@ -88,6 +88,147 @@ PARTITION_LIMITS = (LIMITS[0],
     'All eight fixed partitions and exact full-cohort assembly required before separately admitted readout fitting.',
     *LIMITS[2:])
 require_proposal = previous.require_proposal
+INDEPENDENT_ROOT = '/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63'
+INDEPENDENT_DESIGN = {'path': INDEPENDENT_ROOT + '/NATIVE_0U_COMPATIBILITY_DESIGN_001.json',
+    'sha256': '3c1b5694ecd97c7c6ac8d4b1315f86d9b24c45d7b3d61c3a9e0533564047b5ed'}
+INDEPENDENT_UNITS = {
+    TIMING_UNIT: ('independent_direction_0u_timing256_20261027', 'NATIVE_0U_TIMING256_001'),
+    'own0U_prefix_part3': ('independent_direction_0u_part3_20261027', 'NATIVE_0U_PREFIX_PART3_001')}
+INDEPENDENT_CODE_FILES = (NEW_FILES[0],
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py', NEW_FILES[1])
+INDEPENDENT_REVIEW_SCHEMA = 'gx1_independent_default_sign_0u_timing_review_v1'
+
+
+def read_independent_design(completion, read=None):
+    require(type(completion) is dict and set(completion) == {'design', 'initial_parity'}
+        and completion['design'] == INDEPENDENT_DESIGN, 'INDEPENDENT_DESIGN_REF')
+    if read is None:
+        read = lambda ref: campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    design = read(INDEPENDENT_DESIGN)
+    require(design.get('schema_version') == 'gx1_independent_default_sign_0u_completion_design_v1'
+        and design.get('canonical_repo') == REPO and design.get('canonical_branch') == 'work/gx1-current'
+        and design['authority']['execution_authorized'] is False, 'INDEPENDENT_SOURCE_DESIGN')
+    return design
+
+
+def _independent_scope(value):
+    require(value.get('unit') in INDEPENDENT_UNITS, 'INDEPENDENT_FIXED_UNIT')
+    stage, name = INDEPENDENT_UNITS[value['unit']]
+    root = INDEPENDENT_ROOT + '/' + name
+    require(value.get('admission_stage') == stage and value.get('run_root') == root
+        and value.get('runtime_root') == root + '_RUNTIME'
+        and value.get('gc_layout_metadata_parity') == GC_LAYOUT_METADATA_PARITY,
+        'INDEPENDENT_FIXED_NAMESPACE')
+    completion = value['independent_completion']
+    require(type(completion) is dict and set(completion) == {'design', 'initial_parity'}
+        and completion['design'] == INDEPENDENT_DESIGN, 'INDEPENDENT_DESIGN_REF')
+    parity = completion['initial_parity']
+    if value['unit'] == TIMING_UNIT:
+        require(parity is None, 'INDEPENDENT_TIMING_NO_PRESUMED_PARITY')
+    else:
+        require(plain_ref(parity)['path'] == INDEPENDENT_ROOT
+            + '/NATIVE_0U_TIMING256_001/ACTUAL_ROOT_REVIEW.json', 'INDEPENDENT_FRESH_PARITY_REF')
+
+
+def require_independent_completion(recipe, read=None):
+    """Validate the two fixed metadata-only transitions; grant no execution."""
+    if 'independent_completion' not in recipe:
+        return None
+    _independent_scope(recipe)
+    if read is None:
+        read = lambda ref: campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    design = read_independent_design(recipe['independent_completion'], read)
+    closure = design['source_closure']
+    baseline = closure['baseline_current57_references']
+    require(len(baseline) == 57 and set(recipe['source_owners']) == set(baseline)
+        and set(closure['only_runtime_code_edit_exceptions']) == set(INDEPENDENT_CODE_FILES),
+        'INDEPENDENT_SOURCE_CLOSURE')
+    exceptions = {*INDEPENDENT_CODE_FILES, NEW_FILES[-1]}
+    require(NEW_FILES[-1] in closure['qualification_test_edit_allowlist'], 'INDEPENDENT_TEST_PIN')
+    for name, ref in baseline.items():
+        if name not in exceptions:
+            require(recipe['source_owners'][name] == ref, 'INDEPENDENT_UNCHANGED_SOURCE:' + name)
+    if recipe['unit'] != TIMING_UNIT:
+        _require_independent_timing(recipe, design, read)
+    return design
+
+
+def _require_independent_timing(recipe, design, read):
+    review = read(recipe['independent_completion']['initial_parity'])
+    require(review.get('schema_version') == INDEPENDENT_REVIEW_SCHEMA
+        and review.get('status') == 'COMPLETE_AND_QUALIFIED_CURRENT_SIGN_ONLY_OWN0U256'
+        and review.get('design') == INDEPENDENT_DESIGN and review.get('test_data_used') is False
+        and review.get('state_preserved') is True and review.get('all_original_fields_bit_identical') is True,
+        'INDEPENDENT_TIMING_REVIEW')
+    timing_ref = plain_ref(review['recipe'])
+    timing = require_plan(read(timing_ref))
+    require(timing['unit'] == TIMING_UNIT and PurePosixPath(timing_ref['path']).parent == PurePosixPath(INDEPENDENT_ROOT),
+        'INDEPENDENT_TIMING_RECIPE')
+    changing = {'unit', 'admission_stage', 'units_design', 'run_root', 'runtime_root',
+        'execution_binding_path', 'budget', 'operation_limits', 'independent_completion'}
+    require({k: v for k, v in recipe.items() if k not in changing}
+        == {k: v for k, v in timing.items() if k not in changing}, 'INDEPENDENT_TIMING_SAME_BINDINGS')
+    root = timing['run_root']
+    for key, path in (('result', root + '/RESULT.json'), ('native_report', root + '/NATIVE_REPORT.json'),
+            ('pointer', root + '/DIAGNOSTIC_POINTER.json'),
+            ('canonical_terminal_receipt', timing['runtime_root'] + '/receipts/invocation-0001.json')):
+        require(plain_ref(review[key])['path'] == path, 'INDEPENDENT_TIMING_ARTIFACT:' + key)
+    result, report = read(review['result']), read(review['native_report'])
+    original = design['original_bindings']
+    parity = {'reference': INITIAL_PREDICTIONS, 'rows': 256, 'bit_identical': True}
+    limits = call_limits(TIMING_UNIT)
+    require(result.get('decision') == 'COMPLETE_FROZEN_READOUT_EXTRACTION' and result.get('error') is None
+        and result.get('recipe') == timing_ref and result.get('unit') == TIMING_UNIT
+        and result.get('diagnostic_only') is True and result.get('state') == original['own0U_state']['ref']
+        and result.get('state_role') == 'own0U' and result.get('cohort') == 'prefix'
+        and result.get('representation_rows') == 256 and result.get('hidden_width') == 128
+        and result.get('native_report') == review['native_report']
+        and result.get('fresh_identity_sha256') == original['fresh_identity_sha256']
+        and result.get('feature_view_identity') == original['feature_view_identity']
+        and result.get('original_prediction_parity') == parity
+        and result.get('observed_calls') == result.get('observed_returns') == limits
+        and result.get('calls') == {'calls': limits, 'returns': limits, 'optimizer_steps': 0, 'reverse_calls': 0}
+        and all(result.get(k) is True for k in ('source_unchanged', 'originals_stat_preserved'))
+        and all(type(result.get(k)) is int and result[k] == 0 for k in ('optimizer_steps', 'native_optimizer_steps'))
+        and result.get('test_data_used') is False
+        and result.get('denied_phase_opens') == result.get('delegated_denied_opens') == [],
+        'INDEPENDENT_TIMING_RESULT')
+    require(report.get('unit') == TIMING_UNIT and report.get('cutoff_ns') == FOLD['train_cutoff_ns']
+        and report.get('original_prediction_parity') == parity
+        and report.get('own_prefix_prior') == result.get('own_prefix_prior')
+        and type(report.get('state_preservation')) is dict
+        and set(report['state_preservation']) == {'model', 'all_buffers', 'rng', 'modes'},
+        'INDEPENDENT_TIMING_REPORT')
+    pointer = require_frozen_extraction_pointer(read(review['pointer']), expected_recipe=timing_ref,
+        expected_unit=TIMING_UNIT, verify_files=False)
+    require(pointer['outcome'] == 'COMPLETE' and pointer['result'] == review['result'], 'INDEPENDENT_TIMING_POINTER')
+    receipt = read(review['canonical_terminal_receipt'])
+    require(receipt.get('receipt_sha256') == campaign.canonical_sha256({k: v for k, v in receipt.items() if k != 'receipt_sha256'})
+        and receipt.get('outcome') == 'COMPLETE' and receipt.get('kind') == KIND
+        and receipt.get('guard_decision') == 'PASS' and receipt.get('trainer_guard_exit_code') == 0
+        and receipt.get('progress_observer_exit_code') == 0 and receipt.get('invocation_number') == 1
+        and receipt.get('test_data_used') is False and receipt.get('checkpoint_pointer_after') == review['pointer'],
+        'INDEPENDENT_TIMING_RECEIPT')
+    campaign_ref = plain_ref(result['campaign_plan'])
+    require(PurePosixPath(campaign_ref['path']).parent == PurePosixPath(INDEPENDENT_ROOT),
+        'INDEPENDENT_TIMING_CAMPAIGN_REF')
+    bound_campaign = read(campaign_ref)
+    require(bound_campaign.get('plan_sha256') == campaign.canonical_sha256({k: v for k, v in bound_campaign.items() if k != 'plan_sha256'})
+        and bound_campaign.get('recipe') == timing_ref and bound_campaign.get('runtime_root') == timing['runtime_root']
+        and bound_campaign.get('phase') == PHASE and bound_campaign.get('test_data_used') is False
+        and receipt.get('plan_sha256') == bound_campaign['plan_sha256']
+        and type(bound_campaign.get('invocations')) is list and len(bound_campaign['invocations']) == 1,
+        'INDEPENDENT_TIMING_CAMPAIGN')
+    invocation = read(plain_ref(bound_campaign['invocations'][0]))
+    require(invocation.get('invocation_sha256') == campaign.canonical_sha256({k: v for k, v in invocation.items() if k != 'invocation_sha256'})
+        and receipt.get('invocation_sha256') == invocation['invocation_sha256']
+        and invocation.get('kind') == KIND and invocation.get('invocation_number') == 1
+        and invocation.get('optimizer_step_budget') == 0 and invocation.get('test_data_used') is False
+        and invocation.get('source_commit') == bound_campaign.get('source_commit'), 'INDEPENDENT_TIMING_INVOCATION')
+    execution = read(plain_ref(invocation['execution_manifest']))
+    require(execution.get('prelaunch_manifest') == timing_ref and execution.get('invocation_kind') == KIND
+        and execution.get('source_commit') == invocation['source_commit'], 'INDEPENDENT_TIMING_EXECUTION')
+
 
 
 def require(ok, reason):
@@ -166,11 +307,16 @@ def require_plan(value):
         'execution_authorized', 'data_reads_authorized', 'checkpoint_reads_authorized',
         'genuine_forwards_authorized', 'gradient_reverse_authorized', 'optimizer_steps_authorized', 'test_data_used'}
     require(type(value) is dict, 'PLAN_TYPE')
+    independent = 'independent_completion' in value
+    if independent:
+        fields.add('independent_completion')
+        _independent_scope(value)
     metadata_transition = 'gc_layout_metadata_parity' in value
     if metadata_transition:
         fields.add('gc_layout_metadata_parity')
     require(set(value) == fields and value['schema_version'] == SCHEMA
-        and value['operation'] == OPERATION and value['admission_stage'] == STAGE, 'PLAN_SCHEMA')
+        and value['operation'] == OPERATION
+        and (independent or value['admission_stage'] == STAGE), 'PLAN_SCHEMA')
     unit_spec(value['unit'])
     require(value['unit'] not in PARTITION_UNITS or metadata_transition, 'PARTITION_METADATA_PROOF_REQUIRED')
     require(value['proposal'] == PROPOSAL and value['design'] == DESIGN and value['units_design'] == unit_design(value['unit'])
@@ -194,10 +340,12 @@ def require_plan(value):
             and value['gc_layout_metadata_parity'] == GC_LAYOUT_METADATA_PARITY
             and type(value['gc_layout_metadata_parity']) is dict, 'GC_METADATA_TIMING_SCOPE')
         for name, (_old, current) in GC_METADATA_SOURCE_TRANSITIONS.items():
+            if independent and name in INDEPENDENT_CODE_FILES:
+                continue
             require(owners.get(name) == {'path': REPO + '/' + name, 'sha256': current},
                 'GC_METADATA_CURRENT_SOURCE:' + name)
     root, runtime = (PurePosixPath(value[k]) for k in ('run_root', 'runtime_root'))
-    require(all(str(p) == value[k] and p.parent == PurePosixPath(PROGRAM)
+    require(independent or all(str(p) == value[k] and p.parent == PurePosixPath(PROGRAM)
         and p.name.startswith('F_FROZEN_EXTRACTION_' + value['unit'] + '_') for k, p in
         (('run_root', root), ('runtime_root', runtime))) and root != runtime, 'SEPARATE_UNIT_ROOTS')
     require(value['execution_binding_path'] == str(runtime / 'EXECUTION_BINDING.json'), 'EXTERNAL_BINDING_PATH')
@@ -209,6 +357,8 @@ def require_plan(value):
         require(value[key] is True, 'ADMISSION_' + key)
     for key in ('gradient_reverse_authorized', 'optimizer_steps_authorized', 'test_data_used'):
         require(value[key] is False, 'CLOSED_' + key)
+    if independent:
+        require_independent_completion(value)
     return deepcopy(value)
 
 
@@ -233,6 +383,11 @@ def require_source_closure(recipe, original, proposal):
     required = {**previous_owners, **reused}
     require(set(recipe['source_owners']) == set(required) | set(previous.NEW_FILES) | set(NEW_FILES),
         'EXACT_SOURCE_CLOSURE')
+    if 'independent_completion' in recipe:
+        require_independent_completion(recipe)
+        for name in TRANSPORT_ORIGINAL_SHA256:
+            require(recipe['transport_source_transitions'][name]['old276'] == required[name], 'ORIGINAL_SOURCE:' + name)
+        return deepcopy(recipe['source_owners'])
     for name, ref in required.items():
         expected = recipe['transport_source_transitions'][name]['current'] if name in TRANSPORT_ORIGINAL_SHA256 else ref
         if 'gc_layout_metadata_parity' in recipe and name in GC_METADATA_SOURCE_TRANSITIONS:
@@ -376,7 +531,7 @@ def require_native_direction_frozen_extraction_readiness(repo, *, window_path, w
         and policy.get('training_module') == MODULE and all(policy.get(key) is False for key in
             ('training_enabled', 'native_training_enabled', 'full_epoch_training_allowed', 'full_val_allowed')), 'READINESS_GLOBAL')
     require(window['output_directory'] == recipe['run_root'] and window['unit'] == recipe['unit'], 'READINESS_OUTPUT')
-    gate = policy.get(STAGE)
+    gate = policy.get(recipe['admission_stage'])
     require(type(gate) is dict and gate.get('recipe') == window['recipe']
         and gate.get('unit') == window['unit'] and gate.get('run_root') == recipe['run_root'] and gate.get('runtime_root') == recipe['runtime_root']
         and type(gate.get('max_invocations')) is int and gate['max_invocations'] == 1
@@ -438,7 +593,7 @@ def require_native_direction_frozen_extraction_context(policy_path, policy_file_
         campaign.require_clean_source(plan)
         require_native_direction_frozen_extraction_readiness(Path(REPO), window_path=Path(policy_path), window_file_sha256=policy_file_sha256)
         policy = campaign.read_bound_json(Path(policy_ref['path']), policy_ref['sha256'])
-        admission_ref = campaign.require_binding(policy[STAGE]['admission'], label='F execution admission')
+        admission_ref = campaign.require_binding(policy[recipe['admission_stage']]['admission'], label='F execution admission')
         output = Path(recipe['run_root'])
         require(not output.exists() and not output.is_symlink(), 'GENESIS_NOT_FRESH')
         return {'window': window, 'plan': plan, 'invocation': invocation, 'marker': marker,

@@ -38,7 +38,7 @@ def _require(ok, reason):
     if not ok:raise RuntimeError('NATIVE_DIRECTION_PREFIX_WINDOW_'+reason)
 
 
-def _metadata(launch, common, *, gc_layout_metadata_parity=None):
+def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_completion=None):
     metadata={};manifest=common._read(launch['input_manifest'],metadata)
     _require(set(manifest)==MANIFEST_KEYS and manifest['schema_version']=='gx1_native_direction_prefix_fit_input_manifest_v1'
         and manifest['source_design']==SOURCE_DESIGN and manifest['state_qualification']==common.STATE_QUALIFICATION
@@ -61,6 +61,17 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None):
         and fitted['base_normalization']['contract_sha256']==item['base_normalization_sha256']
         and fitted['gc_mtf_history']['layout']['contract_sha256']==item['gc_layout_sha256']
         and fitted['gc_mtf_history']['normalization']['contract_sha256']==item['gc_normalization_sha256'],'PREFIX_IDENTITIES')
+    independent_design = None
+    if independent_completion is not None:
+        from gx1.contracts import entry_native_direction_frozen_extraction_v1 as frozen
+        independent_design = frozen.read_independent_design(independent_completion,
+            lambda ref: common._read(ref, metadata))
+        original = independent_design['original_bindings']
+        _require(launch['input_manifest'] == original['input_manifest'] and fold == original['fold']
+            and launch['numerical_recipe'] == original['original_numerical_recipe']
+            and all(manifest[key] == original[key] for key in ('prefix_normalization', 'constructor_metadata',
+                'targets', 'archive_members', 'view_source_bindings', 'physical_provider_plan', 'physical_provider_worker')),
+            'INDEPENDENT_ORIGINAL_BINDINGS')
     for ref in manifest['view_source_bindings'].values():
         if ref['path'].endswith('.json'):common._read(ref,metadata)
         else:
@@ -68,6 +79,11 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None):
             if gc_layout_metadata_parity is not None:
                 from gx1.contracts import entry_native_direction_frozen_extraction_v1 as frozen
                 expected = frozen.historical_gc_view_source(ref, gc_layout_metadata_parity)
+            if independent_design is not None:
+                transition = independent_design['historical_source_verification']['only_new_manifest_source_transition']
+                if ref['path'] == transition['original']['path']:
+                    _require(ref == transition['original'], 'INDEPENDENT_HISTORICAL_COMPONENT')
+                    expected = transition['current']
             _require(common._hash_file(ref['path'])==expected,'VIEW_SOURCE_SHA')
     info['metadata'].update(metadata)
     return {'manifest':manifest,'design':design,'physical':physical,'ancestor':ancestor,'ancestor_plan':ancestral_plan,
