@@ -333,6 +333,12 @@ FEILET/KONSUMERT, og 002 er FULLFØRT/KONSUMERT. Aritmetikk-/kildekontroll
 uten uavhengig rådatareplay: `LAST_M1_TRADE_COUNT_ROOT_REVIEW_002.json`
 SHA-256 09cd9311bbd834bbc78aa7900ce87de1afc457bf0ca751907fc686560555765a.
 
+En uavhengig, separat engangskontroll er admittért for M1-/M5-tellingene:
+annen tidsjoin, kontroll av alle fem minutters paritet og fysisk duplisering
+av samtlige 2048 dag- og 2048 ukeblokkresamples. Samme strenge utvalg, uten
+fit, modell, nye indikatorer, CONTROL, TEST, Exit eller broker. Status:
+`independent_direction_last_m1_trade_count_verify_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/
