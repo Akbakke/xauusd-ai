@@ -41,6 +41,8 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 Implementer og kvalifiser den lagrede sammenligningen som er låst i
 DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/COMPARISON_PROTOCOL.json
 før senere prediksjoner åpnes. Gjenbruk eksisterende score-/bootstrap-eiere.
+Sammenligningskoden i gx1/scripts/compare_entry_direction_signed_bps_v1.py er
+implementert; syntetisk kvalifisering og faktisk sammenligning gjenstår.
 Deretter fersk, avgrenset CPU-admisjon for lagrede outputs; root åpner ikke
 PT/NPZ/NPY/Parquet. Ingen ny modellforward, refit, epoke eller horisontendring.
 
