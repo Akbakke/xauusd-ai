@@ -317,12 +317,16 @@ er FEILET OG KONSUMERT; minste rettelse krever ny separat binding. Bevis:
 de75d6834b048a922e7f15e1b7fa4105f293718209ec48608e172aed5bfe2e18.
 Ingen modell/trening, nye modellindikatorer, CONTROL, TEST, Exit eller broker.
 
-En ny, separat hashbundet lesekjøring er admittért kun for å rette
-lagringsfeilen: et eget tidsvariabelnavn, uendret rangering, utvalg og mål.
-Original 001 er fortsatt FEILET/KONSUMERT. Utvalgsstørrelsen 2530 er kjent;
-ingen tidligere AUC ble publisert. Null fit, modell, nye indikatorer,
-CONTROL, TEST, Exit og broker. Ny status/autoritet:
-`independent_direction_last_m1_trade_count_repair_20261027`.
+Separat, tidsvariabelrettet 002 er fullført: på 2530 strengt kvalifiserte
+rader ga fast M5-tellingsfortegn AUC .517398 og med siste M1 som forhåndsvalgt
+rangeringsforfining .514226; differanse -.003172. Korrigerte parrede dag-/
+ukeintervaller inkluderer null. Ingen tilført verdi er dokumentert for denne
+ene testen. 2530/17197 opprinnelige rader er bare om lag 15%; ingen general
+dom over ukjente/utelatte, M1-OFI, volum eller modellen. Ingen nye
+modellindikatorer, fit, CONTROL, TEST, Exit eller broker. 001 er fortsatt
+FEILET/KONSUMERT, og 002 er FULLFØRT/KONSUMERT. Aritmetikk-/kildekontroll
+uten uavhengig rådatareplay: `LAST_M1_TRADE_COUNT_ROOT_REVIEW_002.json`
+SHA-256 09cd9311bbd834bbc78aa7900ce87de1afc457bf0ca751907fc686560555765a.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat

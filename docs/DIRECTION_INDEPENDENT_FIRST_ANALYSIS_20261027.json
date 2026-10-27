@@ -110,6 +110,14 @@
     "last_m1_trade_count_failure": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_FAILURE_REVIEW_001.json",
       "sha256": "de75d6834b048a922e7f15e1b7fa4105f293718209ec48608e172aed5bfe2e18"
+    },
+    "last_m1_trade_count_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_STUDY_RESULT_002.json",
+      "sha256": "f5977c687fc42d7584828e3343b452461e1a6076ddb2fa63d953a5f8a0e99326"
+    },
+    "last_m1_trade_count_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_ROOT_REVIEW_002.json",
+      "sha256": "09cd9311bbd834bbc78aa7900ce87de1afc457bf0ca751907fc686560555765a"
     }
   },
   "execution_authorized_by_report": false,
@@ -275,6 +283,16 @@
       ],
       "finding": "An admitted no-fit last-M1 trade-record comparison reached publication after exact M5-to-five-M1 parity checks, but a timer variable was overwritten by a NumPy array, causing JSON serialization failure. The incomplete output reports 2530 eligible qualified rows out of 17197 original eligible, with 2562 strict rows parity-checked.",
       "implication": "The claimed plan is failed and consumed; no AUC or incremental-value result was persisted. The strict-known-side comparison covers only a minority of the original population and cannot justify guessing unknown aggressor direction or a general claim."
+    },
+    {
+      "id": "F18",
+      "type": "MEASURED_LAST_M1_TRADE_RECORD_RANK_REFINEMENT",
+      "evidence": [
+        "last_m1_trade_count_result",
+        "last_m1_trade_count_review"
+      ],
+      "finding": "On 2530 strictly qualified later-development rows, a fixed last-closed-M1 known-side trade-record sign refinement changed AUC from 0.517398 for the same M5 count sign to 0.514226, a difference of -0.003172. Corrected paired day/week intervals both include zero. The strict five-M1 counts match the existing M5 inputs exactly on 2562 strict rows.",
+      "implication": "No added ranking value is documented for this one predefined trade-record-count refinement. The eligible sample covers only 2530 of 17197 original eligible rows; no inference applies to excluded/unknown observations, other fresh GC signals, M1 OFI, signed volume or the trained network. The same reused fold is not generalization or economic edge."
     }
   ],
   "main_cause_established": false,
@@ -305,7 +323,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:14:36.622716+00:00",
+  "updated_utc": "2026-10-27T21:16:59.328000+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,
