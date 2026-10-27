@@ -37547,5 +37547,24 @@
     },
     "passed_cases": 32,
     "failed_cases": 5
+  },
+  "direction_bps_head_rank_diagnostic_20261027": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "1429f3480629ce5d08f1a21baeb7616005441bc5659e4d55a8992d354bd05d8e"
+    },
+    "mode": "synthetic",
+    "execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "native_forwards_authorized": false,
+    "fit_authorized": false
   }
 }
