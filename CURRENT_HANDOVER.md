@@ -11,6 +11,12 @@ Programrot:
 
 ## Aktuell status
 
+10-minuttersutfall kan nå forberedes fra to lagrede femminuttersutfall med
+delt prisrad og eksplisitt avrundingsusikkerhet; bps må sammensettes, ikke
+adderes direkte. Kilde er foreløpig utestet. Ingen lagrede datapayloads,
+modellforwards eller trening er åpnet av kildearbeidet.
+
+
 Forskningskontrakt for første gunstige quote-bevegelse er implementert separat
 fra eksisterende retning og global MFE. Den skiller same-side prisbevegelse
 fra gross markout etter spread og beholder bps-størrelse, M1-rekkefølge-

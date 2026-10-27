@@ -166,3 +166,65 @@ def test_outward_intervals_contain_exact_endpoint_differences():
     for j in range(samples.shape[1]):
         exact = Fraction.from_float(float(samples[-1, j])) - Fraction.from_float(float(samples[0, j]))
         assert Fraction.from_float(float(low[j])) <= exact <= Fraction.from_float(float(high[j]))
+
+def test_ten_minute_matches_direct_price_and_compounds_not_plain_sum():
+    prices = np.full(80, 100.0)
+    prices[5:10] = 101.0
+    prices[10:15] = 102.0
+    prices[15:] = 100.5
+    saved, cutoff = saved_prices(prices)
+    before = {k: v.tobytes() for k, v in saved.items()}
+    result = owner.derive_ten_minute_direction(saved, cutoff_ns=cutoff)
+    part = result["arrays"]
+    assert part["observed_chain"][0] and part["label_resolved"][0]
+    assert part["sign"][0] == 1 and part["terminal_source_row"][0] == 10
+    assert part["mid_return_bps_approx"][0] == pytest.approx(200.0)
+    naive = saved["mid_return_bps"][0, 1] + saved["mid_return_bps"][1, 1]
+    assert abs(naive - part["mid_return_bps_approx"][0]) > 0.5
+    assert part["bps_sign_consistent"][0] and result["control15_bps_rows"] > 0
+    assert result["control15"]["endpoint_identity_passed"]
+    assert all(saved[k].tobytes() == before[k] for k in saved)
+    assert all(not v.flags.writeable for v in part.values() if isinstance(v, np.ndarray))
+
+
+def test_ten_minute_nonzero_roundtrip_is_unresolved_not_false_zero():
+    prices = np.full(80, 100.0)
+    prices[5:10] = 101.0
+    saved, cutoff = saved_prices(prices)
+    part = owner.derive_ten_minute_direction(saved, cutoff_ns=cutoff)["arrays"]
+    assert part["observed_chain"][0] and part["rounding_ambiguous"][0]
+    assert not part["label_resolved"][0] and not part["certified_zero"][0]
+
+
+def test_ten_minute_missing_intermediate_parent_is_not_zero():
+    selected = np.setdiff1d(np.arange(0, 100, 5), [5])
+    saved, cutoff = saved_prices(100 + np.arange(100) * 0.01, selected=selected)
+    part = owner.derive_ten_minute_direction(saved, cutoff_ns=cutoff)["arrays"]
+    assert part["chain_reason"][0] == 2 and not part["observed_chain"][0]
+
+
+def test_ten_minute_at_exclusive_cutoff_is_censored():
+    saved, cutoff = saved_prices(100 + np.arange(80) * 0.01, cutoff_minute=10)
+    part = owner.derive_ten_minute_direction(saved, cutoff_ns=cutoff)["arrays"]
+    assert part["chain_reason"][0] == 1 and not part["observed_chain"][0]
+
+
+def test_ten_minute_mismatched_shared_source_row_fails():
+    saved, cutoff = saved_prices(100 + np.arange(100) * 0.01)
+    saved["terminal_source_row"][0, 1] += 1
+    with pytest.raises(RuntimeError, match="SHARED_PRICE_ROW"):
+        owner.derive_ten_minute_direction(saved, cutoff_ns=cutoff)
+
+
+def test_ten_minute_rejects_damaged_direct_fifteen_bps():
+    saved, cutoff = saved_prices(100 + np.arange(100) * 0.01)
+    saved["mid_return_bps"][0, 2] += 1.0
+    with pytest.raises(RuntimeError, match="TEN_CONTROL15_RETURN_PARITY"):
+        owner.derive_ten_minute_direction(saved, cutoff_ns=cutoff)
+
+
+def test_ten_minute_rejects_five_minute_sign_mismatch():
+    saved, cutoff = saved_prices(100 + np.arange(100) * 0.01)
+    saved["mid_return_bps"][0, 1] *= -1.0
+    with pytest.raises(RuntimeError, match="TEN_FIVE_RETURN_DOMAIN"):
+        owner.derive_ten_minute_direction(saved, cutoff_ns=cutoff)

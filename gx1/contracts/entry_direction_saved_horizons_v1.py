@@ -171,3 +171,69 @@ def derive_direction_horizons(saved, *, cutoff_ns):
         "population_scope": "chain_observed_with_separate_rounding_certification",
         "price_levels_reconstructed": False, "model_input_authority": False,
     }
+
+def _compound_saved_five_minute_returns(saved, rows, *, steps):
+    """Compound fixed adjacent five-minute returns for already-qualified rows."""
+    decisions = saved["decision_ns"]
+    rows = np.asarray(rows, dtype=np.int64)
+    cumulative = np.zeros(len(rows), dtype=np.float64)
+    for step in range(steps):
+        expected = decisions[rows] + step * 5 * MINUTE_NS
+        positions = np.searchsorted(decisions, expected)
+        _require(np.all(positions < len(decisions)), "TEN_COMPOUND_PARENT")
+        _require(np.array_equal(decisions[positions], expected), "TEN_COMPOUND_CLOCK")
+        _require(np.all(saved["observed"][positions, 1]), "TEN_COMPOUND_OBSERVED")
+        value = saved["mid_return_bps"][positions, 1]
+        _require(np.all(value > -10000.0) and np.isfinite(value).all(), "TEN_COMPOUND_DOMAIN")
+        cumulative = cumulative + value + cumulative * value / 10000.0
+    _require(np.isfinite(cumulative).all(), "TEN_COMPOUND_FINITE")
+    return cumulative
+
+
+def derive_ten_minute_direction(saved, *, cutoff_ns):
+    """Derive ten-minute direction and bps without opening a price source.
+
+    Two adjacent saved five-minute differences must share the same source row.
+    Direction uses outward bounds on the saved price differences. Bps compound
+    the saved returns, using their separate entry-price denominators; they are
+    approximate floating-point arithmetic, not raw quote or execution prices.
+    A separately observed three-by-five control must reproduce the direct
+    fifteen-minute result before its available rows are accepted.
+    """
+    baseline = derive_direction_horizons(saved, cutoff_ns=cutoff_ns)
+    five_seen = saved["observed"][:, 1]
+    _require(np.all(saved["mid_return_bps"][five_seen, 1] > -10000.0)
+             and np.array_equal(np.sign(saved["mid_return_bps"][five_seen, 1]).astype(np.int8),
+                                saved["sign"][five_seen, 1]), "TEN_FIVE_RETURN_DOMAIN")
+    control = _compose(saved, step=5, count=3, cutoff_ns=cutoff_ns)
+    crows = np.flatnonzero(control["observed_chain"])
+    c_bps = _compound_saved_five_minute_returns(saved, crows, steps=3)
+    direct_bps = saved["mid_return_bps"][crows, 2]
+    _require(np.all(np.isclose(c_bps, direct_bps, rtol=1e-10, atol=1e-8)),
+             "TEN_CONTROL15_RETURN_PARITY")
+    part = _compose(saved, step=5, count=2, cutoff_ns=cutoff_ns)
+    rows = np.flatnonzero(part["observed_chain"])
+    returns = np.zeros(len(saved["parent_rows"]), dtype=np.float64)
+    returns[rows] = _compound_saved_five_minute_returns(saved, rows, steps=2)
+    consistent = part["label_resolved"] & (
+        np.sign(returns).astype(np.int8) == part["sign"]
+    )
+    part.update({
+        "parent_rows": saved["parent_rows"].copy(),
+        "decision_ns": saved["decision_ns"].copy(),
+        "mid_return_bps_approx": returns,
+        "bps_sign_consistent": consistent,
+    })
+    for value in part.values():
+        if isinstance(value, np.ndarray):
+            value.setflags(write=False)
+    return {
+        "schema_version": "gx1_direction_saved_ten_minute_v1",
+        "horizon_minutes": 10,
+        "arrays": part,
+        "control15": baseline["control15"],
+        "control15_bps_rows": int(len(crows)),
+        "control15_bps_max_abs_error": float(np.max(np.abs(c_bps - direct_bps))) if len(crows) else None,
+        "bps_definition": "compounded_saved_five_minute_mid_returns_approx",
+        "model_input_authority": False,
+    }
