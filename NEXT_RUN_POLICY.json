@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T10:11:20.973250+00:00",
-  "status": "DIRECTION_BPS_ALLOCATION_SYNTHETIC_ADMITTED",
+  "status": "DIRECTION_BPS_ALLOCATION_ACTUAL_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "One capped synthetic qualification of fixedbpsband/mask/targetjoin/B16lossallocation report; no genuine reads/fits/forwards.",
+  "next_action": "One capped CPU saved-target bps/loss allocation:9savedTRAINNPZ,54proper and at most400rank calls,0fit/forward/optimizer,180s. Fixed bands, exact original joins and frozenB16reduction; no edge selection.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "27.10 presisering: pris ved1og5minutter relativt til entry er relevant. Behold opp/ned-målet og definer nødvendige tillegg presist; ikke anta at målet er hovedårsaken.",
-    "current_activity": "Fixed terminal readout COMPLETE/consumed:5savedNPZ,3convergedCPUfits,12.459s,0nativeforward/update. PrefixAUC improves3/3; primary later5AUC .503021→.503360 with both99percentCI crossing0; laterproperworsens3/3.",
+    "current_activity": "Bps report route qualified on 15 synthetic cases. Actual saved-target unit admitted, not started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -36683,7 +36683,7 @@
     }
   },
   "direction_bps_allocation_source": {
-    "status": "SOURCE_ONLY_ADMITTED",
+    "status": "SOURCE_SYNTHETIC_QUALIFIED_CLOSED",
     "design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_DESIGN_001.json",
       "sha256": "31ad98bd960e3eb6769e80f8eb5b028fa876e76fa6c18bf8d0190b4e06a9fbef"
@@ -36692,21 +36692,25 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_SOURCE_ADMISSION_001.json",
       "sha256": "888a65bf9b9c46d5d2b93568a450a4d4cc1cbd0b2240534e599b3fc787f2c5a2"
     },
-    "source_changes_authorized": true,
+    "source_changes_authorized": false,
     "execution_authorized": false,
     "saved_payload_reads_authorized": false,
     "genuine_fits_authorized": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "64b2eeb4923f4a6ec45513ad449f2f671eb7991a815b040d0ef267d079bd7fa9"
+    }
   },
   "direction_bps_allocation": {
     "status": "ADMITTED",
-    "mode": "synthetic",
+    "mode": "actual",
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_SYNTHETIC_PLAN_001.json",
-      "sha256": "f3ee6d279fee2bab6b3dde2507b7a1e1b3203933cbf605167830e74cae49e697"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_PLAN_001.json",
+      "sha256": "23f140bbd6d7d9defa324d9911f644898317b182081f5f239e96f1fac81050ae"
     },
     "execution_authorized": true,
-    "saved_payload_reads_authorized": false,
+    "saved_payload_reads_authorized": true,
     "genuine_fits_authorized": false,
     "native_forwards_authorized": false,
     "max_invocations": 1,
@@ -36714,5 +36718,26 @@
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "test_data_used": false
+  },
+  "direction_bps_allocation_synthetic": {
+    "status": "COMPLETE_CONSUMED",
+    "mode": "synthetic",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_SYNTHETIC_PLAN_001.json",
+      "sha256": "f3ee6d279fee2bab6b3dde2507b7a1e1b3203933cbf605167830e74cae49e697"
+    },
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
+    "genuine_fits_authorized": false,
+    "native_forwards_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_SYNTHETIC_ROOT_REVIEW_001.json",
+      "sha256": "64b2eeb4923f4a6ec45513ad449f2f671eb7991a815b040d0ef267d079bd7fa9"
+    }
   }
 }

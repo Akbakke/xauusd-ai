@@ -12,10 +12,13 @@ Programrot:
 
 ## Aktuell status
 
-DIRECTION_BPS_ALLOCATION_SYNTHETIC_PLAN_001 er engangsadmittért, ikke startet.
-Den tester bare kunstige bps-bånd, masker, klokker, join, rangaggregering og
-B16/B2-lossvekter gjennom eksisterende CPUauditvakter. Genuine payloads, fit
-og nativekall er lukket. Kilde: diagnose_entry_direction_bps_allocation_v1.py.
+DIRECTION_BPS_ALLOCATION_PLAN_001 er engangsadmittért, ikke startet.
+15 fokuserte syntetiske kontroller bestod; originalene er verifisert,
+cgroup borte og originallås ledig. Syntetisk autoritet er konsumert.
+Den nye enheten leser9eksisterendeTRAINarkiver, med0fit/nativeforward/update,
+CPUaudit4G/512M, én tråd,64tasks,180sworker/210souter. Faste bps-bånd,
+originale kohorter, masker og B16-rekkefølge beholdes. Utfallsbånd er kun
+diagnostikk. Sluttmodellens batchloss er ikke historiske optimizergradienter.
 
 F_TERMINAL_READOUT_20261027_001 er COMPLETE/claimed/consumed. Ingen jobb kjører,
 cgroup er borte, original tunglås er identitetskontrollert og ledig. Alle nye
