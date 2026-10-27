@@ -321,3 +321,115 @@ def test_chunked_queries_match_individual_queries():
                     "first_event_at_nominal_terminal_open", "nominal_pre_event_adverse_lower_bps",
                     "nominal_pre_event_adverse_upper_bps"):
             np.testing.assert_array_equal(many[key][i:i + 1], one[key])
+
+
+def test_favorable_bps_distinguishes_point_one_and_fifty_bps_in_both_directions():
+    frame = _frame()
+    _bar(frame, 5, 100., 100.001, 99.999)  # +0.1 / -0.1 bps
+    _bar(frame, 6, 100., 100.50, 99.50)    # +50 / -50 bps
+    index, fill = _index_and_fill(frame)
+    inputs = dict(fill_surface=fill, query_entry_rows=np.array([0], np.int64),
+                  horizon_minutes=np.array([2], np.int64), event_basis="gross_quote_markout",
+                  endpoint_kind=DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT)
+    zero = query_first_positive_quote(index, **inputs)
+    selected = query_first_positive_quote(index, favorable_bps=10., **inputs)
+    assert zero["first_event_source_row"].tolist() == [[5, 5]]
+    assert selected["first_event_source_row"].tolist() == [[6, 6]]
+    assert selected["first_event_occurrence_lower"].tolist() == [[True, True]]
+    assert selected["contract"]["favorable_bps"] == 10.
+    assert selected["favorable_bps"] == 10.
+
+
+def test_favorable_bps_uses_strict_crossing_not_equality():
+    frame = _frame()
+    _bar(frame, 5, 100., 100.50, 99.50)
+    _bar(frame, 6, 100., 100.51, 99.49)
+    index, fill = _index_and_fill(frame)
+    inputs = dict(fill_surface=fill, query_entry_rows=np.array([0], np.int64),
+                  horizon_minutes=np.array([2], np.int64), event_basis="gross_quote_markout",
+                  endpoint_kind=DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT)
+    result = query_first_positive_quote(index, favorable_bps=50., **inputs)
+    assert result["first_event_source_row"].tolist() == [[6, 6]]
+
+
+def test_hurdle_adverse_bps_remain_relative_to_entry_not_hurdle():
+    frame = _frame()
+    _bar(frame, 5, 100., 100., 99.98)
+    _bar(frame, 6, 100., 100.10, 100.)
+    index, fill = _index_and_fill(frame)
+    result = query_first_positive_quote(index, fill_surface=fill,
+        query_entry_rows=np.array([0], np.int64), horizon_minutes=np.array([2], np.int64),
+        event_basis="gross_quote_markout", endpoint_kind=DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT,
+        favorable_bps=5.)
+    assert result["first_event_source_row"][0, 0] == 6
+    assert result["nominal_pre_event_adverse_lower_bps"][0, 0] == pytest.approx(2.)
+    assert result["nominal_pre_event_adverse_upper_bps"][0, 0] == pytest.approx(2.)
+
+
+def test_zero_hurdle_preserves_entire_legacy_result():
+    frame = _frame()
+    _bar(frame, 5, 100., 100.1, 99.9)
+    index, fill = _index_and_fill(frame)
+    inputs = dict(fill_surface=fill, query_entry_rows=np.array([0], np.int64),
+                  horizon_minutes=np.array([2], np.int64), event_basis="gross_quote_markout",
+                  endpoint_kind=DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT)
+    old = query_first_positive_quote(index, **inputs)
+    explicit = query_first_positive_quote(index, favorable_bps=0., **inputs)
+    assert old.keys() == explicit.keys()
+    for key, value in old.items():
+        if isinstance(value, dict):
+            assert value.keys() == explicit[key].keys()
+            for subkey, subvalue in value.items():
+                if isinstance(subvalue, np.ndarray):
+                    np.testing.assert_array_equal(subvalue, explicit[key][subkey])
+                else:
+                    assert subvalue == explicit[key][subkey]
+        elif isinstance(value, np.ndarray):
+            np.testing.assert_array_equal(value, explicit[key])
+        else:
+            assert value == explicit[key]
+
+
+@pytest.mark.parametrize("bad", [-1., float("nan"), float("inf"), True, "5", 10**1000])
+def test_favorable_bps_rejects_invalid_threshold_before_source_query(bad):
+    index, fill = _index_and_fill(_frame())
+    with pytest.raises(RuntimeError, match="FAVORABLE_BPS"):
+        query_first_positive_quote(index, fill_surface=fill,
+            query_entry_rows=np.array([0], np.int64), horizon_minutes=np.array([1], np.int64),
+            event_basis="gross_quote_markout", favorable_bps=bad)
+
+
+def test_favorable_hurdle_preserves_spread_conventions_for_both_sides():
+    frame = _frame()
+    for kind in ("open", "high", "low"):
+        frame["ask_" + kind] += 0.02
+    frame.loc[6, ["bid_high", "ask_high", "bid_low", "ask_low"]] = [100.06, 100.08, 99.94, 99.96]
+    frame.loc[7, ["bid_high", "ask_high", "bid_low", "ask_low"]] = [100.08, 100.10, 99.92, 99.94]
+    index, fill = _index_and_fill(frame)
+    common = dict(fill_surface=fill, query_entry_rows=np.array([0], np.int64),
+                  horizon_minutes=np.array([3], np.int64),
+                  endpoint_kind=DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT, favorable_bps=5.)
+    gross = query_first_positive_quote(index, event_basis="gross_quote_markout", **common)
+    price = query_first_positive_quote(index, event_basis="same_side_quote_move", **common)
+    assert gross["first_event_source_row"].tolist() == [[7, 7]]
+    assert price["first_event_source_row"].tolist() == [[6, 6]]
+    assert gross["nominal_pre_event_adverse_lower_bps"][0, 0] == pytest.approx((100.02 - 99.94) / 100.02 * 10000.)
+    assert gross["nominal_pre_event_adverse_lower_bps"][0, 1] == pytest.approx((100.08 - 100.) / 100. * 10000.)
+
+
+@pytest.mark.parametrize("maximum", [True, False])
+def test_favorable_hurdle_range_search_matches_bps_linear_scan(maximum):
+    rng = np.random.RandomState(237)
+    values = rng.uniform(98., 102., size=128).astype(np.float64)
+    values.setflags(write=False)
+    index = _dynamic_range_arg_index(values, maximum=maximum)
+    starts = rng.randint(0, 120, size=300).astype(np.int64)
+    ends = np.array([rng.randint(int(s) + 1, 129) for s in starts], np.int64)
+    reference = rng.uniform(99., 101., size=300).astype(np.float64)
+    result = _first_strict_crossing(index, starts, ends, reference, maximum=maximum, favorable_bps=20.)
+    expected = []
+    for start, end, ref in zip(starts, ends, reference):
+        found = [i for i in range(int(start), int(end))
+                 if ((values[i] - ref if maximum else ref - values[i]) / ref * 10000.) > 20.]
+        expected.append(found[0] if found else -1)
+    np.testing.assert_array_equal(result, np.asarray(expected, np.int64))

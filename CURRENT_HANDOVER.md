@@ -92,6 +92,15 @@ en maksimal holdetid eller handelsregel.
 
 ## Hva som er endret og fortsatt åpent
 
+Forskningsfunksjonen for første gunstige quote er utvidet med en eksplisitt,
+fast bps-grense; null beholder opprinnelig fasit. Ugunstig bevegelse måles
+fra entryreferansen, ikke fra grensen. 31 syntetiske tilfeller bestod under
+4G-vakt; ekte data, modell og trening ble ikke brukt. Kontroll og hash finnes
+under `direction_first_favorable_bps_hurdle_source` i NEXT_RUN_POLICY.json.
+Grensen gjelder strengt større bevegelse; den er en måledefinisjon, ikke
+tapsgrense eller maksimal holdetid. M1-rekkefølge og faktisk nytte er åpne.
+
+
 Opt-in bevarer eksisterende fortegns-BCE og tilfører tre ubundne signed-bps-
 middelverdier fra samme udetechede hidden. Loss=BCE+prefiks-RMS-skalert MSE,
 fast relativvekt1. Observerte nuller deltar i bps-loss; de lærer ikke FLAT.

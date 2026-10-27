@@ -38463,5 +38463,49 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/GC_EXISTING_CONTEXT_CLOCK_REVIEW_001.json",
       "sha256": "ae221fc07ce2da847d62907de4fb3501afa1bfd271da3546aba99f473387e4e3"
     }
+  },
+  "direction_first_favorable_bps_hurdle_source": {
+    "status": "SYNTHETIC_31_PASS_RESEARCH_ONLY",
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_FAVORABLE_HURDLE_SOURCE_ADMISSION_20261027_001.json",
+      "sha256": "b249f8316b3fb2e3f9bd7063bd2ef762b8b58c145abd35ddd142bf3bac725d1f"
+    },
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
+      "sha256": "4263643864a8763371aea300ef1546f16ae993cec57a8f07b091cb26e0ecc854"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_causal_m1_first_positive_quote_v1.py",
+      "sha256": "3214dd1cc363cf4a543e91c9822fe7dc41a09602e2027c72b6c1e4af42492cd5"
+    },
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_FAVORABLE_BPS_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
+      "sha256": "c415e559c8932423fa8592e47db1d2bd8d18260987b80b49db230ab9a7ac035a"
+    }
+  },
+  "direction_first_favorable_bps_hurdle_synthetic": {
+    "status": "CONSUMED_31_SYNTHETIC_PASS",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_FAVORABLE_BPS_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "05fcdfe22d970d355f4da83d99cf75ebbcccb60d1f16be7d33a1d45af7a4357c"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "completed_invocations": 1,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_FAVORABLE_BPS_SYNTHETIC_ROOT_REVIEW_20261027_001.json",
+      "sha256": "c415e559c8932423fa8592e47db1d2bd8d18260987b80b49db230ab9a7ac035a"
+    }
   }
 }

@@ -8,6 +8,8 @@ identity and split-specific admission.
 """
 from __future__ import annotations
 
+import math
+
 import numpy as np
 
 from gx1.contracts.entry_causal_m1_outcomes_v1 import (
@@ -18,6 +20,7 @@ from gx1.contracts.entry_causal_m1_outcomes_v1 import (
 )
 
 SCHEMA_VERSION = "gx1_first_positive_quote_target_research_v1"
+HURDLE_SCHEMA_VERSION = "gx1_first_favorable_quote_hurdle_target_research_v1"
 _EVENT_BASES = ("same_side_quote_move", "gross_quote_markout")
 
 
@@ -26,9 +29,32 @@ def _require(condition, reason):
         raise RuntimeError("FIRST_POSITIVE_QUOTE_TARGET_" + reason)
 
 
-def first_positive_quote_target_contract():
+def _require_favorable_bps(value):
+    _require(not isinstance(value, bool) and isinstance(value, (int, float)), "FAVORABLE_BPS")
+    try:
+        value = float(value)
+    except (OverflowError, ValueError):
+        raise RuntimeError("FIRST_POSITIVE_QUOTE_TARGET_FAVORABLE_BPS") from None
+    _require(math.isfinite(value) and value >= 0., "FAVORABLE_BPS")
+    return value
+
+
+def _crosses_favorable_bps(values, reference, favorable_bps, *, maximum):
+    # Preserve the original strict price comparison exactly at zero. For a
+    # nonzero hurdle, compare return in bps directly, avoiding rounding a price
+    # barrier before deciding whether an exact threshold counts as a crossing.
+    if favorable_bps == 0.:
+        return values > reference if maximum else values < reference
+    _require(np.all(reference > 0.), "NONPOSITIVE_ENTRY_REFERENCE")
+    with np.errstate(over="ignore"):
+        bps = ((values - reference) if maximum else (reference - values)) / reference * 10_000.
+    return bps > favorable_bps
+
+
+def first_positive_quote_target_contract(*, favorable_bps=0.):
     """Return the target semantics; this does not grant execution authority."""
-    return {
+    favorable_bps = _require_favorable_bps(favorable_bps)
+    value = {
         "schema_version": SCHEMA_VERSION,
         "role": "research_target_only_no_native_action_or_exit_policy",
         "entry": "existing_exact_causal_m5_decision_m1_bid_ask_fill",
@@ -54,9 +80,18 @@ def first_positive_quote_target_contract():
         "future_targets_as_input": False,
         "test_or_control_authorized": False,
     }
+    if favorable_bps:
+        value.update({
+            "schema_version": HURDLE_SCHEMA_VERSION,
+            "event_basis": "explicit_required_fixed_strict_greater_than_favorable_bps",
+            "favorable_bps": favorable_bps,
+            "event_threshold": "signed_side_quote_return_bps_from_selected_entry_reference_strictly_above_favorable_bps",
+            "pre_event_adverse": "entry_reference_bps_bounds_under_nominal_open_entry_convention_not_distance_from_hurdle",
+        })
+    return value
 
 
-def _first_strict_crossing(range_index, starts, ends, barrier, *, maximum):
+def _first_strict_crossing(range_index, starts, ends, barrier, *, maximum, favorable_bps=0.):
     """Locate the earliest qualifying bar via existing range-extreme queries."""
     _require(range_index.maximum is maximum and starts.ndim == ends.ndim == barrier.ndim == 1
              and starts.shape == ends.shape == barrier.shape
@@ -65,7 +100,7 @@ def _first_strict_crossing(range_index, starts, ends, barrier, *, maximum):
     extreme = range_index.query(starts, ends)
     _require(np.all(extreme >= starts) and np.all(extreme < ends), "RANGE_EXTREME")
     values = range_index.values[extreme]
-    qualifies = values > barrier if maximum else values < barrier
+    qualifies = _crosses_favorable_bps(values, barrier, favorable_bps, maximum=maximum)
     result = np.full(len(starts), -1, dtype=np.int64)
     positions = np.flatnonzero(qualifies)
     if not len(positions):
@@ -81,7 +116,7 @@ def _first_strict_crossing(range_index, starts, ends, barrier, *, maximum):
         _require(np.all(extreme >= begin[active]) and np.all(extreme <= middle),
                  "PREFIX_EXTREME")
         values = range_index.values[extreme]
-        earlier = values > levels[active] if maximum else values < levels[active]
+        earlier = _crosses_favorable_bps(values, levels[active], favorable_bps, maximum=maximum)
         hi[active] = np.where(earlier, middle, hi[active])
         lo[active] = np.where(earlier, lo[active], middle + 1)
     result[positions] = lo
@@ -91,7 +126,7 @@ def _first_strict_crossing(range_index, starts, ends, barrier, *, maximum):
 def query_first_positive_quote(
     index: DynamicM1PrefixIndex, *, fill_surface, query_entry_rows, horizon_minutes,
     event_basis: str, endpoint_kind: str = DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT,
-    query_chunk_rows: int = DYNAMIC_M1_PREFIX_QUERY_CHUNK_ROWS,
+    query_chunk_rows: int = DYNAMIC_M1_PREFIX_QUERY_CHUNK_ROWS, favorable_bps: float = 0.,
 ):
     """Return first-event masks and pre-event adverse bounds for each side.
 
@@ -105,10 +140,15 @@ def query_first_positive_quote(
     describe the recorded source; they are not execution guarantees.
 
     The event time is a nominal M1 bucket, not an exact quote timestamp; even
-    recorded opens can be delayed within their bucket. No raw source is
+    recorded opens can be delayed within their bucket. A caller may supply a
+    fixed nonnegative favorable_bps hurdle; the event requires strictly more
+    than that side-specific return, while adverse bps remain measured from the
+    entry reference. Zero exactly preserves the original event. The hurdle is
+    an observation label, not a stop or a holding rule. No raw source is
     opened here and the function does not materialize one row per horizon.
     """
     _require(type(event_basis) is str and event_basis in _EVENT_BASES, "EVENT_BASIS")
+    favorable_bps = _require_favorable_bps(favorable_bps)
     original = query_dynamic_m1_prefix(
         index, fill_surface=fill_surface, query_entry_rows=query_entry_rows,
         horizon_minutes=horizon_minutes, endpoint_kind=endpoint_kind,
@@ -156,13 +196,15 @@ def query_first_positive_quote(
         ):
             hit = _first_strict_crossing(
                 index._ranges[event_name], starts, ends, barrier, maximum=maximum,
+                favorable_bps=favorable_bps,
             )
             if endpoint_kind == DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT:
                 _require(np.all(ends < len(clock))
                          and np.array_equal(clock[ends], target), "TERMINAL_CLOCK")
                 terminal_open = quotes[opening_name][ends]
-                later_hit = (terminal_open > barrier if maximum
-                             else terminal_open < barrier)
+                later_hit = _crosses_favorable_bps(
+                    terminal_open, barrier, favorable_bps, maximum=maximum,
+                )
                 hit = np.where((hit < 0) & later_hit, ends, hit)
             has_event = hit >= 0
             # A full bar after the entry bucket is chronologically later than
@@ -176,6 +218,7 @@ def query_first_positive_quote(
                 later = _first_strict_crossing(
                     index._ranges[event_name], starts[uncertain_first] + 1,
                     ends[uncertain_first], barrier[uncertain_first], maximum=maximum,
+                    favorable_bps=favorable_bps,
                 )
                 confirmed[uncertain_first] = later >= 0
             event_lower[active, side] = confirmed
@@ -190,7 +233,7 @@ def query_first_positive_quote(
             end = ends[local]
             boundary = barrier[local]
             opened = quotes[opening_name][event_row]
-            exact_open = opened > boundary if maximum else opened < boundary
+            exact_open = _crosses_favorable_bps(opened, boundary, favorable_bps, maximum=maximum)
             _require(np.all((event_row != end) | exact_open), "TERMINAL_EVENT")
             previous = index._ranges[adverse_name].query(start, event_row)
             running = quotes[opening_name][start].copy()
@@ -235,8 +278,8 @@ def query_first_positive_quote(
             upper_bps[output_rows, side] = upper
 
     result = {
-        "schema_version": SCHEMA_VERSION,
-        "contract": first_positive_quote_target_contract(),
+        "schema_version": HURDLE_SCHEMA_VERSION if favorable_bps else SCHEMA_VERSION,
+        "contract": first_positive_quote_target_contract(favorable_bps=favorable_bps),
         "event_basis": event_basis,
         "original_dynamic_prefix": original,
         "first_event_path_observed": path_observed.copy(),
@@ -251,6 +294,8 @@ def query_first_positive_quote(
         "nominal_pre_event_adverse_lower_bps": lower_bps,
         "nominal_pre_event_adverse_upper_bps": upper_bps,
     }
+    if favorable_bps:
+        result["favorable_bps"] = favorable_bps
     for group in (original, result):
         for value in group.values():
             if isinstance(value, np.ndarray):
