@@ -108,6 +108,13 @@ Kilde-/peerreview, AST og diffkontroll er utført. Syntetisk forsøk 001 feilet
 før testkjøring; originalkvitteringene er bevart. 002 ble erstattet før kjøring.
 003 besto alle128 tester (55prisfasit,27snapshot,46auditgrenser), uten
 markedsdata, native-kall eller fit. Kilde-/inputidentitet besto sluttkontroll.
-Kun ny engangsmåling av fem eksakte TRAIN-inputfiler er nå admittért:
-2024/2025-nativecandler, manifest og245-fasit/metadata;118249foreldre,1/5/15min.
-Ingen modell, trening, CONTROL/TEST eller økonomikvalifisering inngår.
+Genuin måling er fullført på118249TRAIN-foreldre fra2024/2025, med bitidentisk
+replay av gammel fasit og uendrede kilder/inputs. Native-mid gir56/40/18færre
+ikke-nullfortegn ved1/5/15min; ingen LONG/SHORT-fortegn snur. Maksimalt avvik
+i5min-avkastning er0.002966bps. Et lite fasitkonsistensavvik er målt;
+hovedårsaken til svak retning er ikke dermed påvist. Eksisterende245fasit
+beholdes fast i neste A/B-test. En endret fasit krever egen nybaseline.
+Neste scope er implementasjon av én fast last-M1-OFI-sammenligning og en
+selvstendig sammenligning av lagrede bps-outputs, med egne protokoller i
+målets RUNS-mappe. Ingen ny numerisk enhet er admittért ennå. Ingen native-
+trening, CONTROL/TEST, Exit, broker eller økonomikvalifisering er åpnet.

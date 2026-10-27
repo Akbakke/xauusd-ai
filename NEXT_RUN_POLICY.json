@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "SYNTHETIC_128_PASS_GENUINE_MIDPOINT_AUDIT_ADMITTED",
+    "status": "MIDPOINT_AUDIT_COMPLETE_SMALL_LABEL_DEFECT_INPUT_AND_SAVED_BPS_IMPLEMENTATION_ONLY",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,10 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_003.json",
       "sha256": "2cbaf89a78267ab1408deb20a7d4f2cc9b976fe0559bc923e669649e9bf2a16e"
     },
-    "current_unit": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_AUDIT_PLAN_001.json",
-      "sha256": "815b7615de2474ce4de09073cab28bfc92e2002f993faeb04b109518af51a370"
-    },
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37160,10 +37157,22 @@
     "other_chat_contact_authorized": false,
     "source_only_review_complete": true,
     "synthetic_qualification_complete": true,
-    "genuine_candle_measurement_complete": false,
+    "genuine_candle_measurement_complete": true,
     "last_M1_direction_value_measured": false,
     "training_exposure_comparison_complete": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "midpoint_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_ROOT_REVIEW_001.json",
+      "sha256": "8fb4e48dd40607e4cddd1fc8f66417dd5d5a734d325f74f8c738fd73cb4ba36e"
+    },
+    "phase_B_protocol": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_PROTOCOL_001.json",
+      "sha256": "94eba9f3d5e2e4f97f4ca97d908d07ee4bb53ccd50e09c6b99e42ad94cffe150"
+    },
+    "phase_C_protocol": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_PROTOCOL_001.json",
+      "sha256": "14a7a98be7d5f75fa7d1c0a2534413cc8159cae01d7773144182abcea7fd23eb"
+    }
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -37267,15 +37276,15 @@
     "superseded_reason": "Peer review found owned-path parent traversal; fixed before any invocation. No outputs or claim exist."
   },
   "independent_direction_candle_audit_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_AUDIT_PLAN_001.json",
       "sha256": "815b7615de2474ce4de09073cab28bfc92e2002f993faeb04b109518af51a370"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "read_only_TRAIN_candles": true,
     "saved_payload_reads_authorized": true,
@@ -37301,6 +37310,18 @@
     "required_synthetic": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_003/OUTPUT/RESULT.json",
       "sha256": "0abc30ff51776a407826b15f0b4c59b91061bc70b6488c84dbdfebf330400032"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_AUDIT_001/OUTPUT/RESULT.json",
+      "sha256": "b29c557755c975f036600679f0108015f82d5117cf9b4d64c1d3f76cd405e2ca"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_AUDIT_001/OUTPUT/TERMINAL.json",
+      "sha256": "517b6ec1f9cbf2a35ba3b2f0ce9bae74dbcf0ddbe5f94605adde09c3cca2cd02"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_ROOT_REVIEW_001.json",
+      "sha256": "8fb4e48dd40607e4cddd1fc8f66417dd5d5a734d325f74f8c738fd73cb4ba36e"
     }
   }
 }
