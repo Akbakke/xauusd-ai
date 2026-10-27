@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T00:44:42.441322+00:00",
-  "status": "DIRECTION_GC_LAYOUT_METADATA_PARITY_SINGLE_INVOCATION_ADMITTED",
+  "observed_utc": "2026-10-27T01:26:46.605730+00:00",
+  "status": "DIRECTION_GC_METADATA_REPEAT_FIXED_EXACT_LAYOUT_PARITY_READOUT_STILL_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Execute exactly DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_003 once. Import side effects are isolated; same six tests and five metadata pairs, zero model/payload/fit authority. Verify terminal and consume authority.",
+  "next_action": "Qualify the exact historical extraction source transition for the metadata-only GC helper change; reuse original checkpoints and tests without relaunching consumed F attempts. Then one fresh bounded B16 prediction/hidden parity and batch-timing check may be considered. Full readout diagnosis remains the scientific next measurement, not performance as an independent objective.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "24.10: Ett mål nå er prisretning. Bedre LONG/SHORT-prognoser først; selve trades iandreomgang.",
-    "current_activity": "Correct one measured input-preparation bottleneck; direction head-versus-representation diagnosis remains pending.",
+    "current_activity": "Removed repeated pure GC metadata work with exact full-layout parity; frozen trained readout comparison still unmeasured.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -269,11 +269,11 @@
     "gc_goal_status": "ACTIVE_NOT_COMPLETE_PURE_DIRECTION_GENERALIZATION_REMAIN_TRADES_DEFERRED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "All118249 TRAIN parents:2622localfields plus session category bit-exact versus ET252;0mismatches.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_LOCAL_SNAPSHOT_PARITY_001",
+    "latest_terminal_role": "Pure GC metadata parity and six focused tests; no market inputs or native calls",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_LOCAL_SNAPSHOT_PARITY_001/TERMINAL.json",
-      "sha256": "1700a2c38a5415afb8f3b29a5ea93c3e13a23487a9b0eaccc5a2cbb1bac28982"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003/TERMINAL.json",
+      "sha256": "c28513f5a7bdd64f115ad424eafb5e551ac454e0b61c14b8b70c41702e6216f6"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Raw local input discrepancy excluded. Native actual normalization/buffer consumption, representation and learning remain unresolved.",
+    "current_blocker": "Frozen trained hidden matrices are absent. Metadata bottleneck correction is qualified; genuine B16 output parity, batch speed, historical source compatibility and bounded full extraction remain unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_003 once. Import side effects are isolated; same six tests and five metadata pairs, zero model/payload/fit authority. Verify terminal and consume authority.",
+    "next_action": "Qualify the exact historical extraction source transition for the metadata-only GC helper change; reuse original checkpoints and tests without relaunching consumed F attempts. Then one fresh bounded B16 prediction/hidden parity and batch-timing check may be considered. Full readout diagnosis remains the scientific next measurement, not performance as an independent objective.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16211,7 +16211,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "310167127 compared F32 cells including142490045 observation-mask cells;6synthetic controls;4payloadpaths;0fits/models/optimizer.",
+    "latest_terminal_evidence_scope": "2415 Boolean-domain helper calls reduced to5 per construction; exact whole layout JSON/hash in5paired constructions;6focused tests;0model/payload/fit/optimizer.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17444,7 +17444,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "Closed. The local input parity invocation is complete and consumed. Source analysis only; no new numerical execution admitted.",
+    "current_training_scope": "Closed. GC layout metadata qualification is complete and consumed; no genuine input, model, extraction or fitting authority.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17670,8 +17670,8 @@
     },
     "current_direction_objective": "Finn hvorfor GX1 ikke gir tilstrekkelig nyttige opp/ned-prognoser for XAUUSD ved 1, 5, 15, 30 og 60 minutter. Skill manglende fremoversignal, dårlig modellutnyttelse og feil lærings- eller evalueringsmål. Bevar åtte familier, D1/makro, kausal M5/MTF og forsegling. Handel er utsatt.",
     "current_direction_cause_synthesis": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_006.json",
-      "sha256": "423cef8163884f8471d5f1152ca6069cab9c23ef0c6dfe0450fa68e6d3237434"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_007.json",
+      "sha256": "3b246aede2b983c3cc8d82a0db155197ab5a7f0879f4daae2b19a3c085b2e1b3"
     },
     "native_reference_rank_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NATIVE_REFERENCE_RANK_ROOT_REVIEW_003.json",
@@ -17692,6 +17692,23 @@
     "normalization_fusion_source_trace": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_NORMALIZATION_FUSION_SOURCE_TRACE_001.json",
       "sha256": "cf066651aebb16a6035fddf20e6cf15916f3496dab9ce24b6835cdf09f2f4ba0"
+    },
+    "gc_layout_reuse_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_ROOT_REVIEW_003.json",
+      "sha256": "1d3347ee52f02af7afcac5d55c02532c0e2823e1ce20397633785a2512d39263"
+    },
+    "current_source_closure_native_parity_qualified": false,
+    "current_source_closure_change": {
+      "source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_gc_mtf_history_v1.py",
+        "sha256": "de3a254f605c8e84543855b09f9ab98e6401225f7c212af5926c6b58ae250d12"
+      },
+      "old_source_sha256": "82ead3da60383ac816f7b75963cbe5118520e2d058ec120edb1dff169e0362cd",
+      "review": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_ROOT_REVIEW_003.json",
+        "sha256": "1d3347ee52f02af7afcac5d55c02532c0e2823e1ce20397633785a2512d39263"
+      },
+      "scope": "Canonical GC metadata construction only; exact layout bytes/hash preserved. Source closure changed. Existing native checkpoints/results retain their original identity; current-source historical parity and initialization are not freshly qualified."
     }
   },
   "gc_order_flow_research_20261006": {
@@ -20256,7 +20273,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-27T01:24:54.029017+00:00",
+  "updated_utc": "2026-10-27T01:28:46.765248+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -35659,7 +35676,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Closed. The local input parity invocation is complete and consumed. Source analysis only; no new numerical execution admitted.",
+  "training_enabled_scope": "Closed. GC layout metadata qualification is complete and consumed; no genuine input, model, extraction or fitting authority.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -36158,22 +36175,22 @@
     }
   },
   "direction_gc_layout_reuse": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "source_admission": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_SOURCE_ADMISSION_001.json",
       "sha256": "5997f7d49b7bfc6b38b80b931eb88d0822efbac0bcc15a2c3cf1bf715b453e24"
     },
     "source_edits_authorized": false,
-    "execution_authorized": true,
-    "synthetic_tests_authorized": true,
+    "execution_authorized": false,
+    "synthetic_tests_authorized": false,
     "genuine_payload_reads_authorized": false,
     "native_forwards_authorized": false,
     "genuine_fits_authorized": false,
     "relaunch_allowed": false,
     "test_data_used": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_003.json",
       "sha256": "32394c7a750f736fd4e46f192f98b390e6746bb92541ef77a7ebc4ea99805a5e"
@@ -36197,6 +36214,19 @@
     "test_import_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_TEST_IMPORT_REVIEW_001.json",
       "sha256": "01e26458291746e1198f699d2173dc913f1ca708e36c00cbb00d9ce6726e0dc4"
+    },
+    "consumed_invocations": 1,
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_ROOT_REVIEW_003.json",
+      "sha256": "1d3347ee52f02af7afcac5d55c02532c0e2823e1ce20397633785a2512d39263"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003/TERMINAL.json",
+      "sha256": "c28513f5a7bdd64f115ad424eafb5e551ac454e0b61c14b8b70c41702e6216f6"
+    },
+    "summary": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003/SUMMARY.json",
+      "sha256": "00a028ebb94ac73e6a8f62ce2881d93134b896e3cc24bfcaf31a4b0bc80ce780"
     }
   },
   "direction_gc_layout_reuse_attempt001": {

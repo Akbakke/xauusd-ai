@@ -9,17 +9,26 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
-En avgrenset kilderettelse fjerner gjentatt beregning av GC-feltdomener i
-batchklargjøringen. Den eksisterende timingmålingen viser 95,2 % batcharbeid
-og 4,0 % forward. DIRECTION_GC_LAYOUT_REUSE_SOURCE_ADMISSION_001 tillater bare
-denne rettelsen og testkilde. DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_003
-åpner nå én capped CPU-kontroll: 60 sekunder, fem gamle/nye metadatapar og seks
-fokuserte testtilfeller. Ingen markedsinput, modell-, fit- eller full F-kjøring.
-Dette er en blokkering for diagnosen, ikke en påvist årsak til svak retning.
-Første kontroll stoppet korrekt på Numba-cache utenfor output og er konsumert.
-Andre kontroll stoppet på en uvedkommende syntetisk fit under testimport.
-Vakten nektet inngangen før fit-kroppen. 003 isolerer importen til de to
-testene som trenger den; samme seks metadatatester og ingen markedsdata.
+GC-oppsettet beregner nå det uendrede boolske feltdomenet én gang per tidsramme,
+i stedet for én gang per feltnavn. DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003
+bekrefter identisk komplett oppsett/hash i fem gamle/nye par: 2 415 helperkall
+ble redusert til 5. Median i denne metadatakontrollen var 0,592637 mot 0,044434
+sekunder; seks testtilfeller bestod. Null payload-, modell-, fit- eller optimizerkall.
+Originale terminalkvitteringer er verifisert; cgroup er borte, låsen ledig og
+engangsautoriteten konsumert. Dette er ingen måling av bedre retningslæring
+eller hastighet på ekte modellbatcher.
+
+001 stoppet på cache utenfor output; 002 stoppet før en uvedkommende syntetisk
+fit under testimport. Begge er konsumert og bevart. 003 bandt cache til output
+og isolerte testimporten uten å svekke kontrollene. Testhjelperne importeres
+fortsatt av de to opprinnelige forbrukerne når disse kjøres.
+
+Det finnes ingen fullført trent hiddenmatrise i F-uttakene. De to komplette
+timingfilene inneholder samme 256 initialobservasjoner. C003 har aggregerte
+rapporter. Neste kildearbeid gjelder eksakt kompatibilitet for den endrede
+GC-metadatakilden; deretter kan én ny avgrenset B16-paritet/tidskontroll vurderes.
+Ingen slik kjøring, full F, fit eller ny native baseline er nå admittért.
+De historiske baseline-resultatene beholder sine opprinnelige kildeidentiteter.
 
 DIRECTION_LOCAL_SNAPSHOT_PARITY_001 er COMPLETE/consumed. På alle 118 249
 TRAIN-rader er 2 622 lokale felt og sesjonskategorien sammenlignet: 310 167 127
@@ -70,7 +79,7 @@ Gjeldende årsaksanalyse er tilgjengelig i docs/DIRECTION_1_60_CURRENT_ANALYSIS.
 Arbeidsmålet er retning ved 1, 5, 15, 30 og 60 minutter; ingen robust fremtidig
 eller økonomisk edge er dokumentert. Root arbeider alene.
 
-DIRECTION_1_60_CAUSE_SYNTHESIS_006 avløser005 og er kopiert til
+DIRECTION_1_60_CAUSE_SYNTHESIS_007 avløser006 og er kopiert til
 docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Forskjeller i de lagrede lokale
 råinputene, maskene og sesjonskategoriene er avkreftet i full TRAIN-kohort.
 Dette utelukker ikke en felles kildefeil. Første hypotese er nå behandling,
