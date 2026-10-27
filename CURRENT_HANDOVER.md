@@ -9,69 +9,43 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+F_FROZEN_EXTRACTION_terminal_later_full_20261027_001 er COMPLETE/consumed.
+Alle 17 288 senere TRAIN-foreldre fra original276 terminal_u2976 er bevart.
+Alle originale OOF-prediksjonsmedlemmer er bitidentiske. Worker brukte
+2 735,9624 sekunder: 1 081 opprinnelige B16-forwards (siste batch 8),
+null reverse, optimizer eller fit. Dette er første av åtte faste uttrekksenheter.
+
+Original RESULT, kanonisk terminalkvittering, signert vakt, alle 57 kildeeiere,
+policy, partisjon, input-/tilstandsbokender og kall/returtellere er verifisert.
+Prosesser/cgroup er borte, originallåsen er ledig, og den eksakte Windowsoppgaven
+er Disabled/LastResult0/Restart0. Alle engangstillatelser er lukket; ingen relansering.
+Root åpnet bare metadata og kilde; worker utførte den faktiske payloadpariteten.
+ACTUAL_ROOT_REVIEW.json ligger i
+F_FROZEN_EXTRACTION_terminal_later_full_CAMPAIGN_20261027_001,
+SHA256 7622a60449149206ce75d6f2e8eb0c25c67816d011ddee3d0d080730c7713ea7.
+
+Neste minste steg er fersk, avgrenset admisjon for own0U_prefix_part1.
+Den beholder kontrollen mot de opprinnelige 256 initialprediksjonene.
+Alle åtte faste enheter og eksakt fullkohortsammenstilling må være ferdige
+før separat admittért readout-fit. Samlet beholdes 47 602 prefixforeldre og
+17 288 senere foreldre per state, 8 114 forwards og opprinnelige B16-grenser.
+Ingen generell ytelsesjakt eller nye modell-/targetendringer er nødvendig.
+Ingen fit, ny native trening, TEST/CONTROL eller handel er åpnet.
+
 F_FROZEN_READOUT_PARTITION_SYNTHETIC_001 er COMPLETE/consumed:
-86 tilfeller bestod; alle fire syntetiske fullkohorter rekonstrueres bit-for-bit
-med identiske B16-kall. Null ekte data/modell/fit/optimizer. Kilde/policy uendret,
-cgroup borte og originallås ledig. Ingen ny numerisk performance-runde trengs.
+86 tilfeller bestod, med bitidentisk syntetisk fullkohortsammenstilling og
+identiske B16-kall. Null ekte data/modell/fit/optimizer. Koden gjenbrukes.
+Timing004 kvalifiserte tidligere eksakt GC-metadatagjenbruk på 256 own0U-rader.
+Fullprefixprojeksjonen overskred grensen; de åtte faste enhetene bevarer hele
+sammenligningen uten å heve noen per-invokasjonsgrense. Eldre kvitteringer beholdes.
 
-F_FROZEN_EXTRACTION_terminal_later_full_RUNTIME_ADMISSION_001 åpner én
-ekte enhet: original276terminal_u2976 på alle17288senere TRAIN-foreldre,
-1081B16-forwards/siste8, null reverse/optimizer og12000sekunders workergrense.
-Alle opprinnelige OOF-prediksjonsmedlemmer må være bitidentiske. Konservativ
-projeksjon7295,84sekunder består9600grensen. Samme fersk fysisk boot-, capped-
-og signerte maskinvarevakter; kilde/policy fryses under kjøringen.
-Dette er første av åtte faste enheter; hele vitenskapelige sammenligningen
-beholder47602prefix+17288senereforeldre per state og8114forwards.
-Ingen readout-fit, ny native trening, TEST/CONTROL eller handel er åpnet.
-Kontroller ordinær drift omtrent hvert20.minutt, verifiser original terminal
-og konsumer autoriteten før neste enhet.
-
-Timing004 er COMPLETE/consumed. Originale 256 own0U-prediksjoner er bitidentiske;
-parent-/hode-/featureidentiteter og workerens komplette outputhash er identiske
-med timing002. 16 B16-forwards, null reverse/optimizer. Worker185,5655sekunder.
-Evaluate falt145,9173→58,4002sekunder (59,977prosent). Dette er en kvalifisert
-metadataforbedring; ingen ny retningsscore eller trent representasjon er målt.
-
-Konservativ fullprefixprojeksjon er19862,56sekunder mot forhåndsbestemt9600.
-Fullenheten er derfor ikke admittért. Root verifiserte originale terminaler,
-kilde/policy, signert vakt og bokender; cgroup/prosesser er borte, originallås
-ledig, Windowsoppgave Disabled/LastResult0/Restart0 og GPU tilbake i P8.
-Alle tillatelser er lukket; ingen relansering. Kildeparitet gjelder disse256
-own0U-observasjonene, ikke ny full baseline eller trent hidden.
-
-F_FROZEN_READOUT_BOUNDED_FEASIBILITY_REVIEW_001 er bare et metadataforslag:
-tre komplette B16-delintervaller per prefixstate og ett fullt senereintervall
-per state. Samme47602+17288foreldre, tostates og8114forwards; åtte enheter
-med ekstra oppstart, uten økt per-invokasjonsgrense. Ingen kildeendring,
-uttrekk, sammenstilling eller fit er admittért av dette forslaget.
-Neste arbeid er avgrenset kildevurdering av denne gjennomførbarheten, med
-uendret faglig readout-sammenligning. Ingen generell ytelses- eller kalibreringsjakt.
-
-F_GC_LAYOUT_METADATA_TRANSITION_SYNTHETIC_001 er COMPLETE/consumed:
-33 tilfeller bestod, null payload-/modell-/fit-/optimizerkall. Nøyaktig
-kildeovergang er nå verifisert i timing004. Hypotesene om retning er uendret.
-Gjeldende analyse er DIRECTION_1_60_CAUSE_SYNTHESIS_008 og identisk kopi
-docs/DIRECTION_1_60_CURRENT_ANALYSIS.json. Målet1/5/15/30/60 er aktivt og uferdig.
-
-GC-oppsettet beregner nå det uendrede boolske feltdomenet én gang per tidsramme,
-i stedet for én gang per feltnavn. DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_003
-bekrefter identisk komplett oppsett/hash i fem gamle/nye par: 2 415 helperkall
-ble redusert til 5. Median i denne metadatakontrollen var 0,592637 mot 0,044434
-sekunder; seks testtilfeller bestod. Null payload-, modell-, fit- eller optimizerkall.
-Originale terminalkvitteringer er verifisert; cgroup er borte, låsen ledig og
-engangsautoriteten konsumert. Dette er ingen måling av bedre retningslæring
-eller hastighet på ekte modellbatcher.
-
-001 stoppet på cache utenfor output; 002 stoppet før en uvedkommende syntetisk
-fit under testimport. Begge er konsumert og bevart. 003 bandt cache til output
-og isolerte testimporten uten å svekke kontrollene. Testhjelperne importeres
-fortsatt av de to opprinnelige forbrukerne når disse kjøres.
-
-Det finnes ingen fullført trent hiddenmatrise i F-uttakene. De to komplette
-timingfilene inneholder samme 256 initialobservasjoner. C003 har aggregerte
-rapporter. Den eksakte GC-metadatakildeovergangen er kvalifisert ovenfor.
-Timing004 er nå fullført/konsumert; full F, fit og ny native baseline er lukket.
-De historiske baseline-resultatene beholder sine opprinnelige kildeidentiteter.
+Kildepariteten omfatter nå 256 initialobservasjoner og alle 17 288 trente
+senereobservasjoner. Dette er ingen fersk baseline eller dokumentasjon av
+bedre rangering. Readout-sammenligningen skal skille svak utnyttelse i hodet
+fra svak eller tapt retningsinformasjon i representasjonen.
+Vitenskapelige hypoteser er fortsatt DIRECTION_1_60_CAUSE_SYNTHESIS_008,
+med identisk kopi docs/DIRECTION_1_60_CURRENT_ANALYSIS.json.
+Målet er nyttige opp/ned-prognoser ved 1/5/15/30/60 minutter og er uferdig.
 
 DIRECTION_LOCAL_SNAPSHOT_PARITY_001 er COMPLETE/consumed. På alle 118 249
 TRAIN-rader er 2 622 lokale felt og sesjonskategorien sammenlignet: 310 167 127
