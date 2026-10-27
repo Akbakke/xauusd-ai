@@ -21,6 +21,7 @@ from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as _tree_sha
 
 SCHEMA_VERSION = 'gx1_native_direction_research_state_v1'
+MULTIPASS_SCHEMA_VERSION = 'gx1_native_direction_research_state_multipass_v1'
 INACTIVE_PREFIXES = ('backbone.head_', 'backbone.dynamic_m5_query_projection.',
     'backbone.task_log_variances.', 'backbone.entry_decision_token.', 'backbone.exit_')
 IMMUTABLE_BUFFER_NAMES = frozenset(('backbone.gc_mtf_layout_sha256', 'backbone.gc_mtf_normalization_sha256',
@@ -132,10 +133,16 @@ def _order(value):
     return value.detach().cpu().contiguous().clone()
 
 
-def _progress(cursor, updates, order, recipe):
-    _require(type(cursor) is int and 0 <= cursor <= order.numel()
-        and (cursor % recipe['batch_size'] == 0 or cursor == order.numel()), 'CURSOR')
-    batches = (cursor + recipe['batch_size'] - 1) // recipe['batch_size']
+def _progress(cursor, updates, order, recipe, *, train_passes=1):
+    # cursor counts parent presentations, not fabricated or duplicated IDs.
+    _require(type(train_passes) is int and train_passes in (1, 3), 'TRAIN_PASSES')
+    n = order.numel(); batch = recipe['batch_size']; batches_per_pass = (n + batch - 1) // batch
+    _require(type(cursor) is int and 0 <= cursor <= train_passes * n, 'CURSOR')
+    completed, within = divmod(cursor, n)
+    _require(within % batch == 0, 'CURSOR')
+    if train_passes == 3:
+        _require(recipe['max_updates'] == 3 * batches_per_pass, 'MULTIPASS_RECIPE_BUDGET')
+    batches = completed * batches_per_pass + (within + batch - 1) // batch
     _require(type(updates) is int and 0 <= updates <= min(recipe['max_updates'], batches), 'OPTIMIZER_UPDATES')
 
 
@@ -192,16 +199,17 @@ def _rng(value, *, device, seed):
 
 
 def capture_native_direction_research_state(model, optimizer, *, recipe, feature_view_identity,
-        parent_order, cursor, optimizer_updates, device):
+        parent_order, cursor, optimizer_updates, device, train_passes=1):
     """Capture detached independent state; cursor can advance without an update."""
     recipe = require_native_direction_research_recipe(recipe); _device(model, device); _no_partial_gradients(model)
     binding = _binding(model, optimizer, recipe, feature_view_identity); order = _order(parent_order)
-    _progress(cursor, optimizer_updates, order, recipe)
+    _progress(cursor, optimizer_updates, order, recipe, train_passes=train_passes)
     model_state = copy.deepcopy(model.state_dict()); buffers = copy.deepcopy(dict(model.named_buffers()))
     _tensor_map(model_state, model.state_dict(), 'MODEL'); _tensor_map(buffers, dict(model.named_buffers()), 'BUFFER')
     optimizer_state = copy.deepcopy(optimizer.state_dict()); _optimizer_state(optimizer_state, optimizer, model, optimizer_updates)
     rng = copy.deepcopy(trainer._attended_session_rng_state(device=device)); _rng(rng, device=device, seed=recipe['seed'])
-    return _sealed({'schema_version': SCHEMA_VERSION, 'binding': binding, 'model_state': model_state,
+    return _sealed({'schema_version': SCHEMA_VERSION if train_passes == 1 else MULTIPASS_SCHEMA_VERSION,
+        **({'train_passes': train_passes} if train_passes != 1 else {}), 'binding': binding, 'model_state': model_state,
         'buffer_state': buffers, 'optimizer_state': optimizer_state, 'rng_state': rng,
         'module_training': {name: bool(module.training) for name, module in model.named_modules()},
         'parent_order': order, 'cursor': cursor, 'optimizer_updates': optimizer_updates,
@@ -209,7 +217,7 @@ def capture_native_direction_research_state(model, optimizer, *, recipe, feature
         'optimizer_state_sha256': _tree_sha(optimizer_state), 'rng_state_sha256': _tree_sha(rng)})
 
 
-def restore_native_direction_research_state(state, model, optimizer, *, recipe, feature_view_identity, parent_order, device):
+def restore_native_direction_research_state(state, model, optimizer, *, recipe, feature_view_identity, parent_order, device, train_passes=1):
     """Validate the complete checkpoint before any restore mutation.
 
     Loading files/atomic publication and admission are deliberately caller-owned.
@@ -217,12 +225,16 @@ def restore_native_direction_research_state(state, model, optimizer, *, recipe, 
     """
     recipe = require_native_direction_research_recipe(recipe); _device(model, device); _no_partial_gradients(model)
     binding = _binding(model, optimizer, recipe, feature_view_identity); order = _order(parent_order)
-    _require(isinstance(state, Mapping) and set(state) == STATE_KEYS and state['schema_version'] == SCHEMA_VERSION, 'SCHEMA')
+    _require(type(train_passes) is int and train_passes in (1, 3), 'TRAIN_PASSES')
+    expected_keys = STATE_KEYS if train_passes == 1 else STATE_KEYS | {'train_passes'}
+    expected_schema = SCHEMA_VERSION if train_passes == 1 else MULTIPASS_SCHEMA_VERSION
+    _require(isinstance(state, Mapping) and set(state) == expected_keys and state['schema_version'] == expected_schema
+        and (train_passes == 1 or (type(state['train_passes']) is int and state['train_passes'] == train_passes)), 'SCHEMA')
     _require(_tree_sha(state['binding']) == _tree_sha(binding), 'BINDING_IDENTITY')
     _require(state['contract_sha256'] == _tree_sha({key: value for key, value in state.items() if key != 'contract_sha256'}), 'SEAL')
     _require(isinstance(state['parent_order'], torch.Tensor) and state['parent_order'].dtype == torch.int64
         and torch.equal(state['parent_order'].detach().cpu(), order), 'EXPECTED_PARENT_ORDER')
-    _progress(state['cursor'], state['optimizer_updates'], order, recipe)
+    _progress(state['cursor'], state['optimizer_updates'], order, recipe, train_passes=train_passes)
     _tensor_map(state['model_state'], model.state_dict(), 'MODEL')
     _tensor_map(state['buffer_state'], dict(model.named_buffers()), 'BUFFER')
     for name, value in state['buffer_state'].items():
@@ -253,3 +265,32 @@ def restore_native_direction_research_state(state, model, optimizer, *, recipe, 
     trainer._restore_attended_session_rng_state(state['rng_state'], device=device)
     _require(_tree_sha(trainer._attended_session_rng_state(device=device)) == state['rng_state_sha256'], 'RESTORED_RNG')
     return {'parent_order': order, 'cursor': state['cursor'], 'optimizer_updates': state['optimizer_updates']}
+
+
+def migrate_one_pass_terminal_to_three_pass(state, model, optimizer, *, original_recipe, continuation_recipe,
+        feature_view_identity, parent_order, device):
+    """Strictly restore a completed one-pass state and bind it to three passes.
+
+    No model update or IO occurs. The caller must bind and authorize the input
+    checkpoint and independently verify actual prediction parity before training.
+    """
+    original_recipe = require_native_direction_research_recipe(original_recipe)
+    continuation_recipe = require_native_direction_research_recipe(continuation_recipe)
+    order = _order(parent_order); n = order.numel(); batch = original_recipe['batch_size']
+    per_pass = (n + batch - 1) // batch
+    _require(original_recipe['max_updates'] == per_pass
+        and continuation_recipe['max_updates'] == 3 * per_pass
+        and {k:v for k,v in original_recipe.items() if k not in ('max_updates','contract_sha256')}
+            == {k:v for k,v in continuation_recipe.items() if k not in ('max_updates','contract_sha256')},
+        'MIGRATION_RECIPE')
+    _require(isinstance(state, Mapping) and state.get('cursor') == n
+        and state.get('optimizer_updates') == per_pass, 'MIGRATION_NOT_FULL_ONE_PASS')
+    restored = restore_native_direction_research_state(state, model, optimizer, recipe=original_recipe,
+        feature_view_identity=feature_view_identity, parent_order=order, device=device)
+    migrated = capture_native_direction_research_state(model, optimizer, recipe=continuation_recipe,
+        feature_view_identity=feature_view_identity, parent_order=order, cursor=restored['cursor'],
+        optimizer_updates=restored['optimizer_updates'], device=device, train_passes=3)
+    _require(all(migrated[key] == state[key] for key in ('model_state_sha256', 'buffer_state_sha256',
+        'optimizer_state_sha256', 'rng_state_sha256'))
+        and migrated['module_training'] == state['module_training'], 'MIGRATION_FULL_STATE_PARITY')
+    return migrated

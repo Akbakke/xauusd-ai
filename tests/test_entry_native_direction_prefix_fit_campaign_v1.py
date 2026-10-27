@@ -346,3 +346,72 @@ def test_bps_readiness_requires_explicit_prefix_scale_authority(fixture,monkeypa
     if scale_authorized:assert check()['decision']=='READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES'
     else:
         with pytest.raises(RuntimeError,match='READINESS_BPS_SCALE'):check()
+
+
+def continuation_fixture(f, monkeypatch):
+    frozen_path='gx1/contracts/entry_native_direction_frozen_extraction_v1.py'
+    frozen=write(f['repo']/frozen_path,{'synthetic_frozen_source':True})
+    initial=write(f['runtime']/'INITIAL_FAKE.json',{'role':'INITIAL_TRAIN','fold':f['fold'],'own_initial_state':f['dummy']})
+    final=write(f['runtime']/'FINAL_FAKE.json',{'role':'FINAL_TRAIN','fold':f['fold'],'own_initial_state':f['dummy']})
+    origin={'launch_recipe':f['recipe_ref'],'terminal_state':f['dummy'],'initial_measurement':initial,
+        'initial_state':f['dummy'],'terminal_train_measurement':final}
+    monkeypatch.setattr(owner,'CONTINUATION_ORIGIN',origin)
+    monkeypatch.setattr(owner.private,'BPS_GC_PARITY',f['dummy'])
+    value=copy.deepcopy(f['recipe']);value['run_scope']=owner.CONTINUATION_SCOPE;value['train_passes']=3
+    value['numerical_recipe']['max_updates']=8928;numerical_seal(value['numerical_recipe'])
+    value['source_owners'][frozen_path]=frozen
+    value['continuation_origin']=copy.deepcopy(origin);value['gc_layout_metadata_parity']=f['dummy']
+    proof={'status':'PASS_ORIGINAL_NATIVE_CONTINUATION_ZERO_UPDATE','origin':copy.deepcopy(origin),'source_owners':copy.deepcopy(value['source_owners']),
+        'numerical_recipe_sha256':value['numerical_recipe']['contract_sha256'],'checkpoint_state_parity':True,
+        'terminal_train_prediction_bit_parity':True,'optimizer_steps':0,'test_data_used':False}
+    value['native_continuation_qualification']=write(f['runtime']/'CONTINUATION_FAKE_PROOF.json',proof)
+    reseal(value,'recipe_sha256')
+    return value,proof
+
+
+def test_three_pass_launch_requires_exact_original_and_zero_update_proof(fixture,monkeypatch):
+    f=fixture;value,_=continuation_fixture(f,monkeypatch)
+    ref=write(f['runtime']/'CONTINUATION_FAKE_RECIPE.json',value)
+    checked=owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+    assert checked['train_passes']==3 and checked['numerical_recipe']['max_updates']==8928
+
+
+@pytest.mark.parametrize('fault',['terminal','old_recipe','passes','budget','qualification','proof_steps','proof_bool_steps','proof_sources','test'])
+def test_three_pass_launch_rejects_expansion_or_unqualified_state(fixture,monkeypatch,fault):
+    f=fixture;value,proof=continuation_fixture(f,monkeypatch)
+    if fault=='terminal':value['continuation_origin']['terminal_state']={'path':'/other','sha256':'0'*64}
+    elif fault=='old_recipe':value['numerical_recipe']['research_objective_sha256']='f'*64;numerical_seal(value['numerical_recipe'])
+    elif fault=='passes':value['train_passes']=4
+    elif fault=='budget':value['numerical_recipe']['max_updates']=8929;numerical_seal(value['numerical_recipe'])
+    elif fault=='qualification':del value['native_continuation_qualification']
+    elif fault=='proof_steps':
+        proof['optimizer_steps']=1;value['native_continuation_qualification']=write(f['runtime']/'BAD_PROOF.json',proof)
+    elif fault=='proof_bool_steps':
+        proof['optimizer_steps']=False;value['native_continuation_qualification']=write(f['runtime']/'BAD_PROOF.json',proof)
+    elif fault=='proof_sources':
+        proof['source_owners']={};value['native_continuation_qualification']=write(f['runtime']/'BAD_PROOF.json',proof)
+    else:value['test_data_used']=True
+    reseal(value,'recipe_sha256');ref=write(f['runtime']/'BAD_CONTINUATION.json',value)
+    with pytest.raises(RuntimeError):owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
+def test_three_pass_cursor_and_progress_track_partial_boundaries(fixture,monkeypatch):
+    f=fixture;value,_=continuation_fixture(f,monkeypatch)
+    ref=write(f['runtime']/'CONTINUATION_FAKE_RECIPE.json',value)
+    state=cursor(f,recipe_ref=ref,train_passes=3,parent_cursor=47602,optimizer_updates=2976)
+    assert state['train_passes']==3 and state['parent_cursor']==47602
+    pointer=write(Path(f['windows'][0]['campaign_cursor_path']),state)
+    window={**f['windows'][0],'recipe':ref}
+    invocation={**f['invocations'][0],'direction_prefix_fit_recipe':ref,'optimizer_step_budget':8928}
+    progress=owner.build_prefix_fit_progress(window=window,plan=f['plan'],invocation=invocation,
+        checkpoint_pointer=pointer,cursor=state)
+    checked=owner.require_prefix_fit_progress(progress,plan_sha256=f['plan']['plan_sha256'],invocation=invocation,
+        expected_selection_receipt_sha256=None,verify_file=True)
+    assert checked['completed_units']==47602 and checked['total_units']==142806
+    for invalid in (47603,2*47602+1,3*47602+1):
+        with pytest.raises(RuntimeError):cursor(f,recipe_ref=ref,train_passes=3,parent_cursor=invalid,optimizer_updates=2976)
+    finished=cursor(f,recipe_ref=ref,train_passes=3,parent_cursor=3*47602,optimizer_updates=8928,
+        phase_state='SCORING',final_train_measurement=f['dummy'])
+    assert finished['parent_cursor']==142806
+    with pytest.raises(RuntimeError):cursor(f,recipe_ref=ref,train_passes=3,parent_cursor=47602,optimizer_updates=2976,
+        phase_state='SCORING',final_train_measurement=f['dummy'])

@@ -377,10 +377,16 @@ og foreslår to pass med samme data, rekkefølge, AdamW og RNG. Eksisterende
 må kvalifiseres uten å svekke gammel kontrakt. Designet åpner ikke kode,
 checkpoint, modell eller trening.
 
-En uintegrert forberedelse for pass-/cursor-/steptelling ble fjernet: den ga
-ikke i seg selv svar på retningsedge. Mer støttekode utsettes til en konkret
-1-mot-3-pass-sammenligning er aktuell. Eksisterende énpassfunksjon og alle
-treningsporter beholdes; eksponeringssammenligningen er ikke utført.
+En integrert 1-mot-3-pass-videreføring er implementert i eksisterende state-,
+cursor- og treningsløype. Den gjenbruker samme foreldre, rekkefølge, delbatch,
+AdamW-historikk og RNG. 132 fokuserte og 365 tilknyttede syntetiske kontroller
+bestod; opprinnelig terminalstate har identisk tilstandssegl før og etter
+baseline-evalueringen. Ingen ekte checkpoint-/data-/modelltilgang eller
+trening ble åpnet av denne kilderevisjonen. En ny, separat avgrenset kontroll
+må først bevise ekte restore- og prediksjonsparitet under ny kilde, før en
+fersk bundet kampanje kan vurderes. 1-mot-3-sammenligningen er ikke utført,
+og ingen retningsforbedring er dokumentert. Eksakt status og kildehasher står
+i direction_matched_exposure_continuation_source_20261027 i NEXT_RUN_POLICY.json.
 
 Den planlagte fellesgaten for 1 mot 3 pass krever både AUC, logloss og Brier
 på dag- og ukeblokker. Feil i én komponent betyr ikke at retningsrangeringen

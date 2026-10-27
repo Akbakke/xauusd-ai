@@ -38872,5 +38872,54 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_TRADE_COUNT_VOLUME_VERIFIED_ROOT_REVIEW_001.json",
       "sha256": "6ee0b7f6266481ad1dbe2834e5fbe678055965f63ccba1f1499de5e2d84ab5ff"
     }
+  },
+  "direction_matched_exposure_continuation_source_20261027": {
+    "status": "SOURCE_INTEGRATED_SYNTHETIC_ONLY_NATIVE_ZERO_UPDATE_PENDING",
+    "purpose": "Integrate exact opt-in continuation from baseline276 into the existing native prefix owner; compare fixed one and three passes without changing the original sign target.",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
+      "sha256": "d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01"
+    },
+    "source_edit_authorized": false,
+    "allowed_source_paths": [
+      "gx1/contracts/entry_native_direction_research_state_v1.py",
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "tests/test_entry_native_direction_research_state_v1.py",
+      "tests/test_entry_native_direction_prefix_fit_campaign_v1.py",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py"
+    ],
+    "constraints": "Preserve legacy one-pass behavior, original terminal and all guards. Preserve original AdamW moments, RNG, modes, exact order and partial batch boundaries. No fresh objective, indicator, normalization, feature or threshold changes.",
+    "synthetic_tests_authorized": false,
+    "genuine_checkpoint_reads_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_enabled": false,
+    "execution_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "required_before_any_genuine_update": [
+      "synthetic legacy, 3-pass boundary, empty batch and exact resume tests",
+      "fresh separately admitted zero-update legacy terminal restore and prediction parity",
+      "fresh exact campaign, original state and input binding, and training admission with unchanged capped host guards"
+    ],
+    "relaunch_allowed": false,
+    "synthetic_qualification": {
+      "changed_owner_tests_passed": 132,
+      "cross_consumer_tests_passed": 365,
+      "scope": "Artificial CPU models and synthetic metadata only; no genuine checkpoint, native model, market data or optimizer update."
+    },
+    "source_sha256": {
+      "gx1/contracts/entry_native_direction_research_state_v1.py": "00fddca5832b299c3035db5b1c5aedb85ab39d37efae592fd2680fb8fdc343d0",
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": "8d440ad791bba90785f1f388940b5bf54dce3ed0e55c686bd6947f3b66d92e5c",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "d7744877b95e881c028de0589866ff87e8019832087810c638932de46626c2a3",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py": "1758123a58a7ecad0ac2d1c3c0a46f16489f73068a2cf3be6d8474cf9a6cb8cc",
+      "tests/test_entry_native_direction_research_state_v1.py": "571756a3da26b8d09b95143c74e605f2cf0d8d41f33a2b14fc33b17c797c8392",
+      "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "59839028be84d6786d7cdc674cf9f2764234b10b683e83cbf1f084200b7fe8da",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py": "28e5d01c6198e4231fd27b255ecd99aef366475a839460e82d208190f6360f41"
+    },
+    "genuine_qualification_status": "NOT_RUN_NO_EXECUTION_AUTHORITY"
   }
 }

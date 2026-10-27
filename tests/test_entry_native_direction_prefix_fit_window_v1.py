@@ -205,3 +205,49 @@ def test_independent_extraction_optin_does_not_change_training_metadata_route(mo
     monkeypatch.setattr(runner, '_metadata', metadata)
     runner._launch_metadata(launch, object())
     assert seen == [(launch, launch.get('gc_layout_metadata_parity'), None)]
+
+
+def test_continuation_repeats_exact_order_and_preserves_partial_pass_boundaries():
+    n=34;parent_order=list(range(n-1,-1,-1));cursor=n;presentations=[];lengths=[]
+    while cursor<3*n:
+        left,right,cursor=runner._next_training_parent_range(cursor,n,3)
+        presentations.extend(parent_order[left:right]);lengths.append(right-left)
+    assert presentations==parent_order*2
+    assert lengths==[16,16,2,16,16,2]
+    assert cursor==3*n
+    with pytest.raises(RuntimeError,match='TRAIN_PARENT_BOUNDARY'):
+        runner._next_training_parent_range(n+1,n,3)
+    with pytest.raises(RuntimeError,match='TRAIN_PARENT_RANGE'):
+        runner._next_training_parent_range(3*n,n,3)
+
+
+def test_read_guard_allows_only_the_bound_original_terminal_path(monkeypatch):
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    hooks=[];monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
+    context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache',
+        'gc_surfaces':{'path':'/synthetic/gc/surface'}},
+        'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/audit'}}}
+    terminal=authority.CONTINUATION_ORIGIN['terminal_state']['path']
+    denied=common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',extra_read_paths=(terminal,))
+    hooks[0]('open',(terminal,'r',0))
+    with pytest.raises(RuntimeError,match='UNBOUND_OPEN'):
+        hooks[0]('open',('/home/andre2/GX1_RUNS/unbound.pt','r',0))
+    assert denied==['/home/andre2/GX1_RUNS/unbound.pt']
+    with pytest.raises(RuntimeError,match='EXTRA_READ_PATHS'):
+        common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',
+            extra_read_paths=('/home/andre2/GX1_RUNS/unbound.pt',))
+
+
+def test_continuation_binds_qualification_and_original_measurement_to_freeze(monkeypatch):
+    proof={'path':'/synthetic/proof.json','sha256':'1'*64}
+    gc={'path':'/synthetic/gc.json','sha256':'2'*64}
+    terminal={'path':'/synthetic/terminal.json','sha256':'3'*64}
+    launch={'native_continuation_qualification':proof,'gc_layout_metadata_parity':gc,
+        'continuation_origin':{'terminal_train_measurement':terminal}}
+    context={'info':{'metadata':{}}};seen=[]
+    monkeypatch.setattr(runner,'_metadata',lambda actual,common,**kwargs:context)
+    def read(ref,metadata):seen.append(ref);metadata[ref['path']]=ref;return {}
+    runner._launch_metadata(launch,SimpleNamespace(_read=read))
+    assert seen==[gc,proof,terminal]
+    assert set(context['info']['metadata'])=={gc['path'],proof['path'],terminal['path']}

@@ -21,6 +21,7 @@ KIND = 'native_direction_prefix_fit_window'
 WINDOW_SCHEMA = 'gx1_native_direction_prefix_fit_window_policy_v1'
 RECIPE_SCHEMA = 'gx1_native_direction_prefix_fit_launch_recipe_v1'
 CURSOR_SCHEMA = 'gx1_native_direction_prefix_fit_cursor_v1'
+MULTIPASS_CURSOR_SCHEMA = 'gx1_native_direction_prefix_fit_multipass_cursor_v1'
 INPUT_SCHEMA = 'gx1_native_direction_prefix_fit_input_manifest_v1'
 ARCHIVE_MEMBERS = frozenset('parent_rows bar_start_ns dynamic_entry_m1_row decision_ns terminal_time_ns elapsed_wall_seconds terminal_source_row observed mid_move mid_return_bps sign'.split())
 VIEW_SOURCE_KEYS = frozenset({'feature_view_design','input_qualification','raw_input_provider_plan','raw_gc_layout',
@@ -30,6 +31,15 @@ CANONICAL_REPO = private.CANONICAL_REPO
 MAX_WINDOWS = 4
 BATCH_SIZE = 16
 BPS_SCOPE = 'single_prefix_one_pass_direction_signed_bps_fit'
+CONTINUATION_SCOPE = 'single_prefix_three_pass_direction_continuation'
+_CONTINUATION_ROOT = '/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276'
+CONTINUATION_ORIGIN = {
+    'launch_recipe': {'path':_CONTINUATION_ROOT+'/RECIPE.json','sha256':'8ba298a148af3b923c7b4a567f98bf8ddd2eaef1e4eeb5144e2a785e9f9e2d93'},
+    'terminal_state': {'path':_CONTINUATION_ROOT+'/RUNTIME/prefix-fit/states/w0002_TERMINAL_u002976_p047602.pt','sha256':'be9e9a54851085c6719f03a29d958f7c83b470236a0fc5ae5801c1bdd543af29'},
+    'initial_measurement': {'path':_CONTINUATION_ROOT+'/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json','sha256':'0504cb783b1054a4a19e1da84a0013abee11100038cdbcd78b6514913064c09c'},
+    'initial_state': {'path':_CONTINUATION_ROOT+'/RUNTIME/prefix-fit/states/INITIAL_0U.pt','sha256':'40a9d5ad744a06512619c3072170657f6ed430a077c3187e05e817fd5b46e9f3'},
+    'terminal_train_measurement': {'path':_CONTINUATION_ROOT+'/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json','sha256':'b25e7ef3539f19604dfbde58bfb6ff379dd7e0d813a464ab680cea4977578301'},
+}
 BPS_NATIVE_QUALIFICATION = {
     'path':'/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/ACTUAL_ROOT_REVIEW.json',
     'sha256':'07b26101961ce4218b51f5d87487239bf8b0a913c5ec93db872417e35e1293f9'}
@@ -153,21 +163,24 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         'full_epoch_training_allowed', 'test_data_used', 'predictive_value_claimed',
         'qualification_weights_for_main_fit'}
     bps = value.get('run_scope') == BPS_SCOPE
+    continuation = value.get('run_scope') == CONTINUATION_SCOPE
     if bps:
         fields |= {'gc_layout_metadata_parity', 'native_bps_qualification'}
+    if continuation:
+        fields |= {'gc_layout_metadata_parity', 'continuation_origin', 'native_continuation_qualification'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] == (BPS_SCOPE if bps else 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
     fold = _fold(recipe['fold'])
     if bps:
         _require(fold == private.BPS_FOLD
             and recipe['gc_layout_metadata_parity'] == private.BPS_GC_PARITY
             and recipe['native_bps_qualification'] == BPS_NATIVE_QUALIFICATION, 'BPS_QUALIFIED_SCOPE')
         campaign.require_binding(recipe['gc_layout_metadata_parity'], label='bps GC metadata proof', verify_file=True)
-    for key, expected in {'train_passes':1, 'max_windows':4, 'initial_measurement_rows':256,
+    for key, expected in {'train_passes':3 if continuation else 1, 'max_windows':4, 'initial_measurement_rows':256,
             'eval_batch_size':16, 'checkpoint_every_updates':256, 'max_checkpoint_bytes':1073741824,
             'max_checkpoint_total_bytes':4294967296, 'max_published_json_bytes':67108864}.items():
         _require(type(recipe[key]) is int and recipe[key] == expected, 'RECIPE_BUDGET:' + key)
@@ -180,7 +193,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         and numerical.get('signed_bps_supervision', False) is bps, 'NUMERICAL_OBJECTIVE_SCOPE')
     _require(isinstance(numerical, Mapping) and numerical.get('schema_version') == 'gx1_native_direction_research_recipe_v1'
         and type(numerical.get('batch_size')) is int and numerical['batch_size'] == BATCH_SIZE
-        and type(numerical.get('max_updates')) is int and numerical['max_updates'] == (fold['prefix_rows'] + 15) // 16
+        and type(numerical.get('max_updates')) is int and numerical['max_updates'] == (3 if continuation else 1) * ((fold['prefix_rows'] + 15) // 16)
         and numerical.get('genuine_updates_authorized') is False and numerical.get('native_launch_authorized') is False,
         'NUMERICAL_RECIPE_ROLE')
     unsigned = {k:v for k,v in numerical.items() if k != 'contract_sha256'}
@@ -193,10 +206,42 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         'EXECUTION_BINDING_PATH')
     owners = recipe['source_owners']
     required_sources = set(REQUIRED_SOURCE_PATHS) | (set(BPS_EXTRA_SOURCE_PATHS) if bps else set())
+    if continuation:
+        required_sources.add('gx1/contracts/entry_native_direction_frozen_extraction_v1.py')
     _require(isinstance(owners, Mapping) and set(owners) == required_sources, 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='prefix fit source', verify_file=True)
         _require(checked['path'] == str(source_repo/key), 'SOURCE_OWNER_PATH:' + key)
+    if continuation:
+        origin = recipe['continuation_origin']
+        _require(fold['fold_id'] == 1 and isinstance(origin, Mapping)
+            and origin == CONTINUATION_ORIGIN, 'CONTINUATION_ORIGIN')
+        refs = {key:campaign.require_binding(ref, label='continuation '+key, verify_file=True) for key,ref in origin.items()}
+        old = campaign.read_bound_json(Path(refs['launch_recipe']['path']), refs['launch_recipe']['sha256'])
+        old_numerical = old.get('numerical_recipe', {})
+        _require(old.get('fold') == fold and old.get('train_passes') == 1
+            and old.get('run_scope') == 'single_prefix_one_pass_direction_fit'
+            and old.get('input_manifest') == recipe['input_manifest']
+            and old_numerical.get('max_updates') == (fold['prefix_rows'] + 15) // 16
+            and {k:v for k,v in old_numerical.items() if k not in ('max_updates','contract_sha256')}
+                == {k:v for k,v in numerical.items() if k not in ('max_updates','contract_sha256')}, 'CONTINUATION_ORIGINAL_RECIPE')
+        initial = campaign.read_bound_json(Path(refs['initial_measurement']['path']), refs['initial_measurement']['sha256'])
+        _require(initial.get('role') == 'INITIAL_TRAIN' and initial.get('fold') == fold
+            and initial.get('own_initial_state') == refs['initial_state'], 'CONTINUATION_INITIAL_IDENTITY')
+        _require(recipe['gc_layout_metadata_parity'] == private.BPS_GC_PARITY, 'CONTINUATION_GC_PARITY')
+        campaign.require_binding(recipe['gc_layout_metadata_parity'], label='continuation GC metadata proof', verify_file=True)
+        terminal_measurement = campaign.read_bound_json(Path(refs['terminal_train_measurement']['path']), refs['terminal_train_measurement']['sha256'])
+        _require(terminal_measurement.get('role') == 'FINAL_TRAIN' and terminal_measurement.get('fold') == fold
+            and terminal_measurement.get('own_initial_state') == refs['initial_state'], 'CONTINUATION_TERMINAL_MEASUREMENT')
+        proof_ref = campaign.require_binding(recipe['native_continuation_qualification'], label='continuation zero-update proof', verify_file=True)
+        proof = campaign.read_bound_json(Path(proof_ref['path']), proof_ref['sha256'])
+        _require(proof.get('status') == 'PASS_ORIGINAL_NATIVE_CONTINUATION_ZERO_UPDATE'
+            and proof.get('origin') == refs and proof.get('source_owners') == owners
+            and proof.get('numerical_recipe_sha256') == numerical['contract_sha256']
+            and proof.get('checkpoint_state_parity') is True and proof.get('terminal_train_prediction_bit_parity') is True
+            and type(proof.get('optimizer_steps')) is int and proof['optimizer_steps'] == 0
+            and proof.get('test_data_used') is False,
+            'CONTINUATION_ZERO_UPDATE_QUALIFICATION')
     if bps:
         proof_ref = campaign.require_binding(recipe['native_bps_qualification'], label='native bps proof', verify_file=True)
         proof = campaign.read_bound_json(Path(proof_ref['path']), proof_ref['sha256'])
@@ -385,8 +430,10 @@ def require_native_direction_prefix_fit_context(policy_path, policy_file_sha256,
 
 def build_prefix_fit_cursor(*, recipe_ref, fold, feature_view_identity, phase_state, outcome,
         optimizer_updates, parent_cursor, parent_order_sha256, full_state, own_initial_state,
-        initial_measurement, final_train_measurement, oof_cursor, result):
-    value = _seal({'schema_version':CURSOR_SCHEMA, 'recipe':dict(recipe_ref), 'fold':dict(fold),
+        initial_measurement, final_train_measurement, oof_cursor, result, train_passes=1):
+    _require(type(train_passes) is int and train_passes in (1, 3), 'CURSOR_PASSES')
+    value = _seal({'schema_version':CURSOR_SCHEMA if train_passes == 1 else MULTIPASS_CURSOR_SCHEMA,
+        **({'train_passes':train_passes} if train_passes != 1 else {}), 'recipe':dict(recipe_ref), 'fold':dict(fold),
         'feature_view_identity':feature_view_identity, 'phase_state':phase_state, 'outcome':outcome,
         'optimizer_updates':optimizer_updates, 'parent_cursor':parent_cursor, 'parent_order_sha256':parent_order_sha256,
         'full_state':full_state, 'own_initial_state':own_initial_state, 'initial_measurement':initial_measurement,
@@ -399,7 +446,11 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     fields = {'schema_version','recipe','fold','feature_view_identity','phase_state','outcome','optimizer_updates',
         'parent_cursor','parent_order_sha256','full_state','own_initial_state','initial_measurement',
         'final_train_measurement','oof_cursor','result','test_data_used'}
-    result = _identity(value, fields, CURSOR_SCHEMA, 'cursor_sha256')
+    multipass = isinstance(value, Mapping) and value.get('schema_version') == MULTIPASS_CURSOR_SCHEMA
+    if multipass: fields = fields | {'train_passes'}
+    result = _identity(value, fields, MULTIPASS_CURSOR_SCHEMA if multipass else CURSOR_SCHEMA, 'cursor_sha256')
+    passes = result['train_passes'] if multipass else 1
+    _require(type(passes) is int and passes == (3 if multipass else 1), 'CURSOR_PASSES')
     fold = _fold(result['fold']); n = fold['prefix_rows']; quarter = fold['oof_end_row']-n
     _require(result['recipe'] == expected_recipe and (expected_fold is None or fold == _fold(expected_fold))
         and result['test_data_used'] is False and result['outcome'] in {'RESUMABLE','COMPLETE','FAILED'}
@@ -408,13 +459,14 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     launch = None
     if verify_files:
         launch = campaign.read_bound_json(Path(result['recipe']['path']), result['recipe']['sha256'])
-        _require(launch.get('fold') == fold and launch.get('schema_version') == RECIPE_SCHEMA
+        _require(launch.get('fold') == fold and launch.get('train_passes') == passes and launch.get('schema_version') == RECIPE_SCHEMA
             and launch.get('recipe_sha256') == campaign.canonical_sha256({k:v for k,v in launch.items() if k != 'recipe_sha256'}),
             'CURSOR_RECIPE_FOLD')
-    for key, ceiling in (('parent_cursor',n), ('optimizer_updates',(n+15)//16), ('oof_cursor',quarter)):
+    for key, ceiling in (('parent_cursor',passes*n), ('optimizer_updates',passes*((n+15)//16)), ('oof_cursor',quarter)):
         _require(type(result[key]) is int and 0 <= result[key] <= ceiling, 'CURSOR_COUNTER:' + key)
-    _require(result['parent_cursor'] == n or result['parent_cursor'] % BATCH_SIZE == 0, 'CURSOR_BATCH_BOUNDARY')
-    _require(result['optimizer_updates'] <= (result['parent_cursor']+15)//16, 'CURSOR_UPDATES_VS_INPUTS')
+    completed, within = divmod(result['parent_cursor'], n)
+    _require(within % BATCH_SIZE == 0, 'CURSOR_BATCH_BOUNDARY')
+    _require(result['optimizer_updates'] <= completed*((n+15)//16)+(within+15)//16, 'CURSOR_UPDATES_VS_INPUTS')
     campaign._sha(result['parent_order_sha256'], 'parent order')
     campaign.require_binding(result['result'], label='prefix result', verify_file=verify_files)
     premodel_failure = (result['outcome'] == 'FAILED' and result['phase_state'] == 'TRAINING'
@@ -440,7 +492,7 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     if result['phase_state'] == 'TRAINING':
         _require(result['oof_cursor'] == 0 and result['final_train_measurement'] is None and result['outcome'] != 'COMPLETE', 'CURSOR_TRAINING')
     else:
-        _require(result['parent_cursor'] == n, 'CURSOR_SCORING_BEFORE_TRAIN_END')
+        _require(result['parent_cursor'] == passes*n, 'CURSOR_SCORING_BEFORE_TRAIN_END')
     _require(result['oof_cursor'] == 0 or result['final_train_measurement'] is not None, 'CURSOR_OOF_WITHOUT_FINAL_TRAIN')
     if result['phase_state'] == 'COMPLETE' or result['outcome'] == 'COMPLETE':
         _require(result['phase_state'] == result['outcome'] == 'COMPLETE' and result['oof_cursor'] == quarter
@@ -451,10 +503,12 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
 def build_prefix_fit_progress(*, window, plan, invocation, checkpoint_pointer, cursor):
     from datetime import datetime, timezone
     checked = require_prefix_fit_cursor(cursor, expected_recipe=window['recipe'], verify_files=False)
-    value = _seal({'schema_version':campaign.PROGRESS_SCHEMA, 'plan_sha256':plan['plan_sha256'],
+    passes = checked.get('train_passes', 1)
+    value = _seal({'schema_version':campaign.PROGRESS_SCHEMA,
+        **({'train_passes':passes} if passes != 1 else {}), 'plan_sha256':plan['plan_sha256'],
         'invocation_sha256':invocation['invocation_sha256'], 'phase':KIND, 'recipe':window['recipe'],
         'fold':checked['fold'], 'phase_state':checked['phase_state'], 'completed_units':checked['parent_cursor'],
-        'total_units':checked['fold']['prefix_rows'], 'optimizer_updates':checked['optimizer_updates'],
+        'total_units':passes*checked['fold']['prefix_rows'], 'optimizer_updates':checked['optimizer_updates'],
         'parent_cursor':checked['parent_cursor'], 'parent_order_sha256':checked['parent_order_sha256'],
         'oof_cursor':checked['oof_cursor'], 'checkpoint_pointer':checkpoint_pointer, 'terminal':True,
         'outcome':checked['outcome'], 'observed_utc':datetime.now(timezone.utc).isoformat()}, 'progress_sha256')
@@ -466,22 +520,28 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     fields = {'schema_version','plan_sha256','invocation_sha256','phase','recipe','fold','phase_state','completed_units',
         'total_units','optimizer_updates','parent_cursor','parent_order_sha256','oof_cursor','checkpoint_pointer',
         'terminal','outcome','observed_utc'}
+    multipass = isinstance(value, Mapping) and 'train_passes' in value
+    if multipass: fields = fields | {'train_passes'}
     result = _identity(value, fields, campaign.PROGRESS_SCHEMA, 'progress_sha256')
+    passes = result.get('train_passes', 1)
+    _require(type(passes) is int and passes == (3 if multipass else 1), 'PROGRESS_PASSES')
     fold = _fold(result['fold']); n = fold['prefix_rows']; quarter = fold['oof_end_row']-n
+    _require(invocation['optimizer_step_budget'] == passes*((n+15)//16), 'PROGRESS_PASS_BUDGET')
     _require(expected_selection_receipt_sha256 is None and invocation['kind'] == KIND
         and result['plan_sha256'] == plan_sha256 and result['invocation_sha256'] == invocation['invocation_sha256']
         and result['phase'] == KIND and result['recipe'] == invocation['direction_prefix_fit_recipe']
         and result['terminal'] is True and result['outcome'] in {'COMPLETE','RESUMABLE','FAILED'}
         and result['phase_state'] in {'TRAINING','SCORING','COMPLETE'}, 'PROGRESS_IDENTITY')
     campaign._utc(result['observed_utc'], 'prefix fit progress')
-    for key, ceiling in (('completed_units',n),('total_units',n),('parent_cursor',n),
-            ('optimizer_updates',(n+15)//16),('oof_cursor',quarter)):
+    for key, ceiling in (('completed_units',passes*n),('total_units',passes*n),('parent_cursor',passes*n),
+            ('optimizer_updates',passes*((n+15)//16)),('oof_cursor',quarter)):
         _require(type(result[key]) is int and 0 <= result[key] <= ceiling, 'PROGRESS_COUNTER:' + key)
-    _require(result['total_units'] == n and result['completed_units'] == result['parent_cursor']
-        and (result['parent_cursor'] == n or result['parent_cursor'] % 16 == 0)
-        and result['optimizer_updates'] <= (result['parent_cursor']+15)//16, 'PROGRESS_UNITS')
+    completed, within = divmod(result['parent_cursor'], n)
+    _require(result['total_units'] == passes*n and result['completed_units'] == result['parent_cursor']
+        and within % 16 == 0
+        and result['optimizer_updates'] <= completed*((n+15)//16)+(within+15)//16, 'PROGRESS_UNITS')
     _require(result['phase_state'] != 'TRAINING' or result['oof_cursor'] == 0, 'PROGRESS_TRAINING')
-    _require(result['phase_state'] == 'TRAINING' or result['parent_cursor'] == n, 'PROGRESS_SCORING')
+    _require(result['phase_state'] == 'TRAINING' or result['parent_cursor'] == passes*n, 'PROGRESS_SCORING')
     _require((result['outcome'] == 'COMPLETE') == (result['phase_state'] == 'COMPLETE')
         and (result['outcome'] != 'COMPLETE' or result['oof_cursor'] == quarter), 'PROGRESS_COMPLETE')
     campaign._sha(result['parent_order_sha256'], 'parent order')
@@ -490,6 +550,6 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     if verify_file:
         cursor = require_prefix_fit_cursor(campaign.read_bound_json(Path(ref['path']), ref['sha256']),
             expected_recipe=result['recipe'], expected_fold=fold, verify_files=True)
-        _require(all(cursor[k] == result[k] for k in ('outcome','phase_state','optimizer_updates','parent_cursor',
+        _require(cursor.get('train_passes',1) == passes and all(cursor[k] == result[k] for k in ('outcome','phase_state','optimizer_updates','parent_cursor',
             'parent_order_sha256','oof_cursor')), 'PROGRESS_DURABLE_CURSOR')
     return result

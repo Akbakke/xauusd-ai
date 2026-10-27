@@ -92,6 +92,11 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
 
 def _launch_metadata(launch, common):
     context = _metadata(launch, common, gc_layout_metadata_parity=launch.get('gc_layout_metadata_parity'))
+    if 'native_continuation_qualification' in launch:
+        metadata = context['info']['metadata']
+        for ref in (launch['gc_layout_metadata_parity'],launch['native_continuation_qualification'],
+                launch['continuation_origin']['terminal_train_measurement']):
+            common._read(ref,metadata)
     if 'native_bps_qualification' in launch:
         metadata = context['info']['metadata']
         common._read(launch['gc_layout_metadata_parity'], metadata)
@@ -370,13 +375,22 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
     record.update(loss=float(loss['loss'].detach()),gradient_norm=float(norm));return record,True
 
 
+def _next_training_parent_range(cursor, n, train_passes):
+    _require(type(n) is int and n > 0 and type(train_passes) is int and train_passes in (1,3)
+        and type(cursor) is int and 0 <= cursor < train_passes*n, 'TRAIN_PARENT_RANGE')
+    within=cursor%n
+    _require(within%BATCH_SIZE == 0, 'TRAIN_PARENT_BOUNDARY')
+    right=min(within+BATCH_SIZE,n)
+    return within,right,cursor+right-within
+
+
 def _save_snapshot(model, optimizer, *, context, recipe, order, parent_cursor, updates, state_directory,
-        name, launch, counters, torch, device, common, state_owner):
+        name, launch, counters, torch, device, common, state_owner, train_passes=1):
     used=sum(common._stat(p)['st_size'] for p in state_directory.glob('*.pt'))
     remaining=launch['max_checkpoint_total_bytes']-used
     _require(remaining>0,'PREFIX_CHECKPOINT_TOTAL_BUDGET')
     state=state_owner.capture_native_direction_research_state(model,optimizer,recipe=recipe,
-        feature_view_identity=model.feature_view_identity,parent_order=order,cursor=parent_cursor,optimizer_updates=updates,device=device)
+        feature_view_identity=model.feature_view_identity,parent_order=order,cursor=parent_cursor,optimizer_updates=updates,device=device,train_passes=train_passes)
     ref=common._save_state(state_directory/(name+'.pt'),state,torch=torch,
         maximum=min(launch['max_checkpoint_bytes'],remaining),counters=counters)
     seal=state['contract_sha256'];del state
@@ -408,13 +422,21 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
+    continuation=launch['run_scope']==authority.CONTINUATION_SCOPE;train_passes=launch['train_passes']
     binding_ref=common._hash_file(launch['execution_binding_path']);extra={};binding=common._read(binding_ref,extra)
     context=_launch_metadata(launch,common);context['info']['metadata'].update(extra)
+    origin=launch.get('continuation_origin') if continuation else None
+    original_recipe=None;original_initial_measurement=None
+    if continuation:
+        original_launch=common._read(origin['launch_recipe'],context['info']['metadata'])
+        original_recipe=require_native_direction_research_recipe(original_launch['numerical_recipe'])
+        original_initial_measurement=common._read(origin['initial_measurement'],context['info']['metadata'])
     for ref in (window['recipe'],binding['plan'],{'path':str(policy_path),'sha256':policy_file_sha256}):common._read(ref,context['info']['metadata'])
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
-    denied=common._install_read_guard(context,output,Path(launch['runtime_root']))
+    denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
+        extra_read_paths=(origin['terminal_state']['path'],) if continuation else ())
     counters={k:0 for k in ('model_constructions','model_construction_returns','optimizer_constructions','forward_calls','forward_returns',
         'backward_calls','backward_returns','optimizer_step_calls','optimizer_step_returns','empty_batches',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns','forbidden_legacy_calls')}
@@ -424,7 +446,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     initial_ref=initial_measurement=final_measurement=full_state=None;view_identity=None;parent_cursor=updates=oof_cursor=0
     phase='TRAINING';outcome='FAILED';error=None;source_unchanged=False;checkpoint_refs=[];first_diagnostic=last_diagnostic=None
     prepared=model=optimizer=None;order_sha='0'*64;prior_cursor=None;fresh_identity=None;prior=None;initial_inactive=None
-    ceiling=(fold['prefix_rows']+15)//16+33+(fold['oof_end_row']-fold['oof_start_row']+15)//16
+    ceiling=((2 if continuation else 1)*((fold['prefix_rows']+15)//16)
+        +33+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
     durable=None;observed_progress=None;bps_scale_ref=None
     common._json(work/'CLAIM.json',{'recipe':window['recipe'],'fold':fold,'invocation_number':number,
         'source_head':binding['source_head'],'plan_sha256':plan['plan_sha256'],'limits':limits},counters,launch['max_published_json_bytes'])
@@ -447,11 +470,24 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         counters['model_construction_returns']+=1;model.train()
         optimizer,_optimizer_binding=state_owner.build_native_direction_research_optimizer(model,recipe=recipe);counters['optimizer_constructions']+=1
         view_identity=model.feature_view_identity
-        fresh=state_owner.capture_native_direction_research_state(model,optimizer,recipe=recipe,feature_view_identity=view_identity,
+        fresh=state_owner.capture_native_direction_research_state(model,optimizer,recipe=original_recipe if continuation else recipe,feature_view_identity=view_identity,
             parent_order=order,cursor=0,optimizer_updates=0,device=device)
         fresh_identity=tree_sha({key:fresh[key] for key in ('binding','model_state','buffer_state','optimizer_state','rng_state','module_training')})
         initial_inactive=tree_sha({name:p for name,p in model.named_parameters() if not p.requires_grad});del fresh
-        if prior_cursor is None:
+        if prior_cursor is None and continuation:
+            initial_ref=origin['initial_state'];initial_measurement=origin['initial_measurement']
+            _require(original_initial_measurement['fresh_identity_sha256']==fresh_identity
+                and original_initial_measurement['own_prefix_prior']==prior, 'CONTINUATION_SAME_OWN_FRESH_BASELINE')
+            loaded=common._load_state(origin['terminal_state'],torch=torch,maximum=launch['max_checkpoint_bytes'],counters=counters)
+            migrated=state_owner.migrate_one_pass_terminal_to_three_pass(loaded,model,optimizer,
+                original_recipe=original_recipe,continuation_recipe=recipe,feature_view_identity=view_identity,parent_order=order,device=device)
+            parent_cursor=migrated['cursor'];updates=migrated['optimizer_updates']
+            full_state,seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=parent_cursor,updates=updates,
+                state_directory=state_directory,name='CONTINUATION_INITIAL_1PASS',launch=launch,counters=counters,torch=torch,device=device,
+                common=common,state_owner=state_owner,train_passes=train_passes)
+            _require(seal==migrated['contract_sha256'],'CONTINUATION_MIGRATED_STATE_PARITY')
+            del loaded,migrated
+        elif prior_cursor is None:
             initial_ref,_seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=0,updates=0,
                 state_directory=state_directory,name='INITIAL_0U',launch=launch,counters=counters,torch=torch,device=device,common=common,state_owner=state_owner)
             measured,_=_evaluate(model,prepared,targets,view,context_map,ordered[:256],cutoff=fold['train_cutoff_ns'],kind='INITIAL_TRAIN',
@@ -466,22 +502,23 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             _require(original['fresh_identity_sha256']==fresh_identity and original['own_prefix_prior']==prior,'SAME_OWN_FRESH_BASELINE')
             loaded=common._load_state(prior_cursor['full_state'],torch=torch,maximum=launch['max_checkpoint_bytes'],counters=counters)
             restored=state_owner.restore_native_direction_research_state(loaded,model,optimizer,recipe=recipe,
-                feature_view_identity=view_identity,parent_order=order,device=device)
+                feature_view_identity=view_identity,parent_order=order,device=device,train_passes=train_passes)
             _require(restored['cursor']==prior_cursor['parent_cursor'] and restored['optimizer_updates']==prior_cursor['optimizer_updates'],
                 'RESTORED_PROGRESS')
             restored_state=state_owner.capture_native_direction_research_state(model,optimizer,recipe=recipe,feature_view_identity=view_identity,
-                parent_order=order,cursor=restored['cursor'],optimizer_updates=restored['optimizer_updates'],device=device)
+                parent_order=order,cursor=restored['cursor'],optimizer_updates=restored['optimizer_updates'],device=device,train_passes=train_passes)
             _require(restored_state['contract_sha256']==loaded['contract_sha256'],'EXACT_SERIALIZED_FULL_RESUME');del restored_state
             del loaded;parent_cursor=restored['cursor'];updates=restored['optimizer_updates'];phase=prior_cursor['phase_state']
             final_measurement=prior_cursor['final_train_measurement'];full_state=prior_cursor['full_state']
         durable={'state':full_state or initial_ref,'parent_cursor':parent_cursor,'optimizer_updates':updates}
-        while parent_cursor<len(ordered) and time.monotonic()<deadline:
-            right=min(parent_cursor+BATCH_SIZE,len(ordered));raw,target=_batch(prepared,targets,view,ordered[parent_cursor:right],np)
+        while parent_cursor<train_passes*len(ordered) and time.monotonic()<deadline:
+            within,right,next_cursor=_next_training_parent_range(parent_cursor,len(ordered),train_passes)
+            raw,target=_batch(prepared,targets,view,ordered[within:right],np)
             features,device_target=_device_batch(raw,target,torch,device)
             diagnostic=(counters['optimizer_step_returns']==0 or right==len(ordered))
             record,did_update=_train_batch(model,optimizer,features,device_target,cutoff=fold['train_cutoff_ns'],
                 counters=counters,ceiling=ceiling,torch=torch,diagnostics=diagnostic)
-            parent_cursor=right;updates+=int(did_update)
+            parent_cursor=next_cursor;updates+=int(did_update)
             if did_update and first_diagnostic is None:first_diagnostic={'next_parent_cursor':parent_cursor,**record}
             if right==len(ordered):last_diagnostic={'next_parent_cursor':parent_cursor,**record}
             _require(updates<=recipe['max_updates'],'PREFIX_UPDATE_CEILING')
@@ -489,12 +526,12 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             if did_update and updates%launch['checkpoint_every_updates']==0:
                 ref,seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=parent_cursor,updates=updates,
                     state_directory=state_directory,name=f'w{number:04d}_u{updates:06d}_p{parent_cursor:06d}',launch=launch,
-                    counters=counters,torch=torch,device=device,common=common,state_owner=state_owner)
+                    counters=counters,torch=torch,device=device,common=common,state_owner=state_owner,train_passes=train_passes)
                 durable={'state':ref,'contract_sha256':seal,'optimizer_updates':updates,'parent_cursor':parent_cursor}
                 checkpoint_refs.append(durable)
                 common._json(work/f'CHECKPOINT_u{updates:06d}_p{parent_cursor:06d}.json',{'recipe':window['recipe'],'fold':fold,
                     'feature_view_identity':view_identity,'parent_order_sha256':order_sha,**durable},counters,launch['max_published_json_bytes'])
-        if parent_cursor==len(ordered):phase='SCORING'
+        if parent_cursor==train_passes*len(ordered):phase='SCORING'
         if phase=='SCORING' and final_measurement is None and time.monotonic()<deadline:
             measured,_=_evaluate(model,prepared,targets,view,context_map,ordered[:256],cutoff=fold['train_cutoff_ns'],kind='FINAL_TRAIN',
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha)
@@ -513,7 +550,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         _require(tree_sha({name:p for name,p in model.named_parameters() if not p.requires_grad})==initial_inactive,'INACTIVE_WEIGHTS_UNCHANGED')
         full_state,seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=parent_cursor,updates=updates,
             state_directory=state_directory,name=f'w{number:04d}_TERMINAL_u{updates:06d}_p{parent_cursor:06d}',launch=launch,
-            counters=counters,torch=torch,device=device,common=common,state_owner=state_owner)
+            counters=counters,torch=torch,device=device,common=common,state_owner=state_owner,train_passes=train_passes)
         durable={'state':full_state,'contract_sha256':seal,'optimizer_updates':updates,'parent_cursor':parent_cursor};checkpoint_refs.append(durable)
         _require(counters['model_constructions']==counters['model_construction_returns']==counters['optimizer_constructions']==1
             and counters['forward_calls']==counters['forward_returns'] and counters['backward_calls']==counters['backward_returns']
@@ -525,7 +562,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         observed_progress={'parent_cursor':parent_cursor,'optimizer_updates':updates,'oof_cursor':oof_cursor}
         if durable is not None:
             full_state=durable['state'];parent_cursor=durable['parent_cursor'];updates=durable['optimizer_updates']
-            phase='SCORING' if parent_cursor==fold['prefix_rows'] else 'TRAINING'
+            phase='SCORING' if parent_cursor==train_passes*fold['prefix_rows'] else 'TRAINING'
             if phase=='TRAINING':final_measurement=None;oof_cursor=0
         else:parent_cursor=updates=oof_cursor=0;phase='TRAINING';full_state=initial_ref
         try:common._freeze(launch,binding,context);source_unchanged=True
@@ -550,7 +587,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         **({'own_prefix_bps_scale':bps_scale_ref} if bps_scale_ref is not None else {})},counters,launch['max_published_json_bytes'])
     cursor=authority.build_prefix_fit_cursor(recipe_ref=window['recipe'],fold=fold,feature_view_identity=view_identity,phase_state=phase,outcome=outcome,
         optimizer_updates=updates,parent_cursor=parent_cursor,parent_order_sha256=order_sha,full_state=full_state,own_initial_state=initial_ref,
-        initial_measurement=initial_measurement,final_train_measurement=final_measurement,oof_cursor=oof_cursor,result=result)
+        initial_measurement=initial_measurement,final_train_measurement=final_measurement,oof_cursor=oof_cursor,result=result,train_passes=train_passes)
     common._json(work/'CURSOR.json',cursor,counters,launch['max_published_json_bytes'])
     pointer=_latest_cursor(window['campaign_cursor_path'],cursor,common=common,counters=counters,limit=launch['max_published_json_bytes'])
     progress=authority.build_prefix_fit_progress(window=window,plan=plan,invocation=invocation,checkpoint_pointer=pointer,cursor=cursor)

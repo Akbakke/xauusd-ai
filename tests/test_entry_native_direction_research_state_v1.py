@@ -253,3 +253,91 @@ def test_restore_rejects_live_partial_backward(monkeypatch):
     before=_live_hash(case)
     with pytest.raises(RuntimeError,match='PARTIAL_GRADIENTS'):_restore(case,saved)
     assert _live_hash(case)==before and any(p.grad is not None for p in case.model.parameters())
+
+
+def _multipass_batch(case, ids, *, empty=False):
+    """One synthetic batch whose actual length also covers the last partial batch."""
+    count=len(ids)
+    x=torch.tensor([[float(i+1), 2., 3., 4.] for i in ids])
+    features={'seq_x':x[:,None,:], 'snap_x':x, 'ctx_cont':torch.zeros(count,1),
+        'ctx_cat':torch.zeros(count,1,dtype=torch.int64)}
+    for tf in ('m5','m15','h1','h4','d1'):
+        features['seq_'+tf]=torch.zeros(count,1,1);features['gc_seq_'+tf]=torch.zeros(count,1,1)
+    D=torch.tensor([100+i for i in ids],dtype=torch.int64)*MINUTE
+    signs=torch.zeros(count,3,dtype=torch.int8) if empty else torch.tensor(
+        [[1,-1,1] if i%2==0 else [-1,1,-1] for i in ids],dtype=torch.int8)
+    output=case.model(**features)['logit_up']
+    loss=direction.native_direction_binary_loss(output,sign=signs,observed=torch.ones(count,3,dtype=torch.bool),
+        decision_ns=D,terminal_time_ns=D[:,None]+torch.tensor([1,5,15],dtype=torch.int64)[None,:]*MINUTE,cutoff_ns=200*MINUTE)
+    if loss['update_allowed']:
+        loss['loss'].backward();trainer._optimizer_step_with_finite_gradients(model=case.model,optimizer=case.optimizer)
+    return loss['update_allowed']
+
+
+def _multipass_case(monkeypatch):
+    case=_make(monkeypatch)
+    case.order=torch.arange(3,dtype=torch.int64)
+    case.recipe=recipes.native_direction_research_recipe(batch_size=2,max_updates=2)
+    return case
+
+
+def _capture_multipass(case, cursor, updates, recipe):
+    return state_owner.capture_native_direction_research_state(case.model,case.optimizer,recipe=recipe,
+        feature_view_identity=_identity(),parent_order=case.order,cursor=cursor,optimizer_updates=updates,
+        device=DEVICE,train_passes=3)
+
+
+def test_three_pass_migration_partial_batch_and_stochastic_resume_are_exact(monkeypatch):
+    continuation=recipes.native_direction_research_recipe(batch_size=2,max_updates=6)
+    uninterrupted=_multipass_case(monkeypatch)
+    for _ in range(3):
+        assert _multipass_batch(uninterrupted,[0,1]);assert _multipass_batch(uninterrupted,[2])
+    expected=_capture_multipass(uninterrupted,9,6,continuation)
+
+    first=_multipass_case(monkeypatch)
+    assert _multipass_batch(first,[0,1]);assert _multipass_batch(first,[2])
+    legacy=_capture(first,3,2)
+    migrated=state_owner.migrate_one_pass_terminal_to_three_pass(legacy,first.model,first.optimizer,
+        original_recipe=first.recipe,continuation_recipe=continuation,feature_view_identity=_identity(),
+        parent_order=first.order,device=DEVICE)
+    assert migrated['cursor']==3 and migrated['optimizer_updates']==2 and migrated['train_passes']==3
+    for key in ('model_state_sha256','buffer_state_sha256','optimizer_state_sha256','rng_state_sha256','module_training'):
+        assert migrated[key]==legacy[key]
+    assert _multipass_batch(first,[0,1])
+    interrupted=_capture_multipass(first,5,3,continuation)
+
+    resumed=_multipass_case(monkeypatch);random.random();np.random.random();torch.rand(5)
+    progress=state_owner.restore_native_direction_research_state(interrupted,resumed.model,resumed.optimizer,
+        recipe=continuation,feature_view_identity=_identity(),parent_order=resumed.order,device=DEVICE,train_passes=3)
+    assert progress['cursor']==5 and progress['optimizer_updates']==3
+    assert _multipass_batch(resumed,[2]);assert _multipass_batch(resumed,[0,1]);assert _multipass_batch(resumed,[2])
+    actual=_capture_multipass(resumed,9,6,continuation)
+    assert actual['contract_sha256']==expected['contract_sha256']
+
+
+def test_three_pass_counts_empty_batches_and_rejects_cross_pass_partial_cursor(monkeypatch):
+    case=_multipass_case(monkeypatch);continuation=recipes.native_direction_research_recipe(batch_size=2,max_updates=6)
+    assert _multipass_batch(case,[0,1]);assert _multipass_batch(case,[2])
+    legacy=_capture(case,3,2)
+    state_owner.migrate_one_pass_terminal_to_three_pass(legacy,case.model,case.optimizer,original_recipe=case.recipe,
+        continuation_recipe=continuation,feature_view_identity=_identity(),parent_order=case.order,device=DEVICE)
+    assert not _multipass_batch(case,[0,1],empty=True)
+    saved=_capture_multipass(case,5,2,continuation)
+    assert saved['cursor']==5 and saved['optimizer_updates']==2
+    with pytest.raises(RuntimeError,match='CURSOR'):_capture_multipass(case,4,2,continuation)
+    with pytest.raises(RuntimeError,match='CURSOR'):_capture_multipass(case,10,2,continuation)
+
+
+def test_three_pass_migration_rejects_changed_recipe_and_incomplete_legacy_before_mutation(monkeypatch):
+    case=_multipass_case(monkeypatch);assert _multipass_batch(case,[0,1])
+    incomplete=_capture(case,2,1);before=_live_hash(case)
+    good=recipes.native_direction_research_recipe(batch_size=2,max_updates=6)
+    with pytest.raises(RuntimeError,match='MIGRATION_NOT_FULL_ONE_PASS'):
+        state_owner.migrate_one_pass_terminal_to_three_pass(incomplete,case.model,case.optimizer,original_recipe=case.recipe,
+            continuation_recipe=good,feature_view_identity=_identity(),parent_order=case.order,device=DEVICE)
+    assert _live_hash(case)==before
+    wrong=recipes.native_direction_research_recipe(batch_size=2,max_updates=5)
+    with pytest.raises(RuntimeError,match='MIGRATION_RECIPE'):
+        state_owner.migrate_one_pass_terminal_to_three_pass(incomplete,case.model,case.optimizer,original_recipe=case.recipe,
+            continuation_recipe=wrong,feature_view_identity=_identity(),parent_order=case.order,device=DEVICE)
+    assert _live_hash(case)==before
