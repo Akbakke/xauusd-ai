@@ -38047,24 +38047,28 @@
     "test_data_used": false
   },
   "direction_10_cross_head_source": {
-    "status": "SOURCE_ONLY_SYNTHETIC_NOT_RUN",
+    "status": "CALENDAR_REPAIR_SYNTHETIC_PENDING",
     "source_admission": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_SOURCE_ADMISSION_20261027_001.json",
-      "sha256": "701408b7b41a21c9c700b3eeef47dcd5ec6dd7a48b0b637ff3b55dd93288253f"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_CALENDAR_SOURCE_ADMISSION_20261027_001.json",
+      "sha256": "31bccdf9bf27289dc55cd5c2b5eb8a8d9f4f9fc6414709e23631d2584d1acfcf"
     },
     "source": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/diagnose_entry_direction_10min_crosshorizon_v1.py",
-      "sha256": "3a267250b3d7a1bb65c1e1a5cd58a120f3a7053cd677e2128d0136c8ddb6292e"
+      "sha256": "f7b2145f74c04c8a33bc364d3e55c3836137f06a8209fce73cf5aeb10adfe7c9"
     },
     "tests": {
       "path": "/home/andre2/src/GX1_CURRENT/tests/test_diagnose_entry_direction_10min_crosshorizon_v1.py",
-      "sha256": "1e4d1a0535ac1cb15a1b6ea1dda7eb916b83902be2c443d0f9131699368dc3da"
+      "sha256": "0db382c760434b58cea3805071b0496a203d506b2e6d4adf635cbcc6069505a5"
     },
     "synthetic_execution_authorized": true,
     "saved_payload_reads_authorized": false,
     "model_forwards_authorized": false,
     "training_authorized": false,
-    "test_control_authorized": false
+    "test_control_authorized": false,
+    "prior_source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_SOURCE_ADMISSION_20261027_001.json",
+      "sha256": "701408b7b41a21c9c700b3eeef47dcd5ec6dd7a48b0b637ff3b55dd93288253f"
+    }
   },
   "direction_10_cross_head_synthetic": {
     "status": "COMPLETE_8_SYNTHETIC_CASES_CONSUMED",
@@ -38296,5 +38300,22 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/WHOLE_PREFIX_SIGN_VERIFY_001_OUTER_TERMINAL.json",
       "sha256": "a6ee75d10a976ed37d610837d6d801d3553e9862e2634135acae6f0a229a7a18"
     }
+  },
+  "direction_10_cross_head_calendar_synthetic": {
+    "status": "ADMITTED_SYNTHETIC_ONLY",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_10_CROSS_HEAD_CALENDAR_SYNTHETIC_PLAN_20261027_001.json",
+      "sha256": "215a23f4650845763755073950340f4ac15c2cfc8d3a95d7d265d1a43719bd56"
+    },
+    "execution_authorized": true,
+    "synthetic_execution_authorized": true,
+    "saved_payload_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "training_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_control_authorized": false
   }
 }

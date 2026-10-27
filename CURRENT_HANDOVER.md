@@ -16,8 +16,9 @@ skårer sammenlignes med ET252 på identiske modne 10min-fasiter. Den første
 syntetiske engangskontrollen bestod 8 tilfeller og er konsumert. En senere
 kildekontroll fant at ukeblokker på tvers av folder ble resamplet uavhengig,
 og at kalenderen ble valgt etter kvalifiseringsmasken. Kilden er rettet til
-felles kalendervekter før maskering. Den endrede kilden er ennå ikke syntetisk
-rekvalifisert; fersk engangsadgang kreves før test og senere payloadanalyse.
+felles kalendervekter før maskering. Fersk engangsadgang for 10 syntetiske
+tilfeller er åpnet; den endrede kilden er ennå ikke rekvalifisert. Senere
+payloadanalyse krever separat adgang.
 Ingen ekte 10min-skårer eller dokumentert retningsforbedring foreligger.
 
 
