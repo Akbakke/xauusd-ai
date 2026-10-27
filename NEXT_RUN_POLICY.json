@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_NATIVE_0U_METADATA_SYNTHETIC_ADMITTED",
+    "status": "COMPACT_NATIVE_0U_METADATA_SYNTHETIC002_ADMITTED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37142,8 +37142,8 @@
       "sha256": "ab4741e33c7a20362447ceb80027fee1feb4d95604297526d844ffe3949404b7"
     },
     "source_admission": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_008.json",
-      "sha256": "a6e7bc15b57c61de61b37dab1e6539c1d05d76c170633dcca8fc57886f6b8cc2"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
+      "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
     "current_unit": "independent_direction_0u_metadata_synthetic_20261027",
     "own_source_scope": [
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Run exact136selected metadata/synthetic cases with three explicit guard negatives. Genuine native timing256 and part3 remain closed pending qualification and separate fresh authority.",
+    "next_action": "One fresh002 corrected inline harness,137expected cases, exact owned-root read positive and three escape negatives. 001 consumed/failed despite137testpasses; repo source unchanged. Genuine native timing/part3 remain closed.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_002.json",
       "sha256": "17f6c2b68e6c5a2dbbb8183b912b9f93f52c774bd885356f498ee96898f785d5"
@@ -37828,8 +37828,8 @@
   "independent_direction_0u_metadata_synthetic_20261027": {
     "status": "ADMITTED",
     "plan": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_PLAN_001.json",
-      "sha256": "79358ff8bab8c55d184ea89f47c2bc6cfb35de479abe2b885b05f01985967f49"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_PLAN_002.json",
+      "sha256": "000fd0485d8d0b87f3c509155d3e2c9edce570decc40a287f5861e9d0a00b1ad"
     },
     "execution_authorized": true,
     "synthetic_tests_authorized": true,
@@ -37841,6 +37841,32 @@
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "test_data_used": false,
+    "expected_test_cases": 137,
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
+      "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SOURCE_REVIEW_002.json",
+      "sha256": "fbbdbb7c2348c80adb6023375776950990f36a73c94440a9b85d9535c52dd03c"
+    }
+  },
+  "independent_direction_0u_metadata_synthetic_20261027_attempt001": {
+    "status": "FAILED_CONSUMED_137_TESTS_PASS_HARNESS_COUNT_AND_ROOT_READ",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_PLAN_001.json",
+      "sha256": "79358ff8bab8c55d184ea89f47c2bc6cfb35de479abe2b885b05f01985967f49"
+    },
+    "execution_authorized": false,
+    "synthetic_tests_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "genuine_forwards_authorized": false,
+    "genuine_fits_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "relaunch_allowed": false,
+    "test_data_used": false,
     "expected_test_cases": 136,
     "source_admission": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_008.json",
@@ -37849,6 +37875,18 @@
     "source_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SOURCE_REVIEW_001.json",
       "sha256": "599afd109eec315a3f60f14d696a8431c891b6df8f2ddfcea6c51175480754f1"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_001/TERMINAL.json",
+      "sha256": "2d70c62e2f95734a826e6f9f75cb036b24207c17a3154fa8489150ca1aabe4fd"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_001_OUTER_TERMINAL.json",
+      "sha256": "c66562d2081cc41c5bd8a167bf815340c22e497a180e235acb18c2a5930b0929"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_001/RESULTS.xml",
+      "sha256": "9cf82d073a945e09e8a954ccebde24568051c7156169787456f500f4299f219a"
     }
   }
 }

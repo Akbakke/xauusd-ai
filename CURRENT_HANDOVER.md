@@ -149,6 +149,9 @@ Metadata-optin er implementert og separat kildevurdert i de fem avgrensede
 filene. Bare136valgte syntetiske/metadatacases er nå åpnet. Kopiert testguard
 er rettet for faktisk påvist sti-/mutasjonsavgrensning før bruk; tre eksplisitte
 negativer inngår. Ingen genuine nativeenhet eller ekstra trening er åpnet.
+Syntetikk001 ga137PASS, men enheten feilet: feil forventet136 og egen
+outputroot ble avvist ved kvitterings-fsync. Originaler bevart som consumed
+FAILED. Ny002 retter bare antall137 og eksakt owned-root-lesing; kode uendret.
 
 ## Bps-hodets separate retningsrangering
 
