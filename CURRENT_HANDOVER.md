@@ -377,6 +377,11 @@ rådatajoin og full resampling er ikke ennå gjennomført. Resultat:
 Engangsscope konsumert; ingen modell, trening, nye indikatorer, CONTROL,
 TEST, Exit eller broker.
 
+En separat engangskontroll er admittért for uavhengig OFI-tidskobling og
+fysisk replikering av alle 4096 parrede dag-/ukeresamples. Samme gjenbrukte
+fold; ingen modell, trening, nye indikatorer, CONTROL, TEST, Exit eller broker.
+Status: `independent_direction_last_m1_ofi_verify_20261027`.
+
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat
 plan med treningsportene stengt. Ingen nye indikatorer, treningspass, TEST/

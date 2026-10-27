@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "LAST_M1_OFI_SIGN_MEASURED_VERIFY_PENDING_TRAINING_CLOSED",
+    "status": "LAST_M1_OFI_INDEPENDENT_REPLAY_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "independent_direction_last_m1_ofi_verify_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -38948,5 +38948,21 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_SIGN_ROOT_REVIEW_001.json",
       "sha256": "077d78291de825b85203eb6b2fef85f51908346628a99c916fac1bfbc682d7e0"
     }
+  },
+  "independent_direction_last_m1_ofi_verify_20261027": {
+    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_VERIFY_PLAN_001.json",
+    "plan_sha256": "3734c823877f5fc85b31d0236d21cc1577536a06301a8f0fe1007346480fd050",
+    "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_VERIFY_WORKER_001.py",
+    "worker_sha256": "6364a4b34a0a1a363f5fece8758b32bfab380ddf76ce3e1c579ae3d4067cb5b1",
+    "scope": "Independent timestamp joins and all physically duplicated day/week resamples for the same fixed last-M1 OFI-sign cohort and reused development data.",
+    "max_invocations": 1,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "test_control_authorized": false,
+    "exit_authorized": false,
+    "new_indicators_authorized": false,
+    "broker_authorized": false,
+    "relaunch_allowed": false
   }
 }
