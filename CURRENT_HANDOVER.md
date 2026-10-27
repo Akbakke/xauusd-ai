@@ -58,6 +58,10 @@ fast relativvekt1. Observerte nuller deltar i bps-loss; de lærer ikke FLAT.
 Default sign-only-rute beholdes.144syntetiske bps- og68routekontroller bestod.
 Størrelse gir ulik supervisjon til+0,1og+50bps; det beviser ikke bedre edge.
 Middelverdi gir ikke usikkerhet, første gunstige treff eller ugunstig forløp.
+Prisbanens eksisterende pre-MFE-MAE gjelder før første forekomst av horisontens
+største gunstige ekstrem, ikke nødvendigvis før første gunstige bevegelse.
+Det er en annen kontrakt enn det rene retningsforsøket. Se
+docs/DIRECTION_INPUT_AND_FIRST_FAVORABLE_REVIEW_20261027.json.
 RMS garanterer ikke balanserte gradienter; store feil kan dominere.
 
 Prisfasiteier støtter minutter1–60, inkludert10, syntetisk kvalifisert med36tester.
@@ -98,7 +102,9 @@ ikke at GELU bør endres og utelukker ikke informasjonstap. Se
 docs/DIRECTION_GELU_CONTRIBUTION_RESULT_20261027.json.
 
 M5 Entry: prisforløp minutter–timer, litenMAE før førsteMFE, begge retninger/FLAT.
-Åtte spesialistfamilier og D1/makro, kausale avsluttede M5/M15/H1/H4/D1 beholdes.
+Fullt prosjekt bevarer åtte spesialistfamilier og D1/makro. Den valgte kompakte
+276/277/279/280-profilen aktiverer sju familier: chart_geometry er parkert,
+mens 61 D1/makro-felt beholdes. Dette er scope, ikke en avvisning av familien.
 TRAINmai2024–desember2025; CONTROLjan–mars2026lukket.
 Juni2026gjenbrukt utviklings-VAL; TESTfrajuli2026forseglet for tilpasning/utvalg.
 Ingen Exit,broker,live/paper,ordre,spending ellerpromotion.

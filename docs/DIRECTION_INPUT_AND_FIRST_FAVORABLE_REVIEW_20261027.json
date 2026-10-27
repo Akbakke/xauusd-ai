@@ -1,0 +1,263 @@
+{
+  "schema_version": "gx1_direction_input_and_first_favorable_review_v1",
+  "status": "SOURCE_AND_EXISTING_AGGREGATES_ONLY",
+  "source_reviews": [
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_COMPACT_ROUTING_GEOMETRY_REVIEW_20261027_001.json",
+      "sha256": "1c635ebf2e66bdf169514b030970d038980b27ec9016ddea0b5bebe3f4b54248"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_FAVORABLE_TARGET_SOURCE_REVIEW_20261027_001.json",
+      "sha256": "e2397d8c113b483ca71ec74f216f592477e1531c37fb46a42b0b54fc114d9335"
+    }
+  ],
+  "compact_scope": {
+    "full_project_specialists": [
+      "structure_swing_encoder",
+      "smc_liquidity_encoder",
+      "trend_ema_encoder",
+      "vol_compression_encoder",
+      "momentum_flow_encoder",
+      "session_regime_encoder",
+      "chart_geometry_encoder",
+      "price_action_candle_encoder"
+    ],
+    "actually_observed_compact_local_and_mtf_specialists": [
+      "momentum_flow_encoder",
+      "price_action_candle_encoder",
+      "session_regime_encoder",
+      "smc_liquidity_encoder",
+      "structure_swing_encoder",
+      "trend_ema_encoder",
+      "vol_compression_encoder"
+    ],
+    "excluded_family": "chart_geometry_encoder",
+    "declared_full_local_chart_input_coordinates": 32,
+    "full_constructor_metadata": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/CONSTRUCTOR_METADATA.json",
+      "sha256": "8d0fc19b646b142dced37ad86dd0e43a71bb8efe299a9ba4fd2de08e324db2bf"
+    },
+    "interpretation": "The four direction baselines share the compact profile. A diagnostic of baseline276 confirms seven local and seven MTF family encoders; the eighth is parked, not disproved. Other families can still supply related trend, level and structure information.",
+    "macro_context": "61 D1/macro context fields are retained by the compact source contract and routed through session/context, not a separate ninth neural head."
+  },
+  "m5_gc_smc_projection": {
+    "scope": "M5 GC SMC per timestep; a gated normalized vector of 316 value/mask coordinates is linearly mapped to 128 dimensions and added to a base-family projection before the encoder.",
+    "coordinates": 316,
+    "output_width": 128,
+    "unconstrained_linear_kernel_dimension_at_least": 188,
+    "caveats": [
+      "Coordinates include masks and dependent features; unconstrained linear non-injectivity does not establish information loss on the physically valid data manifold.",
+      "Gates depend on the base representation, and other model routes may contain overlapping information.",
+      "No weights or singular values were read; neither actual rank nor predictive signal in discarded directions is known."
+    ]
+  },
+  "fixed_train_panels": {
+    "early": {
+      "source_panels": [
+        {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/own0U__training_order_early.json",
+          "sha256": "b188abb633767b9961c73464240949bd81e7cd0eddd89df179bb679d4794d1ad"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/terminal_u2976__training_order_early.json",
+          "sha256": "833dae435fefe875461a55869803043d1d9367cfbc77686e09056b4171b047c4"
+        }
+      ],
+      "parent_rows_sha256": "351f9257dc41803103aea7859c8526fcda4f9705d83585c300d82794de9c5e75",
+      "decision_ns_sha256": "038fd2d40b745005a9d89966e05cebb5d33ebb5835caa117048e1dbe7d242109",
+      "metrics": {
+        "gc_mtf_family_proj/m5__smc_liquidity_encoder": {
+          "initial_trace": 22.299952027462275,
+          "terminal_trace": 25.423737926314633,
+          "terminal_over_initial": 1.1400803864961429,
+          "shape_per_call": [
+            16,
+            16,
+            128
+          ]
+        },
+        "gc_mtf_family_proj/m5__momentum_flow_encoder": {
+          "initial_trace": 17.857916929232733,
+          "terminal_trace": 18.89348550392598,
+          "terminal_over_initial": 1.057989326459351,
+          "shape_per_call": [
+            16,
+            16,
+            128
+          ]
+        },
+        "entry_q_joint_in": {
+          "initial_trace": 54.00555682278442,
+          "terminal_trace": 3.5285546990198946,
+          "terminal_over_initial": 0.06533688210268081,
+          "shape_per_call": [
+            16,
+            128
+          ]
+        },
+        "direction_head/input": {
+          "initial_trace": 22.792047216138137,
+          "terminal_trace": 0.37392223373333583,
+          "terminal_over_initial": 0.0164058204244407,
+          "shape_per_call": [
+            16,
+            128
+          ]
+        }
+      }
+    },
+    "middle": {
+      "source_panels": [
+        {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/own0U__training_order_middle.json",
+          "sha256": "1e7965e08b46f7f7e07d3c75f50dcd871976f5df1197c2a656576de7845ec34b"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/terminal_u2976__training_order_middle.json",
+          "sha256": "fedde11a925ec8410d7eaafb8adaa875d58440b2700c174b79682707375dd518"
+        }
+      ],
+      "parent_rows_sha256": "b02078df9f9d2b2e8a85010b242870b3c8461e0c787477e2394b0a827850a151",
+      "decision_ns_sha256": "850c7f124b5ec3f2ae67853b62c2edfa9b0a84b6aab70a217164479cca83fd37",
+      "metrics": {
+        "gc_mtf_family_proj/m5__smc_liquidity_encoder": {
+          "initial_trace": 22.28441318222001,
+          "terminal_trace": 25.609408091919335,
+          "terminal_over_initial": 1.1492072006792724,
+          "shape_per_call": [
+            16,
+            16,
+            128
+          ]
+        },
+        "gc_mtf_family_proj/m5__momentum_flow_encoder": {
+          "initial_trace": 17.943944692306395,
+          "terminal_trace": 18.922585963917395,
+          "terminal_over_initial": 1.054538803389792,
+          "shape_per_call": [
+            16,
+            16,
+            128
+          ]
+        },
+        "entry_q_joint_in": {
+          "initial_trace": 51.91867510050187,
+          "terminal_trace": 3.3405898328199,
+          "terminal_over_initial": 0.06434274037912821,
+          "shape_per_call": [
+            16,
+            128
+          ]
+        },
+        "direction_head/input": {
+          "initial_trace": 21.714567059524,
+          "terminal_trace": 0.3300931542414744,
+          "terminal_over_initial": 0.015201461458412805,
+          "shape_per_call": [
+            16,
+            128
+          ]
+        }
+      }
+    },
+    "late": {
+      "source_panels": [
+        {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/own0U__training_order_late.json",
+          "sha256": "15e9770fb3f9908abf931eb09f5b31240121c681754331091cf19c3ecad58d4a"
+        },
+        {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/C_CHECKPOINT_DIAGNOSTIC_TRAIN276_20261026_003/terminal_u2976__training_order_late.json",
+          "sha256": "cc3989778c5b0e4c12f442a9b5eaa8b83fb7061191b9bbc4c1624d9bf32398d8"
+        }
+      ],
+      "parent_rows_sha256": "2d6386969835a1d43464dfcedb16598233d00e9638160a68c883c577c33fc221",
+      "decision_ns_sha256": "9e696cdd2f8bd6e76f18bf8f5f5ff9f300eb1a969193e6d23efc9738717b382f",
+      "metrics": {
+        "gc_mtf_family_proj/m5__smc_liquidity_encoder": {
+          "initial_trace": 23.514702316099566,
+          "terminal_trace": 26.90418131460649,
+          "terminal_over_initial": 1.1441429686390836,
+          "shape_per_call": [
+            16,
+            16,
+            128
+          ]
+        },
+        "gc_mtf_family_proj/m5__momentum_flow_encoder": {
+          "initial_trace": 17.356299509629714,
+          "terminal_trace": 18.282150442310392,
+          "terminal_over_initial": 1.0533437978623839,
+          "shape_per_call": [
+            16,
+            16,
+            128
+          ]
+        },
+        "entry_q_joint_in": {
+          "initial_trace": 54.38538104207829,
+          "terminal_trace": 3.631684878106613,
+          "terminal_over_initial": 0.06677685820196344,
+          "shape_per_call": [
+            16,
+            128
+          ]
+        },
+        "direction_head/input": {
+          "initial_trace": 22.61357492951874,
+          "terminal_trace": 0.4182567088635808,
+          "terminal_over_initial": 0.01849582430762008,
+          "shape_per_call": [
+            16,
+            128
+          ]
+        }
+      }
+    }
+  },
+  "panel_note": "GC projection hook is summarized by a diagnostic mean-plus-last proxy before family fusion/encoding; comparing within the same hook across checkpoints does not prove where predictive information is lost. Joint-input and head-input traces use their own coordinate systems and are not directly comparable to GC traces.",
+  "first_favorable_vs_global_max": {
+    "id": "first_global_max_not_first_favorable",
+    "source": "gx1/contracts/entry_causal_m1_outcomes_v1.py:465,502,575,903",
+    "fact": "Pre-MFE MAE is adverse excursion before the first occurrence of the most favorable executable price in the entire declared horizon. It is not, in general, adverse excursion before the earliest favorable move.",
+    "example": "Ideal zero-cost LONG markouts +5, -20, +10 bps: adverse before the first positive move is 0 bps, but adverse before the first occurrence of the horizon maximum +10 is 20 bps.",
+    "limits": "M1 high/low ordering within a minute is unknown; existing lower/upper bounds correctly preserve that ambiguity. Costs and bid/ask alter executable marks."
+  },
+  "actual_direction_objective": {
+    "id": "direction_wrapper_uses_only_endpoint_targets",
+    "source": "gx1/contracts/entry_native_direction_research_v1.py:28,33-52,206-224",
+    "fact": "The investigated direction head learns observed nonzero 1/5/15 midpoint endpoint sign; its optional separate bps head learns endpoint mean. The native dynamic path heads are inactive outputs for this wrapper.",
+    "limits": "The first-favorable versus first-global-maximum distinction describes another target contract, so it is not a demonstrated cause of the measured endpoint-sign AUC."
+  },
+  "dynamic_candidate": {
+    "id": "dynamic_quality_does_not_use_mfe_prediction",
+    "source": "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py:4070-4090,4117-4137",
+    "fact": "The dynamic candidate learns MFE and pre-MFE MAE separately, but its candidate quality for each horizon uses predicted endpoint net markout minus predicted pre-MFE MAE; it does not use predicted MFE directly.",
+    "example": "At a particular horizon, an idealized +50 bps excursion followed by endpoint 0 with zero preceding adverse excursion gives candidate quality 0 at that horizon despite MFE +50. A shorter, separately predicted horizon at the earlier move can have a different candidate value.",
+    "limits": "The dynamic candidate has no admitted action authority. MFE alone is a hindsight maximum, not a known executable exit or proof of expected trading profit."
+  },
+  "potential_first_favorable_contract": {
+    "purpose": "A separately scoped future label, not a replacement launched here.",
+    "gross_mid_definition": "For side s, R_s(t) is signed midpoint change in bps from the M5 decision; tau_s(h)=first t in (0,h] with R_s(t)>0, observed only with sufficient path continuity.",
+    "executable_definition": "Separately define side-specific bid/ask markout and subtract only the hash-bound cost assumptions available for the experiment; a favorable crossing is above zero under that declared cost convention.",
+    "adverse_before_first": "Report adverse excursion before tau_s with lower/upper M1 bounds where the first favorable bar can contain both favorable and adverse extremes; do not invent within-minute ordering.",
+    "magnitude": "Keep separately supervised signed bps and/or calibrated return/first-hit magnitude distribution, so +0.1 bps and +50 bps do not receive only the same binary information.",
+    "censoring": "A known complete window with no crossing is a censored/no-event observation; missing intermediate bars or ambiguous ordering have explicit separate masks. A computation horizon is not a trade holding limit or stop.",
+    "decision": "LONG/SHORT/FLAT require later calibrated comparable action values, prior-defined cost and a new causal decision for any reversal; no execution/Exit policy is introduced by the label."
+  },
+  "necessary_next_measurement": "On the exact same fixed pre-TEST TRAIN-development parents and M1 target-source with independently qualified access, report first-favorable timing and pre-first-favorable adverse bounds against current first-global-maximum targets at predeclared horizons; quantify missing/ambiguous cases. This review authorizes no data read, fit or model forward.",
+  "training_comparison_if_justified": "Before a new fit, bind a fresh one-factor target comparison, identical chronological splits, seeds and inputs, 5-minute primary and other declared horizons secondary; report calibration, proper scores, magnitude and path, paired time-block uncertainty and stop if the comparator or masks differ. A short negative test cannot discard a specialist or establish no signal.",
+  "limits": [
+    "No causal feature value or predictive information loss established by architecture or marginal activation variance.",
+    "The compact profile is a chosen experimental scope; a prior weak short test cannot reject the eighth family.",
+    "The first-global-maximum distinction concerns the separate path objective and does not explain the current endpoint-direction AUC by itself.",
+    "Minute highs and lows do not reveal within-minute order; separately aggregated bid/ask extrema need not be simultaneous.",
+    "The target-path example is idealized, not a realized trade or proof of profit.",
+    "No new raw data, checkpoint, payload, model forward, optimizer step, fit or TEST was used."
+  ],
+  "test_data_used": false,
+  "new_model_forwards": 0,
+  "new_optimizer_steps": 0,
+  "new_fits": 0,
+  "economic_edge_qualified": false
+}
