@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Execute exactly DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_001 once under capped CPU audit; verify original terminal and consume authority. No market inputs, model calls or fits.",
+  "next_action": "Execute exactly DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_002 once, with Numba cache inside its output. Same tests and metadata pairs, no additional authority. Then verify terminal and consume authority.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exactly DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_001 once under capped CPU audit; verify original terminal and consume authority. No market inputs, model calls or fits.",
+    "next_action": "Execute exactly DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_002 once, with Numba cache inside its output. Same tests and metadata pairs, no additional authority. Then verify terminal and consume authority.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20256,7 +20256,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-27T01:17:43.683194+00:00",
+  "updated_utc": "2026-10-27T01:22:06.772676+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -36175,6 +36175,44 @@
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_002.json",
+      "sha256": "c4a4401f9124da2f81b3fa82975010b707464f8b2b5bed02bab8bd86449cfae1"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_SOURCE_REVIEW_001.json",
+      "sha256": "521accc0383724bd5cbdba1305aded3072033cf0338913814f8ceb5ccbe2d37f"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/check_direction_gc_layout_reuse_001.py",
+      "sha256": "a5b4464de93847eb60322f001b94dca72b514c3a7845f659ec1554f69fa9af4e"
+    },
+    "wall_seconds": 60,
+    "previous_failure": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_FAILURE_REVIEW_001.json",
+      "sha256": "77da35f16ebc8bd63c1770996a90d84d81e45d56ae286ca6055ac028557e2617"
+    },
+    "launcher_environment": {
+      "NUMBA_CACHE_DIR": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_002/numba_cache"
+    }
+  },
+  "direction_gc_layout_reuse_attempt001": {
+    "status": "FAILED_CONSUMED",
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_SOURCE_ADMISSION_001.json",
+      "sha256": "5997f7d49b7bfc6b38b80b931eb88d0822efbac0bcc15a2c3cf1bf715b453e24"
+    },
+    "source_edits_authorized": false,
+    "execution_authorized": false,
+    "synthetic_tests_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "native_forwards_authorized": false,
+    "genuine_fits_authorized": false,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_PLAN_001.json",
       "sha256": "ca997fc339801cbcd33fb41e61aec2451f9516e6ae67310c5bc8dd9544c6d5c5"
     },
@@ -36186,6 +36224,11 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/check_direction_gc_layout_reuse_001.py",
       "sha256": "a5b4464de93847eb60322f001b94dca72b514c3a7845f659ec1554f69fa9af4e"
     },
-    "wall_seconds": 60
+    "wall_seconds": 60,
+    "consumed_invocations": 1,
+    "failure_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_FAILURE_REVIEW_001.json",
+      "sha256": "77da35f16ebc8bd63c1770996a90d84d81e45d56ae286ca6055ac028557e2617"
+    }
   }
 }
