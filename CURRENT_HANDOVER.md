@@ -277,17 +277,16 @@ for beslutningen. Modellens AUC mot path-side er .508985; korrigerte dag-/
 ukeintervaller inkluderer .5. Av 15730 gyldige path-rader er 592 hindsight
 FLAT etter eksisterende 0-nytte. Dette er én gjenbrukt fold, ikke handler,
 realisert økonomi eller en 95min holding-/Exitregel. 392 ikke-koblede rader
-og øvrig modnings-/måldekning er beholdt i kvitteringen. Aritmetikk og
-kildeforankring er kontrollert uten uavhengig rådatareplay. Bevis:
-`SIGN_VS_EXISTING_PATH_ROOT_REVIEW_001.json` SHA-256
-ba320eb9362c0be27c0cff398b0ab994b0d166e1bb96539640e3569e78e22fd0.
+og øvrig modnings-/måldekning er beholdt i kvitteringen. Uavhengig
+tidsjoin og punkttall er reprodusert; seks blokkresamples er kontrollert
+med fysisk dupliserte rader. Hele 2048-replikaters intervall er ikke
+uavhengig kjørt på nytt. Bevis `SIGN_VS_PATH_VERIFIED_ROOT_REVIEW_001.json`
+SHA-256 2603916cfdbcffde1d8ba17ff44ef1e8565fa28edff2640c46a2bf9d8db5a980.
 Engangskjøringen er konsumert; CONTROL, TEST og trening er stengt.
 
-En separat, hashbundet engangskontroll er admittért for uavhengig join og
-punkttall i 5min-/95min-analysen samt seks fysisk replikerte blokkresamples.
-Dette leser de samme tillatte 2025-Q1-radene, uten modell, trening, Exit,
-CONTROL, TEST eller nye indikatorer. Plan/status står i
-`independent_direction_path_alignment_verify_20261027`.
+Den separate 5min-/95min-kontrollen er fullført og konsumert uten modell,
+trening, Exit, CONTROL, TEST eller nye indikatorer. Samme gjenbrukte fold
+beviser ikke generalisering eller økonomisk edge.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat

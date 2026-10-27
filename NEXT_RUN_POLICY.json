@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "SAVED_PATH_ALIGNMENT_INDEPENDENT_REPLAY_ADMITTED_TRAINING_CLOSED",
+    "status": "INDEPENDENT_PATH_ALIGNMENT_REPLAY_COMPLETE_EXPOSURE_DEFERRED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_path_alignment_verify_20261027",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37204,7 +37204,7 @@
     },
     "first_analysis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
-      "sha256": "2b780a884238c8609e7edd95119d644d430da1e4b80de94a1d833cb53b8b3fc8"
+      "sha256": "64b9a6a1958518828f86ab9c523468d43724ba700d9f28036c99b9be9aff1d72"
     },
     "native_0u_metadata_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
@@ -38592,7 +38592,7 @@
     }
   },
   "independent_direction_path_alignment_verify_20261027": {
-    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_PATH_VERIFY_PLAN_001.json",
     "plan_sha256": "a491586e8374f73704cb6b185779b7e10f487698d29d1b6cce33868126fdd412",
     "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_PATH_VERIFY_WORKER_001.py",
@@ -38606,6 +38606,16 @@
     "exit_authorized": false,
     "new_indicators_authorized": false,
     "broker_authorized": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_PATH_VERIFY_RESULT_001.json",
+      "sha256": "d6fb1f2e3d8d8bb816ea6e3bf2ed431e1506f71122424b773d6964b14ebc0fb8"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SIGN_VS_PATH_VERIFIED_ROOT_REVIEW_001.json",
+      "sha256": "2603916cfdbcffde1d8ba17ff44ef1e8565fa28edff2640c46a2bf9d8db5a980"
+    }
   }
 }
