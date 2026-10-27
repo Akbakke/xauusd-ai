@@ -156,6 +156,9 @@ Målet er fortsatt aktivt; fullprefix-konvergens og treningsutvidelse er uavklar
 Eget9-cellers uttrekk er kildeimplementert og separat kildevurdert. Bare ny
 66-case syntetikk er åpnet; lagrede genuine outputs krever ny egen admisjon.
 Intervallene gjelder relative AUC-forskjeller, ikke absolutt AUC-over0.5.
+Den nye66-case syntetikken besto alle faser med0native/fit/Torch-kall.
+Én egen600sek/4G lagret-outputenhet er nå åpnet; alt originalt C-resultat
+må gjenskapes eksakt før det nye utforskende resultatområdet publiseres.
 
 ## Bps-hodets separate retningsrangering
 

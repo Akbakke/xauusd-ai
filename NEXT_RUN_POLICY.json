@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "COMPACT_ALL_HEADS_SYNTHETIC_ADMITTED",
+    "status": "COMPACT_ALL_HEADS_SAVED_COMPARISON_ADMITTED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_007.json",
       "sha256": "0320bd32e9deeb0ed234fd70b48d804617e31e7be52edee7da3db9a843564a5c"
     },
-    "current_unit": "independent_direction_all_heads_synthetic_20261027",
+    "current_unit": "independent_direction_all_heads_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Run fresh bounded66case synthetic qualification; then a new exact saved-output-only admission if PASS. No model, fit, input expansion or head selection.",
+    "next_action": "Run only exact-bound saved-output exploratory9cell/12interval measurement, preserving entire original negative C result. No native, fit, feature expansion or selection.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_001.json",
       "sha256": "79911925aec654d115665f5ea964e98331bd956f31a08b941caa60ce770308b1"
@@ -37716,15 +37716,15 @@
     }
   },
   "independent_direction_all_heads_synthetic_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_SYNTHETIC_ONLY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_SYNTHETIC_PLAN_001.json",
       "sha256": "62ccdc4dcb753776d94b146b4bc3cd83c5baddd01e5eee31f82a2c3b5481ac89"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "synthetic_only": true,
     "saved_payload_reads_authorized": false,
@@ -37735,6 +37735,50 @@
     "source_admission": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_007.json",
       "sha256": "0320bd32e9deeb0ed234fd70b48d804617e31e7be52edee7da3db9a843564a5c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_SYNTHETIC_001/OUTPUT/RESULT.json",
+      "sha256": "c57316d32e9139f48a5b473d2eeda792a54356589956840814daa3b927187acd"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_SYNTHETIC_001/OUTPUT/TERMINAL.json",
+      "sha256": "5d433efee9dbf86e6cea4405d7f2628193dc7ccf0241ddbc7c3cc4db7364d5a0"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_SYNTHETIC_001_OUTER_TERMINAL.json",
+      "sha256": "83877a9d82eaf43d7df93959a053c61dd30672c37bf6db9e65b202862e527d42"
     }
+  },
+  "independent_direction_all_heads_20261027": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_RANK_PLAN_001.json",
+      "sha256": "1b3a116030022d586fb29a4b9bb3ca51ac7570cd3303e4920870de27ce50563d"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "read_only_saved_TRAIN_development_predictions": true,
+    "saved_payload_reads_authorized": true,
+    "native_model_calls_authorized": false,
+    "weight_reads_authorized": false,
+    "fits_authorized": false,
+    "new_input_fields": 0,
+    "test_data_used": false,
+    "required_synthetic": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ALL_HEADS_SYNTHETIC_001/OUTPUT/RESULT.json",
+      "sha256": "c57316d32e9139f48a5b473d2eeda792a54356589956840814daa3b927187acd"
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_007.json",
+      "sha256": "0320bd32e9deeb0ed234fd70b48d804617e31e7be52edee7da3db9a843564a5c"
+    },
+    "max_later_parents": 17288,
+    "bootstrap_replicates": 10000,
+    "exploratory_interval_count": 12,
+    "head_selection_authorized": false,
+    "advance_authorized": false
   }
 }
