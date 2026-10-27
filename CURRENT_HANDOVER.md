@@ -503,3 +503,8 @@ ble bevart. 16 forwards, null optimizersteg, vakt PASS, oppstartsoppgave
 deaktivert. Bevis DIRECTION_TERMINAL_CONTINUATION_ZERO_UPDATE_PROOF_20261027_002.json
 SHA-256 4afa60e4f9cac17b6b69c672491f504538b7daf19a419aeb030da8e1eba018fe.
 Dette er teknisk paritet, ikke retningsedge. Fersk 1-mot-3-oppskrift kreves.
+
+Fersk 1-mot-3-oppskrift 002 er bundet til parity-beviset på reparert kilde.
+Én CPU-begrenset metadataforhåndskontroll er admittert for de to eksakt
+bundne checkpoint-hashene; ingen modell, markedsdata eller trening er åpnet.
+Den tidligere beståtte syntetiske filvakten gjenbrukes etter bytekontroll.
