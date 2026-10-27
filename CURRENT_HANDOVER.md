@@ -9,6 +9,21 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+Terminal-prefix part1 forsøk001 er FAILED/claimed/consumed. Root utelot
+obligatorisk EXECUTION_BINDING.json i kampanjeoppsettet. Original stderr
+viser stopp i kontekstbinding før workerforberedelse; signert vakt viser
+child_status=1 og Windows LastResult1. Ingen kanonisk terminalkvittering,
+RESULT eller modelltellere finnes; ingen slik kvittering er konstruert.
+Alle 57 kildeeiere og fryst policy var uendret. Prosesser/cgroup er borte,
+låsen ledig og eksakt Windowsoppgave Disabled/Restart0. ACTIVE beholdes.
+
+ACTUAL_ROOT_REVIEW og VERIFIED_TERMINAL i
+F_FROZEN_EXTRACTION_terminal_prefix_part1_CAMPAIGN_20261027_001 binder feilen.
+Dette er oppsettfeil, ingen ny forklaring på svak retningslæring.
+Fersk002 er admittért for samme 992 forwards/0updates og alle samme vakter.
+Eneste rettelse er å opprette og fysisk kontrollere plan/HEAD/policy-bindingen
+før arming og ny fysisk boot.001 relanseres aldri. Ingen kildeendring eller fit.
+
 Fersk terminal-only-protokoll er forhåndsbundet i
 F_FROZEN_TERMINAL_READOUT_SUBQUESTION_001.json: komplett terminal-prefix mot
 allerede bevart terminal_later_full. Primær sammenligning er senere AUC5

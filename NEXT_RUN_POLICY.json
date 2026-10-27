@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T06:16:45.825525+00:00",
-  "status": "DIRECTION_TERMINAL_PREFIX_PART1_EXTRACTION_ADMITTED_PENDING_BOOT",
+  "observed_utc": "2026-10-27T06:29:19.244663+00:00",
+  "status": "DIRECTION_TERMINAL_PREFIX_PART1_001_FAILED_002_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical units consumed. Current work is direction1to60 cause analysis and source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Bind one canonical campaign to cleanHEAD and verified fresh physical boot; run terminal_prefix_part1once under original guards. Then verify original terminal receipts and close consumed authority. No readoutfit or new target/model training admitted.",
+  "next_action": "Create fresh002canonical campaign including the exact execution binding; verify binding fields physically before arming and fresh physical boot. Same992forwards/0updates; no source change or fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -240,7 +240,7 @@
   },
   "current_work": {
     "operator_request": "27.10 presisering: pris ved1og5minutter relativt til entry er relevant. Behold opp/ned-målet og definer nødvendige tillegg presist; ikke anta at målet er hovedårsaken.",
-    "current_activity": "Terminal-only question predeclared; qualified unchanged extractor admitted for first terminal-prefix partition only. Source metadata verified; campaign not yet materialized or started.",
+    "current_activity": "Terminal-prefixpart1attempt001failed before worker preparation because root omitted execution binding. Original guardexit1/hostLastResult1 verified; all artifacts preserved, taskDisabled, processes/cgroupgone. Fresh002admission created for the same scope.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -272,10 +272,10 @@
     "latest_terminal_role": "Third fixed extraction unit:15872rows,992B16forwards,0reverse/optimizer/fit. No historical saved-output parity target for this interval.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_20261027_001_RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
-      "sha256": "eed9b7d444b40d13b956609409abf61831b801b98573f4cb94df93ce94478677"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_CAMPAIGN_20261027_001/VERIFIED_TERMINAL.json",
+      "sha256": "70d3ee764b7fc9e77d7b0fea48ee83db9e37dc51c1ff155bd56b6d79853d7005"
     },
-    "terminal_exit_code": 0,
+    "terminal_exit_code": 1,
     "source_unchanged_at_terminal": true,
     "full_benchmark_completed": false,
     "sampler_selection_measured": true,
@@ -293,7 +293,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Complete terminal-prefix representation remains unavailable; no readoutfit or causal conclusion yet.",
+    "current_blocker": "No terminal-prefix representation extracted.001has no canonical receipt/result/model counters; setup cause proven by original stderr.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Bind one canonical campaign to cleanHEAD and verified fresh physical boot; run terminal_prefix_part1once under original guards. Then verify original terminal receipts and close consumed authority. No readoutfit or new target/model training admitted.",
+    "next_action": "Create fresh002canonical campaign including the exact execution binding; verify binding fields physically before arming and fresh physical boot. Same992forwards/0updates; no source change or fit.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17752,8 +17752,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_own0U_prefix_part2_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
-      "sha256": "9d6ac091e992c2d6197350aca33b64f2e6239e40103c7146baf4eb481e0a5ebb"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "aa8fc8b22a23b1546ef5c0d371b20c26dcaeeafa9b7191e145d97ff75aee0b7a"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -35371,22 +35371,22 @@
     "checkpoint_reads_authorized": true,
     "genuine_constructor_authorized": true,
     "genuine_forwards_authorized": true,
-    "status": "TERMINAL_PREFIX_PART1_001_ADMITTED_PENDING_CANONICAL_CAMPAIGN",
+    "status": "TERMINAL_PREFIX_PART1_002_ADMITTED_PENDING_VERIFIED_BINDING",
     "unit": "terminal_prefix_part1",
     "recipe": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_RECIPE_001.json",
-      "sha256": "9087c207fb4ed0b9af4b8456f71ec4b1516c2204b8a6a134af35fad306f15b47"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_RECIPE_002.json",
+      "sha256": "d9153811ded8fa109245a460fe38aebafa2350097ec4094de47b11bb5780a063"
     },
     "window": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_WINDOW_001.json",
-      "sha256": "70b5409f711385ec529fdd4c8dab1cf4ff789889f55e3f9eee01d0fa19d16b0b"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_WINDOW_002.json",
+      "sha256": "d054c54a74e1056dc54fd921de58bbc2dcd991817d8ff3b621188409c4438b41"
     },
     "admission": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_RUNTIME_ADMISSION_001.json",
-      "sha256": "c2697232798077aa0918ea69ba4a4bb84cbf1734a7f9404cb8cedb2e9aa87467"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_RUNTIME_ADMISSION_002.json",
+      "sha256": "75dcbb8556f806b5ec34d2478a2e81a1a25a4dfb82e1d7b2e47b4381b7decdd1"
     },
-    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_20261027_001",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_20261027_001_RUNTIME",
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_20261027_002",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_20261027_002_RUNTIME",
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
@@ -35494,6 +35494,16 @@
         },
         "claimed_invocations": 1,
         "completed_invocations": 1,
+        "relaunch_allowed": false
+      },
+      {
+        "unit": "terminal_prefix_part1",
+        "attempt": 1,
+        "status": "FAILED_CONSUMED_MISSING_EXECUTION_BINDING",
+        "review": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part1_CAMPAIGN_20261027_001/ACTUAL_ROOT_REVIEW.json",
+          "sha256": "aa8fc8b22a23b1546ef5c0d371b20c26dcaeeafa9b7191e145d97ff75aee0b7a"
+        },
         "relaunch_allowed": false
       }
     ],
