@@ -389,11 +389,15 @@ ikke egne intervaller og folden er gjenbrukt; ingen horisontseleksjon.
 `MULTIHORIZON_SIGN_DIAGNOSIS_002.json` SHA-256
 fe243fe3fe95a238026f40c30ee572e2aefeea54ca37de66b94d45c0742443a0.
 
-En separat engangsmåling av kontinuerlig M5-OFI mot en fast femdobbel vekt
-på siste kvalifiserte M1 er admittért. Samme paritetskontrollerte utvalg;
-utforskende oppfølging etter fortegnsresultatet, uten modell, trening, nye
-indikatorer, CONTROL, TEST, Exit eller broker. Status:
-`independent_direction_last_m1_ofi_weight_20261027`.
+Kontinuerlig M5-OFI mot fast femdobbel vekt på siste M1 er målt på samme
+16977 rader: AUC .495971 versus .489661, differanse -.006309. Korrigerte
+parrede dag-/ukeintervaller inkluderer null. Vekten ble valgt etter tidligere
+fortegnsresultat; utforskende gjenbrukt fold, ingen modellintervensjon eller
+økonomi. Resultat: `LAST_M1_OFI_WEIGHT_RESULT_001.json` SHA-256
+85364044ea0d70d2c415ef7a5e8b3958741c2ec8cf16e9793e2c3c8f629752b9.
+En separat uavhengig kontroll av tidskobling og alle 4096 fysisk dupliserte
+blokkresamples er admittért; ingen modell, trening, nye indikatorer, CONTROL,
+TEST, Exit eller broker. Status: `independent_direction_last_m1_ofi_weight_verify_20261027`.
 
 Startmodellens senere prediksjoner finnes ikke. Undersøk først om en nøyaktig
 matchet eksponeringssammenligning allerede finnes; ellers forbered separat

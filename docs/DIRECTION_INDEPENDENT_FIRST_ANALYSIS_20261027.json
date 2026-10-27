@@ -166,6 +166,14 @@
     "multi_horizon_sign_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/MULTIHORIZON_SIGN_DIAGNOSIS_002.json",
       "sha256": "fe243fe3fe95a238026f40c30ee572e2aefeea54ca37de66b94d45c0742443a0"
+    },
+    "last_m1_ofi_weight_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_RESULT_001.json",
+      "sha256": "85364044ea0d70d2c415ef7a5e8b3958741c2ec8cf16e9793e2c3c8f629752b9"
+    },
+    "last_m1_ofi_weight_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_ROOT_REVIEW_001.json",
+      "sha256": "a16b187189a038931e5ae1cd98cbd4281241de5b3ceec761ab5cf9668c7ed8d7"
     }
   },
   "execution_authorized_by_report": false,
@@ -386,6 +394,16 @@
       ],
       "finding": "On the same reused later-development fold, fixed 1/5/15-minute direction-head AUC point estimates are 0.500882/0.503021/0.507870. At the original zero-logit threshold the model predicts DOWN on 90.86%/86.35%/91.51% of eligible rows, while observed UP fractions are 49.69%/51.58%/52.39%.",
       "implication": "Weak ranking is not restricted to the five-minute point estimate in this descriptive fold. The pervasive threshold skew is a symptom, not a proven cause; changing only a threshold cannot change continuous-score AUC. The secondary horizons have no interval here, and the training and later cohorts differ. No independent future generalization, selective entry or economic claim follows."
+    },
+    {
+      "id": "F23",
+      "type": "EXPLORATORY_CONTINUOUS_LAST_M1_OFI_WEIGHT",
+      "evidence": [
+        "last_m1_ofi_weight_result",
+        "last_m1_ofi_weight_review"
+      ],
+      "finding": "On the identical 16977 eligible later-development rows, existing continuous M5 OFI yields AUC 0.495971; weighting the last closed M1 fivefold yields 0.489661, difference -0.006309. Corrected paired day/week intervals both include zero. All 17066 complete five-minute OFI bars match the M1 reconstruction exactly.",
+      "implication": "No incremental value is documented for this one fixed weighting. The weight was declared after seeing prior sign results, so the reused-fold comparison is exploratory and is not a new future test. It does not evaluate other weights, nonlinear combinations, model intervention, last quote age or economic edge. Independent timestamp-join and full bootstrap replay are pending."
     }
   ],
   "main_cause_established": false,
@@ -416,7 +434,7 @@
   "schema_version": "gx1_independent_direction_first_analysis_v1",
   "status": "MEASURED_FIRST_ANALYSIS_CAUSE_NOT_ESTABLISHED",
   "test_data_used": false,
-  "updated_utc": "2026-10-27T21:47:25.125056+00:00",
+  "updated_utc": "2026-10-27T21:48:41.641415+00:00",
   "zero_update_timing_validation": {
     "status": "PASS_16_ORIGINAL_FIELDS_BYTE_IDENTICAL",
     "rows": 256,

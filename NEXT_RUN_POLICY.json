@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "LAST_M1_OFI_WEIGHT_AUDIT_ADMITTED_TRAINING_CLOSED",
+    "status": "LAST_M1_OFI_WEIGHT_INDEPENDENT_REPLAY_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "independent_direction_last_m1_ofi_weight_20261027",
+    "current_unit": "independent_direction_last_m1_ofi_weight_verify_20261027",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37204,7 +37204,7 @@
     },
     "first_analysis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INDEPENDENT_FIRST_ANALYSIS_20261027.json",
-      "sha256": "9eb47e8e1639cdfbcc81c5b1598f44f87283144646fd245d58e7c0b71a02b9ac"
+      "sha256": "f598abe54b340ee6cc3f4527b4fd2f14142e3699e8b69bc86a3b02bd2c33e421"
     },
     "native_0u_metadata_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_SYNTHETIC_ROOT_REVIEW_001.json",
@@ -37248,7 +37248,8 @@
     },
     "last_m1_trade_record_refinement_measured": true,
     "last_m1_volume_domain_measured": true,
-    "last_m1_ofi_sign_refinement_measured": true
+    "last_m1_ofi_sign_refinement_measured": true,
+    "last_m1_ofi_continuous_weight_measured": true
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -39021,13 +39022,39 @@
     "cross_consumer_synthetic_tests_passed": 154
   },
   "independent_direction_last_m1_ofi_weight_20261027": {
-    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_PLAN_001.json",
     "plan_sha256": "6ca6293ba63983645f14c19217514bbe28291e4378a3d28bd1093457bfac8b0b",
     "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_WORKER_001.py",
     "worker_sha256": "69388102a645252ed72cd3301357a8240fee0bd98f2db8cf7387119c5e192b8c",
     "source_commit": "3b42b38e08b3ead3fd462cf06aa0bde8cfcb8f7b",
     "scope": "One fixed continuous M5 OFI versus M5 plus four times last closed M1 OFI, using the identical parity-qualified reused development cohort; exploratory after sign results.",
+    "max_invocations": 1,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "test_control_authorized": false,
+    "exit_authorized": false,
+    "new_indicators_authorized": false,
+    "broker_authorized": false,
+    "relaunch_allowed": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_RESULT_001.json",
+      "sha256": "85364044ea0d70d2c415ef7a5e8b3958741c2ec8cf16e9793e2c3c8f629752b9"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_ROOT_REVIEW_001.json",
+      "sha256": "a16b187189a038931e5ae1cd98cbd4281241de5b3ceec761ab5cf9668c7ed8d7"
+    }
+  },
+  "independent_direction_last_m1_ofi_weight_verify_20261027": {
+    "status": "READ_ONLY_SINGLE_RUN_ADMITTED",
+    "plan_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_VERIFY_PLAN_001.json",
+    "plan_sha256": "62f6ecfc686907e11719904c823f7a3cc5a443e3eb9262eb5fc33f2eba55a7d2",
+    "worker_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_VERIFY_WORKER_001.py",
+    "worker_sha256": "1b147de6e675d3524f872384b8ab2d34436d44d47ad232bd9335faff484ca7a3",
+    "scope": "Independent timestamp joins and all physically duplicated day/week resamples for the same fixed-weight continuous-OFI cohort and reused development data.",
     "max_invocations": 1,
     "training_enabled": false,
     "model_calls_authorized": false,
