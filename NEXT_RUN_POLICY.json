@@ -37549,17 +37549,17 @@
     "failed_cases": 5
   },
   "direction_bps_head_rank_diagnostic_20261027": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_ACTUAL_PLAN_20261027_001.json",
       "sha256": "c49c4b3189f765cb57cca5dd265367e341c0e44304ac2dac2b8e3d5785c10f27"
     },
     "mode": "actual",
-    "execution_authorized": true,
-    "saved_payload_reads_authorized": true,
+    "execution_authorized": false,
+    "saved_payload_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
     "native_launch_authorized": false,
@@ -37615,6 +37615,16 @@
         "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_SYNTHETIC_ROOT_REVIEW_20261027_002.json",
         "sha256": "2234ec9c343a7e2b0841a6c9c41820f55ea390023a00d3dedf521aebf74420af"
       }
-    }
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_ACTUAL_ROOT_REVIEW_20261027_001.json",
+      "sha256": "d049457c26f58ea06dfb9d596cf1fafb2d6d85f79b70061347d75e9f040f82ce"
+    },
+    "result_document": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_BPS_HEAD_RANK_RESULT_20261027.json",
+      "sha256": "05a3881ed0fd4ccddec38c37ae649ad7bfe993123cc2f0ed93cc29454dafeb53"
+    },
+    "bps_head_rank_improvement_supported": false,
+    "economic_edge_qualified": false
   }
 }

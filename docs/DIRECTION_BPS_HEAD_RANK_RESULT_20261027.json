@@ -1,0 +1,275 @@
+{
+  "schema_version": "gx1_bps_head_rank_result_v1",
+  "status": "COMPLETE_CONSUMED_NO_DOCUMENTED_RANK_IMPROVEMENT",
+  "scope": "One reused first TRAIN-development split; 17,288 later parents; no independent test.",
+  "root_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_ACTUAL_ROOT_REVIEW_20261027_001.json",
+    "sha256": "d049457c26f58ea06dfb9d596cf1fafb2d6d85f79b70061347d75e9f040f82ce"
+  },
+  "design": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_DESIGN_20261027_001.json",
+    "sha256": "11c3f8f115225a950bf6a49043040c64b6147af7b81cfe4f756edf0d6469c32a"
+  },
+  "source_qualification": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_SYNTHETIC_ROOT_REVIEW_20261027_002.json",
+    "sha256": "2234ec9c343a7e2b0841a6c9c41820f55ea390023a00d3dedf521aebf74420af"
+  },
+  "summary": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_HEAD_RANK_ACTUAL_20261027_001/SUMMARY.json",
+    "sha256": "e31c9e222eb675db7139cde24ccc5acf97fff0d9848220e0b6ba4b510182cdff"
+  },
+  "evaluation_gap": "Earlier comparisons measured direction AUC only for logit_up; mean_return_bps was scored as a regression, not as a separate signed-direction rank score.",
+  "primary_horizon_minutes": 5,
+  "secondary_horizons_minutes": [
+    1,
+    15
+  ],
+  "horizons": [
+    {
+      "down_rows": 8661,
+      "eligible_nonzero_rows": 17215,
+      "horizon_minutes": 1,
+      "intervals": [
+        {
+          "blocks": 77,
+          "bps_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.5085697297595522,
+            "low": 0.4831867873372167,
+            "point": 0.49628269472177233,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_candidate_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.010560495976845066,
+            "low": -0.020413238281437193,
+            "point": -0.005229570842848252,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_native276_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.010777265952219886,
+            "low": -0.02020053971051574,
+            "point": -0.004599642411108329,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "scheme": "UTC_DAY",
+          "weights_sha256": "0ff533dc6828746c6de013053e5b57759e055533084eec5f7dd083e873946930"
+        },
+        {
+          "blocks": 14,
+          "bps_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.509622864401424,
+            "low": 0.48200586997497874,
+            "point": 0.49628269472177233,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_candidate_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.01360098850575612,
+            "low": -0.025207766444441036,
+            "point": -0.005229570842848252,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_native276_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.014123648480024602,
+            "low": -0.02393783700588354,
+            "point": -0.004599642411108329,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "scheme": "UTC_WEEK_MONDAY",
+          "weights_sha256": "cab23671eef441ef714786d363502b57bb6e6233613f87eb6bc6c3bd190fa02d"
+        }
+      ],
+      "points": {
+        "bps_mean": 0.49628269472177233,
+        "candidate_logit": 0.5015122655646206,
+        "native276_logit": 0.5008823371328807
+      },
+      "up_rows": 8554
+    },
+    {
+      "down_rows": 8327,
+      "eligible_nonzero_rows": 17197,
+      "horizon_minutes": 5,
+      "intervals": [
+        {
+          "blocks": 77,
+          "bps_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.5065377259918595,
+            "low": 0.48615254619822573,
+            "point": 0.49626199338780447,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_candidate_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.019516218094570558,
+            "low": -0.02112844426569602,
+            "point": -0.0005606989609736046,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_native276_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.010310502876472085,
+            "low": -0.02380602296414923,
+            "point": -0.0067590940704563285,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "scheme": "UTC_DAY",
+          "weights_sha256": "0ff533dc6828746c6de013053e5b57759e055533084eec5f7dd083e873946930"
+        },
+        {
+          "blocks": 14,
+          "bps_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.5081229980015258,
+            "low": 0.4871032381888134,
+            "point": 0.49626199338780447,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_candidate_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.022093811082518854,
+            "low": -0.01865480954057711,
+            "point": -0.0005606989609736046,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_native276_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.009193859885007136,
+            "low": -0.023343292789814563,
+            "point": -0.0067590940704563285,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "scheme": "UTC_WEEK_MONDAY",
+          "weights_sha256": "cab23671eef441ef714786d363502b57bb6e6233613f87eb6bc6c3bd190fa02d"
+        }
+      ],
+      "points": {
+        "bps_mean": 0.49626199338780447,
+        "candidate_logit": 0.49682269234877807,
+        "native276_logit": 0.5030210874582608
+      },
+      "up_rows": 8870
+    },
+    {
+      "down_rows": 8131,
+      "eligible_nonzero_rows": 17080,
+      "horizon_minutes": 15,
+      "intervals": [
+        {
+          "blocks": 77,
+          "bps_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.5125366532104392,
+            "low": 0.4800313438182253,
+            "point": 0.49617224480586425,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_candidate_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.021700499451522193,
+            "low": -0.03543837119576505,
+            "point": -0.006504197476238371,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_native276_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.010750106955360083,
+            "low": -0.034705981102927684,
+            "point": -0.011697443358193171,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "scheme": "UTC_DAY",
+          "weights_sha256": "0ff533dc6828746c6de013053e5b57759e055533084eec5f7dd083e873946930"
+        },
+        {
+          "blocks": 14,
+          "bps_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.5194446001727684,
+            "low": 0.47731422213283214,
+            "point": 0.49617224480586425,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_candidate_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.02934190845640184,
+            "low": -0.036553380325380136,
+            "point": -0.006504197476238371,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "bps_minus_native276_logit_auc_99_descriptive": {
+            "alpha": 0.01,
+            "high": 0.015624544257887668,
+            "low": -0.034209627550941424,
+            "point": -0.011697443358193171,
+            "replicates_invalid": 0,
+            "replicates_requested": 4000,
+            "replicates_valid": 4000
+          },
+          "scheme": "UTC_WEEK_MONDAY",
+          "weights_sha256": "cab23671eef441ef714786d363502b57bb6e6233613f87eb6bc6c3bd190fa02d"
+        }
+      ],
+      "points": {
+        "bps_mean": 0.49617224480586425,
+        "candidate_logit": 0.5026764422821026,
+        "native276_logit": 0.5078696881640574
+      },
+      "up_rows": 8949
+    }
+  ],
+  "primary_5m_difference_intervals_include_zero": true,
+  "interpretation": "No demonstrated rank improvement of the bps-mean score over native276 on the fixed 5m development cohort; not evidence of absence of signal.",
+  "limitations": [
+    "Bps output is an expected signed return, not a calibrated UP probability.",
+    "AUC is ranking, not a trading result or path-dependent MFE/MAE.",
+    "Intervals are descriptive on reused development data; no independent generalization or economic edge.",
+    "Previously fixed advancement criteria remain unchanged."
+  ],
+  "qualification": "99% UTC-day and UTC-week block intervals are descriptive for reused development data; neither score is selected for trading.",
+  "forecast_coverage": "Existing outputs only 1,5,15 minutes; 10 to 60 minute model outputs and path order remain unmeasured.",
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "fits": 0,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}
