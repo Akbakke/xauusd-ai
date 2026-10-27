@@ -43,7 +43,7 @@ def plan(unit='own0U_prefix'):
         transitions[name] = {'old276': deepcopy(owners[name]), 'current': current}
         owners[name] = current
     root = contract.PROGRAM + '/F_FROZEN_EXTRACTION_' + unit + '_SYNTHETIC'
-    return {'schema_version': contract.SCHEMA, 'operation': contract.OPERATION, 'unit': unit,
+    value = {'schema_version': contract.SCHEMA, 'operation': contract.OPERATION, 'unit': unit,
         'admission_stage': contract.STAGE, 'proposal': deepcopy(contract.PROPOSAL),
         'design': deepcopy(contract.DESIGN), 'units_design': contract.unit_design(unit),
         'initial_report': deepcopy(contract.INITIAL_REPORT), 'initial_predictions': deepcopy(contract.INITIAL_PREDICTIONS),
@@ -55,9 +55,14 @@ def plan(unit='own0U_prefix'):
         'max_invocations': 1, 'execution_authorized': True, 'data_reads_authorized': True,
         'checkpoint_reads_authorized': True, 'genuine_forwards_authorized': True,
         'gradient_reverse_authorized': False, 'optimizer_steps_authorized': False, 'test_data_used': False}
+    if unit in contract.PARTITION_UNITS:
+        value['gc_layout_metadata_parity'] = deepcopy(contract.GC_LAYOUT_METADATA_PARITY)
+        for name, (_old, current) in contract.GC_METADATA_SOURCE_TRANSITIONS.items():
+            value['source_owners'][name] = {'path': contract.REPO + '/' + name, 'sha256': current}
+    return value
 
 
-@pytest.mark.parametrize('unit', [*contract.UNITS, contract.TIMING_UNIT])
+@pytest.mark.parametrize('unit', [*contract.UNITS, contract.TIMING_UNIT, *contract.PARTITION_UNITS])
 def test_exact_units_and_original_numerical_source_closure(unit):
     recipe = plan(unit)
     assert contract.require_plan(recipe) == recipe
@@ -110,7 +115,7 @@ def window(unit):
         'campaign_cursor_path': root + '/DIAGNOSTIC_POINTER.json', 'test_data_used': False}, 'policy_sha256')
 
 
-@pytest.mark.parametrize('unit', [*contract.UNITS, contract.TIMING_UNIT])
+@pytest.mark.parametrize('unit', [*contract.UNITS, contract.TIMING_UNIT, *contract.PARTITION_UNITS])
 def test_complete_pointer_progress_and_partial_rejection(unit):
     w = window(unit)
     assert contract.require_frozen_extraction_window_policy(w, verify_files=False) == w
@@ -258,7 +263,7 @@ def invocation(unit):
     return contract._seal(value, 'invocation_sha256')
 
 
-@pytest.mark.parametrize('unit', [*contract.UNITS, contract.TIMING_UNIT])
+@pytest.mark.parametrize('unit', [*contract.UNITS, contract.TIMING_UNIT, *contract.PARTITION_UNITS])
 def test_canonical_invocation_binds_same_unit_recipe_and_window(monkeypatch, unit):
     p = plan(unit); w = window(unit); inv = invocation(unit)
     execution = {'prelaunch_manifest': w['recipe'], 'train_session_manifest': ref('SYNTHETIC_WINDOW.json'),
@@ -720,3 +725,102 @@ def test_actual_prefix_metadata_checks_exact_transition_without_relabeling_manif
         assert actual['manifest'] == manifest
         assert actual['manifest']['view_source_bindings']['gc_gather_source']['sha256'] != hashes[
             manifest['view_source_bindings']['gc_gather_source']['path']]['sha256']
+
+
+@pytest.mark.parametrize('parent', list(contract.UNITS))
+def test_partition_reassembly_preserves_all_rows_bits_and_original_B16_calls(parent):
+    base = contract.unit_spec(parent)
+    start = 0 if base['cohort'] == 'prefix' else contract.FOLD['oof_start_row']
+    order = np.arange(start, start + base['rows'], dtype=np.int64)
+    if base['cohort'] == 'prefix':
+        order = np.roll(order[::-1], 113).copy()
+    hidden = np.zeros((len(order), 128), np.float32)
+    hidden[:, 0] = order
+    hidden[:, 127] = (order % 17).astype(np.float32)
+    measured = {'arrays': {'parent_rows': order.copy(),
+        'logit_up': np.repeat((order % 7).astype(np.float32)[:, None], 3, axis=1),
+        'sign': np.repeat((order % 3 - 1).astype(np.int8)[:, None], 3, axis=1),
+        'observed': np.repeat((order % 5 != 0)[:, None], 3, axis=1),
+        'decision_ns': order * np.int64(300_000_000_000)}}
+    weight, bias = np.zeros((3, 128), np.float32), np.zeros(3, np.float32)
+    expected = worker.canonical_arrays(measured, [hidden], selected=order, spec=base,
+        weight=weight, bias=bias, np=np)
+    pieces, batches, cursor = [], [], 0
+    units = [u for u, v in contract.PARTITION_UNITS.items() if v[0] == parent]
+    for unit in units:
+        spec = contract.unit_spec(unit)
+        part = spec['partition']; lo, hi = part['presentation_start'], part['presentation_end']
+        assert lo == cursor and (lo % 16 == 0) and (hi % 16 == 0 or hi == len(order))
+        cursor = hi
+        selected = worker.select_partition_parents(order, spec, np)
+        batches.extend([selected[i:i+16].tolist() for i in range(0, len(selected), 16)])
+        arrays = {k: v[lo:hi].copy() for k, v in measured['arrays'].items()}
+        pieces.append(worker.canonical_arrays({'arrays': arrays}, [hidden[lo:hi]],
+            selected=selected, spec=spec, weight=weight, bias=bias, np=np, reference_parents=order))
+        assert contract.resource_limits(unit) == contract.resource_limits(parent)
+        assert contract.call_limits(unit)['reverse'] == contract.call_limits(unit)['autograd_grad'] == 0
+    assert cursor == len(order)
+    assert batches == [order[i:i+16].tolist() for i in range(0, len(order), 16)]
+    ids = np.concatenate([x['parent_rows'] for x in pieces])
+    sort = np.argsort(ids, kind='stable')
+    for key, value in expected.items():
+        actual = pieces[0][key] if key in ('head_weight', 'head_bias') else np.ascontiguousarray(
+            np.concatenate([x[key] for x in pieces])[sort])
+        assert actual.dtype == value.dtype and actual.shape == value.shape
+        assert actual.tobytes() == value.tobytes(), key
+    assert sum(contract.unit_spec(u)['forwards'] for u in contract.PARTITION_UNITS) == 8114
+
+
+@pytest.mark.parametrize('fault', ['missing_bridge', 'wrong_design', 'wrong_source', 'extra_range',
+    'forward_count', 'time_budget', 'wrong_unit', 'parity_proof'])
+def test_partition_plan_rejects_scope_or_source_expansion(fault):
+    value = plan('terminal_prefix_part2')
+    if fault == 'missing_bridge': del value['gc_layout_metadata_parity']
+    elif fault == 'wrong_design': value['units_design'] = deepcopy(contract.UNITS_DESIGN)
+    elif fault == 'wrong_source': value['source_owners']['gx1/synthetic_owner_0.py']['sha256'] = '9' * 64
+    elif fault == 'extra_range': value['presentation_start'] = 16
+    elif fault == 'forward_count': value['operation_limits']['native_forward'] += 1
+    elif fault == 'time_budget': value['budget']['max_wall_seconds'] += 1
+    elif fault == 'wrong_unit': value['unit'] = 'terminal_prefix_part4'
+    else: value['gc_layout_metadata_parity']['sha256'] = '9' * 64
+    with pytest.raises(RuntimeError):
+        contract.require_plan(value)
+        contract.require_source_closure(value, *source_inputs())
+
+
+@pytest.mark.parametrize('fault', ['shift', 'boolean_start', 'missing', 'duplicate', 'dtype', 'later_reorder'])
+def test_partition_selection_rejects_changed_full_order_or_interval(fault):
+    spec = contract.unit_spec('own0U_later_full' if fault == 'later_reorder' else 'own0U_prefix_part1')
+    start = 0 if spec['cohort'] == 'prefix' else contract.FOLD['oof_start_row']
+    full = np.arange(start, start + spec['partition']['full_rows'], dtype=np.int64)
+    if fault == 'shift': spec['partition']['presentation_start'] += 1
+    elif fault == 'boolean_start': spec['partition']['presentation_start'] = False
+    elif fault == 'missing': full = full[:-1]
+    elif fault == 'duplicate': full[1] = full[0]
+    elif fault == 'dtype': full = full.astype(np.int32)
+    else: full = full[::-1].copy()
+    with pytest.raises(RuntimeError):
+        worker.select_partition_parents(full, spec, np)
+
+
+@pytest.mark.parametrize('fault', ['missing', 'shift', 'full_rows', 'digest', 'boolean_start'])
+def test_partition_result_requires_exact_interval_identity(monkeypatch, fault):
+    unit = 'terminal_prefix_part1'; spec = contract.unit_spec(unit)
+    recipe = ref('SYNTHETIC_RECIPE.json'); counts = contract.call_limits(unit)
+    pointer = contract.build_frozen_extraction_pointer(recipe_ref=recipe, result_ref=ref('SYNTHETIC_RESULT.json'),
+        outcome='COMPLETE', calls=counts, returns=counts, unit=unit)
+    result = {'recipe': recipe, 'unit': unit, 'optimizer_steps': 0, 'test_data_used': False,
+        'observed_calls': counts, 'observed_returns': counts, 'decision': 'COMPLETE_FROZEN_READOUT_EXTRACTION',
+        'representation_rows': spec['rows'], 'hidden_width': 128, 'originals_stat_preserved': True,
+        'source_unchanged': True, 'native_optimizer_steps': 0, 'representations': ref('SYNTHETIC_ARRAYS.npz'),
+        'partition': {**spec['partition'], 'full_presentation_parent_rows_sha256': 'a' * 64}}
+    monkeypatch.setattr(campaign, 'require_binding', lambda r, **kw: contract.plain_ref(r))
+    monkeypatch.setattr(campaign, 'read_bound_json', lambda *a: deepcopy(result))
+    contract.require_frozen_extraction_pointer(pointer, expected_recipe=recipe, expected_unit=unit)
+    if fault == 'missing': del result['partition']
+    elif fault == 'shift': result['partition']['presentation_start'] += 16
+    elif fault == 'full_rows': result['partition']['full_rows'] -= 16
+    elif fault == 'digest': result['partition']['full_presentation_parent_rows_sha256'] = 'z' * 64
+    else: result['partition']['presentation_start'] = False
+    with pytest.raises(RuntimeError, match='RESULT_PARTITION_IDENTITY'):
+        contract.require_frozen_extraction_pointer(pointer, expected_recipe=recipe, expected_unit=unit)

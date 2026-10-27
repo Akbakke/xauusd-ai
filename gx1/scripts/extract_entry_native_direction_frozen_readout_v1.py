@@ -116,6 +116,20 @@ class HiddenCapture:
             handle.remove()
 
 
+def select_partition_parents(full_selected, spec, np):
+    require(spec['unit'] in authority.PARTITION_UNITS and spec == authority.unit_spec(spec['unit'])
+        and all(type(spec['partition'][k]) is int for k in ('presentation_start', 'presentation_end', 'full_rows')),
+        'FIXED_PARTITION_SPEC')
+    part = spec['partition']
+    require(isinstance(full_selected, np.ndarray) and full_selected.dtype == np.int64
+        and full_selected.shape == (part['full_rows'],), 'FULL_PRESENTATION_DOMAIN')
+    expected = np.arange(0, authority.FOLD['prefix_rows'], dtype=np.int64) if spec['cohort'] == 'prefix' else np.arange(
+        authority.FOLD['oof_start_row'], authority.FOLD['oof_end_row'], dtype=np.int64)
+    require(np.array_equal(np.sort(full_selected) if spec['cohort'] == 'prefix' else full_selected, expected),
+        'FULL_ORIGINAL_PARENT_COHORT')
+    return full_selected[part['presentation_start']:part['presentation_end']]
+
+
 def canonical_arrays(measured, hidden_parts, *, selected, spec, weight, bias, np, reference_parents=None):
     arrays = measured['arrays']
     require(np.array_equal(arrays['parent_rows'], selected), 'EXTRACTION_PRESENTATION_JOIN')
@@ -127,7 +141,11 @@ def canonical_arrays(measured, hidden_parts, *, selected, spec, weight, bias, np
         and np.isfinite(weight).all() and np.isfinite(bias).all(), 'HEAD_PARAMETER_DOMAIN')
     # The forward order remains historical. Only the stored row layout changes.
     permutation = np.argsort(selected, kind='stable')
-    if spec.get('diagnostic_only', False):
+    if spec['unit'] in authority.PARTITION_UNITS:
+        original = select_partition_parents(reference_parents, spec, np)
+        require(np.array_equal(selected, original), 'PARTITION_PRESENTATION_JOIN')
+        expected = np.sort(original)
+    elif spec.get('diagnostic_only', False):
         require(spec == authority.unit_spec(authority.TIMING_UNIT)
             and isinstance(reference_parents, np.ndarray) and reference_parents.dtype == np.int64
             and reference_parents.shape == (256,) and np.array_equal(selected, reference_parents)
@@ -140,7 +158,8 @@ def canonical_arrays(measured, hidden_parts, *, selected, spec, weight, bias, np
     require(np.array_equal(selected[permutation], expected), 'CANONICAL_PARENT_COHORT')
     result = {name: np.ascontiguousarray(value[permutation]) for name, value in arrays.items()}
     result.update(hidden=np.ascontiguousarray(hidden[permutation]),
-        presentation_index=np.ascontiguousarray(permutation, dtype=np.int64),
+        presentation_index=np.ascontiguousarray(
+            permutation + spec.get('partition', {}).get('presentation_start', 0), dtype=np.int64),
         head_weight=np.ascontiguousarray(weight), head_bias=np.ascontiguousarray(bias))
     return result
 
@@ -182,6 +201,12 @@ def _metadata(plan, route, common, metadata):
             and proof['test_cases_passed'] == 6
             and proof['layout_contract_sha256'] == 'b67b9b94b78b4cf933c23e6738666911cd2c262ae3ab696448d42571e13bec6f'
             and all(value == 0 for value in proof['counters'].values()), 'QUALIFIED_GC_METADATA_PARITY')
+    if plan['unit'] in authority.PARTITION_UNITS:
+        proof = common._read(authority.PARTITION_PARITY, metadata)
+        require(proof['status'] == 'COMPLETE_CONSUMED_PARITY_SPEED_PASS_FULL_BUDGET_FAIL'
+            and proof['original_bit_parity']['bit_identical'] is True
+            and proof['original_bit_parity']['rows'] == 256
+            and all(proof['parity_fields'].values()), 'QUALIFIED_PARTITION_OUTPUT_PARITY')
     proposal = authority.require_proposal(common._read(authority.PROPOSAL, metadata))
     original = common._read(proposal['existing_input_refs']['recipe'], metadata)
     qualified = common._read(proposal['existing_input_refs']['first_prefix_qualification'], metadata)
@@ -284,7 +309,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         'diagnostic_only': spec['diagnostic_only'],
         'recipe': plan_ref, 'admission': route['admission_ref'], 'campaign_plan': binding['plan'],
         'test_data_used': False, 'optimizer_steps': 0, 'native_optimizer_steps': 0,
-        'limits': list(authority.LIMITS), 'source_transport_transitions': plan['transport_source_transitions'],
+        'limits': list(authority.PARTITION_LIMITS if plan['unit'] in authority.PARTITION_UNITS else authority.LIMITS),
+        'source_transport_transitions': plan['transport_source_transitions'],
         'metadata_blocked_bytecode_cache_probes': cache_probes}
     def deadline(_signum, _frame):
         raise TimeoutError('NATIVE_DIRECTION_FROZEN_EXTRACTION_WALL_LIMIT')
@@ -375,7 +401,10 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             feature_view_identity=model.feature_view_identity, parent_order=parent_order, device=device)
         selected = order if spec['cohort'] == 'prefix' else prepared['arrays']['parent_rows'][
             authority.FOLD['oof_start_row']:authority.FOLD['oof_end_row']]
-        if spec['diagnostic_only']:
+        full_selected = selected
+        if plan['unit'] in authority.PARTITION_UNITS:
+            selected = select_partition_parents(full_selected, spec, np)
+        elif spec['diagnostic_only']:
             selected = selected[:256]
             require(np.array_equal(selected, baseline['parent_rows']), 'TIMING_INITIAL_PRESENTATION_ORDER')
         require(selected.dtype == np.int64 and selected.shape == (spec['rows'],), 'EXACT_PRESENTATION_ROWS')
@@ -400,7 +429,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         arrays = canonical_arrays(measured, recorder.parts, selected=selected, spec=spec,
             weight=model.direction_head.weight.detach().cpu().numpy().copy(),
             bias=model.direction_head.bias.detach().cpu().numpy().copy(), np=np,
-            reference_parents=baseline['parent_rows'] if spec['diagnostic_only'] else None)
+            reference_parents=full_selected if plan['unit'] in authority.PARTITION_UNITS else (
+                baseline['parent_rows'] if spec['diagnostic_only'] else None))
         representation = prefix._save_predictions(output / 'REPRESENTATIONS.npz', arrays, np=np, common=common, tree_sha=tree_sha)
         report_ref = common._json(output / 'NATIVE_REPORT.json', {'report': measured['report'],
             'unit': plan['unit'], 'cutoff_ns': spec['cutoff_ns'], 'own_prefix_prior': prior,
@@ -418,6 +448,9 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             feature_view_identity=model.feature_view_identity, own_prefix_prior=prior,
             original_prediction_parity=parity, fresh_identity_sha256=fresh_identity,
             predictive_value_qualified=False, economic_edge_qualified=False)
+        if plan['unit'] in authority.PARTITION_UNITS:
+            result['partition'] = {**spec['partition'],
+                'full_presentation_parent_rows_sha256': tree_sha(full_selected)}
     except Exception as exc:
         result['error'] = saved._failure_metadata(exc)
     finally:

@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T01:26:46.605730+00:00",
-  "status": "DIRECTION_CAUSE_UNRESOLVED_F_TIMING004_COMPLETE_CONSUMED_NO_FULL_LAUNCH",
+  "status": "DIRECTION_F_PARTITION_SYNTHETIC_86_CASES_ONCE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -7764,7 +7764,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Source/metadata only: assess the observation-preserving bounded extraction proposal before any source or launch admission. Preserve all47602prefix and17288later rows, originalB16,8114totalforwards and fixed six readout fits; no further generic performance or calibration search.",
+    "next_action": "Execute only the fixed86 focused synthetic cases under60-second capped CPU audit,0payload/model/fit. Verify terminal and consume before any genuine unit admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -36363,5 +36363,47 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_GC_LAYOUT_METADATA_TRANSITION_SYNTHETIC_ROOT_REVIEW_001.json",
       "sha256": "3d94240c23228701352027c568329c4c03898218d9662ab1d622ec4883a0bde4"
     }
+  },
+  "direction_diagnostic_F_partition_source": {
+    "status": "SOURCE_REVIEWED",
+    "admission": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_READOUT_PARTITION_SOURCE_ADMISSION_001.json",
+      "sha256": "e8de774bdbf5fc6d30af21118bf7ead0f9b84efa7bfed513a0de0b12533ca3e8"
+    },
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_READOUT_PARTITION_DESIGN_001.json",
+      "sha256": "e9f205865da12b8237f0729518d716394c34efea044cb799eda1b1e77981c7fc"
+    },
+    "source_edits_authorized": false,
+    "execution_authorized": false,
+    "genuine_payload_reads_authorized": false,
+    "genuine_forwards_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "test_data_used": false,
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_READOUT_PARTITION_SOURCE_REVIEW_001.json",
+      "sha256": "49ea70cfc1d17be23b9fc29028f90831e07efd32d5e0b5000da093e9f0da16b2"
+    }
+  },
+  "direction_diagnostic_F_partition_synthetic": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_READOUT_PARTITION_SYNTHETIC_PLAN_001.json",
+      "sha256": "62af9cb5ecb959e0ef1e9844b938604609372500669c5422627c9260c84cc96d"
+    },
+    "source_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_READOUT_PARTITION_SOURCE_REVIEW_001.json",
+      "sha256": "49ea70cfc1d17be23b9fc29028f90831e07efd32d5e0b5000da093e9f0da16b2"
+    },
+    "execution_authorized": true,
+    "synthetic_tests_authorized": true,
+    "genuine_payload_reads_authorized": false,
+    "genuine_forwards_authorized": false,
+    "genuine_fits_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false
   }
 }

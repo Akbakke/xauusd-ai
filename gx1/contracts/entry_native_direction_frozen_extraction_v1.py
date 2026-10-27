@@ -35,7 +35,7 @@ TERMINAL_PREDICTIONS = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.npz'
 TIMING_UNIT = 'own0U_prefix_timing256'
 TIMING_DESIGN = {'path': PROGRAM + '/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json',
     'sha256': '572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684'}
-# One measured metadata-only transition is allowed solely in the timing unit.
+# Exact metadata transition; full observations use only the separately bound partitions.
 GC_LAYOUT_METADATA_PARITY = {'path': PROGRAM + '/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_ROOT_REVIEW_003.json',
     'sha256': '1d3347ee52f02af7afcac5d55c02532c0e2823e1ce20397633785a2512d39263'}
 GC_METADATA_SOURCE_TRANSITIONS = {
@@ -51,6 +51,21 @@ UNITS = {
     'own0U_later': ('own0U', 'later'),
     'terminal_prefix': ('terminal_u2976', 'prefix'),
     'terminal_later': ('terminal_u2976', 'later'),
+}
+PARTITION_DESIGN = {'path': PROGRAM + '/F_FROZEN_READOUT_PARTITION_DESIGN_001.json',
+    'sha256': 'e9f205865da12b8237f0729518d716394c34efea044cb799eda1b1e77981c7fc'}
+PARTITION_PARITY = {'path': PROGRAM + '/F_FROZEN_EXTRACTION_own0U_prefix_timing256_CAMPAIGN_20261027_004/ACTUAL_ROOT_REVIEW.json',
+    'sha256': '97296dc91e9ffb843499eb89f463358407fd6203b457f46d0ef8cfed57e6f7cb'}
+# Presentation offsets, never canonical-row or outcome-selected subsets.
+PARTITION_UNITS = {
+    'own0U_prefix_part1': ('own0U_prefix', 0, 15872),
+    'own0U_prefix_part2': ('own0U_prefix', 15872, 31744),
+    'own0U_prefix_part3': ('own0U_prefix', 31744, 47602),
+    'own0U_later_full': ('own0U_later', 0, 17288),
+    'terminal_prefix_part1': ('terminal_prefix', 0, 15872),
+    'terminal_prefix_part2': ('terminal_prefix', 15872, 31744),
+    'terminal_prefix_part3': ('terminal_prefix', 31744, 47602),
+    'terminal_later_full': ('terminal_later', 0, 17288),
 }
 NEW_FILES = ('gx1/contracts/entry_native_direction_frozen_extraction_v1.py',
     'gx1/scripts/extract_entry_native_direction_frozen_readout_v1.py',
@@ -69,6 +84,9 @@ LIMITS = (
     'Prefix and later cohorts are reused development TRAIN, never sealed confirmation.',
     'No predictive information, convergence, economics or checkpoint-selection claim.')
 plain_ref, _identity, _seal, _path = previous.plain_ref, previous._identity, previous._seal, previous._path
+PARTITION_LIMITS = (LIMITS[0],
+    'All eight fixed partitions and exact full-cohort assembly required before separately admitted readout fitting.',
+    *LIMITS[2:])
 require_proposal = previous.require_proposal
 
 
@@ -78,7 +96,16 @@ def require(ok, reason):
 
 
 def unit_spec(unit):
-    require(type(unit) is str and (unit in UNITS or unit == TIMING_UNIT), 'FIXED_UNIT')
+    require(type(unit) is str and (unit in UNITS or unit in PARTITION_UNITS or unit == TIMING_UNIT), 'FIXED_UNIT')
+    if unit in PARTITION_UNITS:
+        parent, start, end = PARTITION_UNITS[unit]
+        base = unit_spec(parent)
+        require(0 <= start < end <= base['rows'] and start % 16 == 0
+            and (end % 16 == 0 or end == base['rows']), 'ORIGINAL_BATCH_BOUNDARIES')
+        return {**base, 'unit': unit, 'rows': end - start, 'forwards': (end - start + 15) // 16,
+            'parity': base['parity'] if start == 0 else None,
+            'partition': {'parent_unit': parent, 'presentation_start': start,
+                'presentation_end': end, 'full_rows': base['rows']}}
     diagnostic = unit == TIMING_UNIT
     role, cohort = ('own0U', 'prefix') if diagnostic else UNITS[unit]
     state = next(s for s in STATE_SPEC if s[0] == role)
@@ -92,7 +119,9 @@ def unit_spec(unit):
 
 
 def unit_design(unit):
-    return deepcopy(TIMING_DESIGN if unit_spec(unit)['diagnostic_only'] else UNITS_DESIGN)
+    spec = unit_spec(unit)
+    return deepcopy(PARTITION_DESIGN if unit in PARTITION_UNITS else (
+        TIMING_DESIGN if spec['diagnostic_only'] else UNITS_DESIGN))
 
 
 def resource_limits(unit):
@@ -143,6 +172,7 @@ def require_plan(value):
     require(set(value) == fields and value['schema_version'] == SCHEMA
         and value['operation'] == OPERATION and value['admission_stage'] == STAGE, 'PLAN_SCHEMA')
     unit_spec(value['unit'])
+    require(value['unit'] not in PARTITION_UNITS or metadata_transition, 'PARTITION_METADATA_PROOF_REQUIRED')
     require(value['proposal'] == PROPOSAL and value['design'] == DESIGN and value['units_design'] == unit_design(value['unit'])
         and value['initial_report'] == INITIAL_REPORT and value['initial_predictions'] == INITIAL_PREDICTIONS
         and value['terminal_report'] == TERMINAL_REPORT and value['terminal_predictions'] == TERMINAL_PREDICTIONS,
@@ -160,7 +190,8 @@ def require_plan(value):
             and item['current']['sha256'] != digest, 'SOURCE_TRANSITION:' + name)
     require(all(owners[name]['sha256'] == digest for name, digest in PINNED_PRE_F.items()), 'PRE_F_PINNED_SOURCES')
     if metadata_transition:
-        require(value['unit'] == TIMING_UNIT and value['gc_layout_metadata_parity'] == GC_LAYOUT_METADATA_PARITY
+        require((value['unit'] == TIMING_UNIT or value['unit'] in PARTITION_UNITS)
+            and value['gc_layout_metadata_parity'] == GC_LAYOUT_METADATA_PARITY
             and type(value['gc_layout_metadata_parity']) is dict, 'GC_METADATA_TIMING_SCOPE')
         for name, (_old, current) in GC_METADATA_SOURCE_TRANSITIONS.items():
             require(owners.get(name) == {'path': REPO + '/' + name, 'sha256': current},
@@ -205,7 +236,9 @@ def require_source_closure(recipe, original, proposal):
     for name, ref in required.items():
         expected = recipe['transport_source_transitions'][name]['current'] if name in TRANSPORT_ORIGINAL_SHA256 else ref
         if 'gc_layout_metadata_parity' in recipe and name in GC_METADATA_SOURCE_TRANSITIONS:
-            require(recipe['unit'] == TIMING_UNIT and recipe['gc_layout_metadata_parity'] == GC_LAYOUT_METADATA_PARITY,
+            require((recipe['unit'] == TIMING_UNIT or (
+                recipe['unit'] in PARTITION_UNITS and recipe['units_design'] == PARTITION_DESIGN))
+                and recipe['gc_layout_metadata_parity'] == GC_LAYOUT_METADATA_PARITY,
                 'GC_METADATA_TIMING_SCOPE')
             old, current = GC_METADATA_SOURCE_TRANSITIONS[name]
             require(ref == {'path': REPO + '/' + name, 'sha256': old}, 'GC_METADATA_ORIGINAL_SOURCE:' + name)
@@ -452,8 +485,19 @@ def require_frozen_extraction_pointer(value, *, expected_recipe, expected_unit, 
             require(result['representation_rows'] == unit_spec(expected_unit)['rows']
                 and result['hidden_width'] == 128 and result['originals_stat_preserved'] is True
                 and result['source_unchanged'] is True and result['native_optimizer_steps'] == 0, 'RESULT_COMPLETE_DOMAIN')
-            diagnostic = unit_spec(expected_unit)['diagnostic_only']
+            spec = unit_spec(expected_unit)
+            diagnostic = spec['diagnostic_only']
             require(result.get('diagnostic_only', False) is diagnostic, 'RESULT_DIAGNOSTIC_ROLE')
+            if expected_unit in PARTITION_UNITS:
+                part = result.get('partition')
+                require(type(part) is dict and set(part) == set(spec['partition']) | {'full_presentation_parent_rows_sha256'}
+                    and all(type(part[k]) is type(v) and part[k] == v for k, v in spec['partition'].items())
+                    and type(part['full_presentation_parent_rows_sha256']) is str
+                    and len(part['full_presentation_parent_rows_sha256']) == 64
+                    and all(c in '0123456789abcdef' for c in part['full_presentation_parent_rows_sha256']),
+                    'RESULT_PARTITION_IDENTITY')
+            else:
+                require('partition' not in result, 'RESULT_UNEXPECTED_PARTITION')
             if diagnostic:
                 timing = result.get('phase_timings', {})
                 require(timing.get('pending_frames') == 0 and timing.get('scope') == 'inclusive_wall_and_process_cpu'

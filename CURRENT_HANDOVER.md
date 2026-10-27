@@ -9,6 +9,15 @@ policy og launch. Programrot:
 
 ## Aktuell status
 
+F_FROZEN_READOUT_PARTITION_SOURCE_REVIEW_001 binder endring av tre
+filer: uttrekkskontrakt, worker og fokuserte tester. Alle54andre kildeeiere,
+inkludert modell/gather/normalisering/loss og maskinvarevakter, er uendret.
+Åtte eksakte enheter bevarer samme foreldre, B16-grenser og8114forwards.
+Originale fulle enheter får fortsatt ikke den nye kildeovergangen.
+Én capped CPU-kontroll med86fokuserte syntetiske tilfeller/60sekunder er
+admittért. Null payload-, modell-, fit- eller optimizerkall; ingen ekte
+kjøring åpnes før original terminal er verifisert og autoriteten konsumert.
+
 Timing004 er COMPLETE/consumed. Originale 256 own0U-prediksjoner er bitidentiske;
 parent-/hode-/featureidentiteter og workerens komplette outputhash er identiske
 med timing002. 16 B16-forwards, null reverse/optimizer. Worker185,5655sekunder.
