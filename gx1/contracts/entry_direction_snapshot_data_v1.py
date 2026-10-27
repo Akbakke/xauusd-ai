@@ -108,6 +108,77 @@ def gather_direction_mtf_current(surface, bar_start_ns):
     return current, selected.astype(np.int64), np.asarray(times[selected], dtype=np.int64)
 
 
+def gather_direction_last_closed_m1_ofi(m1, *, parent_rows, decision_times_ns,
+        current_m5_contract_index):
+    """Project raw OFI at exactly [D-1min,D), retaining every supplied parent.
+
+    The caller owns immutable file/NPZ, TRAIN scope and complete source-schema
+    qualification. This function neither loads data nor fits statistics. Pass
+    authoritative current-M5 contract IDs, or explicitly None when no such
+    comparison is declared. Missing/invalid exact rows remain unknown; an older
+    observed row is never substituted. Zero storage is paired with observed=False.
+    Returned arrays are isolated readonly copies, not mutable source views.
+    """
+    minute_ns = 60 * 10**9
+    required = {"bar_start_ns", "available_ns", "contract_index", "assigned",
+        "ofi_contracts", "ofi_valid", "receive_clock_excluded",
+        "book_event_state_excluded"}
+    _require(isinstance(m1, Mapping) and required <= set(m1), "LAST_M1_KEYS")
+    times = _clock(m1["bar_start_ns"])
+    decisions = _clock(decision_times_ns)
+    parents = parent_rows
+    _require(isinstance(parents, np.ndarray) and parents.dtype == np.int64
+        and parents.shape == decisions.shape and np.all(parents >= 0)
+        and np.all(np.diff(parents) > 0), "LAST_M1_PARENTS")
+    _require(np.all(times >= 0) and np.all(times % minute_ns == 0)
+        and np.all(times <= np.iinfo(np.int64).max - minute_ns), "LAST_M1_GRID")
+    _require(np.all(decisions >= minute_ns)
+        and np.all(decisions % (5 * minute_ns) == 0), "LAST_M1_DECISION_GRID")
+    for name in required:
+        value = m1[name]
+        dtype = (np.dtype("int64") if name in ("bar_start_ns", "available_ns")
+            else np.dtype("int16") if name == "contract_index"
+            else np.dtype("float64") if name == "ofi_contracts" else np.dtype("bool"))
+        _require(isinstance(value, np.ndarray) and value.dtype == dtype
+            and value.shape == times.shape and not value.flags.writeable,
+            "LAST_M1_IMMUTABLE_SOURCE_HEADER:" + name)
+    _require(not parents.flags.writeable and not decisions.flags.writeable,
+        "LAST_M1_IMMUTABLE_PARENTS")
+    if current_m5_contract_index is not None:
+        current = current_m5_contract_index
+        _require(isinstance(current, np.ndarray) and current.dtype.kind == "i"
+            and current.shape == decisions.shape and not current.flags.writeable
+            and np.all(current >= -1), "LAST_M1_M5_CONTRACT_HEADER")
+    wanted = decisions - minute_ns
+    positions = np.searchsorted(times, wanted, side="left")
+    found = positions < len(times)
+    found[found] &= times[positions[found]] == wanted[found]
+    source_rows = np.full(len(parents), -1, dtype=np.int64)
+    source_rows[found] = positions[found]
+    selected = positions[found]
+    _require(np.array_equal(m1["available_ns"][selected], decisions[found]),
+        "LAST_M1_EXACT_AVAILABILITY")
+    observed = np.zeros(len(parents), dtype=np.bool_)
+    eligible = (m1["assigned"][selected] & m1["ofi_valid"][selected]
+        & ~m1["receive_clock_excluded"][selected]
+        & ~m1["book_event_state_excluded"][selected]
+        & (m1["contract_index"][selected] >= 0))
+    if current_m5_contract_index is not None:
+        eligible &= ((current_m5_contract_index[found] >= 0)
+            & (m1["contract_index"][selected] == current_m5_contract_index[found]))
+    observed[found] = eligible
+    values = np.zeros(len(parents), dtype=np.float64)
+    raw = m1["ofi_contracts"][selected[eligible]]
+    _require(np.isfinite(raw).all(), "LAST_M1_OBSERVED_OFI_NONFINITE")
+    values[observed] = raw
+    result = {"parent_rows": parents.copy(), "decision_ns": decisions.copy(),
+        "source_row_indices": source_rows, "last_closed_m1_ofi_contracts": values,
+        "last_closed_m1_ofi_observed": observed}
+    for value in result.values():
+        value.setflags(write=False)
+    return result
+
+
 def iter_direction_raw_snapshot_batches(parquet_binding, *, expected_times_ns,
         block_rows=MAX_BLOCK_ROWS):
     """One chunked nested-column pass; verified scope/metadata remain caller-owned."""

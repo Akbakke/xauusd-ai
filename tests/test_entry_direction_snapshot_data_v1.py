@@ -185,3 +185,128 @@ def test_direction_raw_snapshot_parquet_roundtrip_and_wrong_clock(tmp_path):
     with pytest.raises(RuntimeError, match="PHYSICAL_PARENT_CLOCK"):
         list(data.iter_direction_raw_snapshot_batches(
             binding, expected_times_ns=wrong_clock, block_rows=2))
+
+
+def _last_m1_fixture():
+    minute = 60 * 10**9
+    start = _ns("2025-01-15T12:00:00")
+    times = start + np.arange(15, dtype=np.int64) * minute
+    source = {"bar_start_ns": times, "available_ns": times + minute,
+        "contract_index": np.full(15, 2, np.int16), "assigned": np.ones(15, bool),
+        "ofi_contracts": np.arange(15, dtype=np.float64), "ofi_valid": np.ones(15, bool),
+        "receive_clock_excluded": np.zeros(15, bool),
+        "book_event_state_excluded": np.zeros(15, bool)}
+    source["ofi_contracts"][[4, 9, 14]] = [0.0, 11.0, -7.0]
+    args = {"parent_rows": np.array([17, 42, 91], np.int64),
+        "decision_times_ns": start + np.array([5, 10, 15], np.int64) * minute,
+        "current_m5_contract_index": np.full(3, 2, np.int16)}
+    return source, args
+
+
+def _readonly_last_m1(source, args):
+    for value in (*source.values(), *args.values()):
+        if isinstance(value, np.ndarray):
+            value.setflags(write=False)
+    return source, args
+
+
+def test_last_closed_m1_ofi_exact_join_keeps_observed_zero_and_isolated_readonly_outputs():
+    source, args = _readonly_last_m1(*_last_m1_fixture())
+    before = {name: value.tobytes() for name, value in source.items()}
+    result = data.gather_direction_last_closed_m1_ofi(source, **args)
+    assert result["parent_rows"].tolist() == [17, 42, 91]
+    assert result["source_row_indices"].tolist() == [4, 9, 14]
+    assert result["last_closed_m1_ofi_contracts"].tolist() == [0.0, 11.0, -7.0]
+    assert result["last_closed_m1_ofi_observed"].tolist() == [True, True, True]
+    assert all(value.tobytes() == before[name] for name, value in source.items())
+    inputs = [*source.values(), *args.values()]
+    for value in result.values():
+        assert not value.flags.writeable
+        assert not any(np.shares_memory(value, item) for item in inputs)
+        with pytest.raises(ValueError):
+            value[0] = 0
+    source["ofi_contracts"].setflags(write=True)
+    source["ofi_contracts"][9] = 999.0
+    assert result["last_closed_m1_ofi_contracts"][1] == 11.0
+
+
+@pytest.mark.parametrize("name,replacement", [
+    ("assigned", False), ("ofi_valid", False),
+    ("receive_clock_excluded", True), ("book_event_state_excluded", True),
+    ("contract_index", -1)])
+def test_last_closed_m1_ofi_invalid_exact_row_never_uses_older_observed_value(name, replacement):
+    source, args = _last_m1_fixture()
+    source[name][9] = replacement
+    source["ofi_contracts"][8] = 12345.0
+    _readonly_last_m1(source, args)
+    result = data.gather_direction_last_closed_m1_ofi(source, **args)
+    assert result["parent_rows"].tolist() == [17, 42, 91]
+    assert result["source_row_indices"].tolist() == [4, 9, 14]
+    assert result["last_closed_m1_ofi_observed"].tolist() == [True, False, True]
+    assert result["last_closed_m1_ofi_contracts"].tolist() == [0.0, 0.0, -7.0]
+
+
+def test_last_closed_m1_ofi_missing_exact_minute_keeps_parent_without_asof_fallback():
+    source, args = _last_m1_fixture()
+    source = {name: np.delete(value, 9) for name, value in source.items()}
+    _readonly_last_m1(source, args)
+    result = data.gather_direction_last_closed_m1_ofi(source, **args)
+    assert result["source_row_indices"].tolist() == [4, -1, 13]
+    assert result["last_closed_m1_ofi_observed"].tolist() == [True, False, True]
+    assert result["last_closed_m1_ofi_contracts"].tolist() == [0.0, 0.0, -7.0]
+
+
+@pytest.mark.parametrize("contract", [3, -1])
+def test_last_closed_m1_ofi_optional_authoritative_m5_contract_comparison(contract):
+    source, args = _last_m1_fixture()
+    args["current_m5_contract_index"][1] = contract
+    _readonly_last_m1(source, args)
+    result = data.gather_direction_last_closed_m1_ofi(source, **args)
+    assert result["last_closed_m1_ofi_observed"].tolist() == [True, False, True]
+    result = data.gather_direction_last_closed_m1_ofi(source,
+        **{**args, "current_m5_contract_index": None})
+    assert result["last_closed_m1_ofi_observed"].all()
+
+
+@pytest.mark.parametrize("field,delta,reason", [
+    ("bar_start_ns", 1, "LAST_M1_GRID"),
+    ("available_ns", 60 * 10**9, "LAST_M1_EXACT_AVAILABILITY"),
+    ("available_ns", -60 * 10**9, "LAST_M1_EXACT_AVAILABILITY")])
+def test_last_closed_m1_ofi_rejects_shifted_or_future_source_clocks(field, delta, reason):
+    source, args = _last_m1_fixture()
+    source[field][9] += delta
+    _readonly_last_m1(source, args)
+    with pytest.raises(RuntimeError, match=reason):
+        data.gather_direction_last_closed_m1_ofi(source, **args)
+
+
+def test_last_closed_m1_ofi_rejects_off_grid_parent_decision():
+    source, args = _last_m1_fixture()
+    args["decision_times_ns"][1] += 60 * 10**9
+    _readonly_last_m1(source, args)
+    with pytest.raises(RuntimeError, match="LAST_M1_DECISION_GRID"):
+        data.gather_direction_last_closed_m1_ofi(source, **args)
+
+
+def test_last_closed_m1_ofi_nonfinite_only_legal_when_unobserved():
+    source, args = _last_m1_fixture()
+    source["ofi_contracts"][9] = np.nan
+    _readonly_last_m1(source, args)
+    with pytest.raises(RuntimeError, match="LAST_M1_OBSERVED_OFI_NONFINITE"):
+        data.gather_direction_last_closed_m1_ofi(source, **args)
+    source["ofi_valid"].setflags(write=True)
+    source["ofi_valid"][9] = False
+    source["ofi_valid"].setflags(write=False)
+    result = data.gather_direction_last_closed_m1_ofi(source, **args)
+    assert not result["last_closed_m1_ofi_observed"][1]
+    assert result["last_closed_m1_ofi_contracts"][1] == 0.0
+
+
+@pytest.mark.parametrize("location,key", [
+    ("source", "ofi_contracts"), ("args", "parent_rows"),
+    ("args", "decision_times_ns"), ("args", "current_m5_contract_index")])
+def test_last_closed_m1_ofi_rejects_mutable_inputs(location, key):
+    source, args = _readonly_last_m1(*_last_m1_fixture())
+    (source if location == "source" else args)[key].setflags(write=True)
+    with pytest.raises(RuntimeError, match="LAST_M1_.*(IMMUTABLE|CONTRACT_HEADER)"):
+        data.gather_direction_last_closed_m1_ofi(source, **args)

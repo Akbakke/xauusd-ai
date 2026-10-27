@@ -348,3 +348,138 @@ def test_report_anchors_and_ten_only_use_elapsed_minutes_and_price_bps(horizons)
     # This synthetic fixture increases its midpoint by exactly 1 price unit/minute.
     np.testing.assert_allclose(result["mid_return_bps"][0],
         10000 * np.array(horizons, np.float64) / 105.05, rtol=0, atol=1e-10)
+
+
+def _midpoint_audit_case(frame=None, *, cutoff=None):
+    index, fill = _case(frame, cutoff=cutoff, bars=2)
+    projected = _project(index, fill, parents=(0, 1))
+    names = ("parent_rows", "bar_start_ns", "dynamic_entry_m1_row", "decision_ns",
+        "terminal_time_ns", "elapsed_wall_seconds", "terminal_source_row",
+        "observed", "mid_move", "mid_return_bps", "sign")
+    saved = {name: projected[name].copy() for name in names}
+
+    def quotes(rows, observed):
+        result = {"time_ns": np.zeros(rows.shape, np.int64), "source_row": rows.copy(),
+            "observed": observed.copy()}
+        local = rows[observed] - index.source_row_offset
+        result["time_ns"][observed] = index.source.times.asi8[local]
+        for name in ("bid_open", "ask_open"):
+            result[name] = np.zeros(rows.shape, np.float64)
+            result[name][observed] = index.source.values[name][local]
+        result["open"] = (result["bid_open"] + result["ask_open"]) / 2.0
+        return result
+
+    entry = quotes(saved["dynamic_entry_m1_row"], np.ones(2, np.bool_))
+    terminal = quotes(saved["terminal_source_row"], saved["observed"])
+    return saved, entry, terminal, int(index.split_end_exclusive.value)
+
+
+def _compare_midpoint_case(case):
+    saved, entry, terminal, cutoff = case
+    return price.compare_direction_native_midpoint(saved, entry_quotes=entry,
+        terminal_quotes=terminal, cutoff_ns=cutoff)
+
+
+def test_native_midpoint_audit_reproduces_legacy_bits_and_leaves_inputs_unchanged():
+    case = _midpoint_audit_case()
+    before = [{name: value.tobytes() for name, value in group.items()} for group in case[:3]]
+    result = _compare_midpoint_case(case)
+    assert all(result["legacy_bit_parity"].values())
+    for output, original in (("native_mid_move", "mid_move"),
+            ("native_mid_return_bps", "mid_return_bps"), ("native_sign", "sign")):
+        assert result["arrays"][output].tobytes() == case[0][original].tobytes()
+    assert all(not value.flags.writeable for value in result["arrays"].values())
+    for report in result["per_horizon"]:
+        assert report["observed"] == 2
+        assert report["sign_confusion_legacy_by_native"] == [[0, 0, 0], [0, 0, 0], [0, 0, 2]]
+        assert report["return_bps_difference"]["maximum_absolute_difference"] == 0
+    assert before == [{name: value.tobytes() for name, value in group.items()} for group in case[:3]]
+
+
+def test_native_midpoint_audit_reports_true_direction_disagreement_without_rewriting_legacy():
+    case = _midpoint_audit_case()
+    case[2]["open"][0, 0] = case[1]["open"][0] - 1.0
+    result = _compare_midpoint_case(case)
+    first = result["per_horizon"][0]
+    assert first["sign_confusion_legacy_by_native"] == [[0, 0, 0], [0, 0, 0], [1, 0, 1]]
+    assert first["nonzero_sign_flips"] == 1
+    assert first["terminal_price_difference"]["numerically_equal"] == 1
+    assert first["return_bps_difference"]["maximum_absolute_difference"] > 0
+    assert case[0]["sign"][0, 0] == 1 and result["arrays"]["native_sign"][0, 0] == -1
+
+
+def test_native_midpoint_audit_distinguishes_zero_missing_and_cutoff():
+    frame = _with_midpoints(_m1_frame(periods=45), np.full(45, 100.0))
+    cutoff = frame.time.iloc[20]
+    frame = frame.drop(index=6).reset_index(drop=True)
+    case = _midpoint_audit_case(frame, cutoff=cutoff)
+    case[2]["open"][0, 1] += 1.0
+    result = _compare_midpoint_case(case)
+    first, fifth, fifteenth = result["per_horizon"]
+    assert first["observed"] == 1 and first["mature_missing"] == 1
+    assert first["sign_confusion_legacy_by_native"][1][1] == 1
+    assert fifth["legacy_zero_to_native_nonzero"] == 1
+    assert fifteenth["observed"] == 0 and fifteenth["cutoff_censored"] == 2
+    assert fifteenth["return_bps_difference"]["count"] == 0
+    assert fifteenth["return_bps_difference"]["mean_signed_difference"] is None
+    assert result["arrays"]["native_mid_return_bps"][0, 0] == 0
+    assert not result["arrays"]["observed"][0, 0]
+    assert case[0]["observed"][1, 0] and result["arrays"]["native_sign"][1, 0] == 0
+
+
+@pytest.mark.parametrize("name", ["mid_move", "mid_return_bps", "sign"])
+def test_native_midpoint_audit_blocks_legacy_mismatch_before_alternative_reporting(name):
+    case = _midpoint_audit_case()
+    case[0][name][0, 0] = -1 if name == "sign" else case[0][name][0, 0] + 1
+    with pytest.raises(RuntimeError, match="MIDPOINT_LEGACY_BIT_PARITY"):
+        _compare_midpoint_case(case)
+
+
+@pytest.mark.parametrize("fault,error", [
+    ("entry_clock", "MIDPOINT_ENTRY_JOIN"),
+    ("terminal_clock", "MIDPOINT_TERMINAL_JOIN"),
+    ("terminal_source", "MIDPOINT_TERMINAL_JOIN"),
+    ("saved_clock", "MIDPOINT_TERMINAL_CLOCK"),
+    ("entry_nan", "MIDPOINT_ENTRY_PRICE_OR_STORAGE"),
+    ("terminal_nan", "MIDPOINT_TERMINAL_PRICE_OR_STORAGE"),
+    ("price_dtype", "MIDPOINT_TERMINAL_HEADER:open"),
+    ("price_shape", "MIDPOINT_TERMINAL_HEADER:open"),
+    ("saved_shape", "MIDPOINT_SAVED_HEADER:observed"),
+    ("cutoff", "MIDPOINT_SAVED_SOURCE_OR_CUTOFF"),
+])
+def test_native_midpoint_audit_rejects_shifted_malformed_or_unobserved_source(fault, error):
+    saved, entry, terminal, cutoff = _midpoint_audit_case()
+    if fault == "entry_clock":
+        entry["time_ns"][0] += 60 * 10**9
+    elif fault == "terminal_clock":
+        terminal["time_ns"][0, 0] += 60 * 10**9
+    elif fault == "terminal_source":
+        terminal["source_row"][0, 0] += 1
+    elif fault == "saved_clock":
+        saved["terminal_time_ns"][0, 0] += 60 * 10**9
+    elif fault == "entry_nan":
+        entry["open"][0] = np.nan
+    elif fault == "terminal_nan":
+        terminal["open"][0, 0] = np.nan
+    elif fault == "price_dtype":
+        terminal["open"] = terminal["open"].astype(np.float32)
+    elif fault == "price_shape":
+        terminal["open"] = terminal["open"][:, :2]
+    elif fault == "saved_shape":
+        saved["observed"] = saved["observed"][:, 0]
+    else:
+        cutoff = int(saved["decision_ns"][-1] + 60 * 10**9)
+    with pytest.raises(RuntimeError, match=error):
+        price.compare_direction_native_midpoint(saved, entry_quotes=entry,
+            terminal_quotes=terminal, cutoff_ns=cutoff)
+
+
+@pytest.mark.parametrize("fault", ["nan", "nonzero", "observed_mask"])
+def test_native_midpoint_audit_rejects_fabricated_missing_storage(fault):
+    case = _midpoint_audit_case(_m1_frame(periods=45).drop(index=6).reset_index(drop=True))
+    if fault == "observed_mask":
+        case[2]["observed"][0, 0] = True
+    else:
+        case[2]["open"][0, 0] = np.nan if fault == "nan" else 1.0
+    with pytest.raises(RuntimeError, match="MIDPOINT_TERMINAL_PRICE_OR_STORAGE"):
+        _compare_midpoint_case(case)

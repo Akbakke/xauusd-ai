@@ -2,7 +2,7 @@
 
 Eneste repo: /home/andre2/src/GX1_CURRENT, work/gx1-current, på gx1-3090-lan,
 WSL Ubuntu-22.04. Root eier integrasjon, policy og launch. Ingen oppdrag fra
-andre chatter. Bestilt uavhengig retningsagent har fullført.
+andre chatter. Den tidligere lesende retningsrevisjonen er fullført.
 Les GX1_RULES helt ved første arbeid; kjør scripts/gx1_handover.sh --check.
 NEXT_RUN_POLICY er arbeidsstatus. Originale terminaler overstyrer prosa.
 
@@ -21,7 +21,7 @@ ubrukte vinduer2–4 er lukket. Ingen privat kvalifiseringsvekt ble gjenbrukt.
 Kilde84086af8 og policy var fryst gjennom hele kjøringen på fysisk boot560.
 Modell/eier/cgroup er borte; originallåsen device78/inode35 er ledig.
 Windows-task er Disabled. Alle trenings- og launchautorisasjoner er lukket.
-Ingen ny numerisk enhet er admittért; kjøreoppfølgingen settes PAUSED.
+BPS-treningsadgangen er lukket; videre BPS-sammenligning krever egen admisjon.
 Originale artefakter, prediksjoner og checkpoints bevares.
 
 Se docs/DIRECTION_BPS_PREFIX_FIT_RESULT_20261027.json og originale
@@ -91,3 +91,19 @@ TRAINmai2024–desember2025; CONTROLjan–mars2026lukket.
 Juni2026gjenbrukt utviklings-VAL; TESTfrajuli2026forseglet for tilpasning/utvalg.
 Ingen Exit,broker,live/paper,ordre,spending ellerpromotion.
 Målet er aktivt og uferdig. Teknisk PASS er ikke dokumentert retningsforbedring.
+
+## Selvstendig retningsmål — candle-fasit og ferskere GC-input
+
+Eget mål 01a17d63-d1bd-7772-bf86-654e3a6db841 følger den godkjente planen i
+/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json.
+Arbeidsstatus eies av NEXT_RUN_POLICY.independent_direction_edge_20261027.
+Ingen kontakt eller oppdrag til/fra andre chatter inngår i dette målet.
+
+To rene kontrollfunksjoner og en avgrenset audit-rute er implementert.
+Native open sammenlignes med rekonstruert bid/ask-mid først etter bitidentisk
+reproduksjon av gammel fasit. Siste-M1-OFI velges på eksakt lukket minutt,
+med egne masker og kontraktkontroll; ingen eldre gyldig rad fyller et hull.
+Eksisterende mål, modell, trening og feature-registry er ikke endret.
+Kilde-/peerreview, AST og diffkontroll er utført; faktisk kvalifisering gjenstår.
+Kun den nye, kildebundne syntetiske engangsenheten er admittért nå.
+Ingen genuin candle-måling, ny fit eller ny native-trening følger av dette.

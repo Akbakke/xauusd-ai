@@ -37129,5 +37129,65 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/VERIFIED_TERMINAL.json",
       "sha256": "f375d18a37c78ca96539b65bf8fb0d371812bbf27722d6c74b1cb411d80b2626"
     }
+  },
+  "independent_direction_edge_20261027": {
+    "status": "SOURCE_IMPLEMENTED_SYNTHETIC_QUALIFICATION_ADMITTED_GENUINE_CLOSED",
+    "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
+    "design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
+      "sha256": "a6638b593ebe41eebf1b45d60007cd2a52b04ef0a28cdb174782acb4b77b72b6"
+    },
+    "input_metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INPUT_METADATA_REVIEW.json",
+      "sha256": "ab4741e33c7a20362447ceb80027fee1feb4d95604297526d844ffe3949404b7"
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_001.json",
+      "sha256": "68eb0eae6d971ec5fd958b5b8043c14db235fd105de95f9b70a8c732c76e5513"
+    },
+    "current_unit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_PLAN_001.json",
+      "sha256": "75b246da1cfc262de8a0b5b4b0f33de7f8a2cb4684d27def93ed26301fee8f9a"
+    },
+    "own_source_scope": [
+      "gx1/contracts/entry_direction_price_projection_v1.py",
+      "gx1/contracts/entry_direction_snapshot_data_v1.py",
+      "gx1/scripts/audit_entry_direction_candle_midpoints_v1.py",
+      "tests/test_entry_direction_price_projection_v1.py",
+      "tests/test_entry_direction_snapshot_data_v1.py",
+      "tests/test_audit_entry_direction_candle_midpoints_v1.py"
+    ],
+    "other_chat_contact_authorized": false,
+    "source_only_review_complete": true,
+    "synthetic_qualification_complete": false,
+    "genuine_candle_measurement_complete": false,
+    "last_M1_direction_value_measured": false,
+    "training_exposure_comparison_complete": false,
+    "test_data_used": false
+  },
+  "independent_direction_candle_synthetic_20261027": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_SYNTHETIC_PLAN_001.json",
+      "sha256": "75b246da1cfc262de8a0b5b4b0f33de7f8a2cb4684d27def93ed26301fee8f9a"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "synthetic_only": true,
+    "saved_payload_reads_authorized": false,
+    "native_model_calls_authorized": false,
+    "test_data_used": false,
+    "expected_test_cases_by_file": {
+      "tests/test_entry_direction_price_projection_v1.py": 55,
+      "tests/test_entry_direction_snapshot_data_v1.py": 27,
+      "tests/test_audit_entry_direction_candle_midpoints_v1.py": 31
+    },
+    "source_admission": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_001.json",
+      "sha256": "68eb0eae6d971ec5fd958b5b8043c14db235fd105de95f9b70a8c732c76e5513"
+    }
   }
 }

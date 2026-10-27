@@ -178,3 +178,146 @@ def project_direction_price_endpoints(
             if isinstance(value, np.ndarray):
                 value.setflags(write=False)
     return result
+
+
+def compare_direction_native_midpoint(saved, *, entry_quotes, terminal_quotes, cutoff_ns):
+    """Audit canonical native opens against the existing arithmetic midpoint.
+
+    This pure comparison never changes the projector or its targets. The caller
+    owns file identity, source offsets and quote gathering. Quotes carry actual
+    source clocks/rows and an independent observation mask; absent terminal
+    quotes use time/price zero and source row -1. Native ``open`` is not proof of
+    a simultaneous executable quote at the candle's nominal start timestamp.
+    """
+    members = {
+        "parent_rows", "bar_start_ns", "dynamic_entry_m1_row", "decision_ns",
+        "terminal_time_ns", "elapsed_wall_seconds", "terminal_source_row",
+        "observed", "mid_move", "mid_return_bps", "sign",
+    }
+    _require(isinstance(saved, dict) and set(saved) == members, "MIDPOINT_SAVED_MEMBERS")
+    parents = saved["parent_rows"]
+    _require(isinstance(parents, np.ndarray) and parents.dtype == np.int64
+        and parents.ndim == 1 and len(parents) > 0, "MIDPOINT_PARENT_HEADER")
+    size, shape = len(parents), (len(parents), len(HORIZONS))
+    for name in members:
+        dtype = (np.bool_ if name == "observed" else np.int8 if name == "sign"
+            else np.float64 if name in ("mid_move", "mid_return_bps") else np.int64)
+        expected_shape = (size,) if name in (
+            "parent_rows", "bar_start_ns", "dynamic_entry_m1_row", "decision_ns") else shape
+        value = saved[name]
+        _require(isinstance(value, np.ndarray) and value.dtype == dtype
+            and value.shape == expected_shape, "MIDPOINT_SAVED_HEADER:" + name)
+    bars, decisions, observed = saved["bar_start_ns"], saved["decision_ns"], saved["observed"]
+    _require(type(cutoff_ns) is int and 0 < cutoff_ns <= np.iinfo(np.int64).max,
+        "MIDPOINT_CUTOFF")
+    _require(np.array_equal(parents, np.arange(size, dtype=np.int64))
+        and np.all(bars >= 0) and np.all(np.diff(bars) > 0)
+        and np.all(bars % _BAR_NS == 0)
+        and np.all(bars <= np.iinfo(np.int64).max - _BAR_NS - max(HORIZONS) * _MINUTE_NS)
+        and np.array_equal(decisions, bars + _BAR_NS)
+        and np.all(decisions < cutoff_ns), "MIDPOINT_PARENT_CLOCK")
+    expected_terminal = decisions[:, None] + np.asarray(HORIZONS, np.int64) * _MINUTE_NS
+    _require(np.array_equal(saved["terminal_time_ns"], expected_terminal)
+        and np.array_equal(saved["elapsed_wall_seconds"],
+            np.broadcast_to(np.asarray(HORIZONS, np.int64) * 60, shape)), "MIDPOINT_TERMINAL_CLOCK")
+    _require(np.all(saved["dynamic_entry_m1_row"] >= 0)
+        and np.all(np.diff(saved["dynamic_entry_m1_row"]) > 0)
+        and np.all(saved["terminal_source_row"][observed] >= 0)
+        and np.all(saved["terminal_source_row"][~observed] == -1)
+        and np.all(expected_terminal[observed] < cutoff_ns), "MIDPOINT_SAVED_SOURCE_OR_CUTOFF")
+    _require(np.isin(saved["sign"], (-1, 0, 1)).all()
+        and all(np.isfinite(saved[name]).all() and np.all(saved[name][~observed] == 0)
+            for name in ("mid_move", "mid_return_bps", "sign")), "MIDPOINT_SAVED_STORAGE")
+    quote_members = {"time_ns", "source_row", "observed", "open", "bid_open", "ask_open"}
+    for label, quotes, expected_shape in (
+            ("ENTRY", entry_quotes, (size,)), ("TERMINAL", terminal_quotes, shape)):
+        _require(isinstance(quotes, dict) and set(quotes) == quote_members,
+            "MIDPOINT_" + label + "_MEMBERS")
+        for name in quote_members:
+            dtype = np.bool_ if name == "observed" else np.int64 if name in (
+                "time_ns", "source_row") else np.float64
+            _require(isinstance(quotes[name], np.ndarray) and quotes[name].dtype == dtype
+                and quotes[name].shape == expected_shape, "MIDPOINT_" + label + "_HEADER:" + name)
+        seen = quotes["observed"]
+        _require(np.all(quotes["time_ns"][~seen] == 0)
+            and np.all(quotes["source_row"][~seen] == -1)
+            and all(np.isfinite(quotes[name][seen]).all() and np.all(quotes[name][seen] > 0)
+                and np.all(quotes[name][~seen] == 0) for name in ("open", "bid_open", "ask_open"))
+            and np.all(quotes["ask_open"][seen] >= quotes["bid_open"][seen]),
+            "MIDPOINT_" + label + "_PRICE_OR_STORAGE")
+    _require(entry_quotes["observed"].all()
+        and np.array_equal(entry_quotes["time_ns"], decisions)
+        and np.array_equal(entry_quotes["source_row"], saved["dynamic_entry_m1_row"]),
+        "MIDPOINT_ENTRY_JOIN")
+    _require(np.array_equal(terminal_quotes["observed"], observed)
+        and np.array_equal(terminal_quotes["time_ns"][observed], expected_terminal[observed])
+        and np.array_equal(terminal_quotes["source_row"], saved["terminal_source_row"])
+        and np.all(terminal_quotes["source_row"][observed]
+            > np.broadcast_to(entry_quotes["source_row"][:, None], shape)[observed]),
+        "MIDPOINT_TERMINAL_JOIN")
+
+    # First reproduce the legacy calculation using independently gathered quotes.
+    legacy_move, legacy_bps = np.zeros(shape, np.float64), np.zeros(shape, np.float64)
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        entry_mid = (entry_quotes["bid_open"] + entry_quotes["ask_open"]) / 2.0
+        terminal_mid = (terminal_quotes["bid_open"] + terminal_quotes["ask_open"]) / 2.0
+        start = np.broadcast_to(entry_mid[:, None], shape)[observed]
+        change = terminal_mid[observed] - start
+        legacy_move[observed], legacy_bps[observed] = change, 10000.0 * change / start
+    _require(np.isfinite(entry_mid).all() and np.isfinite(terminal_mid[observed]).all()
+        and np.isfinite(legacy_move).all() and np.isfinite(legacy_bps).all(), "MIDPOINT_LEGACY_FINITE")
+    legacy_sign = np.sign(legacy_move).astype(np.int8)
+    reproduced = {"observed": terminal_quotes["observed"], "mid_move": legacy_move,
+        "mid_return_bps": legacy_bps, "sign": legacy_sign}
+    _require(all(value.tobytes() == saved[name].tobytes() for name, value in reproduced.items()),
+        "MIDPOINT_LEGACY_BIT_PARITY")
+
+    native_move, native_bps = np.zeros(shape, np.float64), np.zeros(shape, np.float64)
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        start = np.broadcast_to(entry_quotes["open"][:, None], shape)[observed]
+        change = terminal_quotes["open"][observed] - start
+        native_move[observed], native_bps[observed] = change, 10000.0 * change / start
+    _require(np.isfinite(native_move).all() and np.isfinite(native_bps).all(), "MIDPOINT_NATIVE_FINITE")
+    native_sign = np.sign(native_move).astype(np.int8)
+
+    def difference_summary(native, legacy):
+        count = len(native)
+        if not count:
+            return {"count": 0, "bit_identical": 0, "numerically_equal": 0,
+                "mean_signed_difference": None, "mean_absolute_difference": None,
+                "maximum_absolute_difference": None}
+        with np.errstate(over="ignore", invalid="ignore"):
+            difference = native - legacy
+            mean, mean_abs, maximum = float(difference.mean()), float(np.abs(difference).mean()), float(np.abs(difference).max())
+        _require(np.isfinite((mean, mean_abs, maximum)).all(), "MIDPOINT_DIFFERENCE_FINITE")
+        return {"count": count, "bit_identical": int(np.count_nonzero(
+            native.view(np.uint64) == legacy.view(np.uint64))),
+            "numerically_equal": int(np.count_nonzero(native == legacy)),
+            "mean_signed_difference": mean, "mean_absolute_difference": mean_abs,
+            "maximum_absolute_difference": maximum}
+
+    reports = []
+    for j, horizon in enumerate(HORIZONS):
+        seen = observed[:, j]
+        old, new = legacy_sign[seen, j], native_sign[seen, j]
+        confusion = np.bincount((old.astype(np.int64) + 1) * 3 + new + 1,
+            minlength=9).reshape(3, 3)
+        reports.append({"horizon_minutes": horizon, "parents": size,
+            "observed": int(seen.sum()), "mature_missing": int(np.count_nonzero(
+                ~seen & (expected_terminal[:, j] < cutoff_ns))),
+            "cutoff_censored": int(np.count_nonzero(expected_terminal[:, j] >= cutoff_ns)),
+            "entry_price_difference": difference_summary(entry_quotes["open"][seen], entry_mid[seen]),
+            "terminal_price_difference": difference_summary(terminal_quotes["open"][seen, j], terminal_mid[seen, j]),
+            "return_bps_difference": difference_summary(native_bps[seen, j], legacy_bps[seen, j]),
+            "sign_confusion_legacy_by_native": confusion.tolist(),
+            "nonzero_sign_flips": int(np.count_nonzero(old * new == -1)),
+            "legacy_zero_to_native_nonzero": int(np.count_nonzero((old == 0) & (new != 0))),
+            "legacy_nonzero_to_native_zero": int(np.count_nonzero((old != 0) & (new == 0)))})
+    arrays = {"observed": observed.copy(), "native_mid_move": native_move,
+        "native_mid_return_bps": native_bps, "native_sign": native_sign}
+    for value in arrays.values():
+        value.setflags(write=False)
+    return {"schema_version": "gx1_direction_native_midpoint_parity_v1",
+        "horizons_minutes": HORIZONS, "parent_rows": size, "cutoff_ns_exclusive": cutoff_ns,
+        "legacy_bit_parity": {name: True for name in reproduced},
+        "sign_order": (-1, 0, 1), "per_horizon": reports, "arrays": arrays}
