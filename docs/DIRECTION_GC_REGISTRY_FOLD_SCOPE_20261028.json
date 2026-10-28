@@ -1,0 +1,69 @@
+{
+  "schema_version": "gx1_gc_registry_fold_scope_diagnosis_v1",
+  "status": "COMPLETE_CAPPED_READ_ONLY",
+  "inputs": {
+    "context_mmap": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261/SUPPORT_SCRATCH/current051/ctx_cont.mmap",
+      "sha256": "3765bd5138548b11d8f52464175ad9bdfd38bc69355e0415307167264301b78b"
+    },
+    "prefix_normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+      "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "sample_pair": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    }
+  },
+  "registry": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/NATIVE_GC_CONTEXT_FIELDS_20261018_049.json",
+    "sha256": "3e444777099a848cd8795688b57a19122d1ac5454f42902a3495e64aad73a757"
+  },
+  "registry_source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_context_v1.py",
+    "sha256": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf"
+  },
+  "global_registry": {
+    "train_window": [
+      "2024-05-01T00:00:00+00:00",
+      "2026-01-01T00:00:00+00:00"
+    ],
+    "train_decision_rows": 118249,
+    "exact_parent_clock_sha256": "6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca",
+    "outcomes_accessed": false,
+    "registered_value_fields": 1205,
+    "unsupported_count": 0,
+    "alias_count": 0,
+    "selection_rule": "retain every observed declared source and observed constant; only proven same-source formula/clock aliases removed"
+  },
+  "retained_registry": {
+    "train_window": [
+      "2024-05-01T00:00:00Z",
+      "2026-01-01T00:00:00Z"
+    ],
+    "outcomes_accessed": false,
+    "registered_value_fields": 210,
+    "unsupported_count": 102,
+    "alias_count": 7
+  },
+  "first_fit": {
+    "train_parents": 47602,
+    "normalization_fit_scope": "train_only",
+    "normalization_fit_end_bar_start_utc": "2024-12-31T21:50:00+00:00",
+    "fields_with_no_observed_train_parent": 0,
+    "registered_fields_with_one_or_more_observed_train_parent": 1205
+  },
+  "full_surface_registry_observed_counts_equal": 1205,
+  "q1_evaluation_parents": 17288,
+  "q2_sample_parents": 1760,
+  "limits": "The registry selection and its retained predecessor were built over the broader pre-2026 development population, so it was not an independently frozen 2024-only schema. All currently retained fields were already observed within the prefix, and the registry declares outcomes were not accessed; this does not establish absence of lookahead elsewhere, historical revisions, or the identical schema under a full prefix-only rebuild.",
+  "recording": "Field observation aggregates are transcribed from a capped read-only terminal computation. Registry clock equality and file hashes were independently checked while writing this summary; this JSON is not its own execution receipt.",
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}
