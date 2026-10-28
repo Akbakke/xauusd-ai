@@ -17,12 +17,26 @@ Den separat admitterte 60-utgangsmodellen er fullført etter fysisk boot 573: 47
 
 Dette er **punktestimater**, betinget på observerte ikke-null utfall, fra én gjenbrukt utviklingsfold; antall er forskjellig per horisont. Tabellen er ikke en seleksjon av beste minutt. Den forhåndsdefinerte, simultane dag-/ukeanalysen på alle 60 hoder er nå fullført: ingen minutter har begge nedre båndgrenser over 0,5. Ved 60 minutter er AUC 0,521054 med simultant dagbånd 0,491561–0,550547 og ukebånd 0,493632–0,548476. Ved 5 minutter er kandidatens AUC 0,500183 mot 0,503021 for den gamle modellen på de samme 17 197 kvalifiserte foreldrene; parret dagintervall for differansen er −0,016391 til 0,009926, og ukeintervall −0,016751 til 0,009815. Rangbedring er ikke dokumentert. Kandidatens logloss er 0,694562 mot 0,693514 og Brier 0,250706 mot 0,250183; begge parrede intervaller for kandidat minus gammel er positive under begge blokkskjemaer. Disse to intervallene rapporteres separat og gjelder én gjenbrukt fold. Arkitektur og antall mål endret seg samtidig, så resultatet kan ikke tilskrives én faktor. Blokkutbyttbarhet er ikke etablert. Ingen FLAT-/banekvalitet, uavhengig bekreftelse eller økonomisk edge er bevist. Desimalrevisjonen nedenfor har målt fortegnsfeilen på faste skårer; retrening med korrigerte mål er ikke målt.
 
+På de samme 17 197 femminuttsradene svarer den nye modellen NED på 14 905 (86,67 %) ved fast 0,5-terskel, mens faktisk OPP er 8 870 (51,58 %). Gjennomsnittlig predikert OPP-sannsynlighet er 48,74 %, beregnet fra alle de lagrede kalibreringsbøttene; de to ikke-tomme bøttene dekker 0,4–0,6. Dette viser skjev kalibrering på denne folden. En monoton terskel-/nivåendring uten ny rangering kan ikke endre AUC på samme rader, og resultatet beviser ikke hvorfor rangeringen er svak.
+
 - Treningsresultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json`, SHA-256 `2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8`.
 - Alle 60 senere punktmålinger: samme mappe, `OOF.json`, SHA-256 `349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451`.
-
-På de samme 17 197 femminuttsradene svarer den nye modellen NED på 14 905 (86,67 %) ved fast 0,5-terskel, mens faktisk OPP er 8 870 (51,58 %). Gjennomsnittlig predikert OPP-sannsynlighet er 48,74 %, beregnet fra alle de lagrede kalibreringsbøttene; de to ikke-tomme bøttene dekker 0,4–0,6. Dette viser skjev kalibrering på denne folden. En monoton terskel-/nivåendring uten ny rangering kan ikke endre AUC på samme rader, og resultatet beviser ikke hvorfor rangeringen er svak.
 - Simultan 1–60- og parret 5min-usikkerhet: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_UNCERTAINTY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `47f20a687853e9ce8617aa96dd1cf0a8c47987b4c580c78f1805ceaeef60a687`. 10 000 trekninger per skjema, 77 UTC-dager og 14 UTC-uker. Bruker de opprinnelige målmaskene; desimaleffekten er kvantifisert separat.
 - Vaktkvittering: samme run, `RUNTIME/receipts/invocation-0001.json`, SHA-256 `5f6a242dae28ffa802ca235da64d8512c0b5437f8f6fa8f45082b8f20006f51c`. Idle-kontroll: `POWER_IDLE_RESTORE_001.json`, SHA-256 `86fd4c8e4754d853a84d22772de6c97229d314917dbd09b9d9a529ccaf348d51`.
+
+## Hvilke observasjoner kommer med?
+
+Alle fem radene nedenfor starter med de samme 17 288 senere foreldrene. Tabellen bruker den opprinnelige målidentiteten; desimalauditen dokumenterer de få ekstra nullbevegelsene separat. En fremtidig pris som mangler, en observert nullbevegelse og et endepunkt utenfor foldens cutoff holdes atskilt.
+
+| Minutter | Gyldige ikke-null | Modne, men manglende pris | Modne nullbevegelser | Umodne ved foldgrensen |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 17 215 | 0 | 73 | 0 |
+| 5 | 17 197 | 63 | 27 | 1 |
+| 15 | 17 080 | 189 | 16 | 3 |
+| 30 | 16 890 | 378 | 14 | 6 |
+| 60 | 16 513 | 756 | 7 | 12 |
+
+Horisontene evalueres derfor på ulike rader: en AUC-forskjell mellom for eksempel 5 og 60 minutter kan også påvirkes av hvem som er med. De manglende radene øker systematisk med horisonten; årsaken til akkurat dette mønsteret er ikke fastslått av disse tellingene alene.
 
 ## Dokumenterte feil og begrensninger
 
@@ -47,6 +61,7 @@ På de samme 17 197 femminuttsradene svarer den nye modellen NED på 14 905 (86,
 - Alle 1 205 registrerte GC-verdifelt finnes i aktiv kontekst og er med i tidligere numerisk indeks for publisert M1 til TF. Feltdekning varierer fra 3 til 227 808 observerte verdier. En separat tidligere rå-MBP-til-valgt-M1-kjede kvalifiserte 66 filer og deres sluttjoin. Dette etablerer ikke at hvert felt lærer prediktivt eller at alle kilde- og historikkspørsmål er lukket.
 - Av 890 aktive XAU-MTF-felt/tidsramme-posisjoner matcher 730 både navn og kolonne i tidligere numerisk indeks for samme cache-hash. De resterende 160 er 32 kartgeometrifelt på hver av fem tidsrammer som ikke står i akkurat den indeksen. Det finnes fokuserte syntetiske tester; fravær fra indeksen beviser ikke feil eller at ingen annen kontroll finnes. Egen reell tall-/kausalitetsdekning må avklares før generell PASS.
 - Den eldre tre-hoders modellen forbedret 5-minutters TRAIN-AUC fra 0,515888 til 0,533534 ved én til tre pass, men senere AUC gikk fra 0,503021 til 0,500950, med dårligere senere proper scores. Dette er ett gjenbrukt fold, ikke en universell dom over trening.
+- En separat énpass-kandidat som tilføyde signed-bps-supervisjon fikk 5min senere AUC 0,496823 mot 0,503021 for baseline på samme 17 197 kvalifiserte rader; korrigerte parrede dag-/ukeintervaller for differansen inkluderer null. Heller ikke bps-feilen slo begge enkle referanser dokumentert. Dette er én seed og én gjenbrukt fold, ikke bevis for at bps-supervisjon generelt er uten verdi. Se `docs/DIRECTION_BPS_SAVED_COMPARISON_RESULT_20261027.json`.
 - En tidligere ikke-lineær ET252-referanse oppnådde 5-minutters innen-fold-AUC 0,513092 mot native 0,503735 på 67 112 felles utviklingsrader; korrigerte parvise dag-/ukeintervaller støttet den relative forskjellen. Modellhistorikk, normalisering og arkitektur var ikke identiske. Dette er ikke urørt test eller økonomisk edge.
 - D1/makro-feltene er aktive, men historiske COT-revisjonsversjoner og GLD-/VIX-tilgjengelighetsklokker er ikke fullstendig kvalifisert. Koden har forsiktige as-of-regler; framtidslekkasje er ikke bevist.
 - De 60 logitene deler en representasjon med 128 dimensjoner. Uvektet BCE fordeler seg over tilgjengelige horisontceller; første prefix har 1,69 % av cellene ved 5 minutter og 49,46 % ved 31–60 minutter. Dette er celletall, ikke målte gradientandeler. Et lite privat 32-foreldre-eksempel ga gradienter i alle 60 hoder; det beviser ikke verdien av hvert felt eller samspill.

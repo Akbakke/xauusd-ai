@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:46:58.499816+00:00",
+  "observed_utc": "2026-10-28T15:49:05.254924+00:00",
   "status": "DENSE_ONEPASS_UNCERTAINTY_COMPLETE_NO_QUALIFIED_EDGE_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "55fc3da0c684748dcd087a4822ca18c4ba4e7b1532ff3812be020ccd9f894deb"
+      "sha256": "435da76cbb550628120b7b26671264b0b71db30245b45e244dbe665cc5932ef3"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
