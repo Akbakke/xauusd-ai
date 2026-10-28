@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T18:01:25.665602+00:00",
-  "status": "NATIVE_M15_D1_H4_REPLAYS_ADMITTED_SEQUENTIALLY",
+  "observed_utc": "2026-10-28T18:03:10.051205+00:00",
+  "status": "M15_NATIVE_REPLAY_EXACT_D1_H4_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Execute the separately bound M15, D1 and H4 native-history replays one at a time; consume and inspect each before the next. No model, optimizer, TEST, broker or trading.",
+  "next_action": "Execute the separately bound D1 native-history replay next; inspect and consume it before H4. No model, training, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42914,25 +42914,44 @@
     "economic_edge_qualified": false
   },
   "independent_direction_m15_native_history_replay_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M15_NATIVE_HISTORY_REPLAY_PLAN_20261028_001.json",
       "sha256": "555a45affade691bd5d7b480e9902ed9fa4d4e4ce8d5215e782bc1fdc5f24988"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "checkpoint_reads_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 1200,
-    "scope": "Recompute 31 active M15 trendline coordinates from the exact hash-bound native M5 source starting in 2009 and the frozen M15 parameters; compare native cache and actual model windows strictly before July 2025."
+    "scope": "Recompute 31 active M15 trendline coordinates from the exact hash-bound native M5 source starting in 2009 and the frozen M15 parameters; compare native cache and actual model windows strictly before July 2025.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M15_NATIVE_HISTORY_REPLAY_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "6edeae639de944c176c57c8d3aba6774a532bf07f32ccd88719cff698402064d"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M15_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "1f06f563c2258c9766c53963f8883a3c9f84d6c1dd8b3f1142f67da554442c38"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M15_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "c6ac07dd6ee7a2ee0cdfb7d88f84988610d1755b19ef4308ea65c0b1430f63e5"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M15_NATIVE_HISTORY_REPLAY_20261028_001/TERMINAL.json",
+      "sha256": "476264b5f0fce2b644ae17bc44e5ab14e1ec1247e23dad3d04c81e4fa730cdf8"
+    },
+    "native_history_cache_mismatched_cells": 0,
+    "model_windows_with_mismatch": 0,
+    "economic_edge_qualified": false
   },
   "independent_direction_d1_native_history_replay_20261028_001": {
     "status": "ADMITTED",
