@@ -22,7 +22,7 @@ from gx1.audit import direction_gc_mtf_intervention_v1 as intervention
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
 STAGE = 'independent_direction_gc_mtf_later_followup_20261028_001'
-CONTEXT_STAGE = 'independent_direction_gc_context_followup_20261028_001'
+CONTEXT_STAGE = 'independent_direction_gc_context_followup_20261028_002'
 OWNER = 'gx1/scripts/run_entry_native_direction_research_window_v1.py'
 SOURCE_PATHS = (
     'gx1/audit/direction_gc_mtf_followup_v1.py',
@@ -109,7 +109,7 @@ def run(*, plan_path, plan_sha256, device, out_dir, mode='history'):
     require(mode in ('history', 'context_and_history'), 'EXPERIMENT_MODE')
     context_mode = mode == 'context_and_history'
     experiment_stage = CONTEXT_STAGE if context_mode else STAGE
-    experiment_output = ('DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_001' if context_mode
+    experiment_output = ('DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002' if context_mode
         else 'DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001')
     experiment_design = ('DIRECTION_GC_CONTEXT_FOLLOWUP_20261028.json' if context_mode
         else 'DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028.json')
