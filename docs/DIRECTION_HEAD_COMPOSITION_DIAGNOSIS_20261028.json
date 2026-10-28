@@ -1,0 +1,1274 @@
+{
+  "schema_version": "gx1_saved_head_composition_diagnosis_v1",
+  "status": "COMPLETE_SAVED_PREDICTIONS_ONLY",
+  "sources": {
+    "gx1/contracts/entry_native_direction_dense_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_v1.py",
+      "sha256": "ec86135c00aaaceb41f44f91517345e4d54a6efc217d3efdbcf0e414d1ae1a3a"
+    },
+    "gx1/contracts/entry_native_direction_research_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+      "sha256": "8beccc55c551c22c37e0af9bec10bc3b911e6ff11c69c6d5ba83abcc1b096e16"
+    }
+  },
+  "inputs": {
+    "q1": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "q2": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RECIPE.json",
+      "sha256": "64a7243076812506b7c2dc3ebd32c89cc2202ba9ff5ae2159f936bc830e75d2d"
+    },
+    "initial_measurement": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
+      "sha256": "a2d512dfab2506ca6d127cd5a2469c25e1d108cfb83c94020d21d5ad451efa73"
+    },
+    "initial_measurement_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.npz",
+      "sha256": "d9f820f6d38b56879f6ae0811255e240603502ca08a0be257f92da1ca6499871"
+    },
+    "final_train_measurement": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json",
+      "sha256": "c1c07643e1a2e6aa0912f16efb5cc6dee49bd6791edfc5f82ec8693976e29eda"
+    },
+    "final_train_measurement_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.npz",
+      "sha256": "d0452b4a3e04cb9420c08f17a1c7aee98f6f09f1048c5c97d15dfb44ceec3acd"
+    }
+  },
+  "first_prefix_corrected_truth": {
+    "5": {
+      "eligible": 47282,
+      "up": 24069,
+      "up_fraction": 0.509052070555391
+    },
+    "6": {
+      "eligible": 47327,
+      "up": 24135,
+      "up_fraction": 0.5099626006296617
+    }
+  },
+  "groups": {
+    "initial_train_256": {
+      "parents": 256,
+      "five_six_common_eligible": {
+        "5": {
+          "eligible": 256,
+          "predicted_up": 1,
+          "actual_up": 128,
+          "auc": 0.44097900390625,
+          "mean_predicted_up_probability": 0.3269946062289219
+        },
+        "6": {
+          "eligible": 256,
+          "predicted_up": 135,
+          "actual_up": 134,
+          "auc": 0.6003180817225349,
+          "mean_predicted_up_probability": 0.5065947888876435
+        }
+      },
+      "five_six_pair": {
+        "first_minute": 5,
+        "second_minute": 6,
+        "eligible": 256,
+        "prediction_logit_pearson": -0.041279697707748204,
+        "truth_sign_pearson": 0.7977519184043602,
+        "prediction_sign_switch": 136,
+        "truth_sign_switch": 26
+      }
+    },
+    "final_train_256": {
+      "parents": 256,
+      "five_six_common_eligible": {
+        "5": {
+          "eligible": 256,
+          "predicted_up": 55,
+          "actual_up": 128,
+          "auc": 0.533447265625,
+          "mean_predicted_up_probability": 0.4920319834306686
+        },
+        "6": {
+          "eligible": 256,
+          "predicted_up": 252,
+          "actual_up": 134,
+          "auc": 0.4786518228529484,
+          "mean_predicted_up_probability": 0.5179047184714936
+        }
+      },
+      "five_six_pair": {
+        "first_minute": 5,
+        "second_minute": 6,
+        "eligible": 256,
+        "prediction_logit_pearson": 0.6099680105826695,
+        "truth_sign_pearson": 0.7977519184043602,
+        "prediction_sign_switch": 199,
+        "truth_sign_switch": 26
+      }
+    },
+    "q1": {
+      "parents": 17288,
+      "five_six_common_eligible": {
+        "5": {
+          "eligible": 17157,
+          "predicted_up": 2287,
+          "actual_up": 8848,
+          "auc": 0.4998684064339481,
+          "mean_predicted_up_probability": 0.48738171014564813
+        },
+        "6": {
+          "eligible": 17157,
+          "predicted_up": 17051,
+          "actual_up": 8721,
+          "auc": 0.49355309630416905,
+          "mean_predicted_up_probability": 0.5219852524227214
+        }
+      },
+      "five_six_pair": {
+        "first_minute": 5,
+        "second_minute": 6,
+        "eligible": 17157,
+        "prediction_logit_pearson": 0.17090309126617703,
+        "truth_sign_pearson": 0.7174809249887608,
+        "prediction_sign_switch": 14782,
+        "truth_sign_switch": 2423
+      },
+      "adjacent_summary": {
+        "pairs": 59,
+        "median_prediction_correlation": 0.8274338140848017,
+        "negative_prediction_correlations": 6,
+        "median_truth_correlation": 0.8852105131501327,
+        "negative_truth_correlations": 0,
+        "anchor_boundary_pairs": 5,
+        "median_prediction_correlation_anchor_boundary": 0.6406193715775101,
+        "auxiliary_only_pairs": 54,
+        "median_prediction_correlation_auxiliary_only": 0.832200725046217
+      }
+    },
+    "q2": {
+      "parents": 1760,
+      "five_six_common_eligible": {
+        "5": {
+          "eligible": 1751,
+          "predicted_up": 73,
+          "actual_up": 880,
+          "auc": 0.48966965869950946,
+          "mean_predicted_up_probability": 0.4813316984453637
+        },
+        "6": {
+          "eligible": 1751,
+          "predicted_up": 1742,
+          "actual_up": 886,
+          "auc": 0.46826159005206225,
+          "mean_predicted_up_probability": 0.5203209481526463
+        }
+      },
+      "five_six_pair": {
+        "first_minute": 5,
+        "second_minute": 6,
+        "eligible": 1751,
+        "prediction_logit_pearson": -0.04556122792795935,
+        "truth_sign_pearson": 0.7441479068454044,
+        "prediction_sign_switch": 1669,
+        "truth_sign_switch": 224
+      },
+      "adjacent_summary": {
+        "pairs": 59,
+        "median_prediction_correlation": 0.7415008585104524,
+        "negative_prediction_correlations": 8,
+        "median_truth_correlation": 0.8916901710797329,
+        "negative_truth_correlations": 0,
+        "anchor_boundary_pairs": 5,
+        "median_prediction_correlation_anchor_boundary": 0.26205868920320874,
+        "auxiliary_only_pairs": 54,
+        "median_prediction_correlation_auxiliary_only": 0.768646356989461
+      }
+    }
+  },
+  "all_adjacent_pairs": {
+    "q1": [
+      {
+        "first_minute": 1,
+        "second_minute": 2,
+        "eligible": 17163,
+        "prediction_logit_pearson": -0.21718695702897403,
+        "truth_sign_pearson": 0.5241877457120854,
+        "prediction_sign_switch": 7618,
+        "truth_sign_switch": 4085
+      },
+      {
+        "first_minute": 2,
+        "second_minute": 3,
+        "eligible": 17188,
+        "prediction_logit_pearson": 0.24945707320549212,
+        "truth_sign_pearson": 0.6274966085587735,
+        "prediction_sign_switch": 5991,
+        "truth_sign_switch": 3200
+      },
+      {
+        "first_minute": 3,
+        "second_minute": 4,
+        "eligible": 17204,
+        "prediction_logit_pearson": 0.46027016005216337,
+        "truth_sign_pearson": 0.6878010818783622,
+        "prediction_sign_switch": 4834,
+        "truth_sign_switch": 2684
+      },
+      {
+        "first_minute": 4,
+        "second_minute": 5,
+        "eligible": 17159,
+        "prediction_logit_pearson": 0.6406193715775101,
+        "truth_sign_pearson": 0.73018380700886,
+        "prediction_sign_switch": 4619,
+        "truth_sign_switch": 2313
+      },
+      {
+        "first_minute": 5,
+        "second_minute": 6,
+        "eligible": 17157,
+        "prediction_logit_pearson": 0.17090309126617703,
+        "truth_sign_pearson": 0.7174809249887608,
+        "prediction_sign_switch": 14782,
+        "truth_sign_switch": 2423
+      },
+      {
+        "first_minute": 6,
+        "second_minute": 7,
+        "eligible": 17157,
+        "prediction_logit_pearson": -0.6431126406674811,
+        "truth_sign_pearson": 0.755723058733791,
+        "prediction_sign_switch": 7362,
+        "truth_sign_switch": 2095
+      },
+      {
+        "first_minute": 7,
+        "second_minute": 8,
+        "eligible": 17164,
+        "prediction_logit_pearson": -0.5997708072177986,
+        "truth_sign_pearson": 0.7846477221566119,
+        "prediction_sign_switch": 7978,
+        "truth_sign_switch": 1847
+      },
+      {
+        "first_minute": 8,
+        "second_minute": 9,
+        "eligible": 17166,
+        "prediction_logit_pearson": -0.5038898986158257,
+        "truth_sign_pearson": 0.804397464143981,
+        "prediction_sign_switch": 8110,
+        "truth_sign_switch": 1678
+      },
+      {
+        "first_minute": 9,
+        "second_minute": 10,
+        "eligible": 17104,
+        "prediction_logit_pearson": 0.46295674109332535,
+        "truth_sign_pearson": 0.8189649469152138,
+        "prediction_sign_switch": 5800,
+        "truth_sign_switch": 1546
+      },
+      {
+        "first_minute": 10,
+        "second_minute": 11,
+        "eligible": 17096,
+        "prediction_logit_pearson": 0.701358800959011,
+        "truth_sign_pearson": 0.7986773863496435,
+        "prediction_sign_switch": 1444,
+        "truth_sign_switch": 1719
+      },
+      {
+        "first_minute": 11,
+        "second_minute": 12,
+        "eligible": 17097,
+        "prediction_logit_pearson": 0.2978530640105913,
+        "truth_sign_pearson": 0.8182508614510744,
+        "prediction_sign_switch": 9032,
+        "truth_sign_switch": 1552
+      },
+      {
+        "first_minute": 12,
+        "second_minute": 13,
+        "eligible": 17111,
+        "prediction_logit_pearson": 0.8706978310370566,
+        "truth_sign_pearson": 0.8271916421233422,
+        "prediction_sign_switch": 3076,
+        "truth_sign_switch": 1476
+      },
+      {
+        "first_minute": 13,
+        "second_minute": 14,
+        "eligible": 17116,
+        "prediction_logit_pearson": 0.8717881533527619,
+        "truth_sign_pearson": 0.8396237686553083,
+        "prediction_sign_switch": 4112,
+        "truth_sign_switch": 1370
+      },
+      {
+        "first_minute": 14,
+        "second_minute": 15,
+        "eligible": 17057,
+        "prediction_logit_pearson": 0.710905268505577,
+        "truth_sign_pearson": 0.8513254606983532,
+        "prediction_sign_switch": 6677,
+        "truth_sign_switch": 1265
+      },
+      {
+        "first_minute": 15,
+        "second_minute": 16,
+        "eligible": 17052,
+        "prediction_logit_pearson": 0.8868043477375953,
+        "truth_sign_pearson": 0.8279104979360989,
+        "prediction_sign_switch": 3101,
+        "truth_sign_switch": 1464
+      },
+      {
+        "first_minute": 16,
+        "second_minute": 17,
+        "eligible": 17050,
+        "prediction_logit_pearson": 0.8581604138548383,
+        "truth_sign_pearson": 0.8390557648734767,
+        "prediction_sign_switch": 2637,
+        "truth_sign_switch": 1369
+      },
+      {
+        "first_minute": 17,
+        "second_minute": 18,
+        "eligible": 17055,
+        "prediction_logit_pearson": 0.8770265263521827,
+        "truth_sign_pearson": 0.8502235856591039,
+        "prediction_sign_switch": 5106,
+        "truth_sign_switch": 1274
+      },
+      {
+        "first_minute": 18,
+        "second_minute": 19,
+        "eligible": 17060,
+        "prediction_logit_pearson": 0.450301905343758,
+        "truth_sign_pearson": 0.8558832729726766,
+        "prediction_sign_switch": 5262,
+        "truth_sign_switch": 1226
+      },
+      {
+        "first_minute": 19,
+        "second_minute": 20,
+        "eligible": 16997,
+        "prediction_logit_pearson": 0.8372832556299932,
+        "truth_sign_pearson": 0.87091229458824,
+        "prediction_sign_switch": 2304,
+        "truth_sign_switch": 1094
+      },
+      {
+        "first_minute": 20,
+        "second_minute": 21,
+        "eligible": 16994,
+        "prediction_logit_pearson": 0.590078305531393,
+        "truth_sign_pearson": 0.8521126481511726,
+        "prediction_sign_switch": 3536,
+        "truth_sign_switch": 1253
+      },
+      {
+        "first_minute": 21,
+        "second_minute": 22,
+        "eligible": 17000,
+        "prediction_logit_pearson": 0.7838372526790027,
+        "truth_sign_pearson": 0.8588491010593339,
+        "prediction_sign_switch": 3027,
+        "truth_sign_switch": 1196
+      },
+      {
+        "first_minute": 22,
+        "second_minute": 23,
+        "eligible": 17001,
+        "prediction_logit_pearson": 0.8286467080223768,
+        "truth_sign_pearson": 0.8647009252449079,
+        "prediction_sign_switch": 5119,
+        "truth_sign_switch": 1146
+      },
+      {
+        "first_minute": 23,
+        "second_minute": 24,
+        "eligible": 16992,
+        "prediction_logit_pearson": 0.4699195251056589,
+        "truth_sign_pearson": 0.873842451079582,
+        "prediction_sign_switch": 4269,
+        "truth_sign_switch": 1068
+      },
+      {
+        "first_minute": 24,
+        "second_minute": 25,
+        "eligible": 16932,
+        "prediction_logit_pearson": 0.5378795029444378,
+        "truth_sign_pearson": 0.8852105131501327,
+        "prediction_sign_switch": 8719,
+        "truth_sign_switch": 968
+      },
+      {
+        "first_minute": 25,
+        "second_minute": 26,
+        "eligible": 16942,
+        "prediction_logit_pearson": 0.8805339507485763,
+        "truth_sign_pearson": 0.8646613352972194,
+        "prediction_sign_switch": 4391,
+        "truth_sign_switch": 1142
+      },
+      {
+        "first_minute": 26,
+        "second_minute": 27,
+        "eligible": 16945,
+        "prediction_logit_pearson": 0.9329220995626316,
+        "truth_sign_pearson": 0.870931009143923,
+        "prediction_sign_switch": 1653,
+        "truth_sign_switch": 1089
+      },
+      {
+        "first_minute": 27,
+        "second_minute": 28,
+        "eligible": 16941,
+        "prediction_logit_pearson": 0.8395097118781275,
+        "truth_sign_pearson": 0.8832852490925649,
+        "prediction_sign_switch": 2440,
+        "truth_sign_switch": 984
+      },
+      {
+        "first_minute": 28,
+        "second_minute": 29,
+        "eligible": 16931,
+        "prediction_logit_pearson": 0.6594300229412605,
+        "truth_sign_pearson": 0.8879593963907557,
+        "prediction_sign_switch": 4712,
+        "truth_sign_switch": 944
+      },
+      {
+        "first_minute": 29,
+        "second_minute": 30,
+        "eligible": 16867,
+        "prediction_logit_pearson": 0.8141137627388075,
+        "truth_sign_pearson": 0.8928735965279451,
+        "prediction_sign_switch": 2089,
+        "truth_sign_switch": 899
+      },
+      {
+        "first_minute": 30,
+        "second_minute": 31,
+        "eligible": 16872,
+        "prediction_logit_pearson": -0.015368455408932726,
+        "truth_sign_pearson": 0.87324213104138,
+        "prediction_sign_switch": 9181,
+        "truth_sign_switch": 1064
+      },
+      {
+        "first_minute": 31,
+        "second_minute": 32,
+        "eligible": 16877,
+        "prediction_logit_pearson": -0.41451915252692856,
+        "truth_sign_pearson": 0.8823277996469561,
+        "prediction_sign_switch": 7310,
+        "truth_sign_switch": 988
+      },
+      {
+        "first_minute": 32,
+        "second_minute": 33,
+        "eligible": 16872,
+        "prediction_logit_pearson": 0.7201661453237578,
+        "truth_sign_pearson": 0.8931002355450718,
+        "prediction_sign_switch": 3754,
+        "truth_sign_switch": 897
+      },
+      {
+        "first_minute": 33,
+        "second_minute": 34,
+        "eligible": 16869,
+        "prediction_logit_pearson": 0.4625489512816395,
+        "truth_sign_pearson": 0.895683043046471,
+        "prediction_sign_switch": 3939,
+        "truth_sign_switch": 875
+      },
+      {
+        "first_minute": 34,
+        "second_minute": 35,
+        "eligible": 16815,
+        "prediction_logit_pearson": 0.7450172791918119,
+        "truth_sign_pearson": 0.9026616944427984,
+        "prediction_sign_switch": 4016,
+        "truth_sign_switch": 814
+      },
+      {
+        "first_minute": 35,
+        "second_minute": 36,
+        "eligible": 16820,
+        "prediction_logit_pearson": 0.9148321381445906,
+        "truth_sign_pearson": 0.882154495246492,
+        "prediction_sign_switch": 3997,
+        "truth_sign_switch": 986
+      },
+      {
+        "first_minute": 36,
+        "second_minute": 37,
+        "eligible": 16820,
+        "prediction_logit_pearson": 0.813726688097147,
+        "truth_sign_pearson": 0.8928962422358867,
+        "prediction_sign_switch": 5102,
+        "truth_sign_switch": 896
+      },
+      {
+        "first_minute": 37,
+        "second_minute": 38,
+        "eligible": 16812,
+        "prediction_logit_pearson": 0.906572278458057,
+        "truth_sign_pearson": 0.9007584855251427,
+        "prediction_sign_switch": 2040,
+        "truth_sign_switch": 829
+      },
+      {
+        "first_minute": 38,
+        "second_minute": 39,
+        "eligible": 16807,
+        "prediction_logit_pearson": 0.8717033888974073,
+        "truth_sign_pearson": 0.9027806907506959,
+        "prediction_sign_switch": 1609,
+        "truth_sign_switch": 812
+      },
+      {
+        "first_minute": 39,
+        "second_minute": 40,
+        "eligible": 16745,
+        "prediction_logit_pearson": 0.8755207152663517,
+        "truth_sign_pearson": 0.9060411727903369,
+        "prediction_sign_switch": 2465,
+        "truth_sign_switch": 782
+      },
+      {
+        "first_minute": 40,
+        "second_minute": 41,
+        "eligible": 16750,
+        "prediction_logit_pearson": 0.7723571917727886,
+        "truth_sign_pearson": 0.8925928508057269,
+        "prediction_sign_switch": 4346,
+        "truth_sign_switch": 894
+      },
+      {
+        "first_minute": 41,
+        "second_minute": 42,
+        "eligible": 16752,
+        "prediction_logit_pearson": 0.9551455567376866,
+        "truth_sign_pearson": 0.903152055940862,
+        "prediction_sign_switch": 1226,
+        "truth_sign_switch": 806
+      },
+      {
+        "first_minute": 42,
+        "second_minute": 43,
+        "eligible": 16754,
+        "prediction_logit_pearson": 0.8274338140848017,
+        "truth_sign_pearson": 0.9095302449249727,
+        "prediction_sign_switch": 5046,
+        "truth_sign_switch": 753
+      },
+      {
+        "first_minute": 43,
+        "second_minute": 44,
+        "eligible": 16757,
+        "prediction_logit_pearson": 0.8076809540376029,
+        "truth_sign_pearson": 0.9082098992369302,
+        "prediction_sign_switch": 5061,
+        "truth_sign_switch": 764
+      },
+      {
+        "first_minute": 44,
+        "second_minute": 45,
+        "eligible": 16694,
+        "prediction_logit_pearson": 0.6633692798987246,
+        "truth_sign_pearson": 0.9135919607301398,
+        "prediction_sign_switch": 3993,
+        "truth_sign_switch": 716
+      },
+      {
+        "first_minute": 45,
+        "second_minute": 46,
+        "eligible": 16689,
+        "prediction_logit_pearson": 0.6511473564497474,
+        "truth_sign_pearson": 0.9021214573417078,
+        "prediction_sign_switch": 3644,
+        "truth_sign_switch": 811
+      },
+      {
+        "first_minute": 46,
+        "second_minute": 47,
+        "eligible": 16682,
+        "prediction_logit_pearson": 0.8467193227439765,
+        "truth_sign_pearson": 0.9046175197488268,
+        "prediction_sign_switch": 2570,
+        "truth_sign_switch": 790
+      },
+      {
+        "first_minute": 47,
+        "second_minute": 48,
+        "eligible": 16689,
+        "prediction_logit_pearson": 0.889361967263776,
+        "truth_sign_pearson": 0.90525030043301,
+        "prediction_sign_switch": 4797,
+        "truth_sign_switch": 785
+      },
+      {
+        "first_minute": 48,
+        "second_minute": 49,
+        "eligible": 16687,
+        "prediction_logit_pearson": 0.9443477475668726,
+        "truth_sign_pearson": 0.9130457207007788,
+        "prediction_sign_switch": 1347,
+        "truth_sign_switch": 720
+      },
+      {
+        "first_minute": 49,
+        "second_minute": 50,
+        "eligible": 16624,
+        "prediction_logit_pearson": 0.879948360191214,
+        "truth_sign_pearson": 0.9173033281434295,
+        "prediction_sign_switch": 2514,
+        "truth_sign_switch": 682
+      },
+      {
+        "first_minute": 50,
+        "second_minute": 51,
+        "eligible": 16630,
+        "prediction_logit_pearson": 0.8357547420700572,
+        "truth_sign_pearson": 0.9049472662943499,
+        "prediction_sign_switch": 3883,
+        "truth_sign_switch": 784
+      },
+      {
+        "first_minute": 51,
+        "second_minute": 52,
+        "eligible": 16628,
+        "prediction_logit_pearson": 0.8773107418060523,
+        "truth_sign_pearson": 0.9128127150134002,
+        "prediction_sign_switch": 3794,
+        "truth_sign_switch": 719
+      },
+      {
+        "first_minute": 52,
+        "second_minute": 53,
+        "eligible": 16628,
+        "prediction_logit_pearson": 0.8981451946123323,
+        "truth_sign_pearson": 0.9158525147816887,
+        "prediction_sign_switch": 2727,
+        "truth_sign_switch": 694
+      },
+      {
+        "first_minute": 53,
+        "second_minute": 54,
+        "eligible": 16629,
+        "prediction_logit_pearson": 0.9364434121402269,
+        "truth_sign_pearson": 0.9216620381746357,
+        "prediction_sign_switch": 1618,
+        "truth_sign_switch": 646
+      },
+      {
+        "first_minute": 54,
+        "second_minute": 55,
+        "eligible": 16566,
+        "prediction_logit_pearson": 0.9256585432250896,
+        "truth_sign_pearson": 0.9200145238736194,
+        "prediction_sign_switch": 1416,
+        "truth_sign_switch": 657
+      },
+      {
+        "first_minute": 55,
+        "second_minute": 56,
+        "eligible": 16564,
+        "prediction_logit_pearson": 0.9445211186366222,
+        "truth_sign_pearson": 0.9154665167748374,
+        "prediction_sign_switch": 3880,
+        "truth_sign_switch": 694
+      },
+      {
+        "first_minute": 56,
+        "second_minute": 57,
+        "eligible": 16567,
+        "prediction_logit_pearson": 0.9702317515131591,
+        "truth_sign_pearson": 0.9208568830185309,
+        "prediction_sign_switch": 1368,
+        "truth_sign_switch": 650
+      },
+      {
+        "first_minute": 57,
+        "second_minute": 58,
+        "eligible": 16566,
+        "prediction_logit_pearson": 0.9591798390642272,
+        "truth_sign_pearson": 0.9213489772526054,
+        "prediction_sign_switch": 1766,
+        "truth_sign_switch": 646
+      },
+      {
+        "first_minute": 58,
+        "second_minute": 59,
+        "eligible": 16566,
+        "prediction_logit_pearson": 0.9315655414887475,
+        "truth_sign_pearson": 0.9247543158672591,
+        "prediction_sign_switch": 2675,
+        "truth_sign_switch": 618
+      },
+      {
+        "first_minute": 59,
+        "second_minute": 60,
+        "eligible": 16506,
+        "prediction_logit_pearson": 0.9140976803081636,
+        "truth_sign_pearson": 0.9238521323575438,
+        "prediction_sign_switch": 2325,
+        "truth_sign_switch": 623
+      }
+    ],
+    "q2": [
+      {
+        "first_minute": 1,
+        "second_minute": 2,
+        "eligible": 1752,
+        "prediction_logit_pearson": -0.5592775204292362,
+        "truth_sign_pearson": 0.5479425931659406,
+        "prediction_sign_switch": 1139,
+        "truth_sign_switch": 396
+      },
+      {
+        "first_minute": 2,
+        "second_minute": 3,
+        "eligible": 1755,
+        "prediction_logit_pearson": -0.054409317674611594,
+        "truth_sign_pearson": 0.6493111753284688,
+        "prediction_sign_switch": 519,
+        "truth_sign_switch": 308
+      },
+      {
+        "first_minute": 3,
+        "second_minute": 4,
+        "eligible": 1758,
+        "prediction_logit_pearson": 0.2838139779954797,
+        "truth_sign_pearson": 0.677982997177425,
+        "prediction_sign_switch": 428,
+        "truth_sign_switch": 283
+      },
+      {
+        "first_minute": 4,
+        "second_minute": 5,
+        "eligible": 1751,
+        "prediction_logit_pearson": 0.6698484268714286,
+        "truth_sign_pearson": 0.7099262318651022,
+        "prediction_sign_switch": 237,
+        "truth_sign_switch": 254
+      },
+      {
+        "first_minute": 5,
+        "second_minute": 6,
+        "eligible": 1751,
+        "prediction_logit_pearson": -0.04556122792795935,
+        "truth_sign_pearson": 0.7441479068454044,
+        "prediction_sign_switch": 1669,
+        "truth_sign_switch": 224
+      },
+      {
+        "first_minute": 6,
+        "second_minute": 7,
+        "eligible": 1752,
+        "prediction_logit_pearson": -0.6003759223373142,
+        "truth_sign_pearson": 0.7831372486323323,
+        "prediction_sign_switch": 833,
+        "truth_sign_switch": 190
+      },
+      {
+        "first_minute": 7,
+        "second_minute": 8,
+        "eligible": 1754,
+        "prediction_logit_pearson": -0.695275531825722,
+        "truth_sign_pearson": 0.8014225999160212,
+        "prediction_sign_switch": 1080,
+        "truth_sign_switch": 174
+      },
+      {
+        "first_minute": 8,
+        "second_minute": 9,
+        "eligible": 1754,
+        "prediction_logit_pearson": -0.6181444154989473,
+        "truth_sign_pearson": 0.8218230065616694,
+        "prediction_sign_switch": 1000,
+        "truth_sign_switch": 156
+      },
+      {
+        "first_minute": 9,
+        "second_minute": 10,
+        "eligible": 1747,
+        "prediction_logit_pearson": 0.6929438614777483,
+        "truth_sign_pearson": 0.8100224996880518,
+        "prediction_sign_switch": 480,
+        "truth_sign_switch": 166
+      },
+      {
+        "first_minute": 10,
+        "second_minute": 11,
+        "eligible": 1745,
+        "prediction_logit_pearson": 0.5402846270838698,
+        "truth_sign_pearson": 0.8177395077130616,
+        "prediction_sign_switch": 282,
+        "truth_sign_switch": 159
+      },
+      {
+        "first_minute": 11,
+        "second_minute": 12,
+        "eligible": 1746,
+        "prediction_logit_pearson": 0.01346888708167165,
+        "truth_sign_pearson": 0.8338826601127309,
+        "prediction_sign_switch": 1042,
+        "truth_sign_switch": 145
+      },
+      {
+        "first_minute": 12,
+        "second_minute": 13,
+        "eligible": 1748,
+        "prediction_logit_pearson": 0.8158491054567851,
+        "truth_sign_pearson": 0.8445430513197261,
+        "prediction_sign_switch": 430,
+        "truth_sign_switch": 136
+      },
+      {
+        "first_minute": 13,
+        "second_minute": 14,
+        "eligible": 1747,
+        "prediction_logit_pearson": 0.8097493988708141,
+        "truth_sign_pearson": 0.8477686470333815,
+        "prediction_sign_switch": 613,
+        "truth_sign_switch": 133
+      },
+      {
+        "first_minute": 14,
+        "second_minute": 15,
+        "eligible": 1740,
+        "prediction_logit_pearson": 0.26205868920320874,
+        "truth_sign_pearson": 0.8402386961714744,
+        "prediction_sign_switch": 924,
+        "truth_sign_switch": 139
+      },
+      {
+        "first_minute": 15,
+        "second_minute": 16,
+        "eligible": 1739,
+        "prediction_logit_pearson": 0.7415008585104524,
+        "truth_sign_pearson": 0.826409134789787,
+        "prediction_sign_switch": 125,
+        "truth_sign_switch": 151
+      },
+      {
+        "first_minute": 16,
+        "second_minute": 17,
+        "eligible": 1739,
+        "prediction_logit_pearson": 0.8165430366243939,
+        "truth_sign_pearson": 0.8596981562086411,
+        "prediction_sign_switch": 117,
+        "truth_sign_switch": 122
+      },
+      {
+        "first_minute": 17,
+        "second_minute": 18,
+        "eligible": 1740,
+        "prediction_logit_pearson": 0.7644283381316469,
+        "truth_sign_pearson": 0.8541468715113981,
+        "prediction_sign_switch": 455,
+        "truth_sign_switch": 127
+      },
+      {
+        "first_minute": 18,
+        "second_minute": 19,
+        "eligible": 1740,
+        "prediction_logit_pearson": 0.09212170400846871,
+        "truth_sign_pearson": 0.862259350984462,
+        "prediction_sign_switch": 768,
+        "truth_sign_switch": 120
+      },
+      {
+        "first_minute": 19,
+        "second_minute": 20,
+        "eligible": 1733,
+        "prediction_logit_pearson": 0.8513275901488527,
+        "truth_sign_pearson": 0.8580521681854184,
+        "prediction_sign_switch": 185,
+        "truth_sign_switch": 123
+      },
+      {
+        "first_minute": 20,
+        "second_minute": 21,
+        "eligible": 1734,
+        "prediction_logit_pearson": 0.46906817779991006,
+        "truth_sign_pearson": 0.8615870921049831,
+        "prediction_sign_switch": 417,
+        "truth_sign_switch": 120
+      },
+      {
+        "first_minute": 21,
+        "second_minute": 22,
+        "eligible": 1736,
+        "prediction_logit_pearson": 0.6753553492459715,
+        "truth_sign_pearson": 0.8698300996071828,
+        "prediction_sign_switch": 330,
+        "truth_sign_switch": 113
+      },
+      {
+        "first_minute": 22,
+        "second_minute": 23,
+        "eligible": 1734,
+        "prediction_logit_pearson": 0.7916815463897878,
+        "truth_sign_pearson": 0.8604846559779955,
+        "prediction_sign_switch": 364,
+        "truth_sign_switch": 121
+      },
+      {
+        "first_minute": 23,
+        "second_minute": 24,
+        "eligible": 1733,
+        "prediction_logit_pearson": 0.41476428152193445,
+        "truth_sign_pearson": 0.8638024489500181,
+        "prediction_sign_switch": 422,
+        "truth_sign_switch": 118
+      },
+      {
+        "first_minute": 24,
+        "second_minute": 25,
+        "eligible": 1728,
+        "prediction_logit_pearson": 0.5809072659102884,
+        "truth_sign_pearson": 0.861109149430333,
+        "prediction_sign_switch": 1131,
+        "truth_sign_switch": 120
+      },
+      {
+        "first_minute": 25,
+        "second_minute": 26,
+        "eligible": 1729,
+        "prediction_logit_pearson": 0.6042827132335786,
+        "truth_sign_pearson": 0.8680727787803982,
+        "prediction_sign_switch": 212,
+        "truth_sign_switch": 114
+      },
+      {
+        "first_minute": 26,
+        "second_minute": 27,
+        "eligible": 1728,
+        "prediction_logit_pearson": 0.9081774412397297,
+        "truth_sign_pearson": 0.8901082304383753,
+        "prediction_sign_switch": 284,
+        "truth_sign_switch": 95
+      },
+      {
+        "first_minute": 27,
+        "second_minute": 28,
+        "eligible": 1727,
+        "prediction_logit_pearson": 0.7749539070275141,
+        "truth_sign_pearson": 0.8818784198792574,
+        "prediction_sign_switch": 314,
+        "truth_sign_switch": 102
+      },
+      {
+        "first_minute": 28,
+        "second_minute": 29,
+        "eligible": 1728,
+        "prediction_logit_pearson": 0.47269753837916445,
+        "truth_sign_pearson": 0.8865626345860014,
+        "prediction_sign_switch": 593,
+        "truth_sign_switch": 98
+      },
+      {
+        "first_minute": 29,
+        "second_minute": 30,
+        "eligible": 1724,
+        "prediction_logit_pearson": 0.6351627057534265,
+        "truth_sign_pearson": 0.8945210646662645,
+        "prediction_sign_switch": 139,
+        "truth_sign_switch": 91
+      },
+      {
+        "first_minute": 30,
+        "second_minute": 31,
+        "eligible": 1726,
+        "prediction_logit_pearson": -0.21184223082438416,
+        "truth_sign_pearson": 0.8749113903665965,
+        "prediction_sign_switch": 1436,
+        "truth_sign_switch": 108
+      },
+      {
+        "first_minute": 31,
+        "second_minute": 32,
+        "eligible": 1726,
+        "prediction_logit_pearson": -0.8433659433011906,
+        "truth_sign_pearson": 0.9061304582640146,
+        "prediction_sign_switch": 1163,
+        "truth_sign_switch": 81
+      },
+      {
+        "first_minute": 32,
+        "second_minute": 33,
+        "eligible": 1725,
+        "prediction_logit_pearson": 0.5275114049032755,
+        "truth_sign_pearson": 0.9096026149862667,
+        "prediction_sign_switch": 464,
+        "truth_sign_switch": 78
+      },
+      {
+        "first_minute": 33,
+        "second_minute": 34,
+        "eligible": 1723,
+        "prediction_logit_pearson": 0.21038978722499796,
+        "truth_sign_pearson": 0.9036565352279844,
+        "prediction_sign_switch": 866,
+        "truth_sign_switch": 83
+      },
+      {
+        "first_minute": 34,
+        "second_minute": 35,
+        "eligible": 1719,
+        "prediction_logit_pearson": 0.49395239956641457,
+        "truth_sign_pearson": 0.8966167995383815,
+        "prediction_sign_switch": 734,
+        "truth_sign_switch": 89
+      },
+      {
+        "first_minute": 35,
+        "second_minute": 36,
+        "eligible": 1721,
+        "prediction_logit_pearson": 0.895944296498924,
+        "truth_sign_pearson": 0.8990582917498116,
+        "prediction_sign_switch": 365,
+        "truth_sign_switch": 87
+      },
+      {
+        "first_minute": 36,
+        "second_minute": 37,
+        "eligible": 1720,
+        "prediction_logit_pearson": 0.6711240794854682,
+        "truth_sign_pearson": 0.9116249197174052,
+        "prediction_sign_switch": 761,
+        "truth_sign_switch": 76
+      },
+      {
+        "first_minute": 37,
+        "second_minute": 38,
+        "eligible": 1719,
+        "prediction_logit_pearson": 0.9399140461955707,
+        "truth_sign_pearson": 0.9092906399005641,
+        "prediction_sign_switch": 97,
+        "truth_sign_switch": 78
+      },
+      {
+        "first_minute": 38,
+        "second_minute": 39,
+        "eligible": 1720,
+        "prediction_logit_pearson": 0.9034458259858241,
+        "truth_sign_pearson": 0.9071794795438808,
+        "prediction_sign_switch": 139,
+        "truth_sign_switch": 80
+      },
+      {
+        "first_minute": 39,
+        "second_minute": 40,
+        "eligible": 1717,
+        "prediction_logit_pearson": 0.8929641626328195,
+        "truth_sign_pearson": 0.8986353072902239,
+        "prediction_sign_switch": 224,
+        "truth_sign_switch": 87
+      },
+      {
+        "first_minute": 40,
+        "second_minute": 41,
+        "eligible": 1717,
+        "prediction_logit_pearson": 0.346583742219846,
+        "truth_sign_pearson": 0.9021420092008999,
+        "prediction_sign_switch": 755,
+        "truth_sign_switch": 84
+      },
+      {
+        "first_minute": 41,
+        "second_minute": 42,
+        "eligible": 1716,
+        "prediction_logit_pearson": 0.8367896966654631,
+        "truth_sign_pearson": 0.8916901710797329,
+        "prediction_sign_switch": 163,
+        "truth_sign_switch": 93
+      },
+      {
+        "first_minute": 42,
+        "second_minute": 43,
+        "eligible": 1715,
+        "prediction_logit_pearson": 0.8077821685513159,
+        "truth_sign_pearson": 0.9113985750069943,
+        "prediction_sign_switch": 719,
+        "truth_sign_switch": 76
+      },
+      {
+        "first_minute": 43,
+        "second_minute": 44,
+        "eligible": 1715,
+        "prediction_logit_pearson": 0.7837020937878725,
+        "truth_sign_pearson": 0.8938457124273353,
+        "prediction_sign_switch": 786,
+        "truth_sign_switch": 91
+      },
+      {
+        "first_minute": 44,
+        "second_minute": 45,
+        "eligible": 1708,
+        "prediction_logit_pearson": 0.5458949651605995,
+        "truth_sign_pearson": 0.913334065824365,
+        "prediction_sign_switch": 714,
+        "truth_sign_switch": 74
+      },
+      {
+        "first_minute": 45,
+        "second_minute": 46,
+        "eligible": 1708,
+        "prediction_logit_pearson": 0.7167356417235502,
+        "truth_sign_pearson": 0.8933928843950549,
+        "prediction_sign_switch": 323,
+        "truth_sign_switch": 91
+      },
+      {
+        "first_minute": 46,
+        "second_minute": 47,
+        "eligible": 1710,
+        "prediction_logit_pearson": 0.8067826551144268,
+        "truth_sign_pearson": 0.9122539109168188,
+        "prediction_sign_switch": 513,
+        "truth_sign_switch": 75
+      },
+      {
+        "first_minute": 47,
+        "second_minute": 48,
+        "eligible": 1709,
+        "prediction_logit_pearson": 0.8881206419170975,
+        "truth_sign_pearson": 0.9098651828469102,
+        "prediction_sign_switch": 498,
+        "truth_sign_switch": 77
+      },
+      {
+        "first_minute": 48,
+        "second_minute": 49,
+        "eligible": 1708,
+        "prediction_logit_pearson": 0.9383623948435045,
+        "truth_sign_pearson": 0.9273628413380716,
+        "prediction_sign_switch": 150,
+        "truth_sign_switch": 62
+      },
+      {
+        "first_minute": 49,
+        "second_minute": 50,
+        "eligible": 1702,
+        "prediction_logit_pearson": 0.7707137535730855,
+        "truth_sign_pearson": 0.9329764934718373,
+        "prediction_sign_switch": 393,
+        "truth_sign_switch": 57
+      },
+      {
+        "first_minute": 50,
+        "second_minute": 51,
+        "eligible": 1702,
+        "prediction_logit_pearson": 0.7665789604058367,
+        "truth_sign_pearson": 0.9132143072356792,
+        "prediction_sign_switch": 663,
+        "truth_sign_switch": 74
+      },
+      {
+        "first_minute": 51,
+        "second_minute": 52,
+        "eligible": 1701,
+        "prediction_logit_pearson": 0.8859483700764756,
+        "truth_sign_pearson": 0.9189546913540715,
+        "prediction_sign_switch": 493,
+        "truth_sign_switch": 69
+      },
+      {
+        "first_minute": 52,
+        "second_minute": 53,
+        "eligible": 1700,
+        "prediction_logit_pearson": 0.8477827679320755,
+        "truth_sign_pearson": 0.9199733264931297,
+        "prediction_sign_switch": 484,
+        "truth_sign_switch": 68
+      },
+      {
+        "first_minute": 53,
+        "second_minute": 54,
+        "eligible": 1700,
+        "prediction_logit_pearson": 0.9223688244776296,
+        "truth_sign_pearson": 0.9257936386445276,
+        "prediction_sign_switch": 182,
+        "truth_sign_switch": 63
+      },
+      {
+        "first_minute": 54,
+        "second_minute": 55,
+        "eligible": 1694,
+        "prediction_logit_pearson": 0.927156286237743,
+        "truth_sign_pearson": 0.9408889409978114,
+        "prediction_sign_switch": 186,
+        "truth_sign_switch": 50
+      },
+      {
+        "first_minute": 55,
+        "second_minute": 56,
+        "eligible": 1694,
+        "prediction_logit_pearson": 0.9365116766720467,
+        "truth_sign_pearson": 0.8995380296503294,
+        "prediction_sign_switch": 616,
+        "truth_sign_switch": 85
+      },
+      {
+        "first_minute": 56,
+        "second_minute": 57,
+        "eligible": 1695,
+        "prediction_logit_pearson": 0.9371767899014437,
+        "truth_sign_pearson": 0.9232376186475125,
+        "prediction_sign_switch": 178,
+        "truth_sign_switch": 65
+      },
+      {
+        "first_minute": 57,
+        "second_minute": 58,
+        "eligible": 1696,
+        "prediction_logit_pearson": 0.926135691289748,
+        "truth_sign_pearson": 0.9315684663567422,
+        "prediction_sign_switch": 238,
+        "truth_sign_switch": 58
+      },
+      {
+        "first_minute": 58,
+        "second_minute": 59,
+        "eligible": 1696,
+        "prediction_logit_pearson": 0.9343036780183842,
+        "truth_sign_pearson": 0.9303974444770653,
+        "prediction_sign_switch": 213,
+        "truth_sign_switch": 59
+      },
+      {
+        "first_minute": 59,
+        "second_minute": 60,
+        "eligible": 1688,
+        "prediction_logit_pearson": 0.8867171054870545,
+        "truth_sign_pearson": 0.9288903144011003,
+        "prediction_sign_switch": 410,
+        "truth_sign_switch": 60
+      }
+    ]
+  },
+  "method": "Join saved predictions to exact corrected target by parent and decision time. Only both-observed nonzero mature outcomes per pair. AUC uses rank sums; correlations are independently cross-checked against NumPy. Input-selected Q2 is a subsample, not untouched validation.",
+  "limits": "Adjacent realized signs being correlated does not mathematically require predicted probabilities to match. Comparisons were prompted by post-hoc 5/6 observation and reuse the same development folds. Results describe calibration and ranking, not causal diagnosis, predictive edge, economic profitability, or a validated architecture change.",
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}

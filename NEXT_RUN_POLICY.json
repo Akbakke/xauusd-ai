@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "UNSEEN_GC_PROJECTION_MEASURED",
+  "status": "SAVED_HEAD_COMPOSITION_DIAGNOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Inspect the concrete corrected decimal target binding blocker and qualify the smallest safe repair needed for a fresh direction baseline. No new training, TEST, broker or trading is authorized.",
+  "next_action": "Qualify the smallest exact corrected-target training route and fresh baseline before any separately authorized fit; assess a shared or temporally coupled 60-horizon head as an independently controlled hypothesis. No training, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43153,6 +43153,17 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_UNSEEN_GC_PROJECTION_CHECK_20261028.json",
       "sha256": "15620cc577cfd42ec66b2458f28e4ad87140f921433fd86497c5b30343b4689d"
     },
+    "economic_edge_qualified": false
+  },
+  "independent_direction_head_composition_diagnosis_20261028": {
+    "status": "COMPLETE_SAVED_PREDICTIONS_ONLY",
+    "result": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_HEAD_COMPOSITION_DIAGNOSIS_20261028.json",
+      "sha256": "2af5f7bd7ff5c2623318db972b15b0f5bf0efcc9cb523ce0d7b1683c1279717c"
+    },
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
     "economic_edge_qualified": false
   }
 }
