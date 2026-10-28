@@ -33,8 +33,9 @@ BATCH_SIZE = 16
 BPS_SCOPE = 'single_prefix_one_pass_direction_signed_bps_fit'
 CONTINUATION_SCOPE = 'single_prefix_three_pass_direction_continuation'
 ORDER_SCOPE = 'single_prefix_one_pass_direction_chronological_order'
-# Defined for source preparation only; not admitted by the launch validator.
 DENSE_SCOPE = 'single_prefix_dense_minute_direction_fit'
+DENSE_NATIVE_QUALIFICATION = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json',
+    'sha256':'7b5768f2310446716f9954ab2e5887831e5dc8e6bde143c7bc4fa72156b17b24'}
 ORDER_ALGORITHM = 'strictly_increasing_prefix_parent_rows'
 _CONTINUATION_ROOT = '/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276'
 CONTINUATION_ORIGIN = {
@@ -174,6 +175,9 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     bps = value.get('run_scope') == BPS_SCOPE
     continuation = value.get('run_scope') == CONTINUATION_SCOPE
     chronological = value.get('run_scope') == ORDER_SCOPE
+    dense = value.get('run_scope') == DENSE_SCOPE
+    if dense:
+        fields |= {'gc_layout_metadata_parity','native_dense_qualification','dense_source_transition_proof','dense_target_result','dense_target','dense_evaluation_protocol'}
     if chronological:
         fields |= {'gc_layout_metadata_parity', 'order_origin', 'native_order_qualification'}
     if bps:
@@ -185,7 +189,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, DENSE_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
     fold = _fold(recipe['fold'])
     if bps:
         _require(fold == private.BPS_FOLD
@@ -202,7 +206,9 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         _require(recipe[key] is expected, 'RECIPE_AUTHORITY:' + key)
     numerical = recipe['numerical_recipe']
     _require(isinstance(numerical, Mapping)
-        and numerical.get('signed_bps_supervision', False) is bps, 'NUMERICAL_OBJECTIVE_SCOPE')
+        and numerical.get('signed_bps_supervision', False) is bps
+        and numerical.get('dense_minute_supervision', False) is dense
+        and numerical.get('magnitude_weighted_direction', False) is False, 'NUMERICAL_OBJECTIVE_SCOPE')
     _require(isinstance(numerical, Mapping) and numerical.get('schema_version') == 'gx1_native_direction_research_recipe_v1'
         and type(numerical.get('batch_size')) is int and numerical['batch_size'] == BATCH_SIZE
         and type(numerical.get('max_updates')) is int and numerical['max_updates'] == (3 if continuation else 1) * ((fold['prefix_rows'] + 15) // 16)
@@ -218,12 +224,51 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         'EXECUTION_BINDING_PATH')
     owners = recipe['source_owners']
     required_sources = set(REQUIRED_SOURCE_PATHS) | (set(BPS_EXTRA_SOURCE_PATHS) if bps else set())
+    if dense: required_sources |= set(private.DENSE_EXTRA_SOURCE_PATHS)
     if continuation or chronological:
         required_sources.add('gx1/contracts/entry_native_direction_frozen_extraction_v1.py')
     _require(isinstance(owners, Mapping) and set(owners) == required_sources, 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='prefix fit source', verify_file=True)
         _require(checked['path'] == str(source_repo/key), 'SOURCE_OWNER_PATH:' + key)
+    if dense:
+        _require(fold==private.BPS_FOLD and recipe['input_manifest']==private.DENSE_INPUT_MANIFEST
+            and recipe['gc_layout_metadata_parity']==private.BPS_GC_PARITY
+            and recipe['native_dense_qualification']==DENSE_NATIVE_QUALIFICATION
+            and recipe['dense_target_result']==private.DENSE_TARGET_RESULT and recipe['dense_target']==private.DENSE_TARGET, 'DENSE_FIXED_INPUT_SCOPE')
+        for key in ('gc_layout_metadata_parity','native_dense_qualification','dense_source_transition_proof','dense_target_result','dense_evaluation_protocol'):
+            campaign.require_binding(recipe[key],label='dense '+key,verify_file=True)
+        _require(recipe['dense_evaluation_protocol']['path']==str(source_repo/'docs/DIRECTION_DENSE_ONEPASS_EVALUATION_20261028.json'), 'DENSE_EVALUATION_PATH')
+        protocol=campaign.read_bound_json(Path(recipe['dense_evaluation_protocol']['path']),recipe['dense_evaluation_protocol']['sha256'])
+        _require(protocol.get('schema_version')=='gx1_dense_onepass_direction_evaluation_protocol_v1'
+            and protocol.get('status')=='PREDECLARED_BEFORE_DENSE_FIT_NO_EXECUTION_AUTHORITY'
+            and protocol.get('fold')==fold and protocol.get('test_data_used') is False
+            and protocol.get('native_launch_authorized') is False, 'DENSE_EVALUATION_PROTOCOL')
+        campaign.require_binding(recipe['dense_target'],label='dense target',verify_file=False)
+        review=campaign.read_bound_json(Path(recipe['native_dense_qualification']['path']),recipe['native_dense_qualification']['sha256'])
+        _require(review.get('status')=='PASS_CONSUMED_PRIVATE_NATIVE_MECHANICS'
+            and review.get('initial_256_parity') is True and review.get('sixty_horizons_have_eligible_labels_and_gradients') is True
+            and review.get('chart_mtf_gradient_first_step_nonzero') is True
+            and review.get('chart_local_gradient_first_step_zero_and_second_nonzero') is True
+            and review.get('bit_exact_resume') is True and review.get('private_optimizer_updates')==4
+            and review.get('anchor_prefix_priors_equal') is True and review.get('qualification_weights_for_main_fit') is False
+            and review.get('test_data_used') is False, 'DENSE_PRIVATE_QUALIFICATION')
+        plan_ref=campaign.require_binding(review['plan'],label='dense private plan',verify_file=True)
+        private_plan=campaign.read_bound_json(Path(plan_ref['path']),plan_ref['sha256'])
+        prior_ref=campaign.require_binding(private_plan['recipe'],label='dense private recipe',verify_file=True)
+        prior=campaign.read_bound_json(Path(prior_ref['path']),prior_ref['sha256'])
+        _require(prior.get('run_scope')==private.DENSE_PRIVATE_SCOPE
+            and prior.get('input_manifest')==recipe['input_manifest']
+            and prior.get('fold')==recipe['fold'] and prior.get('dense_target')==recipe['dense_target']
+            and prior.get('dense_target_result')==recipe['dense_target_result']
+            and prior.get('dense_source_transition_proof')==recipe['dense_source_transition_proof']
+            and prior.get('qualification_weights_for_main_fit') is False
+            and prior.get('numerical_recipe',{}).get('dense_minute_supervision') is True
+            and {k:v for k,v in prior.get('numerical_recipe',{}).items() if k not in ('max_updates','contract_sha256')}
+                == {k:v for k,v in numerical.items() if k not in ('max_updates','contract_sha256')}, 'DENSE_PRIVATE_SOURCE_SCOPE')
+        stable_sources=set(private.REQUIRED_SOURCE_PATHS)|set(private.DENSE_EXTRA_SOURCE_PATHS)
+        stable_sources.remove('gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py')
+        _require(all(owners.get(key)==prior.get('source_owners',{}).get(key) for key in stable_sources), 'DENSE_QUALIFIED_NUMERICAL_SOURCE')
     if chronological:
         origin = recipe['order_origin']
         _require(fold == private.BPS_FOLD and origin == ORDER_ORIGIN

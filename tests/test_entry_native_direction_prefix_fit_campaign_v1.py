@@ -500,3 +500,45 @@ def test_chronological_launch_rejects_unmatched_or_unqualified_inputs(fixture,mo
         value['native_order_qualification']=write(f['runtime']/'BAD_ORDER_PROOF.json',proof)
     reseal(value,'recipe_sha256');ref=write(f['runtime']/'BAD_ORDER.json',value)
     with pytest.raises(RuntimeError):owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
+def test_dense_fit_requires_exact_private_qualification_sources_and_protocol(fixture,monkeypatch):
+    f=fixture;repo=f['repo'];runtime=f['runtime'];dummy=f['dummy'];private=owner.private
+    monkeypatch.setattr(private,'DENSE_EXTRA_SOURCE_PATHS',())
+    monkeypatch.setattr(private,'REQUIRED_SOURCE_PATHS',('source.py','gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py'))
+    monkeypatch.setattr(private,'DENSE_INPUT_MANIFEST',f['input_ref'])
+    monkeypatch.setattr(private,'BPS_GC_PARITY',dummy)
+    monkeypatch.setattr(private,'DENSE_TARGET_RESULT',dummy)
+    target={'path':str(runtime/'unopened.npz'),'sha256':'f'*64};monkeypatch.setattr(private,'DENSE_TARGET',target)
+    protocol=write(repo/'docs/DIRECTION_DENSE_ONEPASS_EVALUATION_20261028.json',
+        {'schema_version':'gx1_dense_onepass_direction_evaluation_protocol_v1',
+         'status':'PREDECLARED_BEFORE_DENSE_FIT_NO_EXECUTION_AUTHORITY','fold':f['fold'],
+         'test_data_used':False,'native_launch_authorized':False})
+    item=copy.deepcopy(f['recipe']);item['run_scope']=owner.DENSE_SCOPE
+    num=item['numerical_recipe'];num['dense_minute_supervision']=True;numerical_seal(num)
+    prior_num=copy.deepcopy(num);prior_num['max_updates']=2;numerical_seal(prior_num)
+    prior=write(runtime/'PRIVATE_RECIPE.json',{'run_scope':private.DENSE_PRIVATE_SCOPE,
+        'input_manifest':f['input_ref'],'fold':f['fold'],'dense_target':target,'dense_target_result':dummy,
+        'dense_source_transition_proof':dummy,'qualification_weights_for_main_fit':False,
+        'numerical_recipe':prior_num,'source_owners':{'source.py':f['source']}})
+    old_plan=write(runtime/'PRIVATE_PLAN.json',{'recipe':prior})
+    proof=write(runtime/'PRIVATE_REVIEW.json',{'status':'PASS_CONSUMED_PRIVATE_NATIVE_MECHANICS','plan':old_plan,
+        'initial_256_parity':True,'sixty_horizons_have_eligible_labels_and_gradients':True,
+        'chart_mtf_gradient_first_step_nonzero':True,'chart_local_gradient_first_step_zero_and_second_nonzero':True,
+        'bit_exact_resume':True,'private_optimizer_updates':4,'anchor_prefix_priors_equal':True,
+        'qualification_weights_for_main_fit':False,'test_data_used':False})
+    monkeypatch.setattr(owner,'DENSE_NATIVE_QUALIFICATION',proof)
+    item.update(gc_layout_metadata_parity=dummy,native_dense_qualification=proof,dense_source_transition_proof=dummy,
+        dense_target_result=dummy,dense_target=target,dense_evaluation_protocol=protocol)
+    reseal(item,'recipe_sha256');ref=write(runtime/'DENSE_RECIPE.json',item)
+    assert owner.require_prefix_fit_launch_recipe(ref,source_repo=repo,source_commit='a'*40)['run_scope']==owner.DENSE_SCOPE
+    assert not Path(target['path']).exists()
+    for key,value in (('dense_target',{**target,'sha256':'0'*64}),('qualification_weights_for_main_fit',True),
+                      ('test_data_used',True),('parent_order_algorithm','chronological')):
+        wrong=copy.deepcopy(item);wrong[key]=value;reseal(wrong,'recipe_sha256')
+        with pytest.raises(RuntimeError):
+            owner.require_prefix_fit_launch_recipe(write(runtime/'BAD_DENSE.json',wrong),source_repo=repo,source_commit='a'*40)
+    bad_num=copy.deepcopy(item);bad_num['numerical_recipe']['dense_minute_supervision']=False
+    numerical_seal(bad_num['numerical_recipe']);reseal(bad_num,'recipe_sha256')
+    with pytest.raises(RuntimeError):
+        owner.require_prefix_fit_launch_recipe(write(runtime/'BAD_DENSE.json',bad_num),source_repo=repo,source_commit='a'*40)

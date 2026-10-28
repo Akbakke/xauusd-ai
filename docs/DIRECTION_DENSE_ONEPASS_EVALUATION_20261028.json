@@ -1,0 +1,16 @@
+{
+  "schema_version": "gx1_dense_onepass_direction_evaluation_protocol_v1",
+  "status": "PREDECLARED_BEFORE_DENSE_FIT_NO_EXECUTION_AUTHORITY",
+  "candidate": "One fresh shared native model with 60 separately parameterized minute logits and the compact eight-family GC/geometry profile, fitted for one full own-TRAIN-prefix presentation at fixed B16 and the original seeded permutation.",
+  "fold": {"fold_id": 1, "prefix_rows": 47602, "oof_start_row": 47602, "oof_end_row": 64890, "train_cutoff_ns": 1735689600000000000, "oof_cutoff_ns": 1743465600000000000},
+  "main_fit_initialization": "Fresh seeded model, buffers, optimizer and RNG. Private qualification checkpoints are never loaded for the fit; a fresh 256-parent initial observation is required.",
+  "targets": "Exact observed nonzero M1 candle-open bid/ask midpoint direction for each 1..60 elapsed minute, strictly mature before the respective fold cutoff; keep parents, ties and missing cells separately accounted for.",
+  "reference": "Original saved fold1 one-pass 1/5/15-minute native logits on exactly matched parents, decisions, anchors, maturity and masks. For other minutes, the old five-minute logit is an exploratory same-score reference, not a separately fitted forecast.",
+  "primary": "Five-minute candidate versus original five-minute score on identical eligible later parents: AUC, logloss, Brier and fixed own-TRAIN class-prior reference. Larger AUC and smaller proper scores are better; no later-data threshold or checkpoint selection.",
+  "primary_uncertainty": "Use the existing fixed 10000 paired UTC-day and UTC-week block-bootstrap draws. Report candidate-minus-original AUC and candidate-minus-0.5 AUC under both schemes; Bonferroni alpha 0.05/4 across those four intervals. Both paired AUC lower bounds must exceed zero before claiming candidate ranking improved; both candidate-versus-0.5 lower bounds must exceed zero before claiming positive absolute ranking. Proper scores and their intervals remain separate evidence.",
+  "all_minutes": "Report each of the 60 own logits against its own horizon, including eligibility counts, class prior, AUC, logloss, Brier and UP/DOWN coverage. Use separate day and week 97.5-percentile maximum-absolute-deviation bootstrap bands across all 60 AUCs, Bonferroni for two schemes. Score within one fold; do not select the best minute based on these data.",
+  "limitations": ["One reused development fold is exploratory, not untouched confirmation.", "The model changes geometry inclusion and target heads together; a performance change cannot be assigned to either factor without a matched intervention.", "Bootstrap validity assumes the chosen calendar blocks are exchangeable; this is not established.", "Endpoint direction conditional on observed nonzero midpoints does not establish order-fill execution, FLAT selectivity, path quality or cost-adjusted trading economics.", "The sealed TEST, broker, orders, Exit and live/paper trading remain out of scope."],
+  "test_data_used": false,
+  "native_launch_authorized": false,
+  "economic_edge_qualified": false
+}
