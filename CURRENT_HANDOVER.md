@@ -11,9 +11,9 @@ Programrot:
 
 ## Aktuell status
 
-En avgrenset kildekontrakt er admittért for å kvalifisere TRAIN-årsfilene mot
-de lagrede 1/5/15min-fasitene. Første steg er kun kilde og syntetiske tester;
-ingen ekte payload, modell, CONTROL eller TEST er åpnet av denne adgangen.
+En avgrenset årsfilsammenkobling er implementert for å kvalifisere TRAIN-
+årsfilene mot de lagrede 1/5/15min-fasitene. Én syntetisk kontroll er nå
+admittért; ingen ekte payload, modell, CONTROL eller TEST er åpnet av denne.
 
 Fasiten bevarer også et konservativt sett av mulige utfall ved usikker
 rekkefølge. 43 syntetiske kontroller bestod og engangsadgangen er konsumert.

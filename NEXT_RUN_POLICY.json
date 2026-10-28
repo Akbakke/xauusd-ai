@@ -39928,14 +39928,14 @@
     "test_control_exit_authorized": false
   },
   "direction_train_year_quote_parity_source_20261028": {
-    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "scope": "Prepare a narrowly scoped year-partition quote join and reuse the existing native-versus-midpoint parity owner to qualify candidate TRAIN quote source against saved 1/5/15 endpoint targets.",
     "allowed_source_paths": [
       "gx1/scripts/qualify_entry_direction_train_quote_partition_v1.py",
       "tests/test_qualify_entry_direction_train_quote_partition_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -39951,6 +39951,35 @@
       "read_boundary": "two hash-bound native year partitions and one saved TRAIN target archive only; no 2026 year partition or combined pretest quote parquet",
       "fit_model_calls": 0,
       "stop": "fail closed on unexpected payload, source identity, timestamp, row identity, target parity, resource, wall or guard mismatch"
-    }
+    },
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/qualify_entry_direction_train_quote_partition_v1.py",
+      "sha256": "4d7f29ed9a39c43df51e0758ff14df7ee2f55b35b0ffbc047d7f21e10218104b"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_qualify_entry_direction_train_quote_partition_v1.py",
+      "sha256": "38237fc7a5f7fcede11f6ea46ded68a64b7ceacc433cb3e10302aa1ba8edd3bd"
+    },
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "bd8904fc52aca9056ee4e862f9c500d1b1a88f51e3d8a6304963780a8fc7b78b"
+    },
+    "expected_synthetic_cases": 9
+  },
+  "direction_train_year_quote_parity_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "bd8904fc52aca9056ee4e862f9c500d1b1a88f51e3d8a6304963780a8fc7b78b"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
