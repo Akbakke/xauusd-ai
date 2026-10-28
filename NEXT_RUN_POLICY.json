@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T16:07:31.744046+00:00",
-  "status": "DECIMAL_CONSUMER_AUDIT_ADMITTED",
+  "status": "DECIMAL_CONSUMER_VERIFIED_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the single bound capped decimal consumer audit. Preserve all prior data. No model, optimizer, TEST, broker or trading.",
+  "next_action": "Preserve the completed decimal-consumer structural qualification. Continue independent genuine feature and trained-model composition diagnostics; a separately admitted authenticated training route and fresh baseline remain required. No TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42095,16 +42095,16 @@
     "economic_edge_qualified": false
   },
   "independent_direction_decimal_consumer_audit_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_PLAN_20261028_002.json",
       "sha256": "fff5f468adf5f4967a3bbbd21a7c5d50b21f65680218126ef2e8d36119265062"
     },
-    "execution_authorized": true,
-    "target_and_prediction_reads_authorized": true,
+    "execution_authorized": false,
+    "target_and_prediction_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
@@ -42119,6 +42119,27 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_PLAN_20261028_001.json",
       "sha256": "840d2abf2072647498aaab2ca942f36e297e8a4f84d68907d271194f371b3dc5",
       "reason": "Test-file whitespace corrected before any invocation; old plan never claimed or launched."
-    }
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "cfd9fdcf7148ba134baab6d7b4af6246943865edc7a03ddeb1fc5b035df1aa3d"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "87b2240484f48b1c7341467947357e25cda28c8d47fcf91f43b87614fa664632"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/TERMINAL.json",
+      "sha256": "ee0fd9b75a19110bd56337050a300a5ebb0887bae188a1a41b9be278c9660e17"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "875cf7e02faa917099bc936fade44fa83c4bd5e0e7256b8a5e73fff9f0763d65"
+    },
+    "structural_target_consumer_qualified": true,
+    "model_training_route_qualified": false,
+    "fresh_initial_baseline_required": true,
+    "saved_oof_rows_rejoined": 17288,
+    "economic_edge_qualified": false
   }
 }

@@ -79,3 +79,12 @@ Horisontene evalueres derfor på ulike rader: en AUC-forskjell mellom for eksemp
 6. Test prioriteringen av 5min i felles 1–60-oppgaven som en annen enkeltfaktor. Første prefix gir 5min 1,69 % av de kvalifiserte loss-cellene, men celleandelen er ikke målt gradientbidrag. Behold alle 60 mål; sammenlign samme initialisering, inputs, eksponering og kronologiske rader før en eventuell vekting anses bedre. Den korrigerte målfilen må først få en separat kvalifisert forbruker og fersk baseline. Ingen av disse hypotesene gir ny treningstillatelse alene.
 
 Revisjonsinventar og detaljfunn: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json`, SHA-256 `f16a48c01df167cdfaee7cade5c0351a17ae3add1fde15ec0f9751685153dd62`. Den peker til 24 scoped funn; rapporten er ikke en erklæring om fullført feature- eller edgekvalifisering.
+
+
+## Korrigert målforbruker: faktisk koblingskontroll
+
+Den separate forbrukeren er prøvd på hashbundne mål fra 118 249 foreldre og alle 60 minutter. Originalmålet passerte fortsatt de gamle 1/5/15-byteankrene; den korrigerte fasiten bevarte foreldreakser, klokker, kilderader og masker. Alle uavhengige fortegnsmatriser for hele utvalget og fold1 TRAIN/senere ble gjenskapt. De 17 288 lagrede senere prediksjonsradene og deres opprinnelige mål stemte med originalarkivet. Dette kontrollerer kobling, ikke læring.
+
+Av 6 946 049 observerte bps-celler fikk 6 784 709 en annen flyttallsverdi. Median absolutt forskjell var 6,377e-13 bps, 99-persentil 2,476e-12 bps og maksimum 4,214e-12 bps. Dette er numerisk små målte forskjeller; virkningen av retrening er ikke testet. Fasiten fjerner fortsatt 976 falske fortegn uten observerte motsatte ikke-null-fortegn.
+
+Engangskjøringens resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/RESULT.json`, SHA-256 `87b2240484f48b1c7341467947357e25cda28c8d47fcf91f43b87614fa664632`. Kontrollen brukte ingen modellforward, optimizer, TEST eller handel. En framtidig treningsrute må separat binde og autentisere filene og kontrollene, og ha fersk initialbaseline; den er ikke implementert eller admittert nå.
