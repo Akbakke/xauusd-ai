@@ -1,0 +1,218 @@
+"""Replay real D1 trendline cache from its causal M5 source; never fit or score a model."""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+from pathlib import Path
+import signal
+import sys
+import time
+
+import numpy as np
+import pandas as pd
+import pyarrow.parquet as pq
+
+REPO = Path('/home/andre2/src/GX1_CURRENT')
+ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
+STAGE = 'independent_direction_d1_trendline_replay_20261028_001'
+CUTOFF_NS = 1751328000000000000  # 2025-07-01 UTC, reused development only.
+SOURCE_PATHS = (
+    'gx1/scripts/audit_direction_d1_trendline_replay_v1.py',
+    'gx1/features/htf_features.py',
+    'gx1/features/entry_specialist_feature_groups_v1.py',
+    'gx1/features/trendline_registry_v1.py',
+    'gx1/features/technical_indicators_v1.py',
+    'gx1/scripts/audit_entry_direction_candle_midpoints_v1.py',
+    'gx1/contracts/gx1_capped_execution_v1.py',
+    'gx1/contracts/local_random_access_campaign_v2.py',
+    'gx1/contracts/immutable_event_authority_v1.py',
+    'gx1/contracts/entry_model_native_bundle_commit_v1.py',
+    'scripts/gx1_capped_run.sh',
+    'tests/test_direction_d1_trendline_replay_v1.py',
+)
+
+
+def require(ok, reason):
+    if not bool(ok):
+        raise RuntimeError('DIRECTION_D1_TRENDLINE_REPLAY_' + reason)
+
+
+def compare_fields(recomputed, cached, names, timestamps):
+    """Compare float32 model values exactly, preserving NaN and signed-zero semantics."""
+    a = np.ascontiguousarray(recomputed, dtype=np.float32)
+    b = np.ascontiguousarray(cached, dtype=np.float32)
+    require(a.ndim == 2 and a.shape == b.shape and a.shape[1] == len(names)
+        and timestamps.shape == (len(a),) and not np.isinf(a).any() and not np.isinf(b).any(), 'COMPARE_SHAPE')
+    mismatch = (np.isnan(a) != np.isnan(b)) | (~np.isnan(a) & ~np.isnan(b) & (a.view(np.uint32) != b.view(np.uint32)))
+    rows = []
+    for i, name in enumerate(names):
+        at = np.flatnonzero(mismatch[:, i]); finite = np.isfinite(a[:, i]) & np.isfinite(b[:, i])
+        error = float(np.max(np.abs(a[finite, i].astype(np.float64) - b[finite, i].astype(np.float64)))) if finite.any() else None
+        rows.append({'field': name, 'mismatched_rows': int(len(at)), 'both_finite_rows': int(finite.sum()),
+            'first_mismatch_timestamp_ns': int(timestamps[at[0]]) if len(at) else None, 'max_abs_error': error})
+    return {'rows': len(a), 'fields': len(names), 'mismatched_cells': int(mismatch.sum()),
+        'all_finite_float32_bits_and_missingness_equal': not bool(mismatch.any()), 'per_field': rows}
+
+
+def load_m5_prefix(path, cutoff_ns):
+    """Read only row groups whose minimum precedes cutoff, then drop later rows."""
+    cutoff = datetime.fromtimestamp(cutoff_ns / 1e9, tz=timezone.utc)
+    with path.open('rb') as handle:
+        parquet = pq.ParquetFile(handle)
+        column = parquet.schema.names.index('time')
+        groups = []
+        for i in range(parquet.num_row_groups):
+            stats = parquet.metadata.row_group(i).column(column).statistics
+            require(stats is not None and stats.has_min_max and stats.min.tzinfo is not None
+                and stats.max.tzinfo is not None and stats.min <= stats.max, 'ROW_GROUP_TIME_STATS')
+            if stats.min < cutoff:
+                groups.append(i)
+        require(groups and groups == list(range(len(groups))), 'PREFIX_ROW_GROUPS')
+        frame = parquet.read_row_groups(groups, columns=['time', 'open', 'high', 'low', 'close', 'volume'],
+            use_threads=False).to_pandas(use_threads=False)
+    frame = frame.loc[frame['time'] < pd.Timestamp(cutoff)].copy()
+    index = pd.DatetimeIndex(frame.pop('time')).as_unit('ns')
+    require(len(index) > 0 and index.tz is not None and index.is_unique and index.is_monotonic_increasing
+        and index[-1].value < cutoff_ns and index[0].value >= 0, 'SOURCE_CLOCK')
+    frame.index = index
+    require(np.isfinite(frame[['open', 'high', 'low', 'close']].to_numpy()).all(), 'SOURCE_OHLC')
+    return frame, {'selected_row_groups': len(groups), 'm5_rows_before_cutoff': len(frame),
+        'first_m5_ns': int(index[0].value), 'last_m5_ns': int(index[-1].value)}
+
+
+def main(argv=None):
+    sys.dont_write_bytecode = True
+    parser = argparse.ArgumentParser(description=__doc__)
+    for option in ('plan', 'plan-sha256', 'policy-sha256', 'source-head'):
+        parser.add_argument('--' + option, required=True)
+    args = parser.parse_args(argv)
+    from gx1.contracts import gx1_capped_execution_v1 as cap
+    from gx1.contracts import immutable_event_authority_v1 as publication
+    from gx1.contracts import local_random_access_campaign_v2 as binding
+    from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_gc_mtf_geometry_entry_execution_profile
+    from gx1.features.htf_features import _resample_ohlcv, build_multi_tf_v4_closed_timestamp_indices
+    from gx1.features.technical_indicators_v1 import ema50_200_spread_atr_block, technical_indicator_contract_metadata
+    from gx1.features.trendline_registry_v1 import TRENDLINE_REGISTRY_FEATURE_NAMES_V1, compute_trendline_registry_features_v1
+    from gx1.scripts import audit_entry_direction_candle_midpoints_v1 as candle
+    require(not any(name.split('.')[0] in ('torch', 'sklearn', 'joblib') for name in sys.modules), 'PRELOADED_MODEL')
+    initial = candle.git_state(); require(initial == (args.source_head, 'work/gx1-current', ''), 'INITIAL_SOURCE')
+    plan_ref = {'path': str(candle.regular(args.plan)), 'sha256': args.plan_sha256}
+    policy_ref = {'path': str(REPO / 'NEXT_RUN_POLICY.json'), 'sha256': args.policy_sha256}
+    with binding.fresh_file_verification_scope():
+        plan = binding.read_bound_json(Path(plan_ref['path']), plan_ref['sha256'])
+        require(set(plan) == {'schema_version', 'stage', 'design', 'inputs', 'sources', 'output_dir',
+            'wall_seconds', 'cutoff_ns', 'test_data_used'} and plan['schema_version'] == 'gx1_direction_d1_trendline_replay_plan_v1'
+            and plan['stage'] == STAGE and plan['wall_seconds'] == 1200 and plan['cutoff_ns'] == CUTOFF_NS
+            and plan['test_data_used'] is False, 'PLAN')
+        require(plan['design']['path'] == str(REPO / 'docs/DIRECTION_D1_TRENDLINE_REPLAY_20261028.json'), 'DESIGN_PATH')
+        design = binding.read_bound_json(Path(plan['design']['path']), plan['design']['sha256'])
+        require(design['schema_version'] == 'gx1_direction_d1_trendline_replay_design_v1'
+            and design['inputs'] == plan['inputs'] and design['test_data_used'] is False, 'DESIGN')
+        policy = binding.read_bound_json(Path(policy_ref['path']), policy_ref['sha256']); gate = policy[STAGE]
+        require(gate['status'] == 'ADMITTED' and gate['plan'] == plan_ref and gate['execution_authorized'] is True
+            and gate['max_invocations'] == 1 and gate['claimed_invocations'] == gate['completed_invocations'] == 0
+            and gate['relaunch_allowed'] is False, 'ONE_SHOT_POLICY')
+        require(all(policy[k] is False for k in ('training_enabled', 'native_training_enabled',
+            'full_epoch_training_allowed', 'full_val_allowed', 'native_launch_authorized'))
+            and all(gate[k] is False for k in ('model_forwards_authorized', 'optimizer_steps_authorized',
+                'checkpoint_reads_authorized', 'test_data_used', 'broker_access_allowed')), 'CLOSED_GATES')
+        require(set(plan['sources']) == set(SOURCE_PATHS)
+            and all(ref['path'] == str(REPO / name) for name, ref in plan['sources'].items()), 'SOURCE_SET')
+        for ref in plan['sources'].values():
+            candle.regular(ref['path']); binding.require_binding(ref, label='source')
+        require(set(plan['inputs']) == {'source_m5', 'cache_manifest', 'd1_feats', 'd1_ts', 'prefix_normalization', 'fit_result'}, 'INPUT_SET')
+        meta = {key: binding.read_bound_json(Path(plan['inputs'][key]['path']), plan['inputs'][key]['sha256'])
+            for key in ('cache_manifest', 'prefix_normalization', 'fit_result')}
+        manifest, norm, fit = (meta[k] for k in ('cache_manifest', 'prefix_normalization', 'fit_result'))
+        d1 = manifest['tfs']['D1']; cache_dir = Path(plan['inputs']['cache_manifest']['path']).parent
+        require(manifest['m5_prebuilt_source'] == plan['inputs']['source_m5']['path']
+            and manifest['m5_prebuilt_source_sha256'] == plan['inputs']['source_m5']['sha256']
+            and {'path': str(cache_dir / d1['feats_npy']), 'sha256': d1['feats_npy_sha256']} == plan['inputs']['d1_feats']
+            and {'path': str(cache_dir / d1['ts_npy']), 'sha256': d1['ts_npy_sha256']} == plan['inputs']['d1_ts']
+            and fit['feature_view_identity']['prefix_normalization']['binding'] == plan['inputs']['prefix_normalization']
+            and fit['fold']['oof_cutoff_ns'] < CUTOFF_NS and fit['test_data_used'] is False, 'INPUT_LINEAGE')
+        require(manifest['technical_indicator_owner'] == technical_indicator_contract_metadata(), 'TECHNICAL_OWNER_IDENTITY')
+        profile = compile_gc_mtf_geometry_entry_execution_profile(norm['gc_mtf_history'])
+        names = tuple(TRENDLINE_REGISTRY_FEATURE_NAMES_V1); columns = tuple(manifest['feature_names'].index(name) for name in names)
+        require(len(names) == len(set(names)) == 31 and set(columns) <= set(profile['mtf_indices_by_specialist']['chart_geometry_encoder']), 'ACTIVE_FIELDS')
+        control_snapshot = binding.capture_verified_file_snapshot()
+    proof, lock = cap.require_capped_cpu_audit_execution(), cap.require_capped_lock_ancestry()
+    require(lock['scope'] == proof['cgroup_path'][len('/sys/fs/cgroup'):], 'CAPPED_LOCK_SCOPE')
+    out = Path(plan['output_dir']); require(out.parent == ROOT and out.name == 'DIRECTION_D1_TRENDLINE_REPLAY_20261028_001'
+        and ROOT.resolve(strict=True) == ROOT and not out.exists() and not out.is_symlink(), 'OUTPUT_SCOPE')
+    out.mkdir(exist_ok=False)
+    def publish(path, value): publication._publish_bytes(path, binding.canonical_bytes(value))
+    publish(out / 'INVOCATION_CLAIM.json', {'plan': plan_ref, 'policy': policy_ref, 'source_head': args.source_head, 'execution': proof, 'lock': lock})
+    payloads = [plan['inputs'][k] for k in ('source_m5', 'd1_feats', 'd1_ts')]
+    metadata = [plan_ref['path'], policy_ref['path'], plan['design']['path']] + [plan['inputs'][k]['path'] for k in ('cache_manifest', 'prefix_normalization', 'fit_result')]
+    sys.addaudithook(candle.make_guard(out, [ref['path'] for ref in payloads], metadata,
+        source_paths=[ref['path'] for ref in plan['sources'].values()]))
+    started = time.monotonic(); old_handler = signal.getsignal(signal.SIGALRM)
+    def expired(*unused): raise RuntimeError('DIRECTION_D1_TRENDLINE_REPLAY_WALL_LIMIT')
+    signal.signal(signal.SIGALRM, expired); signal.alarm(plan['wall_seconds']); stage = out / '.OUTPUT.staging'
+    try:
+        stage.mkdir(exist_ok=False)
+        with binding.fresh_file_verification_scope():
+            for ref in payloads: candle.regular(ref['path']); binding.require_binding(ref, label='payload')
+            source, source_witness = load_m5_prefix(Path(plan['inputs']['source_m5']['path']), CUTOFF_NS)
+            index = build_multi_tf_v4_closed_timestamp_indices(source.index)['D1']
+            bars = _resample_ohlcv(source, 'D1').dropna(subset=['open', 'high', 'low', 'close']).loc[index]
+            require(bars.index.equals(index), 'RESAMPLE_AXIS')
+            atr = ema50_200_spread_atr_block(bars['high'], bars['low'], bars['close'])['atr14']
+            data = bars[['high', 'low', 'close']].copy(); data['atr'] = atr
+            constants = manifest['v29_registry_constants']; kwargs = {'timeframe':'D1',
+                'seq_len':int(constants['per_tf_seq_lens']['D1']), 'band_atr':constants['trendline_band_atr']['D1']}
+            complete, _state = compute_trendline_registry_features_v1(data, **kwargs)
+            require(tuple(complete.columns) == names and complete.index.equals(index), 'PRODUCER_AXIS')
+            split = int(np.searchsorted(index.asi8, fit['fold']['train_cutoff_ns'], side='left'))
+            require(0 < split < len(index), 'CHUNK_SPLIT')
+            first, state = compute_trendline_registry_features_v1(data.iloc[:split], **kwargs)
+            second, _state = compute_trendline_registry_features_v1(data.iloc[split:], state=state, **kwargs)
+            chunked = pd.concat((first, second))
+            require(chunked.index.equals(index), 'CHUNK_AXIS')
+            chunk_comparison = compare_fields(complete.to_numpy(), chunked.to_numpy(), names, index.asi8)
+            require(chunk_comparison['all_finite_float32_bits_and_missingness_equal'], 'REAL_CHUNK_PARITY')
+            with Path(plan['inputs']['d1_ts']['path']).open('rb') as handle:
+                ts = np.load(handle, allow_pickle=False)
+            with Path(plan['inputs']['d1_feats']['path']).open('rb') as handle:
+                cached_all = np.load(handle, allow_pickle=False)
+            at = np.searchsorted(ts, index.asi8)
+            require(ts.dtype == np.int64 and np.all(at < len(ts)) and np.array_equal(ts[at], index.asi8)
+                and cached_all.dtype == np.float32 and cached_all.shape == (d1['n_bars'], manifest['feature_count']), 'CACHE_EXACT_AXIS')
+            actual = complete.to_numpy(dtype=np.float32); cached = cached_all[at][:, columns]
+            comparison = compare_fields(actual, cached, names, index.asi8)
+            train_at = np.flatnonzero((index.asi8 + 86400 * 10**9 >= 1714521600000000000)
+                & (index.asi8 + 86400 * 10**9 < fit['fold']['train_cutoff_ns']))
+            later_at = np.flatnonzero((index.asi8 + 86400 * 10**9 >= fit['fold']['train_cutoff_ns'])
+                & (index.asi8 + 86400 * 10**9 < CUTOFF_NS))
+            require(len(train_at) and len(later_at), 'MODEL_PERIOD_ROWS')
+            model_train = compare_fields(actual[train_at], cached[train_at], names, index.asi8[train_at])
+            later = compare_fields(actual[later_at], cached[later_at], names, index.asi8[later_at])
+            payload_snapshot = binding.capture_verified_file_snapshot()
+        payload_snapshot.require_unchanged(); control_snapshot.require_unchanged()
+        require(candle.git_state() == initial and cap.require_capped_lock_ancestry() == lock
+            and not any(name.split('.')[0] in ('torch', 'sklearn', 'joblib') for name in sys.modules), 'FINAL_SOURCE_LOCK')
+        result = {'schema_version':'gx1_direction_d1_trendline_replay_result_v1','status':'COMPLETE',
+            'plan':plan_ref,'source_head':args.source_head,'timeframe':'D1','source_witness':source_witness,
+            'cutoff_ns':CUTOFF_NS,'source_clock_rows':len(index),'history_state_split_index':split,
+            'window_configuration':kwargs,'chunk_replay':chunk_comparison,'all_causal_history_vs_cache':comparison,
+            'model_train_period_vs_cache':model_train,'later_development_period_vs_cache':later,
+            'replay_parity':comparison['all_finite_float32_bits_and_missingness_equal'],
+            'limits':'Same current registry implementation recomputed from genuine M5 source and compared with cached model input; not an independent mathematical implementation, predictive-value test or proof of all fields/timeframes.',
+            'new_model_forwards':0,'optimizer_steps':0,'test_data_used':False,'economic_edge_qualified':False}
+        publish(stage/'RESULT.json',result)
+        publish(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'source_unchanged':True,'inputs_unchanged':True,
+            'elapsed_seconds':time.monotonic()-started,'test_data_used':False})
+        publish_bundle_directory_noreplace(stage,out/'OUTPUT')
+        publish(out/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'plan':plan_ref,'result_path':str(out/'OUTPUT/RESULT.json')})
+        return 0
+    except Exception as exc:
+        publish(out/'FAILED_TERMINAL.json',{'status':'FAILED','exit_code':1,'error':type(exc).__name__+': '+str(exc),'relaunch_allowed':False})
+        raise
+    finally:
+        signal.alarm(0); signal.signal(signal.SIGALRM,old_handler)
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

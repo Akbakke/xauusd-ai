@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T17:34:14.058210+00:00",
-  "status": "GC_CONTEXT_FOLLOWUP_INDEPENDENTLY_VERIFIED",
+  "observed_utc": "2026-10-28T17:38:19.360640+00:00",
+  "status": "D1_TRENDLINE_REPLAY_ADMITTED_ONE_SHOT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Investigate the measured 5-minute output bias and independently qualify the 32 chart-geometry positions on each timeframe using genuine causal source/state; the paired GC intervention is verified. New training needs a separate authenticated corrected-target route and fresh initial baseline. No TEST, broker or trading.",
+  "next_action": "Run the bound CPU replay of the 31 active D1 trendline coordinates against original cache with causal history and state continuity. No model, optimizer, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42612,5 +42612,26 @@
     "sha256": "8a110c09d5e4332a06b11a0d9445e732d531dd764c1c4f609c0ee26508979959",
     "scope": "Existing bound prefix support metadata only; independent numeric formula and predictive utility remain unqualified.",
     "test_data_used": false
+  },
+  "independent_direction_d1_trendline_replay_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_TRENDLINE_REPLAY_PLAN_20261028_001.json",
+      "sha256": "d1491d086f11a36871721205ac8c3d759f797c4edb645ab05e179a6dd7661ba0"
+    },
+    "execution_authorized": true,
+    "model_forwards_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 1200,
+    "scope": "Rebuild 31 active D1 trendline registry coordinates from hash-bound original M5 OHLCV, full causal available history and the original frozen D1 parameters, strictly before 2025-07-01 UTC; compare with exactly aligned native cache."
   }
 }

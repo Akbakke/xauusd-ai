@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+Én kildebundet CPU-kontroll av 31 aktive D1-trendlinjefelt er ADMITTERT: gjenskap fra originale M5-priser og full kausal D1-historikk før 1. juli 2025, sammenlign eksakte cacheverdier og kontrollér overføring av tilstand ved prefixgrensen. Dette er eierreplay, ikke uavhengig formelbevis eller edge. Plan: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_TRENDLINE_REPLAY_PLAN_20261028_001.json`, SHA-256 `d1491d086f11a36871721205ac8c3d759f797c4edb645ab05e179a6dd7661ba0`. Ingen modellkall, trening, TEST eller handel.
+
 Kildebundet TRAIN-metadata viser at alle 32 lokale kartkoordinater og alle 39 kartkoordinater per M5/M15/H1/H4/D1 varierte i første prefix; det er ikke bevis for korrekt formel eller nytte. I M5-historieruten var tre posisjoner svært sjeldne: retest-fail opp 7, retest-fail ned 11 og channel-apex 3 av 47 798 unike native rader. Tilsvarende lokale posisjoner hadde 295, 290 og 5 106 ikke-null av 47 878 rader; populasjonene er ikke identiske, og rutene bruker ulike vinduer og bånd. Uavhengig tall-/kausalitetskontroll for 32 posisjoner per tidsramme gjenstår. Rapport: `docs/DIRECTION_CHART_TRAIN_SUPPORT_20261028.json`, SHA-256 `8a110c09d5e4332a06b11a0d9445e732d531dd764c1c4f609c0ee26508979959`. Ingen modellkall, trening, TEST eller handel.
 
 Et beskrivende tillegg på samme M5-beslutninger fant at fem- og seksminuttshodene gir ulike binære tegn på 1 669/1 751 Q2-rader, mens de faktiske utfallene har ulike tegn på 224/1 751. Gjennomsnittlig opp-sannsynlighet er 48,13 % og 52,03 %; dette er derfor terskelfølsom usikkerhet, ikke i seg selv en bevist modellfeil. Alle 59 nabopar finnes i diagnosen. Ingen modellkall, trening, TEST eller handel.

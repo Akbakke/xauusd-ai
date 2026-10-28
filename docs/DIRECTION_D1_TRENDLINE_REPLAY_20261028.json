@@ -1,0 +1,36 @@
+{
+  "schema_version": "gx1_direction_d1_trendline_replay_design_v1",
+  "status": "SOURCE_PREPARED_ACTUAL_AUDIT_PENDING",
+  "scope": "Rebuild 31 active D1 trendline registry coordinates from hash-bound original M5 OHLCV, full causal available history and the original frozen D1 parameters, strictly before 2025-07-01 UTC; compare with exactly aligned native cache.",
+  "method": "Read only source row groups before cutoff, reproduce closed D1 clock/resampling and Wilder ATR with the original owner, rerun registry both whole and with state carried across the 2025 prefix boundary, then compare float32 bits and missingness to cached model inputs on all available history and model-era windows.",
+  "limits": "This is source-owner replay and a prefix/state consistency check, not an independent mathematical reimplementation, proof of predictive utility, model fit, or validation of other timeframes.",
+  "inputs": {
+    "source_m5": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+      "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+    },
+    "cache_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/manifest.json",
+      "sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4"
+    },
+    "d1_feats": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_feats.npy",
+      "sha256": "d4b9fba04d89843fc119906053d2ea42feed70c568807eaefca6f0f9ddf457f5"
+    },
+    "d1_ts": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_ts.npy",
+      "sha256": "e3ed0e97376b178a2629341df88f859182a269b85ed19cd8cad3808c154d2a0f"
+    },
+    "prefix_normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+      "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    }
+  },
+  "test_data_used": false,
+  "new_model_forwards": 0,
+  "optimizer_steps": 0
+}
