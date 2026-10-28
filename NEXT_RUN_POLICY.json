@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-27T16:19:56.955463+00:00",
-  "status": "DIRECTION_BPS_PAIRED_COMPARISON_COMPLETE_NO_DOCUMENTED_IMPROVEMENT",
-  "training_enabled": true,
+  "observed_utc": "2026-10-28T09:35:59.863519+00:00",
+  "status": "DIRECTION_ORDER_MECHANICS_QUALIFIED_FULL_FIT_NOT_YET_ADMITTED",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Implement and qualify the fixed saved-output comparison under COMPARISON_PROTOCOL.json before reading later predictions; then fresh bounded CPU-only admission. No additional model forward, fitting, epoch, horizon or threshold selection.",
+  "next_action": "Prepare and validate one fresh source-bound chronological one-pass fit against the fixed shuffled baseline; keep TEST, broker, orders, and Exit closed. No edge is established.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -41003,6 +41003,11 @@
     "last_diagnostic_idle_restore": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/POWER_IDLE_RESTORE_001.json",
       "sha256": "7090f25128f7a2afa0ec36756d6eed5e005993e4541bdcd8f6fda5deeca205db"
+    },
+    "last_supported_qualification_boot_limit_w": 300,
+    "last_supported_qualification_idle_restore": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_SUPPORTED_QUALIFICATION_20261028_003/POWER_IDLE_RESTORE_001.json",
+      "sha256": "3b496adf409350522262f8ab4be285b05d7176d63e302a9b0a7353c0994a4383"
     }
   },
   "direction_order_private_source_20261028": {
@@ -41211,15 +41216,15 @@
     "amendment": "Added a missing synthetic supported-metadata-path case; the test-file edit preceded reopening this source-only flag. No genuine data, model or optimizer work occurred during the amendment."
   },
   "dynamic_m5_direction_order_supported_qualification_20261028_003": {
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
@@ -41228,7 +41233,7 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "relaunch_allowed": false,
-    "status": "ONE_SUPPORTED_STRICT_PRIVATE_QUALIFICATION_ADMITTED_NO_FULL_FIT",
+    "status": "COMPLETE_CONSUMED_MECHANICS_ONLY",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_SUPPORTED_QUALIFICATION_20261028_003/RECIPE.json",
       "sha256": "13f96df653fc23223e600e394a48a6b3725b980427fcf8993e6d67d05773bfa1"
@@ -41239,13 +41244,17 @@
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_SUPPORTED_QUALIFICATION_20261028_003/RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_private_optimizer_steps": 4,
-    "physical_restart_before_invocation_authorized": true,
+    "physical_restart_before_invocation_authorized": false,
     "user_requested_gpu_power_efficiency": true,
     "qualification_weights_for_main_fit": false,
     "prior_one_shot_relaunch": false,
-    "full_fit_early_parents_removed": false
+    "full_fit_early_parents_removed": false,
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_SUPPORTED_QUALIFICATION_20261028_003/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "64e87c1429b7dbb081d1118c38e1a18b286f23422b0d85b4d7e8332d76154ce4"
+    }
   }
 }
