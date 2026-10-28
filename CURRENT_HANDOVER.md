@@ -11,6 +11,12 @@ Programrot:
 
 ## Aktuell status
 
+Presisering av én-/trepass-resultatet: TRAIN-foreldrene ble presentert i
+en fast MT19937-blanding, ikke i markedsrekkefølge. De to ekstra passene
+gjentok denne rekkefølgen fra samme ettpass-checkpoint med optimizer/RNG
+bevart. Skillet til senere utviklingsobservasjoner var kronologisk; resultatet
+måler ikke kronologisk glemsel eller løpende markedsadaptasjon.
+
 Evalueringsprotokollen krever nå både vanlig TRAIN-prior og en separat
 størrelsesvektet TRAIN-prior. Dette hindrer at endret vektet klasseandel
 alene tolkes som lært markedsinformasjon. Primær sammenligningsgate er uendret.
