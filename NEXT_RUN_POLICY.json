@@ -39926,5 +39926,31 @@
     "model_calls_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false
+  },
+  "direction_train_year_quote_parity_source_20261028": {
+    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "scope": "Prepare a narrowly scoped year-partition quote join and reuse the existing native-versus-midpoint parity owner to qualify candidate TRAIN quote source against saved 1/5/15 endpoint targets.",
+    "allowed_source_paths": [
+      "gx1/scripts/qualify_entry_direction_train_quote_partition_v1.py",
+      "tests/test_qualify_entry_direction_train_quote_partition_v1.py"
+    ],
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "design": {
+      "candidate_years": [
+        2024,
+        2025
+      ],
+      "cutoff_exclusive": "2026-01-01T00:00:00Z",
+      "parent_scope": "saved TRAIN parent population, expected 118249; decision and actual target horizons strictly before cutoff",
+      "old_references": "existing saved 1/5/15 PRICE_TARGETS only; exact parent, clock, global source-row, endpoint observation, sign and bps bit parity",
+      "read_boundary": "two hash-bound native year partitions and one saved TRAIN target archive only; no 2026 year partition or combined pretest quote parquet",
+      "fit_model_calls": 0,
+      "stop": "fail closed on unexpected payload, source identity, timestamp, row identity, target parity, resource, wall or guard mismatch"
+    }
   }
 }
