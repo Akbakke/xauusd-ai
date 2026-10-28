@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-27T11:21:53.154866+00:00",
+  "updated_utc": "2026-10-28T07:23:02.694056+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Use the measured TRAIN-to-later gap to prioritize a fixed single-factor target or generalization diagnosis on identical chronological development splits. Preserve the endpoint-sign task as a reference; align a separate size- and path-aware target without using TEST or assuming bps supervision works.",
+    "next_action": "Prioritize a single-factor chronological-versus-fixed-shuffled compact direction comparison, starting with exact source and same-row genuine initial qualification. Keep training closed until fresh bounded admission.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37264,6 +37264,12 @@
     "matched_exposure_fulltrain_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
       "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
+    },
+    "presentation_order_verified": true,
+    "presentation_order_comparison_complete": false,
+    "presentation_order_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json",
+      "sha256": "cc2add023a1ee3a40d72f1a21dc6b432969925ca4686718929343158297a6d2a"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -40799,6 +40805,18 @@
     "execution_authorized": false,
     "data_reads_authorized": false,
     "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
+  },
+  "direction_order_diagnostic_design_20261028": {
+    "status": "DESIGN_ONLY_SOURCE_NOT_ADMITTED_NO_EXECUTION",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json",
+      "sha256": "cc2add023a1ee3a40d72f1a21dc6b432969925ca4686718929343158297a6d2a"
+    },
+    "source_edits_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_forwards_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false
   }

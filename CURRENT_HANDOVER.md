@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+Selvstendig kontroll av treningsrekkefølge: Original276 og trepass-kjøringen har samme gjenskapte MT19937-orderhash; hvert prisvindu beholder stigende kausale klokker. TRAIN/later-grensen er kronologisk. Samme B2-sluttrader gjentas per pass; effekt på retningsedge er ikke målt. Prioritert énfaktors forslag: docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json. Ingen rekkefølgekandidat er trent, ingen ny kilde-/kjøreadmisjon er gitt, og training_enabled=false.
+
 Presisering av én-/trepass-resultatet: TRAIN-foreldrene ble presentert i
 en fast MT19937-blanding, ikke i markedsrekkefølge. De to ekstra passene
 gjentok denne rekkefølgen fra samme ettpass-checkpoint med optimizer/RNG

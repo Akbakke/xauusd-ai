@@ -1,0 +1,131 @@
+{
+  "schema_version": "gx1_independent_direction_order_ablation_design_v1",
+  "status": "DESIGN_ONLY_NO_SOURCE_CHANGE_NO_EXECUTION_AUTHORITY",
+  "research_question": "Does one chronological presentation of the same compact prefix improve later five-minute direction ranking versus the existing fixed mixed presentation?",
+  "independent_actual_order_verification": {
+    "original_recipe": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RECIPE.json",
+      "sha256": "8ba298a148af3b923c7b4a567f98bf8ddd2eaef1e4eeb5144e2a785e9f9e2d93"
+    },
+    "original_claim": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0001/CLAIM.json",
+      "sha256": "10a39777b1106574a514e0aae5286f85fb6f0b8989c6629cb2225c1aeb76d741"
+    },
+    "original_train_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "889103d6a81cf725e7ee4e676c0ecf294774dd6eacd7af44b77f9ab871441912"
+    },
+    "original_later_result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/RESULT.json",
+      "sha256": "af6dcf99a393199cd86f2ab99c267e6c7c21338fa06d21aae7a87d65b93edfeb"
+    },
+    "three_pass_first_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002_RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "e05d0b303a2838a3131601d9b40bbfe5f49a8cb67ba0cb9864eba85525681ff9"
+    },
+    "three_pass_terminal_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002_RUNTIME/prefix-fit/window-0002/RESULT.json",
+      "sha256": "d9ef81eba5e781d0c31c130682f17c1a620648d4740b6acd7e432932e5992172"
+    },
+    "source_functions_verified_against_actual_run_commit": [
+      {
+        "path": "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "function": "_fixed_order",
+        "actual_run_commit": "41dc5c89fea5741ba0864fc3a4b1c7d925598ee5",
+        "sha256_at_run": "db7bd2823b5fd1c36a42da2433bef22ac106ed682e700b476234d6b7f9b19bba",
+        "same_function_ast_as_current": true
+      },
+      {
+        "path": "gx1/contracts/entry_native_direction_feature_view_v1.py",
+        "function": "gather_native_direction_feature_batch",
+        "actual_run_commit": "41dc5c89fea5741ba0864fc3a4b1c7d925598ee5",
+        "sha256_at_run": "b410c56f8868aaed0cff47323b388ecfc7481837f53169d140781e6ff3baf321",
+        "same_function_ast_as_current": true
+      },
+      {
+        "path": "gx1/contracts/entry_native_direction_research_v1.py",
+        "function": "native_direction_binary_loss",
+        "actual_run_commit": "41dc5c89fea5741ba0864fc3a4b1c7d925598ee5",
+        "sha256_at_run": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92",
+        "same_function_ast_as_current": true
+      }
+    ],
+    "regenerated_seed": 20260911,
+    "regenerated_parent_order_sha256": "5a92eba23f101f139b758098e04abdc432e8e3bba032a94a3b0a656a21f0f43f",
+    "first_sixteen_parent_ids": [
+      4283,
+      32695,
+      28834,
+      4036,
+      6002,
+      13394,
+      28319,
+      45861,
+      15502,
+      152,
+      12061,
+      669,
+      6190,
+      41554,
+      22759,
+      21683
+    ],
+    "last_two_parent_ids": [
+      2844,
+      37228
+    ],
+    "one_pass_parent_count": 47602,
+    "three_pass_parent_presentations": 142806,
+    "training_cutoff_ns": 1735689600000000000,
+    "later_cutoff_ns": 1743465600000000000,
+    "original_later_parents": 17288,
+    "interval_only_data": "Original saved JSON metadata and generated integer IDs; no predictions, targets, input datasets, models, weights or TEST were read."
+  },
+  "what_is_and_is_not_proved": {
+    "window_chronology": "The actual run source constructs each local M5 sequence in increasing time, checks every completed bar <= its decision, and checks MTF availability <= decision. Randomization permutes decision examples, not bars within a sequence. This is source evidence, not new physical-data causal replay.",
+    "cutoffs": "Actual source validates strictly chronological TRAIN/later axes and loss uses only observed nonzero TRAIN outcomes whose terminal time is strictly before the TRAIN cutoff. This does not audit every upstream feature clock.",
+    "order_effect": "No chronological-versus-mixed native fit has been run; no claim that either order is better or explains weak later direction.",
+    "small_last_batch": "Original first full B16 had 48 eligible cells and final B2 had 6; BCE is mean per eligible batch cell. Thus a last-batch cell coefficient was 1/6 versus 1/48 in that full batch. The same final two parent IDs recur in all three passes. AdamW, gradients and clipping prevent interpreting this coefficient as an 8x overall causal or final-model impact.",
+    "not_online": "Chronological presentation under whole-prefix normalization and a fixed end-of-prefix label maturity cutoff is an offline batch experiment, not a prequential or live adaptation simulation."
+  },
+  "measured_baseline": {
+    "five_minute_train_one_pass_auc": 0.515888213111177,
+    "five_minute_train_three_pass_auc": 0.5335340953576608,
+    "five_minute_later_one_pass_auc": 0.5030210874582608,
+    "five_minute_later_three_pass_auc": 0.5009502780173811,
+    "later_paired_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "f7d2e4c9459a874dbeda505af94125da7fcd3c6c2ab135dc92435b47dc4324ae"
+    },
+    "train_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/TRAIN_EXPOSURE_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "59cb71d3cbc8636f5c81ed9294a9fc4e788b07c83413636b7af9bb66f0820de9"
+    },
+    "limitations": "One repeatedly reused development fold, not independent generalization or economic edge."
+  },
+  "proposed_comparison": {
+    "status": "NOT_ADMITTED_NOT_EXECUTED",
+    "control": "Reuse the original one-pass sign-only saved later predictions; do not retrain or repeat the claimed control.",
+    "candidate": "One fresh one-pass compact sign-only native fit with ascending chronological TRAIN parent IDs. No indicator, loss, architecture, normalization, seed, optimizer, horizon, parent-set or target change.",
+    "fit_geometry": "Same 47,602 parents, batch size 16, same existing treatment of the final two rows and missing/zero/immature targets; max 2,976 optimizer updates. Count and report empty batches and actual optimizer updates in both arms; do not claim an order-only numerical comparison if step-count or other contract mismatch appears.",
+    "initial_parity": "Before any candidate update compare the same original fixed 256 training parent IDs and their initial predictions; check original model, buffers, optimizer state and RNG. The parent_order field is intentionally different and must be separately hash-bound and verified. Current changed ONLINE needs a fresh genuine own-initial qualification.",
+    "evaluation": "On the exact same later parents, clocks, labels and masks, primary 5-minute AUC compared with one-pass and 0.5 using paired UTC-day and UTC-week blocks; report 1/15min as secondary, plus unweighted logloss, Brier, prior and up/down prediction coverage. No selected thresholds or checkpoint.",
+    "uncertainty": "Predeclare same 10,000 paired day/week block replicates and existing seed constants 20261027/20261028; 4 primary AUC intervals (candidate-vs-baseline and candidate-vs-0.5 under day/week) use Bonferroni per-interval alpha 0.05/4. Report probabilities and proper scores separately; no after-the-fact acceptance.",
+    "no_selection": "Do not switch to chronological permanently from one reused fold. Repeat on a predeclared separate fold only under a fresh bounded decision if first result supports it."
+  },
+  "required_before_any_genuine_execution": [
+    "Review the minimal way to admit an alternate order without altering or weakening existing one-pass/continuation recipes, feature causality, exact state, hardware and one-job guards.",
+    "Qualify actual original-versus-current initial predictions and state on the same rows before any training step.",
+    "Prepare an exact source-hash-bound one-shot recipe/campaign and new training authorization; current training_enabled remains false.",
+    "Existing native campaign requires a physical Windows reboot after campaign preparation. Current handover explicitly forbids steering restart without the operator changing that boundary.",
+    "No CONTROL, sealed TEST, live/paper, broker, orders, spending, promotion or Exit."
+  ],
+  "test_data_used": false,
+  "genuine_payload_reads": 0,
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "source_edits_authorized": false,
+  "genuine_execution_authorized": false,
+  "economic_edge_qualified": false,
+  "created_utc": "2026-10-28T07:23:02.693877+00:00"
+}
