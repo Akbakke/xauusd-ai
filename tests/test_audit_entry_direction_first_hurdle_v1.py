@@ -7,7 +7,7 @@ from gx1.contracts.entry_causal_m1_outcomes_v1 import (
     build_dynamic_m1_fill_surface, prepare_dynamic_m1_prefix_index,
 )
 from gx1.scripts.audit_entry_direction_first_hurdle_v1 import (
-    conditional_rank, coverage_report, race_panel,
+    conditional_rank, coverage_report, endpoint_alignment, race_five, race_panel,
 )
 
 
@@ -83,3 +83,32 @@ def test_inconsistent_coverage_partition_fails_closed():
              "reason": np.full((1, 60), 9, np.uint8), "possibilities": np.full((1, 60), 7, np.uint8)}
     with pytest.raises(RuntimeError, match="COVERAGE_PARTITION"):
         coverage_report(panel)
+
+
+def test_five_minute_replay_matches_dense_panel():
+    index, fill = synthetic_index()
+    dense = race_panel(index, fill, chunk_parents=2)
+    race = race_five(index, fill)
+    np.testing.assert_array_equal(race["outcome"], dense["outcome"][:, 4])
+    np.testing.assert_array_equal(race["outcome_observed"], dense["observed"][:, 4])
+    np.testing.assert_array_equal(race["unknown_reason"], dense["reason"][:, 4])
+
+
+def test_endpoint_alignment_keeps_opposite_zero_and_missing_separate():
+    race = {"outcome": np.array([1, 1, -1, -1, 1, 0], np.int8),
+            "outcome_observed": np.array([True, True, True, True, True, True])}
+    endpoint = np.array([1, -1, -1, 0, 0, 1], np.int8)
+    observed = np.array([True, True, True, False, True, True])
+    result = endpoint_alignment(race, endpoint, observed, np.array([.9, .5, -.8, 0., 0., .2]))
+    assert result["known_first_direction"] == 5
+    assert result["first_by_endpoint_sign"] == [[1, 1, 1], [1, 0, 0]]
+    assert (result["same_direction"], result["opposite_direction"], result["endpoint_zero"],
+            result["endpoint_missing"]) == (2, 1, 1, 1)
+    assert result["common_observed_nonzero_endpoint"] == 3
+    assert result["same_score_auc_on_common_rows"] == {"first_hurdle": 1., "endpoint": 1.}
+
+
+def test_endpoint_alignment_rejects_malformed_signs():
+    race = {"outcome": np.array([1], np.int8), "outcome_observed": np.array([True])}
+    with pytest.raises(RuntimeError, match="ALIGNMENT_INPUT"):
+        endpoint_alignment(race, np.array([2], np.int8), np.array([True]), np.array([.5]))

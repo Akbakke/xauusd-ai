@@ -40161,14 +40161,14 @@
     "direction_improvement_qualified": false
   },
   "direction_first_hurdle_endpoint_alignment_source_20261028": {
-    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "scope": "Extend the existing first-hurdle audit to compare the fixed 5-minute first-hit label with the original saved 5-minute endpoint sign on exactly the same known-direction parents. Reuse the prior observation identities and verify the previous 5-minute coverage and AUC before reporting alignment.",
     "allowed_source_paths": [
       "gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
       "tests/test_audit_entry_direction_first_hurdle_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -40184,6 +40184,35 @@
       "parity": "reproduce prior fixed coverage, primary 5min AUC and parent identity before interpretation",
       "no_adaptive_selection": true,
       "stop": "any replay, row, clock, source, target, resource or guard mismatch"
-    }
+    },
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
+      "sha256": "a27e3fa4f4595e0ec9a891cccdafaa9b9adb10d52a073839ce5aa7485b83d993"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_audit_entry_direction_first_hurdle_v1.py",
+      "sha256": "26da245e9b6aa04b0161ddb24f9192946b98262e1bd8de3bafdb0c874f1e9752"
+    },
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "a2ddebd7f0ff26f1d6ce1793bf89c6e48ef79d2f615cb94cf3d9397f9ebd0a4e"
+    },
+    "expected_synthetic_cases": 9
+  },
+  "direction_first_hurdle_endpoint_alignment_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "a2ddebd7f0ff26f1d6ce1793bf89c6e48ef79d2f615cb94cf3d9397f9ebd0a4e"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }

@@ -37,6 +37,9 @@ HURDLE_BPS = 10.0  # Previously used research hurdle, not a fitted trade rule.
 REPLICATES = 10000
 ALPHA = .05 / 2  # Fixed two clock-block schemes for the sole primary AUC.
 STAGE = "direction_first_hurdle_oof_actual_20261028_001"
+ALIGNMENT_STAGE = "direction_first_hurdle_endpoint_alignment_actual_20261028_001"
+PREVIOUS = {"path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_20261028_001/RESULT.json",
+            "sha256": "bb46f1c5321ae77cf4853dd69dd4772629ea8a5217e4753285bc1314b39fa897"}
 QUOTE = {"path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2025/part-000.parquet",
          "sha256": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc",
          "rows": 353499, "offset": 5431388,
@@ -84,6 +87,71 @@ def race_panel(index, fill, *, chunk_parents=128):
             and np.array_equal(observed, reasons == 0), "RACE_PANEL_INVARIANT")
     return {"outcome": outcome, "observed": observed,
             "reason": reasons, "possibilities": possibilities}
+
+
+def race_five(index, fill):
+    """Recompute only the predeclared five-minute first-hurdle outcomes."""
+    n = len(fill)
+    require(n > 0, "FIVE_SCOPE")
+    events = query_first_positive_quote(index, fill_surface=fill,
+        query_entry_rows=np.arange(n, dtype=np.int64),
+        horizon_minutes=np.full(n, 5, dtype=np.int64), event_basis="gross_quote_markout",
+        endpoint_kind=DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT, favorable_bps=HURDLE_BPS)
+    return classify_first_quote_hurdle_direction(events)
+
+
+def endpoint_alignment(race, endpoint_sign, endpoint_observed, logit_up_5):
+    """Compare first-hit and endpoint signs on the same observed parents."""
+    y, known = race["outcome"], race["outcome_observed"]
+    require(isinstance(y, np.ndarray) and y.dtype == np.int8 and y.ndim == 1
+            and isinstance(known, np.ndarray) and known.dtype == np.bool_ and known.shape == y.shape
+            and isinstance(endpoint_sign, np.ndarray) and endpoint_sign.dtype == np.int8
+            and endpoint_sign.shape == y.shape and np.isin(endpoint_sign, (-1, 0, 1)).all()
+            and isinstance(endpoint_observed, np.ndarray) and endpoint_observed.dtype == np.bool_
+            and endpoint_observed.shape == y.shape and isinstance(logit_up_5, np.ndarray)
+            and logit_up_5.shape == y.shape and np.isfinite(logit_up_5).all(), "ALIGNMENT_INPUT")
+    chosen = known & (y != 0)
+    table = [[int((chosen & (y == direction) & endpoint_observed & (endpoint_sign == sign)).sum())
+              for sign in (-1, 0, 1)] for direction in (1, -1)]
+    missing = [int((chosen & (y == direction) & ~endpoint_observed).sum()) for direction in (1, -1)]
+    same = chosen & endpoint_observed & (endpoint_sign == y)
+    opposite = chosen & endpoint_observed & (endpoint_sign == -y)
+    zero = chosen & endpoint_observed & (endpoint_sign == 0)
+    require(int(chosen.sum()) == int(same.sum() + opposite.sum() + zero.sum() + sum(missing)),
+            "ALIGNMENT_PARTITION")
+    common = chosen & endpoint_observed & (endpoint_sign != 0)
+    scores = np.ascontiguousarray(logit_up_5[common], dtype=np.float64)
+    aucs = {}
+    for name, signs in (("first_hurdle", y[common]), ("endpoint", endpoint_sign[common])):
+        labels = np.ascontiguousarray((signs == 1).astype(np.int8))
+        aucs[name] = saved.raw_rank_point(labels, scores, rank=rank, np=np)["auc"]
+    return {"known_first_direction": int(chosen.sum()),
+        "rows": ["long_first", "short_first"], "endpoint_columns": [-1, 0, 1],
+        "first_by_endpoint_sign": table, "endpoint_missing_by_first": missing,
+        "same_direction": int(same.sum()), "opposite_direction": int(opposite.sum()),
+        "endpoint_zero": int(zero.sum()), "endpoint_missing": sum(missing),
+        "common_observed_nonzero_endpoint": int(common.sum()), "same_score_auc_on_common_rows": aucs,
+        "auc_scope": "descriptive only on realized first-hurdle-selected rows; not unconditional performance"}
+
+
+def verify_previous_five(race, scores, previous):
+    """Fail unless the prior fixed five-minute counts and AUC are reproduced."""
+    y, known, why = race["outcome"], race["outcome_observed"], race["unknown_reason"]
+    counts = {"long_first": int((known & (y == 1)).sum()),
+              "short_first": int((known & (y == -1)).sum()),
+              "neither_known": int((known & (y == 0)).sum()),
+              "path_missing": int((why == 1).sum()),
+              "entry_minute_unknown": int((why == 2).sum()),
+              "same_minute_unknown": int((why == 3).sum()),
+              "terminal_open_unknown": int((why == 4).sum())}
+    chosen = known & (y != 0)
+    labels = np.ascontiguousarray((y[chosen] == 1).astype(np.int8))
+    z = np.ascontiguousarray(scores[chosen], dtype=np.float64)
+    auc = saved.raw_rank_point(labels, z, rank=rank, np=np)["auc"]
+    require(previous["parents"] == len(y) and previous["coverage"][4]["counts"] == counts
+            and previous["primary_conditional_rank"]["known_direction_rows"] == int(chosen.sum())
+            and previous["primary_conditional_rank"]["auc"] == auc, "PREVIOUS_FIVE_PARITY")
+    return {"counts_exact": True, "known_rows": int(chosen.sum()), "auc_exact": True, "auc": auc}
 
 
 def coverage_report(panel):
@@ -164,15 +232,23 @@ def verified_payload(ref):
 def bound_plan(path):
     plan_path = Path(path); require(plan_path.is_absolute() and not plan_path.is_symlink(), "PLAN_PATH")
     plan = json.loads(plan_path.read_text()); policy_path = Path("NEXT_RUN_POLICY.json")
-    stage = json.loads(policy_path.read_text()).get(STAGE, {}); plan_sha = sha(plan_path)
+    mode = plan.get("mode", "full")
+    require(mode in ("full", "endpoint_alignment"), "MODE")
+    stage_name = STAGE if mode == "full" else ALIGNMENT_STAGE
+    stage = json.loads(policy_path.read_text()).get(stage_name, {}); plan_sha = sha(plan_path)
     require(stage.get("execution_authorized") is True and stage.get("claimed_invocations") == 0
             and stage.get("max_invocations") == 1 and stage.get("relaunch_allowed") is False
             and stage.get("plan") == {"path": str(plan_path), "sha256": plan_sha}, "POLICY")
-    require(plan.get("schema_version") == "gx1_first_hurdle_oof_audit_plan_v1"
+    schema = "gx1_first_hurdle_oof_audit_plan_v1" if mode == "full" else "gx1_first_hurdle_endpoint_alignment_plan_v1"
+    horizons = HORIZONS.tolist() if mode == "full" else [5]
+    require(plan.get("schema_version") == schema
             and plan.get("quote") == QUOTE and plan.get("target") == TARGET
             and plan.get("prediction") == PREDICTION and plan.get("parents") == ROWS
-            and plan.get("hurdle_bps") == HURDLE_BPS and plan.get("horizons") == HORIZONS.tolist()
+            and plan.get("hurdle_bps") == HURDLE_BPS and plan.get("horizons") == horizons
             and plan.get("test_control_exit_authorized") is False, "PLAN_SCOPE")
+    if mode == "endpoint_alignment":
+        require(plan.get("previous_result") == PREVIOUS and sha(PREVIOUS["path"]) == PREVIOUS["sha256"],
+                "PREVIOUS_RESULT_BINDING")
     output = Path(plan["output_dir"])
     require(output.is_absolute() and output.is_dir() and not output.is_symlink(), "OUTPUT")
     claim = json.loads((output / "INVOCATION_CLAIM.json").read_text())
@@ -215,18 +291,31 @@ def run(plan_path):
             and np.array_equal(fills["entry_m1_row"].to_numpy(np.int64), expected_entry_rows)
             and np.array_equal(pd.DatetimeIndex(fills["entry_decision_at"]).asi8, prediction["decision_ns"]),
             "ENTRY_JOIN")
-    panel = race_panel(index, fills)
-    result = {"schema_version": "gx1_first_hurdle_oof_result_v1", "status": "COMPLETE",
-              "parents": ROWS, "horizons_minutes": HORIZONS.tolist(), "favorable_bps": HURDLE_BPS,
-              "event_basis": "gross_quote_markout", "endpoint_kind": "closed_m1_prefix",
-              "coverage": coverage_report(panel),
-              "primary_conditional_rank": conditional_rank(panel, prediction["logit_up"][:, 1], prediction["decision_ns"]),
-              "model_forwards": 0, "optimizer_steps": 0, "fits": 0,
-              "test_control_accessed": False, "combined_pretest_quote_opened": False,
-              "limits": ["One repeatedly reused TRAIN-development fold and an already used 10bps research hurdle.",
-                         "Known-first-direction AUC conditions on outcome-dependent M1 observability; not unconditional trading edge.",
-                         "M1 intrabar order and quote age remain unknown; no commission or slippage is included.",
-                         "No model has been trained on this first-hurdle label; no action or holding rule is defined."]}
+    if plan.get("mode", "full") == "endpoint_alignment":
+        race = race_five(index, fills)
+        previous = json.loads(Path(PREVIOUS["path"]).read_text())
+        replay = verify_previous_five(race, prediction["logit_up"][:, 1], previous)
+        report = endpoint_alignment(race, prediction["sign"][:, 1], prediction["observed"][:, 1],
+                                    prediction["logit_up"][:, 1])
+        result = {"schema_version": "gx1_first_hurdle_endpoint_alignment_result_v1", "status": "COMPLETE",
+                  "parents": ROWS, "horizon_minutes": 5, "favorable_bps": HURDLE_BPS,
+                  "previous_five_parity": replay, "alignment": report, "model_forwards": 0,
+                  "optimizer_steps": 0, "fits": 0, "test_control_accessed": False,
+                  "limits": ["One reused TRAIN-development fold and realized first-hurdle-selected parents.",
+                             "Same-row AUCs are descriptive and neither proves generalization or trading edge."]}
+    else:
+        panel = race_panel(index, fills)
+        result = {"schema_version": "gx1_first_hurdle_oof_result_v1", "status": "COMPLETE",
+                  "parents": ROWS, "horizons_minutes": HORIZONS.tolist(), "favorable_bps": HURDLE_BPS,
+                  "event_basis": "gross_quote_markout", "endpoint_kind": "closed_m1_prefix",
+                  "coverage": coverage_report(panel),
+                  "primary_conditional_rank": conditional_rank(panel, prediction["logit_up"][:, 1], prediction["decision_ns"]),
+                  "model_forwards": 0, "optimizer_steps": 0, "fits": 0,
+                  "test_control_accessed": False, "combined_pretest_quote_opened": False,
+                  "limits": ["One repeatedly reused TRAIN-development fold and an already used 10bps research hurdle.",
+                             "Known-first-direction AUC conditions on outcome-dependent M1 observability; not unconditional trading edge.",
+                             "M1 intrabar order and quote age remain unknown; no commission or slippage is included.",
+                             "No model has been trained on this first-hurdle label; no action or holding rule is defined."]}
     for owner in plan["source_owners"]:
         require(sha(owner["path"]) == owner["sha256"], "SOURCE_DRIFT_AFTER")
     require(sha("NEXT_RUN_POLICY.json") == json.loads((output / "INVOCATION_CLAIM.json").read_text())["policy_sha256"],
@@ -239,8 +328,13 @@ def run(plan_path):
 def main():
     parser = argparse.ArgumentParser(); parser.add_argument("--plan", required=True); args = parser.parse_args()
     result = run(args.plan)
-    print(json.dumps({"status": result["status"], "parents": result["parents"],
-                      "primary_conditional_rank": result["primary_conditional_rank"]}, indent=2))
+    summary = {"status": result["status"], "parents": result["parents"]}
+    if "alignment" in result:
+        summary["alignment"] = result["alignment"]
+    else:
+        summary["primary_conditional_rank"] = result["primary_conditional_rank"]
+    print(json.dumps(summary, indent=2))
+
 
 
 if __name__ == "__main__":
