@@ -135,3 +135,16 @@ Foreløpig resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_
 Årsaken til exit 1 var at den eksisterende inputvakten avviste en read-only `O_DIRECTORY`-åpning av jobbens egen outputmappe under `fsync`. Én kodelinje legger bare denne eksakte mappen til samme katalogliste som allerede avviser skriveflagg. Et syntetisk testtilfelle bekrefter at egen mappe kan åpnes som read-only katalog, mens skriveflagg og uautoriserte søskenstier fortsatt avvises. 26 fokuserte tester bestod.
 
 Dette endrer ikke modellfunksjonen eller resultatet av det feilede forsøket. 55 av 56 kildeeierne matcher den historiske treningsrecipe; den ene forskjellen er denne katalogvaktrettingen. En senere modellreplay må separat binde og verifisere kildeovergangen. Se `docs/DIRECTION_GC_OUTPUT_DIRECTORY_GUARD_FIX_20261028.json`.
+
+
+## Verifisert GC-historieintervensjon i senere utviklingsperiode
+
+En separat, forhåndsbundet måling brukte den samme frosne første-prefixmodellen på hver tiende 16-raders batch fra 2025 Q2: 1 760 foreldre. En lagret fold1-referansebatch ble gjenskapt byte for byte. Deretter ble de 25 GC-historieprojeksjonene midlertidig nullstilt i én arm; gjeldende GC-kontekst og øvrige ruter forble aktive. Begge prediksjonsarmene og korrigerte mål ble lagret uten modellvekter eller rå features.
+
+På 1 753 kvalifiserte 5min-rader var AUC 0,489688 med original modell og 0,489699 med nullstilt GC-historie. Differansen (nullstilt minus original) var +0,000010; korrigert dagintervall var −0,000534 til +0,000536 og ukeintervall −0,000616 til +0,000785. Ved 60min var begge AUC 0,484323 på 1 688 kvalifiserte rader, og også der inkluderte begge intervaller null. Gjennomsnittlig absolutt logitendring over alle 60 utganger var 0,000755. Punktestimater for alle 60 minutter står i resultatet; intervaller var forhåndsvalgt for 5 og 60 minutter.
+
+En separat capped CPU-kontroll gjenkoblet hver lagret rad til den korrigerte fasiten og gjenskapte begge armenes AUC, logloss og Brier ved alle 60 minutter, samt 10 000 dag-/ukeblokktrekninger ved 5/60 minutter med en egen rangsum-/blokksøk-implementasjon. Største skåravvik var 5,56e-17 og største intervallavvik 3,28e-18. Ingen ny modellforward ble brukt i kontrollen.
+
+Dette viser liten målt påvirkning fra den bestemte GC-historieruten i dette utvalget og ingen dokumentert retningsforbedring ved de forhåndsvalgte horisontene. Det viser ikke at all GC-informasjon er uten verdi: kontekstruten står på, intervensjonen kan skape en unaturlig intern tilstand, og perioden er tidligere gjenbrukt utvikling. Blokkinferensen forutsetter utbyttbare kalenderblokker. Ingen generalisering, handel eller nettoøkonomi er kvalifisert.
+
+Modellresultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/OUTPUT/RESULT.json`, SHA-256 `02d8cf20527f9219ec82b974b0dd741522539cab4f7a6790358d1b4d65cdd5e6`. Uavhengig kontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_VERIFY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `f641aefdd33805cf467d1d639641d19cb59938fb33d9b2d9e401b9ffc2bb7ba0`. Parede prediksjoner er hashbundet under RUNS og ikke lagt i Git. Ingen optimizersteg, TEST eller handel.
