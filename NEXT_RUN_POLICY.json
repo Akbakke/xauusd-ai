@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-28T07:37:25.311596+00:00",
+  "updated_utc": "2026-10-28T07:37:53.819671+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "direction_order_batch_geometry_20261028_002",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Execute exactly the admitted one-shot TRAIN-prefix order batch composition audit; then close the gate and interpret results without claiming model improvement.",
+    "next_action": "Execute the newly bound CPU-only TRAIN-prefix batch-order audit; close the gate on its terminal result and distinguish coefficient geometry from model improvement.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -40851,5 +40851,27 @@
     "max_invocations": 1,
     "relaunch_allowed": false,
     "scope": "One exact TRAIN-only pre-CONTROL target archive, first 47602 prefix labels, both deterministic presentation orders, no model, predictions or training. NPZ arrays are physically loaded but only prefix labels and the adjacent decision clock are analyzed."
+  },
+  "direction_order_batch_geometry_20261028_002": {
+    "status": "ADMITTED_ONE_CPU_AUDIT",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_PLAN_20261028_002.json",
+      "sha256": "4269c259360832bff8657ec846c1edf2947c2d45a427727166321141fc844b71"
+    },
+    "execution_authorized": true,
+    "genuine_train_target_reads_authorized": true,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "scope": "One exact TRAIN-only pre-CONTROL target archive, first 47602 prefix labels, both deterministic presentation orders, no model, predictions or training. NPZ arrays are physically loaded but only prefix labels and the adjacent decision clock are analyzed.",
+    "predecessor_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_PLAN_20261028_001.json",
+      "sha256": "7b334dfc706c06f6ff186cede01fa40f6433c1e1cb27e1d8648e7702ba7664a1"
+    }
   }
 }
