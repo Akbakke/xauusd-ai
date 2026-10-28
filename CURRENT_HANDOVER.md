@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+BRUKER GODKJENTE DEN EKSAKTE PRIVATE KONTROLLEN: kun korrigert 1–60-fasit, 256 startprediksjoner, 32 TRAIN-foreldre og fire private oppdateringer med resume. En begrenset éngangsgate er åpnet for forberedelse; ingen jobb er startet. Bind ren kilde og kampanje, observer ledig maskin, restart fysisk før kjøring, verifiser 250 W og alle vakter, kjør én gang og gjenopprett 160 W ved tomgang. Lukk deretter alle treningsflagg; full fit, TEST, handel og vektgjenbruk er fortsatt stengt.
+
 PRIVAT KORRIGERT FASIT-/MODELLKVALIFISERING FORESLÅTT, IKKE KJØRT: en konkret oppskriftskandidat med 58 kildeeiere bestod metadataforhåndskontroll; genuin provider-metadata ble også kontrollert, men feature-gather og modell er ikke kjørt. Forslag: 256 startprediksjoner, 32 TRAIN-foreldre, fire oppdateringer, alle 60 utganger og eksakt resume. Ny eksplisitt autorisasjon kreves før engangsplanen åpnes; deretter fysisk Windows-restart, verifisert 250 W treningsgrense og 160 W etterpå. Eksisterende signert generisk vakt tillater opptil 300 W; 250 W må verifiseres separat. Ingen full fit er admittert. Se `docs/DIRECTION_DECIMAL_PRIVATE_QUALIFICATION_PROPOSAL_20261028.md`; metadataforhåndskontrollene er direkte terminalsummeringer, ikke kampanjekvitteringer. Ingen GPU, trening, TEST eller handel.
 
 

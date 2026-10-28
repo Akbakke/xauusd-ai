@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "DECIMAL_PRIVATE_QUALIFICATION_PROPOSED_NO_TRAINING",
-  "training_enabled": false,
+  "status": "DECIMAL_PRIVATE_QUALIFICATION_AUTHORIZED_PREPARATION",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. The midpoint float-sign defect has been measured and a separate corrected target prepared; native model qualification and a full fit need their own exact admissions. Preserve genuine inputs, eight families, D1/macro, hardware guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Await explicit authorization for the exact proposed corrected-target four-update private qualification. Only after approval: bind the clean committed source and boot-aware campaign, physically restart, set and verify 250 W, run one capped invocation, verify results and restore 160 W. Full-prefix fit remains separately unadmitted; no TEST, broker or trading.",
+  "next_action": "Prepare and bind the exact authorized one-shot corrected-target private qualification; require a fresh physical Windows boot, 250 W physical cap and all existing hardware gates, run once, verify and restore idle cap to 160 W. Close training immediately afterwards; full-prefix fit and TEST remain unadmitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -43546,10 +43546,10 @@
     }
   },
   "direction_decimal_private_route_source_20261028": {
-    "status": "RECIPE_AND_METADATA_PREFLIGHT_PASS_PRIVATE_QUALIFICATION_NOT_AUTHORIZED",
+    "status": "EXACT_PRIVATE_QUALIFICATION_AUTHORIZED_NOT_YET_RUN",
     "private_scope": "private_dense_decimal_b16_initial_resume_qualification",
     "full_prefix_fit_scope_admitted": false,
-    "training_authorized": false,
+    "training_authorized": true,
     "input_audit": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json",
       "sha256": "8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19"
@@ -43659,5 +43659,43 @@
       "sha256": "35912018b7982d4de582afa6967fd4f1e40003716118ec2470b9221d1a8d289a"
     },
     "economic_edge_qualified": false
+  },
+  "dynamic_m5_direction_decimal_private_qualification_20261028_001": {
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "physical_restart_before_invocation_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "qualification_weights_for_main_fit": false,
+    "status": "AUTHORIZED_EXACT_PRIVATE_QUALIFICATION_PREPARATION",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_QUALIFICATION_RECIPE_CANDIDATE_20261028.json",
+      "sha256": "97f214bbc3a2d88f561d9414ec3ecc8eb4ccb9e611e5da1af80e014053eef853"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/RUNTIME",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_private_optimizer_steps": 4,
+    "requested_physical_gpu_power_limit_w": 250,
+    "scope": "Only the specifically approved corrected 1–60-minute target private qualification: fixed 256 initial predictions, 32 TRAIN parents, four physical updates and exact resume. No full fit, TEST, broker, trading, Exit or private-weight reuse.",
+    "user_approval": {
+      "response": "Ja, kjør denne kontrollen",
+      "scope": "exact private corrected-target qualification in DIRECTION_DECIMAL_PRIVATE_QUALIFICATION_PROPOSAL_20261028.md",
+      "recorded_utc": "2026-10-28T20:21:16.535663+00:00"
+    }
   }
 }

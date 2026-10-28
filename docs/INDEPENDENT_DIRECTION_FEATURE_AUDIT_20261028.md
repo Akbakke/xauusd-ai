@@ -470,3 +470,5 @@ Ingen nye modellforward, optimizersteg, GPU, TEST eller handel. Design: `docs/DI
 ## Avgrenset kontroll av korrigert fasit og faktisk modellkjede
 
 En konkret privat kvalifiseringsoppskrift er metadata-kontrollert mot 58 kildeeiere, korrigert mål og lagrede startprediksjoner. En separat direkte kontroll av autentisk provider-metadata fant riktige bindinger; selve feature-gather og modellen er ikke kjørt. Forslaget sammenligner 256 startprediksjoner, måler gradienter i alle 60 utganger og tester gjenopptak med fire oppdateringer på 32 TRAIN-foreldre. Dette er ikke en full treningsbaseline og kan ikke bevise retningsedge eller at alle featureverdier og samspill er riktige. Se [forslaget](DIRECTION_DECIMAL_PRIVATE_QUALIFICATION_PROPOSAL_20261028.md). Global trening er avslått, og kjøringen trenger en ny eksakt autorisasjon, fysisk restart og vaktkontroll.
+
+Brukeren har etterpå godkjent akkurat den avgrensede private kontrollen med fysisk restart, 250 W under kjøring og 160 W etterpå. Full trening og TEST er fortsatt ikke admittert; intet nytt modellresultat foreligger ennå.
