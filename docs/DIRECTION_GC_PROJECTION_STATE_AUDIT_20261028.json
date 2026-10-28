@@ -1,0 +1,31 @@
+{
+  "schema_version": "gx1_direction_gc_projection_state_design_v1",
+  "status": "SOURCE_PREPARED_AUDIT_PENDING",
+  "scope": "Compare initial and completed trained projection, gate and residual parameter aggregates for the exact 60-minute fold1 model. Check both checkpoint seals and profile bindings; no examples or model forwards.",
+  "inputs": {
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RECIPE.json",
+      "sha256": "64a7243076812506b7c2dc3ebd32c89cc2202ba9ff5ae2159f936bc830e75d2d"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "prefix_normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+      "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+    },
+    "initial_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/states/INITIAL_0U.pt",
+      "sha256": "78e0e2a56ad68882c2adec482f2bd8b6614a0099146ef813cea8b072466e9f05"
+    },
+    "final_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/states/w0001_TERMINAL_u002976_p047602.pt",
+      "sha256": "ee1b95efe5f5dc1eb34b6a0e8438951fede222fd56b0e75eb56b550eab4f9885"
+    }
+  },
+  "limitations": "Parameter change and numerical rank do not demonstrate input influence, useful interactions, later predictive value or edge.",
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false
+}

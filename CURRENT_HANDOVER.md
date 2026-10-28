@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+Én ny CPU-engangskontroll er ADMITTERT for parametrene i første og fullførte 60-minuttersmodell. Den leser bare de to hashbundne checkpointene; ingen modellforward, optimizersteg, TEST eller handel. Kilde og syntetiske tester er klare, faktisk resultat gjenstår.
+
 Selvstendig kilde-/prefixkontroll av sammensettingen: SMC-konteksten har 1 094 aktive numeriske koordinater til én 128-dimensjonal projeksjon (616 binære, 540 `_observed`); M5 SMC projiserer 316 GC- og 76 XAU-koordinater til samme 128-dimensjonale familietoken. Alle 316 GC-navn finnes også i aktiv gjeldende kontekst. Dette er mulig informasjonspress, ikke bevist tap eller årsak til svak retning. Alle 56 kildeeierne i treningsrecipe matcher sine hasher. Se `docs/DIRECTION_GC_PROJECTION_SOURCE_REVIEW_20261028.json`. Ingen modellkall.
 
 Separat desimalmålforbruker er STRUKTURELT KVALIFISERT på faktiske kildebundne mål: alle 118 249 foreldre, 60 horisonter, klokker/masker og uavhengige fortegnsmatriser stemmer; 17 288 lagrede fold1-rader er koblet tilbake til originalmålene. Av 6 946 049 observerte bps-celler har 6 784 709 ulik flyttallsverdi, men største absolutte forskjell er 4,214e-12 bps. Originalanker gjelder fortsatt bare originalmålet. Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/RESULT.json`, SHA-256 `87b2240484f48b1c7341467947357e25cda28c8d47fcf91f43b87614fa664632`. Ingen modell eller trening. Ny autentisert treningsrute og fersk baseline kreves fortsatt.
