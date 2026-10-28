@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T12:04:53.651344+00:00",
-  "status": "ONE_CAPPED_REAL_MINUTE_1_TO_60_TARGET_MATERIALIZATION_ADMITTED",
+  "observed_utc": "2026-10-28T12:07:35.599805+00:00",
+  "status": "REAL_MINUTE_1_TO_60_TARGETS_COMPLETE_PREDICTION_EVALUATION_AND_MODEL_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Materialize and verify the exact 1–60 minute TRAIN/development target archive; then evaluate existing 5-minute direction signals across the 60 targets and build distinct minute-specific model outputs under fresh gates.",
+  "next_action": "Evaluate the existing fixed 5-minute direction predictions against all 60 real minute targets on the four chronological development folds under a new exact plan, then build genuinely distinct 1–60 model outputs. Keep TEST and all trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "DENSE_MINUTE_TARGETS_1_TO_60_ADMITTED_NO_TRAINING",
+    "status": "DENSE_MINUTE_TARGETS_COMPLETE_60_OUTPUT_MODEL_PENDING",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Materialize and verify the exact 1–60 minute TRAIN/development target archive; then evaluate existing 5-minute direction signals across the 60 targets and build distinct minute-specific model outputs under fresh gates.",
+    "next_action": "Evaluate the existing fixed 5-minute direction predictions against all 60 real minute targets on the four chronological development folds under a new exact plan, then build genuinely distinct 1–60 model outputs. Keep TEST and all trading closed.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37290,7 +37290,16 @@
       "sha256": "f62b5afad12c784fe681f7ee2bdd5f07fba9d721a454860627e16b85d12db3d3"
     },
     "requested_next_gpu_training_power_limit_w": 250,
-    "gpu_power_request_scope": "Physical 250 W ceiling for the next separately admitted GPU training; preserve all existing hardware/thermal guards and restore the 160 W idle ceiling afterwards. The prior 300 W ceiling peaked at 136.12 W actual draw, so no speedup is established."
+    "gpu_power_request_scope": "Physical 250 W ceiling for the next separately admitted GPU training; preserve all existing hardware/thermal guards and restore the 160 W idle ceiling afterwards. The prior 300 W ceiling peaked at 136.12 W actual draw, so no speedup is established.",
+    "dense_minute_target_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json",
+      "sha256": "1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b"
+    },
+    "dense_minute_target": {
+      "bytes": 76101434,
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
+      "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d"
+    }
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -41420,22 +41429,22 @@
     }
   },
   "direction_dense_minute_targets_actual_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_REAL_TARGETS_ONLY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_PLAN_20261028_001.json",
       "sha256": "2494af08975ee22c0ea546562141f5ff5bde52368e74716df40279539c31a96b"
     },
-    "execution_authorized": true,
-    "genuine_source_reads_authorized": true,
-    "dense_target_write_authorized": true,
+    "execution_authorized": false,
+    "genuine_source_reads_authorized": false,
+    "dense_target_write_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "horizons_minutes": [
       1,
@@ -41534,6 +41543,19 @@
         "sha256": "0c8f7fad265e65adad53e6e7bad8e2abdf6b600eac78770f52ebfa9b8db90c1b"
       }
     },
-    "scope": "One capped CPU target materialization on bound 2024–2025 TRAIN/development quote partitions; exact 1/5/15 byte parity required, no model or trading."
+    "scope": "One capped CPU target materialization on bound 2024–2025 TRAIN/development quote partitions; exact 1/5/15 byte parity required, no model or trading.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json",
+      "sha256": "1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/TERMINAL.json",
+      "sha256": "4653cf101dde87d6f94f5f0aa6e102bdee6b476ce15bb029ca74e3cf9a780f56"
+    },
+    "target": {
+      "bytes": 76101434,
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
+      "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d"
+    }
   }
 }
