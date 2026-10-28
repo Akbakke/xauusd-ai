@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "OBSERVATION_GAPS_ADMITTED",
+  "status": "OBSERVATION_GAPS_MEASURED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Complete and independently check one capped 1..60 observation population and clock-gap diagnostic, then return to a separate corrected-target 5min-direction training scope. No model, optimizer, checkpoint, TEST, broker or trading.",
+  "next_action": "Prepare a separately admitted integration of the qualified decimal target owner, fresh baseline and a separately specified 5min direction hypothesis while retaining 1..60 horizons and all existing features. Follow direction-first scope: path/risk/FLAT objective changes are not admitted by the diagnostic. No training without a new exact authorization and the requested safe restart; keep TEST, broker and hardware guards closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43471,24 +43471,45 @@
     "economic_edge_qualified": false
   },
   "independent_direction_observation_gaps_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBSERVATION_GAPS_20261028.json",
       "sha256": "743951ed3e97b36b648efeb8ea410f18988d4dad07faa60865eb3b5105807fc5"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 600,
-    "scope": "Read exact fixed Q1 and sampled Q2 2025 M1 timestamp/target inputs; quantify missing endpoints, maturity and intermediate minute gaps for every 1..60 horizon. No model, fitting, broker or TEST."
+    "scope": "Read exact fixed Q1 and sampled Q2 2025 M1 timestamp/target inputs; quantify missing endpoints, maturity and intermediate minute gaps for every 1..60 horizon. No model, fitting, broker or TEST.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "45514ac046257556999930671a36daa4da81cc44cd6ce02d8c954eff819355f7"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "a8c21c9b93e59432e394af49213074d4d04612771f92addd8567476add4864e0"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "264af8a41d0f6c876494205b24190b48bfdd1349083bf5baef5e2f9795d70d9f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_20261028_001/TERMINAL.json",
+      "sha256": "a87d3e28ecfdbe0a9f4de8cfb715a012563b99cdcde4543fa1896e350b75ecc0"
+    },
+    "independent_check": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_INDEPENDENT_CHECK_20261028_001.json",
+      "sha256": "7a99c730859c5a5370b7de76b8eb588862d6c3c238d63baa5eb3ac2040000775"
+    },
+    "economic_edge_qualified": false
   }
 }

@@ -412,3 +412,26 @@ En uavhengig metode beregnet direkte den fordelaktige differansen mellom bid/ask
 **Begrensning:** Candleåpningen er ikke en dokumentert samtidig, omsettelig quote eller et fyll. Analysen inkluderer ikke provisjon, slippage, prisveien før sluttidspunktet, åpne posisjoner eller øvrige handelskostnader, og den beviser verken tap, lønnsomhet eller en handelsregel. Utfallsbasert filtrering er ikke tillatt ved beslutningstidspunktet; eventuelle fremtidige FLAT-/retningsmål må testes med kun kausale inputs. Q1 og Q2 er gjenbrukte utviklingsdata, og Q2 er et fast ikke-tilfeldig delutvalg. Ingen modellforward, trening, TEST eller handel.
 
 Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_SPREAD_20261028_001/OUTPUT/RESULT.json`, SHA-256 `ee4ee92e1e872e3af4121202afe8d4cc1510826955d885fd863bef55eaf099cb`; uavhengig kontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_SPREAD_INDEPENDENT_CHECK_20261028_001.json`, SHA-256 `dece4fbd7f3f560de5af60f8197ec9bf13123713115c5d88ae6f2ea00caee6cc`.
+
+
+## Hvorfor endepunkter mangler mellom 1 og 60 minutter
+
+Etter den korrigerte fasiten ble samtlige endepunktsmasker og kildepekere på de faste Q1-/Q2-foreldrene koblet tilbake til nøyaktige M1-tidsstempler. Et endepunkt regnes som manglende bare når det er før foldgrensen og den eksakte M1-raden mangler. Endepunkter på eller etter grensen er umodne og holdes separat.
+
+| Q1-horisont | Observerte endepunkter | Manglende før grensen | Umodne ved grensen |
+| --- | ---: | ---: | ---: |
+| 1 minutt | 17 288 | 0 | 0 |
+| 5 minutter | 17 224 | 63 | 1 |
+| 15 minutter | 17 096 | 189 | 3 |
+| 30 minutter | 16 904 | 378 | 6 |
+| 60 minutter | 16 520 | 756 | 12 |
+
+Observerte nullbevegelser kommer i tillegg og tas ikke med som OPP/NED i den gjeldende retningsscoringen. Blant **17 276** Q1-foreldre der både fem- og 60-minuttersendepunktet er modent, finnes begge endepunktene for **16 520**. **63** mangler begge og **693** har femminutterspris, men mangler 60-minutterspris. Sammenligning av horisonter på hver sin maske kan derfor også sammenligne ulike rader.
+
+For alle 1–60-horisontene samlet var de påvirkende kildehullene i Q1 ett hull på **1 manglende M1-minutt** og **63 lengre hull**: 47 på 64 minutter, ett på 65, to på 214, ett på 2 884 og 12 på 2 944 minutter. Disse lengdene er observert i kildetidsaksen; vi har ikke fastslått om hvert hull skyldes handelsstans, normal åpningstid eller datamangel. Ingen av manglene i de undersøkte populasjonene hadde ukjent høyre ende før den aktuelle foldgrensen.
+
+Syv observerte Q1-endepunkter ved 60 minutter hadde minst ett manglende M1-tidsstempel mellom start og slutt. Markout kan likevel være observert for disse radene, mens en vei-basert analyse trenger en egen maske. Omvendt beviser komplette M1-tidsstempler ikke full intrabar tickhistorikk eller faktiske fyll. Manglene er korrekt maskert i denne kontrollen og forklarer ikke i seg selv AUC nær 0,50 ved fem minutter.
+
+En uavhengig kontroll brukte en separat tidsstempelordbok, kumulativ boolsk dekning og Python-bisekt for å gjenskape alle 60 maskene, kildepekerne, hulltellingene og populasjonsoverlappene i begge perioder. Q1 er gjenbrukt utvikling og Q2 et fast ikke-tilfeldig delutvalg. Ingen ny modellforward, trening, TEST, handel eller økonomisk edge.
+
+Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_20261028_001/OUTPUT/RESULT.json`, SHA-256 `a8c21c9b93e59432e394af49213074d4d04612771f92addd8567476add4864e0`; uavhengig kontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_INDEPENDENT_CHECK_20261028_001.json`, SHA-256 `7a99c730859c5a5370b7de76b8eb588862d6c3c238d63baa5eb3ac2040000775`.
