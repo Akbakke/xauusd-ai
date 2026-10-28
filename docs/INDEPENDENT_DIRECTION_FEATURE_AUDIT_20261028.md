@@ -286,3 +286,10 @@ På det tidligere fastsatte **Q2-utvalget på 1 738 rader** traff motsatt retnin
 Dette er en *etterundersøkelse* av data som allerede er brukt til utvikling, ikke en forhåndsregistrert og urørt bekreftelse. Blokkintervallene forutsetter utbyttbare dager/uker og korrigerer ikke for hvordan idéen ble funnet. M1-candlens åpningspris har ikke eksakt quote-tid, og kostnader/fyll er ikke målt. Resultatet gir en konkret enkel referanse å forhåndsdefinere før senere sammenligning, men dokumenterer verken generalisert retningsedge eller lønnsom trading. Det er heller ikke kontrollert at den eksakte M1-prisendringen inngår direkte i modellens features.
 
 Resultat: `docs/DIRECTION_PAST_MOVE_REFERENCE_DIAGNOSIS_20261028.json`, SHA-256 `1d1273e9e500fcf32586fbc6ce24e1d663d44155b64a8f6e1b77d3cd8ba867e0`; uavhengig kontroll av punktestimater og fem bootstrap-trekninger per blokkmetode er bestått. Ingen nye modellforward, optimizersteg, TEST eller handel.
+
+
+## Sammenheng før og etter trening
+
+Det er ikke riktig å si at hele modellen er frakoblet eller ikke lærer noen sammensetning. På nøyaktig de samme **256 lagrede TRAIN-foreldrene** økte median korrelasjon mellom de 59 parene av nabologiter fra **0,0303 før trening til 0,7787 etter 2 976 oppdateringer**. Antall negative nabokorrelasjoner falt fra **29 til 7**. For 5/6min økte korrelasjonen fra **−0,0413 til 0,6100** på disse treningsradene, men på alle undersøkte Q1- og Q2-foreldre var den **0,1698 og −0,0454**. Her brukes alle lagrede foreldre, mens den foregående fasitsammenligningen bare brukte foreldre med begge mål gyldige.
+
+Dette viser endret samvariasjon i modellens utganger, ikke at den har lært riktig markedsretning. TRAIN-utvalget er lite, og de senere periodene har ulike populasjoner. Resultat: `docs/DIRECTION_HEAD_TRAIN_LEARNING_CHECK_20261028.json`, SHA-256 `f1befc6b5ce33de2019e5193311411646819390e7ce7b8e51a75285a43f901a2`. Ingen nye modellforward, optimizersteg, TEST eller handel.

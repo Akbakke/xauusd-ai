@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "EXPLORATORY_PRICE_REFERENCE_DIAGNOSED",
+  "status": "HEAD_LEARNING_AND_DIRECTION_DIAGNOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -43171,6 +43171,17 @@
     "result": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_PAST_MOVE_REFERENCE_DIAGNOSIS_20261028.json",
       "sha256": "1d1273e9e500fcf32586fbc6ce24e1d663d44155b64a8f6e1b77d3cd8ba867e0"
+    },
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "economic_edge_qualified": false
+  },
+  "independent_direction_head_train_learning_check_20261028": {
+    "status": "COMPLETE_SAVED_PREDICTIONS_ONLY",
+    "result": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_HEAD_TRAIN_LEARNING_CHECK_20261028.json",
+      "sha256": "f1befc6b5ce33de2019e5193311411646819390e7ce7b8e51a75285a43f901a2"
     },
     "new_model_forwards": 0,
     "optimizer_steps": 0,
