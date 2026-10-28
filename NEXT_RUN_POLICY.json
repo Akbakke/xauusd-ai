@@ -39849,5 +39849,25 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_SYNTHETIC_20261028_001/OUTER.log",
       "sha256": "aa3982846d58070b5339899fe53bc1c3b8054ca09670279906ec7d24ed0d6660"
     }
+  },
+  "direction_first_quote_race_partial_source_20261028": {
+    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "scope": "Preserve a conservative set of possible first-hurdle outcomes when the exact winner is not identifiable. This prevents an outcome-dependent unknown mask from being mistaken for a representative training population. Existing event and direction semantics stay unchanged.",
+    "allowed_source_paths": [
+      "gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
+      "tests/test_entry_causal_m1_first_positive_quote_v1.py"
+    ],
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "class_order": [
+      "long_first",
+      "short_first",
+      "neither_within_horizon"
+    ],
+    "selection_warning": "At h=1 a closed M1 hit is entry-bar ambiguous, while no nominal hit is known; dropping ambiguous events creates outcome-dependent selection. Partial sets are conservative and do not themselves constitute a trained loss."
   }
 }

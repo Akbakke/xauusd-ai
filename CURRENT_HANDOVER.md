@@ -11,6 +11,10 @@ Programrot:
 
 ## Aktuell status
 
+Tillegg er kildeadmittért: fasiten skal også bevare et konservativt sett av
+mulige utfall ved usikker rekkefølge. Å maskere ukjente treff alene gir
+utfallsavhengig utvalg, særlig ved 1min. Ingen trening eller datalesing er åpnet.
+
 Forskningsfasiten for hvilken side som først passerer en fast bps-grense
 er implementert i eksisterende første-gunstige-quote-eier. 42 syntetiske
 kontroller bestod, inkludert opp/ned, reversering til start og 1–60min.
