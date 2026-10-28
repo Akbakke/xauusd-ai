@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "fa5db51cb38ff20877bc77d697089cffe3ea26b2e41ee9605ac50354e5d7de24"
+      "sha256": "f2e58c06594f38d22eeeaa7bfc76e25966f1c8ed33239aca11f43d4532864d8e"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -43774,5 +43774,25 @@
       "sha256": "8f0d49749f3c6997c522e27d88b4f040fc6683706dd15f69ba6c3ed263d2ff04"
     },
     "rsi_predictive_value_qualified": false
+  },
+  "direction_et_snapshot_profile_review_20261028": {
+    "status": "EXISTING_HASHED_FOLD_METADATA_ONLY",
+    "decision": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NONLINEAR_REFERENCE_20261024_252/DECISION.json",
+      "sha256": "b347f518c0da11045fe9ef6ba3ce477efe432396e5b8a8c5263285276fe6e357"
+    },
+    "folds": 5,
+    "profile": "compact_mbp_smc_ema_atr_clock_macro_entry_v1",
+    "snapshot_coordinates_per_fold": 3345,
+    "named_rsi_coordinates_per_fold": 0,
+    "named_mtf_ret1_ret20_coordinates_per_fold": 0,
+    "reference_fit_relaunch_authorized": false,
+    "new_data_audit_authorized": false,
+    "training_authorized": false,
+    "predictive_improvement_qualified": false,
+    "test_data_used": false,
+    "common_auc_cohort_uses_later_other_horizons": true,
+    "all_valid_5m_aggregate_rows": 70294,
+    "all_valid_5m_auc_interval_qualified": false
   }
 }
