@@ -11,6 +11,12 @@ Programrot:
 
 ## Aktuell status
 
+Full TRAIN-måling for 3-pass-terminalen har ny, unik adgang og 12 000 s
+uendret vaktgrense, men er ennå ikke startet. Eksakt kampanje, ledig maskin
+og fersk fysisk boot må bekreftes før kjøring. Omfanget er 47 602 foreldre,
+2 976 B16-forwards, de første 256 med umiddelbar bitparitet, og null optimizer-
+eller baklengssteg. Kilde/policy fryses under kjøringen.
+
 Den eksisterende frosne måleruten er utvidet for 3-pass-terminalens hele
 TRAIN-prefiks og syntetisk kvalifisert: 277 tester bestod under CPU-tak, og
 57 kildeeiere og faktiske JSON-bindinger er kontrollert uten payloadlesning.
