@@ -11,10 +11,11 @@ Programrot:
 
 ## Aktuell status
 
-Et en-faktor-forsøk med bounded størrelsesvektet retnings-BCE er definert.
-Først er bare kilde for tapskontrakt åpnet; ingen modellrute, ekte data eller
-trening er admittért. Dette beholder 1/5/15-baselinen og er ikke en all-1..60-
-modell eller bevist bedring. Se `docs/DIRECTION_MAGNITUDE_WEIGHTED_SIGN_DESIGN_20261028.json`.
+En bounded, TRAIN-prefiksnormalisert størrelsesvektet retnings-BCE er
+implementert som forskningskontrakt. Én syntetisk kontroll er admittért;
+ingen modellrute, ekte data eller trening er åpnet. Dette beholder 1/5/15-
+baselinen og er ikke en all-1..60-modell eller bevist bedring. Se
+`docs/DIRECTION_MAGNITUDE_WEIGHTED_SIGN_DESIGN_20261028.json`.
 
 ET252-sammenligningen er COMPLETE og konsumert på samme 1 042 førstetreff-
 foreldre. AUC er 0,476606 mot native 0,426768; differansen er +0,049839,

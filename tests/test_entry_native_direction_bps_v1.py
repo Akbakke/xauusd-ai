@@ -267,3 +267,87 @@ def test_bps_report_keeps_original_units_masks_and_frozen_reference():
     assert row["count"] == 1 and row["mse_bps2"] == 2500
     assert row["sse_bps2"] == row["zero_reference_sse_bps2"]
     assert row["own_prefix_mean_reference_sse_bps2"] == 0
+
+
+def _magnitude_weight_contract(arrays=None, cutoff=130*M):
+    return bps.fit_direction_magnitude_weight_contract(
+        **(_arrays() if arrays is None else arrays), cutoff_ns=cutoff,
+        target_source={"path": "/synthetic/targets.npz", "sha256": "b"*64}, fit_partition="train")
+
+
+def _magnitude_weight_loss(values, cutoff=200*M):
+    args = _loss(values, cutoff=cutoff)
+    del args["mean_return_bps"]
+    args["raw_weight_mean"] = torch.tensor([.4, .5, .6])
+    return args
+
+
+def test_magnitude_weight_uses_only_own_mature_nonzero_prefix_and_normalizes():
+    a = _arrays(); contract = _magnitude_weight_contract(a, cutoff=120*M)
+    assert contract["eligible_counts"] == [2, 3, 1]
+    scales = np.asarray(contract["base_scale"]["rms_bps"], np.float32)
+    magnitude = np.abs(a["mid_return_bps"].astype(np.float32))
+    raw = magnitude / (scales[None, :] + magnitude)
+    eligible = a["observed"] & (a["sign"] != 0) & (a["terminal_time_ns"] < 120*M)
+    for i in range(3):
+        assert np.mean(raw[eligible[:, i], i] / contract["raw_weight_means"][i]) == pytest.approx(1.)
+    changed = deepcopy(a)
+    changed["mid_return_bps"][1:, 2] = [-9000., 8000.]
+    assert _magnitude_weight_contract(changed, cutoff=120*M) == contract
+
+
+@pytest.mark.parametrize("polarity", [1, -1])
+def test_magnitude_weight_gives_larger_move_stronger_direction_gradient(polarity):
+    args = _magnitude_weight_loss(polarity*np.asarray([[.1, .1, .1], [50., 50., 50.]]))
+    result = bps.native_direction_magnitude_weighted_loss(**args)
+    result["loss"].backward()
+    assert torch.all(args["logit_up"].grad[1].abs() > args["logit_up"].grad[0].abs())
+    assert torch.all(args["logit_up"].grad * polarity < 0)
+    assert result["unweighted_direction_loss"] is not None
+
+
+def test_magnitude_weight_same_size_matches_original_direction_loss_and_gradients():
+    args = _magnitude_weight_loss([[2., -2., 2.], [-2., 2., -2.]])
+    args["rms_bps"] = torch.full((3,), 2.)
+    args["raw_weight_mean"] = torch.full((3,), .5)
+    result = bps.native_direction_magnitude_weighted_loss(**args)
+    torch.testing.assert_close(result["loss"], result["unweighted_direction_loss"])
+    grad = torch.autograd.grad(result["loss"], args["logit_up"], retain_graph=True)[0]
+    base = torch.autograd.grad(result["unweighted_direction_loss"], args["logit_up"])[0]
+    torch.testing.assert_close(grad, base)
+
+
+def test_magnitude_weight_zero_missing_and_cutoff_do_not_produce_direction_gradient():
+    args = _magnitude_weight_loss([[1., 0., 50.]], cutoff=115*M)
+    args["observed"][0, 1] = False
+    result = bps.native_direction_magnitude_weighted_loss(**args)
+    assert result["counts"]["eligible_cells"] == 1
+    result["loss"].backward()
+    assert args["logit_up"].grad[0, 0] != 0
+    assert torch.equal(args["logit_up"].grad[0, 1:], torch.zeros(2))
+    empty = _magnitude_weight_loss([[0., 0., 0.]])
+    result = bps.native_direction_magnitude_weighted_loss(**empty)
+    assert result["loss"] is None and not result["update_allowed"]
+
+
+@pytest.mark.parametrize("fault", ["mean_zero", "mean_one", "mean_grad", "target_sign", "target_grad", "target_dtype"])
+def test_magnitude_weight_invalid_inputs_fail_closed(fault):
+    args = _magnitude_weight_loss([[.1, 2., 50.]])
+    if fault == "mean_zero": args["raw_weight_mean"][0] = 0
+    elif fault == "mean_one": args["raw_weight_mean"][0] = 1
+    elif fault == "mean_grad": args["raw_weight_mean"].requires_grad_(True)
+    elif fault == "target_sign": args["sign"][0, 0] = -1
+    elif fault == "target_grad": args["mid_return_bps"].requires_grad_(True)
+    else: args["mid_return_bps"] = args["mid_return_bps"].float()
+    with pytest.raises(RuntimeError):
+        bps.native_direction_magnitude_weighted_loss(**args)
+
+
+def test_magnitude_weight_contract_rejects_tamper_and_nontrain_fit():
+    contract = _magnitude_weight_contract()
+    contract["raw_weight_means"][0] *= 2
+    with pytest.raises(RuntimeError, match="MAG_WEIGHT_SEAL"):
+        bps.require_direction_magnitude_weight_contract(contract)
+    with pytest.raises(RuntimeError, match="TRAIN_ONLY"):
+        bps.fit_direction_magnitude_weight_contract(**_arrays(), cutoff_ns=130*M,
+            target_source={"path": "/synthetic/targets.npz", "sha256": "b"*64}, fit_partition="control")

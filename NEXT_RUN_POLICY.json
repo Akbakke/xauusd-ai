@@ -40403,7 +40403,7 @@
     "direction_improvement_qualified": false
   },
   "direction_bounded_magnitude_weight_source_20261028": {
-    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAGNITUDE_WEIGHTED_SIGN_DESIGN_20261028.json",
       "sha256": "b216e4ed4d58855de59edd08b1b47e47afef7db66e3469178d5fd05344d88a63"
@@ -40413,10 +40413,39 @@
       "gx1/contracts/entry_native_direction_bps_v1.py",
       "tests/test_entry_native_direction_bps_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_bps_v1.py",
+      "sha256": "aec390322f27bdf6f8e878088c8af719e4f659ab7cb7014528f3b16504b0b8b8"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_bps_v1.py",
+      "sha256": "5868fcf6b5a34cdef9984da6bd4bac7785183a903ba59416667a2ff34d4646d6"
+    },
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BOUNDED_MAGNITUDE_WEIGHT_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "dd95102360ab69541c254c20abf1551c74db198ba37c0f25a25a33978c61b8fe"
+    },
+    "expected_synthetic_cases": 12
+  },
+  "direction_bounded_magnitude_weight_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BOUNDED_MAGNITUDE_WEIGHT_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "dd95102360ab69541c254c20abf1551c74db198ba37c0f25a25a33978c61b8fe"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "genuine_native_calls_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false
   }

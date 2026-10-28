@@ -170,3 +170,107 @@ def score_direction_bps(mean_return_bps, *, mid_return_bps, observed, terminal_t
     return {"scope": "Gross midpoint conditional-mean error; no uncertainty, trading or economic claim.",
         "target_precision": "Original float64 saved bps for scoring; optimizer uses checked float32 targets.",
         "scale_contract_sha256": scale["contract_sha256"], "per_horizon": rows}
+
+
+MAGNITUDE_WEIGHT_SCHEMA = "gx1_direction_own_prefix_bounded_magnitude_weight_v1"
+
+
+def require_direction_magnitude_weight_contract(value):
+    """Validate immutable own-prefix loss weights; never grants a fit."""
+    keys = {"schema_version", "base_scale", "eligible_counts", "raw_weight_sums",
+            "raw_weight_means", "eligible_magnitude_sha256", "contract_sha256"}
+    _require(isinstance(value, Mapping) and set(value) == keys, "MAG_WEIGHT_KEYS")
+    plain = {key: item for key, item in value.items() if key != "contract_sha256"}
+    _require(value["contract_sha256"] == _sha(plain)
+             and value["schema_version"] == MAGNITUDE_WEIGHT_SCHEMA, "MAG_WEIGHT_SEAL")
+    base = require_direction_bps_scale(value["base_scale"])
+    for key in ("eligible_counts", "raw_weight_sums", "raw_weight_means"):
+        _require(type(value[key]) is list and len(value[key]) == 3, "MAG_WEIGHT_COORDINATES")
+    counts = value["eligible_counts"]
+    sums = np.asarray(value["raw_weight_sums"], dtype=np.float64)
+    means = np.asarray(value["raw_weight_means"], dtype=np.float64)
+    _require(all(type(n) is int and 0 < n <= base["prefix_rows"] for n in counts)
+             and np.isfinite(sums).all() and np.isfinite(means).all()
+             and np.all(sums > 0) and np.all(means > 0) and np.all(means < 1)
+             and np.array_equal(means, sums / np.asarray(counts, dtype=np.float64))
+             and np.isfinite(means.astype(np.float32)).all()
+             and np.all(means.astype(np.float32) > 0), "MAG_WEIGHT_VALUES")
+    digest = value["eligible_magnitude_sha256"]
+    _require(type(digest) is str and len(digest) == 64
+             and all(char in "0123456789abcdef" for char in digest), "MAG_WEIGHT_DIGEST")
+    return json.loads(json.dumps(value, allow_nan=False))
+
+
+def fit_direction_magnitude_weight_contract(*, parent_rows, decision_ns, terminal_time_ns,
+        observed, sign, mid_return_bps, cutoff_ns, target_source, fit_partition):
+    """Fit only from mature nonzero own-TRAIN labels, with no later statistics.
+
+    The existing RMS owner validates all axes and bps values. Per horizon,
+    ``u = abs(r)/(RMS + abs(r))`` is averaged only over eligible TRAIN cells.
+    Its TRAIN mean is the fixed denominator applied by the new loss. Floating
+    point arithmetic can make the realized mean differ slightly from one.
+    """
+    base = fit_direction_bps_scale(parent_rows=parent_rows, decision_ns=decision_ns,
+        terminal_time_ns=terminal_time_ns, observed=observed, sign=sign,
+        mid_return_bps=mid_return_bps, cutoff_ns=cutoff_ns,
+        target_source=target_source, fit_partition=fit_partition)
+    eligible = observed & (sign != 0) & (terminal_time_ns < cutoff_ns)
+    magnitudes = np.abs(mid_return_bps.astype(np.float32))
+    scales = np.asarray(base["rms_bps"], dtype=np.float32)
+    with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+        denominator = magnitudes + scales[None, :]
+        weights = magnitudes / denominator
+    _require(np.isfinite(denominator).all() and np.isfinite(weights).all(), "MAG_WEIGHT_FINITE")
+    selected = np.where(eligible, weights, 0).astype(np.float64)
+    counts = eligible.sum(axis=0, dtype=np.int64)
+    sums = selected.sum(axis=0, dtype=np.float64)
+    _require(np.all(counts > 0) and np.isfinite(sums).all() and np.all(sums > 0), "MAG_WEIGHT_EMPTY")
+    value = {"schema_version": MAGNITUDE_WEIGHT_SCHEMA, "base_scale": base,
+             "eligible_counts": counts.tolist(), "raw_weight_sums": sums.tolist(),
+             "raw_weight_means": (sums / counts).tolist(),
+             "eligible_magnitude_sha256": _array_sha(np.where(eligible, magnitudes, 0).astype("<f4"))}
+    value["contract_sha256"] = _sha(value)
+    return require_direction_magnitude_weight_contract(value)
+
+
+def native_direction_magnitude_weighted_loss(logit_up, *, rms_bps, raw_weight_mean,
+        mid_return_bps, sign, observed, decision_ns, terminal_time_ns, cutoff_ns):
+    """Own-prefix-normalized bounded magnitude-weighted direction BCE.
+
+    The output is a magnitude-tilted sign score, not an ordinary calibrated
+    direction probability, action value, first-hit target or trading rule.
+    """
+    from torch.nn import functional as F
+    from gx1.contracts.entry_native_direction_research_v1 import native_direction_binary_loss
+    original = native_direction_binary_loss(logit_up, sign=sign, observed=observed,
+        decision_ns=decision_ns, terminal_time_ns=terminal_time_ns, cutoff_ns=cutoff_ns)
+    for value, name in ((rms_bps, "RMS"), (raw_weight_mean, "MEAN")):
+        _require(isinstance(value, torch.Tensor) and value.dtype == torch.float32
+                 and value.shape == (3,) and value.device == logit_up.device
+                 and not value.requires_grad and bool(torch.isfinite(value).all())
+                 and bool((value > 0).all()), "MAG_WEIGHT_" + name)
+    _require(bool((raw_weight_mean < 1).all()), "MAG_WEIGHT_MEAN_DOMAIN")
+    _require(isinstance(mid_return_bps, torch.Tensor) and mid_return_bps.dtype == torch.float64
+             and mid_return_bps.shape == logit_up.shape and mid_return_bps.device == logit_up.device
+             and not mid_return_bps.requires_grad and bool(torch.isfinite(mid_return_bps).all())
+             and bool((mid_return_bps[~observed] == 0).all())
+             and torch.equal(torch.sign(mid_return_bps).to(torch.int8), sign), "MAG_WEIGHT_TARGET")
+    target = mid_return_bps.float()
+    _require(bool(torch.isfinite(target).all()) and torch.equal(torch.sign(target).to(torch.int8), sign),
+             "MAG_WEIGHT_FP32_TARGET")
+    eligible = original["eligible_mask"]
+    count = original["counts"]["eligible_cells"]
+    weighted = None
+    if count:
+        magnitude = target.abs()
+        denom = rms_bps.expand_as(target) + magnitude
+        _require(bool(torch.isfinite(denom).all()), "MAG_WEIGHT_DENOMINATOR")
+        weights = magnitude / denom / raw_weight_mean.expand_as(target)
+        labels = (sign[eligible] == 1).to(dtype=logit_up.dtype)
+        _require(bool(torch.isfinite(weights[eligible]).all()) and bool((weights[eligible] > 0).all()),
+                 "MAG_WEIGHT_FINITE")
+        cells = F.binary_cross_entropy_with_logits(logit_up[eligible], labels, reduction="none")
+        weighted = (cells * weights[eligible]).sum() / count
+        _require(bool(torch.isfinite(weighted)) and bool(weighted >= 0), "MAG_WEIGHT_LOSS")
+    return {**original, "loss": weighted, "unweighted_direction_loss": original["loss"],
+            "magnitude_weighted_loss": weighted}
