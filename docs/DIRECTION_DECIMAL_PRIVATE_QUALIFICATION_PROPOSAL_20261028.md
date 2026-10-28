@@ -1,0 +1,23 @@
+# Foreslått kontroll av korrigert retningsfasit og faktisk modellkjede
+
+Status: **FORSLAG, IKKE AUTORISERT ELLER KJØRT**. Målet er å kontrollere om den korrigerte 1–60-minutters fasiten, ekte modellinnganger og treningsmekanikken kan brukes sammen. Kontrollens resultat er ikke en måling av retningsedge.
+
+## Fast omfang
+
+- Bruk [den kilde- og dataviderifiserte oppskriftskandidaten](DIRECTION_DECIMAL_PRIVATE_QUALIFICATION_RECIPE_CANDIDATE_20261028.json), fil-SHA-256 `97f214bbc3a2d88f561d9414ec3ecc8eb4ccb9e611e5da1af80e014053eef853`. Den binder 58 kildeeiere, eksisterende fold1, kompakt genuin featureflate, opprinnelig og korrigert målarkiv, de opprinnelige 256 startprediksjonene og utganger for alle minuttene 1–60. Originalene bevares. Fold1 har 47 602 TRAIN-foreldre. Bundne arkiver kan inneholde andre utviklingsrader, men initial-, gradient- og gjenopptaksmålingene bruker bare TRAIN-foreldre. Ingen forseglet TEST skal leses.
+- Lag tre identisk initialiserte private modeller. Sammenlign faktiske foreldre, klokker og alle 60 startlogits på de samme 256 TRAIN-foreldrene byte for byte mot den lagrede initialfilen. Sammenlign dessuten alle 60 TRAIN-fortegnstellingen med den uavhengige desimalauditen.
+- Bruk de eksisterende forhåndsvalgte 32 TRAIN-foreldrene i to batcher à 16. To oppdateringer i en ubrutt referanse sammenlignes med én før og én etter lagring/gjenopptak: fire fysiske oppdateringer totalt. Kontroller endelige tilstander byteidentisk, endelighet og ikke-null gradient i alle 60 utganger, aktuelle GC-grupper og kartgrenene. Maks 3 modellkonstruksjoner, 21 forwardkall inkludert initialmålingen og 4 backwardkall. Stopp ved første avvik; ikke relanser et konsumert forsøk.
+- Kjør én gang under eksisterende capped-jobb, signerte maskinvarevakter, fryst kilde og egen ny runtime-rot `DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/RUNTIME`. Arbeideren har 1 200 sekunders grense; eksisterende ytre kampanjevakt har 13 800 sekunders grense. De private vektene skal aldri brukes til hovedtrening. Ingen broker, ordre, paper, live, spending eller promotion.
+- Før en eventuelt autorisert kjøring: fysisk restart av Windows-maskinen, ny bootidentitet og vaktkontroll. Sett den fysiske GPU-grensen til 250 W via eksisterende strømvakt og verifiser signert telemetri; verifiser 160 W grense etterpå. 160 W er grensen, ikke strømforbruket. Eksisterende generelle signerte treningsvakt har 300 W som øvre grense og termisk nedtrapping til 200 W ved 80 °C; en planlagt 250 W-innstilling må derfor bekreftes separat, og kan ikke utledes av 300 W-vakten alene. Ingen grense er endret nå.
+
+## Hva PASS og avvik betyr
+
+PASS ville vise at den målte, korrigerte målforbrukeren og de undersøkte ekte modellinngangene passer sammen med den eksisterende initialiseringen, gradientveien og eksakt gjenopptak for dette avgrensede utvalget. Byteparitet mot en eldre modellstart er en likhetskontroll, ikke bevis for at alle inngangsverdier er sanne eller for at modellen forstår alle kombinasjoner. Fire oppdateringer gir ikke ny baseline, generalisering eller handelsedge. Et avvik skal lokaliseres før en ny plan overveies; det skal ikke automatisk tolkes som en modellfeil.
+
+En full modelltrening med korrigert fasit har foreløpig ingen tillatt native full-fit-rute. Den krever først bestått privat kontroll, separat design og eksplisitt nytt vedtak. TEST er fortsatt forseglet. Fokus etter en eventuell kvalifisering er fortsatt 5-minutters retning med øvrige 1–60-hoder beholdt; ingen ny test er godkjent for valg eller tilpasning.
+
+## Forhåndskontroll uten modell eller GPU
+
+Oppskriftskandidaten bestod den eksisterende private metadata-validatoren med alle 58 aktuelle kildeeiere, korrigerte målbindinger og lagret initialfil. Dette var en direkte capped terminalkontroll, ikke en ferdig kampanje eller utført modelltest. En separat direkte metadataforhåndskontroll av den autentiske providerkjeden fant 59 kontrollreferanser og riktige original-/desimalbindinger; ingen fysisk feature-gather, modellimport eller CUDA-initialisering ble utført. To eldre, eksakt navngitte syntetiske testkvitteringer inngikk som provider-metadata; ingen forseglet markeds-TEST ble lest. Disse forhåndskontrollene har ikke egne kampanjekvitteringer.
+
+Kandidatens interne felt `training_enabled: true` er et påkrevd egenskapsfelt i den foreslåtte oppskriften, ikke adgang til å kjøre: global `NEXT_RUN_POLICY.json` har fortsatt `training_enabled: false`, ingen kampanje er admittert, og runtime-roten finnes ikke. Ny eksplisitt autorisasjon er nødvendig før denne engangsplanen kan åpnes. Oppdater planens commit-, boot- og vaktbindinger først etter vedtak; kontroller kildehashene på nytt før kildefrys.

@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+PRIVAT KORRIGERT FASIT-/MODELLKVALIFISERING FORESLÅTT, IKKE KJØRT: en konkret oppskriftskandidat med 58 kildeeiere bestod metadataforhåndskontroll; genuin provider-metadata ble også kontrollert, men feature-gather og modell er ikke kjørt. Forslag: 256 startprediksjoner, 32 TRAIN-foreldre, fire oppdateringer, alle 60 utganger og eksakt resume. Ny eksplisitt autorisasjon kreves før engangsplanen åpnes; deretter fysisk Windows-restart, verifisert 250 W treningsgrense og 160 W etterpå. Eksisterende signert generisk vakt tillater opptil 300 W; 250 W må verifiseres separat. Ingen full fit er admittert. Se `docs/DIRECTION_DECIMAL_PRIVATE_QUALIFICATION_PROPOSAL_20261028.md`; metadataforhåndskontrollene er direkte terminalsummeringer, ikke kampanjekvitteringer. Ingen GPU, trening, TEST eller handel.
+
 
 FERSK INITIALPARITET FORBEREDT, IKKE KJØRT: den nye private desimalqualifiseringen krever nå byteidentiske foreldre, bar-/beslutningsklokker og 60 startlogits på de samme 256 radene som tidligere dense-baseline, uten å lese vektene. Den lagrede prediksjonsfilen og dens 256 akser/masker stemmer korrigert fasit; to fortegnsceller skiller seg. Dette er fil-/kildekontroll og syntetiske tester, ikke en ny modellparitet. Selve target-grenen og desimaleieren har uendret AST siden faktisk datakontroll. Design: `/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_INITIAL_PARITY_20261028.json`, SHA-256 `9c8e1499d3add7f2bab6af06df318096685efdd7e3d07a9c3ef23ce781335f8f`. Ingen modellforward, trening, GPU, TEST eller handel.
 

@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "DECIMAL_PRIVATE_INPUT_VERIFIED_NO_TRAINING",
+  "status": "DECIMAL_PRIVATE_QUALIFICATION_PROPOSED_NO_TRAINING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Prepare a concrete exact-scope private GPU qualification for the corrected target and fixed 256-row initial prediction parity, then a fresh baseline and a separately specified 5min direction hypothesis retaining 1..60. Genuine feature input, model construction, gradients and resume remain unqualified. No training before new exact user authorization and requested safe physical restart; TEST, broker and hardware guards remain closed.",
+  "rule": "Completed dense one-pass fit is consumed and never relaunched. The midpoint float-sign defect has been measured and a separate corrected target prepared; native model qualification and a full fit need their own exact admissions. Preserve genuine inputs, eight families, D1/macro, hardware guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
+  "next_action": "Await explicit authorization for the exact proposed corrected-target four-update private qualification. Only after approval: bind the clean committed source and boot-aware campaign, physically restart, set and verify 250 W, run one capped invocation, verify results and restore 160 W. Full-prefix fit remains separately unadmitted; no TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43546,7 +43546,7 @@
     }
   },
   "direction_decimal_private_route_source_20261028": {
-    "status": "SOURCE_AND_STUBBED_ACTUAL_TARGET_INPUT_PASS_INITIAL_PARITY_PREPARED",
+    "status": "RECIPE_AND_METADATA_PREFLIGHT_PASS_PRIVATE_QUALIFICATION_NOT_AUTHORIZED",
     "private_scope": "private_dense_decimal_b16_initial_resume_qualification",
     "full_prefix_fit_scope_admitted": false,
     "training_authorized": false,
@@ -43577,7 +43577,15 @@
       "sha256": "d9f820f6d38b56879f6ae0811255e240603502ca08a0be257f92da1ca6499871"
     },
     "fresh_native_initial_parity_verified": false,
-    "private_gpu_qualification_completed": false
+    "private_gpu_qualification_completed": false,
+    "qualification_proposal": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_QUALIFICATION_PROPOSAL_20261028.md",
+      "sha256": "7fdc6dcc7411898bc3221a15c33350be4794704e2c8f987994c9cf4bc48dc547"
+    },
+    "qualification_recipe_candidate": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_QUALIFICATION_RECIPE_CANDIDATE_20261028.json",
+      "sha256": "97f214bbc3a2d88f561d9414ec3ecc8eb4ccb9e611e5da1af80e014053eef853"
+    }
   },
   "independent_direction_decimal_private_input_20261028_002": {
     "status": "FAILED_ONE_SHOT_CONSUMED",
