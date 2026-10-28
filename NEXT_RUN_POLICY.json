@@ -40564,5 +40564,26 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_MODEL_BINDING_SYNTHETIC_20261028_001/OUTER.log",
       "sha256": "b59e7fc922b978829faf1de3ead337b2e26248433c4f130f39fd356a5e83fe82"
     }
+  },
+  "direction_bounded_magnitude_train_adapter_source_20261028": {
+    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "scope": "Connect the opt-in weighted loss to the existing prefix research batch runner, fit the sealed weight only on the own mature TRAIN prefix, and keep unweighted/signed-bps modes unchanged. This does not authorize launch or genuine native calls.",
+    "allowed_source_paths": [
+      "gx1/contracts/entry_native_direction_bps_v1.py",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "tests/test_entry_native_direction_bps_v1.py"
+    ],
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "genuine_native_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "invariants": [
+      "Same sign head and one native forward; only eligible-cell loss weighting changes.",
+      "Magnitude values feed the loss only, never model forward.",
+      "Own-prefix scale is sealed in model view and resume state.",
+      "Default and signed-bps modes retain exact previous behavior."
+    ]
   }
 }

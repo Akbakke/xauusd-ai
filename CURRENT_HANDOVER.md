@@ -11,6 +11,10 @@ Programrot:
 
 ## Aktuell status
 
+Kilde for en opt-in treningsadapter er admittért. Den skal koble størrelses-
+vektingen til eksisterende batchløp og bare fitte skala på eget TRAIN-prefiks.
+Ingen ekte data, modellkall eller optimizersteg er åpnet.
+
 Modell-/state-binding for vektet retning har bestått 146 syntetiske
 kontroller. Startlogits, trenbare parametere og RNG samsvarer med baseline;
 objektiv og skalabinding er egne, og syntetisk resume er kontrollert. Ingen
