@@ -1,0 +1,1448 @@
+{
+  "schema_version": "gx1_first_hurdle_oof_summary_v1",
+  "status": "COMPLETE_REUSED_FOLD_CONDITIONAL_DESCRIPTIVE",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_20261028_001/RESULT.json",
+    "sha256": "bb46f1c5321ae77cf4853dd69dd4772629ea8a5217e4753285bc1314b39fa897"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_20261028_001/OUTER_TERMINAL.json",
+    "sha256": "582ac1924a7e929eb2649abacabec2fb204f272e741acf46f6730b4f1fb0baf1"
+  },
+  "parents": 17288,
+  "horizons_minutes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60
+  ],
+  "favorable_bps": 10.0,
+  "event_basis": "gross_quote_markout",
+  "endpoint_kind": "closed_m1_prefix",
+  "primary_conditional_rank": {
+    "horizon_minutes": 5,
+    "parents": 17288,
+    "known_direction_rows": 1042,
+    "known_long": 484,
+    "known_short": 558,
+    "selection": "conditioned on observable singleton first-long/first-short; outcome-dependent and not representative",
+    "class_or_coverage_selected_after_results": false,
+    "auc": 0.42676767676767674,
+    "block_intervals": [
+      {
+        "scheme": "UTC_DAY",
+        "blocks": 77,
+        "resampling_population": "all fixed parents before first-hurdle eligibility",
+        "low": 0.39495091534117077,
+        "high": 0.46227087788241417,
+        "per_interval_alpha": 0.025,
+        "valid_replicates": 10000,
+        "undefined_replicates": 0
+      },
+      {
+        "scheme": "UTC_WEEK_MONDAY",
+        "blocks": 14,
+        "resampling_population": "all fixed parents before first-hurdle eligibility",
+        "low": 0.3861360348431882,
+        "high": 0.47264103180647343,
+        "per_interval_alpha": 0.025,
+        "valid_replicates": 10000,
+        "undefined_replicates": 0
+      }
+    ],
+    "status": "CONDITIONAL_DESCRIPTIVE_REUSED_DEVELOPMENT"
+  },
+  "coverage": [
+    {
+      "horizon_minutes": 1,
+      "parents": 17288,
+      "counts": {
+        "long_first": 0,
+        "short_first": 0,
+        "neither_known": 17221,
+        "path_missing": 0,
+        "entry_minute_unknown": 67,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 17221,
+        "5": 29,
+        "6": 38,
+        "7": 0
+      }
+    },
+    {
+      "horizon_minutes": 2,
+      "parents": 17288,
+      "counts": {
+        "long_first": 102,
+        "short_first": 127,
+        "neither_known": 17043,
+        "path_missing": 0,
+        "entry_minute_unknown": 16,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 102,
+        "2": 127,
+        "3": 1,
+        "4": 17043,
+        "5": 7,
+        "6": 8,
+        "7": 0
+      }
+    },
+    {
+      "horizon_minutes": 3,
+      "parents": 17288,
+      "counts": {
+        "long_first": 200,
+        "short_first": 269,
+        "neither_known": 16805,
+        "path_missing": 0,
+        "entry_minute_unknown": 14,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 200,
+        "2": 269,
+        "3": 1,
+        "4": 16805,
+        "5": 6,
+        "6": 7,
+        "7": 0
+      }
+    },
+    {
+      "horizon_minutes": 4,
+      "parents": 17288,
+      "counts": {
+        "long_first": 343,
+        "short_first": 415,
+        "neither_known": 16515,
+        "path_missing": 1,
+        "entry_minute_unknown": 14,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 343,
+        "2": 415,
+        "3": 3,
+        "4": 16515,
+        "5": 5,
+        "6": 6,
+        "7": 1
+      }
+    },
+    {
+      "horizon_minutes": 5,
+      "parents": 17288,
+      "counts": {
+        "long_first": 484,
+        "short_first": 558,
+        "neither_known": 16230,
+        "path_missing": 2,
+        "entry_minute_unknown": 14,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 484,
+        "2": 558,
+        "3": 5,
+        "4": 16230,
+        "5": 4,
+        "6": 5,
+        "7": 2
+      }
+    },
+    {
+      "horizon_minutes": 6,
+      "parents": 17288,
+      "counts": {
+        "long_first": 660,
+        "short_first": 720,
+        "neither_known": 15828,
+        "path_missing": 65,
+        "entry_minute_unknown": 15,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 660,
+        "2": 720,
+        "3": 7,
+        "4": 15828,
+        "5": 4,
+        "6": 4,
+        "7": 65
+      }
+    },
+    {
+      "horizon_minutes": 7,
+      "parents": 17288,
+      "counts": {
+        "long_first": 818,
+        "short_first": 897,
+        "neither_known": 15493,
+        "path_missing": 65,
+        "entry_minute_unknown": 15,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 818,
+        "2": 897,
+        "3": 8,
+        "4": 15493,
+        "5": 3,
+        "6": 4,
+        "7": 65
+      }
+    },
+    {
+      "horizon_minutes": 8,
+      "parents": 17288,
+      "counts": {
+        "long_first": 996,
+        "short_first": 1075,
+        "neither_known": 15137,
+        "path_missing": 65,
+        "entry_minute_unknown": 15,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 996,
+        "2": 1075,
+        "3": 8,
+        "4": 15137,
+        "5": 3,
+        "6": 4,
+        "7": 65
+      }
+    },
+    {
+      "horizon_minutes": 9,
+      "parents": 17288,
+      "counts": {
+        "long_first": 1152,
+        "short_first": 1240,
+        "neither_known": 14814,
+        "path_missing": 66,
+        "entry_minute_unknown": 16,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 1152,
+        "2": 1240,
+        "3": 9,
+        "4": 14814,
+        "5": 3,
+        "6": 4,
+        "7": 66
+      }
+    },
+    {
+      "horizon_minutes": 10,
+      "parents": 17288,
+      "counts": {
+        "long_first": 1301,
+        "short_first": 1367,
+        "neither_known": 14536,
+        "path_missing": 67,
+        "entry_minute_unknown": 17,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 1301,
+        "2": 1367,
+        "3": 10,
+        "4": 14536,
+        "5": 3,
+        "6": 4,
+        "7": 67
+      }
+    },
+    {
+      "horizon_minutes": 11,
+      "parents": 17288,
+      "counts": {
+        "long_first": 1493,
+        "short_first": 1548,
+        "neither_known": 14098,
+        "path_missing": 130,
+        "entry_minute_unknown": 19,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 1493,
+        "2": 1548,
+        "3": 13,
+        "4": 14098,
+        "5": 2,
+        "6": 4,
+        "7": 130
+      }
+    },
+    {
+      "horizon_minutes": 12,
+      "parents": 17288,
+      "counts": {
+        "long_first": 1654,
+        "short_first": 1693,
+        "neither_known": 13792,
+        "path_missing": 130,
+        "entry_minute_unknown": 19,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 1654,
+        "2": 1693,
+        "3": 13,
+        "4": 13792,
+        "5": 2,
+        "6": 4,
+        "7": 130
+      }
+    },
+    {
+      "horizon_minutes": 13,
+      "parents": 17288,
+      "counts": {
+        "long_first": 1833,
+        "short_first": 1864,
+        "neither_known": 13442,
+        "path_missing": 130,
+        "entry_minute_unknown": 19,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 1833,
+        "2": 1864,
+        "3": 13,
+        "4": 13442,
+        "5": 2,
+        "6": 4,
+        "7": 130
+      }
+    },
+    {
+      "horizon_minutes": 14,
+      "parents": 17288,
+      "counts": {
+        "long_first": 1999,
+        "short_first": 2005,
+        "neither_known": 13134,
+        "path_missing": 131,
+        "entry_minute_unknown": 19,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 1999,
+        "2": 2005,
+        "3": 14,
+        "4": 13134,
+        "5": 1,
+        "6": 4,
+        "7": 131
+      }
+    },
+    {
+      "horizon_minutes": 15,
+      "parents": 17288,
+      "counts": {
+        "long_first": 2138,
+        "short_first": 2118,
+        "neither_known": 12881,
+        "path_missing": 132,
+        "entry_minute_unknown": 19,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 2138,
+        "2": 2118,
+        "3": 15,
+        "4": 12881,
+        "5": 1,
+        "6": 3,
+        "7": 132
+      }
+    },
+    {
+      "horizon_minutes": 16,
+      "parents": 17288,
+      "counts": {
+        "long_first": 2296,
+        "short_first": 2256,
+        "neither_known": 12521,
+        "path_missing": 195,
+        "entry_minute_unknown": 20,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 2296,
+        "2": 2256,
+        "3": 16,
+        "4": 12521,
+        "5": 1,
+        "6": 3,
+        "7": 195
+      }
+    },
+    {
+      "horizon_minutes": 17,
+      "parents": 17288,
+      "counts": {
+        "long_first": 2464,
+        "short_first": 2399,
+        "neither_known": 12209,
+        "path_missing": 195,
+        "entry_minute_unknown": 21,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 2464,
+        "2": 2399,
+        "3": 17,
+        "4": 12209,
+        "5": 1,
+        "6": 3,
+        "7": 195
+      }
+    },
+    {
+      "horizon_minutes": 18,
+      "parents": 17288,
+      "counts": {
+        "long_first": 2629,
+        "short_first": 2534,
+        "neither_known": 11909,
+        "path_missing": 195,
+        "entry_minute_unknown": 21,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 2629,
+        "2": 2534,
+        "3": 17,
+        "4": 11909,
+        "5": 1,
+        "6": 3,
+        "7": 195
+      }
+    },
+    {
+      "horizon_minutes": 19,
+      "parents": 17288,
+      "counts": {
+        "long_first": 2764,
+        "short_first": 2634,
+        "neither_known": 11673,
+        "path_missing": 196,
+        "entry_minute_unknown": 21,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 2764,
+        "2": 2634,
+        "3": 17,
+        "4": 11673,
+        "5": 1,
+        "6": 3,
+        "7": 196
+      }
+    },
+    {
+      "horizon_minutes": 20,
+      "parents": 17288,
+      "counts": {
+        "long_first": 2880,
+        "short_first": 2743,
+        "neither_known": 11446,
+        "path_missing": 197,
+        "entry_minute_unknown": 22,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 2880,
+        "2": 2743,
+        "3": 18,
+        "4": 11446,
+        "5": 1,
+        "6": 3,
+        "7": 197
+      }
+    },
+    {
+      "horizon_minutes": 21,
+      "parents": 17288,
+      "counts": {
+        "long_first": 3015,
+        "short_first": 2878,
+        "neither_known": 11113,
+        "path_missing": 260,
+        "entry_minute_unknown": 22,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 3015,
+        "2": 2878,
+        "3": 19,
+        "4": 11113,
+        "5": 1,
+        "6": 2,
+        "7": 260
+      }
+    },
+    {
+      "horizon_minutes": 22,
+      "parents": 17288,
+      "counts": {
+        "long_first": 3158,
+        "short_first": 3002,
+        "neither_known": 10846,
+        "path_missing": 260,
+        "entry_minute_unknown": 22,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 3158,
+        "2": 3002,
+        "3": 19,
+        "4": 10846,
+        "5": 1,
+        "6": 2,
+        "7": 260
+      }
+    },
+    {
+      "horizon_minutes": 23,
+      "parents": 17288,
+      "counts": {
+        "long_first": 3303,
+        "short_first": 3112,
+        "neither_known": 10591,
+        "path_missing": 260,
+        "entry_minute_unknown": 22,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 3303,
+        "2": 3112,
+        "3": 19,
+        "4": 10591,
+        "5": 1,
+        "6": 2,
+        "7": 260
+      }
+    },
+    {
+      "horizon_minutes": 24,
+      "parents": 17288,
+      "counts": {
+        "long_first": 3435,
+        "short_first": 3214,
+        "neither_known": 10355,
+        "path_missing": 261,
+        "entry_minute_unknown": 23,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 3435,
+        "2": 3214,
+        "3": 20,
+        "4": 10355,
+        "5": 1,
+        "6": 2,
+        "7": 261
+      }
+    },
+    {
+      "horizon_minutes": 25,
+      "parents": 17288,
+      "counts": {
+        "long_first": 3534,
+        "short_first": 3319,
+        "neither_known": 10150,
+        "path_missing": 262,
+        "entry_minute_unknown": 23,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 3534,
+        "2": 3319,
+        "3": 20,
+        "4": 10150,
+        "5": 1,
+        "6": 2,
+        "7": 262
+      }
+    },
+    {
+      "horizon_minutes": 26,
+      "parents": 17288,
+      "counts": {
+        "long_first": 3662,
+        "short_first": 3423,
+        "neither_known": 9855,
+        "path_missing": 325,
+        "entry_minute_unknown": 23,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 3662,
+        "2": 3423,
+        "3": 20,
+        "4": 9855,
+        "5": 1,
+        "6": 2,
+        "7": 325
+      }
+    },
+    {
+      "horizon_minutes": 27,
+      "parents": 17288,
+      "counts": {
+        "long_first": 3791,
+        "short_first": 3512,
+        "neither_known": 9637,
+        "path_missing": 325,
+        "entry_minute_unknown": 23,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 3791,
+        "2": 3512,
+        "3": 20,
+        "4": 9637,
+        "5": 1,
+        "6": 2,
+        "7": 325
+      }
+    },
+    {
+      "horizon_minutes": 28,
+      "parents": 17288,
+      "counts": {
+        "long_first": 3900,
+        "short_first": 3602,
+        "neither_known": 9437,
+        "path_missing": 325,
+        "entry_minute_unknown": 24,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 3900,
+        "2": 3602,
+        "3": 21,
+        "4": 9437,
+        "5": 1,
+        "6": 2,
+        "7": 325
+      }
+    },
+    {
+      "horizon_minutes": 29,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4014,
+        "short_first": 3685,
+        "neither_known": 9239,
+        "path_missing": 326,
+        "entry_minute_unknown": 24,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4014,
+        "2": 3685,
+        "3": 22,
+        "4": 9239,
+        "5": 1,
+        "6": 1,
+        "7": 326
+      }
+    },
+    {
+      "horizon_minutes": 30,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4109,
+        "short_first": 3763,
+        "neither_known": 9065,
+        "path_missing": 327,
+        "entry_minute_unknown": 24,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4109,
+        "2": 3763,
+        "3": 22,
+        "4": 9065,
+        "5": 1,
+        "6": 1,
+        "7": 327
+      }
+    },
+    {
+      "horizon_minutes": 31,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4218,
+        "short_first": 3869,
+        "neither_known": 8785,
+        "path_missing": 390,
+        "entry_minute_unknown": 26,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4218,
+        "2": 3869,
+        "3": 25,
+        "4": 8785,
+        "5": 1,
+        "6": 0,
+        "7": 390
+      }
+    },
+    {
+      "horizon_minutes": 32,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4313,
+        "short_first": 3947,
+        "neither_known": 8611,
+        "path_missing": 390,
+        "entry_minute_unknown": 27,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4313,
+        "2": 3947,
+        "3": 26,
+        "4": 8611,
+        "5": 1,
+        "6": 0,
+        "7": 390
+      }
+    },
+    {
+      "horizon_minutes": 33,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4434,
+        "short_first": 4042,
+        "neither_known": 8394,
+        "path_missing": 390,
+        "entry_minute_unknown": 28,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4434,
+        "2": 4042,
+        "3": 28,
+        "4": 8394,
+        "5": 0,
+        "6": 0,
+        "7": 390
+      }
+    },
+    {
+      "horizon_minutes": 34,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4526,
+        "short_first": 4121,
+        "neither_known": 8222,
+        "path_missing": 391,
+        "entry_minute_unknown": 28,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4526,
+        "2": 4121,
+        "3": 28,
+        "4": 8222,
+        "5": 0,
+        "6": 0,
+        "7": 391
+      }
+    },
+    {
+      "horizon_minutes": 35,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4601,
+        "short_first": 4193,
+        "neither_known": 8074,
+        "path_missing": 392,
+        "entry_minute_unknown": 28,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4601,
+        "2": 4193,
+        "3": 28,
+        "4": 8074,
+        "5": 0,
+        "6": 0,
+        "7": 392
+      }
+    },
+    {
+      "horizon_minutes": 36,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4701,
+        "short_first": 4283,
+        "neither_known": 7821,
+        "path_missing": 455,
+        "entry_minute_unknown": 28,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4701,
+        "2": 4283,
+        "3": 28,
+        "4": 7821,
+        "5": 0,
+        "6": 0,
+        "7": 455
+      }
+    },
+    {
+      "horizon_minutes": 37,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4788,
+        "short_first": 4353,
+        "neither_known": 7663,
+        "path_missing": 455,
+        "entry_minute_unknown": 29,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4788,
+        "2": 4353,
+        "3": 29,
+        "4": 7663,
+        "5": 0,
+        "6": 0,
+        "7": 455
+      }
+    },
+    {
+      "horizon_minutes": 38,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4849,
+        "short_first": 4430,
+        "neither_known": 7525,
+        "path_missing": 455,
+        "entry_minute_unknown": 29,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4849,
+        "2": 4430,
+        "3": 29,
+        "4": 7525,
+        "5": 0,
+        "6": 0,
+        "7": 455
+      }
+    },
+    {
+      "horizon_minutes": 39,
+      "parents": 17288,
+      "counts": {
+        "long_first": 4937,
+        "short_first": 4501,
+        "neither_known": 7366,
+        "path_missing": 455,
+        "entry_minute_unknown": 29,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 4937,
+        "2": 4501,
+        "3": 29,
+        "4": 7366,
+        "5": 0,
+        "6": 0,
+        "7": 455
+      }
+    },
+    {
+      "horizon_minutes": 40,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5004,
+        "short_first": 4566,
+        "neither_known": 7233,
+        "path_missing": 456,
+        "entry_minute_unknown": 29,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5004,
+        "2": 4566,
+        "3": 29,
+        "4": 7233,
+        "5": 0,
+        "6": 0,
+        "7": 456
+      }
+    },
+    {
+      "horizon_minutes": 41,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5091,
+        "short_first": 4644,
+        "neither_known": 7005,
+        "path_missing": 519,
+        "entry_minute_unknown": 29,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5091,
+        "2": 4644,
+        "3": 29,
+        "4": 7005,
+        "5": 0,
+        "6": 0,
+        "7": 519
+      }
+    },
+    {
+      "horizon_minutes": 42,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5165,
+        "short_first": 4712,
+        "neither_known": 6862,
+        "path_missing": 519,
+        "entry_minute_unknown": 30,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5165,
+        "2": 4712,
+        "3": 30,
+        "4": 6862,
+        "5": 0,
+        "6": 0,
+        "7": 519
+      }
+    },
+    {
+      "horizon_minutes": 43,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5245,
+        "short_first": 4766,
+        "neither_known": 6728,
+        "path_missing": 519,
+        "entry_minute_unknown": 30,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5245,
+        "2": 4766,
+        "3": 30,
+        "4": 6728,
+        "5": 0,
+        "6": 0,
+        "7": 519
+      }
+    },
+    {
+      "horizon_minutes": 44,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5321,
+        "short_first": 4823,
+        "neither_known": 6594,
+        "path_missing": 519,
+        "entry_minute_unknown": 31,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5321,
+        "2": 4823,
+        "3": 31,
+        "4": 6594,
+        "5": 0,
+        "6": 0,
+        "7": 519
+      }
+    },
+    {
+      "horizon_minutes": 45,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5386,
+        "short_first": 4875,
+        "neither_known": 6476,
+        "path_missing": 520,
+        "entry_minute_unknown": 31,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5386,
+        "2": 4875,
+        "3": 31,
+        "4": 6476,
+        "5": 0,
+        "6": 0,
+        "7": 520
+      }
+    },
+    {
+      "horizon_minutes": 46,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5455,
+        "short_first": 4946,
+        "neither_known": 6273,
+        "path_missing": 583,
+        "entry_minute_unknown": 31,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5455,
+        "2": 4946,
+        "3": 31,
+        "4": 6273,
+        "5": 0,
+        "6": 0,
+        "7": 583
+      }
+    },
+    {
+      "horizon_minutes": 47,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5529,
+        "short_first": 5014,
+        "neither_known": 6131,
+        "path_missing": 583,
+        "entry_minute_unknown": 31,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5529,
+        "2": 5014,
+        "3": 31,
+        "4": 6131,
+        "5": 0,
+        "6": 0,
+        "7": 583
+      }
+    },
+    {
+      "horizon_minutes": 48,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5585,
+        "short_first": 5052,
+        "neither_known": 6036,
+        "path_missing": 583,
+        "entry_minute_unknown": 32,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5585,
+        "2": 5052,
+        "3": 32,
+        "4": 6036,
+        "5": 0,
+        "6": 0,
+        "7": 583
+      }
+    },
+    {
+      "horizon_minutes": 49,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5655,
+        "short_first": 5109,
+        "neither_known": 5908,
+        "path_missing": 583,
+        "entry_minute_unknown": 33,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5655,
+        "2": 5109,
+        "3": 33,
+        "4": 5908,
+        "5": 0,
+        "6": 0,
+        "7": 583
+      }
+    },
+    {
+      "horizon_minutes": 50,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5714,
+        "short_first": 5153,
+        "neither_known": 5804,
+        "path_missing": 584,
+        "entry_minute_unknown": 33,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5714,
+        "2": 5153,
+        "3": 33,
+        "4": 5804,
+        "5": 0,
+        "6": 0,
+        "7": 584
+      }
+    },
+    {
+      "horizon_minutes": 51,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5767,
+        "short_first": 5211,
+        "neither_known": 5630,
+        "path_missing": 647,
+        "entry_minute_unknown": 33,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5767,
+        "2": 5211,
+        "3": 33,
+        "4": 5630,
+        "5": 0,
+        "6": 0,
+        "7": 647
+      }
+    },
+    {
+      "horizon_minutes": 52,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5830,
+        "short_first": 5261,
+        "neither_known": 5517,
+        "path_missing": 647,
+        "entry_minute_unknown": 33,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5830,
+        "2": 5261,
+        "3": 33,
+        "4": 5517,
+        "5": 0,
+        "6": 0,
+        "7": 647
+      }
+    },
+    {
+      "horizon_minutes": 53,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5893,
+        "short_first": 5314,
+        "neither_known": 5400,
+        "path_missing": 647,
+        "entry_minute_unknown": 34,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5893,
+        "2": 5314,
+        "3": 34,
+        "4": 5400,
+        "5": 0,
+        "6": 0,
+        "7": 647
+      }
+    },
+    {
+      "horizon_minutes": 54,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5946,
+        "short_first": 5372,
+        "neither_known": 5289,
+        "path_missing": 647,
+        "entry_minute_unknown": 34,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5946,
+        "2": 5372,
+        "3": 34,
+        "4": 5289,
+        "5": 0,
+        "6": 0,
+        "7": 647
+      }
+    },
+    {
+      "horizon_minutes": 55,
+      "parents": 17288,
+      "counts": {
+        "long_first": 5986,
+        "short_first": 5415,
+        "neither_known": 5205,
+        "path_missing": 648,
+        "entry_minute_unknown": 34,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 5986,
+        "2": 5415,
+        "3": 34,
+        "4": 5205,
+        "5": 0,
+        "6": 0,
+        "7": 648
+      }
+    },
+    {
+      "horizon_minutes": 56,
+      "parents": 17288,
+      "counts": {
+        "long_first": 6044,
+        "short_first": 5460,
+        "neither_known": 5039,
+        "path_missing": 711,
+        "entry_minute_unknown": 34,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 6044,
+        "2": 5460,
+        "3": 34,
+        "4": 5039,
+        "5": 0,
+        "6": 0,
+        "7": 711
+      }
+    },
+    {
+      "horizon_minutes": 57,
+      "parents": 17288,
+      "counts": {
+        "long_first": 6101,
+        "short_first": 5508,
+        "neither_known": 4934,
+        "path_missing": 711,
+        "entry_minute_unknown": 34,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 6101,
+        "2": 5508,
+        "3": 34,
+        "4": 4934,
+        "5": 0,
+        "6": 0,
+        "7": 711
+      }
+    },
+    {
+      "horizon_minutes": 58,
+      "parents": 17288,
+      "counts": {
+        "long_first": 6160,
+        "short_first": 5551,
+        "neither_known": 4832,
+        "path_missing": 711,
+        "entry_minute_unknown": 34,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 6160,
+        "2": 5551,
+        "3": 34,
+        "4": 4832,
+        "5": 0,
+        "6": 0,
+        "7": 711
+      }
+    },
+    {
+      "horizon_minutes": 59,
+      "parents": 17288,
+      "counts": {
+        "long_first": 6213,
+        "short_first": 5587,
+        "neither_known": 4743,
+        "path_missing": 711,
+        "entry_minute_unknown": 34,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 6213,
+        "2": 5587,
+        "3": 34,
+        "4": 4743,
+        "5": 0,
+        "6": 0,
+        "7": 711
+      }
+    },
+    {
+      "horizon_minutes": 60,
+      "parents": 17288,
+      "counts": {
+        "long_first": 6250,
+        "short_first": 5620,
+        "neither_known": 4672,
+        "path_missing": 712,
+        "entry_minute_unknown": 34,
+        "same_minute_unknown": 0,
+        "terminal_open_unknown": 0
+      },
+      "possible_sets_bit_order_long_short_neither": {
+        "1": 6250,
+        "2": 5620,
+        "3": 34,
+        "4": 4672,
+        "5": 0,
+        "6": 0,
+        "7": 712
+      }
+    }
+  ],
+  "interpretation": [
+    "The original 5-minute endpoint-sign score ranks the first observed 10bps gross quote event in reverse order on the selected 1042 known-direction events. Both fixed day/week intervals are below 0.5 for this conditional population.",
+    "Most other 5-minute rows have no 10bps event within the observation window, rather than being missing. Neither is not a FLAT trading action.",
+    "Selection uses realized first-hit magnitude and event observability. The conditional AUC does not estimate all-parent predictive performance, support inverting the signal, or establish trading edge.",
+    "The 10bps hurdle and development fold had already been used for other analyses. No untouched confirmation, partial-label training, causal feature attribution, or full costs are established."
+  ],
+  "limits": [
+    "One repeatedly reused TRAIN-development fold and an already used 10bps research hurdle.",
+    "Known-first-direction AUC conditions on outcome-dependent M1 observability; not unconditional trading edge.",
+    "M1 intrabar order and quote age remain unknown; no commission or slippage is included.",
+    "No model has been trained on this first-hurdle label; no action or holding rule is defined."
+  ],
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_control_accessed": false
+}

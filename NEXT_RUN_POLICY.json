@@ -40118,16 +40118,16 @@
     }
   },
   "direction_first_hurdle_oof_actual_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_CONDITIONAL_FIRST_HURDLE_DESCRIPTIVE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_PLAN_20261028_001.json",
       "sha256": "3af695099945965fd1c3ef7ff4019afae384d33b77ee31b9982cab906b02a517"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "max_wall_seconds": 900,
     "capped_cpu_audit_memory": "4G",
@@ -40135,6 +40135,29 @@
     "model_calls_authorized": false,
     "optimizer_steps_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_20261028_001/RESULT.json",
+      "sha256": "bb46f1c5321ae77cf4853dd69dd4772629ea8a5217e4753285bc1314b39fa897"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_20261028_001/OUTER_TERMINAL.json",
+      "sha256": "582ac1924a7e929eb2649abacabec2fb204f272e741acf46f6730b4f1fb0baf1"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "63f9b119fb6e5e7c5f677f3b221a13a6e905b9a370adf9858aa375348e24e32e"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_20261028_001/OUTER.log",
+      "sha256": "4472b4c98ff6eda99774044a3a7b0d1324a3919b46fc32b4c71b6e2bc86d62d6"
+    },
+    "review": {
+      "path": "docs/DIRECTION_FIRST_HURDLE_OOF_RESULT_20261028.json",
+      "sha256": "84dbe60087ab97b33fe1a55c1f276e72d3355dd33c23f63f3b8d6f0d82dcb00a"
+    },
+    "conditional_5min_auc": 0.42676767676767674,
+    "conditional_5min_known_direction_rows": 1042,
+    "direction_improvement_qualified": false
   }
 }

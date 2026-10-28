@@ -11,11 +11,15 @@ Programrot:
 
 ## Aktuell status
 
-En avgrenset reell første-treff-kontroll er admittért for 17 288 fold1-
-utviklingsforeldre, 1–60min og fast 10bps gross quote. Eksisterende 5min-skår
-undersøkes bare for kjent førstegangsside; seleksjon og dekning rapporteres.
-Én TRAIN-årsfil og to lagrede TRAIN-arkiver er tillatt. Ingen modell, trening,
-CONTROL eller TEST. Kilde og policy fryses; engangsplanen skal ikke relanseres.
+Første-treff-kontrollen er COMPLETE og konsumert på 17 288 gjenbrukte
+fold1-utviklingsforeldre, alle minutter 1–60 og fast 10bps gross quote. Ved
+5min nådde 1 042 kjent førstegangsside, 16 230 ingen side, 14 hadde ukjent
+rekkefølge og 2 manglet bane. Eksisterende 5min-skår hadde AUC 0,426768 på
+de 1 042 selekterte sidene; dag-/ukeintervallene ligger under 0,5. Dette er
+ikke all-foreldre-ytelse eller grunnlag for å snu signalet, og modellen er ikke
+trent på fasiten. Undersøk først om sluttfortegn og første treff faktisk er
+enige på samme 1 042 rader. Ingen modell, CONTROL eller TEST ble åpnet. Se
+`docs/DIRECTION_FIRST_HURDLE_OOF_RESULT_20261028.json`.
 
 Endepunktsparitet på 118 249 TRAIN-foreldre var allerede verifisert i
 `CANDLE_MIDPOINT_ROOT_REVIEW_001.json` under den uavhengige evidensroten.
