@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "HEAD_LEARNING_AND_DIRECTION_DIAGNOSED",
+  "status": "GC_CONTEXT_RANGE_DIAGNOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Qualify the smallest exact corrected-target training route and a fresh baseline before any separately authorized fit; compare a causally available fixed price reference and a shared or temporally coupled 60-horizon head on genuinely later development data. No training, TEST, broker or trading.",
+  "next_action": "Determine whether the observed GC absolute-level extrapolation is harmful using a controlled, separately bound comparison; first qualify corrected decimal targets and a fresh initial baseline. A shared or temporally coupled head and fixed causal price reference are separate hypotheses. No training, TEST, broker or trading is authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43182,6 +43182,17 @@
     "result": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_HEAD_TRAIN_LEARNING_CHECK_20261028.json",
       "sha256": "f1befc6b5ce33de2019e5193311411646819390e7ce7b8e51a75285a43f901a2"
+    },
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "economic_edge_qualified": false
+  },
+  "independent_direction_gc_context_range_20261028": {
+    "status": "COMPLETE_EXPLORATORY_CAPPED_READ_ONLY",
+    "result": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_GC_CONTEXT_RANGE_DIAGNOSIS_20261028.json",
+      "sha256": "a32df96dc55669ef6efc4b5b47a28249adf8cd71f4f5b32362e197d090f27962"
     },
     "new_model_forwards": 0,
     "optimizer_steps": 0,

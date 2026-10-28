@@ -1,0 +1,184 @@
+{
+  "schema_version": "gx1_gc_context_train_range_diagnosis_v1",
+  "status": "COMPLETE_EXPLORATORY_CAPPED_READ_ONLY",
+  "inputs": {
+    "context_mmap": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261/SUPPORT_SCRATCH/current051/ctx_cont.mmap",
+      "sha256": "3765bd5138548b11d8f52464175ad9bdfd38bc69355e0415307167264301b78b"
+    },
+    "prefix_normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+      "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "sample_pair": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    },
+    "support_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
+      "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"
+    },
+    "q1_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "previous_support_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_SUPPORT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "48b28abd82380efa51ab4ff8912152e586b4535c615c5c7091eae68bc910d3c7"
+    }
+  },
+  "sources": {
+    "gx1/features/gc_native_context_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_context_v1.py",
+      "sha256": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf"
+    },
+    "gx1/scripts/audit_direction_unseen_gc_support_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_direction_unseen_gc_support_v1.py",
+      "sha256": "7acd7caa8765b48e6ef3997b4ac2bb1400a3355c6f72b3ad3148aa7964664bc1"
+    },
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+      "sha256": "4b29debbcb7eec5d27e09ba7d3785ae4cb4c5f6a2a434c8feafab5eadd8ba22e"
+    },
+    "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "sha256": "fc10bc41fbe625279b059116471f6194223f821a07e1a8005a4b78bb6676cd91"
+    },
+    "physical_provider": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/qualify_and_fit_boolean_prefixes_guarded.py",
+      "sha256": "ee7421610e9926faf2d988fbed419e896e0bd5968cb9145e1986cb95fbef6798"
+    },
+    "readonly_map_owner": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/qualify_physical_prefix_support_guarded.py",
+      "sha256": "a007b01d5fb41785ffae3de11be71b50b7b3959875a69966c830e5a0c7b2d5e9"
+    }
+  },
+  "context_value_mask_pairs": 1205,
+  "physical_context_width": 2542,
+  "field_family": "GC observed value fields in current context; masks included for determining observed status but excluded as values",
+  "train_range": "The 47,602 first-prefix parents; frozen native normalization, including observation masks and missing-neutral zero. All 1,205 calculated normalized minima and maxima matched metadata exactly.",
+  "groups": {
+    "train": {
+      "parents": 47602,
+      "observed_value_cells": 48642119,
+      "outside_train_range_cells": 0,
+      "parents_any_outside": 0,
+      "fields_any_outside": 0,
+      "median_fields_outside": 0.0,
+      "p90_fields_outside": 0.0,
+      "outside_distance_bins": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "parents_exceed_0_1_normalized": 0,
+      "outside_fraction_of_observed_cells": 0.0,
+      "parents_any_outside_fraction": 0.0
+    },
+    "q1": {
+      "parents": 17288,
+      "observed_value_cells": 18145892,
+      "outside_train_range_cells": 2372322,
+      "parents_any_outside": 14895,
+      "fields_any_outside": 478,
+      "median_fields_outside": 189.0,
+      "p90_fields_outside": 223.0,
+      "outside_distance_bins": [
+        2,
+        3802,
+        72953,
+        2295565
+      ],
+      "parents_exceed_0_1_normalized": 14668,
+      "outside_fraction_of_observed_cells": 0.13073603656408844,
+      "parents_any_outside_fraction": 0.8615802869042111
+    },
+    "q2_fixed_sample": {
+      "parents": 1760,
+      "observed_value_cells": 1814741,
+      "outside_train_range_cells": 346859,
+      "parents_any_outside": 1760,
+      "fields_any_outside": 438,
+      "median_fields_outside": 204.0,
+      "p90_fields_outside": 216.0,
+      "outside_distance_bins": [
+        0,
+        348,
+        2176,
+        344335
+      ],
+      "parents_exceed_0_1_normalized": 1760,
+      "outside_fraction_of_observed_cells": 0.1911341618445828,
+      "parents_any_outside_fraction": 1.0
+    }
+  },
+  "normalized_distance_bins": "outside margin: (0,1e-5], (1e-5,0.01], (0.01,0.1], >0.1",
+  "raw_oracle": {
+    "method": "Independently compute raw minima/maxima using observed values and neutral values for missing rows; monotone asinh maps those to the normalized training bounds. Independently recount later observed values outside raw bounds.",
+    "q1": {
+      "outside_cells": 2372322,
+      "parents_any": 14895,
+      "fields_any": 478
+    },
+    "q2_fixed_sample": {
+      "outside_cells": 346859,
+      "parents_any": 1760,
+      "fields_any": 438
+    }
+  },
+  "illustrative_field": {
+    "name": "gc_m5_observed_vwap_usd",
+    "train_observed": 47126,
+    "train_raw_min_approx": 2288.8855,
+    "train_raw_median_approx": 2542.8975,
+    "train_raw_max": 2801.405029296875,
+    "q1_observed": 17284,
+    "q1_raw_median_approx": 2907.042,
+    "q1_outside": 11720,
+    "q2_observed": 1760,
+    "q2_raw_median_approx": 3323.8853,
+    "q2_outside": 1760
+  },
+  "five_minute_vwap_subgroups": {
+    "scope": "Previously reused Q1 and fixed Q2 rows with observed GC VWAP and matured nonzero corrected five-minute targets. Threshold is first-prefix observed maximum, not selected from outcomes.",
+    "q1_at_most_train_max": {
+      "eligible": 5529,
+      "actual_up_percent": 51.0219,
+      "model_up_percent": 17.6162,
+      "mean_probability_up_percent": 49.0,
+      "model_auc": 0.494451,
+      "accuracy_percent": 49.3398
+    },
+    "q1_above_train_max": {
+      "eligible": 11659,
+      "actual_up_percent": 51.8569,
+      "model_up_percent": 11.296,
+      "mean_probability_up_percent": 48.6147,
+      "model_auc": 0.503531,
+      "accuracy_percent": 48.6491
+    },
+    "q2_above_train_max": {
+      "eligible": 1753,
+      "actual_up_percent": 50.1997,
+      "model_up_percent": 4.1643,
+      "mean_probability_up_percent": 48.1338,
+      "model_auc": 0.489688,
+      "accuracy_percent": 49.2869
+    }
+  },
+  "recording": "Aggregates are recorded from three completed capped read-only shell computations, with hashes checked live. This JSON is an aggregate transcription of those terminal results, not a standalone machine-generated execution receipt.",
+  "limits": "Out-of-training-range is not a numerical error or proof of worse predictions. Coordinates share sources and are not independent indicators. Q1/Q2 are reused development periods, with different time and market regimes; grouped AUCs are descriptive, without a causal design or uncertainty interval. Other routes and relative-price features exist. No causal attribution, predictive improvement or economic edge.",
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}
