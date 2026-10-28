@@ -124,7 +124,7 @@ def _qualified_bps_scale(context, view):
     return None
 
 
-def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False):
+def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False, magnitude_weighted=False):
     parents,starts,decisions=(axes[k] for k in ('parent_rows','bar_start_ns','decision_ns'))
     size=len(parents)
     _require(size==118249 and parents.dtype==starts.dtype==decisions.dtype==np.int64
@@ -134,14 +134,16 @@ def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False):
     _require(int(np.searchsorted(decisions,fold['train_cutoff_ns'],side='left'))==fold['prefix_rows']
         and fold['oof_start_row']==fold['prefix_rows']
         and int(np.searchsorted(decisions,fold['oof_cutoff_ns'],side='left'))==fold['oof_end_row'],'FOLD_CLOCK_AND_ROW_COHORT')
-    _require(set(targets)==set(TARGET_MEMBERS + (('mid_return_bps',) if signed_bps else ())) and targets['terminal_time_ns'].dtype==np.int64
+    _require(type(signed_bps) is bool and type(magnitude_weighted) is bool and not (signed_bps and magnitude_weighted),'OBJECTIVE_MODE')
+    has_bps=signed_bps or magnitude_weighted
+    _require(set(targets)==set(TARGET_MEMBERS + (('mid_return_bps',) if has_bps else ())) and targets['terminal_time_ns'].dtype==np.int64
         and targets['terminal_time_ns'].shape==(size,3) and targets['observed'].dtype==np.bool_
         and targets['observed'].shape==(size,3) and targets['sign'].dtype==np.int8 and targets['sign'].shape==(size,3),
         'TARGET_HEADERS')
     _require(np.all(decisions>0) and np.all(decisions<=np.iinfo(np.int64).max-15*MINUTE_NS)
         and np.array_equal(targets['terminal_time_ns'],decisions[:,None]+np.asarray([1,5,15],np.int64)[None,:]*MINUTE_NS)
         and np.isin(targets['sign'],(-1,0,1)).all() and np.all(targets['sign'][~targets['observed']]==0),'TARGET_CLOCK_AND_DOMAIN')
-    if signed_bps:
+    if has_bps:
         value=targets['mid_return_bps']
         _require(value.dtype==np.float64 and value.shape==(size,3) and np.isfinite(value).all()
             and np.all(value[~targets['observed']]==0)
@@ -153,14 +155,14 @@ def _fixed_order(parents, prefix_rows, seed, np):
     return np.ascontiguousarray(parents[:prefix_rows][np.random.RandomState(seed).permutation(prefix_rows)],dtype=np.int64)
 
 
-def _select_price_targets(archive, *, signed_bps=False):
-    _require(type(signed_bps) is bool,'OBJECTIVE_MODE')
+def _select_price_targets(archive, *, signed_bps=False, magnitude_weighted=False):
+    _require(type(signed_bps) is bool and type(magnitude_weighted) is bool and not (signed_bps and magnitude_weighted),'OBJECTIVE_MODE')
     _require(archive.files==list(PRICE_MEMBERS),'EXACT_ELEVEN_ARCHIVE_NAMES')
-    members=TARGET_MEMBERS + (('mid_return_bps',) if signed_bps else ())
+    members=TARGET_MEMBERS + (('mid_return_bps',) if signed_bps or magnitude_weighted else ())
     return {key:archive[key] for key in members}
 
 
-def _prepare(context, launch, np, *, signed_bps=False):
+def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False):
     from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
     from gx1.contracts import entry_native_direction_context_report_v1 as report_owner
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
@@ -173,13 +175,19 @@ def _prepare(context, launch, np, *, signed_bps=False):
         and prepared['gc']['transition']==common._read(manifest['view_source_bindings']['raw_gc_transition'],info['metadata']),
         'CURRENT_QUALIFIED_RAW_GC_DOMAIN')
     with np.load(manifest['targets']['path'],allow_pickle=False) as archive:
-        targets=_select_price_targets(archive,signed_bps=signed_bps)
-    _qualify_axes_targets(prepared['arrays'],targets,launch['fold'],np,signed_bps=signed_bps)
-    bps_scale=None
+        targets=_select_price_targets(archive,signed_bps=signed_bps,magnitude_weighted=magnitude_weighted)
+    _qualify_axes_targets(prepared['arrays'],targets,launch['fold'],np,signed_bps=signed_bps,magnitude_weighted=magnitude_weighted)
+    bps_scale=None; magnitude_weight_contract=None
     if signed_bps:
         from gx1.contracts.entry_native_direction_bps_v1 import fit_direction_bps_scale
         n=launch['fold']['prefix_rows']
         bps_scale=fit_direction_bps_scale(parent_rows=prepared['arrays']['parent_rows'][:n],
+            decision_ns=prepared['arrays']['decision_ns'][:n], **{key:value[:n] for key,value in targets.items()},
+            cutoff_ns=launch['fold']['train_cutoff_ns'],target_source=manifest['targets'],fit_partition='train')
+    if magnitude_weighted:
+        from gx1.contracts.entry_native_direction_bps_v1 import fit_direction_magnitude_weight_contract
+        n=launch['fold']['prefix_rows']
+        magnitude_weight_contract=fit_direction_magnitude_weight_contract(parent_rows=prepared['arrays']['parent_rows'][:n],
             decision_ns=prepared['arrays']['decision_ns'][:n], **{key:value[:n] for key,value in targets.items()},
             cutoff_ns=launch['fold']['train_cutoff_ns'],target_source=manifest['targets'],fit_partition='train')
     for value in prepared['arrays'].values():value.setflags(write=False)
@@ -187,7 +195,7 @@ def _prepare(context, launch, np, *, signed_bps=False):
     for key in ('times_ns','sample_positions'):prepared['entry_sequence_source'][key].setflags(write=False)
     view=view_owner.bind_native_direction_feature_view(prefix_normalization=context['fitted'],
         prefix_normalization_ref=manifest['prefix_normalization']['output'],constructor_metadata=context['constructor'],
-        constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=manifest['view_source_bindings'],max_batch_rows=BATCH_SIZE,bps_scale=bps_scale)
+        constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=manifest['view_source_bindings'],max_batch_rows=BATCH_SIZE,bps_scale=bps_scale,magnitude_weight_contract=magnitude_weight_contract)
     context_map=report_owner.native_direction_context_map(gc_layout=prepared['gc']['layout'],
         mtf_field_names=context['fitted']['base_normalization']['surfaces']['mtf_m5']['field_names'])
     order=_fixed_order(prepared['arrays']['parent_rows'],launch['fold']['prefix_rows'],SEED,np)
@@ -359,16 +367,26 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
     from gx1.contracts.entry_native_direction_research_v1 import native_direction_binary_loss
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     _require(model.training and all(module.training for module in model.modules()),'TRAIN_MODE')
-    signed_bps=getattr(model,'signed_bps',False)
+    signed_bps=getattr(model,'signed_bps',False); magnitude_weighted=getattr(model,'magnitude_weighted',False)
+    _require(not (signed_bps and magnitude_weighted),'OBJECTIVE_MODE')
     if signed_bps:
         outputs=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True,return_outputs=True)
         from gx1.contracts.entry_native_direction_bps_v1 import native_direction_bps_loss
         loss=native_direction_bps_loss(outputs['logit_up'],outputs['mean_return_bps'],
             rms_bps=model.bps_rms,**target,cutoff_ns=cutoff)
+    elif magnitude_weighted:
+        logits=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True)
+        from gx1.contracts.entry_native_direction_bps_v1 import native_direction_magnitude_weighted_loss
+        loss=native_direction_magnitude_weighted_loss(logits,rms_bps=model.magnitude_rms_bps,
+            raw_weight_mean=model.magnitude_raw_weight_mean,**target,cutoff_ns=cutoff)
+        _require(loss['research_objective_sha256']==model.research_objective['contract_sha256'],'WEIGHTED_LOSS_IDENTITY')
     else:
         logits=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True)
         loss=native_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
     record={'eligible_cells':loss['counts']['eligible_cells'],'counts':loss['counts'],'per_horizon_counts':loss['per_horizon_counts']}
+    if magnitude_weighted:
+        for key in ('unweighted_direction_loss','magnitude_weighted_loss'):
+            record[key]=None if loss[key] is None else float(loss[key].detach())
     if signed_bps:
         record['bps_eligible_cells']=loss['bps_eligible_cells']
         record['bps_per_horizon_counts']=loss['bps_per_horizon_counts']
@@ -464,7 +482,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     previous_profile=sys.getprofile()
     try:
         sys.setprofile(common._deny_legacy_work(previous_profile,counters))
-        prepared,targets,view,context_map,ordered=_prepare(context,launch,np,signed_bps=recipe.get('signed_bps_supervision',False))
+        prepared,targets,view,context_map,ordered=_prepare(context,launch,np,signed_bps=recipe.get('signed_bps_supervision',False), magnitude_weighted=recipe.get('magnitude_weighted_direction',False))
         bps_scale_ref=_qualified_bps_scale(context,view)
         order=torch.from_numpy(ordered.copy());order_sha=tree_sha(order)
         prior=_prefix_prior(prepared['arrays'],targets,fold,np)

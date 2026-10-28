@@ -241,7 +241,8 @@ def native_direction_magnitude_weighted_loss(logit_up, *, rms_bps, raw_weight_me
     direction probability, action value, first-hit target or trading rule.
     """
     from torch.nn import functional as F
-    from gx1.contracts.entry_native_direction_research_v1 import native_direction_binary_loss
+    from gx1.contracts.entry_native_direction_research_v1 import (
+        native_direction_binary_loss, native_direction_research_contract)
     original = native_direction_binary_loss(logit_up, sign=sign, observed=observed,
         decision_ns=decision_ns, terminal_time_ns=terminal_time_ns, cutoff_ns=cutoff_ns)
     for value, name in ((rms_bps, "RMS"), (raw_weight_mean, "MEAN")):
@@ -273,4 +274,5 @@ def native_direction_magnitude_weighted_loss(logit_up, *, rms_bps, raw_weight_me
         weighted = (cells * weights[eligible]).sum() / count
         _require(bool(torch.isfinite(weighted)) and bool(weighted >= 0), "MAG_WEIGHT_LOSS")
     return {**original, "loss": weighted, "unweighted_direction_loss": original["loss"],
-            "magnitude_weighted_loss": weighted}
+            "magnitude_weighted_loss": weighted,
+            "research_objective_sha256": native_direction_research_contract(magnitude_weighted=True)["contract_sha256"]}

@@ -40566,15 +40566,15 @@
     }
   },
   "direction_bounded_magnitude_train_adapter_source_20261028": {
-    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "scope": "Connect the opt-in weighted loss to the existing prefix research batch runner, fit the sealed weight only on the own mature TRAIN prefix, and keep unweighted/signed-bps modes unchanged. This does not authorize launch or genuine native calls.",
     "allowed_source_paths": [
       "gx1/contracts/entry_native_direction_bps_v1.py",
       "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
       "tests/test_entry_native_direction_bps_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
@@ -40584,6 +40584,46 @@
       "Magnitude values feed the loss only, never model forward.",
       "Own-prefix scale is sealed in model view and resume state.",
       "Default and signed-bps modes retain exact previous behavior."
-    ]
+    ],
+    "sources": [
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_bps_v1.py",
+        "sha256": "48f3b52f62f385cfe03803832823fd564fa3ef7bc6acbbbcf111fc3d2b31906b"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "56598e9789e926934192ce5fb094aa961f9e297c703c357923fcf7f61c1a5f02"
+      }
+    ],
+    "tests": [
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_bps_v1.py",
+        "sha256": "09587242f25e2aef648ac15cc0f650831b70f76cbbda24a6b7dd7d18779ea0ee"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "8693a59d8719405e095a76392146e818174a6087cf7935dbe67928a19ec45343"
+      }
+    ],
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_TRAIN_ADAPTER_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "516f126a65d667847cf29d66aa6e5eb5385054bd4d1b478b5c0820caf6eb0528"
+    }
+  },
+  "direction_bounded_magnitude_train_adapter_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_TRAIN_ADAPTER_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "516f126a65d667847cf29d66aa6e5eb5385054bd4d1b478b5c0820caf6eb0528"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "genuine_native_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }

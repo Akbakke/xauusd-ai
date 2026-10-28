@@ -395,12 +395,14 @@ def _magnitude_weight_candidate(monkeypatch):
 
 def _magnitude_weight_step(case, step):
     args = _magnitude_weight_loss([[.1, 2., 50.], [-.2, -3., -40.]])
-    args["logit_up"] = case.model(**state_tests._features(step))["logit_up"]
-    args["rms_bps"] = case.model.magnitude_rms_bps
-    args["raw_weight_mean"] = case.model.magnitude_raw_weight_mean
-    bps.native_direction_magnitude_weighted_loss(**args)["loss"].backward()
-    case.optimizer.step()
-    case.optimizer.zero_grad(set_to_none=True)
+    target = {k: v for k, v in args.items() if k not in ("logit_up", "rms_bps", "raw_weight_mean", "cutoff_ns")}
+    counters = {k: 0 for k in ("forward_calls", "forward_returns", "empty_batches", "backward_calls",
+        "backward_returns", "optimizer_step_calls", "optimizer_step_returns")}
+    counters["forward_kind_calls"] = {}
+    record, updated = runner._train_batch(case.model, case.optimizer, state_tests._features(step), target,
+        cutoff=args["cutoff_ns"], counters=counters, ceiling=1, torch=torch, diagnostics=False)
+    assert updated and counters["forward_calls"] == counters["forward_returns"] == 1
+    assert record["magnitude_weighted_loss"] > 0 and record["unweighted_direction_loss"] > 0
 
 
 def test_magnitude_weight_model_synthetic_resume_matches(monkeypatch):
@@ -445,3 +447,17 @@ def test_magnitude_weight_view_keeps_feature_routes_and_binds_scale(bound_case, 
         constructor_metadata=bound_case["arguments"]["constructor_metadata"], device=torch.device("cpu"))
     assert len(calls) == 1 and model.magnitude_weighted
     assert model.feature_view_identity["research_objective_sha256"] == model.research_objective["contract_sha256"]
+
+
+def test_magnitude_weight_runner_selects_bps_targets_without_new_model_head():
+    a = _arrays()
+    class Archive(dict):
+        files = list(runner.PRICE_MEMBERS)
+    archive = Archive(a)
+    selected = runner._select_price_targets(archive, magnitude_weighted=True)
+    assert selected["mid_return_bps"] is a["mid_return_bps"]
+    with pytest.raises(RuntimeError, match="OBJECTIVE_MODE"):
+        runner._select_price_targets(archive, signed_bps=True, magnitude_weighted=True)
+    args = _magnitude_weight_loss([[.1, 2., 50.]])
+    result = bps.native_direction_magnitude_weighted_loss(**args)
+    assert result["research_objective_sha256"] == direction.native_direction_research_contract(magnitude_weighted=True)["contract_sha256"]
