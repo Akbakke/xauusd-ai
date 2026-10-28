@@ -40285,5 +40285,32 @@
     "genuine_data_reads_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false
+  },
+  "direction_first_hurdle_reference_source_20261028": {
+    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "scope": "Extend the existing matched first-hurdle audit to compare native with the already saved ET252 ExtraTrees endpoint scorer on the exact same first-hit-direction parents. ET252 was a pre-existing direction reference, not a new fit.",
+    "allowed_source_paths": [
+      "gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
+      "tests/test_audit_entry_direction_first_hurdle_v1.py"
+    ],
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "predeclared": {
+      "fold": 1,
+      "parents": 17288,
+      "horizon_minutes": 5,
+      "hurdle_bps": 10,
+      "event_basis": "gross_quote_markout",
+      "matched_cohort": "1042 known first-long/first-short parents from the prior audit",
+      "reference": "saved ET252 five-minute OOF probability; full snapshot and ExtraTrees differ from native architecture and inputs",
+      "metric": "native and reference conditional AUC, paired reference-minus-native day/week block intervals; 10000 draws, alpha 0.025 per interval",
+      "parity": "exact first-hurdle coverage, previous native AUC, parent, decision clock, endpoint masks/signs and fold identity",
+      "limits": "Exploratory follow-up after observing native result on reused development; conditional on a future large hit, no trade, no causality or untouched confirmation.",
+      "stop": "any replay, parent, clock, fold, score, source, resource or guard mismatch"
+    }
   }
 }
