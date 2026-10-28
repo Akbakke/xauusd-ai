@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "DECIMAL_BOUND_INPUT_SYNTHETIC_QUALIFIED",
+  "status": "DECIMAL_BOUND_INPUT_QUALIFIED_NO_TRAINING_ROUTE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run one capped read-only qualification of the new decimal input owner against the exact existing original, corrected and receipt bindings. No model construction, training, TEST, broker or trading.",
+  "next_action": "Construct a separately admitted training integration around the verified decimal input owner and a fresh initial baseline; test the head-calibration or shared-horizon hypothesis as one factor on matched chronological data. Keep training disabled until a new exact user authorization and the requested restart; preserve TEST, broker and hardware guards.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43271,7 +43271,7 @@
     "economic_edge_qualified": false
   },
   "direction_decimal_bound_input_source_20261028": {
-    "status": "SOURCE_SYNTHETIC_PASS_REAL_DATA_AUDIT_PENDING",
+    "status": "SOURCE_SYNTHETIC_AND_ACTUAL_DATA_INPUT_PASS",
     "source": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_decimal_input_v1.py",
       "sha256": "27f9612c4120ebdb7d01380c65a14619830619df8ea80075bf0995c2be6e0ea8"
@@ -43282,10 +43282,14 @@
     },
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_BOUND_INPUT_OWNER_20261028.json",
-      "sha256": "df2dc27d256c7caeedd90466c31d64b1a218588b1e5562a8e052fa5b5e87ed26"
+      "sha256": "c853a2741e1eace2c3c59887f0030faca7230bf48961ec347b499f1739d25773"
     },
     "native_training_authorized": false,
     "test_data_used": false,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "actual_input_audit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json",
+      "sha256": "8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19"
+    }
   }
 }

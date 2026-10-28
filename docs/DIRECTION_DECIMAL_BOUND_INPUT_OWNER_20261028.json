@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_decimal_bound_direction_input_owner_v1",
-  "status": "SOURCE_SYNTHETIC_PASS_ACTUAL_DATA_AUDIT_PENDING",
+  "status": "SOURCE_SYNTHETIC_AND_ACTUAL_DATA_INPUT_PASS",
   "source": {
     "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_decimal_input_v1.py",
     "sha256": "27f9612c4120ebdb7d01380c65a14619830619df8ea80075bf0995c2be6e0ea8"
@@ -12,8 +12,12 @@
   "purpose": "Authenticate the linked original and corrected target archives, source-decimal audit, materialization and consumer receipts, then call the existing structural decimal owner. Caller memory legacy arrays must match the authenticated archive byte for byte.",
   "boundaries": "Data-only helper, no training/model/optimizer/trading permission, no new training scope, no modification to legacy anchor behavior. A future caller must pin independently reviewed exact references, maintain input freeze, enforce chronological folds and pass a separate admission.",
   "tests": "Synthetic exact corrected midpoint, original legacy anchors, immutable returned arrays, tampered payload, forged receipt, broken links and wrong axes.",
-  "actual_input_audit_required": true,
+  "actual_input_audit_required": false,
   "native_training_authorized": false,
   "test_data_used": false,
-  "economic_edge_qualified": false
+  "economic_edge_qualified": false,
+  "actual_input_audit": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json",
+    "sha256": "8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19"
+  }
 }

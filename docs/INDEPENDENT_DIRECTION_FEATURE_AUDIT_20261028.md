@@ -337,3 +337,12 @@ Jeg har prøvd de faktiske hashbundne filene i de to målkoblingene. Eksisterend
 Det gamle treningsscopet og den private mekanikkvalideringen er eksplisitt bundet til originalfilen. Korreksjonen kan derfor ikke tas i bruk ved å bytte fil eller fjerne ankerkravet. En separat rute må binde og autentisere både original og korrigert fasit med de eksisterende kilde- og forbrukerkvitteringene, kalle desimalforbrukeren, og få fersk initialbaseline og egen kvalifisering før en ny, spesifikt autorisert trening. Det er ingen målt retreningseffekt ennå.
 
 Kilde- og filbindinger samt minst nødvendige opplegg: `docs/DIRECTION_DECIMAL_TRAIN_BINDER_BLOCK_20261028.json`, SHA-256 `56a2773843ae6abfe212ec37e9bd669a7e3b57946d827906c34536eb5252f407`. Bindresultatene er et sammendrag av en capped lesende terminalkontroll, ikke en egen maskinprodusert kjørekvittering. Ingen nye modellforward, optimizersteg, TEST eller handel.
+
+
+## Separat autentisert korrigert målinngang
+
+Den nye dataeieren `gx1/contracts/entry_native_direction_decimal_input_v1.py` binder originalt og korrigert målarkiv til de kildeverifiserte desimal-, materialiserings- og forbrukerkvitteringene, kontrollerer at den lesende kallerens eldre mål er byteidentiske med riktig fil, og bruker deretter den eksisterende separate desimalforbrukeren. Den gamle treningsbinderens ankerkrav er beholdt. Syntetiske tester av feil fil, kvittering, referanse og akse bestod.
+
+En separat capped kontroll på de ekte filene bestod for alle **118 249 foreldre og 60 horisonter**: fysiske foreldre-/barstart-hasher stemte, originale ankre ble kontrollert, og **976** falske bevegelser ble fjernet uten motsatte ikke-null-fortegn. Dette kvalifiserer selve datakoblingen. Den er **ikke koblet inn i et autorisert treningsløp**, og en fersk initialbaseline, separat kilde-/scopekvalifisering og nytt eksakt treningsvedtak kreves. Ingen effekt på modellens retning er målt ved denne kontrollen.
+
+Genuint datakontrollresultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json`, SHA-256 `8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19`. Ingen modellforward, optimizersteg, TEST eller handel.
