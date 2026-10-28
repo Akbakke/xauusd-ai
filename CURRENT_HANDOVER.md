@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+Separate native-historie-kontroller for M15, D1 og H4 er ADMITTERT én gang hver, i denne rekkefølgen og aldri parallelt. Hver sammenligner 31 aktive trendlinjefelt, tilstand og faktiske modellvinduer mot riktig 2009-kilde; resultatet inspiseres og lukkes før neste start. Ingen modellkall, trening, TEST eller handel. Planer: M15 `555a45affade691bd5d7b480e9902ed9fa4d4e4ce8d5215e782bc1fdc5f24988`, D1 `20a829c4d84bc00ee9f05a4239262aecc0c5d2e4d10422d0ec9704939aca15f1`, H4 `35b0ff2d587f3bbf98eb0f784c3e3acc0ee899ab84251752477a3425a280dca8`.
+
 M5 REPLAY FRA NATIVE 2009-HISTORIKK ER FULLFØRT: alle 31 aktive trendlinjefelt stemte byteidentisk med cache på 1 070 080 M5-rader; delt/full beregning og 1 070 080 felles M5-prisrader stemte også. Ingen avvik i 47 602 TRAIN-, 17 288 Q1- eller 1 760 Q2-vinduer. Dette er eierreplay, ikke selvstendig formel- eller edgebevis. Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `d1c39ec3f8ad7edbda23f620ea6ce5fec606eebe9ad763080cc1847c7dedd3ed`. Ingen modellkall, trening, TEST eller handel.
 
 Kildebundet M5-kontroll fra native historikk tilbake til 2009 er FULLFØRT og KONSUMERT. Den skal gjenskape 31 aktive trendlinjefelt og kontrollere original cache samt faktiske 16-raders M5-vinduer. M5-cachehash kontrolleres inne i den kapasitetsvaktede kjøringen. Ingen modellkall, trening, TEST eller handel. Plan: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_NATIVE_HISTORY_REPLAY_PLAN_20261028_001.json`, SHA-256 `98d65cfa6158fe20778f80a439a1b6818133f9bcb4257b531801455d8589adcc`.
