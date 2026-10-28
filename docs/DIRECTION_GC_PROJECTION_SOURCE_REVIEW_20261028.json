@@ -1,0 +1,80 @@
+{
+  "schema_version": "gx1_direction_gc_projection_source_review_v1",
+  "status": "SOURCE_AND_PREFIX_METADATA_VERIFIED",
+  "normalization": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+    "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+  },
+  "fit_recipe": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RECIPE.json",
+    "sha256": "64a7243076812506b7c2dc3ebd32c89cc2202ba9ff5ae2159f936bc830e75d2d"
+  },
+  "fit_result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+    "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+  },
+  "profile": {
+    "name": "compact_mbp_gc_mtf_geometry_entry_research_v1",
+    "sha256": "d923af2a3a35bc3f4582be20d5359b32f0c9e345cc0107d99f4c9802524b52a4"
+  },
+  "matching_fit_source_owners": 56,
+  "source_files": {
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+      "sha256": "40af504ddc7ab839a9ef23276ea1167589cb6b86adcf90931aeeee893692ea0c"
+    },
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+      "sha256": "4b29debbcb7eec5d27e09ba7d3785ae4cb4c5f6a2a434c8feafab5eadd8ba22e"
+    },
+    "gx1/features/entry_specialist_feature_groups_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+      "sha256": "67ac3e96ee1ce305b5e38fec5379d9a877675d5c16076b7f4d76fafcda9fb8a4"
+    },
+    "gx1/contracts/entry_decision_token_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_decision_token_v1.py",
+      "sha256": "d99a8840e456ff14e645867fbcd9bfdda3a6fe653dc54e7be45100f3a0d06d1b"
+    }
+  },
+  "model_token_width": 128,
+  "smc_current_context": {
+    "numeric_coordinates": 1094,
+    "binary_coordinates": 616,
+    "observed_suffix_coordinates": 540,
+    "projection": "one learned Linear to 128 dimensions before context GELU"
+  },
+  "smc_mtf": {
+    "M5": {
+      "gc_coordinates": 316,
+      "xau_mtf_coordinates": 76,
+      "also_named_in_active_current_context": 316
+    },
+    "M15": {
+      "gc_coordinates": 226,
+      "xau_mtf_coordinates": 76,
+      "also_named_in_active_current_context": 226
+    },
+    "H1": {
+      "gc_coordinates": 186,
+      "xau_mtf_coordinates": 76,
+      "also_named_in_active_current_context": 186
+    },
+    "H4": {
+      "gc_coordinates": 182,
+      "xau_mtf_coordinates": 76,
+      "also_named_in_active_current_context": 182
+    },
+    "D1": {
+      "gc_coordinates": 170,
+      "xau_mtf_coordinates": 76,
+      "also_named_in_active_current_context": 170
+    }
+  },
+  "mtf_projection": "Per timeframe, GC and XAU each pass through context-dependent gates and their own learned Linear to 128; their projections are added before positional encoding and the family encoder.",
+  "formal_limit": "For fixed context-dependent gate, the 316-to-128 M5 GC linear map is non-injective on unconstrained real vectors. This is a property of one route, not proof of feasible real-data collisions, useful information loss, absence of other routes, or poor learned direction.",
+  "limitations": "Coordinate counts include value/mask pairs and dependent signals. Current context contains the same named GC fields; whole-model contribution and learned interactions require a predeclared trained-model intervention and paired evaluation.",
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}

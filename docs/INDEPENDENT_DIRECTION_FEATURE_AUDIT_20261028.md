@@ -88,3 +88,12 @@ Den separate forbrukeren er prøvd på hashbundne mål fra 118 249 foreldre og a
 Av 6 946 049 observerte bps-celler fikk 6 784 709 en annen flyttallsverdi. Median absolutt forskjell var 6,377e-13 bps, 99-persentil 2,476e-12 bps og maksimum 4,214e-12 bps. Dette er numerisk små målte forskjeller; virkningen av retrening er ikke testet. Fasiten fjerner fortsatt 976 falske fortegn uten observerte motsatte ikke-null-fortegn.
 
 Engangskjøringens resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/RESULT.json`, SHA-256 `87b2240484f48b1c7341467947357e25cda28c8d47fcf91f43b87614fa664632`. Kontrollen brukte ingen modellforward, optimizer, TEST eller handel. En framtidig treningsrute må separat binde og autentisere filene og kontrollene, og ha fersk initialbaseline; den er ikke implementert eller admittert nå.
+
+
+## Mulig flaskehals i sammensettingen
+
+Kilde og første prefixes normaliseringsmetadata viser at den trente 60-hodersprofilen har åtte spesialistfamilier. I SMC-familien går 1 094 aktive numeriske kontekstkoordinater gjennom én lært 128-dimensjonal projeksjon; 616 er binære og 540 har `_observed`-suffiks. De er derfor ikke 1 094 uavhengige indikatorer. I M5-historien projiseres 316 GC-koordinater og 76 XAU-koordinater hver til 128 verdier, og resultatene summeres før familie-encoderen. GC-koordinatene finnes også navngitt i aktiv gjeldende kontekst.
+
+En 316-til-128 lineær rute har, ved fast kontekststyrt gate, matematiske nullretninger for vilkårlige realvektorer. Dette beviser ikke at slike kombinasjoner finnes i ekte data, at nyttig retning går tapt, eller at hele modellen mangler en alternativ rute. Det peker på en konkret hypotese: mål først modellen med og uten kausalt sammenhengende GC-informasjon på identiske senere rader, etter at den gjenskapte originalprediksjonen er kontrollert. Ingen arkitekturendring eller treningsgevinst er konkludert.
+
+Kilde-/metadata-kvittering: `docs/DIRECTION_GC_PROJECTION_SOURCE_REVIEW_20261028.json`. De 56 kildeeierne i den trente modellens recipe matcher nå sine treningshasher. Ingen checkpointlesing, modellforward, trening eller TEST ble brukt i denne kildekontrollen.
