@@ -11,9 +11,10 @@ Programrot:
 
 ## Aktuell status
 
-Modell-/state-binding for vektet retning er implementert med uendret hode
-og inputs, egen objektividentitet og uforanderlig skalabinding. Én avgrenset
-syntetisk kontroll er admittért; ekte modellkall og trening er lukket.
+Modell-/state-binding for vektet retning har bestått 146 syntetiske
+kontroller. Startlogits, trenbare parametere og RNG samsvarer med baseline;
+objektiv og skalabinding er egne, og syntetisk resume er kontrollert. Ingen
+treningsadapter, ekte modellkall eller trening er ennå åpnet.
 
 En bounded, TRAIN-prefiksnormalisert størrelsesvektet retnings-BCE har
 bestått 12 fokuserte syntetiske kontroller. Kun tapskontrakten finnes;

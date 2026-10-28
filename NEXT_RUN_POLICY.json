@@ -40467,7 +40467,7 @@
     }
   },
   "direction_bounded_magnitude_model_binding_source_20261028": {
-    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
+    "status": "MODEL_BINDING_AND_SYNTHETIC_146_PASS_NO_TRAIN_ADAPTER",
     "scope": "Bind the qualified magnitude-weight objective and own-prefix scale to the existing direction research wrapper, feature view, recipe and checkpoint state while preserving identical baseline forward and trainable parameters. No train adapter, genuine payload or fit is opened.",
     "allowed_source_paths": [
       "gx1/contracts/entry_native_direction_research_v1.py",
@@ -40477,7 +40477,7 @@
       "tests/test_entry_native_direction_bps_v1.py"
     ],
     "source_edits_authorized": false,
-    "synthetic_tests_authorized": true,
+    "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
@@ -40530,22 +40530,39 @@
     "synthetic_plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_MODEL_BINDING_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "6c674d20d3666e7407081f8165c7668f15ca359c1c10d5b9b9d3d578c48afe9d"
-    }
+    },
+    "qualification": "146 synthetic research, state, view and bps cases passed including unchanged initialized weights/logits/RNG, objective identity, immutable scales and resume. No genuine payload or genuine native call."
   },
   "direction_bounded_magnitude_model_binding_synthetic_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_SYNTHETIC_146_PASS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_MODEL_BINDING_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "6c674d20d3666e7407081f8165c7668f15ca359c1c10d5b9b9d3d578c48afe9d"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "genuine_payload_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_MODEL_BINDING_SYNTHETIC_20261028_001/TERMINAL.json",
+      "sha256": "1a72c9fe697a4d5e1582d864e520bb2d394dc368aa5e943c30f5a1a9bdd30e35"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_MODEL_BINDING_SYNTHETIC_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "0dd9e70411bc3789570e6a0375e302226558ea36fa8aed5242968fa8015aab72"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_MODEL_BINDING_SYNTHETIC_20261028_001/RESULTS.xml",
+      "sha256": "55a6ce3ca7d16a1755d4bc2f00f786101b45bc123d54be233ae30969eca51699"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_MODEL_BINDING_SYNTHETIC_20261028_001/OUTER.log",
+      "sha256": "b59e7fc922b978829faf1de3ead337b2e26248433c4f130f39fd356a5e83fe82"
+    }
   }
 }
