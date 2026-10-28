@@ -46,7 +46,7 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T16:19:56.955463+00:00",
   "status": "DIRECTION_BPS_PAIRED_COMPARISON_COMPLETE_NO_DOCUMENTED_IMPROVEMENT",
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "dynamic_m5_direction_order_private_b16_qualification_20261028_001",
+    "current_unit": "direction_order_failure_repair_source_20261028",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -40945,7 +40945,7 @@
     }
   },
   "power_guard_alignment_source_20261028": {
-    "status": "SOURCE_SELFTEST_PASSED_NOT_DEPLOYED",
+    "status": "CORRECTED_KEEPER_DEPLOYED_IDLE_160",
     "scope": "Align the existing Windows keeper thermal reduction with the existing native policy: at or above 80 C reduce any limit above 200 W to 200 W. Preserve all stops and idle recovery. No hardware or deployed guard change in this source stage.",
     "source_path": "scripts/windows/GX1-GpuPowerAndIdleGuard.ps1",
     "source_edits_authorized": false,
@@ -40987,8 +40987,18 @@
         160
       ]
     ],
-    "actual_power_changed": false,
-    "deployed_guard_changed": false
+    "actual_power_changed": true,
+    "deployed_guard_changed": true,
+    "active_idle_limit_w": 160,
+    "boot_training_limit_w": 300,
+    "preboot_profile": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_QUALIFICATION_20261028_001/POWER_PROFILE_PREBOOT_001.json",
+      "sha256": "2422ce746b42c42c34e353ada88af640088f57da1491ce88c796035ce9c8c95f"
+    },
+    "idle_restore": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_QUALIFICATION_20261028_001/POWER_IDLE_RESTORE_001.json",
+      "sha256": "8cd34264c2c52e194a952ebf0f6013d9f43a5e37c40ae2705cf0057781d0e759"
+    }
   },
   "direction_order_private_source_20261028": {
     "status": "SOURCE_SYNTHETIC_CHECKED_ONLY",
@@ -41034,15 +41044,15 @@
     }
   },
   "dynamic_m5_direction_order_private_b16_qualification_20261028_001": {
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
@@ -41051,7 +41061,7 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "relaunch_allowed": false,
-    "status": "ONE_PRIVATE_QUALIFICATION_ADMITTED_NO_FULL_FIT",
+    "status": "FAILED_CONSUMED_NO_CANONICAL_RECEIPT",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_QUALIFICATION_20261028_001/RECIPE.json",
       "sha256": "01550695f9f6a4f989c1c3324b244d04d753be144b9ea11af0865e7e5085feca"
@@ -41062,11 +41072,50 @@
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_QUALIFICATION_20261028_001/RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "max_private_optimizer_steps": 4,
     "physical_restart_before_invocation_authorized": true,
     "user_requested_gpu_power_efficiency": true,
-    "qualification_weights_for_main_fit": false
+    "qualification_weights_for_main_fit": false,
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "bf10731b873375f94e58992239bc3f2ae3b73159ac58c8ee8e144e1b60b35618"
+    },
+    "terminal_progress_failed": true,
+    "active_marker_preserved": true
+  },
+  "direction_order_failure_repair_source_20261028": {
+    "status": "SOURCE_SYNTHETIC_CHECKED_ONLY",
+    "actual_failure_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "bf10731b873375f94e58992239bc3f2ae3b73159ac58c8ee8e144e1b60b35618"
+    },
+    "allowed_source_paths": [
+      "gx1/scripts/run_entry_native_direction_order_qualification_v1.py",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "tests/test_entry_native_direction_order_qualification_v1.py",
+      "tests/test_entry_native_direction_research_window_v1.py"
+    ],
+    "scope": "Repair the observed false-zero process exit and report exact missing gradient groups plus per-batch GC support. Preserve the existing nonzero gradient requirement for every group in every qualification batch. Empty GC support may be reported but never admits an optimizer step. Other routes and all guards remain unchanged. No actual model execution or optimizer update is authorized by this source stage.",
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "synthetic_checks": {
+      "status": "PASS",
+      "test_count": 49,
+      "actual_model_execution": false,
+      "optimizer_steps": 0
+    },
+    "source_sha256": {
+      "gx1/scripts/run_entry_native_direction_order_qualification_v1.py": "4b21b85f68b0a0ab00b152ae71a3cfece319d0786a377098474e3bac8c2e3982",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py": "969fbcdc7721251642415d10290830798cb2d559aaa40356fb25e05428f35eaf",
+      "tests/test_entry_native_direction_order_qualification_v1.py": "b559672a4f286fca2166212c4dbe0a46368fea6796b879352661529cb2e35d72",
+      "tests/test_entry_native_direction_research_window_v1.py": "dd44dfc7d3eb1bca9618cca35cf62a61dd218542dfc5e19cf6d7d09177d18f51"
+    }
   }
 }

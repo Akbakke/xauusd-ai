@@ -68,7 +68,7 @@ def run_order_qualification(*, policy_path: Path, policy_file_sha256: str, progr
     evaluation = {'forward_calls':0,'forward_returns':0,'forward_kind_calls':{}}
     before = common._io(); started = time.monotonic(); previous = sys.getprofile()
     device = torch.device('cuda', 0); full_state = initial = initial_identity = None
-    error = None; matched = parity = unchanged = False; cursor = 0; steps = []
+    error = None; matched = parity = unchanged = False; cursor = 0; steps = []; batch_support = []
     order_sha = '0'*64; model = optimizer = None
     common._json(output/'CLAIM.json', {'recipe':window['recipe'],'plan_sha256':plan['plan_sha256'],
         'limits':limits,'additional_worker_ceiling_seconds':1200}, counters, launch['max_published_json_bytes'])
@@ -91,6 +91,8 @@ def run_order_qualification(*, policy_path: Path, policy_file_sha256: str, progr
         batches = []
         for left in (0,16):
             raw, target = prefix._batch(prepared, targets, view, selected[left:left+16], np)
+            batch_support.append({'parent_rows':selected[left:left+16].tolist(),
+                'gc':common._gc_support(raw,prepared['gc']['layout'],np,allow_empty=True)})
             batches.append(prefix._device_batch(raw, target, torch, device))
         batch_sha = tree_sha(batches)
 
@@ -177,7 +179,8 @@ def run_order_qualification(*, policy_path: Path, policy_file_sha256: str, progr
         'initial_evaluation_counts':evaluation,'initial_state':initial,'initial_identity_sha256':initial_identity,
         'original_initial_prediction':original_prediction,'original_initial_report':prefix_authority.ORDER_ORIGIN['initial_measurement'],
         'historical_component_transition':transition,'final_state':full_state,'matched_initialization':matched,
-        'bit_exact_resume':parity,'steps':steps,'parent_order_sha256':order_sha,'parent_cursor':cursor,
+        'bit_exact_resume':parity,'steps':steps,'batch_gc_support':batch_support,
+        'parent_order_sha256':order_sha,'parent_cursor':cursor,
         'planned_unique_parents':32,'planned_logical_optimizer_steps':2,'physical_optimizer_updates':counters['optimizer_updates'],
         'source_unchanged':unchanged,'metadata_bookends':context['info']['metadata'],
         'payload_stat_bookends':context['ancestor_plan']['payloads'],'forbidden_open_paths':denied,
@@ -195,4 +198,6 @@ def run_order_qualification(*, policy_path: Path, policy_file_sha256: str, progr
     authority.require_research_progress(progress,plan_sha256=plan['plan_sha256'],invocation=invocation,
         expected_selection_receipt_sha256=None,verify_file=True)
     common._freeze(launch,binding,context)
+    if not passed:
+        raise RuntimeError('NATIVE_ORDER_QUALIFICATION_FAILED:' + str(error))
     return progress

@@ -163,7 +163,8 @@ def _qualify_fixed_targets(arrays, target, *, cutoff_ns, np):
     return batches,report
 
 
-def _gc_support(raw, layout, np):
+def _gc_support(raw, layout, np, *, allow_empty=False):
+    _require(type(allow_empty) is bool,'GC_SUPPORT_POLICY')
     report={}
     for tf in layout['timeframes']:
         values=raw['features']['gc_seq_'+tf.lower()];report[tf]={}
@@ -172,7 +173,8 @@ def _gc_support(raw, layout, np):
             pairs=[(v,m) for v,m in layout['value_mask_pairs'][tf] if v in set(indices)];_require(pairs,'GC_OWN_MASK_PAIRS')
             vi,mi=map(list,zip(*pairs));masks=values[:,:,mi];source=values[:,:,vi]
             _require(np.isfinite(masks).all() and np.isin(masks,(0,1)).all() and np.all(source[masks==0]==0),'GC_MASK_STORAGE')
-            counts=np.count_nonzero(masks==1,axis=(1,2)).astype(np.int64).tolist();_require(sum(counts)>0,'GC_TF_FAMILY_SUPPORT_NO_SEARCH')
+            counts=np.count_nonzero(masks==1,axis=(1,2)).astype(np.int64).tolist()
+            if not allow_empty:_require(sum(counts)>0,'GC_TF_FAMILY_SUPPORT_NO_SEARCH')
             report[tf][family]={'observed_cells_per_parent':counts,'raw_nonzero_values_per_parent':np.count_nonzero(source,axis=(1,2)).astype(np.int64).tolist()}
     _require(len(report)==5 and all(len(item)==5 for item in report.values()),'GC_TWENTY_FIVE_GROUPS');return report
 
@@ -266,7 +268,8 @@ def _gradient_evidence(model, torch):
     _require(all(p.grad is None for p in inactive),'INACTIVE_GRADIENT')
     _require(all(p.grad is None or bool(torch.isfinite(p.grad).all()) for p in model.parameters()),'FINITE_GRADIENTS')
     evidence={name:sum(int(torch.count_nonzero(p.grad)) for p in values if p.grad is not None) for name,values in groups.items()}
-    _require(all(value>0 for value in evidence.values()),'REQUIRED_GRADIENT_GROUP')
+    missing=[name for name,value in evidence.items() if value==0]
+    _require(not missing,'REQUIRED_GRADIENT_GROUP:'+','.join(missing))
     _require(model.direction_head.weight.grad is not None and model.direction_head.bias.grad is not None,'DIRECT_HEAD_GRADIENTS')
     evidence['direction_head_weight_rows']=[int(torch.count_nonzero(row)) for row in model.direction_head.weight.grad]
     evidence['direction_head_bias_rows']=[int(value!=0) for value in model.direction_head.bias.grad]

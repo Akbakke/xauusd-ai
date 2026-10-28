@@ -11,11 +11,11 @@ Programrot:
 
 ## Aktuell status
 
-En eksakt privat kvalifisering er nå admittert: høyst fire kontrolloppdateringer, ingen full fit eller gjenbruk av vekter. Kampanje og fysisk omstart gjenstår. En kronologisk énpass-rute i eksisterende trener har bestått 116 fokuserte syntetiske kontroller. Den binder samme kompakte inputs/mål/seed/optimizer og de opprinnelige 256 initialradene; signert null kontrolleres også byte-for-byte. Gammel blandet rute bevares. Kilde for en begrenset faktisk initial-/gradient-/resume-kvalifisering har bestått 88 syntetiske kontroller. Selve kjøringen og separat treningsadmisjon gjenstår; ingen ny modell er trent.
+Den faktiske kronologiske B16-kontrollen er FEILET og KONSUMERT: fysisk boot 568, 300 W-grense og vakter bekreftet. Samme starttilstand og alle 256 opprinnelige startprediksjoner var byte-like. Én bakoverpassering stoppet fordi minst én påkrevd gradientgruppe hadde null gradient; gruppen og årsaken ble ikke lagret. Ingen optimizersteg ble utført. En feil i den nye kontrollkoden returnerte suksesskode etter FAILED-progress, så ordinær sluttkvittering mangler; original markør og output er bevart, og oppstartsoppgaven er deaktivert. Se /home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json. Smal kilderetting for korrekt feilexit, navngitte nullgrupper og rapportert GC-dekning har bestått 49 syntetiske kontroller. Kravet om gradient i hver gruppe per batch er beholdt. Ingen ny kjøring er admittert, full fit er stengt.
 
 Rekkefølge-audit002 er FULLFØRT og KONSUMERT på 47 602 TRAIN-foreldre. Begge rekkefølger gir 2 976 ikke-tomme batcher; 5min-andelen av loss-koeffisientmassen er 33,3973 % blandet mot 33,4010 % kronologisk. Siste B2 har ved 5min én OPP/én NED blandet, men bare én gyldig OPP kronologisk; siste kronologiske 15min har ingen gyldige utfall. Opprinnelig blandet koeffisientmasse er kontrollert mot tidligere uavhengig aggregat. Dette er loss-geometri, ikke gradient, modellresultat eller årsaksbevis. Se /home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_ROOT_REVIEW_20261028_002.json. Ingen modell, trening, CONTROL eller TEST ble åpnet.
 
-Selvstendig kontroll av treningsrekkefølge: Original276 og trepass-kjøringen har samme gjenskapte MT19937-orderhash; hvert prisvindu beholder stigende kausale klokker. TRAIN/later-grensen er kronologisk. Samme B2-sluttrader gjentas per pass; effekt på retningsedge er ikke målt. I fire utviklingsfolder varierer 5min-OPP-andelen fra 13,65 % til 100 %, mens faktiske OPP-andeler er 50,68–51,58 %. På 70 294 gyldige 5min-rader er samlet treffrate 50,30 % mot 51,10 % for fast TRAIN-prior. Gjenbrukte utviklingsdata, ingen intervaller; terskelskjevhet er ikke årsaksbevis. Prioritert énfaktors forslag: docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json. Ingen rekkefølgekandidat er trent; kun den private fireoppdateringskontrollen er admittert. Full epoch er fortsatt stengt.
+Selvstendig kontroll av treningsrekkefølge: Original276 og trepass-kjøringen har samme gjenskapte MT19937-orderhash; hvert prisvindu beholder stigende kausale klokker. TRAIN/later-grensen er kronologisk. Samme B2-sluttrader gjentas per pass; effekt på retningsedge er ikke målt. I fire utviklingsfolder varierer 5min-OPP-andelen fra 13,65 % til 100 %, mens faktiske OPP-andeler er 50,68–51,58 %. På 70 294 gyldige 5min-rader er samlet treffrate 50,30 % mot 51,10 % for fast TRAIN-prior. Gjenbrukte utviklingsdata, ingen intervaller; terskelskjevhet er ikke årsaksbevis. Prioritert énfaktors forslag: docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json. Ingen rekkefølgekandidat er trent; første private kontroll er feilet og konsumert uten optimizersteg. Full epoch er fortsatt stengt.
 
 Presisering av én-/trepass-resultatet: TRAIN-foreldrene ble presentert i
 en fast MT19937-blanding, ikke i markedsrekkefølge. De to ekstra passene
@@ -43,10 +43,10 @@ Effektkontroll 28.10: kortet står på 160 W i idle; samme baseline trakk
 høyst 134,7 W ved en 160 W-grense, så høyere grense har ikke bevist fart.
 Policy angir 300 W maks og reduksjon til 200 W ved 80 C, mens installert
 keeper-kode bruker 220 W ved innstilling over 220 W. Avviket er inaktivt
-på dagens 160 W. En smal kilderetting til policyens 200 W har bestått
-vaktens temperatur- og idle-selvtest. Installert vakt er fremdeles gammel;
-eksakt kilde må deployeres og bekreftes før høyere effekt. Ingen effekt
-er endret, og omstart venter på klargjort kampanje. Se signed-guard-loggen i NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276.
+ved 160 W. Rettet vakt er installert og bekreftet: 300 W-grensen ble brukt
+under kontrollen med 132,79 W målt topp, 49 C GPU-kjerne og 54 C minne.
+Etter at kontrollen stoppet ble idle-grensen kontrollert tilbake til 160 W.
+Forskjellige arbeidslaster gjør tallene uegnet til å hevde tidsgevinst. Se signed-guard-loggen i NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276.
 
 Fast evalueringsprotokoll for størrelsesvektet retning er skrevet før
 noen genuin kvalifisering eller kandidat: samme femminuttersforeldre,

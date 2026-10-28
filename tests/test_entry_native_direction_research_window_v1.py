@@ -113,3 +113,33 @@ def test_checkpoint_atomic_roundtrip_no_replace_hash_and_size_guards(tmp_path,mo
     with pytest.raises(RuntimeError,match='CHECKPOINT_STAGED_ROUNDTRIP'):
         runner._save_state(tmp_path/'BAD_SERIALIZATION.pt',value,torch=torch,maximum=1024*1024,counters=counters)
     assert not (tmp_path/'BAD_SERIALIZATION.pt').exists() and not list(tmp_path.glob('.BAD_SERIALIZATION.pt.*'))
+
+
+def test_gradient_evidence_names_zero_group_without_weakening_the_gate():
+    model=torch.nn.Module();model.direction_head=torch.nn.Linear(2,3);model.backbone=torch.nn.Module()
+    model.backbone.entry_q_joint_in=torch.nn.Linear(2,2);model.backbone.entry_q_joint_norm=torch.nn.LayerNorm(2)
+    model.backbone.gc_mtf_family_proj=torch.nn.ModuleDict();model.backbone.gc_mtf_feature_context_gate=torch.nn.ModuleDict()
+    for tf in ('m5','m15','h1','h4','d1'):
+        for i in range(5):
+            key=tf+'__'+str(i)
+            model.backbone.gc_mtf_family_proj[key]=torch.nn.Linear(1,1)
+            model.backbone.gc_mtf_feature_context_gate[key]=torch.nn.Linear(1,1)
+    model.backbone.other=torch.nn.Linear(1,1)
+    for p in model.parameters():p.grad=torch.ones_like(p)
+    evidence=runner._gradient_evidence(model,torch)
+    assert all(value>0 for key,value in evidence.items() if isinstance(value,int))
+    for key,layer in model.backbone.gc_mtf_feature_context_gate.items():
+        if key.startswith('h4__'):
+            for p in layer.parameters():p.grad.zero_()
+    with pytest.raises(RuntimeError,match='REQUIRED_GRADIENT_GROUP:gc_gate_h4'):
+        runner._gradient_evidence(model,torch)
+
+
+def test_gc_support_reports_empty_family_without_hiding_storage_errors():
+    raw,layout=_gc();value=raw['features']['gc_seq_d1'];value[:,:,0:2]=0
+    report=runner._gc_support(raw,layout,np,allow_empty=True)
+    first=next(iter(report['D1'].values()))
+    assert first['observed_cells_per_parent']==[0,0] and first['raw_nonzero_values_per_parent']==[0,0]
+    value[0,0,0]=1
+    with pytest.raises(RuntimeError,match='GC_MASK_STORAGE'):
+        runner._gc_support(raw,layout,np,allow_empty=True)

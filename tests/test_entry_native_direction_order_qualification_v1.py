@@ -34,3 +34,51 @@ def test_existing_guarded_dispatcher_selects_only_explicit_order_scope(monkeypat
         policy_file_sha256='0'*64,progress_path=tmp_path/'progress')
     assert result=={'scope':'synthetic'} and calls==['guard','order_worker']
     assert list(tmp_path.iterdir())==[]
+
+
+def test_failed_worker_publishes_terminal_failure_then_exits_nonzero(monkeypatch,tmp_path):
+    from gx1.contracts import entry_model_native_train_recipe_v1 as recipes
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as prefix
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    numeric=recipes.native_direction_research_recipe(batch_size=16,max_updates=2)
+    original=recipes.native_direction_research_recipe(batch_size=16,max_updates=2976)
+    def ref(name):return {'path':str(tmp_path/name),'sha256':'a'*64}
+    launch={'run_scope':authority.ORDER_PRIVATE_SCOPE,'numerical_recipe':numeric,'execution_binding_path':str(tmp_path/'binding'),
+        'qualification_design':ref('design'),'gc_layout_metadata_parity':ref('gc'),'input_manifest':ref('input'),
+        'source_owners':{prefix_authority.ORDER_COMPONENT_SOURCE:ref('component')},'fold':authority.BPS_FOLD,
+        'runtime_root':str(tmp_path/'runtime'),'max_published_json_bytes':33554432}
+    window={'recipe':ref('recipe'),'output_directory':str(tmp_path/'output'),'campaign_cursor_path':str(tmp_path/'cursor')}
+    plan={'plan_sha256':'b'*64};invocation={'batch_size':16,'invocation_sha256':'c'*64}
+    monkeypatch.setattr(capped,'require_guarded_cuda_trainer_execution',lambda:{})
+    monkeypatch.setattr(authority,'require_native_direction_research_context',lambda *args:(window,plan,invocation,None,launch))
+    monkeypatch.setattr(common,'_hash_file',lambda path:ref('binding'))
+    def read(item,metadata):
+        if item==ref('binding'):return {'plan':ref('plan')}
+        if item==common.INPUT_DESIGN:return {'budget':{'max_rchar_bytes':137438953472}}
+        if item==prefix_authority.ORDER_ORIGIN['launch_recipe']:return {'numerical_recipe':original}
+        if item==prefix_authority.ORDER_ORIGIN['initial_measurement']:return {}
+        if item==launch['gc_layout_metadata_parity']:return {'status':'COMPLETE_CONSUMED','metadata_exact_parity':True,'test_cases_passed':6,'counters':{}}
+        if item==launch['input_manifest']:return {'view_source_bindings':{'direction_component_source':ref('component')}}
+        return {}
+    monkeypatch.setattr(common,'_read',read)
+    monkeypatch.setattr(prefix,'_metadata',lambda *args,**kwargs:{'info':{'metadata':{}},'ancestor_plan':{'payloads':{}}})
+    monkeypatch.setattr(common,'_freeze',lambda *args:None)
+    monkeypatch.setattr(common,'_install_read_guard',lambda *args,**kwargs:[])
+    monkeypatch.setattr(common,'_io',lambda:{'rchar':0})
+    monkeypatch.setattr(common,'_deny_legacy_work',lambda *args:None)
+    def fail(*args,**kwargs):raise RuntimeError('synthetic blocked batch')
+    monkeypatch.setattr(prefix,'_prepare',fail)
+    published={}
+    def publish(path,value,counters,limit):
+        published[Path(path).name]=value
+        return {'path':str(path),'sha256':'d'*64}
+    monkeypatch.setattr(common,'_json',publish)
+    monkeypatch.setattr(authority,'build_research_cursor',lambda **kwargs:{'outcome':kwargs['outcome']})
+    monkeypatch.setattr(authority,'build_research_progress',lambda **kwargs:{'outcome':kwargs['outcome'],'terminal':True})
+    monkeypatch.setattr(authority,'require_research_progress',lambda *args,**kwargs:None)
+    with pytest.raises(RuntimeError,match='NATIVE_ORDER_QUALIFICATION_FAILED:RuntimeError:synthetic blocked batch'):
+        qualifier.run_order_qualification(policy_path=tmp_path/'policy',policy_file_sha256='0'*64,progress_path=tmp_path/'progress.json')
+    assert published['RESULT.json']['decision']=='FAILED'
+    assert published['progress.json']=={'outcome':'FAILED','terminal':True}
+    assert published['RESULT.json']['counts']['optimizer_updates']==0
