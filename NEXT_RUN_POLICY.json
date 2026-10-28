@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "NEIGHBOR_POOLING_ADMITTED",
+  "status": "NEIGHBOR_POOLING_MEASURED_NO_DIRECTION_IMPROVEMENT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Perform the single capped saved-prediction adjacent-head comparison and independently verify and close it; no model, optimizer, checkpoint or TEST. Prepare corrected-target training integration only under a separate new scope.",
+  "next_action": "Prepare a separately admitted integration of the qualified decimal target owner with a fresh initial baseline and exact chronological scope. Test a genuine architecture or learning change only as an independently specified factor; no training without a new exact user authorization and the requested safe restart. Keep TEST, broker and hardware guards closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43383,24 +43383,45 @@
     "economic_edge_qualified": false
   },
   "independent_direction_neighbor_pooling_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_NEIGHBOR_POOLING_20261028.json",
       "sha256": "179dc1fe9e1e7215adde766ccbe5ea1d48ad7cf8c52de2aba344fbbab7be0148"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 600,
-    "scope": "Fixed adjacent-head logit average on exact saved Q1 and sampled Q2 predictions, 5min primary and other 59 descriptive; no model, training, weights or sealed TEST."
+    "scope": "Fixed adjacent-head logit average on exact saved Q1 and sampled Q2 predictions, 5min primary and other 59 descriptive; no model, training, weights or sealed TEST.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_NEIGHBOR_POOLING_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "1bfe018299fc5172dda0bef5db9fe5cfb305f6c17d79755671797cc1d76b1ed0"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_NEIGHBOR_POOLING_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "db39faf262d0cbc848dc7dfa26b3e52e5530846ac842afaa117e12db20388b27"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_NEIGHBOR_POOLING_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "2b5012c40cda5f646a7e0b4027d28f79da4f91d7cde13c4595db35a63a4fa96e"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_NEIGHBOR_POOLING_20261028_001/TERMINAL.json",
+      "sha256": "3498a7750b632e92ea31b9ec410a4cc95db52c98297a54f11e939a09762c43b9"
+    },
+    "independent_check": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_NEIGHBOR_POOLING_INDEPENDENT_CHECK_20261028_001.json",
+      "sha256": "eb382469e6f6d55d0c9011ac8373dffc1a16f6203213506b287191120474b9ff"
+    },
+    "economic_edge_qualified": false
   }
 }

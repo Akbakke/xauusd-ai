@@ -370,3 +370,16 @@ En uavhengig capped kontroll beregnet alle punktene med sklearn og alle 10 000 p
 Dette er den samme gjenbrukte utviklingsfolden, én seed og de opprinnelige 1/5/15-hodene. Modellene ble trent med gammel fasit, så undersøkelsen **måler ikke effekten av å trene på korrigert fasit**. Full treningsinputparitet er heller ikke bevist for bps. Ingen ny modellkjøring, trening, TEST, handelsresultat eller økonomisk edge.
 
 Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_20261028_001/OUTPUT/RESULT.json`, SHA-256 `48ba0989f59bc6edfc4feb2f5e5a7295d4c9280ee136eacd05a6f33f297e834e`; uavhengig kontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_INDEPENDENT_CHECK_20261028_001.json`, SHA-256 `38c8f3246fe14182d4c9ed26e7b86fbd1fed64b80bed83fbcec99123efa5ecc3`.
+
+
+## Fast nabohodegjennomsnitt
+
+For å teste én konkret konsekvens av forskjellen mellom nabohodene ble lagrede logits for 4, 5 og 6 minutter gitt lik vekt og sammenlignet med det opprinnelige 5min-hodet. Foreldre, klokker og masker stemte eksakt med korrigert mål. Alle 60 horisonter ble beregnet beskrivende; 5min var forhåndsvalgt primærhorisont for intervallene.
+
+I Q1 var AUC **0,50017 før og 0,50278 etter** på 17 192 kvalifiserte utfall. Parret endring hadde dagbånd **−0,00377 til +0,00884** og ukebånd **−0,00222 til +0,00735**. I det faste Q2-utvalget var AUC **0,48969 før og 0,48848 etter** på 1 753 utfall, med dagbånd **−0,02376 til +0,02042** og ukebånd **−0,02094 til +0,01942**. Alle båndene inkluderer null, så det er ikke dokumentert bedre retningsrangering.
+
+Q1 hadde lavere logloss og Brier enn originalhodet med både dag- og ukebånd under null. Dette er forbedring i samlet sannsynlighetsscore relativt til den aktuelle originalmodellen, ikke i seg selv et separat bevis på bedre kalibrering eller edge. I Q2 inkluderte de tilsvarende båndene null. Som et etterfølgende beskrivende sjekkpunkt hadde den faste 5min-andelen fra første TRAIN-prefix (**24 069/47 282 = 0,50905**) lavere punktscore enn nabogjennomsnittet i begge perioder: Q1 Brier **0,24980 mot 0,24997** og Q2 **0,25005 mot 0,25021**. Dette siste er ikke en intervalltest og bør ikke presenteres som bevist forskjell.
+
+En uavhengig kontroll rekonstruerte naboverdier og alle punkter med NumPy/sklearn, og gjenskapte samtlige 10 000 parrede dag-/uketrekninger med separat sorteringsmetode; største punktavvik var 2,23e−16 og intervallavvik 3,91e−18. Begge utviklingsperiodene er tidligere undersøkt og Q2 er et ikke-tilfeldig delutvalg. Dette er en etterundersøkt idé, ikke uavhengig bekreftet forbedring. Modellen er ikke retrent, og TRAIN-referansepunktene er gjengitt fra en separat capped terminalkontroll med verifisert målhash, ikke en egen maskinkvittering. Ingen ny modellforward, optimizersteg, TEST, handel eller økonomisk edge.
+
+Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_NEIGHBOR_POOLING_20261028_001/OUTPUT/RESULT.json`, SHA-256 `db39faf262d0cbc848dc7dfa26b3e52e5530846ac842afaa117e12db20388b27`; uavhengig kontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_NEIGHBOR_POOLING_INDEPENDENT_CHECK_20261028_001.json`, SHA-256 `eb382469e6f6d55d0c9011ac8373dffc1a16f6203213506b287191120474b9ff`.
