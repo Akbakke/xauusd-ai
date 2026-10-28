@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_order_native_source_20261028",
+    "current_unit": "direction_order_private_source_20261028",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -40989,5 +40989,48 @@
     ],
     "actual_power_changed": false,
     "deployed_guard_changed": false
+  },
+  "direction_order_private_source_20261028": {
+    "status": "SOURCE_SYNTHETIC_CHECKED_ONLY",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json",
+      "sha256": "336c7c5af9a0b5bf7759831394f27de06d46eb8ab9a22619a8c1856abc01fbf7"
+    },
+    "allowed_source_paths": [
+      "gx1/contracts/entry_native_direction_research_campaign_v1.py",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "gx1/scripts/run_entry_native_direction_order_qualification_v1.py",
+      "tests/test_entry_native_direction_research_campaign_v1.py",
+      "tests/test_entry_native_direction_order_qualification_v1.py"
+    ],
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "scope": "Reuse the existing native private-qualification route for the chronological sign-only B16 variant: original full 256 initial predictions and fresh model/buffer/optimizer/RNG identity, then four private updates across uninterrupted and resumed trajectories on the first 32 chronological parents. Qualification weights cannot enter main fit.",
+    "synthetic_checks": {
+      "status": "PASS",
+      "test_count": 88,
+      "data_or_model_training": false
+    },
+    "source_sha256": {
+      "gx1/contracts/entry_native_direction_research_campaign_v1.py": "b303ed653c18f337427e95458288b9117af01ddb84a600d0984b82acef1f6a96",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py": "416004629c41da56245ff466288b03e2bd53c11941c4d93c3fdceb165b65074f",
+      "gx1/scripts/run_entry_native_direction_order_qualification_v1.py": "3688a59affc49fcc74cee3ff0f5719c71d87c68b1d81d6c0da7247d1f57bb0e6",
+      "tests/test_entry_native_direction_research_campaign_v1.py": "e5905331575acfbffd01a68e1e227f0612f67ca330bbe2dc28b3dfcaaa8bf97e",
+      "tests/test_entry_native_direction_order_qualification_v1.py": "50807cf0e2888050b25648981b73b4c3c97d8fe8569061338e1aa66c9fc1a518"
+    },
+    "baseline_source_ast_checks": {
+      "baseline_commit": "41dc5c89fea5741ba0864fc3a4b1c7d925598ee5",
+      "matched": [
+        "native_direction_binary_loss",
+        "gather_native_direction_feature_batch",
+        "_fixed_order"
+      ],
+      "scope": "Function AST only; genuine initialization and gradient/resume remain unverified."
+    }
   }
 }

@@ -24,6 +24,9 @@ RECIPE_SCHEMA = 'gx1_native_direction_research_launch_recipe_v1'
 CURSOR_SCHEMA = 'gx1_native_direction_research_cursor_v1'
 BPS_SCOPE = 'private_bps_b16_matched_initialization_resume_qualification'
 WEIGHT_SCOPE = 'private_magnitude_weighted_b16_matched_initialization_resume_qualification'
+ORDER_PRIVATE_SCOPE = 'private_sign_b16_chronological_initial_resume_qualification'
+ORDER_DESIGN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json',
+    'sha256':'336c7c5af9a0b5bf7759831394f27de06d46eb8ab9a22619a8c1856abc01fbf7'}
 WEIGHT_DESIGN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAG_WEIGHT_NATIVE_QUALIFICATION_DESIGN_20261028.json',
     'sha256':'fe5cd8dbb9f17e46c77821c5077c6ad2893719bc2204f01b963cfff90c4938c1'}
 WEIGHT_INITIAL_PREDICTIONS = {'path':'/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.npz',
@@ -40,6 +43,10 @@ BPS_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_native_direction_bps_v1.py',
     'gx1/contracts/entry_native_direction_checkpoint_diagnostic_v1.py',
     'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py',
     'gx1/scripts/run_entry_native_direction_bps_qualification_v1.py')
+ORDER_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py',
+    'gx1/contracts/entry_native_direction_frozen_extraction_v1.py',
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py',
+    'gx1/scripts/run_entry_native_direction_order_qualification_v1.py')
 MODULE = 'gx1.scripts.run_unified_exit_native_candidate_window_v1'
 CANONICAL_REPO = Path('/home/andre2/src/GX1_CURRENT')
 REPO_SOURCE_PATHS = (
@@ -123,16 +130,18 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         'qualification_weights_for_main_fit'}
     bps = value.get('run_scope') == BPS_SCOPE
     weighted = value.get('run_scope') == WEIGHT_SCOPE
-    b16 = bps or weighted
+    chronological = value.get('run_scope') == ORDER_PRIVATE_SCOPE
+    b16 = bps or weighted or chronological
     if b16: fields |= {'fold','gc_layout_metadata_parity','qualification_design'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     _path(recipe['runtime_root'], 'runtime root')
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE), 'RECIPE_SCOPE')
-    for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if b16 else 3,
-            'max_forwards':6 if b16 else 4, 'max_backwards':5 if b16 else 4,
+        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE), 'RECIPE_SCOPE')
+    for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if bps or weighted else 3,
+            'max_forwards':21 if chronological else 6 if bps or weighted else 4,
+            'max_backwards':5 if bps or weighted else 4,
             'max_checkpoint_bytes':1073741824, 'max_published_json_bytes':33554432}.items():
         _require(type(recipe[key]) is int and recipe[key] == expected, 'RECIPE_BUDGET:' + key)
     for key, expected in {'training_enabled':True, 'full_epoch_training_allowed':False,
@@ -165,8 +174,24 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
             and recipe['qualification_design'] == WEIGHT_DESIGN, 'WEIGHT_FIXED_INPUT_SCOPE')
         campaign.require_binding(recipe['gc_layout_metadata_parity'],label='weight GC metadata proof',verify_file=True)
         campaign.require_binding(recipe['qualification_design'],label='weight qualification design',verify_file=True)
+    if chronological:
+        from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+        _require(recipe['fold'] == BPS_FOLD and recipe['gc_layout_metadata_parity'] == BPS_GC_PARITY
+            and recipe['qualification_design'] == ORDER_DESIGN, 'ORDER_FIXED_INPUT_SCOPE')
+        campaign.require_binding(recipe['gc_layout_metadata_parity'],label='order GC metadata proof',verify_file=True)
+        campaign.require_binding(recipe['qualification_design'],label='order qualification design',verify_file=True)
+        refs = {key:campaign.require_binding(item,label='order original '+key,verify_file=True)
+            for key,item in prefix.ORDER_ORIGIN.items()}
+        original = campaign.read_bound_json(Path(refs['launch_recipe']['path']),refs['launch_recipe']['sha256'])
+        initial = campaign.read_bound_json(Path(refs['initial_measurement']['path']),refs['initial_measurement']['sha256'])
+        _require(original.get('fold') == recipe['fold'] and original.get('input_manifest') == recipe['input_manifest']
+            and original.get('train_passes') == 1 and original.get('run_scope') == 'single_prefix_one_pass_direction_fit'
+            and {k:v for k,v in original.get('numerical_recipe',{}).items() if k not in ('max_updates','contract_sha256')}
+                == {k:v for k,v in numerical.items() if k not in ('max_updates','contract_sha256')}
+            and initial.get('role') == 'INITIAL_TRAIN' and initial.get('fold') == recipe['fold']
+            and initial.get('predictions') == refs['initial_predictions'], 'ORDER_ORIGINAL_IDENTITY')
     owners = recipe['source_owners']
-    required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if b16 else ())
+    required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if bps or weighted else ORDER_EXTRA_SOURCE_PATHS if chronological else ())
     _require(isinstance(owners, Mapping) and set(owners) == set(required_sources), 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='research source', verify_file=True)

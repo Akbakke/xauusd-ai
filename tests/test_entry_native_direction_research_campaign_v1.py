@@ -228,3 +228,53 @@ def test_native_window_dispatch_keeps_guard_first_and_closes_hash_scope(tmp_path
     else:
         assert call()=={'synthetic_dispatch_only':True} and events==['guard','research']
     assert campaign._FILE_VERIFICATION_MEMO.get() is None
+
+
+def chronological_private_fixture(f,monkeypatch):
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    numeric={'schema_version':'gx1_native_direction_research_recipe_v1','batch_size':16,'max_updates':2,
+        'genuine_updates_authorized':False,'native_launch_authorized':False,'research_objective_sha256':'e'*64}
+    numeric['contract_sha256']=hashlib.sha256(json.dumps(numeric,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    original_numeric=copy.deepcopy(numeric);original_numeric['max_updates']=2976
+    original_numeric.pop('contract_sha256')
+    original_numeric['contract_sha256']=hashlib.sha256(json.dumps(original_numeric,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    old=write(f['runtime']/'ORIGINAL_ORDER_RECIPE.json',{'fold':owner.BPS_FOLD,'input_manifest':f['dummy'],
+        'train_passes':1,'run_scope':'single_prefix_one_pass_direction_fit','numerical_recipe':original_numeric})
+    initial=write(f['runtime']/'ORIGINAL_ORDER_INITIAL.json',{'role':'INITIAL_TRAIN','fold':owner.BPS_FOLD,'predictions':f['dummy']})
+    origin={'launch_recipe':old,'initial_measurement':initial,'initial_predictions':f['dummy']}
+    monkeypatch.setattr(prefix,'ORDER_ORIGIN',origin);monkeypatch.setattr(owner,'ORDER_DESIGN',f['dummy'])
+    monkeypatch.setattr(owner,'BPS_GC_PARITY',f['dummy'])
+    value=copy.deepcopy(f['recipe']);value.update(run_scope=owner.ORDER_PRIVATE_SCOPE,numerical_recipe=numeric,
+        fold=copy.deepcopy(owner.BPS_FOLD),gc_layout_metadata_parity=f['dummy'],qualification_design=f['dummy'],
+        max_model_constructions=3,max_forwards=21,max_backwards=4)
+    for path in owner.ORDER_EXTRA_SOURCE_PATHS:value['source_owners'][path]=write(f['repo']/path,{'synthetic_source':True})
+    reseal(value,'recipe_sha256')
+    return value
+
+
+def test_order_private_scope_matches_original_and_limits_work(fixture,monkeypatch):
+    f=fixture;value=chronological_private_fixture(f,monkeypatch)
+    ref=write(f['runtime']/'PRIVATE_ORDER.json',value)
+    checked=owner.require_research_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+    assert checked['max_forwards']==21 and checked['max_private_updates']==4
+    assert checked['full_epoch_training_allowed'] is False and checked['qualification_weights_for_main_fit'] is False
+
+
+@pytest.mark.parametrize('fault',['forwards','constructors','backwards','updates','objective','fold','input','design','weights','test'])
+def test_order_private_scope_rejects_expansion_or_different_baseline(fixture,monkeypatch,fault):
+    f=fixture;value=chronological_private_fixture(f,monkeypatch)
+    if fault=='forwards':value['max_forwards']=22
+    elif fault=='constructors':value['max_model_constructions']=4
+    elif fault=='backwards':value['max_backwards']=5
+    elif fault=='updates':value['max_private_updates']=5
+    elif fault=='objective':
+        value['numerical_recipe']['signed_bps_supervision']=True
+        unsigned={k:v for k,v in value['numerical_recipe'].items() if k!='contract_sha256'}
+        value['numerical_recipe']['contract_sha256']=hashlib.sha256(json.dumps(unsigned,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    elif fault=='fold':value['fold']['prefix_rows']+=1
+    elif fault=='input':value['input_manifest']=write(f['runtime']/'OTHER_INPUT.json',{'synthetic':True})
+    elif fault=='design':value['qualification_design']=write(f['runtime']/'OTHER_DESIGN.json',{'synthetic':True})
+    elif fault=='weights':value['qualification_weights_for_main_fit']=True
+    else:value['test_data_used']=True
+    reseal(value,'recipe_sha256');ref=write(f['runtime']/'BAD_PRIVATE_ORDER.json',value)
+    with pytest.raises(RuntimeError):owner.require_research_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)

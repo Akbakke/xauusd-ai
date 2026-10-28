@@ -11,7 +11,7 @@ Programrot:
 
 ## Aktuell status
 
-En kronologisk énpass-rute i eksisterende trener har bestått 116 fokuserte syntetiske kontroller. Den binder samme kompakte inputs/mål/seed/optimizer og de opprinnelige 256 initialradene; signert null kontrolleres også byte-for-byte. Gammel blandet rute bevares. Faktisk initial-/gradient-/resume-kvalifisering og separat treningsadmisjon gjenstår; ingen ny modell er trent.
+En kronologisk énpass-rute i eksisterende trener har bestått 116 fokuserte syntetiske kontroller. Den binder samme kompakte inputs/mål/seed/optimizer og de opprinnelige 256 initialradene; signert null kontrolleres også byte-for-byte. Gammel blandet rute bevares. Kilde for en begrenset faktisk initial-/gradient-/resume-kvalifisering har bestått 88 syntetiske kontroller. Selve kjøringen og separat treningsadmisjon gjenstår; ingen ny modell er trent.
 
 Rekkefølge-audit002 er FULLFØRT og KONSUMERT på 47 602 TRAIN-foreldre. Begge rekkefølger gir 2 976 ikke-tomme batcher; 5min-andelen av loss-koeffisientmassen er 33,3973 % blandet mot 33,4010 % kronologisk. Siste B2 har ved 5min én OPP/én NED blandet, men bare én gyldig OPP kronologisk; siste kronologiske 15min har ingen gyldige utfall. Opprinnelig blandet koeffisientmasse er kontrollert mot tidligere uavhengig aggregat. Dette er loss-geometri, ikke gradient, modellresultat eller årsaksbevis. Se /home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_ROOT_REVIEW_20261028_002.json. Ingen modell, trening, CONTROL eller TEST ble åpnet.
 

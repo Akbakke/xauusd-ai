@@ -320,6 +320,9 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     if launch['run_scope'] in (authority.BPS_SCOPE, authority.WEIGHT_SCOPE):
         from gx1.scripts.run_entry_native_direction_bps_qualification_v1 import run_bps_qualification
         return run_bps_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
+    if launch['run_scope'] == authority.ORDER_PRIVATE_SCOPE:
+        from gx1.scripts.run_entry_native_direction_order_qualification_v1 import run_order_qualification
+        return run_order_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     sys.dont_write_bytecode=True
     import numpy as np
     import torch
