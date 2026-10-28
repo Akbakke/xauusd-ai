@@ -1043,6 +1043,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             device="cuda", out_dir=unseen_args.out_dir)
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    full_stale_options = ("--direction-gc-full-stale-plan", "--direction-gc-full-stale-plan-sha256")
+    if any(value.partition("=")[0] in full_stale_options for value in supplied):
+        full_stale_parser = argparse.ArgumentParser(description="Frozen model GC freshness across current context and history",
+            allow_abbrev=False, add_help=False)
+        full_stale_parser.add_argument(full_stale_options[0], type=Path, required=True)
+        full_stale_parser.add_argument(full_stale_options[1], required=True)
+        full_stale_parser.add_argument("--device", choices=("cuda",), required=True)
+        full_stale_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*full_stale_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                full_stale_parser.error(f"duplicate flag: {option}")
+        full_stale_args = full_stale_parser.parse_args(supplied)
+        if not full_stale_args.out_dir.is_absolute():
+            full_stale_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.direction_gc_mtf_followup_v1 import run as run_gc_full_stale
+        report = run_gc_full_stale(plan_path=full_stale_args.direction_gc_full_stale_plan,
+            plan_sha256=str(full_stale_args.direction_gc_full_stale_plan_sha256),
+            device="cuda", out_dir=full_stale_args.out_dir, mode="full_stale_gc")
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     stale_options = ("--direction-gc-stale-context-plan", "--direction-gc-stale-context-plan-sha256")
     if any(value.partition("=")[0] in stale_options for value in supplied):
         stale_parser = argparse.ArgumentParser(description="Frozen model GC current-context freshness comparison",

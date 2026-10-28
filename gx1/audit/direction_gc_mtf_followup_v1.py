@@ -24,6 +24,7 @@ ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63'
 STAGE = 'independent_direction_gc_mtf_later_followup_20261028_001'
 CONTEXT_STAGE = 'independent_direction_gc_context_followup_20261028_002'
 STALE_STAGE = 'independent_direction_gc_stale_context_20261028_001'
+FULL_STALE_STAGE = 'independent_direction_gc_full_stale_20261028_001'
 OWNER = 'gx1/scripts/run_entry_native_direction_research_window_v1.py'
 SOURCE_PATHS = (
     'gx1/audit/direction_gc_mtf_followup_v1.py',
@@ -107,20 +108,25 @@ def save_paired(path, *, parents, decisions, terminal, observed, sign, original,
 
 
 def run(*, plan_path, plan_sha256, device, out_dir, mode='history'):
-    require(mode in ('history', 'context_and_history', 'stale_context'), 'EXPERIMENT_MODE')
+    require(mode in ('history', 'context_and_history', 'stale_context', 'full_stale_gc'), 'EXPERIMENT_MODE')
     context_mode = mode == 'context_and_history'
-    stale_mode = mode == 'stale_context'
+    full_stale_mode = mode == 'full_stale_gc'
+    stale_mode = mode in ('stale_context', 'full_stale_gc')
     uses_context = context_mode or stale_mode
-    experiment_stage = STALE_STAGE if stale_mode else (CONTEXT_STAGE if context_mode else STAGE)
-    experiment_output = ('DIRECTION_GC_STALE_CONTEXT_20261028_001' if stale_mode else
-        ('DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002' if context_mode else 'DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001'))
-    experiment_design = ('DIRECTION_GC_STALE_CONTEXT_20261028.json' if stale_mode else
-        ('DIRECTION_GC_CONTEXT_FOLLOWUP_20261028.json' if context_mode else 'DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028.json'))
-    experiment_schema = ('gx1_direction_gc_stale_context' if stale_mode else
-        ('gx1_direction_gc_context_followup' if context_mode else 'gx1_direction_gc_mtf_later_followup'))
+    experiment_stage = FULL_STALE_STAGE if full_stale_mode else (STALE_STAGE if stale_mode else (CONTEXT_STAGE if context_mode else STAGE))
+    experiment_output = ('DIRECTION_GC_FULL_STALE_20261028_001' if full_stale_mode else
+        ('DIRECTION_GC_STALE_CONTEXT_20261028_001' if stale_mode else
+        ('DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002' if context_mode else 'DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001')))
+    experiment_design = ('DIRECTION_GC_FULL_STALE_20261028.json' if full_stale_mode else
+        ('DIRECTION_GC_STALE_CONTEXT_20261028.json' if stale_mode else
+        ('DIRECTION_GC_CONTEXT_FOLLOWUP_20261028.json' if context_mode else 'DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028.json')))
+    experiment_schema = ('gx1_direction_gc_full_stale' if full_stale_mode else
+        ('gx1_direction_gc_stale_context' if stale_mode else
+        ('gx1_direction_gc_context_followup' if context_mode else 'gx1_direction_gc_mtf_later_followup')))
     experiment_sources = SOURCE_PATHS + (('gx1/audit/direction_gc_context_intervention_v1.py',
         'tests/test_direction_gc_context_intervention_v1.py') if uses_context else ()) + (
-        ('gx1/audit/direction_gc_stale_context_v1.py', 'tests/test_direction_gc_stale_context_v1.py') if stale_mode else ())
+        ('gx1/audit/direction_gc_stale_context_v1.py', 'tests/test_direction_gc_stale_context_v1.py') if stale_mode else ()) + (
+        ('gx1/audit/direction_gc_history_freshness_v1.py', 'tests/test_direction_gc_history_freshness_v1.py') if full_stale_mode else ())
     from gx1.contracts import gx1_capped_execution_v1 as cap
     from gx1.contracts import immutable_event_authority_v1 as publication
     from gx1.contracts import local_random_access_campaign_v2 as binding
@@ -327,6 +333,7 @@ def run(*, plan_path, plan_sha256, device, out_dir, mode='history'):
         intervention.require_exact_replay(replay, np.ascontiguousarray(saved['logit_up'][:intervention.BATCH]))
         del raw, target, features, _target, replay
         original, ablated, valid_prior = [], [], []; hook_calls = {key: 0 for key in keys}; offset = 0
+        hidden_history = {tf: {'hidden_rows': 0, 'nonzero_rows_hidden': 0} for tf in ('M5', 'M15', 'H1', 'H4', 'D1')}
         for indices in chosen:
             require(time.monotonic() - start < plan['wall_seconds'], 'WALL_LIMIT')
             parent_ids = prepared['arrays']['parent_rows'][first + indices]
@@ -350,6 +357,12 @@ def run(*, plan_path, plan_sha256, device, out_dir, mode='history'):
                 prior_snap = torch.from_numpy(np.ascontiguousarray(prepared['current']['snap'][safe])).to(torch.device('cuda', 0))
                 prior_ctx = torch.from_numpy(np.ascontiguousarray(prepared['current']['ctx_cont'][safe])).to(torch.device('cuda', 0))
                 counterfactual = replace_current_gc_context(features, prior_snap, prior_ctx, gc_layout)
+                if full_stale_mode:
+                    from gx1.audit.direction_gc_history_freshness_v1 import hide_fresh_gc_history
+                    counterfactual, hidden = hide_fresh_gc_history(counterfactual, witness=raw['witness']['multi_tf'],
+                        decision_ns=np.ascontiguousarray(decisions[rows_now]), prior_available=np.ascontiguousarray(valid))
+                    for tf, record in hidden.items():
+                        for key, value in record.items(): hidden_history[tf][key] += value
                 z1 = window._forward(model, counterfactual, kind='LATER_STALE_CONTEXT', counters=counters,
                     ceiling=ceiling, torch=torch).detach().cpu().numpy().copy()
                 require(np.array_equal(z0[~valid], z1[~valid]), 'MISSING_PRIOR_UNCHANGED')
@@ -391,7 +404,9 @@ def run(*, plan_path, plan_sha256, device, out_dir, mode='history'):
             selected_terminal, z0, z1, cutoff=fold['oof_cutoff_ns'])
         metrics['scope'] = ('Every tenth contiguous 16-row batch in the subsequent fixed development period; '
             + ('only parents with an exact previous 5-minute decision; ' if stale_mode else '') + 'no refit.')
-        if stale_mode:
+        if full_stale_mode:
+            metrics['limitations'] = ('Paired calendar-block exchangeability is assumed. Current GC context and its last local aliases use prior M5 values; GC history buckets closed since then are marked unavailable. Other inputs remain current. The intervention may be out of distribution. No economic edge or causal claim about retraining.')
+        elif stale_mode:
             metrics['limitations'] = ('Paired calendar-block exchangeability is assumed. Only current GC context and its last local aliases are replaced with the prior M5 values; GC MTF history remains current. The intervention may be out of distribution. No economic edge or causal claim about retraining.')
         elif context_mode:
             metrics['limitations'] = ('Paired calendar-block exchangeability is assumed. GC context, its local aliases and GC history projections are suppressed together. The intervention may be out of distribution. No economic edge or causal claim about retraining.')
@@ -408,9 +423,11 @@ def run(*, plan_path, plan_sha256, device, out_dir, mode='history'):
                 'batch_stride': intervention.BATCH_STRIDE, 'selected_parents': len(selection), 'selected_batches': len(chosen),
                 'scored_parents': len(rows)},
             'fold1_reference_logits_byte_identical': True, 'corrected_target_identity': corrected['target_identity'],
-            'intervention': ('Replace GC values and observation masks in current context, snapshot, and final local sequence row with values from the exact previous five-minute decision; older local rows, GC MTF histories and all non-GC features remain current.' if stale_mode else
+            'intervention': ('Replace current GC context and last local aliases with prior M5 values; mark GC MTF history buckets closed after that decision unavailable. Earlier GC rows and all non-GC inputs remain current.' if full_stale_mode else
+                ('Replace GC values and observation masks in current context, snapshot, and final local sequence row with values from the exact previous five-minute decision; older local rows, GC MTF histories and all non-GC features remain current.' if stale_mode else
                 ('GC context values and observation masks are zero in the full local sequence and current context; all 25 GC history projections are zeroed after projection.' if context_mode else
-                'All 25 GC history projection outputs set to zero after projection; current GC context remains.')),
+                'All 25 GC history projection outputs set to zero after projection; current GC context remains.'))),
+            'hidden_gc_history_rows': hidden_history if full_stale_mode else None,
             'later_reference_logits_byte_identical': True if uses_context else None,
             'gc_context_layout': ({'gc_fields': gc_layout['gc_fields'], 'value_mask_pairs': gc_layout['value_mask_pairs'],
                 'aliases_sha256': gc_layout['aliases_sha256']} if uses_context else None),
@@ -418,9 +435,10 @@ def run(*, plan_path, plan_sha256, device, out_dir, mode='history'):
             'max_absolute_logit_change': float(logit_change.max()), 'forward_calls': counters['forward_calls'],
             'optimizer_steps': 0, 'model_unchanged': True, 'metrics': metrics,
             'scope': 'Frozen fold1 model, distinct subsequent development period, fixed sample; no refit or model selection.',
-            'limits': ('Previously reused development data; previous-value substitution was chosen after observing context updates and may be out of distribution. Current GC MTF histories and earlier local rows remain; this is only a partial freshness intervention. No independent generalization or economic edge.' if stale_mode else
+            'limits': ('Previously reused development data; hiding last-M5 GC context and new history buckets may create an out-of-distribution state. It covers the named GC routes, not necessarily every GC-derived field; source publication latency and real fills are not established. No independent generalization or economic edge.' if full_stale_mode else
+                ('Previously reused development data; previous-value substitution was chosen after observing context updates and may be out of distribution. Current GC MTF histories and earlier local rows remain; this is only a partial freshness intervention. No independent generalization or economic edge.' if stale_mode else
                 ('Previously reused development data; the combined intervention was chosen after the earlier result and can be out of distribution. It suppresses named GC context/aliases and GC history projections, not necessarily every GC-derived quantity. No independent generalization or economic edge.' if context_mode else
-                'Previously reused development data; removing an internal route can be out of distribution. The GC current context remains. No independent generalization or economic edge.')),
+                'Previously reused development data; removing an internal route can be out of distribution. The GC current context remains. No independent generalization or economic edge.'))),
             'test_data_used': False, 'economic_edge_qualified': False}
         publish(stage / 'RESULT.json', output)
         publish(stage / 'TERMINAL.json', {'status': 'COMPLETE', 'exit_code': 0, 'source_unchanged': True,
