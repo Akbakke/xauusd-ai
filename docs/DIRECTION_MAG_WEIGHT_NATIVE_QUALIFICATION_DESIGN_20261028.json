@@ -1,0 +1,47 @@
+{
+  "schema_version": "gx1_weighted_direction_private_qualification_design_v1",
+  "status": "SOURCE_DESIGN_ONLY_NO_EXECUTION_AUTHORITY",
+  "purpose": "Qualify unchanged initial direction outputs and bounded weight gradient and exact resume on same own-prefix TRAIN data before any candidate fit.",
+  "fold": {
+    "fold_id": 1,
+    "prefix_rows": 47602,
+    "oof_start_row": 47602,
+    "oof_end_row": 64890,
+    "train_cutoff_ns": 1735689600000000000,
+    "oof_cutoff_ns": 1743465600000000000
+  },
+  "input_manifest": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_CURRENT_COMPONENT_INPUT_MANIFEST_001.json",
+    "sha256": "7823933b1f8f438aaa1eea46cd6736d883216f42cd7738d5947db64286fe4677"
+  },
+  "historical_component_transition": {
+    "original": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+      "sha256": "da7be399a42a1cad721ddf7631bc8ff1b5c02fc347f1fb3ce9bfe8ca39f2f539"
+    },
+    "current": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+      "sha256": "8beccc55c551c22c37e0af9bec10bc3b911e6ff11c69c6d5ba83abcc1b096e16"
+    }
+  },
+  "original_initial_predictions": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.npz",
+    "sha256": "f870c6eb0a6000b2be0197bfe650db3f35f41d125d91a90162df2d01aedf112a"
+  },
+  "selected_parents": "First 32 original seed-20260911 own-prefix presentations, no outcome selection.",
+  "baseline_initial_parity": "First 16 selected parent identifiers, decision clock, 1/5/15 initial logits exactly equal the bound original INITIAL_TRAIN saved prediction payload; stop before any update on mismatch.",
+  "model_constructions": 4,
+  "forwards": 6,
+  "reverse_passes": 5,
+  "physical_optimizer_steps": 4,
+  "logical_steps": 2,
+  "batch_size": 16,
+  "max_worker_seconds": 900,
+  "gc_parity": "Existing exact layout metadata parity remains mandatory.",
+  "gradient_probe": "One reverse of weighted minus unweighted direction loss on shared joint input projection, finite and nonzero.",
+  "resume": "Interrupted versus uninterrupted weighted run bit-exact; immutable prefix magnitude scale.",
+  "read_boundary": "Exact existing own-prefix inputs and the one explicitly bound saved TRAIN initial-prediction file; never CONTROL or TEST.",
+  "weights_reused_for_fit": false,
+  "predictive_value_claimed": false,
+  "training_authorized": false
+}

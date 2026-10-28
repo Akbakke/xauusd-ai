@@ -11,6 +11,10 @@ Programrot:
 
 ## Aktuell status
 
+Kildearbeid for avgrenset ekte B16-kvalifisering er admittért; syntetisk
+kontroll, genuine modellkall og trening er fortsatt lukket. Designet binder
+den tidligere startprediksjonen og stopper før oppdatering ved ulikhet.
+
 Den vektede treningsadapteren har bestått 20 fokuserte syntetiske
 kontroller, inkludert én forward per batch og eksakt syntetisk resume.
 Genuin initial-/gradient-/resume-kvalifisering og treningsadmisjon gjenstår;

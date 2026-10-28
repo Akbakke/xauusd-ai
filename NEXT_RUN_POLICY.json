@@ -40642,5 +40642,27 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_TRAIN_ADAPTER_SYNTHETIC_20261028_001/OUTER.log",
       "sha256": "a3b98d34ddb78a64a2b193ede0a72ecba31156898a4e4cfa3199e88690408ba0"
     }
+  },
+  "direction_bounded_magnitude_native_qualification_source_20261028": {
+    "status": "SOURCE_EDITS_ADMITTED_NOT_SYNTHETIC_OR_GENUINE",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAG_WEIGHT_NATIVE_QUALIFICATION_DESIGN_20261028.json",
+      "sha256": "fe5cd8dbb9f17e46c77821c5077c6ad2893719bc2204f01b963cfff90c4938c1"
+    },
+    "scope": "Extend existing bounded B16 private qualification with opt-in magnitude-weighted loss, exact source transition and original initial-output identity.",
+    "allowed_source_paths": [
+      "gx1/contracts/entry_native_direction_research_campaign_v1.py",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "gx1/scripts/run_entry_native_direction_bps_qualification_v1.py",
+      "tests/test_entry_native_direction_bps_qualification_v1.py",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py"
+    ],
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "genuine_native_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
