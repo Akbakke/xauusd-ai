@@ -40269,11 +40269,21 @@
     },
     "review": {
       "path": "docs/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_RESULT_20261028.json",
-      "sha256": "e01f663085ebad005e4a67a0638e36656da8b79ffaf5bae6cd08b0c743c7d66e"
+      "sha256": "9ea60c150f74fb156609066ae074bab3bd0e58ed4e28c453030f601978d06a6e"
     },
     "same_direction": 1017,
     "opposite_direction": 25,
     "known_direction_rows": 1042,
     "direction_improvement_qualified": false
+  },
+  "direction_hurdle_label_identifiability_review_20261028": {
+    "status": "MATHEMATICAL_DEGENERACY_PROVEN_NO_TRAINING",
+    "review": {
+      "path": "docs/DIRECTION_HURDLE_LABEL_IDENTIFIABILITY_20261028.json",
+      "sha256": "c59e58c065aaf10ca8c5f6692da84abb68ceab861d45bdfbd70771fcd278ddc3"
+    },
+    "genuine_data_reads_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }

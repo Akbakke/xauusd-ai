@@ -61,7 +61,7 @@
   "interpretation": [
     "First-hurdle direction and five-minute endpoint sign agree on 1017 of the same 1042 selected parents, and oppose on 25.",
     "The same five-minute score has AUC 0.426768 against first hit and 0.431849 against endpoint sign on exactly these rows. The mismatch between these two labels alone is not an adequate explanation of weak score ranking in this selected cohort.",
-    "The cohort is defined by a realized >=10bps gross quote event and M1 observability; its result cannot establish all-parent predictability, causation or a profitable inverse signal."
+    "The cohort is defined by a realized >10bps gross quote event and M1 observability; its result cannot establish all-parent predictability, causation or a profitable inverse signal."
   ],
   "limits": [
     "One reused TRAIN-development fold and realized first-hurdle-selected parents.",

@@ -11,8 +11,13 @@ Programrot:
 
 ## Aktuell status
 
+En naiv partial-set-loss har en bevist degenerert løsning ved 1min/10bps:
+alle 17 288 mulige utfallssett inneholder «ingen treff», så en modell som
+alltid svarer dette kan oppnå null tapsgrense uten å lære retning. Fasiten er
+ikke koblet til trening. Se `docs/DIRECTION_HURDLE_LABEL_IDENTIFIABILITY_20261028.json`.
+
 Matched 5min-sammenligning er COMPLETE og konsumert: Av de samme 1 042
-kjenne første-treff-retningene stemmer 1 017 med sluttfortegnet og 25 går mot.
+kjente første-treff-retningene stemmer 1 017 med sluttfortegnet og 25 går mot.
 Samme skår har AUC 0,426768 mot første treff og 0,431849 mot sluttfortegn på
 akkurat disse radene. Dermed forklarer ikke forskjellen mellom de to fasitene
 alene svak rangering i dette selekterte utvalget. Ingen ny modell, CONTROL

@@ -1,0 +1,33 @@
+{
+  "schema_version": "gx1_hurdle_label_identifiability_review_v1",
+  "status": "MATHEMATICAL_TRAINING_CAUTION_NOT_A_FIT",
+  "evidence": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_20261028_001/RESULT.json",
+    "sha256": "bb46f1c5321ae77cf4853dd69dd4772629ea8a5217e4753285bc1314b39fa897"
+  },
+  "one_minute_allowed_class_sets": {
+    "neither_only": 17221,
+    "long_or_neither": 29,
+    "short_or_neither": 38,
+    "total": 17288
+  },
+  "five_minute_known_neither": 16230,
+  "five_minute_parents": 17288,
+  "strict_gross_quote_hurdle_bps": 10,
+  "proof": {
+    "candidate_loss": "L=-log(sum of predicted probabilities for the observed allowed outcome set)",
+    "construction": "For every one-minute allowed set, neither is present. Set the predicted probability of neither to 1 and the probabilities of long-first and short-first to 0. Then the sum on every set is 1 and every loss is 0; a softmax can approach this limit.",
+    "consequence": "This naive partial-set loss has a degenerate no-hit solution and cannot establish calibrated one-minute first-hit probabilities from these labels alone. The ambiguity is outcome-dependent; excluding it does not fix unconditional probability estimation.",
+    "five_minute_imbalance": "16230 of 17288 parents have known neither-side hit at this horizon and research hurdle. A flat no-hit predictor can dominate plain class accuracy; neither is not automatically a FLAT trading action."
+  },
+  "candidate_next_design": [
+    "Retain observed endpoint direction as a separate task, and evaluate magnitude using a predeclared distributional bps representation rather than assuming the already unsuccessful signed-mean auxiliary is sufficient.",
+    "Treat first-hit and adverse-path uncertainty explicitly; use a loss only after its observation mechanism, identifiability and nondegenerate baselines are demonstrated.",
+    "Fix horizons, costs, class handling and chronological baselines before any comparison; no threshold selected from the current outcomes."
+  ],
+  "new_data_reads": 0,
+  "fits": 0,
+  "model_forwards": 0,
+  "test_control_accessed": false,
+  "edge_established": false
+}
