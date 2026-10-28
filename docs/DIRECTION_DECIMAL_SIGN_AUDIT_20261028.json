@@ -1,0 +1,71 @@
+{
+  "schema_version": "gx1_direction_decimal_sign_audit_design_v1",
+  "status": "SOURCE_AND_SYNTHETIC_PASS_ADMITTED_EXACT_PLAN_ONLY",
+  "purpose": "Independently measure whether float midpoint subtraction changed observed exact decimal bid/ask midpoint direction, and quantify its effect on fixed saved 60-minute prediction scores without fitting or target mutation.",
+  "source_window": {
+    "instrument": "XAU_USD",
+    "granularity": "M1",
+    "from_utc_inclusive": "2024-05-01T00:00:00Z",
+    "to_utc_exclusive": "2026-01-01T00:00:00Z",
+    "sealed_test_utc": "2026-07-01T00:00:00Z",
+    "source_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"
+    },
+    "overlapping_vendor_response_chunks": 204,
+    "last_chunk_request_end_utc_exclusive": "2026-01-03T00:00:00Z",
+    "last_chunk_limit": "The last compressed response physically includes early January 2026 development candles before TEST. Its pre-2026 rows alone are parsed into the calculation; no post-cutoff prices are selected or reported.",
+    "source_rule": "Require complete source candle, strictly ordered exact minute clock, explicit string bid/ask opens, canonical float64 equality and exact source-row equality on every selected row. No price, missing-data, source or timestamp fallback.",
+    "native_years": {
+      "2024": {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet",
+        "sha256": "2776a1cb17b915d506eaf0d7ed5323ba975e0d0d1c52c0c02d2da20589d1c41a"
+      },
+      "2025": {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2025/part-000.parquet",
+        "sha256": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc"
+      }
+    }
+  },
+  "saved_targets": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
+    "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d",
+    "parents": 118249,
+    "horizons_minutes": "each integer 1 through 60",
+    "global_cutoff_utc_exclusive": "2026-01-01T00:00:00Z"
+  },
+  "saved_candidate_oof": {
+    "report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451"
+    },
+    "predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "fold1_train_parent_rows": 47602,
+    "fold1_later_parent_rows": 17288,
+    "fold1_train_cutoff_utc_exclusive": "2025-01-01T00:00:00Z",
+    "fold1_later_cutoff_utc_exclusive": "2025-04-01T00:00:00Z"
+  },
+  "comparison": {
+    "decimal_definition": "For each observed endpoint compare exact (terminal bid + terminal ask) to exact (entry bid + entry ask), on an integer decimal grid derived only from the bound selected source strings; division by two is unnecessary for sign.",
+    "safety": "Fail closed on unsupported or overflowing exact integer representation; never infer an epsilon, round input price, impute a quote or fall back to float sign.",
+    "required_reports": "All-parent globally observed matrix and separately the fold1 mature TRAIN and later populations; for every minute report saved versus exact down/zero/up confusion and genuine nonzero sign flips. Score all 60 fixed later predictions against both label versions with unchanged logits, output eligibility counts, AUC, accuracy, logloss and Brier; reproduce original scores from saved report before reporting differences.",
+    "inference": "This is a retrospective label-integrity diagnosis on reused development. Point-score changes are not paired confidence intervals, untouched validation, feature attribution, actual fills or economic edge. Do not choose a best horizon.",
+    "data_retention": "Write aggregate JSON and provenance only; do not write new target, quote, prediction, model weight or trading files. Preserve all original artifacts."
+  },
+  "execution": {
+    "one_shot": true,
+    "fresh_exact_plan_and_policy_required": true,
+    "capped_class": "audit",
+    "max_memory": "4G",
+    "wall_seconds": 600,
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "source_changes_after_admission": false,
+    "synthetic_test_cases_passed": 13
+  }
+}

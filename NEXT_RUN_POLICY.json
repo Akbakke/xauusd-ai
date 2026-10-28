@@ -41795,6 +41795,27 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "economic_edge_qualified": false,
-    "next": "Design a new exact capped audit from original decimal price strings; retain original targets and preserve source identities."
+    "next": "Separate exact decimal sign audit admitted under independent_direction_decimal_sign_audit_20261028_001; no model forward or optimizer step."
+  },
+  "independent_direction_decimal_sign_audit_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_PLAN_20261028_001.json",
+      "sha256": "62ada32f78477bb7d55c986f7631f1d4d3328191cd9ff7afd36ef07f3e0821ef"
+    },
+    "execution_authorized": true,
+    "genuine_source_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "wall_seconds": 600,
+    "memory_max": "4G",
+    "optimizer_steps_authorized": false,
+    "new_model_forwards_authorized": false,
+    "target_mutation_authorized": false,
+    "test_or_trading_authority": false,
+    "scope": "Bound original XAU decimal candle strings and existing saved development targets and fixed logits through 2025-12-31 only; output aggregate diagnosis only."
   }
 }
