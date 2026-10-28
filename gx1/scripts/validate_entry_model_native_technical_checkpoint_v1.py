@@ -1023,6 +1023,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     import sys
 
     supplied = list(sys.argv[1:] if argv is None else argv)
+    unseen_options = ("--direction-unseen-gc-projection-plan", "--direction-unseen-gc-projection-plan-sha256")
+    if any(value.partition("=")[0] in unseen_options for value in supplied):
+        unseen_parser = argparse.ArgumentParser(description="Previously unsupported GC context projection sensitivity",
+            allow_abbrev=False, add_help=False)
+        unseen_parser.add_argument(unseen_options[0], type=Path, required=True)
+        unseen_parser.add_argument(unseen_options[1], required=True)
+        unseen_parser.add_argument("--device", choices=("cuda",), required=True)
+        unseen_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*unseen_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                unseen_parser.error(f"duplicate flag: {option}")
+        unseen_args = unseen_parser.parse_args(supplied)
+        if not unseen_args.out_dir.is_absolute():
+            unseen_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.direction_unseen_gc_projection_v1 import run as run_unseen_projection
+        report = run_unseen_projection(plan_path=unseen_args.direction_unseen_gc_projection_plan,
+            plan_sha256=str(unseen_args.direction_unseen_gc_projection_plan_sha256),
+            device="cuda", out_dir=unseen_args.out_dir)
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     gc_options = ("--direction-gc-mtf-intervention-plan", "--direction-gc-mtf-intervention-plan-sha256")
     if any(value.partition("=")[0] in gc_options for value in supplied):
         gc_parser = argparse.ArgumentParser(description="Bounded trained direction GC-history intervention",

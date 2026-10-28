@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "UNSEEN_GC_SUPPORT_CONFIRMED",
+  "status": "UNSEEN_GC_PROJECTION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Measure the trained model’s direct context-projection sensitivity to the previously TRAIN-zero GC coordinates on their input-defined Q1/Q2 batches; preserve masks and all other routes. A new exact source-bound inference plan is required. No training, TEST, broker or trading.",
+  "next_action": "Run the single bound inference on input-selected Q1/Q2 original batches; verify direct SMC context projection effects and close its one-shot. No training, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43112,5 +43112,26 @@
     "q1_nonzero_parents": 275,
     "q2_sample_nonzero_parents": 80,
     "economic_edge_qualified": false
+  },
+  "independent_direction_unseen_gc_projection_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_PROJECTION_PLAN_20261028_001.json",
+      "sha256": "4051e9ed8ab06833be5acbf819c4974e03d7da8d0cdebbc97fb8a653f644240d"
+    },
+    "execution_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "model_forwards_authorized": true,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "guarded_cuda_producer",
+    "memory_max": "20G",
+    "wall_seconds": 1800,
+    "scope": "Replay each selected original batch byte-identically; set only the five normalized values to zero at the SMC current-context Linear input. Preserve masks, all other coordinates, local aliases, GC history, model state and all guards. Compare 60 logits and 5-minute sign changes."
   }
 }
