@@ -11,6 +11,12 @@ Programrot:
 
 ## Aktuell status
 
+Kilde- og syntetisk kvalifisering for parret full-TRAIN-sammenligning er åpnet.
+Den skal gjenbruke tre énpass-prefikspartisjoner og ett trepass-uttrekk, binde
+alle foreldre/klokker/utfall/masker og måle 1/5/15min AUC, logloss og Brier
+mot énpass og fast TRAIN-prior. Dette er beskrivende treningsfit. Ingen ekte
+prediksjonspayload eller modell er åpnet gjennom denne kildeadgangen.
+
 Full TRAIN-måling for 3-pass-terminalen er COMPLETE og konsumert: 47 602
 foreldre, 2 976 B16-forwards, eksakt 256-raders paritet, null optimizer- og
 baklengssteg og signert vakt PASS. Windows-oppgaven er deaktivert. Foreløpig
