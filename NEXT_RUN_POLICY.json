@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T16:06:35.181945+00:00",
+  "observed_utc": "2026-10-28T16:07:31.744046+00:00",
   "status": "DECIMAL_TARGET_MATERIALIZED_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "5f305a5e3ac9411fd520a18594915c0544d82f33e68a7e08790a4c9a4b226cbc"
+      "sha256": "84b80769d93be0098b32f34041743627efaefd4b962aae16bff803fa57df830e"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -41799,7 +41799,7 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "economic_edge_qualified": false,
-    "next": "Corrected source-decimal target archive is materialized under separate identity; training consumer and fresh baseline remain unqualified. Continue feature and trained-composition investigation.",
+    "next": "Prioritize actual trained-family sensitivity and independent numeric coverage; test elapsed time and 5-minute loss emphasis as separate matched hypotheses only after exact binding and fresh baselines.",
     "first_prefix_constant_gc_context_value_fields": 29
   },
   "independent_direction_decimal_sign_audit_20261028_001": {
