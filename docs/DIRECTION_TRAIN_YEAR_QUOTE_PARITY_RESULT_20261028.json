@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_train_year_quote_parity_summary_v1",
-  "status": "COMPLETE_ENDPOINT_BIT_PARITY_PATH_UNQUALIFIED",
+  "status": "COMPLETE_DUPLICATE_OF_PRIOR_ENDPOINT_AUDIT",
   "result": {
     "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_20261028_001/RESULT.json",
     "sha256": "79b4dfff8127d4a157e070c28df2b6c1a67e54b42e1895529d0a2621342a6ee6"
@@ -190,5 +190,15 @@
     "This verifies entry and terminal opens only; high/low and first-hit labels remain unqualified.",
     "No model, training, later generalization or financial edge was measured.",
     "M1 intraminute ordering and true quote age remain uncertain."
-  ]
+  ],
+  "duplicate_of_prior_result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_AUDIT_001/OUTPUT/RESULT.json",
+    "sha256": "b29c557755c975f036600679f0108015f82d5117cf9b4d64c1d3f76cd405e2ca"
+  },
+  "duplicate_of_prior_root_review": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_ROOT_REVIEW_001.json",
+    "sha256": "8fb4e48dd40607e4cddd1fc8f66417dd5d5a734d325f74f8c738fd73cb4ba36e"
+  },
+  "duplicate_aggregate_matches": true,
+  "acknowledgement": "The same 118249-parent 1/5/15 endpoint source parity was already completed; this repeat adds no new independent edge evidence. The duplicate adapter and its synthetic tests are retired from the current tree; exact source is retained in Git at the recorded historical commit."
 }

@@ -39928,12 +39928,8 @@
     "test_control_exit_authorized": false
   },
   "direction_train_year_quote_parity_source_20261028": {
-    "status": "SOURCE_AND_SYNTHETIC_9_PASS_GENUINE_EXECUTION_CLOSED",
+    "status": "DUPLICATE_SOURCE_RETIRED_EXISTING_OWNER_REUSED",
     "scope": "Prepare a narrowly scoped year-partition quote join and reuse the existing native-versus-midpoint parity owner to qualify candidate TRAIN quote source against saved 1/5/15 endpoint targets.",
-    "allowed_source_paths": [
-      "gx1/scripts/qualify_entry_direction_train_quote_partition_v1.py",
-      "tests/test_qualify_entry_direction_train_quote_partition_v1.py"
-    ],
     "source_edits_authorized": false,
     "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
@@ -39952,20 +39948,23 @@
       "fit_model_calls": 0,
       "stop": "fail closed on unexpected payload, source identity, timestamp, row identity, target parity, resource, wall or guard mismatch"
     },
-    "source": {
-      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/qualify_entry_direction_train_quote_partition_v1.py",
-      "sha256": "4d7f29ed9a39c43df51e0758ff14df7ee2f55b35b0ffbc047d7f21e10218104b"
-    },
-    "tests": {
-      "path": "/home/andre2/src/GX1_CURRENT/tests/test_qualify_entry_direction_train_quote_partition_v1.py",
-      "sha256": "38237fc7a5f7fcede11f6ea46ded68a64b7ceacc433cb3e10302aa1ba8edd3bd"
-    },
     "synthetic_plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "bd8904fc52aca9056ee4e862f9c500d1b1a88f51e3d8a6304963780a8fc7b78b"
     },
     "expected_synthetic_cases": 9,
-    "qualification": "Nine synthetic year join, rollover, missing, cutoff and source/target mismatch cases passed; no genuine payload opened."
+    "qualification": "Nine synthetic year join, rollover, missing, cutoff and source/target mismatch cases passed; no genuine payload opened.",
+    "historical_source_git": {
+      "commit": "afe81a5de4953bf66bdea2e85748673395622370",
+      "repository_path": "gx1/scripts/qualify_entry_direction_train_quote_partition_v1.py",
+      "sha256": "4d7f29ed9a39c43df51e0758ff14df7ee2f55b35b0ffbc047d7f21e10218104b"
+    },
+    "historical_tests_git": {
+      "commit": "afe81a5de4953bf66bdea2e85748673395622370",
+      "repository_path": "tests/test_qualify_entry_direction_train_quote_partition_v1.py",
+      "sha256": "38237fc7a5f7fcede11f6ea46ded68a64b7ceacc433cb3e10302aa1ba8edd3bd"
+    },
+    "duplicate_of_existing_owner": "gx1/scripts/audit_entry_direction_candle_midpoints_v1.py"
   },
   "direction_train_year_quote_parity_synthetic_20261028_001": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_9_PASS",
@@ -40000,7 +39999,7 @@
     }
   },
   "direction_train_year_quote_parity_actual_20261028_001": {
-    "status": "COMPLETE_CONSUMED_ENDPOINT_PARITY_ONLY",
+    "status": "COMPLETE_CONSUMED_DUPLICATE_OF_PREVIOUS_ENDPOINT_AUDIT",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_PLAN_20261028_001.json",
       "sha256": "3f81f18d9200fa92c53b1cd69e49671a1010c3570f27362f6583eacf5a385990"
@@ -40039,7 +40038,12 @@
     "direction_improvement_qualified": false,
     "review": {
       "path": "docs/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_RESULT_20261028.json",
-      "sha256": "2a2b9c4298ac1a01dc45008c1ae4c37e0f50e50a48ad2db37f4b72f0214b7ad3"
-    }
+      "sha256": "01db81a92fd61818165a2e980d3e8c7f9b6bffff76049ee3919881466c2327e9"
+    },
+    "duplicate_of_prior_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_AUDIT_001/OUTPUT/RESULT.json",
+      "sha256": "b29c557755c975f036600679f0108015f82d5117cf9b4d64c1d3f76cd405e2ca"
+    },
+    "duplicate_aggregate_matches": true
   }
 }

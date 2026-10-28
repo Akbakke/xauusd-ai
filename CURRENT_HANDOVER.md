@@ -11,12 +11,13 @@ Programrot:
 
 ## Aktuell status
 
-TRAIN-årsfilene er verifisert mot lagret 1/5/15min-fasit på alle 118 249
-foreldre: identitet, klokker, masker og midtpris-bps/fortegn har eksakt
-bitparitet. To 2024/2025-filer og lagret TRAIN-fasit ble åpnet av avgrenset
-vakt, ikke den kombinerte 2026-kilden, CONTROL eller TEST. Engangsadgangen er
-konsumert. Dette gjelder åpne endepunkter; høy/lav, første treff, læring og
-edge er ikke kvalifisert. Se `docs/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_RESULT_20261028.json`.
+Endepunktsparitet på 118 249 TRAIN-foreldre var allerede verifisert i
+`CANDLE_MIDPOINT_ROOT_REVIEW_001.json` under den uavhengige evidensroten.
+En ny identisk kontroll ble unødvendig gjentatt og ga samme aggregater; den er
+ikke ny evidens om edge. Duplikatkilde er fjernet fra arbeidsbreet og bevart i
+Git. Høy/lav har et tidligere kildeidentitetsbevis, men første-treff-fasiten,
+modellkoblingen og faktisk læring er ikke kvalifisert. Se
+`docs/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_RESULT_20261028.json`.
 
 Fasiten bevarer også et konservativt sett av mulige utfall ved usikker
 rekkefølge. 43 syntetiske kontroller bestod og engangsadgangen er konsumert.
