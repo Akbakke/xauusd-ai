@@ -11,6 +11,14 @@ Programrot:
 
 ## Aktuell status
 
+Den parvise 1-mot-3-gjennomgangskontrollen er syntetisk kvalifisert, med
+identiske observasjoner, parrede dag-/ukeblokker og fast 5min-hovedmål for
+AUC, logloss og Brier. Fast antall trekk, seed og lineær kvantilmetode er
+bundet før adgang til prediksjonene. 11 adapterkontroller bestod etter siste
+kildeendring; ingen ekte payload, modellforward eller optimizer ble brukt.
+Neste steg er en ny, avgrenset engangsadgang for de to komplette lagrede
+fold1-prediksjonene. Full TRAIN-vurdering for 47 602 foreldre gjenstår.
+
 Fast 10min-krysshodeanalyse gjelder fire TRAIN-utviklingsfolder: native5/15-
 skårer sammenlignes med ET252 på identiske modne 10min-fasiter. Den første
 syntetiske engangskontrollen bestod 8 tilfeller og er konsumert. En senere
