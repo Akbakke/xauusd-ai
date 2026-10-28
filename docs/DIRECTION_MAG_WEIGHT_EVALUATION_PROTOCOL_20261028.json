@@ -1,0 +1,64 @@
+{
+  "schema_version": "gx1_weighted_direction_fixed_later_evaluation_v1",
+  "status": "FIXED_PROPOSAL_NO_EXECUTION_OR_TRAINING_AUTHORITY",
+  "design": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAGNITUDE_WEIGHTED_SIGN_DESIGN_20261028.json",
+    "sha256": "b216e4ed4d58855de59edd08b1b47e47afef7db66e3469178d5fd05344d88a63"
+  },
+  "research_question": "On the same split and seed, does giving larger endpoint moves more direction-loss influence improve later direction ranking without demonstrable loss of ordinary probability quality?",
+  "population": {
+    "fold": 1,
+    "train_parents": 47602,
+    "later_parents": 17288,
+    "training_cutoff_ns": 1735689600000000000,
+    "later_cutoff_ns": 1743465600000000000,
+    "observation_identity": "Exact parent, decision time, sign, observed, terminal time and eligible-mask equality before any score; no common-cohort filtering on other horizons.",
+    "scope": "Previously reused chronological TRAIN-development split, not CONTROL, sealed TEST, economic validation or independent final evidence."
+  },
+  "comparison": {
+    "baseline": "Unchanged native276 one-pass sign-only original saved 1/5/15 logits; own-prefix prior also reported.",
+    "candidate": "One fresh one-pass magnitude-weighted sign BCE candidate under identical 1/5/15 inputs, seed, architecture, order, optimizer, masks and cutoff; no checkpoint or seed selection.",
+    "primary_horizon_minutes": 5,
+    "secondary_horizons_minutes": [
+      1,
+      15
+    ]
+  },
+  "metrics": {
+    "direction_auc": "Within fixed eligible 5min observed, mature and nonzero outcomes; candidate minus baseline, larger better.",
+    "logloss": "Unweighted Bernoulli logloss, candidate minus baseline, smaller better.",
+    "brier": "Unweighted Brier score, candidate minus baseline, smaller better.",
+    "magnitude_weighted_logloss": "Candidate and baseline on identical cells using u=abs(return_bps)/(own-prefix RMS+abs(return_bps)); w=u/own-prefix eligible mean(u); report weighted BCE divided by eligible count. RMS and mean fitted strictly before TRAIN cutoff; diagnostic only.",
+    "other": "Report eligible counts, class balance and means; include fixed prior and raw TRAIN versus later fit. No adaptive threshold, price-band, subgroup or trade-selection search."
+  },
+  "bootstrap": {
+    "unit": "All later parents resampled as UTC calendar-day blocks and separately Monday-based UTC-week blocks; masks stay attached and scores paired.",
+    "replicates": 10000,
+    "seeds": {
+      "UTC_DAY": [
+        20261028,
+        0
+      ],
+      "UTC_WEEK_MONDAY": [
+        20261028,
+        1
+      ]
+    },
+    "per_interval_alpha": 0.008333333333333333,
+    "multiplicity": "Bonferroni for 3 primary contrasts x 2 fixed block schemes; pair identities preserved; invalid replicates reported, no silent replacement."
+  },
+  "predeclared_gate": {
+    "criterion": "Both block intervals for candidate-minus-baseline AUC have lower bound > 0, and both intervals for candidate-minus-baseline unweighted logloss and Brier have upper bound <= 0.",
+    "interpretation": "This strict gate is a research advance on a reused development fold, not proof of independent generalization, first-hit quality or economic edge. Failure is not proof that weighting or 30 epochs can never work.",
+    "zero_reference": "Both individual baseline and candidate direction AUC and day/week intervals relative to 0.5 reported; relative improvement alone does not establish positive absolute edge."
+  },
+  "stops": [
+    "Stop on unequal row or label identity, cutoff, source, initialization, scale, mask, nonfinite score, resource, guard, time or resume mismatch.",
+    "Do not evaluate unless a new exact private qualification and separately admitted one-pass fit complete successfully.",
+    "Do not use outcomes or conditional first-hit cohorts to select thresholds, checkpoints, seeds or architectures.",
+    "No CONTROL, TEST, Exit, broker, live/paper, orders, spending or promotion."
+  ],
+  "no_execution_in_this_document": true,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}

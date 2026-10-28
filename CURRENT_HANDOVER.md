@@ -11,6 +11,10 @@ Programrot:
 
 ## Aktuell status
 
+Fast evalueringsprotokoll for størrelsesvektet retning er skrevet før
+noen genuin kvalifisering eller kandidat: samme femminuttersforeldre,
+parret dag-/ukeblokk-AUC, logloss og Brier, med forhåndsbundet streng gate.
+
 Kilde for ekte B16-kvalifisering bestod 24 syntetiske kontroller og er
 fryst; genuine data/modelkall er ikke kjørt eller admittért. Et første
 startforsøk ble avvist før test av wrapperen og er bevart som konsumert.
