@@ -11,10 +11,12 @@ Programrot:
 
 ## Aktuell status
 
-Én avgrenset 5min-sammenligning av sluttfortegn og første treff er admittért.
-Den må gjenskape tidligere dekning og AUC på 1 042 kjente foreldre før
-sammenligningen publiseres. Ingen nye modellkall, CONTROL eller TEST. Kilde
-og policy er fryst under målingen; engangsplanen skal ikke relanseres.
+Matched 5min-sammenligning er COMPLETE og konsumert: Av de samme 1 042
+kjenne første-treff-retningene stemmer 1 017 med sluttfortegnet og 25 går mot.
+Samme skår har AUC 0,426768 mot første treff og 0,431849 mot sluttfortegn på
+akkurat disse radene. Dermed forklarer ikke forskjellen mellom de to fasitene
+alene svak rangering i dette selekterte utvalget. Ingen ny modell, CONTROL
+eller TEST. Se `docs/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_RESULT_20261028.json`.
 
 Første-treff-kontrollen er COMPLETE og konsumert på 17 288 gjenbrukte
 fold1-utviklingsforeldre, alle minutter 1–60 og fast 10bps gross quote. Ved

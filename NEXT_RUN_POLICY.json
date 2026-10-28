@@ -40233,16 +40233,16 @@
     }
   },
   "direction_first_hurdle_endpoint_alignment_actual_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_MATCHED_ENDPOINT_ALIGNMENT_DESCRIPTIVE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_ACTUAL_PLAN_20261028_001.json",
       "sha256": "cb9868eeabba724914e02e0d520401a6dbd7a39966f5a6c2f0bcc2a67340c3ff"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "max_wall_seconds": 300,
     "capped_cpu_audit_memory": "4G",
@@ -40250,6 +40250,30 @@
     "model_calls_authorized": false,
     "optimizer_steps_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_ACTUAL_20261028_001/RESULT.json",
+      "sha256": "378b9aa38021fba65d0e42992571b9f07b7e8612cc3809c9cee0adaa24cc231a"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_ACTUAL_20261028_001/OUTER_TERMINAL.json",
+      "sha256": "f65c25c31e3c33b0466dcd2958fd6bed6136c783235d3d838711f347ad03d048"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_ACTUAL_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "e523360555d2219437fd6374d502b71c0cd8dd1024ed01ea7b8da4741474e512"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_ACTUAL_20261028_001/OUTER.log",
+      "sha256": "28c79b5083da0fb606407ae0fd928dc55bd9fbbad4b91c44f90beb61857baa78"
+    },
+    "review": {
+      "path": "docs/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_RESULT_20261028.json",
+      "sha256": "e01f663085ebad005e4a67a0638e36656da8b79ffaf5bae6cd08b0c743c7d66e"
+    },
+    "same_direction": 1017,
+    "opposite_direction": 25,
+    "known_direction_rows": 1042,
+    "direction_improvement_qualified": false
   }
 }

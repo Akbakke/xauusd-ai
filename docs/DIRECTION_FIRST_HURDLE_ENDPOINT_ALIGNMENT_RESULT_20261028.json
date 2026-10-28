@@ -1,0 +1,73 @@
+{
+  "schema_version": "gx1_first_hurdle_endpoint_alignment_summary_v1",
+  "status": "COMPLETE_MATCHED_REUSED_FOLD_DESCRIPTIVE",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_ACTUAL_20261028_001/RESULT.json",
+    "sha256": "378b9aa38021fba65d0e42992571b9f07b7e8612cc3809c9cee0adaa24cc231a"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_ACTUAL_20261028_001/OUTER_TERMINAL.json",
+    "sha256": "f65c25c31e3c33b0466dcd2958fd6bed6136c783235d3d838711f347ad03d048"
+  },
+  "parents": 17288,
+  "horizon_minutes": 5,
+  "favorable_bps": 10.0,
+  "prior_five_exactly_reproduced": {
+    "counts_exact": true,
+    "known_rows": 1042,
+    "auc_exact": true,
+    "auc": 0.42676767676767674
+  },
+  "alignment": {
+    "known_first_direction": 1042,
+    "rows": [
+      "long_first",
+      "short_first"
+    ],
+    "endpoint_columns": [
+      -1,
+      0,
+      1
+    ],
+    "first_by_endpoint_sign": [
+      [
+        8,
+        0,
+        476
+      ],
+      [
+        541,
+        0,
+        17
+      ]
+    ],
+    "endpoint_missing_by_first": [
+      0,
+      0
+    ],
+    "same_direction": 1017,
+    "opposite_direction": 25,
+    "endpoint_zero": 0,
+    "endpoint_missing": 0,
+    "common_observed_nonzero_endpoint": 1042,
+    "same_score_auc_on_common_rows": {
+      "first_hurdle": 0.42676767676767674,
+      "endpoint": 0.4318491670269012
+    },
+    "auc_scope": "descriptive only on realized first-hurdle-selected rows; not unconditional performance"
+  },
+  "same_fraction_of_known_first_direction": 0.9760076775431862,
+  "opposite_fraction_of_known_first_direction": 0.02399232245681382,
+  "interpretation": [
+    "First-hurdle direction and five-minute endpoint sign agree on 1017 of the same 1042 selected parents, and oppose on 25.",
+    "The same five-minute score has AUC 0.426768 against first hit and 0.431849 against endpoint sign on exactly these rows. The mismatch between these two labels alone is not an adequate explanation of weak score ranking in this selected cohort.",
+    "The cohort is defined by a realized >=10bps gross quote event and M1 observability; its result cannot establish all-parent predictability, causation or a profitable inverse signal."
+  ],
+  "limits": [
+    "One reused TRAIN-development fold and realized first-hurdle-selected parents.",
+    "Same-row AUCs are descriptive and neither proves generalization or trading edge."
+  ],
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_control_accessed": false
+}
