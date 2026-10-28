@@ -1,0 +1,46 @@
+{
+  "schema_version": "gx1_unseen_gc_projection_independent_check_v1",
+  "status": "COMPLETE",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_PROJECTION_20261028_001/OUTPUT/RESULT.json",
+    "sha256": "b4a42e6189a493acd0d45fe47b3972be7fad98f6a469da18e5898ea03ebf86bf"
+  },
+  "paired_outputs": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_PROJECTION_20261028_001/OUTPUT/PAIRED_OUTPUTS.npz",
+    "sha256": "01d8dac4bfe81150032efab79d873fa14e7a30e3e59b6f6af872ebbb2366eaa6"
+  },
+  "reference_predictions": {
+    "q1": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "q2": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    }
+  },
+  "summary": {
+    "q1": {
+      "selected_parents": 288,
+      "active_parents": 275,
+      "sign_flip_parents_any_horizon": 9,
+      "sign_flip_cells_all_60": 9,
+      "sign_flips_5m": 0,
+      "mean_probability_change_5m_percentage_points": 0.0019046928045260577,
+      "max_probability_change_5m_percentage_points": 0.00903066219297144
+    },
+    "q2": {
+      "selected_parents": 80,
+      "active_parents": 80,
+      "sign_flip_parents_any_horizon": 28,
+      "sign_flip_cells_all_60": 47,
+      "sign_flips_5m": 0,
+      "mean_probability_change_5m_percentage_points": 0.0746301006345873,
+      "max_probability_change_5m_percentage_points": 0.25670685874353283
+    }
+  },
+  "method": "Independent NumPy join of every saved original logit against source predictions, check inactive equality and recompute all-horizon sign flips and 5-minute sigmoid changes. Cohorts are input-selected reused development; no edge inference.",
+  "optimizer_steps": 0,
+  "new_model_forwards": 0,
+  "test_data_used": false
+}

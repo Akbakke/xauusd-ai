@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "UNSEEN_GC_PROJECTION_ADMITTED",
+  "status": "UNSEEN_GC_PROJECTION_MEASURED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the single bound inference on input-selected Q1/Q2 original batches; verify direct SMC context projection effects and close its one-shot. No training, TEST, broker or trading.",
+  "next_action": "Inspect the concrete corrected decimal target binding blocker and qualify the smallest safe repair needed for a fresh direction baseline. No new training, TEST, broker or trading is authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43114,24 +43114,45 @@
     "economic_edge_qualified": false
   },
   "independent_direction_unseen_gc_projection_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_PROJECTION_PLAN_20261028_001.json",
       "sha256": "4051e9ed8ab06833be5acbf819c4974e03d7da8d0cdebbc97fb8a653f644240d"
     },
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "model_forwards_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "guarded_cuda_producer",
     "memory_max": "20G",
     "wall_seconds": 1800,
-    "scope": "Replay each selected original batch byte-identically; set only the five normalized values to zero at the SMC current-context Linear input. Preserve masks, all other coordinates, local aliases, GC history, model state and all guards. Compare 60 logits and 5-minute sign changes."
+    "scope": "Replay each selected original batch byte-identically; set only the five normalized values to zero at the SMC current-context Linear input. Preserve masks, all other coordinates, local aliases, GC history, model state and all guards. Compare 60 logits and 5-minute sign changes.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_PROJECTION_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "c16ffd17db1244bb4001c22e85506451d3cb0ee5f05d369778328957143fe0d2"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_PROJECTION_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "b4a42e6189a493acd0d45fe47b3972be7fad98f6a469da18e5898ea03ebf86bf"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_PROJECTION_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "da69a05830ab2079863c86bb02ea8db664c05adbdceade9fe3db12d890068797"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_UNSEEN_GC_PROJECTION_20261028_001/TERMINAL.json",
+      "sha256": "97c6cefece03e9ddb9cd64b9e9f4eb0ed8f6d0625c33d2012c5a912293a5574d"
+    },
+    "independent_check": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_UNSEEN_GC_PROJECTION_CHECK_20261028.json",
+      "sha256": "15620cc577cfd42ec66b2458f28e4ad87140f921433fd86497c5b30343b4689d"
+    },
+    "economic_edge_qualified": false
   }
 }
