@@ -46,7 +46,7 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T16:19:56.955463+00:00",
   "status": "DIRECTION_BPS_PAIRED_COMPARISON_COMPLETE_NO_DOCUMENTED_IMPROVEMENT",
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_order_failure_repair_source_20261028",
+    "current_unit": "dynamic_m5_direction_order_gradient_diagnostic_20261028_002",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -41117,5 +41117,42 @@
       "tests/test_entry_native_direction_order_qualification_v1.py": "b559672a4f286fca2166212c4dbe0a46368fea6796b879352661529cb2e35d72",
       "tests/test_entry_native_direction_research_window_v1.py": "dd44dfc7d3eb1bca9618cca35cf62a61dd218542dfc5e19cf6d7d09177d18f51"
     }
+  },
+  "dynamic_m5_direction_order_gradient_diagnostic_20261028_002": {
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "status": "ONE_NEW_PRIVATE_GRADIENT_DIAGNOSTIC_ADMITTED_NO_FULL_FIT",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/RECIPE.json",
+      "sha256": "22d3648cba8994d7f7c7a9171d8ec7dbda7ffa4d1d162922e5428fe8f99f5897"
+    },
+    "proposal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/PROPOSAL.json",
+      "sha256": "84b35ed4f641382e1a5b52e669274164ce7e22e673cef1990aaf046c8869a438"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/RUNTIME",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_private_optimizer_steps": 4,
+    "physical_restart_before_invocation_authorized": true,
+    "user_requested_gpu_power_efficiency": true,
+    "qualification_weights_for_main_fit": false,
+    "prior_one_shot_relaunch": false
   }
 }
