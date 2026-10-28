@@ -1111,14 +1111,145 @@ def test_worker_restores_original_or_checks_every_migrated_state_component():
         worker._restore_extraction_state(old,model,object(),continuation_recipe=recipe,**args)
 
 
-def test_continuation_reuses_qualified_independent_metadata_transition():
+@pytest.mark.parametrize('unit', [contract.CONTINUATION_UNIT, contract.THREE_PASS_UNIT])
+def test_continuation_reuses_qualified_independent_metadata_transition(unit):
     completion={'design':contract.INDEPENDENT_DESIGN,'initial_parity':None}
     seen=[]
     def read(ref,metadata):
         seen.append(ref);metadata[ref['path']]=ref
         assert ref==contract.CONTINUATION_PRIOR_RECIPE
         return {'independent_completion':completion}
-    p={'unit':contract.CONTINUATION_UNIT,'gc_layout_metadata_parity':contract.GC_LAYOUT_METADATA_PARITY}
+    p={'unit':unit,'gc_layout_metadata_parity':contract.GC_LAYOUT_METADATA_PARITY}
     metadata={};options=worker._prefix_metadata_options(p,metadata,SimpleNamespace(_read=read))
     assert options=={'gc_layout_metadata_parity':contract.GC_LAYOUT_METADATA_PARITY,'independent_completion':completion}
     assert seen==[contract.CONTINUATION_PRIOR_RECIPE]
+
+
+def three_pass_plan(monkeypatch):
+    value, prior, review = continuation_plan(monkeypatch)
+    unit = contract.THREE_PASS_UNIT
+    root = contract.PROGRAM + '/F_FROZEN_EXTRACTION_' + unit + '_SYNTHETIC'
+    value.update(unit=unit, admission_stage=contract.THREE_PASS_STAGE,
+        units_design=deepcopy(contract.CONTINUATION_DESIGN), run_root=root, runtime_root=root+'_RUNTIME',
+        execution_binding_path=root+'_RUNTIME/EXECUTION_BINDING.json',
+        budget=contract.resource_limits(unit), operation_limits=contract.call_limits(unit))
+    return value, prior, review
+
+
+def test_three_pass_full_train_scope_is_distinct_and_preserves_all_original_units(monkeypatch):
+    p, _, _ = three_pass_plan(monkeypatch)
+    spec = contract.unit_spec(contract.THREE_PASS_UNIT)
+    assert contract.THREE_PASS_UNIT not in contract.UNITS
+    assert sum(contract.unit_spec(u)['forwards'] for u in contract.UNITS) == 8114
+    assert (spec['rows'], spec['forwards'], spec['cohort']) == (47602, 2976, 'prefix')
+    assert spec['state'][:3] == ('terminal3_u8928', 142806, 8928)
+    assert spec['parity'] == contract.THREE_PASS_TRAIN_PREDICTIONS
+    assert not spec['diagnostic_only']
+    assert contract.call_limits(contract.THREE_PASS_UNIT)['numpy_load'] == 34
+    assert contract.call_limits(contract.THREE_PASS_UNIT)['reverse'] == 0
+    assert contract.require_plan(p) == p
+    assert contract.require_source_closure(p, *source_inputs()) == p['source_owners']
+
+
+@pytest.mark.parametrize('fault', ['stage', 'test', 'steps', 'forward_count', 'relaunch', 'missing_transition'])
+def test_three_pass_scope_cannot_expand_authority(monkeypatch, fault):
+    p, _, _ = three_pass_plan(monkeypatch)
+    if fault == 'stage': p['admission_stage'] = contract.CONTINUATION_STAGE
+    elif fault == 'test': p['test_data_used'] = True
+    elif fault == 'steps': p['optimizer_steps_authorized'] = True
+    elif fault == 'forward_count': p['operation_limits']['native_forward'] += 1
+    elif fault == 'relaunch': p['max_invocations'] = 2
+    else: del p['gc_layout_metadata_parity']
+    with pytest.raises(RuntimeError):
+        contract.require_plan(p)
+
+
+def three_pass_metadata_fixture():
+    identity = {'view': 'original'}
+    initial = {'feature_view_identity': identity, 'fresh_identity_sha256': 'a'*64,
+        'own_initial_state': ref('INITIAL.pt'), 'own_prefix_prior': {'prior': 0.5}, 'context_map': {'context': 1}}
+    oof = ref('CANDIDATE_OOF.json')
+    review = {'status': 'COMPLETE_TRAIN_AND_OOF_PAIRED_EVALUATION_PENDING',
+        'results': [deepcopy(contract.THREE_PASS_RESULT)], 'candidate_oof': oof, 'test_data_used': False}
+    original = {'input_manifest': ref('INPUT.json')}
+    recipe = {'train_passes': 3, 'fold': deepcopy(contract.FOLD), 'input_manifest': original['input_manifest'],
+        'numerical_recipe': {'contract_sha256': contract.THREE_PASS_NUMERICAL_RECIPE_SHA256}}
+    declared = {'outcome': 'COMPLETE', 'phase_state': 'COMPLETE', 'full_state': deepcopy(contract.THREE_PASS_STATE),
+        'fold': deepcopy(contract.FOLD), 'recipe': deepcopy(contract.THREE_PASS_RECIPE), 'parent_cursor': 142806,
+        'optimizer_updates': 8928, 'final_train_measurement': deepcopy(contract.THREE_PASS_TRAIN_REPORT),
+        'oof_measurement': oof, 'feature_view_identity': identity, 'own_initial_state': initial['own_initial_state'],
+        'test_data_used': False}
+    train = {'role': 'FINAL_TRAIN', 'fold': deepcopy(contract.FOLD), 'predictions': deepcopy(contract.THREE_PASS_TRAIN_PREDICTIONS),
+        'feature_view_identity': identity, 'fresh_identity_sha256': initial['fresh_identity_sha256'],
+        'own_initial_state': initial['own_initial_state'], 'own_prefix_prior': initial['own_prefix_prior'],
+        'context_map': initial['context_map'], 'test_data_used': False}
+    return review, declared, recipe, train, original, initial
+
+
+def test_three_pass_metadata_exact_provenance_is_accepted():
+    worker._require_three_pass_metadata(*three_pass_metadata_fixture())
+
+
+@pytest.mark.parametrize('fault', ['failed_result', 'wrong_state', 'wrong_cursor', 'wrong_updates',
+    'wrong_recipe', 'wrong_manifest', 'wrong_training_identity', 'wrong_train_predictions', 'test'])
+def test_three_pass_metadata_rejects_foreign_or_unqualified_artifacts(fault):
+    review, declared, recipe, train, original, initial = three_pass_metadata_fixture()
+    if fault == 'failed_result': declared['outcome'] = 'FAILED'
+    elif fault == 'wrong_state': declared['full_state'] = ref('OTHER.pt')
+    elif fault == 'wrong_cursor': declared['parent_cursor'] -= 1
+    elif fault == 'wrong_updates': declared['optimizer_updates'] -= 1
+    elif fault == 'wrong_recipe': recipe['numerical_recipe']['contract_sha256'] = 'b'*64
+    elif fault == 'wrong_manifest': recipe['input_manifest'] = ref('OTHER.json')
+    elif fault == 'wrong_training_identity': train['fresh_identity_sha256'] = 'b'*64
+    elif fault == 'wrong_train_predictions': train['predictions'] = ref('OTHER.npz')
+    else: review['test_data_used'] = True
+    with pytest.raises(RuntimeError):
+        worker._require_three_pass_metadata(review, declared, recipe, train, original, initial)
+
+
+def test_three_pass_state_restore_requires_terminal_cursor_and_original_progress():
+    class Owner:
+        def __init__(self): self.return_value = {'cursor': 142806, 'optimizer_updates': 8928}; self.calls = []
+        def restore_native_direction_research_state(self, *args, **kwargs):
+            self.calls.append(kwargs); return dict(self.return_value)
+    owner = Owner(); model = SimpleNamespace(feature_view_identity={'original': True})
+    args = dict(recipe={'bound': True}, parent_order=object(), device=object(), state_owner=owner)
+    assert worker._restore_three_pass_terminal({}, model, object(), **args) == owner.return_value
+    assert owner.calls[-1]['train_passes'] == 3
+    owner.return_value['cursor'] -= 1
+    with pytest.raises(RuntimeError, match='THREE_PASS_RESTORED_PROGRESS'):
+        worker._restore_three_pass_terminal({}, model, object(), **args)
+
+
+def test_three_pass_early_logits_are_checked_before_remaining_forwards():
+    torch.manual_seed(21)
+    head = torch.nn.Linear(128, 3)
+    values = torch.arange(256 * 128, dtype=torch.float32).reshape(256, 128) / 10000
+    with torch.no_grad():
+        expected = np.concatenate([head(x).numpy() for x in values.split(16)])
+        altered = expected.copy(); altered[33, 1] += np.float32(0.01)
+        budget = contract.CallBudget(contract.THREE_PASS_UNIT)
+        capture = worker.HiddenCapture(SimpleNamespace(direction_head=head), torch=torch, np=np,
+            budget=budget, progress=lambda: None, expected_initial_logits=altered)
+        try:
+            with pytest.raises(RuntimeError, match='EARLY_LOGIT_BIT_PARITY'):
+                for value in values.split(16): head(value)
+            assert capture.early_parity_rows == 32 and budget.calls['panel_forward'] == 3
+        finally: capture.close()
+        budget = contract.CallBudget(contract.THREE_PASS_UNIT)
+        capture = worker.HiddenCapture(SimpleNamespace(direction_head=head), torch=torch, np=np,
+            budget=budget, progress=lambda: None, expected_initial_logits=expected)
+        try:
+            for value in values.split(16): head(value)
+            assert capture.early_parity_rows == 256
+            assert budget.calls['panel_forward'] == budget.returns['panel_forward'] == 16
+        finally: capture.close()
+
+
+def test_three_pass_checks_parent_identity_before_any_forward():
+    selected = np.arange(300, dtype=np.int64)
+    baseline = {'parent_rows': selected[:256].copy()}
+    worker._require_three_pass_early_parent_order(selected, baseline, np=np)
+    baseline['parent_rows'][255] += 1
+    with pytest.raises(RuntimeError, match='THREE_PASS_EARLY_PARENT_ORDER'):
+        worker._require_three_pass_early_parent_order(selected, baseline, np=np)

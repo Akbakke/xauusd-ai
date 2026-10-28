@@ -81,10 +81,14 @@ class PhaseTimings:
 
 class HiddenCapture:
     """Observe exactly the FP32 128D argument of the existing linear head."""
-    def __init__(self, model, *, torch, np, budget, progress):
+    def __init__(self, model, *, torch, np, budget, progress, expected_initial_logits=None):
         self.parts = []
         self.pending = False
         self.rows = 0
+        self.early_parity_rows = 0
+        if expected_initial_logits is not None:
+            require(isinstance(expected_initial_logits, np.ndarray) and expected_initial_logits.dtype == np.float32
+                and expected_initial_logits.shape == (256, 3) and np.isfinite(expected_initial_logits).all(), 'EARLY_PARITY_HEADER')
         self.last_progress = time.monotonic()
         def before(_module, args):
             require(not self.pending and len(args) == 1, 'HEAD_CAPTURE_ORDER')
@@ -101,6 +105,12 @@ class HiddenCapture:
         def after(_module, _args, result):
             require(self.pending and result.dtype == torch.float32
                 and tuple(result.shape) == (len(self.parts[-1]), 3), 'HEAD_OUTPUT_DOMAIN')
+            start = self.rows - len(self.parts[-1])
+            if expected_initial_logits is not None and start < len(expected_initial_logits):
+                stop = min(self.rows, len(expected_initial_logits))
+                observed = result.detach().cpu().numpy()[:stop-start]
+                require(np.array_equal(observed, expected_initial_logits[start:stop]), 'EARLY_LOGIT_BIT_PARITY')
+                self.early_parity_rows += stop - start
             self.pending = False
             budget.returned('panel_forward')
             # Same human-status cadence as the native campaign owner.
@@ -192,6 +202,39 @@ def _baseline_arrays(ref, *, rows, common, np, contexts):
     return arrays
 
 
+def _require_three_pass_early_parent_order(selected, baseline, *, np):
+    reference = baseline['parent_rows']
+    require(isinstance(selected, np.ndarray) and selected.dtype == np.int64 and selected.ndim == 1
+        and len(selected) >= 256 and reference.dtype == np.int64 and reference.shape == (256,)
+        and np.array_equal(selected[:256], reference), 'THREE_PASS_EARLY_PARENT_ORDER')
+
+
+def _require_three_pass_metadata(review, declared, trained_recipe, train, original, initial):
+    ref = authority.THREE_PASS_STATE
+    require(review['status'] == 'COMPLETE_TRAIN_AND_OOF_PAIRED_EVALUATION_PENDING'
+        and authority.THREE_PASS_RESULT in review['results'] and review['test_data_used'] is False
+        and declared['outcome'] == declared['phase_state'] == 'COMPLETE'
+        and declared['full_state'] == ref and declared['fold'] == authority.FOLD
+        and declared['recipe'] == authority.THREE_PASS_RECIPE
+        and trained_recipe['train_passes'] == 3 and trained_recipe['fold'] == authority.FOLD
+        and trained_recipe['input_manifest'] == original['input_manifest']
+        and trained_recipe['numerical_recipe']['contract_sha256'] == authority.THREE_PASS_NUMERICAL_RECIPE_SHA256
+        and declared['parent_cursor'] == 142806 and declared['optimizer_updates'] == 8928
+        and declared['final_train_measurement'] == authority.THREE_PASS_TRAIN_REPORT
+        and declared['oof_measurement'] == review['candidate_oof']
+        and declared['feature_view_identity'] == initial['feature_view_identity']
+        and declared['own_initial_state'] == initial['own_initial_state']
+        and declared['test_data_used'] is False, 'THREE_PASS_TERMINAL_PROVENANCE')
+    require(train['role'] == 'FINAL_TRAIN' and train['fold'] == authority.FOLD
+        and train['predictions'] == authority.THREE_PASS_TRAIN_PREDICTIONS
+        and train['feature_view_identity'] == initial['feature_view_identity']
+        and train['fresh_identity_sha256'] == initial['fresh_identity_sha256']
+        and train['own_initial_state'] == initial['own_initial_state']
+        and train['own_prefix_prior'] == initial['own_prefix_prior']
+        and train['context_map'] == initial['context_map'] and train['test_data_used'] is False,
+        'THREE_PASS_TRAIN_REFERENCE')
+
+
 def _metadata(plan, route, common, metadata):
     for ref in [route['recipe_ref'], *route['metadata_refs'], authority.DESIGN, plan['units_design']]:
         common._read(ref, metadata)
@@ -230,22 +273,33 @@ def _metadata(plan, route, common, metadata):
     require(terminal['role'] == 'OOF' and terminal['predictions'] == authority.TERMINAL_PREDICTIONS
         and terminal['fold'] == authority.FOLD, 'ORIGINAL_TERMINAL_REPORT')
     spec = authority.unit_spec(plan['unit'])
-    item = next(s for s in proposal['planned_saved_states'] if s['role'] == spec['state'][0])
-    declared = common._read(item['declaring_JSON'], metadata)
-    ref = item['planned_PT_ref']
-    key = 'own_initial_state' if item['updates'] == 0 else 'full_state'
-    require(declared[key] == ref and declared['recipe'] == proposal['existing_input_refs']['recipe']
-        and declared['fold'] == authority.FOLD and declared['feature_view_identity'] == initial['feature_view_identity'],
-        'DECLARED_CHECKPOINT')
-    if item['updates'] == 0:
-        require(declared['initial_measurement'] == authority.INITIAL_REPORT
-            and initial['own_initial_state'] == ref == qualified['own_initial_state'], 'DECLARED_OWN_0U')
+    if plan['unit'] == authority.THREE_PASS_UNIT:
+        review = common._read(authority.THREE_PASS_REVIEW, metadata)
+        declared = common._read(authority.THREE_PASS_RESULT, metadata)
+        trained_recipe = common._read(authority.THREE_PASS_RECIPE, metadata)
+        train = common._read(authority.THREE_PASS_TRAIN_REPORT, metadata)
+        ref = authority.THREE_PASS_STATE
+        _require_three_pass_metadata(review, declared, trained_recipe, train, original, initial)
+        observed = common._stat(ref['path'])
+        require(0 < observed['st_size'] <= plan['budget']['max_checkpoint_bytes']
+            and not observed['st_mode'] & 0o222, 'CHECKPOINT_READONLY_SIZE')
     else:
-        require(declared['parent_cursor'] == item['consumed_parent_cursor'] and declared['optimizer_updates'] == item['updates']
-            and declared['outcome'] == declared['phase_state'] == 'COMPLETE'
-            and declared['oof_measurement'] == authority.TERMINAL_REPORT, 'DECLARED_TERMINAL')
-    observed = common._stat(ref['path'])
-    require(observed['st_size'] == item['stat_size_bytes'] and not observed['st_mode'] & 0o222, 'CHECKPOINT_READONLY_SIZE')
+        item = next(s for s in proposal['planned_saved_states'] if s['role'] == spec['state'][0])
+        declared = common._read(item['declaring_JSON'], metadata)
+        ref = item['planned_PT_ref']
+        key = 'own_initial_state' if item['updates'] == 0 else 'full_state'
+        require(declared[key] == ref and declared['recipe'] == proposal['existing_input_refs']['recipe']
+            and declared['fold'] == authority.FOLD and declared['feature_view_identity'] == initial['feature_view_identity'],
+            'DECLARED_CHECKPOINT')
+        if item['updates'] == 0:
+            require(declared['initial_measurement'] == authority.INITIAL_REPORT
+                and initial['own_initial_state'] == ref == qualified['own_initial_state'], 'DECLARED_OWN_0U')
+        else:
+            require(declared['parent_cursor'] == item['consumed_parent_cursor'] and declared['optimizer_updates'] == item['updates']
+                and declared['outcome'] == declared['phase_state'] == 'COMPLETE'
+                and declared['oof_measurement'] == authority.TERMINAL_REPORT, 'DECLARED_TERMINAL')
+        observed = common._stat(ref['path'])
+        require(observed['st_size'] == item['stat_size_bytes'] and not observed['st_mode'] & 0o222, 'CHECKPOINT_READONLY_SIZE')
     authority.require_source_closure(plan, original, proposal)
     for owner in plan['source_owners'].values():
         require(common._hash_file(owner['path']) == owner, 'CURRENT_SOURCE_BYTES')
@@ -256,7 +310,7 @@ def _prefix_metadata_options(plan, metadata, common):
     options={'gc_layout_metadata_parity':plan.get('gc_layout_metadata_parity')}
     if 'independent_completion' in plan:
         options['independent_completion']=plan['independent_completion']
-    elif plan['unit']==authority.CONTINUATION_UNIT:
+    elif plan['unit'] in (authority.CONTINUATION_UNIT,authority.THREE_PASS_UNIT):
         prior=common._read(authority.CONTINUATION_PRIOR_RECIPE,metadata)
         options['independent_completion']=prior['independent_completion']
     return options
@@ -281,6 +335,13 @@ def _restore_extraction_state(state, model, optimizer, *, original_recipe, conti
         'parent_cursor':migrated['cursor'],'optimizer_updates_before_continuation':migrated['optimizer_updates']}
     require(all(migration['unchanged_state_components'].values()),'CONTINUATION_STATE_PARITY')
     return migration
+
+
+def _restore_three_pass_terminal(state, model, optimizer, *, recipe, parent_order, device, state_owner):
+    restored = state_owner.restore_native_direction_research_state(state, model, optimizer, recipe=recipe,
+        feature_view_identity=model.feature_view_identity, parent_order=parent_order, device=device, train_passes=3)
+    require(restored['cursor'] == 142806 and restored['optimizer_updates'] == 8928, 'THREE_PASS_RESTORED_PROGRESS')
+    return restored
 
 
 def _publish_running(route, output, budget, counts, common):
@@ -411,7 +472,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         budget.start('checkpoint_load')
         state = common._load_state(state_ref, torch=torch, maximum=plan['budget']['max_checkpoint_bytes'], counters=counts)
         budget.returned('checkpoint_load')
-        require(state['schema_version'] == state_owner.SCHEMA_VERSION
+        expected_state_schema = state_owner.MULTIPASS_SCHEMA_VERSION if plan['unit'] == authority.THREE_PASS_UNIT else state_owner.SCHEMA_VERSION
+        require(state['schema_version'] == expected_state_schema
             and state['contract_sha256'] == tree_sha({k: v for k, v in state.items() if k != 'contract_sha256'})
             and state['cursor'] == spec['state'][1] and state['optimizer_updates'] == spec['state'][2], 'STATE_SEAL_CURSOR')
         device = torch.device('cuda', 0)
@@ -423,9 +485,12 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
         budget.returned('model_build')
         model.train()
         continuation_recipe=None
-        if plan['unit'] == authority.CONTINUATION_UNIT:
+        if plan['unit'] in (authority.CONTINUATION_UNIT, authority.THREE_PASS_UNIT):
             from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_research_recipe
             continuation_recipe=native_direction_research_recipe(batch_size=16,max_updates=8928)
+            if plan['unit'] == authority.THREE_PASS_UNIT:
+                require(continuation_recipe['contract_sha256'] == authority.THREE_PASS_NUMERICAL_RECIPE_SHA256,
+                    'THREE_PASS_NUMERICAL_RECIPE')
         budget.start('optimizer_build')
         optimizer, _binding = state_owner.build_native_direction_research_optimizer(model,
             recipe=continuation_recipe if continuation_recipe is not None else recipe['numerical_recipe'])
@@ -441,8 +506,13 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             require(fresh_identity == tree_sha({key: state[key] for key in identity_keys}), 'SAVED_0U_IDENTITY')
         del fresh
         phase['name'] = 'RESTORE'
-        migration=_restore_extraction_state(state,model,optimizer,original_recipe=recipe['numerical_recipe'],
-            continuation_recipe=continuation_recipe,parent_order=parent_order,device=device,state_owner=state_owner)
+        if plan['unit'] == authority.THREE_PASS_UNIT:
+            _restore_three_pass_terminal(state,model,optimizer,recipe=continuation_recipe,
+                parent_order=parent_order,device=device,state_owner=state_owner)
+            migration=None
+        else:
+            migration=_restore_extraction_state(state,model,optimizer,original_recipe=recipe['numerical_recipe'],
+                continuation_recipe=continuation_recipe,parent_order=parent_order,device=device,state_owner=state_owner)
         selected = order if spec['cohort'] == 'prefix' else prepared['arrays']['parent_rows'][
             authority.FOLD['oof_start_row']:authority.FOLD['oof_end_row']]
         full_selected = selected
@@ -452,9 +522,12 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             selected = selected[:256]
             require(np.array_equal(selected, baseline['parent_rows']), 'TIMING_INITIAL_PRESENTATION_ORDER')
         require(selected.dtype == np.int64 and selected.shape == (spec['rows'],), 'EXACT_PRESENTATION_ROWS')
+        if plan['unit'] == authority.THREE_PASS_UNIT:
+            _require_three_pass_early_parent_order(selected, baseline, np=np)
         forward_counts = {'forward_calls': 0, 'forward_returns': 0, 'forward_kind_calls': {}}
         phase['name'] = 'EXTRACT'
-        recorder = HiddenCapture(model, torch=torch, np=np, budget=budget, progress=progress)
+        recorder = HiddenCapture(model, torch=torch, np=np, budget=budget, progress=progress,
+            expected_initial_logits=baseline['logit_up'] if plan['unit'] == authority.THREE_PASS_UNIT else None)
         if timings is not None:
             timings.codes.update(recorder.timing_codes)
         try:
@@ -464,6 +537,7 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
                     cutoff=spec['cutoff_ns'], kind='F_FROZEN_EXTRACTION', counters=forward_counts,
                     ceiling=spec['forwards'], device=device, torch=torch, np=np, tree_sha=tree_sha)
             require(completed == spec['rows'] and recorder.rows == spec['rows'] and not recorder.pending, 'COMPLETE_COHORT')
+            require(plan['unit'] != authority.THREE_PASS_UNIT or recorder.early_parity_rows == 256, 'EARLY_PARITY_COMPLETE')
         finally:
             recorder.close()
         parity = None
@@ -492,6 +566,8 @@ def run_native_direction_frozen_extraction_window(*, policy_path, policy_file_sh
             feature_view_identity=model.feature_view_identity, own_prefix_prior=prior,
             original_prediction_parity=parity, fresh_identity_sha256=fresh_identity,
             predictive_value_qualified=False, economic_edge_qualified=False)
+        if plan['unit'] == authority.THREE_PASS_UNIT:
+            result['early_prediction_parity_rows'] = recorder.early_parity_rows
         if migration is not None:
             result['continuation_migration']=migration
         if plan['unit'] in authority.PARTITION_UNITS:

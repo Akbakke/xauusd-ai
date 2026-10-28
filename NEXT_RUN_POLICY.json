@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Extend and synthetically test the existing frozen-extraction route for the three-pass terminal state; no genuine checkpoint, market input or forward is authorized by this source scope.",
+    "current_activity": "Prepare and verify a fresh exact once-only full-TRAIN frozen-extraction campaign under existing 12,000-second and fresh-boot guards; first 256 saved logits must match before the remaining forwards. No additional optimizer steps.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "THREEPASS_FULLTRAIN_SOURCE_REVIEW_ADMITTED_EXECUTION_CLOSED",
+    "status": "THREEPASS_FULLTRAIN_SOURCE_QUALIFIED_EXECUTION_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_threepass_wholetrain_source_20261028",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Extend and synthetically test the existing frozen-extraction route for the three-pass terminal state; no genuine checkpoint, market input or forward is authorized by this source scope.",
+    "next_action": "Prepare and verify a fresh exact once-only full-TRAIN frozen-extraction campaign under existing 12,000-second and fresh-boot guards; first 256 saved logits must match before the remaining forwards. No additional optimizer steps.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -39569,15 +39569,15 @@
     }
   },
   "direction_threepass_wholetrain_source_20261028": {
-    "status": "SOURCE_ONLY_ADMITTED_NO_GENUINE_PAYLOAD",
+    "status": "SOURCE_AND_SYNTHETIC_PASS_GENUINE_EXECUTION_CLOSED",
     "scope": "Extend the existing bounded frozen extraction route for the verified three-pass terminal state and exactly the full 47,602-parent TRAIN prefix. Reuse the saved one-pass prefix; no retraining, reverse, raw-data inspection by the operator, TEST or trading.",
     "allowed_source_paths": [
       "gx1/contracts/entry_native_direction_frozen_extraction_v1.py",
       "gx1/scripts/extract_entry_native_direction_frozen_readout_v1.py",
       "tests/test_entry_native_direction_frozen_extraction_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": true,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": false,
     "genuine_payload_reads_authorized": false,
     "genuine_model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
@@ -39596,6 +39596,12 @@
       "precheck": "Check saved 256-row three-pass TRAIN logits as soon as first 256 are produced; final full-field parity before publication.",
       "hardware": "Existing unchanged native capped trainer route and fresh physical boot gate; no increase in limits.",
       "failure": "Stop on any identity, parity, resource, timing or safety-gate failure; preserve original artifacts; no relaunch of an old plan."
+    },
+    "synthetic_qualification": "277 synthetic frozen-extraction and multipass-state checks passed under capped CPU audit. Metadata-only actual provenance and 57 source owners verified. No real checkpoint, prediction payload, dataset or model forward opened.",
+    "source_sha256": {
+      "gx1/contracts/entry_native_direction_frozen_extraction_v1.py": "bbb8821802fffc522587d4672df47d0ca2268b56938c2e936083ace11695d676",
+      "gx1/scripts/extract_entry_native_direction_frozen_readout_v1.py": "de4c01b5dcf5742185a3b279313af40c013e6dde9c23496c79cba4b5607bcca1",
+      "tests/test_entry_native_direction_frozen_extraction_v1.py": "90115fe40192d36707332d243f2c61f986fd5335e0630b6d15914c1ea413e99e"
     }
   }
 }

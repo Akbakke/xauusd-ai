@@ -21,7 +21,7 @@ MODULE = previous.MODULE
 REPO, PROGRAM, BASE = previous.REPO, previous.PROGRAM, previous.BASE
 PROPOSAL, INITIAL_REPORT, INITIAL_PREDICTIONS = previous.PROPOSAL, previous.INITIAL_REPORT, previous.INITIAL_PREDICTIONS
 FOLD = dict(previous.FOLD)
-STATE_SPEC = (previous.STATE_SPEC[0], previous.STATE_SPEC[-1])
+STATE_SPEC = (previous.STATE_SPEC[0], previous.STATE_SPEC[-1], ('terminal3_u8928', 142806, 8928, 'w0002_TERMINAL_u008928_p142806.pt', '5c4e6e0f1ac7f55443814758dd1aa57beb3fed963f500fcaea445df315659563'))
 TERMINAL_JSON_RESERVE_BYTES = previous.TERMINAL_JSON_RESERVE_BYTES
 RESOURCE_LIMITS = dict(previous.RESOURCE_LIMITS)
 DESIGN = {'path': PROGRAM + '/F_FROZEN_READOUT_DESIGN_001.json',
@@ -35,6 +35,23 @@ TERMINAL_PREDICTIONS = {'path': BASE + '/RUNTIME/prefix-fit/window-0002/OOF.npz'
 TIMING_UNIT = 'own0U_prefix_timing256'
 CONTINUATION_UNIT = 'terminal_resume_parity256'
 CONTINUATION_STAGE = 'dynamic_m5_direction_continuation_zero_update_002'
+THREE_PASS_UNIT = 'threepass_terminal_prefix'
+THREE_PASS_STAGE = 'dynamic_m5_direction_threepass_terminal_train_20261028_001'
+THREE_PASS_ROOT = PROGRAM + '/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002'
+THREE_PASS_RUNTIME = THREE_PASS_ROOT + '_RUNTIME'
+THREE_PASS_REVIEW = {'path': THREE_PASS_ROOT + '/ACTUAL_ROOT_REVIEW_001.json',
+    'sha256': '78a123219f19c70ecdc2a2b1a5b6f5110f0563edcb5484e307e77baad1defd1f'}
+THREE_PASS_RECIPE = {'path': PROGRAM + '/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_RECIPE_20261027_002.json',
+    'sha256': 'f893d82cff61339b752f29a7901cac8f09d7f62333a1b8bde8f946d3e7153f71'}
+THREE_PASS_NUMERICAL_RECIPE_SHA256 = '2f83f9212ce61e4adef2f4368cc568cfd7af605960c44e50e97d43448a9bd33a'
+THREE_PASS_RESULT = {'path': THREE_PASS_RUNTIME + '/prefix-fit/window-0002/RESULT.json',
+    'sha256': 'd9ef81eba5e781d0c31c130682f17c1a620648d4740b6acd7e432932e5992172'}
+THREE_PASS_STATE = {'path': THREE_PASS_RUNTIME + '/prefix-fit/states/w0002_TERMINAL_u008928_p142806.pt',
+    'sha256': '5c4e6e0f1ac7f55443814758dd1aa57beb3fed963f500fcaea445df315659563'}
+THREE_PASS_TRAIN_REPORT = {'path': THREE_PASS_RUNTIME + '/prefix-fit/window-0001/FINAL_TRAIN.json',
+    'sha256': 'cc78a688840cdf375026daa4d4056146a992f0abebe85e905376ff19f4a3b12e'}
+THREE_PASS_TRAIN_PREDICTIONS = {'path': THREE_PASS_RUNTIME + '/prefix-fit/window-0001/FINAL_TRAIN.npz',
+    'sha256': 'c8462333492f1f675549ae267d2f83f1ad31475b2be1d1ee67899543fd0afe0a'}
 CONTINUATION_DESIGN = {'path':REPO+'/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json',
     'sha256':'d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01'}
 CONTINUATION_PRIOR_RECIPE = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/NATIVE_0U_TIMING256_RECIPE_001.json',
@@ -255,7 +272,7 @@ def require(ok, reason):
 
 
 def unit_spec(unit):
-    require(type(unit) is str and (unit in UNITS or unit in PARTITION_UNITS or unit in (TIMING_UNIT,CONTINUATION_UNIT)), 'FIXED_UNIT')
+    require(type(unit) is str and (unit in UNITS or unit in PARTITION_UNITS or unit in (TIMING_UNIT,CONTINUATION_UNIT,THREE_PASS_UNIT)), 'FIXED_UNIT')
     if unit in PARTITION_UNITS:
         parent, start, end = PARTITION_UNITS[unit]
         base = unit_spec(parent)
@@ -266,11 +283,11 @@ def unit_spec(unit):
             'partition': {'parent_unit': parent, 'presentation_start': start,
                 'presentation_end': end, 'full_rows': base['rows']}}
     diagnostic = unit in (TIMING_UNIT, CONTINUATION_UNIT)
-    role, cohort = (('terminal_u2976','prefix') if unit == CONTINUATION_UNIT else ('own0U','prefix')) if diagnostic else UNITS[unit]
+    role, cohort = (('terminal_u2976','prefix') if unit == CONTINUATION_UNIT else ('own0U','prefix')) if diagnostic else (('terminal3_u8928','prefix') if unit == THREE_PASS_UNIT else UNITS[unit])
     state = next(s for s in STATE_SPEC if s[0] == role)
     rows = 256 if diagnostic else (FOLD['prefix_rows'] if cohort == 'prefix'
         else FOLD['oof_end_row'] - FOLD['oof_start_row'])
-    parity = CONTINUATION_TRAIN_PREDICTIONS if unit == CONTINUATION_UNIT else INITIAL_PREDICTIONS if diagnostic or unit == 'own0U_prefix' else (
+    parity = THREE_PASS_TRAIN_PREDICTIONS if unit == THREE_PASS_UNIT else CONTINUATION_TRAIN_PREDICTIONS if unit == CONTINUATION_UNIT else INITIAL_PREDICTIONS if diagnostic or unit == 'own0U_prefix' else (
         TERMINAL_PREDICTIONS if unit == 'terminal_later' else None)
     return {'unit': unit, 'state': state, 'cohort': cohort, 'rows': rows,
         'forwards': (rows + 15) // 16, 'parity': deepcopy(parity), 'diagnostic_only': diagnostic,
@@ -279,7 +296,7 @@ def unit_spec(unit):
 
 def unit_design(unit):
     spec = unit_spec(unit)
-    return deepcopy(CONTINUATION_DESIGN if unit == CONTINUATION_UNIT else PARTITION_DESIGN if unit in PARTITION_UNITS else (
+    return deepcopy(CONTINUATION_DESIGN if unit in (CONTINUATION_UNIT, THREE_PASS_UNIT) else PARTITION_DESIGN if unit in PARTITION_UNITS else (
         TIMING_DESIGN if spec['diagnostic_only'] else UNITS_DESIGN))
 
 
@@ -326,7 +343,8 @@ def require_plan(value):
         'genuine_forwards_authorized', 'gradient_reverse_authorized', 'optimizer_steps_authorized', 'test_data_used'}
     require(type(value) is dict, 'PLAN_TYPE')
     independent = 'independent_completion' in value
-    continuation = value.get('unit') == CONTINUATION_UNIT
+    continuation = value.get('unit') in (CONTINUATION_UNIT, THREE_PASS_UNIT)
+    three_pass = value.get('unit') == THREE_PASS_UNIT
     require(not (independent and continuation), 'CONTINUATION_INDEPENDENT_SCOPE')
     if independent:
         fields.add('independent_completion')
@@ -336,7 +354,7 @@ def require_plan(value):
         fields.add('gc_layout_metadata_parity')
     require(set(value) == fields and value['schema_version'] == SCHEMA
         and value['operation'] == OPERATION
-        and (independent or value['admission_stage'] == (CONTINUATION_STAGE if continuation else STAGE)), 'PLAN_SCHEMA')
+        and (independent or value['admission_stage'] == (THREE_PASS_STAGE if three_pass else CONTINUATION_STAGE if continuation else STAGE)), 'PLAN_SCHEMA')
     unit_spec(value['unit'])
     require((value['unit'] not in PARTITION_UNITS and not continuation) or metadata_transition, 'PARTITION_METADATA_PROOF_REQUIRED')
     require(value['proposal'] == PROPOSAL and value['design'] == DESIGN and value['units_design'] == unit_design(value['unit'])
@@ -356,7 +374,7 @@ def require_plan(value):
             and item['current']['sha256'] != digest, 'SOURCE_TRANSITION:' + name)
     require(all(owners[name]['sha256'] == digest for name, digest in PINNED_PRE_F.items()), 'PRE_F_PINNED_SOURCES')
     if metadata_transition:
-        require((value['unit'] in (TIMING_UNIT,CONTINUATION_UNIT) or value['unit'] in PARTITION_UNITS)
+        require((value['unit'] in (TIMING_UNIT,CONTINUATION_UNIT,THREE_PASS_UNIT) or value['unit'] in PARTITION_UNITS)
             and value['gc_layout_metadata_parity'] == GC_LAYOUT_METADATA_PARITY
             and type(value['gc_layout_metadata_parity']) is dict, 'GC_METADATA_TIMING_SCOPE')
         for name, (_old, current) in GC_METADATA_SOURCE_TRANSITIONS.items():
@@ -403,7 +421,7 @@ def require_source_closure(recipe, original, proposal):
     required = {**previous_owners, **reused}
     require(set(recipe['source_owners']) == set(required) | set(previous.NEW_FILES) | set(NEW_FILES),
         'EXACT_SOURCE_CLOSURE')
-    if recipe['unit'] == CONTINUATION_UNIT:
+    if recipe['unit'] in (CONTINUATION_UNIT, THREE_PASS_UNIT):
         prior = campaign.read_bound_json(Path(CONTINUATION_PRIOR_RECIPE['path']), CONTINUATION_PRIOR_RECIPE['sha256'])
         review = campaign.read_bound_json(Path(CONTINUATION_PRIOR_REVIEW['path']), CONTINUATION_PRIOR_REVIEW['sha256'])
         require(review.get('status') == 'COMPLETE_AND_QUALIFIED_CURRENT_SIGN_ONLY_OWN0U256'
@@ -679,6 +697,10 @@ def require_frozen_extraction_pointer(value, *, expected_recipe, expected_unit, 
             spec = unit_spec(expected_unit)
             diagnostic = spec['diagnostic_only']
             require(result.get('diagnostic_only', False) is diagnostic, 'RESULT_DIAGNOSTIC_ROLE')
+            if expected_unit == THREE_PASS_UNIT:
+                require(result.get('early_prediction_parity_rows') == 256
+                    and result.get('original_prediction_parity') == {'reference': THREE_PASS_TRAIN_PREDICTIONS,
+                        'rows': 256, 'bit_identical': True}, 'RESULT_THREE_PASS_PARITY')
             if expected_unit in PARTITION_UNITS:
                 part = result.get('partition')
                 require(type(part) is dict and set(part) == set(spec['partition']) | {'full_presentation_parent_rows_sha256'}
