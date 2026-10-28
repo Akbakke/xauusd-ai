@@ -11,10 +11,12 @@ Programrot:
 
 ## Aktuell status
 
-Årsfilsammenkoblingen for TRAIN er syntetisk kvalifisert med 9 kontroller.
-Én avgrenset reell paritetskontroll er admittért for to årsfiler og lagret
-TRAIN-fasit; ingen modell, optimizer, kombinert 2026-kilde, CONTROL eller TEST.
-Kilde og policy skal være fryst under kontrollen, som ikke må relanseres.
+TRAIN-årsfilene er verifisert mot lagret 1/5/15min-fasit på alle 118 249
+foreldre: identitet, klokker, masker og midtpris-bps/fortegn har eksakt
+bitparitet. To 2024/2025-filer og lagret TRAIN-fasit ble åpnet av avgrenset
+vakt, ikke den kombinerte 2026-kilden, CONTROL eller TEST. Engangsadgangen er
+konsumert. Dette gjelder åpne endepunkter; høy/lav, første treff, læring og
+edge er ikke kvalifisert. Se `docs/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_RESULT_20261028.json`.
 
 Fasiten bevarer også et konservativt sett av mulige utfall ved usikker
 rekkefølge. 43 syntetiske kontroller bestod og engangsadgangen er konsumert.

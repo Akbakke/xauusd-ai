@@ -40000,16 +40000,16 @@
     }
   },
   "direction_train_year_quote_parity_actual_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_ENDPOINT_PARITY_ONLY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_PLAN_20261028_001.json",
       "sha256": "3f81f18d9200fa92c53b1cd69e49671a1010c3570f27362f6583eacf5a385990"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "max_wall_seconds": 300,
     "capped_cpu_audit_memory": "4G",
@@ -40017,6 +40017,29 @@
     "model_calls_authorized": false,
     "optimizer_steps_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_20261028_001/RESULT.json",
+      "sha256": "79b4dfff8127d4a157e070c28df2b6c1a67e54b42e1895529d0a2621342a6ee6"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_20261028_001/OUTER_TERMINAL.json",
+      "sha256": "07eebef201b63765bfd0818f8a45c6542ee3fc60d039475c4b55cc99ee1d1538"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "69396e7eff5ba8b0867b33358c447413e082cb360d4602c732e6453fbcc0c766"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_20261028_001/OUTER.log",
+      "sha256": "1a7aa82a7940ef33cabe0c4a06d566330d4be540b563a3970affac2570768f11"
+    },
+    "endpoint_identity_qualified": true,
+    "path_high_low_qualified": false,
+    "direction_improvement_qualified": false,
+    "review": {
+      "path": "docs/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_RESULT_20261028.json",
+      "sha256": "2a2b9c4298ac1a01dc45008c1ae4c37e0f50e50a48ad2db37f4b72f0214b7ad3"
+    }
   }
 }

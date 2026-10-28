@@ -1,0 +1,194 @@
+{
+  "schema_version": "gx1_train_year_quote_parity_summary_v1",
+  "status": "COMPLETE_ENDPOINT_BIT_PARITY_PATH_UNQUALIFIED",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_20261028_001/RESULT.json",
+    "sha256": "79b4dfff8127d4a157e070c28df2b6c1a67e54b42e1895529d0a2621342a6ee6"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_20261028_001/OUTER_TERMINAL.json",
+    "sha256": "07eebef201b63765bfd0818f8a45c6542ee3fc60d039475c4b55cc99ee1d1538"
+  },
+  "source_review": "docs/DIRECTION_TRAIN_QUOTE_SOURCE_REVIEW_20261028.json",
+  "parents": 118249,
+  "years": [
+    {
+      "year": 2024,
+      "rows": 354866,
+      "file_sha256_verified": true
+    },
+    {
+      "year": 2025,
+      "rows": 353499,
+      "file_sha256_verified": true
+    }
+  ],
+  "legacy_bit_parity": {
+    "observed": true,
+    "mid_move": true,
+    "mid_return_bps": true,
+    "sign": true
+  },
+  "per_horizon": [
+    {
+      "horizon_minutes": 1,
+      "parents": 118249,
+      "observed": 118237,
+      "mature_missing": 12,
+      "cutoff_censored": 0,
+      "entry_price_difference": {
+        "count": 118237,
+        "bit_identical": 91090,
+        "numerically_equal": 91090,
+        "mean_signed_difference": -4.2287947540233426e-08,
+        "mean_absolute_difference": 3.9750681638339624e-07,
+        "maximum_absolute_difference": 0.0005000000005566108
+      },
+      "terminal_price_difference": {
+        "count": 118237,
+        "bit_identical": 90968,
+        "numerically_equal": 90968,
+        "mean_signed_difference": -1.6915179139167494e-08,
+        "mean_absolute_difference": 2.6218538592768815e-07,
+        "maximum_absolute_difference": 0.0005000000005566108
+      },
+      "return_bps_difference": {
+        "count": 118237,
+        "bit_identical": 70494,
+        "numerically_equal": 70494,
+        "mean_signed_difference": 9.032431637869307e-08,
+        "mean_absolute_difference": 2.2532740798412555e-06,
+        "maximum_absolute_difference": 0.00218534357418676
+      },
+      "sign_confusion_legacy_by_native": [
+        [
+          58482,
+          28,
+          0
+        ],
+        [
+          0,
+          476,
+          0
+        ],
+        [
+          0,
+          28,
+          59223
+        ]
+      ],
+      "nonzero_sign_flips": 0,
+      "legacy_zero_to_native_nonzero": 0,
+      "legacy_nonzero_to_native_zero": 56
+    },
+    {
+      "horizon_minutes": 5,
+      "parents": 118249,
+      "observed": 117799,
+      "mature_missing": 450,
+      "cutoff_censored": 0,
+      "entry_price_difference": {
+        "count": 117799,
+        "bit_identical": 90753,
+        "numerically_equal": 90753,
+        "mean_signed_difference": -4.244518256946181e-08,
+        "mean_absolute_difference": 3.989848249952114e-07,
+        "maximum_absolute_difference": 0.0005000000005566108
+      },
+      "terminal_price_difference": {
+        "count": 117799,
+        "bit_identical": 90761,
+        "numerically_equal": 90761,
+        "mean_signed_difference": -5.093421893820438e-08,
+        "mean_absolute_difference": 3.9049578856470297e-07,
+        "maximum_absolute_difference": 0.0005000000005566108
+      },
+      "return_bps_difference": {
+        "count": 117799,
+        "bit_identical": 70303,
+        "numerically_equal": 70303,
+        "mean_signed_difference": -2.823698171273469e-08,
+        "mean_absolute_difference": 2.7742296472999324e-06,
+        "maximum_absolute_difference": 0.0029652697227516844
+      },
+      "sign_confusion_legacy_by_native": [
+        [
+          57579,
+          22,
+          0
+        ],
+        [
+          0,
+          194,
+          0
+        ],
+        [
+          0,
+          18,
+          59986
+        ]
+      ],
+      "nonzero_sign_flips": 0,
+      "legacy_zero_to_native_nonzero": 0,
+      "legacy_nonzero_to_native_zero": 40
+    },
+    {
+      "horizon_minutes": 15,
+      "parents": 118249,
+      "observed": 116936,
+      "mature_missing": 1313,
+      "cutoff_censored": 0,
+      "entry_price_difference": {
+        "count": 116936,
+        "bit_identical": 90078,
+        "numerically_equal": 90078,
+        "mean_signed_difference": -4.703427562363975e-08,
+        "mean_absolute_difference": 3.97653531072288e-07,
+        "maximum_absolute_difference": 0.0005000000005566108
+      },
+      "terminal_price_difference": {
+        "count": 116936,
+        "bit_identical": 90092,
+        "numerically_equal": 90092,
+        "mean_signed_difference": -4.703427567030603e-08,
+        "mean_absolute_difference": 3.891018445924343e-07,
+        "maximum_absolute_difference": 0.0005000000005566108
+      },
+      "return_bps_difference": {
+        "count": 116936,
+        "bit_identical": 69655,
+        "numerically_equal": 69655,
+        "mean_signed_difference": 4.868390444506502e-09,
+        "mean_absolute_difference": 2.7323661196805307e-06,
+        "maximum_absolute_difference": 0.002186561828764866
+      },
+      "sign_confusion_legacy_by_native": [
+        [
+          56524,
+          8,
+          0
+        ],
+        [
+          0,
+          99,
+          0
+        ],
+        [
+          0,
+          10,
+          60295
+        ]
+      ],
+      "nonzero_sign_flips": 0,
+      "legacy_zero_to_native_nonzero": 0,
+      "legacy_nonzero_to_native_zero": 18
+    }
+  ],
+  "observations": "Exact arithmetic midpoint endpoint bps/sign, identity, clocks, row offsets and masks reproduce the saved TRAIN target on all 118249 parents. The original native open may differ from the midpoint; no nonzero sign flips were seen, with 56/40/18 nonzero-to-zero changes at 1/5/15 minutes.",
+  "access": "Only the exact bound 2024/2025 year files and saved TRAIN target archive were opened by the guarded capped worker. No combined source, 2026 quote file, CONTROL or TEST.",
+  "limits": [
+    "This verifies entry and terminal opens only; high/low and first-hit labels remain unqualified.",
+    "No model, training, later generalization or financial edge was measured.",
+    "M1 intraminute ordering and true quote age remain uncertain."
+  ]
+}
