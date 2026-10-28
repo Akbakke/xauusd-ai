@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "CORRECTED_FACTORS_ADMITTED",
+  "status": "CORRECTED_FACTORS_MEASURED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Complete the single capped read-only corrected-target rescore for the two saved factors, independently verify and close it; then prepare a separately admitted corrected-target training integration and fresh initial baseline. Training remains disabled until a new exact user authorization and requested restart.",
+  "next_action": "Prepare a separately admitted integration of the qualified decimal target owner with a fresh initial baseline and exact chronological scope; no training without a new exact user authorization and the requested safe restart. Keep TEST, broker and hardware guards closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43341,24 +43341,45 @@
     "economic_edge_qualified": false
   },
   "independent_direction_corrected_factors_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_PLAN_20261028_001.json",
       "sha256": "d027f658ad98f05ba94d97e8f408d22c6bce2aa7189999f7d4f63e84baea0ffc"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 600,
-    "scope": "Rescore only exact bound previously saved one-pass baseline, bps candidate and three-pass candidate on matched pre-April-2025 development rows, against exact decimal midpoint labels. No fit, model, checkpoint or sealed TEST."
+    "scope": "Rescore only exact bound previously saved one-pass baseline, bps candidate and three-pass candidate on matched pre-April-2025 development rows, against exact decimal midpoint labels. No fit, model, checkpoint or sealed TEST.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "22bc20b039ccc6683083e209aed8a4631b20824e9af3d557d4a387ccd9444fdc"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "48ba0989f59bc6edfc4feb2f5e5a7295d4c9280ee136eacd05a6f33f297e834e"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "f12e0997999dfe3d2e78a10bb3ac42a741a703a8fe51aa99bf28f1da8ebcf29e"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_20261028_001/TERMINAL.json",
+      "sha256": "0b45189538533f98f80a2575774a8b3d25732a2611606880ad8dfcc6685efb64"
+    },
+    "independent_check": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_INDEPENDENT_CHECK_20261028_001.json",
+      "sha256": "38c8f3246fe14182d4c9ed26e7b86fbd1fed64b80bed83fbcec99123efa5ecc3"
+    },
+    "economic_edge_qualified": false
   }
 }
