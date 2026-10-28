@@ -63,3 +63,14 @@ def test_m5_window_uses_five_minute_closed_clock():
         3, shift_ns=5 * minute, timeframe='M5')
     assert got['decisions_with_any_mismatched_m5_row'] == 1
     assert got['distinct_mismatched_m5_rows_in_windows'] == 1
+
+
+def test_price_precision_summary_counts_collapsed_levels_and_signs():
+    import pandas as pd
+    from gx1.scripts.audit_direction_d1_trendline_replay_v1 import price_precision_summary
+    frame = pd.DataFrame({'open':[2000., 2000.], 'high':[2001., 2001.], 'low':[1999., 1999.],
+        'close':[2000., 2000.00001]})
+    result = price_precision_summary(frame)
+    assert result['m5_rows'] == 2 and result['distinct_original_closes'] == 2
+    assert result['distinct_float32_closes'] == 1 and result['distinct_original_closes_collapsed'] == 1
+    assert result['m5_close_open_direction_changed'] == 1 and result['max_absolute_error_usd'] > 0

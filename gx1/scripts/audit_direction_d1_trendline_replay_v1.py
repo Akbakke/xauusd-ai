@@ -24,6 +24,7 @@ SOURCE_PATHS = (
     'gx1/features/entry_specialist_feature_groups_v1.py',
     'gx1/features/trendline_registry_v1.py',
     'gx1/features/technical_indicators_v1.py',
+    'gx1/scripts/prebuild_multi_tf_cache_v4.py',
     'gx1/scripts/audit_entry_direction_candle_midpoints_v1.py',
     'gx1/contracts/gx1_capped_execution_v1.py',
     'gx1/contracts/local_random_access_campaign_v2.py',
@@ -114,6 +115,22 @@ def window_exposure(timestamps, mismatched_rows, decisions, length, *, shift_ns=
         'earliest_window_row_ns': int(timestamps[left.min()]), 'latest_window_row_ns': int(timestamps[right.max()-1])}
 
 
+def price_precision_summary(frame):
+    names = ('open', 'high', 'low', 'close')
+    raw = frame.loc[:, list(names)].to_numpy(dtype=np.float64)
+    require(raw.ndim == 2 and raw.shape[1] == 4 and len(raw) > 0 and np.isfinite(raw).all(), 'PRICE_DOMAIN')
+    rounded = raw.astype(np.float32).astype(np.float64)
+    delta = np.abs(raw - rounded)
+    raw_close = np.unique(raw[:, 3]); rounded_close = np.unique(rounded[:, 3])
+    original_direction = np.sign(raw[:, 3] - raw[:, 0]); rounded_direction = np.sign(rounded[:, 3] - rounded[:, 0])
+    require(not np.any(original_direction * rounded_direction < 0), 'FLOAT32_ORDER')
+    return {'m5_rows':len(raw), 'price_cells':int(raw.size), 'price_cells_changed':int(np.count_nonzero(delta)),
+        'median_absolute_error_usd':float(np.median(delta)), 'p99_absolute_error_usd':float(np.quantile(delta, 0.99)),
+        'max_absolute_error_usd':float(delta.max()), 'distinct_original_closes':len(raw_close),
+        'distinct_float32_closes':len(rounded_close), 'distinct_original_closes_collapsed':len(raw_close)-len(rounded_close),
+        'm5_close_open_direction_changed':int(np.count_nonzero(original_direction != rounded_direction))}
+
+
 def main(argv=None):
     sys.dont_write_bytecode = True
     parser = argparse.ArgumentParser(description=__doc__)
@@ -121,8 +138,10 @@ def main(argv=None):
         parser.add_argument('--' + option, required=True)
     parser.add_argument('--localize-windows', action='store_true')
     parser.add_argument('--timeframe', choices=('D1', 'H4', 'H1', 'M15', 'M5'), default='D1')
+    parser.add_argument('--builder-float32', action='store_true')
     args = parser.parse_args(argv)
-    other_tf = args.timeframe != 'D1'; require(not (other_tf and args.localize_windows), 'MODE')
+    other_tf = args.timeframe != 'D1'; builder = args.builder_float32
+    require(not (other_tf and args.localize_windows) and (not builder or args.timeframe == 'H1'), 'MODE')
     localize = args.localize_windows or other_tf
     tf = args.timeframe
     shift_ns = {'D1':86400, 'H4':14400, 'H1':3600, 'M15':900, 'M5':300}[tf] * 10**9
@@ -130,6 +149,11 @@ def main(argv=None):
     schema = ('gx1_direction_' + tf.lower() + '_trendline_replay') if other_tf else 'gx1_direction_d1_mismatch_localization' if localize else 'gx1_direction_d1_trendline_replay'
     design_name = ('DIRECTION_' + tf + '_TRENDLINE_REPLAY_20261028.json') if other_tf else 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028.json' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028.json'
     output_name = ('DIRECTION_' + tf + '_TRENDLINE_REPLAY_20261028_001') if other_tf else 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028_001' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028_001'
+    if builder:
+        stage_name = 'independent_direction_h1_builder_precision_replay_20261028_001'
+        schema = 'gx1_direction_h1_builder_precision_replay'
+        design_name = 'DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028.json'
+        output_name = 'DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028_001'
     feat_key, ts_key = ('tf_feats', 'tf_ts') if other_tf else ('d1_feats', 'd1_ts')
     from gx1.contracts import gx1_capped_execution_v1 as cap
     from gx1.contracts import immutable_event_authority_v1 as publication
@@ -170,8 +194,9 @@ def main(argv=None):
         keys = {'source_m5', 'cache_manifest', feat_key, ts_key, 'prefix_normalization', 'fit_result'}
         if localize: keys |= {'corrected_target', 'sample_pair', 'fold_design'}
         if localize and not other_tf: keys.add('previous_result')
+        if builder: keys.add('prior_double_result')
         require(set(plan['inputs']) == keys, 'INPUT_SET')
-        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('fold_design',) if localize else ()) + (('previous_result',) if localize and not other_tf else ())
+        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('fold_design',) if localize else ()) + (('previous_result',) if localize and not other_tf else ()) + (('prior_double_result',) if builder else ())
         meta = {key: binding.read_bound_json(Path(plan['inputs'][key]['path']), plan['inputs'][key]['sha256']) for key in meta_names}
         if localize and not other_tf:
             prior = policy[STAGE]
@@ -181,6 +206,12 @@ def main(argv=None):
                 and meta['previous_result']['all_causal_history_vs_cache']['mismatched_cells'] == 7551
                 and meta['previous_result']['test_data_used'] is False, 'PRIOR_REPLAY')
         manifest, norm, fit = (meta[k] for k in ('cache_manifest', 'prefix_normalization', 'fit_result'))
+        if builder:
+            previous = policy['independent_direction_h1_trendline_replay_20261028_001']
+            require(previous['status'] == 'COMPLETE_ONE_SHOT_CONSUMED' and previous['execution_authorized'] is False
+                and previous['result'] == plan['inputs']['prior_double_result']
+                and meta['prior_double_result']['status'] == 'COMPLETE'
+                and meta['prior_double_result']['test_data_used'] is False, 'PRIOR_DOUBLE_REPLAY')
         tf_metadata = manifest['tfs'][tf]; cache_dir = Path(plan['inputs']['cache_manifest']['path']).parent
         require(manifest['m5_prebuilt_source'] == plan['inputs']['source_m5']['path']
             and manifest['m5_prebuilt_source_sha256'] == plan['inputs']['source_m5']['sha256']
@@ -213,6 +244,17 @@ def main(argv=None):
         with binding.fresh_file_verification_scope():
             for ref in payloads: candle.regular(ref['path']); binding.require_binding(ref, label='payload')
             source, source_witness = load_m5_prefix(Path(plan['inputs']['source_m5']['path']), CUTOFF_NS)
+            precision = None
+            if builder:
+                clock = source.index.asi8
+                bounds = (('fit_train', 1714521600000000000, fit['fold']['train_cutoff_ns']),
+                    ('fit_oof_q1', fit['fold']['train_cutoff_ns'], fit['fold']['oof_cutoff_ns']),
+                    ('later_q2', fit['fold']['oof_cutoff_ns'], CUTOFF_NS))
+                precision = {name:price_precision_summary(source.loc[(clock >= start) & (clock < end)])
+                    for name, start, end in bounds}
+                source = source.copy()
+                for name in ('open', 'high', 'low', 'close', 'volume'):
+                    source[name] = source[name].astype(np.float32)
             index = build_multi_tf_v4_closed_timestamp_indices(source.index)[tf]
             if tf == 'M5':
                 require(index.equals(source.index), 'NATIVE_M5_AXIS')
@@ -310,6 +352,8 @@ def main(argv=None):
             'model_train_period_vs_cache':model_train,'later_development_period_vs_cache':later,
             'replay_parity':comparison['all_finite_float32_bits_and_missingness_equal'],
             'mismatch_localization':details,
+            'source_price_precision':precision,
+            'input_price_precision':'builder_float32' if builder else 'source_float64_counterfactual',
             'limits':'Same current registry implementation recomputed from genuine M5 source and compared with cached model input; not an independent mathematical implementation, predictive-value test or proof of all fields/timeframes.',
             'new_model_forwards':0,'optimizer_steps':0,'test_data_used':False,'economic_edge_qualified':False}
         publish(stage/'RESULT.json',result)
