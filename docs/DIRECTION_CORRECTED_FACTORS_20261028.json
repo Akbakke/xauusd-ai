@@ -1,0 +1,68 @@
+{
+  "schema_version": "gx1_corrected_bps_exposure_design_v1",
+  "inputs": {
+    "baseline": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/OOF.npz",
+      "sha256": "fd7d3177f1a4d588f235156a2dbc02d670137ab91862e779606bb932e0e4ef57"
+    },
+    "bps": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "d2bbbf4519615ed667c40586f248cff9f94056f0f32cd72ea0c894f6d92d1ac6"
+    },
+    "three": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002_RUNTIME/prefix-fit/window-0002/OOF.npz",
+      "sha256": "b7be0653801c9bf0c696d3d761b3360ac8a526306d29f8edd09c70b5a41df4dd"
+    },
+    "corrected": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "corrected_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "bps_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_001/OUTPUT/RESULT.json",
+      "sha256": "5e8d6a2de22ff9d6d53c814d139ae62b58cdb9925f1bf1b14f40e8ac905f8c21"
+    },
+    "exposure_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_PLAN_20261028_001.json",
+      "sha256": "cfac50ff3f8b8babac3bb43d708f2931e28c19c1c0b250eab1136298939d10d5"
+    },
+    "exposure_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "f7d2e4c9459a874dbeda505af94125da7fcd3c6c2ab135dc92435b47dc4324ae"
+    }
+  },
+  "test_data_used": false,
+  "purpose": "Rescore two previously saved separately trained factors against the exact same corrected candle-midpoint outcomes and exact shared baseline; no fitting.",
+  "comparisons": [
+    "bps-vs-original-baseline",
+    "three-training-passes-vs-one-training-pass-baseline"
+  ],
+  "fixed_horizons_minutes": [
+    1,
+    5,
+    15
+  ],
+  "primary_horizon_minutes": 5,
+  "primary_metrics": [
+    "auc",
+    "logloss",
+    "brier"
+  ],
+  "paired_block_schemes": [
+    "UTC_DAY",
+    "UTC_WEEK_MONDAY"
+  ],
+  "bootstrap_replicates": 10000,
+  "interval_count": 12,
+  "per_interval_alpha": 0.004166666666666667,
+  "cutoff_exclusive_utc": "2025-04-01T00:00:00Z",
+  "caveats": [
+    "Both models were originally fitted with legacy float targets, not the corrected target.",
+    "One reused development fold and seed; no out-of-sample confirmation or economic edge.",
+    "Saved context arrays and shared baseline are verified, but full training-time feature parity is not established for the bps model.",
+    "These three-head archived experiments do not prove the effect on the later 60-head model."
+  ]
+}
