@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T17:28:23.292210+00:00",
+  "observed_utc": "2026-10-28T17:34:14.058210+00:00",
   "status": "GC_CONTEXT_FOLLOWUP_INDEPENDENTLY_VERIFIED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve the verified combined GC intervention and 60-horizon saved-prediction diagnosis. Investigate the measured 5-minute directional bias and missing feature qualifications without selecting on TEST; any changed training requires a separate authenticated route and fresh initial baseline. No broker or trading.",
+  "next_action": "Investigate the measured 5-minute output bias and independently qualify the 32 chart-geometry positions on each timeframe using genuine causal source/state; the paired GC intervention is verified. New training needs a separate authenticated corrected-target route and fresh initial baseline. No TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42606,5 +42606,11 @@
       "sha256": "a5e727e9b4a9f2711dd158866052e6b1998a41fd818b51163bd72bc1ae14d388"
     },
     "economic_edge_qualified": false
+  },
+  "latest_direction_chart_train_support": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_CHART_TRAIN_SUPPORT_20261028.json",
+    "sha256": "8a110c09d5e4332a06b11a0d9445e732d531dd764c1c4f609c0ee26508979959",
+    "scope": "Existing bound prefix support metadata only; independent numeric formula and predictive utility remain unqualified.",
+    "test_data_used": false
   }
 }
