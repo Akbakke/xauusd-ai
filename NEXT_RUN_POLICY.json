@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:57:45.524025+00:00",
-  "status": "DIRECTION_SLOPE_RESPONSE_ADMITTED_NOT_YET_CLAIMED",
+  "observed_utc": "2026-10-28T15:58:32.681650+00:00",
+  "status": "DIRECTION_SLOPE_RESPONSE_COMPLETE_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run one capped saved-prediction audit of 5min model probabilities versus the existing closed-H1 slope groups, then close its gate. No model forward, training, TEST or trading.",
+  "next_action": "Preserve completed H1 trend-group response and input-clock results. Continue source-to-model coverage and trained-interaction investigation; no TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "80d432a1115ad48f30d5fb2a2dd2b85d2df5f060d20ff757db40fb267f69186f"
+      "sha256": "22c93f37d5e600bef11a2367ee5875e69ea50d159c3ba810f596541d9df4d20f"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -41799,7 +41799,7 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "economic_edge_qualified": false,
-    "next": "Time gaps in actual M5 inputs measured; continue compact feature delivery and learned-composition audit. Explicit elapsed time is a hypothesis, not a demonstrated improvement."
+    "next": "Existing H1 slope response is measured descriptively; its outcome gap remains uncertain. Continue independently checking compact feature lineage and trained interactions; any model change needs a matched bound design."
   },
   "independent_direction_decimal_sign_audit_20261028_001": {
     "status": "FAILED_ONE_SHOT_CONSUMED",
@@ -41995,16 +41995,16 @@
     "economic_edge_qualified": false
   },
   "independent_direction_slope_response_audit_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_SLOPE_RESPONSE_PLAN_20261028_001.json",
       "sha256": "121dd5500cfd6cd40f12e377f3c5659a2626f9ada49ba668382488b5b54db9dd"
     },
-    "execution_authorized": true,
-    "prediction_reads_authorized": true,
+    "execution_authorized": false,
+    "prediction_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
@@ -42014,6 +42014,28 @@
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_or_trading_authority": false,
-    "scope": "Fixed 5min prediction response by previously noticed H1 slope sign; descriptive paired day/week block contrasts on reused fold1. Saved predictions only."
+    "scope": "Fixed 5min prediction response by previously noticed H1 slope sign; descriptive paired day/week block contrasts on reused fold1. Saved predictions only.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_SLOPE_RESPONSE_AUDIT_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "4dc145b2aea569639ef41213c0546d23be20fc96b2229c56c1eab86dc5927b8e"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_SLOPE_RESPONSE_AUDIT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "3f2bd5814f2f9d207b81d66ddc7b845023f8a07e3bf1ba7a55699f38ff9f87fe"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_SLOPE_RESPONSE_AUDIT_20261028_001/TERMINAL.json",
+      "sha256": "7ee5c55ff3a5133637f088210af9c84e53340253eef81ae2def1e6cf5610605c"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_SLOPE_RESPONSE_AUDIT_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "e056b9d4a78bda5c5a1c599fc9f8bd858d343c10fd2d3a49ccd1acd35889e5a3"
+    },
+    "eligible_negative": 5535,
+    "eligible_positive": 11662,
+    "observed_positive_minus_negative": 0.015421437642033187,
+    "candidate_positive_minus_negative": -0.0002563733969046522,
+    "causal_effect_established": false,
+    "economic_edge_qualified": false
   }
 }
