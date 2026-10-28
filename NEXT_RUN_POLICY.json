@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T16:07:31.744046+00:00",
-  "status": "GC_MTF_LATER_FOLLOWUP_ADMITTED",
+  "status": "GC_MTF_LATER_FOLLOWUP_COMPLETE_INDEPENDENT_VERIFY_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the distinct later-period guarded GC-history intervention. Require exact fold1 reference replay, preserve both later prediction arms, no refit, TEST, broker or trading.",
+  "next_action": "Run the one bound CPU independent rescore of the saved later-period paired predictions and corrected labels. No model, optimizer, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42393,17 +42393,17 @@
     "test_data_used": false
   },
   "independent_direction_gc_mtf_later_followup_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_PLAN_20261028_001.json",
       "sha256": "a02bbe048cefb515e4fd87e4624706df0753e368e52f6f4ea9a847425c8e63f1"
     },
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "model_forwards_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_forwards_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "guarded_cuda_producer",
     "memory_max": "20G",
@@ -42411,6 +42411,57 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
-    "scope": "Frozen first-prefix 60-minute model, subsequent predeclared 2025-04-01 through 2025-06-30 development period. Compare baseline with all 25 GC-history projections suppressed; keep current GC context. Persist both arms and corrected labels."
+    "scope": "Frozen first-prefix 60-minute model, subsequent predeclared 2025-04-01 through 2025-06-30 development period. Compare baseline with all 25 GC-history projections suppressed; keep current GC context. Persist both arms and corrected labels.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "f677bde214262655543df282be944fee91a579beee1224104bd998145c2732de"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "02d8cf20527f9219ec82b974b0dd741522539cab4f7a6790358d1b4d65cdd5e6"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/TERMINAL.json",
+      "sha256": "bb7a4a03a1c08d8f3fd256365c4fc9afe731db187a0edd064e1370f33086c984"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "43adb363c4db0dc4247db67f10d733d048d839aecc99121f481a29ccdd03b7b1"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001.guard.e1MMru06.log",
+      "sha256": "3f59afbe9ae0bc75b58bdf7fe8bce4639b3cf138cf31fb5dd4cdd762ac8e6d76"
+    },
+    "stdio_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001.trainer.puk76WFW.log",
+      "sha256": "21d03dd552904436a70f52111ddc3dd7be39f60c3bf9fcb20f262accc4fb401b"
+    },
+    "paired_outputs": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "8aa87c567b58319178e597506dc82dfff9d65984eb23cd165fcc4b87bfbea2cd"
+    },
+    "independent_score_verification_complete": false,
+    "economic_edge_qualified": false
+  },
+  "independent_direction_gc_mtf_later_verify_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_VERIFY_PLAN_20261028_001.json",
+      "sha256": "cb63a9ae38545567ff674f471e1094bcb1fef3b945f87f76e97f684278c75e4c"
+    },
+    "execution_authorized": true,
+    "model_forwards_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "scope": "Independently join saved paired later-period predictions to corrected targets and rescore both arms for all 60 minutes; reproduce predeclared day/week intervals at 5 and 60 minutes using independent rank-sum and per-block searchsorted algorithms."
   }
 }

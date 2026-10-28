@@ -1,0 +1,47 @@
+{
+  "schema_version": "gx1_direction_gc_mtf_later_verify_design_v1",
+  "status": "SOURCE_PREPARED_AUDIT_PENDING",
+  "scope": "Independently join saved paired later-period predictions to corrected targets and rescore both arms for all 60 minutes; reproduce predeclared day/week intervals at 5 and 60 minutes using independent rank-sum and per-block searchsorted algorithms.",
+  "limitations": "Numerical and identity verification on previously reused development data, not proof of independent generalization, trading or economic edge.",
+  "inputs": {
+    "followup_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_PLAN_20261028_001.json",
+      "sha256": "a02bbe048cefb515e4fd87e4624706df0753e368e52f6f4ea9a847425c8e63f1"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "02d8cf20527f9219ec82b974b0dd741522539cab4f7a6790358d1b4d65cdd5e6"
+    },
+    "inner_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "43adb363c4db0dc4247db67f10d733d048d839aecc99121f481a29ccdd03b7b1"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/TERMINAL.json",
+      "sha256": "bb7a4a03a1c08d8f3fd256365c4fc9afe731db187a0edd064e1370f33086c984"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "f677bde214262655543df282be944fee91a579beee1224104bd998145c2732de"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001.guard.e1MMru06.log",
+      "sha256": "3f59afbe9ae0bc75b58bdf7fe8bce4639b3cf138cf31fb5dd4cdd762ac8e6d76"
+    },
+    "paired_outputs": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "8aa87c567b58319178e597506dc82dfff9d65984eb23cd165fcc4b87bfbea2cd"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "fold_design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_PLAN_20261028_001.json",
+      "sha256": "2494af08975ee22c0ea546562141f5ff5bde52368e74716df40279539c31a96b"
+    }
+  },
+  "test_data_used": false,
+  "model_forwards": 0,
+  "optimizer_steps": 0
+}

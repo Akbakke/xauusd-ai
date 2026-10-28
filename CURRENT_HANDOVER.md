@@ -11,7 +11,7 @@ Programrot:
 
 ## Aktuell status
 
-En ny selvstendig senere-periode GC-historieintervensjon er ADMITTERT: frossen fold1-modell brukes på forhåndsdefinerte 2025 Q2-rader, først med byteidentisk fold1-referanse, så med/uten GC-historie på samme rader. Begge prediksjonsserier og korrigerte mål lagres for uavhengig etterregning. Nøyaktig katalogvakt-overgang er bundet; ingen refit, TEST eller handel.
+Senere-periode GC-historieintervensjon er FULLFØRT og KONSUMERT på 1 760 forhåndsvalgte 2025 Q2-foreldre. Den frosne fold1-modellens referansebatch var byteidentisk; begge prediksjonsarmer og korrigerte mål er lagret. På 1 753 kvalifiserte 5min-rader er AUC 0,489688 original og 0,489699 uten GC-historieprojeksjon; dag-/ukeintervaller inkluderer null. Dette er én gjenbrukt utviklingsperiode, med annen GC-kontekst beholdt. Uavhengig skår-/intervallkontroll er ADMITTERT, ikke ferdig. Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/OUTPUT/RESULT.json`, SHA-256 `02d8cf20527f9219ec82b974b0dd741522539cab4f7a6790358d1b4d65cdd5e6`. Ingen trening, TEST eller handel.
 
 Publiseringsblokkeringen er REPARERT i kilde: den eksisterende lesesperren tillater nå eksakt egen outputmappe bare som read-only `O_DIRECTORY`, uten å åpne andre mapper eller skriveflagg. Kun én kodelinje endret; 26 fokuserte syntetiske tester bestod. Treningsreceipt binder fortsatt gammel kildehash, så fremtidig replay må binde kildeovergangen. Se `docs/DIRECTION_GC_OUTPUT_DIRECTORY_GUARD_FIX_20261028.json`. Ingen ny modellkjøring.
 
