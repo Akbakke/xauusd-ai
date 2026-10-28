@@ -40403,7 +40403,7 @@
     "direction_improvement_qualified": false
   },
   "direction_bounded_magnitude_weight_source_20261028": {
-    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
+    "status": "LOSS_SOURCE_AND_SYNTHETIC_12_PASS_NO_MODEL_ROUTE",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAGNITUDE_WEIGHTED_SIGN_DESIGN_20261028.json",
       "sha256": "b216e4ed4d58855de59edd08b1b47e47afef7db66e3469178d5fd05344d88a63"
@@ -40414,7 +40414,7 @@
       "tests/test_entry_native_direction_bps_v1.py"
     ],
     "source_edits_authorized": false,
-    "synthetic_tests_authorized": true,
+    "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -40431,22 +40431,39 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BOUNDED_MAGNITUDE_WEIGHT_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "dd95102360ab69541c254c20abf1551c74db198ba37c0f25a25a33978c61b8fe"
     },
-    "expected_synthetic_cases": 12
+    "expected_synthetic_cases": 12,
+    "qualification": "12 synthetic weight, gradient, mature-mask, scale, leakage and invalid-input cases passed. Pure loss only; no model route, genuine payload or optimizer."
   },
   "direction_bounded_magnitude_weight_synthetic_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_SYNTHETIC_12_PASS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BOUNDED_MAGNITUDE_WEIGHT_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "dd95102360ab69541c254c20abf1551c74db198ba37c0f25a25a33978c61b8fe"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "genuine_payload_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BOUNDED_MAGNITUDE_WEIGHT_SYNTHETIC_20261028_001/TERMINAL.json",
+      "sha256": "7264e6a63b2899c8392c36d38214a48add482f087fe3aff06afc88fbe4a44e5d"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BOUNDED_MAGNITUDE_WEIGHT_SYNTHETIC_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "fece9824a8d5aab73c867ed21b6d80ae3e23c300f9396a718d224b200346e939"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BOUNDED_MAGNITUDE_WEIGHT_SYNTHETIC_20261028_001/RESULTS.xml",
+      "sha256": "7861ae330f9e5f3f190a6693167fc6a2e81190ad8462ce078817fa660296ac8b"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BOUNDED_MAGNITUDE_WEIGHT_SYNTHETIC_20261028_001/OUTER.log",
+      "sha256": "7165f5688d0afd7196cc91d29c4969e26f81152d09bbfb8119ba12d75fab91ed"
+    }
   }
 }

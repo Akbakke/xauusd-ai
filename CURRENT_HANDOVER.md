@@ -11,8 +11,8 @@ Programrot:
 
 ## Aktuell status
 
-En bounded, TRAIN-prefiksnormalisert størrelsesvektet retnings-BCE er
-implementert som forskningskontrakt. Én syntetisk kontroll er admittért;
+En bounded, TRAIN-prefiksnormalisert størrelsesvektet retnings-BCE har
+bestått 12 fokuserte syntetiske kontroller. Kun tapskontrakten finnes;
 ingen modellrute, ekte data eller trening er åpnet. Dette beholder 1/5/15-
 baselinen og er ikke en all-1..60-modell eller bevist bedring. Se
 `docs/DIRECTION_MAGNITUDE_WEIGHTED_SIGN_DESIGN_20261028.json`.
