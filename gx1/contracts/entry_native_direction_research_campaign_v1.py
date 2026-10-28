@@ -30,6 +30,8 @@ DENSE_PRIVATE_SCOPE = 'private_dense_b16_initial_resume_qualification'
 DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_b16_initial_resume_qualification'
 DECIMAL_INPUT_AUDIT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json',
     'sha256':'8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19'}
+DECIMAL_INITIAL_PREDICTIONS = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.npz',
+    'sha256':'d9f820f6d38b56879f6ae0811255e240603502ca08a0be257f92da1ca6499871'}
 DENSE_INPUT_MANIFEST = {'path':'/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/INPUT_MANIFEST.json',
     'sha256':'befabac7ebff4e5e8b6233b299b2fc8f03b87b94d99bc7ec4d43b0fb76f9246f'}
 DENSE_TARGET_RESULT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json',
@@ -161,7 +163,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     b16 = bps or weighted or chronological or dense
     if b16: fields |= {'fold','gc_layout_metadata_parity','qualification_design'}
     if dense: fields |= {'dense_source_transition_proof','dense_target_result','dense_target'}
-    if decimal: fields |= {'decimal_input_audit','decimal_target_refs'}
+    if decimal: fields |= {'decimal_input_audit','decimal_target_refs','decimal_initial_predictions'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
@@ -225,7 +227,9 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
             and recipe['gc_layout_metadata_parity']==BPS_GC_PARITY
             and recipe['qualification_design']==ORDER_SUPPORTED_DESIGN, 'DENSE_FIXED_INPUT_SCOPE')
         if decimal:
-            _require(recipe['decimal_input_audit']==DECIMAL_INPUT_AUDIT, 'DECIMAL_INPUT_AUDIT_SCOPE')
+            _require(recipe['decimal_input_audit']==DECIMAL_INPUT_AUDIT
+                and recipe['decimal_initial_predictions']==DECIMAL_INITIAL_PREDICTIONS, 'DECIMAL_INPUT_AUDIT_SCOPE')
+            campaign.require_binding(recipe['decimal_initial_predictions'],label='decimal initial predictions',verify_file=True)
             audit_ref=campaign.require_binding(recipe['decimal_input_audit'],label='decimal input audit',verify_file=True)
             audit=campaign.read_bound_json(Path(audit_ref['path']),audit_ref['sha256'])
             refs=recipe['decimal_target_refs']

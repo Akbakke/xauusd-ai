@@ -1,0 +1,128 @@
+{
+  "schema_version": "gx1_direction_decimal_initial_parity_preparation_v1",
+  "status": "SOURCE_AND_SYNTHETIC_READY_NO_PRIVATE_MODEL_EXECUTION",
+  "prior_saved_initial_predictions": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.npz",
+    "sha256": "d9f820f6d38b56879f6ae0811255e240603502ca08a0be257f92da1ca6499871"
+  },
+  "corrected_target_input_audit": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003/OUTPUT/RESULT.json",
+    "sha256": "26f17302fcc5b8c1dee562de2b82f39ddafdc8a060a3f9c84922e98b59913399"
+  },
+  "prior_fixed_rows": 256,
+  "prior_horizons_minutes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60
+  ],
+  "required_byte_equal_fields": [
+    "parent_rows",
+    "bar_start_ns",
+    "decision_ns",
+    "logit_up"
+  ],
+  "existing_saved_rows_corrected_clock_and_mask_join": "PASS_CAPPED_TERMINAL_SUMMARY",
+  "observed_saved_vs_corrected_sign_changes_on_256_rows": 2,
+  "data_input_audit_source_commit": "1ce430bf06fdcdba86290aad5594a58d26439588",
+  "unchanged_target_function_asts": [
+    {
+      "path": "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "function": "_prepare",
+      "ast_sha256": "130a455acc10ada0dc2da9c6d10ae765ce1757bf954897310d8355301d30f2c3",
+      "current_source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "1250319bff9db93a438d0cba79587a484c97f6500cb7f70460d66a558adf3427"
+      }
+    },
+    {
+      "path": "gx1/contracts/entry_native_direction_decimal_input_v1.py",
+      "function": "load_bound_decimal_direction_targets",
+      "ast_sha256": "51a6c7233b1773bb2d08f617467b14943f7f14d2e0fba76cff8c54e58734bee8",
+      "current_source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_decimal_input_v1.py",
+        "sha256": "27f9612c4120ebdb7d01380c65a14619830619df8ea80075bf0995c2be6e0ea8"
+      }
+    },
+    {
+      "path": "gx1/contracts/entry_native_direction_decimal_data_v1.py",
+      "function": "bind_decimal_grid_dense_targets",
+      "ast_sha256": "a0aa57d6c753b20f9f561a32c0f5ba29f04462ddaa2a23d544e2e8d6672edc12",
+      "current_source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_decimal_data_v1.py",
+        "sha256": "07bdd987d5528eec1aa1b20feb624c0b142b9fda294253cd1e0bd44b2b04c944"
+      }
+    },
+    {
+      "path": "gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
+      "function": "require_decimal_prefix_prior",
+      "ast_sha256": "de7a7cab5b269147b24a95b5bb78664a252cbd1f9985d21d0ffe5a450336c275",
+      "current_source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
+        "sha256": "4e8404500547046604af064b34a9eb69dcda8bfe8348cc3020801e4e00c7dc44"
+      }
+    }
+  ],
+  "limits": "The saved initial predictions were compared with themselves and their corrected target clocks only. A fresh native model has not been constructed or compared; actual feature input, RNG/model/optimizer identity and resume require separate admitted GPU qualification.",
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "native_training_authorized": false,
+  "economic_edge_qualified": false
+}

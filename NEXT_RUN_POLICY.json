@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Prepare a concrete separately bound private GPU qualification for the corrected target, followed by a fresh baseline and one separately specified 5min direction hypothesis while retaining 1..60 horizons. Native physical provider/feature-view and resume are not yet qualified for this target. Do not run training until a new exact user authorization and requested safe physical restart; TEST, broker and hardware guards remain closed.",
+  "next_action": "Prepare a concrete exact-scope private GPU qualification for the corrected target and fixed 256-row initial prediction parity, then a fresh baseline and a separately specified 5min direction hypothesis retaining 1..60. Genuine feature input, model construction, gradients and resume remain unqualified. No training before new exact user authorization and requested safe physical restart; TEST, broker and hardware guards remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43546,7 +43546,7 @@
     }
   },
   "direction_decimal_private_route_source_20261028": {
-    "status": "SOURCE_AND_STUBBED_ACTUAL_TARGET_INPUT_PASS_PRIVATE_GPU_NOT_RUN",
+    "status": "SOURCE_AND_STUBBED_ACTUAL_TARGET_INPUT_PASS_INITIAL_PARITY_PREPARED",
     "private_scope": "private_dense_decimal_b16_initial_resume_qualification",
     "full_prefix_fit_scope_admitted": false,
     "training_authorized": false,
@@ -43567,7 +43567,17 @@
     "independent_check": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_INDEPENDENT_CHECK_20261028_003.json",
       "sha256": "35912018b7982d4de582afa6967fd4f1e40003716118ec2470b9221d1a8d289a"
-    }
+    },
+    "initial_parity_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_INITIAL_PARITY_20261028.json",
+      "sha256": "9c8e1499d3add7f2bab6af06df318096685efdd7e3d07a9c3ef23ce781335f8f"
+    },
+    "initial_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.npz",
+      "sha256": "d9f820f6d38b56879f6ae0811255e240603502ca08a0be257f92da1ca6499871"
+    },
+    "fresh_native_initial_parity_verified": false,
+    "private_gpu_qualification_completed": false
   },
   "independent_direction_decimal_private_input_20261028_002": {
     "status": "FAILED_ONE_SHOT_CONSUMED",

@@ -35,24 +35,27 @@ def test_private_recipe_binds_exact_decimal_audit_and_no_full_epoch(research_fix
         'physical_parent_and_bar_start_hashes_verified':True,'corrected_archive_and_receipt_links_verified':True,
         'original_legacy_anchors_verified':True,'immutable_outputs':True,'source':source,'inputs':refs}
     audit_ref=write(runtime/'decimal-input-audit.json',audit)
+    initial_ref=write(runtime/'initial-predictions.npz',{'synthetic':'initial'})
     proof=write(repo/'docs/DIRECTION_DENSE_SOURCE_TRANSITION_20261028.json',{'synthetic':True})
     for name,value in [('DENSE_INPUT_MANIFEST',dummy),('DENSE_TARGET_RESULT',original_result),('DENSE_TARGET',original),
                        ('BPS_GC_PARITY',dummy),('ORDER_SUPPORTED_DESIGN',dummy),('DENSE_EXTRA_SOURCE_PATHS',()),
-                       ('DECIMAL_EXTRA_SOURCE_PATHS',(source_key,)),('DECIMAL_INPUT_AUDIT',audit_ref)]:monkeypatch.setattr(authority,name,value)
+                       ('DECIMAL_EXTRA_SOURCE_PATHS',(source_key,)),('DECIMAL_INPUT_AUDIT',audit_ref),
+                       ('DECIMAL_INITIAL_PREDICTIONS',initial_ref)]:monkeypatch.setattr(authority,name,value)
     item=copy.deepcopy(f['recipe']);item['run_scope']=authority.DECIMAL_PRIVATE_SCOPE
     item.update(fold=authority.BPS_FOLD,gc_layout_metadata_parity=dummy,qualification_design=dummy,
         dense_source_transition_proof=proof,dense_target_result=corrected_result,dense_target=corrected,
-        decimal_input_audit=audit_ref,decimal_target_refs=refs,max_forwards=21)
+        decimal_input_audit=audit_ref,decimal_target_refs=refs,decimal_initial_predictions=initial_ref,max_forwards=21)
     item['source_owners'][source_key]=source
     num=item['numerical_recipe'];num.update(batch_size=16,dense_minute_supervision=True)
     num.pop('contract_sha256');num['contract_sha256']=hashlib.sha256(json.dumps(num,sort_keys=True,separators=(',',':')).encode()).hexdigest()
     reseal(item,'recipe_sha256');checked=authority.require_research_launch_recipe(write(runtime/'private.json',item),source_repo=repo,source_commit='a'*40)
     assert checked['run_scope']==authority.DECIMAL_PRIVATE_SCOPE and checked['full_epoch_training_allowed'] is False
     assert not Path(corrected['path']).exists()
-    for change in ('reference','audit','full_epoch','source'):
+    for change in ('reference','audit','initial','full_epoch','source'):
         wrong=copy.deepcopy(item)
         if change=='reference':wrong['decimal_target_refs']['corrected']['sha256']='0'*64
         if change=='audit':wrong['decimal_input_audit']['sha256']='0'*64
+        if change=='initial':wrong['decimal_initial_predictions']['sha256']='0'*64
         if change=='full_epoch':wrong['full_epoch_training_allowed']=True
         if change=='source':wrong['source_owners'][source_key]['sha256']='0'*64
         reseal(wrong,'recipe_sha256')
@@ -116,23 +119,31 @@ def test_decimal_original_guard_allows_only_bound_read_and_freeze_detects_change
     hooks=[];monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
     old={'path':'/home/andre2/GX1_RUNS/synthetic/old.npz','sha256':'a'*64}
     new={'path':'/home/andre2/GX1_RUNS/synthetic/new.npz','sha256':'b'*64}
+    initial={'path':'/home/andre2/GX1_RUNS/synthetic/initial.npz','sha256':'c'*64}
+    monkeypatch.setattr(authority,'DECIMAL_INITIAL_PREDICTIONS',initial)
     context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache','gc_surfaces':{'path':'/synthetic/gc/surface'}},
         'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/audit'}},'dense_target':new,'dense_target_stat':{'id':1},
-        'decimal_original':old,'decimal_original_stat':{'id':1},'decimal_target_refs':{'original':old}}
-    common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',dense_target=new,decimal_original=old)
-    hooks[0]('open',(old['path'],'rb',0));hooks[0]('open',(new['path'],'rb',0))
+        'decimal_original':old,'decimal_original_stat':{'id':1},'decimal_target_refs':{'original':old},
+        'decimal_initial_predictions':initial,'decimal_initial_predictions_stat':{'id':1}}
+    common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',dense_target=new,decimal_original=old,decimal_initial_predictions=initial)
+    hooks[0]('open',(old['path'],'rb',0));hooks[0]('open',(new['path'],'rb',0));hooks[0]('open',(initial['path'],'rb',0))
     with pytest.raises(RuntimeError,match='ORIGINAL_WRITE'):hooks[0]('open',(old['path'],'wb',os.O_WRONLY))
+    with pytest.raises(RuntimeError,match='ORIGINAL_WRITE'):hooks[0]('open',(initial['path'],'wb',os.O_WRONLY))
     with pytest.raises(RuntimeError,match='UNBOUND_OPEN'):hooks[0]('open',('/home/andre2/GX1_RUNS/synthetic/other.npz','rb',0))
+    with pytest.raises(RuntimeError,match='DECIMAL_INITIAL_BINDING'):
+        common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',decimal_initial_predictions={**initial,'sha256':'0'*64})
     with pytest.raises(RuntimeError,match='DECIMAL_ORIGINAL_BINDING'):
         common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',dense_target=new,decimal_original={**old,'sha256':'0'*64})
     monkeypatch.setattr(common.subprocess,'check_output',lambda args,**kwargs:'head\n' if 'rev-parse' in args else '')
     monkeypatch.setattr(common,'_stat',lambda _: {'id':1})
-    hashes={old['path']:old,new['path']:new,'/synthetic/policy':{'path':'/synthetic/policy','sha256':'c'*64}}
+    hashes={old['path']:old,new['path']:new,initial['path']:initial,'/synthetic/policy':{'path':'/synthetic/policy','sha256':'d'*64}}
     monkeypatch.setattr(common,'_hash_file',lambda path:hashes[path])
     binding={'source_head':'head','policy':hashes['/synthetic/policy']}
     common._freeze({'source_owners':{}},binding,context)
     hashes[old['path']]={**old,'sha256':'0'*64}
     with pytest.raises(RuntimeError,match='DECIMAL_ORIGINAL_FREEZE'):common._freeze({'source_owners':{}},binding,context)
+    hashes[old['path']]=old;hashes[initial['path']]={**initial,'sha256':'0'*64}
+    with pytest.raises(RuntimeError,match='DECIMAL_INITIAL_FREEZE'):common._freeze({'source_owners':{}},binding,context)
 
 
 def test_decimal_prior_matches_all_sixty_independent_confusion_rows():
@@ -210,3 +221,17 @@ def test_data_audit_releases_its_scope_before_exact_owner(tmp_path):
     targets=owner.load_bound_decimal_direction_targets(refs=refs,axes=axes,legacy=legacy)
     assert np.array_equal(targets['sign'],corrected['sign'])
     snapshot.require_unchanged()
+
+
+def test_decimal_initial_prediction_comparison_checks_bytes_without_target_labels(tmp_path):
+    arrays={'parent_rows':np.arange(256,dtype=np.int64),'bar_start_ns':np.arange(256,dtype=np.int64)*10,
+        'decision_ns':np.arange(256,dtype=np.int64)*10+5,'logit_up':np.arange(256*60,dtype=np.float32).reshape(256,60)}
+    path=tmp_path/'initial.npz';np.savez(path,**arrays,sign=np.ones((256,60),dtype=np.int8))
+    ref={'path':str(path),'sha256':'a'*64}
+    qualification.require_decimal_initial_prediction_parity(arrays,ref,np=np)
+    wrong=copy.deepcopy(arrays);wrong['logit_up'][1,5]+=1
+    with pytest.raises(RuntimeError,match='DECIMAL_INITIAL_PARITY:logit_up'):
+        qualification.require_decimal_initial_prediction_parity(wrong,ref,np=np)
+    wrong=copy.deepcopy(arrays);wrong['parent_rows'][1]+=1
+    with pytest.raises(RuntimeError,match='DECIMAL_INITIAL_PARITY:parent_rows'):
+        qualification.require_decimal_initial_prediction_parity(wrong,ref,np=np)

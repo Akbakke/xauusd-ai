@@ -53,6 +53,19 @@ def require_decimal_prefix_prior(prior, audit):
             'DECIMAL_PRIOR_COUNT:'+str(i+1))
 
 
+def require_decimal_initial_prediction_parity(arrays, ref, *, np):
+    """Match the prior 60-head 0U predictions, without reading its weights."""
+    keys=('parent_rows','bar_start_ns','decision_ns','logit_up')
+    _require(isinstance(arrays,dict) and isinstance(ref,dict) and set(ref)=={'path','sha256'}, 'DECIMAL_INITIAL_INPUT')
+    with np.load(ref['path'],allow_pickle=False) as archive:
+        for key in keys:
+            _require(key in archive.files and key in arrays, 'DECIMAL_INITIAL_FIELD:'+key)
+            old=archive[key];new=arrays[key]
+            _require(isinstance(new,np.ndarray) and old.dtype==new.dtype and old.shape==new.shape
+                and np.ascontiguousarray(old).tobytes()==np.ascontiguousarray(new).tobytes(), 'DECIMAL_INITIAL_PARITY:'+key)
+    _require(arrays['parent_rows'].shape==(256,) and arrays['logit_up'].shape==(256,60), 'DECIMAL_INITIAL_SHAPE')
+
+
 def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progress_path:Path):
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits=require_guarded_cuda_trainer_execution()
@@ -94,12 +107,19 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         and all(v==0 for v in proof['counters'].values()), 'GC_METADATA_PROOF')
     actual_launch={**launch,'run_scope':prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE if decimal else prefix_authority.DENSE_SCOPE}
     context=prefix._launch_metadata(actual_launch,common);context['info']['metadata'].update(extra)
+    if decimal:
+        ref=launch['decimal_initial_predictions']
+        _require(ref==authority.DECIMAL_INITIAL_PREDICTIONS, 'DECIMAL_INITIAL_REFERENCE')
+        context['decimal_initial_predictions']=dict(ref)
+        context['decimal_initial_predictions_stat']=common._stat(ref['path'])
+        _require(common._hash_file(ref['path'])==ref, 'DECIMAL_INITIAL_SHA')
     for ref in (window['recipe'],binding['plan'],{'path':str(policy_path),'sha256':policy_file_sha256},launch['qualification_design']):
         common._read(ref,context['info']['metadata'])
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),dense_target=context['dense_target'],
-        decimal_original=context.get('decimal_original') if decimal else None)
+        decimal_original=context.get('decimal_original') if decimal else None,
+        decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal else None)
     counters={key:0 for key in ('model_constructions','model_construction_returns','optimizer_constructions',
         'forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns',
@@ -107,7 +127,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     evaluation={'forward_calls':0,'forward_returns':0,'forward_kind_calls':{}}
     before=common._io();started=time.monotonic();previous=sys.getprofile();device=torch.device('cuda',0)
     full_state=initial=initial_identity=None;error=None;initial_checked=parity=unchanged=False;cursor=0
-    steps=[];batch_support=[];order_sha='0'*64;prepared=model=optimizer=None;prior=None;decimal_prior_checked=False
+    steps=[];batch_support=[];order_sha='0'*64;prepared=model=optimizer=None;prior=None;decimal_prior_checked=False;decimal_initial_checked=False
     common._json(output/'CLAIM.json',{'recipe':window['recipe'],'plan_sha256':plan['plan_sha256'],
         'limits':limits,'additional_worker_ceiling_seconds':1200},counters,launch['max_published_json_bytes'])
 
@@ -153,6 +173,9 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
                     ceiling=17,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
                 _require(count==256 and measured['initial_parity_passed']
                     and measured['arrays']['logit_up'].shape==(256,60), 'FRESH_DENSE_INITIAL')
+                if decimal:
+                    require_decimal_initial_prediction_parity(measured['arrays'],context['decimal_initial_predictions'],np=np)
+                    decimal_initial_checked=True
                 initial_prediction=prefix._save_predictions(output/'INITIAL_TRAIN.npz',measured['arrays'],np=np,common=common,tree_sha=tree_sha)
                 del measured
                 initial=common._save_state(output/'INITIAL_STATE.pt',fresh,torch=torch,
@@ -203,11 +226,13 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         signal.alarm(0);signal.signal(signal.SIGALRM,old_handler);sys.setprofile(previous)
     after=common._io()
     if after['rchar']>io_budget:error='RCHAR_BUDGET_EXCEEDED'
-    passed=initial_checked and parity and unchanged and error is None
+    passed=initial_checked and parity and unchanged and error is None and (not decimal or (decimal_prior_checked and decimal_initial_checked))
     outcome='COMPLETE' if passed else 'FAILED'
     result=common._json(output/'RESULT.json',{'schema_version':('gx1_native_decimal_dense_private_qualification_result_v1' if decimal else 'gx1_native_dense_private_qualification_result_v1'),
         'decision':(('PASS_DECIMAL_DENSE_NATIVE_MECHANICS' if decimal else 'PASS_DENSE_NATIVE_MECHANICS') if passed else 'FAILED'),
         **({'decimal_input_audit':launch['decimal_input_audit'],'decimal_target_refs':launch['decimal_target_refs'],
+            'decimal_initial_predictions':launch['decimal_initial_predictions'],
+            'decimal_initial_prediction_byte_parity':decimal_initial_checked,
             'decimal_prior_against_sign_audit':decimal_prior_checked} if decimal else {}),'recipe':window['recipe'],
         'execution_binding':binding_ref,'counts':{k:v for k,v in counters.items() if k!='json_bytes'},
         'initial_evaluation_counts':evaluation,'initial_state':initial,'initial_identity_sha256':initial_identity,

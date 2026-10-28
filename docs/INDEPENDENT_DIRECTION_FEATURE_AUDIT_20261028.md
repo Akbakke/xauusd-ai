@@ -457,3 +457,12 @@ En capped datakontroll kalte den faktiske `_prepare`-target-grenen med de hashbu
 Første datakontroll stoppet på en for streng audit-importvakt og den andre på overlappende filverifikasjonsøkter. Begge engangsplaner er bevart og konsumert. Den tredje, separate planen lukket auditens verifikasjonsøkt før target-eieren åpnet sin egen og fullførte. Kildegjennomgang viser at native campaign-kontekstens verifikasjonsøkt lukkes før `_prepare`, men faktisk privat GPU-kvalifisering er fortsatt ikke utført. Ny eksakt treningstillatelse og ønsket fysisk omstart kreves før slik kjøring. Ingen TEST eller handel.
 
 Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003/OUTPUT/RESULT.json`, SHA-256 `26f17302fcc5b8c1dee562de2b82f39ddafdc8a060a3f9c84922e98b59913399`; uavhengig datakontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_INDEPENDENT_CHECK_20261028_003.json`, SHA-256 `35912018b7982d4de582afa6967fd4f1e40003716118ec2470b9221d1a8d289a`.
+
+
+## Fersk initial sammenligning klargjort
+
+Den nye private desimalgrenen krever ved en fremtidig kvalifisering at foreldre, bar-/beslutningstid og alle 60 initiale logits på de samme **256** foreldrene er byteidentiske med den tidligere 60-hodemodellens lagrede initialprognoser. Målkorrigeringen kan da sammenlignes uten å lese gamle vekter eller anta at input og initialisering er like. Original og korrigert target-signatur sammenlignes ikke som om de måtte være like.
+
+En capped lesende kontroll viste at den lagrede initialfilens foreldre, klokker og observasjonsmasker stemmer korrigert fasit; **to** fortegnsceller skiller seg på de 256 radene. En syntetisk test avviser endret forelder eller logit. Den faktiske, nye modellinitialen er **ikke** konstruert eller sammenlignet; dette er derfor ikke bevist native paritet. Target-grenens og desimalforbrukerens funksjons-AST er uendret siden den stubbet-fysiske datakontrollen, selv om kvalifiseringsvakt og initialkontroll er utvidet etterpå.
+
+Ingen nye modellforward, optimizersteg, GPU, TEST eller handel. Design: `docs/DIRECTION_DECIMAL_INITIAL_PARITY_20261028.json`, SHA-256 `9c8e1499d3add7f2bab6af06df318096685efdd7e3d07a9c3ef23ce781335f8f`.

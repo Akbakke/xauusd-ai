@@ -103,11 +103,15 @@ def _freeze(recipe, binding, context):
         ref=context['decimal_original']
         _require(ref==context['decimal_target_refs']['original'] and _stat(ref['path'])==context['decimal_original_stat']
             and _hash_file(ref['path'])==ref,'DECIMAL_ORIGINAL_FREEZE')
+    if 'decimal_initial_predictions' in context:
+        ref=context['decimal_initial_predictions']
+        _require(_stat(ref['path'])==context['decimal_initial_predictions_stat']
+            and _hash_file(ref['path'])==ref,'DECIMAL_INITIAL_FREEZE')
     for path,item in context['info']['metadata'].items():
         _require(_stat(path)==item['stat'] and _hash_file(path)==item['ref'],'METADATA_FREEZE:'+path)
 
 
-def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None, dense_target=None, decimal_original=None):
+def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None, dense_target=None, decimal_original=None, decimal_initial_predictions=None):
     plan=context['ancestor_plan'];info=context['info']
     _require(isinstance(extra_read_paths, tuple), 'EXTRA_READ_PATHS')
     if extra_read_paths:
@@ -128,6 +132,11 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
             and decimal_original==context.get('decimal_target_refs',{}).get('original')
             and decimal_original['path'].endswith('.npz'), 'DECIMAL_ORIGINAL_BINDING')
         extra_read_paths += (decimal_original['path'],)
+    if decimal_initial_predictions is not None:
+        from gx1.contracts.entry_native_direction_research_campaign_v1 import DECIMAL_INITIAL_PREDICTIONS
+        _require(decimal_initial_predictions==DECIMAL_INITIAL_PREDICTIONS
+            and decimal_initial_predictions==context.get('decimal_initial_predictions'), 'DECIMAL_INITIAL_BINDING')
+        extra_read_paths += (decimal_initial_predictions['path'],)
     allowed={p for p,v in plan['payloads'].items() if v['verification'] not in ('inherited_stat_only_no_open','reused_original051_stat_only_no_open')}|set(info['metadata'])|set(extra_read_paths)
     directories={plan['native_cache_dir'],str(Path(plan['gc_surfaces']['path']).parent),str(output)}
     relative={Path(p).name:p for p in allowed if p.endswith('.npy')};denied=[]
