@@ -11,9 +11,10 @@ Programrot:
 
 ## Aktuell status
 
-En ny kildeoppgave er avgrenset til første-treff-fasit 1–60min og eksisterende
-5min OOF-retningsskår på fold1. Fast 10bps gross quote er kun forskning; usikre
-utfall og dekning skal rapporteres. Ekte datalesing og modellkall er lukket.
+En fast første-treff-kontroll 1–60min mot eksisterende fold1-OOF-skår er
+implementert. 10bps gross quote er kun forskning; usikkerhet og utvalgsdekning
+skal rapporteres. Én syntetisk kontroll er admittért, ekte data og modellkall
+er lukket.
 
 Endepunktsparitet på 118 249 TRAIN-foreldre var allerede verifisert i
 `CANDLE_MIDPOINT_ROOT_REVIEW_001.json` under den uavhengige evidensroten.

@@ -40047,14 +40047,14 @@
     "duplicate_aggregate_matches": true
   },
   "direction_first_hurdle_oof_source_20261028": {
-    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "scope": "Prepare one fixed first-hurdle label and rank audit of the existing fold1 OOF direction scores using the previously qualified 2025 quote partition and target identity. Reuse the existing first-favorable quote, partial-outcome and rank owners.",
     "allowed_source_paths": [
       "gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
       "tests/test_audit_entry_direction_first_hurdle_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -40069,6 +40069,35 @@
       "uncertainty": "one reused development fold and an already used 10bps research hurdle; conditional AUC is not unconditional first-hit accuracy or trading edge",
       "no_adaptive_selection": true,
       "stop": "any row/clock/mask/source mismatch, resource/timeout or forbidden access"
-    }
+    },
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
+      "sha256": "26faf3f7130b9dc8873e17b7173d4d4ece2116776c569621912c67500b57eea9"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_audit_entry_direction_first_hurdle_v1.py",
+      "sha256": "f5262905819f3026e3047b3b3f303e7acbab31b074f47d4e91220c7dd0d2fc2c"
+    },
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "41d27c40b353cbfde8620e54ac60bf8f41f8a2f52e6b319bcb82ae1a648a7014"
+    },
+    "expected_synthetic_cases": 6
+  },
+  "direction_first_hurdle_oof_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "41d27c40b353cbfde8620e54ac60bf8f41f8a2f52e6b319bcb82ae1a648a7014"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
