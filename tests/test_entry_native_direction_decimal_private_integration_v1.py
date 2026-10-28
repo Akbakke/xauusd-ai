@@ -3,6 +3,7 @@ import copy
 import hashlib
 import json
 import os
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -96,7 +97,12 @@ def test_native_prepare_uses_authenticated_corrected_sign_and_rejects_tampering(
     monkeypatch.setattr(prefix,'_presentation_order',lambda parents,*a,**k:parents.copy())
     monkeypatch.setattr(view,'bind_native_direction_feature_view',lambda **kwargs:kwargs)
     monkeypatch.setattr(report,'native_direction_context_map',lambda **kwargs:{})
-    _,targets,_,_,_=prefix._prepare(context,launch,np_proxy,dense_minutes=True)
+    from gx1.scripts.audit_entry_direction_candle_midpoints_v1 import no_native_models
+    previous_profile=sys.getprofile();sys.setprofile(no_native_models)
+    try:
+        _,targets,_,_,_=prefix._prepare(context,launch,np_proxy,dense_minutes=True)
+    finally:
+        sys.setprofile(previous_profile)
     assert set(targets)==set(prefix.TARGET_MEMBERS) and np.array_equal(targets['sign'],corrected['sign'])
     assert legacy['sign'][0,0]==1 and targets['sign'][0,0]==0
     assert all(not v.flags.writeable for v in targets.values())
