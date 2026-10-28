@@ -161,7 +161,12 @@
         "actual_up": 8870,
         "predicted_up_fraction": 0.13653544222829564,
         "actual_up_fraction": 0.5157876373786126,
-        "accuracy": 0.488515438739315
+        "accuracy": 0.488515438739315,
+        "training_prefix_up_prevalence": 0.5090259575547477,
+        "mean_predicted_up_probability": 0.4950434223726974,
+        "fixed_training_prior_predicted_side": "UP",
+        "fixed_training_prior_correct": 8870,
+        "native_correct": 8401
       },
       {
         "fold_id": 2,
@@ -192,7 +197,12 @@
         "actual_up": 8848,
         "predicted_up_fraction": 0.628307939053729,
         "actual_up_fraction": 0.5068163592622293,
-        "accuracy": 0.5036659411158209
+        "accuracy": 0.5036659411158209,
+        "training_prefix_up_prevalence": 0.5108286179365941,
+        "mean_predicted_up_probability": 0.5014620415810593,
+        "fixed_training_prior_predicted_side": "UP",
+        "fixed_training_prior_correct": 8848,
+        "native_correct": 8793
       },
       {
         "fold_id": 3,
@@ -223,7 +233,12 @@
         "actual_up": 9137,
         "predicted_up_fraction": 0.9138343438838515,
         "actual_up_fraction": 0.5082605551538076,
-        "accuracy": 0.5062023696946097
+        "accuracy": 0.5062023696946097,
+        "training_prefix_up_prevalence": 0.5099799912156556,
+        "mean_predicted_up_probability": 0.5021545248417894,
+        "fixed_training_prior_predicted_side": "UP",
+        "fixed_training_prior_correct": 9137,
+        "native_correct": 9100
       },
       {
         "fold_id": 4,
@@ -254,11 +269,25 @@
         "actual_up": 9065,
         "predicted_up_fraction": 1.0,
         "actual_up_fraction": 0.5132487826973162,
-        "accuracy": 0.5132487826973162
+        "accuracy": 0.5132487826973162,
+        "training_prefix_up_prevalence": 0.5096756118548759,
+        "mean_predicted_up_probability": 0.5057220170183561,
+        "fixed_training_prior_predicted_side": "UP",
+        "fixed_training_prior_correct": 9065,
+        "native_correct": 9065
       }
     ],
-    "interpretation": "Across four reused chronological development folds the zero-logit UP decision share moves from 13.65% to 100%, while realized UP share remains 50.68% to 51.58%. This is threshold/class imbalance and not proof the underlying scores are constant, nor proof the training order causes the imbalance. Models and training prefixes differ between folds.",
+    "interpretation": "Across four reused chronological development folds the zero-logit UP decision share moves from 13.65% to 100%, while realized UP share remains 50.68% to 51.58%. This is threshold/class imbalance and not proof the underlying scores are constant, nor proof the training order causes the imbalance. Models and training prefixes differ between folds. Across these full five-minute cohorts, average predicted UP probabilities range from 49.50% to 50.57%; changing the threshold alone cannot improve score AUC.",
     "no_new_predictions_or_fit": true,
-    "test_data_used": false
+    "test_data_used": false,
+    "pooled_simple_direction_accuracy": {
+      "eligible": 70294,
+      "native_correct": 35359,
+      "fixed_training_prior_correct": 35920,
+      "native_accuracy": 0.503015904629129,
+      "fixed_training_prior_accuracy": 0.5109966711241358,
+      "difference_correct": -561,
+      "scope": "Descriptive point comparison on four reused development folds; zero-logit UP/DOWN decision and fixed own-prefix majority. Overlapping outcomes, no interval, no trading rule, no new generalization or economic claim."
+    }
   }
 }

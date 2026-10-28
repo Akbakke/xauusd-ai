@@ -11,7 +11,7 @@ Programrot:
 
 ## Aktuell status
 
-Selvstendig kontroll av treningsrekkefølge: Original276 og trepass-kjøringen har samme gjenskapte MT19937-orderhash; hvert prisvindu beholder stigende kausale klokker. TRAIN/later-grensen er kronologisk. Samme B2-sluttrader gjentas per pass; effekt på retningsedge er ikke målt. I fire utviklingsfolder varierer 5min-OPP-andelen fra 13,65 % til 100 %, mens faktiske OPP-andeler er 50,68–51,58 %. Dette er terskelskjevhet, ikke årsaksbevis. Prioritert énfaktors forslag: docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json. Ingen rekkefølgekandidat er trent, ingen ny kilde-/kjøreadmisjon er gitt, og training_enabled=false.
+Selvstendig kontroll av treningsrekkefølge: Original276 og trepass-kjøringen har samme gjenskapte MT19937-orderhash; hvert prisvindu beholder stigende kausale klokker. TRAIN/later-grensen er kronologisk. Samme B2-sluttrader gjentas per pass; effekt på retningsedge er ikke målt. I fire utviklingsfolder varierer 5min-OPP-andelen fra 13,65 % til 100 %, mens faktiske OPP-andeler er 50,68–51,58 %. På 70 294 gyldige 5min-rader er samlet treffrate 50,30 % mot 51,10 % for fast TRAIN-prior. Gjenbrukte utviklingsdata, ingen intervaller; terskelskjevhet er ikke årsaksbevis. Prioritert énfaktors forslag: docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json. Ingen rekkefølgekandidat er trent, ingen ny kilde-/kjøreadmisjon er gitt, og training_enabled=false.
 
 Presisering av én-/trepass-resultatet: TRAIN-foreldrene ble presentert i
 en fast MT19937-blanding, ikke i markedsrekkefølge. De to ekstra passene

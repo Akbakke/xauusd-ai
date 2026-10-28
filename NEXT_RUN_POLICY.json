@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-28T07:27:27.296545+00:00",
+  "updated_utc": "2026-10-28T07:28:50.982368+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -37269,7 +37269,7 @@
     "presentation_order_comparison_complete": false,
     "presentation_order_design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json",
-      "sha256": "e95dedf5474f4a35cb98ab6411c05022e4222d12c1e3de5ffa82e94188016569"
+      "sha256": "336c7c5af9a0b5bf7759831394f27de06d46eb8ab9a22619a8c1856abc01fbf7"
     },
     "four_fold_five_minute_threshold_bias_checked": true
   },
@@ -40813,7 +40813,7 @@
     "status": "DESIGN_ONLY_SOURCE_NOT_ADMITTED_NO_EXECUTION",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json",
-      "sha256": "e95dedf5474f4a35cb98ab6411c05022e4222d12c1e3de5ffa82e94188016569"
+      "sha256": "336c7c5af9a0b5bf7759831394f27de06d46eb8ab9a22619a8c1856abc01fbf7"
     },
     "source_edits_authorized": false,
     "genuine_data_reads_authorized": false,
