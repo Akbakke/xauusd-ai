@@ -63,3 +63,35 @@ assert state['weight'].tolist()==[1.,2.]
         torch.save({'weight': torch.tensor([1., 2.])}, checkpoint)
         result = subprocess.run([sys.executable, '-B', '-c', program, str(checkpoint)], capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
+
+
+def test_unchanged_fields_keep_bound_name_order_and_normalization_support():
+    family = 'smc_liquidity_encoder'; tfs = ('M5', 'M15', 'H1', 'H4', 'D1')
+    names = ['first', 'second', 'third']
+    profile = {'local_specialists': [family], 'mtf_specialists': [family],
+        'physical_field_names': {'ctx_cont': names}, 'ctx_cont_indices_by_specialist': {family: [0, 1, 2]},
+        'gc_mtf_field_names': {tf: names for tf in tfs},
+        'gc_mtf_family_indices': {tf: {family: [0, 1, 2]} for tf in tfs}}
+    def surface():
+        return {'field_names': names, 'binary_mask': [0, 1, 0], 'train_transformed_min': [0., 0., -1.],
+            'train_transformed_max': [0., 1., 1.], 'fit_row_count': 4}
+    normal = {'base_normalization': {'surfaces': {'ctx_cont': surface()}},
+        'gc_mtf_history': {'normalization': {'surfaces': {'gc_mtf_' + tf.lower(): surface() for tf in tfs}}}}
+    first = {'backbone.specialist_ctx_cont_proj.' + family + '.weight': torch.zeros((128, 3))}
+    for tf in tfs:
+        key = tf.lower() + '__' + family
+        first['backbone.gc_mtf_family_proj.' + key + '.weight'] = torch.zeros((128, 3))
+        first['backbone.gc_mtf_feature_context_gate.' + key + '.weight'] = torch.zeros((3, 128))
+        first['backbone.gc_mtf_feature_context_gate.' + key + '.bias'] = torch.zeros(3)
+    last = {key: value.clone() for key, value in first.items()}
+    last['backbone.specialist_ctx_cont_proj.' + family + '.weight'][0, 1] = 1
+    result = audit.map_unchanged_fields(first, last, profile, normal)
+    rows = result['gc_history_unchanged_coordinates']['M5'][family]
+    assert [r['name'] for r in rows] == names
+    assert rows[0]['projection_column_unchanged'] and rows[0]['also_unchanged_current_context']
+    assert rows[0]['train_transformed_min'] == rows[0]['train_transformed_max'] == 0
+    assert rows[1]['binary'] and not rows[1]['also_unchanged_current_context']
+    assert result['normalization_fit_rows']['M5'] == 4
+    normal['gc_mtf_history']['normalization']['surfaces']['gc_mtf_m5']['field_names'] = list(reversed(names))
+    with pytest.raises(RuntimeError, match='GC_NAME_ORDER'):
+        audit.map_unchanged_fields(first, last, profile, normal)

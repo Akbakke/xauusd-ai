@@ -1,4 +1,4 @@
-"""Compare frozen initial/trained direction projection parameters; no model forward."""
+"""Identify exact GC coordinates with unchanged direction parameters; no model forward."""
 from __future__ import annotations
 
 import argparse
@@ -13,7 +13,7 @@ import torch
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
-STAGE = 'independent_direction_gc_projection_state_audit_20261028_001'
+STAGE = 'independent_direction_gc_projection_fields_audit_20261028_002'
 SOURCE_PATHS = (
     'gx1/scripts/audit_entry_direction_gc_projection_state_v1.py',
     'gx1/scripts/audit_entry_direction_candle_midpoints_v1.py',
@@ -88,6 +88,65 @@ def analyze(first, last, profile, *, width):
         'family_fusion_output_weights': residuals}
 
 
+def map_unchanged_fields(first, last, profile, normal):
+    """Map bit-identical trained coordinates to exact bound field/normalization names."""
+    ctx_surface = normal['base_normalization']['surfaces']['ctx_cont']
+    ctx_names = list(profile['physical_field_names']['ctx_cont'])
+    require(ctx_names == ctx_surface['field_names'], 'CONTEXT_NAME_ORDER')
+    context = {}
+    for family in profile['local_specialists']:
+        indices = profile['ctx_cont_indices_by_specialist'][family]
+        if not indices:
+            continue
+        name = 'backbone.specialist_ctx_cont_proj.' + family + '.weight'
+        a, b = first[name], last[name]
+        require(tuple(a.shape) == tuple(b.shape) == (128, len(indices)), 'CONTEXT_SHAPE:' + family)
+        unchanged = torch.all(a == b, dim=0).numpy()
+        context[family] = []
+        for offset in np.flatnonzero(unchanged):
+            index = indices[int(offset)]
+            context[family].append({'name': ctx_names[index], 'binary': bool(ctx_surface['binary_mask'][index]),
+                'train_transformed_min': ctx_surface['train_transformed_min'][index],
+                'train_transformed_max': ctx_surface['train_transformed_max'][index]})
+    history = {}
+    for tf in ('M5', 'M15', 'H1', 'H4', 'D1'):
+        names = list(profile['gc_mtf_field_names'][tf])
+        surface = normal['gc_mtf_history']['normalization']['surfaces']['gc_mtf_' + tf.lower()]
+        require(names == surface['field_names'], 'GC_NAME_ORDER:' + tf)
+        history[tf] = {}
+        for family in profile['mtf_specialists']:
+            indices = profile['gc_mtf_family_indices'][tf][family]
+            if not indices:
+                continue
+            key = tf.lower() + '__' + family
+            proj = 'backbone.gc_mtf_family_proj.' + key + '.weight'
+            gate = 'backbone.gc_mtf_feature_context_gate.' + key
+            aw, bw = first[proj], last[proj]
+            ag, bg = first[gate + '.weight'], last[gate + '.weight']
+            ab, bb = first[gate + '.bias'], last[gate + '.bias']
+            require(tuple(aw.shape) == tuple(bw.shape) == (128, len(indices))
+                and tuple(ag.shape) == tuple(bg.shape) == (len(indices), 128)
+                and tuple(ab.shape) == tuple(bb.shape) == (len(indices),), 'GC_SHAPE:' + key)
+            same_projection = torch.all(aw == bw, dim=0).numpy()
+            same_gate = torch.all(ag == bg, dim=1).numpy()
+            same_bias = (ab == bb).numpy()
+            selected = np.flatnonzero(same_projection | same_gate | same_bias)
+            rows = []
+            for offset in selected:
+                index = indices[int(offset)]
+                rows.append({'name': names[index], 'binary': bool(surface['binary_mask'][index]),
+                    'train_transformed_min': surface['train_transformed_min'][index],
+                    'train_transformed_max': surface['train_transformed_max'][index],
+                    'projection_column_unchanged': bool(same_projection[offset]),
+                    'gate_weight_row_unchanged': bool(same_gate[offset]),
+                    'gate_bias_unchanged': bool(same_bias[offset]),
+                    'also_unchanged_current_context': any(item['name'] == names[index] for item in context[family])})
+            history[tf][family] = rows
+    return {'current_context_unchanged_columns': context, 'gc_history_unchanged_coordinates': history,
+        'normalization_fit_rows': {'ctx_cont': ctx_surface['fit_row_count'], **{tf: normal['gc_mtf_history']['normalization']['surfaces']['gc_mtf_' + tf.lower()]['fit_row_count'] for tf in history}},
+        'interpretation': 'Bit-identical initial versus final FP32 parameters and fitted normalization metadata; not proof of zero gradient, absence of alternative paths, or prediction impact.'}
+
+
 def main(argv=None):
     sys.dont_write_bytecode = True
     parser = argparse.ArgumentParser(description=__doc__)
@@ -115,11 +174,11 @@ def main(argv=None):
     with binding.fresh_file_verification_scope():
         plan = binding.read_bound_json(Path(plan_ref['path']), plan_ref['sha256'])
         require(set(plan) == {'schema_version', 'stage', 'design', 'inputs', 'sources', 'output_dir', 'wall_seconds', 'test_data_used'}
-            and plan['schema_version'] == 'gx1_direction_gc_projection_state_plan_v1' and plan['stage'] == STAGE
+            and plan['schema_version'] == 'gx1_direction_gc_projection_fields_plan_v1' and plan['stage'] == STAGE
             and plan['wall_seconds'] == 600 and plan['test_data_used'] is False, 'PLAN')
-        require(plan['design']['path'] == str(REPO / 'docs/DIRECTION_GC_PROJECTION_STATE_AUDIT_20261028.json'), 'DESIGN_PATH')
+        require(plan['design']['path'] == str(REPO / 'docs/DIRECTION_GC_PROJECTION_FIELDS_AUDIT_20261028.json'), 'DESIGN_PATH')
         design = binding.read_bound_json(Path(plan['design']['path']), plan['design']['sha256'])
-        require(design['schema_version'] == 'gx1_direction_gc_projection_state_design_v1'
+        require(design['schema_version'] == 'gx1_direction_gc_projection_fields_design_v1'
             and design['inputs'] == plan['inputs'] and design['test_data_used'] is False, 'DESIGN')
         policy = binding.read_bound_json(Path(policy_ref['path']), policy_ref['sha256']); gate = policy[STAGE]
         require(gate['status'] == 'ADMITTED' and gate['plan'] == plan_ref and gate['execution_authorized'] is True
@@ -133,11 +192,14 @@ def main(argv=None):
             and all(ref['path'] == str(REPO / name) for name, ref in plan['sources'].items()), 'SOURCE_SET')
         for ref in plan['sources'].values():
             candle.regular(ref['path']); binding.require_binding(ref, label='source')
-        require(set(plan['inputs']) == {'recipe', 'fit_result', 'prefix_normalization', 'initial_checkpoint', 'final_checkpoint'}, 'INPUT_SET')
+        require(set(plan['inputs']) == {'recipe', 'fit_result', 'prefix_normalization', 'initial_checkpoint', 'final_checkpoint', 'prior_state_result'}, 'INPUT_SET')
         meta = {}
-        for key in ('recipe', 'fit_result', 'prefix_normalization'):
+        for key in ('recipe', 'fit_result', 'prefix_normalization', 'prior_state_result'):
             ref = plan['inputs'][key]; meta[key] = binding.read_bound_json(Path(ref['path']), ref['sha256'])
         recipe, result, normal = meta['recipe'], meta['fit_result'], meta['prefix_normalization']
+        require(meta['prior_state_result']['status'] == 'COMPLETE'
+            and meta['prior_state_result']['final_updates'] == 2976
+            and meta['prior_state_result']['test_data_used'] is False, 'PRIOR_STATE_RESULT')
         require(recipe['numerical_recipe']['dense_minute_supervision'] is True and result['outcome'] == 'COMPLETE'
             and result['test_data_used'] is False and result['recipe'] == plan['inputs']['recipe']
             and result['own_initial_state'] == plan['inputs']['initial_checkpoint']
@@ -156,7 +218,7 @@ def main(argv=None):
     require(lock['scope'] == proof['cgroup_path'][len('/sys/fs/cgroup'):], 'CAPPED_LOCK_SCOPE')
     out = Path(plan['output_dir'])
     require(ROOT.resolve(strict=True) == ROOT and out.parent == ROOT
-        and out.name == 'DIRECTION_GC_PROJECTION_STATE_AUDIT_20261028_001'
+        and out.name == 'DIRECTION_GC_PROJECTION_FIELDS_AUDIT_20261028_002'
         and not out.exists() and not out.is_symlink(), 'OUTPUT_SCOPE')
     out.mkdir(exist_ok=False)
     def publish(path, value):
@@ -166,7 +228,7 @@ def main(argv=None):
     payloads = [plan['inputs'][k] for k in ('initial_checkpoint', 'final_checkpoint')]
     require(len({ref['path'] for ref in payloads}) == 2, 'DISTINCT_CHECKPOINTS')
     metadata = [plan_ref['path'], policy_ref['path'], plan['design']['path']]
-    metadata += [plan['inputs'][k]['path'] for k in ('recipe', 'fit_result', 'prefix_normalization')]
+    metadata += [plan['inputs'][k]['path'] for k in ('recipe', 'fit_result', 'prefix_normalization', 'prior_state_result')]
     sys.addaudithook(candle.make_guard(out, [ref['path'] for ref in payloads], metadata,
         source_paths=[ref['path'] for ref in plan['sources'].values()]))
     started = time.monotonic(); previous_handler = signal.getsignal(signal.SIGALRM); previous_profile = sys.getprofile()
@@ -196,15 +258,17 @@ def main(argv=None):
                 and last['contract_sha256'] == result['durable_checkpoint']['contract_sha256']
                 and state_owner._tree_sha(first['binding']) == state_owner._tree_sha(last['binding']), 'TRAIN_BOUNDARY')
             comparison = analyze(first['model_state'], last['model_state'], profile, width=ENTRY_DECISION_TOKEN_DIM)
+            field_support = map_unchanged_fields(first['model_state'], last['model_state'], profile, normal)
             input_snapshot = binding.capture_verified_file_snapshot()
         input_snapshot.require_unchanged(); control_snapshot.require_unchanged()
         require(candle.git_state() == initial and cap.require_capped_lock_ancestry() == lock
             and not torch.cuda.is_initialized(), 'FINAL_SOURCE_LOCK')
-        result_out = {'schema_version': 'gx1_direction_gc_projection_state_result_v1', 'status': 'COMPLETE',
+        result_out = {'schema_version': 'gx1_direction_gc_projection_fields_result_v1', 'status': 'COMPLETE',
             'plan': plan_ref, 'source_head': args.source_head, 'profile_sha256': profile['contract_sha256'],
             'matched_fit_source_owners': len(recipe['source_owners']), 'initial_updates': 0, 'final_updates': 2976,
+            'field_support': field_support,
             'trained_parent_cursor': 47602, 'comparison': comparison,
-            'scope': 'Two hash-bound first-prefix direction checkpoint parameter states; no input data, model forward or optimizer.',
+            'scope': 'Exact unchanged GC parameter coordinates joined to bound first-prefix normalization metadata; no input data or model forward.',
             'limits': 'Parameter updates and numerical matrix rank do not establish output influence, useful interaction, generalization or economic edge.',
             'new_model_forwards': 0, 'optimizer_steps': 0, 'test_data_used': False}
         publish(stage / 'RESULT.json', result_out)

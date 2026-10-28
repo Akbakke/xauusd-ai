@@ -11,7 +11,9 @@ Programrot:
 
 ## Aktuell status
 
-Én ny CPU-engangskontroll er ADMITTERT for parametrene i første og fullførte 60-minuttersmodell. Den leser bare de to hashbundne checkpointene; ingen modellforward, optimizersteg, TEST eller handel. Kilde og syntetiske tester er klare, faktisk resultat gjenstår.
+En ny avgrenset CPU-engangskontroll er ADMITTERT for å navngi koordinatene med uendrede GC-parametere og koble dem til første prefixes normaliseringsstatistikk. Ingen modellforward, trening, TEST eller handel.
+
+Engangskontroll av 60-minuttersmodellens start- og sluttparametere er FULLFØRT og KONSUMERT: alle tre residualenes 16 384 vekter endret seg fra null; SMC-kontekstmatrisen har rang 128 av 128 etter standard FP32-rangtoleranse. I M5 SMC ble 40 320 av 40 448 GC-projeksjonsvekter og 315 av 316 gate-biaser endret. Dette viser parameteroppdatering, ikke at input gir nyttig retningsprognose. Finn navngitte koordinater som var uendret og kontroller prefixstøtten. Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_STATE_AUDIT_20261028_001/OUTPUT/RESULT.json`, SHA-256 `57268760afd73589f2ab5d721ac7eb85c8932e44bfc44278093f2f78d4e00159`. Ingen modellforward, trening, TEST eller handel.
 
 Selvstendig kilde-/prefixkontroll av sammensettingen: SMC-konteksten har 1 094 aktive numeriske koordinater til én 128-dimensjonal projeksjon (616 binære, 540 `_observed`); M5 SMC projiserer 316 GC- og 76 XAU-koordinater til samme 128-dimensjonale familietoken. Alle 316 GC-navn finnes også i aktiv gjeldende kontekst. Dette er mulig informasjonspress, ikke bevist tap eller årsak til svak retning. Alle 56 kildeeierne i treningsrecipe matcher sine hasher. Se `docs/DIRECTION_GC_PROJECTION_SOURCE_REVIEW_20261028.json`. Ingen modellkall.
 

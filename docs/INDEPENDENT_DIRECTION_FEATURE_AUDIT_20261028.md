@@ -97,3 +97,12 @@ Kilde og første prefixes normaliseringsmetadata viser at den trente 60-hoderspr
 En 316-til-128 lineær rute har, ved fast kontekststyrt gate, matematiske nullretninger for vilkårlige realvektorer. Dette beviser ikke at slike kombinasjoner finnes i ekte data, at nyttig retning går tapt, eller at hele modellen mangler en alternativ rute. Det peker på en konkret hypotese: mål først modellen med og uten kausalt sammenhengende GC-informasjon på identiske senere rader, etter at den gjenskapte originalprediksjonen er kontrollert. Ingen arkitekturendring eller treningsgevinst er konkludert.
 
 Kilde-/metadata-kvittering: `docs/DIRECTION_GC_PROJECTION_SOURCE_REVIEW_20261028.json`. De 56 kildeeierne i den trente modellens recipe matcher nå sine treningshasher. Ingen checkpointlesing, modellforward, trening eller TEST ble brukt i denne kildekontrollen.
+
+
+## Hva ble faktisk oppdatert i den trente modellen?
+
+En egen CPU-kontroll leste hashbundne start- og sluttcheckpoint etter 2 976 optimizersteg, verifiserte hele state-forseglingen og samme feature-view. Alle tre sammenslåingslagene `specialist_out`, `cross_tf_out` og `family_tf_cooperation_out` startet på null og hadde endret samtlige 16 384 vekter. SMC-kontekstprojeksjonen hadde numerisk rang 128 av 128, både før og etter trening, med NumPys standard FP32-rangtoleranse. Dette viser at grenene har fått parameteroppdateringer; det er ikke en måling av deres bidrag til prognosen.
+
+I M5 SMC ble 40 320 av 40 448 GC-projeksjonsvekter endret, og 315 av 316 gate-biaser endret seg fra null. Også flere andre tidsrammegrupper hadde koordinater uten målbar parameterendring. Enkeltfelt og årsak er foreløpig ikke identifisert; neste kontroll skal binde navn og prefixstøtte før de omtales som ubrukte. AdamW hadde både læringsrate og vektforfall satt i recipe, så uendret FP32-verdi alene er ikke bevis for null gradient eller frakobling.
+
+Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_STATE_AUDIT_20261028_001/OUTPUT/RESULT.json`, SHA-256 `57268760afd73589f2ab5d721ac7eb85c8932e44bfc44278093f2f78d4e00159`. Ingen modellforward, nye optimizersteg, TEST eller økonomimåling.
