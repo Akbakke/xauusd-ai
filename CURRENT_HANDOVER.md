@@ -11,18 +11,27 @@ Programrot:
 
 ## Aktuell status
 
+Parret 1-mot-3-pass TRAIN-sammenligning er fullført og konsumert på samme
+47 602 foreldre. 5min TRAIN-AUC økte fra 0,515888 til 0,533534, og logloss
+falt fra 0,693095 til 0,692069, mot fast TRAIN-prior 0,692984. På senere
+fold1 var AUC 0,503021 mot 0,500950; begge korrigerte differanseintervaller
+omfatter null og logloss-punktestimatet forverres. Dette er en målt forskjell
+mellom TRAIN-fit og senere utvikling, ikke dokumentert handelsedge eller en
+entydig årsak. Se `docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json`.
+Alle engangsadganger og treningsporter er lukket; ingen tung jobb pågår.
+
 Parret full-TRAIN-sammenligning er syntetisk kvalifisert med 23 beståtte
 adapterkontroller. Den gjenbruker tre énpass-prefikspartisjoner og ett trepass-
 uttrekk, binder foreldre/klokker/utfall/masker og måler 1/5/15min AUC, logloss
 og Brier mot énpass og fast TRAIN-prior. Dette er beskrivende treningsfit.
 Ingen ekte prediksjonspayload eller modell er åpnet gjennom kildeadgangen.
-En separat, avgrenset engangsadgang er bundet til disse fire arkivene.
+Den separate engangsadgangen er fullført og konsumert, som beskrevet over.
 
 Full TRAIN-måling for 3-pass-terminalen er COMPLETE og konsumert: 47 602
 foreldre, 2 976 B16-forwards, eksakt 256-raders paritet, null optimizer- og
 baklengssteg og signert vakt PASS. Windows-oppgaven er deaktivert. Foreløpig
 5min TRAIN-logloss er 0,692069 etter tre pass mot 0,693095 etter ett; eksakt
-radkobling, TRAIN-AUC og parret sammenligning gjenstår. Resultatet gjelder
+radkobling og parret TRAIN-AUC er fullført som beskrevet over. Resultatet gjelder
 treningsfit og viser ikke senere generalisering eller handelsedge. Se
 `F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/ACTUAL_ROOT_REVIEW_001.json`
 under programroten.
@@ -38,7 +47,7 @@ foreldre. Ved 5min er AUC 0,503021 mot 0,500950; både dag- og ukeintervall
 for differansen omfatter null. Tre gjennomganger ga høyere logloss/Brier i
 punktestimat ved 1/5/15min. Den forhåndsbundne forbedringsgaten bestås ikke.
 Dette er én gjenbrukt utviklingsfold, ikke handelsedge eller en dom over 30
-passeringer. Parret TRAIN-vurdering på 47 602 foreldre gjenstår. Engangsadgangen
+passeringer. Parret TRAIN-vurdering på 47 602 foreldre er nå fullført. Engangsadgangen
 for sammenligningen er konsumert og alle treningsporter er lukket. Se
 `docs/DIRECTION_MATCHED_EXPOSURE_PAIRED_RESULT_20261028.json`.
 
@@ -48,7 +57,7 @@ AUC, logloss og Brier. Fast antall trekk, seed og lineær kvantilmetode er
 bundet før adgang til prediksjonene. 11 adapterkontroller bestod etter siste
 kildeendring; ingen ekte payload, modellforward eller optimizer ble brukt.
 Den etterfølgende CPU-sammenligningen er fullført og konsumert, som beskrevet
-ovenfor. Parret TRAIN-sammenligning for 47 602 foreldre gjenstår.
+ovenfor. Parret TRAIN-sammenligning for 47 602 foreldre er nå fullført.
 
 Fast 10min-krysshodeanalyse gjelder fire TRAIN-utviklingsfolder: native5/15-
 skårer sammenlignes med ET252 på identiske modne 10min-fasiter. Den første

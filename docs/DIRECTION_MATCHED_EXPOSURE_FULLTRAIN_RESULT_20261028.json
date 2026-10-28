@@ -1,0 +1,586 @@
+{
+  "schema_version": "gx1_matched_exposure_fulltrain_review_v1",
+  "status": "COMPLETE_TRAIN_FIT_REUSED_LATER_NO_DOCUMENTED_GENERALIZATION",
+  "reviewed_utc": "2026-10-28T05:30:44.813870+00:00",
+  "source_head": "8a706e034ec105cbb8abf46cb1510118649c7b6c",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/TRAIN_EXPOSURE_PAIRED_PLAN_20261028_001.json",
+    "sha256": "ce4d48adf9be37350759633f03a621a95df17ad022f07579cb271073dd58b51c"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/TRAIN_EXPOSURE_PAIRED_RESULT_20261028_001/RESULT.json",
+    "sha256": "59cb71d3cbc8636f5c81ed9294a9fc4e788b07c83413636b7af9bb66f0820de9"
+  },
+  "outer_terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/TRAIN_EXPOSURE_PAIRED_OUTER_TERMINAL_20261028_001.json",
+    "sha256": "67d664ff8035eedf6512f75d6593e5b0f59c02987dbd83a249ca91dee00ce2dc"
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/TRAIN_EXPOSURE_PAIRED_RESULT_20261028_001/CLAIM.json",
+    "sha256": "ace42cb0ba52d5837283bbc74b4e70d1772b712d07d3d944dad02faac04a8005"
+  },
+  "worker_log": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/TRAIN_EXPOSURE_PAIRED_WORKER_20261028_001.log",
+    "sha256": "c54fc468497910f38c7df74b87a845e9bb9b0e6a673d6ee1fb506e0ef9b56f7c"
+  },
+  "fulltrain_extraction_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+    "sha256": "5fa8ea86bb585d1ecdcecb08243049c417dc9f03825614610af536ac169f579a"
+  },
+  "later_development_review": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_PAIRED_RESULT_20261028.json",
+    "sha256": "45029be6927ee78c615556fe36cee9707523d07758cf3345c2bc6dc8aac11eb1"
+  },
+  "predeclared_protocol": {
+    "train_parents": 47602,
+    "horizons_minutes": [
+      1,
+      5,
+      15
+    ],
+    "primary_horizon_minutes": 5,
+    "metrics": [
+      "auc",
+      "logloss",
+      "brier"
+    ],
+    "references": [
+      "one_pass",
+      "fixed_prefix_prevalence"
+    ],
+    "identity": "Exact parent, presentation index, decision and terminal clocks, labels, masks and context before filtering.",
+    "eligibility": "observed AND sign != 0 AND terminal_time < fixed TRAIN cutoff per horizon",
+    "intervals": "No inference intervals: fixed-model TRAIN scores are descriptive in-sample evidence.",
+    "no_threshold_or_checkpoint_selection": true,
+    "test_data_used": false
+  },
+  "matched_parent_rows": 47602,
+  "matched_parent_presentation_clock_target_mask_contexts": true,
+  "original_scores_reproduced": true,
+  "train_panels": [
+    {
+      "arms": {
+        "fixed_prior": {
+          "auc": 0.5,
+          "brier": 0.24998413494931837,
+          "down_rows": 23474,
+          "logloss": 0.6931154501229739,
+          "up_rows": 23851
+        },
+        "one_pass": {
+          "auc": 0.5177255819493396,
+          "brier": 0.24992800261499984,
+          "down_rows": 23474,
+          "logloss": 0.6930031503377937,
+          "up_rows": 23851
+        },
+        "three_pass": {
+          "auc": 0.5303479358893759,
+          "brier": 0.24943201347767938,
+          "down_rows": 23474,
+          "logloss": 0.6920097814742214,
+          "up_rows": 23851
+        }
+      },
+      "counts": {
+        "eligible": 47325,
+        "immature": 0,
+        "mature_missing": 6,
+        "observed_mature_zero": 271,
+        "parents": 47602
+      },
+      "horizon_minutes": 1,
+      "role": "secondary_descriptive",
+      "three_minus_one": {
+        "auc": 0.012622353940036302,
+        "brier": -0.0004959891373204628,
+        "logloss": -0.0009933688635722637
+      },
+      "three_minus_prior": {
+        "auc": 0.0303479358893759,
+        "brier": -0.0005521214716389944,
+        "logloss": -0.0011056686487525003
+      }
+    },
+    {
+      "arms": {
+        "fixed_prior": {
+          "auc": 0.5,
+          "brier": 0.24991853209022,
+          "down_rows": 23227,
+          "logloss": 0.6929842358898709,
+          "up_rows": 24081
+        },
+        "one_pass": {
+          "auc": 0.515888213111177,
+          "brier": 0.2499739069038562,
+          "down_rows": 23227,
+          "logloss": 0.6930949653655264,
+          "up_rows": 24081
+        },
+        "three_pass": {
+          "auc": 0.5335340953576608,
+          "brier": 0.24946183374336536,
+          "down_rows": 23227,
+          "logloss": 0.692069450618586,
+          "up_rows": 24081
+        }
+      },
+      "counts": {
+        "eligible": 47308,
+        "immature": 0,
+        "mature_missing": 182,
+        "observed_mature_zero": 112,
+        "parents": 47602
+      },
+      "horizon_minutes": 5,
+      "role": "primary_descriptive",
+      "three_minus_one": {
+        "auc": 0.01764588224648378,
+        "brier": -0.0005120731604908446,
+        "logloss": -0.001025514746940348
+      },
+      "three_minus_prior": {
+        "auc": 0.03353409535766083,
+        "brier": -0.00045669834685463373,
+        "logloss": -0.000914785271284857
+      }
+    },
+    {
+      "arms": {
+        "fixed_prior": {
+          "auc": 0.5,
+          "brier": 0.24979178309732436,
+          "down_rows": 22832,
+          "logloss": 0.6927306889296232,
+          "up_rows": 24189
+        },
+        "one_pass": {
+          "auc": 0.5288127732601442,
+          "brier": 0.24998689009191843,
+          "down_rows": 22832,
+          "logloss": 0.6931200983184412,
+          "up_rows": 24189
+        },
+        "three_pass": {
+          "auc": 0.549046513900418,
+          "brier": 0.24883668493886726,
+          "down_rows": 22832,
+          "logloss": 0.6908099486284376,
+          "up_rows": 24189
+        }
+      },
+      "counts": {
+        "eligible": 47021,
+        "immature": 0,
+        "mature_missing": 529,
+        "observed_mature_zero": 52,
+        "parents": 47602
+      },
+      "horizon_minutes": 15,
+      "role": "secondary_descriptive",
+      "three_minus_one": {
+        "auc": 0.020233740640273834,
+        "brier": -0.0011502051530511703,
+        "logloss": -0.002310149690003649
+      },
+      "three_minus_prior": {
+        "auc": 0.04904651390041803,
+        "brier": -0.0009550981584570961,
+        "logloss": -0.0019207403011856083
+      }
+    }
+  ],
+  "later_panels": [
+    {
+      "arms": {
+        "one": {
+          "auc": 0.5008823371328807,
+          "brier": 0.25003141374759247,
+          "down": 8661,
+          "logloss": 0.6932100209568366,
+          "up": 8554
+        },
+        "three": {
+          "auc": 0.5051618996651387,
+          "brier": 0.25023786363856837,
+          "down": 8661,
+          "logloss": 0.6936247420604689,
+          "up": 8554
+        }
+      },
+      "counts": {
+        "eligible": 17215,
+        "immature": 0,
+        "mature_missing": 0,
+        "observed_mature_zero": 73,
+        "parents": 17288
+      },
+      "eligible_rows": 17215,
+      "group_intervals": [
+        {
+          "blocks": 77,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5143337628352069,
+              "low": 0.4883832235812353,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5205930685669343,
+              "low": 0.49007611954286656,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_DAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.01446333745511323,
+              "low": -0.006105546818971915,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0005765425916119673,
+              "low": -0.00015313595344885117,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00115618133544461,
+              "low": -0.0003061123886762101,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "e5f7bbbf3a99d8efe87b8d63c2e129a151ca07e1893832515e73ea245d9f48a6"
+        },
+        {
+          "blocks": 14,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5174087548886399,
+              "low": 0.4849412468011099,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.523366697970718,
+              "low": 0.48893890321171835,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_WEEK_MONDAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.016229134367058827,
+              "low": -0.006992787949424857,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0005428805791373969,
+              "low": -0.0001920570303025107,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0010890345990998231,
+              "low": -0.00038322037955957407,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "c9f10706583a8efcff0b9bd79e7a13865aadab457c78d1d0448f368d5dc2ce6a"
+        }
+      ],
+      "horizon_minutes": 1,
+      "role": "secondary_descriptive",
+      "three_minus_one": {
+        "auc": 0.00427956253225803,
+        "brier": 0.0002064498909759016,
+        "logloss": 0.0004147211036322762
+      }
+    },
+    {
+      "arms": {
+        "one": {
+          "auc": 0.5030210874582608,
+          "brier": 0.25018347255922013,
+          "down": 8327,
+          "logloss": 0.6935141662580235,
+          "up": 8870
+        },
+        "three": {
+          "auc": 0.5009502780173811,
+          "brier": 0.25033979685368585,
+          "down": 8327,
+          "logloss": 0.6938274106947214,
+          "up": 8870
+        }
+      },
+      "counts": {
+        "eligible": 17197,
+        "immature": 1,
+        "mature_missing": 63,
+        "observed_mature_zero": 27,
+        "parents": 17288
+      },
+      "eligible_rows": 17197,
+      "group_intervals": [
+        {
+          "blocks": 77,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5144080817412565,
+              "low": 0.4921114317194321,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5119271271565357,
+              "low": 0.49045860977161065,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_DAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.005429077263671308,
+              "low": -0.009444424138352973,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00034818582700948546,
+              "low": -2.3954332972499438e-05,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0006975139394303471,
+              "low": -4.7840467959401334e-05,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "e5f7bbbf3a99d8efe87b8d63c2e129a151ca07e1893832515e73ea245d9f48a6"
+        },
+        {
+          "blocks": 14,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5135114469187598,
+              "low": 0.4928876886878295,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5099830613225541,
+              "low": 0.492944208543254,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_WEEK_MONDAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00368584141662752,
+              "low": -0.007676017084350528,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0002718327816819749,
+              "low": 5.453712554931789e-05,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0005443297305474595,
+              "low": 0.00010884542308368491,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "c9f10706583a8efcff0b9bd79e7a13865aadab457c78d1d0448f368d5dc2ce6a"
+        }
+      ],
+      "horizon_minutes": 5,
+      "role": "primary",
+      "three_minus_one": {
+        "auc": -0.002070809440879673,
+        "brier": 0.00015632429446571505,
+        "logloss": 0.00031324443669789037
+      }
+    },
+    {
+      "arms": {
+        "one": {
+          "auc": 0.5078696881640574,
+          "brier": 0.2508320253008091,
+          "down": 8131,
+          "logloss": 0.6948129937765292,
+          "up": 8949
+        },
+        "three": {
+          "auc": 0.5066797780379144,
+          "brier": 0.251683002920196,
+          "down": 8131,
+          "logloss": 0.6965271292066971,
+          "up": 8949
+        }
+      },
+      "counts": {
+        "eligible": 17080,
+        "immature": 3,
+        "mature_missing": 189,
+        "observed_mature_zero": 16,
+        "parents": 17288
+      },
+      "eligible_rows": 17080,
+      "group_intervals": [
+        {
+          "blocks": 77,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5208339531388214,
+              "low": 0.4955335794580196,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5211729599631902,
+              "low": 0.4922128884106009,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_DAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00745543164107428,
+              "low": -0.010070105929006559,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0013914639380116847,
+              "low": 0.00033181664697334265,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0028004033134775845,
+              "low": 0.0006688306344046536,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "e5f7bbbf3a99d8efe87b8d63c2e129a151ca07e1893832515e73ea245d9f48a6"
+        },
+        {
+          "blocks": 14,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5178441302206885,
+              "low": 0.4984185289837484,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5178479438730643,
+              "low": 0.4948519072997662,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_WEEK_MONDAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.006207647291855072,
+              "low": -0.00924047348492646,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00153711262579459,
+              "low": 0.0002585985666215838,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.003093287246946788,
+              "low": 0.0005217910220151004,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "c9f10706583a8efcff0b9bd79e7a13865aadab457c78d1d0448f368d5dc2ce6a"
+        }
+      ],
+      "horizon_minutes": 15,
+      "role": "secondary_descriptive",
+      "three_minus_one": {
+        "auc": -0.0011899101261430012,
+        "brier": 0.0008509776193869056,
+        "logloss": 0.0017141354301679623
+      }
+    }
+  ],
+  "later_primary_support": {
+    "auc": false,
+    "brier": false,
+    "logloss": false
+  },
+  "interpretation": "Three passes improve fixed-model TRAIN AUC and proper-score points on all three horizons, including five-minute logloss versus fixed TRAIN prevalence. The predeclared later-development five-minute paired AUC interval includes zero for both day/week; proper-score point estimates are worse. This describes a training-to-later generalization gap and is consistent with overfitting or distribution shift, but does not establish a unique cause or rule out another training design.",
+  "limitations": [
+    "One repeatedly reused chronological development fold; no untouched confirmation.",
+    "TRAIN scores are in-sample descriptive, not a test of future performance.",
+    "Original endpoint-sign BCE treats small and large nonzero moves alike, and does not encode first favorable/adverse order, FLAT or execution costs.",
+    "The compared direction heads are only 1/5/15 minutes; the result does not evaluate trained 10/60-minute heads or 30 epochs.",
+    "No trading, cost-adjusted economics, broker or TEST result is established."
+  ],
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}
