@@ -127,5 +127,138 @@
   "source_edits_authorized": false,
   "genuine_execution_authorized": false,
   "economic_edge_qualified": false,
-  "created_utc": "2026-10-28T07:23:02.693877+00:00"
+  "created_utc": "2026-10-28T07:23:02.693877+00:00",
+  "four_chronological_development_folds": {
+    "seed": 20260911,
+    "order": "Each fold uses its own fixed MT19937 permutation of its complete prefix; same order within its resumed windows.",
+    "five_minute_rows": [
+      {
+        "fold_id": 1,
+        "training_cutoff_ns": 1735689600000000000,
+        "later_cutoff_ns": 1743465600000000000,
+        "train_parents": 47602,
+        "parent_order_sha256": "5a92eba23f101f139b758098e04abdc432e8e3bba032a94a3b0a656a21f0f43f",
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RECIPE.json",
+          "sha256": "8ba298a148af3b923c7b4a567f98bf8ddd2eaef1e4eeb5144e2a785e9f9e2d93"
+        },
+        "window_results": [
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0001/RESULT.json",
+            "sha256": "889103d6a81cf725e7ee4e676c0ecf294774dd6eacd7af44b77f9ab871441912"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/RESULT.json",
+            "sha256": "af6dcf99a393199cd86f2ab99c267e6c7c21338fa06d21aae7a87d65b93edfeb"
+          }
+        ],
+        "oof_aggregate": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/OOF.json",
+          "sha256": "76cf81ac015abe30e9c1d27d3e837ee477a83703d6775cc518c6100662ca395f"
+        },
+        "five_minute_eligible": 17197,
+        "predicted_up": 2348,
+        "actual_up": 8870,
+        "predicted_up_fraction": 0.13653544222829564,
+        "actual_up_fraction": 0.5157876373786126,
+        "accuracy": 0.488515438739315
+      },
+      {
+        "fold_id": 2,
+        "training_cutoff_ns": 1743465600000000000,
+        "later_cutoff_ns": 1751328000000000000,
+        "train_parents": 64890,
+        "parent_order_sha256": "1342e1cbce98ea6f26ea43a0873b67d146c27de2785e19879a160b7f47bfa83f",
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD2_20261025_277/RECIPE.json",
+          "sha256": "a171c1e55d86cd3f87eb6c7d32af447004189501d16eaa3cb478c19385f61c4c"
+        },
+        "window_results": [
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD2_20261025_277/RUNTIME/prefix-fit/window-0001/RESULT.json",
+            "sha256": "053589c2460ce2e803a4bf92df757515bdd07d6d12513eec9f04252d51f44625"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD2_20261025_277/RUNTIME/prefix-fit/window-0002/RESULT.json",
+            "sha256": "a098d5892df3e784a910f64eeb8e4c52a085bc4d18f0b2396ec0f93f4655251e"
+          }
+        ],
+        "oof_aggregate": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD2_20261025_277/RUNTIME/prefix-fit/window-0002/OOF.json",
+          "sha256": "fcfc17ce6409b0a6dd046fecf08ea461538ab00bd6eb9537588b54eda1d7d18c"
+        },
+        "five_minute_eligible": 17458,
+        "predicted_up": 10969,
+        "actual_up": 8848,
+        "predicted_up_fraction": 0.628307939053729,
+        "actual_up_fraction": 0.5068163592622293,
+        "accuracy": 0.5036659411158209
+      },
+      {
+        "fold_id": 3,
+        "training_cutoff_ns": 1751328000000000000,
+        "later_cutoff_ns": 1759276800000000000,
+        "train_parents": 82427,
+        "parent_order_sha256": "0de51fccfd82544a098b150ee3b179a6e6e393c51d4d4b807ff42d34ecceb420",
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/RECIPE.json",
+          "sha256": "cadb6b7d994b748c7fcd74389fdebe9bfbf88658b881f6b8e9e3c0da4321de29"
+        },
+        "window_results": [
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/RUNTIME/prefix-fit/window-0001/RESULT.json",
+            "sha256": "b0f6cc1fe266a8c7296ecd3118dad4cd1c10be82a8aa3a704ef7b165103ddd8e"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/RUNTIME/prefix-fit/window-0002/RESULT.json",
+            "sha256": "6a6408ce1b2ed8148508fcac33559ed8a155075ecdcc7224c6429112646ebbf4"
+          }
+        ],
+        "oof_aggregate": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/RUNTIME/prefix-fit/window-0002/OOF.json",
+          "sha256": "d64a2bab455df8288016d210d2163067f4d16627435d5d89392315bd55a6d20b"
+        },
+        "five_minute_eligible": 17977,
+        "predicted_up": 16428,
+        "actual_up": 9137,
+        "predicted_up_fraction": 0.9138343438838515,
+        "actual_up_fraction": 0.5082605551538076,
+        "accuracy": 0.5062023696946097
+      },
+      {
+        "fold_id": 4,
+        "training_cutoff_ns": 1759276800000000000,
+        "later_cutoff_ns": 1767225600000000000,
+        "train_parents": 100499,
+        "parent_order_sha256": "ea8914498b9cd8edff72c4e4b70c51c658e2d499894c7d35ceef40ef6b59ac5a",
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD4_20261025_280/RECIPE.json",
+          "sha256": "4e911af3a16f28ae810209ffbd4c90000f3d9c5ceddc9a375a83c5b19ecdb453"
+        },
+        "window_results": [
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD4_20261025_280/RUNTIME/prefix-fit/window-0001/RESULT.json",
+            "sha256": "2469526eab1111c5c085f7c2919f5bc621afec7a39e801eef21da1e932a409bf"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD4_20261025_280/RUNTIME/prefix-fit/window-0002/RESULT.json",
+            "sha256": "c2723f8bad2b1df5aaf1e9a3f17c39784a525897dd6de947e20a9a4594d2e11b"
+          }
+        ],
+        "oof_aggregate": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD4_20261025_280/RUNTIME/prefix-fit/window-0002/OOF.json",
+          "sha256": "af2f57a221bfbe984c45b8e5be42ae0dfa2d002d5120e16f92d8e0a1e9c67a66"
+        },
+        "five_minute_eligible": 17662,
+        "predicted_up": 17662,
+        "actual_up": 9065,
+        "predicted_up_fraction": 1.0,
+        "actual_up_fraction": 0.5132487826973162,
+        "accuracy": 0.5132487826973162
+      }
+    ],
+    "interpretation": "Across four reused chronological development folds the zero-logit UP decision share moves from 13.65% to 100%, while realized UP share remains 50.68% to 51.58%. This is threshold/class imbalance and not proof the underlying scores are constant, nor proof the training order causes the imbalance. Models and training prefixes differ between folds.",
+    "no_new_predictions_or_fit": true,
+    "test_data_used": false
+  }
 }
