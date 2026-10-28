@@ -11,9 +11,10 @@ Programrot:
 
 ## Aktuell status
 
-Sammenligningen av 5min sluttfortegn og første treff er syntetisk kvalifisert
-med 9 kontroller. Tidligere deknings- og AUC-resultat må reproduseres.
-Engangsadgangen er konsumert; ekte måling krever fersk avgrenset admisjon.
+Én avgrenset 5min-sammenligning av sluttfortegn og første treff er admittért.
+Den må gjenskape tidligere dekning og AUC på 1 042 kjente foreldre før
+sammenligningen publiseres. Ingen nye modellkall, CONTROL eller TEST. Kilde
+og policy er fryst under målingen; engangsplanen skal ikke relanseres.
 
 Første-treff-kontrollen er COMPLETE og konsumert på 17 288 gjenbrukte
 fold1-utviklingsforeldre, alle minutter 1–60 og fast 10bps gross quote. Ved

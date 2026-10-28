@@ -40231,5 +40231,25 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_SYNTHETIC_20261028_001/OUTER.log",
       "sha256": "0ecc9e238840959ee732040e30bc795c3bd3020b4c585884470cf93d2551f50e"
     }
+  },
+  "direction_first_hurdle_endpoint_alignment_actual_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_ACTUAL_PLAN_20261028_001.json",
+      "sha256": "cb9868eeabba724914e02e0d520401a6dbd7a39966f5a6c2f0bcc2a67340c3ff"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "max_wall_seconds": 300,
+    "capped_cpu_audit_memory": "4G",
+    "scope": "The same 2025 M1 partition, saved TRAIN targets and fold1 OOF archive. Recompute only 5min first hit, verify 1042-row prior result, then compare endpoint sign on the same rows.",
+    "model_calls_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
