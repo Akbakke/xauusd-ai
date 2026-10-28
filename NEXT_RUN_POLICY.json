@@ -40116,5 +40116,25 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_SYNTHETIC_20261028_001/OUTER.log",
       "sha256": "8cb7a00dac4ee3b13537d231eadd9fe48240f4dc1fd23333594bf71cca596274"
     }
+  },
+  "direction_first_hurdle_oof_actual_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_PLAN_20261028_001.json",
+      "sha256": "3af695099945965fd1c3ef7ff4019afae384d33b77ee31b9982cab906b02a517"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "max_wall_seconds": 900,
+    "capped_cpu_audit_memory": "4G",
+    "scope": "Exactly the bound 2025 M1 year partition, saved TRAIN targets and one original fold1 OOF prediction archive; fixed 10bps, 1..60min first-hurdle outcomes and conditional 5min ranking. No 2026 source or combined pretest quote file.",
+    "model_calls_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
