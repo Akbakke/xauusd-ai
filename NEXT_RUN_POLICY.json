@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Bind and run once a capped CPU-only descriptive TRAIN comparison on the three fixed one-pass partitions and one completed three-pass output; close the authority afterward.",
+    "current_activity": "Run the unique capped CPU saved-output comparison once; verify the original terminal receipt, then close the consumed admission.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "THREEPASS_FULLTRAIN_PAIRED_SOURCE_QUALIFIED_EXECUTION_PENDING",
+    "status": "THREEPASS_FULLTRAIN_PAIRED_SCORING_ADMITTED_TRAINING_CLOSED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "direction_threepass_train_paired_actual_20261028_001",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Bind and run once a capped CPU-only descriptive TRAIN comparison on the three fixed one-pass partitions and one completed three-pass output; close the authority afterward.",
+    "next_action": "Run the unique capped CPU saved-output comparison once; verify the original terminal receipt, then close the consumed admission.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -39722,5 +39722,49 @@
       "tests/test_compare_entry_direction_train_exposure_v1.py": "54e073b4baa5a95c67259657a76df980af850556ba7fb0b20ac8bdf5ece47056"
     },
     "synthetic_qualification": "23 capped synthetic adapter and prior paired-comparison tests passed. Exact metadata identities of all three baseline partitions and three-pass extraction were checked without genuine payload reads."
+  },
+  "direction_threepass_train_paired_actual_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/TRAIN_EXPOSURE_PAIRED_PLAN_20261028_001.json",
+      "sha256": "ce4d48adf9be37350759633f03a621a95df17ad022f07579cb271073dd58b51c"
+    },
+    "protocol": {
+      "train_parents": 47602,
+      "horizons_minutes": [
+        1,
+        5,
+        15
+      ],
+      "primary_horizon_minutes": 5,
+      "metrics": [
+        "auc",
+        "logloss",
+        "brier"
+      ],
+      "references": [
+        "one_pass",
+        "fixed_prefix_prevalence"
+      ],
+      "identity": "Exact parent, presentation index, decision and terminal clocks, labels, masks and context before filtering.",
+      "eligibility": "observed AND sign != 0 AND terminal_time < fixed TRAIN cutoff per horizon",
+      "intervals": "No inference intervals: fixed-model TRAIN scores are descriptive in-sample evidence.",
+      "no_threshold_or_checkpoint_selection": true,
+      "test_data_used": false
+    },
+    "execution_authorized": true,
+    "genuine_prediction_reads_authorized": true,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "max_wall_seconds": 600,
+    "capped_cpu_audit_memory": "4G",
+    "scope": "Exactly three one-pass saved representations and one three-pass saved representation, TRAIN rows only; no model, checkpoints, raw data, fitting or threshold selection."
   }
 }
