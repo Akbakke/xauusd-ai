@@ -538,3 +538,8 @@ deaktivert, trening stengt og vindu 3–4 tilbakekalt. Aggregert logloss og Brie
 er høyere etter tre pass ved alle tre horisonter, men AUC og parrede intervaller
 er ennå ikke beregnet. Full TRAIN-vurdering på 47602 rader gjenstår.
 ACTUAL_ROOT_REVIEW_001.json SHA-256 78a123219f19c70ecdc2a2b1a5b6f5110f0563edcb5484e307e77baad1defd1f. Ingen edge er dokumentert.
+
+En ny kildeavgrensning for parret én-/trepass-evaluering er admittert. Den
+skal kontrollere identiske foreldre, klokker, utfall og masker samt beregne
+5min AUC og logloss/Brier med felles dag-/ukeblokker. Ingen genuine prediksjoner,
+modellkall eller trening åpnes før separat faktisk engangsadmisjon.
