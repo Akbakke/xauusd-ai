@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:49:05.254924+00:00",
-  "status": "DENSE_ONEPASS_UNCERTAINTY_COMPLETE_NO_QUALIFIED_EDGE_FEATURE_AUDIT_CONTINUES",
+  "observed_utc": "2026-10-28T15:52:41.627678+00:00",
+  "status": "DIRECTION_HISTORY_CLOCK_AUDIT_ADMITTED_NOT_YET_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve completed 60-minute intervals and original targets. Continue verifying compact feature delivery, real coverage and learned composition with separately bound chronological development diagnostics; no TEST, broker or trading.",
+  "next_action": "Run one capped source-clock audit of actual 96-row M5 windows and fixed later prediction cohorts; preserve all source data and model state. No model forward, training, TEST or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -41949,5 +41949,27 @@
       "source": "candidate saved OOF report calibration bins",
       "interpretation": "reused later fold descriptive; threshold calibration cannot change AUC ranking"
     }
+  },
+  "independent_direction_history_clock_audit_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_HISTORY_CLOCK_PLAN_20261028_001.json",
+      "sha256": "3d16b03946e585e9ff0c0e292892f7a8353cf3e19afcd109684ab78c719df3ed"
+    },
+    "execution_authorized": true,
+    "source_time_column_reads_authorized": true,
+    "prediction_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_or_trading_authority": false,
+    "scope": "Actual 96-row source-clock gaps for pre-2026 parents, with descriptive fixed later 5m/60m scores by gap group."
   }
 }

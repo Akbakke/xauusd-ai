@@ -1,0 +1,38 @@
+{
+  "schema_version": "gx1_direction_history_clock_design_v1",
+  "status": "EXACT_ONE_SHOT_ADMITTED",
+  "purpose": "Measure how often the actual M5 feature-source clock makes the 96 observed-row model window longer than 480 elapsed minutes, and describe fixed 5m/60m direction scores by presence of a history gap.",
+  "parents": 118249,
+  "sequence_rows": 96,
+  "predefined_populations": "all pre-2026 parents, fold1 TRAIN parents 0:47602, fold1 later parents 47602:64890",
+  "predefined_comparison": "gap count zero versus one or more in 96 source rows; fixed stored 5m and 60m predictions only, with own horizon masks",
+  "source_access": "Hash the exact 2.46GB pre-TEST feature surface once, read only its time column, plus bound original target axes and saved OOF predictions. No feature values, M1 source, weights or model calls.",
+  "limitations": "Window gaps and score differences are descriptive, confounded and have no uncertainty intervals; never infer cause, trading edge or a preferred horizon from this cohort. The source surface includes history before 2024 and pre-TEST development through June 2026; parent targets stay strictly before 2026.",
+  "inputs": {
+    "surface_metadata": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_CURRENT_PHYSICAL_METADATA_VIEW_20261019_051/SOURCE_RECONSTRUCTION_train.json",
+      "sha256": "f9ddf882de5b2481a274849d5775e23197b2012b6599a52c1078286a85fc2c55"
+    },
+    "surface_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/SURFACES_050/M5_FEATURE_BASE_050.parquet.manifest.json",
+      "sha256": "2faacdca663e3192e0fd17ef877ef2ca6527b6fc0b9e156e714251a13fc19283"
+    },
+    "surface": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/SURFACES_050/M5_FEATURE_BASE_050.parquet",
+      "sha256": "ea2748cc506c02fed166a2ddf75db3759cfe98befe51c83ee0d88600ed2269fe"
+    },
+    "target": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "candidate_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451"
+    },
+    "candidate_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    }
+  },
+  "test_data_used": false
+}
