@@ -11,6 +11,10 @@ Programrot:
 
 ## Aktuell status
 
+Evalueringsprotokollen krever nå både vanlig TRAIN-prior og en separat
+størrelsesvektet TRAIN-prior. Dette hindrer at endret vektet klasseandel
+alene tolkes som lært markedsinformasjon. Primær sammenligningsgate er uendret.
+
 Kilde-/metadata-kontroll viser at kompakt retningsbaseline velger bort
 32 lokale chart-geometrifelt og 39 slike MTF-felt per tidsramme. Samtlige
 hadde ikke-konstant transformert min/maks i fold1-prefiksets eksisterende

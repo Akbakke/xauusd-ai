@@ -40762,14 +40762,15 @@
     "status": "FIXED_PROTOCOL_NO_EXECUTION",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAG_WEIGHT_EVALUATION_PROTOCOL_20261028.json",
-      "sha256": "80b94486789eb4859287670b7c46e2ed657c09c0a708e6fd5e97b1b3fa4cd17f"
+      "sha256": "59bff38d979a02015548e4ed60bb526067ec77bd4985e7d3ac98cb85da74b300"
     },
     "source_edits_authorized": false,
     "execution_authorized": false,
     "data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "revision": "Before candidate or scoring, fixed separate unweighted and weighted own-TRAIN constant references; primary gate unchanged."
   },
   "direction_bounded_magnitude_private_qualification_proposal_20261028": {
     "status": "PROPOSED_NOT_ADMITTED",

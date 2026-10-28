@@ -16,7 +16,7 @@
     "scope": "Previously reused chronological TRAIN-development split, not CONTROL, sealed TEST, economic validation or independent final evidence."
   },
   "comparison": {
-    "baseline": "Unchanged native276 one-pass sign-only original saved 1/5/15 logits; own-prefix prior also reported.",
+    "baseline": "Unchanged native276 one-pass sign-only original saved 1/5/15 logits. Both own-prefix constants defined in prefix_constant_references are also reported.",
     "candidate": "One fresh one-pass magnitude-weighted sign BCE candidate under identical 1/5/15 inputs, seed, architecture, order, optimizer, masks and cutoff; no checkpoint or seed selection.",
     "primary_horizon_minutes": 5,
     "secondary_horizons_minutes": [
@@ -28,8 +28,8 @@
     "direction_auc": "Within fixed eligible 5min observed, mature and nonzero outcomes; candidate minus baseline, larger better.",
     "logloss": "Unweighted Bernoulli logloss, candidate minus baseline, smaller better.",
     "brier": "Unweighted Brier score, candidate minus baseline, smaller better.",
-    "magnitude_weighted_logloss": "Candidate and baseline on identical cells using u=abs(return_bps)/(own-prefix RMS+abs(return_bps)); w=u/own-prefix eligible mean(u); report weighted BCE divided by eligible count. RMS and mean fitted strictly before TRAIN cutoff; diagnostic only.",
-    "other": "Report eligible counts, class balance and means; include fixed prior and raw TRAIN versus later fit. No adaptive threshold, price-band, subgroup or trade-selection search."
+    "magnitude_weighted_logloss": "Candidate, unchanged native, ordinary prior and weighted prior on identical eligible cells using the exact fixed CPU float32 weight arithmetic specified in prefix_constant_references; average w times stable BCE over eligible-cell count. Both prior logits come from own TRAIN prefix only. Diagnostic only.",
+    "other": "Report eligible counts, class balance, ordinary and weighted TRAIN-prefix priors, and raw TRAIN versus later fit. No adaptive threshold, price-band, subgroup or trade-selection search."
   },
   "bootstrap": {
     "unit": "All later parents resampled as UTC calendar-day blocks and separately Monday-based UTC-week blocks; masks stay attached and scores paired.",
@@ -50,7 +50,8 @@
   "predeclared_gate": {
     "criterion": "Both block intervals for candidate-minus-baseline AUC have lower bound > 0, and both intervals for candidate-minus-baseline unweighted logloss and Brier have upper bound <= 0.",
     "interpretation": "This strict gate is a research advance on a reused development fold, not proof of independent generalization, first-hit quality or economic edge. Failure is not proof that weighting or 30 epochs can never work.",
-    "zero_reference": "Both individual baseline and candidate direction AUC and day/week intervals relative to 0.5 reported; relative improvement alone does not establish positive absolute edge."
+    "zero_reference": "Both individual baseline and candidate direction AUC and day/week intervals relative to 0.5 reported; relative improvement alone does not establish positive absolute edge.",
+    "criterion_unchanged": "The primary AUC, logloss and Brier advance gate is unchanged; the newly specified weighted prior prevents interpreting a changed weighted base rate as a learned feature signal."
   },
   "stops": [
     "Stop on unequal row or label identity, cutoff, source, initialization, scale, mask, nonfinite score, resource, guard, time or resume mismatch.",
@@ -60,5 +61,21 @@
   ],
   "no_execution_in_this_document": true,
   "test_data_used": false,
-  "economic_edge_qualified": false
+  "economic_edge_qualified": false,
+  "prefix_constant_references": {
+    "status": "FIXED_BEFORE_CANDIDATE_OR_LATER_SCORING",
+    "eligible": "Only each horizon own TRAIN-prefix observed, nonzero-sign cells whose terminal time is strictly before its prefix cutoff.",
+    "ordinary_prior": "p0_h = count(up_h)/(count(up_h)+count(down_h)); z0_h = log(p0_h/(1-p0_h)).",
+    "weighted_prior": "For the same eligible rows and the candidate frozen own-prefix weight contract, pW_h = sum(w_h * 1[sign_h=UP])/sum(w_h); zW_h = log(pW_h/(1-pW_h)).",
+    "weight_computation": "Compute abs(return_bps), RMS, and eligible-prefix raw_weight_mean in float32; u=abs(r)/(RMS+abs(r)), w=u/raw_weight_mean, then sum weights in float64. Reuse the candidate own-prefix fitted RMS and raw mean unchanged when scoring later rows.",
+    "requirement": "Both up and down weighted masses must be finite and strictly positive; stop on a mismatch in TRAIN target identity, cutoff, sign, mask, frozen weight contract or numeric domain.",
+    "use": "Report ordinary and weighted logloss and ordinary Brier for the constant priors, baseline and candidate on the identical eligible later observations. Also report p0_h and pW_h from TRAIN without using later labels to fit either. Weighted-prior comparisons are descriptive secondary diagnostics, not the primary advance gate.",
+    "why": "Outcome-dependent magnitude weights make the constant minimizing weighted BCE equal to the weighted UP share, not generally the ordinary UP share. The weighted score is not an ordinary UP probability or a trade value.",
+    "evaluation_precision": "Evaluation reproduces the declared float32 weight arithmetic on CPU and accumulates stable per-row logloss and sums in float64. No claim of bitwise equality with CUDA loss arithmetic."
+  },
+  "protocol_revision": {
+    "previous_sha256": "80b94486789eb4859287670b7c46e2ed657c09c0a708e6fd5e97b1b3fa4cd17f",
+    "reason": "The original plan did not distinguish the unweighted direction prior from the optimal constant prior for the outcome-dependent weighted loss. Clarified before any genuine candidate or later scoring.",
+    "genuine_candidate_or_scoring_started": false
+  }
 }
