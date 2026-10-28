@@ -42247,6 +42247,10 @@
     "prelaunch_rejection": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_PRELAUNCH_REJECTION_20261028_001.json",
       "sha256": "e7a6f93e93609c3a41cb348c18283250b91a72fc8586560a5b65b60a9f95f609"
+    },
+    "prelaunch_source_head_correction": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_PRELAUNCH_CORRECTION_20261028_001.json",
+      "sha256": "3a71fff751132a6a4639706a8afc0c521453bb1bea7c759c1f4ba83ac69e7ec0"
     }
   },
   "independent_direction_gc_mtf_intervention_20261028_002": {
