@@ -1,0 +1,61 @@
+{
+  "actual_root_review": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+    "sha256": "f994b56dc5b5c76cb4edb1e4797a5b3e6556239a99c65c35fd8157fac5e5b81c"
+  },
+  "all_60_horizons_have_eligible_labels_and_gradients": true,
+  "all_logged_power_limits_w": 250,
+  "bit_exact_resume": true,
+  "chart_local_gradient_first_step_zero_and_second_nonzero": true,
+  "chart_mtf_gradient_first_step_nonzero": true,
+  "corrected_train_prior_counts_checked_for_60_horizons": true,
+  "economic_edge_qualified": false,
+  "gc_projection_and_gate_nonzero_for_all_five_timeframes": true,
+  "guard_telemetry_samples": 130,
+  "idle_actual_power_w": 26.26,
+  "idle_physical_limit_w": 160.0,
+  "idle_restore": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/POWER_IDLE_RESTORE_001.json",
+    "sha256": "f4197844ff2a23f7746cc45c4ddf8bf4b5cb283e3cb3e1f675ac96c98904f755"
+  },
+  "initial_256_rows_all_60_logits_parent_and_clock_byte_equal": true,
+  "limitations": [
+    "The 256-row identity and four-update private mechanics are not evidence that every feature value or combination is correct.",
+    "The corrected target has not been used in a full training or later predictive evaluation.",
+    "The generic guard maximum is 300 W; six logged samples and the keeper setting show 250 W, but individual power-limit values for all signed samples are not retained."
+  ],
+  "logged_power_limit_samples": 6,
+  "max_actual_gpu_w": 133.72,
+  "max_core_c": 48.0,
+  "max_memory_c": 54.0,
+  "native_full_fit_admitted": false,
+  "physical_boot_id": 574,
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "9a6dd5dc3f4f8df852a267fd8898d09fc0f0d2be06ae45af35e3aa6fa8076b74"
+  },
+  "power_stage_first_failure": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/POWER_STAGE_ATTEMPT_001_FAILED.json",
+    "sha256": "ad1ae33176cbbbe5a3ecf304f0e12415f90e81e98263ee67f12e521660577dff"
+  },
+  "predictive_improvement_qualified": false,
+  "private_optimizer_updates": 4,
+  "qualification_weights_for_main_fit": false,
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "0b8c6be331cca18e97fff8a7cdfa644a8ae9debb173ee5f938ad0e2c42444565"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/RUNTIME/private-research/RESULT.json",
+    "sha256": "02ded69a462e4fff43f6990cc8ed686b54efd683c65eb5ee2a21d65f96095075"
+  },
+  "schema_version": "gx1_decimal_private_qualification_summary_v1",
+  "signed_guard_log": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/RUNTIME/invocation-evidence/invocation-0001/SIGNED_GUARD.log",
+    "sha256": "58bf20b74409bfda9a9da86ac88a3e6ef6b00286817199e2e7ecce4b0e916649"
+  },
+  "signed_guard_pass": true,
+  "status": "COMPLETE_CONSUMED_PRIVATE_MECHANICS_ONLY",
+  "test_data_used": false,
+  "trained_source_commit": "42edd649bd82eaf8af4276885ea5e3ce4772bf70"
+}
