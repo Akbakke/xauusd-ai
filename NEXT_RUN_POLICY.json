@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "CANDLE_SPREAD_DIAGNOSIS_ADMITTED",
+  "status": "CANDLE_SPREAD_DIAGNOSIS_MEASURED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Complete and independently check the single capped candle-open spread diagnostic; do not infer execution or economic edge. No model, training or TEST.",
+  "next_action": "Prepare a separately admitted integration of the qualified decimal target owner, and specify a fresh initial baseline and a separately compared M5-relevant direction/FLAT objective. Any target change must use causal inference inputs, retain 1..60 horizons and be evaluated chronologically; no training without a new exact authorization and the requested safe restart. Keep TEST, broker and hardware guards closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43429,24 +43429,45 @@
     }
   },
   "independent_direction_candle_spread_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_CANDLE_SPREAD_20261028.json",
       "sha256": "845bf95418620629e33e148d4aa38bc5381f49183381bedc26108b6539b8e9df"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 600,
-    "scope": "Describe exact saved 1..60 midpoint outcomes relative to native 2025 M1 bid/ask candle-open spreads on matched Q1 and fixed Q2 parents only; no model, fit, broker or TEST."
+    "scope": "Describe exact saved 1..60 midpoint outcomes relative to native 2025 M1 bid/ask candle-open spreads on matched Q1 and fixed Q2 parents only; no model, fit, broker or TEST.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_SPREAD_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "7ac18f0d8735ca5e1ef0423a5f411c26913e7ba2b9a01b539e24adab507c1ab0"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_SPREAD_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "ee4ee92e1e872e3af4121202afe8d4cc1510826955d885fd863bef55eaf099cb"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_SPREAD_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "a609084d0bfa4269babdfa601a51d0d1c8e92703f5f8f0800024813418718957"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_SPREAD_20261028_001/TERMINAL.json",
+      "sha256": "a1c8c79525f07303830c4053d33a52b096c12b697d02c5168e6e47d1903d9710"
+    },
+    "independent_check": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_SPREAD_INDEPENDENT_CHECK_20261028_001.json",
+      "sha256": "dece4fbd7f3f560de5af60f8197ec9bf13123713115c5d88ae6f2ea00caee6cc"
+    },
+    "economic_edge_qualified": false
   }
 }

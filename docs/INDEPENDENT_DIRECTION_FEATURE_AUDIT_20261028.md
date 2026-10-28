@@ -390,3 +390,25 @@ Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DI
 En separat capped kontroll av de samme lagrede 60-hodeprognosene og korrigert fasit gir for **5 minutter i Q1** treffprosent **48,88 %**, mens en konstant OPP-prognose treffer **51,58 %** på de samme **17 192** utfallene. Modellen valgte OPP på **13,33 %** av radene. I det faste Q2-utvalget treffer modellen **49,29 %** mot **50,20 %** for alltid OPP på **1 753** utfall; modellen valgte OPP på **4,16 %**. Dette er punktmålinger på gjenbrukte utviklingsdata, uten eget parret usikkerhetsintervall for treffprosenten.
 
 Til sammenligning valgte 6min-hodet OPP på **99,38 %** av de kvalifiserte Q1-radene og **99,49 %** i Q2; dette gjelder hvilken side av 50 % sannsynligheten ligger på, ikke at modellen er 99 % sikker. Verdiene er gjengitt fra en capped lesende terminalberegning med hash- og aksekontroll; JSON-sammendraget er ingen selvstendig kjørekvittering. Ingen modellforward, trening, TEST eller handel. Sammendrag: `docs/DIRECTION_HEAD_ACCURACY_DIAGNOSIS_20261028.json`, SHA-256 `c35341662b2ec165b6006270776f7bc0275773bafae8dd85d111c179e097959e`.
+
+
+## Målbevegelse mot observert candle-spread
+
+Den aktive retningstapsfunksjonen gir kvalifiserte opp-/ned-celler lik vekt, uten å skille små og store prisbevegelser. På eksakt samme Q1- og faste Q2-foreldre som modellen er vurdert på, har jeg derfor koblet korrigerte 1–60min-utfall til native bid- og ask-åpninger på både beslutnings- og sluttcandle. Alle foreldre-, klokke- og kildepekere stemte; prisene og fasitens bevegelser ble kontrollert på det opprinnelige tre-desimalers prisgridet.
+
+Tabellen viser andelen **ikke-null** midtprisbevegelser som var større enn halvparten av entry-spread pluss halvparten av slutt-spread, målt fra candleåpningene. Den er beskrivende og bruker senere utfall kun i denne revisjonen.
+
+| Horisont | Q1: større enn spreadproxy | Fast Q2-utvalg: større enn spreadproxy |
+| --- | ---: | ---: |
+| 1 minutt | 31,35 % | 46,73 % |
+| 5 minutter | 58,00 % | 71,53 % |
+| 15 minutter | 75,13 % | 82,94 % |
+| 60 minutter | 88,24 % | 91,59 % |
+
+Ved 5 minutter var Q1 **9 972 av 17 192** bevegelser større enn proxyen, **95** like og **7 125** mindre. Median absolutt bevegelse var **2,389 basispunkter**, median kombinert spreadproxy **1,857 basispunkter**, og **23,66 %** av ikke-null-bevegelsene var under ett basispunkt. I Q2-utvalget var **1 254 av 1 753** større, **8** like og **491** mindre. Dette synliggjør at binært fortegn alene er et ufullstendig mål for en senere handelsbeslutning; det fastslår ikke hvorfor modellen har AUC omkring 0,50.
+
+En uavhengig metode beregnet direkte den fordelaktige differansen mellom bid/ask-ticks i ønsket retning og gjenskapte alle tre utfallskategoriene og kvantilene for alle **60 horisonter og begge perioder**. Maksimalt kvantilavvik var null.
+
+**Begrensning:** Candleåpningen er ikke en dokumentert samtidig, omsettelig quote eller et fyll. Analysen inkluderer ikke provisjon, slippage, prisveien før sluttidspunktet, åpne posisjoner eller øvrige handelskostnader, og den beviser verken tap, lønnsomhet eller en handelsregel. Utfallsbasert filtrering er ikke tillatt ved beslutningstidspunktet; eventuelle fremtidige FLAT-/retningsmål må testes med kun kausale inputs. Q1 og Q2 er gjenbrukte utviklingsdata, og Q2 er et fast ikke-tilfeldig delutvalg. Ingen modellforward, trening, TEST eller handel.
+
+Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_SPREAD_20261028_001/OUTPUT/RESULT.json`, SHA-256 `ee4ee92e1e872e3af4121202afe8d4cc1510826955d885fd863bef55eaf099cb`; uavhengig kontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_SPREAD_INDEPENDENT_CHECK_20261028_001.json`, SHA-256 `dece4fbd7f3f560de5af60f8197ec9bf13123713115c5d88ae6f2ea00caee6cc`.
