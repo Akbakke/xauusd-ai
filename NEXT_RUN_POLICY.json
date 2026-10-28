@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "483c73fc183899161bf07a49aeeaecec9e90706c66e9f1140eccfe6fdb9ba50e"
+      "sha256": "fa5db51cb38ff20877bc77d697089cffe3ea26b2e41ee9605ac50354e5d7de24"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -43767,6 +43767,12 @@
     "new_data_audit_authorized": false,
     "training_authorized": false,
     "predictive_improvement_qualified": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "rsi_existing_numeric_reference_qualified_five_timeframes": true,
+    "rsi_numeric_reference": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_TECHNICAL_NUMERIC_REFERENCE_20261021_127/TECHNICAL_NUMERIC_RESULTS/TECHNICAL_NUMERIC_RESULT.json",
+      "sha256": "8f0d49749f3c6997c522e27d88b4f040fc6683706dd15f69ba6c3ed263d2ff04"
+    },
+    "rsi_predictive_value_qualified": false
   }
 }
