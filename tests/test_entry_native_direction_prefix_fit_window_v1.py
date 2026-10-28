@@ -267,3 +267,36 @@ def test_continuation_binds_qualification_and_original_measurement_to_freeze(mon
     assert launch['numerical_recipe']==new_numerical
     assert seen==[frozen.CONTINUATION_PRIOR_RECIPE,original_ref,gc,proof,terminal]
     assert set(context['info']['metadata'])=={item['path'] for item in seen}
+
+
+def test_weighted_historical_source_transition_is_exact_and_one_component_only():
+    old = {'path':'/synthetic/component.py', 'sha256':'a'*64}
+    new = {'path':'/synthetic/component.py', 'sha256':'b'*64}
+    other = {'path':'/synthetic/other.py', 'sha256':'c'*64}
+    manifest = {'view_source_bindings':{'direction_component_source':old}}
+    design = {'historical_component_transition':{'original':old, 'current':new}}
+    assert runner._weighted_historical_source(old, manifest, design) == new
+    assert runner._weighted_historical_source(other, manifest, design) == other
+    with pytest.raises(RuntimeError, match='WEIGHT_HISTORICAL_COMPONENT'):
+        runner._weighted_historical_source(old, manifest, {'historical_component_transition':{'original':other, 'current':new}})
+    with pytest.raises(RuntimeError, match='WEIGHT_HISTORICAL_COMPONENT'):
+        runner._weighted_historical_source(old, manifest, {'historical_component_transition':{'original':old, 'current':other}})
+
+
+def test_weighted_initial_read_guard_allows_one_readonly_bound_prediction(monkeypatch):
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    hooks=[]; monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
+    context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache',
+        'gc_surfaces':{'path':'/synthetic/gc/surface'}},
+        'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/audit'}}}
+    target=authority.WEIGHT_INITIAL_PREDICTIONS['path']
+    denied=common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',original_initial_prediction=target)
+    hooks[0]('open',(target,'rb',0))
+    with pytest.raises(RuntimeError,match='ORIGINAL_WRITE'):
+        hooks[0]('open',(target,'wb',__import__('os').O_WRONLY))
+    with pytest.raises(RuntimeError,match='UNBOUND_OPEN'):
+        hooks[0]('open',('/home/andre2/GX1_RUNS/unbound.npz','rb',0))
+    with pytest.raises(RuntimeError,match='INITIAL_PREDICTION_PATH'):
+        common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',original_initial_prediction='/home/andre2/GX1_RUNS/unbound.npz')
+    assert denied==[target,'/home/andre2/GX1_RUNS/unbound.npz']

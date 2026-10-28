@@ -23,6 +23,11 @@ WINDOW_SCHEMA = 'gx1_native_direction_research_window_policy_v1'
 RECIPE_SCHEMA = 'gx1_native_direction_research_launch_recipe_v1'
 CURSOR_SCHEMA = 'gx1_native_direction_research_cursor_v1'
 BPS_SCOPE = 'private_bps_b16_matched_initialization_resume_qualification'
+WEIGHT_SCOPE = 'private_magnitude_weighted_b16_matched_initialization_resume_qualification'
+WEIGHT_DESIGN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAG_WEIGHT_NATIVE_QUALIFICATION_DESIGN_20261028.json',
+    'sha256':'fe5cd8dbb9f17e46c77821c5077c6ad2893719bc2204f01b963cfff90c4938c1'}
+WEIGHT_INITIAL_PREDICTIONS = {'path':'/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.npz',
+    'sha256':'f870c6eb0a6000b2be0197bfe650db3f35f41d125d91a90162df2d01aedf112a'}
 BPS_CURSOR_SCHEMA = 'gx1_native_direction_bps_research_cursor_v1'
 BPS_FOLD = {'fold_id':1,'prefix_rows':47602,'oof_start_row':47602,'oof_end_row':64890,
     'train_cutoff_ns':1735689600000000000,'oof_cutoff_ns':1743465600000000000}
@@ -117,15 +122,17 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         'full_epoch_training_allowed', 'test_data_used', 'predictive_value_claimed',
         'qualification_weights_for_main_fit'}
     bps = value.get('run_scope') == BPS_SCOPE
-    if bps: fields |= {'fold','gc_layout_metadata_parity','qualification_design'}
+    weighted = value.get('run_scope') == WEIGHT_SCOPE
+    b16 = bps or weighted
+    if b16: fields |= {'fold','gc_layout_metadata_parity','qualification_design'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     _path(recipe['runtime_root'], 'runtime root')
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE), 'RECIPE_SCOPE')
-    for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if bps else 3,
-            'max_forwards':6 if bps else 4, 'max_backwards':5 if bps else 4,
+        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE), 'RECIPE_SCOPE')
+    for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if b16 else 3,
+            'max_forwards':6 if b16 else 4, 'max_backwards':5 if b16 else 4,
             'max_checkpoint_bytes':1073741824, 'max_published_json_bytes':33554432}.items():
         _require(type(recipe[key]) is int and recipe[key] == expected, 'RECIPE_BUDGET:' + key)
     for key, expected in {'training_enabled':True, 'full_epoch_training_allowed':False,
@@ -133,8 +140,9 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         _require(recipe[key] is expected, 'RECIPE_AUTHORITY:' + key)
     numerical = recipe['numerical_recipe']
     _require(isinstance(numerical, Mapping) and numerical.get('schema_version') == 'gx1_native_direction_research_recipe_v1'
-        and type(numerical.get('batch_size')) is int and numerical['batch_size'] == (16 if bps else 2)
+        and type(numerical.get('batch_size')) is int and numerical['batch_size'] == (16 if b16 else 2)
         and numerical.get('signed_bps_supervision',False) is bps
+        and numerical.get('magnitude_weighted_direction',False) is weighted
         and type(numerical.get('max_updates')) is int and numerical['max_updates'] == 2
         and numerical.get('genuine_updates_authorized') is False and numerical.get('native_launch_authorized') is False,
         'NUMERICAL_RECIPE_ROLE')
@@ -152,8 +160,13 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
             and recipe['qualification_design'] == BPS_DESIGN, 'BPS_FIXED_INPUT_SCOPE')
         campaign.require_binding(recipe['gc_layout_metadata_parity'],label='bps GC metadata proof',verify_file=True)
         campaign.require_binding(recipe['qualification_design'],label='bps qualification design',verify_file=True)
+    if weighted:
+        _require(recipe['fold'] == BPS_FOLD and recipe['gc_layout_metadata_parity'] == BPS_GC_PARITY
+            and recipe['qualification_design'] == WEIGHT_DESIGN, 'WEIGHT_FIXED_INPUT_SCOPE')
+        campaign.require_binding(recipe['gc_layout_metadata_parity'],label='weight GC metadata proof',verify_file=True)
+        campaign.require_binding(recipe['qualification_design'],label='weight qualification design',verify_file=True)
     owners = recipe['source_owners']
-    required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if bps else ())
+    required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if b16 else ())
     _require(isinstance(owners, Mapping) and set(owners) == set(required_sources), 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='research source', verify_file=True)
@@ -271,6 +284,8 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
         _require(gate.get(key) is False, 'READINESS_CLOSED_GATE:' + key)
     if recipe['run_scope'] == BPS_SCOPE:
         _require(gate.get('signed_bps_scale_fit_authorized') is True,'READINESS_BPS_SCALE')
+    if recipe['run_scope'] == WEIGHT_SCOPE:
+        _require(gate.get('magnitude_weight_scale_fit_authorized') is True,'READINESS_WEIGHT_SCALE')
     clock = campaign.require_binding(policy.get('gpu_clock_launcher'),label='existing GPU clock launcher')
     _require(clock == policy['gpu_clock_launcher'], 'READINESS_CLOCK')
     return {'decision':'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES','blocked_reasons':[],

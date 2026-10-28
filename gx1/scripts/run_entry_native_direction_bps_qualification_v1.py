@@ -31,20 +31,26 @@ def _forward(model, features, *, counters, torch, grad):
 
 
 def _step(model, optimizer, features, target, *, cutoff, counters, torch, probe=False):
-    from gx1.contracts.entry_native_direction_bps_v1 import native_direction_bps_loss
+    from gx1.contracts.entry_native_direction_bps_v1 import native_direction_bps_loss, native_direction_magnitude_weighted_loss
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
-    require(model.signed_bps and model.training and all(m.training for m in model.modules()), "TRAIN_MODE")
+    weighted = bool(getattr(model, "magnitude_weighted", False))
+    require((weighted != bool(model.signed_bps)) and model.training and all(m.training for m in model.modules()), "TRAIN_MODE")
     out = _forward(model, features, counters=counters, torch=torch, grad=True)
-    result = native_direction_bps_loss(out["logit_up"], out["mean_return_bps"],
-        rms_bps=model.bps_rms, **target, cutoff_ns=cutoff)
+    if weighted:
+        result = native_direction_magnitude_weighted_loss(out["logit_up"], rms_bps=model.magnitude_rms_bps,
+            raw_weight_mean=model.magnitude_raw_weight_mean, **target, cutoff_ns=cutoff)
+    else:
+        result = native_direction_bps_loss(out["logit_up"], out["mean_return_bps"],
+            rms_bps=model.bps_rms, **target, cutoff_ns=cutoff)
     require(result["update_allowed"] and all(row["eligible_cells"] > 0 for row in result["per_horizon_counts"])
-        and all(n > 0 for n in result["bps_per_horizon_counts"]), "ALL_THREE_HORIZONS")
+        and (weighted or all(n > 0 for n in result["bps_per_horizon_counts"])), "ALL_THREE_HORIZONS")
     probe_evidence = None
     if probe:
         counters["backwards"] += 1
         require(counters["backwards"] <= 5, "REVERSE_CAP")
-        (gradient,) = torch.autograd.grad(result["bps_loss"], (model.backbone.entry_q_joint_in.weight,),
+        probe_loss = (result["loss"] - result["unweighted_direction_loss"]) if weighted else result["bps_loss"]
+        (gradient,) = torch.autograd.grad(probe_loss, (model.backbone.entry_q_joint_in.weight,),
             retain_graph=True, allow_unused=False)
         counters["backward_returns"] += 1
         require(bool(torch.isfinite(gradient).all()) and int(torch.count_nonzero(gradient)) > 0,
@@ -52,7 +58,8 @@ def _step(model, optimizer, features, target, *, cutoff, counters, torch, probe=
         require(all(p.grad is None for p in model.parameters()), "PROBE_NO_ACCUMULATION")
         probe_evidence = {"joint_projection_nonzero": int(torch.count_nonzero(gradient)),
             "joint_projection_l2": float(torch.linalg.vector_norm(gradient)),
-            "scope": "One bps-only reverse after first mean-head update; no causal/predictive-value claim."}
+            "scope": ("Weighted minus ordinary direction gradient; no predictive-value claim." if weighted else
+                "One bps-only reverse after first mean-head update; no causal/predictive-value claim.")}
         del gradient
     counters["backwards"] += 1
     require(counters["backwards"] <= 5, "REVERSE_CAP")
@@ -63,6 +70,11 @@ def _step(model, optimizer, features, target, *, cutoff, counters, torch, probe=
     require(counters["optimizer_step_calls"] <= 4, "UPDATE_CAP")
     norm = trainer._optimizer_step_with_finite_gradients(model=model, optimizer=optimizer)
     counters["optimizer_updates"] += 1
+    if weighted:
+        return {"weighted_loss": float(result["loss"].detach()),
+            "unweighted_direction_loss": float(result["unweighted_direction_loss"].detach()),
+            "direction_counts": result["counts"], "direction_horizon_counts": result["per_horizon_counts"],
+            "gradient_groups": gradients, "gradient_norm": float(norm), "weight_difference_probe": probe_evidence}
     return {"joint_loss": float(result["loss"].detach()),
         "direction_loss": float(result["direction_loss"].detach()), "bps_loss": float(result["bps_loss"].detach()),
         "direction_counts": result["counts"], "direction_horizon_counts": result["per_horizon_counts"],
@@ -76,7 +88,9 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     window, plan, invocation, marker, launch = authority.require_native_direction_research_context(
         policy_path, policy_file_sha256, progress_path)
-    require(launch["run_scope"] == authority.BPS_SCOPE and invocation["batch_size"] == 16, "EXACT_PROFILE")
+    weighted = launch["run_scope"] == authority.WEIGHT_SCOPE
+    require(launch["run_scope"] in (authority.BPS_SCOPE, authority.WEIGHT_SCOPE)
+        and invocation["batch_size"] == 16, "EXACT_PROFILE")
     sys.dont_write_bytecode = True
     import numpy as np
     import torch
@@ -91,7 +105,8 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
 
     recipe = require_native_direction_research_recipe(launch["numerical_recipe"])
     require(recipe["batch_size"] == 16 and recipe["max_updates"] == 2
-        and recipe.get("signed_bps_supervision") is True, "NUMERICAL_RECIPE")
+        and recipe.get("signed_bps_supervision", False) is (not weighted)
+        and recipe.get("magnitude_weighted_direction", False) is weighted, "NUMERICAL_RECIPE")
     baseline_recipe = native_direction_research_recipe(batch_size=16, max_updates=2)
     binding_ref = common._hash_file(launch["execution_binding_path"])
     extra = {}; binding = common._read(binding_ref, extra)
@@ -103,17 +118,21 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
         and design["reverse_passes"] == 5 and design["physical_optimizer_steps"] == 4, "DESIGN")
     require(proof["status"] == "COMPLETE_CONSUMED" and proof["metadata_exact_parity"] is True
         and proof["test_cases_passed"] == 6 and all(v == 0 for v in proof["counters"].values()), "GC_METADATA_PROOF")
-    context = prefix._metadata(launch, common, gc_layout_metadata_parity=launch["gc_layout_metadata_parity"])
+    context = prefix._metadata(launch, common, gc_layout_metadata_parity=launch["gc_layout_metadata_parity"],
+        **({"weight_qualification_design": launch["qualification_design"]} if weighted else {}))
     context["info"]["metadata"].update(extra)
     for ref in (window["recipe"], binding["plan"], {"path": str(policy_path), "sha256": policy_file_sha256}):
         common._read(ref, context["info"]["metadata"])
     common._freeze(launch, binding, context)
     output = Path(window["output_directory"]); output.mkdir(parents=True)
-    denied = common._install_read_guard(context, output, Path(launch["runtime_root"]))
+    original_prediction = authority.WEIGHT_INITIAL_PREDICTIONS if weighted else None
+    denied = common._install_read_guard(context, output, Path(launch["runtime_root"]),
+        **({"original_initial_prediction": original_prediction["path"]} if weighted else {}))
+    scale_counter = "magnitude_scale_fits" if weighted else "bps_scale_fits"
     counters = {key: 0 for key in ("model_constructions", "model_construction_returns", "optimizer_constructions",
         "forwards", "forward_returns", "backwards", "backward_returns", "optimizer_step_calls", "optimizer_updates",
         "staged_state_load_calls", "staged_state_load_returns", "resume_state_load_calls", "resume_state_load_returns",
-        "forbidden_legacy_calls", "json_bytes", "bps_scale_fits")}
+        "forbidden_legacy_calls", "json_bytes", scale_counter)}
     started = time.monotonic(); before = common._io(); previous = sys.getprofile()
     device = torch.device("cuda", 0); full_state = initial = initial_identity = None
     error = None; parity = matched = unchanged = False; cursor = 0; steps = []
@@ -129,12 +148,13 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
     signal.alarm(900)
     try:
         sys.setprofile(common._deny_legacy_work(previous, counters))
-        counters["bps_scale_fits"] += 1
-        prepared, targets, view, _context_map, ordered = prefix._prepare(context, launch, np, signed_bps=True)
+        counters[scale_counter] += 1
+        prepared, targets, view, _context_map, ordered = prefix._prepare(context, launch, np,
+            **({"magnitude_weighted": True} if weighted else {"signed_bps": True}))
         selected = ordered[:32].copy()
         order = torch.from_numpy(selected); order_sha = tree_sha(order)
-        scale_ref = common._json(output/"OWN_PREFIX_BPS_SCALE.json", view["bps_scale"],
-            counters, launch["max_published_json_bytes"])
+        scale_ref = common._json(output/("OWN_PREFIX_MAG_WEIGHT.json" if weighted else "OWN_PREFIX_BPS_SCALE.json"),
+            view["magnitude_weight_contract" if weighted else "bps_scale"], counters, launch["max_published_json_bytes"])
         baseline_view = view_owner.bind_native_direction_feature_view(prefix_normalization=context["fitted"],
             prefix_normalization_ref=context["manifest"]["prefix_normalization"]["output"],
             constructor_metadata=context["constructor"], constructor_metadata_ref=context["manifest"]["constructor_metadata"],
@@ -146,7 +166,7 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
                 "gc": common._gc_support(raw, prepared["gc"]["layout"], np)})
             batches.append(prefix._device_batch(raw, target, torch, device))
         input_ref = common._json(output/"INPUT_QUALIFICATION.json", {"view": view,
-            "baseline_view": baseline_view, "bps_scale": scale_ref, "parent_order_sha256": order_sha,
+            "baseline_view": baseline_view, ("magnitude_weight" if weighted else "bps_scale"): scale_ref, "parent_order_sha256": order_sha,
             "selection": "First32original MT19937seed20260911 own-prefix presentations; no label selection.",
             "batches": support}, counters, launch["max_published_json_bytes"])
         batch_sha = tree_sha(batches)
@@ -178,6 +198,15 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
         shared_buffer_sha = tree_sha(fresh["buffer_state"])
         baseline_rng_sha = tree_sha(fresh["rng_state"])
         baseline_outputs = evaluate_initial(model, optimizer, baseline_recipe)
+        if weighted:
+            original_stat = common._stat(original_prediction["path"])
+            require(common._hash_file(original_prediction["path"]) == original_prediction, "ORIGINAL_INITIAL_SHA")
+            with np.load(original_prediction["path"], allow_pickle=False) as archive:
+                require(np.array_equal(archive["parent_rows"][:16], selected[:16])
+                    and np.array_equal(archive["decision_ns"][:16], batches[0][1]["decision_ns"].cpu().numpy())
+                    and np.array_equal(archive["logit_up"][:16], baseline_outputs["logit_up"].numpy()),
+                    "ORIGINAL_INITIAL_OUTPUT_AND_CLOCK")
+            require(common._stat(original_prediction["path"]) == original_stat, "ORIGINAL_INITIAL_UNCHANGED")
         del fresh, model, optimizer
         model = optimizer = None; gc.collect(); torch.cuda.empty_cache()
 
@@ -194,7 +223,7 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
                 initial_identity = identity
                 candidate_outputs = evaluate_initial(model, optimizer, recipe)
                 require(torch.equal(candidate_outputs["logit_up"], baseline_outputs["logit_up"])
-                    and torch.equal(candidate_outputs["mean_return_bps"], torch.zeros(16, 3)), "INITIAL_OUTPUT_PARITY")
+                    and (weighted or torch.equal(candidate_outputs["mean_return_bps"], torch.zeros(16, 3))), "INITIAL_OUTPUT_PARITY")
                 matched = True
                 initial = common._save_state(output/"INITIAL_STATE.pt", fresh, torch=torch,
                     maximum=launch["max_checkpoint_bytes"], counters=counters)
@@ -234,8 +263,10 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
         expected = {"model_constructions":4,"model_construction_returns":4,"optimizer_constructions":4,
             "forwards":6,"forward_returns":6,"backwards":5,"backward_returns":5,"optimizer_step_calls":4,
             "optimizer_updates":4,"staged_state_load_calls":3,"staged_state_load_returns":3,
-            "resume_state_load_calls":1,"resume_state_load_returns":1,"forbidden_legacy_calls":0,"bps_scale_fits":1}
+            "resume_state_load_calls":1,"resume_state_load_returns":1,"forbidden_legacy_calls":0,scale_counter:1}
         require(all(counters[k] == v for k, v in expected.items()) and tree_sha(batches) == batch_sha, "EXACT_WORK")
+        if weighted:
+            require(common._stat(original_prediction["path"]) == original_stat, "ORIGINAL_INITIAL_BOOKEND")
         common._freeze(launch, binding, context); unchanged = True
     except BaseException as exc:
         error = type(exc).__name__ + ":" + str(exc)
@@ -248,11 +279,14 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
         error = "RCHAR_BUDGET_EXCEEDED"
     passed = matched and parity and unchanged and error is None
     outcome = "COMPLETE" if passed else "FAILED"
-    result = common._json(output/"RESULT.json", {"schema_version":"gx1_native_bps_private_qualification_result_v1",
-        "decision":"PASS_BPS_NATIVE_MECHANICS" if passed else "FAILED", "recipe":window["recipe"],
+    pass_decision = "PASS_MAGNITUDE_WEIGHT_NATIVE_MECHANICS" if weighted else "PASS_BPS_NATIVE_MECHANICS"
+    result = common._json(output/"RESULT.json", {"schema_version":("gx1_native_magnitude_weight_private_qualification_result_v1" if weighted else "gx1_native_bps_private_qualification_result_v1"),
+        "decision":pass_decision if passed else "FAILED", "recipe":window["recipe"],
         "execution_binding":binding_ref,"counts":{k:v for k,v in counters.items() if k!="json_bytes"},
         "initial_state":initial,"initial_cuda_identity_sha256":initial_identity,"final_state":full_state,
-        "own_prefix_bps_scale":scale_ref,"input_qualification":input_ref,"matched_initialization":matched,
+        ("own_prefix_magnitude_weight" if weighted else "own_prefix_bps_scale"):scale_ref,
+        **({"original_initial_prediction":original_prediction,"original_initial_parity":matched} if weighted else {}),
+        "input_qualification":input_ref,"matched_initialization":matched,
         "bit_exact_resume":parity,"steps":steps,"parent_order_sha256":order_sha,"parent_cursor":cursor,
         "planned_unique_parents":32,"verified_unique_parents":32 if passed else None,
         "planned_logical_optimizer_steps":2,"physical_optimizer_updates":counters["optimizer_updates"],
@@ -276,5 +310,5 @@ def run_bps_qualification(*, policy_path: Path, policy_file_sha256: str, progres
     common._freeze(launch,binding,context)
     if not passed:
         raise RuntimeError("NATIVE_BPS_QUALIFICATION_FAILED:" + str(error))
-    return {"decision":"PASS_BPS_NATIVE_MECHANICS","result":result,
+    return {"decision":pass_decision,"result":result,
         "progress_path":str(progress_path),"counts":counters,"checkpoint_pointer":checkpoint}

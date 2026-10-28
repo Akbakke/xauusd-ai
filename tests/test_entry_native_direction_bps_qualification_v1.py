@@ -234,3 +234,69 @@ def test_bps_probe_after_update_preserves_exact_b16_resume(monkeypatch):
     assert all(p.grad is None for p in resumed.model.parameters())
     assert counts == {"forwards":3,"forward_returns":3,"backwards":4,"backward_returns":4,
         "optimizer_step_calls":3,"optimizer_updates":3}
+
+
+@pytest.fixture
+def weighted_fixture(bps_fixture, monkeypatch):
+    f = bps_fixture
+    monkeypatch.setattr(owner, 'WEIGHT_DESIGN', f['dummy'])
+    f['recipe'].update(run_scope=owner.WEIGHT_SCOPE)
+    f['recipe']['numerical_recipe'].update(signed_bps_supervision=False, magnitude_weighted_direction=True)
+    reseal_numerical(f['recipe']['numerical_recipe']); reseal(f['recipe'], 'recipe_sha256')
+    f['recipe_ref'] = write(f['runtime']/'WEIGHT_RECIPE.json', f['recipe'])
+    return f
+
+
+def test_weighted_recipe_admits_only_fixed_b16_scope(weighted_fixture):
+    f=weighted_fixture
+    result=owner.require_research_launch_recipe(f['recipe_ref'],source_repo=f['repo'],source_commit='a'*40)
+    assert result['run_scope']==owner.WEIGHT_SCOPE and result['max_private_updates']==4
+
+
+@pytest.mark.parametrize('fault',['unweighted','mixed','wrong_design','wrong_fold','wrong_budget'])
+def test_weighted_recipe_rejects_resealed_scope_broadening(weighted_fixture,fault):
+    f=weighted_fixture; item=copy.deepcopy(f['recipe'])
+    if fault=='unweighted':item['numerical_recipe']['magnitude_weighted_direction']=False
+    elif fault=='mixed':item['numerical_recipe']['signed_bps_supervision']=True
+    elif fault=='wrong_design':item['qualification_design']['sha256']='0'*64
+    elif fault=='wrong_fold':item['fold']['prefix_rows']+=1
+    else:item['max_forwards']+=1
+    reseal_numerical(item['numerical_recipe']);reseal(item,'recipe_sha256')
+    ref=write(f['runtime']/'BAD_WEIGHT_RECIPE.json',item)
+    with pytest.raises(RuntimeError):
+        owner.require_research_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
+def test_weighted_b16_step_probe_and_resume_are_identical_on_synthetic_model(monkeypatch):
+    from gx1.contracts import entry_model_native_train_recipe_v1 as recipes
+    from gx1.contracts import entry_native_direction_research_state_v1 as state
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from tests import test_entry_native_direction_bps_v1 as component
+    from tests import test_entry_native_direction_research_state_v1 as states
+    def gradients(model,torch):
+        assert all(p.grad is None or bool(torch.isfinite(p.grad).all()) for p in model.parameters())
+        return {'synthetic_joint':int(torch.count_nonzero(model.backbone.entry_q_joint_in.weight.grad))}
+    monkeypatch.setattr(common,'_gradient_evidence',gradients)
+    def make():
+        case=component._magnitude_weight_candidate(monkeypatch)
+        case.recipe=recipes.native_direction_research_recipe(batch_size=16,max_updates=2,magnitude_weighted=True)
+        case.optimizer,case.binding=state.build_native_direction_research_optimizer(case.model,recipe=case.recipe)
+        case.order=torch.arange(32,dtype=torch.int64);states._seed(case.recipe['seed']);return case
+    counts={k:0 for k in ('forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates')}
+    def step(case,index,probe=False):
+        features={k:v.repeat((8,)+(1,)*(v.ndim-1)) for k,v in states._features(index).items()}
+        target=component._magnitude_weight_loss([[.1,2.,50.],[-.2,-3.,-40.]]*8)
+        cutoff=target.pop('cutoff_ns')
+        for k in ('logit_up','rms_bps','raw_weight_mean'):del target[k]
+        return worker._step(case.model,case.optimizer,features,target,cutoff=cutoff,counters=counts,torch=torch,probe=probe)
+    first=make();step(first,0);saved=component._capture(first,16,1)
+    evidence=step(first,1,probe=True);expected=component._capture(first,32,2)
+    assert evidence['weight_difference_probe']['joint_projection_nonzero']>0
+    assert evidence['direction_counts']['eligible_cells']==48
+    resumed=make()
+    state.restore_native_direction_research_state(saved,resumed.model,resumed.optimizer,recipe=resumed.recipe,
+        feature_view_identity=resumed.model.feature_view_identity,parent_order=resumed.order,device=torch.device('cpu'))
+    step(resumed,1)
+    assert component._capture(resumed,32,2)['contract_sha256']==expected['contract_sha256']
+    assert counts=={'forwards':3,'forward_returns':3,'backwards':4,'backward_returns':4,
+        'optimizer_step_calls':3,'optimizer_updates':3}

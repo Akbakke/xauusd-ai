@@ -38,7 +38,15 @@ def _require(ok, reason):
     if not ok:raise RuntimeError('NATIVE_DIRECTION_PREFIX_WINDOW_'+reason)
 
 
-def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_completion=None):
+def _weighted_historical_source(ref, manifest, design):
+    transition = design['historical_component_transition']
+    _require(isinstance(transition, dict) and set(transition) == {'original', 'current'}
+        and transition['original'] == manifest['view_source_bindings']['direction_component_source']
+        and transition['current']['path'] == transition['original']['path'], 'WEIGHT_HISTORICAL_COMPONENT')
+    return transition['current'] if ref == transition['original'] else ref
+
+
+def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_completion=None, weight_qualification_design=None):
     metadata={};manifest=common._read(launch['input_manifest'],metadata)
     _require(set(manifest)==MANIFEST_KEYS and manifest['schema_version']=='gx1_native_direction_prefix_fit_input_manifest_v1'
         and manifest['source_design']==SOURCE_DESIGN and manifest['state_qualification']==common.STATE_QUALIFICATION
@@ -72,6 +80,14 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
             and all(manifest[key] == original[key] for key in ('prefix_normalization', 'constructor_metadata',
                 'targets', 'archive_members', 'view_source_bindings', 'physical_provider_plan', 'physical_provider_worker')),
             'INDEPENDENT_ORIGINAL_BINDINGS')
+    weight_design = None
+    if weight_qualification_design is not None:
+        from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+        _require(launch.get('run_scope') == authority.WEIGHT_SCOPE
+            and weight_qualification_design == authority.WEIGHT_DESIGN, 'WEIGHT_SOURCE_SCOPE')
+        weight_design = common._read(weight_qualification_design, metadata)
+        _require(weight_design['input_manifest'] == launch['input_manifest'] and weight_design['fold'] == fold
+            and weight_design['original_initial_predictions'] == authority.WEIGHT_INITIAL_PREDICTIONS, 'WEIGHT_ORIGINAL_BINDINGS')
     for ref in manifest['view_source_bindings'].values():
         if ref['path'].endswith('.json'):common._read(ref,metadata)
         else:
@@ -84,6 +100,10 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
                 if ref['path'] == transition['original']['path']:
                     _require(ref == transition['original'], 'INDEPENDENT_HISTORICAL_COMPONENT')
                     expected = transition['current']
+            if weight_design is not None:
+                weighted_expected = _weighted_historical_source(ref, manifest, weight_design)
+                if weighted_expected != ref:
+                    expected = weighted_expected
             _require(common._hash_file(ref['path'])==expected,'VIEW_SOURCE_SHA')
     info['metadata'].update(metadata)
     return {'manifest':manifest,'design':design,'physical':physical,'ancestor':ancestor,'ancestor_plan':ancestral_plan,

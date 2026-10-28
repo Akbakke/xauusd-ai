@@ -11,8 +11,8 @@ Programrot:
 
 ## Aktuell status
 
-Kildearbeid for avgrenset ekte B16-kvalifisering er admittért; syntetisk
-kontroll, genuine modellkall og trening er fortsatt lukket. Designet binder
+Kilde for avgrenset ekte B16-kvalifisering er fryst for én syntetisk
+kontroll. Genuine modellkall og trening er fortsatt lukket. Designet binder
 den tidligere startprediksjonen og stopper før oppdatering ved ulikhet.
 
 Den vektede treningsadapteren har bestått 20 fokuserte syntetiske

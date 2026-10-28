@@ -100,13 +100,17 @@ def _freeze(recipe, binding, context):
         _require(_stat(path)==item['stat'] and _hash_file(path)==item['ref'],'METADATA_FREEZE:'+path)
 
 
-def _install_read_guard(context, output, runtime, *, extra_read_paths=()):
+def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None):
     plan=context['ancestor_plan'];info=context['info']
     _require(isinstance(extra_read_paths, tuple), 'EXTRA_READ_PATHS')
     if extra_read_paths:
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import CONTINUATION_ORIGIN
         _require(extra_read_paths == (CONTINUATION_ORIGIN['terminal_state']['path'],
             CONTINUATION_ORIGIN['initial_state']['path']), 'EXTRA_READ_PATHS')
+    if original_initial_prediction is not None:
+        from gx1.contracts.entry_native_direction_research_campaign_v1 import WEIGHT_INITIAL_PREDICTIONS
+        _require(original_initial_prediction == WEIGHT_INITIAL_PREDICTIONS['path'], 'INITIAL_PREDICTION_PATH')
+        extra_read_paths += (original_initial_prediction,)
     allowed={p for p,v in plan['payloads'].items() if v['verification'] not in ('inherited_stat_only_no_open','reused_original051_stat_only_no_open')}|set(info['metadata'])|set(extra_read_paths)
     directories={plan['native_cache_dir'],str(Path(plan['gc_surfaces']['path']).parent)}
     relative={Path(p).name:p for p in allowed if p.endswith('.npy')};denied=[]
@@ -313,7 +317,7 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     limits=require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(policy_path,policy_file_sha256,progress_path)
-    if launch['run_scope'] == authority.BPS_SCOPE:
+    if launch['run_scope'] in (authority.BPS_SCOPE, authority.WEIGHT_SCOPE):
         from gx1.scripts.run_entry_native_direction_bps_qualification_v1 import run_bps_qualification
         return run_bps_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     sys.dont_write_bytecode=True

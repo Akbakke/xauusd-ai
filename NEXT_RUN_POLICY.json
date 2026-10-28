@@ -40644,7 +40644,7 @@
     }
   },
   "direction_bounded_magnitude_native_qualification_source_20261028": {
-    "status": "SOURCE_EDITS_ADMITTED_NOT_SYNTHETIC_OR_GENUINE",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAG_WEIGHT_NATIVE_QUALIFICATION_DESIGN_20261028.json",
       "sha256": "fe5cd8dbb9f17e46c77821c5077c6ad2893719bc2204f01b963cfff90c4938c1"
@@ -40658,9 +40658,57 @@
       "tests/test_entry_native_direction_bps_qualification_v1.py",
       "tests/test_entry_native_direction_prefix_fit_window_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
+    "genuine_native_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "sources": [
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_campaign_v1.py",
+        "sha256": "9063b2a5a2dae1ecadc6dc713a2af1bdd446e586baecab23e291a275fc31b5d3"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+        "sha256": "091235f488a0e875d54ccad6aa2b3c0c0b34b0b78c5cb3e8f58004a60e34238e"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "7e10f588f4a4994d31674433b7d2faf9c136cae2996cab483d544673b54dd98e"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_bps_qualification_v1.py",
+        "sha256": "767020c870988e8c39e6b76ee6e6123fb080fa12efee4a594378c714a37a58ad"
+      }
+    ],
+    "tests": [
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_bps_qualification_v1.py",
+        "sha256": "eec8bf8b7b5e88f61a2efb3cf986ba9571dedafef1c9ba707b803cafdae140d6"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "731a21a93b64ecd683004478ad9f48e0cc9c31ccecfded1930d2f6efcb62ee6e"
+      }
+    ],
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "a71e6bee6ab37dde9166892bf2d925d1567d7eca1820891466546f1d00dc9b3b"
+    }
+  },
+  "direction_bounded_magnitude_native_qualification_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "a71e6bee6ab37dde9166892bf2d925d1567d7eca1820891466546f1d00dc9b3b"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false
