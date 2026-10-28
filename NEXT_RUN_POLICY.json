@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T16:07:31.744046+00:00",
-  "status": "GC_PROJECTION_FIELDS_AUDIT_ADMITTED",
+  "status": "GC_UNCHANGED_FIELDS_VERIFIED_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run one bound CPU audit identifying the unchanged GC coordinates and their prefix normalization support. No model forward, training, TEST, broker or trading.",
+  "next_action": "Continue targeted direction feature diagnostics. The zero-support GC coordinates are named; measure trained-model influence on identical later rows under a separately bound admission. No TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42182,16 +42182,16 @@
     "economic_edge_qualified": false
   },
   "independent_direction_gc_projection_fields_audit_20261028_002": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_FIELDS_PLAN_20261028_002.json",
       "sha256": "d9fb457d1397d73442ef820ac9e69624a6643620864bfcc293d60ffc71144093"
     },
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
@@ -42200,6 +42200,27 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
-    "scope": "Identify exact GC context/history coordinates whose initial and completed projection or gate parameters are bit-identical, then join their bound first-prefix normalization support. Two original checkpoints only; no model forwards."
+    "scope": "Identify exact GC context/history coordinates whose initial and completed projection or gate parameters are bit-identical, then join their bound first-prefix normalization support. Two original checkpoints only; no model forwards.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_FIELDS_AUDIT_20261028_002/INVOCATION_CLAIM.json",
+      "sha256": "4c395279c6e080e01d594580ac57e9bc401092ce5a1ecefde94530f7d0ace429"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_FIELDS_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "083f330c0a7166114bd2926fd948e4db378e36de99bc5b02f27bcb7344ada40b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_FIELDS_AUDIT_20261028_002/TERMINAL.json",
+      "sha256": "7320da80261e470840200ee95ef342509200d38a04f55917cb5de96608561591"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_FIELDS_AUDIT_20261028_002/OUTPUT/TERMINAL.json",
+      "sha256": "80cf7f73a1a173397ef7f52690823288a30c9c74da924d503ea7c6bf244d72c3"
+    },
+    "history_zero_support_coordinates": 39,
+    "current_context_zero_support_coordinates": 33,
+    "overlap": 31,
+    "output_influence_qualified": false,
+    "economic_edge_qualified": false
   }
 }

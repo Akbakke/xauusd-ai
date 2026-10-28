@@ -106,3 +106,14 @@ En egen CPU-kontroll leste hashbundne start- og sluttcheckpoint etter 2 976 opti
 I M5 SMC ble 40 320 av 40 448 GC-projeksjonsvekter endret, og 315 av 316 gate-biaser endret seg fra null. Også flere andre tidsrammegrupper hadde koordinater uten målbar parameterendring. Enkeltfelt og årsak er foreløpig ikke identifisert; neste kontroll skal binde navn og prefixstøtte før de omtales som ubrukte. AdamW hadde både læringsrate og vektforfall satt i recipe, så uendret FP32-verdi alene er ikke bevis for null gradient eller frakobling.
 
 Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_STATE_AUDIT_20261028_001/OUTPUT/RESULT.json`, SHA-256 `57268760afd73589f2ab5d721ac7eb85c8932e44bfc44278093f2f78d4e00159`. Ingen modellforward, nye optimizersteg, TEST eller økonomimåling.
+
+
+## Navngitte felt uten variasjon i første TRAIN-prefix
+
+Den etterfølgende kontrollen koblet uendrede start-/sluttparametere til eksakte feltnavn og prefixnormalisering. **39 GC-historiekoordinater og 33 kontekstkoordinater hadde transformert TRAIN-støtte nøyaktig 0–0; 31 av historikoordinatene var også uendret i kontekstruten.** Dette er felt/tidsramme-posisjoner, ikke 39 selvstendige indikatorer. Historiegrunnlaget er den registrerte unionen av native rader i TRAIN-vinduene: 47 798 M5, 15 991 M15, 4 080 H1, 1 139 H4 og 425 D1; kontekstgrunnlaget er 47 602 beslutninger. Normaliseringseieren beregner støtte etter de kildeeide observasjonsmaskene.
+
+De 39 hadde uendret projeksjonskolonne, gate-vektrad og gate-bias. En koordinat som er null over disse TRAIN-radene, bidrar ikke med variasjon i akkurat den ruten; separate tilgjengelighetsmasker eller andre korrelerte felt kan fortsatt bære informasjon. Mange posisjoner gjelder klokkekvalitet, mens D1 bearish orderblock-lav/høy/opprinnelsesvolum og første retouch, samt H4/D1 `signed_complete`, også inngår. Konstans er ikke i seg selv en kodefeil.
+
+Som moteksempel hadde den delvis kjente handelsdeltaen ikke-null variasjon i normalisert TRAIN-støtte på alle fem tidsrammer. Dens GC-projeksjonskolonne, gate-vektrad, gate-bias og kontekstkolonne var ikke bit-identiske mellom start og slutt. Det viser variasjon og parameterendring, ikke at deltaen gir riktig retningsprognose. Ukjent aggressor er fortsatt ukjent.
+
+Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_FIELDS_AUDIT_20261028_002/OUTPUT/RESULT.json`, SHA-256 `083f330c0a7166114bd2926fd948e4db378e36de99bc5b02f27bcb7344ada40b`. Ingen nye modellforward, optimizersteg, TEST eller handel. Neste reelle spørsmål er hvor mye den ferdigtrente modellens prognoser og senere treff påvirkes når en navngitt rute gripes inn i; dette krever en separat kildebundet kontroll med gjenskapt originalprediksjon.
