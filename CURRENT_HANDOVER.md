@@ -11,9 +11,10 @@ Programrot:
 
 ## Aktuell status
 
-ET252-sammenligning på samme første-treff-foreldre er syntetisk kvalifisert
-med 11 kontroller. Engangsadgangen er konsumert; ekte sammenligning krever
-fersk admisjon. Referansen har andre inputs og kan ikke gi årsaksbevis.
+Én ET252-sammenligning er admittért på de samme 1 042 første-treff-
+foreldrene. Den bruker lagrede OOF-skårer, ikke modell eller ny fit. Kilde og
+policy er fryst; engangsplanen skal ikke relanseres. Referansen har andre
+inputs og kan ikke gi årsaksbevis. CONTROL og TEST er lukket.
 
 En naiv partial-set-loss har en bevist degenerert løsning ved 1min/10bps:
 alle 17 288 mulige utfallssett inneholder «ingen treff», så en modell som
