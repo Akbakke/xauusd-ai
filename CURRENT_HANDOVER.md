@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+D1 REPLAY FRA FAKTISK 2009-HISTORIKK ER FULLFØRT: alle 31 aktive trendlinjefelt stemte byteidentisk med cache på 3 889 D1-rader; delt/full state og alle undersøkte modellvinduer stemte. Tidligere D1-avvik skyldtes den forkortede replaykilden. H4 gjenstår. Eierreplay er ikke uavhengig formel-/edgebevis. Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `52e8b24b0e0df6a4684847071bd15563c93f931e7cfb5cd5b7117b983db93fd7`. Ingen modellkall, trening, TEST eller handel.
+
 M15 REPLAY FRA NATIVE 2009-HISTORIKK ER FULLFØRT: 31 aktive trendlinjefelt stemte byteidentisk med cache på 357 385 M15-rader, med eksakt delt/full tilstand og null avvik i undersøkte modellvinduer. Eierreplay er ikke uavhengig formel-/edgebevis. Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M15_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `1f06f563c2258c9766c53963f8883a3c9f84d6c1dd8b3f1142f67da554442c38`. D1 og H4 gjenstår, kjøres en om gangen. Ingen modellkall, trening, TEST eller handel.
 
 Separate native-historie-kontroller for M15, D1 og H4 er bundet én gang hver; M15 er fullført og D1/H4 gjenstår sekvensielt. Hver sammenligner 31 aktive trendlinjefelt, tilstand og faktiske modellvinduer mot riktig 2009-kilde; resultatet inspiseres og lukkes før neste start. Ingen modellkall, trening, TEST eller handel. Planer: M15 `555a45affade691bd5d7b480e9902ed9fa4d4e4ce8d5215e782bc1fdc5f24988`, D1 `20a829c4d84bc00ee9f05a4239262aecc0c5d2e4d10422d0ec9704939aca15f1`, H4 `35b0ff2d587f3bbf98eb0f784c3e3acc0ee899ab84251752477a3425a280dca8`.
