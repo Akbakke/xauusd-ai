@@ -155,8 +155,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     other_tf = args.timeframe != 'D1'; builder = args.builder_float32; native = args.native_history
     require(not (other_tf and args.localize_windows) and (not builder or args.timeframe == 'H1')
-        and (not native or args.timeframe == 'H1') and not (native and builder), 'MODE')
-    localize = args.localize_windows or other_tf
+        and not (native and builder), 'MODE')
+    localize = args.localize_windows or other_tf or native
     tf = args.timeframe
     shift_ns = {'D1':86400, 'H4':14400, 'H1':3600, 'M15':900, 'M5':300}[tf] * 10**9
     stage_name = ('independent_direction_' + tf.lower() + '_trendline_replay_20261028_001') if other_tf else LOCALIZE_STAGE if localize else STAGE
@@ -169,10 +169,10 @@ def main(argv=None):
         design_name = 'DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028.json'
         output_name = 'DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028_001'
     if native:
-        stage_name = 'independent_direction_h1_native_history_replay_20261028_001'
-        schema = 'gx1_direction_h1_native_history_replay'
-        design_name = 'DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028.json'
-        output_name = 'DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028_001'
+        stage_name = 'independent_direction_' + tf.lower() + '_native_history_replay_20261028_001'
+        schema = 'gx1_direction_' + tf.lower() + '_native_history_replay'
+        design_name = 'DIRECTION_' + tf + '_NATIVE_HISTORY_REPLAY_20261028.json'
+        output_name = 'DIRECTION_' + tf + '_NATIVE_HISTORY_REPLAY_20261028_001'
     feat_key, ts_key = ('tf_feats', 'tf_ts') if other_tf else ('d1_feats', 'd1_ts')
     from gx1.contracts import gx1_capped_execution_v1 as cap
     from gx1.contracts import immutable_event_authority_v1 as publication
@@ -212,13 +212,14 @@ def main(argv=None):
             candle.regular(ref['path']); binding.require_binding(ref, label='source')
         keys = {'source_m5', 'cache_manifest', feat_key, ts_key, 'prefix_normalization', 'fit_result'}
         if localize: keys |= {'corrected_target', 'sample_pair', 'fold_design'}
-        if localize and not other_tf: keys.add('previous_result')
-        if builder or native: keys.add('prior_double_result')
+        if localize and not other_tf and not native: keys.add('previous_result')
+        if builder or (native and tf == 'H1'): keys.add('prior_double_result')
+        if native and tf != 'H1': keys.add('h1_native_reference')
         if native: keys |= {'enriched_manifest', 'native_manifest', 'native_parts'}
         require(set(plan['inputs']) == keys, 'INPUT_SET')
-        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('fold_design',) if localize else ()) + (('previous_result',) if localize and not other_tf else ()) + (('prior_double_result',) if builder or native else ()) + (('enriched_manifest', 'native_manifest') if native else ())
+        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('fold_design',) if localize else ()) + (('previous_result',) if localize and not other_tf and not native else ()) + (('prior_double_result',) if builder or (native and tf == 'H1') else ()) + (('h1_native_reference',) if native and tf != 'H1' else ()) + (('enriched_manifest', 'native_manifest') if native else ())
         meta = {key: binding.read_bound_json(Path(plan['inputs'][key]['path']), plan['inputs'][key]['sha256']) for key in meta_names}
-        if localize and not other_tf:
+        if localize and not other_tf and not native:
             prior = policy[STAGE]
             require(prior['status'] == 'COMPLETE_ONE_SHOT_CONSUMED' and prior['execution_authorized'] is False
                 and prior['result'] == plan['inputs']['previous_result']
@@ -226,12 +227,19 @@ def main(argv=None):
                 and meta['previous_result']['all_causal_history_vs_cache']['mismatched_cells'] == 7551
                 and meta['previous_result']['test_data_used'] is False, 'PRIOR_REPLAY')
         manifest, norm, fit = (meta[k] for k in ('cache_manifest', 'prefix_normalization', 'fit_result'))
-        if builder or native:
+        if builder or (native and tf == 'H1'):
             previous = policy['independent_direction_h1_trendline_replay_20261028_001']
             require(previous['status'] == 'COMPLETE_ONE_SHOT_CONSUMED' and previous['execution_authorized'] is False
                 and previous['result'] == plan['inputs']['prior_double_result']
                 and meta['prior_double_result']['status'] == 'COMPLETE'
                 and meta['prior_double_result']['test_data_used'] is False, 'PRIOR_DOUBLE_REPLAY')
+        if native and tf != 'H1':
+            previous = policy['independent_direction_h1_native_history_replay_20261028_001']
+            require(previous['status'] == 'COMPLETE_ONE_SHOT_CONSUMED' and previous['execution_authorized'] is False
+                and previous['result'] == plan['inputs']['h1_native_reference']
+                and meta['h1_native_reference']['status'] == 'COMPLETE'
+                and meta['h1_native_reference']['replay_parity'] is True
+                and meta['h1_native_reference']['test_data_used'] is False, 'H1_NATIVE_REFERENCE')
         if native:
             enriched = meta['enriched_manifest']; native_meta = enriched['native_m5_source']
             require(enriched['output_parquet'] == plan['inputs']['source_m5']['path']
@@ -347,7 +355,7 @@ def main(argv=None):
             details = None
             if localize:
                 require(np.array_equal(at, np.arange(len(at))), 'CACHE_PREFIX_AXIS')
-                if not other_tf:
+                if not other_tf and not native:
                     require(comparison['mismatched_cells'] == meta['previous_result']['all_causal_history_vs_cache']['mismatched_cells']
                         and comparison['rows'] == meta['previous_result']['all_causal_history_vs_cache']['rows'], 'PREVIOUS_REPLAY_REPRODUCED')
                 missing, finite = mismatch_matrix(actual, cached); bad = np.any(missing | finite, axis=1)
