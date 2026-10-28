@@ -11,9 +11,9 @@ Programrot:
 
 ## Aktuell status
 
-Modell-/state-binding for den vektede retningskontrakten er kildeadmittért.
-Eksisterende hode, inputs og standardrute skal beholdes, med egen objektiv-
-og skalabinding. Ingen ekte modellkall, optimizersteg eller trening er åpnet.
+Modell-/state-binding for vektet retning er implementert med uendret hode
+og inputs, egen objektividentitet og uforanderlig skalabinding. Én avgrenset
+syntetisk kontroll er admittért; ekte modellkall og trening er lukket.
 
 En bounded, TRAIN-prefiksnormalisert størrelsesvektet retnings-BCE har
 bestått 12 fokuserte syntetiske kontroller. Kun tapskontrakten finnes;

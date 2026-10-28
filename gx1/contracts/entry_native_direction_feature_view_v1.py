@@ -126,14 +126,14 @@ def _configuration(metadata):
 
 
 def _require_view(view):
-    _require(isinstance(view, Mapping) and set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()), 'VIEW_KEYS')
+    _require(isinstance(view, Mapping) and set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) and not ('bps_scale' in view and 'magnitude_weight_contract' in view), 'VIEW_KEYS')
     _sealed(view, 'VIEW_SEAL')
     fields, routes, widths = _canonical()
     _require(view['schema_version'] == SCHEMA_VERSION and view['physical_widths'] == widths
         and view['physical_field_names_sha256'] == {key: _sha(names) for key, names in fields.items()}
         and view['sequence_bars'] == MODEL_NATIVE_SEQ_LEN and view['window_rows'] == history.WINDOW_ROWS
         and view['canonical_routing_sha256'] == _sha(routes)
-        and view['research_objective'] == native_direction_research_contract(signed_bps='bps_scale' in view)
+        and view['research_objective'] == native_direction_research_contract(signed_bps='bps_scale' in view, magnitude_weighted='magnitude_weight_contract' in view)
         and view['evidence_scope'] == EVIDENCE_SCOPE
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
     _require(set(view['source_bindings']) == SOURCE_REF_KEYS, 'SOURCE_REF_KEYS')
@@ -143,11 +143,16 @@ def _require_view(view):
         scale = require_direction_bps_scale(view['bps_scale'])
         _require(scale['prefix_rows'] == view['prefix']['rows']
             and scale['cutoff_ns'] == view['prefix']['cutoff_ns'], 'BPS_OWN_PREFIX')
+    if 'magnitude_weight_contract' in view:
+        from gx1.contracts.entry_native_direction_bps_v1 import require_direction_magnitude_weight_contract
+        weight = require_direction_magnitude_weight_contract(view['magnitude_weight_contract'])
+        _require(weight['base_scale']['prefix_rows'] == view['prefix']['rows']
+            and weight['base_scale']['cutoff_ns'] == view['prefix']['cutoff_ns'], 'MAG_WEIGHT_OWN_PREFIX')
     return view
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -199,10 +204,12 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         'constructor_scalar_config': scalars,
         'constructor_metadata': {'binding': _ref(constructor_metadata_ref), 'content_sha256': _sha(constructor_metadata)},
         'entry_execution_profile': {'name': compiled['name'], 'contract_sha256': compiled['contract_sha256']},
-        'research_objective': native_direction_research_contract(signed_bps=bps_scale is not None), 'source_bindings': source_bindings,
+        'research_objective': native_direction_research_contract(signed_bps=bps_scale is not None, magnitude_weighted=magnitude_weight_contract is not None), 'source_bindings': source_bindings,
         'max_batch_rows': max_batch_rows, 'evidence_scope': EVIDENCE_SCOPE}
     if bps_scale is not None:
         value['bps_scale'] = _copy(bps_scale)
+    if magnitude_weight_contract is not None:
+        value['magnitude_weight_contract'] = _copy(magnitude_weight_contract)
     value['contract_sha256'] = _sha(value)
     _require_view(value)
     _require(expected is None or expected == value, 'EXPECTED_VIEW_MISMATCH')
@@ -290,7 +297,7 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
     bind_native_direction_feature_view(prefix_normalization=prefix_normalization,
         prefix_normalization_ref=view['prefix_normalization']['binding'], constructor_metadata=constructor_metadata,
         constructor_metadata_ref=view['constructor_metadata']['binding'], source_bindings=view['source_bindings'],
-        max_batch_rows=view['max_batch_rows'], expected=view, bps_scale=view.get('bps_scale'))
+        max_batch_rows=view['max_batch_rows'], expected=view, bps_scale=view.get('bps_scale'), magnitude_weight_contract=view.get('magnitude_weight_contract'))
     _, routes, widths = _canonical()
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])
@@ -305,7 +312,7 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
     _require(type(backbone) is EntryV10CtxHybridTransformer and backbone.entry_execution_profile == view['entry_execution_profile']
         and backbone.gc_mtf_history == prefix_normalization['gc_mtf_history'], 'CONSTRUCTED_NATIVE_BINDING')
     backbone.require_input_normalization_state()
-    wrapper = NativeEntryDirectionResearch(backbone, bps_scale=view.get('bps_scale'))
+    wrapper = NativeEntryDirectionResearch(backbone, bps_scale=view.get('bps_scale'), magnitude_weight_contract=view.get('magnitude_weight_contract'))
     wrapper.feature_view_identity = {'contract_sha256': view['contract_sha256'],
         'prefix_normalization': _copy(view['prefix_normalization']), 'research_objective_sha256': view['research_objective']['contract_sha256']}
     return wrapper

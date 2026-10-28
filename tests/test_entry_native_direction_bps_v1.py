@@ -351,3 +351,97 @@ def test_magnitude_weight_contract_rejects_tamper_and_nontrain_fit():
     with pytest.raises(RuntimeError, match="TRAIN_ONLY"):
         bps.fit_direction_magnitude_weight_contract(**_arrays(), cutoff_ns=130*M,
             target_source={"path": "/synthetic/targets.npz", "sha256": "b"*64}, fit_partition="control")
+
+
+def test_magnitude_weight_model_preserves_initial_logits_parameters_and_rng(monkeypatch):
+    monkeypatch.setattr(component.EntryV10CtxHybridTransformer, "forward", component._native_forward_spy)
+    torch.manual_seed(420)
+    baseline = direction.NativeEntryDirectionResearch(component._native_shell())
+    baseline_rng = torch.random.get_rng_state().clone()
+    torch.manual_seed(420)
+    weighted = direction.NativeEntryDirectionResearch(component._native_shell(),
+        magnitude_weight_contract=_magnitude_weight_contract())
+    assert torch.equal(torch.random.get_rng_state(), baseline_rng)
+    for name, parameter in baseline.named_parameters():
+        assert torch.equal(parameter, dict(weighted.named_parameters())[name])
+    assert torch.equal(weighted(**component._inputs())["logit_up"], baseline(**component._inputs())["logit_up"])
+    assert weighted.magnitude_weighted and not weighted.signed_bps
+    assert weighted.research_objective != baseline.research_objective
+
+
+def test_magnitude_weight_recipe_rejects_mixed_or_unweighted_identity():
+    recipe = recipes.native_direction_research_recipe(batch_size=2, max_updates=4, magnitude_weighted=True)
+    assert recipes.require_native_direction_research_recipe(recipe) == recipe
+    assert recipe["research_objective_sha256"] == direction.native_direction_research_contract(magnitude_weighted=True)["contract_sha256"]
+    with pytest.raises(RuntimeError, match="OBJECTIVE_MODE"):
+        recipes.native_direction_research_recipe(batch_size=2, max_updates=4, signed_bps=True, magnitude_weighted=True)
+    bad = deepcopy(recipe); bad["research_objective_sha256"] = direction.native_direction_research_contract()["contract_sha256"]
+    with pytest.raises(RuntimeError, match="RECIPE_MISMATCH"):
+        recipes.require_native_direction_research_recipe(bad)
+
+
+def _magnitude_weight_candidate(monkeypatch):
+    base = state_tests._make(monkeypatch)
+    model = direction.NativeEntryDirectionResearch(base.model.backbone,
+        magnitude_weight_contract=_magnitude_weight_contract())
+    identity = state_tests._identity()
+    identity["research_objective_sha256"] = model.research_objective["contract_sha256"]
+    model.feature_view_identity = identity
+    recipe = recipes.native_direction_research_recipe(batch_size=2, max_updates=4, magnitude_weighted=True)
+    optimizer, binding = state.build_native_direction_research_optimizer(model, recipe=recipe)
+    model.train(); state_tests._seed(recipe["seed"])
+    return SimpleNamespace(model=model, optimizer=optimizer, recipe=recipe, binding=binding, order=base.order)
+
+
+def _magnitude_weight_step(case, step):
+    args = _magnitude_weight_loss([[.1, 2., 50.], [-.2, -3., -40.]])
+    args["logit_up"] = case.model(**state_tests._features(step))["logit_up"]
+    args["rms_bps"] = case.model.magnitude_rms_bps
+    args["raw_weight_mean"] = case.model.magnitude_raw_weight_mean
+    bps.native_direction_magnitude_weighted_loss(**args)["loss"].backward()
+    case.optimizer.step()
+    case.optimizer.zero_grad(set_to_none=True)
+
+
+def test_magnitude_weight_model_synthetic_resume_matches(monkeypatch):
+    first = _magnitude_weight_candidate(monkeypatch)
+    _magnitude_weight_step(first, 0)
+    saved = _capture(first, 2, 1)
+    _magnitude_weight_step(first, 1)
+    expected = _capture(first, 4, 2)
+    resumed = _magnitude_weight_candidate(monkeypatch)
+    state.restore_native_direction_research_state(saved, resumed.model, resumed.optimizer, recipe=resumed.recipe,
+        feature_view_identity=resumed.model.feature_view_identity, parent_order=resumed.order, device=torch.device("cpu"))
+    _magnitude_weight_step(resumed, 1)
+    assert _capture(resumed, 4, 2)["contract_sha256"] == expected["contract_sha256"]
+
+
+def test_magnitude_weight_changed_state_buffer_rejected_before_mutation(monkeypatch):
+    case = _magnitude_weight_candidate(monkeypatch); saved = _capture(case, 0, 0)
+    saved["buffer_state"]["magnitude_raw_weight_mean"][0] += .01
+    saved["model_state"]["magnitude_raw_weight_mean"][0] += .01
+    state_tests._reseal(saved)
+    before = state_tests._live_hash(case)
+    with pytest.raises(RuntimeError, match="IMMUTABLE_BUFFER"):
+        state.restore_native_direction_research_state(saved, case.model, case.optimizer, recipe=case.recipe,
+            feature_view_identity=case.model.feature_view_identity, parent_order=case.order, device=torch.device("cpu"))
+    assert state_tests._live_hash(case) == before
+
+
+def test_magnitude_weight_view_keeps_feature_routes_and_binds_scale(bound_case, monkeypatch):
+    base = bound_case["view"]; n = base["prefix"]["rows"]; cutoff = base["prefix"]["cutoff_ns"]
+    D = cutoff - np.arange(n+20, 20, -1, dtype=np.int64)*5*M
+    values = np.tile(np.asarray([1., -2., 3.], np.float64), (n, 1))
+    weight = _magnitude_weight_contract(dict(parent_rows=np.arange(n, dtype=np.int64), decision_ns=D,
+        terminal_time_ns=D[:, None]+np.asarray([1, 5, 15], np.int64)[None, :]*M,
+        mid_return_bps=values, observed=np.ones((n, 3), np.bool_), sign=np.sign(values).astype(np.int8)), cutoff)
+    view = view_owner.bind_native_direction_feature_view(**bound_case["arguments"], magnitude_weight_contract=weight)
+    assert view["canonical_routing_sha256"] == base["canonical_routing_sha256"]
+    assert view["prefix_normalization"] == base["prefix_normalization"]
+    assert view["research_objective"] == direction.native_direction_research_contract(magnitude_weighted=True)
+    calls, _ = _constructor_spy(monkeypatch)
+    model = view_owner.build_native_direction_research_model(view,
+        prefix_normalization=bound_case["arguments"]["prefix_normalization"],
+        constructor_metadata=bound_case["arguments"]["constructor_metadata"], device=torch.device("cpu"))
+    assert len(calls) == 1 and model.magnitude_weighted
+    assert model.feature_view_identity["research_objective_sha256"] == model.research_objective["contract_sha256"]

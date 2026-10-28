@@ -25,7 +25,8 @@ MULTIPASS_SCHEMA_VERSION = 'gx1_native_direction_research_state_multipass_v1'
 INACTIVE_PREFIXES = ('backbone.head_', 'backbone.dynamic_m5_query_projection.',
     'backbone.task_log_variances.', 'backbone.entry_decision_token.', 'backbone.exit_')
 IMMUTABLE_BUFFER_NAMES = frozenset(('backbone.gc_mtf_layout_sha256', 'backbone.gc_mtf_normalization_sha256',
-    'backbone.entry_execution_profile_contract_sha256', 'direction_horizon_minutes', 'bps_rms', 'bps_scale_sha256'))
+    'backbone.entry_execution_profile_contract_sha256', 'direction_horizon_minutes', 'bps_rms', 'bps_scale_sha256',
+    'magnitude_rms_bps', 'magnitude_raw_weight_mean', 'magnitude_weight_sha256'))
 IMMUTABLE_BUFFER_PREFIXES = ('backbone.input_norm_', 'backbone.gc_mtf_specialist_idx_')
 STATE_KEYS = frozenset(('schema_version', 'binding', 'model_state', 'buffer_state', 'optimizer_state',
     'rng_state', 'module_training', 'parent_order', 'cursor', 'optimizer_updates', 'model_state_sha256',
@@ -96,6 +97,7 @@ def _binding(model, optimizer, recipe, feature_view_identity):
         'recipe': recipe, 'feature_view_identity': _view(model, feature_view_identity),
         'research_objective': model.research_objective,
         **({'bps_scale_contract_sha256':model.bps_scale['contract_sha256']} if model.signed_bps else {}),
+        **({'magnitude_weight_contract_sha256':model.magnitude_weight_contract['contract_sha256']} if model.magnitude_weighted else {}),
         'active_parameter_names': [name for name, _ in active],
         'inactive_parameter_names': [name for name, _ in inactive],
         'parameter_inventory': [{'name': name, 'shape': list(p.shape), 'dtype': str(p.dtype)} for name, p in pairs],

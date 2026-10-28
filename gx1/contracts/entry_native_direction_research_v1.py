@@ -75,6 +75,14 @@ _BPS_OBJECTIVE = {**_OBJECTIVE,
     "empty_eligible": "no_observed_mature_cells_loss_None_no_optimizer_step"}
 _BPS_OBJECTIVE_JSON = json.dumps(_BPS_OBJECTIVE, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 _BPS_OBJECTIVE_SHA256 = hashlib.sha256(_BPS_OBJECTIVE_JSON).hexdigest()
+_MAG_WEIGHT_OBJECTIVE = {**_OBJECTIVE,
+    "schema_version": "gx1_entry_native_direction_magnitude_weighted_v1",
+    "research_objective": "own_train_prefix_bounded_magnitude_weighted_direction",
+    "probability_condition": "magnitude_tilted_sign_score_not_unweighted_probability",
+    "loss": "bounded_own_prefix_normalized_magnitude_weighted_BCE_sum_divided_by_eligible_cells",
+    "weight": "abs_midpoint_bps_over_own_prefix_RMS_plus_abs_bps_divided_by_eligible_prefix_mean",
+    "future_targets_or_clocks_as_forward_inputs": False}
+_MAG_WEIGHT_OBJECTIVE_JSON = json.dumps(_MAG_WEIGHT_OBJECTIVE, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
 def _require(condition: bool, reason: str) -> None:
@@ -82,10 +90,11 @@ def _require(condition: bool, reason: str) -> None:
         raise RuntimeError("NATIVE_DIRECTION_RESEARCH_" + reason)
 
 
-def native_direction_research_contract(*, signed_bps: bool = False) -> dict[str, Any]:
+def native_direction_research_contract(*, signed_bps: bool = False, magnitude_weighted: bool = False) -> dict[str, Any]:
     """Return a copy; mutating it cannot alter the canonical research identity."""
-    _require(type(signed_bps) is bool, "OBJECTIVE_MODE")
-    raw = _BPS_OBJECTIVE_JSON if signed_bps else _OBJECTIVE_JSON
+    _require(type(signed_bps) is bool and type(magnitude_weighted) is bool
+        and not (signed_bps and magnitude_weighted), "OBJECTIVE_MODE")
+    raw = _BPS_OBJECTIVE_JSON if signed_bps else _MAG_WEIGHT_OBJECTIVE_JSON if magnitude_weighted else _OBJECTIVE_JSON
     return {**json.loads(raw), "contract_sha256": hashlib.sha256(raw).hexdigest()}
 
 
@@ -117,12 +126,14 @@ class NativeEntryDirectionResearch(nn.Module):
     grad=None/no-update state must be checked by genuine qualification.
     """
 
-    def __init__(self, backbone: EntryV10CtxHybridTransformer, *, bps_scale=None):
+    def __init__(self, backbone: EntryV10CtxHybridTransformer, *, bps_scale=None, magnitude_weight_contract=None):
         super().__init__()
+        _require(not (bps_scale is not None and magnitude_weight_contract is not None), "OBJECTIVE_MODE")
         width = _backbone_width(backbone)
         self.backbone = backbone
         self._bound_hidden_width = width
-        self._research_contract_json = _OBJECTIVE_JSON if bps_scale is None else _BPS_OBJECTIVE_JSON
+        self._research_contract_json = (_BPS_OBJECTIVE_JSON if bps_scale is not None else
+            _MAG_WEIGHT_OBJECTIVE_JSON if magnitude_weight_contract is not None else _OBJECTIVE_JSON)
         self.direction_head = nn.Linear(width, len(HORIZONS_MINUTES),
             device=backbone.entry_q_joint_in.weight.device, dtype=torch.float32)
         self.register_buffer("direction_horizon_minutes", torch.tensor(HORIZONS_MINUTES,
@@ -139,10 +150,28 @@ class NativeEntryDirectionResearch(nn.Module):
             self.register_buffer("bps_rms", torch.tensor(scale["rms_bps"], dtype=torch.float32, device=device))
             self.register_buffer("bps_scale_sha256", torch.tensor(list(bytes.fromhex(scale["contract_sha256"])),
                 dtype=torch.uint8, device=device))
+        if magnitude_weight_contract is not None:
+            from gx1.contracts.entry_native_direction_bps_v1 import require_direction_magnitude_weight_contract
+            weight = require_direction_magnitude_weight_contract(magnitude_weight_contract)
+            self._magnitude_weight_json = json.dumps(weight, sort_keys=True, separators=(",", ":"), allow_nan=False)
+            device = self.direction_head.weight.device
+            self.register_buffer("magnitude_rms_bps", torch.tensor(weight["base_scale"]["rms_bps"], dtype=torch.float32, device=device))
+            self.register_buffer("magnitude_raw_weight_mean", torch.tensor(weight["raw_weight_means"], dtype=torch.float32, device=device))
+            self.register_buffer("magnitude_weight_sha256", torch.tensor(list(bytes.fromhex(weight["contract_sha256"])),
+                dtype=torch.uint8, device=device))
 
     @property
     def signed_bps(self) -> bool:
         return self._research_contract_json == _BPS_OBJECTIVE_JSON
+
+    @property
+    def magnitude_weighted(self) -> bool:
+        return self._research_contract_json == _MAG_WEIGHT_OBJECTIVE_JSON
+
+    @property
+    def magnitude_weight_contract(self):
+        _require(self.magnitude_weighted, "MAG_WEIGHT_MODE_REQUIRED")
+        return json.loads(self._magnitude_weight_json)
 
     @property
     def bps_scale(self):
@@ -151,12 +180,12 @@ class NativeEntryDirectionResearch(nn.Module):
 
     @property
     def research_objective(self) -> dict[str, Any]:
-        expected = _BPS_OBJECTIVE_JSON if self.signed_bps else _OBJECTIVE_JSON
+        expected = _BPS_OBJECTIVE_JSON if self.signed_bps else _MAG_WEIGHT_OBJECTIVE_JSON if self.magnitude_weighted else _OBJECTIVE_JSON
         _require(self._research_contract_json == expected, "RESEARCH_OBJECTIVE_IDENTITY")
-        return native_direction_research_contract(signed_bps=self.signed_bps)
+        return native_direction_research_contract(signed_bps=self.signed_bps, magnitude_weighted=self.magnitude_weighted)
 
     def _require_binding(self) -> None:
-        expected = _BPS_OBJECTIVE_JSON if self.signed_bps else _OBJECTIVE_JSON
+        expected = _BPS_OBJECTIVE_JSON if self.signed_bps else _MAG_WEIGHT_OBJECTIVE_JSON if self.magnitude_weighted else _OBJECTIVE_JSON
         _require(self._research_contract_json == expected, "RESEARCH_OBJECTIVE_IDENTITY")
         width = _backbone_width(self.backbone)
         _require(type(self._bound_hidden_width) is int and self._bound_hidden_width == width, "BOUND_HIDDEN_WIDTH")
@@ -188,6 +217,21 @@ class NativeEntryDirectionResearch(nn.Module):
         else:
             _require(not any(hasattr(self, name) for name in ("bps_mean_head", "bps_rms", "bps_scale_sha256", "_bps_scale_json")),
                 "BASELINE_HAS_BPS_STATE")
+        if self.magnitude_weighted:
+            from gx1.contracts.entry_native_direction_bps_v1 import require_direction_magnitude_weight_contract
+            weight = require_direction_magnitude_weight_contract(self.magnitude_weight_contract)
+            _require(self.magnitude_rms_bps.dtype == torch.float32 and self.magnitude_rms_bps.device == head.weight.device
+                and not self.magnitude_rms_bps.requires_grad
+                and torch.equal(self.magnitude_rms_bps, torch.tensor(weight["base_scale"]["rms_bps"], dtype=torch.float32, device=head.weight.device))
+                and self.magnitude_raw_weight_mean.dtype == torch.float32 and self.magnitude_raw_weight_mean.device == head.weight.device
+                and not self.magnitude_raw_weight_mean.requires_grad
+                and torch.equal(self.magnitude_raw_weight_mean, torch.tensor(weight["raw_weight_means"], dtype=torch.float32, device=head.weight.device))
+                and self.magnitude_weight_sha256.dtype == torch.uint8 and self.magnitude_weight_sha256.device == head.weight.device
+                and torch.equal(self.magnitude_weight_sha256, torch.tensor(list(bytes.fromhex(weight["contract_sha256"])),
+                    dtype=torch.uint8, device=head.weight.device)), "MAG_WEIGHT_BINDING")
+        else:
+            _require(not any(hasattr(self, name) for name in ("magnitude_rms_bps", "magnitude_raw_weight_mean",
+                "magnitude_weight_sha256", "_magnitude_weight_json")), "UNWEIGHTED_HAS_MAG_STATE")
 
     def forward(
         self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,

@@ -40467,7 +40467,7 @@
     }
   },
   "direction_bounded_magnitude_model_binding_source_20261028": {
-    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "scope": "Bind the qualified magnitude-weight objective and own-prefix scale to the existing direction research wrapper, feature view, recipe and checkpoint state while preserving identical baseline forward and trainable parameters. No train adapter, genuine payload or fit is opened.",
     "allowed_source_paths": [
       "gx1/contracts/entry_native_direction_research_v1.py",
@@ -40476,8 +40476,8 @@
       "gx1/contracts/entry_model_native_train_recipe_v1.py",
       "tests/test_entry_native_direction_bps_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
@@ -40486,6 +40486,66 @@
       "Old direction and signed-bps modes preserve their exact contracts and behavior.",
       "The weighted mode has a distinct truthful loss identity, the same forward head and trainable parameters, immutable scale buffers and no extra random draws.",
       "Own-prefix scale identity is bound to the feature view and serialized state; mutation or mixed modes fails closed."
-    ]
+    ],
+    "sources": [
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "8beccc55c551c22c37e0af9bec10bc3b911e6ff11c69c6d5ba83abcc1b096e16"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+        "sha256": "7eca7480e9f9e089b6de3ac2ce499a891507649ebac851e39e95ab55be50fb7d"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_state_v1.py",
+        "sha256": "d9a85287230dc06dc23d2a533b4d7dcc99e3555c52b301ef4352dc037ed18227"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_train_recipe_v1.py",
+        "sha256": "55ef40ec61bd4312c92d4a1fd88dd3da8ad6915d1054f8a9001ffff4d60cd0cf"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_bps_v1.py",
+        "sha256": "aec390322f27bdf6f8e878088c8af719e4f659ab7cb7014528f3b16504b0b8b8"
+      }
+    ],
+    "tests": [
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_research_v1.py",
+        "sha256": "66c5c5a3bc1137be9a46c2bbdec290314f93919091c91636d8cd723d5c3765a5"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_research_state_v1.py",
+        "sha256": "571756a3da26b8d09b95143c74e605f2cf0d8d41f33a2b14fc33b17c797c8392"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_feature_view_v1.py",
+        "sha256": "9107f44a8d6cce3ecabca9c423049e909dacbc594dd542091c6b2869ae2a0823"
+      },
+      {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_bps_v1.py",
+        "sha256": "d66cb23ca31f558256d646577ef0c6d1a73bffb46a0968985780a4d4358422d3"
+      }
+    ],
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_MODEL_BINDING_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "6c674d20d3666e7407081f8165c7668f15ca359c1c10d5b9b9d3d578c48afe9d"
+    }
+  },
+  "direction_bounded_magnitude_model_binding_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_MODEL_BINDING_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "6c674d20d3666e7407081f8165c7668f15ca359c1c10d5b9b9d3d578c48afe9d"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "genuine_native_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
