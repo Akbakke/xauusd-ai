@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "84b80769d93be0098b32f34041743627efaefd4b962aae16bff803fa57df830e"
+      "sha256": "483c73fc183899161bf07a49aeeaecec9e90706c66e9f1140eccfe6fdb9ba50e"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -43738,6 +43738,34 @@
     },
     "training_authorized": false,
     "full_fit_executed": false,
+    "predictive_improvement_qualified": false,
+    "test_data_used": false
+  },
+  "direction_price_momentum_profile_review_20261028": {
+    "status": "SOURCE_AND_EXISTING_AGGREGATED_METADATA_ONLY",
+    "profile_name": "compact_mbp_gc_mtf_geometry_entry_research_v1",
+    "profile_sha256": "d923af2a3a35bc3f4582be20d5359b32f0c9e345cc0107d99f4c9802524b52a4",
+    "inventory": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/feature_inventory.json",
+      "sha256": "b08665ee84298655175bd05b38d4c4a0f3d2f7455db243e3224e400d0626c8ea"
+    },
+    "xau_mtf_fields_per_timeframe": 253,
+    "active_per_timeframe": 178,
+    "parked_per_timeframe": 75,
+    "parked_momentum_fields_per_timeframe": 29,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "local_xau_ret1_active": true,
+    "gc_momentum_route_active": true,
+    "missing_mtf_xau_momentum_proven_harmful": false,
+    "candidate_change_authorized": false,
+    "new_data_audit_authorized": false,
+    "training_authorized": false,
     "predictive_improvement_qualified": false,
     "test_data_used": false
   }
