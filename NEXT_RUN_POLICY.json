@@ -43510,6 +43510,10 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_INDEPENDENT_CHECK_20261028_001.json",
       "sha256": "7a99c730859c5a5370b7de76b8eb588862d6c3c238d63baa5eb3ac2040000775"
     },
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "common_cohort_summary": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_SHARED_COHORT_20261028.json",
+      "sha256": "e135f7f77fab73173dfca3fcadcb0de0000c8fdec7d07baa8871b8ac0db572cf"
+    }
   }
 }

@@ -1,0 +1,73 @@
+{
+  "schema_version": "gx1_direction_common_cohort_diagnosis_v1",
+  "status": "COMPLETE_CAPPED_READ_ONLY_TERMINAL_SUMMARY",
+  "inputs": {
+    "q1": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "q2": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    }
+  },
+  "observation_gap_result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_20261028_001/OUTPUT/RESULT.json",
+    "sha256": "a8c21c9b93e59432e394af49213074d4d04612771f92addd8567476add4864e0"
+  },
+  "method": "Within each period compare each model horizon on its own mature observed nonzero targets against the intersection of mature observed nonzero 5min and 60min targets. AUC uses sklearn; positive logit selects UP. Post-hoc diagnostic only.",
+  "periods": {
+    "q1": {
+      "common_n": 16482,
+      "5min": {
+        "own_n": 17192,
+        "own_auc": 0.5001749,
+        "common_auc": 0.4995943,
+        "own_accuracy": 0.48877385,
+        "common_accuracy": 0.48932168,
+        "own_always_up": 0.51582131,
+        "common_always_up": 0.51395462
+      },
+      "60min": {
+        "own_n": 16512,
+        "own_auc": 0.52101468,
+        "common_auc": 0.5210008,
+        "own_accuracy": 0.51956153,
+        "common_accuracy": 0.51947579,
+        "own_always_up": 0.54796512,
+        "common_always_up": 0.54774906
+      }
+    },
+    "q2": {
+      "common_n": 1687,
+      "5min": {
+        "own_n": 1753,
+        "own_auc": 0.48968812,
+        "common_auc": 0.48519846,
+        "own_accuracy": 0.49286937,
+        "common_accuracy": 0.49318317,
+        "own_always_up": 0.50199658,
+        "common_always_up": 0.50207469
+      },
+      "60min": {
+        "own_n": 1688,
+        "own_auc": 0.48432337,
+        "common_auc": 0.48471498,
+        "own_accuracy": 0.48281991,
+        "common_accuracy": 0.48310611,
+        "own_always_up": 0.51421801,
+        "common_always_up": 0.51452282
+      }
+    }
+  },
+  "limits": "AUC/accuracy values rounded to eight decimal places. These are descriptive point estimates, not confidence intervals, causal proof or proof of missing counterfactual outcomes. The common cohort depends on future outcomes and is never an inference-time filter. Both periods are reused development and Q2 is a fixed nonrandom sample.",
+  "recording": "Values transcribed from a capped read-only terminal calculation after SHA and exact parent/time/mask joins; this JSON is not an independently generated run receipt.",
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}

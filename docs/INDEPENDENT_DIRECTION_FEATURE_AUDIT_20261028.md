@@ -435,3 +435,12 @@ Syv observerte Q1-endepunkter ved 60 minutter hadde minst ett manglende M1-tidss
 En uavhengig kontroll brukte en separat tidsstempelordbok, kumulativ boolsk dekning og Python-bisekt for å gjenskape alle 60 maskene, kildepekerne, hulltellingene og populasjonsoverlappene i begge perioder. Q1 er gjenbrukt utvikling og Q2 et fast ikke-tilfeldig delutvalg. Ingen ny modellforward, trening, TEST, handel eller økonomisk edge.
 
 Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_20261028_001/OUTPUT/RESULT.json`, SHA-256 `a8c21c9b93e59432e394af49213074d4d04612771f92addd8567476add4864e0`; uavhengig kontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_INDEPENDENT_CHECK_20261028_001.json`, SHA-256 `7a99c730859c5a5370b7de76b8eb588862d6c3c238d63baa5eb3ac2040000775`.
+
+
+## Samme foreldre for fem og 60 minutter
+
+Som en etterfølgende, beskrivende kontroll ble hvert hodes skår målt både på sin opprinnelige kvalifiserte populasjon og på skjæringsmengden der **begge** horisonter har modne, observerte og ikke-null utfall. I Q1 var det **16 482** felles foreldre. Femminutters-AUC var **0,50017** på egne **17 192** utfall og **0,49959** på fellesutvalget; 60min-AUC var **0,52101** på egne **16 512** og **0,52100** på fellesutvalget. Femminuttersmodellen ligger derfor fortsatt omkring 0,50 i denne punktmålingen når vi holder foreldrene like.
+
+Q2-utvalget hadde **1 687** felles foreldre. Femminutters-AUC var **0,48969** på egne 1 753 og **0,48520** på felles; 60min-AUC var **0,48432** på egne 1 688 og **0,48471** på felles. Q2 er et fast, ikke-tilfeldig utvalg og begge periodene er gjenbrukt utvikling. Ingen nye konfidensintervaller eller uavhengig bekreftelse er beregnet.
+
+Denne skjæringsmengden er definert med framtidige målmasker og fortegn og er **kun en diagnose**, aldri et filter som kan brukes ved beslutningstidspunktet. Den kan heller ikke fortelle hvilke utfall som ville forekommet der data mangler. Verdiene er gjengitt fra en capped lesende terminalberegning med hash- og aksekontroll; JSON-sammendraget er ingen selvstendig kjørekvittering. Ingen ny modellforward, trening, TEST eller handel. Sammendrag: `docs/DIRECTION_SHARED_COHORT_20261028.json`, SHA-256 `e135f7f77fab73173dfca3fcadcb0de0000c8fdec7d07baa8871b8ac0db572cf`.
