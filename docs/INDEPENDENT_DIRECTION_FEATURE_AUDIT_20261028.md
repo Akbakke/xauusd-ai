@@ -275,3 +275,14 @@ På de samme 256 lagrede TRAIN-radene før trening var 6min-hodets OPP-andel 52,
 Kilden viser tre opprinnelige uavhengig parameteriserte 1/5/15-logiter og 57 øvrige uavhengig parameteriserte logiter på samme 128-dimensjonale representasjon. BCE summeres over alle gyldige tidsmål uten eksplisitt kobling mellom naboene. En felles, tidskoblet utgang er derfor en konkret hypotese å teste mot samme initialbaseline og alle 60 mål, ikke en bevist forbedring. Den målte ned-/oppskjevheten er reell for disse dataene, men den alene forklarer ikke hvorfor AUC er nær 0,5.
 
 Detaljer og alle 59 nabopar: `docs/DIRECTION_HEAD_COMPOSITION_DIAGNOSIS_20261028.json`, SHA-256 `2af5f7bd7ff5c2623318db972b15b0f5bf0efcc9cb523ce0d7b1683c1279717c`. Ingen nye modellforward, optimizersteg, TEST eller handel.
+
+
+## Enkel, tidsmessig tilgjengelig prisreferanse
+
+Som en utforskende kontroll brukte jeg fortegnet på M1-midtprisendringen fra **10 til 5 minutter før beslutningen**, og krevde at sluttcandle var lukket før beslutningen. Både videreføring og motsatt retning er beregnet; ingen modell er trent. Alle sammenligninger bruker nøyaktig samme gyldige foreldre og korrigerte 5min-fasit. På **17 033 Q1-rader** traff motsatt retning **50,75 %** og alltid OPP **51,61 %**; referansens AUC var **0,50799** mot modellens **0,50052**. Parrede dag- og ukeintervaller for AUC-differansen inkluderer null.
+
+På det tidligere fastsatte **Q2-utvalget på 1 738 rader** traff motsatt retning **52,47 %** mot **50,17 %** for alltid OPP. Referansens AUC var **0,52473** mot modellens **0,48931**; parret AUC-differanse hadde dagintervall **0,01013–0,06163** og ukeintervall **0,01813–0,05451**. Trefferatens forskjell mot alltid OPP hadde dagintervall **−0,80 til +5,36 prosentpoeng** og ukeintervall **+0,11 til +4,44 prosentpoeng**. På første TRAIN-prefix traff samme motsatte regel **50,56 %** mot **50,91 %** for alltid OPP.
+
+Dette er en *etterundersøkelse* av data som allerede er brukt til utvikling, ikke en forhåndsregistrert og urørt bekreftelse. Blokkintervallene forutsetter utbyttbare dager/uker og korrigerer ikke for hvordan idéen ble funnet. M1-candlens åpningspris har ikke eksakt quote-tid, og kostnader/fyll er ikke målt. Resultatet gir en konkret enkel referanse å forhåndsdefinere før senere sammenligning, men dokumenterer verken generalisert retningsedge eller lønnsom trading. Det er heller ikke kontrollert at den eksakte M1-prisendringen inngår direkte i modellens features.
+
+Resultat: `docs/DIRECTION_PAST_MOVE_REFERENCE_DIAGNOSIS_20261028.json`, SHA-256 `1d1273e9e500fcf32586fbc6ce24e1d663d44155b64a8f6e1b77d3cd8ba867e0`; uavhengig kontroll av punktestimater og fem bootstrap-trekninger per blokkmetode er bestått. Ingen nye modellforward, optimizersteg, TEST eller handel.

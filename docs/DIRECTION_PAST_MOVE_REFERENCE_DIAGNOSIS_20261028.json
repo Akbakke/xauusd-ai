@@ -1,0 +1,234 @@
+{
+  "economic_edge_qualified": false,
+  "groups": {
+    "q1": {
+      "actual_up": 8791,
+      "bootstrap_95_percent": {
+        "UTC_DAY": {
+          "blocks": 77,
+          "reversal_accuracy": {
+            "high": 0.5155176769912004,
+            "low": 0.49947156088733824,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_always_long_accuracy": {
+            "high": 0.0023138405658157343,
+            "low": -0.01996235829556217,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_model_auc": {
+            "high": 0.018401189469086192,
+            "low": -0.0036706204228336647,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          }
+        },
+        "UTC_WEEK_MONDAY": {
+          "blocks": 14,
+          "reversal_accuracy": {
+            "high": 0.5141628430487136,
+            "low": 0.5011606671500627,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_always_long_accuracy": {
+            "high": 0.000494874630461655,
+            "low": -0.017384389528668658,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_model_auc": {
+            "high": 0.016027347098875114,
+            "low": -0.000706780524581138,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          }
+        }
+      },
+      "eligible": 17033,
+      "past_up": 8779,
+      "scores": {
+        "always_long": {
+          "accuracy": 0.5161157752597898,
+          "auc": 0.5
+        },
+        "continuation": {
+          "accuracy": 0.49251453061703754,
+          "auc": 0.4920095006830545
+        },
+        "model": {
+          "accuracy": 0.4886396994070334,
+          "auc": 0.5005158689159246
+        },
+        "reversal": {
+          "accuracy": 0.5074854693829625,
+          "auc": 0.5079904993169456
+        }
+      },
+      "total_parents": 17288
+    },
+    "q2": {
+      "actual_up": 872,
+      "bootstrap_95_percent": {
+        "UTC_DAY": {
+          "blocks": 65,
+          "reversal_accuracy": {
+            "high": 0.5474416944112975,
+            "low": 0.5017380223578188,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_always_long_accuracy": {
+            "high": 0.05354993983152828,
+            "low": -0.007978811666347565,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_model_auc": {
+            "high": 0.061625919691317185,
+            "low": 0.010130889685770476,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          }
+        },
+        "UTC_WEEK_MONDAY": {
+          "blocks": 14,
+          "reversal_accuracy": {
+            "high": 0.5405241120172541,
+            "low": 0.508521165475536,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_always_long_accuracy": {
+            "high": 0.044444765204003076,
+            "low": 0.0010769914320642865,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_model_auc": {
+            "high": 0.0545052288851617,
+            "low": 0.018130419018958066,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          }
+        }
+      },
+      "eligible": 1738,
+      "past_up": 862,
+      "scores": {
+        "always_long": {
+          "accuracy": 0.5017261219792866,
+          "auc": 0.5
+        },
+        "continuation": {
+          "accuracy": 0.475258918296893,
+          "auc": 0.4752725279149098
+        },
+        "model": {
+          "accuracy": 0.49309551208285385,
+          "auc": 0.48930546433036
+        },
+        "reversal": {
+          "accuracy": 0.5247410817031071,
+          "auc": 0.5247274720850902
+        }
+      },
+      "total_parents": 1760
+    },
+    "train": {
+      "actual_up": 23822,
+      "bootstrap_95_percent": {
+        "UTC_DAY": {
+          "blocks": 210,
+          "reversal_accuracy": {
+            "high": 0.5094516622599182,
+            "low": 0.5016076139872498,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_always_long_accuracy": {
+            "high": 0.0026293711497438767,
+            "low": -0.009828458107733614,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          }
+        },
+        "UTC_WEEK_MONDAY": {
+          "blocks": 36,
+          "reversal_accuracy": {
+            "high": 0.5091836357848468,
+            "low": 0.5019080155224701,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          },
+          "reversal_minus_always_long_accuracy": {
+            "high": 0.0036859518713231627,
+            "low": -0.011041359286172696,
+            "per_interval_alpha": 0.05,
+            "undefined_replicates": 0,
+            "valid_replicates": 10000
+          }
+        }
+      },
+      "eligible": 46789,
+      "past_up": 23802,
+      "scores": {
+        "always_long": {
+          "accuracy": 0.5091367629143602,
+          "auc": 0.5
+        },
+        "continuation": {
+          "accuracy": 0.4944110795272393,
+          "auc": 0.49425000964231103
+        },
+        "reversal": {
+          "accuracy": 0.5055889204727607,
+          "auc": 0.505749990357689
+        }
+      },
+      "total_parents": 47602
+    }
+  },
+  "inputs": {
+    "q1": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "q2": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    },
+    "target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    }
+  },
+  "limits": "Exploratory post-inspection comparison on reused development periods; Q2 is a fixed subsample. M1 candle opens lack quote event timestamps. Day/week bootstrap assumes exchangeable blocks; no multiple-selection correction, untouched validation, trading costs or fills. Absolute accuracy against 50% is not economic edge.",
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "rule": "At decision t use the sign of exact M1-open midpoint change from t-10min to t-5min, provided the terminal M1 candle closes no later than t. Score both fixed continuation and reversal against t to t+5min.",
+  "schema_version": "gx1_saved_past_move_direction_diagnostic_v1",
+  "source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/analyze_saved_past_move_direction_v1.py",
+    "sha256": "29332d57b60883edfd5a3828a2fa9115ac220fc42b56180c7dea88c09396ad86"
+  },
+  "status": "COMPLETE_EXPLORATORY_SAVED_DATA_ONLY",
+  "test_data_used": false
+}
