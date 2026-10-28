@@ -15,6 +15,7 @@ from gx1.contracts.entry_causal_m1_outcomes_v1 import (
 )
 from gx1.contracts.entry_causal_m1_first_positive_quote_v1 import (
     _first_strict_crossing,
+    classify_first_quote_hurdle_direction,
     first_positive_quote_target_contract,
     query_first_positive_quote,
 )
@@ -433,3 +434,121 @@ def test_favorable_hurdle_range_search_matches_bps_linear_scan(maximum):
                  if ((values[i] - ref if maximum else ref - values[i]) / ref * 10000.) > 20.]
         expected.append(found[0] if found else -1)
     np.testing.assert_array_equal(result, np.asarray(expected, np.int64))
+
+
+def _race(frame, *, horizon=3, hurdle=10., endpoint=DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT):
+    index, fill = _index_and_fill(frame)
+    events = query_first_positive_quote(
+        index, fill_surface=fill, query_entry_rows=np.array([0], np.int64),
+        horizon_minutes=np.array([horizon], np.int64), event_basis="gross_quote_markout",
+        endpoint_kind=endpoint, favorable_bps=hurdle,
+    )
+    return events, classify_first_quote_hurdle_direction(events)
+
+
+@pytest.mark.parametrize("first_side", [1, -1])
+def test_first_hurdle_direction_captures_move_and_reversal(first_side):
+    frame = _frame()
+    if first_side == 1:
+        _bar(frame, 6, 100., 100.50, 100.)
+        _bar(frame, 7, 100., 100., 99.50)
+    else:
+        _bar(frame, 6, 100., 100., 99.50)
+        _bar(frame, 7, 100., 100.50, 100.)
+    events, race = _race(frame)
+    assert race["outcome"].tolist() == [first_side]
+    assert race["outcome_observed"].tolist() == [True]
+    assert race["unknown_reason"].tolist() == [0]
+    assert events["original_dynamic_prefix"]["terminal_time_ns"][0] == frame.loc[8, "time"].value
+    assert frame.loc[8, "bid_open"] == frame.loc[5, "bid_open"]
+    assert not race["neither_is_flat_action"] and not race["trading_authority"]
+    assert not race["outcome"].flags.writeable
+
+
+def test_first_hurdle_distinguishes_tiny_from_larger_move():
+    frame = _frame()
+    _bar(frame, 6, 100., 100.001, 99.999)
+    _, tiny = _race(frame)
+    _bar(frame, 7, 100., 100.50, 100.)
+    _, large = _race(frame)
+    assert tiny["outcome_observed"].tolist() == [True] and tiny["outcome"].tolist() == [0]
+    assert large["outcome_observed"].tolist() == [True] and large["outcome"].tolist() == [1]
+
+
+def test_first_hurdle_same_minute_order_is_not_guessed():
+    frame = _frame()
+    _bar(frame, 6, 100., 100.50, 99.50)
+    _, race = _race(frame)
+    assert race["outcome_observed"].tolist() == [False]
+    assert race["unknown_reason"].tolist() == [3]
+
+
+def test_first_hurdle_entry_minute_candidate_with_later_opposite_is_unknown():
+    frame = _frame()
+    _bar(frame, 5, 100., 100.50, 100.)
+    _bar(frame, 6, 100., 100., 99.50)
+    _bar(frame, 7, 100., 100.50, 100.)
+    events, race = _race(frame)
+    assert events["first_event_occurrence_lower"].tolist() == [[True, True]]
+    assert race["outcome_observed"].tolist() == [False]
+    assert race["unknown_reason"].tolist() == [2]
+
+
+def test_first_hurdle_only_one_confirmed_side_is_known_even_if_entry_minute_ambiguous():
+    frame = _frame()
+    _bar(frame, 5, 100., 100.50, 100.)
+    _bar(frame, 6, 100., 100.50, 100.)
+    events, race = _race(frame)
+    assert events["first_event_entry_bar_order_unknown"].tolist() == [[True, False]]
+    assert race["outcome_observed"].tolist() == [True] and race["outcome"].tolist() == [1]
+
+
+def test_first_hurdle_unconfirmed_entry_event_is_not_no_event():
+    frame = _frame()
+    _bar(frame, 5, 100., 100.50, 100.)
+    _, race = _race(frame, horizon=1)
+    assert race["outcome_observed"].tolist() == [False]
+    assert race["unknown_reason"].tolist() == [2]
+
+
+def test_first_hurdle_terminal_open_is_not_a_confirmed_event():
+    frame = _frame()
+    _bar(frame, 8, 100.50, 100.50, 100.50)
+    _, race = _race(frame, endpoint=DYNAMIC_M1_PREFIX_TERMINAL_ENDPOINT)
+    assert race["outcome_observed"].tolist() == [False]
+    assert race["unknown_reason"].tolist() == [4]
+
+
+def test_first_hurdle_unknown_gap_is_not_a_neither_label():
+    frame = _frame().drop(index=6).reset_index(drop=True)
+    _, race = _race(frame)
+    assert race["outcome_observed"].tolist() == [False]
+    assert race["unknown_reason"].tolist() == [1]
+
+
+def test_first_hurdle_preserves_zero_hurdle_schema_and_rejects_inconsistent_rows():
+    frame = _frame()
+    _bar(frame, 6, 100., 100.50, 100.)
+    events, race = _race(frame, hurdle=0.)
+    assert race["favorable_bps"] == 0. and race["outcome"].tolist() == [1]
+    invalid = dict(events)
+    invalid["first_event_source_row"] = np.array([[-1, -1]], np.int64)
+    with pytest.raises(RuntimeError, match="RACE_SOURCE_INVARIANT"):
+        classify_first_quote_hurdle_direction(invalid)
+
+
+def test_first_hurdle_direction_respects_all_sixty_minute_queries():
+    frame = _frame(periods=75)
+    _bar(frame, 14, 100., 100.50, 100.)
+    index, fill = _index_and_fill(frame, offset=23)
+    events = query_first_positive_quote(
+        index, fill_surface=fill, query_entry_rows=np.zeros(60, np.int64),
+        horizon_minutes=np.arange(1, 61, dtype=np.int64),
+        event_basis="gross_quote_markout", endpoint_kind=DYNAMIC_M1_PREFIX_CLOSED_ENDPOINT,
+        query_chunk_rows=8, favorable_bps=10.,
+    )
+    race = classify_first_quote_hurdle_direction(events)
+    assert race["outcome_observed"].all()
+    assert race["outcome"].tolist() == [0] * 9 + [1] * 51
+    assert race["outcome"][9] == 1  # 10-minute query
+    assert race["outcome"][59] == 1  # 60-minute query

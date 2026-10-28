@@ -301,3 +301,112 @@ def query_first_positive_quote(
             if isinstance(value, np.ndarray):
                 value.setflags(write=False)
     return result
+
+
+FIRST_QUOTE_HURDLE_DIRECTION_SCHEMA_VERSION = "gx1_first_quote_hurdle_direction_research_v1"
+
+
+def classify_first_quote_hurdle_direction(first_event):
+    """Classify which side first reaches the already queried fixed hurdle.
+
+    Inputs come only from ``query_first_positive_quote``. A known outcome is
+    +1 for long first, -1 for short first, and 0 when neither side is known to
+    reach the hurdle in the fully observed horizon. The last is an outcome,
+    not a FLAT action. ``outcome_observed`` is false for missing paths and
+    unresolvable ordering; its stored zero is a placeholder, never a class.
+
+    The nominal entry-minute extreme can precede the actual entry quote; the
+    first event on that row is therefore uncertain. A later closed bar may
+    confirm occurrence without identifying the actual first minute. If only
+    that side can have crossed, confirmation is sufficient; if the other side
+    also crossed, the first side still cannot be inferred. Same-minute events
+    remain unknown, even when an opening quote appears to cross first, because
+    subminute quote synchronization is not established. A terminal-open-only
+    event is not confirmed inside the nominal horizon.
+
+    This is a research target, not a trading rule, hold limit, transaction-cost
+    model, or evidence of profitability. It does not create a modeled output.
+    """
+    _require(isinstance(first_event, dict) and first_event.get("schema_version") in
+             (SCHEMA_VERSION, HURDLE_SCHEMA_VERSION), "RACE_SOURCE_SCHEMA")
+    _require(first_event.get("event_basis") in _EVENT_BASES, "RACE_EVENT_BASIS")
+    contract = first_event.get("contract")
+    _require(isinstance(contract, dict) and contract.get("schema_version") ==
+             first_event["schema_version"], "RACE_CONTRACT")
+    favorable_bps = _require_favorable_bps(first_event.get("favorable_bps", 0.))
+    _require((favorable_bps == 0. and first_event["schema_version"] == SCHEMA_VERSION)
+             or (favorable_bps > 0. and first_event["schema_version"] == HURDLE_SCHEMA_VERSION
+                 and contract.get("favorable_bps") == favorable_bps), "RACE_HURDLE")
+    names = ("first_event_path_observed", "first_event_nominal_happened",
+             "first_event_occurrence_lower", "first_event_occurrence_upper",
+             "first_event_entry_bar_order_unknown", "first_event_at_nominal_terminal_open")
+    for name in names:
+        value = first_event.get(name)
+        _require(isinstance(value, np.ndarray) and value.dtype == np.bool_
+                 and value.ndim == 2 and value.shape[1] == 2, "RACE_" + name.upper())
+    path, hit, lower, upper, entry, terminal = (first_event[name] for name in names)
+    rows = first_event.get("first_event_source_row")
+    _require(all(first_event[name].shape == path.shape for name in names)
+             and isinstance(rows, np.ndarray) and rows.dtype == np.int64
+             and rows.shape == path.shape, "RACE_ARRAY_SHAPE")
+    _require(np.array_equal(path[:, 0], path[:, 1]) and np.array_equal(hit, upper)
+             and np.all(~hit | path) and np.all(~lower | hit)
+             and np.all(~entry | hit) and np.all(~terminal | hit)
+             and not np.any(entry & terminal) and not np.any(lower & terminal)
+             and np.all(rows[~hit] == -1) and np.all(rows[hit] >= 0), "RACE_SOURCE_INVARIANT")
+
+    n = len(path)
+    outcome = np.zeros(n, dtype=np.int8)
+    observed = np.zeros(n, dtype=np.bool_)
+    # 0 known; 1 path missing; 2 first candidate in entry minute;
+    # 3 both candidates in one minute; 4 only a terminal-open candidate.
+    reason = np.full(n, 1, dtype=np.uint8)
+    complete = path[:, 0]
+    count = hit.sum(axis=1)
+    neither = complete & (count == 0)
+    observed[neither] = True
+    reason[neither] = 0
+    for side, direction in ((0, 1), (1, -1)):
+        single = complete & (count == 1) & hit[:, side]
+        known = single & lower[:, side]
+        outcome[known] = direction
+        observed[known] = True
+        reason[known] = 0
+        unknown = single & ~lower[:, side]
+        _require(np.all(~unknown | entry[:, side] | terminal[:, side]),
+                 "RACE_SINGLE_UNEXPLAINED_UNCERTAINTY")
+        reason[unknown & entry[:, side]] = 2
+        reason[unknown & terminal[:, side]] = 4
+
+        both = complete & (count == 2)
+        earlier = both & (rows[:, side] < rows[:, 1 - side])
+        known = earlier & lower[:, side] & ~entry[:, side]
+        outcome[known] = direction
+        observed[known] = True
+        reason[known] = 0
+        unknown = earlier & ~known
+        _require(np.all(~unknown | entry[:, side] | terminal[:, side]),
+                 "RACE_EARLIER_UNEXPLAINED_UNCERTAINTY")
+        reason[unknown & entry[:, side]] = 2
+        reason[unknown & terminal[:, side]] = 4
+
+    same = complete & (count == 2) & (rows[:, 0] == rows[:, 1])
+    reason[same] = 3
+    _require(np.all(reason[observed] == 0) and np.all(reason[~observed] != 0)
+             and np.all(outcome[~observed] == 0), "RACE_RESULT_INVARIANT")
+    result = {
+        "schema_version": FIRST_QUOTE_HURDLE_DIRECTION_SCHEMA_VERSION,
+        "event_basis": first_event["event_basis"],
+        "favorable_bps": favorable_bps,
+        "outcome": outcome, "outcome_observed": observed, "unknown_reason": reason,
+        "unknown_reason_codes": {0: "known", 1: "path_missing",
+            2: "entry_minute_order_unknown", 3: "same_minute_order_unknown",
+            4: "terminal_open_time_unknown"},
+        "outcome_definition": {1: "long_first", -1: "short_first",
+                               0: "neither_event_within_observed_horizon"},
+        "neither_is_flat_action": False, "trading_authority": False,
+    }
+    for value in result.values():
+        if isinstance(value, np.ndarray):
+            value.setflags(write=False)
+    return result

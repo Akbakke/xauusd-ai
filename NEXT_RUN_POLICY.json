@@ -39788,20 +39788,49 @@
     }
   },
   "direction_first_quote_race_source_20261028": {
-    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "scope": "Extend the existing research-only first-favorable quote owner to classify which side first crosses a fixed bps hurdle, with neither event and explicit unknown ordering; no native model wiring.",
     "allowed_source_paths": [
       "gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
       "tests/test_entry_causal_m1_first_positive_quote_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false,
     "classification": "Three research outcomes: long first, short first, neither; an ambiguous entry minute, same-minute ordering or terminal quote remains unknown. Neither is not a FLAT trading label.",
     "basis": "Reuse already implemented side-specific same-quote or gross-quote hurdle; horizon is observation only. No price path ordering is invented.",
-    "why": "Current sign BCE assigns the same outcome to +0.1 and +50 bps and does not represent direction before reversal. The signed-bps mean auxiliary did not show later improvement."
+    "why": "Current sign BCE assigns the same outcome to +0.1 and +50 bps and does not represent direction before reversal. The signed-bps mean auxiliary did not show later improvement.",
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
+      "sha256": "b7fcb4c1fe6722ff2241cf54b4f458c831c110584bccf8d83197175380cb493e"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_causal_m1_first_positive_quote_v1.py",
+      "sha256": "0e3aeb7cc21e790a24935cccab2059c5abddccff5533d02f754c440b66ae0950"
+    },
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "b117aa5908a605eafd60d5d7be0c08bae4644495f087378fc458da71cff7f91f"
+    },
+    "expected_synthetic_cases": 42
+  },
+  "direction_first_quote_race_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "b117aa5908a605eafd60d5d7be0c08bae4644495f087378fc458da71cff7f91f"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
