@@ -16,6 +16,7 @@ REPO = Path('/home/andre2/src/GX1_CURRENT')
 ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
 STAGE = 'independent_direction_d1_trendline_replay_20261028_001'
 LOCALIZE_STAGE = 'independent_direction_d1_mismatch_localization_20261028_001'
+H4_STAGE = 'independent_direction_h4_trendline_replay_20261028_001'
 CUTOFF_NS = 1751328000000000000  # 2025-07-01 UTC, reused development only.
 SOURCE_PATHS = (
     'gx1/scripts/audit_direction_d1_trendline_replay_v1.py',
@@ -91,13 +92,14 @@ def mismatch_matrix(recomputed, cached):
     return missing, finite
 
 
-def window_exposure(timestamps, mismatched_rows, decisions, length):
+def window_exposure(timestamps, mismatched_rows, decisions, length, *, shift_ns=86400 * 10**9, timeframe='D1'):
     timestamps = np.asarray(timestamps); bad = np.asarray(mismatched_rows); decisions = np.asarray(decisions)
     require(timestamps.dtype == decisions.dtype == np.int64 and bad.dtype == np.bool_
         and timestamps.ndim == bad.ndim == decisions.ndim == 1 and len(timestamps) == len(bad)
         and len(decisions) > 0 and np.all(np.diff(timestamps) > 0) and np.all(np.diff(decisions) > 0)
-        and type(length) is int and length > 0, 'WINDOW_DOMAIN')
-    right = np.searchsorted(timestamps, decisions - 86400 * 10**9, side='right')
+        and type(length) is int and length > 0 and type(shift_ns) is int and shift_ns > 0
+        and timeframe in ('D1', 'H4'), 'WINDOW_DOMAIN')
+    right = np.searchsorted(timestamps, decisions - shift_ns, side='right')
     require(np.all(right >= length) and np.all(right <= len(timestamps)), 'WINDOW_BOUNDS')
     left = right - length
     cumulative = np.concatenate((np.zeros(1, dtype=np.int64), np.cumsum(bad, dtype=np.int64)))
@@ -105,8 +107,8 @@ def window_exposure(timestamps, mismatched_rows, decisions, length):
     coverage = np.zeros(len(timestamps) + 1, dtype=np.int64)
     np.add.at(coverage, left, 1); np.add.at(coverage, right, -1)
     used_bad = np.flatnonzero((np.cumsum(coverage[:-1]) > 0) & bad)
-    return {'decisions': len(decisions), 'decisions_with_any_mismatched_d1_row': int(impacted.sum()),
-        'distinct_mismatched_d1_rows_in_windows': len(used_bad),
+    return {'decisions': len(decisions), f'decisions_with_any_mismatched_{timeframe.lower()}_row': int(impacted.sum()),
+        f'distinct_mismatched_{timeframe.lower()}_rows_in_windows': len(used_bad),
         'first_affected_decision_ns': int(decisions[np.flatnonzero(impacted)[0]]) if impacted.any() else None,
         'last_affected_decision_ns': int(decisions[np.flatnonzero(impacted)[-1]]) if impacted.any() else None,
         'earliest_window_row_ns': int(timestamps[left.min()]), 'latest_window_row_ns': int(timestamps[right.max()-1])}
@@ -118,12 +120,17 @@ def main(argv=None):
     for option in ('plan', 'plan-sha256', 'policy-sha256', 'source-head'):
         parser.add_argument('--' + option, required=True)
     parser.add_argument('--localize-windows', action='store_true')
+    parser.add_argument('--timeframe', choices=('D1', 'H4'), default='D1')
     args = parser.parse_args(argv)
-    localize = args.localize_windows
-    stage_name = LOCALIZE_STAGE if localize else STAGE
-    schema = 'gx1_direction_d1_mismatch_localization' if localize else 'gx1_direction_d1_trendline_replay'
-    design_name = 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028.json' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028.json'
-    output_name = 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028_001' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028_001'
+    h4 = args.timeframe == 'H4'; require(not (h4 and args.localize_windows), 'MODE')
+    localize = args.localize_windows or h4
+    tf = args.timeframe
+    shift_ns = (4 * 3600 if h4 else 86400) * 10**9
+    stage_name = H4_STAGE if h4 else LOCALIZE_STAGE if localize else STAGE
+    schema = 'gx1_direction_h4_trendline_replay' if h4 else 'gx1_direction_d1_mismatch_localization' if localize else 'gx1_direction_d1_trendline_replay'
+    design_name = 'DIRECTION_H4_TRENDLINE_REPLAY_20261028.json' if h4 else 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028.json' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028.json'
+    output_name = 'DIRECTION_H4_TRENDLINE_REPLAY_20261028_001' if h4 else 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028_001' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028_001'
+    feat_key, ts_key = ('tf_feats', 'tf_ts') if h4 else ('d1_feats', 'd1_ts')
     from gx1.contracts import gx1_capped_execution_v1 as cap
     from gx1.contracts import immutable_event_authority_v1 as publication
     from gx1.contracts import local_random_access_campaign_v2 as binding
@@ -160,12 +167,13 @@ def main(argv=None):
             and all(ref['path'] == str(REPO / name) for name, ref in plan['sources'].items()), 'SOURCE_SET')
         for ref in plan['sources'].values():
             candle.regular(ref['path']); binding.require_binding(ref, label='source')
-        keys = {'source_m5', 'cache_manifest', 'd1_feats', 'd1_ts', 'prefix_normalization', 'fit_result'}
-        if localize: keys |= {'previous_result', 'corrected_target', 'sample_pair', 'fold_design'}
+        keys = {'source_m5', 'cache_manifest', feat_key, ts_key, 'prefix_normalization', 'fit_result'}
+        if localize: keys |= {'corrected_target', 'sample_pair', 'fold_design'}
+        if localize and not h4: keys.add('previous_result')
         require(set(plan['inputs']) == keys, 'INPUT_SET')
-        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('previous_result', 'fold_design') if localize else ())
+        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('fold_design',) if localize else ()) + (('previous_result',) if localize and not h4 else ())
         meta = {key: binding.read_bound_json(Path(plan['inputs'][key]['path']), plan['inputs'][key]['sha256']) for key in meta_names}
-        if localize:
+        if localize and not h4:
             prior = policy[STAGE]
             require(prior['status'] == 'COMPLETE_ONE_SHOT_CONSUMED' and prior['execution_authorized'] is False
                 and prior['result'] == plan['inputs']['previous_result']
@@ -173,11 +181,11 @@ def main(argv=None):
                 and meta['previous_result']['all_causal_history_vs_cache']['mismatched_cells'] == 7551
                 and meta['previous_result']['test_data_used'] is False, 'PRIOR_REPLAY')
         manifest, norm, fit = (meta[k] for k in ('cache_manifest', 'prefix_normalization', 'fit_result'))
-        d1 = manifest['tfs']['D1']; cache_dir = Path(plan['inputs']['cache_manifest']['path']).parent
+        tf_metadata = manifest['tfs'][tf]; cache_dir = Path(plan['inputs']['cache_manifest']['path']).parent
         require(manifest['m5_prebuilt_source'] == plan['inputs']['source_m5']['path']
             and manifest['m5_prebuilt_source_sha256'] == plan['inputs']['source_m5']['sha256']
-            and {'path': str(cache_dir / d1['feats_npy']), 'sha256': d1['feats_npy_sha256']} == plan['inputs']['d1_feats']
-            and {'path': str(cache_dir / d1['ts_npy']), 'sha256': d1['ts_npy_sha256']} == plan['inputs']['d1_ts']
+            and {'path': str(cache_dir / tf_metadata['feats_npy']), 'sha256': tf_metadata['feats_npy_sha256']} == plan['inputs'][feat_key]
+            and {'path': str(cache_dir / tf_metadata['ts_npy']), 'sha256': tf_metadata['ts_npy_sha256']} == plan['inputs'][ts_key]
             and fit['feature_view_identity']['prefix_normalization']['binding'] == plan['inputs']['prefix_normalization']
             and fit['fold']['oof_cutoff_ns'] < CUTOFF_NS and fit['test_data_used'] is False, 'INPUT_LINEAGE')
         require(manifest['technical_indicator_owner'] == technical_indicator_contract_metadata(), 'TECHNICAL_OWNER_IDENTITY')
@@ -192,7 +200,7 @@ def main(argv=None):
     out.mkdir(exist_ok=False)
     def publish(path, value): publication._publish_bytes(path, binding.canonical_bytes(value))
     publish(out / 'INVOCATION_CLAIM.json', {'plan': plan_ref, 'policy': policy_ref, 'source_head': args.source_head, 'execution': proof, 'lock': lock})
-    payload_names = ('source_m5', 'd1_feats', 'd1_ts') + (('corrected_target', 'sample_pair') if localize else ())
+    payload_names = ('source_m5', feat_key, ts_key) + (('corrected_target', 'sample_pair') if localize else ())
     payloads = [plan['inputs'][k] for k in payload_names]
     metadata = [plan_ref['path'], policy_ref['path'], plan['design']['path']] + [plan['inputs'][k]['path'] for k in meta_names]
     sys.addaudithook(candle.make_guard(out, [ref['path'] for ref in payloads], metadata,
@@ -205,13 +213,13 @@ def main(argv=None):
         with binding.fresh_file_verification_scope():
             for ref in payloads: candle.regular(ref['path']); binding.require_binding(ref, label='payload')
             source, source_witness = load_m5_prefix(Path(plan['inputs']['source_m5']['path']), CUTOFF_NS)
-            index = build_multi_tf_v4_closed_timestamp_indices(source.index)['D1']
-            bars = _resample_ohlcv(source, 'D1').dropna(subset=['open', 'high', 'low', 'close']).loc[index]
+            index = build_multi_tf_v4_closed_timestamp_indices(source.index)[tf]
+            bars = _resample_ohlcv(source, tf).dropna(subset=['open', 'high', 'low', 'close']).loc[index]
             require(bars.index.equals(index), 'RESAMPLE_AXIS')
             atr = ema50_200_spread_atr_block(bars['high'], bars['low'], bars['close'])['atr14']
             data = bars[['high', 'low', 'close']].copy(); data['atr'] = atr
-            constants = manifest['v29_registry_constants']; kwargs = {'timeframe':'D1',
-                'seq_len':int(constants['per_tf_seq_lens']['D1']), 'band_atr':constants['trendline_band_atr']['D1']}
+            constants = manifest['v29_registry_constants']; kwargs = {'timeframe':tf,
+                'seq_len':int(constants['per_tf_seq_lens'][tf]), 'band_atr':constants['trendline_band_atr'][tf]}
             complete, _state = compute_trendline_registry_features_v1(data, **kwargs)
             require(tuple(complete.columns) == names and complete.index.equals(index), 'PRODUCER_AXIS')
             split = int(np.searchsorted(index.asi8, fit['fold']['train_cutoff_ns'], side='left'))
@@ -222,34 +230,35 @@ def main(argv=None):
             require(chunked.index.equals(index), 'CHUNK_AXIS')
             chunk_comparison = compare_fields(complete.to_numpy(), chunked.to_numpy(), names, index.asi8)
             require(chunk_comparison['all_finite_float32_bits_and_missingness_equal'], 'REAL_CHUNK_PARITY')
-            with Path(plan['inputs']['d1_ts']['path']).open('rb') as handle:
+            with Path(plan['inputs'][ts_key]['path']).open('rb') as handle:
                 ts = np.load(handle, allow_pickle=False)
-            with Path(plan['inputs']['d1_feats']['path']).open('rb') as handle:
+            with Path(plan['inputs'][feat_key]['path']).open('rb') as handle:
                 cached_all = np.load(handle, allow_pickle=False)
             at = np.searchsorted(ts, index.asi8)
             require(ts.dtype == np.int64 and np.all(at < len(ts)) and np.array_equal(ts[at], index.asi8)
-                and cached_all.dtype == np.float32 and cached_all.shape == (d1['n_bars'], manifest['feature_count']), 'CACHE_EXACT_AXIS')
+                and cached_all.dtype == np.float32 and cached_all.shape == (tf_metadata['n_bars'], manifest['feature_count']), 'CACHE_EXACT_AXIS')
             actual = complete.to_numpy(dtype=np.float32); cached = cached_all[at][:, columns]
             comparison = compare_fields(actual, cached, names, index.asi8)
-            train_at = np.flatnonzero((index.asi8 + 86400 * 10**9 >= 1714521600000000000)
-                & (index.asi8 + 86400 * 10**9 < fit['fold']['train_cutoff_ns']))
-            later_at = np.flatnonzero((index.asi8 + 86400 * 10**9 >= fit['fold']['train_cutoff_ns'])
-                & (index.asi8 + 86400 * 10**9 < CUTOFF_NS))
+            train_at = np.flatnonzero((index.asi8 + shift_ns >= 1714521600000000000)
+                & (index.asi8 + shift_ns < fit['fold']['train_cutoff_ns']))
+            later_at = np.flatnonzero((index.asi8 + shift_ns >= fit['fold']['train_cutoff_ns'])
+                & (index.asi8 + shift_ns < CUTOFF_NS))
             require(len(train_at) and len(later_at), 'MODEL_PERIOD_ROWS')
             model_train = compare_fields(actual[train_at], cached[train_at], names, index.asi8[train_at])
             later = compare_fields(actual[later_at], cached[later_at], names, index.asi8[later_at])
             details = None
             if localize:
-                require(comparison['mismatched_cells'] == meta['previous_result']['all_causal_history_vs_cache']['mismatched_cells']
-                    and comparison['rows'] == meta['previous_result']['all_causal_history_vs_cache']['rows']
-                    and np.array_equal(at, np.arange(len(at))), 'PREVIOUS_REPLAY_REPRODUCED')
+                require(np.array_equal(at, np.arange(len(at))), 'CACHE_PREFIX_AXIS')
+                if not h4:
+                    require(comparison['mismatched_cells'] == meta['previous_result']['all_causal_history_vs_cache']['mismatched_cells']
+                        and comparison['rows'] == meta['previous_result']['all_causal_history_vs_cache']['rows'], 'PREVIOUS_REPLAY_REPRODUCED')
                 missing, finite = mismatch_matrix(actual, cached); bad = np.any(missing | finite, axis=1)
                 years = index.year.to_numpy(); year_rows = []
                 for year in np.unique(years):
                     selected = years == year
                     year_rows.append({'year':int(year), 'mismatched_cells':int((missing[selected] | finite[selected]).sum()),
                         'missingness_mismatches':int(missing[selected].sum()), 'finite_bit_mismatches':int(finite[selected].sum()),
-                        'd1_rows_with_mismatch':int(np.any((missing | finite)[selected], axis=1).sum())})
+                        'native_rows_with_mismatch':int(np.any((missing | finite)[selected], axis=1).sum())})
                 with np.load(plan['inputs']['corrected_target']['path'], allow_pickle=False) as archive:
                     parents = archive['parent_rows'].copy(); decisions = archive['decision_ns'].copy()
                 with np.load(plan['inputs']['sample_pair']['path'], allow_pickle=False) as archive:
@@ -262,27 +271,27 @@ def main(argv=None):
                     and np.searchsorted(decisions, fold['train_cutoff_ns']) == fold['oof_start_row']
                     and np.searchsorted(decisions, fold['oof_cutoff_ns']) == fold['oof_end_row']
                     and np.searchsorted(decisions, later_fold['oof_cutoff_ns']) == later_fold['oof_end_row']
-                    and later_fold['oof_cutoff_ns'] == CUTOFF_NS and WINDOW_ROWS['D1'] == 252, 'DECISION_AXES')
+                    and later_fold['oof_cutoff_ns'] == CUTOFF_NS and WINDOW_ROWS[tf] == (96 if h4 else 252), 'DECISION_AXES')
                 positions = np.searchsorted(parents, sample_parents)
                 require(len(sample_parents)==1760 and np.all(positions >= later_fold['oof_start_row'])
                     and np.all(positions < later_fold['oof_end_row']) and np.array_equal(parents[positions], sample_parents)
                     and np.array_equal(decisions[positions], sample_decisions), 'LATER_SAMPLE_JOIN')
                 windows = {
-                    'fit_train':window_exposure(index.asi8, bad, decisions[:fold['oof_start_row']], WINDOW_ROWS['D1']),
-                    'fit_oof_q1':window_exposure(index.asi8, bad, decisions[fold['oof_start_row']:fold['oof_end_row']], WINDOW_ROWS['D1']),
-                    'intervention_q2_sample':window_exposure(index.asi8, bad, sample_decisions, WINDOW_ROWS['D1'])}
+                    'fit_train':window_exposure(index.asi8, bad, decisions[:fold['oof_start_row']], WINDOW_ROWS[tf], shift_ns=shift_ns, timeframe=tf),
+                    'fit_oof_q1':window_exposure(index.asi8, bad, decisions[fold['oof_start_row']:fold['oof_end_row']], WINDOW_ROWS[tf], shift_ns=shift_ns, timeframe=tf),
+                    'intervention_q2_sample':window_exposure(index.asi8, bad, sample_decisions, WINDOW_ROWS[tf], shift_ns=shift_ns, timeframe=tf)}
                 at_bad = np.flatnonzero(bad)
                 details = {'mismatched_cells':int((missing | finite).sum()), 'missingness_mismatches':int(missing.sum()),
-                    'finite_bit_mismatches':int(finite.sum()), 'mismatched_native_d1_rows':len(at_bad),
+                    'finite_bit_mismatches':int(finite.sum()), f'mismatched_native_{tf.lower()}_rows':len(at_bad),
                     'first_mismatch_ns':int(index.asi8[at_bad[0]]) if len(at_bad) else None,
                     'last_mismatch_ns':int(index.asi8[at_bad[-1]]) if len(at_bad) else None,
-                    'by_year':year_rows, 'model_window_length_d1_rows':WINDOW_ROWS['D1'], 'window_exposure':windows}
+                    'by_year':year_rows, f'model_window_length_{tf.lower()}_rows':WINDOW_ROWS[tf], 'window_exposure':windows}
             payload_snapshot = binding.capture_verified_file_snapshot()
         payload_snapshot.require_unchanged(); control_snapshot.require_unchanged()
         require(candle.git_state() == initial and cap.require_capped_lock_ancestry() == lock
             and not any(name.split('.')[0] in ('torch', 'sklearn', 'joblib') for name in sys.modules), 'FINAL_SOURCE_LOCK')
         result = {'schema_version':schema + '_result_v1','status':'COMPLETE',
-            'plan':plan_ref,'source_head':args.source_head,'timeframe':'D1','source_witness':source_witness,
+            'plan':plan_ref,'source_head':args.source_head,'timeframe':tf,'source_witness':source_witness,
             'cutoff_ns':CUTOFF_NS,'source_clock_rows':len(index),'history_state_split_index':split,
             'window_configuration':kwargs,'chunk_replay':chunk_comparison,'all_causal_history_vs_cache':comparison,
             'model_train_period_vs_cache':model_train,'later_development_period_vs_cache':later,

@@ -41,3 +41,14 @@ def test_mismatch_classification_separates_missingness_and_finite_bits():
     b = np.array([[0., -0.], [1., 3.]], dtype=np.float32)
     missing, finite = mismatch_matrix(a, b)
     assert missing.sum() == 1 and finite.sum() == 2
+
+
+def test_h4_windows_use_four_hour_close_and_distinct_names():
+    from gx1.scripts.audit_direction_d1_trendline_replay_v1 import window_exposure
+    hour = 3600 * 10**9
+    ts = np.arange(10, dtype=np.int64) * (4 * hour)
+    bad = np.zeros(10, dtype=np.bool_); bad[2] = True
+    decisions = np.array([16, 28], dtype=np.int64) * hour
+    got = window_exposure(ts, bad, decisions, 3, shift_ns=4 * hour, timeframe='H4')
+    assert got['decisions_with_any_mismatched_h4_row'] == 1
+    assert got['distinct_mismatched_h4_rows_in_windows'] == 1

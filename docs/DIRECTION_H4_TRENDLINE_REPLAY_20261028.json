@@ -1,0 +1,48 @@
+{
+  "schema_version": "gx1_direction_h4_trendline_replay_design_v1",
+  "status": "SOURCE_PREPARED_ACTUAL_AUDIT_PENDING",
+  "scope": "Recompute the 31 active H4 trendline coordinates from the original hash-bound M5 prices, full causal H4 history and frozen H4 parameters before 2025-07-01. Compare actual cache and localize any mismatches against 96-row model windows.",
+  "method": "Use the exact H4 resampling origin, Wilder ATR and stateful registry owner; compare same full and split history, bitwise float32 values and missingness, group mismatches by year and join them to TRAIN, Q1 and selected Q2 input windows.",
+  "limits": "Same-owner replay and real temporal-footprint evidence, not an independent mathematical formula proof, learned utility, performance or economic edge.",
+  "inputs": {
+    "source_m5": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+      "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+    },
+    "cache_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/manifest.json",
+      "sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4"
+    },
+    "prefix_normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+      "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "sample_pair": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    },
+    "fold_design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_PLAN_20261028_001.json",
+      "sha256": "2494af08975ee22c0ea546562141f5ff5bde52368e74716df40279539c31a96b"
+    },
+    "tf_feats": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_feats.npy",
+      "sha256": "83db5ba4f928283224efd92c0a849dd4e045f497b15bff3608361afe4b45abf0"
+    },
+    "tf_ts": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_ts.npy",
+      "sha256": "e7dc88e6c93f1868349f9b3746cebbdb1c4e0640a0e1fd32c8efbbdc72bcd71f"
+    }
+  },
+  "test_data_used": false,
+  "new_model_forwards": 0,
+  "optimizer_steps": 0
+}
