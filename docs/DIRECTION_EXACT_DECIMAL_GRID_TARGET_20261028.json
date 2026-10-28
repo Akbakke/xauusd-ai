@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_decimal_grid_target_repair_v1",
-  "status": "PURE_TARGET_PROJECTION_SYNTHETIC_TESTED_GENUINE_MATERIALIZATION_PENDING",
+  "status": "SOURCE_VERIFIED_TARGET_MATERIALIZED_SEPARATE_IDENTITY_BINDER_PENDING",
   "actual_audit_result": {
     "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
     "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
@@ -9,7 +9,7 @@
   "grid_schema": "gx1_direction_source_decimal_grid_v1",
   "method": "Use source-verified immutable int64 bid and ask ticks at a caller-qualified decimal scale. Reproduce legacy axes and anchor bytes, then derive exact integer midpoint-difference signs, midpoint movement and bps together. Fail closed unless ticks reconstruct the bound float bid/ask inputs exactly. Preserve distinct missing, zero and immature outcomes.",
   "caller_preconditions": "Prove original decimal strings, exact precision, source rows and time scope; float round-trip alone does not prove source decimal precision. Bind a new target identity, source hashes and a fresh execution plan before any genuine read or publication. Three decimal places are established only for the audit source and window, never presumed globally.",
-  "scope": "Pure CPU function and synthetic tests only; original target files, old target mode and saved predictions remain unchanged. No genuine corrected target artifact, new model, fit, TEST, broker, trading or economic edge qualification.",
+  "scope": "Original target files and saved model predictions remain unchanged. One genuine corrected target archive is materialized and checked; no corrected-data model forward, fit, TEST, broker, trading or economic edge qualification. A separately bound corrected-target consumer and fresh initial baseline remain necessary before use in training.",
   "checks": {
     "synthetic_test_cases": 20,
     "rounding_tie_regression": true,
@@ -18,7 +18,12 @@
     "source_grid_float_parity": true,
     "immutable_tick_inputs": true,
     "legacy_anchor_reproduction": true,
-    "block_size_invariance": true
+    "block_size_invariance": true,
+    "actual_source_decimal_grid_and_canonical_float_parity": true,
+    "actual_60_horizon_confusions_match_independent_audit": true,
+    "actual_false_moves_removed": 976,
+    "actual_nonzero_sign_flips": 0,
+    "actual_target_roundtrip": true
   },
   "source": {
     "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_direction_dense_v1.py",
@@ -27,5 +32,13 @@
   "focused_test": {
     "path": "/home/andre2/src/GX1_CURRENT/tests/test_materialize_entry_direction_dense_v1.py",
     "sha256": "5514df9904bf3b9a45602affbd541e0600d53561bb27e0ffebe761c929593cc8"
+  },
+  "corrected_target": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+    "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+  },
+  "materialization_result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+    "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
   }
 }

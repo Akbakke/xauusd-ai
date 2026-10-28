@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T16:03:40.761320+00:00",
-  "status": "DECIMAL_TARGET_MATERIALIZATION_ADMITTED_NOT_YET_CLAIMED",
+  "observed_utc": "2026-10-28T16:05:19.075298+00:00",
+  "status": "DECIMAL_TARGET_MATERIALIZED_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run one capped separately bound exact-decimal target materialization. Preserve legacy targets, model state and historical predictions. No model forward, training, TEST or trading.",
+  "next_action": "Preserve the verified corrected target and all legacy targets. Continue feature and model-composition diagnostics; any use of corrected targets requires a separate bound consumer and fresh initial baseline. No TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "fc6304106a717c979ef2cc78b888bf9077a77a984c9fdf7d1998cc94aab251c1"
+      "sha256": "6c2d6595b7992d1d1f0878d7b9b47822cb9c27883eddfd8edc384b461df6448a"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -41799,7 +41799,7 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "economic_edge_qualified": false,
-    "next": "Existing H1 slope response is measured descriptively; its outcome gap remains uncertain. Continue independently checking compact feature lineage and trained interactions; any model change needs a matched bound design.",
+    "next": "Corrected source-decimal target archive is materialized under separate identity; training consumer and fresh baseline remain unqualified. Continue feature and trained-composition investigation.",
     "first_prefix_constant_gc_context_value_fields": 29
   },
   "independent_direction_decimal_sign_audit_20261028_001": {
@@ -41875,10 +41875,10 @@
     "predictive_or_economic_edge_qualified": false
   },
   "independent_direction_decimal_target_repair_20261028": {
-    "status": "PURE_PROJECTION_SYNTHETIC_TESTED_GENUINE_TARGETS_NOT_MATERIALIZED",
+    "status": "SOURCE_VERIFIED_TARGET_MATERIALIZED_SEPARATE_IDENTITY_BINDER_PENDING",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_EXACT_DECIMAL_GRID_TARGET_20261028.json",
-      "sha256": "5b715db8a148e0328eb64b3d24f48d1916f244ac73274d14cff65c956f3a15ef"
+      "sha256": "9b16bdbc4bae54887b52b16d8f250904f59760baddfd191930881ac090f6b225"
     },
     "source": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_direction_dense_v1.py",
@@ -41890,14 +41890,24 @@
     },
     "source_decimal_grid_required": true,
     "new_target_identity_required": true,
-    "new_plan_required_for_genuine_materialization": true,
+    "new_plan_required_for_genuine_materialization": false,
     "genuine_data_reads_authorized": false,
     "target_materialization_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "training_enabled": false,
     "test_or_trading_authority": false,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "materialization_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "corrected_training_consumer_qualified": false,
+    "fresh_baseline_required": true
   },
   "independent_direction_dense_onepass_uncertainty_20261028_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -42040,17 +42050,17 @@
     "economic_edge_qualified": false
   },
   "independent_direction_decimal_targets_actual_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_PLAN_20261028_001.json",
       "sha256": "47919b63a2e31d7534f7196b7d69511502c989babbb0b385af7522abd765dcb6"
     },
-    "execution_authorized": true,
-    "genuine_source_reads_authorized": true,
-    "corrected_target_publication_authorized": true,
+    "execution_authorized": false,
+    "genuine_source_reads_authorized": false,
+    "corrected_target_publication_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
@@ -42059,6 +42069,29 @@
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_or_trading_authority": false,
-    "scope": "Separate exact-decimal 60-minute target archive; preserve old targets and compare all confusion matrices with completed audit."
+    "scope": "Separate exact-decimal 60-minute target archive; preserve old targets and compare all confusion matrices with completed audit.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "a5166067b130720dc8f7084c93a7be22304213d11cbc735a7025924f2846b464"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/TERMINAL.json",
+      "sha256": "1431a5c8b2bb5afbfbf1fb42d879db479823b709eae25707d4ff20a2dcc33366"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "905d42e4a9e0258c70fbe7721122ee88eb30ca32257e76279178c10935cfd12e"
+    },
+    "target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "false_moves_removed": 976,
+    "nonzero_sign_flips": 0,
+    "economic_edge_qualified": false
   }
 }
