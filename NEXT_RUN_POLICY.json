@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T16:07:31.744046+00:00",
-  "status": "GC_OUTPUT_GUARD_FIXED_PROVISIONAL_INTERVENTION_RETAINED",
+  "status": "GC_MTF_LATER_FOLLOWUP_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve the failed intervention and its independently checked recovery. The output-directory guard is fixed in source; any future replay must bind its exact source transition. Continue feature and direction qualification. No TEST, broker or trading.",
+  "next_action": "Run the distinct later-period guarded GC-history intervention. Require exact fold1 reference replay, preserve both later prediction arms, no refit, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42391,5 +42391,26 @@
     "model_forward_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false
+  },
+  "independent_direction_gc_mtf_later_followup_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_PLAN_20261028_001.json",
+      "sha256": "a02bbe048cefb515e4fd87e4624706df0753e368e52f6f4ea9a847425c8e63f1"
+    },
+    "execution_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "model_forwards_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "guarded_cuda_producer",
+    "memory_max": "20G",
+    "wall_seconds": 1800,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "scope": "Frozen first-prefix 60-minute model, subsequent predeclared 2025-04-01 through 2025-06-30 development period. Compare baseline with all 25 GC-history projections suppressed; keep current GC context. Persist both arms and corrected labels."
   }
 }

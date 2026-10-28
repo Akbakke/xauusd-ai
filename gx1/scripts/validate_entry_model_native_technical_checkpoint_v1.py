@@ -1043,6 +1043,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             device="cuda", out_dir=gc_args.out_dir)
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    followup_options = ("--direction-gc-mtf-followup-plan", "--direction-gc-mtf-followup-plan-sha256")
+    if any(value.partition("=")[0] in followup_options for value in supplied):
+        followup_parser = argparse.ArgumentParser(description="Later-period trained GC history intervention",
+            allow_abbrev=False, add_help=False)
+        followup_parser.add_argument(followup_options[0], type=Path, required=True)
+        followup_parser.add_argument(followup_options[1], required=True)
+        followup_parser.add_argument("--device", choices=("cuda",), required=True)
+        followup_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*followup_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                followup_parser.error(f"duplicate flag: {option}")
+        followup_args = followup_parser.parse_args(supplied)
+        if not followup_args.out_dir.is_absolute():
+            followup_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.direction_gc_mtf_followup_v1 import run as run_gc_followup
+        report = run_gc_followup(plan_path=followup_args.direction_gc_mtf_followup_plan,
+            plan_sha256=str(followup_args.direction_gc_mtf_followup_plan_sha256),
+            device="cuda", out_dir=followup_args.out_dir)
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     direction_options = ("--dynamic-m5-direction-witness-plan", "--dynamic-m5-direction-witness-plan-sha256")
     if any(value.partition("=")[0] in direction_options for value in supplied):
         direction_parser = argparse.ArgumentParser(
