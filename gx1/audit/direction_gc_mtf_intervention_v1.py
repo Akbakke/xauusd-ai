@@ -19,7 +19,7 @@ import torch
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
-STAGE = 'independent_direction_gc_mtf_intervention_20261028_001'
+STAGE = 'independent_direction_gc_mtf_intervention_20261028_002'
 MINUTE_NS = 60 * 10**9
 DAY_NS = 86400 * 10**9
 BATCH = 16
@@ -189,9 +189,9 @@ def run(*, plan_path, plan_sha256, device, out_dir):
             and plan['wall_seconds'] == 1800 and plan['batch_size'] == BATCH
             and plan['batch_stride'] == BATCH_STRIDE and plan['test_data_used'] is False, 'PLAN')
         require(str(out_dir) == plan['output_dir'] and out_dir.parent == ROOT
-            and out_dir.name == 'DIRECTION_GC_MTF_INTERVENTION_20261028_001'
+            and out_dir.name == 'DIRECTION_GC_MTF_INTERVENTION_20261028_002'
             and ROOT.resolve(strict=True) == ROOT and not out_dir.exists() and not out_dir.is_symlink(), 'OUTPUT_SCOPE')
-        require(plan['design']['path'] == str(REPO / 'docs/DIRECTION_GC_MTF_INTERVENTION_20261028.json'), 'DESIGN_PATH')
+        require(plan['design']['path'] == str(REPO / 'docs/DIRECTION_GC_MTF_INTERVENTION_20261028_002.json'), 'DESIGN_PATH')
         design = binding.read_bound_json(Path(plan['design']['path']), plan['design']['sha256'])
         require(design['schema_version'] == 'gx1_direction_gc_mtf_intervention_design_v1'
             and design['inputs'] == plan['inputs'] and design['test_data_used'] is False, 'DESIGN')
