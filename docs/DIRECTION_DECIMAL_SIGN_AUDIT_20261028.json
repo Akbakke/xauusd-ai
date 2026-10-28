@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_decimal_sign_audit_design_v1",
-  "status": "SOURCE_AND_SYNTHETIC_PASS_ADMITTED_EXACT_PLAN_ONLY",
+  "status": "FIRST_ATTEMPT_CONSUMED_ENVELOPE_FIX_SYNTHETIC_PASS_SECOND_ADMITTED",
   "purpose": "Independently measure whether float midpoint subtraction changed observed exact decimal bid/ask midpoint direction, and quantify its effect on fixed saved 60-minute prediction scores without fitting or target mutation.",
   "source_window": {
     "instrument": "XAU_USD",
@@ -15,7 +15,7 @@
     "overlapping_vendor_response_chunks": 204,
     "last_chunk_request_end_utc_exclusive": "2026-01-03T00:00:00Z",
     "last_chunk_limit": "The last compressed response physically includes early January 2026 development candles before TEST. Its pre-2026 rows alone are parsed into the calculation; no post-cutoff prices are selected or reported.",
-    "source_rule": "Require complete source candle, strictly ordered exact minute clock, explicit string bid/ask opens, canonical float64 equality and exact source-row equality on every selected row. No price, missing-data, source or timestamp fallback.",
+    "source_rule": "Require complete source candle, strictly ordered exact minute clock, explicit string bid/ask opens, canonical float64 equality and exact source-row equality on every selected row. No price, missing-data, source or timestamp fallback. Require the original v2 archive envelope and exact request interval as defined by its source owner.",
     "native_years": {
       "2024": {
         "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet",
@@ -66,6 +66,11 @@
     "test_data_used": false,
     "broker_access_allowed": false,
     "source_changes_after_admission": false,
-    "synthetic_test_cases_passed": 13
+    "synthetic_test_cases_passed": 13,
+    "first_attempt_failed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_001/FAILED_TERMINAL.json",
+      "sha256": "eb628c4e4c946f5e05b273a388b0df27de615f791fa00d96c5d188d1eba01df1"
+    },
+    "first_attempt_failure": "The audit expected a flat response, while the existing archival owner writes a schema-bound request/response envelope. No label comparison was performed."
   }
 }

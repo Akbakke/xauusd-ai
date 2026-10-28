@@ -83,12 +83,16 @@ def test_raw_reader_applies_weekly_closure_and_ignores_post_cutoff_prices(tmp_pa
 
     def candle(time, bid, ask):
         return {'time': time, 'complete': True, 'bid': {'o': bid}, 'ask': {'o': ask}}
-    payload = {'instrument': 'XAU_USD', 'granularity': 'M1', 'candles': [
+    response = {'instrument': 'XAU_USD', 'granularity': 'M1', 'candles': [
         candle('2024-05-03T20:59:00.000000000Z', '2300.000', '2300.120'),
         candle('2024-05-03T21:00:00.000000000Z', '1', '2'),
         candle('2024-05-05T22:00:00.000000000Z', '2300.001', '2300.119'),
         candle('2026-01-01T00:00:00.000000000Z', 'not-a-price', 'not-a-price'),
     ]}
+    bounds = [(pd.Timestamp('2024-05-03T00:00:00Z').value, pd.Timestamp('2026-01-02T00:00:00Z').value)]
+    request = {'instrument':'XAU_USD', 'from':'2024-05-03T00:00:00.000000000Z',
+               'to':'2026-01-02T00:00:00.000000000Z', 'granularity':'M1', 'price':'MBA'}
+    payload = {'schema_version':'xau_oanda_native_source_chunk_v2', 'request':request, 'response':response}
     path = tmp_path/'source.json.gz'
     with gzip.open(path, 'wt', encoding='utf-8') as f:
         json.dump(payload, f)
@@ -96,14 +100,21 @@ def test_raw_reader_applies_weekly_closure_and_ignores_post_cutoff_prices(tmp_pa
     source = {'time_ns': times, 'source_row': np.array([10, 11], np.int64),
               'bid_open': np.array([2300.0, 2300.001]), 'ask_open': np.array([2300.12, 2300.119])}
     out_times, rows, mid, precision = _read_raw_quotes([{'path': str(path)}], source, pd=pd,
-                                                       closure_mask=scheduled_weekly_closure_mask)
+                                                       closure_mask=scheduled_weekly_closure_mask, request_bounds=bounds)
     np.testing.assert_array_equal(out_times, times)
     np.testing.assert_array_equal(rows, [10, 11])
     np.testing.assert_array_equal(mid, [4600120, 4600120])
     assert precision == 3
     bad = dict(source, bid_open=np.array([2300.0, 2300.002]))
     with pytest.raises(RuntimeError, match='VENDOR_CANONICAL_FLOAT64'):
-        _read_raw_quotes([{'path': str(path)}], bad, pd=pd, closure_mask=scheduled_weekly_closure_mask)
+        _read_raw_quotes([{'path': str(path)}], bad, pd=pd, closure_mask=scheduled_weekly_closure_mask, request_bounds=bounds)
+    wrong_bounds = [(bounds[0][0] - 60 * 10**9, bounds[0][1])]
+    with pytest.raises(RuntimeError, match='VENDOR_REQUEST'):
+        _read_raw_quotes([{'path': str(path)}], source, pd=pd, closure_mask=scheduled_weekly_closure_mask, request_bounds=wrong_bounds)
+    with gzip.open(path, 'wt', encoding='utf-8') as f:
+        json.dump(response, f)
+    with pytest.raises(RuntimeError, match='VENDOR_ENVELOPE'):
+        _read_raw_quotes([{'path': str(path)}], source, pd=pd, closure_mask=scheduled_weekly_closure_mask, request_bounds=bounds)
 
 
 def test_target_reader_fails_closed_on_domain_and_dtype(tmp_path, monkeypatch):
@@ -148,9 +159,13 @@ from gx1.contracts.xau_tape_provenance_v1 import scheduled_weekly_closure_mask
 from gx1.scripts import audit_entry_direction_candle_midpoints_v1 as candle
 from gx1.scripts import audit_entry_direction_decimal_sign_v1 as audit
 out = Path(sys.argv[1]).resolve(); path = out/'synthetic.json.gz'
-payload = {'instrument': 'XAU_USD', 'granularity': 'M1', 'candles': [
+response = {'instrument': 'XAU_USD', 'granularity': 'M1', 'candles': [
  {'time':'2024-05-03T20:58:00Z','complete':True,'bid':{'o':'2300.000'},'ask':{'o':'2300.120'}},
  {'time':'2024-05-03T20:59:00Z','complete':True,'bid':{'o':'2300.001'},'ask':{'o':'2300.119'}}]}
+request = {'instrument':'XAU_USD','from':'2024-05-03T00:00:00.000000000Z',
+ 'to':'2024-05-04T00:00:00.000000000Z','granularity':'M1','price':'MBA'}
+payload = {'schema_version':'xau_oanda_native_source_chunk_v2','request':request,'response':response}
+bounds = [(pd.Timestamp('2024-05-03T00:00:00Z').value, pd.Timestamp('2024-05-04T00:00:00Z').value)]
 with gzip.open(path, 'wt', encoding='utf-8') as f: json.dump(payload, f)
 times = pd.to_datetime(['2024-05-03T20:58:00Z','2024-05-03T20:59:00Z'], utc=True).as_unit('ns').asi8
 source = {'time_ns':times, 'source_row':np.array([10, 11], np.int64),
@@ -159,7 +174,7 @@ sys.dont_write_bytecode = True
 sys.addaudithook(candle.make_guard(out, [str(path)], [], synthetic=True))
 sys.setprofile(candle.no_queries_or_models)
 t, rows, mids, precision = audit._read_raw_quotes([{'path':str(path)}], source, pd=pd,
- closure_mask=scheduled_weekly_closure_mask)
+ closure_mask=scheduled_weekly_closure_mask, request_bounds=bounds)
 result = audit.exact_signs_for_targets(t, rows, mids, decisions=times[:1], entry_rows=rows[:1],
  terminal_times=times[1:].reshape(1,1), observed=np.ones((1,1),np.bool_),
  terminal_rows=rows[1:].reshape(1,1), cutoff_ns=audit.CUTOFF_NS)

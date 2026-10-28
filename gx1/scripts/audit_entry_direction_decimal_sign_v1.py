@@ -14,7 +14,7 @@ import zipfile
 import numpy as np
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-STAGE = 'independent_direction_decimal_sign_audit_20261028_001'
+STAGE = 'independent_direction_decimal_sign_audit_20261028_002'
 START_NS = 1714521600000000000  # 2024-05-01T00:00Z
 CUTOFF_NS = 1767225600000000000  # 2026-01-01T00:00Z
 TEST_NS = 1782864000000000000  # 2026-07-01T00:00Z
@@ -192,22 +192,30 @@ def _read_target(path):
     return target
 
 
-def _read_raw_quotes(chunks, source, *, pd, closure_mask):
+def _read_raw_quotes(chunks, source, *, pd, closure_mask, request_bounds):
     """Read only approved pre-TEST chunks; post-cutoff prices are not selected."""
     window = (source['time_ns'] >= START_NS) & (source['time_ns'] < CUTOFF_NS)
     times, source_rows = source['time_ns'][window], source['source_row'][window]
     bids, asks = source['bid_open'][window], source['ask_open'][window]
     actual_times, pairs = [], []
-    for ref in chunks:
+    require(len(chunks) == len(request_bounds), 'CHUNK_BOUNDS')
+    for ref, (begin, end) in zip(chunks, request_bounds):
         with gzip.open(ref['path'], 'rt', encoding='utf-8') as handle:
             payload = json.load(handle)
-        require(payload.get('instrument') == 'XAU_USD' and payload.get('granularity') == 'M1'
-            and isinstance(payload.get('candles'), list), 'VENDOR_RESPONSE')
-        candles = payload['candles']
+        require(isinstance(payload, dict) and set(payload) == {'schema_version', 'request', 'response'}
+            and payload['schema_version'] == 'xau_oanda_native_source_chunk_v2', 'VENDOR_ENVELOPE')
+        timestamp = lambda value: pd.Timestamp(value, unit='ns', tz='UTC').strftime('%Y-%m-%dT%H:%M:%S.000000000Z')
+        expected_request = {'instrument': 'XAU_USD', 'from': timestamp(begin), 'to': timestamp(end),
+                            'granularity': 'M1', 'price': 'MBA'}
+        require(payload['request'] == expected_request, 'VENDOR_REQUEST')
+        response = payload['response']
+        require(isinstance(response, dict) and response.get('instrument') == 'XAU_USD'
+            and response.get('granularity') == 'M1' and isinstance(response.get('candles'), list), 'VENDOR_RESPONSE')
+        candles = response['candles']
         if not candles:
             continue
         clock = pd.to_datetime([item['time'] for item in candles], utc=True, format='ISO8601').as_unit('ns').asi8
-        require(np.all(np.diff(clock) > 0), 'VENDOR_CHUNK_CLOCK')
+        require(np.all(np.diff(clock) > 0) and np.all((clock >= begin) & (clock < end)), 'VENDOR_CHUNK_CLOCK')
         closed = closure_mask(pd.to_datetime(clock, unit='ns', utc=True))
         selected = np.flatnonzero((clock >= START_NS) & (clock < CUTOFF_NS) & ~closed)
         for i in selected:
@@ -284,7 +292,7 @@ def main(argv=None):
     require(lock['scope'] == proof['cgroup_path'][len('/sys/fs/cgroup'):], 'CAPPED_LOCK_SCOPE')
     out = Path(plan['output_dir'])
     require(candle.ROOT.resolve(strict=True) == candle.ROOT and out.parent == candle.ROOT
-        and out.name == 'DIRECTION_DECIMAL_SIGN_AUDIT_20261028_001'
+        and out.name == 'DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002'
         and not out.exists() and not out.is_symlink(), 'OUTPUT_SCOPE')
     out.mkdir(exist_ok=False)
     def publish(path, value):
@@ -311,7 +319,7 @@ def main(argv=None):
             require(manifest['source_kind'] == 'oanda_native_mba_candles' and manifest['timestamp_semantics'] == 'bar_start_utc'
                 and manifest['source_granularity'] == 'M1'
                 and manifest['market_closure_contract'] == 'oanda_complete_true_scheduled_weekly_closure_excluded_v2', 'SOURCE_MANIFEST')
-            expected = []
+            expected, request_bounds = [], []
             root = Path(manifest['out_root'])
             for item in manifest['source_chunks']:
                 begin = int(pd.Timestamp(item['request_from_utc']).value)
@@ -319,13 +327,15 @@ def main(argv=None):
                 if end > START_NS and begin < CUTOFF_NS:
                     require(end <= TEST_NS, 'CHUNK_REACHES_SEALED_TEST')
                     expected.append({'path': str(root/item['relative_path']), 'sha256': item['sha256']})
+                    request_bounds.append((begin, end))
             require(expected == plan['chunks'], 'EXACT_VENDOR_CHUNK_LIST')
             years = [candle.read_year_quotes(plan['inputs']['native_' + str(year)]['path'], expected_rows=rows,
                 year=year, parquet=parquet, arrow=arrow, np=np) for year, rows, offset in candle.YEAR_SPEC]
             source = {key: np.concatenate([part[key] for part in years]) for key in years[0]}
             source['source_row'] = np.concatenate([np.arange(offset, offset + rows, dtype=np.int64)
                 for year, rows, offset in candle.YEAR_SPEC])
-            times, source_rows, numerators, precision = _read_raw_quotes(plan['chunks'], source, pd=pd, closure_mask=scheduled_weekly_closure_mask)
+            times, source_rows, numerators, precision = _read_raw_quotes(plan['chunks'], source, pd=pd,
+                closure_mask=scheduled_weekly_closure_mask, request_bounds=request_bounds)
             target = _read_target(plan['inputs']['dense_targets']['path'])
             exact = exact_signs_for_targets(times, source_rows, numerators, decisions=target['decision_ns'],
                 entry_rows=target['dynamic_entry_m1_row'], terminal_times=target['terminal_time_ns'],
