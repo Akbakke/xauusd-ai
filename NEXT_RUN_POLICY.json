@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "DECIMAL_PRIVATE_INPUT_AUDIT_003_ADMITTED",
+  "status": "DECIMAL_PRIVATE_INPUT_VERIFIED_NO_TRAINING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Complete the distinct CPU-only data audit of the actual native target branch with disjoint verification scopes, verify and close it. Private GPU qualification and full prefix fit remain closed until a new exact authorization and requested restart.",
+  "next_action": "Prepare a concrete separately bound private GPU qualification for the corrected target, followed by a fresh baseline and one separately specified 5min direction hypothesis while retaining 1..60 horizons. Native physical provider/feature-view and resume are not yet qualified for this target. Do not run training until a new exact user authorization and requested safe physical restart; TEST, broker and hardware guards remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43546,7 +43546,7 @@
     }
   },
   "direction_decimal_private_route_source_20261028": {
-    "status": "SOURCE_PREPARED_DATA_AUDIT_003_PENDING",
+    "status": "SOURCE_AND_STUBBED_ACTUAL_TARGET_INPUT_PASS_PRIVATE_GPU_NOT_RUN",
     "private_scope": "private_dense_decimal_b16_initial_resume_qualification",
     "full_prefix_fit_scope_admitted": false,
     "training_authorized": false,
@@ -43555,7 +43555,19 @@
       "sha256": "8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19"
     },
     "test_data_used": false,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "source_design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003.json",
+      "sha256": "b6251037173a697555e75898ddbf56201979fb838a24ed9de48efecf417361d2"
+    },
+    "actual_target_input": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003/OUTPUT/RESULT.json",
+      "sha256": "26f17302fcc5b8c1dee562de2b82f39ddafdc8a060a3f9c84922e98b59913399"
+    },
+    "independent_check": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_INDEPENDENT_CHECK_20261028_003.json",
+      "sha256": "35912018b7982d4de582afa6967fd4f1e40003716118ec2470b9221d1a8d289a"
+    }
   },
   "independent_direction_decimal_private_input_20261028_002": {
     "status": "FAILED_ONE_SHOT_CONSUMED",
@@ -43588,25 +43600,46 @@
     }
   },
   "independent_direction_decimal_private_input_20261028_003": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003.json",
       "sha256": "b6251037173a697555e75898ddbf56201979fb838a24ed9de48efecf417361d2"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 600,
     "cuda_visible_devices": "",
-    "scope": "Distinct CPU-only data audit after consumed 001 and 002 failures. Close the input verification scope before the exact target owner opens its own; stub physical provider and feature view. No model, fit, broker or TEST."
+    "scope": "Distinct CPU-only data audit after consumed 001 and 002 failures. Close the input verification scope before the exact target owner opens its own; stub physical provider and feature view. No model, fit, broker or TEST.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003/INVOCATION_CLAIM.json",
+      "sha256": "4736afc1db61e211cc2a283792286d00d5aab02f5ad9b9d5120afac10759acd5"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003/OUTPUT/RESULT.json",
+      "sha256": "26f17302fcc5b8c1dee562de2b82f39ddafdc8a060a3f9c84922e98b59913399"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003/OUTPUT/TERMINAL.json",
+      "sha256": "f85f9e1e6a213049233c4354ef1c7059f5f25392f1cc330e98be76edf8662928"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003/TERMINAL.json",
+      "sha256": "ba3cf8bf9312ba6d13604e59bff807da58e18d3e2297f91ba36a51e687bdfd12"
+    },
+    "independent_check": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_INDEPENDENT_CHECK_20261028_003.json",
+      "sha256": "35912018b7982d4de582afa6967fd4f1e40003716118ec2470b9221d1a8d289a"
+    },
+    "economic_edge_qualified": false
   }
 }
