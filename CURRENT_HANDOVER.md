@@ -11,6 +11,10 @@ Programrot:
 
 ## Aktuell status
 
+En avgrenset kodekontroll er admittért for å sammenligne 5min sluttfortegn
+og første treff på samme tidligere kjente foreldre. Tidligere deknings- og
+AUC-resultat må reproduseres; syntetisk test og ekte måling er ennå lukket.
+
 Første-treff-kontrollen er COMPLETE og konsumert på 17 288 gjenbrukte
 fold1-utviklingsforeldre, alle minutter 1–60 og fast 10bps gross quote. Ved
 5min nådde 1 042 kjent førstegangsside, 16 230 ingen side, 14 hadde ukjent
