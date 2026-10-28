@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Build and synthetically qualify the exact paired TRAIN scoring adapter; independently admit one fixed CPU read of the four saved outputs only after qualification.",
+    "current_activity": "Bind and run once a capped CPU-only descriptive TRAIN comparison on the three fixed one-pass partitions and one completed three-pass output; close the authority afterward.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "THREEPASS_FULLTRAIN_PAIRED_SOURCE_ADMITTED_NO_PAYLOAD",
+    "status": "THREEPASS_FULLTRAIN_PAIRED_SOURCE_QUALIFIED_EXECUTION_PENDING",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_threepass_train_paired_source_20261028",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Build and synthetically qualify the exact paired TRAIN scoring adapter; independently admit one fixed CPU read of the four saved outputs only after qualification.",
+    "next_action": "Bind and run once a capped CPU-only descriptive TRAIN comparison on the three fixed one-pass partitions and one completed three-pass output; close the authority afterward.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -39678,14 +39678,14 @@
     "first_256_prediction_parity": true
   },
   "direction_threepass_train_paired_source_20261028": {
-    "status": "SOURCE_ONLY_ADMITTED_NO_GENUINE_PAYLOAD",
+    "status": "SOURCE_AND_SYNTHETIC_PASS_GENUINE_PAYLOAD_CLOSED",
     "scope": "Implement and synthetically verify one CPU-only paired TRAIN comparison of the three saved one-pass prefix partitions against the completed three-pass full-prefix output. Reuse the existing qualified full-prefix assembler and direction score owners.",
     "allowed_source_paths": [
       "gx1/scripts/compare_entry_direction_train_exposure_v1.py",
       "tests/test_compare_entry_direction_train_exposure_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": true,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": false,
     "genuine_prediction_reads_authorized": false,
     "genuine_model_forwards_authorized": false,
     "checkpoint_reads_authorized": false,
@@ -39716,6 +39716,11 @@
       "intervals": "No inference intervals: fixed-model TRAIN scores are descriptive in-sample evidence.",
       "no_threshold_or_checkpoint_selection": true,
       "test_data_used": false
-    }
+    },
+    "source_sha256": {
+      "gx1/scripts/compare_entry_direction_train_exposure_v1.py": "2ae0252c9e5a967681e2c160b3adb38d3f5ef52aaa6db00bbda27e75c53878e4",
+      "tests/test_compare_entry_direction_train_exposure_v1.py": "54e073b4baa5a95c67259657a76df980af850556ba7fb0b20ac8bdf5ece47056"
+    },
+    "synthetic_qualification": "23 capped synthetic adapter and prior paired-comparison tests passed. Exact metadata identities of all three baseline partitions and three-pass extraction were checked without genuine payload reads."
   }
 }
