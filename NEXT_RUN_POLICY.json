@@ -46,8 +46,8 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T16:19:56.955463+00:00",
   "status": "DIRECTION_BPS_PAIRED_COMPARISON_COMPLETE_NO_DOCUMENTED_IMPROVEMENT",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
   "next_action": "Implement and qualify the fixed saved-output comparison under COMPARISON_PROTOCOL.json before reading later predictions; then fresh bounded CPU-only admission. No additional model forward, fitting, epoch, horizon or threshold selection.",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "MATCHED_EXPOSURE_1V3_002_ADMITTED_CAMPAIGN_NOT_MATERIALIZED",
+    "status": "MATCHED_EXPOSURE_COMPLETE_PAIRED_EVALUATION_PENDING",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "dynamic_m5_direction_exposure_1v3_fold1_20261027_002",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Materialize the exact capped-control campaign once, verify all source and machine-wide idle gates, then start only after fresh physical boot.",
+    "next_action": "Prepare one separately admitted exact saved-prediction paired AUC/logloss/Brier evaluation on the same fold1 later parents; preserve full 47602-row terminal TRAIN assessment as a separate required step.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -38876,7 +38876,7 @@
     }
   },
   "direction_matched_exposure_continuation_source_20261027": {
-    "status": "NATIVE_PARITY_AND_MATCHED_EXPOSURE_RECIPE_PREFLIGHT_PASS",
+    "status": "THREE_PASS_COMPLETED_PAIRED_EVALUATION_AND_FULL_TRAIN_PENDING",
     "purpose": "Integrate exact opt-in continuation from baseline276 into the existing native prefix owner; compare fixed one and three passes without changing the original sign target.",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
@@ -38938,7 +38938,11 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_PREFLIGHT_ACTUAL_20261027_002/TERMINAL.json",
       "sha256": "651a20a8f3a3c127008dbfec2fef0de54522e4499bda833e71f9828fde09a5be"
     },
-    "full_train_evaluation_note": "The native runner publishes a fixed 256-row FINAL_TRAIN measurement. The predeclared full 47602-row final-TRAIN assessment requires a separate complete fixed-prefix extraction after training; do not claim it from the 256-row panel."
+    "full_train_evaluation_note": "The native runner publishes a fixed 256-row FINAL_TRAIN measurement. The predeclared full 47602-row final-TRAIN assessment requires a separate complete fixed-prefix extraction after training; do not claim it from the 256-row panel.",
+    "actual_campaign_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "78a123219f19c70ecdc2a2b1a5b6f5110f0563edcb5484e307e77baad1defd1f"
+    }
   },
   "independent_direction_last_m1_ofi_sign_refinement_20261027": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -39366,7 +39370,7 @@
     "optimizer_steps": 0
   },
   "dynamic_m5_direction_exposure_1v3_fold1_20261027_002": {
-    "status": "EXACT_MATCHED_EXPOSURE_ADMITTED_PENDING_BOUND_CAMPAIGN_AND_FRESH_BOOT",
+    "status": "COMPLETE_CONSUMED_TRAIN_AND_OOF_PAIRED_EVALUATION_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002_RUNTIME",
     "evidence_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002",
     "design": {
@@ -39402,11 +39406,11 @@
       "sha256": "4a0123116421f8c757bc16e54d20674f594e41c035f5eeb69df441da83199bba"
     },
     "windows_source_root": "C:\\Temp\\GX1_DIRECTION_EXPOSURE_20261027_002",
-    "campaign_preparation_authorized": true,
+    "campaign_preparation_authorized": false,
     "max_preparation_invocations": 1,
     "max_invocations": 4,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 2,
+    "completed_invocations": 2,
     "relaunch_allowed": false,
     "fold_id": 1,
     "genuine_prefix_models": 1,
@@ -39414,17 +39418,17 @@
     "extra_passes": 2,
     "extra_optimizer_step_ceiling": 5952,
     "total_optimizer_step_ceiling": 8928,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -39435,6 +39439,16 @@
     "fixed_protocol_no_hpo_early_stopping_or_checkpoint_selection": true,
     "predictive_value_qualified": false,
     "full_train_assessment_pending": true,
-    "authorization_basis": "User gave free rein to take over and asked whether additional epochs could improve direction. This is a fresh, explicitly scoped 1-vs-3-pass campaign; the earlier one-epoch authority is not reused."
+    "authorization_basis": "User gave free rein to take over and asked whether additional epochs could improve direction. This is a fresh, explicitly scoped 1-vs-3-pass campaign; the earlier one-epoch authority is not reused.",
+    "unused_windows_revoked": [
+      3,
+      4
+    ],
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "78a123219f19c70ecdc2a2b1a5b6f5110f0563edcb5484e307e77baad1defd1f"
+    },
+    "extra_optimizer_steps_completed": 5952,
+    "later_parents_scored": 17288
   }
 }

@@ -530,3 +530,11 @@ pass fra original276, maks 5952 nye optimizersteg, samme mål og data, fire
 tidsbegrensede vinduer og full TRAIN-vurdering som separat gjenstående steg.
 Kampanjen er ikke materialisert eller startet. TEST/CONTROL og all handel er
 stengt. Opt-in capped kontrollør må være bundet før den første oppstarten.
+
+1-mot-3-pass-kampanjen 002 er FULLFØRT og KONSUMERT i to vinduer.
+5952 ekstra optimizersteg og 17288 senere foreldre er scoret; andre vindu
+hadde null optimizersteg. Begge signerte vakter bestod, oppstartsoppgaven er
+deaktivert, trening stengt og vindu 3–4 tilbakekalt. Aggregert logloss og Brier
+er høyere etter tre pass ved alle tre horisonter, men AUC og parrede intervaller
+er ennå ikke beregnet. Full TRAIN-vurdering på 47602 rader gjenstår.
+ACTUAL_ROOT_REVIEW_001.json SHA-256 78a123219f19c70ecdc2a2b1a5b6f5110f0563edcb5484e307e77baad1defd1f. Ingen edge er dokumentert.
