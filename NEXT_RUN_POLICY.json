@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-28T07:37:53.819671+00:00",
+  "updated_utc": "2026-10-28T07:39:47.793859+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_order_batch_geometry_20261028_002",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Execute the newly bound CPU-only TRAIN-prefix batch-order audit; close the gate on its terminal result and distinguish coefficient geometry from model improvement.",
+    "next_action": "Prioritize the fixed one-factor chronological-versus-shuffled native direction comparison. Reuse qualified compact inputs and baseline; prepare a strictly bound opt-in source route and fresh same-row initial qualification. No training until a separate admitted campaign.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37271,7 +37271,12 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json",
       "sha256": "336c7c5af9a0b5bf7759831394f27de06d46eb8ab9a22619a8c1856abc01fbf7"
     },
-    "four_fold_five_minute_threshold_bias_checked": true
+    "four_fold_five_minute_threshold_bias_checked": true,
+    "presentation_order_batch_geometry_complete": true,
+    "presentation_order_batch_geometry_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_ROOT_REVIEW_20261028_002.json",
+      "sha256": "1818e73a335c654f8f2421ec6d61c0b6761978b3c338f98c7a8ca732bda1d27c"
+    }
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -40853,25 +40858,45 @@
     "scope": "One exact TRAIN-only pre-CONTROL target archive, first 47602 prefix labels, both deterministic presentation orders, no model, predictions or training. NPZ arrays are physically loaded but only prefix labels and the adjacent decision clock are analyzed."
   },
   "direction_order_batch_geometry_20261028_002": {
-    "status": "ADMITTED_ONE_CPU_AUDIT",
+    "status": "COMPLETE_CONSUMED_NO_MODEL_OR_DIRECTION_PERFORMANCE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_PLAN_20261028_002.json",
       "sha256": "4269c259360832bff8657ec846c1edf2947c2d45a427727166321141fc844b71"
     },
-    "execution_authorized": true,
-    "genuine_train_target_reads_authorized": true,
+    "execution_authorized": false,
+    "genuine_train_target_reads_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
     "scope": "One exact TRAIN-only pre-CONTROL target archive, first 47602 prefix labels, both deterministic presentation orders, no model, predictions or training. NPZ arrays are physically loaded but only prefix labels and the adjacent decision clock are analyzed.",
     "predecessor_plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_PLAN_20261028_001.json",
       "sha256": "7b334dfc706c06f6ff186cede01fa40f6433c1e1cb27e1d8648e7702ba7664a1"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_20261028_002/RESULT.json",
+      "sha256": "045430da54106c4e143c04647ac424e50cdef3ef167ac15196c62f97fe44988c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_20261028_002/TERMINAL.json",
+      "sha256": "29af6051e3bba5b2d0d0fbf0cad99dec6a2d53106681b65e1e9579e9494b53e4"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_20261028_002/CLAIM.json",
+      "sha256": "b825ae3f95260700eb50d88ef53dbca055619b680fc7e7c91d6c44e1ef7e2ddf"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_20261028_002_OUTER.log",
+      "sha256": "f4f6040074e6f1087240d3470a210fa9bafabb86e2f11c729725bc9e6194542f"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_ROOT_REVIEW_20261028_002.json",
+      "sha256": "1818e73a335c654f8f2421ec6d61c0b6761978b3c338f98c7a8ca732bda1d27c"
     }
   }
 }
