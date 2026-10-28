@@ -1,0 +1,65 @@
+{
+  "schema_version": "gx1_first_hurdle_reference_summary_v1",
+  "status": "COMPLETE_MATCHED_REUSED_FOLD_CONDITIONAL",
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_ACTUAL_20261028_001/RESULT.json",
+    "sha256": "0a6013fb928fe4a40a416c27fdc2412788c48cd17dbf0bc9ef62a09e33f0a4c2"
+  },
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_ACTUAL_20261028_001/OUTER_TERMINAL.json",
+    "sha256": "eac438872dd134f4fddb3d58d870675b40ef1ede695f6827b0791270c6f606dc"
+  },
+  "parents": 17288,
+  "horizon_minutes": 5,
+  "favorable_bps": 10.0,
+  "prior_five_exactly_reproduced": {
+    "counts_exact": true,
+    "known_rows": 1042,
+    "auc_exact": true,
+    "auc": 0.42676767676767674
+  },
+  "comparison": {
+    "known_first_direction": 1042,
+    "known_long": 484,
+    "known_short": 558,
+    "native_auc": 0.42676767676767674,
+    "et252_auc": 0.4766062383364436,
+    "et252_minus_native_auc": 0.04983856156876687,
+    "paired_intervals": [
+      {
+        "scheme": "UTC_DAY",
+        "blocks": 77,
+        "resampling_population": "all fixed parents before first-hurdle eligibility",
+        "low": 0.00728117793334689,
+        "high": 0.09058967538676711,
+        "per_interval_alpha": 0.025,
+        "valid_replicates": 10000,
+        "undefined_replicates": 0
+      },
+      {
+        "scheme": "UTC_WEEK_MONDAY",
+        "blocks": 14,
+        "resampling_population": "all fixed parents before first-hurdle eligibility",
+        "low": -0.0017918450788655625,
+        "high": 0.09595331809876068,
+        "per_interval_alpha": 0.025,
+        "valid_replicates": 10000,
+        "undefined_replicates": 0
+      }
+    ],
+    "scope": "conditional on realized first-hurdle event and observable order; ET252 uses different model and inputs"
+  },
+  "interpretation": [
+    "ET252 AUC point estimate is 0.476606 and native is 0.426768 on the same 1042 known first-hit parents.",
+    "ET252 minus native AUC is +0.049839; the fixed paired day interval excludes zero while the paired week interval includes zero. The joint day/week evidence does not establish a robust difference.",
+    "ET252 uses an ExtraTrees classifier and a different full-snapshot input, so the contrast does not isolate architecture or feature value. Both scores were trained for endpoint sign, not this first-hit outcome.",
+    "This is an exploratory comparison after examining the native result, on one repeatedly reused TRAIN-development fold selected on a realized >10bps gross quote event. It neither estimates all-parent performance nor establishes trading edge or causal feature contribution."
+  ],
+  "limits": [
+    "One reused TRAIN-development fold and realized first-hurdle-selected parents.",
+    "Same-row AUCs do not establish causality, generalization or trading edge."
+  ],
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_control_accessed": false
+}

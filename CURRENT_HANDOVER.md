@@ -11,10 +11,11 @@ Programrot:
 
 ## Aktuell status
 
-Én ET252-sammenligning er admittért på de samme 1 042 første-treff-
-foreldrene. Den bruker lagrede OOF-skårer, ikke modell eller ny fit. Kilde og
-policy er fryst; engangsplanen skal ikke relanseres. Referansen har andre
-inputs og kan ikke gi årsaksbevis. CONTROL og TEST er lukket.
+ET252-sammenligningen er COMPLETE og konsumert på samme 1 042 førstetreff-
+foreldre. AUC er 0,476606 mot native 0,426768; differansen er +0,049839,
+men parret ukeintervall omfatter null. Referansen har andre inputs, og
+sammenligningen er selektert og gjenbrukt utvikling; ingen stabil forskjell,
+årsak eller edge er bevist. Se `docs/DIRECTION_FIRST_HURDLE_REFERENCE_RESULT_20261028.json`.
 
 En naiv partial-set-loss har en bevist degenerert løsning ved 1min/10bps:
 alle 17 288 mulige utfallssett inneholder «ingen treff», så en modell som

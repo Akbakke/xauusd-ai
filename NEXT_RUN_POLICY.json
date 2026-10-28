@@ -40360,16 +40360,16 @@
     }
   },
   "direction_first_hurdle_reference_actual_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_CONDITIONAL_REFERENCE_DESCRIPTIVE",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_ACTUAL_PLAN_20261028_001.json",
       "sha256": "6ae7619d2d8827d952b6fba6d4ccf0cb6da0ee9266a2d8031ad4dccee8d2bc50"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "max_wall_seconds": 300,
     "capped_cpu_audit_memory": "4G",
@@ -40377,6 +40377,29 @@
     "model_calls_authorized": false,
     "optimizer_steps_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_ACTUAL_20261028_001/RESULT.json",
+      "sha256": "0a6013fb928fe4a40a416c27fdc2412788c48cd17dbf0bc9ef62a09e33f0a4c2"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_ACTUAL_20261028_001/OUTER_TERMINAL.json",
+      "sha256": "eac438872dd134f4fddb3d58d870675b40ef1ede695f6827b0791270c6f606dc"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_ACTUAL_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "d7c3a276c05639d0dbe1ec3c548626a7d20f8305de6844861cb9bc73ce532392"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_ACTUAL_20261028_001/OUTER.log",
+      "sha256": "4c5360f00285bad878135b472d44f71ffe624b39fff096ea784455651e7b5b5b"
+    },
+    "review": {
+      "path": "docs/DIRECTION_FIRST_HURDLE_REFERENCE_RESULT_20261028.json",
+      "sha256": "921e2b46d7c01720e531d187b6c1ad9f26c54904443a2c3284ffe212a703c931"
+    },
+    "native_auc": 0.42676767676767674,
+    "reference_auc": 0.4766062383364436,
+    "direction_improvement_qualified": false
   }
 }
