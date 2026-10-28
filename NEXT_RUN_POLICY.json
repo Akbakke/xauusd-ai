@@ -43422,6 +43422,10 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_NEIGHBOR_POOLING_INDEPENDENT_CHECK_20261028_001.json",
       "sha256": "eb382469e6f6d55d0c9011ac8373dffc1a16f6203213506b287191120474b9ff"
     },
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "threshold_accuracy_summary": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_HEAD_ACCURACY_DIAGNOSIS_20261028.json",
+      "sha256": "c35341662b2ec165b6006270776f7bc0275773bafae8dd85d111c179e097959e"
+    }
   }
 }

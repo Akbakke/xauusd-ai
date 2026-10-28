@@ -1,0 +1,61 @@
+{
+  "schema_version": "gx1_direction_head_threshold_accuracy_diagnosis_v1",
+  "status": "COMPLETE_CAPPED_READ_ONLY_TERMINAL_SUMMARY",
+  "inputs": {
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "q1": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "q2": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    }
+  },
+  "source_result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_NEIGHBOR_POOLING_20261028_001/OUTPUT/RESULT.json",
+    "sha256": "db39faf262d0cbc848dc7dfa26b3e52e5530846ac842afaa117e12db20388b27"
+  },
+  "target": "Exact decimal midpoint sign, positive logit means UP, nonzero observed mature targets.",
+  "periods": {
+    "q1": {
+      "cutoff_exclusive_ns": 1743465600000000000,
+      "5min": {
+        "eligible": 17192,
+        "accuracy": 0.4887738483015356,
+        "predicted_up": 0.13325965565379247,
+        "always_up_accuracy": 0.5158213122382503
+      },
+      "6min": {
+        "eligible": 17189,
+        "accuracy": 0.5086974227703764,
+        "predicted_up": 0.9937750887195299,
+        "always_up_accuracy": 0.5081738321019257
+      }
+    },
+    "q2": {
+      "cutoff_exclusive_ns": 1751328000000000000,
+      "5min": {
+        "eligible": 1753,
+        "accuracy": 0.49286936679977184,
+        "predicted_up": 0.04164289788933257,
+        "always_up_accuracy": 0.5019965772960638
+      },
+      "6min": {
+        "eligible": 1752,
+        "accuracy": 0.5062785388127854,
+        "predicted_up": 0.9948630136986302,
+        "always_up_accuracy": 0.5057077625570776
+      }
+    }
+  },
+  "limits": "Threshold and reference points only; no paired interval for this accuracy comparison. Reused development periods, Q2 nonrandom sample. No proof of economic edge.",
+  "recording": "Values transcribed from a capped read-only terminal calculation after SHA and exact parent/time/mask joins; this JSON is not an independently generated run receipt.",
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}
