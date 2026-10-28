@@ -11,6 +11,10 @@ Programrot:
 
 ## Aktuell status
 
+Kilde for ekte B16-kvalifisering bestod 24 syntetiske kontroller og er
+fryst; genuine data/modelkall er ikke kjørt eller admittért. Et første
+startforsøk ble avvist før test av wrapperen og er bevart som konsumert.
+
 Første syntetiske kvalifiseringsforsøk ble avvist før tester fordi env ble
 brukt som startkommando inne i capped-wrapperen. Forsøket er konsumert;
 en ny engangskontroll bruker Python direkte og bevarer samme sikkerhetsvakter.

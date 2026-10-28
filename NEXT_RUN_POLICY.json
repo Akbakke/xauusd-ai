@@ -40644,7 +40644,7 @@
     }
   },
   "direction_bounded_magnitude_native_qualification_source_20261028": {
-    "status": "SOURCE_FROZEN_SECOND_SYNTHETIC_AUDIT_ADMITTED_AFTER_WRAPPER_REJECTION",
+    "status": "PRIVATE_ROUTE_SYNTHETIC_24_PASS_NO_GENUINE_QUALIFICATION",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAG_WEIGHT_NATIVE_QUALIFICATION_DESIGN_20261028.json",
       "sha256": "fe5cd8dbb9f17e46c77821c5077c6ad2893719bc2204f01b963cfff90c4938c1"
@@ -40659,7 +40659,7 @@
       "tests/test_entry_native_direction_prefix_fit_window_v1.py"
     ],
     "source_edits_authorized": false,
-    "synthetic_tests_authorized": true,
+    "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
@@ -40695,7 +40695,8 @@
     "synthetic_plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_PLAN_20261028_002.json",
       "sha256": "c4fc73f9e2d23a6cc243291cef9030989760e46716f2dec733e644b21c86d9bf"
-    }
+    },
+    "qualification": "24 bounded synthetic checks passed, including weighted B16 gradient/resume and fixed original read boundary. No genuine payload/model call."
   },
   "direction_bounded_magnitude_native_qualification_synthetic_20261028_001": {
     "status": "FAILED_CONSUMED_START_FORMAT_NO_TESTS",
@@ -40726,19 +40727,35 @@
     }
   },
   "direction_bounded_magnitude_native_qualification_synthetic_20261028_002": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_SYNTHETIC_24_PASS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_PLAN_20261028_002.json",
       "sha256": "c4fc73f9e2d23a6cc243291cef9030989760e46716f2dec733e644b21c86d9bf"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "genuine_payload_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_20261028_002/TERMINAL.json",
+      "sha256": "bfda3083fe6423d11e306ce836dc48e1451847f7802e8f5eac0c437df3275510"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_20261028_002/INVOCATION_CLAIM.json",
+      "sha256": "95a30be869310f771b7214f87df809183bceed7935a8493ca4c533c33bbdc29b"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_20261028_002/RESULTS.xml",
+      "sha256": "448a2dc55ed7194d6e06c2b8cf02b60516fd1fc1be8843d644cbd6d492f39759"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_20261028_002/OUTER.log",
+      "sha256": "dc70ece49bdb95191fff01511ae8d63e08a7909e60f0dada6ead92007f2e3c2e"
+    }
   }
 }
