@@ -20,3 +20,24 @@ def test_cache_comparison_rejects_invalid_geometry():
         compare_fields(np.ones((2, 1)), np.ones((3, 1)), ('x',), np.array([1, 2]))
     with pytest.raises(RuntimeError, match='COMPARE_SHAPE'):
         compare_fields(np.array([[np.inf]]), np.array([[np.inf]]), ('x',), np.array([1]))
+
+
+def test_window_exposure_respects_close_and_real_lookback():
+    from gx1.scripts.audit_direction_d1_trendline_replay_v1 import window_exposure
+    day = 86400 * 10**9
+    ts = np.arange(10, dtype=np.int64) * day
+    bad = np.zeros(10, dtype=np.bool_); bad[[2, 7]] = True
+    decisions = np.array([4, 7, 9], dtype=np.int64) * day
+    result = window_exposure(ts, bad, decisions, 3)
+    assert result['decisions_with_any_mismatched_d1_row'] == 2
+    assert result['distinct_mismatched_d1_rows_in_windows'] == 2
+    assert result['first_affected_decision_ns'] == 4 * day
+    assert result['last_affected_decision_ns'] == 9 * day
+
+
+def test_mismatch_classification_separates_missingness_and_finite_bits():
+    from gx1.scripts.audit_direction_d1_trendline_replay_v1 import mismatch_matrix
+    a = np.array([[np.nan, 0.], [1., 2.]], dtype=np.float32)
+    b = np.array([[0., -0.], [1., 3.]], dtype=np.float32)
+    missing, finite = mismatch_matrix(a, b)
+    assert missing.sum() == 1 and finite.sum() == 2
