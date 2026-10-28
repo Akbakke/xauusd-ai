@@ -1,0 +1,52 @@
+{
+  "schema_version": "gx1_direction_gc_context_verify_design_v1",
+  "status": "SOURCE_PREPARED_ACTUAL_AUDIT_PENDING",
+  "scope": "CPU-only independent score and source join verification for the completed combined GC-context and history intervention on one reused Q2 development sample.",
+  "method": "Reproduce all 60 horizons and both arms using an independent rank-sum AUC and stable probability calculations. Recompute 10,000 day/week block intervals for 5 and 60 minutes with per-block searchsorted and separate weighted arithmetic. Rejoin corrected targets and prove prior original predictions byte-identical.",
+  "limits": "This verifies numerical identity and selected sample only. It does not prove fresh generalization, useful trades or economic edge.",
+  "inputs": {
+    "followup_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_PLAN_20261028_002.json",
+      "sha256": "a5a64fe53f41a796612ecf82de7d25df24de4ce12a296cba94631278144fa402"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "3759c43b7eed35b40eb16817592a6a8fa4070bcd2354ee7e7be33b04028566ee"
+    },
+    "inner_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/TERMINAL.json",
+      "sha256": "eafd0f1be071bdf3b33c24a5cd73b62611d0ac9decd6eb4eec851db71e0a09bf"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/TERMINAL.json",
+      "sha256": "44adf758c1c754b1c124df1f59d73fcf2769f46c10371242a30d832d5453aa67"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/INVOCATION_CLAIM.json",
+      "sha256": "9e9f74e097d234c2a92cf9ad8f06a636d7577ca61bc9238074a36578f867d7f3"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002.guard.Whoyq9C1.log",
+      "sha256": "586c6fd43074e3104f76905aa79427a9f80c6d9d3b03a0e8feed24a1f637fe05"
+    },
+    "paired_outputs": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "fold_design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_PLAN_20261028_001.json",
+      "sha256": "2494af08975ee22c0ea546562141f5ff5bde52368e74716df40279539c31a96b"
+    },
+    "previous_pair": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "8aa87c567b58319178e597506dc82dfff9d65984eb23cd165fcc4b87bfbea2cd"
+    }
+  },
+  "test_data_used": false,
+  "model_forwards": 0,
+  "optimizer_steps": 0
+}

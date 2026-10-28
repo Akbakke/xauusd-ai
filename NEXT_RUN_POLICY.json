@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T17:23:51.512403+00:00",
-  "status": "GC_CONTEXT_FOLLOWUP_COMPLETE_AWAITING_INDEPENDENT_VERIFY",
+  "observed_utc": "2026-10-28T17:24:58.228161+00:00",
+  "status": "GC_CONTEXT_VERIFY_ADMITTED_ONE_SHOT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Independently verify the saved combined GC intervention scores, target joins and 5/60-minute intervals; preserve the consumed one-shot and all receipts. No training, TEST, broker or trading.",
+  "next_action": "Run the independent capped CPU verification of the completed combined GC intervention. No model forwards, optimizer, checkpoint, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42564,5 +42564,26 @@
     },
     "independent_score_verification_complete": false,
     "economic_edge_qualified": false
+  },
+  "independent_direction_gc_context_verify_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_VERIFY_PLAN_20261028_001.json",
+      "sha256": "0a1936f10f82d08527af2ab61320bbaee28c7ca6265982cb9cfd4d1b77f2f076"
+    },
+    "execution_authorized": true,
+    "model_forwards_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "scope": "Reproduce all 60 horizons and both arms using an independent rank-sum AUC and stable probability calculations. Recompute 10,000 day/week block intervals for 5 and 60 minutes with per-block searchsorted and separate weighted arithmetic. Rejoin corrected targets and prove prior original predictions byte-identical."
   }
 }

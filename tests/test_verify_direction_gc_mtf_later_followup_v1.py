@@ -42,3 +42,24 @@ def test_independent_all_horizons_and_bootstrap_detects_metric_or_target_drift(m
     wrong_pair = dict(pair, sign=pair['sign'].copy()); wrong_pair['sign'][0, 0] *= -1
     with pytest.raises(RuntimeError, match='TARGET_JOIN:sign'):
         verify.verify_metrics(wrong_pair, corrected, result, replicates=25)
+
+
+def test_context_verification_has_distinct_scope_and_prior():
+    context = verify.experiment_spec('context')
+    history = verify.experiment_spec('history')
+    assert context['stage'] != history['stage']
+    assert context['prior'] == 'independent_direction_gc_context_followup_20261028_002'
+    assert context['result_schema'] == 'gx1_direction_gc_context_followup_result_v1'
+    with pytest.raises(RuntimeError, match='MODE'):
+        verify.experiment_spec('unknown')
+
+
+def test_prior_originals_byte_identity_includes_labels_and_logits():
+    a = {'parent_rows': np.array([1, 2], dtype=np.int64), 'decision_ns': np.array([4, 5], dtype=np.int64),
+         'terminal_time_ns': np.array([[6], [7]], dtype=np.int64), 'observed': np.array([[1], [1]], dtype=np.bool_),
+         'sign': np.array([[1], [-1]], dtype=np.int8), 'original_logit_up': np.array([[0.2], [-0.3]], dtype=np.float32)}
+    b = {key: value.copy() for key, value in a.items()}
+    verify.require_prior_same(a, b)
+    b['original_logit_up'][0, 0] += 1
+    with pytest.raises(RuntimeError, match='PRIOR_BYTE_IDENTITY:original_logit_up'):
+        verify.require_prior_same(a, b)

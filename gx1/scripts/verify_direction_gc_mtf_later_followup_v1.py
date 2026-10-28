@@ -13,6 +13,7 @@ import numpy as np
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
 STAGE = 'independent_direction_gc_mtf_later_verify_20261028_001'
+CONTEXT_STAGE = 'independent_direction_gc_context_verify_20261028_001'
 DAY_NS = 86400 * 10**9
 ALPHA = 0.05 / 12
 REPLICATES = 10000
@@ -132,12 +133,39 @@ def verify_metrics(pair, corrected, result, *, replicates=REPLICATES):
         'max_absolute_interval_error': max_interval_error}
 
 
+def require_prior_same(pair, prior):
+    for key in ('parent_rows', 'decision_ns', 'terminal_time_ns', 'observed', 'sign', 'original_logit_up'):
+        require(key in pair and key in prior and pair[key].shape == prior[key].shape
+            and pair[key].dtype == prior[key].dtype
+            and np.ascontiguousarray(pair[key]).tobytes() == np.ascontiguousarray(prior[key]).tobytes(),
+            'PRIOR_BYTE_IDENTITY:' + key)
+
+
+def experiment_spec(mode):
+    require(mode in ('history', 'context'), 'MODE')
+    if mode == 'context':
+        return {'stage': CONTEXT_STAGE, 'stem': 'gx1_direction_gc_context_verify',
+            'design': 'DIRECTION_GC_CONTEXT_VERIFY_20261028.json',
+            'output': 'DIRECTION_GC_CONTEXT_VERIFY_20261028_001',
+            'prior': 'independent_direction_gc_context_followup_20261028_002',
+            'result_schema': 'gx1_direction_gc_context_followup_result_v1',
+            'peak_power': 'peak_power_draw_w=132.48'}
+    return {'stage': STAGE, 'stem': 'gx1_direction_gc_mtf_later_verify',
+        'design': 'DIRECTION_GC_MTF_LATER_VERIFY_20261028.json',
+        'output': 'DIRECTION_GC_MTF_LATER_VERIFY_20261028_001',
+        'prior': 'independent_direction_gc_mtf_later_followup_20261028_001',
+        'result_schema': 'gx1_direction_gc_mtf_later_followup_result_v1',
+        'peak_power': 'peak_power_draw_w=134.26'}
+
+
 def main(argv=None):
     sys.dont_write_bytecode = True
     parser = argparse.ArgumentParser(description=__doc__)
     for key in ('plan', 'plan-sha256', 'policy-sha256', 'source-head'):
         parser.add_argument('--' + key, required=True)
+    parser.add_argument('--experiment', choices=('history', 'context'), default='history')
     args = parser.parse_args(argv)
+    spec = experiment_spec(args.experiment)
     from scipy.stats import rankdata  # Load before restricted file scope.
     from gx1.contracts import gx1_capped_execution_v1 as cap
     from gx1.contracts import immutable_event_authority_v1 as publication
@@ -152,13 +180,13 @@ def main(argv=None):
     with binding.fresh_file_verification_scope():
         plan = binding.read_bound_json(Path(plan_ref['path']), plan_ref['sha256'])
         require(set(plan) == {'schema_version', 'stage', 'design', 'inputs', 'sources', 'output_dir', 'wall_seconds', 'test_data_used'}
-            and plan['schema_version'] == 'gx1_direction_gc_mtf_later_verify_plan_v1' and plan['stage'] == STAGE
+            and plan['schema_version'] == spec['stem'] + '_plan_v1' and plan['stage'] == spec['stage']
             and plan['wall_seconds'] == 600 and plan['test_data_used'] is False, 'PLAN')
-        require(plan['design']['path'] == str(REPO / 'docs/DIRECTION_GC_MTF_LATER_VERIFY_20261028.json'), 'DESIGN_PATH')
+        require(plan['design']['path'] == str(REPO / 'docs' / spec['design']), 'DESIGN_PATH')
         design = binding.read_bound_json(Path(plan['design']['path']), plan['design']['sha256'])
-        require(design['schema_version'] == 'gx1_direction_gc_mtf_later_verify_design_v1'
+        require(design['schema_version'] == spec['stem'] + '_design_v1'
             and design['inputs'] == plan['inputs'] and design['test_data_used'] is False, 'DESIGN')
-        policy = binding.read_bound_json(Path(policy_ref['path']), policy_ref['sha256']); gate = policy[STAGE]
+        policy = binding.read_bound_json(Path(policy_ref['path']), policy_ref['sha256']); gate = policy[spec['stage']]
         require(gate['status'] == 'ADMITTED' and gate['plan'] == plan_ref and gate['execution_authorized'] is True
             and gate['max_invocations'] == 1 and gate['claimed_invocations'] == gate['completed_invocations'] == 0
             and gate['relaunch_allowed'] is False, 'ONE_SHOT_POLICY')
@@ -172,17 +200,19 @@ def main(argv=None):
             candle.regular(ref['path']); binding.require_binding(ref, label='source')
         keys = {'followup_plan', 'result', 'inner_terminal', 'terminal', 'claim', 'guard_log',
             'paired_outputs', 'corrected_target', 'fold_design'}
+        if args.experiment == 'context':
+            keys.add('previous_pair')
         require(set(plan['inputs']) == keys, 'INPUT_SET')
         meta = {}
         for key in ('followup_plan', 'result', 'inner_terminal', 'terminal', 'claim', 'fold_design'):
             ref = plan['inputs'][key]; meta[key] = binding.read_bound_json(Path(ref['path']), ref['sha256'])
-        prior = policy['independent_direction_gc_mtf_later_followup_20261028_001']
+        prior = policy[spec['prior']]
         require(prior['status'] == 'COMPLETE_ONE_SHOT_CONSUMED' and prior['execution_authorized'] is False
             and prior['plan'] == plan['inputs']['followup_plan'] and prior['result'] == plan['inputs']['result']
             and prior['terminal'] == plan['inputs']['terminal'] and prior['claim'] == plan['inputs']['claim'], 'PRIOR_BINDING')
         prior_plan, result, inner, terminal, claim, fold_design = (meta[k] for k in
             ('followup_plan', 'result', 'inner_terminal', 'terminal', 'claim', 'fold_design'))
-        require(result['schema_version'] == 'gx1_direction_gc_mtf_later_followup_result_v1' and result['status'] == 'COMPLETE'
+        require(result['schema_version'] == spec['result_schema'] and result['status'] == 'COMPLETE'
             and result['plan'] == claim['plan'] == terminal['plan'] == plan['inputs']['followup_plan']
             and result['source_head'] == claim['source_head'] and result['later_fold'] == fold_design['folds'][1]
             and result['fold1_reference_logits_byte_identical'] is True and result['model_unchanged'] is True
@@ -190,21 +220,26 @@ def main(argv=None):
             and result['corrected_target_identity'] == 'exact_original_decimal_midpoint_v1'
             and {k: result['paired_outputs'][k] for k in ('path', 'sha256')} == plan['inputs']['paired_outputs']
             and prior_plan['inputs']['corrected_target'] == plan['inputs']['corrected_target']
-            and prior_plan['inputs']['fold_design'] == plan['inputs']['fold_design'], 'RESULT_LINEAGE')
+            and prior_plan['inputs']['fold_design'] == plan['inputs']['fold_design']
+            and (args.experiment != 'context' or (prior_plan['inputs']['prior_paired'] == plan['inputs']['previous_pair']
+                and result['later_reference_logits_byte_identical'] is True
+                and result['gc_context_layout']['gc_fields'] == 2410
+                and result['gc_context_layout']['value_mask_pairs'] == 1205)), 'RESULT_LINEAGE')
         require(inner['status'] == terminal['status'] == 'COMPLETE' and inner['exit_code'] == terminal['exit_code'] == 0
             and inner['source_unchanged'] is inner['inputs_unchanged'] is True and inner['test_data_used'] is False
             and result['later_fold']['oof_cutoff_ns'] < 1782864000000000000, 'TERMINAL_AND_TEST_SEAL')
         control_snapshot = binding.capture_verified_file_snapshot()
     proof, lock = cap.require_capped_cpu_audit_execution(), cap.require_capped_lock_ancestry()
     require(lock['scope'] == proof['cgroup_path'][len('/sys/fs/cgroup'):], 'CAPPED_LOCK_SCOPE')
-    out = Path(plan['output_dir']); require(out.parent == ROOT and out.name == 'DIRECTION_GC_MTF_LATER_VERIFY_20261028_001'
+    out = Path(plan['output_dir']); require(out.parent == ROOT and out.name == spec['output']
         and ROOT.resolve(strict=True) == ROOT and not out.exists() and not out.is_symlink(), 'OUTPUT_SCOPE')
     out.mkdir(exist_ok=False)
     def publish(path, value):
         publication._publish_bytes(path, binding.canonical_bytes(value))
     publish(out / 'INVOCATION_CLAIM.json', {'plan': plan_ref, 'policy': policy_ref,
         'source_head': args.source_head, 'execution': proof, 'lock': lock})
-    payloads = [plan['inputs'][k] for k in ('paired_outputs', 'corrected_target')]
+    payload_names = ('paired_outputs', 'corrected_target') + (('previous_pair',) if args.experiment == 'context' else ())
+    payloads = [plan['inputs'][k] for k in payload_names]
     logref = plan['inputs']['guard_log']
     metadata = [plan_ref['path'], policy_ref['path'], plan['design']['path'], logref['path']]
     metadata += [plan['inputs'][k]['path'] for k in ('followup_plan', 'result', 'inner_terminal', 'terminal', 'claim', 'fold_design')]
@@ -222,14 +257,18 @@ def main(argv=None):
                 candle.regular(ref['path']); binding.require_binding(ref, label='input')
             guard = Path(logref['path']).read_text()
             require('event=exit child_status=0' in guard and 'peak_core_temp_c=53' in guard
-                and 'peak_memory_temp_c=56' in guard and 'peak_power_draw_w=134.26' in guard, 'GUARD_TERMINAL')
+                and 'peak_memory_temp_c=56' in guard and spec['peak_power'] in guard, 'GUARD_TERMINAL')
             require(Path(plan['inputs']['paired_outputs']['path']).stat().st_size == result['paired_outputs']['bytes'], 'PAIRED_SIZE')
             arrays = {}
-            for label, ref, maximum, names in (
+            archive_specs = [
                 ('pair', plan['inputs']['paired_outputs'], 100 * 1024**2,
                     ('parent_rows', 'decision_ns', 'terminal_time_ns', 'observed', 'sign', 'original_logit_up', 'ablated_logit_up')),
                 ('corrected', plan['inputs']['corrected_target'], 800 * 1024**2,
-                    ('parent_rows', 'decision_ns', 'terminal_time_ns', 'observed', 'sign'))):
+                    ('parent_rows', 'decision_ns', 'terminal_time_ns', 'observed', 'sign'))]
+            if args.experiment == 'context':
+                archive_specs.append(('previous', plan['inputs']['previous_pair'], 100 * 1024**2,
+                    ('parent_rows', 'decision_ns', 'terminal_time_ns', 'observed', 'sign', 'original_logit_up')))
+            for label, ref, maximum, names in archive_specs:
                 with Path(ref['path']).open('rb') as handle:
                     with zipfile.ZipFile(handle) as archive:
                         require(sum(item.file_size for item in archive.infolist()) <= maximum, 'ARCHIVE_SIZE:' + label)
@@ -238,10 +277,13 @@ def main(argv=None):
                         require(all(name in archive.files for name in names), 'ARCHIVE_FIELDS:' + label)
                         arrays[label] = {name: archive[name].copy() for name in names}
             verified = verify_metrics(arrays['pair'], arrays['corrected'], result)
+            if args.experiment == 'context':
+                require_prior_same(arrays['pair'], arrays['previous'])
+                verified['all_prior_originals_byte_identical'] = True
             input_snapshot = binding.capture_verified_file_snapshot()
         input_snapshot.require_unchanged(); control_snapshot.require_unchanged()
         require(candle.git_state() == initial and cap.require_capped_lock_ancestry() == lock, 'FINAL_SOURCE_LOCK')
-        output = {'schema_version': 'gx1_direction_gc_mtf_later_verify_result_v1', 'status': 'COMPLETE',
+        output = {'schema_version': spec['stem'] + '_result_v1', 'status': 'COMPLETE',
             'plan': plan_ref, 'source_head': args.source_head, 'followup_result': plan['inputs']['result'],
             'paired_outputs': plan['inputs']['paired_outputs'], 'corrected_target': plan['inputs']['corrected_target'],
             'verification': verified, 'method': 'Independent rank-sum point AUC and per-block searchsorted weighted AUC; separate probability and bootstrap calculations.',
