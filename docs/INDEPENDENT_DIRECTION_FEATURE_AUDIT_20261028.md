@@ -225,3 +225,10 @@ Den samme kildebundne double-kontrollen mot float32-basert cache ble utført på
 Ingen av avvikene inngår i de 47 602 undersøkte TRAIN-vinduene, 17 288 Q1-vinduene eller 1 760 valgte Q2-vinduene. Første og siste vindu i hver gruppe ble kontrollert med den faktiske cache-sliceren; gruppenes beslutningsklokker er stigende. Dermed samsvarer disse 31 H4-feltene med gjenskapingen på alle undersøkte vindusrader. Også her er historisk avviksårsak ukjent, og gjenskaping med samme eier er ikke uavhengig formelbevis eller dokumentert edge.
 
 Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H4_TRENDLINE_REPLAY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `e0162ea76483cc5e9c1013c3bf4e94711a57c3ceeb2447f471b256aac5ed4d44`. Kildeeierens vinduskontroll: `docs/DIRECTION_H4_WINDOW_OWNER_CHECK_20261028.json`, SHA-256 `5edc05d74cb09cb8f69544c5353ecb786f5637a8913a8418a93b48d417511171`. Ingen modellkall, optimizersteg, TEST eller handel.
+
+
+## Faktisk M5-bygg fra 2009: 31 trendlinjefelt
+
+Jeg brukte samme opprinnelige M5-kilde og forhistorikk som i H1-kontrollen, men den faktiske M5-klokken, M5-parametrene og 16-raders M5-ruten. Native og bearbeidet OHLCV var like på alle 1 070 080 overlappende M5-rader. Alle **31 aktive trendlinjefelt** stemte byteidentisk mot cachen på disse radene; en sammenhengende beregning og en delt beregning med videreført tilstand ga også identiske float32-verdier. Det er null avvik i de undersøkte TRAIN-, Q1- og valgte Q2-vinduene.
+
+Dette viser at den navngitte M5-dataveien leverer de samme verdiene som gjenskaping med den eksisterende kilden, ikke at feltene isolert er matematisk uavhengig kontrollert eller prediktivt nyttige. Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `d1c39ec3f8ad7edbda23f620ea6ce5fec606eebe9ad763080cc1847c7dedd3ed`. Ingen modellkall, optimizersteg, TEST eller handel.
