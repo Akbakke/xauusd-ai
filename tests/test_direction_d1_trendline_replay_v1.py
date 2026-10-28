@@ -74,3 +74,21 @@ def test_price_precision_summary_counts_collapsed_levels_and_signs():
     assert result['m5_rows'] == 2 and result['distinct_original_closes'] == 2
     assert result['distinct_float32_closes'] == 1 and result['distinct_original_closes_collapsed'] == 1
     assert result['m5_close_open_direction_changed'] == 1 and result['max_absolute_error_usd'] > 0
+
+
+def test_native_parts_prefix_enforces_chronological_unique_time(tmp_path):
+    import pandas as pd
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    from gx1.scripts.audit_direction_d1_trendline_replay_v1 import load_native_parts_prefix, CUTOFF_NS
+    refs = []
+    for year in (2023, 2024):
+        times = pd.date_range(f'{year}-01-01', periods=2, freq='5min', tz='UTC')
+        frame = pd.DataFrame({'time':times,'open':[1., 1.], 'high':[2., 2.], 'low':[.5, .5],
+            'close':[1., 1.], 'volume':[1, 1]})
+        path = tmp_path / f'{year}.parquet'; pq.write_table(pa.Table.from_pandas(frame, preserve_index=False), path)
+        refs.append({'path':str(path), 'sha256':'unused_in_pure_helper'})
+    result = load_native_parts_prefix(refs, CUTOFF_NS)
+    assert len(result) == 4 and result.index.is_monotonic_increasing
+    with pytest.raises(RuntimeError, match='NATIVE_PART_ORDER'):
+        load_native_parts_prefix(list(reversed(refs)), CUTOFF_NS)

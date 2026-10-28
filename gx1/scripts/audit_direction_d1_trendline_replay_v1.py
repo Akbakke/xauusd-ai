@@ -25,6 +25,7 @@ SOURCE_PATHS = (
     'gx1/features/trendline_registry_v1.py',
     'gx1/features/technical_indicators_v1.py',
     'gx1/scripts/prebuild_multi_tf_cache_v4.py',
+    'gx1/scripts/build_entry_exit_m1_enriched_frame_v1.py',
     'gx1/scripts/audit_entry_direction_candle_midpoints_v1.py',
     'gx1/contracts/gx1_capped_execution_v1.py',
     'gx1/contracts/local_random_access_campaign_v2.py',
@@ -84,6 +85,17 @@ def load_m5_prefix(path, cutoff_ns):
         'first_m5_ns': int(index[0].value), 'last_m5_ns': int(index[-1].value)}
 
 
+def load_native_parts_prefix(refs, cutoff_ns):
+    require(isinstance(refs, list) and len(refs) > 0, 'NATIVE_PARTS')
+    frames = []
+    for ref in refs:
+        frame, _ = load_m5_prefix(Path(ref['path']), cutoff_ns)
+        frames.append(frame)
+    result = pd.concat(frames)
+    require(result.index.is_unique and result.index.is_monotonic_increasing and len(result) > 0, 'NATIVE_PART_ORDER')
+    return result
+
+
 def mismatch_matrix(recomputed, cached):
     a = np.ascontiguousarray(recomputed, dtype=np.float32)
     b = np.ascontiguousarray(cached, dtype=np.float32)
@@ -139,9 +151,11 @@ def main(argv=None):
     parser.add_argument('--localize-windows', action='store_true')
     parser.add_argument('--timeframe', choices=('D1', 'H4', 'H1', 'M15', 'M5'), default='D1')
     parser.add_argument('--builder-float32', action='store_true')
+    parser.add_argument('--native-history', action='store_true')
     args = parser.parse_args(argv)
-    other_tf = args.timeframe != 'D1'; builder = args.builder_float32
-    require(not (other_tf and args.localize_windows) and (not builder or args.timeframe == 'H1'), 'MODE')
+    other_tf = args.timeframe != 'D1'; builder = args.builder_float32; native = args.native_history
+    require(not (other_tf and args.localize_windows) and (not builder or args.timeframe == 'H1')
+        and (not native or args.timeframe == 'H1') and not (native and builder), 'MODE')
     localize = args.localize_windows or other_tf
     tf = args.timeframe
     shift_ns = {'D1':86400, 'H4':14400, 'H1':3600, 'M15':900, 'M5':300}[tf] * 10**9
@@ -154,6 +168,11 @@ def main(argv=None):
         schema = 'gx1_direction_h1_builder_precision_replay'
         design_name = 'DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028.json'
         output_name = 'DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028_001'
+    if native:
+        stage_name = 'independent_direction_h1_native_history_replay_20261028_001'
+        schema = 'gx1_direction_h1_native_history_replay'
+        design_name = 'DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028.json'
+        output_name = 'DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028_001'
     feat_key, ts_key = ('tf_feats', 'tf_ts') if other_tf else ('d1_feats', 'd1_ts')
     from gx1.contracts import gx1_capped_execution_v1 as cap
     from gx1.contracts import immutable_event_authority_v1 as publication
@@ -194,9 +213,10 @@ def main(argv=None):
         keys = {'source_m5', 'cache_manifest', feat_key, ts_key, 'prefix_normalization', 'fit_result'}
         if localize: keys |= {'corrected_target', 'sample_pair', 'fold_design'}
         if localize and not other_tf: keys.add('previous_result')
-        if builder: keys.add('prior_double_result')
+        if builder or native: keys.add('prior_double_result')
+        if native: keys |= {'enriched_manifest', 'native_manifest', 'native_parts'}
         require(set(plan['inputs']) == keys, 'INPUT_SET')
-        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('fold_design',) if localize else ()) + (('previous_result',) if localize and not other_tf else ()) + (('prior_double_result',) if builder else ())
+        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('fold_design',) if localize else ()) + (('previous_result',) if localize and not other_tf else ()) + (('prior_double_result',) if builder or native else ()) + (('enriched_manifest', 'native_manifest') if native else ())
         meta = {key: binding.read_bound_json(Path(plan['inputs'][key]['path']), plan['inputs'][key]['sha256']) for key in meta_names}
         if localize and not other_tf:
             prior = policy[STAGE]
@@ -206,12 +226,22 @@ def main(argv=None):
                 and meta['previous_result']['all_causal_history_vs_cache']['mismatched_cells'] == 7551
                 and meta['previous_result']['test_data_used'] is False, 'PRIOR_REPLAY')
         manifest, norm, fit = (meta[k] for k in ('cache_manifest', 'prefix_normalization', 'fit_result'))
-        if builder:
+        if builder or native:
             previous = policy['independent_direction_h1_trendline_replay_20261028_001']
             require(previous['status'] == 'COMPLETE_ONE_SHOT_CONSUMED' and previous['execution_authorized'] is False
                 and previous['result'] == plan['inputs']['prior_double_result']
                 and meta['prior_double_result']['status'] == 'COMPLETE'
                 and meta['prior_double_result']['test_data_used'] is False, 'PRIOR_DOUBLE_REPLAY')
+        if native:
+            enriched = meta['enriched_manifest']; native_meta = enriched['native_m5_source']
+            require(enriched['output_parquet'] == plan['inputs']['source_m5']['path']
+                and enriched['output_parquet_sha256'] == plan['inputs']['source_m5']['sha256']
+                and {'path': native_meta['manifest_path'], 'sha256': native_meta['manifest_sha256']} == plan['inputs']['native_manifest'],
+                'NATIVE_LINEAGE')
+            native_parts = plan['inputs']['native_parts']
+            expected_paths = [path for path in native_meta['part_paths'] if int(Path(path).parent.name.split('=')[1]) <= 2025]
+            require(isinstance(native_parts, list) and [ref['path'] for ref in native_parts] == expected_paths
+                and len(native_parts) == 17 and all(ref['sha256'] == native_meta['part_sha256'][ref['path']] for ref in native_parts), 'NATIVE_PART_BINDINGS')
         tf_metadata = manifest['tfs'][tf]; cache_dir = Path(plan['inputs']['cache_manifest']['path']).parent
         require(manifest['m5_prebuilt_source'] == plan['inputs']['source_m5']['path']
             and manifest['m5_prebuilt_source_sha256'] == plan['inputs']['source_m5']['sha256']
@@ -232,7 +262,7 @@ def main(argv=None):
     def publish(path, value): publication._publish_bytes(path, binding.canonical_bytes(value))
     publish(out / 'INVOCATION_CLAIM.json', {'plan': plan_ref, 'policy': policy_ref, 'source_head': args.source_head, 'execution': proof, 'lock': lock})
     payload_names = ('source_m5', feat_key, ts_key) + (('corrected_target', 'sample_pair') if localize else ())
-    payloads = [plan['inputs'][k] for k in payload_names]
+    payloads = [plan['inputs'][k] for k in payload_names] + (plan['inputs']['native_parts'] if native else [])
     metadata = [plan_ref['path'], policy_ref['path'], plan['design']['path']] + [plan['inputs'][k]['path'] for k in meta_names]
     sys.addaudithook(candle.make_guard(out, [ref['path'] for ref in payloads], metadata,
         source_paths=[ref['path'] for ref in plan['sources'].values()]))
@@ -244,6 +274,15 @@ def main(argv=None):
         with binding.fresh_file_verification_scope():
             for ref in payloads: candle.regular(ref['path']); binding.require_binding(ref, label='payload')
             source, source_witness = load_m5_prefix(Path(plan['inputs']['source_m5']['path']), CUTOFF_NS)
+            native_witness = None
+            if native:
+                native_source = load_native_parts_prefix(plan['inputs']['native_parts'], CUTOFF_NS)
+                positions = native_source.index.get_indexer(source.index)
+                require(np.all(positions >= 0) and np.array_equal(native_source.index.asi8[positions], source.index.asi8)
+                    and np.array_equal(native_source.iloc[positions].to_numpy(), source.to_numpy()), 'NATIVE_ENRICHED_OVERLAP')
+                native_witness = {'native_m5_rows_before_cutoff':len(native_source), 'native_first_m5_ns':int(native_source.index[0].value),
+                    'enriched_overlap_rows':len(source), 'native_and_enriched_ohlcv_exactly_equal':True}
+                source = native_source
             precision = None
             if builder:
                 clock = source.index.asi8
@@ -287,6 +326,11 @@ def main(argv=None):
             require(chunk_comparison['all_finite_float32_bits_and_missingness_equal'], 'REAL_CHUNK_PARITY')
             with Path(plan['inputs'][ts_key]['path']).open('rb') as handle:
                 ts = np.load(handle, allow_pickle=False)
+            if native:
+                trim = int(np.searchsorted(index.asi8, ts[0], side='left'))
+                require(trim > 0 and trim < len(index) and index.asi8[trim] == ts[0], 'NATIVE_CACHE_START')
+                index = index[trim:]; complete = complete.iloc[trim:]
+                require(complete.index.equals(index), 'NATIVE_CACHE_AXIS')
             cached_all = np.load(plan['inputs'][feat_key]['path'], mmap_mode='r', allow_pickle=False)
             at = np.searchsorted(ts, index.asi8)
             require(ts.dtype == np.int64 and np.all(at < len(ts)) and np.array_equal(ts[at], index.asi8)
@@ -346,14 +390,14 @@ def main(argv=None):
         require(candle.git_state() == initial and cap.require_capped_lock_ancestry() == lock
             and not any(name.split('.')[0] in ('torch', 'sklearn', 'joblib') for name in sys.modules), 'FINAL_SOURCE_LOCK')
         result = {'schema_version':schema + '_result_v1','status':'COMPLETE',
-            'plan':plan_ref,'source_head':args.source_head,'timeframe':tf,'source_witness':source_witness,
+            'plan':plan_ref,'source_head':args.source_head,'timeframe':tf,'source_witness':source_witness,'native_history_witness':native_witness,
             'cutoff_ns':CUTOFF_NS,'source_clock_rows':len(index),'history_state_split_index':split,
             'window_configuration':kwargs,'chunk_replay':chunk_comparison,'all_causal_history_vs_cache':comparison,
             'model_train_period_vs_cache':model_train,'later_development_period_vs_cache':later,
             'replay_parity':comparison['all_finite_float32_bits_and_missingness_equal'],
             'mismatch_localization':details,
             'source_price_precision':precision,
-            'input_price_precision':'builder_float32' if builder else 'source_float64_counterfactual',
+            'input_price_precision':'builder_float32' if builder else 'native_float64_full_history' if native else 'source_float64_counterfactual',
             'limits':'Same current registry implementation recomputed from genuine M5 source and compared with cached model input; not an independent mathematical implementation, predictive-value test or proof of all fields/timeframes.',
             'new_model_forwards':0,'optimizer_steps':0,'test_data_used':False,'economic_edge_qualified':False}
         publish(stage/'RESULT.json',result)
