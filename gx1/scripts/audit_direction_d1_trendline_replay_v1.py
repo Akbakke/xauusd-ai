@@ -98,7 +98,7 @@ def window_exposure(timestamps, mismatched_rows, decisions, length, *, shift_ns=
         and timestamps.ndim == bad.ndim == decisions.ndim == 1 and len(timestamps) == len(bad)
         and len(decisions) > 0 and np.all(np.diff(timestamps) > 0) and np.all(np.diff(decisions) > 0)
         and type(length) is int and length > 0 and type(shift_ns) is int and shift_ns > 0
-        and timeframe in ('D1', 'H4'), 'WINDOW_DOMAIN')
+        and timeframe in ('D1', 'H4', 'H1', 'M15', 'M5'), 'WINDOW_DOMAIN')
     right = np.searchsorted(timestamps, decisions - shift_ns, side='right')
     require(np.all(right >= length) and np.all(right <= len(timestamps)), 'WINDOW_BOUNDS')
     left = right - length
@@ -120,24 +120,24 @@ def main(argv=None):
     for option in ('plan', 'plan-sha256', 'policy-sha256', 'source-head'):
         parser.add_argument('--' + option, required=True)
     parser.add_argument('--localize-windows', action='store_true')
-    parser.add_argument('--timeframe', choices=('D1', 'H4'), default='D1')
+    parser.add_argument('--timeframe', choices=('D1', 'H4', 'H1', 'M15', 'M5'), default='D1')
     args = parser.parse_args(argv)
-    h4 = args.timeframe == 'H4'; require(not (h4 and args.localize_windows), 'MODE')
-    localize = args.localize_windows or h4
+    other_tf = args.timeframe != 'D1'; require(not (other_tf and args.localize_windows), 'MODE')
+    localize = args.localize_windows or other_tf
     tf = args.timeframe
-    shift_ns = (4 * 3600 if h4 else 86400) * 10**9
-    stage_name = H4_STAGE if h4 else LOCALIZE_STAGE if localize else STAGE
-    schema = 'gx1_direction_h4_trendline_replay' if h4 else 'gx1_direction_d1_mismatch_localization' if localize else 'gx1_direction_d1_trendline_replay'
-    design_name = 'DIRECTION_H4_TRENDLINE_REPLAY_20261028.json' if h4 else 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028.json' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028.json'
-    output_name = 'DIRECTION_H4_TRENDLINE_REPLAY_20261028_001' if h4 else 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028_001' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028_001'
-    feat_key, ts_key = ('tf_feats', 'tf_ts') if h4 else ('d1_feats', 'd1_ts')
+    shift_ns = {'D1':86400, 'H4':14400, 'H1':3600, 'M15':900, 'M5':300}[tf] * 10**9
+    stage_name = ('independent_direction_' + tf.lower() + '_trendline_replay_20261028_001') if other_tf else LOCALIZE_STAGE if localize else STAGE
+    schema = ('gx1_direction_' + tf.lower() + '_trendline_replay') if other_tf else 'gx1_direction_d1_mismatch_localization' if localize else 'gx1_direction_d1_trendline_replay'
+    design_name = ('DIRECTION_' + tf + '_TRENDLINE_REPLAY_20261028.json') if other_tf else 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028.json' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028.json'
+    output_name = ('DIRECTION_' + tf + '_TRENDLINE_REPLAY_20261028_001') if other_tf else 'DIRECTION_D1_MISMATCH_LOCALIZATION_20261028_001' if localize else 'DIRECTION_D1_TRENDLINE_REPLAY_20261028_001'
+    feat_key, ts_key = ('tf_feats', 'tf_ts') if other_tf else ('d1_feats', 'd1_ts')
     from gx1.contracts import gx1_capped_execution_v1 as cap
     from gx1.contracts import immutable_event_authority_v1 as publication
     from gx1.contracts import local_random_access_campaign_v2 as binding
     from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
     from gx1.contracts.entry_gc_mtf_history_v1 import WINDOW_ROWS
     from gx1.features.entry_specialist_feature_groups_v1 import compile_gc_mtf_geometry_entry_execution_profile
-    from gx1.features.htf_features import _resample_ohlcv, build_multi_tf_v4_closed_timestamp_indices
+    from gx1.features.htf_features import _resample_ohlcv, multi_tf_resample, build_multi_tf_v4_closed_timestamp_indices
     from gx1.features.technical_indicators_v1 import ema50_200_spread_atr_block, technical_indicator_contract_metadata
     from gx1.features.trendline_registry_v1 import TRENDLINE_REGISTRY_FEATURE_NAMES_V1, compute_trendline_registry_features_v1
     from gx1.scripts import audit_entry_direction_candle_midpoints_v1 as candle
@@ -169,11 +169,11 @@ def main(argv=None):
             candle.regular(ref['path']); binding.require_binding(ref, label='source')
         keys = {'source_m5', 'cache_manifest', feat_key, ts_key, 'prefix_normalization', 'fit_result'}
         if localize: keys |= {'corrected_target', 'sample_pair', 'fold_design'}
-        if localize and not h4: keys.add('previous_result')
+        if localize and not other_tf: keys.add('previous_result')
         require(set(plan['inputs']) == keys, 'INPUT_SET')
-        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('fold_design',) if localize else ()) + (('previous_result',) if localize and not h4 else ())
+        meta_names = ('cache_manifest', 'prefix_normalization', 'fit_result') + (('fold_design',) if localize else ()) + (('previous_result',) if localize and not other_tf else ())
         meta = {key: binding.read_bound_json(Path(plan['inputs'][key]['path']), plan['inputs'][key]['sha256']) for key in meta_names}
-        if localize and not h4:
+        if localize and not other_tf:
             prior = policy[STAGE]
             require(prior['status'] == 'COMPLETE_ONE_SHOT_CONSUMED' and prior['execution_authorized'] is False
                 and prior['result'] == plan['inputs']['previous_result']
@@ -214,7 +214,20 @@ def main(argv=None):
             for ref in payloads: candle.regular(ref['path']); binding.require_binding(ref, label='payload')
             source, source_witness = load_m5_prefix(Path(plan['inputs']['source_m5']['path']), CUTOFF_NS)
             index = build_multi_tf_v4_closed_timestamp_indices(source.index)[tf]
-            bars = _resample_ohlcv(source, tf).dropna(subset=['open', 'high', 'low', 'close']).loc[index]
+            if tf == 'M5':
+                require(index.equals(source.index), 'NATIVE_M5_AXIS')
+                bars = source.loc[index, ['open', 'high', 'low', 'close', 'volume']]
+            elif tf in ('H1', 'M15'):
+                # With finite OHLC, pandas last equals the owner's _last_valid.
+                # Check that exact identity on a fixed prefix before the full fast resample.
+                agg = {'open':'first', 'high':'max', 'low':'min', 'close':'last', 'volume':'sum'}
+                witness_source = source.iloc[:4096]
+                expected = _resample_ohlcv(witness_source, tf).dropna(subset=['open','high','low','close'])
+                observed = multi_tf_resample(witness_source, tf).agg(agg).dropna(subset=['open','high','low','close'])
+                require(expected.index.equals(observed.index) and np.array_equal(expected.to_numpy(), observed.to_numpy()), 'FAST_RESAMPLE_IDENTITY')
+                bars = multi_tf_resample(source, tf).agg(agg).dropna(subset=['open','high','low','close']).loc[index]
+            else:
+                bars = _resample_ohlcv(source, tf).dropna(subset=['open', 'high', 'low', 'close']).loc[index]
             require(bars.index.equals(index), 'RESAMPLE_AXIS')
             atr = ema50_200_spread_atr_block(bars['high'], bars['low'], bars['close'])['atr14']
             data = bars[['high', 'low', 'close']].copy(); data['atr'] = atr
@@ -232,12 +245,11 @@ def main(argv=None):
             require(chunk_comparison['all_finite_float32_bits_and_missingness_equal'], 'REAL_CHUNK_PARITY')
             with Path(plan['inputs'][ts_key]['path']).open('rb') as handle:
                 ts = np.load(handle, allow_pickle=False)
-            with Path(plan['inputs'][feat_key]['path']).open('rb') as handle:
-                cached_all = np.load(handle, allow_pickle=False)
+            cached_all = np.load(plan['inputs'][feat_key]['path'], mmap_mode='r', allow_pickle=False)
             at = np.searchsorted(ts, index.asi8)
             require(ts.dtype == np.int64 and np.all(at < len(ts)) and np.array_equal(ts[at], index.asi8)
                 and cached_all.dtype == np.float32 and cached_all.shape == (tf_metadata['n_bars'], manifest['feature_count']), 'CACHE_EXACT_AXIS')
-            actual = complete.to_numpy(dtype=np.float32); cached = cached_all[at][:, columns]
+            actual = complete.to_numpy(dtype=np.float32); cached = cached_all[np.ix_(at, columns)]
             comparison = compare_fields(actual, cached, names, index.asi8)
             train_at = np.flatnonzero((index.asi8 + shift_ns >= 1714521600000000000)
                 & (index.asi8 + shift_ns < fit['fold']['train_cutoff_ns']))
@@ -249,7 +261,7 @@ def main(argv=None):
             details = None
             if localize:
                 require(np.array_equal(at, np.arange(len(at))), 'CACHE_PREFIX_AXIS')
-                if not h4:
+                if not other_tf:
                     require(comparison['mismatched_cells'] == meta['previous_result']['all_causal_history_vs_cache']['mismatched_cells']
                         and comparison['rows'] == meta['previous_result']['all_causal_history_vs_cache']['rows'], 'PREVIOUS_REPLAY_REPRODUCED')
                 missing, finite = mismatch_matrix(actual, cached); bad = np.any(missing | finite, axis=1)
@@ -271,7 +283,8 @@ def main(argv=None):
                     and np.searchsorted(decisions, fold['train_cutoff_ns']) == fold['oof_start_row']
                     and np.searchsorted(decisions, fold['oof_cutoff_ns']) == fold['oof_end_row']
                     and np.searchsorted(decisions, later_fold['oof_cutoff_ns']) == later_fold['oof_end_row']
-                    and later_fold['oof_cutoff_ns'] == CUTOFF_NS and WINDOW_ROWS[tf] == (96 if h4 else 252), 'DECISION_AXES')
+                    and later_fold['oof_cutoff_ns'] == CUTOFF_NS
+                    and WINDOW_ROWS[tf] == {'D1':252, 'H4':96, 'H1':96, 'M15':64, 'M5':16}[tf], 'DECISION_AXES')
                 positions = np.searchsorted(parents, sample_parents)
                 require(len(sample_parents)==1760 and np.all(positions >= later_fold['oof_start_row'])
                     and np.all(positions < later_fold['oof_end_row']) and np.array_equal(parents[positions], sample_parents)

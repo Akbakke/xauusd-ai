@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+Én kildebundet CPU-kontroll av 31 aktive H1-trendlinjefelt er ADMITTERT: gjenskap fra originale M5-priser og full kausal H1-historikk, kontroller cache, tilstand og faktiske 96-raders modellvinduer. Ingen modellkall, trening, TEST eller handel. Plan: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_TRENDLINE_REPLAY_PLAN_20261028_001.json`, SHA-256 `26fe4863bf65db30a609dd8eb6a013f57d6badbe83253384a7b3aa2d3813dd3b`.
+
 H4-trendlinjereplay er FULLFØRT og KONSUMERT: 31 aktive felt og tilstandsoverføring ble kontrollert på 23 270 historiske H4-rader. Det er 3 235 eldre cacheavvik, siste 2. februar 2023 kl. 14 UTC. Ingen ligger i de 47 602 TRAIN-, 17 288 Q1- eller 1 760 valgte Q2-vinduene; kanonisk window-eier bekrefter yttergrensene. Det gjelder eierreplay, ikke uavhengig formelbevis. Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H4_TRENDLINE_REPLAY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `e0162ea76483cc5e9c1013c3bf4e94711a57c3ceeb2447f471b256aac5ed4d44`. Window-eierkontroll: `docs/DIRECTION_H4_WINDOW_OWNER_CHECK_20261028.json`, SHA-256 `5edc05d74cb09cb8f69544c5353ecb786f5637a8913a8418a93b48d417511171`. Ingen modellkall, trening, TEST eller handel.
 
 Én kildebundet CPU-kontroll av 31 aktive H4-trendlinjefelt er FULLFØRT: gjenskap fra originale M5-priser og full kausal H4-historikk før 1. juli 2025, kontroller cache, state og faktiske 96-raders modellvinduer. Ingen modellkall, trening, TEST eller handel. Plan: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H4_TRENDLINE_REPLAY_PLAN_20261028_001.json`, SHA-256 `270033853babf3651e18aa5ad05f402209308951c45c521d891dcc42b72586b2`.

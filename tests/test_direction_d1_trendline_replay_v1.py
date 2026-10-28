@@ -52,3 +52,14 @@ def test_h4_windows_use_four_hour_close_and_distinct_names():
     got = window_exposure(ts, bad, decisions, 3, shift_ns=4 * hour, timeframe='H4')
     assert got['decisions_with_any_mismatched_h4_row'] == 1
     assert got['distinct_mismatched_h4_rows_in_windows'] == 1
+
+
+def test_m5_window_uses_five_minute_closed_clock():
+    from gx1.scripts.audit_direction_d1_trendline_replay_v1 import window_exposure
+    minute = 60 * 10**9
+    ts = np.arange(10, dtype=np.int64) * (5 * minute)
+    bad = np.zeros(10, dtype=np.bool_); bad[2] = True
+    got = window_exposure(ts, bad, np.array([20, 35], dtype=np.int64) * minute,
+        3, shift_ns=5 * minute, timeframe='M5')
+    assert got['decisions_with_any_mismatched_m5_row'] == 1
+    assert got['distinct_mismatched_m5_rows_in_windows'] == 1
