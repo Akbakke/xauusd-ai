@@ -19,7 +19,7 @@ import torch
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
-STAGE = 'independent_direction_gc_mtf_intervention_20261028_002'
+STAGE = 'independent_direction_gc_mtf_intervention_20261028_003'
 MINUTE_NS = 60 * 10**9
 DAY_NS = 86400 * 10**9
 BATCH = 16
@@ -138,8 +138,29 @@ def install_gc_projection_ablation(modules, expected_keys):
     return handles, calls
 
 
-def _install_runtime_guard(out):
+def require_synthetic_receipts(refs, fit_result, terminal, plan):
+    """Allow exactly two prior unit-test metadata files, never sealed TEST data."""
+    base = '/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/'
+    expected = {'synthetic_test_terminal': base + 'TEST_TERMINAL.json', 'synthetic_test_plan': base + 'TEST_PLAN.json'}
+    require(all(refs[key]['path'] == path and fit_result['metadata_bookends'][path]['ref'] == refs[key]
+        for key, path in expected.items()), 'SYNTHETIC_REFERENCE')
+    require(terminal.get('schema_version') == 'gx1_gc_boolean_synthetic_test_terminal_v1'
+        and terminal.get('status') == 'COMPLETE_SYNTHETIC_ONLY_NO_GENUINE_ADMISSION'
+        and terminal.get('genuine_payloads_or_fit_admitted') is False
+        and terminal.get('plan') == refs['synthetic_test_plan']
+        and terminal.get('exit_code') == terminal.get('command_exit_code') == 0
+        and terminal.get('junit_summary', {}).get('tests') == 115, 'SYNTHETIC_TERMINAL')
+    require(plan.get('schema_version') == 'gx1_gc_boolean_domain_repair_synthetic_test_plan_v1'
+        and plan.get('expected_total_cases') == 115
+        and all(plan.get(key) is False for key in ('test_data_used', 'genuine_payload_reads_authorized',
+            'genuine_normalization_fits_authorized', 'genuine_predictor_fit_authorized',
+            'native_model_construction_authorized', 'CONTROL_queries_authorized')), 'SYNTHETIC_PLAN')
+
+
+def _install_runtime_guard(out, synthetic_test_paths):
     """Keep the separate historical input guard and forbid network/TEST/writes."""
+    allowed_synthetic = frozenset(synthetic_test_paths)
+    require(len(allowed_synthetic) == 2 and all(Path(path).is_absolute() and Path(path).suffix == '.json' for path in allowed_synthetic), 'SYNTHETIC_PATHS')
     def guard(event, args):
         require(event not in ('os.system', 'socket.connect', 'socket.bind', 'socket.sendto',
             'socket.getaddrinfo', 'os.exec', 'os.posix_spawn', 'os.fork', 'os.forkpty',
@@ -155,7 +176,8 @@ def _install_runtime_guard(out):
                 require(path.is_absolute() and (path == out or out in path.parents) and '..' not in path.parts,
                     'OUTSIDE_OUTPUT_WRITE')
             if str(path).startswith(('/home/andre2/GX1_DATA/', '/home/andre2/GX1_RUNS/')):
-                require(not any(part.upper() == 'TEST' or part.upper().startswith(('TEST_', 'TEST.')) for part in path.parts), 'TEST_PATH')
+                sealed = any(part.upper() == 'TEST' or part.upper().startswith(('TEST_', 'TEST.')) for part in path.parts)
+                require(not sealed or (str(path) in allowed_synthetic and not writing), 'TEST_PATH')
         if event in ('os.remove', 'os.rmdir', 'os.mkdir'):
             path = Path(os.fsdecode(args[0])); require(path == out or out in path.parents, 'OUTSIDE_OUTPUT_MUTATION')
         if event in ('os.rename', 'os.link'):
@@ -189,9 +211,9 @@ def run(*, plan_path, plan_sha256, device, out_dir):
             and plan['wall_seconds'] == 1800 and plan['batch_size'] == BATCH
             and plan['batch_stride'] == BATCH_STRIDE and plan['test_data_used'] is False, 'PLAN')
         require(str(out_dir) == plan['output_dir'] and out_dir.parent == ROOT
-            and out_dir.name == 'DIRECTION_GC_MTF_INTERVENTION_20261028_002'
+            and out_dir.name == 'DIRECTION_GC_MTF_INTERVENTION_20261028_003'
             and ROOT.resolve(strict=True) == ROOT and not out_dir.exists() and not out_dir.is_symlink(), 'OUTPUT_SCOPE')
-        require(plan['design']['path'] == str(REPO / 'docs/DIRECTION_GC_MTF_INTERVENTION_20261028_002.json'), 'DESIGN_PATH')
+        require(plan['design']['path'] == str(REPO / 'docs/DIRECTION_GC_MTF_INTERVENTION_20261028_003.json'), 'DESIGN_PATH')
         design = binding.read_bound_json(Path(plan['design']['path']), plan['design']['sha256'])
         require(design['schema_version'] == 'gx1_direction_gc_mtf_intervention_design_v1'
             and design['inputs'] == plan['inputs'] and design['test_data_used'] is False, 'DESIGN')
@@ -209,9 +231,11 @@ def run(*, plan_path, plan_sha256, device, out_dir):
         for ref in plan['sources'].values():
             candle.regular(ref['path']); binding.require_binding(ref, label='source')
         require(set(plan['inputs']) == {'recipe', 'fit_result', 'checkpoint', 'oof_report', 'oof_predictions',
-            'corrected_target', 'corrected_result', 'consumer_result', 'consumer_plan'}, 'INPUT_SET')
+            'corrected_target', 'corrected_result', 'consumer_result', 'consumer_plan',
+            'synthetic_test_terminal', 'synthetic_test_plan'}, 'INPUT_SET')
         meta = {}
-        for key in ('recipe', 'fit_result', 'oof_report', 'corrected_result', 'consumer_result', 'consumer_plan'):
+        for key in ('recipe', 'fit_result', 'oof_report', 'corrected_result', 'consumer_result', 'consumer_plan',
+                'synthetic_test_terminal', 'synthetic_test_plan'):
             ref = plan['inputs'][key]; meta[key] = binding.read_bound_json(Path(ref['path']), ref['sha256'])
         launch, result, oof, corrected, consumer = (meta[key] for key in
             ('recipe', 'fit_result', 'oof_report', 'corrected_result', 'consumer_result'))
@@ -227,6 +251,7 @@ def run(*, plan_path, plan_sha256, device, out_dir):
             and consumer['plan'] == plan['inputs']['consumer_plan']
             and meta['consumer_plan']['inputs']['corrected'] == plan['inputs']['corrected_target']
             and consumer['test_data_used'] is False, 'CORRECTED_LINEAGE')
+        require_synthetic_receipts(plan['inputs'], result, meta['synthetic_test_terminal'], meta['synthetic_test_plan'])
         require(len(launch['source_owners']) == 56, 'FIT_SOURCE_COUNT')
         for ref in launch['source_owners'].values():
             candle.regular(ref['path']); binding.require_binding(ref, label='fit source')
@@ -238,7 +263,8 @@ def run(*, plan_path, plan_sha256, device, out_dir):
         publication._publish_bytes(path, binding.canonical_bytes(value))
     publish(out_dir / 'INVOCATION_CLAIM.json', {'plan': plan_ref, 'policy': policy_ref,
         'source_head': source_head, 'execution': hardware, 'lock': lock})
-    _install_runtime_guard(out_dir)
+    _install_runtime_guard(out_dir, (plan['inputs']['synthetic_test_terminal']['path'],
+        plan['inputs']['synthetic_test_plan']['path']))
     start = time.monotonic(); previous_profile = sys.getprofile(); previous_handler = signal.getsignal(signal.SIGALRM)
     def expired(*unused):
         raise RuntimeError('DIRECTION_GC_MTF_INTERVENTION_WALL_LIMIT')

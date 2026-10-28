@@ -80,3 +80,43 @@ def test_partial_hook_installation_is_rolled_back(monkeypatch):
     with pytest.raises(RuntimeError, match='registration failed'):
         audit.install_gc_projection_ablation(modules, ('a', 'b'))
     assert torch.equal(modules['a'](sample), before) and not modules['a']._forward_hooks
+
+
+def test_synthetic_test_metadata_exception_is_exact_and_excludes_test_data():
+    base = '/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/'
+    refs = {'synthetic_test_terminal': {'path': base + 'TEST_TERMINAL.json', 'sha256': 'a' * 64},
+        'synthetic_test_plan': {'path': base + 'TEST_PLAN.json', 'sha256': 'b' * 64}}
+    fit = {'metadata_bookends': {ref['path']: {'ref': ref} for ref in refs.values()}}
+    terminal = {'schema_version': 'gx1_gc_boolean_synthetic_test_terminal_v1',
+        'status': 'COMPLETE_SYNTHETIC_ONLY_NO_GENUINE_ADMISSION', 'genuine_payloads_or_fit_admitted': False,
+        'plan': refs['synthetic_test_plan'], 'exit_code': 0, 'command_exit_code': 0, 'junit_summary': {'tests': 115}}
+    plan = {'schema_version': 'gx1_gc_boolean_domain_repair_synthetic_test_plan_v1', 'expected_total_cases': 115,
+        **{key: False for key in ('test_data_used', 'genuine_payload_reads_authorized',
+            'genuine_normalization_fits_authorized', 'genuine_predictor_fit_authorized',
+            'native_model_construction_authorized', 'CONTROL_queries_authorized')}}
+    audit.require_synthetic_receipts(refs, fit, terminal, plan)
+    plan['test_data_used'] = True
+    with pytest.raises(RuntimeError, match='SYNTHETIC_PLAN'):
+        audit.require_synthetic_receipts(refs, fit, terminal, plan)
+
+
+def test_runtime_guard_rejects_actual_test_data_even_with_synthetic_metadata_allowed(tmp_path):
+    import subprocess
+    import sys
+    program = '''
+import os, sys
+from pathlib import Path
+from gx1.audit import direction_gc_mtf_intervention_v1 as audit
+base='/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/'
+audit._install_runtime_guard(Path(sys.argv[1]), (base+'TEST_PLAN.json', base+'TEST_TERMINAL.json'))
+sys.audit('open', base+'TEST_PLAN.json', 'r', os.O_RDONLY)
+for path in ('/home/andre2/GX1_DATA/TEST/market.parquet', base+'TEST_OTHER.json'):
+    try: sys.audit('open', path, 'r', os.O_RDONLY)
+    except RuntimeError as error: assert 'TEST_PATH' in str(error)
+    else: raise AssertionError('sealed test path allowed')
+try: sys.audit('socket.connect', None, None)
+except RuntimeError as error: assert 'NETWORK_PROCESS_PICKLE' in str(error)
+else: raise AssertionError('network allowed')
+'''
+    result = subprocess.run([sys.executable, '-B', '-c', program, str(tmp_path)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T16:07:31.744046+00:00",
-  "status": "GC_MTF_INTERVENTION_002_ADMITTED",
+  "status": "GC_MTF_INTERVENTION_003_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the new one-shot guarded CUDA intervention using the absolute canonical Python executable, only after exact saved prediction replay. No optimizer, training, TEST, broker or trading.",
+  "next_action": "Run the new one-shot guarded GC-history intervention; allow only the two verified synthetic-test metadata refs while the market TEST remains sealed. Require exact saved-prediction replay.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42254,10 +42254,48 @@
     }
   },
   "independent_direction_gc_mtf_intervention_20261028_002": {
-    "status": "ADMITTED",
+    "status": "FAILED_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_PLAN_20261028_002.json",
       "sha256": "ae54109ea0fa3931156eda1a566c1363f8d814fb1358490ee206e162da8afc7f"
+    },
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "guarded_cuda_producer",
+    "memory_max": "20G",
+    "wall_seconds": 1800,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "scope": "On every tenth original OOF batch, require exact saved-logit replay, then suppress all 25 GC-history projection outputs only; score all 60 minutes against verified corrected targets. GC current-context paths remain.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_20261028_002/INVOCATION_CLAIM.json",
+      "sha256": "ed73326df812d7959f45daf01dddb3e120da852d5581a619286550b98907ec2c"
+    },
+    "failed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_20261028_002/FAILED_TERMINAL.json",
+      "sha256": "f02ab488558bac131f21061bae0a7a9cad23bf997fcb5e4f982d867a374058b1"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_GC_MTF_INTERVENTION_20261028_002.guard.ALnGde3c.log",
+      "sha256": "e3089dc6427e279c57f89ca57b5e386dc0b7dde9908b3de64b18a95968964b9b"
+    },
+    "stdio_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_GC_MTF_INTERVENTION_20261028_002.trainer.zPJVk6OT.log",
+      "sha256": "75618405c4d53ae7887705150082b7cfd22ef92b829441c592a8c33a3c84822d"
+    },
+    "failure": "Own overbroad TEST-name guard blocked a hash-bound synthetic test terminal metadata file before any model forward."
+  },
+  "independent_direction_gc_mtf_intervention_20261028_003": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_PLAN_20261028_003.json",
+      "sha256": "fb75fefdce44df8265c31ab43edcb50ea46672666c48ebc11fa55338287fedaf"
     },
     "execution_authorized": true,
     "checkpoint_reads_authorized": true,
