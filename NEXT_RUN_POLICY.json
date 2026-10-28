@@ -40045,5 +40045,30 @@
       "sha256": "b29c557755c975f036600679f0108015f82d5117cf9b4d64c1d3f76cd405e2ca"
     },
     "duplicate_aggregate_matches": true
+  },
+  "direction_first_hurdle_oof_source_20261028": {
+    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "scope": "Prepare one fixed first-hurdle label and rank audit of the existing fold1 OOF direction scores using the previously qualified 2025 quote partition and target identity. Reuse the existing first-favorable quote, partial-outcome and rank owners.",
+    "allowed_source_paths": [
+      "gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
+      "tests/test_audit_entry_direction_first_hurdle_v1.py"
+    ],
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "predeclared": {
+      "parents": "all 17288 fold1 later TRAIN-development parents; exact join to saved TRAIN endpoint targets",
+      "quote_source": "exact previously qualified 2025 native M1 file only; no combined pretest parquet or 2026 partition",
+      "event_basis": "gross quote markout with fixed strict 10 bps hurdle; spread included, commissions and slippage excluded",
+      "horizons_minutes": "all integers 1..60; closed M1 prefix; no maximum holding rule",
+      "primary_rank": "existing one-pass 5-minute UP logit against first long/short hurdle, only singleton known directions; report selection and coverage",
+      "other_reports": "per-horizon known outcomes, missing/ambiguity reasons, conservative allowed sets; fixed UTC day and week block AUC intervals if identified",
+      "uncertainty": "one reused development fold and an already used 10bps research hurdle; conditional AUC is not unconditional first-hit accuracy or trading edge",
+      "no_adaptive_selection": true,
+      "stop": "any row/clock/mask/source mismatch, resource/timeout or forbidden access"
+    }
   }
 }
