@@ -40644,7 +40644,7 @@
     }
   },
   "direction_bounded_magnitude_native_qualification_source_20261028": {
-    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
+    "status": "SOURCE_FROZEN_SECOND_SYNTHETIC_AUDIT_ADMITTED_AFTER_WRAPPER_REJECTION",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAG_WEIGHT_NATIVE_QUALIFICATION_DESIGN_20261028.json",
       "sha256": "fe5cd8dbb9f17e46c77821c5077c6ad2893719bc2204f01b963cfff90c4938c1"
@@ -40693,15 +40693,43 @@
       }
     ],
     "synthetic_plan": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_PLAN_20261028_001.json",
-      "sha256": "a71e6bee6ab37dde9166892bf2d925d1567d7eca1820891466546f1d00dc9b3b"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_PLAN_20261028_002.json",
+      "sha256": "c4fc73f9e2d23a6cc243291cef9030989760e46716f2dec733e644b21c86d9bf"
     }
   },
   "direction_bounded_magnitude_native_qualification_synthetic_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "FAILED_CONSUMED_START_FORMAT_NO_TESTS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "a71e6bee6ab37dde9166892bf2d925d1567d7eca1820891466546f1d00dc9b3b"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "genuine_native_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_20261028_001/TERMINAL.json",
+      "sha256": "c13ad7f3e17c4bcf06ced963663a6eaf7a4eec89cc26445b21dbc60308a3aaa9"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "f1bd49f93bab63a8db2f465211d0e3a75c61b02e56df3441bae0f78c4f9b6211"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_20261028_001/OUTER.log",
+      "sha256": "62c3649197f64f0d9435cc6f52b1973c48d655b13235db85ceeeff43a91a92de"
+    }
+  },
+  "direction_bounded_magnitude_native_qualification_synthetic_20261028_002": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_PRIVATE_ROUTE_SYNTHETIC_PLAN_20261028_002.json",
+      "sha256": "c4fc73f9e2d23a6cc243291cef9030989760e46716f2dec733e644b21c86d9bf"
     },
     "execution_authorized": true,
     "max_invocations": 1,

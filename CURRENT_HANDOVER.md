@@ -11,6 +11,10 @@ Programrot:
 
 ## Aktuell status
 
+Første syntetiske kvalifiseringsforsøk ble avvist før tester fordi env ble
+brukt som startkommando inne i capped-wrapperen. Forsøket er konsumert;
+en ny engangskontroll bruker Python direkte og bevarer samme sikkerhetsvakter.
+
 Kilde for avgrenset ekte B16-kvalifisering er fryst for én syntetisk
 kontroll. Genuine modellkall og trening er fortsatt lukket. Designet binder
 den tidligere startprediksjonen og stopper før oppdatering ved ulikhet.
