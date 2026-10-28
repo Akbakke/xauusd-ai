@@ -439,3 +439,64 @@ def test_continuation_cursor_verification_can_read_exact_initial_under_worker_gu
     state=cursor(f,recipe_ref=recipe_ref,train_passes=3,parent_cursor=47602,optimizer_updates=2976,own_initial_state=initial)
     checked=owner.require_prefix_fit_cursor(state,expected_recipe=recipe_ref,expected_fold=f['fold'],verify_files=True)
     assert checked['own_initial_state']==initial and denied==[]
+
+
+def chronological_fixture(f,monkeypatch):
+    frozen_path='gx1/contracts/entry_native_direction_frozen_extraction_v1.py'
+    frozen=write(f['repo']/frozen_path,{'synthetic':True})
+    component_path=owner.ORDER_COMPONENT_SOURCE
+    component=write(f['repo']/component_path,{'synthetic':True})
+    monkeypatch.setattr(owner,'REQUIRED_SOURCE_PATHS',('source.py',component_path))
+    manifest=json.loads(Path(f['recipe']['input_manifest']['path']).read_text())
+    original_component={'path':component['path'],'sha256':'1'*64}
+    manifest['view_source_bindings']['direction_component_source']=original_component
+    input_ref=write(f['runtime']/'ORDER_INPUT.json',manifest)
+    old=copy.deepcopy(f['recipe']);old['input_manifest']=input_ref;reseal(old,'recipe_sha256')
+    old_ref=write(f['runtime']/'ORDER_ORIGINAL_RECIPE.json',old)
+    initial=write(f['runtime']/'ORDER_INITIAL_REPORT.json',{'role':'INITIAL_TRAIN','fold':f['fold'],'predictions':f['dummy']})
+    origin={'launch_recipe':old_ref,'initial_measurement':initial,'initial_predictions':f['dummy']}
+    monkeypatch.setattr(owner,'ORDER_ORIGIN',origin)
+    monkeypatch.setattr(owner.private,'BPS_GC_PARITY',f['dummy'])
+    value=copy.deepcopy(old);value.update(run_scope=owner.ORDER_SCOPE,parent_order_algorithm=owner.ORDER_ALGORITHM,
+        order_origin=copy.deepcopy(origin),gc_layout_metadata_parity=f['dummy'])
+    value['source_owners'][component_path]=component;value['source_owners'][frozen_path]=frozen
+    proof={'schema_version':'gx1_direction_order_initial_resume_qualification_v1',
+        'status':'PASS_SIGN_ONLY_ORDER_INITIAL_RESUME_QUALIFIED','origin':copy.deepcopy(origin),'fold':f['fold'],
+        'source_owners':copy.deepcopy(value['source_owners']),'numerical_recipe_sha256':value['numerical_recipe']['contract_sha256'],
+        'gc_layout_metadata_parity':f['dummy'],'initial_model_buffers_optimizer_rng_equal':True,
+        'initial_predictions_256_bit_equal':True,'resume_bit_exact':True,'private_optimizer_updates':4,
+        'qualification_weights_for_main_fit':False,'test_data_used':False,
+        'historical_component_transition':{'original':original_component,'current':component}}
+    value['native_order_qualification']=write(f['runtime']/'ORDER_FAKE_PROOF.json',proof)
+    reseal(value,'recipe_sha256')
+    return value,proof
+
+
+def test_chronological_one_pass_requires_original_and_exact_initial_resume_proof(fixture,monkeypatch):
+    f=fixture;value,_=chronological_fixture(f,monkeypatch)
+    ref=write(f['runtime']/'ORDER_FAKE_RECIPE.json',value)
+    checked=owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+    assert checked['parent_order_algorithm']==owner.ORDER_ALGORITHM and checked['train_passes']==1
+
+
+@pytest.mark.parametrize('fault',['algorithm','origin','old_numerics','proof_missing','proof_initial','proof_prediction',
+    'proof_resume','proof_updates','proof_bool_updates','proof_sources','proof_transition','proof_weights','test'])
+def test_chronological_launch_rejects_unmatched_or_unqualified_inputs(fixture,monkeypatch,fault):
+    f=fixture;value,proof=chronological_fixture(f,monkeypatch)
+    if fault=='algorithm':value['parent_order_algorithm']=owner.PARENT_ORDER_ALGORITHM
+    elif fault=='origin':value['order_origin']['launch_recipe']={'path':'/other','sha256':'0'*64}
+    elif fault=='old_numerics':value['numerical_recipe']['research_objective_sha256']='f'*64;numerical_seal(value['numerical_recipe'])
+    elif fault=='proof_missing':del value['native_order_qualification']
+    elif fault=='proof_initial':proof['initial_model_buffers_optimizer_rng_equal']=False
+    elif fault=='proof_prediction':proof['initial_predictions_256_bit_equal']=False
+    elif fault=='proof_resume':proof['resume_bit_exact']=False
+    elif fault=='proof_updates':proof['private_optimizer_updates']=0
+    elif fault=='proof_bool_updates':proof['private_optimizer_updates']=True
+    elif fault=='proof_sources':proof['source_owners']={}
+    elif fault=='proof_transition':proof['historical_component_transition']['original']['sha256']='2'*64
+    elif fault=='proof_weights':proof['qualification_weights_for_main_fit']=True
+    else:value['test_data_used']=True
+    if fault.startswith('proof_') and fault!='proof_missing':
+        value['native_order_qualification']=write(f['runtime']/'BAD_ORDER_PROOF.json',proof)
+    reseal(value,'recipe_sha256');ref=write(f['runtime']/'BAD_ORDER.json',value)
+    with pytest.raises(RuntimeError):owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)

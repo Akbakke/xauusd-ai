@@ -300,3 +300,39 @@ def test_weighted_initial_read_guard_allows_one_readonly_bound_prediction(monkey
     with pytest.raises(RuntimeError,match='INITIAL_PREDICTION_PATH'):
         common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',original_initial_prediction='/home/andre2/GX1_RUNS/unbound.npz')
     assert denied==[target,'/home/andre2/GX1_RUNS/unbound.npz']
+
+
+def test_chronological_order_scope_preserves_original_shuffle_and_global_rng():
+    parents=np.arange(10000,10300,dtype=np.int64);before=np.random.get_state()
+    launch={'run_scope':authority.ORDER_SCOPE,'parent_order_algorithm':authority.ORDER_ALGORITHM}
+    actual=runner._presentation_order(parents,256,runner.SEED,np,launch=launch)
+    assert np.array_equal(actual,parents[:256])
+    legacy=runner._presentation_order(parents,256,runner.SEED,np,launch={'run_scope':'single_prefix_one_pass_direction_fit'})
+    assert np.array_equal(legacy,runner._fixed_order(parents,256,runner.SEED,np))
+    after=np.random.get_state()
+    assert before[0]==after[0] and np.array_equal(before[1],after[1]) and before[2:]==after[2:]
+    for bad in ({**launch,'parent_order_algorithm':'permutation'},launch):
+        rows=parents.copy()
+        if bad is launch:rows[5]=rows[4]
+        with pytest.raises(RuntimeError,match='CHRONOLOGICAL_ORDER'):
+            runner._presentation_order(rows,256,runner.SEED,np,launch=bad)
+
+
+def test_chronological_initial_predictions_must_match_bound_original(tmp_path):
+    arrays={'parent_rows':np.array([4,1],np.int64),'logit_up':np.array([[.1,.2,.3],[.4,.5,.6]],np.float32)}
+    path=tmp_path/'original.npz';np.savez(path,**arrays);ref=common._hash_file(path)
+    runner._require_original_initial_match({'arrays':arrays},ref,common=common,np=np)
+    changed={**arrays,'logit_up':arrays['logit_up'].copy()};changed['logit_up'][0,1]+=1
+    with pytest.raises(RuntimeError,match='ORDER_INITIAL_PREDICTION:logit_up'):
+        runner._require_original_initial_match({'arrays':changed},ref,common=common,np=np)
+    changed={**arrays,'parent_rows':arrays['parent_rows'][::-1].copy()}
+    with pytest.raises(RuntimeError,match='ORDER_INITIAL_PREDICTION:parent_rows'):
+        runner._require_original_initial_match({'arrays':changed},ref,common=common,np=np)
+    zero={'parent_rows':np.array([0],np.int64),'logit_up':np.array([[0.]],np.float32)}
+    zero_path=tmp_path/'zero.npz';np.savez(zero_path,**zero);zero_ref=common._hash_file(zero_path)
+    opposite_zero={**zero,'logit_up':np.array([[-0.]],np.float32)}
+    with pytest.raises(RuntimeError,match='ORDER_INITIAL_PREDICTION:logit_up'):
+        runner._require_original_initial_match({'arrays':opposite_zero},zero_ref,common=common,np=np)
+    np.savez(path,**arrays)
+    with pytest.raises(RuntimeError,match='ORDER_INITIAL_PREDICTION_SHA'):
+        runner._require_original_initial_match({'arrays':arrays},{**ref,'sha256':'0'*64},common=common,np=np)

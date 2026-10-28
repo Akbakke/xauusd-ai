@@ -3,7 +3,7 @@
 The canonical CUDA guard precedes strict context and numerical imports.  Immutable
 267/264 providers supply raw physical inputs only.  Every prefix starts its own
 combined ONLINE and measured0U baseline; private273 weights are never loaded.
-The fixed shuffled prefix is consumed once, including missing/tied/immature rows.
+The admitted order consumes the entire prefix, including missing/tied/immature rows.
 Only the separate260 loss decides eligible cells.  Context tags are report-only.
 """
 from __future__ import annotations
@@ -46,7 +46,7 @@ def _weighted_historical_source(ref, manifest, design):
     return transition['current'] if ref == transition['original'] else ref
 
 
-def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_completion=None, weight_qualification_design=None):
+def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_completion=None, weight_qualification_design=None, order_qualification=None):
     metadata={};manifest=common._read(launch['input_manifest'],metadata)
     _require(set(manifest)==MANIFEST_KEYS and manifest['schema_version']=='gx1_native_direction_prefix_fit_input_manifest_v1'
         and manifest['source_design']==SOURCE_DESIGN and manifest['state_qualification']==common.STATE_QUALIFICATION
@@ -88,6 +88,15 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
         weight_design = common._read(weight_qualification_design, metadata)
         _require(weight_design['input_manifest'] == launch['input_manifest'] and weight_design['fold'] == fold
             and weight_design['original_initial_predictions'] == authority.WEIGHT_INITIAL_PREDICTIONS, 'WEIGHT_ORIGINAL_BINDINGS')
+    order_transition = None
+    if order_qualification is not None:
+        from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+        _require(launch.get('run_scope') == authority.ORDER_SCOPE
+            and independent_design is None and weight_design is None, 'ORDER_METADATA_SCOPE')
+        order_transition = order_qualification['historical_component_transition']
+        _require(order_transition['original'] == manifest['view_source_bindings']['direction_component_source']
+            and order_transition['current'] == launch['source_owners'][authority.ORDER_COMPONENT_SOURCE]
+            and order_transition['original']['path'] == order_transition['current']['path'], 'ORDER_METADATA_TRANSITION')
     for ref in manifest['view_source_bindings'].values():
         if ref['path'].endswith('.json'):common._read(ref,metadata)
         else:
@@ -104,6 +113,8 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
                 weighted_expected = _weighted_historical_source(ref, manifest, weight_design)
                 if weighted_expected != ref:
                     expected = weighted_expected
+            if order_transition is not None and ref == order_transition['original']:
+                expected = order_transition['current']
             _require(common._hash_file(ref['path'])==expected,'VIEW_SOURCE_SHA')
     info['metadata'].update(metadata)
     return {'manifest':manifest,'design':design,'physical':physical,'ancestor':ancestor,'ancestor_plan':ancestral_plan,
@@ -111,7 +122,16 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
 
 
 def _launch_metadata(launch, common):
-    if 'native_continuation_qualification' in launch:
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    if launch.get('run_scope') == authority.ORDER_SCOPE:
+        metadata = {}
+        proof = common._read(launch['native_order_qualification'], metadata)
+        initial = common._read(launch['order_origin']['initial_measurement'], metadata)
+        context = _metadata(launch, common, gc_layout_metadata_parity=launch['gc_layout_metadata_parity'],
+            order_qualification=proof)
+        context['info']['metadata'].update(metadata)
+        context['order_original_initial'] = initial
+    elif 'native_continuation_qualification' in launch:
         from gx1.contracts.entry_native_direction_frozen_extraction_v1 import CONTINUATION_PRIOR_RECIPE
         metadata = {}
         prior = common._read(CONTINUATION_PRIOR_RECIPE,metadata)
@@ -175,6 +195,17 @@ def _fixed_order(parents, prefix_rows, seed, np):
     return np.ascontiguousarray(parents[:prefix_rows][np.random.RandomState(seed).permutation(prefix_rows)],dtype=np.int64)
 
 
+def _presentation_order(parents, prefix_rows, seed, np, *, launch):
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    if launch.get('run_scope') == authority.ORDER_SCOPE:
+        _require(launch.get('parent_order_algorithm') == authority.ORDER_ALGORITHM
+            and type(prefix_rows) is int and 256 <= prefix_rows <= len(parents)
+            and seed == SEED and parents.dtype == np.int64 and parents.ndim == 1
+            and np.all(parents[1:prefix_rows] > parents[:prefix_rows-1]), 'CHRONOLOGICAL_ORDER')
+        return np.ascontiguousarray(parents[:prefix_rows], dtype=np.int64)
+    return _fixed_order(parents, prefix_rows, seed, np)
+
+
 def _select_price_targets(archive, *, signed_bps=False, magnitude_weighted=False):
     _require(type(signed_bps) is bool and type(magnitude_weighted) is bool and not (signed_bps and magnitude_weighted),'OBJECTIVE_MODE')
     _require(archive.files==list(PRICE_MEMBERS),'EXACT_ELEVEN_ARCHIVE_NAMES')
@@ -218,7 +249,7 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False)
         constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=manifest['view_source_bindings'],max_batch_rows=BATCH_SIZE,bps_scale=bps_scale,magnitude_weight_contract=magnitude_weight_contract)
     context_map=report_owner.native_direction_context_map(gc_layout=prepared['gc']['layout'],
         mtf_field_names=context['fitted']['base_normalization']['surfaces']['mtf_m5']['field_names'])
-    order=_fixed_order(prepared['arrays']['parent_rows'],launch['fold']['prefix_rows'],SEED,np)
+    order=_presentation_order(prepared['arrays']['parent_rows'],launch['fold']['prefix_rows'],SEED,np,launch=launch)
     return prepared,targets,view,context_map,order
 
 
@@ -349,6 +380,20 @@ def _save_predictions(path, arrays, *, np, common, tree_sha):
     return common._hash_file(path)
 
 
+def _require_original_initial_match(measured, original_ref, *, common, np):
+    before = common._stat(original_ref['path'])
+    _require(common._hash_file(original_ref['path']) == original_ref, 'ORDER_INITIAL_PREDICTION_SHA')
+    arrays = measured['arrays']
+    with np.load(original_ref['path'], allow_pickle=False) as archive:
+        _require(set(archive.files) == set(arrays), 'ORDER_INITIAL_PREDICTION_FIELDS')
+        for key, value in arrays.items():
+            original = archive[key]
+            _require(original.dtype == value.dtype and original.shape == value.shape
+                and np.ascontiguousarray(original).tobytes() == np.ascontiguousarray(value).tobytes(),
+                'ORDER_INITIAL_PREDICTION:' + key)
+    _require(common._stat(original_ref['path']) == before, 'ORDER_INITIAL_PREDICTION_STABLE')
+
+
 def _publish_measurement(name, measured, *, output, view, prior, own_initial_state, fresh_identity,
         context_map, counters, launch, np, common, tree_sha):
     from gx1.contracts.entry_native_direction_context_report_v1 import score_native_direction_logits
@@ -470,7 +515,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
-    continuation=launch['run_scope']==authority.CONTINUATION_SCOPE;train_passes=launch['train_passes']
+    continuation=launch['run_scope']==authority.CONTINUATION_SCOPE;order_variant=launch['run_scope']==authority.ORDER_SCOPE;train_passes=launch['train_passes']
     binding_ref=common._hash_file(launch['execution_binding_path']);extra={};binding=common._read(binding_ref,extra)
     context=_launch_metadata(launch,common);context['info']['metadata'].update(extra)
     origin=launch.get('continuation_origin') if continuation else None
@@ -484,7 +529,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
-        extra_read_paths=(origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else ())
+        extra_read_paths=(origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else (),
+        original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None)
     counters={k:0 for k in ('model_constructions','model_construction_returns','optimizer_constructions','forward_calls','forward_returns',
         'backward_calls','backward_returns','optimizer_step_calls','optimizer_step_returns','empty_batches',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns','forbidden_legacy_calls')}
@@ -522,6 +568,11 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             parent_order=order,cursor=0,optimizer_updates=0,device=device)
         fresh_identity=tree_sha({key:fresh[key] for key in ('binding','model_state','buffer_state','optimizer_state','rng_state','module_training')})
         initial_inactive=tree_sha({name:p for name,p in model.named_parameters() if not p.requires_grad});del fresh
+        if order_variant:
+            old_initial=context['order_original_initial']
+            _require(old_initial['fresh_identity_sha256']==fresh_identity and old_initial['own_prefix_prior']==prior, 'ORDER_FRESH_BASELINE_IDENTITY')
+        diagnostic_ids=(_fixed_order(prepared['arrays']['parent_rows'],fold['prefix_rows'],SEED,np)[:256]
+            if order_variant else ordered[:256])
         if prior_cursor is None and continuation:
             initial_ref=origin['initial_state'];initial_measurement=origin['initial_measurement']
             _require(original_initial_measurement['fresh_identity_sha256']==fresh_identity
@@ -538,8 +589,10 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         elif prior_cursor is None:
             initial_ref,_seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=0,updates=0,
                 state_directory=state_directory,name='INITIAL_0U',launch=launch,counters=counters,torch=torch,device=device,common=common,state_owner=state_owner)
-            measured,_=_evaluate(model,prepared,targets,view,context_map,ordered[:256],cutoff=fold['train_cutoff_ns'],kind='INITIAL_TRAIN',
+            measured,_=_evaluate(model,prepared,targets,view,context_map,diagnostic_ids,cutoff=fold['train_cutoff_ns'],kind='INITIAL_TRAIN',
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
+            if order_variant:
+                _require_original_initial_match(measured,launch['order_origin']['initial_predictions'],common=common,np=np)
             initial_measurement=_publish_measurement('INITIAL_TRAIN',measured,output=work,view=view_identity,prior=prior,
                 own_initial_state=initial_ref,fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
             del measured
@@ -581,7 +634,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                     'feature_view_identity':view_identity,'parent_order_sha256':order_sha,**durable},counters,launch['max_published_json_bytes'])
         if parent_cursor==train_passes*len(ordered):phase='SCORING'
         if phase=='SCORING' and final_measurement is None and time.monotonic()<deadline:
-            measured,_=_evaluate(model,prepared,targets,view,context_map,ordered[:256],cutoff=fold['train_cutoff_ns'],kind='FINAL_TRAIN',
+            measured,_=_evaluate(model,prepared,targets,view,context_map,diagnostic_ids,cutoff=fold['train_cutoff_ns'],kind='FINAL_TRAIN',
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha)
             final_measurement=_publish_measurement('FINAL_TRAIN',measured,output=work,view=view_identity,prior=prior,
                 own_initial_state=initial_ref,fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)

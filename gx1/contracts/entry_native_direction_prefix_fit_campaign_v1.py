@@ -32,6 +32,8 @@ MAX_WINDOWS = 4
 BATCH_SIZE = 16
 BPS_SCOPE = 'single_prefix_one_pass_direction_signed_bps_fit'
 CONTINUATION_SCOPE = 'single_prefix_three_pass_direction_continuation'
+ORDER_SCOPE = 'single_prefix_one_pass_direction_chronological_order'
+ORDER_ALGORITHM = 'strictly_increasing_prefix_parent_rows'
 _CONTINUATION_ROOT = '/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276'
 CONTINUATION_ORIGIN = {
     'launch_recipe': {'path':_CONTINUATION_ROOT+'/RECIPE.json','sha256':'8ba298a148af3b923c7b4a567f98bf8ddd2eaef1e4eeb5144e2a785e9f9e2d93'},
@@ -40,6 +42,11 @@ CONTINUATION_ORIGIN = {
     'initial_state': {'path':_CONTINUATION_ROOT+'/RUNTIME/prefix-fit/states/INITIAL_0U.pt','sha256':'40a9d5ad744a06512619c3072170657f6ed430a077c3187e05e817fd5b46e9f3'},
     'terminal_train_measurement': {'path':_CONTINUATION_ROOT+'/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json','sha256':'b25e7ef3539f19604dfbde58bfb6ff379dd7e0d813a464ab680cea4977578301'},
 }
+ORDER_ORIGIN = {'launch_recipe': CONTINUATION_ORIGIN['launch_recipe'],
+    'initial_measurement': CONTINUATION_ORIGIN['initial_measurement'],
+    'initial_predictions': private.WEIGHT_INITIAL_PREDICTIONS}
+ORDER_COMPONENT_SOURCE = 'gx1/contracts/entry_native_direction_research_v1.py'
+
 BPS_NATIVE_QUALIFICATION = {
     'path':'/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/ACTUAL_ROOT_REVIEW.json',
     'sha256':'07b26101961ce4218b51f5d87487239bf8b0a913c5ec93db872417e35e1293f9'}
@@ -164,6 +171,9 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         'qualification_weights_for_main_fit'}
     bps = value.get('run_scope') == BPS_SCOPE
     continuation = value.get('run_scope') == CONTINUATION_SCOPE
+    chronological = value.get('run_scope') == ORDER_SCOPE
+    if chronological:
+        fields |= {'gc_layout_metadata_parity', 'order_origin', 'native_order_qualification'}
     if bps:
         fields |= {'gc_layout_metadata_parity', 'native_bps_qualification'}
     if continuation:
@@ -173,7 +183,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
     fold = _fold(recipe['fold'])
     if bps:
         _require(fold == private.BPS_FOLD
@@ -184,7 +194,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
             'eval_batch_size':16, 'checkpoint_every_updates':256, 'max_checkpoint_bytes':1073741824,
             'max_checkpoint_total_bytes':4294967296, 'max_published_json_bytes':67108864}.items():
         _require(type(recipe[key]) is int and recipe[key] == expected, 'RECIPE_BUDGET:' + key)
-    _require(recipe['parent_order_algorithm'] == PARENT_ORDER_ALGORITHM, 'ORDER_ALGORITHM')
+    _require(recipe['parent_order_algorithm'] == (ORDER_ALGORITHM if chronological else PARENT_ORDER_ALGORITHM), 'ORDER_ALGORITHM')
     for key, expected in {'training_enabled':True, 'full_epoch_training_allowed':True,
             'test_data_used':False, 'predictive_value_claimed':False, 'qualification_weights_for_main_fit':False}.items():
         _require(recipe[key] is expected, 'RECIPE_AUTHORITY:' + key)
@@ -201,17 +211,52 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         ensure_ascii=True, allow_nan=False).encode()).hexdigest()
     _require(numerical.get('contract_sha256') == declared, 'NUMERICAL_RECIPE_SEAL')
     campaign._sha(numerical.get('research_objective_sha256'), 'research objective')
-    _input_manifest(recipe)
+    input_manifest = _input_manifest(recipe)
     _require(_path(recipe['execution_binding_path'], 'execution binding') == str(runtime/'EXECUTION_BINDING.json'),
         'EXECUTION_BINDING_PATH')
     owners = recipe['source_owners']
     required_sources = set(REQUIRED_SOURCE_PATHS) | (set(BPS_EXTRA_SOURCE_PATHS) if bps else set())
-    if continuation:
+    if continuation or chronological:
         required_sources.add('gx1/contracts/entry_native_direction_frozen_extraction_v1.py')
     _require(isinstance(owners, Mapping) and set(owners) == required_sources, 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='prefix fit source', verify_file=True)
         _require(checked['path'] == str(source_repo/key), 'SOURCE_OWNER_PATH:' + key)
+    if chronological:
+        origin = recipe['order_origin']
+        _require(fold == private.BPS_FOLD and origin == ORDER_ORIGIN
+            and recipe['gc_layout_metadata_parity'] == private.BPS_GC_PARITY, 'ORDER_ORIGIN')
+        refs = {key:campaign.require_binding(ref, label='order '+key, verify_file=True) for key,ref in origin.items()}
+        campaign.require_binding(recipe['gc_layout_metadata_parity'], label='order GC metadata proof', verify_file=True)
+        old = campaign.read_bound_json(Path(refs['launch_recipe']['path']), refs['launch_recipe']['sha256'])
+        _require(old.get('fold') == fold and old.get('train_passes') == 1
+            and old.get('run_scope') == 'single_prefix_one_pass_direction_fit'
+            and old.get('input_manifest') == recipe['input_manifest']
+            and old.get('numerical_recipe') == numerical
+            and numerical.get('signed_bps_supervision', False) is False
+            and numerical.get('magnitude_weighted_direction', False) is False, 'ORDER_BASELINE_NUMERICS')
+        initial = campaign.read_bound_json(Path(refs['initial_measurement']['path']), refs['initial_measurement']['sha256'])
+        _require(initial.get('role') == 'INITIAL_TRAIN' and initial.get('fold') == fold
+            and initial.get('predictions') == refs['initial_predictions'], 'ORDER_BASELINE_INITIAL')
+        proof_ref = campaign.require_binding(recipe['native_order_qualification'], label='order native proof', verify_file=True)
+        proof = campaign.read_bound_json(Path(proof_ref['path']), proof_ref['sha256'])
+        transition = proof.get('historical_component_transition')
+        _require(proof.get('schema_version') == 'gx1_direction_order_initial_resume_qualification_v1'
+            and proof.get('status') == 'PASS_SIGN_ONLY_ORDER_INITIAL_RESUME_QUALIFIED'
+            and proof.get('origin') == refs and proof.get('fold') == fold
+            and proof.get('source_owners') == owners
+            and proof.get('numerical_recipe_sha256') == numerical['contract_sha256']
+            and proof.get('gc_layout_metadata_parity') == recipe['gc_layout_metadata_parity']
+            and proof.get('initial_model_buffers_optimizer_rng_equal') is True
+            and proof.get('initial_predictions_256_bit_equal') is True
+            and proof.get('resume_bit_exact') is True
+            and type(proof.get('private_optimizer_updates')) is int and proof['private_optimizer_updates'] == 4
+            and proof.get('qualification_weights_for_main_fit') is False and proof.get('test_data_used') is False,
+            'ORDER_NATIVE_QUALIFICATION')
+        _require(isinstance(transition, Mapping) and set(transition) == {'original', 'current'}
+            and transition['original'] == input_manifest['view_source_bindings']['direction_component_source']
+            and transition['current'] == owners[ORDER_COMPONENT_SOURCE]
+            and transition['original']['path'] == transition['current']['path'], 'ORDER_COMPONENT_TRANSITION')
     if continuation:
         origin = recipe['continuation_origin']
         _require(fold['fold_id'] == 1 and isinstance(origin, Mapping)

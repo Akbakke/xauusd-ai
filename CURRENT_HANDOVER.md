@@ -11,9 +11,11 @@ Programrot:
 
 ## Aktuell status
 
+En kronologisk énpass-rute i eksisterende trener har bestått 116 fokuserte syntetiske kontroller. Den binder samme kompakte inputs/mål/seed/optimizer og de opprinnelige 256 initialradene; signert null kontrolleres også byte-for-byte. Gammel blandet rute bevares. Faktisk initial-/gradient-/resume-kvalifisering og separat treningsadmisjon gjenstår; ingen ny modell er trent.
+
 Rekkefølge-audit002 er FULLFØRT og KONSUMERT på 47 602 TRAIN-foreldre. Begge rekkefølger gir 2 976 ikke-tomme batcher; 5min-andelen av loss-koeffisientmassen er 33,3973 % blandet mot 33,4010 % kronologisk. Siste B2 har ved 5min én OPP/én NED blandet, men bare én gyldig OPP kronologisk; siste kronologiske 15min har ingen gyldige utfall. Opprinnelig blandet koeffisientmasse er kontrollert mot tidligere uavhengig aggregat. Dette er loss-geometri, ikke gradient, modellresultat eller årsaksbevis. Se /home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_ROOT_REVIEW_20261028_002.json. Ingen modell, trening, CONTROL eller TEST ble åpnet.
 
-Selvstendig kontroll av treningsrekkefølge: Original276 og trepass-kjøringen har samme gjenskapte MT19937-orderhash; hvert prisvindu beholder stigende kausale klokker. TRAIN/later-grensen er kronologisk. Samme B2-sluttrader gjentas per pass; effekt på retningsedge er ikke målt. I fire utviklingsfolder varierer 5min-OPP-andelen fra 13,65 % til 100 %, mens faktiske OPP-andeler er 50,68–51,58 %. På 70 294 gyldige 5min-rader er samlet treffrate 50,30 % mot 51,10 % for fast TRAIN-prior. Gjenbrukte utviklingsdata, ingen intervaller; terskelskjevhet er ikke årsaksbevis. Prioritert énfaktors forslag: docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json. Ingen rekkefølgekandidat er trent, ingen ny kilde-/kjøreadmisjon er gitt, og training_enabled=false.
+Selvstendig kontroll av treningsrekkefølge: Original276 og trepass-kjøringen har samme gjenskapte MT19937-orderhash; hvert prisvindu beholder stigende kausale klokker. TRAIN/later-grensen er kronologisk. Samme B2-sluttrader gjentas per pass; effekt på retningsedge er ikke målt. I fire utviklingsfolder varierer 5min-OPP-andelen fra 13,65 % til 100 %, mens faktiske OPP-andeler er 50,68–51,58 %. På 70 294 gyldige 5min-rader er samlet treffrate 50,30 % mot 51,10 % for fast TRAIN-prior. Gjenbrukte utviklingsdata, ingen intervaller; terskelskjevhet er ikke årsaksbevis. Prioritert énfaktors forslag: docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json. Ingen rekkefølgekandidat er trent, ingen kjøreadmisjon er gitt, og training_enabled=false.
 
 Presisering av én-/trepass-resultatet: TRAIN-foreldrene ble presentert i
 en fast MT19937-blanding, ikke i markedsrekkefølge. De to ekstra passene
@@ -32,9 +34,17 @@ normaliseringsmetadata; faktisk dekning og retningsverdi er ikke fastslått.
 Se `docs/DIRECTION_CHART_GEOMETRY_MODEL_CONSUMPTION_20261028.json`.
 
 En eksakt B16-kvalifiseringsoppskrift er metadata-kontrollert som forslag,
-uten kjøreadmisjon. Den eksisterende native-kampanjen krever fysisk Windows-
-omstart etter forberedelse; den opprinnelige oppdragsgrensen forbød å styre
-omstart. Gjør ikke dette uten at brukeren uttrykkelig endrer den grensen.
+uten kjøreadmisjon. Brukeren bestilte 28.10 fysisk omstart før trening samt
+økt effektivitet og effekt. Forbered eksakt kampanje og bekreft ledig maskin
+før Windows-omstart, slik fresh-boot-vakten oppfylles uten å avbryte jobber.
+Bevar gjeldende effekt-, temperatur-, minne- og capped-vakter.
+
+Effektkontroll 28.10: kortet står på 160 W i idle; samme baseline trakk
+høyst 134,7 W ved en 160 W-grense, så høyere grense har ikke bevist fart.
+Policy angir 300 W maks og reduksjon til 200 W ved 80 C, mens installert
+keeper-kode bruker 220 W ved innstilling over 220 W. Avviket er inaktivt
+på dagens 160 W, men må løses før slik høyere innstilling. Ingen effekt
+er endret. Se signed-guard-loggen i NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276.
 
 Fast evalueringsprotokoll for størrelsesvektet retning er skrevet før
 noen genuin kvalifisering eller kandidat: samme femminuttersforeldre,

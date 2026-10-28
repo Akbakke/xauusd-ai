@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-28T07:39:47.793859+00:00",
+  "updated_utc": "2026-10-28T07:43:23.889711+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": null,
+    "current_unit": "direction_order_native_source_20261028",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Prioritize the fixed one-factor chronological-versus-shuffled native direction comparison. Reuse qualified compact inputs and baseline; prepare a strictly bound opt-in source route and fresh same-row initial qualification. No training until a separate admitted campaign.",
+    "next_action": "Implement and synthetically qualify the narrowly scoped chronological-order native route without opening genuine data, model, training or a campaign.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -40897,6 +40897,51 @@
     "independent_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_ROOT_REVIEW_20261028_002.json",
       "sha256": "1818e73a335c654f8f2421ec6d61c0b6761978b3c338f98c7a8ca732bda1d27c"
+    }
+  },
+  "direction_order_native_source_20261028": {
+    "status": "SOURCE_SYNTHETIC_CHECKED_ONLY",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json",
+      "sha256": "336c7c5af9a0b5bf7759831394f27de06d46eb8ab9a22619a8c1856abc01fbf7"
+    },
+    "allowed_source_paths": [
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "tests/test_entry_native_direction_prefix_fit_campaign_v1.py",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py"
+    ],
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "scope": "One explicit chronological one-pass direction scope, original compact inputs/target/seed/optimizer, original IDs for initial parity, legacy shuffled paths preserved, require separately qualified native initial and resume proof before any genuine fit.",
+    "physical_restart_before_training_authorized": true,
+    "user_requested_power_efficiency": true,
+    "user_request_20261028": "Restart maskinen før trening, og gass opp effektiviteten og w til treningen slik at vi får fullført dette raskere",
+    "synthetic_checks": {
+      "status": "PASS",
+      "test_count": 116,
+      "data_or_model_training": false,
+      "signed_zero_byte_mismatch_rejected": true
+    },
+    "source_sha256": {
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": "5a16d80f5ba9feea2b9965da8a844d7ec33018e3ac91610a35d135a0d239c4cb",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "8045bb41c7ab5fe0105e529979f6cefd9684e595af686a1a0e96d95e64c705da",
+      "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "e331e35ead1c4e1e21ee55552116ad81040944dfeee615f0cd29036789f96f20",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py": "c72fdf0964d8af23e85e527e0d841fd1cdf5fcd96e019654677191469289e8a7"
+    },
+    "hardware_findings": {
+      "previous_fold1_observed_peak_w": 134.7,
+      "previous_fold1_power_limit_w": 160,
+      "current_idle_power_limit_w": 160,
+      "configured_native_max_w": 300,
+      "policy_thermal_reduction_w": 200,
+      "installed_keeper_thermal_reduction_w_if_above_220": 220,
+      "explanation": "The 220 W branch is inactive at current 160 W; resolve mismatch before using a setting above 220 W. Power increase has no measured speed benefit yet."
     }
   }
 }
