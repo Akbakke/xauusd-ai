@@ -184,7 +184,7 @@ def read_targets(path, *, np):
     return saved
 
 
-def make_guard(out, inputs, metadata, *, synthetic=False, source_paths=()):
+def make_guard(out, inputs, metadata, *, synthetic=False, source_paths=(), output_payload_paths=()):
     allowed = set(inputs) | set(metadata)
     test_sources = {str(REPO/name) for name in TEST_FILES + TEST_HELPERS} & set(source_paths)
     git_prefix = ('git', '-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=/dev/null', '-C', str(REPO))
@@ -193,6 +193,9 @@ def make_guard(out, inputs, metadata, *, synthetic=False, source_paths=()):
         p = Path(os.fsdecode(value))
         return (p.is_absolute() and '..' not in p.parts and (p == out or out in p.parents)
             and not any(x.is_symlink() for x in (p, *p.parents)))
+    output_payloads = set(output_payload_paths)
+    require(all(isinstance(name, str) and Path(name).suffix == '.npz' and owned(name)
+        for name in output_payloads), 'OUTPUT_PAYLOAD_SCOPE')
     def guard(event, args):
         if event == 'subprocess.Popen':
             command = tuple(args[1])
@@ -213,7 +216,8 @@ def make_guard(out, inputs, metadata, *, synthetic=False, source_paths=()):
             if '/GX1_DATA/' in name or '/GX1_RUNS/' in name:
                 require(name in allowed or owned(name), 'UNDECLARED_DATA')
             if p.suffix.lower() in ('.parquet', '.npz', '.npy', '.csv', '.gz', '.zst', '.dbn', '.pt', '.pth', '.pkl', '.ckpt'):
-                require((synthetic and owned(name)) or (name in inputs and not writing), 'PAYLOAD')
+                require((synthetic and owned(name)) or (name in inputs and not writing)
+                    or (name in output_payloads and owned(name)), 'PAYLOAD')
         if event in ('os.remove', 'os.rmdir', 'os.mkdir'):
             require(owned(args[0]), 'OUTSIDE_OUTPUT_MUTATION')
         if event in ('os.rename', 'os.link'):

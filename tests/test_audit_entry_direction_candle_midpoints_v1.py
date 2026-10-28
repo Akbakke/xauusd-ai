@@ -355,3 +355,20 @@ def test_synthetic_owned_scope_rejects_parent_traversal(out, path, mode, flags, 
     guard = audit.make_guard(Path(out), [], [], synthetic=True)
     with pytest.raises(RuntimeError, match=error):
         guard('open', (path, mode, flags))
+
+
+def test_genuine_guard_allows_only_explicit_owned_npz_output(tmp_path):
+    output = tmp_path.parent / 'dense_guard'
+    target = str(output / 'DENSE_TARGETS.npz')
+    other = str(output / 'OTHER.npz')
+    guard = audit.make_guard(output, [], [], output_payload_paths=(target,))
+    guard('open', (target, 'wb', os.O_WRONLY | os.O_CREAT))
+    guard('open', (target, 'rb', 0))
+    with pytest.raises(RuntimeError, match='PAYLOAD'):
+        guard('open', (other, 'wb', os.O_WRONLY | os.O_CREAT))
+    with pytest.raises(RuntimeError, match='PAYLOAD|UNDECLARED_DATA'):
+        guard('open', ('/home/andre2/GX1_DATA/unbound.npz', 'rb', 0))
+    with pytest.raises(RuntimeError, match='OUTPUT_PAYLOAD_SCOPE'):
+        audit.make_guard(output, [], [], output_payload_paths=(str(output.parent / 'outside.npz'),))
+    with pytest.raises(RuntimeError, match='OUTPUT_PAYLOAD_SCOPE'):
+        audit.make_guard(output, [], [], output_payload_paths=(str(output / 'weights.pt'),))
