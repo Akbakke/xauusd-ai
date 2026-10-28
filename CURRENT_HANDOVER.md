@@ -11,9 +11,9 @@ Programrot:
 
 ## Aktuell status
 
-Koden sammenligner 5min sluttfortegn og første treff på samme tidligere
-kjente foreldre. Tidligere deknings- og AUC-resultat må reproduseres; én
-syntetisk kontroll er admittért. Ekte måling er ennå lukket.
+Sammenligningen av 5min sluttfortegn og første treff er syntetisk kvalifisert
+med 9 kontroller. Tidligere deknings- og AUC-resultat må reproduseres.
+Engangsadgangen er konsumert; ekte måling krever fersk avgrenset admisjon.
 
 Første-treff-kontrollen er COMPLETE og konsumert på 17 288 gjenbrukte
 fold1-utviklingsforeldre, alle minutter 1–60 og fast 10bps gross quote. Ved
