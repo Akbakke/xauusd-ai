@@ -39788,14 +39788,14 @@
     }
   },
   "direction_first_quote_race_source_20261028": {
-    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
+    "status": "SYNTHETIC_42_PASS_RESEARCH_ONLY",
     "scope": "Extend the existing research-only first-favorable quote owner to classify which side first crosses a fixed bps hurdle, with neither event and explicit unknown ordering; no native model wiring.",
     "allowed_source_paths": [
       "gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
       "tests/test_entry_causal_m1_first_positive_quote_v1.py"
     ],
     "source_edits_authorized": false,
-    "synthetic_tests_authorized": true,
+    "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -39815,22 +39815,39 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "b117aa5908a605eafd60d5d7be0c08bae4644495f087378fc458da71cff7f91f"
     },
-    "expected_synthetic_cases": 42
+    "expected_synthetic_cases": 42,
+    "actual_limit": "Synthetic only. No genuine label frequency, model consumer, training, later generalization, or financial edge measured."
   },
   "direction_first_quote_race_synthetic_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_SYNTHETIC_42_PASS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "b117aa5908a605eafd60d5d7be0c08bae4644495f087378fc458da71cff7f91f"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "genuine_payload_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_SYNTHETIC_20261028_001/TERMINAL.json",
+      "sha256": "db01ab8046b927d68b3f1c4f78ca2045734d67cdc5283ecb17ecb9aac5364906"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_SYNTHETIC_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "0520a6cb02ffe8db0c65f79b8cb1c0da6a4ea52975bdd60bd27b46e14cdd1ca2"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_SYNTHETIC_20261028_001/RESULTS.xml",
+      "sha256": "d94873f9243dc5c58557abc8b72ae0f6b4e93ed10aaad5965928e51264f3f90f"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_SYNTHETIC_20261028_001/OUTER.log",
+      "sha256": "aa3982846d58070b5339899fe53bc1c3b8054ca09670279906ec7d24ed0d6660"
+    }
   }
 }

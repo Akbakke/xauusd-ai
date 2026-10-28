@@ -12,9 +12,11 @@ Programrot:
 ## Aktuell status
 
 Forskningsfasiten for hvilken side som først passerer en fast bps-grense
-er implementert i eksisterende første-gunstige-quote-eier. Ukjent M1-rekkefølge
-og hull blir ikke fasit; intet treff er ikke en FLAT-handlingsregel. Én fast
-syntetisk kontroll er admittért; ekte data, modellkall og trening er lukket.
+er implementert i eksisterende første-gunstige-quote-eier. 42 syntetiske
+kontroller bestod, inkludert opp/ned, reversering til start og 1–60min.
+Ukjent M1-rekkefølge og hull blir ikke fasit; intet treff er ikke en FLAT-
+handlingsregel. Engangsadgangen er konsumert. Ekte data, modellkobling,
+trening og faktisk prediktiv verdi er ikke målt.
 
 Parret 1-mot-3-pass TRAIN-sammenligning er fullført og konsumert på samme
 47 602 foreldre. 5min TRAIN-AUC økte fra 0,515888 til 0,533534, og logloss
