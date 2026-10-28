@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T12:07:35.599805+00:00",
-  "status": "REAL_MINUTE_1_TO_60_TARGETS_COMPLETE_PREDICTION_EVALUATION_AND_MODEL_PENDING",
+  "status": "ONE_CAPPED_DENSE_FIXED_SIGNAL_EVALUATION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Evaluate the existing fixed 5-minute direction predictions against all 60 real minute targets on the four chronological development folds under a new exact plan, then build genuinely distinct 1–60 model outputs. Keep TEST and all trading closed.",
+  "next_action": "Run the admitted 60-endpoint fixed-signal evaluation, then qualify distinct 1–60 model outputs under a new plan.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "DENSE_MINUTE_TARGETS_COMPLETE_60_OUTPUT_MODEL_PENDING",
+    "status": "FIXED_FIVE_MINUTE_SIGNAL_AGAINST_60_TARGETS_ADMITTED",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_dense_minute_targets_actual_20261028_001",
+    "current_unit": "direction_dense_fixed_signal_actual_20261028_001",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Evaluate the existing fixed 5-minute direction predictions against all 60 real minute targets on the four chronological development folds under a new exact plan, then build genuinely distinct 1–60 model outputs. Keep TEST and all trading closed.",
+    "next_action": "Run the admitted 60-endpoint fixed-signal evaluation, then qualify distinct 1–60 model outputs under a new plan.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -41557,5 +41557,82 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
       "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d"
     }
+  },
+  "direction_dense_fixed_signal_actual_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_FIXED_SIGNAL_PLAN_20261028_001.json",
+      "sha256": "d2f618c5d823a5be1cd9cca465e0b9c816b17209463687f803e88e96b034b5c0"
+    },
+    "execution_authorized": true,
+    "prediction_and_target_reads_authorized": true,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "synthetic_tests": {
+      "status": "PASS",
+      "count": 20
+    },
+    "sources": {
+      "gx1/contracts/entry_direction_block_rank_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_block_rank_v1.py",
+        "sha256": "6e5a7184914463e0fefee22cdd509c01c029bd4fa7a4dcc9a33e326dbeb6eb5c"
+      },
+      "gx1/contracts/entry_direction_price_projection_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_price_projection_v1.py",
+        "sha256": "7bb6629c1919c06f259db95de85819a45732521a0dbdd33c8db3a724d66b1cf8"
+      },
+      "gx1/contracts/entry_direction_probability_reference_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_probability_reference_v1.py",
+        "sha256": "59d57110cf7a51da8158f9535088147d50673dea10728a2ebe3c9e469f0cee76"
+      },
+      "gx1/contracts/entry_model_native_bundle_commit_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_bundle_commit_v1.py",
+        "sha256": "86dfe4cb7eb58e3f20ba29b85348ba296bdb614cd0330c6aa4c862b08b93133e"
+      },
+      "gx1/contracts/entry_native_direction_context_report_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_context_report_v1.py",
+        "sha256": "2b6e5cf4bc32cec17091d964a8dd3c64fd91698fa5fce6d3d4fc7216bf1fcf49"
+      },
+      "gx1/contracts/gx1_capped_execution_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+        "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+      },
+      "gx1/contracts/immutable_event_authority_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+        "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+      },
+      "gx1/contracts/local_random_access_campaign_v2.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/local_random_access_campaign_v2.py",
+        "sha256": "0f7edcc8cafcc1b1b73ebdb6673194271173ed83c2bae86dbd80361bc4edeafb"
+      },
+      "gx1/scripts/audit_entry_direction_candle_midpoints_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_direction_candle_midpoints_v1.py",
+        "sha256": "530e930eb07769627ce093ffe6ad1aa0e5304594ed50447ef92de300bb4cd811"
+      },
+      "gx1/scripts/compare_entry_direction_matched_exposure_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/compare_entry_direction_matched_exposure_v1.py",
+        "sha256": "2282156fe28799758f595cf653a90b37edae71a4e5f6407e8b1d54e23c67e2cd"
+      },
+      "gx1/scripts/compare_entry_direction_saved_bps_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/compare_entry_direction_saved_bps_v1.py",
+        "sha256": "dd52c189ce6075b22014241338fc85939be5749c4a18e608ed68e0d6595619a8"
+      },
+      "gx1/scripts/materialize_entry_direction_dense_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_direction_dense_v1.py",
+        "sha256": "0c8f7fad265e65adad53e6e7bad8e2abdf6b600eac78770f52ebfa9b8db90c1b"
+      },
+      "gx1/scripts/score_entry_direction_dense_minutes_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/score_entry_direction_dense_minutes_v1.py",
+        "sha256": "046aad3e76137c76469fee77366a918ed1f060cbcb16367bc725fea49cb8c93d"
+      }
+    },
+    "scope": "One capped saved-prediction audit: original 5-minute logits across all 60 exact endpoints on four chronological development folds; no fit, model or trading."
   }
 }
