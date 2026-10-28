@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T11:54:13.696150+00:00",
-  "status": "ONE_CAPPED_ORDER_PAIRED_OOF_COMPARISON_ADMITTED",
+  "observed_utc": "2026-10-28T11:57:47.415797+00:00",
+  "status": "DIRECTION_ORDER_COMPARISON_COMPLETE_MINUTES_1_TO_60_NEXT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Run the admitted one-shot paired order comparison, then continue real minute-by-minute 1–60 targets and direction outputs under fresh exact gates.",
+  "next_action": "Build and qualify real per-minute 1–60 direction targets and corresponding model outputs, preserving compact inputs, causal cutoffs and all guards; perform no training without a new exact admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "ORDER_PAIRED_COMPARISON_ADMITTED_MINUTES_1_TO_60_REQUESTED",
+    "status": "ORDER_COMPARISON_COMPLETE_NO_DOCUMENTED_AUC_IMPROVEMENT_MINUTES_1_TO_60_NEXT",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Run the admitted one-shot paired order comparison, then continue real minute-by-minute 1–60 targets and direction outputs under fresh exact gates.",
+    "next_action": "Build and qualify real per-minute 1–60 direction targets and corresponding model outputs, preserving compact inputs, causal cutoffs and all guards; perform no training without a new exact admission.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37284,6 +37284,10 @@
     "minute_1_to_60_followup_design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MINUTES_1_TO_60_FOLLOWUP_DESIGN_20261028_001.json",
       "sha256": "737886f37376dbcc2339b7e11ba6bf46694a2c7d3fb5b34628d23ca23c2743dc"
+    },
+    "latest_order_paired_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_ORDER_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "f62b5afad12c784fe681f7ee2bdd5f07fba9d721a454860627e16b85d12db3d3"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -41321,7 +41325,7 @@
     }
   },
   "direction_order_paired_actual_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_DOCUMENTED_AUC_IMPROVEMENT",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_ORDER_PAIRED_PLAN_20261028_001.json",
       "sha256": "7f6cc130844dbfb54683f15d077066ce1c89716d769e8049a4dd406bc15ceae7"
@@ -41358,16 +41362,16 @@
       "no_undefined_primary_draws": true,
       "no_threshold_or_checkpoint_selection": true
     },
-    "execution_authorized": true,
-    "genuine_prediction_reads_authorized": true,
+    "execution_authorized": false,
+    "genuine_prediction_reads_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "source_files": {
       "gx1/scripts/compare_entry_direction_order_v1.py": {
@@ -41407,6 +41411,10 @@
       "status": "PASS",
       "count": 19
     },
-    "scope": "One capped CPU comparison of two saved development OOF predictions with exact row joins; no model, fit or trading."
+    "scope": "One capped CPU comparison of two saved development OOF predictions with exact row joins; no model, fit or trading.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_ORDER_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "f62b5afad12c784fe681f7ee2bdd5f07fba9d721a454860627e16b85d12db3d3"
+    }
   }
 }
