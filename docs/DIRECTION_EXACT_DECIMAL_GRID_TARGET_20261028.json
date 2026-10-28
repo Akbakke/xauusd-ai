@@ -1,0 +1,31 @@
+{
+  "schema_version": "gx1_direction_decimal_grid_target_repair_v1",
+  "status": "PURE_TARGET_PROJECTION_SYNTHETIC_TESTED_GENUINE_MATERIALIZATION_PENDING",
+  "actual_audit_result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+    "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+  },
+  "function": "gx1.scripts.materialize_entry_direction_dense_v1.build_decimal_grid_dense_targets",
+  "grid_schema": "gx1_direction_source_decimal_grid_v1",
+  "method": "Use source-verified immutable int64 bid and ask ticks at a caller-qualified decimal scale. Reproduce legacy axes and anchor bytes, then derive exact integer midpoint-difference signs, midpoint movement and bps together. Fail closed unless ticks reconstruct the bound float bid/ask inputs exactly. Preserve distinct missing, zero and immature outcomes.",
+  "caller_preconditions": "Prove original decimal strings, exact precision, source rows and time scope; float round-trip alone does not prove source decimal precision. Bind a new target identity, source hashes and a fresh execution plan before any genuine read or publication. Three decimal places are established only for the audit source and window, never presumed globally.",
+  "scope": "Pure CPU function and synthetic tests only; original target files, old target mode and saved predictions remain unchanged. No genuine corrected target artifact, new model, fit, TEST, broker, trading or economic edge qualification.",
+  "checks": {
+    "synthetic_test_cases": 20,
+    "rounding_tie_regression": true,
+    "nonzero_small_move": true,
+    "missing_distinct_from_zero": true,
+    "source_grid_float_parity": true,
+    "immutable_tick_inputs": true,
+    "legacy_anchor_reproduction": true,
+    "block_size_invariance": true
+  },
+  "source": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_direction_dense_v1.py",
+    "sha256": "77462078a177af15836f50d6cbe1e1bd37c1be37988e0742a5a21ec580930c69"
+  },
+  "focused_test": {
+    "path": "/home/andre2/src/GX1_CURRENT/tests/test_materialize_entry_direction_dense_v1.py",
+    "sha256": "5514df9904bf3b9a45602affbd541e0600d53561bb27e0ffebe761c929593cc8"
+  }
+}

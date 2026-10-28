@@ -1,8 +1,10 @@
 """Materialize exact 1–60-minute direction targets from bound M1 quotes.
 
-The pure projection reuses the qualified candle/quote lookup and requires
-byte parity with every saved 1/5/15 endpoint before publishing a dense result.
-A fold-specific batch must mask all outcomes at or beyond its own cutoff.
+The legacy pure projection requires byte parity with the saved 1/5/15
+endpoints. A separate decimal-grid projection preserves those legacy checks,
+then computes a new target identity from caller-qualified exact source ticks.
+Neither function grants file access or permission to publish/train. A fold-specific
+batch masks all outcomes at or beyond its own cutoff.
 """
 from __future__ import annotations
 
@@ -76,6 +78,57 @@ def build_dense_targets(source, saved, *, cutoff_ns, block_rows=1024):
         expected = np.ascontiguousarray(saved[name])
         require(actual.dtype == expected.dtype and actual.shape == expected.shape
             and actual.tobytes() == expected.tobytes(), 'LEGACY_PARITY:' + name)
+    return target
+
+
+DECIMAL_GRID_SCHEMA = 'gx1_direction_source_decimal_grid_v1'
+
+
+def build_decimal_grid_dense_targets(source, saved, *, decimal_grid, cutoff_ns, block_rows=1024):
+    """Project a distinct target identity from source-verified decimal integer prices.
+
+    The caller must bind the original decimal strings, precision, source rows,
+    period and the resulting new artifact identity separately. Float parity alone
+    cannot prove original decimal precision. The legacy target/anchor path is
+    first validated unchanged; its numeric targets are not reused as new labels.
+    """
+    require(isinstance(decimal_grid, dict) and set(decimal_grid) ==
+        {'schema_version', 'decimal_places', 'bid_ticks', 'ask_ticks'}
+        and decimal_grid['schema_version'] == DECIMAL_GRID_SCHEMA
+        and type(decimal_grid['decimal_places']) is int
+        and 0 <= decimal_grid['decimal_places'] <= 12, 'DECIMAL_GRID_HEADER')
+    scale = 10 ** decimal_grid['decimal_places']
+    bid, ask = decimal_grid['bid_ticks'], decimal_grid['ask_ticks']
+    size = len(source['time_ns'])
+    require(all(isinstance(v, np.ndarray) and v.dtype == np.int64 and v.shape == (size,)
+        and not v.flags.writeable for v in (bid, ask))
+        and np.all(bid > 0) and np.all(ask >= bid) and np.all(ask <= 2**52), 'DECIMAL_GRID_TICKS')
+    require(np.array_equal(bid.astype(np.float64) / scale, source['bid_open'])
+        and np.array_equal(ask.astype(np.float64) / scale, source['ask_open']), 'DECIMAL_GRID_SOURCE_PARITY')
+    target = build_dense_targets(source, saved, cutoff_ns=cutoff_ns, block_rows=block_rows)
+    times, numerator = source['time_ns'], bid + ask
+    entry_at = np.searchsorted(times, target['decision_ns'])
+    require(np.all(entry_at < size) and np.array_equal(times[entry_at], target['decision_ns'])
+        and np.array_equal(source['source_row'][entry_at], target['dynamic_entry_m1_row']), 'DECIMAL_GRID_ENTRY')
+    for left in range(0, len(entry_at), block_rows):
+        right = min(left + block_rows, len(entry_at))
+        observed = target['observed'][left:right]
+        endpoints = target['terminal_time_ns'][left:right]
+        positions = np.searchsorted(times, endpoints)
+        require(np.all(positions[observed] < size)
+            and np.array_equal(times[positions[observed]], endpoints[observed])
+            and np.array_equal(source['source_row'][positions[observed]],
+                target['terminal_source_row'][left:right][observed]), 'DECIMAL_GRID_TERMINAL')
+        origin = np.broadcast_to(numerator[entry_at[left:right], None], endpoints.shape)
+        delta = numerator[positions[observed]] - origin[observed]
+        move = delta.astype(np.float64) / (2 * scale)
+        bps = (10000.0 * delta.astype(np.float64)) / origin[observed]
+        target['mid_move'][left:right][observed] = move
+        target['mid_return_bps'][left:right][observed] = bps
+        target['sign'][left:right][observed] = np.sign(delta).astype(np.int8)
+    require(np.array_equal(np.sign(target['mid_move']).astype(np.int8), target['sign'])
+        and np.array_equal(np.sign(target['mid_return_bps']).astype(np.int8), target['sign'])
+        and np.all(target['sign'][~target['observed']] == 0), 'DECIMAL_GRID_OUTPUT')
     return target
 
 

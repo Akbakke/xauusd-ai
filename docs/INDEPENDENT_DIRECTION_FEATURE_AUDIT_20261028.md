@@ -51,7 +51,7 @@ Dette er **punktestimater**, betinget på observerte ikke-null utfall, fra én g
 ## Neste nødvendige arbeid
 
 1. Desimalauditen er fullført og konsumert. Gjenskapelige kildebytes, klokker, målpekere og opprinnelige skårer bestod; kvantifiseringen står over. Ingen ny modell ble evaluert.
-2. Kildepresisjon og faktisk skåringspåvirkning er etablert for avgrenset periode. Reparer minste relevante målregning med ny identitet, sammenhengende midtbevegelse/bps/fortegn og fokuserte regresjonstester. Bevar gamle arkiver og krev ny korrekt baseline for endret modellfunksjon.
+2. En separat, syntetisk testet målberegning korrigerer fortegn, midtbevegelse og bps fra kildeverifiserte heltall. Den er ikke brukt til å publisere genuine mål; ny målidentitet og egen adgang gjenstår. Bevar gamle arkiver, og krev ny baseline før resultater fra endret trening kan sammenlignes. Se `docs/DIRECTION_EXACT_DECIMAL_GRID_TARGET_20261028.json`.
 3. Gjennomfør den forhåndsdefinerte 60-horisont-evalueringen med egen nøyaktig adgang og dag-/ukebånd, uten å velge beste minutt etterpå. Hold gamle og korrigerte mål klart adskilt.
 4. Undersøk faktisk verdi, masksamspill og læring per viktig familie/TF på de samme kronologiske utviklingsradene. Kontroller kartgeometrifelt som ikke er i den tidligere indeksen. Endre bare en konkret påvist blokkering eller en vedtatt designhypotese, og sammenlign endringer enkeltvis.
 

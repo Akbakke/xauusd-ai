@@ -113,3 +113,65 @@ else:
 '''
     result = subprocess.run([sys.executable, '-B', '-c', program, str(output)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+def decimal_grid_fixture():
+    source, saved, cutoff, _ = fixture()
+    bid = np.rint(source['bid_open'] * 1000).astype(np.int64)
+    ask = np.rint(source['ask_open'] * 1000).astype(np.int64)
+    entry = int(np.searchsorted(source['time_ns'], saved['decision_ns'][0]))
+    end1 = int(np.searchsorted(source['time_ns'], saved['decision_ns'][0] + dense.MINUTE_NS))
+    end3 = int(np.searchsorted(source['time_ns'], saved['decision_ns'][0] + 3 * dense.MINUTE_NS))
+    bid[entry], ask[entry] = 2300000, 2300120
+    bid[end1], ask[end1] = 2300001, 2300119
+    bid[end3], ask[end3] = 2300000, 2300122
+    source['bid_open'] = bid.astype(np.float64) / 1000
+    source['ask_open'] = ask.astype(np.float64) / 1000
+    source['open'] = (source['bid_open'] + source['ask_open']) / 2
+    for i, decision in enumerate(saved['decision_ns']):
+        entry = int(np.searchsorted(source['time_ns'], decision))
+        origin = (source['bid_open'][entry] + source['ask_open'][entry]) / 2
+        for j, terminal in enumerate(saved['terminal_time_ns'][i]):
+            if saved['observed'][i, j]:
+                pos = int(np.searchsorted(source['time_ns'], terminal))
+                change = (source['bid_open'][pos] + source['ask_open'][pos]) / 2 - origin
+                saved['mid_move'][i, j] = change
+                saved['mid_return_bps'][i, j] = 10000 * change / origin
+                saved['sign'][i, j] = np.sign(change)
+    bid.setflags(write=False); ask.setflags(write=False)
+    grid = {'schema_version': dense.DECIMAL_GRID_SCHEMA, 'decimal_places': 3,
+            'bid_ticks': bid, 'ask_ticks': ask}
+    return source, saved, cutoff, grid
+
+
+def test_decimal_grid_removes_float_tie_without_erasing_real_moves_or_missing():
+    source, saved, cutoff, grid = decimal_grid_fixture()
+    original = dense.build_dense_targets(source, saved, cutoff_ns=cutoff)
+    corrected = dense.build_decimal_grid_dense_targets(source, saved, decimal_grid=grid,
+                                                        cutoff_ns=cutoff, block_rows=1)
+    assert original['sign'][0, 0] == 1  # legacy float midpoint produced a false up move
+    assert corrected['observed'][0, 0] and corrected['sign'][0, 0] == 0
+    assert corrected['mid_move'][0, 0] == corrected['mid_return_bps'][0, 0] == 0
+    assert not corrected['observed'][0, 1] and corrected['terminal_source_row'][0, 1] == -1
+    assert corrected['observed'][0, 2] and corrected['sign'][0, 2] == 1
+    assert corrected['mid_move'][0, 2] == pytest.approx(.001)
+    assert corrected['mid_return_bps'][0, 2] == pytest.approx(10000 * 2 / 4600120)
+    assert np.array_equal(corrected['observed'], original['observed'])
+    assert np.array_equal(corrected['terminal_source_row'], original['terminal_source_row'])
+    blocked = dense.build_decimal_grid_dense_targets(source, saved, decimal_grid=grid, cutoff_ns=cutoff, block_rows=2)
+    assert all(corrected[key].tobytes() == blocked[key].tobytes() for key in corrected)
+
+
+def test_decimal_grid_fails_closed_if_float_quotes_or_tick_storage_do_not_match():
+    source, saved, cutoff, grid = decimal_grid_fixture()
+    changed = dict(source, bid_open=source['bid_open'].copy())
+    changed['bid_open'][0] += .0001
+    with pytest.raises(RuntimeError, match='DECIMAL_GRID_SOURCE_PARITY'):
+        dense.build_decimal_grid_dense_targets(changed, saved, decimal_grid=grid, cutoff_ns=cutoff)
+    wrong_grid = dict(grid, bid_ticks=grid['bid_ticks'].copy())
+    with pytest.raises(RuntimeError, match='DECIMAL_GRID_TICKS'):
+        dense.build_decimal_grid_dense_targets(source, saved, decimal_grid=wrong_grid, cutoff_ns=cutoff)
+    wrong_grid['bid_ticks'].setflags(write=False)
+    wrong_grid['decimal_places'] = 2
+    with pytest.raises(RuntimeError, match='DECIMAL_GRID_SOURCE_PARITY'):
+        dense.build_decimal_grid_dense_targets(source, saved, decimal_grid=wrong_grid, cutoff_ns=cutoff)

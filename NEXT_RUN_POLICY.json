@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:35:12.801085+00:00",
-  "status": "DECIMAL_SIGN_AUDIT_COMPLETE_CONSUMED_INDEPENDENT_FEATURE_AUDIT_CONTINUES",
+  "observed_utc": "2026-10-28T15:38:10.517807+00:00",
+  "status": "DECIMAL_TARGET_PROJECTION_SYNTHETIC_PASS_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve the completed decimal sign audit and original targets. Prepare the minimum exact-decimal target correction with separate identity and focused tests, then investigate the unqualified feature values and interaction on chronological development only; no TEST, broker or trading.",
+  "next_action": "Investigate which existing important feature families provide chronological directional information and whether the trained model uses it. The separate decimal grid projection is synthetic-tested but requires a fresh bound plan and new target identity before any genuine materialization; preserve original outputs and keep TEST/trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -41783,7 +41783,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "41e2ae146d66fe4e886b3ed4d01104835440cc5124d6385f688902e4f3dbf8da"
+      "sha256": "bd26096ef214d8a19093eb58b4b4834ce611e126b0a59e5b722ddf105fd72c8c"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -41795,7 +41795,7 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "economic_edge_qualified": false,
-    "next": "Close the confirmed source-decimal target defect under a distinct identity with consistent movement/bps/sign; retain legacy targets. Continue feature and composition investigation under separately scoped gates."
+    "next": "Exact decimal grid target projection passes synthetic tests under separate identity; no genuine corrected artifact exists. Continue chronological feature/value and model-interaction investigations under fresh exact gates."
   },
   "independent_direction_decimal_sign_audit_20261028_001": {
     "status": "FAILED_ONE_SHOT_CONSUMED",
@@ -41868,5 +41868,30 @@
     "fold1_later_five_minute_auc_stored": 0.5001825942394912,
     "fold1_later_five_minute_auc_decimal": 0.5001748981863747,
     "predictive_or_economic_edge_qualified": false
+  },
+  "independent_direction_decimal_target_repair_20261028": {
+    "status": "PURE_PROJECTION_SYNTHETIC_TESTED_GENUINE_TARGETS_NOT_MATERIALIZED",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_EXACT_DECIMAL_GRID_TARGET_20261028.json",
+      "sha256": "5b715db8a148e0328eb64b3d24f48d1916f244ac73274d14cff65c956f3a15ef"
+    },
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_direction_dense_v1.py",
+      "sha256": "77462078a177af15836f50d6cbe1e1bd37c1be37988e0742a5a21ec580930c69"
+    },
+    "focused_test": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_materialize_entry_direction_dense_v1.py",
+      "sha256": "5514df9904bf3b9a45602affbd541e0600d53561bb27e0ffebe761c929593cc8"
+    },
+    "source_decimal_grid_required": true,
+    "new_target_identity_required": true,
+    "new_plan_required_for_genuine_materialization": true,
+    "genuine_data_reads_authorized": false,
+    "target_materialization_authorized": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_enabled": false,
+    "test_or_trading_authority": false,
+    "economic_edge_qualified": false
   }
 }
