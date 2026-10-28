@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T13:00:51.373176+00:00",
-  "status": "DENSE_ONEPASS_FIT_ADMITTED_CAMPAIGN_PREPARATION",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "observed_utc": "2026-10-28T15:17:58.016214+00:00",
+  "status": "DENSE_ONEPASS_COMPLETE_CONSUMED_INDEPENDENT_DIRECTION_AUDIT_IN_PROGRESS",
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Prepare the exact dense one-pass campaign, stage 250 W for next boot, verify the host idle and physically restart before the guarded first invocation. Evaluate the fixed later development cohort after completion; no TEST or trading.",
+  "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
+  "next_action": "Preserve the completed 60-head fit and read-only independent findings. Plan and admit an exact capped original-decimal target-sign audit for the fixed TRAIN/later development populations; do not read new payloads or refit before its own bound gate. Apply the declared 60-minute uncertainty protocol under separate admission; no TEST or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-28T07:43:23.889711+00:00",
+  "updated_utc": "2026-10-28T15:17:58.016214+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -41710,18 +41710,18 @@
     }
   },
   "dynamic_m5_direction_dense_onepass_fit_20261028_001": {
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -41729,15 +41729,15 @@
     "broker_access_allowed": false,
     "full_val_allowed": false,
     "relaunch_allowed": false,
-    "status": "ADMITTED_ONE_PASS_60_MINUTES_ONLY",
+    "status": "COMPLETE_CONSUMED_60_MINUTE_ONE_PASS_LATER_SCORED",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RECIPE.json",
       "sha256": "64a7243076812506b7c2dc3ebd32c89cc2202ba9ff5ae2159f936bc830e75d2d"
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME",
     "max_invocations": 4,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "train_parents": 47602,
     "max_optimizer_updates": 2976,
     "train_passes": 1,
@@ -41745,6 +41745,56 @@
     "requested_physical_gpu_power_limit_w": 250,
     "qualification_weights_for_main_fit": false,
     "test_or_trading_authority": false,
-    "scope": "One fresh eight-family shared model, sixty separate minute logits, one TRAIN prefix pass and its fixed later development evaluation; no TEST, broker, orders, live/paper, Exit or promotion."
+    "scope": "One fresh eight-family shared model, sixty separate minute logits, one TRAIN prefix pass and its fixed later development evaluation; no TEST, broker, orders, live/paper, Exit or promotion.",
+    "completed_optimizer_updates": 2976,
+    "completed_train_parents": 47602,
+    "completed_later_parents": 17288,
+    "physical_boot_id": 573,
+    "guard_decision": "PASS",
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "5f6a242dae28ffa802ca235da64d8512c0b5437f8f6fa8f45082b8f20006f51c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451"
+    },
+    "idle_power_restore": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/POWER_IDLE_RESTORE_001.json",
+      "sha256": "86fd4c8e4754d853a84d22772de6c97229d314917dbd09b9d9a529ccaf348d51"
+    },
+    "point_only_later_auc": {
+      "1": 0.5010547039303976,
+      "5": 0.5001825942394912,
+      "10": 0.49851564376596164,
+      "15": 0.505190744656045,
+      "30": 0.5118373362280024,
+      "60": 0.521053836263897
+    },
+    "paired_and_simultaneous_intervals_complete": false,
+    "target_decimal_sign_impact_measured": false,
+    "predictive_or_economic_edge_qualified": false
+  },
+  "independent_direction_feature_target_audit_20261028": {
+    "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
+    "report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
+      "sha256": "cb2ff0f3eb2740f372f2ca4ca0d1f5de65ddd961cde9cd8b513c91c828175560"
+    },
+    "metadata_manifest": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
+      "sha256": "f16a48c01df167cdfaee7cade5c0351a17ae3add1fde15ec0f9751685153dd62"
+    },
+    "actual_decimal_sign_frequency_measured": false,
+    "source_payload_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "economic_edge_qualified": false,
+    "next": "Design a new exact capped audit from original decimal price strings; retain original targets and preserve source identities."
   }
 }
