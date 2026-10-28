@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "GC_STALE_CONTEXT_MEASURED",
+  "status": "CORRECTED_TARGET_TRAIN_BINDER_BLOCK_CONFIRMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Qualify the smallest exact corrected decimal target route and fresh baseline before any separately authorized fit. Examine a shared or temporally coupled 60-horizon head and GC level extrapolation as separate controlled hypotheses; retain all features, TEST seal and guards. No training, broker or trading is authorized.",
+  "next_action": "Implement and synthetically qualify a separate source-bound corrected-decimal target input route without opening training. Then prepare a fresh initial baseline and exact one-factor comparison for separate authorization; retain all 60 horizons, existing features, TEST seal and hardware guards.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43257,6 +43257,17 @@
     "independent_score_verification_complete": true,
     "original_metric_limitation_text_incorrect": true,
     "correction": "Original RESULT metrics.limitations incorrectly describes GC-history ablation. The actual and outer-described intervention replaced current GC context and last local aliases with previous M5 values; histories remain current. Future result text is fixed in source.",
+    "economic_edge_qualified": false
+  },
+  "independent_direction_decimal_training_binder_block_20261028": {
+    "status": "COMPLETE_CAPPED_READ_ONLY",
+    "result": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_TRAIN_BINDER_BLOCK_20261028.json",
+      "sha256": "56a2773843ae6abfe212ec37e9bd669a7e3b57946d827906c34536eb5252f407"
+    },
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
     "economic_edge_qualified": false
   }
 }

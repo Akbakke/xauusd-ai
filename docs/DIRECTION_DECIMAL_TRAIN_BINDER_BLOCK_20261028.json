@@ -1,0 +1,79 @@
+{
+  "schema_version": "gx1_decimal_target_training_block_review_v1",
+  "status": "COMPLETE_CAPPED_READ_ONLY",
+  "inputs": {
+    "legacy_three_horizon": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "original_dense": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
+      "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d"
+    },
+    "original_dense_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json",
+      "sha256": "1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b"
+    },
+    "corrected_dense": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "corrected_dense_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "corrected_consumer_audit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "87b2240484f48b1c7341467947357e25cda28c8d47fcf91f43b87614fa664632"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RECIPE.json",
+      "sha256": "64a7243076812506b7c2dc3ebd32c89cc2202ba9ff5ae2159f936bc830e75d2d"
+    }
+  },
+  "sources": {
+    "gx1/contracts/entry_native_direction_dense_data_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_data_v1.py",
+      "sha256": "ee2246a483bdfa65adbfc8222cac335f483edaa0bbc5870c38cc8b5af2fe4743"
+    },
+    "gx1/contracts/entry_native_direction_decimal_data_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_decimal_data_v1.py",
+      "sha256": "07bdd987d5528eec1aa1b20feb624c0b142b9fda294253cd1e0bd44b2b04c944"
+    },
+    "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+      "sha256": "011a2b6f26bda7ae03c166929623c3f47d501caa8951677d003ee1adb45d0e4b"
+    },
+    "gx1/contracts/entry_native_direction_research_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_campaign_v1.py",
+      "sha256": "5ab2ad6feb2f551da4568d21a26da09141e3545cd7be4966b3fd6ae86f88f5e5"
+    },
+    "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "sha256": "fc10bc41fbe625279b059116471f6194223f821a07e1a8005a4b78bb6676cd91"
+    }
+  },
+  "actual_join": {
+    "original_dense_in_existing_training_binder": "PASS",
+    "corrected_dense_in_existing_training_binder": "NATIVE_DIRECTION_DENSE_DATA_ANCHOR_BYTES:mid_move",
+    "corrected_dense_in_separate_decimal_binder": "PASS_STRUCTURAL_ONLY_NO_TRAIN_AUTHORIZATION",
+    "changed_original_anchor_signs": {
+      "1min": 56,
+      "5min": 40,
+      "15min": 18
+    }
+  },
+  "existing_gate": "The existing dense training recipe hard-binds the original dense archive and original materialization report; its private qualification and initial parity are bound to that exact scope. The generic structural decimal consumer does not authenticate file provenance or authorize training.",
+  "smallest_safe_route": [
+    "Define a separate exact scope that binds both the original and corrected target archives, their source-verified decimal materialization and independently checked consumer receipt; preserve legacy scope and anchor behavior.",
+    "Call the existing decimal consumer from the separately admitted training input route with all original axes, clocks, source rows and observation masks checked; do not infer permission from the new route.",
+    "Qualify source owners, exact initial model/optimizer/RNG baseline and private mechanics under a new scoped plan. Before any genuine training require a new explicit exact authorization and the requested physical restart; keep TEST and broker closed.",
+    "Compare head initialization, bps supervision and extra exposure as separate factors on matched chronological development periods; retain all 60 horizons and existing compact features."
+  ],
+  "limits": "The measured label correction is numerically small at fixed predictions and no retraining effect has been measured. The route above is a proposed source-and-admission design, not an implemented or authorized new training run.",
+  "recording": "Observed bind results and anchor counts transcribed from a completed capped read-only terminal computation, after exact input hash checks; this JSON is not a standalone execution receipt.",
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}
