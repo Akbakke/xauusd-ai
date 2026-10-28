@@ -1,0 +1,49 @@
+{
+  "actual_idle_draw_w": 22.81,
+  "chart_local_weight_nonzero_first_step": 0,
+  "chart_local_weight_nonzero_second_step": 4096,
+  "chart_mtf_weight_nonzero_first_step": 4992,
+  "economic_edge_qualified": false,
+  "gpu_power_limit_w": 250,
+  "idle_restore": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/POWER_IDLE_RESTORE_001.json",
+    "sha256": "72aa2596057424ee746d4baebc6339bdbad3745ba1a1191279cc877931b41c91"
+  },
+  "initial_baseline_parents": 256,
+  "limitations": [
+    "Private mechanics only; weights are never reused for main fit.",
+    "The new 60-head model has not been fitted or scored on later development observations.",
+    "Combined restoration of geometry and 60 heads does not identify either factor as the cause of future changes.",
+    "No economic or predictive edge is established."
+  ],
+  "optimizer_updates": 4,
+  "peak_actual_gpu_draw_w": 132.01,
+  "peak_core_c": 50,
+  "peak_memory_junction_c": 56,
+  "physical_boot_id": 572,
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+    "sha256": "7743414d8f0b14fa7e66a17944934739269125f5541f13a3395778c0d10a4d2d"
+  },
+  "real_target_archive_join_and_hash_verified": true,
+  "receipt": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/RUNTIME/receipts/invocation-0001.json",
+    "sha256": "eb903ea60619ce0d680ff05085087e70ed04584df5682bbb3dd7a4bffc06e9d5"
+  },
+  "restored_idle_limit_w": 160,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/RUNTIME/private-research/RESULT.json",
+    "sha256": "55d748a546dc7088bb9c7bf708603b9e8dd4ac480ec7d86bf10a9f69ce9209ba"
+  },
+  "resumed_state_bit_exact": true,
+  "review": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+    "sha256": "7b5768f2310446716f9954ab2e5887831e5dc8e6bde143c7bc4fa72156b17b24"
+  },
+  "schema_version": "gx1_dense_native_private_qualification_review_v1",
+  "separate_head_gradients_nonzero": 60,
+  "status": "COMPLETE_PRIVATE_MECHANICS_NO_PREDICTIVE_EDGE",
+  "test_data_used": false,
+  "train_prior_anchors_match_original": true,
+  "unique_private_parents": 32
+}

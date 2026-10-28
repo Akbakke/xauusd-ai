@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T12:42:15.936590+00:00",
-  "status": "DENSE_PRIVATE_MECHANICS_ONE_SHOT_ADMITTED_CAMPAIGN_PREPARATION",
-  "training_enabled": true,
+  "observed_utc": "2026-10-28T12:55:46.088149+00:00",
+  "status": "DENSE_PRIVATE_MECHANICS_COMPLETE_60_HEAD_FIT_PENDING",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Prepare the exact admitted private campaign, stage 250 W for its next boot, verify all host workloads idle, then physically restart and run its one guarded private invocation. Restore the 160 W idle limit afterward; full fit remains closed.",
+  "next_action": "Prepare a separate exact one-pass 60-head eight-family training and chronological development evaluation plan, bound to the passed private qualification and fresh initial model; private weights are forbidden for the fit. Reboot the idle host and use the requested 250 W limit before each invocation. TEST remains sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -8908,10 +8908,10 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Dense private qualification source has synthetic initialization, gradient and resume/control checks only; no real native model/optimizer execution on the new profile.",
-      "The exact one-shot private campaign and genuine current-source/data qualification are pending; full fit remains closed.",
-      "The previous 60-minute evaluation reused the five-minute score; separate-minute generalization and chart geometry added value remain unmeasured.",
-      "Input stability, quote-event age, H1 signed-flow coverage, decision selectivity and cost-adjusted performance remain unresolved."
+      "The new 60-head eight-family model passed private mechanics; full fitting and later chronological development scoring are pending.",
+      "No separate causal comparison isolates geometry restoration from the 60-head objective.",
+      "Quote-event age, H1 signed-flow coverage, decision selectivity and cost-adjusted performance remain unresolved.",
+      "The sealed TEST and all trading surfaces remain untouched."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "DENSE_PRIVATE_MECHANICS_ONE_SHOT_ADMITTED_CAMPAIGN_PREPARATION",
+    "status": "DENSE_PRIVATE_MECHANICS_COMPLETE_60_HEAD_FIT_PENDING",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Prepare the exact admitted private campaign, stage 250 W for its next boot, verify all host workloads idle, then physically restart and run its one guarded private invocation. Restore the 160 W idle limit afterward; full fit remains closed.",
+    "next_action": "Prepare a separate exact one-pass 60-head eight-family training and chronological development evaluation plan, bound to the passed private qualification and fresh initial model; private weights are forbidden for the fit. Reboot the idle host and use the requested 250 W limit before each invocation. TEST remains sealed.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37319,8 +37319,13 @@
       "dense_loader_source_implemented_and_synthetically_joined": true,
       "dense_source_transition_proof": "docs/DIRECTION_DENSE_SOURCE_TRANSITION_20261028.json",
       "private_qualification_source_and_synthetic_control_flow_complete": true,
-      "private_qualification_actual_complete": false,
-      "private_qualification_plan_admitted": true
+      "private_qualification_actual_complete": true,
+      "private_qualification_plan_admitted": true,
+      "real_target_loader_actual_complete": true,
+      "private_qualification_review": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+        "sha256": "7b5768f2310446716f9954ab2e5887831e5dc8e6bde143c7bc4fa72156b17b24"
+      }
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -41666,15 +41671,15 @@
     }
   },
   "dynamic_m5_direction_dense_native_qualification_20261028_001": {
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
@@ -41683,19 +41688,23 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "relaunch_allowed": false,
-    "status": "ADMITTED_ONE_PRIVATE_MECHANICS_ONLY",
+    "status": "COMPLETE_CONSUMED_PRIVATE_MECHANICS_ONLY",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/RECIPE.json",
       "sha256": "99069f3b94a1129f5f888ab03b1a9e18abe3e57ecc26ca379d6e30e210aaa386"
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_private_optimizer_steps": 4,
-    "physical_restart_before_invocation_authorized": true,
+    "physical_restart_before_invocation_authorized": false,
     "requested_physical_gpu_power_limit_w": 250,
     "qualification_weights_for_main_fit": false,
-    "scope": "Only fresh 60-head eight-family native initialization and exact two-step/resume mechanics on 32 predeclared TRAIN parents. No full fit, TEST, trading, order, broker or Exit."
+    "scope": "Only fresh 60-head eight-family native initialization and exact two-step/resume mechanics on 32 predeclared TRAIN parents. No full fit, TEST, trading, order, broker or Exit.",
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "7b5768f2310446716f9954ab2e5887831e5dc8e6bde143c7bc4fa72156b17b24"
+    }
   }
 }
