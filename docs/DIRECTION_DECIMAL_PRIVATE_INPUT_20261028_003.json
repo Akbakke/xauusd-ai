@@ -1,0 +1,146 @@
+{
+  "schema_version": "gx1_direction_decimal_private_input_design_v1",
+  "stage": "independent_direction_decimal_private_input_20261028_003",
+  "input_audit": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json",
+    "sha256": "8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19"
+  },
+  "inputs": {
+    "legacy": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "original": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
+      "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d"
+    },
+    "original_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json",
+      "sha256": "1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b"
+    },
+    "corrected": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "corrected_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "consumer_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_PLAN_20261028_002.json",
+      "sha256": "fff5f468adf5f4967a3bbbd21a7c5d50b21f65680218126ef2e8d36119265062"
+    },
+    "consumer_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "87b2240484f48b1c7341467947357e25cda28c8d47fcf91f43b87614fa664632"
+    },
+    "materialization_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_PLAN_20261028_001.json",
+      "sha256": "47919b63a2e31d7534f7196b7d69511502c989babbb0b385af7522abd765dcb6"
+    },
+    "audit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+    }
+  },
+  "sources": {
+    "gx1/scripts/audit_direction_decimal_private_input_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_direction_decimal_private_input_v1.py",
+      "sha256": "f66767c6d205da70337832f28c598377bb4f34063887e8939837453543bc1017"
+    },
+    "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "sha256": "1250319bff9db93a438d0cba79587a484c97f6500cb7f70460d66a558adf3427"
+    },
+    "gx1/scripts/run_entry_native_direction_research_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "sha256": "9da9a86ca61958d8a2ddfa34af5bd71df15eed1f1dd0d8b5175d78200a28e2f9"
+    },
+    "gx1/scripts/run_entry_native_direction_dense_qualification_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
+      "sha256": "9e64e4f01339c8b2f47dcf344a53c9e068ebcd5e414ba84302d9f9a02e03b146"
+    },
+    "gx1/contracts/entry_native_direction_research_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_campaign_v1.py",
+      "sha256": "ae6a4fa10b2c49b3c0aacb1926250899883a97fbe4a076d262e3bb7c339e5261"
+    },
+    "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+      "sha256": "0879bc421c0072c86bacb92db81c50947b5db42138b13d76954a5e5f435a30a8"
+    },
+    "gx1/contracts/entry_native_direction_decimal_input_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_decimal_input_v1.py",
+      "sha256": "27f9612c4120ebdb7d01380c65a14619830619df8ea80075bf0995c2be6e0ea8"
+    },
+    "gx1/contracts/entry_native_direction_decimal_data_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_decimal_data_v1.py",
+      "sha256": "07bdd987d5528eec1aa1b20feb624c0b142b9fda294253cd1e0bd44b2b04c944"
+    },
+    "gx1/contracts/entry_native_direction_dense_data_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_data_v1.py",
+      "sha256": "ee2246a483bdfa65adbfc8222cac335f483edaa0bbc5870c38cc8b5af2fe4743"
+    },
+    "gx1/contracts/entry_native_direction_dense_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_v1.py",
+      "sha256": "ec86135c00aaaceb41f44f91517345e4d54a6efc217d3efdbcf0e414d1ae1a3a"
+    },
+    "gx1/features/entry_specialist_feature_groups_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+      "sha256": "67ac3e96ee1ce305b5e38fec5379d9a877675d5c16076b7f4d76fafcda9fb8a4"
+    },
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+      "sha256": "40af504ddc7ab839a9ef23276ea1167589cb6b86adcf90931aeeee893692ea0c"
+    },
+    "gx1/scripts/audit_entry_direction_candle_midpoints_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_direction_candle_midpoints_v1.py",
+      "sha256": "530e930eb07769627ce093ffe6ad1aa0e5304594ed50447ef92de300bb4cd811"
+    },
+    "gx1/contracts/gx1_capped_execution_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "gx1/contracts/local_random_access_campaign_v2.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/local_random_access_campaign_v2.py",
+      "sha256": "0f7edcc8cafcc1b1b73ebdb6673194271173ed83c2bae86dbd80361bc4edeafb"
+    },
+    "gx1/contracts/immutable_event_authority_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_bundle_commit_v1.py",
+      "sha256": "86dfe4cb7eb58e3f20ba29b85348ba296bdb614cd0330c6aa4c862b08b93133e"
+    },
+    "scripts/gx1_capped_run.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "42be63429d4b5c12377da5ac7a6631252fa4b083ad4a5b6595e76eb80e971e55"
+    },
+    "tests/test_entry_native_direction_decimal_private_integration_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_decimal_private_integration_v1.py",
+      "sha256": "8a551d9dca3e46c53b9db51dc5df87e380d9b8656e07c33d2663d6b77581d6f2"
+    },
+    "tests/test_entry_native_direction_dense_qualification_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_dense_qualification_v1.py",
+      "sha256": "c45a73ccb5e1a1cca5f6cd3513a789837f99d00e21e107438e0cb961be7b3ce1"
+    }
+  },
+  "fold": {
+    "fold_id": 1,
+    "prefix_rows": 47602,
+    "oof_start_row": 47602,
+    "oof_end_row": 64890,
+    "train_cutoff_ns": 1735689600000000000,
+    "oof_cutoff_ns": 1743465600000000000
+  },
+  "output_dir": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003",
+  "test_data_used": false,
+  "scope": "Call the actual private _prepare target branch against authenticated corrected and original target archives, compare all 60 TRAIN prior counts to independent decimal audit, and verify target immutability.",
+  "repair": "The consumed 001 audit blocked the true owner import. The separately consumed 002 audit held an outer verification scope while the owner required a fresh one. In 003 the CPU-only owner is preloaded and the finite input-hash scope closes before the native target owner starts its own fresh scope.",
+  "limits": [
+    "The physical provider and feature view are stubbed; physical axes come from the already independently matched legacy target archive.",
+    "Torch import on CPU is not a model construction, forward, optimizer, CUDA operation or model qualification.",
+    "No genuine feature gather, GPU, forward, optimizer, checkpoint or TEST.",
+    "This does not admit the private GPU qualification or a full fit."
+  ]
+}

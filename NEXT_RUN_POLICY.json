@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "DECIMAL_PRIVATE_INPUT_AUDIT_002_ADMITTED",
+  "status": "DECIMAL_PRIVATE_INPUT_AUDIT_003_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Complete the distinct CPU-only data audit of the actual native target branch, verify and close it. Private GPU qualification and full prefix fit remain closed until a new exact authorization and requested restart.",
+  "next_action": "Complete the distinct CPU-only data audit of the actual native target branch with disjoint verification scopes, verify and close it. Private GPU qualification and full prefix fit remain closed until a new exact authorization and requested restart.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43546,7 +43546,7 @@
     }
   },
   "direction_decimal_private_route_source_20261028": {
-    "status": "SOURCE_PREPARED_DATA_AUDIT_002_PENDING",
+    "status": "SOURCE_PREPARED_DATA_AUDIT_003_PENDING",
     "private_scope": "private_dense_decimal_b16_initial_resume_qualification",
     "full_prefix_fit_scope_admitted": false,
     "training_authorized": false,
@@ -43558,10 +43558,40 @@
     "economic_edge_qualified": false
   },
   "independent_direction_decimal_private_input_20261028_002": {
-    "status": "ADMITTED",
+    "status": "FAILED_ONE_SHOT_CONSUMED",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_002.json",
       "sha256": "1b6431770e765b285620d58396a65f57d9dd0c87b3f1d8ce49bca7bb76d70ce3"
+    },
+    "execution_authorized": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "cuda_visible_devices": "",
+    "scope": "Distinct data-only corrected 60-minute target adapter after consumed 001 import-guard failure. CPU-only owner import with model-call profile guard; stub physical provider and feature view. No model, fit, broker or TEST.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_002/INVOCATION_CLAIM.json",
+      "sha256": "648680e15930a3b87b2a1f50967d411c59d013f5f17ac6d8c4ab4b5f6c21bd65"
+    },
+    "failed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_002/FAILED_TERMINAL.json",
+      "sha256": "705d1e15c2ab951ec35aed0eeb1f90bad4a6ba97baee87ec67c259ae10066f66"
+    }
+  },
+  "independent_direction_decimal_private_input_20261028_003": {
+    "status": "ADMITTED",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003.json",
+      "sha256": "b6251037173a697555e75898ddbf56201979fb838a24ed9de48efecf417361d2"
     },
     "execution_authorized": true,
     "model_forwards_authorized": false,
@@ -43577,6 +43607,6 @@
     "memory_max": "4G",
     "wall_seconds": 600,
     "cuda_visible_devices": "",
-    "scope": "Distinct data-only corrected 60-minute target adapter after consumed 001 import-guard failure. CPU-only owner import with model-call profile guard; stub physical provider and feature view. No model, fit, broker or TEST."
+    "scope": "Distinct CPU-only data audit after consumed 001 and 002 failures. Close the input verification scope before the exact target owner opens its own; stub physical provider and feature view. No model, fit, broker or TEST."
   }
 }

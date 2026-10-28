@@ -198,3 +198,15 @@ def test_private_decimal_adapter_is_rejected_by_real_prefix_fit_validator(prefix
     reseal(recipe,'recipe_sha256');ref=write(f['runtime']/'decimal-prefix-fit.json',recipe)
     with pytest.raises(RuntimeError,match='RECIPE_SCOPE'):
         prefix_authority.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
+def test_data_audit_releases_its_scope_before_exact_owner(tmp_path):
+    from gx1.contracts import entry_native_direction_decimal_input_v1 as owner
+    from gx1.scripts import audit_direction_decimal_private_input_v1 as audit
+    refs,axes,legacy,corrected=make_case(tmp_path)
+    with np.load(refs['legacy']['path'],allow_pickle=False) as archive:members=list(archive.files)
+    actual,snapshot=audit.load_verified_axes(refs,members)
+    assert all(np.array_equal(actual[k],axes[k]) for k in actual)
+    targets=owner.load_bound_decimal_direction_targets(refs=refs,axes=axes,legacy=legacy)
+    assert np.array_equal(targets['sign'],corrected['sign'])
+    snapshot.require_unchanged()

@@ -12,6 +12,12 @@ Programrot:
 ## Aktuell status
 
 
+KORRIGERT PRIVAT DATAKONTROLL 003 KILDEBUNDET: ny separat én-gangsplan etter konsumert importfeil 001 og overlappende verifikasjonsøkt 002. Den ytre dataverifikasjonen lukkes før den ekte måleieren åpner sin egen; syntetisk regresjonstest bestod. CPU-import, tom CUDA-synlighet og modellkallvakt beholdes. Fysisk provider og featureview stubbes; ekte målarkiver og alle 60 TRAIN-priorer kontrolleres. Ingen modellforward, optimizer, GPU, TEST eller handel. Plan: `/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003.json`, SHA-256 `b6251037173a697555e75898ddbf56201979fb838a24ed9de48efecf417361d2`. Kjør én gang, kontroller og lukk.
+
+
+KORRIGERT PRIVAT DATAKONTROLL 002 FEILET OG ER KONSUMERT: kontrollens ytre filverifikasjonsøkt overlappet den ekte måleierens krav om en ny separat økt. Kildegjennomgang viser at native campaign-kontekstens økt er lukket før `_prepare`, men ekte privat kvalifisering er ikke kjørt. Ingen modellkonstruksjon, forward, optimizer, CUDA eller TEST. Ikke relanser 002. Feilkvittering `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_002/FAILED_TERMINAL.json`, SHA-256 `705d1e15c2ab951ec35aed0eeb1f90bad4a6ba97baee87ec67c259ae10066f66`. Rett kun auditens scope og forbered ny separat 003.
+
+
 KORRIGERT PRIVAT DATAKONTROLL 002 KILDEBUNDET: ny separat én-gangsplan etter konsumert 001-importfeil. Den eksakte måleieren lastes på CPU med CUDA_VISIBLE_DEVICES tom, deretter forbyr profilvakt modell- og CUDA-kall. Fysisk provider og featureview stubbes; ekte målarkiver og alle 60 TRAIN-priorer kontrolleres. Ingen modellkonstruksjon, forward, optimizer, GPU, TEST eller handel. Plan: `/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_002.json`, SHA-256 `1b6431770e765b285620d58396a65f57d9dd0c87b3f1d8ce49bca7bb76d70ce3`. Kjør én gang, kontroller og lukk.
 
 

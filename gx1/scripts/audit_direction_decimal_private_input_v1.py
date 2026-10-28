@@ -16,7 +16,7 @@ import numpy as np
 
 REPO=Path('/home/andre2/src/GX1_CURRENT')
 ROOT=Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
-STAGE='independent_direction_decimal_private_input_20261028_002'
+STAGE='independent_direction_decimal_private_input_20261028_003'
 SOURCES=(
     'gx1/scripts/audit_direction_decimal_private_input_v1.py',
     'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py',
@@ -45,6 +45,18 @@ def require(ok,reason):
     if not bool(ok):raise RuntimeError('DIRECTION_DECIMAL_PRIVATE_INPUT_AUDIT_'+reason)
 
 
+def load_verified_axes(refs, price_members):
+    """Close the finite input scope before the target owner opens its own."""
+    from gx1.contracts import local_random_access_campaign_v2 as binding
+    with binding.fresh_file_verification_scope():
+        for ref in refs.values():binding.require_binding(ref,label='target input')
+        with np.load(refs['legacy']['path'],allow_pickle=False) as archive:
+            require(archive.files==list(price_members),'LEGACY_MEMBERS')
+            arrays={key:archive[key].copy() for key in ('parent_rows','bar_start_ns','decision_ns')}
+        snapshot=binding.capture_verified_file_snapshot()
+    return arrays,snapshot
+
+
 def main():
     sys.dont_write_bytecode=True
     parser=argparse.ArgumentParser(description=__doc__)
@@ -69,7 +81,7 @@ def main():
     import torch
     require(len(AXES)==4 and len(TARGETS)==6 and not torch.cuda.is_initialized(),'CPU_OWNER_IMPORT')
     initial=candle.git_state();require(initial==(args.source_head,'work/gx1-current',''),'SOURCE')
-    design_ref={'path':str(REPO/'docs/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_002.json'),'sha256':args.design_sha256}
+    design_ref={'path':str(REPO/'docs/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003.json'),'sha256':args.design_sha256}
     policy_ref={'path':str(REPO/'NEXT_RUN_POLICY.json'),'sha256':args.policy_sha256}
     with binding.fresh_file_verification_scope():
         design=binding.read_bound_json(Path(design_ref['path']),design_ref['sha256'])
@@ -94,7 +106,7 @@ def main():
         control=binding.capture_verified_file_snapshot()
     proof,lock=cap.require_capped_cpu_audit_execution(),cap.require_capped_lock_ancestry()
     require(lock['scope']==proof['cgroup_path'][len('/sys/fs/cgroup'):],'CAPPED_LOCK')
-    out=ROOT/'DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_002'
+    out=ROOT/'DIRECTION_DECIMAL_PRIVATE_INPUT_20261028_003'
     require(design['output_dir']==str(out) and ROOT.resolve(strict=True)==ROOT and not out.exists() and not out.is_symlink(),'OUTPUT')
     out.mkdir(exist_ok=False)
     def publish(path,value):publication._publish_bytes(path,binding.canonical_bytes(value))
@@ -108,47 +120,42 @@ def main():
     previous=signal.signal(signal.SIGALRM,expired);signal.alarm(600)
     try:
         stage.mkdir(exist_ok=False)
-        with binding.fresh_file_verification_scope():
-            for ref in refs.values():binding.require_binding(ref,label='target input')
-            with np.load(refs['legacy']['path'],allow_pickle=False) as archive:
-                require(archive.files==list(prefix.PRICE_MEMBERS),'LEGACY_MEMBERS')
-                arrays={key:archive[key].copy() for key in ('parent_rows','bar_start_ns','decision_ns')}
-            prepared={'arrays':arrays,'gc':{'layout':{},'transition':{}},
-                'entry_sequence_source':{'times_ns':np.arange(1,dtype=np.int64),'sample_positions':np.arange(1,dtype=np.int64)}}
-            physical=SimpleNamespace(prepare_inputs=lambda *_:prepared,release_pages=lambda *_:None)
-            source_refs={key:{'path':'/stub/'+key,'sha256':'0'*64} for key in ('raw_gc_layout','raw_gc_transition')}
-            manifest={'targets':refs['legacy'],'view_source_bindings':source_refs,
-                'prefix_normalization':{'output':{'path':'/stub/prefix','sha256':'0'*64}},
-                'constructor_metadata':{'path':'/stub/constructor','sha256':'0'*64}}
-            context={'physical':physical,'ancestor':object(),'ancestor_plan':{},'info':{'metadata':{}},'manifest':manifest,
-                'fitted':{'base_normalization':{'surfaces':{'mtf_m5':{'field_names':[]}}}},'constructor':{},
-                'dense_target':refs['corrected'],'decimal_original':refs['original'],'decimal_target_refs':refs}
-            owners={key:design['sources'][key] for key in ('gx1/contracts/entry_native_direction_dense_v1.py',
-                'gx1/features/entry_specialist_feature_groups_v1.py','gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py')}
-            launch={'run_scope':prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE,'dense_target':refs['corrected'],
-                'decimal_target_refs':refs,'fold':design['fold'],'source_owners':owners}
-            view=ModuleType('gx1.contracts.entry_native_direction_feature_view_v1');view.bind_native_direction_feature_view=lambda **kw:kw
-            report=ModuleType('gx1.contracts.entry_native_direction_context_report_v1');report.native_direction_context_map=lambda **kw:{}
-            stubs={view.__name__:view,report.__name__:report}
-            for name,module in stubs.items():require(name not in sys.modules,'PREEXISTING_MODULE:'+name);sys.modules[name]=module
-            original_read=common._read;common._read=lambda *_:{}
-            original_discard=htf.discard_multi_tf_v4_cache_pages;htf.discard_multi_tf_v4_cache_pages=lambda *_:None
-            previous_profile=sys.getprofile();sys.setprofile(candle.no_native_models)
-            try:
-                got,targets,_view,_map,order=prefix._prepare(context,launch,np,dense_minutes=True)
-            finally:
-                sys.setprofile(previous_profile);common._read=original_read;htf.discard_multi_tf_v4_cache_pages=original_discard
-                for name in stubs:sys.modules.pop(name,None)
-            require(got is prepared and set(targets)==set(prefix.TARGET_MEMBERS) and len(order)==design['fold']['prefix_rows']
-                and all(not x.flags.writeable for x in targets.values()),'ADAPTER_OUTPUT')
-            sign_audit=binding.read_bound_json(Path(refs['audit_result']['path']),refs['audit_result']['sha256'])
-            prior=prefix._prefix_prior(arrays,targets,design['fold'],np);qualification.require_decimal_prefix_prior(prior,sign_audit)
-            with np.load(refs['corrected']['path'],allow_pickle=False) as archive:
-                for key in prefix.TARGET_MEMBERS:require(np.array_equal(targets[key],archive[key]),'CORRECTED_BYTES:'+key)
-            with np.load(refs['original']['path'],allow_pickle=False) as archive:
-                old=archive['sign'];new=targets['sign'];changed=old!=new
-                require(int(changed.sum())==976 and np.all(new[changed]==0) and np.all(old[changed]!=0),'SIGN_REPAIR')
-            payload=binding.capture_verified_file_snapshot()
+        arrays,payload=load_verified_axes(refs,prefix.PRICE_MEMBERS)
+        prepared={'arrays':arrays,'gc':{'layout':{},'transition':{}},
+            'entry_sequence_source':{'times_ns':np.arange(1,dtype=np.int64),'sample_positions':np.arange(1,dtype=np.int64)}}
+        physical=SimpleNamespace(prepare_inputs=lambda *_:prepared,release_pages=lambda *_:None)
+        source_refs={key:{'path':'/stub/'+key,'sha256':'0'*64} for key in ('raw_gc_layout','raw_gc_transition')}
+        manifest={'targets':refs['legacy'],'view_source_bindings':source_refs,
+            'prefix_normalization':{'output':{'path':'/stub/prefix','sha256':'0'*64}},
+            'constructor_metadata':{'path':'/stub/constructor','sha256':'0'*64}}
+        context={'physical':physical,'ancestor':object(),'ancestor_plan':{},'info':{'metadata':{}},'manifest':manifest,
+            'fitted':{'base_normalization':{'surfaces':{'mtf_m5':{'field_names':[]}}}},'constructor':{},
+            'dense_target':refs['corrected'],'decimal_original':refs['original'],'decimal_target_refs':refs}
+        owners={key:design['sources'][key] for key in ('gx1/contracts/entry_native_direction_dense_v1.py',
+            'gx1/features/entry_specialist_feature_groups_v1.py','gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py')}
+        launch={'run_scope':prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE,'dense_target':refs['corrected'],
+            'decimal_target_refs':refs,'fold':design['fold'],'source_owners':owners}
+        view=ModuleType('gx1.contracts.entry_native_direction_feature_view_v1');view.bind_native_direction_feature_view=lambda **kw:kw
+        report=ModuleType('gx1.contracts.entry_native_direction_context_report_v1');report.native_direction_context_map=lambda **kw:{}
+        stubs={view.__name__:view,report.__name__:report}
+        for name,module in stubs.items():require(name not in sys.modules,'PREEXISTING_MODULE:'+name);sys.modules[name]=module
+        original_read=common._read;common._read=lambda *_:{}
+        original_discard=htf.discard_multi_tf_v4_cache_pages;htf.discard_multi_tf_v4_cache_pages=lambda *_:None
+        previous_profile=sys.getprofile();sys.setprofile(candle.no_native_models)
+        try:
+            got,targets,_view,_map,order=prefix._prepare(context,launch,np,dense_minutes=True)
+        finally:
+            sys.setprofile(previous_profile);common._read=original_read;htf.discard_multi_tf_v4_cache_pages=original_discard
+            for name in stubs:sys.modules.pop(name,None)
+        require(got is prepared and set(targets)==set(prefix.TARGET_MEMBERS) and len(order)==design['fold']['prefix_rows']
+            and all(not x.flags.writeable for x in targets.values()),'ADAPTER_OUTPUT')
+        sign_audit=binding.read_bound_json(Path(refs['audit_result']['path']),refs['audit_result']['sha256'])
+        prior=prefix._prefix_prior(arrays,targets,design['fold'],np);qualification.require_decimal_prefix_prior(prior,sign_audit)
+        with np.load(refs['corrected']['path'],allow_pickle=False) as archive:
+            for key in prefix.TARGET_MEMBERS:require(np.array_equal(targets[key],archive[key]),'CORRECTED_BYTES:'+key)
+        with np.load(refs['original']['path'],allow_pickle=False) as archive:
+            old=archive['sign'];new=targets['sign'];changed=old!=new
+            require(int(changed.sum())==976 and np.all(new[changed]==0) and np.all(old[changed]!=0),'SIGN_REPAIR')
         payload.require_unchanged();control.require_unchanged()
         require(candle.git_state()==initial and cap.require_capped_lock_ancestry()==lock
             and not torch.cuda.is_initialized()
