@@ -1,0 +1,453 @@
+{
+  "schema_version": "gx1_direction_matched_exposure_paired_review_v1",
+  "status": "COMPLETE_REUSED_DEVELOPMENT_NO_EDGE_CLAIM",
+  "reviewed_utc": "2026-10-28T02:59:59.839074+00:00",
+  "source_head": "5390a963c0e0a5d5d3634e1d2dd70fb89b662fd6",
+  "plan": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_PLAN_20261028_001.json",
+    "sha256": "cfac50ff3f8b8babac3bb43d708f2931e28c19c1c0b250eab1136298939d10d5"
+  },
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_RESULT_20261028_001/RESULT.json",
+    "sha256": "f7d2e4c9459a874dbeda505af94125da7fcd3c6c2ab135dc92435b47dc4324ae"
+  },
+  "outer_terminal": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_OUTER_TERMINAL_20261028_001.json",
+    "sha256": "e860b285202dacbf52eabcdd33470e0e9f6ba420bf8069b47a76f662eaa72de6"
+  },
+  "claim": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_RESULT_20261028_001/CLAIM.json",
+    "sha256": "f7e814689fa890ebd68fdbf72afadb19b739b85ede538a66a81758345c975087"
+  },
+  "worker_log": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_WORKER_20261028_001.log",
+    "sha256": "31edaf345ab63b95b3b23f1eb0c78e3b3426f63bb583b5a99911211cf0551140"
+  },
+  "design": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
+    "sha256": "d43625b090ff32fa4da4c66f57331acc41e5c4dd6476a040aa40fb6be6091f01"
+  },
+  "paired_observations": 17288,
+  "comparison": "One versus three full presentations of the same first-fold TRAIN prefix; same initial state, input view, parent clocks, targets, masks and context.",
+  "panels": [
+    {
+      "arms": {
+        "one": {
+          "auc": 0.5008823371328807,
+          "brier": 0.25003141374759247,
+          "down": 8661,
+          "logloss": 0.6932100209568366,
+          "up": 8554
+        },
+        "three": {
+          "auc": 0.5051618996651387,
+          "brier": 0.25023786363856837,
+          "down": 8661,
+          "logloss": 0.6936247420604689,
+          "up": 8554
+        }
+      },
+      "counts": {
+        "eligible": 17215,
+        "immature": 0,
+        "mature_missing": 0,
+        "observed_mature_zero": 73,
+        "parents": 17288
+      },
+      "eligible_rows": 17215,
+      "group_intervals": [
+        {
+          "blocks": 77,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5143337628352069,
+              "low": 0.4883832235812353,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5205930685669343,
+              "low": 0.49007611954286656,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_DAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.01446333745511323,
+              "low": -0.006105546818971915,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0005765425916119673,
+              "low": -0.00015313595344885117,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00115618133544461,
+              "low": -0.0003061123886762101,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "e5f7bbbf3a99d8efe87b8d63c2e129a151ca07e1893832515e73ea245d9f48a6"
+        },
+        {
+          "blocks": 14,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5174087548886399,
+              "low": 0.4849412468011099,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.523366697970718,
+              "low": 0.48893890321171835,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_WEEK_MONDAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.016229134367058827,
+              "low": -0.006992787949424857,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0005428805791373969,
+              "low": -0.0001920570303025107,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0010890345990998231,
+              "low": -0.00038322037955957407,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "c9f10706583a8efcff0b9bd79e7a13865aadab457c78d1d0448f368d5dc2ce6a"
+        }
+      ],
+      "horizon_minutes": 1,
+      "role": "secondary_descriptive",
+      "three_minus_one": {
+        "auc": 0.00427956253225803,
+        "brier": 0.0002064498909759016,
+        "logloss": 0.0004147211036322762
+      }
+    },
+    {
+      "arms": {
+        "one": {
+          "auc": 0.5030210874582608,
+          "brier": 0.25018347255922013,
+          "down": 8327,
+          "logloss": 0.6935141662580235,
+          "up": 8870
+        },
+        "three": {
+          "auc": 0.5009502780173811,
+          "brier": 0.25033979685368585,
+          "down": 8327,
+          "logloss": 0.6938274106947214,
+          "up": 8870
+        }
+      },
+      "counts": {
+        "eligible": 17197,
+        "immature": 1,
+        "mature_missing": 63,
+        "observed_mature_zero": 27,
+        "parents": 17288
+      },
+      "eligible_rows": 17197,
+      "group_intervals": [
+        {
+          "blocks": 77,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5144080817412565,
+              "low": 0.4921114317194321,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5119271271565357,
+              "low": 0.49045860977161065,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_DAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.005429077263671308,
+              "low": -0.009444424138352973,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00034818582700948546,
+              "low": -2.3954332972499438e-05,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0006975139394303471,
+              "low": -4.7840467959401334e-05,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "e5f7bbbf3a99d8efe87b8d63c2e129a151ca07e1893832515e73ea245d9f48a6"
+        },
+        {
+          "blocks": 14,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5135114469187598,
+              "low": 0.4928876886878295,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5099830613225541,
+              "low": 0.492944208543254,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_WEEK_MONDAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00368584141662752,
+              "low": -0.007676017084350528,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0002718327816819749,
+              "low": 5.453712554931789e-05,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0005443297305474595,
+              "low": 0.00010884542308368491,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "c9f10706583a8efcff0b9bd79e7a13865aadab457c78d1d0448f368d5dc2ce6a"
+        }
+      ],
+      "horizon_minutes": 5,
+      "role": "primary",
+      "three_minus_one": {
+        "auc": -0.002070809440879673,
+        "brier": 0.00015632429446571505,
+        "logloss": 0.00031324443669789037
+      }
+    },
+    {
+      "arms": {
+        "one": {
+          "auc": 0.5078696881640574,
+          "brier": 0.2508320253008091,
+          "down": 8131,
+          "logloss": 0.6948129937765292,
+          "up": 8949
+        },
+        "three": {
+          "auc": 0.5066797780379144,
+          "brier": 0.251683002920196,
+          "down": 8131,
+          "logloss": 0.6965271292066971,
+          "up": 8949
+        }
+      },
+      "counts": {
+        "eligible": 17080,
+        "immature": 3,
+        "mature_missing": 189,
+        "observed_mature_zero": 16,
+        "parents": 17288
+      },
+      "eligible_rows": 17080,
+      "group_intervals": [
+        {
+          "blocks": 77,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5208339531388214,
+              "low": 0.4955335794580196,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5211729599631902,
+              "low": 0.4922128884106009,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_DAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00745543164107428,
+              "low": -0.010070105929006559,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0013914639380116847,
+              "low": 0.00033181664697334265,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.0028004033134775845,
+              "low": 0.0006688306344046536,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "e5f7bbbf3a99d8efe87b8d63c2e129a151ca07e1893832515e73ea245d9f48a6"
+        },
+        {
+          "blocks": 14,
+          "individual_auc_descriptive": {
+            "one": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5178441302206885,
+              "low": 0.4984185289837484,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "three": {
+              "alpha": 0.008333333333333333,
+              "high": 0.5178479438730643,
+              "low": 0.4948519072997662,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "resampling_population": "all fixed later parents before eligibility mask",
+          "scheme": "UTC_WEEK_MONDAY",
+          "three_minus_one": {
+            "auc": {
+              "alpha": 0.008333333333333333,
+              "high": 0.006207647291855072,
+              "low": -0.00924047348492646,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.008333333333333333,
+              "high": 0.00153711262579459,
+              "low": 0.0002585985666215838,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.008333333333333333,
+              "high": 0.003093287246946788,
+              "low": 0.0005217910220151004,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "weights_sha256": "c9f10706583a8efcff0b9bd79e7a13865aadab457c78d1d0448f368d5dc2ce6a"
+        }
+      ],
+      "horizon_minutes": 15,
+      "role": "secondary_descriptive",
+      "three_minus_one": {
+        "auc": -0.0011899101261430012,
+        "brier": 0.0008509776193869056,
+        "logloss": 0.0017141354301679623
+      }
+    }
+  ],
+  "primary_support": {
+    "auc": false,
+    "brier": false,
+    "logloss": false
+  },
+  "primary_joint_gate_supported": false,
+  "primary_auc_improvement_supported_separately": false,
+  "protocol": {
+    "primary_horizon_minutes": 5,
+    "horizons_minutes": [
+      1,
+      5,
+      15
+    ],
+    "comparisons": [
+      "auc",
+      "logloss",
+      "brier"
+    ],
+    "groupings": [
+      "UTC_DAY",
+      "UTC_WEEK_MONDAY"
+    ],
+    "per_interval_alpha": 0.008333333333333333,
+    "bootstrap_replicates": 10000,
+    "day_seed": 20261027,
+    "week_seed": 20261028,
+    "minimum_blocks": 8,
+    "block_population": "all fixed later parents before eligibility masks",
+    "no_undefined_primary_draws": true,
+    "no_threshold_or_checkpoint_selection": true,
+    "quantile_method": "linear"
+  },
+  "zero_optimizer_steps_in_comparison": true,
+  "no_checkpoint_or_raw_data_opened_in_comparison": true,
+  "interpretation": "Five-minute ranking improvement is not supported: both paired AUC intervals include zero. Three-pass point estimates have worse logloss and Brier at all three horizons; the predeclared joint improvement gate is not met. This does not prove that 30 passes cannot help or identify the root cause.",
+  "limitations": [
+    "One repeatedly reused development fold; no untouched confirmation or trading-edge claim.",
+    "Full TRAIN comparison for all 47,602 prefix parents remains pending; the 256-parent panel is not a substitute.",
+    "Original sign BCE cannot distinguish +0.1 from +50 bps and does not encode first favorable versus adverse path.",
+    "No 10/60-minute model outputs are trained in this experiment."
+  ],
+  "test_data_used": false,
+  "economic_edge_qualified": false
+}

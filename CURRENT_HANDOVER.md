@@ -11,6 +11,15 @@ Programrot:
 
 ## Aktuell status
 
+1-mot-3-gjennomgangene er nå parvis sammenlignet på 17 288 senere fold1-
+foreldre. Ved 5min er AUC 0,503021 mot 0,500950; både dag- og ukeintervall
+for differansen omfatter null. Tre gjennomganger ga høyere logloss/Brier i
+punktestimat ved 1/5/15min. Den forhåndsbundne forbedringsgaten bestås ikke.
+Dette er én gjenbrukt utviklingsfold, ikke handelsedge eller en dom over 30
+passeringer. Full TRAIN-vurdering på 47 602 foreldre gjenstår. Engangsadgangen
+for sammenligningen er konsumert og alle treningsporter er lukket. Se
+`docs/DIRECTION_MATCHED_EXPOSURE_PAIRED_RESULT_20261028.json`.
+
 Den parvise 1-mot-3-gjennomgangskontrollen er syntetisk kvalifisert, med
 identiske observasjoner, parrede dag-/ukeblokker og fast 5min-hovedmål for
 AUC, logloss og Brier. Fast antall trekk, seed og lineær kvantilmetode er

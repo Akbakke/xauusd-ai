@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Run the unique bound capped CPU saved-prediction comparison once, preserve its receipt, close its admission, and assess full TRAIN separately.",
+    "current_activity": "Determine the smallest bounded full-TRAIN comparison of the existing one- and three-pass checkpoints; keep original sign target and later result fixed. Continue separately toward a causal, size- and path-aware Entry target.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "MATCHED_EXPOSURE_PAIRED_ACTUAL_ADMITTED_TRAINING_CLOSED",
+    "status": "MATCHED_EXPOSURE_LATER_COMPARISON_COMPLETE_FULL_TRAIN_ASSESSMENT_PENDING",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_matched_exposure_paired_actual_20261028_001",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Run the unique bound capped CPU saved-prediction comparison once, preserve its receipt, close its admission, and assess full TRAIN separately.",
+    "next_action": "Determine the smallest bounded full-TRAIN comparison of the existing one- and three-pass checkpoints; keep original sign target and later result fixed. Continue separately toward a causal, size- and path-aware Entry target.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37249,7 +37249,13 @@
     "last_m1_trade_record_refinement_measured": true,
     "last_m1_volume_domain_measured": true,
     "last_m1_ofi_sign_refinement_measured": true,
-    "last_m1_ofi_continuous_weight_measured": true
+    "last_m1_ofi_continuous_weight_measured": true,
+    "later_paired_exposure_comparison_complete": true,
+    "full_train_47602_exposure_assessment_pending": true,
+    "matched_exposure_paired_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_PAIRED_RESULT_20261028.json",
+      "sha256": "45029be6927ee78c615556fe36cee9707523d07758cf3345c2bc6dc8aac11eb1"
+    }
   },
   "independent_direction_candle_synthetic_20261027": {
     "status": "COMPLETE_SYNTHETIC_ONLY",
@@ -39500,7 +39506,7 @@
     "synthetic_qualification": "11 adapter cases passed after final source change; preceding 91 targeted adapter/rank/probability checks passed before final guard and provenance tightening; capped audit, no genuine payload."
   },
   "direction_matched_exposure_paired_actual_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_DIRECTION_IMPROVEMENT",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_PLAN_20261028_001.json",
       "sha256": "cfac50ff3f8b8babac3bb43d708f2931e28c19c1c0b250eab1136298939d10d5"
@@ -39531,19 +39537,35 @@
       "no_threshold_or_checkpoint_selection": true,
       "quantile_method": "linear"
     },
-    "execution_authorized": true,
-    "genuine_prediction_reads_authorized": true,
+    "execution_authorized": false,
+    "genuine_prediction_reads_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
     "max_wall_seconds": 600,
     "capped_cpu_audit_memory": "4G",
-    "scope": "Only the two exact bound complete fold1 OOF prediction archives; same observations and calendar-block paired metrics. No model, weights, raw data, fitting, or threshold selection."
+    "scope": "Only the two exact bound complete fold1 OOF prediction archives; same observations and calendar-block paired metrics. No model, weights, raw data, fitting, or threshold selection.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "f7d2e4c9459a874dbeda505af94125da7fcd3c6c2ab135dc92435b47dc4324ae"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_OUTER_TERMINAL_20261028_001.json",
+      "sha256": "e860b285202dacbf52eabcdd33470e0e9f6ba420bf8069b47a76f662eaa72de6"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_RESULT_20261028_001/CLAIM.json",
+      "sha256": "f7e814689fa890ebd68fdbf72afadb19b739b85ede538a66a81758345c975087"
+    },
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_PAIRED_RESULT_20261028.json",
+      "sha256": "45029be6927ee78c615556fe36cee9707523d07758cf3345c2bc6dc8aac11eb1"
+    }
   }
 }
