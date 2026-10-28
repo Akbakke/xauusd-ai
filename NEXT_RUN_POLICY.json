@@ -40943,5 +40943,51 @@
       "installed_keeper_thermal_reduction_w_if_above_220": 220,
       "explanation": "The 220 W branch is inactive at current 160 W; resolve mismatch before using a setting above 220 W. Power increase has no measured speed benefit yet."
     }
+  },
+  "power_guard_alignment_source_20261028": {
+    "status": "SOURCE_SELFTEST_PASSED_NOT_DEPLOYED",
+    "scope": "Align the existing Windows keeper thermal reduction with the existing native policy: at or above 80 C reduce any limit above 200 W to 200 W. Preserve all stops and idle recovery. No hardware or deployed guard change in this source stage.",
+    "source_path": "scripts/windows/GX1-GpuPowerAndIdleGuard.ps1",
+    "source_edits_authorized": false,
+    "synthetic_selftest_authorized": false,
+    "hardware_changes_authorized": false,
+    "training_authorized": false,
+    "source_sha256": "253b17778916bb9cd2f48748c0fd60a2169d74f0f5f179bae695378181ae2b22",
+    "prior_installed_sha256": "8bf9a627c0895da9b52392a1628225c41992de6a2d42ecc87418ccf87983c6b4",
+    "selftest_decision": "PASS",
+    "tested_thermal_cases": [
+      [
+        300,
+        79,
+        300
+      ],
+      [
+        300,
+        80,
+        200
+      ],
+      [
+        300,
+        85,
+        200
+      ],
+      [
+        220,
+        85,
+        200
+      ],
+      [
+        200,
+        80,
+        200
+      ],
+      [
+        160,
+        85,
+        160
+      ]
+    ],
+    "actual_power_changed": false,
+    "deployed_guard_changed": false
   }
 }

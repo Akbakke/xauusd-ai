@@ -43,8 +43,10 @@ Effektkontroll 28.10: kortet står på 160 W i idle; samme baseline trakk
 høyst 134,7 W ved en 160 W-grense, så høyere grense har ikke bevist fart.
 Policy angir 300 W maks og reduksjon til 200 W ved 80 C, mens installert
 keeper-kode bruker 220 W ved innstilling over 220 W. Avviket er inaktivt
-på dagens 160 W, men må løses før slik høyere innstilling. Ingen effekt
-er endret. Se signed-guard-loggen i NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276.
+på dagens 160 W. En smal kilderetting til policyens 200 W har bestått
+vaktens temperatur- og idle-selvtest. Installert vakt er fremdeles gammel;
+eksakt kilde må deployeres og bekreftes før høyere effekt. Ingen effekt
+er endret, og omstart venter på klargjort kampanje. Se signed-guard-loggen i NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276.
 
 Fast evalueringsprotokoll for størrelsesvektet retning er skrevet før
 noen genuin kvalifisering eller kandidat: samme femminuttersforeldre,
