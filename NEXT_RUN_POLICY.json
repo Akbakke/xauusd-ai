@@ -39786,5 +39786,22 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
       "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
     }
+  },
+  "direction_first_quote_race_source_20261028": {
+    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "scope": "Extend the existing research-only first-favorable quote owner to classify which side first crosses a fixed bps hurdle, with neither event and explicit unknown ordering; no native model wiring.",
+    "allowed_source_paths": [
+      "gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
+      "tests/test_entry_causal_m1_first_positive_quote_v1.py"
+    ],
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "classification": "Three research outcomes: long first, short first, neither; an ambiguous entry minute, same-minute ordering or terminal quote remains unknown. Neither is not a FLAT trading label.",
+    "basis": "Reuse already implemented side-specific same-quote or gross-quote hurdle; horizon is observation only. No price path ordering is invented.",
+    "why": "Current sign BCE assigns the same outcome to +0.1 and +50 bps and does not represent direction before reversal. The signed-bps mean auxiliary did not show later improvement."
   }
 }

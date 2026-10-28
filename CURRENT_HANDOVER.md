@@ -11,6 +11,11 @@ Programrot:
 
 ## Aktuell status
 
+Kildeadgang er avgrenset til en forskningsfasit for hvilken side som først
+passerer en fast bps-grense. Ukjent M1-rekkefølge og hull skal ikke bli fasit;
+intet treff er ikke en FLAT-handlingsregel. Kildearbeid pågår, syntetisk
+test, ekte datalesing, modellkall og trening er ennå ikke åpnet.
+
 Parret 1-mot-3-pass TRAIN-sammenligning er fullført og konsumert på samme
 47 602 foreldre. 5min TRAIN-AUC økte fra 0,515888 til 0,533534, og logloss
 falt fra 0,693095 til 0,692069, mot fast TRAIN-prior 0,692984. På senere
