@@ -11,6 +11,13 @@ Programrot:
 
 ## Aktuell status
 
+En avgrenset kilde- og syntetikkomgang er åpnet for å gjenbruke den eksisterende
+frosne måleruten på 3-pass-terminalens hele TRAIN-prefiks. Den nye ruten skal
+kontrollere de første 256 prediksjonene mot eksisterende sluttrapport før
+resten av prefikset fortsetter. Ingen ekte checkpoint, input eller modellkall
+er åpnet av denne kildeadgangen. Egen engangsplan og alle opprinnelige vakter
+kreves før eventuell måling.
+
 1-mot-3-gjennomgangene er nå parvis sammenlignet på 17 288 senere fold1-
 foreldre. Ved 5min er AUC 0,503021 mot 0,500950; både dag- og ukeintervall
 for differansen omfatter null. Tre gjennomganger ga høyere logloss/Brier i
