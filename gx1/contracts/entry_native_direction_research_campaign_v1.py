@@ -25,6 +25,9 @@ CURSOR_SCHEMA = 'gx1_native_direction_research_cursor_v1'
 BPS_SCOPE = 'private_bps_b16_matched_initialization_resume_qualification'
 WEIGHT_SCOPE = 'private_magnitude_weighted_b16_matched_initialization_resume_qualification'
 ORDER_PRIVATE_SCOPE = 'private_sign_b16_chronological_initial_resume_qualification'
+ORDER_SUPPORTED_SCOPE = 'private_sign_b16_chronological_supported_initial_resume_qualification'
+ORDER_SUPPORTED_DESIGN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_SUPPORTED_QUALIFICATION_20261028.json',
+    'sha256':'d78335c7d089ff44beb2d3a470ec8e88fe204899e8ef6e1524cbcba089913cb1'}
 ORDER_DESIGN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json',
     'sha256':'336c7c5af9a0b5bf7759831394f27de06d46eb8ab9a22619a8c1856abc01fbf7'}
 WEIGHT_DESIGN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAG_WEIGHT_NATIVE_QUALIFICATION_DESIGN_20261028.json',
@@ -130,7 +133,8 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         'qualification_weights_for_main_fit'}
     bps = value.get('run_scope') == BPS_SCOPE
     weighted = value.get('run_scope') == WEIGHT_SCOPE
-    chronological = value.get('run_scope') == ORDER_PRIVATE_SCOPE
+    supported = value.get('run_scope') == ORDER_SUPPORTED_SCOPE
+    chronological = value.get('run_scope') == ORDER_PRIVATE_SCOPE or supported
     b16 = bps or weighted or chronological
     if b16: fields |= {'fold','gc_layout_metadata_parity','qualification_design'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
@@ -138,7 +142,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     _path(recipe['runtime_root'], 'runtime root')
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE, ORDER_SUPPORTED_SCOPE), 'RECIPE_SCOPE')
     for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if bps or weighted else 3,
             'max_forwards':21 if chronological else 6 if bps or weighted else 4,
             'max_backwards':5 if bps or weighted else 4,
@@ -177,7 +181,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     if chronological:
         from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
         _require(recipe['fold'] == BPS_FOLD and recipe['gc_layout_metadata_parity'] == BPS_GC_PARITY
-            and recipe['qualification_design'] == ORDER_DESIGN, 'ORDER_FIXED_INPUT_SCOPE')
+            and recipe['qualification_design'] == (ORDER_SUPPORTED_DESIGN if supported else ORDER_DESIGN), 'ORDER_FIXED_INPUT_SCOPE')
         campaign.require_binding(recipe['gc_layout_metadata_parity'],label='order GC metadata proof',verify_file=True)
         campaign.require_binding(recipe['qualification_design'],label='order qualification design',verify_file=True)
         refs = {key:campaign.require_binding(item,label='order original '+key,verify_file=True)

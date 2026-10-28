@@ -278,3 +278,16 @@ def test_order_private_scope_rejects_expansion_or_different_baseline(fixture,mon
     else:value['test_data_used']=True
     reseal(value,'recipe_sha256');ref=write(f['runtime']/'BAD_PRIVATE_ORDER.json',value)
     with pytest.raises(RuntimeError):owner.require_research_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
+def test_supported_private_scope_is_distinct_and_requires_exact_bound_design(fixture,monkeypatch):
+    f=fixture;value=chronological_private_fixture(f,monkeypatch)
+    monkeypatch.setattr(owner,'ORDER_SUPPORTED_DESIGN',f['dummy'])
+    value['run_scope']=owner.ORDER_SUPPORTED_SCOPE;value['qualification_design']=f['dummy'];reseal(value,'recipe_sha256')
+    ref=write(f['runtime']/'SUPPORTED_ORDER.json',value)
+    checked=owner.require_research_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+    assert checked['run_scope']==owner.ORDER_SUPPORTED_SCOPE and checked['max_private_updates']==4
+    assert checked['full_epoch_training_allowed'] is False and checked['qualification_weights_for_main_fit'] is False
+    value['qualification_design']=write(f['runtime']/'OTHER_SUPPORTED_DESIGN.json',{'synthetic':True});reseal(value,'recipe_sha256')
+    ref=write(f['runtime']/'BAD_SUPPORTED_ORDER.json',value)
+    with pytest.raises(RuntimeError):owner.require_research_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)

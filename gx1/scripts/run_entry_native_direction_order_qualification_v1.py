@@ -13,14 +13,29 @@ def _require(ok, reason):
         raise RuntimeError('NATIVE_ORDER_QUALIFICATION_' + reason)
 
 
+def _select_qualification_parents(ordered, diagnostic_ids, design, *, supported, np):
+    _require(type(supported) is bool and len(ordered) >= 32 and len(diagnostic_ids) >= 32, 'SELECTION_ARGUMENTS')
+    if not supported:
+        return np.ascontiguousarray(ordered[:32],dtype=np.int64)
+    parents = design.get('parents_sorted') if isinstance(design,dict) else None
+    _require(isinstance(parents,list) and len(parents) == 32 and all(type(x) is int for x in parents),
+        'SUPPORTED_PARENT_ID_TYPES')
+    selected = np.ascontiguousarray(np.sort(diagnostic_ids[:32]),dtype=np.int64)
+    expected = np.asarray(parents,dtype=np.int64)
+    _require(expected.shape == (32,) and np.array_equal(selected,expected)
+        and np.all(selected[1:] > selected[:-1]) and np.isin(selected,ordered).all(), 'PREDECLARED_SUPPORTED_PARENTS')
+    return selected
+
+
 def run_order_qualification(*, policy_path: Path, policy_file_sha256: str, progress_path: Path):
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits = require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     window, plan, invocation, marker, launch = authority.require_native_direction_research_context(
         policy_path, policy_file_sha256, progress_path)
-    _require(launch['run_scope'] == authority.ORDER_PRIVATE_SCOPE and invocation['batch_size'] == 16,
-        'EXACT_SCOPE')
+    supported = launch['run_scope'] == authority.ORDER_SUPPORTED_SCOPE
+    _require(launch['run_scope'] in (authority.ORDER_PRIVATE_SCOPE,authority.ORDER_SUPPORTED_SCOPE)
+        and invocation['batch_size'] == 16, 'EXACT_SCOPE')
     sys.dont_write_bytecode = True
     import numpy as np
     import torch
@@ -43,6 +58,15 @@ def run_order_qualification(*, policy_path: Path, policy_file_sha256: str, progr
     initial_report = common._read(prefix_authority.ORDER_ORIGIN['initial_measurement'], extra)
     original_recipe = require_native_direction_research_recipe(original['numerical_recipe'])
     proof = common._read(launch['gc_layout_metadata_parity'], extra)
+    selection_design = None
+    if supported:
+        selection_design = common._read(launch['qualification_design'], extra)
+        _require(selection_design['schema_version'] == 'gx1_order_supported_qualification_design_v1'
+            and selection_design['status'] == 'DESIGN_ONLY_NO_EXECUTION_AUTHORITY'
+            and selection_design['seed'] == prefix.SEED and selection_design['prefix_rows'] == launch['fold']['prefix_rows']
+            and selection_design['batch_size'] == 16 and selection_design['test_data_used'] is False, 'SUPPORTED_DESIGN')
+        for key in ('prior_failure_review','prior_support_report','prior_support_run_result','prior_support_root_review'):
+            common._read(selection_design[key], extra)
     _require(proof['status'] == 'COMPLETE_CONSUMED' and proof['metadata_exact_parity'] is True
         and proof['test_cases_passed'] == 6 and all(v == 0 for v in proof['counters'].values()), 'GC_METADATA_PROOF')
     manifest = common._read(launch['input_manifest'], extra)
@@ -85,14 +109,17 @@ def run_order_qualification(*, policy_path: Path, policy_file_sha256: str, progr
         original_stat = common._stat(original_prediction['path'])
         diagnostic_ids = prefix._fixed_order(prepared['arrays']['parent_rows'],
             launch['fold']['prefix_rows'], prefix.SEED, np)[:256]
-        selected = ordered[:32].copy()
+        selected = _select_qualification_parents(ordered,diagnostic_ids,selection_design,supported=supported,np=np)
         _require(len(selected) == 32 and np.all(selected[1:] > selected[:-1]), 'FIRST_CHRONOLOGICAL_PARENTS')
         order = torch.from_numpy(selected); order_sha = tree_sha(order)
         batches = []
         for left in (0,16):
             raw, target = prefix._batch(prepared, targets, view, selected[left:left+16], np)
-            batch_support.append({'parent_rows':selected[left:left+16].tolist(),
-                'gc':common._gc_support(raw,prepared['gc']['layout'],np,allow_empty=True)})
+            gc_support = common._gc_support(raw,prepared['gc']['layout'],np,allow_empty=not supported)
+            if supported:
+                _require(all(sum(item['raw_nonzero_values_per_parent']) > 0 for families in gc_support.values()
+                    for item in families.values()), 'SUPPORTED_GC_NONZERO_INPUTS')
+            batch_support.append({'parent_rows':selected[left:left+16].tolist(),'gc':gc_support})
             batches.append(prefix._device_batch(raw, target, torch, device))
         batch_sha = tree_sha(batches)
 
@@ -180,6 +207,7 @@ def run_order_qualification(*, policy_path: Path, policy_file_sha256: str, progr
         'original_initial_prediction':original_prediction,'original_initial_report':prefix_authority.ORDER_ORIGIN['initial_measurement'],
         'historical_component_transition':transition,'final_state':full_state,'matched_initialization':matched,
         'bit_exact_resume':parity,'steps':steps,'batch_gc_support':batch_support,
+        'qualification_selection':('predeclared_original_mixed_32_sorted' if supported else 'first_32_chronological'),
         'parent_order_sha256':order_sha,'parent_cursor':cursor,
         'planned_unique_parents':32,'planned_logical_optimizer_steps':2,'physical_optimizer_updates':counters['optimizer_updates'],
         'source_unchanged':unchanged,'metadata_bookends':context['info']['metadata'],

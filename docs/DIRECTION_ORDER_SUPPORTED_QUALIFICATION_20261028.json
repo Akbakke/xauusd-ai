@@ -1,0 +1,299 @@
+{
+  "schema_version": "gx1_order_supported_qualification_design_v1",
+  "status": "DESIGN_ONLY_NO_EXECUTION_AUTHORITY",
+  "created_utc": "2026-10-28T09:18:20.534876+00:00",
+  "prior_failure_review": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/ACTUAL_ROOT_REVIEW_001.json",
+    "sha256": "09255339d946c7aef7a2b16785787e59778b33fbdded3fbcab2860548755e2a1"
+  },
+  "prior_support_report": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/private-research/INPUT_QUALIFICATION.json",
+    "sha256": "e053c200631f8037ccc24d2f7da2d916016f3de8c948b6334945060fe6ecdd19"
+  },
+  "prior_support_run_result": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/private-research/RESULT.json",
+    "sha256": "4a9c06ae979c7896d85c006e00aa2225915ad9a3632234512d20b09a3b1b3bdb"
+  },
+  "prior_support_root_review": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/ACTUAL_ROOT_REVIEW.json",
+    "sha256": "07b26101961ce4218b51f5d87487239bf8b0a913c5ec93db872417e35e1293f9"
+  },
+  "selection_rule": "Sort the first 32 TRAIN parent IDs from the original fixed MT19937 seed 20260911 permutation; no target labels, predictions, or outcomes are used. The set was chosen using already-observed input coverage to qualify mechanics only.",
+  "seed": 20260911,
+  "prefix_rows": 47602,
+  "parents_sorted": [
+    152,
+    669,
+    2689,
+    4036,
+    4283,
+    6002,
+    6190,
+    12061,
+    12639,
+    13394,
+    15082,
+    15502,
+    16978,
+    21683,
+    22759,
+    28319,
+    28834,
+    31034,
+    32414,
+    32695,
+    33057,
+    33202,
+    33343,
+    33946,
+    34864,
+    35359,
+    37617,
+    41554,
+    42787,
+    44748,
+    45861,
+    47429
+  ],
+  "batch_size": 16,
+  "observed_support_by_batch": [
+    {
+      "D1": {
+        "momentum_flow_encoder": {
+          "observed_cells": 40053,
+          "raw_nonzero_values": 39420
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 2468,
+          "raw_nonzero_values": 2468
+        },
+        "session_regime_encoder": {
+          "observed_cells": 22872,
+          "raw_nonzero_values": 17904
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 15872,
+          "raw_nonzero_values": 7779
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 6170,
+          "raw_nonzero_values": 6170
+        }
+      },
+      "H1": {
+        "momentum_flow_encoder": {
+          "observed_cells": 97824,
+          "raw_nonzero_values": 93394
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 10436,
+          "raw_nonzero_values": 10436
+        },
+        "session_regime_encoder": {
+          "observed_cells": 49866,
+          "raw_nonzero_values": 39638
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 109925,
+          "raw_nonzero_values": 96272
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 13660,
+          "raw_nonzero_values": 13660
+        }
+      },
+      "H4": {
+        "momentum_flow_encoder": {
+          "observed_cells": 88719,
+          "raw_nonzero_values": 85810
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 8500,
+          "raw_nonzero_values": 8500
+        },
+        "session_regime_encoder": {
+          "observed_cells": 46590,
+          "raw_nonzero_values": 37126
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 91757,
+          "raw_nonzero_values": 78511
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 12800,
+          "raw_nonzero_values": 12800
+        }
+      },
+      "M15": {
+        "momentum_flow_encoder": {
+          "observed_cells": 69329,
+          "raw_nonzero_values": 65999
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 7540,
+          "raw_nonzero_values": 7540
+        },
+        "session_regime_encoder": {
+          "observed_cells": 35325,
+          "raw_nonzero_values": 27845
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 93775,
+          "raw_nonzero_values": 75112
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 9600,
+          "raw_nonzero_values": 9600
+        }
+      },
+      "M5": {
+        "momentum_flow_encoder": {
+          "observed_cells": 22711,
+          "raw_nonzero_values": 21638
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 2150,
+          "raw_nonzero_values": 2150
+        },
+        "session_regime_encoder": {
+          "observed_cells": 10160,
+          "raw_nonzero_values": 8024
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 34387,
+          "raw_nonzero_values": 29148
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 2638,
+          "raw_nonzero_values": 2638
+        }
+      }
+    },
+    {
+      "D1": {
+        "momentum_flow_encoder": {
+          "observed_cells": 134779,
+          "raw_nonzero_values": 132272
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 8300,
+          "raw_nonzero_values": 8300
+        },
+        "session_regime_encoder": {
+          "observed_cells": 75720,
+          "raw_nonzero_values": 60228
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 60828,
+          "raw_nonzero_values": 34693
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 20750,
+          "raw_nonzero_values": 20750
+        }
+      },
+      "H1": {
+        "momentum_flow_encoder": {
+          "observed_cells": 109905,
+          "raw_nonzero_values": 105004
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 11792,
+          "raw_nonzero_values": 11792
+        },
+        "session_regime_encoder": {
+          "observed_cells": 55275,
+          "raw_nonzero_values": 44516
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 122951,
+          "raw_nonzero_values": 108600
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 15350,
+          "raw_nonzero_values": 15350
+        }
+      },
+      "H4": {
+        "momentum_flow_encoder": {
+          "observed_cells": 106366,
+          "raw_nonzero_values": 102779
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 10280,
+          "raw_nonzero_values": 10280
+        },
+        "session_regime_encoder": {
+          "observed_cells": 55233,
+          "raw_nonzero_values": 44459
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 113611,
+          "raw_nonzero_values": 98030
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 15330,
+          "raw_nonzero_values": 15330
+        }
+      },
+      "M15": {
+        "momentum_flow_encoder": {
+          "observed_cells": 73881,
+          "raw_nonzero_values": 70389
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 8016,
+          "raw_nonzero_values": 8016
+        },
+        "session_regime_encoder": {
+          "observed_cells": 36801,
+          "raw_nonzero_values": 29617
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 99036,
+          "raw_nonzero_values": 79699
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 10210,
+          "raw_nonzero_values": 10210
+        }
+      },
+      "M5": {
+        "momentum_flow_encoder": {
+          "observed_cells": 24420,
+          "raw_nonzero_values": 23395
+        },
+        "price_action_candle_encoder": {
+          "observed_cells": 2299,
+          "raw_nonzero_values": 2299
+        },
+        "session_regime_encoder": {
+          "observed_cells": 10496,
+          "raw_nonzero_values": 8517
+        },
+        "smc_liquidity_encoder": {
+          "observed_cells": 37526,
+          "raw_nonzero_values": 31984
+        },
+        "vol_compression_encoder": {
+          "observed_cells": 2815,
+          "raw_nonzero_values": 2815
+        }
+      }
+    }
+  ],
+  "input_identity": "Prior support and original direction baseline share the physical provider plan and worker, prefix normalization, constructor, target archive, GC layout and transition; feature gather function AST matches the prior BPS run.",
+  "strict_gradient_gate": "Every required gradient group must be nonzero in each private batch; missing groups stop before optimizer. GC family input masks and nonzero values must be present in each batch.",
+  "initial_parity": "Before updates compare original model, buffers, optimizer, RNG and all original 256 initial prediction arrays bit-for-bit.",
+  "work_budget": {
+    "model_constructions": 3,
+    "forwards": 21,
+    "backwards": 4,
+    "private_optimizer_updates_max": 4,
+    "qualification_weights_for_main_fit": false
+  },
+  "full_fit": "Unchanged: all 47602 original TRAIN parents in strictly increasing order, including early H4/D1-missing parents, with causal masks; no selection from this mechanics test.",
+  "interpretation": "A successful mechanics qualification proves neither chronological directional improvement nor economic edge. The two batches are sparse, input-coverage-informed development samples.",
+  "test_data_used": false,
+  "execution_authorized": false
+}

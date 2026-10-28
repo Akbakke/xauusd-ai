@@ -46,7 +46,7 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-27T16:19:56.955463+00:00",
   "status": "DIRECTION_BPS_PAIRED_COMPARISON_COMPLETE_NO_DOCUMENTED_IMPROVEMENT",
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "dynamic_m5_direction_order_gradient_diagnostic_20261028_002",
+    "current_unit": "direction_order_supported_qualification_source_20261028",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -40998,6 +40998,11 @@
     "idle_restore": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_QUALIFICATION_20261028_001/POWER_IDLE_RESTORE_001.json",
       "sha256": "8cd34264c2c52e194a952ebf0f6013d9f43a5e37c40ae2705cf0057781d0e759"
+    },
+    "last_diagnostic_boot_limit_w": 300,
+    "last_diagnostic_idle_restore": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/POWER_IDLE_RESTORE_001.json",
+      "sha256": "7090f25128f7a2afa0ec36756d6eed5e005993e4541bdcd8f6fda5deeca205db"
     }
   },
   "direction_order_private_source_20261028": {
@@ -41119,15 +41124,15 @@
     }
   },
   "dynamic_m5_direction_order_gradient_diagnostic_20261028_002": {
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
@@ -41136,7 +41141,7 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "relaunch_allowed": false,
-    "status": "ONE_NEW_PRIVATE_GRADIENT_DIAGNOSTIC_ADMITTED_NO_FULL_FIT",
+    "status": "FAILED_CONSUMED_CANONICAL_RECEIPT_CAUSE_IDENTIFIED",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/RECIPE.json",
       "sha256": "22d3648cba8994d7f7c7a9171d8ec7dbda7ffa4d1d162922e5428fe8f99f5897"
@@ -41147,12 +41152,62 @@
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/RUNTIME",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_private_optimizer_steps": 4,
     "physical_restart_before_invocation_authorized": true,
     "user_requested_gpu_power_efficiency": true,
     "qualification_weights_for_main_fit": false,
-    "prior_one_shot_relaunch": false
+    "prior_one_shot_relaunch": false,
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "09255339d946c7aef7a2b16785787e59778b33fbdded3fbcab2860548755e2a1"
+    }
+  },
+  "direction_order_supported_qualification_source_20261028": {
+    "status": "SOURCE_SYNTHETIC_CHECKED_ONLY",
+    "actual_failure_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_GRADIENT_DIAGNOSTIC_20261028_002/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "09255339d946c7aef7a2b16785787e59778b33fbdded3fbcab2860548755e2a1"
+    },
+    "prior_support_report": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_NATIVE_B16_QUALIFICATION_20261027_002/RUNTIME/private-research/INPUT_QUALIFICATION.json",
+      "sha256": "e053c200631f8037ccc24d2f7da2d916016f3de8c948b6334945060fe6ecdd19"
+    },
+    "allowed_source_paths": [
+      "docs/DIRECTION_ORDER_SUPPORTED_QUALIFICATION_20261028.json",
+      "gx1/contracts/entry_native_direction_research_campaign_v1.py",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "gx1/scripts/run_entry_native_direction_order_qualification_v1.py",
+      "tests/test_entry_native_direction_research_campaign_v1.py",
+      "tests/test_entry_native_direction_order_qualification_v1.py"
+    ],
+    "scope": "Predeclare a distinct strict gradient/resume mechanics qualification using the same original 32 fixed-shuffled TRAIN parents sorted in increasing time, after independently verifying existing observed GC support in both resulting batches. Keep all gradient/physical guards, use original 256 initial rows, and leave full chronological fit and all earliest TRAIN parents unchanged. No genuine execution in this source stage.",
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_SUPPORTED_QUALIFICATION_20261028.json",
+      "sha256": "d78335c7d089ff44beb2d3a470ec8e88fe204899e8ef6e1524cbcba089913cb1"
+    },
+    "synthetic_checks": {
+      "status": "PASS",
+      "test_count": 95,
+      "actual_model_execution": false,
+      "optimizer_steps": 0
+    },
+    "source_sha256": {
+      "docs/DIRECTION_ORDER_SUPPORTED_QUALIFICATION_20261028.json": "d78335c7d089ff44beb2d3a470ec8e88fe204899e8ef6e1524cbcba089913cb1",
+      "gx1/contracts/entry_native_direction_research_campaign_v1.py": "5b3ef3e4fc0570d39236c26fd1e951396ff21a0610f8312e867ca3007773a08b",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py": "8f1c485233f67aee05956381ed6296a1fd02444bff6fbb53481cfe1849bb88e9",
+      "gx1/scripts/run_entry_native_direction_order_qualification_v1.py": "7c501f8e2efda9be3f60ce3232da27eb5a4d195672366c1414ae16cdc2ffe422",
+      "tests/test_entry_native_direction_research_campaign_v1.py": "dfba32caaa6c90921d48c31057305b8486cd222cc35345a7305f1760e4a58a77",
+      "tests/test_entry_native_direction_order_qualification_v1.py": "ea4e8fce20afb4aac328e758ef81aaa8bcd9bd2c523d8b25df8de7b9b6063857"
+    },
+    "amendment": "Added a missing synthetic supported-metadata-path case; the test-file edit preceded reopening this source-only flag. No genuine data, model or optimizer work occurred during the amendment."
   }
 }
