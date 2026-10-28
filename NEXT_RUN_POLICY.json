@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:52:41.627678+00:00",
-  "status": "DIRECTION_HISTORY_CLOCK_AUDIT_ADMITTED_NOT_YET_CLAIMED",
+  "observed_utc": "2026-10-28T15:54:03.839798+00:00",
+  "status": "DIRECTION_HISTORY_CLOCK_COMPLETE_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run one capped source-clock audit of actual 96-row M5 windows and fixed later prediction cohorts; preserve all source data and model state. No model forward, training, TEST or trading.",
+  "next_action": "Preserve measured M5 history gaps and original predictions. Investigate feature values, masks and learned composition under individually bound chronology-preserving diagnostics. No TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "435da76cbb550628120b7b26671264b0b71db30245b45e244dbe665cc5932ef3"
+      "sha256": "80d432a1115ad48f30d5fb2a2dd2b85d2df5f060d20ff757db40fb267f69186f"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -41799,7 +41799,7 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "economic_edge_qualified": false,
-    "next": "Continue source-to-model value, coverage and composition investigation; separate identified target repair requires a new identity and genuine materialization plan. No edge is established."
+    "next": "Time gaps in actual M5 inputs measured; continue compact feature delivery and learned-composition audit. Explicit elapsed time is a hypothesis, not a demonstrated improvement."
   },
   "independent_direction_decimal_sign_audit_20261028_001": {
     "status": "FAILED_ONE_SHOT_CONSUMED",
@@ -41951,17 +41951,17 @@
     }
   },
   "independent_direction_history_clock_audit_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_HISTORY_CLOCK_PLAN_20261028_001.json",
       "sha256": "3d16b03946e585e9ff0c0e292892f7a8353cf3e19afcd109684ab78c719df3ed"
     },
-    "execution_authorized": true,
-    "source_time_column_reads_authorized": true,
-    "prediction_reads_authorized": true,
+    "execution_authorized": false,
+    "source_time_column_reads_authorized": false,
+    "prediction_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
@@ -41970,6 +41970,28 @@
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_or_trading_authority": false,
-    "scope": "Actual 96-row source-clock gaps for pre-2026 parents, with descriptive fixed later 5m/60m scores by gap group."
+    "scope": "Actual 96-row source-clock gaps for pre-2026 parents, with descriptive fixed later 5m/60m scores by gap group.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_HISTORY_CLOCK_AUDIT_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "65e25c201d3910553fcb7fa77e38ee6a1ce510cf44fab87964169abc36c10014"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_HISTORY_CLOCK_AUDIT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "9eff85319123a5cee2ae6d0ed6e1b8a33025e77d3ad04684cd5cfa2c0379a374"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_HISTORY_CLOCK_AUDIT_20261028_001/TERMINAL.json",
+      "sha256": "6af08223755229b0973d75347a945f2ad1e8faf32fd2a286da2cab9873a09dab"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_HISTORY_CLOCK_AUDIT_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "30362186e93f01a1bec78e2507f73c6b6eb99f68dc3ca750dbca534204308485"
+    },
+    "all_parents": 118249,
+    "all_with_gap": 41124,
+    "later_parents": 17288,
+    "later_with_gap": 6008,
+    "causal_effect_established": false,
+    "economic_edge_qualified": false
   }
 }
