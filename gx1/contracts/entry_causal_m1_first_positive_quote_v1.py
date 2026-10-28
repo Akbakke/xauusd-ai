@@ -324,6 +324,16 @@ def classify_first_quote_hurdle_direction(first_event):
     subminute quote synchronization is not established. A terminal-open-only
     event is not confirmed inside the nominal horizon.
 
+    ``allowed_outcomes`` gives a conservative set of possible outcomes in the
+    stated class order. On a missing path the set is all three classes and
+    conveys no label information. An uncertain entry-minute event can produce
+    the set {that side, neither}; a known later same-minute pair can produce
+    {long, short}. These sets retain partial information without inventing a
+    winner. Observed singleton labels are outcome-dependently selected: at one
+    closed minute, hits can be ambiguous while no hit can be known. Dropping
+    all non-singletons and treating the remainder as a representative training
+    sample would be invalid. A proper partial-label loss is not implemented.
+
     This is a research target, not a trading rule, hold limit, transaction-cost
     model, or evidence of profitability. It does not create a modeled output.
     """
@@ -394,11 +404,29 @@ def classify_first_quote_hurdle_direction(first_event):
     reason[same] = 3
     _require(np.all(reason[observed] == 0) and np.all(reason[~observed] != 0)
              and np.all(outcome[~observed] == 0), "RACE_RESULT_INVARIANT")
+    # Each possible class must be consistent with the nominal upper and
+    # confirmed lower event bounds. Missing paths convey no information.
+    allowed = np.ones((n, 3), dtype=np.bool_)
+    allowed[complete, 0] = hit[complete, 0]
+    allowed[complete, 1] = hit[complete, 1]
+    allowed[complete, 2] = ~np.any(lower[complete], axis=1)
+    known_rows = np.flatnonzero(observed)
+    known_classes = np.where(outcome[known_rows] == 1, 0,
+                             np.where(outcome[known_rows] == -1, 1, 2))
+    allowed[known_rows] = False
+    allowed[known_rows, known_classes] = True
+    _require(np.all(allowed.any(axis=1))
+             and np.array_equal(allowed.sum(axis=1) == 1, observed),
+             "RACE_POSSIBLE_OUTCOMES_INVARIANT")
     result = {
         "schema_version": FIRST_QUOTE_HURDLE_DIRECTION_SCHEMA_VERSION,
         "event_basis": first_event["event_basis"],
         "favorable_bps": favorable_bps,
         "outcome": outcome, "outcome_observed": observed, "unknown_reason": reason,
+        "allowed_outcomes": allowed,
+        "allowed_outcomes_class_order": ("long_first", "short_first", "neither_within_horizon"),
+        "singleton_selection_is_outcome_dependent": True,
+        "partial_label_loss_implemented": False,
         "unknown_reason_codes": {0: "known", 1: "path_missing",
             2: "entry_minute_order_unknown", 3: "same_minute_order_unknown",
             4: "terminal_open_time_unknown"},

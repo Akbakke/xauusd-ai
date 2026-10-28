@@ -39851,14 +39851,14 @@
     }
   },
   "direction_first_quote_race_partial_source_20261028": {
-    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "scope": "Preserve a conservative set of possible first-hurdle outcomes when the exact winner is not identifiable. This prevents an outcome-dependent unknown mask from being mistaken for a representative training population. Existing event and direction semantics stay unchanged.",
     "allowed_source_paths": [
       "gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
       "tests/test_entry_causal_m1_first_positive_quote_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -39868,6 +39868,35 @@
       "short_first",
       "neither_within_horizon"
     ],
-    "selection_warning": "At h=1 a closed M1 hit is entry-bar ambiguous, while no nominal hit is known; dropping ambiguous events creates outcome-dependent selection. Partial sets are conservative and do not themselves constitute a trained loss."
+    "selection_warning": "At h=1 a closed M1 hit is entry-bar ambiguous, while no nominal hit is known; dropping ambiguous events creates outcome-dependent selection. Partial sets are conservative and do not themselves constitute a trained loss.",
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
+      "sha256": "75bc4a1a8d9031c885d4bc5527addf282b42605abf80c9db67074a8dc4ad9258"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_causal_m1_first_positive_quote_v1.py",
+      "sha256": "b48e287ec28bdbe444dce093431ed52cdeefb137e91a16acd3431049ad9cc73d"
+    },
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_PARTIAL_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "e15a7a4c3190bcdc2a9ea5fb6833a020986ad3e5dcf1ab37c70e75e80ce631f0"
+    },
+    "expected_synthetic_cases": 43
+  },
+  "direction_first_quote_race_partial_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_PARTIAL_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "e15a7a4c3190bcdc2a9ea5fb6833a020986ad3e5dcf1ab37c70e75e80ce631f0"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
