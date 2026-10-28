@@ -1,0 +1,94 @@
+{
+  "schema_version": "gx1_direction_h4_window_owner_check_v1",
+  "status": "PASS_SCOPED_BOUNDARIES",
+  "method": "Use the actual slice_multi_tf_v4_window owner on first and last decisions of each chronologically ordered cohort; independently compare localization boundaries and verify earliest H4 row is after the final mismatch.",
+  "source_refs": {
+    "replay_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H4_TRENDLINE_REPLAY_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "e0162ea76483cc5e9c1013c3bf4e94711a57c3ceeb2447f471b256aac5ed4d44"
+    },
+    "cache_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/manifest.json",
+      "sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4"
+    },
+    "h4_ts": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_ts.npy",
+      "sha256": "e7dc88e6c93f1868349f9b3746cebbdb1c4e0640a0e1fd32c8efbbdc72bcd71f"
+    },
+    "h4_feats": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_feats.npy",
+      "sha256": "83db5ba4f928283224efd92c0a849dd4e045f497b15bff3608361afe4b45abf0"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "sample_pair": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "window_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+      "sha256": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520"
+    }
+  },
+  "last_mismatch_ns": 1675346400000000000,
+  "groups": {
+    "fit_train": {
+      "decisions": 47602,
+      "first_and_last_actual_owner_windows": [
+        {
+          "decision_ns": 1714521900000000000,
+          "first_h4_row_ns": 1712613600000000000,
+          "last_h4_row_ns": 1714500000000000000
+        },
+        {
+          "decision_ns": 1735682100000000000,
+          "first_h4_row_ns": 1733508000000000000,
+          "last_h4_row_ns": 1735653600000000000
+        }
+      ],
+      "first_window_after_last_mismatch": true
+    },
+    "fit_oof_q1": {
+      "decisions": 17288,
+      "first_and_last_actual_owner_windows": [
+        {
+          "decision_ns": 1735772700000000000,
+          "first_h4_row_ns": 1733695200000000000,
+          "last_h4_row_ns": 1735668000000000000
+        },
+        {
+          "decision_ns": 1743465300000000000,
+          "first_h4_row_ns": 1741557600000000000,
+          "last_h4_row_ns": 1743444000000000000
+        }
+      ],
+      "first_window_after_last_mismatch": true
+    },
+    "intervention_q2_sample": {
+      "decisions": 1760,
+      "first_and_last_actual_owner_windows": [
+        {
+          "decision_ns": 1743465600000000000,
+          "first_h4_row_ns": 1741557600000000000,
+          "last_h4_row_ns": 1743444000000000000
+        },
+        {
+          "decision_ns": 1751299500000000000,
+          "first_h4_row_ns": 1749218400000000000,
+          "last_h4_row_ns": 1751277600000000000
+        }
+      ],
+      "first_window_after_last_mismatch": true
+    }
+  },
+  "limits": "Boundary windows and ordering only; not independent trendline formula, other periods, retraining or economic edge.",
+  "new_model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false
+}
