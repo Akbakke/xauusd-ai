@@ -34,11 +34,43 @@ BPS_SCOPE = 'single_prefix_one_pass_direction_signed_bps_fit'
 CONTINUATION_SCOPE = 'single_prefix_three_pass_direction_continuation'
 ORDER_SCOPE = 'single_prefix_one_pass_direction_chronological_order'
 DENSE_SCOPE = 'single_prefix_dense_minute_direction_fit'
+DENSE_DECIMAL_FIT_SCOPE = 'single_prefix_dense_decimal_direction_fit'
 # Internal adapter for a separately admitted private decimal qualification only.
 # The prefix-fit launch validator does not accept this as a training scope.
 DENSE_DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_input_adapter'
 DENSE_NATIVE_QUALIFICATION = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json',
     'sha256':'7b5768f2310446716f9954ab2e5887831e5dc8e6bde143c7bc4fa72156b17b24'}
+DENSE_DECIMAL_NATIVE_QUALIFICATION = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json',
+    'sha256':'f994b56dc5b5c76cb4edb1e4797a5b3e6556239a99c65c35fd8157fac5e5b81c'}
+DENSE_DECIMAL_REFERENCE_PREDICTIONS = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz',
+    'sha256':'0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7'}
+DECIMAL_EVALUATION_SOURCES = (
+    'gx1/scripts/compare_entry_direction_decimal_dense_v1.py',
+    'gx1/scripts/score_entry_direction_dense_onepass_v1.py',
+    'gx1/scripts/score_entry_direction_dense_minutes_v1.py',
+    'gx1/scripts/compare_entry_direction_saved_bps_v1.py',
+    'gx1/scripts/compare_entry_direction_matched_exposure_v1.py',
+    'gx1/contracts/entry_direction_block_rank_v1.py',
+    'gx1/contracts/entry_direction_probability_reference_v1.py',
+    'gx1/contracts/entry_native_direction_context_report_v1.py',
+)
+DECIMAL_TRANSITION_FUNCTIONS = {
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': ('_path','_fold','_input_manifest'),
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py': ('_metadata','_launch_metadata',
+        '_qualify_axes_targets','_fixed_order','_prepare','_batch','_device_batch','_prefix_prior','_evaluate'),
+}
+DECIMAL_TRANSITION_ALLOWED = {
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': {
+        'changed_functions': ('require_prefix_fit_launch_recipe',),
+        'new_functions': ('_require_decimal_source_equivalence',),
+        'new_assignments': ('DENSE_DECIMAL_FIT_SCOPE','DENSE_DECIMAL_NATIVE_QUALIFICATION',
+            'DENSE_DECIMAL_REFERENCE_PREDICTIONS','DECIMAL_EVALUATION_SOURCES','DECIMAL_TRANSITION_FUNCTIONS','DECIMAL_TRANSITION_ALLOWED'),
+    },
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py': {
+        'changed_functions': ('run_native_direction_prefix_fit_window',),
+        'new_functions': ('_fit_input_launch',), 'new_assignments': (),
+    },
+}
 ORDER_ALGORITHM = 'strictly_increasing_prefix_parent_rows'
 _CONTINUATION_ROOT = '/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276'
 CONTINUATION_ORIGIN = {
@@ -163,6 +195,48 @@ def _input_manifest(recipe):
     return value
 
 
+def _require_decimal_source_equivalence(source_repo, qualified_commit, qualified_owners, owners):
+    """Prove qualified data/feature functions survived the full-fit scope addition."""
+    import ast
+    import subprocess
+    _require(type(qualified_commit) is str and campaign._COMMIT.fullmatch(qualified_commit) is not None,
+        'DECIMAL_QUALIFIED_COMMIT')
+    for path, names in DECIMAL_TRANSITION_FUNCTIONS.items():
+        before_ref=qualified_owners.get(path);after_ref=owners.get(path)
+        _require(isinstance(before_ref,Mapping) and isinstance(after_ref,Mapping)
+            and before_ref.get('path')==after_ref.get('path')==str(source_repo/path), 'DECIMAL_TRANSITION_PATH:'+path)
+        before=subprocess.check_output(['git','-C',str(source_repo),'show',qualified_commit+':'+path])
+        after=(source_repo/path).read_bytes()
+        _require(hashlib.sha256(before).hexdigest()==before_ref.get('sha256')
+            and hashlib.sha256(after).hexdigest()==after_ref.get('sha256'), 'DECIMAL_TRANSITION_SHA:'+path)
+        def functions(raw):
+            module=ast.parse(raw,filename=path)
+            return {n.name:ast.dump(n,include_attributes=False) for n in module.body
+                if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and n.name in names}
+        previous=functions(before);current=functions(after)
+        _require(set(previous)==set(current)==set(names) and previous==current, 'DECIMAL_TRANSITION_FUNCTION:'+path)
+        allowed=DECIMAL_TRANSITION_ALLOWED[path]
+        changed=set(allowed['changed_functions']);new_functions=set(allowed['new_functions'])
+        new_assignments=set(allowed['new_assignments'])
+        def unchanged_module(raw, *, original):
+            module=ast.parse(raw,filename=path);kept=[];found_functions=[];found_assignments=[]
+            for node in module.body:
+                if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)) and node.name in changed|new_functions:
+                    found_functions.append(node.name);continue
+                if isinstance(node,ast.Assign) and len(node.targets)==1 and isinstance(node.targets[0],ast.Name) \
+                        and node.targets[0].id in new_assignments:
+                    found_assignments.append(node.targets[0].id);continue
+                kept.append(ast.dump(node,include_attributes=False))
+            expected_functions=changed if original else changed|new_functions
+            expected_assignments=set() if original else new_assignments
+            _require(len(found_functions)==len(expected_functions) and set(found_functions)==expected_functions
+                and len(found_assignments)==len(expected_assignments) and set(found_assignments)==expected_assignments,
+                'DECIMAL_TRANSITION_NODE_SET:'+path)
+            return kept
+        _require(unchanged_module(before,original=True)==unchanged_module(after,original=False),
+            'DECIMAL_TRANSITION_MODULE:'+path)
+
+
 def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, verify_files=True):
     """Check exact metadata/source bytes; numerical270 validation stays in CUDA."""
     ref = campaign.require_binding(binding, label='prefix fit recipe', verify_file=verify_files)
@@ -178,9 +252,12 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     bps = value.get('run_scope') == BPS_SCOPE
     continuation = value.get('run_scope') == CONTINUATION_SCOPE
     chronological = value.get('run_scope') == ORDER_SCOPE
-    dense = value.get('run_scope') == DENSE_SCOPE
+    decimal = value.get('run_scope') == DENSE_DECIMAL_FIT_SCOPE
+    dense = value.get('run_scope') in (DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE)
     if dense:
         fields |= {'gc_layout_metadata_parity','native_dense_qualification','dense_source_transition_proof','dense_target_result','dense_target','dense_evaluation_protocol'}
+    if decimal:
+        fields |= {'decimal_input_audit','decimal_target_refs','decimal_initial_predictions'}
     if chronological:
         fields |= {'gc_layout_metadata_parity', 'order_origin', 'native_order_qualification'}
     if bps:
@@ -192,7 +269,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, DENSE_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
     fold = _fold(recipe['fold'])
     if bps:
         _require(fold == private.BPS_FOLD
@@ -228,6 +305,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     owners = recipe['source_owners']
     required_sources = set(REQUIRED_SOURCE_PATHS) | (set(BPS_EXTRA_SOURCE_PATHS) if bps else set())
     if dense: required_sources |= set(private.DENSE_EXTRA_SOURCE_PATHS)
+    if decimal: required_sources |= set(private.DECIMAL_EXTRA_SOURCE_PATHS)
     if continuation or chronological:
         required_sources.add('gx1/contracts/entry_native_direction_frozen_extraction_v1.py')
     _require(isinstance(owners, Mapping) and set(owners) == required_sources, 'SOURCE_OWNER_SET')
@@ -236,31 +314,77 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         _require(checked['path'] == str(source_repo/key), 'SOURCE_OWNER_PATH:' + key)
     if dense:
         _require(fold==private.BPS_FOLD and recipe['input_manifest']==private.DENSE_INPUT_MANIFEST
-            and recipe['gc_layout_metadata_parity']==private.BPS_GC_PARITY
-            and recipe['native_dense_qualification']==DENSE_NATIVE_QUALIFICATION
-            and recipe['dense_target_result']==private.DENSE_TARGET_RESULT and recipe['dense_target']==private.DENSE_TARGET, 'DENSE_FIXED_INPUT_SCOPE')
+            and recipe['gc_layout_metadata_parity']==private.BPS_GC_PARITY, 'DENSE_FIXED_INPUT_SCOPE')
+        if decimal:
+            _require(recipe['native_dense_qualification']==DENSE_DECIMAL_NATIVE_QUALIFICATION
+                and recipe['decimal_input_audit']==private.DECIMAL_INPUT_AUDIT
+                and recipe['decimal_initial_predictions']==private.DECIMAL_INITIAL_PREDICTIONS, 'DECIMAL_QUALIFIED_INPUT_SCOPE')
+            audit_ref=campaign.require_binding(recipe['decimal_input_audit'],label='decimal input audit',verify_file=True)
+            audit=campaign.read_bound_json(Path(audit_ref['path']),audit_ref['sha256'])
+            refs=recipe['decimal_target_refs']
+            _require(audit.get('schema_version')=='gx1_decimal_bound_input_actual_audit_v1'
+                and audit.get('status')=='COMPLETE' and audit.get('parents')==118249
+                and audit.get('horizons_minutes')==list(range(1,61)) and audit.get('test_data_used') is False
+                and audit.get('new_model_forwards')==audit.get('optimizer_steps')==0
+                and audit.get('physical_parent_and_bar_start_hashes_verified') is True
+                and audit.get('corrected_archive_and_receipt_links_verified') is True
+                and audit.get('original_legacy_anchors_verified') is True and audit.get('immutable_outputs') is True
+                and isinstance(refs,Mapping) and refs==audit.get('inputs')
+                and refs.get('original')==private.DENSE_TARGET and refs.get('original_result')==private.DENSE_TARGET_RESULT
+                and recipe['dense_target']==refs.get('corrected')
+                and recipe['dense_target_result']==refs.get('corrected_result')
+                and audit.get('source')==owners.get('gx1/contracts/entry_native_direction_decimal_input_v1.py'), 'DECIMAL_INPUT_EVIDENCE')
+            for key,item in refs.items():campaign.require_binding(item,label='decimal '+key,verify_file=False)
+            campaign.require_binding(recipe['decimal_initial_predictions'],label='decimal initial predictions',verify_file=True)
+        else:
+            _require(recipe['native_dense_qualification']==DENSE_NATIVE_QUALIFICATION
+                and recipe['dense_target_result']==private.DENSE_TARGET_RESULT and recipe['dense_target']==private.DENSE_TARGET,
+                'DENSE_ORIGINAL_INPUT_SCOPE')
         for key in ('gc_layout_metadata_parity','native_dense_qualification','dense_source_transition_proof','dense_target_result','dense_evaluation_protocol'):
             campaign.require_binding(recipe[key],label='dense '+key,verify_file=True)
-        _require(recipe['dense_evaluation_protocol']['path']==str(source_repo/'docs/DIRECTION_DENSE_ONEPASS_EVALUATION_20261028.json'), 'DENSE_EVALUATION_PATH')
+        evaluation_name=('DIRECTION_DENSE_DECIMAL_EVALUATION_20261028.json' if decimal else 'DIRECTION_DENSE_ONEPASS_EVALUATION_20261028.json')
+        _require(recipe['dense_evaluation_protocol']['path']==str(source_repo/'docs'/evaluation_name), 'DENSE_EVALUATION_PATH')
         protocol=campaign.read_bound_json(Path(recipe['dense_evaluation_protocol']['path']),recipe['dense_evaluation_protocol']['sha256'])
-        _require(protocol.get('schema_version')=='gx1_dense_onepass_direction_evaluation_protocol_v1'
+        protocol_schema=('gx1_dense_decimal_direction_evaluation_protocol_v1' if decimal else 'gx1_dense_onepass_direction_evaluation_protocol_v1')
+        _require(protocol.get('schema_version')==protocol_schema
             and protocol.get('status')=='PREDECLARED_BEFORE_DENSE_FIT_NO_EXECUTION_AUTHORITY'
             and protocol.get('fold')==fold and protocol.get('test_data_used') is False
             and protocol.get('native_launch_authorized') is False, 'DENSE_EVALUATION_PROTOCOL')
+        if decimal:
+            _require(protocol.get('corrected_target')==recipe['dense_target']
+                and protocol.get('reference_predictions')==DENSE_DECIMAL_REFERENCE_PREDICTIONS
+                and protocol.get('primary_horizon_minutes')==5, 'DECIMAL_EVALUATION_IDENTITY')
+            campaign.require_binding(protocol['reference_predictions'],label='decimal reference predictions',verify_file=True)
+            sources=protocol.get('comparison_sources')
+            _require(isinstance(sources,Mapping) and set(sources)==set(DECIMAL_EVALUATION_SOURCES), 'DECIMAL_EVALUATION_SOURCE_SET')
+            for path,item in sources.items():
+                checked=campaign.require_binding(item,label='decimal evaluation source',verify_file=True)
+                _require(checked['path']==str(source_repo/path), 'DECIMAL_EVALUATION_SOURCE_PATH:'+path)
         campaign.require_binding(recipe['dense_target'],label='dense target',verify_file=False)
         review=campaign.read_bound_json(Path(recipe['native_dense_qualification']['path']),recipe['native_dense_qualification']['sha256'])
-        _require(review.get('status')=='PASS_CONSUMED_PRIVATE_NATIVE_MECHANICS'
-            and review.get('initial_256_parity') is True and review.get('sixty_horizons_have_eligible_labels_and_gradients') is True
+        if decimal:
+            _require(review.get('schema_version')=='gx1_decimal_dense_private_root_review_v1'
+                and review.get('status')=='PASS_CONSUMED_DECIMAL_PRIVATE_NATIVE_MECHANICS'
+                and review.get('initial_256_logits_parent_and_clock_byte_parity_independently_checked') is True
+                and review.get('corrected_all_60_train_priors_independently_checked') is True
+                and review.get('decimal_target')==recipe['dense_target']
+                and review.get('gc_projection_and_gate_nonzero_for_all_five_timeframes') is True,
+                'DECIMAL_PRIVATE_QUALIFICATION')
+        else:
+            _require(review.get('status')=='PASS_CONSUMED_PRIVATE_NATIVE_MECHANICS'
+                and review.get('initial_256_parity') is True and review.get('anchor_prefix_priors_equal') is True,
+                'DENSE_ORIGINAL_PRIVATE_QUALIFICATION')
+        _require(review.get('sixty_horizons_have_eligible_labels_and_gradients') is True
             and review.get('chart_mtf_gradient_first_step_nonzero') is True
             and review.get('chart_local_gradient_first_step_zero_and_second_nonzero') is True
             and review.get('bit_exact_resume') is True and review.get('private_optimizer_updates')==4
-            and review.get('anchor_prefix_priors_equal') is True and review.get('qualification_weights_for_main_fit') is False
-            and review.get('test_data_used') is False, 'DENSE_PRIVATE_QUALIFICATION')
+            and review.get('qualification_weights_for_main_fit') is False and review.get('test_data_used') is False,
+            'DENSE_PRIVATE_QUALIFICATION')
         plan_ref=campaign.require_binding(review['plan'],label='dense private plan',verify_file=True)
         private_plan=campaign.read_bound_json(Path(plan_ref['path']),plan_ref['sha256'])
         prior_ref=campaign.require_binding(private_plan['recipe'],label='dense private recipe',verify_file=True)
         prior=campaign.read_bound_json(Path(prior_ref['path']),prior_ref['sha256'])
-        _require(prior.get('run_scope')==private.DENSE_PRIVATE_SCOPE
+        _require(prior.get('run_scope')==(private.DECIMAL_PRIVATE_SCOPE if decimal else private.DENSE_PRIVATE_SCOPE)
             and prior.get('input_manifest')==recipe['input_manifest']
             and prior.get('fold')==recipe['fold'] and prior.get('dense_target')==recipe['dense_target']
             and prior.get('dense_target_result')==recipe['dense_target_result']
@@ -270,7 +394,33 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
             and {k:v for k,v in prior.get('numerical_recipe',{}).items() if k not in ('max_updates','contract_sha256')}
                 == {k:v for k,v in numerical.items() if k not in ('max_updates','contract_sha256')}, 'DENSE_PRIVATE_SOURCE_SCOPE')
         stable_sources=set(private.REQUIRED_SOURCE_PATHS)|set(private.DENSE_EXTRA_SOURCE_PATHS)
-        stable_sources.remove('gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py')
+        if decimal:
+            _require(prior.get('decimal_input_audit')==recipe['decimal_input_audit']
+                and prior.get('decimal_target_refs')==recipe['decimal_target_refs']
+                and prior.get('decimal_initial_predictions')==recipe['decimal_initial_predictions']
+                and private_plan.get('source_commit')==review.get('source_commit'), 'DECIMAL_PRIVATE_RECIPE_BINDING')
+            result_ref=campaign.require_binding(review['result'],label='decimal private result',verify_file=True)
+            receipt_ref=campaign.require_binding(review['receipt'],label='decimal private receipt',verify_file=True)
+            campaign.require_binding(review['idle_restore'],label='decimal idle restoration',verify_file=True)
+            qualified_result=campaign.read_bound_json(Path(result_ref['path']),result_ref['sha256'])
+            qualified_receipt=campaign.read_bound_json(Path(receipt_ref['path']),receipt_ref['sha256'])
+            _require(qualified_result.get('schema_version')=='gx1_native_decimal_dense_private_qualification_result_v1'
+                and qualified_result.get('decision')=='PASS_DECIMAL_DENSE_NATIVE_MECHANICS'
+                and qualified_result.get('recipe')==prior_ref
+                and qualified_result.get('decimal_target_refs')==recipe['decimal_target_refs']
+                and qualified_result.get('decimal_initial_prediction_byte_parity') is True
+                and qualified_result.get('decimal_prior_against_sign_audit') is True
+                and qualified_result.get('bit_exact_resume') is True and qualified_result.get('physical_optimizer_updates')==4
+                and qualified_result.get('source_unchanged') is True and qualified_result.get('test_data_used') is False
+                and qualified_result.get('private_weights_for_main_fit') is False
+                and qualified_receipt.get('outcome')=='COMPLETE' and qualified_receipt.get('guard_decision')=='PASS'
+                and qualified_receipt.get('plan_sha256')==private_plan.get('plan_sha256')
+                and qualified_receipt.get('test_data_used') is False, 'DECIMAL_PRIVATE_TERMINAL_EVIDENCE')
+            stable_sources |= set(private.DECIMAL_EXTRA_SOURCE_PATHS)
+            stable_sources -= set(DECIMAL_TRANSITION_FUNCTIONS)
+            _require_decimal_source_equivalence(source_repo,review.get('source_commit'),prior.get('source_owners',{}),owners)
+        else:
+            stable_sources.remove('gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py')
         _require(all(owners.get(key)==prior.get('source_owners',{}).get(key) for key in stable_sources), 'DENSE_QUALIFIED_NUMERICAL_SOURCE')
     if chronological:
         origin = recipe['order_origin']

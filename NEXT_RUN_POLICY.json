@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "DECIMAL_PRIVATE_QUALIFIED_NO_FULL_FIT",
+  "status": "DECIMAL_FULLFIT_SOURCE_PREPARED_NO_TRAINING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. The midpoint float-sign defect has been measured and a separate corrected target prepared; native model qualification and a full fit need their own exact admissions. Preserve genuine inputs, eight families, D1/macro, hardware guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "The corrected-target private native mechanics are qualified and consumed. Prepare a separately scoped corrected-target fresh full-prefix baseline and a direct 5min direction hypothesis retaining all 60 horizons; require a new exact training authorization, source binding, physical restart and hardware guards. TEST, broker, trading and weight reuse remain closed.",
+  "next_action": "Review the predeclared corrected-target one-pass proposal and consider its approximately two-hour historical runtime. No full fit or follow-up data audit is authorized. A new exact user decision, physical restart per training invocation and all existing hardware/TEST guards remain required. The earlier frozen-head readout is consumed and must not be repeated.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43713,5 +43713,32 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/POWER_IDLE_RESTORE_001.json",
       "sha256": "f4197844ff2a23f7746cc45c4ddf8bf4b5cb283e3cb3e1f675ac96c98904f755"
     }
+  },
+  "direction_decimal_fullfit_preparation_20261028": {
+    "status": "SOURCE_SYNTHETIC_AND_METADATA_PREFLIGHT_ONLY_NO_TRAINING",
+    "proposal": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_PROPOSAL_20261028.md",
+      "sha256": "2282d4c20b01c0114e97754fb2b3decc5ff0e13249dbba30239a50ee7a8306ac"
+    },
+    "recipe_candidate": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_RECIPE_CANDIDATE_20261028.json",
+      "sha256": "9ec7d21494f80a5537d0fd0c6ed6132fc2514083d30c27a3195005cbcdda7dd8"
+    },
+    "evaluation_protocol": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_EVALUATION_20261028.json",
+      "sha256": "123a10ca84750c7083e524b24ae6df60a4012d56b4b0e7c4efce7aa8ef8cfbd5"
+    },
+    "prior_private_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "f994b56dc5b5c76cb4edb1e4797a5b3e6556239a99c65c35fd8157fac5e5b81c"
+    },
+    "prior_three_head_readout": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "d52af9c879e7fe2f3bd99f4f841b1b33ee2c7bb528d639eeb433d1e8aa807ff8"
+    },
+    "training_authorized": false,
+    "full_fit_executed": false,
+    "predictive_improvement_qualified": false,
+    "test_data_used": false
   }
 }

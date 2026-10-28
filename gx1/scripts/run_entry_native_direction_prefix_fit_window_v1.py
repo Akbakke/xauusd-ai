@@ -626,6 +626,13 @@ def _latest_cursor(path, value, *, common, counters, limit):
     return common._hash_file(path)
 
 
+def _fit_input_launch(launch, authority):
+    """Reuse the qualified private target adapter for the separate full-fit scope."""
+    if launch['run_scope'] == authority.DENSE_DECIMAL_FIT_SCOPE:
+        return {**launch, 'run_scope': authority.DENSE_DECIMAL_PRIVATE_SCOPE}
+    return launch
+
+
 def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha256: str, progress_path: Path) -> dict:
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits=require_guarded_cuda_trainer_execution()
@@ -643,8 +650,21 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
     continuation=launch['run_scope']==authority.CONTINUATION_SCOPE;order_variant=launch['run_scope']==authority.ORDER_SCOPE;train_passes=launch['train_passes']
+    decimal_fit=launch['run_scope']==authority.DENSE_DECIMAL_FIT_SCOPE
+    input_launch=_fit_input_launch(launch,authority)
     binding_ref=common._hash_file(launch['execution_binding_path']);extra={};binding=common._read(binding_ref,extra)
-    context=_launch_metadata(launch,common);context['info']['metadata'].update(extra)
+    context=_launch_metadata(input_launch,common);context['info']['metadata'].update(extra)
+    if decimal_fit:
+        metadata=context['info']['metadata']
+        review=common._read(launch['native_dense_qualification'],metadata)
+        private_plan=common._read(review['plan'],metadata)
+        for ref in (private_plan['recipe'],review['result'],review['receipt'],review['idle_restore'],
+                launch['dense_evaluation_protocol']):
+            common._read(ref,metadata)
+        initial=launch['decimal_initial_predictions']
+        context['decimal_initial_predictions']=dict(initial)
+        context['decimal_initial_predictions_stat']=common._stat(initial['path'])
+        _require(common._hash_file(initial['path'])==initial,'DECIMAL_INITIAL_PREDICTIONS_SHA')
     origin=launch.get('continuation_origin') if continuation else None
     original_recipe=None;original_initial_measurement=None
     if continuation:
@@ -658,7 +678,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
         extra_read_paths=(origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else (),
         original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None,
-        dense_target=context.get('dense_target'))
+        dense_target=context.get('dense_target'),
+        decimal_original=context.get('decimal_original') if decimal_fit else None,
+        decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal_fit else None)
     counters={k:0 for k in ('model_constructions','model_construction_returns','optimizer_constructions','forward_calls','forward_returns',
         'backward_calls','backward_returns','optimizer_step_calls','optimizer_step_returns','empty_batches',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns','forbidden_legacy_calls')}
@@ -676,11 +698,14 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     previous_profile=sys.getprofile()
     try:
         sys.setprofile(common._deny_legacy_work(previous_profile,counters))
-        prepared,targets,view,context_map,ordered=_prepare(context,launch,np,signed_bps=recipe.get('signed_bps_supervision',False),
+        prepared,targets,view,context_map,ordered=_prepare(context,input_launch,np,signed_bps=recipe.get('signed_bps_supervision',False),
             magnitude_weighted=recipe.get('magnitude_weighted_direction',False),dense_minutes=recipe.get('dense_minute_supervision',False))
         bps_scale_ref=_qualified_bps_scale(context,view)
         order=torch.from_numpy(ordered.copy());order_sha=tree_sha(order)
         prior=_prefix_prior(prepared['arrays'],targets,fold,np)
+        if decimal_fit:
+            from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_decimal_prefix_prior
+            require_decimal_prefix_prior(prior,context['decimal_sign_audit'])
         if number>1:
             cursor_ref={'path':window['campaign_cursor_path'],'sha256':marker['pointer_before_sha256']}
             saved_cursor=json.loads(Path(cursor_ref['path']).read_text())
@@ -722,6 +747,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
             if order_variant:
                 _require_original_initial_match(measured,launch['order_origin']['initial_predictions'],common=common,np=np)
+            if decimal_fit:
+                from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_decimal_initial_prediction_parity
+                require_decimal_initial_prediction_parity(measured['arrays'],context['decimal_initial_predictions'],np=np)
             initial_measurement=_publish_measurement('INITIAL_TRAIN',measured,output=work,view=view_identity,prior=prior,
                 own_initial_state=initial_ref,fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
             del measured

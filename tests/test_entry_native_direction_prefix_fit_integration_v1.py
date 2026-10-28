@@ -49,10 +49,12 @@ def test_prefix_header_rejects_other_or_untyped_batches(batch):
         check(invocation(batch_size=batch))
 
 
-def test_private_research_header_keeps_b2_only():
-    assert check(invocation(kind='native_direction_research_window',batch_size=2))['batch_size']==2
-    with pytest.raises(campaign.RandomAccessCampaignError,match='batch size'):
-        check(invocation(kind='native_direction_research_window',batch_size=16))
+def test_private_research_header_accepts_b2_and_b16_only():
+    for batch in (2,16):
+        assert check(invocation(kind='native_direction_research_window',batch_size=batch))['batch_size']==batch
+    for batch in (True,4,8,16.0):
+        with pytest.raises(campaign.RandomAccessCampaignError,match='batch size'):
+            check(invocation(kind='native_direction_research_window',batch_size=batch))
 
 
 @pytest.mark.parametrize('outer_class',['audit','producer'])
