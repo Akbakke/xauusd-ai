@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "OBSERVATION_GAPS_MEASURED",
+  "status": "DECIMAL_PRIVATE_INPUT_AUDIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Prepare a separately admitted integration of the qualified decimal target owner, fresh baseline and a separately specified 5min direction hypothesis while retaining 1..60 horizons and all existing features. Follow direction-first scope: path/risk/FLAT objective changes are not admitted by the diagnostic. No training without a new exact authorization and the requested safe restart; keep TEST, broker and hardware guards closed.",
+  "next_action": "Complete the single capped data-only native target-adapter check and close it. Private GPU qualification, full prefix fit and training remain closed; a separate exact authorization and requested physical restart are necessary before training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43515,5 +43515,38 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_SHARED_COHORT_20261028.json",
       "sha256": "e135f7f77fab73173dfca3fcadcb0de0000c8fdec7d07baa8871b8ac0db572cf"
     }
+  },
+  "independent_direction_decimal_private_input_20261028_001": {
+    "status": "ADMITTED",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DECIMAL_PRIVATE_INPUT_20261028.json",
+      "sha256": "cefc706fe588c2f646aec1c0b6b8ba8edcd957e33196f86b81472cd8417cf59f"
+    },
+    "execution_authorized": true,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "scope": "Data-only corrected 60-minute target adapter with stubbed physical provider/feature view and exact verified target archives. No model, fit, broker or TEST."
+  },
+  "direction_decimal_private_route_source_20261028": {
+    "status": "SOURCE_PREPARED_ACTUAL_DATA_CHECK_PENDING",
+    "private_scope": "private_dense_decimal_b16_initial_resume_qualification",
+    "full_prefix_fit_scope_admitted": false,
+    "training_authorized": false,
+    "input_audit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json",
+      "sha256": "8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19"
+    },
+    "test_data_used": false,
+    "economic_edge_qualified": false
   }
 }

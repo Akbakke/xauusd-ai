@@ -103,7 +103,7 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
         names = {'owner_profile_source':'gx1/features/entry_specialist_feature_groups_v1.py',
             'native_constructor_source':'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
             'direction_component_source':'gx1/contracts/entry_native_direction_research_v1.py'}
-        _require(launch.get('run_scope') == authority.DENSE_SCOPE and independent_design is None
+        _require(launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE) and independent_design is None
             and weight_design is None and order_transition is None
             and isinstance(dense_source_transition,dict) and set(dense_source_transition)==set(names), 'DENSE_TRANSITION_SCOPE')
         for key, source in names.items():
@@ -143,7 +143,8 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
 
 def _launch_metadata(launch, common):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    if launch.get('run_scope') == authority.DENSE_SCOPE:
+    if launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE):
+        decimal=launch['run_scope']==authority.DENSE_DECIMAL_PRIVATE_SCOPE
         metadata = {}
         proof=common._read(launch['dense_source_transition_proof'],metadata)
         target_report=common._read(launch['dense_target_result'],metadata)
@@ -151,17 +152,41 @@ def _launch_metadata(launch, common):
             and proof.get('status')=='SOURCE_ONLY_VERIFIED_NO_DATA_OR_TRAINING'
             and proof.get('test_data_used') is False and proof.get('genuine_training_authorized') is False, 'DENSE_SOURCE_PROOF')
         target=target_report.get('target',{})
-        _require(target_report.get('status')=='COMPLETE_REAL_TARGETS_ONLY'
-            and target_report.get('test_data_used') is False and target_report.get('parents')==118249
-            and target_report.get('horizons_minutes')==list(range(1,61))
-            and target_report.get('legacy_anchor_byte_parity')=={'1':True,'5':True,'15':True}
-            and launch['dense_target']=={key:target.get(key) for key in ('path','sha256')}, 'DENSE_TARGET_RESULT')
+        if decimal:
+            from gx1.contracts import entry_native_direction_research_campaign_v1 as private
+            refs=launch['decimal_target_refs']; qualification=common._read(launch['decimal_input_audit'],metadata)
+            _require(launch['decimal_input_audit']==private.DECIMAL_INPUT_AUDIT
+                and qualification.get('schema_version')=='gx1_decimal_bound_input_actual_audit_v1'
+                and qualification.get('status')=='COMPLETE' and qualification.get('test_data_used') is False
+                and qualification.get('inputs')==refs and refs['original']==private.DENSE_TARGET
+                and refs['original_result']==private.DENSE_TARGET_RESULT
+                and refs['corrected']==launch['dense_target'] and refs['corrected_result']==launch['dense_target_result']
+                and target_report.get('schema_version')=='gx1_direction_decimal_targets_result_v1'
+                and target_report.get('status')=='COMPLETE' and target_report.get('test_data_used') is False
+                and target_report.get('target_identity')=='exact_original_decimal_midpoint_v1'
+                and target_report.get('parent_rows')==118249 and target_report.get('horizons_minutes')==list(range(1,61))
+                and target_report.get('target')==launch['dense_target'], 'DECIMAL_TARGET_RESULT')
+            receipts={key:common._read(refs[key],metadata) for key in
+                ('original_result','consumer_plan','consumer_result','materialization_plan','audit_result')}
+        else:
+            _require(target_report.get('status')=='COMPLETE_REAL_TARGETS_ONLY'
+                and target_report.get('test_data_used') is False and target_report.get('parents')==118249
+                and target_report.get('horizons_minutes')==list(range(1,61))
+                and target_report.get('legacy_anchor_byte_parity')=={'1':True,'5':True,'15':True}
+                and launch['dense_target']=={key:target.get(key) for key in ('path','sha256')}, 'DENSE_TARGET_RESULT')
         context=_metadata(launch,common,gc_layout_metadata_parity=launch['gc_layout_metadata_parity'],
             dense_source_transition=proof['source_transitions'])
         context['info']['metadata'].update(metadata)
         context['dense_target']=dict(launch['dense_target'])
         context['dense_target_stat']=common._stat(context['dense_target']['path'])
         _require(common._hash_file(context['dense_target']['path'])==context['dense_target'], 'DENSE_TARGET_SHA')
+        if decimal:
+            _require(context['manifest']['targets']==refs['legacy'], 'DECIMAL_LEGACY_SOURCE')
+            context['decimal_target_refs']=dict(refs)
+            context['decimal_original']=dict(refs['original'])
+            context['decimal_original_stat']=common._stat(context['decimal_original']['path'])
+            _require(common._hash_file(context['decimal_original']['path'])==context['decimal_original'], 'DECIMAL_ORIGINAL_SHA')
+            context['decimal_sign_audit']=receipts['audit_result']
     elif launch.get('run_scope') == authority.ORDER_SCOPE:
         metadata = {}
         proof = common._read(launch['native_order_qualification'], metadata)
@@ -277,17 +302,29 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
             targets=_select_price_targets(archive,signed_bps=signed_bps,magnitude_weighted=magnitude_weighted)
     if dense_minutes:
         from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-        from gx1.contracts.entry_native_direction_dense_data_v1 import DENSE_MEMBERS, bind_dense_targets
-        _require(launch.get('run_scope')==authority.DENSE_SCOPE and context.get('dense_target')==launch.get('dense_target'), 'DENSE_EXACT_SCOPE')
-        ref=context['dense_target']; before=common._stat(ref['path'])
-        _require(common._hash_file(ref['path'])==ref, 'DENSE_ARCHIVE_SHA')
-        with np.load(ref['path'],allow_pickle=False) as archive:
-            _require(set(archive.files)==set(DENSE_MEMBERS) and len(archive.files)==len(DENSE_MEMBERS), 'DENSE_ARCHIVE_MEMBERS')
-            dense={key:archive[key] for key in DENSE_MEMBERS}
-        _require(common._stat(ref['path'])==before and common._hash_file(ref['path'])==ref, 'DENSE_ARCHIVE_BOOKEND')
+        _require(launch.get('run_scope') in (authority.DENSE_SCOPE,authority.DENSE_DECIMAL_PRIVATE_SCOPE)
+            and context.get('dense_target')==launch.get('dense_target'), 'DENSE_EXACT_SCOPE')
         physical_axes={**prepared['arrays'],'dynamic_entry_m1_row':legacy['dynamic_entry_m1_row']}
-        targets=bind_dense_targets(axes=physical_axes,legacy=legacy,dense=dense)
-        del dense,legacy
+        if launch['run_scope']==authority.DENSE_DECIMAL_PRIVATE_SCOPE:
+            from gx1.contracts.entry_native_direction_decimal_input_v1 import load_bound_decimal_direction_targets
+            refs=launch['decimal_target_refs']
+            _require(context.get('decimal_target_refs')==refs and refs['legacy']==manifest['targets']
+                and refs['original']==context.get('decimal_original') and refs['corrected']==context['dense_target'],
+                'DECIMAL_EXACT_SCOPE')
+            bound=load_bound_decimal_direction_targets(refs=refs,axes=physical_axes,legacy=legacy)
+            targets={key:bound[key] for key in TARGET_MEMBERS}
+            del bound
+        else:
+            from gx1.contracts.entry_native_direction_dense_data_v1 import DENSE_MEMBERS, bind_dense_targets
+            ref=context['dense_target']; before=common._stat(ref['path'])
+            _require(common._hash_file(ref['path'])==ref, 'DENSE_ARCHIVE_SHA')
+            with np.load(ref['path'],allow_pickle=False) as archive:
+                _require(set(archive.files)==set(DENSE_MEMBERS) and len(archive.files)==len(DENSE_MEMBERS), 'DENSE_ARCHIVE_MEMBERS')
+                dense={key:archive[key] for key in DENSE_MEMBERS}
+            _require(common._stat(ref['path'])==before and common._hash_file(ref['path'])==ref, 'DENSE_ARCHIVE_BOOKEND')
+            targets=bind_dense_targets(axes=physical_axes,legacy=legacy,dense=dense)
+            del dense
+        del legacy
     _qualify_axes_targets(prepared['arrays'],targets,launch['fold'],np,signed_bps=signed_bps,
         magnitude_weighted=magnitude_weighted,dense_minutes=dense_minutes)
     bps_scale=None; magnitude_weight_contract=None

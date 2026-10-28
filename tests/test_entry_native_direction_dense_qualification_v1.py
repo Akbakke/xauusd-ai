@@ -90,7 +90,8 @@ def test_failed_dense_worker_publishes_failure_before_nonzero_exit(monkeypatch,t
     assert published['progress.json']=={'outcome':'FAILED','terminal':True}
 
 
-def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_path):
+@pytest.mark.parametrize('decimal',[False,True])
+def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_path,decimal):
     from copy import deepcopy
     from pathlib import Path
     import torch
@@ -105,6 +106,9 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
         'qualification_design':ref('design'),'gc_layout_metadata_parity':ref('gc'),'dense_source_transition_proof':ref('proof'),
         'dense_target':ref('targets'),'fold':authority.BPS_FOLD,'runtime_root':str(tmp_path/'runtime'),
         'max_published_json_bytes':33554432,'max_checkpoint_bytes':1073741824}
+    if decimal:
+        launch.update(run_scope=authority.DECIMAL_PRIVATE_SCOPE,decimal_input_audit=ref('decimal-audit'),
+            decimal_target_refs={'original':ref('original')})
     window={'recipe':ref('recipe'),'output_directory':str(tmp_path/'output'),'campaign_cursor_path':str(tmp_path/'cursor')}
     plan={'plan_sha256':'b'*64};invocation={'batch_size':16,'invocation_sha256':'c'*64}
     prior={key:[1]*60 for key in ('eligible_up','eligible_down')}
@@ -126,9 +130,19 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
         return {}
     monkeypatch.setattr(common,'_read',read)
     context={'info':{'metadata':{}},'ancestor_plan':{'payloads':{}},'dense_target':launch['dense_target']}
-    monkeypatch.setattr(prefix,'_launch_metadata',lambda *args:context)
+    if decimal:
+        rows=[{'horizon_minutes':i+1,'nonzero_sign_flips':0,'observed_mature':2,
+            'saved_by_exact_sign_order_minus_zero_plus':[[1,0,0],[0,0,0],[0,0,1]]} for i in range(60)]
+        context.update(decimal_original=ref('original'),decimal_sign_audit={
+            'schema_version':'gx1_direction_decimal_sign_audit_result_v1','status':'COMPLETE','test_data_used':False,
+            'new_model_forwards':0,'optimizer_steps':0,'target_source_rows_and_masks_parity':True,
+            'vendor_to_canonical_float64_and_clock_parity':True,'confusions':{'fold1_train':rows}})
+    metadata_scopes=[];guard_originals=[]
+    def metadata(actual,*_args):metadata_scopes.append(actual['run_scope']);return context
+    def guard(*_args,**kwargs):guard_originals.append(kwargs.get('decimal_original'));return []
+    monkeypatch.setattr(prefix,'_launch_metadata',metadata)
     monkeypatch.setattr(common,'_freeze',lambda *args:None)
-    monkeypatch.setattr(common,'_install_read_guard',lambda *args,**kwargs:[])
+    monkeypatch.setattr(common,'_install_read_guard',guard)
     monkeypatch.setattr(common,'_io',lambda:{'rchar':0})
     monkeypatch.setattr(common,'_deny_legacy_work',lambda *args:None)
     parents=np.arange(300,dtype=np.int64);prepared={'arrays':{'parent_rows':parents},'gc':{'layout':{}}}
@@ -180,5 +194,8 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
     monkeypatch.setattr(authority,'require_research_progress',lambda *args,**kwargs:None)
     result=worker.run_dense_qualification(policy_path=tmp_path/'policy',policy_file_sha256='0'*64,progress_path=tmp_path/'progress.json')
     assert result=={'outcome':'COMPLETE','terminal':True}
-    assert published['RESULT.json']['decision']=='PASS_DENSE_NATIVE_MECHANICS'
+    assert published['RESULT.json']['decision']==('PASS_DECIMAL_DENSE_NATIVE_MECHANICS' if decimal else 'PASS_DENSE_NATIVE_MECHANICS')
+    assert metadata_scopes==[prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE if decimal else prefix_authority.DENSE_SCOPE]
+    assert guard_originals==[ref('original') if decimal else None]
+    if decimal:assert published['RESULT.json']['decimal_prior_against_sign_audit'] is True
     assert published['RESULT.json']['bit_exact_resume'] and published['RESULT.json']['physical_optimizer_updates']==4

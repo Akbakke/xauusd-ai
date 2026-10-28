@@ -28,13 +28,40 @@ def select_qualification_parents(ordered, diagnostic_ids, design, *, np):
     return selected
 
 
+def require_decimal_prefix_prior(prior, audit):
+    """Match all 60 corrected TRAIN counts to the independent decimal audit."""
+    _require(isinstance(prior,dict) and isinstance(audit,dict)
+        and audit.get('schema_version')=='gx1_direction_decimal_sign_audit_result_v1'
+        and audit.get('status')=='COMPLETE' and audit.get('test_data_used') is False
+        and audit.get('new_model_forwards')==audit.get('optimizer_steps')==0
+        and audit.get('target_source_rows_and_masks_parity') is True
+        and audit.get('vendor_to_canonical_float64_and_clock_parity') is True, 'DECIMAL_PRIOR_AUDIT')
+    rows=audit.get('confusions',{}).get('fold1_train')
+    _require(isinstance(rows,list) and len(rows)==60
+        and all(isinstance(prior.get(k),list) and len(prior[k])==60 for k in ('eligible_up','eligible_down')),
+        'DECIMAL_PRIOR_ROWS')
+    for i,row in enumerate(rows):
+        _require(isinstance(row,dict), 'DECIMAL_PRIOR_ROW:'+str(i+1))
+        matrix=row.get('saved_by_exact_sign_order_minus_zero_plus')
+        _require(row.get('horizon_minutes')==i+1 and row.get('nonzero_sign_flips')==0
+            and isinstance(matrix,list) and len(matrix)==3
+            and all(isinstance(r,list) and len(r)==3 and all(type(v) is int and v>=0 for v in r) for r in matrix)
+            and matrix[0][2]==matrix[1][0]==matrix[1][2]==matrix[2][0]==0
+            and type(row.get('observed_mature')) is int and row['observed_mature']==sum(map(sum,matrix))
+            and type(prior['eligible_down'][i]) is int and type(prior['eligible_up'][i]) is int
+            and prior['eligible_down'][i]==matrix[0][0] and prior['eligible_up'][i]==matrix[2][2],
+            'DECIMAL_PRIOR_COUNT:'+str(i+1))
+
+
 def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progress_path:Path):
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits=require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(
         policy_path,policy_file_sha256,progress_path)
-    _require(launch['run_scope']==authority.DENSE_PRIVATE_SCOPE and invocation['batch_size']==16, 'EXACT_SCOPE')
+    decimal=launch['run_scope']==authority.DECIMAL_PRIVATE_SCOPE
+    _require(launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE)
+        and invocation['batch_size']==16, 'EXACT_SCOPE')
     sys.dont_write_bytecode=True
     import numpy as np
     import torch
@@ -52,7 +79,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     binding_ref=common._hash_file(launch['execution_binding_path']); extra={}; binding=common._read(binding_ref,extra)
     io_budget=common._read(common.INPUT_DESIGN,extra)['budget']['max_rchar_bytes']
     _require(io_budget==137438953472, 'IO_CEILING')
-    initial_report=common._read(prefix_authority.ORDER_ORIGIN['initial_measurement'],extra)
+    initial_report=None if decimal else common._read(prefix_authority.ORDER_ORIGIN['initial_measurement'],extra)
     design=common._read(launch['qualification_design'],extra)
     _require(design.get('schema_version')=='gx1_order_supported_qualification_design_v1'
         and design.get('status')=='DESIGN_ONLY_NO_EXECUTION_AUTHORITY'
@@ -65,13 +92,14 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         and proof.get('test_cases_passed')==6 and isinstance(proof.get('counters'),dict)
         and set(proof['counters'])=={'cuda_initializations','fit_calls','native_model_calls','optimizer_steps','payload_loads'}
         and all(v==0 for v in proof['counters'].values()), 'GC_METADATA_PROOF')
-    actual_launch={**launch,'run_scope':prefix_authority.DENSE_SCOPE}
+    actual_launch={**launch,'run_scope':prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE if decimal else prefix_authority.DENSE_SCOPE}
     context=prefix._launch_metadata(actual_launch,common);context['info']['metadata'].update(extra)
     for ref in (window['recipe'],binding['plan'],{'path':str(policy_path),'sha256':policy_file_sha256},launch['qualification_design']):
         common._read(ref,context['info']['metadata'])
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True)
-    denied=common._install_read_guard(context,output,Path(launch['runtime_root']),dense_target=context['dense_target'])
+    denied=common._install_read_guard(context,output,Path(launch['runtime_root']),dense_target=context['dense_target'],
+        decimal_original=context.get('decimal_original') if decimal else None)
     counters={key:0 for key in ('model_constructions','model_construction_returns','optimizer_constructions',
         'forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns',
@@ -79,7 +107,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     evaluation={'forward_calls':0,'forward_returns':0,'forward_kind_calls':{}}
     before=common._io();started=time.monotonic();previous=sys.getprofile();device=torch.device('cuda',0)
     full_state=initial=initial_identity=None;error=None;initial_checked=parity=unchanged=False;cursor=0
-    steps=[];batch_support=[];order_sha='0'*64;prepared=model=optimizer=None;prior=None
+    steps=[];batch_support=[];order_sha='0'*64;prepared=model=optimizer=None;prior=None;decimal_prior_checked=False
     common._json(output/'CLAIM.json',{'recipe':window['recipe'],'plan_sha256':plan['plan_sha256'],
         'limits':limits,'additional_worker_ceiling_seconds':1200},counters,launch['max_published_json_bytes'])
 
@@ -90,9 +118,12 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         sys.setprofile(common._deny_legacy_work(previous,counters))
         prepared,targets,view,context_map,ordered=prefix._prepare(context,actual_launch,np,dense_minutes=True)
         prior=prefix._prefix_prior(prepared['arrays'],targets,launch['fold'],np)
-        original_prior=initial_report['own_prefix_prior'];anchors=(0,4,14)
-        for key in ('eligible_up','eligible_down','probability_up','logit_up'):
-            _require([prior[key][i] for i in anchors]==original_prior[key], 'ORIGINAL_ANCHOR_PRIOR:'+key)
+        if decimal:
+            require_decimal_prefix_prior(prior,context['decimal_sign_audit']);decimal_prior_checked=True
+        else:
+            original_prior=initial_report['own_prefix_prior'];anchors=(0,4,14)
+            for key in ('eligible_up','eligible_down','probability_up','logit_up'):
+                _require([prior[key][i] for i in anchors]==original_prior[key], 'ORIGINAL_ANCHOR_PRIOR:'+key)
         diagnostic_ids=prefix._fixed_order(prepared['arrays']['parent_rows'],launch['fold']['prefix_rows'],prefix.SEED,np)[:256]
         selected=select_qualification_parents(ordered,diagnostic_ids,design,np=np)
         order=torch.from_numpy(selected);order_sha=tree_sha(order);batches=[]
@@ -174,8 +205,10 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     if after['rchar']>io_budget:error='RCHAR_BUDGET_EXCEEDED'
     passed=initial_checked and parity and unchanged and error is None
     outcome='COMPLETE' if passed else 'FAILED'
-    result=common._json(output/'RESULT.json',{'schema_version':'gx1_native_dense_private_qualification_result_v1',
-        'decision':'PASS_DENSE_NATIVE_MECHANICS' if passed else 'FAILED','recipe':window['recipe'],
+    result=common._json(output/'RESULT.json',{'schema_version':('gx1_native_decimal_dense_private_qualification_result_v1' if decimal else 'gx1_native_dense_private_qualification_result_v1'),
+        'decision':(('PASS_DECIMAL_DENSE_NATIVE_MECHANICS' if decimal else 'PASS_DENSE_NATIVE_MECHANICS') if passed else 'FAILED'),
+        **({'decimal_input_audit':launch['decimal_input_audit'],'decimal_target_refs':launch['decimal_target_refs'],
+            'decimal_prior_against_sign_audit':decimal_prior_checked} if decimal else {}),'recipe':window['recipe'],
         'execution_binding':binding_ref,'counts':{k:v for k,v in counters.items() if k!='json_bytes'},
         'initial_evaluation_counts':evaluation,'initial_state':initial,'initial_identity_sha256':initial_identity,
         'initial_predictions':locals().get('initial_prediction'),'own_prefix_prior':prior,

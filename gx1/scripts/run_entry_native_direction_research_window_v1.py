@@ -99,11 +99,15 @@ def _freeze(recipe, binding, context):
     if 'dense_target' in context:
         ref=context['dense_target']
         _require(_stat(ref['path'])==context['dense_target_stat'] and _hash_file(ref['path'])==ref,'DENSE_TARGET_FREEZE')
+    if 'decimal_original' in context:
+        ref=context['decimal_original']
+        _require(ref==context['decimal_target_refs']['original'] and _stat(ref['path'])==context['decimal_original_stat']
+            and _hash_file(ref['path'])==ref,'DECIMAL_ORIGINAL_FREEZE')
     for path,item in context['info']['metadata'].items():
         _require(_stat(path)==item['stat'] and _hash_file(path)==item['ref'],'METADATA_FREEZE:'+path)
 
 
-def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None, dense_target=None):
+def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None, dense_target=None, decimal_original=None):
     plan=context['ancestor_plan'];info=context['info']
     _require(isinstance(extra_read_paths, tuple), 'EXTRA_READ_PATHS')
     if extra_read_paths:
@@ -118,6 +122,12 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
         _require(isinstance(dense_target,dict) and set(dense_target)=={'path','sha256'}
             and dense_target==context.get('dense_target') and dense_target['path'].endswith('.npz'), 'DENSE_TARGET_BINDING')
         extra_read_paths += (dense_target['path'],)
+    if decimal_original is not None:
+        _require(isinstance(decimal_original,dict) and set(decimal_original)=={'path','sha256'}
+            and decimal_original==context.get('decimal_original')
+            and decimal_original==context.get('decimal_target_refs',{}).get('original')
+            and decimal_original['path'].endswith('.npz'), 'DECIMAL_ORIGINAL_BINDING')
+        extra_read_paths += (decimal_original['path'],)
     allowed={p for p,v in plan['payloads'].items() if v['verification'] not in ('inherited_stat_only_no_open','reused_original051_stat_only_no_open')}|set(info['metadata'])|set(extra_read_paths)
     directories={plan['native_cache_dir'],str(Path(plan['gc_surfaces']['path']).parent),str(output)}
     relative={Path(p).name:p for p in allowed if p.endswith('.npy')};denied=[]
@@ -350,7 +360,7 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     if launch['run_scope'] in (authority.ORDER_PRIVATE_SCOPE, authority.ORDER_SUPPORTED_SCOPE):
         from gx1.scripts.run_entry_native_direction_order_qualification_v1 import run_order_qualification
         return run_order_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
-    if launch['run_scope']==authority.DENSE_PRIVATE_SCOPE:
+    if launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE):
         from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import run_dense_qualification
         return run_dense_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     sys.dont_write_bytecode=True

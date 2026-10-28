@@ -34,6 +34,9 @@ BPS_SCOPE = 'single_prefix_one_pass_direction_signed_bps_fit'
 CONTINUATION_SCOPE = 'single_prefix_three_pass_direction_continuation'
 ORDER_SCOPE = 'single_prefix_one_pass_direction_chronological_order'
 DENSE_SCOPE = 'single_prefix_dense_minute_direction_fit'
+# Internal adapter for a separately admitted private decimal qualification only.
+# The prefix-fit launch validator does not accept this as a training scope.
+DENSE_DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_input_adapter'
 DENSE_NATIVE_QUALIFICATION = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json',
     'sha256':'7b5768f2310446716f9954ab2e5887831e5dc8e6bde143c7bc4fa72156b17b24'}
 ORDER_ALGORITHM = 'strictly_increasing_prefix_parent_rows'
