@@ -1,0 +1,72 @@
+{
+  "schema_version": "gx1_train_quote_access_source_review_v1",
+  "status": "METADATA_ONLY_YEAR_PARTITION_CANDIDATE_NOT_QUALIFIED",
+  "observed_market_plan": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_FRESH_EPOCH_GUARD_20261020_104/OBSERVED_MARKET_PLAN.json",
+    "sha256": "25019568903f1e64c09cc80e946dc579babbf8dcbb2b0cdb4b1fbf090681542d"
+  },
+  "train_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/TRAIN_VAL_051/XAU_GC_NATIVE__ENTRY_FITTED_Q_train.manifest.json",
+    "sha256": "d6bf1d2ddacf0260e6c23e0496f57086ddfcd3ba971e6fa34b4b433f58cf2ed0"
+  },
+  "native_m1_manifest": {
+    "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+    "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"
+  },
+  "old_quote_source": {
+    "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+    "authority_mode": "pretest_quote_complete_native_v1",
+    "total_rows_from_metadata": 5959045,
+    "train_cutoff": "2026-01-01T00:00:00+00:00",
+    "rows_before_cutoff_from_metadata": 5784887,
+    "rows_after_cutoff_from_metadata": 174158,
+    "last_time_from_metadata": "2026-06-30T23:59:00+00:00"
+  },
+  "source_control": {
+    "owner": "gx1/contracts/entry_observed_market_v1.py",
+    "lines": {
+      "whole_source_hash": 907,
+      "whole_clock_read": 914,
+      "full_row_group_before_slice": 931
+    },
+    "fact": "The existing reader hashes the full bound file and reads its whole clock; it reads a complete quote row group before slicing it. Whether a quote row group actually crosses the cutoff is not measured. No claim of training-target contamination is made.",
+    "constraint": "Do not use this whole-source path for the requested TRAIN-only audit."
+  },
+  "candidate_train_year_partitions": [
+    {
+      "year": 2024,
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet",
+      "expected_file_sha256_from_manifest": "2776a1cb17b915d506eaf0d7ed5323ba975e0d0d1c52c0c02d2da20589d1c41a",
+      "rows_from_manifest": 354866,
+      "time_bounds_from_manifest": {
+        "time_max_utc": "2024-12-31T21:59:00+00:00",
+        "time_min_utc": "2024-01-01T23:03:00+00:00"
+      },
+      "prior_quote_subset_proof_canonical_sha256": "920ed92449bb760c0675e5faf7492c1495a2c1822e11a93b0205426a9ccfb524"
+    },
+    {
+      "year": 2025,
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2025/part-000.parquet",
+      "expected_file_sha256_from_manifest": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc",
+      "rows_from_manifest": 353499,
+      "time_bounds_from_manifest": {
+        "time_max_utc": "2025-12-31T21:59:00+00:00",
+        "time_min_utc": "2025-01-01T23:04:00+00:00"
+      },
+      "prior_quote_subset_proof_canonical_sha256": "2e24fa5492e0054852083f79182ed1d687dd187a5f475e773cd3e60272ad2b02"
+    }
+  ],
+  "prior_2009_2023_rows_from_metadata": 5076522,
+  "lineage_note": "Prior manifest claims exact canonical row-subset proof for each year and all earlier annual row counts agree; candidate payload files and their hashes have not been read or verified here.",
+  "qualification_required": [
+    "Fresh narrowly admitted capped worker may open only the exact 2024 and 2025 partitions and exact permitted saved TRAIN targets.",
+    "Verify file hashes, required columns, actual year bounds, completeness and prior canonical row proof.",
+    "Use only decisions in May 2024 through 2025; offsets and causal clocks must reproduce the original saved parent identity.",
+    "Reproduce saved 1, 5 and 15 minute midpoint bps/sign/masks on identical mature TRAIN parents before any new first-hit measurement.",
+    "Stop on any mismatch, unexpected later timestamp, missing observation, resource guard or source identity drift."
+  ],
+  "genuine_payloads_opened": false,
+  "genuine_file_hashes_verified": false,
+  "test_or_control_opened": false,
+  "training_or_model_calls": false
+}

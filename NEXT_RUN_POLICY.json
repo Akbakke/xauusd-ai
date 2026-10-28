@@ -39788,7 +39788,7 @@
     }
   },
   "direction_first_quote_race_source_20261028": {
-    "status": "SYNTHETIC_42_PASS_RESEARCH_ONLY",
+    "status": "SYNTHETIC_42_PASS_SUPERSEDED_BY_PARTIAL_SOURCE",
     "scope": "Extend the existing research-only first-favorable quote owner to classify which side first crosses a fixed bps hurdle, with neither event and explicit unknown ordering; no native model wiring.",
     "allowed_source_paths": [
       "gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
@@ -39851,14 +39851,14 @@
     }
   },
   "direction_first_quote_race_partial_source_20261028": {
-    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
+    "status": "SYNTHETIC_43_PASS_PARTIAL_SET_RESEARCH_ONLY",
     "scope": "Preserve a conservative set of possible first-hurdle outcomes when the exact winner is not identifiable. This prevents an outcome-dependent unknown mask from being mistaken for a representative training population. Existing event and direction semantics stay unchanged.",
     "allowed_source_paths": [
       "gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
       "tests/test_entry_causal_m1_first_positive_quote_v1.py"
     ],
     "source_edits_authorized": false,
-    "synthetic_tests_authorized": true,
+    "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -39881,20 +39881,48 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_PARTIAL_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "e15a7a4c3190bcdc2a9ea5fb6833a020986ad3e5dcf1ab37c70e75e80ce631f0"
     },
-    "expected_synthetic_cases": 43
+    "expected_synthetic_cases": 43,
+    "actual_limit": "Synthetic only. Unknown sets retain partial information; no partial-label loss, genuine label frequency, model consumer, training, later generalization or financial edge measured."
   },
   "direction_first_quote_race_partial_synthetic_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_SYNTHETIC_43_PASS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_PARTIAL_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "e15a7a4c3190bcdc2a9ea5fb6833a020986ad3e5dcf1ab37c70e75e80ce631f0"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_PARTIAL_SYNTHETIC_20261028_001/TERMINAL.json",
+      "sha256": "e2a37a0a42cd4381eb5b8f9ccaaeab68eb229405894623f11abb734279135beb"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_PARTIAL_SYNTHETIC_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "d552f0efd926e94b6189281c87d39440d4e6e5a7f56a9fe3af0e206830e6447a"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_PARTIAL_SYNTHETIC_20261028_001/RESULTS.xml",
+      "sha256": "26994ffc8b18d20cfaa49c0c0702564df676f39b1ee35aff95d088ee94cc4a64"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_QUOTE_RACE_PARTIAL_SYNTHETIC_20261028_001/OUTER.log",
+      "sha256": "cc147e1827fb5a7b4e9a3643f8c92afc159189cec6f41e87a08f0c51ac872148"
+    }
+  },
+  "direction_train_quote_source_review_20261028": {
+    "status": "METADATA_ONLY_YEAR_PARTITION_CANDIDATE_NOT_QUALIFIED",
+    "review": {
+      "path": "docs/DIRECTION_TRAIN_QUOTE_SOURCE_REVIEW_20261028.json",
+      "sha256": "6522a266ac3aa22c3058ac761a160ca44738508b8420f1aa25c20a763430808d"
+    },
+    "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false

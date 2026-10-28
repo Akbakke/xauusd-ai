@@ -11,10 +11,16 @@ Programrot:
 
 ## Aktuell status
 
-Fasiten er utvidet til også å bevare et konservativt sett av mulige utfall
-ved usikker rekkefølge. Å maskere ukjente treff alene gir utfallsavhengig
-utvalg, særlig ved 1min. Én syntetisk kontroll er admittért; ingen trening,
-tap for delvise fasiter eller datalesing er åpnet.
+Fasiten bevarer også et konservativt sett av mulige utfall ved usikker
+rekkefølge. 43 syntetiske kontroller bestod og engangsadgangen er konsumert.
+Å maskere ukjente treff alene gir utfallsavhengig utvalg, særlig ved 1min.
+Ingen tapsfunksjon, ekte første-treff-fasit eller modellkobling er kvalifisert.
+
+Eksisterende M1-leser åpner hele kildeklokken og kan lese en hel radgruppe før
+avskjæring ved TRAIN-grensen. Separate årsfiler 2024 og 2025 er funnet via
+metadata, men er ikke åpnet eller verifisert. Kontroller eksakt kildeidentitet,
+tids-/radbinding og 1/5/15-fasit før ny ekte måling. Se
+`docs/DIRECTION_TRAIN_QUOTE_SOURCE_REVIEW_20261028.json`.
 
 Forskningsfasiten for hvilken side som først passerer en fast bps-grense
 er implementert i eksisterende første-gunstige-quote-eier. 42 syntetiske
