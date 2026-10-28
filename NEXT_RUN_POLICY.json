@@ -40161,7 +40161,7 @@
     "direction_improvement_qualified": false
   },
   "direction_first_hurdle_endpoint_alignment_source_20261028": {
-    "status": "SOURCE_AND_SYNTHETIC_9_PASS_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_AND_SYNTHETIC_9_PASS_SUPERSEDED_BY_REFERENCE_SOURCE",
     "scope": "Extend the existing first-hurdle audit to compare the fixed 5-minute first-hit label with the original saved 5-minute endpoint sign on exactly the same known-direction parents. Reuse the prior observation identities and verify the previous 5-minute coverage and AUC before reporting alignment.",
     "allowed_source_paths": [
       "gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
@@ -40287,14 +40287,14 @@
     "test_control_exit_authorized": false
   },
   "direction_first_hurdle_reference_source_20261028": {
-    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
+    "status": "SOURCE_AND_SYNTHETIC_11_PASS_GENUINE_EXECUTION_CLOSED",
     "scope": "Extend the existing matched first-hurdle audit to compare native with the already saved ET252 ExtraTrees endpoint scorer on the exact same first-hit-direction parents. ET252 was a pre-existing direction reference, not a new fit.",
     "allowed_source_paths": [
       "gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
       "tests/test_audit_entry_direction_first_hurdle_v1.py"
     ],
     "source_edits_authorized": false,
-    "synthetic_tests_authorized": true,
+    "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -40324,22 +40324,39 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "b918b6040d9952739ba3a0aef9e64bcfeac0b55022cd6d55819d545e982d3863"
     },
-    "expected_synthetic_cases": 11
+    "expected_synthetic_cases": 11,
+    "qualification": "Eleven synthetic first-hurdle, matched endpoint, reference identity and paired rank cases passed; no genuine payload opened."
   },
   "direction_first_hurdle_reference_synthetic_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_SYNTHETIC_11_PASS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "b918b6040d9952739ba3a0aef9e64bcfeac0b55022cd6d55819d545e982d3863"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "genuine_payload_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_SYNTHETIC_20261028_001/TERMINAL.json",
+      "sha256": "3eee451e24f055d074f922d55f22658f16b91e9649079b032b93fde4030fef02"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_SYNTHETIC_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "b444c010ebabf6b6b6cf2fb8a6c72a692aef41a2b789a4d606fe12f5366ad303"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_SYNTHETIC_20261028_001/RESULTS.xml",
+      "sha256": "3f73f025f3bc3b5b4e398cbd79a9444568630a1ba239e4ae880da0d2707034bd"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_SYNTHETIC_20261028_001/OUTER.log",
+      "sha256": "3f65031d402c2c20559c99bbb54edd64a2c343a07e8e0de71c1b939d809422c3"
+    }
   }
 }
