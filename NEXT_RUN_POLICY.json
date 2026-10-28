@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T12:13:11.359983+00:00",
-  "status": "FIXED_SIGNAL_1_TO_60_EVALUATED_NO_EDGE_DISTINCT_MODEL_PENDING",
+  "observed_utc": "2026-10-28T12:27:42.146759+00:00",
+  "status": "DENSE_60_EIGHT_FAMILY_SOURCE_SYNTHETIC_ONLY_GENUINE_INTEGRATION_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Build and synthetically qualify distinct 1–60-minute direction model outputs and causal loss using the verified dense targets; preserve the original 1/5/15 route, compact inputs and all guards. No genuine model execution or training without a new exact plan.",
+  "next_action": "Complete exact real dense target and eight-family source/data transition bindings, then separately admit and run private native initial/gradient/resume qualification before a new shared 1–60-minute model training. Retain 250 W requested training ceiling, all guards, fresh physical reboot and sealed TEST.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Use the measured TRAIN-to-later gap to prioritize a fixed single-factor target or generalization diagnosis on identical chronological development splits. Preserve the endpoint-sign task as a reference; align a separate size- and path-aware target without using TEST or assuming bps supervision works.",
+    "current_activity": "Investigate missing direction edge using the measured training-to-later gap, real compact-input omissions and separately parameterized 1–60-minute outcomes. The new eight-family 60-head code is synthetic-only until separately qualified and trained.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -8908,10 +8908,10 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Onlyfold1reusedTRAINdevelopment; no untouched confirmation or allfoldreadout conclusion.",
-      "Original8piece/0UvsTerminalstudy remains incomplete.",
-      "10minute and dense1..60native heads and magnitude supervision remain unimplemented/unmeasured.",
-      "Input stable forward information, representation loss and target insufficiency remain unresolved."
+      "The 60 separate outputs and restored chart geometry have synthetic checks only; no genuine forward, private qualification or training for the new profile.",
+      "Real dense target loading, historical-to-current source transition, read guard, exact execution plan and fresh native qualification remain pending.",
+      "The earlier 60-minute evaluation reused the five-minute score; neither geometry value nor separate minute-head generalization has been measured.",
+      "Input stability, quote-event age, H1 signed-flow coverage, decision selectivity and cost-adjusted performance remain unresolved."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "FIXED_SIGNAL_60_EVALUATION_COMPLETE_NO_EDGE_DISTINCT_MODEL_PENDING",
+    "status": "DENSE_60_AND_EIGHT_FAMILY_SOURCE_SYNTHETIC_ONLY_NO_GENUINE_TRAINING",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Build and synthetically qualify distinct 1–60-minute direction model outputs and causal loss using the verified dense targets; preserve the original 1/5/15 route, compact inputs and all guards. No genuine model execution or training without a new exact plan.",
+    "next_action": "Complete exact dense-target and eight-family source/data binding, focused tests and private native qualification under a new one-shot plan; then one shared 60-head training on chronological development data with 250 W ceiling, unchanged guards and fresh physical boot. Do not claim improved edge without later results.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37303,6 +37303,19 @@
     "dense_fixed_signal_result": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_FIXED_SIGNAL_RESULT_20261028_001/RESULT.json",
       "sha256": "359fa314187140da43ba0de499829930f67c1d2324e994d0b4cdc8d108278136"
+    },
+    "dense_minute_model_design": "docs/DIRECTION_DENSE_MINUTE_MODEL_20261028.json",
+    "dense_minute_model_source_state": {
+      "distinct_minute_logits": 60,
+      "chart_geometry_family_restored_in_new_research_profile": true,
+      "old_profile_unchanged": true,
+      "synthetic_forward_gradient_and_resume_only": true,
+      "real_data_loader_integration_complete": false,
+      "native_private_qualification_complete": false,
+      "real_training_or_predictions_complete": false,
+      "source_transition_plan_admitted": false,
+      "separately_measured_chart_value": false,
+      "test_data_used": false
     }
   },
   "independent_direction_candle_synthetic_20261027": {

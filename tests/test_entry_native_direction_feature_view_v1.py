@@ -222,3 +222,46 @@ def test_gather_api_rejects_target_or_future_endpoint_arguments(bound_case):
     with pytest.raises(TypeError):
         owner.gather_native_direction_feature_batch(bound_case['view'], **_inputs(deepcopy(bound_case)),
             sign=np.ones((2, 3), dtype=np.int8))
+
+
+def test_dense_view_binds_own_source_and_constructs_sixty_head_model(bound_case, monkeypatch):
+    from gx1.contracts import entry_native_direction_dense_v1 as dense
+    arguments = deepcopy(bound_case['arguments'])
+    arguments['source_bindings']['dense_direction_component_source'] = _ref('dense_direction.py')
+    view = owner.bind_native_direction_feature_view(**arguments, dense_minutes=True)
+    assert view['dense_minute_supervision'] is True
+    assert view['research_objective'] == dense.dense_direction_research_contract()
+    calls, norm_calls = _constructor_spy(monkeypatch)
+    model = owner.build_native_direction_research_model(view, prefix_normalization=arguments['prefix_normalization'],
+        constructor_metadata=arguments['constructor_metadata'], device=torch.device('cpu'))
+    assert type(model) is dense.DenseNativeEntryDirectionResearch
+    assert model.direction_head.out_features == 3 and model.dense_aux_head.out_features == 57
+    assert len(calls) == len(norm_calls) == 1
+    assert model.feature_view_identity['research_objective_sha256'] == view['research_objective']['contract_sha256']
+    with pytest.raises(RuntimeError):
+        owner.bind_native_direction_feature_view(**bound_case['arguments'], dense_minutes=True)
+    with pytest.raises(RuntimeError):
+        owner.bind_native_direction_feature_view(**arguments, dense_minutes=True, bps_scale={})
+
+
+def test_dense_profile_restores_geometry_without_removing_compact_or_gc_fields(bound_case):
+    from gx1.contracts import entry_exit_production_architecture_v1 as architecture
+    history = bound_case['arguments']['prefix_normalization']['gc_mtf_history']
+    old = groups.compile_gc_mtf_entry_execution_profile(history)
+    new = groups.compile_gc_mtf_geometry_entry_execution_profile(history)
+    assert new['name'] == groups.GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME
+    assert new['local_specialists'] == new['mtf_specialists'] == tuple(groups.MODEL_NATIVE_TRAINING_SPECIALISTS)
+    assert len(new['local_specialists']) == 8
+    assert len(set(new['signal_indices']) - set(old['signal_indices'])) == 32
+    assert len(set(new['ctx_cont_indices']) - set(old['ctx_cont_indices'])) == 1
+    assert len(set(new['mtf_indices']) - set(old['mtf_indices'])) == 39
+    for field in ('signal_indices', 'ctx_cont_indices', 'mtf_indices'):
+        assert set(old[field]).issubset(new[field])
+    assert new['gc_mtf_history'] == old['gc_mtf_history']
+    ref = {'name': new['name'], 'contract_sha256': new['contract_sha256']}
+    assert groups.require_compact_entry_execution_profile_reference(ref, gc_mtf_history=history) == ref
+    contract = architecture.entry_exit_production_architecture_contract(entry_execution_profile=ref, gc_mtf_history=history)
+    assert contract['gc_mtf_history']['mtf_specialists'] == list(groups.MODEL_NATIVE_TRAINING_SPECIALISTS)
+    arguments = deepcopy(bound_case['arguments']); arguments['source_bindings']['dense_direction_component_source'] = _ref('dense_direction.py')
+    view = owner.bind_native_direction_feature_view(**arguments, dense_minutes=True)
+    assert view['entry_execution_profile'] == ref

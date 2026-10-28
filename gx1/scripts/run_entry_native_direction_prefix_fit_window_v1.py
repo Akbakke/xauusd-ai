@@ -347,8 +347,13 @@ def _evaluate(model, prepared, targets, view, context_map, selected, *, cutoff, 
     tag_arrays={key:np.concatenate([item[key] for item in tags]) for key in tags[0]}
     context={**context_header,'parent_rows':arrays['parent_rows'],
         'decision_ns':arrays['decision_ns'],'tags':tag_arrays}
-    report=reporter.score_native_direction_logits(arrays['logit_up'],sign=arrays['sign'],observed=arrays['observed'],
-        decision_ns=arrays['decision_ns'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff,context_tags=context)
+    if view.get('dense_minute_supervision', False):
+        from gx1.contracts.entry_native_direction_dense_report_v1 import score_dense_direction_logits
+        report=score_dense_direction_logits(arrays['logit_up'],sign=arrays['sign'],observed=arrays['observed'],
+            decision_ns=arrays['decision_ns'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff)
+    else:
+        report=reporter.score_native_direction_logits(arrays['logit_up'],sign=arrays['sign'],observed=arrays['observed'],
+            decision_ns=arrays['decision_ns'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff,context_tags=context)
     if signed_bps:
         from gx1.contracts.entry_native_direction_bps_v1 import score_direction_bps
         arrays['mean_return_bps']=np.concatenate(bps_predictions)
@@ -398,10 +403,17 @@ def _publish_measurement(name, measured, *, output, view, prior, own_initial_sta
         context_map, counters, launch, np, common, tree_sha):
     from gx1.contracts.entry_native_direction_context_report_v1 import score_native_direction_logits
     arrays=measured['arrays'];prediction=_save_predictions(output/(name+'.npz'),arrays,np=np,common=common,tree_sha=tree_sha)
-    prior_logits=np.broadcast_to(np.asarray(prior['logit_up'],np.float64),(len(arrays['parent_rows']),3)).copy()
-    prior_report=score_native_direction_logits(prior_logits,sign=arrays['sign'],observed=arrays['observed'],
-        decision_ns=arrays['decision_ns'],terminal_time_ns=arrays['terminal_time_ns'],
-        cutoff_ns=launch['fold']['train_cutoff_ns'] if name!='OOF' else launch['fold']['oof_cutoff_ns'],context_tags=measured['context_tags'])
+    horizons=arrays['logit_up'].shape[1]
+    _require(horizons in (3,60) and len(prior['logit_up'])==horizons,'PRIOR_HORIZONS')
+    prior_logits=np.broadcast_to(np.asarray(prior['logit_up'],np.float64),(len(arrays['parent_rows']),horizons)).copy()
+    cutoff=launch['fold']['train_cutoff_ns'] if name!='OOF' else launch['fold']['oof_cutoff_ns']
+    if horizons==60:
+        from gx1.contracts.entry_native_direction_dense_report_v1 import score_dense_direction_logits
+        prior_report=score_dense_direction_logits(prior_logits,sign=arrays['sign'],observed=arrays['observed'],
+            decision_ns=arrays['decision_ns'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff)
+    else:
+        prior_report=score_native_direction_logits(prior_logits,sign=arrays['sign'],observed=arrays['observed'],
+            decision_ns=arrays['decision_ns'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff,context_tags=measured['context_tags'])
     return common._json(output/(name+'.json'),{'schema_version':'gx1_native_direction_bps_prefix_measurement_v1' if 'mean_return_bps' in arrays else 'gx1_native_direction_prefix_measurement_v1',
         'role':name,'fold':launch['fold'],'feature_view_identity':view,'context_map':context_map,
         'predictions':prediction,'model_metrics':measured['report'],'own_prefix_prior':prior,'prior_metrics':prior_report,
@@ -417,6 +429,10 @@ def _gradient_summary(model, torch):
     head=model.direction_head
     out={'head_weight_rows':[int(torch.count_nonzero(row)) for row in head.weight.grad] if head.weight.grad is not None else [0]*3,
         'head_bias_rows':[int(value!=0) for value in head.bias.grad] if head.bias.grad is not None else [0]*3}
+    if hasattr(model,'dense_aux_head'):
+        aux=model.dense_aux_head
+        out['dense_aux_head_weight_rows']=[int(torch.count_nonzero(row)) for row in aux.weight.grad] if aux.weight.grad is not None else [0]*57
+        out['dense_aux_head_bias_rows']=[int(value!=0) for value in aux.bias.grad] if aux.bias.grad is not None else [0]*57
     if getattr(model,'signed_bps',False):
         mean=model.bps_mean_head
         out['bps_head_weight_rows']=[int(torch.count_nonzero(row)) for row in mean.weight.grad] if mean.weight.grad is not None else [0]*3
@@ -447,7 +463,12 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
         _require(loss['research_objective_sha256']==model.research_objective['contract_sha256'],'WEIGHTED_LOSS_IDENTITY')
     else:
         logits=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True)
-        loss=native_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
+        from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch, dense_direction_binary_loss
+        if type(model) is DenseNativeEntryDirectionResearch:
+            loss=dense_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
+            _require(loss['research_objective_sha256']==model.research_objective['contract_sha256'],'DENSE_LOSS_IDENTITY')
+        else:
+            loss=native_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
     record={'eligible_cells':loss['counts']['eligible_cells'],'counts':loss['counts'],'per_horizon_counts':loss['per_horizon_counts']}
     if magnitude_weighted:
         for key in ('unweighted_direction_loss','magnitude_weighted_loss'):

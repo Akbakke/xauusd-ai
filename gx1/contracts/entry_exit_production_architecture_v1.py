@@ -34,6 +34,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     COMPACT_ENTRY_EXECUTION_PROFILE_NAME as COMPACT_ENTRY_EXECUTION_PROFILE_NAME,
     compile_compact_entry_execution_profile as compile_compact_entry_execution_profile,
     compile_gc_mtf_entry_execution_profile,
+    compile_gc_mtf_geometry_entry_execution_profile, GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
     require_compact_entry_execution_profile_reference,
 )
 from gx1.features.htf_features import (
@@ -138,7 +139,9 @@ def entry_exit_production_architecture_contract(
     if profile is not None:
         result["entry_execution_profile"] = profile
     if gc_mtf_history is not None:
-        compiled = compile_gc_mtf_entry_execution_profile(gc_mtf_history)
+        compiled = (compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
+            if profile is not None and profile["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME
+            else compile_gc_mtf_entry_execution_profile(gc_mtf_history))
         if dict(compiled["gc_mtf_window_rows"]) != dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS):
             raise RuntimeError("GC_MTF_PRODUCTION_WINDOW_BINDING_INVALID")
         result["gc_mtf_history"] = {

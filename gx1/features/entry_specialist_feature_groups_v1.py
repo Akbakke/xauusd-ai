@@ -1660,6 +1660,65 @@ def compile_gc_mtf_entry_execution_profile(
     return {**payload, "contract_sha256": _canonical_sha256(payload)}
 
 
+GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME = "compact_mbp_gc_mtf_geometry_entry_research_v1"
+
+
+def compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history: Mapping[str, object]) -> dict[str, object]:
+    """Restore the omitted chart family to the compact GC research view.
+
+    The physical input, normalization, prior compact features and GC history are
+    unchanged. This is an opt-in research view, not a new training authority or
+    proof that chart fields add predictive value.
+    """
+    base = compile_gc_mtf_entry_execution_profile(gc_mtf_history)
+    fields = base["physical_field_names"]
+    signal, ctx, mtf = (fields[key] for key in ("signal", "ctx_cont", "mtf"))
+    family = "chart_geometry_encoder"
+    signal_extra = tuple(i for i, name in enumerate(signal) if classify_entry_specialist_feature(name) == family)
+    ctx_extra = tuple(i for i, name in enumerate(ctx) if classify_entry_specialist_feature("ctx_cont." + name) == family)
+    mtf_extra = tuple(require_multi_tf_specialist_routing_v4(mtf)[family])
+    if ((len(signal_extra), len(ctx_extra), len(mtf_extra)) != (32, 1, 39)
+        or set(signal_extra) & set(base["signal_indices"])
+        or set(ctx_extra) & set(base["ctx_cont_indices"])
+        or set(mtf_extra) & set(base["mtf_indices"])):
+        raise RuntimeError("GC_MTF_GEOMETRY_ENTRY_PROFILE_SOURCE_DRIFT")
+    signal_set = set(base["signal_indices"]) | set(signal_extra)
+    ctx_set = set(base["ctx_cont_indices"]) | set(ctx_extra)
+    mtf_set = set(base["mtf_indices"]) | set(mtf_extra)
+    signal_indices = tuple(i for i in range(len(signal)) if i in signal_set)
+    ctx_indices = tuple(i for i in range(len(ctx)) if i in ctx_set)
+    mtf_indices = tuple(i for i in range(len(mtf)) if i in mtf_set)
+    local = tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    mtf_families = tuple(f for f in MODEL_NATIVE_TRAINING_SPECIALISTS
+                         if f in set(base["mtf_specialists"]) | {family})
+    base_mtf = tuple(f for f in MODEL_NATIVE_TRAINING_SPECIALISTS
+                     if f in set(base["base_mtf_specialists"]) | {family})
+    local_routes = {f: tuple(i for i in signal_indices if classify_entry_specialist_feature(signal[i]) == f) for f in local}
+    ctx_routes = {f: tuple(i for i in ctx_indices if classify_entry_specialist_feature("ctx_cont." + ctx[i]) == f) for f in local}
+    full_mtf = require_multi_tf_specialist_routing_v4(mtf)
+    mtf_routes = {f: tuple(i for i in full_mtf[f] if i in mtf_set) for f in base_mtf}
+    aliases = set(model_native_context_temporal_alias_policy(signal)["signal_indices"])
+    if (mtf_families != local or any(not local_routes[f] for f in local)
+        or any(not mtf_routes[f] for f in base_mtf)
+        or any(local_routes[f] != base["local_signal_indices_by_specialist"][f] for f in base["local_specialists"])
+        or any(ctx_routes[f] != base["ctx_cont_indices_by_specialist"][f] for f in base["local_specialists"])
+        or any(mtf_routes[f] != base["mtf_indices_by_specialist"][f] for f in base["base_mtf_specialists"])):
+        raise RuntimeError("GC_MTF_GEOMETRY_ENTRY_PROFILE_PARTITION_DRIFT")
+    payload = {key: value for key, value in base.items() if key != "contract_sha256"}
+    payload.update({"schema_version": "gx1_compact_gc_mtf_geometry_entry_research_profile_v1",
+        "name": GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
+        "research_parent_entry_execution_profile": {"name": base["name"], "contract_sha256": base["contract_sha256"]},
+        "active_field_names": {"signal": tuple(signal[i] for i in signal_indices),
+            "ctx_cont": tuple(ctx[i] for i in ctx_indices), "ctx_cat": fields["ctx_cat"],
+            "mtf": tuple(mtf[i] for i in mtf_indices)},
+        "signal_indices": signal_indices, "ctx_cont_indices": ctx_indices, "mtf_indices": mtf_indices,
+        "generic_snap_signal_indices": tuple(i for i in signal_indices if i not in aliases),
+        "local_specialists": local, "mtf_specialists": mtf_families, "base_mtf_specialists": base_mtf,
+        "local_signal_indices_by_specialist": local_routes, "ctx_cont_indices_by_specialist": ctx_routes,
+        "mtf_indices_by_specialist": mtf_routes})
+    return {**payload, "contract_sha256": _canonical_sha256(payload)}
+
+
 def require_compact_entry_execution_profile_reference(
     value: object, *, context: str = "ENTRY_EXECUTION_PROFILE",
     gc_mtf_history: Mapping[str, object] | None = None,
@@ -1673,7 +1732,9 @@ def require_compact_entry_execution_profile_reference(
         raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_CONTEXT_INVALID")
     if not isinstance(value, Mapping) or set(value) != {"name", "contract_sha256"}:
         raise RuntimeError(f"{context}_COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE_INVALID")
-    if value["name"] == GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
+    if value["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME:
+        compiled = compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
+    elif value["name"] == GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
         compiled = compile_gc_mtf_entry_execution_profile(gc_mtf_history)
     else:
         if gc_mtf_history is not None:

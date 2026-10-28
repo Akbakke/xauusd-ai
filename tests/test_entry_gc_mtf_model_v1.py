@@ -356,3 +356,46 @@ def test_candidate_state_rejects_changed_bound_metadata_or_runtime_indices(candi
         model.input_norm_gc_mtf_m5_binary_mask[0] ^= True
     with pytest.raises(RuntimeError):
         model.require_input_normalization_state()
+
+
+def test_geometry_research_profile_reaches_real_native_hidden_and_gradients(bound_history, candidate_case):
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_gc_mtf_geometry_entry_execution_profile
+    bound, _surfaces, _selected, _start, _end = bound_history
+    _old, _model, inputs, normalization = candidate_case
+    profile = compile_gc_mtf_geometry_entry_execution_profile(bound)
+    physical = profile['physical_field_names']; signal_names, mtf_names = list(physical['signal']), list(physical['mtf'])
+    aliases = model_native_context_temporal_alias_policy(signal_names)['aliases']
+    grouped = group_features_by_specialist(signal_names)
+    torch.manual_seed(8193)
+    model = _make_dynamic_m5_model(
+        seq_input_dim=len(signal_names), snap_input_dim=len(signal_names),
+        specialist_input_indices={family: [i for i, name in enumerate(signal_names) if name in set(grouped[family])]
+            for family in EXACT_SPECIALIST_NAMES},
+        **{tf.lower() + '_seq_dim': len(mtf_names) for tf in bound['layout']['timeframes']},
+        **{tf.lower() + '_seq_len': bound['layout']['window_rows'][tf] for tf in bound['layout']['timeframes']},
+        multi_tf_specialist_input_indices={family: list(indices) for family, indices in require_multi_tf_specialist_routing_v4(mtf_names).items()},
+        temporal_alias_signal_indices=[int(alias['signal_index']) for alias in aliases],
+        temporal_alias_ctx_cont_indices=[int(alias['ctx_cont_index']) for alias in aliases],
+        input_normalization=normalization, entry_execution_profile=_reference(profile), gc_mtf_history=bound, dropout=0.0,
+    ).train()
+    assert tuple(model.specialist_proj) == tuple(EXACT_SPECIALIST_NAMES)
+    assert tuple(model.mtf_family_encoder) == tuple(EXACT_SPECIALIST_NAMES)
+    output = model(**inputs)
+    output['entry_q_joint_hidden'].square().mean().backward()
+    local = model.specialist_proj['chart_geometry_encoder']
+    mtf = model.mtf_family_proj['chart_geometry_encoder']
+    # The native local residual is zero-initialized. Its output projection
+    # learns first; its upstream family cannot receive a gradient until then.
+    assert local.weight.grad is not None and not bool((local.weight.grad != 0).any())
+    assert model.specialist_out.weight.grad is not None and bool((model.specialist_out.weight.grad != 0).any())
+    assert mtf.weight.grad is not None and bool(torch.isfinite(mtf.weight.grad).all()) and bool((mtf.weight.grad != 0).any())
+    with torch.no_grad():
+        model.specialist_out.weight.add_(model.specialist_out.weight.grad, alpha=-0.1)
+    model.zero_grad(set_to_none=True)
+    model(**inputs)['entry_q_joint_hidden'].square().mean().backward()
+    assert local.weight.grad is not None and bool(torch.isfinite(local.weight.grad).all())
+    assert bool((local.weight.grad != 0).any())
+    gates, feature_gates = trainer._dynamic_m5_gate_execution_kwargs(model)
+    assert gates['gate_widths']['specialist_gate'] == 8
+    assert gates['gate_widths']['family_tf_cooperation_gate'] == 40
+    assert feature_gates['gate_shape'] == (5, len(profile['mtf_indices']))

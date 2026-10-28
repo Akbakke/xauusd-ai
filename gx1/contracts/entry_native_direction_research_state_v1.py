@@ -16,6 +16,7 @@ import torch
 
 from gx1.contracts.entry_model_native_train_recipe_v1 import require_native_direction_research_recipe
 from gx1.contracts.entry_native_direction_research_v1 import NativeEntryDirectionResearch, native_direction_research_contract
+from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
 from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as _tree_sha
@@ -26,7 +27,8 @@ INACTIVE_PREFIXES = ('backbone.head_', 'backbone.dynamic_m5_query_projection.',
     'backbone.task_log_variances.', 'backbone.entry_decision_token.', 'backbone.exit_')
 IMMUTABLE_BUFFER_NAMES = frozenset(('backbone.gc_mtf_layout_sha256', 'backbone.gc_mtf_normalization_sha256',
     'backbone.entry_execution_profile_contract_sha256', 'direction_horizon_minutes', 'bps_rms', 'bps_scale_sha256',
-    'magnitude_rms_bps', 'magnitude_raw_weight_mean', 'magnitude_weight_sha256'))
+    'magnitude_rms_bps', 'magnitude_raw_weight_mean', 'magnitude_weight_sha256',
+    'dense_horizon_minutes', 'dense_reorder'))
 IMMUTABLE_BUFFER_PREFIXES = ('backbone.input_norm_', 'backbone.gc_mtf_specialist_idx_')
 STATE_KEYS = frozenset(('schema_version', 'binding', 'model_state', 'buffer_state', 'optimizer_state',
     'rng_state', 'module_training', 'parent_order', 'cursor', 'optimizer_updates', 'model_state_sha256',
@@ -62,7 +64,7 @@ def _view(model, expected):
 
 
 def _parameters(model):
-    _require(type(model) is NativeEntryDirectionResearch, 'EXACT_RESEARCH_TYPE')
+    _require(type(model) in (NativeEntryDirectionResearch, DenseNativeEntryDirectionResearch), 'EXACT_RESEARCH_TYPE')
     model._require_binding()
     model.backbone.require_input_normalization_state()
     pairs = list(model.named_parameters(remove_duplicate=False))

@@ -1,0 +1,27 @@
+{
+  "schema_version": "gx1_direction_dense_minute_model_design_v1",
+  "status": "SOURCE_AND_SYNTHETIC_CHECKS_ONLY_NO_GENUINE_QUALIFICATION_OR_LAUNCH",
+  "purpose": "Test one shared M5/MTF native representation with a distinct direction logit for each elapsed minute 1 through 60; all eight specialist families and the existing D1/macro and GC inputs remain present.",
+  "observed_reason_to_investigate": {
+    "prior_60_panel": "The 60 earlier measurements reuse each fold model's same 5-minute logit against 60 distinct endpoints; they are not 60 independently fitted forecasts.",
+    "train_later_gap": "In one reused fold the original 5-minute sign model's in-sample AUC rose from 0.515888 to 0.533534 from one to three passes; later AUC was 0.503021 and 0.500950. This is descriptive and does not identify a unique cause.",
+    "omitted_chart_family": "The prior seven-family compact experiment selected none of 32 local or 39 per-timeframe chart-geometry coordinates. Their measured incremental predictive value remains unknown.",
+    "initial_local_specialist_gate": "The native local specialist residual output is zero-initialized, blocking upstream local-specialist gradient on the first update; a synthetic native graph shows the output weight can update and then upstream gradient resumes. Other generic and MTF paths remain; no claim about final predictive effect."
+  },
+  "target": "Existing exact candle midpoint sign at M5-close decision plus 1..60 elapsed minutes, with its own observed/tie/missing and strict terminal-before-fold-cutoff masks; do not substitute the five-minute score for other model heads.",
+  "architecture": "Retain the existing native backbone and original 1/5/15 head structure, add 57 separately parameterized logits, and use an opt-in compact GC profile that adds the omitted chart family while retaining the previous coordinates. One native forward per parent batch.",
+  "objective": "Unweighted BCE over all mature observed nonzero minute cells divided by their eligible cell count; no future targets or endpoint clocks enter the forward. The 60-target loss and eight-family architecture differ from the prior three-target seven-family model. A comparison alone cannot isolate geometry or target changes.",
+  "initialization": "The three anchor heads preserve their initialization and caller RNG relative to a three-head wrapper on an identical backbone; adding chart family changes native backbone geometry and initialization, so identical genuine old-versus-new state or predictions are not claimed.",
+  "evaluation": "Fixed chronological TRAIN and later development folds; report each minute's counts, UP/DOWN share, AUC, logloss, Brier and own-prefix class prior. Pair on identical parents and clocks and use day/week blocks where admitted. No threshold, checkpoint or horizon selection using the sealed TEST.",
+  "remaining_before_any_real_run": [
+    "Complete exact dense target and native feature provider integration, immutable source-transition and read-guard bindings.",
+    "Qualify eight-family real inputs, feature/clock/mask consumption, initial state, each head's gradient and exact optimizer/RNG resume using a new narrowly admitted private route; private weights never enter main fit.",
+    "Predeclare an exact independent training and later-development comparison, bind current source and resource guards, then physically reboot the idle Windows host as requested before each admitted GPU trainer invocation.",
+    "Use a physical GPU ceiling of 250 W during that admitted training and restore 160 W idle ceiling after completion; no speedup is assumed."
+  ],
+  "separate_interventions": "If a comparison supports further study, isolate actual-versus-null chart geometry within the same eight-family architecture and separately assess H1 known-side/missing-side coverage; do not attribute a combined architecture/target change to either factor alone.",
+  "training_enabled": false,
+  "native_launch_authorized": false,
+  "test_data_used": false,
+  "economic_edge_claimed": false
+}

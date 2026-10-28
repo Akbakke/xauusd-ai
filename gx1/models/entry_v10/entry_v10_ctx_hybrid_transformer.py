@@ -82,6 +82,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     MULTI_TF_SPECIALIST_ROUTING_SCHEMA_VERSION,
     compile_compact_entry_execution_profile,
     compile_gc_mtf_entry_execution_profile,
+    compile_gc_mtf_geometry_entry_execution_profile, GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
     require_compact_entry_execution_profile_reference,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -522,6 +523,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if profile_reference is not None and entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
             raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE")
         compiled_profile = (
+            compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
+            if profile_reference is not None and profile_reference["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME else
             compile_gc_mtf_entry_execution_profile(gc_mtf_history)
             if gc_mtf_history is not None else
             compile_compact_entry_execution_profile()
