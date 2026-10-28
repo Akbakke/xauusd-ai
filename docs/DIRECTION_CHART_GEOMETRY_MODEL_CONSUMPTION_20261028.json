@@ -1,0 +1,203 @@
+{
+  "schema_version": "gx1_direction_chart_geometry_input_scope_review_v1",
+  "status": "SOURCE_AND_EXISTING_TRAIN_NORMALIZATION_METADATA_ONLY",
+  "question": "Whether the chart-geometry specialist and its price-level relations actually reach the four compact direction baselines, and how to test incremental value fairly.",
+  "evidence": {
+    "input_manifest": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_CURRENT_COMPONENT_INPUT_MANIFEST_001.json",
+      "sha256": "7823933b1f8f438aaa1eea46cd6736d883216f42cd7738d5947db64286fe4677"
+    },
+    "fold1_prefix_normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+      "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+    },
+    "existing_independent_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_INPUT_AND_FIRST_FAVORABLE_REVIEW_20261027.json",
+      "sha256": "ec013b4e5fa8a3aceb8875b5226abcc0574afc4195325b1657e5cfc844b1f98f"
+    },
+    "sources": {
+      "gx1/features/entry_specialist_feature_groups_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+        "sha256": "1eddc4c7ba64636d9c87dce264c7c8086049373dd32481a8eebf5a9aec4aa9bb"
+      },
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+        "sha256": "7eca7480e9f9e089b6de3ac2ce499a891507649ebac851e39e95ab55be50fb7d"
+      },
+      "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "3e5cea0ef2b77de3384e0779f93ba57ea36743f8dd7b2a392edd39a490606bee"
+      },
+      "gx1/features/htf_features.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+        "sha256": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520"
+      }
+    }
+  },
+  "observed": {
+    "full_native_specialist_families": 8,
+    "compact_local_families": [
+      "structure_swing_encoder",
+      "smc_liquidity_encoder",
+      "trend_ema_encoder",
+      "vol_compression_encoder",
+      "momentum_flow_encoder",
+      "session_regime_encoder",
+      "price_action_candle_encoder"
+    ],
+    "compact_base_mtf_families": [
+      "structure_swing_encoder",
+      "smc_liquidity_encoder",
+      "trend_ema_encoder",
+      "vol_compression_encoder",
+      "session_regime_encoder"
+    ],
+    "actual_compact_gc_mtf_family_scope": "Prior measured model diagnosis records seven MTF families after adding the GC route; the missing family remains chart_geometry_encoder.",
+    "full_signal_fields": 2725,
+    "active_signal_fields": 2622,
+    "local_chart_fields": 32,
+    "local_chart_fields_selected": 0,
+    "full_mtf_fields_per_timeframe": 253,
+    "active_base_mtf_fields_per_timeframe": 139,
+    "mtf_chart_fields_per_timeframe": 39,
+    "mtf_chart_fields_selected_per_timeframe": 0,
+    "local_chart_field_names": [
+      "chart.geomline_above_active_count",
+      "chart.geomline_above_dist_atr",
+      "chart.geomline_above_slope_atr_per_bar",
+      "chart.geomline_above_touch_count",
+      "chart.geomline_above_age_bars",
+      "chart.geomline_above_last_touch_age_bars",
+      "chart.geomline_above_max_dev_atr",
+      "chart.geomline_below_active_count",
+      "chart.geomline_below_dist_atr",
+      "chart.geomline_below_slope_atr_per_bar",
+      "chart.geomline_below_touch_count",
+      "chart.geomline_below_age_bars",
+      "chart.geomline_below_last_touch_age_bars",
+      "chart.geomline_below_max_dev_atr",
+      "chart.geomline_touch_above",
+      "chart.geomline_touch_below",
+      "chart.geomline_break_up",
+      "chart.geomline_break_down",
+      "chart.geomline_break_line_touch_count",
+      "chart.geomline_break_line_age_bars",
+      "chart.geomline_retest_hold_up",
+      "chart.geomline_retest_fail_up",
+      "chart.geomline_retest_hold_down",
+      "chart.geomline_retest_fail_down",
+      "chart.geomline_bars_since_break_signed",
+      "chart.geomchan_active",
+      "chart.geomchan_width_atr",
+      "chart.geomchan_pos_0_1",
+      "chart.geomchan_slope_atr_per_bar",
+      "chart.geomchan_converging",
+      "chart.geomchan_apex_proximity",
+      "ctx_cont.d1_close_pct_in_20day_range_canon_v2"
+    ],
+    "mtf_chart_field_names": [
+      "mtf_geometry_support_dist_atr",
+      "mtf_geometry_resistance_dist_atr",
+      "mtf_geometry_support_age_bars",
+      "mtf_geometry_resistance_age_bars",
+      "mtf_geometry_support_rail_slope_atr_per_bar",
+      "mtf_geometry_resistance_rail_slope_atr_per_bar",
+      "mtf_geometry_range_mid_dist_atr",
+      "geomline_above_active_count",
+      "geomline_above_dist_atr",
+      "geomline_above_slope_atr_per_bar",
+      "geomline_above_touch_count",
+      "geomline_above_age_bars",
+      "geomline_above_last_touch_age_bars",
+      "geomline_above_max_dev_atr",
+      "geomline_below_active_count",
+      "geomline_below_dist_atr",
+      "geomline_below_slope_atr_per_bar",
+      "geomline_below_touch_count",
+      "geomline_below_age_bars",
+      "geomline_below_last_touch_age_bars",
+      "geomline_below_max_dev_atr",
+      "geomline_touch_above",
+      "geomline_touch_below",
+      "geomline_break_up",
+      "geomline_break_down",
+      "geomline_break_line_touch_count",
+      "geomline_break_line_age_bars",
+      "geomline_retest_hold_up",
+      "geomline_retest_fail_up",
+      "geomline_retest_hold_down",
+      "geomline_retest_fail_down",
+      "geomline_bars_since_break_signed",
+      "geomchan_active",
+      "geomchan_width_atr",
+      "geomchan_pos_0_1",
+      "geomchan_slope_atr_per_bar",
+      "geomchan_converging",
+      "geomchan_apex_proximity",
+      "close_position_range20"
+    ],
+    "active_macro_context_fields": 61,
+    "excluded_d1_range_position": "ctx_cont.d1_close_pct_in_20day_range_canon_v2",
+    "excluded_mtf_range_position": "close_position_range20",
+    "fold1_normalization_metadata_variation": {
+      "signal": {
+        "fields": 32,
+        "nonconstant_transformed_range_fields": 32,
+        "normalization_fit_rows": 47878
+      },
+      "mtf_m5": {
+        "fields": 39,
+        "nonconstant_transformed_range_fields": 39,
+        "normalization_fit_rows": 47798
+      },
+      "mtf_m15": {
+        "fields": 39,
+        "nonconstant_transformed_range_fields": 39,
+        "normalization_fit_rows": 15991
+      },
+      "mtf_h1": {
+        "fields": 39,
+        "nonconstant_transformed_range_fields": 39,
+        "normalization_fit_rows": 4080
+      },
+      "mtf_h4": {
+        "fields": 39,
+        "nonconstant_transformed_range_fields": 39,
+        "normalization_fit_rows": 1139
+      },
+      "mtf_d1": {
+        "fields": 39,
+        "nonconstant_transformed_range_fields": 39,
+        "normalization_fit_rows": 425
+      }
+    }
+  },
+  "source_trace": {
+    "selection": "gx1/features/entry_specialist_feature_groups_v1.py:1488-1578 selects physical input fields and explicitly excludes chart_geometry_encoder from local and base MTF families.",
+    "gc_extension": "gx1/features/entry_specialist_feature_groups_v1.py:1615-1654 adds existing GC-owned families; the earlier model diagnosis observes seven total MTF families.",
+    "gather": "gx1/contracts/entry_native_direction_feature_view_v1.py:235-290 gathers full raw local and MTF matrices and checks closed-period availability.",
+    "model_consumption": "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py:790-799, 939-994, 1239-1275, 2286-2339: compact indices gate generic sequence, snapshot and family routes; excluded geometry indices do not enter these paths.",
+    "range_formula": "gx1/features/htf_features.py:3890-3909 defines close_position_range20 as (close minus rolling 20-bar low)/(rolling 20-bar high minus low); unavailable/zero denominator remains a separate issue."
+  },
+  "interpretation": {
+    "classification": "Proven compact-experiment scope omission; not a defect in the full architecture and not proof of the cause of weak direction AUC.",
+    "variation_limit": "Existing transformed min/max differ for all audited columns on the stored fold1 normalization fit row unions. They can include encoded neutral or missing values and do not establish availability frequency, prediction, causal value or behavior in later folds.",
+    "related_inputs": "Other active structure, liquidity and trend fields may carry related information; no claim that all support/resistance information is missing.",
+    "macro": "Sixty-one named D1/macro fields remain active; the specific 20-day close-position alias is chart-owned and excluded, and is not part of those 61."
+  },
+  "smallest_fair_test": {
+    "status": "PROPOSAL_NOT_ADMITTED",
+    "design": "Create one opt-in eight-family view that restores only the 32 local and 39 per-timeframe chart-owned physical coordinates and their existing specialist routes, keeping all previously active coordinates, GC, D1/macro, decision clocks and causal windows unchanged. Qualify true source identity, availability/missingness, normalization and forward consumption first.",
+    "controlled_ablation": "Run two matched variants of that same eight-family architecture with identical initial tensors, seed, data, order, optimizer and original target: actual geometry vs a predeclared geometry-null intervention applied consistently after normalization at every local, context and MTF consumer. This controls added capacity and RNG; validate allowed domains and aliases, and make no factual-value claim for null placeholders.",
+    "reference": "Also report the untouched existing seven-family sign-only baseline; the eight-versus-seven comparison alone changes architecture and random initialization and does not isolate input information.",
+    "metrics": "Same parent identities and chronological split; primary 5-minute unweighted AUC, logloss, Brier and paired UTC-day/week uncertainty; 1/15-minute secondary and fixed own-prefix prior. Ten-minute outcomes may be scored using pre-existing 5/15 heads only as exploratory; no dedicated 10-minute head is claimed.",
+    "stops": [
+      "Do not start until the currently proposed weighted-objective comparison is either completed or explicitly separated by source/policy freeze.",
+      "Stop for mismatched parent/clock/input identity, invalid null domain, ambiguous missingness, feature/source parity failure, time or hardware guard.",
+      "Do not treat event counts, restored fields, gate weights, TRAIN loss or variation as directional or economic edge."
+    ]
+  },
+  "scope": "No raw dataset, prediction archive, checkpoint, model forward, model training, CONTROL or TEST accessed by this source-and-metadata review.",
+  "economic_edge_qualified": false,
+  "test_data_used": false
+}

@@ -40787,5 +40787,18 @@
     "model_calls_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false
+  },
+  "direction_chart_geometry_model_consumption_review_20261028": {
+    "status": "SOURCE_AND_EXISTING_TRAIN_NORMALIZATION_METADATA_COMPLETE",
+    "review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_CHART_GEOMETRY_MODEL_CONSUMPTION_20261028.json",
+      "sha256": "a0069f612eff74ccc0d742630e1c4e82653d5ce2ce20e9ac5d8530f0ad6bed65"
+    },
+    "source_edits_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }

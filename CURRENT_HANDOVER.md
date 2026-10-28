@@ -11,6 +11,12 @@ Programrot:
 
 ## Aktuell status
 
+Kilde-/metadata-kontroll viser at kompakt retningsbaseline velger bort
+32 lokale chart-geometrifelt og 39 slike MTF-felt per tidsramme. Samtlige
+hadde ikke-konstant transformert min/maks i fold1-prefiksets eksisterende
+normaliseringsmetadata; faktisk dekning og retningsverdi er ikke fastslått.
+Se `docs/DIRECTION_CHART_GEOMETRY_MODEL_CONSUMPTION_20261028.json`.
+
 En eksakt B16-kvalifiseringsoppskrift er metadata-kontrollert som forslag,
 uten kjøreadmisjon. Den eksisterende native-kampanjen krever fysisk Windows-
 omstart etter forberedelse; den opprinnelige oppdragsgrensen forbød å styre
