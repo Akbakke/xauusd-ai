@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:17:58.016214+00:00",
-  "status": "DENSE_ONEPASS_COMPLETE_CONSUMED_INDEPENDENT_DIRECTION_AUDIT_IN_PROGRESS",
+  "observed_utc": "2026-10-28T15:30:49.270534+00:00",
+  "status": "DECIMAL_SIGN_AUDIT_ADMITTED_NOT_YET_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve the completed 60-head fit and read-only independent findings. Plan and admit an exact capped original-decimal target-sign audit for the fixed TRAIN/later development populations; do not read new payloads or refit before its own bound gate. Apply the declared 60-minute uncertainty protocol under separate admission; no TEST or trading.",
+  "next_action": "Run the one separately admitted capped CPU-only decimal sign audit, then close its gate and report actual findings. Preserve original targets and fixed predictions; no model forward, training, TEST or trading. The 60-minute uncertainty analysis requires separate admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
