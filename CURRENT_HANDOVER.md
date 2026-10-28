@@ -11,9 +11,10 @@ Programrot:
 
 ## Aktuell status
 
-En avgrenset årsfilsammenkobling er implementert for å kvalifisere TRAIN-
-årsfilene mot de lagrede 1/5/15min-fasitene. Én syntetisk kontroll er nå
-admittért; ingen ekte payload, modell, CONTROL eller TEST er åpnet av denne.
+Årsfilsammenkoblingen for TRAIN er syntetisk kvalifisert: 9 kontroller
+bestod, med nyttår, manglende pris, cutoff og feil rad/fasit. Den syntetiske
+engangsadgangen er konsumert. Reell paritetskontroll krever fersk avgrenset
+admisjon; ingen ekte payload, modell, CONTROL eller TEST er åpnet ennå.
 
 Fasiten bevarer også et konservativt sett av mulige utfall ved usikker
 rekkefølge. 43 syntetiske kontroller bestod og engangsadgangen er konsumert.
