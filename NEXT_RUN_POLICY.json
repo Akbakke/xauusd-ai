@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-28T07:36:14.743201+00:00",
+  "updated_utc": "2026-10-28T07:37:25.311596+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_order_batch_geometry_20261028_001",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -40822,26 +40822,26 @@
     "test_control_exit_authorized": false
   },
   "direction_order_batch_geometry_source_20261028": {
-    "status": "SOURCE_SYNTHETIC_3_PASS_GENUINE_DATA_CLOSED",
+    "status": "SOURCE_ROUNDING_REPAIR_SYNTHETIC_4_PASS_GENUINE_DATA_CLOSED",
     "source_sha256": {
-      "gx1/scripts/audit_entry_direction_order_geometry_v1.py": "e773c1f1e1a0e29037c125da975f180d8a1e92dc1d62a65eaf734e495c2a921f",
-      "tests/test_audit_entry_direction_order_geometry_v1.py": "0e08cd4bc7d6da6ac3e564586b7b0c677dcbf37c9e3e4774a8b58af684577ba4"
+      "gx1/scripts/audit_entry_direction_order_geometry_v1.py": "094a992bfca74f8c0f2af4cd8beee8b8199af5e734e3119d674cb368dc93c601",
+      "tests/test_audit_entry_direction_order_geometry_v1.py": "f15fe686604baca9d7cfdc1793b5b8ae4ae498333356f539a227c52e6be52b09"
     },
     "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "model_forwards_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false,
-    "qualification": "Three hand-calculated synthetic tests passed with exit zero inside the 4G capped CPU audit; syntax and existing guard maintained."
+    "qualification": "Four capped synthetic tests passed including 47,602 fully eligible rows; bound scales with FP64 accumulation error. Genuine data still closed."
   },
   "direction_order_batch_geometry_20261028_001": {
-    "status": "ADMITTED_ONE_CPU_AUDIT",
+    "status": "SUPERSEDED_BEFORE_CLAIM_ROUNDING_PREFLIGHT",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_BATCH_GEOMETRY_PLAN_20261028_001.json",
       "sha256": "7b334dfc706c06f6ff186cede01fa40f6433c1e1cb27e1d8648e7702ba7664a1"
     },
-    "execution_authorized": true,
-    "genuine_train_target_reads_authorized": true,
+    "execution_authorized": false,
+    "genuine_train_target_reads_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "training_authorized": false,

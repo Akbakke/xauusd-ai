@@ -50,3 +50,17 @@ def test_seeded_mixed_order_is_reproducible_and_rejects_bad_target_storage():
     a[4][2, 0] = 1
     with pytest.raises(RuntimeError, match='TARGET_CLOCK_DOMAIN'):
         compare_orders(*a, **opts)
+
+
+def test_real_prefix_size_does_not_fail_on_fp64_accumulation():
+    n = 47_602
+    parents = np.arange(n, dtype=np.int64)
+    decision = 1_600_000_000_000_000_000 + parents * 5 * MINUTE_NS
+    terminal = decision[:, None] + np.asarray([1, 5, 15], np.int64) * MINUTE_NS
+    observed = np.ones((n, 3), dtype=np.bool_)
+    signs = np.ones((n, 3), dtype=np.int8)
+    got = compare_orders(parents, decision, terminal, observed, signs,
+                         cutoff_ns=int(decision[-1] + 16 * MINUTE_NS), batch_size=16, seed=20260911)
+    assert got['chronological']['nonempty_update_batches'] == 2_976
+    assert got['fixed_mixed']['nonempty_update_batches'] == 2_976
+    assert got['chronological']['mean_batch_loss_coefficient_mass_by_horizon'] == pytest.approx([1/3] * 3)

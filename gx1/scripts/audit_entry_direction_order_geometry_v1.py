@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-STAGE = 'direction_order_batch_geometry_20261028_001'
+STAGE = 'direction_order_batch_geometry_20261028_002'
 HORIZONS = (1, 5, 15)
 MINUTE_NS = 60_000_000_000
 
@@ -76,7 +76,10 @@ def _summarize_order(order, eligible, signs, batch_size):
                      'both': int(np.sum((up5 > 0) & (down5 > 0))),
                      'no_eligible_five_minute': int(np.sum((up5 + down5) == 0))}
     require(independently == populations and steps == int(np.count_nonzero(totals)), 'INDEPENDENT_BATCH_COUNTS')
-    require(steps > 0 and np.isclose(weight.sum(), steps, atol=1e-10, rtol=0), 'LOSS_COEFFICIENT_MASS')
+    # Each of three nonnegative sums accumulates at most `steps` unit-sized terms.
+    # A conservative FP64 forward-error bound is proportional to epsilon * steps^2.
+    bound = 8 * np.finfo(np.float64).eps * steps * steps
+    require(steps > 0 and abs(weight.sum() - steps) <= bound, 'LOSS_COEFFICIENT_MASS')
     return {'parents': n, 'batches': len(denominators), 'nonempty_update_batches': steps,
             'empty_update_batches': len(denominators) - steps,
             'eligible_cells_min_max_per_batch': [int(totals.min()), int(totals.max())],
