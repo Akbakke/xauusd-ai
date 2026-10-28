@@ -186,9 +186,15 @@ Tre av feltene var svært sjelden ikke-null i M5-historieruten: `geomline_retest
 Tersklene for nivå-/trendlinjeregistrene er dessuten tilpasset et historisk vindu som slutter 1. januar 2013, før den aktuelle modelltreningen. Det er ikke framtidslekkasje; hvor godt tersklene fungerer på nyere gullmarked er ikke kvalifisert. De 32 aktive kartposisjonene per tidsramme som mangler i den tidligere numeriske indeksen, trenger fortsatt egen genuin formel- og kausalitetskontroll. Underlagsrapport: `docs/DIRECTION_CHART_TRAIN_SUPPORT_20261028.json`, SHA-256 `8a110c09d5e4332a06b11a0d9445e732d531dd764c1c4f609c0ee26508979959`. Ingen nye modellkall, optimizersteg, TEST eller handel.
 
 
+## Presisjonskorrigering for D1/H4/H1-kontrollene
+
+De tre kontrollene nedenfor brukte M5-filens opprinnelige double-priser. Ved kontroll av cachebyggeren oppdaget jeg at den først caster `open`, `high`, `low`, `close` og `volume` til float32. Sammenligningene er derfor **double-priser mot float32-baserte cacheverdier**, ikke nøyaktig replay av cachebyggeren. Jeg omtaler ikke forskjellene som cachefeil. En separat kontroll må bruke byggekodens presisjon før eventuell feilkonklusjon. Målingene og originalkvitteringene er bevart.
+
+For H1 skilte double-beregningen seg i fire kanalposisjoner på 10 unike H1-rader som inngår i 3 527 av 47 602 TRAIN-vinduer; i Q1 inngikk fire avvikende rader i 3 449 av 17 288 vinduer. I Q2-utvalget var antallet null. Noen felt endret diskret `geomchan_active`, så dette er ikke bare avrunding av ferdige tall. Det viser at endret presisjon kan forandre inngangsverdier i den undersøkte modellen; det viser ikke at double er riktig i alle kontrakter, at dagens cache er feil, eller at forskjellen forklarer manglende edge. H1-resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_TRENDLINE_REPLAY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `2998b8d8ff3b74f9891c03f1640529f94b61654dfb00bee1d09202d764b14923`.
+
 ## D1-trendlinjer gjenskapt fra prisdata: eldre avvik
 
-Jeg gjenskapte 31 aktive D1-trendlinjefelt fra de opprinnelige hashbundne M5-prisene, med samme lukkede D1-klokke, Wilder ATR, frosne parametere og hele den tilgjengelige kausale historikken før 1. juli 2025. Å dele beregningen ved treningsgrensen og føre tilstanden videre ga eksakt samme float32-verdier og manglendehet som én sammenhengende beregning på alle 3 889 D1-rader.
+Jeg gjenskapte 31 aktive D1-trendlinjefelt fra de opprinnelige hashbundne M5-prisene i double-presisjon, med samme lukkede D1-klokke, Wilder ATR, frosne parametere og hele den tilgjengelige kausale historikken før 1. juli 2025. Å dele beregningen ved treningsgrensen og føre tilstanden videre ga eksakt samme float32-verdier og manglendehet som én sammenhengende beregning på alle 3 889 D1-rader.
 
 Sammenlignet med den lagrede modellen brukte, er det **7 551 avvikende celler** over hele denne historikken. For de 174 D1-radene som lukkes i den angitte TRAIN-perioden og 127 senere utviklingsrader er alle 31 feltene derimot byteidentiske. Første avvik starter i 2010. Dette er et reelt avvik mellom gjenskaping og cache, men årsak, siste avvikstidspunkt og skillet mellom manglendehet og numeriske verdier er ennå ikke lokalisert. Modellens D1-vinduer inneholder 252 tidligere rader, så samsvar for nåværende TRAIN-rader alene utelukker ikke at eldre avvik er konsumert. Ingen forbedring eller årsak til manglende edge er bevist.
 
@@ -202,7 +208,7 @@ Dette forklarer ikke modellens manglende retning. Det eldre historiske avviket e
 
 ## H4-trendlinjer og faktiske modellvinduer
 
-Den samme kildebundne kontrollen ble utført på H4, med H4-klokkens egen tidsforskyvning, ATR, historikk og 96-raders modellvindu. Over 23 270 H4-rader og 31 aktive trendlinjefelt stemte sammenhengende og delt beregning eksakt. Mot lagret cache fant jeg **3 235 eldre celleavvik**: 448 i manglendehet og 2 787 i endelige float32-biter, over 266 H4-rader. Siste avvikende H4-rad starter 2. februar 2023 kl. 14 UTC.
+Den samme kildebundne double-kontrollen mot float32-basert cache ble utført på H4, med H4-klokkens egen tidsforskyvning, ATR, historikk og 96-raders modellvindu. Over 23 270 H4-rader og 31 aktive trendlinjefelt stemte sammenhengende og delt beregning eksakt. Mot lagret cache fant jeg **3 235 eldre celleavvik**: 448 i manglendehet og 2 787 i endelige float32-biter, over 266 H4-rader. Siste avvikende H4-rad starter 2. februar 2023 kl. 14 UTC.
 
 Ingen av avvikene inngår i de 47 602 undersøkte TRAIN-vinduene, 17 288 Q1-vinduene eller 1 760 valgte Q2-vinduene. Første og siste vindu i hver gruppe ble kontrollert med den faktiske cache-sliceren; gruppenes beslutningsklokker er stigende. Dermed samsvarer disse 31 H4-feltene med gjenskapingen på alle undersøkte vindusrader. Også her er historisk avviksårsak ukjent, og gjenskaping med samme eier er ikke uavhengig formelbevis eller dokumentert edge.
 

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T17:47:40.822662+00:00",
-  "status": "H1_TRENDLINE_REPLAY_ADMITTED_ONE_SHOT",
+  "observed_utc": "2026-10-28T17:50:32.708645+00:00",
+  "status": "SOURCE_PRECISION_DIFFERENCE_IDENTIFIED_REQUIRES_BUILDER_REPLAY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the bounded H1 trendline replay and 96-row model-window footprint. No model, optimizer, TEST, broker or trading.",
+  "next_action": "Verify builder-faithful float32 preprocessing against cached H1 fields and quantify actual price-grid loss; previous double-source comparisons are precision sensitivity, not evidence of a cache defect. No model, training, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42652,7 +42652,8 @@
     "replay_parity": false,
     "full_history_mismatched_cells": 7551,
     "model_era_current_bars_mismatched_cells": 0,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "precision_qualification": "Compared original double OHLC to a cache built from float32 OHLC; not an exact builder replay or proof of a cache defect."
   },
   "independent_direction_d1_mismatch_localization_20261028_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -42696,7 +42697,8 @@
     },
     "model_windows_with_mismatch": 0,
     "historical_cache_discrepancy_cause_unresolved": true,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "precision_qualification": "Compared original double OHLC to a cache built from float32 OHLC; not an exact builder replay or proof of a cache defect."
   },
   "independent_direction_h4_trendline_replay_20261028_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -42741,27 +42743,48 @@
     "full_history_mismatched_cells": 3235,
     "model_windows_with_mismatch": 0,
     "historical_cache_discrepancy_cause_unresolved": true,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "precision_qualification": "Compared original double OHLC to a cache built from float32 OHLC; not an exact builder replay or proof of a cache defect."
   },
   "independent_direction_h1_trendline_replay_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_TRENDLINE_REPLAY_PLAN_20261028_001.json",
       "sha256": "26fe4863bf65db30a609dd8eb6a013f57d6badbe83253384a7b3aa2d3813dd3b"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "checkpoint_reads_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 1200,
-    "scope": "Recompute the 31 active H1 trendline coordinates from hash-bound M5 prices, complete causal H1 history and frozen H1 parameters before 2025-07-01. Compare the cache and localize mismatch impact in 96-row model windows."
+    "scope": "Recompute the 31 active H1 trendline coordinates from hash-bound M5 prices, complete causal H1 history and frozen H1 parameters before 2025-07-01. Compare the cache and localize mismatch impact in 96-row model windows.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_TRENDLINE_REPLAY_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "d362bdb43c0535b611dc5fc24854bcd5fd6944a513a20aa94c22aa64c3fd01d7"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_TRENDLINE_REPLAY_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "2998b8d8ff3b74f9891c03f1640529f94b61654dfb00bee1d09202d764b14923"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_TRENDLINE_REPLAY_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "0217ae648d139b0dd5461f790e7ea739a41cb7c0b6e3c61fe51fd75ca103b76f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_TRENDLINE_REPLAY_20261028_001/TERMINAL.json",
+      "sha256": "3523e360909c99933cbef28f42f52b4f8278e214c0b29998205c63e3e0a759c6"
+    },
+    "source_double_vs_builder_float32": true,
+    "fit_train_windows_with_precision_difference": 3527,
+    "q1_windows_with_precision_difference": 3449,
+    "economic_edge_qualified": false
   }
 }
