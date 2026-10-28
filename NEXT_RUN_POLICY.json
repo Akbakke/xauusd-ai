@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T09:35:59.863519+00:00",
-  "status": "DIRECTION_ORDER_MECHANICS_QUALIFIED_FULL_FIT_NOT_YET_ADMITTED",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "observed_utc": "2026-10-28T09:39:14.627507+00:00",
+  "status": "ONE_CHRONOLOGICAL_DIRECTION_FIT_ADMITTED_NOT_STARTED",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Prepare and validate one fresh source-bound chronological one-pass fit against the fixed shuffled baseline; keep TEST, broker, orders, and Exit closed. No edge is established.",
+  "next_action": "Prepare the exact bounded campaign, physically restart and run the one-pass chronological sign-only fit. Compare the fixed later-fold outputs with the saved shuffled baseline; retain the source-revision limitation. TEST, trading and Exit remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -41256,5 +41256,55 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_NATIVE_B16_SUPPORTED_QUALIFICATION_20261028_003/ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "64e87c1429b7dbb081d1118c38e1a18b286f23422b0d85b4d7e8332d76154ce4"
     }
+  },
+  "dynamic_m5_direction_order_full_fit_20261028_001": {
+    "status": "ONE_FIXED_CHRONOLOGICAL_SIGN_FIT_ADMITTED_NOT_STARTED",
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "relaunch_allowed": false,
+    "prior_one_shot_relaunch": false,
+    "physical_restart_before_each_invocation_authorized": true,
+    "user_requested_gpu_power_efficiency": true,
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_CHRONOLOGICAL_SIGN_ONE_PASS_20261028_001/RECIPE.json",
+      "sha256": "133bcd7647985b47cb24984f27c9196199c1295904bb971d06084970aa862ec4"
+    },
+    "proposal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_CHRONOLOGICAL_SIGN_ONE_PASS_20261028_001/PROPOSAL.json",
+      "sha256": "0078a671b273be161b0b7806ed977e31e2d4a51f2596b3e615cd2f2593d205c1"
+    },
+    "native_order_qualification": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_CHRONOLOGICAL_SIGN_ONE_PASS_20261028_001/NATIVE_ORDER_QUALIFICATION.json",
+      "sha256": "27826b03a3c63037060cff5fa29004f9171e466dc9b97d653ad6cc37bbfd5fa5"
+    },
+    "source_comparability_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_CHRONOLOGICAL_SIGN_ONE_PASS_20261028_001/SOURCE_COMPARABILITY_REVIEW_001.json",
+      "sha256": "7e2571308730a1837e0b702dda691f445526a4ad334d9b677803a86bfbc981d7"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_CHRONOLOGICAL_SIGN_ONE_PASS_20261028_001/RUNTIME",
+    "max_invocations": 4,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "train_parents": 47602,
+    "max_optimizer_updates": 2976,
+    "train_passes": 1,
+    "all_early_train_parents_included": true,
+    "test_or_trading_authority": false
   }
 }
