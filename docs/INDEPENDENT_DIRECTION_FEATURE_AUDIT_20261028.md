@@ -313,3 +313,12 @@ Det nåværende GC-feltregisteret er laget for **1. mai 2024 til 1. januar 2026*
 Jeg målte observasjonsmaskene i den bundne konteksten: **alle 1 205 beholdte GC-verdifelt var observert minst én gang på de første 47 602 TRAIN-foreldrene**. Alle 1 205 registrets observasjonstall over hele den bredere perioden stemte også eksakt med kontekstfila. Dette strider ikke mot funnet av 33 felt som var *normalisert null* gjennom prefixet: en observert verdi kan være konstant, og en observert hendelse kan være falsk. Den faktiske normaliseringen ble tilpasset første prefix, med siste fit-barstart 31. desember 2024 kl. 21:50 UTC.
 
 Den lengre registerperioden betyr at denne modellen ikke har et register som var uavhengig låst ved årsskiftet 2024/2025. Kontrollen fant ikke direkte fasitlekkasje via dette GC-registeret, men den beviser ikke at en full registergjenskaping på bare prefixet ville gitt identisk skjema, eller at alle andre kilder, publiseringstider og historiske revisjoner er uten lekkasje. Resultat: `docs/DIRECTION_GC_REGISTRY_FOLD_SCOPE_20261028.json`, SHA-256 `6eed8d1142c65fdcf5dd8b6819304e7d742c315ee97215b94409be21e3b1c67d`; observasjonstallene er et sammendrag fra capped terminalkjøring, ikke en egen kjørekvittering. Ingen modellforward, optimizersteg, TEST eller handel.
+
+
+## Endrer GC-konteksten seg ved M5-lukking?
+
+Jeg koblet hvert Q1- og Q2-utvalgsforelder til den eksakte foregående beslutningen fem minutter tidligere når den fantes. Av 17 288 Q1-foreldre hadde **17 224** en slik forgjenger; av 1 760 Q2-foreldre hadde **1 754** det. Alle de sammenlignbare foreldrene hadde minst én endret observert GC-verdi, med median **209** endrede verdiposisjoner i Q1 og **212** i Q2. Mange posisjoner er beslektede og inkluderer klokke-/alders- og kumulative felter, så antall endringer er ikke antall uavhengige handelssignaler.
+
+For mer konkrete M5-data endret observert GC-VWAP seg på **17 214 av 17 216** Q1-par der begge verdiene var observert og **1 754 av 1 754** i Q2. Delvis kjent GC-delta endret seg på **17 127 av 17 216** og **1 742 av 1 754**. Strengt GC-delta var observert på langt færre foreldre. Dette viser at tallene i gjeldende kontekst oppdateres, ikke at endringene er prediktive, at ukjent aggressorside er kjent eller at faktisk publiseringsforsinkelse er kvalifisert.
+
+Én separat frossen modelltest er nå avgrenset til virkningen av den siste GC-kontekstoppdateringen; GC-MTF-historien holdes fortsatt oppdatert, slik at dette ikke er en komplett test av all fersk GC-informasjon. Ingen trening, TEST eller handel.

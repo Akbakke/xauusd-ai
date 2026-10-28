@@ -1043,6 +1043,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             device="cuda", out_dir=unseen_args.out_dir)
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    stale_options = ("--direction-gc-stale-context-plan", "--direction-gc-stale-context-plan-sha256")
+    if any(value.partition("=")[0] in stale_options for value in supplied):
+        stale_parser = argparse.ArgumentParser(description="Frozen model GC current-context freshness comparison",
+            allow_abbrev=False, add_help=False)
+        stale_parser.add_argument(stale_options[0], type=Path, required=True)
+        stale_parser.add_argument(stale_options[1], required=True)
+        stale_parser.add_argument("--device", choices=("cuda",), required=True)
+        stale_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*stale_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                stale_parser.error(f"duplicate flag: {option}")
+        stale_args = stale_parser.parse_args(supplied)
+        if not stale_args.out_dir.is_absolute():
+            stale_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.direction_gc_mtf_followup_v1 import run as run_gc_stale_context
+        report = run_gc_stale_context(plan_path=stale_args.direction_gc_stale_context_plan,
+            plan_sha256=str(stale_args.direction_gc_stale_context_plan_sha256),
+            device="cuda", out_dir=stale_args.out_dir, mode="stale_context")
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     gc_options = ("--direction-gc-mtf-intervention-plan", "--direction-gc-mtf-intervention-plan-sha256")
     if any(value.partition("=")[0] in gc_options for value in supplied):
         gc_parser = argparse.ArgumentParser(description="Bounded trained direction GC-history intervention",

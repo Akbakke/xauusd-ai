@@ -1,0 +1,83 @@
+{
+  "schema_version": "gx1_direction_gc_stale_context_design_v1",
+  "status": "SOURCE_PREPARED_ACTUAL_INFERENCE_PENDING",
+  "inputs": {
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RECIPE.json",
+      "sha256": "64a7243076812506b7c2dc3ebd32c89cc2202ba9ff5ae2159f936bc830e75d2d"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/states/w0001_TERMINAL_u002976_p047602.pt",
+      "sha256": "ee1b95efe5f5dc1eb34b6a0e8438951fede222fd56b0e75eb56b550eab4f9885"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451"
+    },
+    "oof_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "corrected_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "consumer_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "87b2240484f48b1c7341467947357e25cda28c8d47fcf91f43b87614fa664632"
+    },
+    "consumer_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_PLAN_20261028_002.json",
+      "sha256": "fff5f468adf5f4967a3bbbd21a7c5d50b21f65680218126ef2e8d36119265062"
+    },
+    "synthetic_test_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/TEST_TERMINAL.json",
+      "sha256": "3e7283293ae5fc46aac5e2d2f89c8396be90f10d8ab1c0882d1e2ea88e6b5992"
+    },
+    "synthetic_test_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/TEST_PLAN.json",
+      "sha256": "affd254170ff12186cc1ef3139583558f38ee181db7164ff9edac31ca0107f57"
+    },
+    "fold_design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_PLAN_20261028_001.json",
+      "sha256": "2494af08975ee22c0ea546562141f5ff5bde52368e74716df40279539c31a96b"
+    },
+    "source_transition": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_GC_OUTPUT_DIRECTORY_GUARD_FIX_20261028.json",
+      "sha256": "cadae33b7b9035dd21c02148034c39331ca562bb31486cefb69fe3d91ad27afc"
+    },
+    "prior_failed_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_20261028_003/OUTPUT/RESULT.json",
+      "sha256": "c16ebb9d8ef9a6c198cc177bc029e15106860d81f008feda53c03be5a778dbee"
+    },
+    "prior_recovery": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_INTERVENTION_RECOVERY_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "ce131292529d42cda9653c1fa263c84be46c7ea0077d8d557a627d26c0cd0359"
+    },
+    "prior_paired": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    },
+    "prior_followup_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "3759c43b7eed35b40eb16817592a6a8fa4070bcd2354ee7e7be33b04028566ee"
+    },
+    "prior_verify": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_VERIFY_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "00a84af7b6edda97e7574d8b464c615574940360150458577a289f1fd0d45e3f"
+    }
+  },
+  "scope": "Frozen first-prefix 60-horizon direction model; same 1,760 previously fixed Q2 development parents and original batches, scored only where exact t-5min prior parent exists.",
+  "method": "Reproduce every original batch byte for byte; replace the 2,410 GC current context values/masks and corresponding last-row signal aliases with those of the exact preceding M5 decision. Preserve earlier local rows, all GC MTF histories, non-GC features, parameters and buffers. Compare all 60 horizons and paired 5/60-minute day/week intervals.",
+  "limits": "Exploratory reused development data, selected after observing feature changes. Internal substitution can be out of distribution; current GC MTF histories remain, so this does not measure total value of all fresh GC information. No economic edge or generalization claim.",
+  "test_data_used": false,
+  "optimizer_steps": 0
+}
