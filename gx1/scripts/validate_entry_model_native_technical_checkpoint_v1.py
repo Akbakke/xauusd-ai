@@ -1023,6 +1023,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     import sys
 
     supplied = list(sys.argv[1:] if argv is None else argv)
+    gc_options = ("--direction-gc-mtf-intervention-plan", "--direction-gc-mtf-intervention-plan-sha256")
+    if any(value.partition("=")[0] in gc_options for value in supplied):
+        gc_parser = argparse.ArgumentParser(description="Bounded trained direction GC-history intervention",
+            allow_abbrev=False, add_help=False)
+        gc_parser.add_argument(gc_options[0], type=Path, required=True)
+        gc_parser.add_argument(gc_options[1], required=True)
+        gc_parser.add_argument("--device", choices=("cuda",), required=True)
+        gc_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*gc_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                gc_parser.error(f"duplicate flag: {option}")
+        gc_args = gc_parser.parse_args(supplied)
+        if not gc_args.out_dir.is_absolute():
+            gc_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.direction_gc_mtf_intervention_v1 import run as run_gc_intervention
+        report = run_gc_intervention(plan_path=gc_args.direction_gc_mtf_intervention_plan,
+            plan_sha256=str(gc_args.direction_gc_mtf_intervention_plan_sha256),
+            device="cuda", out_dir=gc_args.out_dir)
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     direction_options = ("--dynamic-m5-direction-witness-plan", "--dynamic-m5-direction-witness-plan-sha256")
     if any(value.partition("=")[0] in direction_options for value in supplied):
         direction_parser = argparse.ArgumentParser(

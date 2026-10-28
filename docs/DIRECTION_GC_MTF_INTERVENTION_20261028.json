@@ -1,0 +1,49 @@
+{
+  "schema_version": "gx1_direction_gc_mtf_intervention_design_v1",
+  "status": "SOURCE_PREPARED_ACTUAL_AUDIT_PENDING",
+  "scope": "On every tenth original OOF batch, require exact saved-logit replay, then suppress all 25 GC-history projection outputs only; score all 60 minutes against verified corrected targets. GC current-context paths remain.",
+  "selection": "Fixed original 16-row evaluation batches numbered 0,10,20,...; no target-based selection.",
+  "metrics": "Paired AUC, logloss and Brier for all 60 minutes; 10000 day/week block draws at 5 and 60 minutes, per-interval alpha 0.05/12.",
+  "interpretation": "One reused development fold, internal ablation without retraining. The intervention may be out of distribution and leaves other GC paths intact; it cannot establish economic edge or generalization.",
+  "inputs": {
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RECIPE.json",
+      "sha256": "64a7243076812506b7c2dc3ebd32c89cc2202ba9ff5ae2159f936bc830e75d2d"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/states/w0001_TERMINAL_u002976_p047602.pt",
+      "sha256": "ee1b95efe5f5dc1eb34b6a0e8438951fede222fd56b0e75eb56b550eab4f9885"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451"
+    },
+    "oof_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "corrected_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "consumer_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "87b2240484f48b1c7341467947357e25cda28c8d47fcf91f43b87614fa664632"
+    },
+    "consumer_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_PLAN_20261028_002.json",
+      "sha256": "fff5f468adf5f4967a3bbbd21a7c5d50b21f65680218126ef2e8d36119265062"
+    }
+  },
+  "test_data_used": false,
+  "optimizer_steps": 0,
+  "model_forwards_authorized_only_within_plan": true
+}
