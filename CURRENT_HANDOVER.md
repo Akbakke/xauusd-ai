@@ -11,6 +11,11 @@ Programrot:
 
 ## Aktuell status
 
+En eksakt B16-kvalifiseringsoppskrift er metadata-kontrollert som forslag,
+uten kjøreadmisjon. Den eksisterende native-kampanjen krever fysisk Windows-
+omstart etter forberedelse; den opprinnelige oppdragsgrensen forbød å styre
+omstart. Gjør ikke dette uten at brukeren uttrykkelig endrer den grensen.
+
 Fast evalueringsprotokoll for størrelsesvektet retning er skrevet før
 noen genuin kvalifisering eller kandidat: samme femminuttersforeldre,
 parret dag-/ukeblokk-AUC, logloss og Brier, med forhåndsbundet streng gate.

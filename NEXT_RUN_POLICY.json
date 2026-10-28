@@ -40770,5 +40770,22 @@
     "model_calls_authorized": false,
     "training_authorized": false,
     "test_control_exit_authorized": false
+  },
+  "direction_bounded_magnitude_private_qualification_proposal_20261028": {
+    "status": "PROPOSED_NOT_ADMITTED",
+    "proposal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_NATIVE_B16_QUALIFICATION_20261028_001/PROPOSAL.json",
+      "sha256": "2358ab7afe03a2f891b2ce22c951ac252b0352485cc45284b0384d6c125e1356"
+    },
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_NATIVE_B16_QUALIFICATION_20261028_001/RECIPE.json",
+      "sha256": "ebd48356d6d9ac6e57c53283f187356c03f0abb6799aa6f6c789c244292113c9"
+    },
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
