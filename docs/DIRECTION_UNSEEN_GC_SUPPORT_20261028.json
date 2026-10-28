@@ -1,0 +1,48 @@
+{
+  "schema_version": "gx1_direction_unseen_gc_support_design_v1",
+  "status": "SOURCE_PREPARED_ACTUAL_AUDIT_PENDING",
+  "scope": "Measure whether the 33 active GC context coordinates whose normalized values and projection columns were constant/unchanged on first-prefix TRAIN become nonzero for the same model on Q1 OOF or the fixed Q2 sample.",
+  "method": "Verify the original immutable decoded context file and parent/time axes, replicate the native signal-owned normalization and observation masks, independently recheck zero TRAIN support, then count later nonzero normalized values and affected parents. No model scoring or outcome-conditioned selection.",
+  "limits": "A previously unsupported coordinate becoming nonzero shows extrapolation opportunity, not that its particular weight affects output or causes poor direction. Current context and temporal/history paths can differ; Q2 is a fixed development subsample.",
+  "inputs": {
+    "context_mmap": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_NORMALIZATION_20261024_261/SUPPORT_SCRATCH/current051/ctx_cont.mmap",
+      "sha256": "3765bd5138548b11d8f52464175ad9bdfd38bc69355e0415307167264301b78b"
+    },
+    "support_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
+      "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"
+    },
+    "decode_binding": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/DECODE_REUSE_BINDING.json",
+      "sha256": "48a86db06160126a5a0fab0b6d74f4bd8bd4e24493e1e4fabad97f431ba0a2be"
+    },
+    "prefix_normalization": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+      "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "field_audit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_PROJECTION_FIELDS_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "083f330c0a7166114bd2926fd948e4db378e36de99bc5b02f27bcb7344ada40b"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "sample_pair": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_002/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "c9312adddb9870dfb0642dcc2cdbef2b3d1bec246bdb7389fb6f6f02c5f7046f"
+    },
+    "fold_design": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_PLAN_20261028_001.json",
+      "sha256": "2494af08975ee22c0ea546562141f5ff5bde52368e74716df40279539c31a96b"
+    }
+  },
+  "test_data_used": false,
+  "new_model_forwards": 0,
+  "optimizer_steps": 0
+}
