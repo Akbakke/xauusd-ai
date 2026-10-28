@@ -120,3 +120,25 @@ else: raise AssertionError('network allowed')
 '''
     result = subprocess.run([sys.executable, '-B', '-c', program, str(tmp_path)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+def test_existing_read_guard_allows_only_own_readonly_output_directory(tmp_path):
+    import subprocess
+    import sys
+    program = '''
+import os, sys
+from pathlib import Path
+from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+out=Path('/home/andre2/GX1_RUNS/synthetic-audit/output')
+context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/home/andre2/GX1_DATA/cache',
+    'gc_surfaces':{'path':'/home/andre2/GX1_DATA/gc/surface.npy'}},'info':{'metadata':{}}}
+common._install_read_guard(context,out,out)
+sys.audit('open',str(out),None,os.O_RDONLY|os.O_DIRECTORY)
+for path, flags in ((str(out),os.O_WRONLY|os.O_DIRECTORY), (str(out),os.O_RDONLY),
+                    ('/home/andre2/GX1_RUNS/synthetic-audit/other.npy',os.O_RDONLY)):
+    try: sys.audit('open',path,None,flags)
+    except RuntimeError: pass
+    else: raise AssertionError('unsafe or unbound open allowed')
+'''
+    result = subprocess.run([sys.executable, '-B', '-c', program], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr

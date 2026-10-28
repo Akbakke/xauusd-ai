@@ -1,0 +1,26 @@
+{
+  "schema_version": "gx1_direction_gc_output_directory_guard_fix_v1",
+  "status": "SOURCE_AND_SYNTHETIC_TESTS_ONLY",
+  "observed_failure": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_20261028_003/FAILED_TERMINAL.json",
+    "sha256": "7d576b636a7c79f5477ae023d344bff55bd04cbea5d3ae357406d26661f08f46"
+  },
+  "recovery": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_INTERVENTION_RECOVERY_20261028_001/OUTPUT/RESULT.json",
+    "sha256": "ce131292529d42cda9653c1fa263c84be46c7ea0077d8d557a627d26c0cd0359"
+  },
+  "source_before": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+    "sha256": "c619ceac19e7986ee8ab1d322471f9a4f687f8eea27ccebc8d5d9ccd2a30bb52"
+  },
+  "source_after": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+    "sha256": "d25c5b53a32fc5804712709c823998ea2580691584bbe1483e6ab3da702629d9"
+  },
+  "change": "Add only the exact output directory to the existing read-only O_DIRECTORY allowlist; existing write-flag rejection and all other path restrictions remain.",
+  "verification": "Entire source bytes match the original after exactly this one-line substitution; 26 focused synthetic tests passed, including read-only output-directory allow and write/unbound rejection.",
+  "scope": "No model function, feature, target, training, optimizer, TEST, broker or trading changed. Historical fit receipt still binds the old source SHA; a later replay must explicitly bind this source transition.",
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "test_data_used": false
+}

@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T16:07:31.744046+00:00",
-  "status": "GC_MTF_INTERVENTION_RECOVERED_PROVISIONAL_FEATURE_AUDIT_CONTINUES",
+  "status": "GC_OUTPUT_GUARD_FIXED_PROVISIONAL_INTERVENTION_RETAINED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve the failed intervention and successful integrity recovery. Its ablated scores are provisional because logits were not retained. Continue feature qualification and independently bound direction experiments; corrected-target training requires a separate authenticated route and fresh baseline. No TEST, broker or trading.",
+  "next_action": "Preserve the failed intervention and its independently checked recovery. The output-directory guard is fixed in source; any future replay must bind its exact source transition. Continue feature and direction qualification. No TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42381,5 +42381,15 @@
     "original_scores_independently_reproduced": 60,
     "ablated_scores_independently_recomputed": false,
     "economic_edge_qualified": false
+  },
+  "independent_direction_gc_output_directory_guard_fix_20261028": {
+    "status": "SOURCE_AND_SYNTHETIC_TESTS_ONLY",
+    "proof": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_GC_OUTPUT_DIRECTORY_GUARD_FIX_20261028.json",
+      "sha256": "cadae33b7b9035dd21c02148034c39331ca562bb31486cefb69fe3d91ad27afc"
+    },
+    "model_forward_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false
   }
 }

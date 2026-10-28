@@ -119,7 +119,7 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
             and dense_target==context.get('dense_target') and dense_target['path'].endswith('.npz'), 'DENSE_TARGET_BINDING')
         extra_read_paths += (dense_target['path'],)
     allowed={p for p,v in plan['payloads'].items() if v['verification'] not in ('inherited_stat_only_no_open','reused_original051_stat_only_no_open')}|set(info['metadata'])|set(extra_read_paths)
-    directories={plan['native_cache_dir'],str(Path(plan['gc_surfaces']['path']).parent)}
+    directories={plan['native_cache_dir'],str(Path(plan['gc_surfaces']['path']).parent),str(output)}
     relative={Path(p).name:p for p in allowed if p.endswith('.npy')};denied=[]
     def guard(event,args):
         if event!='open' or not args or not isinstance(args[0],(str,bytes)):return

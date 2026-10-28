@@ -96,7 +96,7 @@ Kilde og første prefixes normaliseringsmetadata viser at den trente 60-hoderspr
 
 En 316-til-128 lineær rute har, ved fast kontekststyrt gate, matematiske nullretninger for vilkårlige realvektorer. Dette beviser ikke at slike kombinasjoner finnes i ekte data, at nyttig retning går tapt, eller at hele modellen mangler en alternativ rute. Det peker på en konkret hypotese: mål først modellen med og uten kausalt sammenhengende GC-informasjon på identiske senere rader, etter at den gjenskapte originalprediksjonen er kontrollert. Ingen arkitekturendring eller treningsgevinst er konkludert.
 
-Kilde-/metadata-kvittering: `docs/DIRECTION_GC_PROJECTION_SOURCE_REVIEW_20261028.json`. De 56 kildeeierne i den trente modellens recipe matcher nå sine treningshasher. Ingen checkpointlesing, modellforward, trening eller TEST ble brukt i denne kildekontrollen.
+Kilde-/metadata-kvittering: `docs/DIRECTION_GC_PROJECTION_SOURCE_REVIEW_20261028.json`. Ved kildekontrollen matchet alle 56 kildeeierne sine treningshasher. Siden er én read-only katalogvakt rettet; fremtidig replay må binde denne eksakte kildeovergangen. Ingen checkpointlesing, modellforward, trening eller TEST ble brukt i denne kildekontrollen.
 
 
 ## Hva ble faktisk oppdatert i den trente modellen?
@@ -128,3 +128,10 @@ Ved 5min var AUC på de samme 1 726 observerte ikke-null-utfallene 0,514611 med 
 **Evidensgrense:** Produsenten utførte 218 modellkall og skrev en intern COMPLETE-terminal, men sluttet med exit 1 da lesesperren blokkerte mappe-fsync etter atomisk rename. Opprinnelig kjøring forblir FAILED. En separat fullført recovery synkroniserte mappene, hashbandt originalresultatet og gjenskapte originalskårene nøyaktig fra lagrede prediksjoner og korrigert fasit for alle 60 minutter. Ablasjonslogits ble ikke lagret; ablasjonsskårene og intervallene er derfor foreløpige og ikke uavhengig etterregnet. Blokktrekningene forutsetter utbyttbare dager/uker; ingen generalisering eller økonomi er kvalifisert.
 
 Foreløpig resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_20261028_003/OUTPUT/RESULT.json`, SHA-256 `c16ebb9d8ef9a6c198cc177bc029e15106860d81f008feda53c03be5a778dbee`. Recovery: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_INTERVENTION_RECOVERY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `ce131292529d42cda9653c1fa263c84be46c7ea0077d8d557a627d26c0cd0359`. Ingen optimizersteg, TEST eller handel.
+
+
+## Retting av publiseringsvakten
+
+Årsaken til exit 1 var at den eksisterende inputvakten avviste en read-only `O_DIRECTORY`-åpning av jobbens egen outputmappe under `fsync`. Én kodelinje legger bare denne eksakte mappen til samme katalogliste som allerede avviser skriveflagg. Et syntetisk testtilfelle bekrefter at egen mappe kan åpnes som read-only katalog, mens skriveflagg og uautoriserte søskenstier fortsatt avvises. 26 fokuserte tester bestod.
+
+Dette endrer ikke modellfunksjonen eller resultatet av det feilede forsøket. 55 av 56 kildeeierne matcher den historiske treningsrecipe; den ene forskjellen er denne katalogvaktrettingen. En senere modellreplay må separat binde og verifisere kildeovergangen. Se `docs/DIRECTION_GC_OUTPUT_DIRECTORY_GUARD_FIX_20261028.json`.
