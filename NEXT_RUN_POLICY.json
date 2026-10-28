@@ -39998,5 +39998,25 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_SYNTHETIC_20261028_001/OUTER.log",
       "sha256": "7d62d7ad52293a7ff2d00f6da00586e088b6ccd7c09dd9d6ae237070451a1c94"
     }
+  },
+  "direction_train_year_quote_parity_actual_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TRAIN_YEAR_QUOTE_PARITY_ACTUAL_PLAN_20261028_001.json",
+      "sha256": "3f81f18d9200fa92c53b1cd69e49671a1010c3570f27362f6583eacf5a385990"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "max_wall_seconds": 300,
+    "capped_cpu_audit_memory": "4G",
+    "scope": "Only two exact 2024/2025 native M1 year files and one saved TRAIN target archive. Reproduce exact saved 1/5/15 midpoint and row/clock/mask identity; no combined quote file or 2026 data.",
+    "model_calls_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }

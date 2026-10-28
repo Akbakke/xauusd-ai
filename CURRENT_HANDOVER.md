@@ -11,10 +11,10 @@ Programrot:
 
 ## Aktuell status
 
-Årsfilsammenkoblingen for TRAIN er syntetisk kvalifisert: 9 kontroller
-bestod, med nyttår, manglende pris, cutoff og feil rad/fasit. Den syntetiske
-engangsadgangen er konsumert. Reell paritetskontroll krever fersk avgrenset
-admisjon; ingen ekte payload, modell, CONTROL eller TEST er åpnet ennå.
+Årsfilsammenkoblingen for TRAIN er syntetisk kvalifisert med 9 kontroller.
+Én avgrenset reell paritetskontroll er admittért for to årsfiler og lagret
+TRAIN-fasit; ingen modell, optimizer, kombinert 2026-kilde, CONTROL eller TEST.
+Kilde og policy skal være fryst under kontrollen, som ikke må relanseres.
 
 Fasiten bevarer også et konservativt sett av mulige utfall ved usikker
 rekkefølge. 43 syntetiske kontroller bestod og engangsadgangen er konsumert.
