@@ -40403,7 +40403,7 @@
     "direction_improvement_qualified": false
   },
   "direction_bounded_magnitude_weight_source_20261028": {
-    "status": "LOSS_SOURCE_AND_SYNTHETIC_12_PASS_NO_MODEL_ROUTE",
+    "status": "LOSS_SOURCE_AND_SYNTHETIC_12_PASS_SUPERSEDED_BY_TRAIN_ADAPTER",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAGNITUDE_WEIGHTED_SIGN_DESIGN_20261028.json",
       "sha256": "b216e4ed4d58855de59edd08b1b47e47afef7db66e3469178d5fd05344d88a63"
@@ -40566,7 +40566,7 @@
     }
   },
   "direction_bounded_magnitude_train_adapter_source_20261028": {
-    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
+    "status": "TRAIN_ADAPTER_SYNTHETIC_20_PASS_NO_GENUINE_QUALIFICATION",
     "scope": "Connect the opt-in weighted loss to the existing prefix research batch runner, fit the sealed weight only on the own mature TRAIN prefix, and keep unweighted/signed-bps modes unchanged. This does not authorize launch or genuine native calls.",
     "allowed_source_paths": [
       "gx1/contracts/entry_native_direction_bps_v1.py",
@@ -40574,7 +40574,7 @@
       "tests/test_entry_native_direction_bps_v1.py"
     ],
     "source_edits_authorized": false,
-    "synthetic_tests_authorized": true,
+    "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
@@ -40608,22 +40608,39 @@
     "synthetic_plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_TRAIN_ADAPTER_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "516f126a65d667847cf29d66aa6e5eb5385054bd4d1b478b5c0820caf6eb0528"
-    }
+    },
+    "qualification": "20 focused synthetic weighted direction and baseline mask cases passed, including one-forward batch updates and exact synthetic resume. No genuine payload or genuine native call."
   },
   "direction_bounded_magnitude_train_adapter_synthetic_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_SYNTHETIC_20_PASS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_TRAIN_ADAPTER_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "516f126a65d667847cf29d66aa6e5eb5385054bd4d1b478b5c0820caf6eb0528"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "genuine_payload_reads_authorized": false,
     "genuine_native_calls_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_TRAIN_ADAPTER_SYNTHETIC_20261028_001/TERMINAL.json",
+      "sha256": "eb0571c1e43776de51dbc0aed6f7a8eead75b3be73bddd22153b7fc79c5fc8d8"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_TRAIN_ADAPTER_SYNTHETIC_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "e918abf721f1b77e43c03c399eb464ff49082989097bf03189bade7163c47b8d"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_TRAIN_ADAPTER_SYNTHETIC_20261028_001/RESULTS.xml",
+      "sha256": "0fabefc562dae3636401d42e8c0235e110feae0cca5d380702c08677e642c0ee"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MAG_WEIGHT_TRAIN_ADAPTER_SYNTHETIC_20261028_001/OUTER.log",
+      "sha256": "a3b98d34ddb78a64a2b193ede0a72ecba31156898a4e4cfa3199e88690408ba0"
+    }
   }
 }
