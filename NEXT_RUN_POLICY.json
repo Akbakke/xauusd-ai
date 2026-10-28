@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "GC_STALE_CONTEXT_ADMITTED",
+  "status": "GC_STALE_CONTEXT_MEASURED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the single source-bound frozen-model comparison of current versus exact preceding M5 GC context on the fixed Q2 sample; close and independently verify it. No training, TEST, broker or trading.",
+  "next_action": "Qualify the smallest exact corrected decimal target route and fresh baseline before any separately authorized fit. Examine a shared or temporally coupled 60-horizon head and GC level extrapolation as separate controlled hypotheses; retain all features, TEST seal and guards. No training, broker or trading is authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43211,24 +43211,52 @@
     "economic_edge_qualified": false
   },
   "independent_direction_gc_stale_context_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_STALE_CONTEXT_PLAN_20261028_001.json",
       "sha256": "a4937cebcdf244fe3fd02e33328b772bab68dad27b4d7d2ad9595f1817d08274"
     },
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "model_forwards_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "guarded_cuda_producer",
     "memory_max": "20G",
     "wall_seconds": 1800,
-    "scope": "Frozen first-prefix 60-horizon direction model; same 1,760 previously fixed Q2 development parents and original batches, scored only where exact t-5min prior parent exists."
+    "scope": "Frozen first-prefix 60-horizon direction model; same 1,760 previously fixed Q2 development parents and original batches, scored only where exact t-5min prior parent exists.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_STALE_CONTEXT_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "04869d6b18d2252f86c53396a32beca49991b2bd6187aa9139595614bc80a857"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_STALE_CONTEXT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "78195edb995d245cf741a5368da82af82e088f77a12e4e6fa6fd45146c9b0492"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_STALE_CONTEXT_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "c07d6833d53a1bc65b639b0743de8012676b708fcd6d4e833a7cea8584e9ad24"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_STALE_CONTEXT_20261028_001/TERMINAL.json",
+      "sha256": "c6a866e7728745bb738bb63327bdd79b78775e0a4cb6f593788aa50091bc87c5"
+    },
+    "paired_outputs": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_STALE_CONTEXT_20261028_001/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "6a00234e22cfea636367dfbdbb39e8ba83ab7edda7033b1bd9e8789fb9663a08"
+    },
+    "independent_score_verification": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_STALE_CONTEXT_INDEPENDENT_CHECK_20261028_001.json",
+      "sha256": "a0e997e5a0134d11cc0a09fc3cc91115ea729fd04cae233100efeed32d8adcb8"
+    },
+    "independent_score_verification_complete": true,
+    "original_metric_limitation_text_incorrect": true,
+    "correction": "Original RESULT metrics.limitations incorrectly describes GC-history ablation. The actual and outer-described intervention replaced current GC context and last local aliases with previous M5 values; histories remain current. Future result text is fixed in source.",
+    "economic_edge_qualified": false
   }
 }

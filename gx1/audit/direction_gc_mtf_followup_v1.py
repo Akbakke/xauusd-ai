@@ -391,6 +391,10 @@ def run(*, plan_path, plan_sha256, device, out_dir, mode='history'):
             selected_terminal, z0, z1, cutoff=fold['oof_cutoff_ns'])
         metrics['scope'] = ('Every tenth contiguous 16-row batch in the subsequent fixed development period; '
             + ('only parents with an exact previous 5-minute decision; ' if stale_mode else '') + 'no refit.')
+        if stale_mode:
+            metrics['limitations'] = ('Paired calendar-block exchangeability is assumed. Only current GC context and its last local aliases are replaced with the prior M5 values; GC MTF history remains current. The intervention may be out of distribution. No economic edge or causal claim about retraining.')
+        elif context_mode:
+            metrics['limitations'] = ('Paired calendar-block exchangeability is assumed. GC context, its local aliases and GC history projections are suppressed together. The intervention may be out of distribution. No economic edge or causal claim about retraining.')
         pair = save_paired(stage / 'PAIRED_OUTPUTS.npz', parents=parents, decisions=selected_decisions,
             terminal=selected_terminal, observed=selected_observed, sign=selected_sign, original=z0, ablated=z1)
         pair = {'path': str(out_dir / 'OUTPUT/PAIRED_OUTPUTS.npz'), **pair}
