@@ -12,9 +12,9 @@ Programrot:
 ## Aktuell status
 
 En fast første-treff-kontroll 1–60min mot eksisterende fold1-OOF-skår er
-implementert. 10bps gross quote er kun forskning; usikkerhet og utvalgsdekning
-skal rapporteres. Én syntetisk kontroll er admittért, ekte data og modellkall
-er lukket.
+syntetisk kvalifisert med 6 kontroller. 10bps gross quote er kun forskning;
+usikkerhet og utvalgsdekning rapporteres. Syntetisk engangsadgang er konsumert;
+reell måling krever fersk avgrenset admisjon. Modell og trening er lukket.
 
 Endepunktsparitet på 118 249 TRAIN-foreldre var allerede verifisert i
 `CANDLE_MIDPOINT_ROOT_REVIEW_001.json` under den uavhengige evidensroten.

@@ -40047,14 +40047,14 @@
     "duplicate_aggregate_matches": true
   },
   "direction_first_hurdle_oof_source_20261028": {
-    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
+    "status": "SOURCE_AND_SYNTHETIC_6_PASS_GENUINE_EXECUTION_CLOSED",
     "scope": "Prepare one fixed first-hurdle label and rank audit of the existing fold1 OOF direction scores using the previously qualified 2025 quote partition and target identity. Reuse the existing first-favorable quote, partial-outcome and rank owners.",
     "allowed_source_paths": [
       "gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
       "tests/test_audit_entry_direction_first_hurdle_v1.py"
     ],
     "source_edits_authorized": false,
-    "synthetic_tests_authorized": true,
+    "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -40082,22 +40082,39 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "41d27c40b353cbfde8620e54ac60bf8f41f8a2f52e6b319bcb82ae1a648a7014"
     },
-    "expected_synthetic_cases": 6
+    "expected_synthetic_cases": 6,
+    "qualification": "Six synthetic all-minute label, chunk, ambiguity, coverage, conditional rank and missing-class checks passed; no genuine payload opened."
   },
   "direction_first_hurdle_oof_synthetic_20261028_001": {
-    "status": "ADMITTED_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_SYNTHETIC_6_PASS",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_SYNTHETIC_PLAN_20261028_001.json",
       "sha256": "41d27c40b353cbfde8620e54ac60bf8f41f8a2f52e6b319bcb82ae1a648a7014"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "genuine_payload_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
-    "test_control_exit_authorized": false
+    "test_control_exit_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_SYNTHETIC_20261028_001/TERMINAL.json",
+      "sha256": "6b24b68d46040c38b66c13a622220b379be246059ed5e6baa4a7139a58e0bfdf"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_SYNTHETIC_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "a53bb697963791c669b8c5cc1d5865b970332dcea4a7ee30d9c3814a94b85cc7"
+    },
+    "results_xml": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_SYNTHETIC_20261028_001/RESULTS.xml",
+      "sha256": "67dd8dd86f39329991c955a6c0e65957be7b3a98eb4cce5e79f5f2467112f1ff"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_SYNTHETIC_20261028_001/OUTER.log",
+      "sha256": "8cb7a00dac4ee3b13537d231eadd9fe48240f4dc1fd23333594bf71cca596274"
+    }
   }
 }
