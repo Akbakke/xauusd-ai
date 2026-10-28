@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T16:07:31.744046+00:00",
-  "status": "GC_MTF_LATER_FOLLOWUP_INDEPENDENTLY_VERIFIED",
+  "observed_utc": "2026-10-28T17:16:22.751811+00:00",
+  "status": "GC_CONTEXT_FOLLOWUP_ADMITTED_ONE_SHOT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve the verified later-period GC-history intervention and all original receipts. Continue direct direction and feature qualification; source-corrected target training needs a separate authenticated route and fresh initial baseline. No TEST, broker or trading.",
+  "next_action": "Execute only the bound combined GC context/temporal alias and GC history ablation; require byte-identical prior Q2 originals, persist both arms, then consume the one-shot and independently verify. No training, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42484,5 +42484,26 @@
       "sha256": "f7e2ab5c28b9848c277553aee3bfe865d79f1540bd33b78a6af65b96d180d19f"
     },
     "economic_edge_qualified": false
+  },
+  "independent_direction_gc_context_followup_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CONTEXT_FOLLOWUP_PLAN_20261028_001.json",
+      "sha256": "5d6108de371e12af73c4a8be44abd25945aebdbd910249e83bc393c4bcd11d8c"
+    },
+    "execution_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "model_forwards_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "guarded_cuda_producer",
+    "memory_max": "20G",
+    "wall_seconds": 1800,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "scope": "Frozen first-prefix 60-head model; same 1,760 preselected 2025 Q2 development parents as prior verified history intervention. No refit. Set all 2,410 named GC context coordinates, including 1,205 observation masks, to zero in each 96-row local signal, the snapshot, and current context; suppress all 25 GC history projection outputs. Validate source-owned field and mask closure, current alias parity, unchanged other inputs, model weights and buffers."
   }
 }

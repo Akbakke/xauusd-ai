@@ -1043,6 +1043,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             device="cuda", out_dir=gc_args.out_dir)
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    context_followup_options = ("--direction-gc-context-followup-plan", "--direction-gc-context-followup-plan-sha256")
+    if any(value.partition("=")[0] in context_followup_options for value in supplied):
+        context_parser = argparse.ArgumentParser(description="Combined GC context and history intervention",
+            allow_abbrev=False, add_help=False)
+        context_parser.add_argument(context_followup_options[0], type=Path, required=True)
+        context_parser.add_argument(context_followup_options[1], required=True)
+        context_parser.add_argument("--device", choices=("cuda",), required=True)
+        context_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*context_followup_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                context_parser.error(f"duplicate flag: {option}")
+        context_args = context_parser.parse_args(supplied)
+        if not context_args.out_dir.is_absolute():
+            context_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.direction_gc_mtf_followup_v1 import run as run_gc_context_followup
+        report = run_gc_context_followup(plan_path=context_args.direction_gc_context_followup_plan,
+            plan_sha256=str(context_args.direction_gc_context_followup_plan_sha256),
+            device="cuda", out_dir=context_args.out_dir, mode="context_and_history")
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     followup_options = ("--direction-gc-mtf-followup-plan", "--direction-gc-mtf-followup-plan-sha256")
     if any(value.partition("=")[0] in followup_options for value in supplied):
         followup_parser = argparse.ArgumentParser(description="Later-period trained GC history intervention",

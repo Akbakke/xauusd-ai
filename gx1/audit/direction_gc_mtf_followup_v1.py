@@ -22,6 +22,7 @@ from gx1.audit import direction_gc_mtf_intervention_v1 as intervention
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
 STAGE = 'independent_direction_gc_mtf_later_followup_20261028_001'
+CONTEXT_STAGE = 'independent_direction_gc_context_followup_20261028_001'
 OWNER = 'gx1/scripts/run_entry_native_direction_research_window_v1.py'
 SOURCE_PATHS = (
     'gx1/audit/direction_gc_mtf_followup_v1.py',
@@ -104,7 +105,17 @@ def save_paired(path, *, parents, decisions, terminal, observed, sign, original,
     return {'sha256': digest.hexdigest(), 'bytes': path.stat().st_size}
 
 
-def run(*, plan_path, plan_sha256, device, out_dir):
+def run(*, plan_path, plan_sha256, device, out_dir, mode='history'):
+    require(mode in ('history', 'context_and_history'), 'EXPERIMENT_MODE')
+    context_mode = mode == 'context_and_history'
+    experiment_stage = CONTEXT_STAGE if context_mode else STAGE
+    experiment_output = ('DIRECTION_GC_CONTEXT_FOLLOWUP_20261028_001' if context_mode
+        else 'DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001')
+    experiment_design = ('DIRECTION_GC_CONTEXT_FOLLOWUP_20261028.json' if context_mode
+        else 'DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028.json')
+    experiment_schema = 'gx1_direction_gc_context_followup' if context_mode else 'gx1_direction_gc_mtf_later_followup'
+    experiment_sources = SOURCE_PATHS + (('gx1/audit/direction_gc_context_intervention_v1.py',
+        'tests/test_direction_gc_context_intervention_v1.py') if context_mode else ())
     from gx1.contracts import gx1_capped_execution_v1 as cap
     from gx1.contracts import immutable_event_authority_v1 as publication
     from gx1.contracts import local_random_access_campaign_v2 as binding
@@ -125,18 +136,18 @@ def run(*, plan_path, plan_sha256, device, out_dir):
         plan = binding.read_bound_json(Path(plan_ref['path']), plan_ref['sha256'])
         require(set(plan) == {'schema_version', 'stage', 'design', 'inputs', 'sources', 'output_dir',
             'wall_seconds', 'batch_size', 'batch_stride', 'original_source_commit', 'test_data_used'}
-            and plan['schema_version'] == 'gx1_direction_gc_mtf_later_followup_plan_v1' and plan['stage'] == STAGE
+            and plan['schema_version'] == experiment_schema + '_plan_v1' and plan['stage'] == experiment_stage
             and plan['wall_seconds'] == 1800 and plan['batch_size'] == intervention.BATCH
             and plan['batch_stride'] == intervention.BATCH_STRIDE and plan['test_data_used'] is False, 'PLAN')
         require(str(out_dir) == plan['output_dir'] and out_dir.parent == ROOT
-            and out_dir.name == 'DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028_001'
+            and out_dir.name == experiment_output
             and ROOT.resolve(strict=True) == ROOT and not out_dir.exists() and not out_dir.is_symlink(), 'OUTPUT_SCOPE')
-        require(plan['design']['path'] == str(REPO / 'docs/DIRECTION_GC_MTF_LATER_FOLLOWUP_20261028.json'), 'DESIGN_PATH')
+        require(plan['design']['path'] == str(REPO / 'docs' / experiment_design), 'DESIGN_PATH')
         design = binding.read_bound_json(Path(plan['design']['path']), plan['design']['sha256'])
-        require(design['schema_version'] == 'gx1_direction_gc_mtf_later_followup_design_v1'
+        require(design['schema_version'] == experiment_schema + '_design_v1'
             and design['inputs'] == plan['inputs'] and design['test_data_used'] is False, 'DESIGN')
         policy_sha = common._hash_file(str(policy_path))['sha256']; policy_ref = {'path': str(policy_path), 'sha256': policy_sha}
-        policy = binding.read_bound_json(policy_path, policy_sha); gate = policy[STAGE]
+        policy = binding.read_bound_json(policy_path, policy_sha); gate = policy[experiment_stage]
         require(gate['status'] == 'ADMITTED' and gate['plan'] == plan_ref and gate['execution_authorized'] is True
             and gate['checkpoint_reads_authorized'] is True and gate['model_forwards_authorized'] is True
             and gate['max_invocations'] == 1 and gate['claimed_invocations'] == gate['completed_invocations'] == 0
@@ -144,15 +155,17 @@ def run(*, plan_path, plan_sha256, device, out_dir):
         require(all(policy[key] is False for key in ('training_enabled', 'native_training_enabled',
             'full_epoch_training_allowed', 'full_val_allowed', 'native_launch_authorized'))
             and all(gate[key] is False for key in ('optimizer_steps_authorized', 'test_data_used', 'broker_access_allowed')), 'CLOSED_GATES')
-        require(set(plan['sources']) == set(SOURCE_PATHS)
+        require(set(plan['sources']) == set(experiment_sources)
             and all(ref['path'] == str(REPO / name) for name, ref in plan['sources'].items()), 'SOURCE_SET')
         for ref in plan['sources'].values():
             candle.regular(ref['path']); binding.require_binding(ref, label='source')
         keys = {'recipe', 'fit_result', 'checkpoint', 'oof_report', 'oof_predictions', 'corrected_target',
             'corrected_result', 'consumer_result', 'consumer_plan', 'synthetic_test_terminal', 'synthetic_test_plan',
             'fold_design', 'source_transition', 'prior_failed_result', 'prior_recovery'}
+        if context_mode:
+            keys |= {'prior_paired', 'prior_followup_result', 'prior_verify'}
         require(set(plan['inputs']) == keys, 'INPUT_SET')
-        binary = {'checkpoint', 'oof_predictions', 'corrected_target'}
+        binary = {'checkpoint', 'oof_predictions', 'corrected_target'} | ({'prior_paired'} if context_mode else set())
         meta = {}
         for key in keys - binary:
             ref = plan['inputs'][key]; meta[key] = binding.read_bound_json(Path(ref['path']), ref['sha256'])
@@ -176,6 +189,21 @@ def run(*, plan_path, plan_sha256, device, out_dir):
             and prior['recovery_result'] == plan['inputs']['prior_recovery']
             and meta['prior_recovery']['status'] == 'COMPLETE'
             and meta['prior_recovery']['original_run_remains_failed'] is True, 'PRIOR_SCOPE')
+        if context_mode:
+            previous = policy[STAGE]
+            require(previous['status'] == 'COMPLETE_ONE_SHOT_CONSUMED'
+                and previous['paired_outputs'] == plan['inputs']['prior_paired']
+                and previous['result'] == plan['inputs']['prior_followup_result']
+                and previous['independent_score_verification'] == plan['inputs']['prior_verify']
+                and previous['independent_score_verification_complete'] is True
+                and meta['prior_followup_result']['status'] == meta['prior_verify']['status'] == 'COMPLETE'
+                and meta['prior_verify']['followup_result'] == plan['inputs']['prior_followup_result']
+                and meta['prior_verify']['paired_outputs'] == plan['inputs']['prior_paired']
+                and meta['prior_verify']['corrected_target'] == plan['inputs']['corrected_target']
+                and {k: meta['prior_followup_result']['paired_outputs'][k] for k in ('path', 'sha256')}
+                    == plan['inputs']['prior_paired']
+                and meta['prior_followup_result']['test_data_used'] is False
+                and meta['prior_verify']['test_data_used'] is False, 'PRIOR_VERIFIED_FOLLOWUP')
         intervention.require_synthetic_receipts(plan['inputs'], result, meta['synthetic_test_terminal'], meta['synthetic_test_plan'])
         fold = later_fold(meta['fold_design'], launch['fold'])
         original_bytes = subprocess.check_output(['git', 'show', plan['original_source_commit'] + ':' + OWNER], cwd=REPO)
@@ -207,7 +235,8 @@ def run(*, plan_path, plan_sha256, device, out_dir):
     try:
         stage.mkdir(exist_ok=False)
         context = window._launch_metadata(launch, common)
-        refs = [plan['inputs'][name] for name in ('checkpoint', 'oof_predictions', 'corrected_target')]
+        payload_names = ('checkpoint', 'oof_predictions', 'corrected_target') + (('prior_paired',) if context_mode else ())
+        refs = [plan['inputs'][name] for name in payload_names]
         require(len({ref['path'] for ref in refs}) == len(refs), 'DISTINCT_PAYLOADS')
         for ref in refs:
             before = common._stat(ref['path']); require(common._hash_file(ref['path']) == ref, 'PAYLOAD_SHA')
@@ -242,6 +271,24 @@ def run(*, plan_path, plan_sha256, device, out_dir):
             and np.searchsorted(decisions, fold['oof_cutoff_ns'], side='left') == last, 'LATER_CLOCK')
         chosen = intervention.selected_batches(last - first); selection = np.concatenate(chosen)
         require(len(selection) > 0 and len(selection) < last - first and np.all(np.diff(selection) > 0), 'SELECTION')
+        prior_pair = None
+        gc_layout = None
+        if context_mode:
+            from gx1.audit import direction_gc_context_intervention_v1 as context_intervention
+            from gx1.features.entry_specialist_feature_groups_v1 import compile_gc_mtf_geometry_entry_execution_profile
+            gc_profile = compile_gc_mtf_geometry_entry_execution_profile(context['fitted']['gc_mtf_history'])
+            require({'name': gc_profile['name'], 'contract_sha256': gc_profile['contract_sha256']}
+                == view['entry_execution_profile'], 'CONTEXT_PROFILE_IDENTITY')
+            gc_layout = context_intervention.compile_gc_context_layout(gc_profile)
+            with np.load(plan['inputs']['prior_paired']['path'], allow_pickle=False) as archive:
+                required = ('parent_rows', 'decision_ns', 'terminal_time_ns', 'observed', 'sign', 'original_logit_up')
+                require(all(name in archive.files for name in required), 'PRIOR_PAIR_FIELDS')
+                prior_pair = {name: archive[name].copy() for name in required}
+            rows = first + selection
+            for name in ('parent_rows', 'decision_ns', 'terminal_time_ns', 'observed', 'sign'):
+                require(np.array_equal(prior_pair[name], corrected_arrays[name][rows]), 'PRIOR_PAIR_AXIS:' + name)
+            require(prior_pair['original_logit_up'].dtype == np.float32
+                and prior_pair['original_logit_up'].shape == (len(selection), 60), 'PRIOR_PAIR_LOGITS')
         trainer._set_deterministic(launch['numerical_recipe']['seed'], torch.device('cuda', 0),
             launch['numerical_recipe']['precision_policy'])
         torch.set_num_threads(1); require(torch.get_num_threads() == 1, 'PRODUCER_NUMERICAL_THREADS')
@@ -274,7 +321,7 @@ def run(*, plan_path, plan_sha256, device, out_dir):
             ceiling=ceiling, torch=torch).detach().cpu().numpy().copy()
         intervention.require_exact_replay(replay, np.ascontiguousarray(saved['logit_up'][:intervention.BATCH]))
         del raw, target, features, _target, replay
-        original, ablated = [], []; hook_calls = {key: 0 for key in keys}
+        original, ablated = [], []; hook_calls = {key: 0 for key in keys}; offset = 0
         for indices in chosen:
             require(time.monotonic() - start < plan['wall_seconds'], 'WALL_LIMIT')
             parent_ids = prepared['arrays']['parent_rows'][first + indices]
@@ -282,9 +329,16 @@ def run(*, plan_path, plan_sha256, device, out_dir):
             features, _target = window._device_batch(raw, target, torch, torch.device('cuda', 0))
             z0 = window._forward(model, features, kind='LATER_ORIGINAL', counters=counters,
                 ceiling=ceiling, torch=torch).detach().cpu().numpy().copy()
+            if context_mode:
+                intervention.require_exact_replay(z0, np.ascontiguousarray(
+                    prior_pair['original_logit_up'][offset:offset + len(indices)]))
+                counterfactual = context_intervention.drop_gc_context(features, gc_layout)
+                offset += len(indices)
+            else:
+                counterfactual = features
             handles, calls = intervention.install_gc_projection_ablation(modules, keys)
             try:
-                z1 = window._forward(model, features, kind='LATER_ABLATION', counters=counters,
+                z1 = window._forward(model, counterfactual, kind='LATER_ABLATION', counters=counters,
                     ceiling=ceiling, torch=torch).detach().cpu().numpy().copy()
             finally:
                 for handle in handles:
@@ -293,8 +347,9 @@ def run(*, plan_path, plan_sha256, device, out_dir):
             require(all(value == 1 for value in calls.values()) and np.isfinite(z0).all() and np.isfinite(z1).all(), 'HOOK_CALLS')
             for key, value in calls.items(): hook_calls[key] += value
             original.append(z0); ablated.append(z1)
-            del raw, target, features, _target, z0, z1
+            del raw, target, features, counterfactual, _target, z0, z1
         z0, z1 = np.concatenate(original), np.concatenate(ablated)
+        require(not context_mode or offset == len(selection), 'LATER_REPLAY_ALL_ROWS')
         require(counters['forward_calls'] == counters['forward_returns'] == ceiling
             and all(value == len(chosen) for value in hook_calls.values()) and not denied, 'CALL_ACCOUNTING')
         require(state_owner.canonical_model_state_sha256(model.state_dict()) == model_sha
@@ -315,18 +370,23 @@ def run(*, plan_path, plan_sha256, device, out_dir):
         logit_change = np.abs(z1.astype(np.float64) - z0.astype(np.float64))
         common._freeze(freeze_launch, freeze_binding, context); control_snapshot.require_unchanged()
         require(cap.require_capped_lock_ancestry() == lock and not denied, 'FINAL_SOURCE_LOCK')
-        output = {'schema_version': 'gx1_direction_gc_mtf_later_followup_result_v1', 'status': 'COMPLETE',
+        output = {'schema_version': experiment_schema + '_result_v1', 'status': 'COMPLETE',
             'plan': plan_ref, 'source_head': source_head, 'origin_fold': origin, 'later_fold': fold,
             'model_state_sha256': model_sha, 'source_transition': plan['inputs']['source_transition'],
             'selection': {'policy': 'every tenth contiguous 16-row later batch', 'batch_size': intervention.BATCH,
                 'batch_stride': intervention.BATCH_STRIDE, 'selected_parents': len(selection), 'selected_batches': len(chosen)},
             'fold1_reference_logits_byte_identical': True, 'corrected_target_identity': corrected['target_identity'],
-            'intervention': 'All 25 GC history projection outputs set to zero after projection; current GC context remains.',
+            'intervention': ('GC context values and observation masks are zero in the full local sequence and current context; all 25 GC history projections are zeroed after projection.' if context_mode else
+                'All 25 GC history projection outputs set to zero after projection; current GC context remains.'),
+            'later_reference_logits_byte_identical': True if context_mode else None,
+            'gc_context_layout': ({'gc_fields': gc_layout['gc_fields'], 'value_mask_pairs': gc_layout['value_mask_pairs'],
+                'aliases_sha256': gc_layout['aliases_sha256']} if context_mode else None),
             'paired_outputs': pair, 'mean_absolute_logit_change': float(logit_change.mean()),
             'max_absolute_logit_change': float(logit_change.max()), 'forward_calls': counters['forward_calls'],
             'optimizer_steps': 0, 'model_unchanged': True, 'metrics': metrics,
             'scope': 'Frozen fold1 model, distinct subsequent development period, fixed sample; no refit or model selection.',
-            'limits': 'Previously reused development data; removing an internal route can be out of distribution. The GC current context remains. No independent generalization or economic edge.',
+            'limits': ('Previously reused development data; the combined intervention was chosen after the earlier result and can be out of distribution. It suppresses named GC context/aliases and GC history projections, not necessarily every GC-derived quantity. No independent generalization or economic edge.' if context_mode else
+                'Previously reused development data; removing an internal route can be out of distribution. The GC current context remains. No independent generalization or economic edge.'),
             'test_data_used': False, 'economic_edge_qualified': False}
         publish(stage / 'RESULT.json', output)
         publish(stage / 'TERMINAL.json', {'status': 'COMPLETE', 'exit_code': 0, 'source_unchanged': True,
