@@ -1,0 +1,51 @@
+{
+  "schema_version": "gx1_direction_gc_intervention_recovery_design_v1",
+  "status": "SOURCE_PREPARED_AUDIT_PENDING",
+  "scope": "Hash and inspect failed publication receipts and exact inner result, independently replay all 60 original sampled scores from saved OOF and corrected target, then fsync the two original result directories.",
+  "limitations": "The original producer remains FAILED; ablated logits were not retained, so ablated metrics and intervals cannot be independently recomputed. No model forward, optimizer or TEST.",
+  "inputs": {
+    "original_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_PLAN_20261028_003.json",
+      "sha256": "fb75fefdce44df8265c31ab43edcb50ea46672666c48ebc11fa55338287fedaf"
+    },
+    "original_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_20261028_003/OUTPUT/RESULT.json",
+      "sha256": "c16ebb9d8ef9a6c198cc177bc029e15106860d81f008feda53c03be5a778dbee"
+    },
+    "inner_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_20261028_003/OUTPUT/TERMINAL.json",
+      "sha256": "0d6071fe60da6d0705700f429ad7900bc405300a6799dd698378e1469d5d9b53"
+    },
+    "failed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_20261028_003/FAILED_TERMINAL.json",
+      "sha256": "7d576b636a7c79f5477ae023d344bff55bd04cbea5d3ae357406d26661f08f46"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_MTF_INTERVENTION_20261028_003/INVOCATION_CLAIM.json",
+      "sha256": "516e71223803816c091bee3f1f9e98f8351091500c7ea48149e6925e4b2c0d12"
+    },
+    "stdio_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_GC_MTF_INTERVENTION_20261028_003.trainer.VU4l0Pbj.log",
+      "sha256": "5b4a632518b0fd602751ffa5a82d28a9d49e35e73adcf0c720f663a2ba2b25f8"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_GC_MTF_INTERVENTION_20261028_003.guard.bet3pTSF.log",
+      "sha256": "6fbda885045ee26f4a91b052034510dddee0a1a2cd3a858f66544ac599438c23"
+    },
+    "oof_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451"
+    }
+  },
+  "test_data_used": false,
+  "model_forwards": 0,
+  "optimizer_steps": 0
+}
