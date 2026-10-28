@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T17:51:46.926345+00:00",
-  "status": "H1_BUILDER_PRECISION_REPLAY_ADMITTED_ONE_SHOT",
+  "observed_utc": "2026-10-28T17:53:59.629645+00:00",
+  "status": "NATIVE_2009_PREHISTORY_IDENTIFIED_REQUIRES_H1_REPLAY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the separately bound H1 cache-builder float32 replay and quantify input price rounding; retain previous double-source sensitivity receipts. No model, training, TEST, broker or trading.",
+  "next_action": "Replay H1 using all hash-bound native M5 parts from 2009 and the actual enriched-source creation path; compare used model windows. Preserve and correct the two narrower sensitivity comparisons. No model, training, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42653,7 +42653,8 @@
     "full_history_mismatched_cells": 7551,
     "model_era_current_bars_mismatched_cells": 0,
     "economic_edge_qualified": false,
-    "precision_qualification": "Compared original double OHLC to a cache built from float32 OHLC; not an exact builder replay or proof of a cache defect."
+    "precision_qualification": "Compared original double OHLC to a cache built from float32 OHLC; not an exact builder replay or proof of a cache defect.",
+    "source_history_qualification": "Replay started at M5_ENRICHED 2010, while this cache was generated on earlier native 2009 history before slicing; discrepancies are not established cache defects."
   },
   "independent_direction_d1_mismatch_localization_20261028_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -42698,7 +42699,8 @@
     "model_windows_with_mismatch": 0,
     "historical_cache_discrepancy_cause_unresolved": true,
     "economic_edge_qualified": false,
-    "precision_qualification": "Compared original double OHLC to a cache built from float32 OHLC; not an exact builder replay or proof of a cache defect."
+    "precision_qualification": "Compared original double OHLC to a cache built from float32 OHLC; not an exact builder replay or proof of a cache defect.",
+    "source_history_qualification": "Replay started at M5_ENRICHED 2010, while this cache was generated on earlier native 2009 history before slicing; discrepancies are not established cache defects."
   },
   "independent_direction_h4_trendline_replay_20261028_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -42744,7 +42746,8 @@
     "model_windows_with_mismatch": 0,
     "historical_cache_discrepancy_cause_unresolved": true,
     "economic_edge_qualified": false,
-    "precision_qualification": "Compared original double OHLC to a cache built from float32 OHLC; not an exact builder replay or proof of a cache defect."
+    "precision_qualification": "Compared original double OHLC to a cache built from float32 OHLC; not an exact builder replay or proof of a cache defect.",
+    "source_history_qualification": "Replay started at M5_ENRICHED 2010, while this cache was generated on earlier native 2009 history before slicing; discrepancies are not established cache defects."
   },
   "independent_direction_h1_trendline_replay_20261028_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -42785,27 +42788,47 @@
     "source_double_vs_builder_float32": true,
     "fit_train_windows_with_precision_difference": 3527,
     "q1_windows_with_precision_difference": 3449,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "source_history_qualification": "Replay started at M5_ENRICHED 2010, while this cache was generated on earlier native 2009 history before slicing; discrepancies are not established cache defects."
   },
   "independent_direction_h1_builder_precision_replay_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_BUILDER_PRECISION_REPLAY_PLAN_20261028_001.json",
       "sha256": "af9c10ea33d1b97fc57c578bcdf0983d28d49cbee0bf9a013bd1ec8fce4cc919"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "checkpoint_reads_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 1200,
-    "scope": "Reproduce the cache builder’s actual float32 cast of M5 OHLCV before causal H1 trendline calculations, compare those values to the H1 cache, and quantify the original-to-float32 source price differences in fixed TRAIN and development periods."
+    "scope": "Reproduce the cache builder’s actual float32 cast of M5 OHLCV before causal H1 trendline calculations, compare those values to the H1 cache, and quantify the original-to-float32 source price differences in fixed TRAIN and development periods.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "2864d65f2adef2f5d7b1844d69f90ac92ef7cd27ba5aee7a51b45e0e796740f6"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "f83ea53ff0dea30a03545ab81329b2009ad917e27cc7051fdf69aa27b16418c1"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "67b7d57c09e8f8b30e2e007ad24de83251d78b4bdbacf63b240be90973db8d57"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_BUILDER_PRECISION_REPLAY_20261028_001/TERMINAL.json",
+      "sha256": "10d7fc975dac77b84498d887b518994cce489ac75f85ad118ddda2d17041954e"
+    },
+    "precision_qualification": "Hypothetical standalone CLI float32 preprocessing, not the identified enriched-source cache creation path; the comparison also omits native 2009 prehistory.",
+    "source_double_vs_builder_float32_mismatched_cells": 706173,
+    "economic_edge_qualified": false
   }
 }
