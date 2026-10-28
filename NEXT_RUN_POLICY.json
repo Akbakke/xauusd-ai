@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Prepare exact source-bound campaign, check idle capacity and fresh boot gate, then run once. Preserve all artifacts; zero optimizer steps.",
+    "current_activity": "Prepare a separate once-only capped CPU comparison of the existing complete one-pass prefix outputs and new three-pass output, with exact parent/clock/target/mask/context joins, full five-minute AUC, proper scores and fixed prefix prior; no model, raw data, checkpoint or fitting.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "THREEPASS_FULLTRAIN_ADMITTED_NOT_LAUNCHED",
+    "status": "THREEPASS_FULLTRAIN_EXTRACTION_COMPLETE_PAIRED_SCORING_PENDING",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37145,7 +37145,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "dynamic_m5_direction_threepass_terminal_train_20261028_001",
+    "current_unit": null,
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Prepare exact source-bound campaign, check idle capacity and fresh boot gate, then run once. Preserve all artifacts; zero optimizer steps.",
+    "next_action": "Prepare a separate once-only capped CPU comparison of the existing complete one-pass prefix outputs and new three-pass output, with exact parent/clock/target/mask/context joins, full five-minute AUC, proper scores and fixed prefix prior; no model, raw data, checkpoint or fitting.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37255,6 +37255,11 @@
     "matched_exposure_paired_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_PAIRED_RESULT_20261028.json",
       "sha256": "45029be6927ee78c615556fe36cee9707523d07758cf3345c2bc6dc8aac11eb1"
+    },
+    "threepass_fulltrain_extraction_complete": true,
+    "threepass_fulltrain_extraction_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "5fa8ea86bb585d1ecdcecb08243049c417dc9f03825614610af536ac169f579a"
     }
   },
   "independent_direction_candle_synthetic_20261027": {
@@ -39605,7 +39610,7 @@
     }
   },
   "dynamic_m5_direction_threepass_terminal_train_20261028_001": {
-    "status": "ADMITTED_NOT_LAUNCHED",
+    "status": "COMPLETE_CONSUMED_FULL_TRAIN_PAIRED_SCORING_PENDING",
     "unit": "threepass_terminal_prefix",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_RECIPE_20261028_001.json",
@@ -39623,15 +39628,15 @@
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_20261028_001_RUNTIME",
     "campaign_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forwards_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forwards_authorized": false,
     "gradient_reverse_authorized": false,
     "optimizer_steps_authorized": false,
     "training_enabled": false,
@@ -39647,6 +39652,29 @@
     "broker_access_allowed": false,
     "expected_fixed_forward_count": 2976,
     "first_256_prediction_parity_required": true,
-    "fresh_physical_windows_boot_required": true
+    "fresh_physical_windows_boot_required": true,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/CAMPAIGN_PLAN.json",
+      "sha256": "52d8cc13703180a04744b651f9453035dbf3bfb2d148dbb332289369e04e4374"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_20261028_001/RESULT.json",
+      "sha256": "d14237e1733762b2d5dde76501fbc063789c47f4c40fe20b20667058f1dacfc6"
+    },
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_20261028_001_RUNTIME/receipts/invocation-0001.json",
+      "sha256": "5d2d635a3db158697feefccca8e94e620aff8c25d2896b6670c6fce44634c6b7"
+    },
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "5fa8ea86bb585d1ecdcecb08243049c417dc9f03825614610af536ac169f579a"
+    },
+    "guard_decision": "PASS",
+    "windows_task": "Disabled",
+    "actual_parent_rows": 47602,
+    "actual_forwards": 2976,
+    "actual_optimizer_steps": 0,
+    "actual_reverse_calls": 0,
+    "first_256_prediction_parity": true
   }
 }
