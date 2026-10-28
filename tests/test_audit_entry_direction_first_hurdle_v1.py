@@ -7,7 +7,7 @@ from gx1.contracts.entry_causal_m1_outcomes_v1 import (
     build_dynamic_m1_fill_surface, prepare_dynamic_m1_prefix_index,
 )
 from gx1.scripts.audit_entry_direction_first_hurdle_v1 import (
-    conditional_rank, coverage_report, endpoint_alignment, race_five, race_panel,
+    compare_reference, conditional_rank, coverage_report, endpoint_alignment, join_reference, race_five, race_panel,
 )
 
 
@@ -112,3 +112,33 @@ def test_endpoint_alignment_rejects_malformed_signs():
     race = {"outcome": np.array([1], np.int8), "outcome_observed": np.array([True])}
     with pytest.raises(RuntimeError, match="ALIGNMENT_INPUT"):
         endpoint_alignment(race, np.array([2], np.int8), np.array([True]), np.array([.5]))
+
+
+def test_reference_parent_fold_and_outcome_join():
+    parent = np.array([10, 11, 12], np.int64)
+    reference = {"parent_rows": parent, "decision_ns": np.array([100, 200, 300], np.int64),
+        "terminal_time_ns": np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]], np.int64),
+        "observed": np.ones((3, 3), np.bool_), "sign": np.zeros((3, 3), np.int8),
+        "fold_id": np.array([1, 1, 1], np.int8),
+        "holdout_end_ns_exclusive": np.full(3, 1743465600000000000, np.int64),
+        "saved_ET_FULL_probability_up": np.array([[.2, .3, .4], [.3, .4, .5], [.4, .5, .6]])}
+    prediction = {key: reference[key][1:].copy() for key in
+                  ("parent_rows", "decision_ns", "terminal_time_ns", "observed", "sign")}
+    np.testing.assert_array_equal(join_reference(prediction, reference), np.array([.4, .5]))
+    reference["fold_id"][2] = 2
+    with pytest.raises(RuntimeError, match="REFERENCE_FOLD"):
+        join_reference(prediction, reference)
+
+
+def test_reference_comparison_uses_same_selected_rows_and_paired_blocks():
+    n = 32
+    outcome = np.where(np.arange(n) % 2, 1, -1).astype(np.int8)
+    race = {"outcome": outcome, "outcome_observed": np.ones(n, np.bool_)}
+    native = np.where(outcome == 1, -1., 1.)
+    ref = np.where(outcome == 1, .9, .1)
+    days = np.arange(n, dtype=np.int64) * (7 * 86_400_000_000_000)
+    result = compare_reference(race, native, ref, days, replicates=100, minimum_blocks=8)
+    assert result["known_first_direction"] == n
+    assert result["native_auc"] == 0. and result["et252_auc"] == 1.
+    assert result["et252_minus_native_auc"] == 1.
+    assert {a["scheme"] for a in result["paired_intervals"]} == {"UTC_DAY", "UTC_WEEK_MONDAY"}

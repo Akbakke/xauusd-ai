@@ -38,6 +38,7 @@ REPLICATES = 10000
 ALPHA = .05 / 2  # Fixed two clock-block schemes for the sole primary AUC.
 STAGE = "direction_first_hurdle_oof_actual_20261028_001"
 ALIGNMENT_STAGE = "direction_first_hurdle_endpoint_alignment_actual_20261028_001"
+REFERENCE_STAGE = "direction_first_hurdle_reference_actual_20261028_001"
 PREVIOUS = {"path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_OOF_ACTUAL_20261028_001/RESULT.json",
             "sha256": "bb46f1c5321ae77cf4853dd69dd4772629ea8a5217e4753285bc1314b39fa897"}
 QUOTE = {"path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2025/part-000.parquet",
@@ -48,6 +49,10 @@ TARGET = {"path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261
           "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"}
 PREDICTION = {"path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/OOF.npz",
               "sha256": "fd7d3177f1a4d588f235156a2dbc02d670137ab91862e779606bb932e0e4ef57"}
+REFERENCE = {"path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/OUTPUT/OOF_PREDICTIONS.npz",
+             "sha256": "b42431e44ed531c4f5e225bf3480efacc3be7d698926c24038cd921b8c8e3bd1"}
+REFERENCE_MEMBERS = ("parent_rows", "decision_ns", "terminal_time_ns", "observed", "sign", "fold_id",
+                     "holdout_end_ns_exclusive", "saved_ET_FULL_probability_up")
 TARGET_MEMBERS = ("parent_rows", "bar_start_ns", "dynamic_entry_m1_row", "decision_ns", "terminal_time_ns",
                   "elapsed_wall_seconds", "terminal_source_row", "observed", "mid_move", "mid_return_bps", "sign")
 QUOTE_COLUMNS = ("bid_open", "bid_high", "bid_low", "ask_open", "ask_high", "ask_low")
@@ -154,6 +159,58 @@ def verify_previous_five(race, scores, previous):
     return {"counts_exact": True, "known_rows": int(chosen.sum()), "auc_exact": True, "auc": auc}
 
 
+def join_reference(prediction, reference):
+    """Match the pre-existing ET252 score by parent, clock, outcome and fold."""
+    require(set(reference) == set(REFERENCE_MEMBERS), "REFERENCE_MEMBERS")
+    parents, wanted = reference["parent_rows"], prediction["parent_rows"]
+    require(parents.dtype == np.int64 and parents.ndim == 1 and len(parents) > 0
+            and np.all(np.diff(parents) == 1) and wanted.dtype == np.int64 and wanted.ndim == 1,
+            "REFERENCE_PARENT_AXIS")
+    positions = np.searchsorted(parents, wanted)
+    require(np.all(positions < len(parents)) and np.array_equal(parents[positions], wanted), "REFERENCE_PARENT_JOIN")
+    for key in ("decision_ns", "terminal_time_ns", "observed", "sign"):
+        require(np.array_equal(reference[key][positions], prediction[key]), "REFERENCE_TARGET_JOIN:" + key)
+    require(np.all(reference["fold_id"][positions] == 1)
+            and np.all(reference["holdout_end_ns_exclusive"][positions] == LATER_END), "REFERENCE_FOLD")
+    scores = reference["saved_ET_FULL_probability_up"]
+    require(scores.dtype == np.float64 and scores.shape == (len(parents), 3)
+            and np.isfinite(scores).all() and np.all((scores >= 0.) & (scores <= 1.)), "REFERENCE_SCORE")
+    return np.ascontiguousarray(scores[positions, 1])
+
+
+def compare_reference(race, native_score, reference_score, decision_ns, *, replicates=REPLICATES, minimum_blocks=8):
+    """Same-row conditional AUCs and paired calendar-block intervals."""
+    y, known = race["outcome"], race["outcome_observed"]
+    require(y.ndim == 1 and known.shape == native_score.shape == reference_score.shape == decision_ns.shape == y.shape
+            and known.dtype == np.bool_ and decision_ns.dtype == np.int64
+            and np.isfinite(native_score).all() and np.isfinite(reference_score).all(), "REFERENCE_COMPARE_INPUT")
+    chosen = known & (y != 0)
+    labels = np.ascontiguousarray((y[chosen] == 1).astype(np.int8))
+    native = np.ascontiguousarray(native_score[chosen], dtype=np.float64)
+    ref = np.ascontiguousarray(reference_score[chosen], dtype=np.float64)
+    require(len(labels) > 0 and np.unique(labels).size == 2, "REFERENCE_BOTH_CLASSES")
+    native_auc = saved.raw_rank_point(labels, native, rank=rank, np=np)["auc"]
+    reference_auc = saved.raw_rank_point(labels, ref, rank=rank, np=np)["auc"]
+    days = decision_ns // DAY; intervals = []
+    for name, values, seed in (("UTC_DAY", days, 20261027), ("UTC_WEEK_MONDAY", (days + 3) // 7, 20261028)):
+        blocks, inverse = np.unique(values, return_inverse=True)
+        if len(blocks) < minimum_blocks:
+            intervals.append({"scheme": name, "blocks": len(blocks), "status": "INSUFFICIENT_BLOCKS"})
+            continue
+        weights = saved.block_weights(len(blocks), seed=seed, np=np, replicates=replicates)
+        parent_blocks = inverse[chosen].astype(np.int64)
+        native_draws = saved.raw_rank_replicates(labels, native, parent_blocks, weights, rank=rank, np=np)
+        ref_draws = saved.raw_rank_replicates(labels, ref, parent_blocks, weights, rank=rank, np=np)
+        intervals.append({"scheme": name, "blocks": len(blocks),
+            "resampling_population": "all fixed parents before first-hurdle eligibility",
+            **saved.percentile_interval(ref_draws - native_draws, np=np, alpha=ALPHA)})
+    return {"known_first_direction": int(chosen.sum()), "known_long": int((labels == 1).sum()),
+            "known_short": int((labels == 0).sum()), "native_auc": native_auc,
+            "et252_auc": reference_auc, "et252_minus_native_auc": reference_auc - native_auc,
+            "paired_intervals": intervals,
+            "scope": "conditional on realized first-hurdle event and observable order; ET252 uses different model and inputs"}
+
+
 def coverage_report(panel):
     """Keep missing paths and partial outcomes distinct for all horizons."""
     outcome, known, reason, possible = (panel[k] for k in ("outcome", "observed", "reason", "possibilities"))
@@ -233,22 +290,27 @@ def bound_plan(path):
     plan_path = Path(path); require(plan_path.is_absolute() and not plan_path.is_symlink(), "PLAN_PATH")
     plan = json.loads(plan_path.read_text()); policy_path = Path("NEXT_RUN_POLICY.json")
     mode = plan.get("mode", "full")
-    require(mode in ("full", "endpoint_alignment"), "MODE")
-    stage_name = STAGE if mode == "full" else ALIGNMENT_STAGE
+    require(mode in ("full", "endpoint_alignment", "reference_comparison"), "MODE")
+    stage_name = {"full": STAGE, "endpoint_alignment": ALIGNMENT_STAGE,
+                  "reference_comparison": REFERENCE_STAGE}[mode]
     stage = json.loads(policy_path.read_text()).get(stage_name, {}); plan_sha = sha(plan_path)
     require(stage.get("execution_authorized") is True and stage.get("claimed_invocations") == 0
             and stage.get("max_invocations") == 1 and stage.get("relaunch_allowed") is False
             and stage.get("plan") == {"path": str(plan_path), "sha256": plan_sha}, "POLICY")
-    schema = "gx1_first_hurdle_oof_audit_plan_v1" if mode == "full" else "gx1_first_hurdle_endpoint_alignment_plan_v1"
+    schema = {"full": "gx1_first_hurdle_oof_audit_plan_v1",
+              "endpoint_alignment": "gx1_first_hurdle_endpoint_alignment_plan_v1",
+              "reference_comparison": "gx1_first_hurdle_reference_plan_v1"}[mode]
     horizons = HORIZONS.tolist() if mode == "full" else [5]
     require(plan.get("schema_version") == schema
             and plan.get("quote") == QUOTE and plan.get("target") == TARGET
             and plan.get("prediction") == PREDICTION and plan.get("parents") == ROWS
             and plan.get("hurdle_bps") == HURDLE_BPS and plan.get("horizons") == horizons
             and plan.get("test_control_exit_authorized") is False, "PLAN_SCOPE")
-    if mode == "endpoint_alignment":
+    if mode != "full":
         require(plan.get("previous_result") == PREVIOUS and sha(PREVIOUS["path"]) == PREVIOUS["sha256"],
                 "PREVIOUS_RESULT_BINDING")
+    if mode == "reference_comparison":
+        require(plan.get("reference") == REFERENCE, "REFERENCE_BINDING")
     output = Path(plan["output_dir"])
     require(output.is_absolute() and output.is_dir() and not output.is_symlink(), "OUTPUT")
     claim = json.loads((output / "INVOCATION_CLAIM.json").read_text())
@@ -291,18 +353,29 @@ def run(plan_path):
             and np.array_equal(fills["entry_m1_row"].to_numpy(np.int64), expected_entry_rows)
             and np.array_equal(pd.DatetimeIndex(fills["entry_decision_at"]).asi8, prediction["decision_ns"]),
             "ENTRY_JOIN")
-    if plan.get("mode", "full") == "endpoint_alignment":
+    mode = plan.get("mode", "full")
+    if mode != "full":
         race = race_five(index, fills)
         previous = json.loads(Path(PREVIOUS["path"]).read_text())
         replay = verify_previous_five(race, prediction["logit_up"][:, 1], previous)
-        report = endpoint_alignment(race, prediction["sign"][:, 1], prediction["observed"][:, 1],
-                                    prediction["logit_up"][:, 1])
-        result = {"schema_version": "gx1_first_hurdle_endpoint_alignment_result_v1", "status": "COMPLETE",
-                  "parents": ROWS, "horizon_minutes": 5, "favorable_bps": HURDLE_BPS,
-                  "previous_five_parity": replay, "alignment": report, "model_forwards": 0,
-                  "optimizer_steps": 0, "fits": 0, "test_control_accessed": False,
+        if mode == "endpoint_alignment":
+            report = endpoint_alignment(race, prediction["sign"][:, 1], prediction["observed"][:, 1],
+                                        prediction["logit_up"][:, 1])
+            schema, report_key = "gx1_first_hurdle_endpoint_alignment_result_v1", "alignment"
+        else:
+            with verified_payload(REFERENCE) as handle:
+                with np.load(handle, allow_pickle=False) as archive:
+                    require(set(REFERENCE_MEMBERS).issubset(archive.files), "REFERENCE_ARCHIVE")
+                    reference = {key: archive[key] for key in REFERENCE_MEMBERS}
+            ref_score = join_reference(prediction, reference)
+            report = compare_reference(race, prediction["logit_up"][:, 1], ref_score, prediction["decision_ns"])
+            schema, report_key = "gx1_first_hurdle_reference_result_v1", "reference_comparison"
+        result = {"schema_version": schema, "status": "COMPLETE", "parents": ROWS,
+                  "horizon_minutes": 5, "favorable_bps": HURDLE_BPS, "previous_five_parity": replay,
+                  report_key: report, "model_forwards": 0, "optimizer_steps": 0, "fits": 0,
+                  "test_control_accessed": False,
                   "limits": ["One reused TRAIN-development fold and realized first-hurdle-selected parents.",
-                             "Same-row AUCs are descriptive and neither proves generalization or trading edge."]}
+                             "Same-row AUCs do not establish causality, generalization or trading edge."]}
     else:
         panel = race_panel(index, fills)
         result = {"schema_version": "gx1_first_hurdle_oof_result_v1", "status": "COMPLETE",
@@ -331,6 +404,8 @@ def main():
     summary = {"status": result["status"], "parents": result["parents"]}
     if "alignment" in result:
         summary["alignment"] = result["alignment"]
+    elif "reference_comparison" in result:
+        summary["reference_comparison"] = result["reference_comparison"]
     else:
         summary["primary_conditional_rank"] = result["primary_conditional_rank"]
     print(json.dumps(summary, indent=2))

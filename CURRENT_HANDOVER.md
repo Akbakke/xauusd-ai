@@ -11,9 +11,9 @@ Programrot:
 
 ## Aktuell status
 
-En avgrenset kildetilpasning er admittért for å sammenligne den lagrede ET252-
-referansen med GX1 på samme 1 042 førstetreff-foreldre. Ingen ny fit eller
-ekte payload er åpnet; referansen har andre inputs og kan ikke gi årsaksbevis.
+ET252-sammenligning på samme første-treff-foreldre er implementert; én
+syntetisk kontroll er admittért. Ingen ny fit eller ekte payload er åpnet.
+Referansen har andre inputs og kan ikke gi årsaksbevis.
 
 En naiv partial-set-loss har en bevist degenerert løsning ved 1min/10bps:
 alle 17 288 mulige utfallssett inneholder «ingen treff», så en modell som

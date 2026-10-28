@@ -40287,14 +40287,14 @@
     "test_control_exit_authorized": false
   },
   "direction_first_hurdle_reference_source_20261028": {
-    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "status": "SOURCE_FROZEN_ONE_SYNTHETIC_AUDIT_ADMITTED",
     "scope": "Extend the existing matched first-hurdle audit to compare native with the already saved ET252 ExtraTrees endpoint scorer on the exact same first-hit-direction parents. ET252 was a pre-existing direction reference, not a new fit.",
     "allowed_source_paths": [
       "gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
       "tests/test_audit_entry_direction_first_hurdle_v1.py"
     ],
-    "source_edits_authorized": true,
-    "synthetic_tests_authorized": false,
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": false,
     "model_calls_authorized": false,
     "training_authorized": false,
@@ -40311,6 +40311,35 @@
       "parity": "exact first-hurdle coverage, previous native AUC, parent, decision clock, endpoint masks/signs and fold identity",
       "limits": "Exploratory follow-up after observing native result on reused development; conditional on a future large hit, no trade, no causality or untouched confirmation.",
       "stop": "any replay, parent, clock, fold, score, source, resource or guard mismatch"
-    }
+    },
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
+      "sha256": "5857ff2ce45d648122fde75f91207ee68b79cfdcab4fe916559353800472416f"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_audit_entry_direction_first_hurdle_v1.py",
+      "sha256": "bfaa5545d3d2f98f1d4af229ac626d67d44483722f68611a5c9fe694b3f97422"
+    },
+    "synthetic_plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "b918b6040d9952739ba3a0aef9e64bcfeac0b55022cd6d55819d545e982d3863"
+    },
+    "expected_synthetic_cases": 11
+  },
+  "direction_first_hurdle_reference_synthetic_20261028_001": {
+    "status": "ADMITTED_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_FIRST_HURDLE_REFERENCE_SYNTHETIC_PLAN_20261028_001.json",
+      "sha256": "b918b6040d9952739ba3a0aef9e64bcfeac0b55022cd6d55819d545e982d3863"
+    },
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "genuine_payload_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }
