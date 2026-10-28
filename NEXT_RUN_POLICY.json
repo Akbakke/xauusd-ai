@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:58:32.681650+00:00",
+  "observed_utc": "2026-10-28T16:00:44.086697+00:00",
   "status": "DIRECTION_SLOPE_RESPONSE_COMPLETE_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "22c93f37d5e600bef11a2367ee5875e69ea50d159c3ba810f596541d9df4d20f"
+      "sha256": "fc6304106a717c979ef2cc78b888bf9077a77a984c9fdf7d1998cc94aab251c1"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -41799,7 +41799,8 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "economic_edge_qualified": false,
-    "next": "Existing H1 slope response is measured descriptively; its outcome gap remains uncertain. Continue independently checking compact feature lineage and trained interactions; any model change needs a matched bound design."
+    "next": "Existing H1 slope response is measured descriptively; its outcome gap remains uncertain. Continue independently checking compact feature lineage and trained interactions; any model change needs a matched bound design.",
+    "first_prefix_constant_gc_context_value_fields": 29
   },
   "independent_direction_decimal_sign_audit_20261028_001": {
     "status": "FAILED_ONE_SHOT_CONSUMED",
