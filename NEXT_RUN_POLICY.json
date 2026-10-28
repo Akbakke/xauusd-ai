@@ -40465,5 +40465,27 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BOUNDED_MAGNITUDE_WEIGHT_SYNTHETIC_20261028_001/OUTER.log",
       "sha256": "7165f5688d0afd7196cc91d29c4969e26f81152d09bbfb8119ba12d75fab91ed"
     }
+  },
+  "direction_bounded_magnitude_model_binding_source_20261028": {
+    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "scope": "Bind the qualified magnitude-weight objective and own-prefix scale to the existing direction research wrapper, feature view, recipe and checkpoint state while preserving identical baseline forward and trainable parameters. No train adapter, genuine payload or fit is opened.",
+    "allowed_source_paths": [
+      "gx1/contracts/entry_native_direction_research_v1.py",
+      "gx1/contracts/entry_native_direction_feature_view_v1.py",
+      "gx1/contracts/entry_native_direction_research_state_v1.py",
+      "gx1/contracts/entry_model_native_train_recipe_v1.py",
+      "tests/test_entry_native_direction_bps_v1.py"
+    ],
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "genuine_native_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false,
+    "invariants": [
+      "Old direction and signed-bps modes preserve their exact contracts and behavior.",
+      "The weighted mode has a distinct truthful loss identity, the same forward head and trainable parameters, immutable scale buffers and no extra random draws.",
+      "Own-prefix scale identity is bound to the feature view and serialized state; mutation or mixed modes fails closed."
+    ]
   }
 }
