@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:38:10.517807+00:00",
-  "status": "DECIMAL_TARGET_PROJECTION_SYNTHETIC_PASS_FEATURE_AUDIT_CONTINUES",
+  "observed_utc": "2026-10-28T15:42:58.865392+00:00",
+  "status": "DENSE_ONEPASS_UNCERTAINTY_ADMITTED_NOT_YET_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Investigate which existing important feature families provide chronological directional information and whether the trained model uses it. The separate decimal grid projection is synthetic-tested but requires a fresh bound plan and new target identity before any genuine materialization; preserve original outputs and keep TEST/trading closed.",
+  "next_action": "Run the separately admitted capped saved-prediction uncertainty evaluation. Preserve the source-decimal audit and original target identity. No model forward, training, TEST or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -41776,7 +41776,7 @@
       "60": 0.521053836263897
     },
     "paired_and_simultaneous_intervals_complete": false,
-    "target_decimal_sign_impact_measured": false,
+    "target_decimal_sign_impact_measured": true,
     "predictive_or_economic_edge_qualified": false
   },
   "independent_direction_feature_target_audit_20261028": {
@@ -41893,5 +41893,27 @@
     "training_enabled": false,
     "test_or_trading_authority": false,
     "economic_edge_qualified": false
+  },
+  "independent_direction_dense_onepass_uncertainty_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_UNCERTAINTY_PLAN_20261028_001.json",
+      "sha256": "2ea1f5d9a9b706b7900300e94d79010d747024be84e6fd77bc194d1daa945a42"
+    },
+    "execution_authorized": true,
+    "prediction_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "replicates_per_block_scheme": 10000,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_or_trading_authority": false,
+    "scope": "Fixed predeclared 60 separate logits and paired 5min comparison on the same reused fold1 development parents; day/week simultaneous and paired intervals. Saved predictions only."
   }
 }
