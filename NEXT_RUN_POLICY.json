@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T17:55:23.261331+00:00",
-  "status": "H1_NATIVE_HISTORY_REPLAY_ADMITTED_ONE_SHOT",
+  "observed_utc": "2026-10-28T17:56:53.794530+00:00",
+  "status": "H1_NATIVE_HISTORY_REPLAY_EXACT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the native 2009 H1 source and actual model-window replay. No model, optimizer, TEST, broker or trading.",
+  "next_action": "Preserve the full-native H1 proof and assess D1/H4/M15/M5 using the actual 2009 provenance; investigate direction bias. Different rebuild entrypoints have different precision/history and must not be conflated. No model, training, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42789,7 +42789,7 @@
     "fit_train_windows_with_precision_difference": 3527,
     "q1_windows_with_precision_difference": 3449,
     "economic_edge_qualified": false,
-    "source_history_qualification": "Replay started at M5_ENRICHED 2010, while this cache was generated on earlier native 2009 history before slicing; discrepancies are not established cache defects."
+    "source_history_qualification": "Prior H1 differences were caused by omitting 2009 native prehistory: the full-native float64 replay matches all 31 H1 cache fields on 90,075 rows exactly."
   },
   "independent_direction_h1_builder_precision_replay_20261028_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
@@ -42832,24 +42832,44 @@
     "economic_edge_qualified": false
   },
   "independent_direction_h1_native_history_replay_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_NATIVE_HISTORY_REPLAY_PLAN_20261028_001.json",
       "sha256": "48d7db83212b7810040bb3d559dbeb4d106f1e2e43ac29cef56a1349d45a4536"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "checkpoint_reads_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
     "wall_seconds": 1200,
-    "scope": "Recompute 31 H1 trendline coordinates from the exact hash-bound 2009–2025 native M5 parts used by the enriched-source builder, with complete causal prehistory and original precision, then compare model cache values and actual H1 windows."
+    "scope": "Recompute 31 H1 trendline coordinates from the exact hash-bound 2009–2025 native M5 parts used by the enriched-source builder, with complete causal prehistory and original precision, then compare model cache values and actual H1 windows.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "dff5d2fad3b76de4b9bb666f808b8adbc604fbef06252b13ae7ea026c0d0b891"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "94b524013ab9f3cf98e5ad679954b036ba15bd12286e8f87d0c08c7dcfbf4dae"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "3fc603b35fa90ede7dc883bebe8ccde98dbec4d2b471c51d3ea1e7286a4b0f5e"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028_001/TERMINAL.json",
+      "sha256": "d1194ba915031c7e55ee6938b2f92d9340aa4517d157bd83a276898b953aae50"
+    },
+    "native_overlap_rows": 1070080,
+    "builder_history_cache_mismatched_cells": 0,
+    "model_windows_with_mismatch": 0,
+    "economic_edge_qualified": false
   }
 }
