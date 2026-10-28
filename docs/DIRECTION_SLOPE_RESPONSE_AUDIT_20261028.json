@@ -1,0 +1,32 @@
+{
+  "schema_version": "gx1_direction_slope_response_design_v1",
+  "status": "EXACT_ONE_SHOT_ADMITTED",
+  "purpose": "Describe whether the fixed 60-head model changes its 5-minute UP probability between positive and negative H1 EMA20 slope and compare with observed UP fractions on the same rows.",
+  "group_source": "Previously noticed H1 slope sign tag from the own closed-H1 input; positive, negative and zero remain separate. Source-bound tags must match between candidate and baseline.",
+  "population": "Fixed fold1 later 17288 parents, strict mature and observed nonzero 5-minute outcomes; original target identity.",
+  "uncertainty": "10000 paired calendar-block draws per UTC-day and UTC-week, using all parent dates before masking. For observed gap, model probability gap and model-minus-observed gap, use separate .05/6 intervals. No threshold fitting.",
+  "limitations": "The H1 groups were noticed on the same reused fold and are exploratory, not a clean confirmation; day/week exchangeability unproved. Group differences are not individual-feature causal effects, proof of disconnection, economic edge or model interventions.",
+  "inputs": {
+    "candidate_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451"
+    },
+    "baseline_report": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/OOF.json",
+      "sha256": "76cf81ac015abe30e9c1d27d3e837ee477a83703d6775cc518c6100662ca395f"
+    },
+    "baseline_rank_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_ORDER_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "f62b5afad12c784fe681f7ee2bdd5f07fba9d721a454860627e16b85d12db3d3"
+    },
+    "candidate_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    },
+    "baseline_predictions": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/OOF.npz",
+      "sha256": "fd7d3177f1a4d588f235156a2dbc02d670137ab91862e779606bb932e0e4ef57"
+    }
+  },
+  "test_data_used": false
+}

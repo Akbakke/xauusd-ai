@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:54:03.839798+00:00",
-  "status": "DIRECTION_HISTORY_CLOCK_COMPLETE_FEATURE_AUDIT_CONTINUES",
+  "observed_utc": "2026-10-28T15:57:45.524025+00:00",
+  "status": "DIRECTION_SLOPE_RESPONSE_ADMITTED_NOT_YET_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve measured M5 history gaps and original predictions. Investigate feature values, masks and learned composition under individually bound chronology-preserving diagnostics. No TEST, broker or trading.",
+  "next_action": "Run one capped saved-prediction audit of 5min model probabilities versus the existing closed-H1 slope groups, then close its gate. No model forward, training, TEST or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -41993,5 +41993,27 @@
     "later_with_gap": 6008,
     "causal_effect_established": false,
     "economic_edge_qualified": false
+  },
+  "independent_direction_slope_response_audit_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_SLOPE_RESPONSE_PLAN_20261028_001.json",
+      "sha256": "121dd5500cfd6cd40f12e377f3c5659a2626f9ada49ba668382488b5b54db9dd"
+    },
+    "execution_authorized": true,
+    "prediction_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "replicates_per_block_scheme": 10000,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_or_trading_authority": false,
+    "scope": "Fixed 5min prediction response by previously noticed H1 slope sign; descriptive paired day/week block contrasts on reused fold1. Saved predictions only."
   }
 }
