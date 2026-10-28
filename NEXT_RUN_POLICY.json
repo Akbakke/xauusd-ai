@@ -40401,5 +40401,23 @@
     "native_auc": 0.42676767676767674,
     "reference_auc": 0.4766062383364436,
     "direction_improvement_qualified": false
+  },
+  "direction_bounded_magnitude_weight_source_20261028": {
+    "status": "SOURCE_EDIT_ADMITTED_SYNTHETIC_AND_GENUINE_EXECUTION_CLOSED",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MAGNITUDE_WEIGHTED_SIGN_DESIGN_20261028.json",
+      "sha256": "b216e4ed4d58855de59edd08b1b47e47afef7db66e3469178d5fd05344d88a63"
+    },
+    "scope": "Implement only the fixed bounded own-prefix magnitude-weight contract and its loss in the existing signed-bps research owner. No model route, source data, model calls or fit yet.",
+    "allowed_source_paths": [
+      "gx1/contracts/entry_native_direction_bps_v1.py",
+      "tests/test_entry_native_direction_bps_v1.py"
+    ],
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "model_calls_authorized": false,
+    "training_authorized": false,
+    "test_control_exit_authorized": false
   }
 }

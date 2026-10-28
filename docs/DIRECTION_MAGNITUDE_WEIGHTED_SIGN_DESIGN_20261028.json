@@ -1,0 +1,77 @@
+{
+  "schema_version": "gx1_direction_bounded_magnitude_weight_design_v1",
+  "status": "FIXED_SOURCE_DESIGN_NOT_TRAINING_AUTHORITY",
+  "purpose": "Test one loss factor that gives larger signed endpoint movements more influence while retaining the existing direction head, inputs, architecture, masks and 1/5/15-minute baseline.",
+  "motivation": {
+    "sign_only": "The existing BCE gives +0.1 and +50 bps the same positive class.",
+    "observed_first_hit": "The original five-minute score AUC is 0.426768 on 1042 observed first-hurdle sides; 1017 agree with terminal sign. This is conditional reused development, not causal proof.",
+    "counterevidence": "An auxiliary signed-bps mean MSE and three passes did not demonstrate improved later direction. Weighted sign is a distinct hypothesis, not a claimed fix."
+  },
+  "formula": {
+    "eligible": "observed AND sign != 0 AND terminal_time strictly before the own TRAIN cutoff",
+    "r": "absolute original signed midpoint return in bps",
+    "s_h": "own TRAIN-prefix RMS bps per horizon from the existing checked float32-target scale",
+    "raw_weight": "r / (s_h + r)",
+    "normalizer": "mean of raw_weight over that horizon own eligible TRAIN-prefix cells; fail closed if zero or nonfinite",
+    "weight": "raw_weight / normalizer",
+    "loss": "sum of weight times original BCE-with-logits over eligible cells, divided by eligible-cell count",
+    "properties": [
+      "Nonnegative and bounded without a fixed bps trade threshold.",
+      "Each horizon has mean weight 1 on its own eligible TRAIN prefix; batch effects and gradient geometry may still differ.",
+      "Forward inputs, original sign label, head output and chronological split stay unchanged.",
+      "This targets a magnitude-tilted sign probability, not the ordinary unweighted up probability, an action or exact expected cash return."
+    ]
+  },
+  "planned_comparison": {
+    "status": "NOT_ADMITTED",
+    "fold": 1,
+    "train_parents": 47602,
+    "later_parents": 17288,
+    "batch_size": 16,
+    "passes": 1,
+    "seed": 20260911,
+    "only_intended_factor": "bounded TRAIN-prefix-normalized magnitude weighting of direction BCE; same fresh initialization, head, order, feature view, optimizer and cutoff",
+    "primary_horizon_minutes": 5,
+    "primary_metrics": [
+      "unweighted sign AUC",
+      "unweighted sign logloss and Brier",
+      "predeclared magnitude-weighted sign logloss"
+    ],
+    "secondary": [
+      "1/15 minute direction",
+      "fixed previously observed 10bps first-hurdle cohort as exploratory only",
+      "TRAIN versus later fit",
+      "own prior and unchanged one-pass baseline"
+    ],
+    "inference": "paired fixed UTC-day and UTC-week block intervals, observation identities verified before masks; no threshold, horizon, checkpoint or seed search",
+    "success_standard": "An improved research candidate needs a predeclared positive paired later-direction ranking difference in both clock-block intervals and no hidden regression in unweighted proper scores; no economic or production claim. Failure to meet this gate is inconclusive about other methods.",
+    "stops": [
+      "Stop on target, cutoff, source, initialization, gradient, resume, mask, resource, time or parity mismatch.",
+      "Do not train until separately bound synthetic and genuine private initialization, gradient, and resume qualification pass.",
+      "Do not relaunch consumed plans; keep TEST, CONTROL and trading closed."
+    ]
+  },
+  "future_scope": "The design is a controlled 1/5/15 diagnostic, not implementation of the requested all-1..60-minute head or first-hit/FLAT trading objective.",
+  "evidence": [
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_RESULT_20261028.json",
+      "sha256": "9ea60c150f74fb156609066ae074bab3bd0e58ed4e28c453030f601978d06a6e"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FIRST_HURDLE_OOF_RESULT_20261028.json",
+      "sha256": "84dbe60087ab97b33fe1a55c1f276e72d3355dd33c23f63f3b8d6f0d82dcb00a"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_BPS_SAVED_COMPARISON_RESULT_20261027.json",
+      "sha256": "17f867ab7f28234819cb28446ab8a2174a7c8d32ec8e0782cd7f506d317a5300"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
+      "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
+    }
+  ],
+  "new_data_reads": 0,
+  "model_calls": 0,
+  "optimizer_steps": 0,
+  "test_control_exit_authorized": false
+}
