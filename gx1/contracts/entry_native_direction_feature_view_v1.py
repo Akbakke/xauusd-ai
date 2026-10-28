@@ -36,6 +36,7 @@ MAX_NS = 2**63 - 1
 SOURCE_REF_KEYS = frozenset({'feature_view_design', 'input_qualification', 'raw_input_provider_plan',
     'raw_gc_layout', 'raw_gc_transition', 'direction_component_source', 'native_constructor_source',
     'mtf_window_source', 'gc_gather_source', 'owner_profile_source'})
+DENSE_SOURCE_REF_KEYS = frozenset({'dense_direction_component_source', 'dense_profile_source', 'dense_native_constructor_source'})
 VIEW_KEYS = frozenset({'schema_version', 'prefix_normalization', 'prefix', 'full_axes', 'base_lineage',
     'prefix_source_bindings_sha256', 'physical_widths', 'physical_field_names_sha256', 'sequence_bars',
     'window_rows', 'canonical_routing_sha256', 'constructor_scalar_config', 'constructor_metadata',
@@ -145,7 +146,7 @@ def _require_view(view):
         and view['research_objective'] == objective
         and view['evidence_scope'] == EVIDENCE_SCOPE
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
-    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | ({'dense_direction_component_source'} if dense else set()), 'SOURCE_REF_KEYS')
+    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()), 'SOURCE_REF_KEYS')
     for item in view['source_bindings'].values(): _ref(item)
     if 'bps_scale' in view:
         from gx1.contracts.entry_native_direction_bps_v1 import require_direction_bps_scale
@@ -191,7 +192,7 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     for tf, item in gc_history['normalization']['provenance']['row_union'].items():
         _require(all(item[key] == proof['gc'][tf][key] for key in ('rows', 'native_row_indices_sha256', 'available_ns_sha256')), 'GC_PREFIX_ROW_UNION:' + tf)
     _require(type(dense_minutes) is bool and not (dense_minutes and (bps_scale is not None or magnitude_weight_contract is not None)), 'OBJECTIVE_MODE')
-    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | ({'dense_direction_component_source'} if dense_minutes else set()), 'SOURCE_REF_KEYS')
+    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()), 'SOURCE_REF_KEYS')
     source_bindings = {key: _ref(value) for key, value in source_bindings.items()}
     provenance = proof['source_bindings']
     _require(source_bindings['raw_input_provider_plan'] == provenance['ancestral264_plan']

@@ -227,7 +227,7 @@ def test_gather_api_rejects_target_or_future_endpoint_arguments(bound_case):
 def test_dense_view_binds_own_source_and_constructs_sixty_head_model(bound_case, monkeypatch):
     from gx1.contracts import entry_native_direction_dense_v1 as dense
     arguments = deepcopy(bound_case['arguments'])
-    arguments['source_bindings']['dense_direction_component_source'] = _ref('dense_direction.py')
+    arguments['source_bindings'].update({key: _ref(key + '.py') for key in owner.DENSE_SOURCE_REF_KEYS})
     view = owner.bind_native_direction_feature_view(**arguments, dense_minutes=True)
     assert view['dense_minute_supervision'] is True
     assert view['research_objective'] == dense.dense_direction_research_contract()
@@ -262,6 +262,6 @@ def test_dense_profile_restores_geometry_without_removing_compact_or_gc_fields(b
     assert groups.require_compact_entry_execution_profile_reference(ref, gc_mtf_history=history) == ref
     contract = architecture.entry_exit_production_architecture_contract(entry_execution_profile=ref, gc_mtf_history=history)
     assert contract['gc_mtf_history']['mtf_specialists'] == list(groups.MODEL_NATIVE_TRAINING_SPECIALISTS)
-    arguments = deepcopy(bound_case['arguments']); arguments['source_bindings']['dense_direction_component_source'] = _ref('dense_direction.py')
+    arguments = deepcopy(bound_case['arguments']); arguments['source_bindings'].update({key: _ref(key + '.py') for key in owner.DENSE_SOURCE_REF_KEYS})
     view = owner.bind_native_direction_feature_view(**arguments, dense_minutes=True)
     assert view['entry_execution_profile'] == ref

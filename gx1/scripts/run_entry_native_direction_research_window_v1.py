@@ -96,11 +96,14 @@ def _freeze(recipe, binding, context):
     _require(_hash_file(binding['policy']['path'])==binding['policy'],'POLICY_FREEZE')
     for ref in recipe['source_owners'].values():_require(_hash_file(ref['path'])==ref,'CURRENT_SOURCE_OWNER')
     for path,item in context['ancestor_plan']['payloads'].items():_require(_stat(path)==item['stat'],'PAYLOAD_STAT:'+path)
+    if 'dense_target' in context:
+        ref=context['dense_target']
+        _require(_stat(ref['path'])==context['dense_target_stat'] and _hash_file(ref['path'])==ref,'DENSE_TARGET_FREEZE')
     for path,item in context['info']['metadata'].items():
         _require(_stat(path)==item['stat'] and _hash_file(path)==item['ref'],'METADATA_FREEZE:'+path)
 
 
-def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None):
+def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None, dense_target=None):
     plan=context['ancestor_plan'];info=context['info']
     _require(isinstance(extra_read_paths, tuple), 'EXTRA_READ_PATHS')
     if extra_read_paths:
@@ -111,6 +114,10 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
         from gx1.contracts.entry_native_direction_research_campaign_v1 import WEIGHT_INITIAL_PREDICTIONS
         _require(original_initial_prediction == WEIGHT_INITIAL_PREDICTIONS['path'], 'INITIAL_PREDICTION_PATH')
         extra_read_paths += (original_initial_prediction,)
+    if dense_target is not None:
+        _require(isinstance(dense_target,dict) and set(dense_target)=={'path','sha256'}
+            and dense_target==context.get('dense_target') and dense_target['path'].endswith('.npz'), 'DENSE_TARGET_BINDING')
+        extra_read_paths += (dense_target['path'],)
     allowed={p for p,v in plan['payloads'].items() if v['verification'] not in ('inherited_stat_only_no_open','reused_original051_stat_only_no_open')}|set(info['metadata'])|set(extra_read_paths)
     directories={plan['native_cache_dir'],str(Path(plan['gc_surfaces']['path']).parent)}
     relative={Path(p).name:p for p in allowed if p.endswith('.npy')};denied=[]
@@ -262,6 +269,9 @@ def _gradient_evidence(model, torch):
             keys=[key for key in modules if key.startswith(tf+'__')];_require(len(keys)==5,'GC_FAMILY_COUNT')
             groups[label+'_'+tf]=[p for key in keys for p in modules[key].parameters()]
     if getattr(model,'signed_bps',False):groups['bps_mean_head']=list(model.bps_mean_head.parameters())
+    from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch
+    if type(model) is DenseNativeEntryDirectionResearch:
+        groups['dense_aux_head']=list(model.dense_aux_head.parameters())
     claimed={id(p) for values in groups.values() for p in values}
     inactive=[p for name,p in model.named_parameters() if not p.requires_grad]
     groups['base_backbone']=[p for p in model.parameters() if p.requires_grad and id(p) not in claimed]
@@ -273,7 +283,18 @@ def _gradient_evidence(model, torch):
     _require(model.direction_head.weight.grad is not None and model.direction_head.bias.grad is not None,'DIRECT_HEAD_GRADIENTS')
     evidence['direction_head_weight_rows']=[int(torch.count_nonzero(row)) for row in model.direction_head.weight.grad]
     evidence['direction_head_bias_rows']=[int(value!=0) for value in model.direction_head.bias.grad]
-    _require(all(weight or bias for weight,bias in zip(evidence['direction_head_weight_rows'],evidence['direction_head_bias_rows'])),'ALL_THREE_SUPERVISED_HEAD_ROWS');return evidence
+    _require(all(weight or bias for weight,bias in zip(evidence['direction_head_weight_rows'],evidence['direction_head_bias_rows'])),'ALL_THREE_SUPERVISED_HEAD_ROWS')
+    if type(model) is DenseNativeEntryDirectionResearch:
+        aux=model.dense_aux_head
+        _require(aux.weight.grad is not None and aux.bias.grad is not None,'DENSE_AUX_GRADIENTS')
+        evidence['dense_aux_head_weight_rows']=[int(torch.count_nonzero(row)) for row in aux.weight.grad]
+        evidence['dense_aux_head_bias_rows']=[int(value!=0) for value in aux.bias.grad]
+        _require(all(w or b for w,b in zip(evidence['dense_aux_head_weight_rows'],evidence['dense_aux_head_bias_rows'])),
+            'ALL_FIFTY_SEVEN_SUPERVISED_HEAD_ROWS')
+        for name,layer in (('chart_local',model.backbone.specialist_proj['chart_geometry_encoder']),
+                ('chart_mtf',model.backbone.mtf_family_proj['chart_geometry_encoder'])):
+            evidence[name+'_weight_nonzero']=int(torch.count_nonzero(layer.weight.grad)) if layer.weight.grad is not None else 0
+    return evidence
 
 
 def _step(model, optimizer, features, target, *, cutoff, counters, torch):
@@ -286,7 +307,10 @@ def _step(model, optimizer, features, target, *, cutoff, counters, torch):
         _require(not torch.backends.mha.get_fastpath_enabled() and not hybrid._BATCH_EQUAL_LENGTH_MTF_EVAL.get(),'CANONICAL_FP32_MHA')
         out=trainer._model_forward_fp32(model,**features)
     counters['forward_returns']+=1
-    loss=native_direction_binary_loss(out['logit_up'],**target,cutoff_ns=cutoff)
+    from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch, dense_direction_binary_loss
+    loss=(dense_direction_binary_loss(out['logit_up'],**target,cutoff_ns=cutoff)
+        if type(model) is DenseNativeEntryDirectionResearch else native_direction_binary_loss(out['logit_up'],**target,cutoff_ns=cutoff))
+    _require(loss['research_objective_sha256']==model.research_objective['contract_sha256'], 'LOSS_OBJECTIVE_IDENTITY')
     _require(loss['update_allowed'] and all(row['eligible_cells']>0 for row in loss['per_horizon_counts']),'ALL_HORIZON_LOSS_NO_SEARCH')
     counters['backwards']+=1;_require(counters['backwards']<=4,'BACKWARD_BUDGET');loss['loss'].backward();counters['backward_returns']+=1
     gradients=_gradient_evidence(model,torch)
@@ -326,6 +350,9 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     if launch['run_scope'] in (authority.ORDER_PRIVATE_SCOPE, authority.ORDER_SUPPORTED_SCOPE):
         from gx1.scripts.run_entry_native_direction_order_qualification_v1 import run_order_qualification
         return run_order_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
+    if launch['run_scope']==authority.DENSE_PRIVATE_SCOPE:
+        from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import run_dense_qualification
+        return run_dense_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     sys.dont_write_bytecode=True
     import numpy as np
     import torch

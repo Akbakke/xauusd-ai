@@ -291,3 +291,33 @@ def test_supported_private_scope_is_distinct_and_requires_exact_bound_design(fix
     value['qualification_design']=write(f['runtime']/'OTHER_SUPPORTED_DESIGN.json',{'synthetic':True});reseal(value,'recipe_sha256')
     ref=write(f['runtime']/'BAD_SUPPORTED_ORDER.json',value)
     with pytest.raises(RuntimeError):owner.require_research_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
+def test_dense_private_recipe_requires_exact_scope_and_keeps_target_unopened(fixture,monkeypatch):
+    f=fixture;repo=f['repo'];runtime=f['runtime'];dummy=f['dummy']
+    target={'path':str(runtime/'not-opened.npz'),'sha256':'f'*64}
+    proof=write(repo/'docs/DIRECTION_DENSE_SOURCE_TRANSITION_20261028.json',{'synthetic':True})
+    monkeypatch.setattr(owner,'DENSE_INPUT_MANIFEST',dummy)
+    monkeypatch.setattr(owner,'DENSE_TARGET_RESULT',dummy)
+    monkeypatch.setattr(owner,'DENSE_TARGET',target)
+    monkeypatch.setattr(owner,'BPS_GC_PARITY',dummy)
+    monkeypatch.setattr(owner,'ORDER_SUPPORTED_DESIGN',dummy)
+    monkeypatch.setattr(owner,'DENSE_EXTRA_SOURCE_PATHS',())
+    item=copy.deepcopy(f['recipe']);item['run_scope']=owner.DENSE_PRIVATE_SCOPE
+    item.update(fold=owner.BPS_FOLD,gc_layout_metadata_parity=dummy,qualification_design=dummy,
+        dense_source_transition_proof=proof,dense_target_result=dummy,dense_target=target,max_forwards=21)
+    numerical=item['numerical_recipe'];numerical['batch_size']=16;numerical['dense_minute_supervision']=True
+    numerical.pop('contract_sha256');numerical['contract_sha256']=hashlib.sha256(json.dumps(numerical,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    reseal(item,'recipe_sha256');ref=write(runtime/'DENSE_RECIPE.json',item)
+    result=owner.require_research_launch_recipe(ref,source_repo=repo,source_commit='a'*40)
+    assert result['run_scope']==owner.DENSE_PRIVATE_SCOPE and not Path(target['path']).exists()
+    for key,value in (('dense_target',{**target,'sha256':'0'*64}),('max_forwards',22),
+                      ('full_epoch_training_allowed',True),('test_data_used',True)):
+        wrong=copy.deepcopy(item);wrong[key]=value;reseal(wrong,'recipe_sha256')
+        with pytest.raises(RuntimeError):
+            owner.require_research_launch_recipe(write(runtime/'BAD_RECIPE.json',wrong),source_repo=repo,source_commit='a'*40)
+    wrong=copy.deepcopy(item);wrong['numerical_recipe']['dense_minute_supervision']=False
+    num=wrong['numerical_recipe'];num.pop('contract_sha256');num['contract_sha256']=hashlib.sha256(json.dumps(num,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    reseal(wrong,'recipe_sha256')
+    with pytest.raises(RuntimeError):
+        owner.require_research_launch_recipe(write(runtime/'BAD_RECIPE.json',wrong),source_repo=repo,source_commit='a'*40)

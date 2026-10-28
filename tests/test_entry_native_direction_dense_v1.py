@@ -262,3 +262,40 @@ def test_dense_data_joins_real_shape_semantics_and_rejects_drift():
         else: wrong[key].flat[0] += 1
         with pytest.raises(RuntimeError):
             bind.bind_dense_targets(axes=axes, legacy=saved, dense=wrong)
+
+
+def test_private_gradient_gate_requires_every_separate_minute(monkeypatch):
+    from torch import nn
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    model, *_ = _state_case(monkeypatch)
+    native = model.backbone
+    native.gc_mtf_family_proj = nn.ModuleDict({tf + '__f' + str(i):nn.Linear(1,1) for tf in ('m5','m15','h1','h4','d1') for i in range(5)})
+    native.gc_mtf_feature_context_gate = nn.ModuleDict({tf + '__f' + str(i):nn.Linear(1,1) for tf in ('m5','m15','h1','h4','d1') for i in range(5)})
+    native.specialist_proj = nn.ModuleDict({'chart_geometry_encoder':nn.Linear(1,1)})
+    native.mtf_family_proj = nn.ModuleDict({'chart_geometry_encoder':nn.Linear(1,1)})
+    for parameter in model.parameters():
+        if parameter.requires_grad: parameter.grad = torch.ones_like(parameter)
+    native.specialist_proj['chart_geometry_encoder'].weight.grad.zero_()  # valid first-step neutral residual
+    evidence = common._gradient_evidence(model,torch)
+    assert len(evidence['dense_aux_head_weight_rows']) == 57 and evidence['chart_local_weight_nonzero'] == 0
+    assert evidence['chart_mtf_weight_nonzero'] == 1
+    model.dense_aux_head.weight.grad[0].zero_(); model.dense_aux_head.bias.grad[0].zero_()
+    with pytest.raises(RuntimeError,match='ALL_FIFTY_SEVEN_SUPERVISED_HEAD_ROWS'):
+        common._gradient_evidence(model,torch)
+
+
+def test_private_step_uses_sixty_minute_loss(monkeypatch):
+    from contextlib import nullcontext
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from tests import test_entry_native_direction_research_state_v1 as existing
+    model, optimizer, *_ = _state_case(monkeypatch)
+    monkeypatch.setattr(trainer,'_training_mha_fastpath_context',lambda *_:nullcontext())
+    monkeypatch.setattr(trainer,'_model_forward_fp32',lambda model,**features:model(**features))
+    monkeypatch.setattr(torch.backends.mha,'get_fastpath_enabled',lambda:False)
+    monkeypatch.setattr(common,'_gradient_evidence',lambda *_:{'synthetic':True})
+    case = _case(); case.pop('logit_up'); cutoff = case.pop('cutoff_ns')
+    counters = {key:0 for key in ('forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates')}
+    evidence = common._step(model,optimizer,existing._features(0),case,cutoff=cutoff,counters=counters,torch=torch)
+    assert evidence['counts']['eligible_cells'] == 120 and len(evidence['per_horizon_counts']) == 60
+    assert counters['optimizer_updates'] == 1

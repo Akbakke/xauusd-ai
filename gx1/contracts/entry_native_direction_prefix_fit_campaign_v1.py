@@ -33,6 +33,8 @@ BATCH_SIZE = 16
 BPS_SCOPE = 'single_prefix_one_pass_direction_signed_bps_fit'
 CONTINUATION_SCOPE = 'single_prefix_three_pass_direction_continuation'
 ORDER_SCOPE = 'single_prefix_one_pass_direction_chronological_order'
+# Defined for source preparation only; not admitted by the launch validator.
+DENSE_SCOPE = 'single_prefix_dense_minute_direction_fit'
 ORDER_ALGORITHM = 'strictly_increasing_prefix_parent_rows'
 _CONTINUATION_ROOT = '/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276'
 CONTINUATION_ORIGIN = {

@@ -336,3 +336,106 @@ def test_chronological_initial_predictions_must_match_bound_original(tmp_path):
     np.savez(path,**arrays)
     with pytest.raises(RuntimeError,match='ORDER_INITIAL_PREDICTION_SHA'):
         runner._require_original_initial_match({'arrays':arrays},{**ref,'sha256':'0'*64},common=common,np=np)
+
+
+def test_dense_axes_validate_all_sixty_maturities_and_exact_clocks():
+    axes, _old, fold = _axes_targets()
+    n = len(axes['parent_rows']); decision = axes['decision_ns']
+    target = {'terminal_time_ns': decision[:, None] + np.arange(1, 61, dtype=np.int64)[None, :] * runner.MINUTE_NS,
+        'observed': np.ones((n, 60), np.bool_), 'sign': np.ones((n, 60), np.int8)}
+    runner._qualify_axes_targets(axes, target, fold, np, dense_minutes=True)
+    assert target['terminal_time_ns'][19, 59] > fold['train_cutoff_ns']
+    target['terminal_time_ns'][0, 59] += 1
+    with pytest.raises(RuntimeError, match='TARGET_CLOCK_AND_DOMAIN'):
+        runner._qualify_axes_targets(axes, target, fold, np, dense_minutes=True)
+
+
+def test_dense_target_guard_allows_only_bound_archive_read(monkeypatch):
+    import os
+    hooks = []; monkeypatch.setattr(common.sys, 'addaudithook', hooks.append)
+    target = {'path':'/home/andre2/GX1_RUNS/synthetic/DENSE_TARGETS.npz','sha256':'a'*64}
+    context = {'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache',
+        'gc_surfaces':{'path':'/synthetic/gc/surface'}},
+        'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/audit'}},'dense_target':target}
+    denied = common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',dense_target=target)
+    hooks[0]('open',(target['path'],'rb',0))
+    with pytest.raises(RuntimeError,match='ORIGINAL_WRITE'):
+        hooks[0]('open',(target['path'],'wb',os.O_WRONLY))
+    with pytest.raises(RuntimeError,match='UNBOUND_OPEN'):
+        hooks[0]('open',('/home/andre2/GX1_RUNS/synthetic/unbound.npz','rb',0))
+    with pytest.raises(RuntimeError,match='DENSE_TARGET_BINDING'):
+        common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',dense_target={**target,'sha256':'b'*64})
+    assert denied == [target['path'],'/home/andre2/GX1_RUNS/synthetic/unbound.npz']
+
+
+def test_dense_prepare_joins_only_bound_synthetic_targets_and_current_sources(monkeypatch,tmp_path):
+    from gx1.contracts import entry_native_direction_dense_data_v1 as bind
+    from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
+    from gx1.contracts import entry_native_direction_context_report_v1 as report_owner
+    from gx1.scripts import materialize_entry_direction_dense_v1 as materialize
+    from tests.test_materialize_entry_direction_dense_v1 import fixture as synthetic
+    source, legacy, cutoff, _ = synthetic()
+    dense = materialize.build_dense_targets(source, legacy, cutoff_ns=cutoff)
+    old_path = tmp_path/'old.npz'; dense_path = tmp_path/'dense.npz'
+    legacy['elapsed_wall_seconds'] = np.tile(np.array([60,300,900],np.int64),(2,1))
+    np.savez(old_path, **{key:legacy[key] for key in runner.PRICE_MEMBERS})
+    np.savez(dense_path, **dense)
+    ref = common._hash_file(str(dense_path))
+    arrays = {key:legacy[key].copy() for key in ('parent_rows','bar_start_ns','decision_ns')}
+    prepared = {'arrays':arrays,'gc':{'layout':{},'transition':{}},
+        'entry_sequence_source':{'times_ns':np.arange(3,dtype=np.int64),'sample_positions':np.arange(2,dtype=np.int64)}}
+    physical = SimpleNamespace(prepare_inputs=lambda *_:prepared, release_pages=lambda *_:None)
+    source_refs = {key:{'path':'/synthetic/'+key,'sha256':'a'*64} for key in view_owner.SOURCE_REF_KEYS}
+    manifest = {'targets':{'path':str(old_path)}, 'view_source_bindings':source_refs,
+        'prefix_normalization':{'output':{'path':'/synthetic/prefix','sha256':'a'*64}},
+        'constructor_metadata':{'path':'/synthetic/constructor','sha256':'a'*64}}
+    context = {'physical':physical,'ancestor':object(),'ancestor_plan':{},'info':{'metadata':{}},
+        'manifest':manifest,'fitted':{'base_normalization':{'surfaces':{'mtf_m5':{'field_names':[]}}}},
+        'constructor':{},'dense_target':ref}
+    owners = {p:{'path':'/synthetic/'+p,'sha256':'b'*64} for p in (
+        'gx1/contracts/entry_native_direction_dense_v1.py','gx1/features/entry_specialist_feature_groups_v1.py',
+        'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py')}
+    launch = {'run_scope':authority.DENSE_SCOPE,'dense_target':ref,'fold':{'prefix_rows':2},'source_owners':owners}
+    monkeypatch.setattr(common,'_read',lambda *_:{})
+    calls = []; monkeypatch.setattr(runner,'_qualify_axes_targets',lambda *a,**k:calls.append(k))
+    monkeypatch.setattr(runner,'_presentation_order',lambda parents,*a,**k:parents.copy())
+    monkeypatch.setattr(view_owner,'bind_native_direction_feature_view',lambda **kwargs:kwargs)
+    monkeypatch.setattr(report_owner,'native_direction_context_map',lambda **kwargs:{})
+    got, target, view, _map, order = runner._prepare(context,launch,np,dense_minutes=True)
+    assert got is prepared and target['sign'].shape == (2,60) and all(not v.flags.writeable for v in target.values())
+    assert calls[0]['dense_minutes'] is True and view['dense_minutes'] is True
+    assert view['source_bindings']['dense_profile_source'] == owners['gx1/features/entry_specialist_feature_groups_v1.py']
+    assert np.array_equal(order,arrays['parent_rows'])
+    with pytest.raises(RuntimeError,match='DENSE_EXACT_SCOPE'):
+        runner._prepare(context,{**launch,'run_scope':'not_admitted'},np,dense_minutes=True)
+
+
+def test_dense_launch_metadata_requires_qualified_anchors_and_exact_target_binding(monkeypatch):
+    proof_ref={'path':'/synthetic/transition.json','sha256':'1'*64}
+    result_ref={'path':'/synthetic/result.json','sha256':'2'*64}
+    target_ref={'path':'/synthetic/targets.npz','sha256':'3'*64}
+    gc_ref={'path':'/synthetic/gc.json','sha256':'4'*64}
+    transitions={'synthetic':'source-transition'}
+    proof={'schema_version':'gx1_dense_source_transition_proof_v1',
+        'status':'SOURCE_ONLY_VERIFIED_NO_DATA_OR_TRAINING','test_data_used':False,
+        'genuine_training_authorized':False,'source_transitions':transitions}
+    report={'status':'COMPLETE_REAL_TARGETS_ONLY','test_data_used':False,'parents':118249,
+        'horizons_minutes':list(range(1,61)), 'legacy_anchor_byte_parity':{'1':True,'5':True,'15':True},
+        'target':{**target_ref,'bytes':10}}
+    launch={'run_scope':authority.DENSE_SCOPE,'dense_source_transition_proof':proof_ref,
+        'dense_target_result':result_ref,'dense_target':target_ref,'gc_layout_metadata_parity':gc_ref}
+    values={proof_ref['path']:proof,result_ref['path']:report}
+    monkeypatch.setattr(common,'_read',lambda ref,metadata:values[ref['path']])
+    monkeypatch.setattr(common,'_stat',lambda _path:{'st_size':10})
+    monkeypatch.setattr(common,'_hash_file',lambda _path:target_ref)
+    calls=[]
+    def metadata(actual, _common, **kwargs):
+        calls.append((actual,kwargs));return {'info':{'metadata':{}}}
+    monkeypatch.setattr(runner,'_metadata',metadata)
+    context=runner._launch_metadata(launch,common)
+    assert context['dense_target']==target_ref and context['dense_target_stat']=={'st_size':10}
+    assert calls[0][1]['dense_source_transition']==transitions
+    report['legacy_anchor_byte_parity']['5']=False
+    with pytest.raises(RuntimeError,match='DENSE_TARGET_RESULT'):
+        runner._launch_metadata(launch,common)
+    assert len(calls)==1

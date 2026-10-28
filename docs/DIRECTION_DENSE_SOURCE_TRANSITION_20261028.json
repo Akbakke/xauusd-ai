@@ -1,0 +1,50 @@
+{
+  "checks": {
+    "historical_and_current_legacy_binary_loss_and_backbone_width_ast_equal": true,
+    "historical_sha_matches_existing_fold1_manifest": true,
+    "owner_all_ast_unchanged_except_added_geometry_profile_and_reference_dispatch": true
+  },
+  "current_source_commit": "c77767fa",
+  "genuine_training_authorized": false,
+  "historical_source_commits": {
+    "direction_component_source": "41dc5c89",
+    "native_constructor_source": "ed2f98ee",
+    "owner_profile_source": "ed2f98ee"
+  },
+  "limits": "Source comparison only. Native constructor changed for the new eight-family profile; full native state, predictions, real inputs and training remain unqualified.",
+  "schema_version": "gx1_dense_source_transition_proof_v1",
+  "source_transitions": {
+    "direction_component_source": {
+      "current": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "8beccc55c551c22c37e0af9bec10bc3b911e6ff11c69c6d5ba83abcc1b096e16"
+      },
+      "original": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+      }
+    },
+    "native_constructor_source": {
+      "current": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "40af504ddc7ab839a9ef23276ea1167589cb6b86adcf90931aeeee893692ea0c"
+      },
+      "original": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "3e5cea0ef2b77de3384e0779f93ba57ea36743f8dd7b2a392edd39a490606bee"
+      }
+    },
+    "owner_profile_source": {
+      "current": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+        "sha256": "67ac3e96ee1ce305b5e38fec5379d9a877675d5c16076b7f4d76fafcda9fb8a4"
+      },
+      "original": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+        "sha256": "1eddc4c7ba64636d9c87dce264c7c8086049373dd32481a8eebf5a9aec4aa9bb"
+      }
+    }
+  },
+  "status": "SOURCE_ONLY_VERIFIED_NO_DATA_OR_TRAINING",
+  "test_data_used": false
+}

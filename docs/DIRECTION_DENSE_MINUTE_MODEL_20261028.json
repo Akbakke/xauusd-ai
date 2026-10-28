@@ -14,7 +14,7 @@
   "initialization": "The three anchor heads preserve their initialization and caller RNG relative to a three-head wrapper on an identical backbone; adding chart family changes native backbone geometry and initialization, so identical genuine old-versus-new state or predictions are not claimed.",
   "evaluation": "Fixed chronological TRAIN and later development folds; report each minute's counts, UP/DOWN share, AUC, logloss, Brier and own-prefix class prior. Pair on identical parents and clocks and use day/week blocks where admitted. No threshold, checkpoint or horizon selection using the sealed TEST.",
   "remaining_before_any_real_run": [
-    "Complete exact dense target and native feature provider integration, immutable source-transition and read-guard bindings.",
+    "The dense-target join, source transition and read-only guard now have synthetic checks. Bind and execute an exact separately admitted private plan; no genuine target loading through this new path has been performed.",
     "Qualify eight-family real inputs, feature/clock/mask consumption, initial state, each head's gradient and exact optimizer/RNG resume using a new narrowly admitted private route; private weights never enter main fit.",
     "Predeclare an exact independent training and later-development comparison, bind current source and resource guards, then physically reboot the idle Windows host as requested before each admitted GPU trainer invocation.",
     "Use a physical GPU ceiling of 250 W during that admitted training and restore 160 W idle ceiling after completion; no speedup is assumed."

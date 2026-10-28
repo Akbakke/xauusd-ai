@@ -46,7 +46,7 @@ def _weighted_historical_source(ref, manifest, design):
     return transition['current'] if ref == transition['original'] else ref
 
 
-def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_completion=None, weight_qualification_design=None, order_qualification=None):
+def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_completion=None, weight_qualification_design=None, order_qualification=None, dense_source_transition=None):
     metadata={};manifest=common._read(launch['input_manifest'],metadata)
     _require(set(manifest)==MANIFEST_KEYS and manifest['schema_version']=='gx1_native_direction_prefix_fit_input_manifest_v1'
         and manifest['source_design']==SOURCE_DESIGN and manifest['state_qualification']==common.STATE_QUALIFICATION
@@ -97,6 +97,22 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
         _require(order_transition['original'] == manifest['view_source_bindings']['direction_component_source']
             and order_transition['current'] == launch['source_owners'][authority.ORDER_COMPONENT_SOURCE]
             and order_transition['original']['path'] == order_transition['current']['path'], 'ORDER_METADATA_TRANSITION')
+    dense_transitions = {}
+    if dense_source_transition is not None:
+        from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+        names = {'owner_profile_source':'gx1/features/entry_specialist_feature_groups_v1.py',
+            'native_constructor_source':'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
+            'direction_component_source':'gx1/contracts/entry_native_direction_research_v1.py'}
+        _require(launch.get('run_scope') == authority.DENSE_SCOPE and independent_design is None
+            and weight_design is None and order_transition is None
+            and isinstance(dense_source_transition,dict) and set(dense_source_transition)==set(names), 'DENSE_TRANSITION_SCOPE')
+        for key, source in names.items():
+            item=dense_source_transition[key]
+            _require(isinstance(item,dict) and set(item)=={'original','current'}
+                and item['original']==manifest['view_source_bindings'][key]
+                and item['current']==launch['source_owners'][source]
+                and item['original']['path']==item['current']['path'], 'DENSE_SOURCE_TRANSITION:'+key)
+            dense_transitions[item['original']['path']]=item
     for ref in manifest['view_source_bindings'].values():
         if ref['path'].endswith('.json'):common._read(ref,metadata)
         else:
@@ -115,6 +131,10 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
                     expected = weighted_expected
             if order_transition is not None and ref == order_transition['original']:
                 expected = order_transition['current']
+            if ref['path'] in dense_transitions:
+                item=dense_transitions[ref['path']]
+                _require(ref==item['original'],'DENSE_HISTORICAL_SOURCE')
+                expected=item['current']
             _require(common._hash_file(ref['path'])==expected,'VIEW_SOURCE_SHA')
     info['metadata'].update(metadata)
     return {'manifest':manifest,'design':design,'physical':physical,'ancestor':ancestor,'ancestor_plan':ancestral_plan,
@@ -123,7 +143,26 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
 
 def _launch_metadata(launch, common):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    if launch.get('run_scope') == authority.ORDER_SCOPE:
+    if launch.get('run_scope') == authority.DENSE_SCOPE:
+        metadata = {}
+        proof=common._read(launch['dense_source_transition_proof'],metadata)
+        target_report=common._read(launch['dense_target_result'],metadata)
+        _require(proof.get('schema_version')=='gx1_dense_source_transition_proof_v1'
+            and proof.get('status')=='SOURCE_ONLY_VERIFIED_NO_DATA_OR_TRAINING'
+            and proof.get('test_data_used') is False and proof.get('genuine_training_authorized') is False, 'DENSE_SOURCE_PROOF')
+        target=target_report.get('target',{})
+        _require(target_report.get('status')=='COMPLETE_REAL_TARGETS_ONLY'
+            and target_report.get('test_data_used') is False and target_report.get('parents')==118249
+            and target_report.get('horizons_minutes')==list(range(1,61))
+            and target_report.get('legacy_anchor_byte_parity')=={'1':True,'5':True,'15':True}
+            and launch['dense_target']=={key:target.get(key) for key in ('path','sha256')}, 'DENSE_TARGET_RESULT')
+        context=_metadata(launch,common,gc_layout_metadata_parity=launch['gc_layout_metadata_parity'],
+            dense_source_transition=proof['source_transitions'])
+        context['info']['metadata'].update(metadata)
+        context['dense_target']=dict(launch['dense_target'])
+        context['dense_target_stat']=common._stat(context['dense_target']['path'])
+        _require(common._hash_file(context['dense_target']['path'])==context['dense_target'], 'DENSE_TARGET_SHA')
+    elif launch.get('run_scope') == authority.ORDER_SCOPE:
         metadata = {}
         proof = common._read(launch['native_order_qualification'], metadata)
         initial = common._read(launch['order_origin']['initial_measurement'], metadata)
@@ -164,7 +203,7 @@ def _qualified_bps_scale(context, view):
     return None
 
 
-def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False, magnitude_weighted=False):
+def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False, magnitude_weighted=False, dense_minutes=False):
     parents,starts,decisions=(axes[k] for k in ('parent_rows','bar_start_ns','decision_ns'))
     size=len(parents)
     _require(size==118249 and parents.dtype==starts.dtype==decisions.dtype==np.int64
@@ -174,14 +213,17 @@ def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False, magnitud
     _require(int(np.searchsorted(decisions,fold['train_cutoff_ns'],side='left'))==fold['prefix_rows']
         and fold['oof_start_row']==fold['prefix_rows']
         and int(np.searchsorted(decisions,fold['oof_cutoff_ns'],side='left'))==fold['oof_end_row'],'FOLD_CLOCK_AND_ROW_COHORT')
-    _require(type(signed_bps) is bool and type(magnitude_weighted) is bool and not (signed_bps and magnitude_weighted),'OBJECTIVE_MODE')
+    _require(type(signed_bps) is bool and type(magnitude_weighted) is bool and type(dense_minutes) is bool
+        and sum((signed_bps,magnitude_weighted,dense_minutes))<=1,'OBJECTIVE_MODE')
     has_bps=signed_bps or magnitude_weighted
+    horizons=np.arange(1,61,dtype=np.int64) if dense_minutes else np.asarray([1,5,15],np.int64)
+    width=len(horizons)
     _require(set(targets)==set(TARGET_MEMBERS + (('mid_return_bps',) if has_bps else ())) and targets['terminal_time_ns'].dtype==np.int64
-        and targets['terminal_time_ns'].shape==(size,3) and targets['observed'].dtype==np.bool_
-        and targets['observed'].shape==(size,3) and targets['sign'].dtype==np.int8 and targets['sign'].shape==(size,3),
+        and targets['terminal_time_ns'].shape==(size,width) and targets['observed'].dtype==np.bool_
+        and targets['observed'].shape==(size,width) and targets['sign'].dtype==np.int8 and targets['sign'].shape==(size,width),
         'TARGET_HEADERS')
-    _require(np.all(decisions>0) and np.all(decisions<=np.iinfo(np.int64).max-15*MINUTE_NS)
-        and np.array_equal(targets['terminal_time_ns'],decisions[:,None]+np.asarray([1,5,15],np.int64)[None,:]*MINUTE_NS)
+    _require(np.all(decisions>0) and np.all(decisions<=np.iinfo(np.int64).max-int(horizons[-1])*MINUTE_NS)
+        and np.array_equal(targets['terminal_time_ns'],decisions[:,None]+horizons[None,:]*MINUTE_NS)
         and np.isin(targets['sign'],(-1,0,1)).all() and np.all(targets['sign'][~targets['observed']]==0),'TARGET_CLOCK_AND_DOMAIN')
     if has_bps:
         value=targets['mid_return_bps']
@@ -213,7 +255,7 @@ def _select_price_targets(archive, *, signed_bps=False, magnitude_weighted=False
     return {key:archive[key] for key in members}
 
 
-def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False):
+def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False, dense_minutes=False):
     from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
     from gx1.contracts import entry_native_direction_context_report_v1 as report_owner
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
@@ -225,9 +267,29 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False)
     _require(prepared['gc']['layout']==common._read(manifest['view_source_bindings']['raw_gc_layout'],info['metadata'])
         and prepared['gc']['transition']==common._read(manifest['view_source_bindings']['raw_gc_transition'],info['metadata']),
         'CURRENT_QUALIFIED_RAW_GC_DOMAIN')
+    _require(type(dense_minutes) is bool and not (dense_minutes and (signed_bps or magnitude_weighted)), 'PREPARE_MODE')
     with np.load(manifest['targets']['path'],allow_pickle=False) as archive:
-        targets=_select_price_targets(archive,signed_bps=signed_bps,magnitude_weighted=magnitude_weighted)
-    _qualify_axes_targets(prepared['arrays'],targets,launch['fold'],np,signed_bps=signed_bps,magnitude_weighted=magnitude_weighted)
+        if dense_minutes:
+            from gx1.contracts.entry_native_direction_dense_data_v1 import AXES, TARGETS
+            _require(archive.files==list(PRICE_MEMBERS),'EXACT_ELEVEN_ARCHIVE_NAMES')
+            legacy={key:archive[key] for key in AXES+TARGETS}
+        else:
+            targets=_select_price_targets(archive,signed_bps=signed_bps,magnitude_weighted=magnitude_weighted)
+    if dense_minutes:
+        from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+        from gx1.contracts.entry_native_direction_dense_data_v1 import DENSE_MEMBERS, bind_dense_targets
+        _require(launch.get('run_scope')==authority.DENSE_SCOPE and context.get('dense_target')==launch.get('dense_target'), 'DENSE_EXACT_SCOPE')
+        ref=context['dense_target']; before=common._stat(ref['path'])
+        _require(common._hash_file(ref['path'])==ref, 'DENSE_ARCHIVE_SHA')
+        with np.load(ref['path'],allow_pickle=False) as archive:
+            _require(set(archive.files)==set(DENSE_MEMBERS) and len(archive.files)==len(DENSE_MEMBERS), 'DENSE_ARCHIVE_MEMBERS')
+            dense={key:archive[key] for key in DENSE_MEMBERS}
+        _require(common._stat(ref['path'])==before and common._hash_file(ref['path'])==ref, 'DENSE_ARCHIVE_BOOKEND')
+        physical_axes={**prepared['arrays'],'dynamic_entry_m1_row':legacy['dynamic_entry_m1_row']}
+        targets=bind_dense_targets(axes=physical_axes,legacy=legacy,dense=dense)
+        del dense,legacy
+    _qualify_axes_targets(prepared['arrays'],targets,launch['fold'],np,signed_bps=signed_bps,
+        magnitude_weighted=magnitude_weighted,dense_minutes=dense_minutes)
     bps_scale=None; magnitude_weight_contract=None
     if signed_bps:
         from gx1.contracts.entry_native_direction_bps_v1 import fit_direction_bps_scale
@@ -244,9 +306,16 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False)
     for value in prepared['arrays'].values():value.setflags(write=False)
     for value in targets.values():value.setflags(write=False)
     for key in ('times_ns','sample_positions'):prepared['entry_sequence_source'][key].setflags(write=False)
+    sources=dict(manifest['view_source_bindings'])
+    if dense_minutes:
+        owners=launch['source_owners']
+        sources.update({'dense_direction_component_source':owners['gx1/contracts/entry_native_direction_dense_v1.py'],
+            'dense_profile_source':owners['gx1/features/entry_specialist_feature_groups_v1.py'],
+            'dense_native_constructor_source':owners['gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py']})
     view=view_owner.bind_native_direction_feature_view(prefix_normalization=context['fitted'],
         prefix_normalization_ref=manifest['prefix_normalization']['output'],constructor_metadata=context['constructor'],
-        constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=manifest['view_source_bindings'],max_batch_rows=BATCH_SIZE,bps_scale=bps_scale,magnitude_weight_contract=magnitude_weight_contract)
+        constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=sources,max_batch_rows=BATCH_SIZE,
+        bps_scale=bps_scale,magnitude_weight_contract=magnitude_weight_contract,dense_minutes=dense_minutes)
     context_map=report_owner.native_direction_context_map(gc_layout=prepared['gc']['layout'],
         mtf_field_names=context['fitted']['base_normalization']['surfaces']['mtf_m5']['field_names'])
     order=_presentation_order(prepared['arrays']['parent_rows'],launch['fold']['prefix_rows'],SEED,np,launch=launch)
@@ -551,7 +620,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
         extra_read_paths=(origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else (),
-        original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None)
+        original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None,
+        dense_target=context.get('dense_target'))
     counters={k:0 for k in ('model_constructions','model_construction_returns','optimizer_constructions','forward_calls','forward_returns',
         'backward_calls','backward_returns','optimizer_step_calls','optimizer_step_returns','empty_batches',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns','forbidden_legacy_calls')}
@@ -569,7 +639,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     previous_profile=sys.getprofile()
     try:
         sys.setprofile(common._deny_legacy_work(previous_profile,counters))
-        prepared,targets,view,context_map,ordered=_prepare(context,launch,np,signed_bps=recipe.get('signed_bps_supervision',False), magnitude_weighted=recipe.get('magnitude_weighted_direction',False))
+        prepared,targets,view,context_map,ordered=_prepare(context,launch,np,signed_bps=recipe.get('signed_bps_supervision',False),
+            magnitude_weighted=recipe.get('magnitude_weighted_direction',False),dense_minutes=recipe.get('dense_minute_supervision',False))
         bps_scale_ref=_qualified_bps_scale(context,view)
         order=torch.from_numpy(ordered.copy());order_sha=tree_sha(order)
         prior=_prefix_prior(prepared['arrays'],targets,fold,np)

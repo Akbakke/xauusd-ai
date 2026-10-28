@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T12:27:42.146759+00:00",
-  "status": "DENSE_60_EIGHT_FAMILY_SOURCE_SYNTHETIC_ONLY_GENUINE_INTEGRATION_PENDING",
+  "observed_utc": "2026-10-28T12:39:24.713970+00:00",
+  "status": "DENSE_PRIVATE_QUALIFICATION_SOURCE_SYNTHETIC_ONLY_PLAN_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All numerical one-shot units consumed. Current work is direction/bps1to60 source/design only. Preserve eight families, D1, causal inputs and all guards. No CONTROL/TEST/Exit/trading; no fullF/performance detour.",
-  "next_action": "Complete exact real dense target and eight-family source/data transition bindings, then separately admit and run private native initial/gradient/resume qualification before a new shared 1–60-minute model training. Retain 250 W requested training ceiling, all guards, fresh physical reboot and sealed TEST.",
+  "next_action": "Prepare a new exact one-shot private native 60-head qualification plan on the fixed supported TRAIN parents; bind current clean source, dense-target SHA and source transition, retain 250 W requested physical training ceiling and all guards, and physically reboot an idle host before its single invocation. No full fit is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -8908,9 +8908,9 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "The 60 separate outputs and restored chart geometry have synthetic checks only; no genuine forward, private qualification or training for the new profile.",
-      "Real dense target loading, historical-to-current source transition, read guard, exact execution plan and fresh native qualification remain pending.",
-      "The earlier 60-minute evaluation reused the five-minute score; neither geometry value nor separate minute-head generalization has been measured.",
+      "Dense private qualification source has synthetic initialization, gradient and resume/control checks only; no real native model/optimizer execution on the new profile.",
+      "The exact one-shot private campaign and genuine current-source/data qualification are pending; full fit remains closed.",
+      "The previous 60-minute evaluation reused the five-minute score; separate-minute generalization and chart geometry added value remain unmeasured.",
       "Input stability, quote-event age, H1 signed-flow coverage, decision selectivity and cost-adjusted performance remain unresolved."
     ],
     "strategic_feature_review_20261017": {
@@ -37131,7 +37131,7 @@
     }
   },
   "independent_direction_edge_20261027": {
-    "status": "DENSE_60_AND_EIGHT_FAMILY_SOURCE_SYNTHETIC_ONLY_NO_GENUINE_TRAINING",
+    "status": "DENSE_PRIVATE_QUALIFICATION_SOURCE_SYNTHETIC_ONLY_PLAN_PENDING",
     "goal_thread_id": "01a17d63-d1bd-7772-bf86-654e3a6db841",
     "design": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DESIGN.json",
@@ -37185,7 +37185,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Complete exact dense-target and eight-family source/data binding, focused tests and private native qualification under a new one-shot plan; then one shared 60-head training on chronological development data with 250 W ceiling, unchanged guards and fresh physical boot. Do not claim improved edge without later results.",
+    "next_action": "Prepare a new exact one-shot private native 60-head qualification plan on the fixed supported TRAIN parents; bind current clean source, dense-target SHA and source transition, retain 250 W requested physical training ceiling and all guards, and physically reboot an idle host before its single invocation. No full fit is admitted.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -37315,7 +37315,12 @@
       "real_training_or_predictions_complete": false,
       "source_transition_plan_admitted": false,
       "separately_measured_chart_value": false,
-      "test_data_used": false
+      "test_data_used": false,
+      "dense_loader_source_implemented_and_synthetically_joined": true,
+      "dense_source_transition_proof": "docs/DIRECTION_DENSE_SOURCE_TRANSITION_20261028.json",
+      "private_qualification_source_and_synthetic_control_flow_complete": true,
+      "private_qualification_actual_complete": false,
+      "private_qualification_plan_admitted": false
     }
   },
   "independent_direction_candle_synthetic_20261027": {

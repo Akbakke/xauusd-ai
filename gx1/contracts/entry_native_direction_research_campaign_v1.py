@@ -26,6 +26,13 @@ BPS_SCOPE = 'private_bps_b16_matched_initialization_resume_qualification'
 WEIGHT_SCOPE = 'private_magnitude_weighted_b16_matched_initialization_resume_qualification'
 ORDER_PRIVATE_SCOPE = 'private_sign_b16_chronological_initial_resume_qualification'
 ORDER_SUPPORTED_SCOPE = 'private_sign_b16_chronological_supported_initial_resume_qualification'
+DENSE_PRIVATE_SCOPE = 'private_dense_b16_initial_resume_qualification'
+DENSE_INPUT_MANIFEST = {'path':'/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/INPUT_MANIFEST.json',
+    'sha256':'befabac7ebff4e5e8b6233b299b2fc8f03b87b94d99bc7ec4d43b0fb76f9246f'}
+DENSE_TARGET_RESULT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json',
+    'sha256':'1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b'}
+DENSE_TARGET = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz',
+    'sha256':'07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d'}
 ORDER_SUPPORTED_DESIGN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_SUPPORTED_QUALIFICATION_20261028.json',
     'sha256':'d78335c7d089ff44beb2d3a470ec8e88fe204899e8ef6e1524cbcba089913cb1'}
 ORDER_DESIGN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_ABLATION_DESIGN_20261028.json',
@@ -50,6 +57,15 @@ ORDER_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_native_direction_prefix_fit_cam
     'gx1/contracts/entry_native_direction_frozen_extraction_v1.py',
     'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py',
     'gx1/scripts/run_entry_native_direction_order_qualification_v1.py')
+DENSE_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py',
+    'gx1/contracts/entry_native_direction_frozen_extraction_v1.py',
+    'gx1/contracts/entry_native_direction_context_report_v1.py',
+    'gx1/contracts/entry_native_direction_dense_v1.py',
+    'gx1/contracts/entry_native_direction_dense_data_v1.py',
+    'gx1/contracts/entry_native_direction_dense_report_v1.py',
+    'gx1/contracts/entry_direction_probability_reference_v1.py',
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py',
+    'gx1/scripts/run_entry_native_direction_dense_qualification_v1.py')
 MODULE = 'gx1.scripts.run_unified_exit_native_candidate_window_v1'
 CANONICAL_REPO = Path('/home/andre2/src/GX1_CURRENT')
 REPO_SOURCE_PATHS = (
@@ -135,16 +151,18 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     weighted = value.get('run_scope') == WEIGHT_SCOPE
     supported = value.get('run_scope') == ORDER_SUPPORTED_SCOPE
     chronological = value.get('run_scope') == ORDER_PRIVATE_SCOPE or supported
-    b16 = bps or weighted or chronological
+    dense = value.get('run_scope') == DENSE_PRIVATE_SCOPE
+    b16 = bps or weighted or chronological or dense
     if b16: fields |= {'fold','gc_layout_metadata_parity','qualification_design'}
+    if dense: fields |= {'dense_source_transition_proof','dense_target_result','dense_target'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     _path(recipe['runtime_root'], 'runtime root')
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE, ORDER_SUPPORTED_SCOPE), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE, ORDER_SUPPORTED_SCOPE, DENSE_PRIVATE_SCOPE), 'RECIPE_SCOPE')
     for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if bps or weighted else 3,
-            'max_forwards':21 if chronological else 6 if bps or weighted else 4,
+            'max_forwards':21 if chronological or dense else 6 if bps or weighted else 4,
             'max_backwards':5 if bps or weighted else 4,
             'max_checkpoint_bytes':1073741824, 'max_published_json_bytes':33554432}.items():
         _require(type(recipe[key]) is int and recipe[key] == expected, 'RECIPE_BUDGET:' + key)
@@ -156,6 +174,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         and type(numerical.get('batch_size')) is int and numerical['batch_size'] == (16 if b16 else 2)
         and numerical.get('signed_bps_supervision',False) is bps
         and numerical.get('magnitude_weighted_direction',False) is weighted
+        and numerical.get('dense_minute_supervision',False) is dense
         and type(numerical.get('max_updates')) is int and numerical['max_updates'] == 2
         and numerical.get('genuine_updates_authorized') is False and numerical.get('native_launch_authorized') is False,
         'NUMERICAL_RECIPE_ROLE')
@@ -194,8 +213,17 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
                 == {k:v for k,v in numerical.items() if k not in ('max_updates','contract_sha256')}
             and initial.get('role') == 'INITIAL_TRAIN' and initial.get('fold') == recipe['fold']
             and initial.get('predictions') == refs['initial_predictions'], 'ORDER_ORIGINAL_IDENTITY')
+    if dense:
+        _require(recipe['fold']==BPS_FOLD and recipe['input_manifest']==DENSE_INPUT_MANIFEST
+            and recipe['gc_layout_metadata_parity']==BPS_GC_PARITY
+            and recipe['qualification_design']==ORDER_SUPPORTED_DESIGN
+            and recipe['dense_target_result']==DENSE_TARGET_RESULT and recipe['dense_target']==DENSE_TARGET, 'DENSE_FIXED_INPUT_SCOPE')
+        for key in ('gc_layout_metadata_parity','qualification_design','dense_source_transition_proof','dense_target_result'):
+            campaign.require_binding(recipe[key],label='dense '+key,verify_file=True)
+        campaign.require_binding(recipe['dense_target'],label='dense target',verify_file=False)
+        _require(recipe['dense_source_transition_proof']['path']==str(source_repo/'docs/DIRECTION_DENSE_SOURCE_TRANSITION_20261028.json'), 'DENSE_PROOF_PATH')
     owners = recipe['source_owners']
-    required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if bps or weighted else ORDER_EXTRA_SOURCE_PATHS if chronological else ())
+    required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if bps or weighted else ORDER_EXTRA_SOURCE_PATHS if chronological else DENSE_EXTRA_SOURCE_PATHS if dense else ())
     _require(isinstance(owners, Mapping) and set(owners) == set(required_sources), 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='research source', verify_file=True)
