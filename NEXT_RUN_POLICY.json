@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:32:47.843868+00:00",
-  "status": "DECIMAL_SIGN_AUDIT_001_FAILED_002_ADMITTED_NOT_YET_CLAIMED",
+  "observed_utc": "2026-10-28T15:35:12.801085+00:00",
+  "status": "DECIMAL_SIGN_AUDIT_COMPLETE_CONSUMED_INDEPENDENT_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the separately admitted second capped CPU-only decimal audit after the source-envelope fix, then close its gate and report actual findings. Preserve the failed first attempt, original targets and fixed predictions; no model forward, training, TEST or trading.",
+  "next_action": "Preserve the completed decimal sign audit and original targets. Prepare the minimum exact-decimal target correction with separate identity and focused tests, then investigate the unqualified feature values and interaction on chronological development only; no TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -41783,19 +41783,19 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "cb2ff0f3eb2740f372f2ca4ca0d1f5de65ddd961cde9cd8b513c91c828175560"
+      "sha256": "41e2ae146d66fe4e886b3ed4d01104835440cc5124d6385f688902e4f3dbf8da"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
       "sha256": "f16a48c01df167cdfaee7cade5c0351a17ae3add1fde15ec0f9751685153dd62"
     },
-    "actual_decimal_sign_frequency_measured": false,
+    "actual_decimal_sign_frequency_measured": true,
     "source_payload_reads_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "economic_edge_qualified": false,
-    "next": "First exact decimal sign audit consumed after archive-envelope mismatch; independently admitted 002 has the narrowly fixed reader. No model forward or optimizer step."
+    "next": "Close the confirmed source-decimal target defect under a distinct identity with consistent movement/bps/sign; retain legacy targets. Continue feature and composition investigation under separately scoped gates."
   },
   "independent_direction_decimal_sign_audit_20261028_001": {
     "status": "FAILED_ONE_SHOT_CONSUMED",
@@ -41824,16 +41824,16 @@
     "failure": "Source archive envelope was not handled; stopped before target comparison."
   },
   "independent_direction_decimal_sign_audit_20261028_002": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_PLAN_20261028_002.json",
       "sha256": "a6c1ba4dedd580563cee9b8716779c64574498a62ffed2332758aa13a9926565"
     },
-    "execution_authorized": true,
-    "genuine_source_reads_authorized": true,
+    "execution_authorized": false,
+    "genuine_source_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "wall_seconds": 600,
@@ -41842,6 +41842,31 @@
     "new_model_forwards_authorized": false,
     "target_mutation_authorized": false,
     "test_or_trading_authority": false,
-    "scope": "Bound original XAU decimal candle strings and existing saved development targets and fixed logits through 2025-12-31 only; output aggregate diagnosis only."
+    "scope": "Bound original XAU decimal candle strings and existing saved development targets and fixed logits through 2025-12-31 only; output aggregate diagnosis only.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/INVOCATION_CLAIM.json",
+      "sha256": "96de555c00eec9e9df505803623f698fb0b7a982ca3f54c0a5fa342c69f9f04e"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/TERMINAL.json",
+      "sha256": "23ac85f1cc184a94604f18180d1ef81234733179f20b1a969d8624ee553257a1"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/TERMINAL.json",
+      "sha256": "af58987e8d784a8d8bfa727a207b5da4f15c448d67f51c7f28cfe642746229ff"
+    },
+    "source_rows": 591682,
+    "decimal_places": 3,
+    "all_observed_cells": 6946049,
+    "false_nonzero_cells": 976,
+    "opposite_nonzero_signs": 0,
+    "fold1_later_five_minute_false_nonzero": 5,
+    "fold1_later_five_minute_auc_stored": 0.5001825942394912,
+    "fold1_later_five_minute_auc_decimal": 0.5001748981863747,
+    "predictive_or_economic_edge_qualified": false
   }
 }
