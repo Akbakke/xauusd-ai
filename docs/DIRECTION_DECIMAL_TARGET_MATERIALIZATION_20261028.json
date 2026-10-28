@@ -1,0 +1,37 @@
+{
+  "schema_version": "gx1_direction_decimal_targets_design_v1",
+  "status": "EXACT_ONE_SHOT_ADMITTED",
+  "purpose": "Materialize a new 1..60 target identity from original OANDA decimal bid/ask opens, correcting exact-zero signs while preserving the original target archive.",
+  "parents": 118249,
+  "source_window": "2024-05-01 inclusive to 2026-01-01 exclusive; chunk ending 2026-01-03 physically contains later development but only pre-2026 prices are selected.",
+  "method": "Bind all original source chunk hashes and canonical 2024/2025 float prices; derive exact common-grid midpoint sums from decimal strings and require recovered integer bid/ask sides to round-trip both floats and source midpoint sums. Generate move, bps and sign from the integer grid.",
+  "validation": "Retain exact original parents, clocks, source rows and observed masks; reproduce all 60 independent sign-confusion matrices for the full scope and both fold1 populations; require 976 false moves removed and zero opposing nonzero signs. Roundtrip the new archive and retain old files.",
+  "limits": "New target identity only, no model fit or prediction update. Current training routes still require a separately bound corrected target contract, new initial baseline and new admission. No TEST, broker, order, live/paper or economic edge.",
+  "inputs": {
+    "native_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"
+    },
+    "native_2024": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet",
+      "sha256": "2776a1cb17b915d506eaf0d7ed5323ba975e0d0d1c52c0c02d2da20589d1c41a"
+    },
+    "native_2025": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2025/part-000.parquet",
+      "sha256": "1746d0c3c1bd13fa3d19c628fccea05dfe4715e681fcba9aa1b5a559961308dc"
+    },
+    "dense_targets": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
+      "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d"
+    },
+    "legacy_targets": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "audit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+    }
+  },
+  "test_data_used": false
+}

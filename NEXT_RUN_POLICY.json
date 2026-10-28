@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T16:00:44.086697+00:00",
-  "status": "DIRECTION_SLOPE_RESPONSE_COMPLETE_FEATURE_AUDIT_CONTINUES",
+  "observed_utc": "2026-10-28T16:03:40.761320+00:00",
+  "status": "DECIMAL_TARGET_MATERIALIZATION_ADMITTED_NOT_YET_CLAIMED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve completed H1 trend-group response and input-clock results. Continue source-to-model coverage and trained-interaction investigation; no TEST, broker or trading.",
+  "next_action": "Run one capped separately bound exact-decimal target materialization. Preserve legacy targets, model state and historical predictions. No model forward, training, TEST or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42038,5 +42038,27 @@
     "candidate_positive_minus_negative": -0.0002563733969046522,
     "causal_effect_established": false,
     "economic_edge_qualified": false
+  },
+  "independent_direction_decimal_targets_actual_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_PLAN_20261028_001.json",
+      "sha256": "47919b63a2e31d7534f7196b7d69511502c989babbb0b385af7522abd765dcb6"
+    },
+    "execution_authorized": true,
+    "genuine_source_reads_authorized": true,
+    "corrected_target_publication_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_or_trading_authority": false,
+    "scope": "Separate exact-decimal 60-minute target archive; preserve old targets and compare all confusion matrices with completed audit."
   }
 }
