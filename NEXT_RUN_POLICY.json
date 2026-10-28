@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T16:07:31.744046+00:00",
-  "status": "DECIMAL_TARGET_MATERIALIZED_FEATURE_AUDIT_CONTINUES",
+  "status": "DECIMAL_CONSUMER_AUDIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Preserve the verified corrected target and all legacy targets. Continue feature and model-composition diagnostics; any use of corrected targets requires a separate bound consumer and fresh initial baseline. No TEST, broker or trading.",
+  "next_action": "Run the single bound capped decimal consumer audit. Preserve all prior data. No model, optimizer, TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -42093,5 +42093,32 @@
     "false_moves_removed": 976,
     "nonzero_sign_flips": 0,
     "economic_edge_qualified": false
+  },
+  "independent_direction_decimal_consumer_audit_20261028_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_PLAN_20261028_002.json",
+      "sha256": "fff5f468adf5f4967a3bbbd21a7c5d50b21f65680218126ef2e8d36119265062"
+    },
+    "execution_authorized": true,
+    "target_and_prediction_reads_authorized": true,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "scope": "Hash-bound legacy and corrected pre-2026 1..60-minute target join; reproduce independent all/first-TRAIN/later confusion matrices; align saved OOF axes and legacy targets; quantify observed bps float differences.",
+    "superseded_unstarted_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_PLAN_20261028_001.json",
+      "sha256": "840d2abf2072647498aaab2ca942f36e297e8a4f84d68907d271194f371b3dc5",
+      "reason": "Test-file whitespace corrected before any invocation; old plan never claimed or launched."
+    }
   }
 }

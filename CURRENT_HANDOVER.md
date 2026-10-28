@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+Én ny engangskontroll er ADMITTERT: separat desimalmålforbruker, kildebundne gamle og korrigerte mål samt lagrede fold1-rader. Kun capped CPU-audit; ingen modell, trening, TEST eller handel. Kildefilen er syntetisk testet; genuin kvalifisering er ikke gjennomført.
+
 Separat korrigert 1–60min-desimalmål er FULLFØRT og KONSUMERT: alle 118 249 foreldre, 60 horisonter, opprinnelige klokker/masker og revisjonens fortegnsmatriser er kontrollert. 976 falske bevegelser ble fjernet; ingen reelle OPP/NED ble snudd. Målarkiv: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz`, SHA-256 `cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb`. Resultat SHA-256 `71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648`. Arkivet er ikke koblet til trening; separat målforbruker og fersk baseline kreves. Ingen modellforward, trening, TEST eller handel ble utført.
 
 H1-slope-respons er FULLFØRT og KONSUMERT på samme gjenbrukte fold: faktisk 5min OPP er 50,53 % ved negativ og 52,08 % ved positiv slope; modellens gjennomsnittlige OPP-sannsynlighet er 48,76 % og 48,73 %. Både korrigerte dag-/ukeintervaller for faktisk gruppeforskjell omfatter null. Dette er utforskende, ikke bevis på frakobling eller årsak. Resultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_SLOPE_RESPONSE_AUDIT_20261028_001/OUTPUT/RESULT.json`, SHA-256 `3f2bd5814f2f9d207b81d66ddc7b845023f8a07e3bf1ba7a55699f38ff9f87fe`. Ingen modellforward, trening, TEST eller handel.

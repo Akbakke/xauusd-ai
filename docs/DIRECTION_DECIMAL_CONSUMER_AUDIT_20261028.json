@@ -1,0 +1,44 @@
+{
+  "schema_version": "gx1_direction_decimal_consumer_design_v1",
+  "status": "SOURCE_PREPARED_ACTUAL_AUDIT_PENDING",
+  "scope": "Hash-bound legacy and corrected pre-2026 1..60-minute target join; reproduce independent all/first-TRAIN/later confusion matrices; align saved OOF axes and legacy targets; quantify observed bps float differences.",
+  "inputs": {
+    "legacy": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "original": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
+      "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d"
+    },
+    "corrected": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "audit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+    },
+    "materialization_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "materialization_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_PLAN_20261028_001.json",
+      "sha256": "47919b63a2e31d7534f7196b7d69511502c989babbb0b385af7522abd765dcb6"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451"
+    },
+    "oof_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0d06be58c0e2748ecc980080c5eb5cec9a456b6326870e510744efb8bae7abd7"
+    }
+  },
+  "target_identity": "exact_original_decimal_midpoint_v1",
+  "limitations": "Structural/lineage qualification only. Source file hash authentication and a fresh initial baseline remain required in any future admitted training route. No model, optimizer, TEST or trading.",
+  "test_data_used": false,
+  "model_forwards": 0,
+  "optimizer_steps": 0
+}
