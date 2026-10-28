@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:44:43.502735+00:00",
+  "observed_utc": "2026-10-28T15:46:58.499816+00:00",
   "status": "DENSE_ONEPASS_UNCERTAINTY_COMPLETE_NO_QUALIFIED_EDGE_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -41787,7 +41787,7 @@
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "1abadd08473770c5aa4132ece49cc0bc3d6c831ff7c64d63dec27c384e8f6223"
+      "sha256": "55fc3da0c684748dcd087a4822ca18c4ba4e7b1532ff3812be020ccd9f894deb"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -41940,6 +41940,14 @@
     "minutes_with_both_simultaneous_lower_bounds_above_half": 0,
     "primary_auc_improvement_supported": false,
     "primary_auc_above_half_supported": false,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "five_minute_probability_diagnosis": {
+      "eligible_rows": 17197,
+      "predicted_down": 14905,
+      "observed_up": 8870,
+      "mean_predicted_up_probability": 0.48738265628107025,
+      "source": "candidate saved OOF report calibration bins",
+      "interpretation": "reused later fold descriptive; threshold calibration cannot change AUC ranking"
+    }
   }
 }

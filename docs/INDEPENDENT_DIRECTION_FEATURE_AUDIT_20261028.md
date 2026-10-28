@@ -19,6 +19,8 @@ Dette er **punktestimater**, betinget på observerte ikke-null utfall, fra én g
 
 - Treningsresultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json`, SHA-256 `2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8`.
 - Alle 60 senere punktmålinger: samme mappe, `OOF.json`, SHA-256 `349e975a2cb22971606133caab848c26e7c84309d375f04077a427a6b1eeb451`.
+
+På de samme 17 197 femminuttsradene svarer den nye modellen NED på 14 905 (86,67 %) ved fast 0,5-terskel, mens faktisk OPP er 8 870 (51,58 %). Gjennomsnittlig predikert OPP-sannsynlighet er 48,74 %, beregnet fra alle de lagrede kalibreringsbøttene; de to ikke-tomme bøttene dekker 0,4–0,6. Dette viser skjev kalibrering på denne folden. En monoton terskel-/nivåendring uten ny rangering kan ikke endre AUC på samme rader, og resultatet beviser ikke hvorfor rangeringen er svak.
 - Simultan 1–60- og parret 5min-usikkerhet: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_UNCERTAINTY_20261028_001/OUTPUT/RESULT.json`, SHA-256 `47f20a687853e9ce8617aa96dd1cf0a8c47987b4c580c78f1805ceaeef60a687`. 10 000 trekninger per skjema, 77 UTC-dager og 14 UTC-uker. Bruker de opprinnelige målmaskene; desimaleffekten er kvantifisert separat.
 - Vaktkvittering: samme run, `RUNTIME/receipts/invocation-0001.json`, SHA-256 `5f6a242dae28ffa802ca235da64d8512c0b5437f8f6fa8f45082b8f20006f51c`. Idle-kontroll: `POWER_IDLE_RESTORE_001.json`, SHA-256 `86fd4c8e4754d853a84d22772de6c97229d314917dbd09b9d9a529ccaf348d51`.
 
