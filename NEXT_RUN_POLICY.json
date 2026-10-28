@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-28T15:42:58.865392+00:00",
-  "status": "DENSE_ONEPASS_UNCERTAINTY_ADMITTED_NOT_YET_CLAIMED",
+  "observed_utc": "2026-10-28T15:44:43.502735+00:00",
+  "status": "DENSE_ONEPASS_UNCERTAINTY_COMPLETE_NO_QUALIFIED_EDGE_FEATURE_AUDIT_CONTINUES",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Completed dense one-pass fit is consumed and never relaunched. A reproduced midpoint float-sign defect has unknown real-data frequency. Preserve all genuine inputs, eight families, D1/macro, existing guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Run the separately admitted capped saved-prediction uncertainty evaluation. Preserve the source-decimal audit and original target identity. No model forward, training, TEST or trading.",
+  "next_action": "Preserve completed 60-minute intervals and original targets. Continue verifying compact feature delivery, real coverage and learned composition with separately bound chronological development diagnostics; no TEST, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -41775,15 +41775,19 @@
       "30": 0.5118373362280024,
       "60": 0.521053836263897
     },
-    "paired_and_simultaneous_intervals_complete": false,
+    "paired_and_simultaneous_intervals_complete": true,
     "target_decimal_sign_impact_measured": true,
-    "predictive_or_economic_edge_qualified": false
+    "predictive_or_economic_edge_qualified": false,
+    "uncertainty_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_UNCERTAINTY_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "47f20a687853e9ce8617aa96dd1cf0a8c47987b4c580c78f1805ceaeef60a687"
+    }
   },
   "independent_direction_feature_target_audit_20261028": {
     "status": "IN_PROGRESS_SOURCE_METADATA_AND_SYNTHETIC_FINDINGS",
     "report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/INDEPENDENT_DIRECTION_FEATURE_AUDIT_20261028.md",
-      "sha256": "bd26096ef214d8a19093eb58b4b4834ce611e126b0a59e5b722ddf105fd72c8c"
+      "sha256": "1abadd08473770c5aa4132ece49cc0bc3d6c831ff7c64d63dec27c384e8f6223"
     },
     "metadata_manifest": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/INDEPENDENT_FEATURE_METADATA_AUDIT_20261028_001/MANIFEST_002.json",
@@ -41795,7 +41799,7 @@
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "economic_edge_qualified": false,
-    "next": "Exact decimal grid target projection passes synthetic tests under separate identity; no genuine corrected artifact exists. Continue chronological feature/value and model-interaction investigations under fresh exact gates."
+    "next": "Continue source-to-model value, coverage and composition investigation; separate identified target repair requires a new identity and genuine materialization plan. No edge is established."
   },
   "independent_direction_decimal_sign_audit_20261028_001": {
     "status": "FAILED_ONE_SHOT_CONSUMED",
@@ -41895,16 +41899,16 @@
     "economic_edge_qualified": false
   },
   "independent_direction_dense_onepass_uncertainty_20261028_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_UNCERTAINTY_PLAN_20261028_001.json",
       "sha256": "2ea1f5d9a9b706b7900300e94d79010d747024be84e6fd77bc194d1daa945a42"
     },
-    "execution_authorized": true,
-    "prediction_reads_authorized": true,
+    "execution_authorized": false,
+    "prediction_reads_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
@@ -41914,6 +41918,28 @@
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_or_trading_authority": false,
-    "scope": "Fixed predeclared 60 separate logits and paired 5min comparison on the same reused fold1 development parents; day/week simultaneous and paired intervals. Saved predictions only."
+    "scope": "Fixed predeclared 60 separate logits and paired 5min comparison on the same reused fold1 development parents; day/week simultaneous and paired intervals. Saved predictions only.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_UNCERTAINTY_20261028_001/INVOCATION_CLAIM.json",
+      "sha256": "51eb229c6710b3ea0798a55cdf54f349846d316f766686d87e0443401f49b1bb"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_UNCERTAINTY_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "47f20a687853e9ce8617aa96dd1cf0a8c47987b4c580c78f1805ceaeef60a687"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_UNCERTAINTY_20261028_001/TERMINAL.json",
+      "sha256": "092549cbd44c8e8dada579c7ef8491285792395a364f1497eb0662452e678617"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_UNCERTAINTY_20261028_001/OUTPUT/TERMINAL.json",
+      "sha256": "2954c8ec2f9ba7890371a2be66beac9ded6b398e7fc1334d186019d5f957e565"
+    },
+    "day_blocks": 77,
+    "week_blocks": 14,
+    "minutes_with_both_simultaneous_lower_bounds_above_half": 0,
+    "primary_auc_improvement_supported": false,
+    "primary_auc_above_half_supported": false,
+    "economic_edge_qualified": false
   }
 }
