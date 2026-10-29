@@ -265,3 +265,23 @@ def test_dense_profile_restores_geometry_without_removing_compact_or_gc_fields(b
     arguments = deepcopy(bound_case['arguments']); arguments['source_bindings'].update({key: _ref(key + '.py') for key in owner.DENSE_SOURCE_REF_KEYS})
     view = owner.bind_native_direction_feature_view(**arguments, dense_minutes=True)
     assert view['entry_execution_profile'] == ref
+
+
+def test_five_priority_price_only_view_binds_distinct_objective_and_same_routes(bound_case, monkeypatch):
+    from gx1.contracts import entry_native_direction_five_priority_v1 as candidate
+    args=deepcopy(bound_case['arguments'])
+    args['source_bindings'].update({key:_ref(key+'.py') for key in owner.DENSE_SOURCE_REF_KEYS | owner.PRICE_MOMENTUM_SOURCE_REF_KEYS})
+    old=owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True)
+    args['source_bindings'].update({key:_ref(key+'.py') for key in owner.FIVE_PRIORITY_SOURCE_REF_KEYS})
+    view=owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,five_minute_priority=True)
+    assert view['five_minute_priority'] is True and view['research_objective']==candidate.five_priority_direction_contract()
+    assert view['entry_execution_profile']==old['entry_execution_profile']
+    assert view['physical_field_names_sha256']==old['physical_field_names_sha256']
+    calls,norm_calls=_constructor_spy(monkeypatch)
+    model=owner.build_native_direction_research_model(view,prefix_normalization=args['prefix_normalization'],constructor_metadata=args['constructor_metadata'],device=torch.device('cpu'))
+    assert model.five_minute_priority and model.research_objective==view['research_objective'] and len(calls)==len(norm_calls)==1
+    assert model.feature_view_identity['research_objective_sha256']==view['research_objective']['contract_sha256']
+    with pytest.raises(RuntimeError):owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=False,five_minute_priority=True)
+    with pytest.raises(RuntimeError):owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,m1_ofi_normalization={},five_minute_priority=True)
+    broken=deepcopy(args);broken['source_bindings'].pop('five_priority_source')
+    with pytest.raises(RuntimeError):owner.bind_native_direction_feature_view(**broken,dense_minutes=True,price_momentum=True,five_minute_priority=True)

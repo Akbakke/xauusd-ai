@@ -459,6 +459,11 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
     else:
         candidate_context=context
     candidate_kwargs=_candidate_view_inputs(candidate_context,launch,prepared,sources) if is_candidate else {}
+    five_priority=launch.get('numerical_recipe',{}).get('five_minute_priority',False)
+    _require(type(five_priority) is bool and (not five_priority or (is_candidate and candidate_kwargs == {'price_momentum':True})), 'FIVE_PRIORITY_VIEW_SCOPE')
+    if five_priority:
+        sources['five_priority_source']=launch['source_owners']['gx1/contracts/entry_native_direction_five_priority_v1.py']
+        candidate_kwargs['five_minute_priority']=True
     view=view_owner.bind_native_direction_feature_view(prefix_normalization=context['fitted'],
         prefix_normalization_ref=manifest['prefix_normalization']['output'],constructor_metadata=context['constructor'],
         constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=sources,max_batch_rows=BATCH_SIZE,
@@ -688,7 +693,11 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
         logits=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True)
         from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch, dense_direction_binary_loss
         if type(model) is DenseNativeEntryDirectionResearch:
-            loss=dense_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
+            if model.five_minute_priority:
+                from gx1.contracts.entry_native_direction_five_priority_v1 import five_priority_direction_binary_loss
+                loss=five_priority_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
+            else:
+                loss=dense_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
             _require(loss['research_objective_sha256']==model.research_objective['contract_sha256'],'DENSE_LOSS_IDENTITY')
         else:
             loss=native_direction_binary_loss(logits,**target,cutoff_ns=cutoff)

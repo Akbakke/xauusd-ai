@@ -56,7 +56,8 @@ def dense_direction_research_contract() -> dict[str, Any]:
 class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
     """One native forward, three original heads and 57 distinct new heads."""
 
-    def __init__(self, backbone, *, m1_ofi_normalization=None, m1_ofi_coarsened=False):
+    def __init__(self, backbone, *, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False):
+        _require(type(five_minute_priority) is bool and (not five_minute_priority or m1_ofi_normalization is None), 'FIVE_PRIORITY_SCOPE')
         _require(type(m1_ofi_coarsened) is bool and (not m1_ofi_coarsened or m1_ofi_normalization is not None), 'M1_REPRESENTATION')
         super().__init__(backbone)
         device = self.direction_head.weight.device
@@ -65,7 +66,12 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
                 device=device, dtype=torch.float32)
         self.register_buffer('dense_horizon_minutes', torch.tensor(HORIZONS_MINUTES, dtype=torch.int64, device=device))
         self.register_buffer('dense_reorder', torch.tensor(_REORDER, dtype=torch.int64, device=device))
-        self._dense_objective_json = _OBJECTIVE_JSON
+        self._five_minute_priority = five_minute_priority
+        if five_minute_priority:
+            from gx1.contracts.entry_native_direction_five_priority_v1 import _PRIORITY_OBJECTIVE_JSON
+            self._dense_objective_json = _PRIORITY_OBJECTIVE_JSON
+        else:
+            self._dense_objective_json = _OBJECTIVE_JSON
         self._m1_normalization_json = None
         self._m1_ofi_coarsened = m1_ofi_coarsened
         if m1_ofi_normalization is not None:
@@ -85,13 +91,26 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
             self.register_buffer('m1_ofi_coarsened', torch.tensor(int(m1_ofi_coarsened), dtype=torch.uint8, device=device))
 
     @property
+    def five_minute_priority(self) -> bool:
+        _require(type(self._five_minute_priority) is bool, 'FIVE_PRIORITY_IDENTITY')
+        return self._five_minute_priority
+
+    @property
     def research_objective(self) -> dict[str, Any]:
+        if self.five_minute_priority:
+            from gx1.contracts.entry_native_direction_five_priority_v1 import _PRIORITY_OBJECTIVE_JSON, five_priority_direction_contract
+            _require(self._dense_objective_json == _PRIORITY_OBJECTIVE_JSON, 'OBJECTIVE_IDENTITY')
+            return five_priority_direction_contract()
         _require(self._dense_objective_json == _OBJECTIVE_JSON, 'OBJECTIVE_IDENTITY')
         return dense_direction_research_contract()
 
     def _require_binding(self) -> None:
         super()._require_binding()
-        _require(self._dense_objective_json == _OBJECTIVE_JSON, 'OBJECTIVE_IDENTITY')
+        if self.five_minute_priority:
+            from gx1.contracts.entry_native_direction_five_priority_v1 import _PRIORITY_OBJECTIVE_JSON
+            _require(self._dense_objective_json == _PRIORITY_OBJECTIVE_JSON, 'OBJECTIVE_IDENTITY')
+        else:
+            _require(self._dense_objective_json == _OBJECTIVE_JSON, 'OBJECTIVE_IDENTITY')
         head, device, width = self.dense_aux_head, self.direction_head.weight.device, self._bound_hidden_width
         _require(type(head) is nn.Linear and head.in_features == width and head.out_features == 57
             and tuple(head.weight.shape) == (57, width) and head.bias is not None and tuple(head.bias.shape) == (57,)

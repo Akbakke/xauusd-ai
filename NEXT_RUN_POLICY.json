@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T19:44:38.710206+00:00",
-  "status": "M5_FIVE_PRIORITY_CANDIDATE_SOURCE_TESTED",
+  "status": "M5_FIVE_PRIORITY_SYNTHETIC_INTEGRATION_TESTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Integrate the single fixed 5-minute-priority loss as a separate bound research objective, preserve baseline behavior and exact initial model, then perform focused native/private qualification before any full fit.",
+  "next_action": "Prepare exact private qualification and source-transition bindings for the five-priority candidate; establish fresh native initial-output parity and four-update/resume evidence before any full-fit plan. Existing global training gates remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -47139,24 +47139,59 @@
     "verification": "Result/terminal SHA, input bindings, fixed source, aggregate batch counts, cosine and vector norm identity independently checked; analytic formula against synthetic PyTorch autograd passed."
   },
   "direction_m5_five_priority_source_20261029_001": {
-    "status": "SYNTHETIC_SOURCE_TESTED_NO_EXECUTION",
+    "status": "SYNTHETIC_INTEGRATION_TESTED_NO_EXECUTION",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FIVE_PRIORITY_DESIGN_20261029.json",
       "sha256": "b4a06aaa2d723941c1b64a58fc5ec34ec6456642f71296a7bbac6788df98581b"
     },
     "loss_source": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_five_priority_v1.py",
-      "sha256": "6619c96ec802aae3dcfe6894431b18a409964df62b2045ad7069cc1d3f1f7fa6"
+      "sha256": "bf302c42b70947f2e497022e325c9c4ede00ad6c0f5fa75a0aa3285c2c233140"
     },
     "focused_tests": {
       "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_five_priority_v1.py",
       "sha256": "73efdcd5dd451305cdb624ef6d450abfd05636aebb68da9ed4f1d342894577bd"
     },
     "tests_passed": 7,
-    "scope": "One fixed tenfold 5-minute BCE cell weight; all 60 corrected targets preserved. Candidate code has no data/model/training authority; native integration and separate qualification remain outstanding.",
+    "scope": "Opt-in, distinct five-priority objective bound to M5 price-only feature view, recipe, private-step and full-fit step. Synthetic tests verify unchanged initial parameters/logits/RNG, proper 60-head masking, dispatch and exact stochastic resume. Real private qualification, source transition authority, fresh candidate initial parity, launch plan, training and any predictive claim remain closed.",
     "training_authorized": false,
     "model_forwards_authorized": false,
     "test_data_used": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "pre_integration_loss_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_five_priority_v1.py",
+      "sha256": "6619c96ec802aae3dcfe6894431b18a409964df62b2045ad7069cc1d3f1f7fa6"
+    },
+    "integrated_source_owners": {
+      "gx1/contracts/entry_model_native_train_recipe_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_train_recipe_v1.py",
+        "sha256": "e0b3cd3fec541ce45ace23dbbfeea3a986216395b0ad06b2d374af3c1708b51e"
+      },
+      "gx1/contracts/entry_native_direction_dense_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_v1.py",
+        "sha256": "9fddcfff92e7bcbd427df846b92db0a2b658dc7098d0a6ec0851f35a1f80da26"
+      },
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+        "sha256": "1a9fdd66efa99e36b5ce975a870dd6aa49c6a027a89169dd0397915febb174fe"
+      },
+      "gx1/contracts/entry_native_direction_five_priority_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_five_priority_v1.py",
+        "sha256": "bf302c42b70947f2e497022e325c9c4ede00ad6c0f5fa75a0aa3285c2c233140"
+      },
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "64df445bbd2cd96be37968171d46eb6ba5a20a6510163457ab5aeb0509e895ee"
+      },
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+        "sha256": "6e9d7c16ff203bbe365e9209e2164e223a2367db02b5613d6ffc3d7c86003722"
+      }
+    },
+    "integration_tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_five_priority_integration_v1.py",
+      "sha256": "eb0e1d658614bfdf63306c24f90c75fc1bd73439f8349d945b0b9ac835378fb5"
+    },
+    "focused_tests_passed": 56
   }
 }

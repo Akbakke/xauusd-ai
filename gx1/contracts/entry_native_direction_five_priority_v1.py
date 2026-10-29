@@ -17,14 +17,17 @@ PRIMARY_MINUTES = 5
 PRIMARY_WEIGHT = 10
 
 
+_PRIORITY_OBJECTIVE = {k:v for k,v in dense_direction_research_contract().items() if k != 'contract_sha256'}
+_PRIORITY_OBJECTIVE.update(schema_version='gx1_entry_native_direction_dense_five_priority_v1',
+                           loss='BCE_with_logits_weight_10_on_5min_other_59_weight_1_divided_by_eligible_weight_sum',
+                           primary_horizon_minutes=PRIMARY_MINUTES, primary_horizon_weight=PRIMARY_WEIGHT)
+_PRIORITY_OBJECTIVE_JSON = json.dumps(_PRIORITY_OBJECTIVE, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+_PRIORITY_OBJECTIVE_SHA = hashlib.sha256(_PRIORITY_OBJECTIVE_JSON).hexdigest()
+
+
 def five_priority_direction_contract() -> dict[str, Any]:
-    """A distinct immutable objective identity; original dense identity stays intact."""
-    value = {k:v for k,v in dense_direction_research_contract().items() if k != 'contract_sha256'}
-    value.update(schema_version='gx1_entry_native_direction_dense_five_priority_v1',
-                 loss='BCE_with_logits_weight_10_on_5min_other_59_weight_1_divided_by_eligible_weight_sum',
-                 primary_horizon_minutes=PRIMARY_MINUTES, primary_horizon_weight=PRIMARY_WEIGHT)
-    raw = json.dumps(value,sort_keys=True,separators=(',', ':'),allow_nan=False).encode()
-    return {**value,'contract_sha256':hashlib.sha256(raw).hexdigest()}
+    """Return a copy of the distinct immutable objective identity."""
+    return {**json.loads(_PRIORITY_OBJECTIVE_JSON), 'contract_sha256':_PRIORITY_OBJECTIVE_SHA}
 
 
 def five_priority_direction_binary_loss(logit_up: torch.Tensor, *, sign: torch.Tensor,
@@ -39,11 +42,11 @@ def five_priority_direction_binary_loss(logit_up: torch.Tensor, *, sign: torch.T
         return result
     mask = result['eligible_mask']
     n5 = result['per_horizon_counts'][PRIMARY_MINUTES-1]['eligible_cells']
-    horizons = torch.nonzero(mask, as_tuple=True)[1]
     logits = logit_up[mask]
     labels = (sign[mask] == 1).to(dtype=logits.dtype)
-    weights = torch.where(horizons == PRIMARY_MINUTES-1,
-                          torch.full_like(logits, float(PRIMARY_WEIGHT)), torch.ones_like(logits))
+    cell_weights = torch.ones_like(logit_up)
+    cell_weights[:, PRIMARY_MINUTES-1] = float(PRIMARY_WEIGHT)
+    weights = cell_weights[mask]
     denominator = n + (PRIMARY_WEIGHT-1)*n5
     loss = F.binary_cross_entropy_with_logits(logits, labels, weight=weights, reduction='sum') / denominator
     if not bool(torch.isfinite(loss)) or not bool(loss >= 0):
