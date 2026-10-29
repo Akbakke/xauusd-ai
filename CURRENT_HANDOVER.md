@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — M5-MOMENTUMKONTROLL 003 BUNDET: Én ny plan er bundet til den ferdigtrente M5-modellen, den opprinnelige forhåndsdefinerte populasjonen og intervensjonen, historisk fit-kildekontroll og den testede nye runneren. Eksakt 250 W konfigurert maksimum, fortsatt 170 W stopp for faktisk trekk og eksisterende temperatur-/kapasitetsvakter. Maks 750 forwardkall og ingen optimizersteg. De to avviste planene kan ikke relanseres. Ingen ny retningsscore ennå. Se NEXT_RUN_POLICY.
+
 29.10 — 250 W-PRODUSENTRETTELSE KONTROLLERT: 15 fokuserte tester bestod, inkludert syntetiske sperrer ved faktisk trekk 171 W, konfigurert grense 251 W, kjerne 66 °C og minne 81 °C. Kun en eksakt hashbundet M5-intervensjonsplan 003 kan få 250 W konfigurert; øvrige produsenter beholder eksisterende grense. Historisk fit-runner og ny aktiv runner har hver sin kontrollerte kildebinding. Ingen modell er kjørt; neste steg er å binde én ny plan til testet kilde. Se NEXT_RUN_POLICY.
 
 29.10 — SNEVER 250 W-PRODUSENTRUTE UNDER KILDEKONTROLL: Kun eksakt hashbundet M5-intervensjonsplan 003 kan få 250 W konfigurert grense i CUDA-produsenten. Vakten for faktisk trekk 170 W, 65/80 °C, signert telemetri, GPU-minne, tids- og kapasitetsgrenser beholdes. Den fullstendige historiske fit-kildevalideringen og den opprinnelige Git-bloben kontrolleres separat fra den nye kjørende runnerens hash; de øvrige 62 fit-kildeeierne må fortsatt være byteidentiske. Koden må testes før en ny plan eventuelt bindes. Ingen modellkjøring er startet og ingen ny edge er målt. Se NEXT_RUN_POLICY.
