@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T17:58:23.456436+00:00",
-  "status": "M5_COMPARISON_COMPLETE_MOMENTUM_STATE_INSPECTION_AUTHORIZED",
+  "observed_utc": "2026-10-29T17:59:08.400440+00:00",
+  "status": "M5_COMPARISON_AND_MOMENTUM_STATE_CHECK_COMPLETE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Inspect the four price-momentum projection/gate parameters and TRAIN normalization metadata once, then close its gate and report measured limits.",
+  "next_action": "Measure the trained price fields contribution with a separately bounded fixed-model intervention on TRAIN and reused development samples, with no TEST or retraining; do not assume parameter magnitude explains the outcome.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35913,7 +35913,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Closed; completed fit, comparison and independent verification are consumed.",
+  "training_enabled_scope": "Closed; M5 fit, comparison and read-only checks are consumed.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -46153,9 +46153,9 @@
     "economic_edge_qualified": false
   },
   "independent_m5_momentum_state_check_20261029_001": {
-    "status": "AUTHORIZED_ONE_READONLY_STATE_INSPECTION",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "status": "COMPLETE_CONSUMED_ZERO_INIT_TRAINED_NONZERO",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "model_forward_authorized": false,
@@ -46166,8 +46166,8 @@
     "broker_access_allowed": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "worker": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/inspect_m5_momentum_state_once.py",
       "sha256": "ded1d39b425023b7c7ca61931df7b198b7ef4cc4110a51c3b3edec2d953f4711"
@@ -46202,6 +46202,32 @@
     "memory_limit": "4G",
     "cpu_threads": 1,
     "scope": "Read only the hash-bound own initial and final checkpoint tensors and fixed TRAIN-normalization metadata, without market data, model construction, forward, fit or TEST; quantify zero initialization and actual RSI/MACD/ret_1 parameter movement.",
-    "user_authorization": "Direct independent cause investigation for near-identical M5 predictions without repeated approvals."
+    "user_authorization": "Direct independent cause investigation for near-identical M5 predictions without repeated approvals.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_MOMENTUM_STATE_CHECK_001/RESULT.json",
+      "sha256": "2cf9aaad52af8b8542236625a455ccb2100e1097311850e6eadcd152113584d9"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_MOMENTUM_STATE_CHECK_001/TERMINAL.json",
+      "sha256": "ab0634a759602fdb2aaf6d0f4e644ef58010232b69fdec7efe9f6ad02dcf2290"
+    },
+    "initial_projection_nonzero": 0,
+    "trained_projection_nonzero": 512,
+    "trained_projection_elements": 512,
+    "trained_projection_rms": 0.002573976636907448,
+    "trained_fields_nonzero": {
+      "macd_hist_atr": 128,
+      "macd_line_atr": 128,
+      "ret_1": 128,
+      "rsi14_centered": 128
+    },
+    "trained_gate_weights_nonzero": {
+      "d1": 512,
+      "h1": 512,
+      "h4": 512,
+      "m15": 512,
+      "m5": 512
+    },
+    "economic_edge_qualified": false
   }
 }
