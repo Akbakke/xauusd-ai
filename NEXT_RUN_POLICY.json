@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T17:53:48.460485+00:00",
-  "status": "M5_COMPARISON_COMPLETE_INDEPENDENT_CHECK_AUTHORIZED",
+  "observed_utc": "2026-10-29T17:54:38.075426+00:00",
+  "status": "M5_PRICE_ONLY_COMPARISON_COMPLETE_NO_DIRECTION_IMPROVEMENT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Run one bounded independent saved-prediction rank replay and similarity audit, then close its gate and report the findings.",
+  "next_action": "Report the completed M5 comparison; the near-identical outputs motivate a separately bounded investigation of effective indicator contribution and input scale, without assuming its cause.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35913,7 +35913,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Closed; complete M5 fit and fixed comparison are consumed.",
+  "training_enabled_scope": "Closed; completed fit, comparison and independent verification are consumed.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -46078,12 +46078,16 @@
         }
       ]
     },
-    "all_60_above_half_both_simultaneous_bands": 0
+    "all_60_above_half_both_simultaneous_bands": 0,
+    "independent_prediction_similarity_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_PREDICTION_SIMILARITY_001/RESULT.json",
+      "sha256": "b9e903c9065ceca47156aeaf1d290266d20fd0a93293b5fabf42b757a8a891d4"
+    }
   },
   "independent_m5_saved_prediction_similarity_20261029_001": {
-    "status": "AUTHORIZED_SINGLE_READONLY_REPLAY",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "status": "COMPLETE_CONSUMED_ALL_60_RANK_REPLAY",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "model_forward_authorized": false,
@@ -46095,8 +46099,8 @@
     "broker_access_allowed": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "worker": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/verify_m5_predictions_once.py",
       "sha256": "30500fd4c449edf38ce8789a162b8b5b739c267e07543303d411017c9407e40a"
@@ -46120,6 +46124,32 @@
     "cpu_threads": 1,
     "scope": "Independently replay fixed AUC for all 60 on the same reused development rows, and quantify 5-minute prediction/logit similarity. No model, intervention, training or TEST.",
     "tie_rank_synthetic_tests_passed": 2,
-    "user_authorization": "Direct independent direction analysis and fault finding, no repeated approvals."
+    "user_authorization": "Direct independent direction analysis and fault finding, no repeated approvals.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_PREDICTION_SIMILARITY_001/RESULT.json",
+      "sha256": "b9e903c9065ceca47156aeaf1d290266d20fd0a93293b5fabf42b757a8a891d4"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_PREDICTION_SIMILARITY_001/TERMINAL.json",
+      "sha256": "f03f5b533710cdf602f104769d290525c0035f398ad7be8f495c392d928d3dad"
+    },
+    "five_minute_similarity": {
+      "baseline_accuracy": 0.48604001861330853,
+      "baseline_auc": 0.4969763225475591,
+      "baseline_correct_candidate_wrong": 13,
+      "candidate_accuracy": 0.48615635179153094,
+      "candidate_auc": 0.49696102801578906,
+      "candidate_correct_baseline_wrong": 15,
+      "direction_decisions_changed": 28,
+      "eligible": 17192,
+      "logits_exactly_equal": 0,
+      "max_absolute_logit_difference": 0.00047283805906772614,
+      "mean_absolute_logit_difference": 0.00010642683790425049,
+      "median_absolute_logit_difference": 9.54936258494854e-05,
+      "p99_absolute_logit_difference": 0.0003158066235482693,
+      "pearson_logit_correlation": 0.9999981374967355
+    },
+    "independent_candidate_and_baseline_auc_points_replayed": 120,
+    "economic_edge_qualified": false
   }
 }
