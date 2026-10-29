@@ -341,3 +341,68 @@ def test_three_pass_migration_rejects_changed_recipe_and_incomplete_legacy_befor
         state_owner.migrate_one_pass_terminal_to_three_pass(incomplete,case.model,case.optimizer,original_recipe=case.recipe,
             continuation_recipe=wrong,feature_view_identity=_identity(),parent_order=case.order,device=DEVICE)
     assert _live_hash(case)==before
+
+
+def _make_dense_m1(monkeypatch):
+    from gx1.contracts import entry_native_direction_dense_v1 as dense
+    from tests.test_entry_native_direction_m1_ofi_v1 import _stats
+    base=_make(monkeypatch)
+    model=dense.DenseNativeEntryDirectionResearch(base.model.backbone,m1_ofi_normalization=_stats())
+    identity={**_identity(),'research_objective_sha256':dense.dense_direction_research_contract()['contract_sha256']}
+    model.feature_view_identity=identity
+    recipe=recipes.native_direction_research_recipe(batch_size=2,max_updates=2,dense_minutes=True)
+    optimizer,_=state_owner.build_native_direction_research_optimizer(model,recipe=recipe)
+    model.train();_seed(recipe['seed'])
+    return SimpleNamespace(model=model,optimizer=optimizer,recipe=recipe,order=torch.arange(4,dtype=torch.int64),identity=identity)
+
+
+@pytest.mark.parametrize('name',['m1_ofi_center','m1_ofi_scale','m1_ofi_normalization_sha256'])
+def test_m1_normalization_checkpoint_mismatch_is_rejected_before_any_mutation(monkeypatch,name):
+    case=_make_dense_m1(monkeypatch);model,optimizer,recipe,identity=(case.model,case.optimizer,case.recipe,case.identity)
+    saved=state_owner.capture_native_direction_research_state(model,optimizer,recipe=recipe,feature_view_identity=identity,
+        parent_order=case.order,cursor=0,optimizer_updates=0,device=DEVICE)
+    bad=copy.deepcopy(saved)
+    for component in ('model_state','buffer_state'):
+        tensor=bad[component][name]
+        if name.endswith('sha256'):tensor[0]=(int(tensor[0])+1)%256
+        else:tensor.add_(0.5)
+    bad['model_state_sha256']=state_owner.canonical_model_state_sha256(bad['model_state'])
+    bad['buffer_state_sha256']=state_owner._tree_sha(bad['buffer_state']);_reseal(bad)
+    before=_live_hash(case)
+    with pytest.raises(RuntimeError,match='IMMUTABLE_BUFFER:'+name):
+        state_owner.restore_native_direction_research_state(bad,model,optimizer,recipe=recipe,
+            feature_view_identity=identity,parent_order=case.order,device=DEVICE)
+    assert _live_hash(case)==before
+    with torch.no_grad():model.m1_ofi_in.weight.add_(0.25)
+    state_owner.restore_native_direction_research_state(saved,model,optimizer,recipe=recipe,
+        feature_view_identity=identity,parent_order=case.order,device=DEVICE)
+    assert _live_hash(case)==before
+
+
+def test_dense_m1_stochastic_resume_matches_uninterrupted_updates(monkeypatch):
+    from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_binary_loss
+    def update(case,step):
+        features=_features(step)
+        features.update(m1_ofi_contracts=torch.tensor([[1.,2.,3.,4.,5.],[5.,4.,3.,2.,1.]],dtype=torch.float64),
+            m1_ofi_observed=torch.tensor([[True]*5,[True,False,True,True,True]]))
+        features['m1_ofi_contracts'][1,1]=0.
+        logits=case.model(**features)['logit_up']
+        decision=torch.tensor([100+2*step,101+2*step],dtype=torch.int64)*MINUTE
+        sign=torch.where(torch.arange(60)%2==0,1,-1).to(torch.int8).repeat(2,1);sign[1]*=-1
+        result=dense_direction_binary_loss(logits,sign=sign,observed=torch.ones((2,60),dtype=torch.bool),
+            decision_ns=decision,terminal_time_ns=decision[:,None]+torch.arange(1,61,dtype=torch.int64)[None,:]*MINUTE,
+            cutoff_ns=200*MINUTE)
+        assert result['update_allowed'];result['loss'].backward()
+        trainer._optimizer_step_with_finite_gradients(model=case.model,optimizer=case.optimizer)
+    def capture(case,cursor,updates):
+        return state_owner.capture_native_direction_research_state(case.model,case.optimizer,recipe=case.recipe,
+            feature_view_identity=case.identity,parent_order=case.order,cursor=cursor,optimizer_updates=updates,device=DEVICE)
+    reference=_make_dense_m1(monkeypatch);update(reference,0);update(reference,1);expected=capture(reference,4,2)
+    interrupted=_make_dense_m1(monkeypatch);update(interrupted,0);saved=capture(interrupted,2,1)
+    resumed=_make_dense_m1(monkeypatch)
+    state_owner.restore_native_direction_research_state(saved,resumed.model,resumed.optimizer,recipe=resumed.recipe,
+        feature_view_identity=resumed.identity,parent_order=resumed.order,device=DEVICE)
+    update(resumed,1);actual=capture(resumed,4,2)
+    assert actual['contract_sha256']==expected['contract_sha256']
+    assert actual['optimizer_state_sha256']==expected['optimizer_state_sha256']
+    assert actual['rng_state_sha256']==expected['rng_state_sha256']

@@ -44132,7 +44132,9 @@
       "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "c9ec19ed0d3b2da2779c0d92f76acb6087739a41621d70b3da669aa385084677",
       "tests/test_entry_native_direction_research_campaign_v1.py": "294851b129d26b5d25cc4251fd72a28108222249d399709f6eb0b87c364716cb",
       "gx1/scripts/run_entry_native_direction_research_window_v1.py": "bda54730fbbea6ef24bf30b2a57f0e471ba9b6fc74258cae68f8a1e1a1c3cbb2",
-      "tests/test_entry_native_direction_decimal_private_integration_v1.py": "30503bfad1ed66a3864b4b3fe239ac3d167a14eea3f395ea43641e63a692af8e"
+      "tests/test_entry_native_direction_decimal_private_integration_v1.py": "30503bfad1ed66a3864b4b3fe239ac3d167a14eea3f395ea43641e63a692af8e",
+      "gx1/contracts/entry_native_direction_research_state_v1.py": "062fdc24bb3586380c7ddd4d8b6ccfe529e7010075ae4d907da63fe23d2e0c38",
+      "tests/test_entry_native_direction_research_state_v1.py": "72839ae6cdc872f4d32bcc2f51974b78949367cefd87f785483ff1f4384cd08b"
     },
     "candidate_private_adapter_scope": "private_dense_decimal_m1_price_input_adapter",
     "candidate_private_adapter_explanation": "An internal candidate scope can now load exact guarded source files and an existing normalization, or accept explicitly supplied synthetic objects. Public campaign validators reject the scope; no genuine fit, genuine source load or training admission has happened.",
@@ -44157,7 +44159,13 @@
     "candidate_m1_normalization_plan_authorized": false,
     "candidate_gradient_detail_synthetic_tests_passed": 212,
     "candidate_gradient_detail_scope": "Separately count each ordered M1 value and missingness-mask input column; count each price feature projection column shared across timeframes and each feature-specific timeframe gate gradient. Zero stays zero. Synthetic native-model test only; no genuine learning or edge claim.",
-    "candidate_gradient_detail_real_model_runs": 0
+    "candidate_gradient_detail_real_model_runs": 0,
+    "candidate_m1_restore_immutable_buffer_bug_fixed": true,
+    "candidate_m1_restore_bug_scope": "Only the new M1-enabled research model: a semantically inconsistent but internally resealed checkpoint previously failed after mutation. The M1 center, scale and normalization identity are now rejected before load.",
+    "candidate_m1_restore_pre_fix_synthetic_reproductions": 3,
+    "candidate_m1_restore_and_existing_route_synthetic_tests_passed": 116,
+    "candidate_m1_stochastic_resume_synthetic_only": true,
+    "candidate_m1_restore_real_training_affected": false
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",
