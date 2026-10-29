@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T15:32:00.855863+00:00",
-  "status": "M5_PRICE_ONLY_ONEPASS_FIT_AUTHORIZED",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "observed_utc": "2026-10-29T17:51:43.049335+00:00",
+  "status": "M5_PRICE_ONLY_FIT_CONSUMED_COMPARISON_AUTHORIZED",
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Prepare one fresh price-only M5 one-pass campaign, verify host-wide idle and safety guards, reboot physically and run with the GPU power limit at 250 W.",
+  "next_action": "Run the one fixed capped saved-prediction comparison, then close its port and report the primary five-minute and all 60 horizons honestly.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -26287,7 +26287,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": true,
+  "native_launch_authorized": false,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35913,7 +35913,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Only the one new M5 price-only fit on 47602 TRAIN parents; up to four sequential windows of the same trajectory, each physically rebooted.",
+  "training_enabled_scope": "Closed; completed M5 price-only fit is consumed.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -45873,19 +45873,19 @@
     "economic_edge_qualified": false
   },
   "dynamic_m5_direction_price_only_onepass_fit_20261029_001": {
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
-    "physical_restart_before_each_invocation_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
+    "physical_restart_before_each_invocation_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -45895,8 +45895,8 @@
     "relaunch_allowed": false,
     "qualification_weights_for_main_fit": false,
     "test_or_trading_authority": false,
-    "fixed_comparison_authorized": false,
-    "status": "AUTHORIZED_ONE_FRESH_M5_PRICE_ONLY_FIT",
+    "fixed_comparison_authorized": true,
+    "status": "COMPLETE_FIT_COMPARISON_AUTHORIZED",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_RECIPE_20261029.json",
       "sha256": "14ba328acbaff66dadd1e6e6b40fda628badf0767ff414bde49fefa113c1eb71"
@@ -45907,8 +45907,8 @@
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME",
     "max_invocations": 4,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "train_parents": 47602,
     "max_optimizer_updates": 2976,
     "train_passes": 1,
@@ -45943,6 +45943,39 @@
       "response": "stoppe kjøringen og justere alt og så kjøre på nytt",
       "scope": "new M5-entry offline training after completed own private qualification; no repeated approvals",
       "recorded_utc": "2026-10-29T15:32:00.855838+00:00"
-    }
+    },
+    "actual_fit_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/ACTUAL_FIT_REVIEW_001.json",
+      "sha256": "922aede63c4ecb21223caf6d13d9395124573d5f5e1ba088e26bdd3bc46f1c9e"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "11f2319ccf9c815473659465480982aabe6f7f4497201f70bfbcd333aeef4e90"
+    },
+    "fit_receipt": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "dc9a959cef0c64c62d696cc2a46d59e6f1bd47b092c66626a794614f9ad88821"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "f5df28a7e2ea830ac9f80ed7bf71825d52d390b322f9e3e929aadbe72543b4a4"
+    },
+    "power_after": {
+      "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/POWER_RETAIN_M5_PRICE_FIT_20261029_001.json",
+      "sha256": "951134aedd4e514d212e3b70e00fb6b12fc9db8b1d68ab8095f336fc6be68050"
+    },
+    "comparison_wrapper": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/compare_m5_price_once.py",
+      "sha256": "a9ad4cb559edab233dbe4f9c978c93f732997220e3c16f1d3e1f6e23d7604059"
+    },
+    "comparison_output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_FIXED_COMPARISON_001",
+    "comparison_max_invocations": 1,
+    "comparison_claimed_invocations": 0,
+    "comparison_completed_invocations": 0,
+    "comparison_relaunch_allowed": false,
+    "comparison_scope": "Fixed same-row paired 5-minute comparison and 60-horizon candidate simultaneous bands; baseline descriptive all 60. Saved outputs only, no new model execution.",
+    "comparison_alignment_synthetic_tests_passed": 3,
+    "training_predictive_improvement_qualified": false,
+    "economic_edge_qualified": false
   }
 }
