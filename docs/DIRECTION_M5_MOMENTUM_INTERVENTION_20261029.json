@@ -1,0 +1,167 @@
+{
+  "arms": [
+    "rsi14_centered",
+    "macd_line_atr",
+    "macd_hist_atr",
+    "ret_1",
+    "all_four"
+  ],
+  "baseline_requirement": "bit-identical replay of each original saved TRAIN and OOF logit batch before intervention",
+  "batch_size": 16,
+  "bootstrap_replicates": 10000,
+  "broker_orders_paper_live_promotion_authorized": false,
+  "development_batch_stride": 10,
+  "development_population": "every tenth original 16-parent Q1 2025 development batch, 1736 parents including the final partial batch",
+  "headline_horizons_minutes": [
+    5,
+    60
+  ],
+  "input_intervention": "set the selected normalized, gated XAU feature column(s) to zero before the shared momentum projection on all five closed timeframes; keep projection bias, GC, local aliases and all other paths",
+  "inputs": {
+    "checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/states/w0001_TERMINAL_u002976_p047602.pt",
+      "sha256": "4ee6aab6d583a7ed16061a881f88206739830bdd36ea8cd400297d4cc24fc73e"
+    },
+    "comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_FIXED_COMPARISON_001/RESULT.json",
+      "sha256": "a46eeabb3fbcb0722883e4a4e30f5ad421e685d31a343b033c11437b942f4b73"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "fit_receipt": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "dc9a959cef0c64c62d696cc2a46d59e6f1bd47b092c66626a794614f9ad88821"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "11f2319ccf9c815473659465480982aabe6f7f4497201f70bfbcd333aeef4e90"
+    },
+    "fit_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/ACTUAL_FIT_REVIEW_001.json",
+      "sha256": "922aede63c4ecb21223caf6d13d9395124573d5f5e1ba088e26bdd3bc46f1c9e"
+    },
+    "oof_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "6df82d7649b61ebc17e6c14fee0d60c542604b650c141e3d88cd6d30f183f321"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "f5df28a7e2ea830ac9f80ed7bf71825d52d390b322f9e3e929aadbe72543b4a4"
+    },
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_RECIPE_20261029.json",
+      "sha256": "14ba328acbaff66dadd1e6e6b40fda628badf0767ff414bde49fefa113c1eb71"
+    },
+    "similarity_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_PREDICTION_SIMILARITY_001/RESULT.json",
+      "sha256": "b9e903c9065ceca47156aeaf1d290266d20fd0a93293b5fabf42b757a8a891d4"
+    },
+    "synthetic_test_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/TEST_PLAN.json",
+      "sha256": "affd254170ff12186cc1ef3139583558f38ee181db7164ff9edac31ca0107f57"
+    },
+    "synthetic_test_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/TEST_TERMINAL.json",
+      "sha256": "3e7283293ae5fc46aac5e2d2f89c8396be90f10d8ab1c0882d1e2ea88e6b5992"
+    },
+    "train_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.npz",
+      "sha256": "4cb156a4f7390fadac3a63967221d557646d512a6dfa5aa3d6e2f5772e26a20b"
+    },
+    "train_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json",
+      "sha256": "7852725b42b5292038efaa573015e5723495f0c0448380f2b0a45ef245c99004"
+    }
+  },
+  "limitations": "Exploratory internal neutralization on reused data; zeroing can be out of distribution, correlated features and local aliases remain, and contribution is not predictive value after retraining or economic edge.",
+  "max_forward_calls": 750,
+  "model_retraining_authorized": false,
+  "optimizer_steps_authorized": false,
+  "paired_blocks": [
+    "UTC_DAY",
+    "UTC_WEEK_MONDAY"
+  ],
+  "paired_interval_alpha": 0.0008333333333333334,
+  "paired_metrics": [
+    "auc",
+    "logloss",
+    "brier"
+  ],
+  "report_horizons_minutes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60
+  ],
+  "schema_version": "gx1_m5_momentum_intervention_design_v1",
+  "status": "PREDECLARED_BEFORE_INTERVENTION",
+  "test_data_used": false,
+  "timeframes": [
+    "m5",
+    "m15",
+    "h1",
+    "h4",
+    "d1"
+  ],
+  "train_analysis": "descriptive influence only",
+  "train_population": "the 256 saved FINAL_TRAIN diagnostic parents in their original batches",
+  "wall_seconds": 3300
+}

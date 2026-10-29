@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T17:59:08.400440+00:00",
-  "status": "M5_COMPARISON_AND_MOMENTUM_STATE_CHECK_COMPLETE",
+  "observed_utc": "2026-10-29T18:25:05.203900+00:00",
+  "status": "M5_MOMENTUM_INTERVENTION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Measure the trained price fields contribution with a separately bounded fixed-model intervention on TRAIN and reused development samples, with no TEST or retraining; do not assume parameter magnitude explains the outcome.",
+  "next_action": "Run the one predeclared guarded CUDA producer, compare all five interventions to exact saved baseline predictions and close the consumed port.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46229,5 +46229,35 @@
       "m5": 512
     },
     "economic_edge_qualified": false
+  },
+  "independent_m5_momentum_intervention_20261029_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_001.json",
+      "sha256": "e47abc6baf35f8fb9c600d8e0dc867e5a0af3724b2e7c7f8920e5aec1f99446f"
+    },
+    "execution_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "model_forwards_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "class": "guarded_cuda_producer",
+    "memory_max": "20G",
+    "wall_seconds": 3300,
+    "max_model_forwards": 750,
+    "scope": "On the consumed trained price_only M5 model, replay 256 fixed TRAIN parents and every tenth original Q1 batch exactly, then neutralize each of RSI14, MACD-line, MACD-histogram, ret_1 and all four at the shared XAU projection input across five closed timeframes. Keep GC, other paths and all 60 targets. No training, TEST or trading.",
+    "user_authorization": "User requested direct independent root-cause investigation and M5 test without repeated approvals.",
+    "focused_synthetic_tests_passed": 18,
+    "metadata_preflight": "PASS_REUSED_M5_METADATA_PREFLIGHT_59_REFERENCES",
+    "additional_real_architecture_synthetic_test_passed": true
   }
 }

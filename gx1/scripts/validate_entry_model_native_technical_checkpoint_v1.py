@@ -1083,6 +1083,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             device="cuda", out_dir=stale_args.out_dir, mode="stale_context")
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    momentum_options = ("--direction-m5-momentum-intervention-plan", "--direction-m5-momentum-intervention-plan-sha256")
+    if any(value.partition("=")[0] in momentum_options for value in supplied):
+        momentum_parser = argparse.ArgumentParser(description="Bounded trained M5 price momentum intervention",
+            allow_abbrev=False, add_help=False)
+        momentum_parser.add_argument(momentum_options[0], type=Path, required=True)
+        momentum_parser.add_argument(momentum_options[1], required=True)
+        momentum_parser.add_argument("--device", choices=("cuda",), required=True)
+        momentum_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*momentum_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                momentum_parser.error(f"duplicate flag: {option}")
+        momentum_args = momentum_parser.parse_args(supplied)
+        if not momentum_args.out_dir.is_absolute():
+            momentum_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.direction_m5_momentum_intervention_v1 import run as run_m5_momentum_intervention
+        report = run_m5_momentum_intervention(plan_path=momentum_args.direction_m5_momentum_intervention_plan,
+            plan_sha256=str(momentum_args.direction_m5_momentum_intervention_plan_sha256),
+            device="cuda", out_dir=momentum_args.out_dir)
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     gc_options = ("--direction-gc-mtf-intervention-plan", "--direction-gc-mtf-intervention-plan-sha256")
     if any(value.partition("=")[0] in gc_options for value in supplied):
         gc_parser = argparse.ArgumentParser(description="Bounded trained direction GC-history intervention",
