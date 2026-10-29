@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
-  "next_action": "Run the explicitly approved one-shot, TRAIN-only M1 normalization (CPU 4G, max 1200 seconds), verify and close its authority; the separate conditional audit and all model training remain unadmitted.",
+  "next_action": "Prepare a separately authorized fresh initial/gradient/resume qualification for matched M1/M5 candidates using the completed TRAIN-only normalization; the separate conditional audit is not admitted. Training, TEST and trading remain sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -44020,7 +44020,7 @@
     "focused_tests_passed": 108,
     "post_import_cleanup_targeted_tests_passed": 5,
     "real_model_forwards_on_new_route": 0,
-    "genuine_m1_normalization_fits": 0,
+    "genuine_m1_normalization_fits": 1,
     "new_model_optimizer_updates": 0,
     "fresh_initial_baseline_required": true,
     "genuine_fit_authorized": false,
@@ -44074,7 +44074,7 @@
     },
     "latest_focused_tests_passed": 45,
     "extra_negative_binding_tests_passed": 23,
-    "new_normalization_fits": 0,
+    "new_normalization_fits": 1,
     "new_genuine_model_forwards": 0,
     "new_optimizer_updates": 0,
     "roll_owner_source_binding_required": true,
@@ -44146,7 +44146,7 @@
     ],
     "candidate_adapter_synthetic_tests_passed": 184,
     "candidate_source_bound_guarded_real_loader_implemented": true,
-    "candidate_genuine_m1_normalization_fit_authorized": true,
+    "candidate_genuine_m1_normalization_fit_authorized": false,
     "candidate_public_campaign_admits_scope": false,
     "candidate_parent_order_binding": "An explicit future plan must choose chronological prefix order or the original fixed TRAIN-only permutation; missing or unknown order is rejected. Both candidate arms must bind the same chosen order.",
     "candidate_order_targeted_synthetic_tests_passed": 5,
@@ -44158,7 +44158,7 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TRAIN_NORMALIZATION_20261029.json",
       "sha256": "78f035271c8cf2e70fb224bff0656eba0044046942f7a407fd4a091301e0fc93"
     },
-    "candidate_m1_normalization_plan_authorized": true,
+    "candidate_m1_normalization_plan_authorized": false,
     "candidate_gradient_detail_synthetic_tests_passed": 212,
     "candidate_gradient_detail_scope": "Separately count each ordered M1 value and missingness-mask input column; count each price feature projection column shared across timeframes and each feature-specific timeframe gate gradient. Zero stays zero. Synthetic native-model test only; no genuine learning or edge claim.",
     "candidate_gradient_detail_real_model_runs": 0,
@@ -44176,7 +44176,18 @@
     "candidate_m1_context_report_join_bug_fixed": true,
     "candidate_m1_context_join_pre_fix_reproduced": true,
     "candidate_m1_context_report_synthetic_tests_passed": 98,
-    "candidate_m1_context_join_genuine_runs": 0
+    "candidate_m1_context_join_genuine_runs": 0,
+    "candidate_m1_normalization_completed": true,
+    "candidate_m1_normalization_ref": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001/OUTPUT/NORMALIZATION.json",
+      "sha256": "732f1cab3504adfa668cb1fcbc6bf625d08bf95ac6205032b5cfd800642d8bbb"
+    },
+    "candidate_m1_normalization_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001/OUTPUT/RESULT.json",
+      "sha256": "e3cc9b2c99c5ab1afe404b6d642ae018fe708fbdfa824f8a0e502b0b292b6983"
+    },
+    "candidate_m1_normalization_observed_minutes": 234875,
+    "candidate_m1_normalization_train_parents": 47602
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",
@@ -44208,22 +44219,22 @@
     "limitations": "Not conditional on all existing model inputs; complete M1 selection and reused development prevent generalization or economic claims."
   },
   "independent_direction_m1_train_normalization_20261029_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TRAIN_NORMALIZATION_20261029.json",
       "sha256": "78f035271c8cf2e70fb224bff0656eba0044046942f7a407fd4a091301e0fc93"
     },
-    "execution_authorized": true,
-    "normalization_fit_authorized": true,
+    "execution_authorized": false,
+    "normalization_fit_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "scope": "One source/roll/model-clock-bound M1 OFI normalization fit using only observed closed minutes of the fixed 47602-row TRAIN prefix; no target values, model, optimizer, TEST, broker or trading.",
     "wall_seconds": 1200,
     "memory_limit": "4G",
     "cpu_only": true,
-    "genuine_fit_executed": false,
+    "genuine_fit_executed": true,
     "model_forward_authorized": false,
     "training_authorized": false,
     "test_data_used": false,
@@ -44233,6 +44244,37 @@
     "pre_admission_source_commit": "c414dafc",
     "synthetic_fit_passed_under_no_model_profile": true,
     "synthetic_profile_torch_imported": false,
-    "user_approval": "2026-10-29: Ja, kjør M1-normaliseringen; exact one-shot TRAIN-only CPU plan."
+    "user_approval": "2026-10-29: Ja, kjør M1-normaliseringen; exact one-shot TRAIN-only CPU plan.",
+    "source_head": "f44cd5f4b9bbff2b3e2a473152868ddd3dec20cf",
+    "invocation_claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001/INVOCATION_CLAIM.json",
+      "sha256": "f5481140e23bbed2b015a9befd71ac21e78b38bed6f1d59fa2e1a1a8909a7f0f"
+    },
+    "outer_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001/TERMINAL.json",
+      "sha256": "047f6079f894bc387997fa022584fd62bb93615b307efd79dac619c25e5925e4"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001/OUTPUT/TERMINAL.json",
+      "sha256": "0b2d7f17ef9ac72a03ffd882b86a20d3737c28eb425ae9d4bfc9b5bf04959d3b"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001/OUTPUT/RESULT.json",
+      "sha256": "e3cc9b2c99c5ab1afe404b6d642ae018fe708fbdfa824f8a0e502b0b292b6983"
+    },
+    "normalization": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001/OUTPUT/NORMALIZATION.json",
+      "sha256": "732f1cab3504adfa668cb1fcbc6bf625d08bf95ac6205032b5cfd800642d8bbb"
+    },
+    "normalization_contract_sha256": "425dbf40693db3a481000a4c7d16bf37781ec6cb1ee33332f2e14c346acdc404",
+    "train_parent_rows": 47602,
+    "train_observed_minutes": 234875,
+    "train_missing_or_masked_minutes": 3135,
+    "normalization_fit_calls": 1,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "target_values_used": false,
+    "source_and_inputs_unchanged": true,
+    "elapsed_seconds": 1.0453709679968597
   }
 }
