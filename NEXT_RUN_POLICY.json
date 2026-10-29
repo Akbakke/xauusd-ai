@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T17:54:38.075426+00:00",
-  "status": "M5_PRICE_ONLY_COMPARISON_COMPLETE_NO_DIRECTION_IMPROVEMENT",
+  "observed_utc": "2026-10-29T17:58:23.456436+00:00",
+  "status": "M5_COMPARISON_COMPLETE_MOMENTUM_STATE_INSPECTION_AUTHORIZED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Report the completed M5 comparison; the near-identical outputs motivate a separately bounded investigation of effective indicator contribution and input scale, without assuming its cause.",
+  "next_action": "Inspect the four price-momentum projection/gate parameters and TRAIN normalization metadata once, then close its gate and report measured limits.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46151,5 +46151,57 @@
     },
     "independent_candidate_and_baseline_auc_points_replayed": 120,
     "economic_edge_qualified": false
+  },
+  "independent_m5_momentum_state_check_20261029_001": {
+    "status": "AUTHORIZED_ONE_READONLY_STATE_INSPECTION",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "model_forward_authorized": false,
+    "normalization_fit_authorized": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/inspect_m5_momentum_state_once.py",
+      "sha256": "ded1d39b425023b7c7ca61931df7b198b7ef4cc4110a51c3b3edec2d953f4711"
+    },
+    "inputs": {
+      "initial_state": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/states/INITIAL_0U.pt",
+        "sha256": "f194a33144a291f9b390ad20cc61f82abe3e46a2b929b84769073577c35c0956"
+      },
+      "final_state": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/states/w0001_TERMINAL_u002976_p047602.pt",
+        "sha256": "4ee6aab6d583a7ed16061a881f88206739830bdd36ea8cd400297d4cc24fc73e"
+      },
+      "prefix_normalization": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PREFIX_NORMALIZATION_1.json",
+        "sha256": "54bc7ca606c5b2c3b077f0207b2938e80d055654a9d3b37d135fc33b27a4e0db"
+      },
+      "model_source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "ac35009027d496c997bbb8e3ce615d00f22d3d97214176fd67bc7d2d6425115f"
+      },
+      "fit_review": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/ACTUAL_FIT_REVIEW_001.json",
+        "sha256": "922aede63c4ecb21223caf6d13d9395124573d5f5e1ba088e26bdd3bc46f1c9e"
+      },
+      "similarity_review": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_PREDICTION_SIMILARITY_001/RESULT.json",
+        "sha256": "b9e903c9065ceca47156aeaf1d290266d20fd0a93293b5fabf42b757a8a891d4"
+      }
+    },
+    "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_MOMENTUM_STATE_CHECK_001",
+    "memory_limit": "4G",
+    "cpu_threads": 1,
+    "scope": "Read only the hash-bound own initial and final checkpoint tensors and fixed TRAIN-normalization metadata, without market data, model construction, forward, fit or TEST; quantify zero initialization and actual RSI/MACD/ret_1 parameter movement.",
+    "user_authorization": "Direct independent cause investigation for near-identical M5 predictions without repeated approvals."
   }
 }
