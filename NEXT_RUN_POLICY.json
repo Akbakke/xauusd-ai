@@ -45055,5 +45055,75 @@
     "new_optimizer_steps": 0,
     "test_data_used": false,
     "edge_qualified": false
+  },
+  "direction_five_minute_sign_mapping_and_inversion_20261029": {
+    "status": "BOUND_SOURCE_AND_SAVED_CONFUSION_ANALYSIS_NO_NEW_RUN",
+    "scope": "Corrected one-pass sixty-head research model, mature observed nonzero 5-minute rows in one reused Q1 2025 development fold.",
+    "fitted_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_RECIPE_CANDIDATE_20261028.json",
+      "sha256": "9ec7d21494f80a5537d0fd0c6ed6132fc2514083d30c27a3195005cbcdda7dd8"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "a773849f2895a77c3af0567a3d9421f9f8724fb5592f8e1c43204af497218757"
+    },
+    "fixed_comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/DECIMAL_FIXED_COMPARISON_001/RESULT.json",
+      "sha256": "73e8e15ade4b456a882f5d84b5f7fe1579d79d38142f84c41b771d4baf38e266"
+    },
+    "target_builder": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_direction_dense_v1.py",
+      "sha256": "77462078a177af15836f50d6cbe1e1bd37c1be37988e0742a5a21ec580930c69"
+    },
+    "fitted_dense_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_v1.py",
+      "sha256": "ec86135c00aaaceb41f44f91517345e4d54a6efc217d3efdbcf0e414d1ae1a3a",
+      "matching_git_revision": "c77767fab929d0c306add3f79a1a381d76d0b645"
+    },
+    "other_fitted_owner_sha256": {
+      "gx1/contracts/entry_native_direction_research_v1.py": "8beccc55c551c22c37e0af9bec10bc3b911e6ff11c69c6d5ba83abcc1b096e16",
+      "gx1/contracts/entry_native_direction_dense_report_v1.py": "52f2f011019a4ed7157cc53825f42ded5936f8c1411a7043e62f8a7c11c2c6c5",
+      "gx1/contracts/entry_native_direction_context_report_v1.py": "2b6e5cf4bc32cec17091d964a8dd3c64fd91698fa5fce6d3d4fc7216bf1fcf49",
+      "gx1/contracts/entry_direction_probability_reference_v1.py": "59d57110cf7a51da8158f9535088147d50673dea10728a2ebe3c9e469f0cee76"
+    },
+    "verified_direction_chain": [
+      "corrected target uses sign(terminal midpoint minus initial midpoint)",
+      "five-minute head is original anchor row 1, output column 4",
+      "BCE target is 1 for positive sign",
+      "evaluation interprets positive logit as UP"
+    ],
+    "eligible_rows": 17192,
+    "eligible_zero_logits": 0,
+    "original_confusion": {
+      "fn": 7227,
+      "fp": 1609,
+      "tn": 6715,
+      "tp": 1641
+    },
+    "original_correct": 8356,
+    "inverted_correct": 8836,
+    "always_up_correct": 8868,
+    "original_accuracy": 0.48604001861330853,
+    "inverted_accuracy": 0.5139599813866915,
+    "always_up_accuracy": 0.5158213122382503,
+    "original_auc": 0.4969763225475591,
+    "inverted_auc": 0.5030236774524409,
+    "inverted_auc_transformed_simultaneous_intervals": {
+      "auc_simultaneous_day": {
+        "low": 0.473696611114639,
+        "high": 0.5323507437902428
+      },
+      "auc_simultaneous_week": {
+        "low": 0.47533722666081135,
+        "high": 0.5307101282440705
+      }
+    },
+    "inversion_method": "All eligible logits are nonzero; flipping every fixed decision changes correct count from TP+TN to FP+FN. Inverting ranks maps AUC to 1-AUC, including half-credit ties; confidence interval endpoints are transformed as [1-high,1-low].",
+    "limitation": "Post-hoc diagnostic on reused development; not a trading signal, threshold selection, new bootstrap or proof of edge. Source convention verification does not establish feature correctness or model generalization.",
+    "new_raw_market_or_prediction_payload_reads": 0,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "test_data_used": false,
+    "edge_qualified": false
   }
 }
