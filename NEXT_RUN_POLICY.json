@@ -44,12 +44,12 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T14:09:50.522979+00:00",
-  "status": "MATCHED_M1_M5_PRIVATE_MECHANICS_COMPLETE_NO_DIRECTION_EDGE_MEASURED",
+  "observed_utc": "2026-10-29T14:10:41.776077+00:00",
+  "status": "M1_CONDITIONAL_DIRECTION_AUDIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Both exact matched M1/M5 private qualifications are complete and consumed. Any further offline fit must use its own bounded source-bound plan and gates. Preserve genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending, promotion or qualification weight reuse.",
+  "rule": "Only the exact fixed one-shot CPU audit of last M1 OFI within identical M5 OFI strata on reused development data is admitted. All native training remains closed. Preserve genuine inputs, eight families, D1/macro, hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending, promotion or qualification weight reuse.",
   "next_action": "Await explicit approval of the two sequential, capacity-matched private qualification campaigns; full fitting, the separate conditional audit, TEST and trading remain unadmitted.",
   "required_evidence": {
     "risk_objective": {
@@ -44534,14 +44534,14 @@
     "candidate_price_momentum_gradient_guard_scope": "For the compact candidate profile, RSI14, MACD line, MACD histogram and ret_1 each require nonzero shared price-projection gradient in at least one of two logical steps, both for reference and for interrupted/resumed trajectory. Failure means contact was not demonstrated; it is not proof of a data bug, all-timeframe influence or predictive value."
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
-    "status": "PREPARED_NOT_AUTHORIZED",
+    "status": "ADMITTED",
     "pre_admission_rejection_verified_before_payload_and_claim": true,
     "pre_admission_source_commit": "d22858b3e2caf6818ccc485140ea664e010494e8",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TEMPORAL_CONDITIONAL_AUDIT_20261029.json",
       "sha256": "04de7e785ceb1cc5bc1b5796f72ac077418ad2b36eaa474f220d7a6dcba8f27d"
     },
-    "execution_authorized": false,
+    "execution_authorized": true,
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
@@ -44560,7 +44560,12 @@
       "target_archive_members_loaded_for_shape_and_dtype_only_before_plan": true,
       "target_values_or_statistics_inspected_before_plan": false
     },
-    "limitations": "Not conditional on all existing model inputs; complete M1 selection and reused development prevent generalization or economic claims."
+    "limitations": "Not conditional on all existing model inputs; complete M1 selection and reused development prevent generalization or economic claims.",
+    "user_approval": {
+      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler på deg. kjør M1 og M5 test",
+      "scope": "one fixed conditional M1-versus-M5 direction audit, 1–60 minute corrected targets on reused Q1 development",
+      "recorded_utc": "2026-10-29T14:10:41.776060+00:00"
+    }
   },
   "independent_direction_m1_train_normalization_20261029_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
