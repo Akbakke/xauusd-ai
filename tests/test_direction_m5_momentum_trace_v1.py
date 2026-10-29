@@ -106,7 +106,13 @@ def test_trace_hooks_match_real_native_model_routes(bound_history,candidate_case
 def test_validator_dispatches_only_the_fixed_trace_plan(monkeypatch,tmp_path):
  from gx1.scripts import validate_entry_model_native_technical_checkpoint_v1 as validator
  calls=[];monkeypatch.setattr(trace,'run',lambda **kwargs:calls.append(kwargs) or {'status':'SYNTHETIC'})
- plan='/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_001.json'
+ plan='/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_002.json'
  args=['--direction-m5-momentum-intervention-plan',plan,'--direction-m5-momentum-intervention-plan-sha256','a'*64,'--device','cuda','--out-dir',str(tmp_path)]
  assert validator.main(args)==0 and len(calls)==1 and str(calls[0]['plan_path'])==plan
  with pytest.raises(SystemExit):validator.main(args+['--device','cuda'])
+
+
+def test_design_path_is_bound_to_exact_intervention_stage():
+ assert base.design_path_for_stage('independent_m5_momentum_intervention_20261029_003').name=='DIRECTION_M5_MOMENTUM_INTERVENTION_20261029.json'
+ assert base.design_path_for_stage(trace.STAGE).name=='DIRECTION_M5_MOMENTUM_TRACE_20261029.json'
+ with pytest.raises(RuntimeError,match='DESIGN_STAGE'):base.design_path_for_stage('other_stage')

@@ -103,6 +103,12 @@ def influence_summary(sign,observed,terminal,baseline,ablated,cutoff):
             'ablated_correct_original_wrong':int(np.count_nonzero((new_dec==up)&(old_dec!=up)))})
     return out
 
+def design_path_for_stage(stage):
+    names={'independent_m5_momentum_intervention_20261029_003':'DIRECTION_M5_MOMENTUM_INTERVENTION_20261029.json',
+           'independent_m5_momentum_trace_20261029_002':'DIRECTION_M5_MOMENTUM_TRACE_20261029.json'}
+    require(stage in names,'DESIGN_STAGE')
+    return REPO/'docs'/names[stage]
+
 def verified_fit_source_transition(preflight, plan, launch, review, historical_runner):
     """Retain full validated fit provenance while pinning the new live runner."""
     runner='scripts/gx1_capped_run.sh';guard='scripts/gx1_guarded_trainer_exec.sh'
@@ -147,7 +153,7 @@ def run(*,plan_path,plan_sha256,device,out_dir):
             and plan['test_data_used'] is False,'PLAN')
         require(str(out_dir)==plan['output_dir'] and out_dir.parent==ROOT and out_dir.name==OUTPUT_NAME
             and ROOT.resolve(strict=True)==ROOT and not out_dir.exists() and not out_dir.is_symlink(),'OUTPUT_SCOPE')
-        require(plan['design']['path']==str(REPO/'docs/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029.json'),'DESIGN_PATH')
+        require(plan['design']['path']==str(design_path_for_stage(STAGE)),'DESIGN_PATH')
         design=binding.read_bound_json(Path(plan['design']['path']),plan['design']['sha256'])
         require(design['schema_version']=='gx1_m5_momentum_intervention_design_v1' and design['status']=='PREDECLARED_BEFORE_INTERVENTION'
             and design['inputs']==plan['inputs'] and design['arms']==list(ARMS) and design['timeframes']==list(TIMEFRAMES)

@@ -14,8 +14,8 @@ from gx1.audit import direction_m5_momentum_intervention_v1 as base
 
 REPO=base.REPO
 ROOT=base.ROOT
-STAGE='independent_m5_momentum_trace_20261029_001'
-OUTPUT_NAME='DIRECTION_M5_MOMENTUM_TRACE_20261029_001'
+STAGE='independent_m5_momentum_trace_20261029_002'
+OUTPUT_NAME='DIRECTION_M5_MOMENTUM_TRACE_20261029_002'
 TIMEFRAMES=base.TIMEFRAMES
 FAMILY='momentum_flow_encoder'
 JOINT_FIELDS=('local','fused','mtf_repr','global_context')

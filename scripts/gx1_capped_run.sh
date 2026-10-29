@@ -260,9 +260,9 @@ validate_target_command() {
           "$m5_root/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_003.json")
             m5_plan="$m5_root/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_003.json"
             m5_output="$m5_root/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003" ;;
-          "$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_001.json")
-            m5_plan="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_001.json"
-            m5_output="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_20261029_001" ;;
+          "$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_002.json")
+            m5_plan="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_002.json"
+            m5_output="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_20261029_002" ;;
           *) echo "FATAL: unknown M5 momentum producer plan" >&2; exit 75 ;;
         esac
         if ! matches_bound_m5_intervention "$m5_plan" "$m5_output" "$@"; then

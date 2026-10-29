@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T19:22:04.004009+00:00",
-  "status": "M5_MOMENTUM_ACTIVATION_TRACE_001_ADMITTED",
+  "observed_utc": "2026-10-29T19:24:52.745386+00:00",
+  "status": "M5_MOMENTUM_TRACE_002_SOURCE_TESTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Verify actual plan, source hashes, idle machine and signed telemetry, then run exactly once using the guarded CUDA producer. Never relaunch a claimed or consumed plan.",
+  "next_action": "Bind a new 002 trace plan to tested source and unchanged predeclared trace design; verify the actual stage/design binding and hardware before one execution.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46830,14 +46830,14 @@
     "test_data_used": false
   },
   "independent_m5_momentum_trace_20261029_001": {
-    "status": "ADMITTED",
+    "status": "FAILED_CONSUMED_PRECLAIM_DESIGN_PATH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_001.json",
       "sha256": "cf5c2438bf681245ac800f37916357728fd838757835b0c0f74f5eaa30cb5bea"
     },
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "model_forwards_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_forwards_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "native_launch_authorized": false,
@@ -46865,6 +46865,39 @@
     "configured_gpu_max_w": 250,
     "actual_gpu_draw_stop_w": 170,
     "focused_test_count": 19,
-    "user_authorization": "Direct independent root-cause work and M5 testing without repeated approvals."
+    "user_authorization": "Direct independent root-cause work and M5 testing without repeated approvals.",
+    "preclaim_failure": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_PRECLAIM_FAILURE_20261029_001.json",
+      "sha256": "7725402b9cab79a489045b44713c611f14ad4a691c57fc025cb68985341a35b3"
+    },
+    "attempts": 1
+  },
+  "independent_m5_momentum_trace_source_20261029_002": {
+    "status": "SOURCE_TESTED_NO_EXECUTION",
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/direction_m5_momentum_trace_v1.py",
+      "sha256": "7890f8612e073416bd8a04dda1c25fac13ada9a4c5ea91019be93d0b211c5543"
+    },
+    "shared_intervention": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/direction_m5_momentum_intervention_v1.py",
+      "sha256": "a493ccfabcfdd5db0b1d9068faab9b4d281ced3ff033fd583e87fb429cd49551"
+    },
+    "validator": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/validate_entry_model_native_technical_checkpoint_v1.py",
+      "sha256": "dca6d2a166013a35d2f60576b4decade65f98adfcf6c593071b53b3bced0f459"
+    },
+    "runner": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "3684571298441ebbbd3f6951250b57e8e4fb75f71f3ed2138a0aea8866b10ef2"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_direction_m5_momentum_trace_v1.py",
+      "sha256": "41489f8e70320b8cc5972ed61bd4d76246081e918837a27e1f80a063a992b45b"
+    },
+    "focused_tests_passed": 20,
+    "exact_design_stage_test": "PASS",
+    "native_architecture_synthetic_hook_test": "PASS",
+    "execution_authorized": false,
+    "test_data_used": false
   }
 }
