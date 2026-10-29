@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T17:51:43.049335+00:00",
-  "status": "M5_PRICE_ONLY_FIT_CONSUMED_COMPARISON_AUTHORIZED",
+  "observed_utc": "2026-10-29T17:53:48.460485+00:00",
+  "status": "M5_COMPARISON_COMPLETE_INDEPENDENT_CHECK_AUTHORIZED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Run the one fixed capped saved-prediction comparison, then close its port and report the primary five-minute and all 60 horizons honestly.",
+  "next_action": "Run one bounded independent saved-prediction rank replay and similarity audit, then close its gate and report the findings.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -35913,7 +35913,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Closed; completed M5 price-only fit is consumed.",
+  "training_enabled_scope": "Closed; complete M5 fit and fixed comparison are consumed.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -45895,8 +45895,8 @@
     "relaunch_allowed": false,
     "qualification_weights_for_main_fit": false,
     "test_or_trading_authority": false,
-    "fixed_comparison_authorized": true,
-    "status": "COMPLETE_FIT_COMPARISON_AUTHORIZED",
+    "fixed_comparison_authorized": false,
+    "status": "COMPLETE_CONSUMED_NO_DIRECTION_IMPROVEMENT",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_RECIPE_20261029.json",
       "sha256": "14ba328acbaff66dadd1e6e6b40fda628badf0767ff414bde49fefa113c1eb71"
@@ -45970,12 +45970,156 @@
     },
     "comparison_output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_FIXED_COMPARISON_001",
     "comparison_max_invocations": 1,
-    "comparison_claimed_invocations": 0,
-    "comparison_completed_invocations": 0,
+    "comparison_claimed_invocations": 1,
+    "comparison_completed_invocations": 1,
     "comparison_relaunch_allowed": false,
     "comparison_scope": "Fixed same-row paired 5-minute comparison and 60-horizon candidate simultaneous bands; baseline descriptive all 60. Saved outputs only, no new model execution.",
     "comparison_alignment_synthetic_tests_passed": 3,
     "training_predictive_improvement_qualified": false,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_FIXED_COMPARISON_001/RESULT.json",
+      "sha256": "a46eeabb3fbcb0722883e4a4e30f5ad421e685d31a343b033c11437b942f4b73"
+    },
+    "comparison_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_FIXED_COMPARISON_001/TERMINAL.json",
+      "sha256": "ac0179adcbe50c085c897a33c468df16a1d54060e4387e09710b12e17b9e9e41"
+    },
+    "five_minute_summary": {
+      "auc_improvement_supported": false,
+      "baseline": {
+        "accuracy": 0.48604001861330853,
+        "auc": 0.4969763225475591,
+        "brier": 0.25061519011274863,
+        "logloss": 0.694378960324258
+      },
+      "candidate": {
+        "accuracy": 0.48615635179153094,
+        "auc": 0.49696102801578906,
+        "brier": 0.25061642195939166,
+        "logloss": 0.6943814276952762
+      },
+      "candidate_above_half_supported": false,
+      "candidate_minus_baseline": {
+        "auc": -1.529453177001594e-05,
+        "brier": 1.2318466430238928e-06,
+        "logloss": 2.467371018166631e-06
+      },
+      "eligible": 17192,
+      "horizon_minutes": 5,
+      "intervals": [
+        {
+          "blocks": 77,
+          "candidate_auc": {
+            "alpha": 0.0125,
+            "high": 0.5064327276970753,
+            "low": 0.4875993417232258,
+            "replicates": 10000,
+            "undefined_replicates": 0
+          },
+          "candidate_minus_baseline": {
+            "auc": {
+              "alpha": 0.0125,
+              "high": 1.1213070576762371e-05,
+              "low": -3.9266399696112274e-05,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.0125,
+              "high": 2.017155467978685e-06,
+              "low": 4.600837233243099e-07,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.0125,
+              "high": 4.041182701992024e-06,
+              "low": 9.221498899551837e-07,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "scheme": "UTC_DAY"
+        },
+        {
+          "blocks": 14,
+          "candidate_auc": {
+            "alpha": 0.0125,
+            "high": 0.506650868190208,
+            "low": 0.4867561829421468,
+            "replicates": 10000,
+            "undefined_replicates": 0
+          },
+          "candidate_minus_baseline": {
+            "auc": {
+              "alpha": 0.0125,
+              "high": 1.6453936576621433e-05,
+              "low": -3.615666863405823e-05,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.0125,
+              "high": 2.062527570982855e-06,
+              "low": 5.034507646764217e-07,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.0125,
+              "high": 4.130538657983813e-06,
+              "low": 1.0088469259551665e-06,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "scheme": "UTC_WEEK_MONDAY"
+        }
+      ]
+    },
+    "all_60_above_half_both_simultaneous_bands": 0
+  },
+  "independent_m5_saved_prediction_similarity_20261029_001": {
+    "status": "AUTHORIZED_SINGLE_READONLY_REPLAY",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "model_forward_authorized": false,
+    "normalization_fit_authorized": false,
+    "native_launch_authorized": false,
+    "full_val_allowed": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/verify_m5_predictions_once.py",
+      "sha256": "30500fd4c449edf38ce8789a162b8b5b739c267e07543303d411017c9407e40a"
+    },
+    "comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_FIXED_COMPARISON_001/RESULT.json",
+      "sha256": "a46eeabb3fbcb0722883e4a4e30f5ad421e685d31a343b033c11437b942f4b73"
+    },
+    "candidate_and_baseline_inputs": {
+      "baseline": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+        "sha256": "083d76cb29e778e119cc6e9979af1284d111e7e288f1674f8b8918ba07031482"
+      },
+      "candidate": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+        "sha256": "6df82d7649b61ebc17e6c14fee0d60c542604b650c141e3d88cd6d30f183f321"
+      }
+    },
+    "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_PREDICTION_SIMILARITY_001",
+    "memory_limit": "4G",
+    "cpu_threads": 1,
+    "scope": "Independently replay fixed AUC for all 60 on the same reused development rows, and quantify 5-minute prediction/logit similarity. No model, intervention, training or TEST.",
+    "tie_rank_synthetic_tests_passed": 2,
+    "user_authorization": "Direct independent direction analysis and fault finding, no repeated approvals."
   }
 }
