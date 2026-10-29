@@ -21,6 +21,14 @@ Treffprosentforskjellen mot gammel modell er +1.634 prosentpoeng; eksplorative 9
 
 På fem minutter sa gammel modell opp i 3,226 av 17,192 tilfeller; ny modell sa opp i 9,151. Ved seks minutter er den nye modellens treffprosent 50.817 %, lik alltid-opp-referansen; dens AUC 0.512414 er en beskrivende nabohorisont, ikke en ny valgt hovedmåling.
 
+## Fem mot seks minutter på samme beslutninger
+
+På brukerens spørsmål ble lagrede prediksjoner kontrollert for 17 157 felles Q1-beslutninger med både fem- og seksminuttersutfall observert, modent og ulikt null. Den nye modellens treffprosent var henholdsvis 50,236 % og 50,836 %. Prognosene var uenige om retningen i 5 962 tilfeller (34,750 %), mot 13 684 (79,758 %) i forrige M5-modell. Fasitens fortegn skiftet mellom målene i 2 423 tilfeller (14,123 %).
+
+Halvparten av den nye modellens femminutters logistiske sannsynlighetsestimater lå innenfor omtrent 49,62–50,38 %; for seks minutter var tilsvarende intervall omtrent 48,96–51,04 %. Estimatene er ikke dokumentert kalibrerte sannsynligheter. Nærhet til 50 % kan vippe klassifiseringen, og uenighet på ulike horisonter er ikke i seg selv en bevist feil. Q1 er gjenbrukt, og kontrollen gir ikke grunnlag for å velge seks minutter eller påstå edge.
+
+En separat avgrenset CPU-avlesning bekreftet identiske foreldre/klokker/fasittabeller og gjenskapte tidligere modells uenighet mot verifisert resultat. Intet modellkall eller trening. Aggregerte tall er bevart i `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_SIX_USER_CHECK_20261030_001/CAPTURED_STDOUT.json` (SHA-256 `3a30d4884fa35fec2742b342992e2a7572201380e4f0b48ebf2eb9359ad12275`); filen er en bevart kopi av prosessens stdout etter at kontrollen var avsluttet.
+
 ## Alle 60 fremtidige horisonter
 
 Intervallene er 97,5 % simultane maksimumsavviksbånd innen hver av de to blokkordningene. Kolonnene viser kandidatens AUC-bånd; disse kan ikke brukes til å velge en ny horisont på de samme dataene.

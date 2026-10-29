@@ -47593,5 +47593,21 @@
     },
     "result_report": "docs/DIRECTION_CHRONOLOGICAL_COVERAGE_RESULT_20261030.md",
     "interpretation": "Earlier three-head fits on original targets show no isolated causal effect of D1 coverage or training exposure; Q1-Q4 are reused development, no economic qualification."
+  },
+  "direction_latest_five_six_user_check_20261030_001": {
+    "status": "COMPLETE_REUSED_DESCRIPTIVE_SAVED_SCORES",
+    "captured_stdout": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_SIX_USER_CHECK_20261030_001/CAPTURED_STDOUT.json",
+      "sha256": "3a30d4884fa35fec2742b342992e2a7572201380e4f0b48ebf2eb9359ad12275"
+    },
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_SIX_USER_CHECK_20261030_001/saved_score_check.py",
+      "sha256": "6fcbbba101d622e32e9b9433d127e5d45bb7707c580b317b02627797ae4ee766"
+    },
+    "scope": "User-requested comparison of paired h5/h6 for existing M5 predictions on reused Q1, no forward, optimization, selection, TEST or trade.",
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "relaunch_allowed": false
   }
 }

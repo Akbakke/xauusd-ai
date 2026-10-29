@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+30.10 — FEM/SEKS PÅ SAMME BESLUTNINGER: I 17 157 felles Q1-rader er ny 5-/6-minutters treffprosent 50,236/50,836 %, og retningen er uenig i 34,750 %; forrige modell 79,758 %, mens fasiten bytter fortegn i 14,123 %. Ny modell ligger ofte nær 50 % estimert oppsannsynlighet. Deskriptivt, ikke bevist kodefeil eller edge. Se docs/DIRECTION_M5_FIVE_PRIORITY_RESULT_20261030.md.
+
 30.10 — FIRE ELDRE KRONOLOGISKE FOLDS KONTROLLERT OG LUKKET: Korrigert 5-minutters treffprosent Q1–Q4 er 48,848 / 50,367 / 50,626 / 51,322 %, med alltid-opp 51,582 / 50,682 / 50,832 / 51,322 %. Alle fire AUC-er ligger nær 0,5. Samtidig stiger gjennomsnittlig observert D1-GC-historikk i TRAIN fra 82,89 til 160,69 av 252 dager; ulike modeller, perioder og prefikser utelukker årsakstolkning. 1/5/15-skårer og vindusdekning ble uavhengig gjenskapt; ingen forward, optimizer, TEST eller handel. Porten er lukket. Se docs/DIRECTION_CHRONOLOGICAL_COVERAGE_RESULT_20261030.md.
 
 30.10 — AVGRENS EKSISTERENDE KRONOLOGISKE RESULTATER: En CPU-kontroll er separat bundet for de fire allerede fullførte trehodersmodellene på voksende TRAIN-prefikser og deres Q1–Q4 2025-utviklingsrader. Den skal bruke korrigert 1/5/15-fasit og måle faktisk D1 GC-vindusdekning uten nye modellkall eller trening. Ulike perioder, regimer og modeller endres samtidig, så analysen kan ikke isolere effekt av mer trening eller D1-dekning. TEST og handel er stengt. Se NEXT_RUN_POLICY.
