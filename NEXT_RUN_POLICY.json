@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
-  "next_action": "Prepare an exact source-bound fit provider and fresh initial qualification for the compact price/M1 candidate; its model-bound M1 clock and raw gather are qualified on all 118249 pre-2026 parent inputs. Separate authority is required for genuine normalization and candidate training/comparison. Keep training, TEST and trading sealed.",
+  "next_action": "Seek separate approval for the fully specified read-only M1 temporal-information audit; independently prepare the source-bound candidate fit provider and fresh initial qualification. Training, TEST and trading remain sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -44122,5 +44122,30 @@
       "tests/test_entry_direction_momentum_profile_v1.py": "17dca97a97359f0186ef41656d192566eab1b472e7ca2747d92b5846eca9e07f",
       "tests/test_entry_native_direction_m1_ofi_v1.py": "1b796ee7bbb8b65ddcf31461efe3a3667b3fcbd6cad60038d6bace2fdef20727"
     }
+  },
+  "independent_direction_m1_temporal_conditional_20261029_001": {
+    "status": "PREPARED_NOT_AUTHORIZED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TEMPORAL_CONDITIONAL_AUDIT_20261029.json",
+      "sha256": "04de7e785ceb1cc5bc1b5796f72ac077418ad2b36eaa474f220d7a6dcba8f27d"
+    },
+    "execution_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "model_forward_authorized": false,
+    "fit_authorized": false,
+    "training_authorized": false,
+    "scope": "fixed Q1 2025 development, last closed M1 OFI conditional on identical model M5 OFI, horizons 1..60",
+    "qualification": {
+      "focused_synthetic_tests_passed": 14,
+      "synthetic_n4000_h60_boot200_seconds": 5.34,
+      "synthetic_bootstrap_n10000_77blocks_5h_seconds": 0.04,
+      "target_archive_members_loaded_for_shape_and_dtype_only_before_plan": true,
+      "target_values_or_statistics_inspected_before_plan": false
+    },
+    "limitations": "Not conditional on all existing model inputs; complete M1 selection and reused development prevent generalization or economic claims."
   }
 }

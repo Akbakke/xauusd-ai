@@ -1,0 +1,188 @@
+{
+  "economic_edge_claimed": false,
+  "fit_authorized": false,
+  "fold": {
+    "oof_cutoff_ns": 1743465600000000000,
+    "oof_end_row": 64890,
+    "oof_start_row": 47602,
+    "prefix_rows": 47602,
+    "train_cutoff_ns": 1735689600000000000
+  },
+  "inputs": {
+    "corrected_targets": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "full_axis_qualification": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/MODEL_BOUND_M1_CLOCK_FULL_AXIS_20261029_004.json",
+      "sha256": "bf192f43cc34f4c0910d09459709ced13c033bfa8e0165e0fd9330699071b262"
+    },
+    "legacy_axes": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "m1_source": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_20261026_001/FINAL/TRAIN_M1.npz",
+      "sha256": "74a0f8b659c6d8f736766cdb0edc3b0baecfd52d2406d8fe2453d60db701ad55"
+    },
+    "m5_manifest": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_PHYSICAL_QUALIFIED_SEMANTICS_20261023_223/OUTPUT/SURFACES.json",
+      "sha256": "16e96c7f8b4e5b92d6d610cab4b0df4c0025282e924e717a78bbc90dc8e55c92"
+    },
+    "model_input_parity": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/MODEL_M1_M5_CONTRACT_INPUT_AUDIT_20261029.json",
+      "sha256": "72155533f5b08ce82cc27199ea62c01c93f2aecf7e9981fb39dca0f4eee470fd"
+    },
+    "roll": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/ROLL_SCHEDULE.json",
+      "sha256": "71262543da79a79ca0c6a0fa2c2d0f78494fa001d3f2409188d3ad80d4f7dc69"
+    }
+  },
+  "method": {
+    "block_schemes": [
+      "UTC_DAY",
+      "UTC_WEEK_MONDAY"
+    ],
+    "condition": "exact_physical_float32_model_m5_ofi",
+    "day_seed": 20261027,
+    "horizons_minutes": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60
+    ],
+    "inference": "existing_97.5_percent_max_deviation_per_scheme_all_60_horizons",
+    "input_eligible": "all_five_observed_same_contract",
+    "minimum_blocks": 8,
+    "primary_horizon_minutes": 5,
+    "replicates": 10000,
+    "score": "last_closed_m1_ofi_contracts",
+    "target_eligible": "observed_nonzero_and_terminal_strictly_before_oof_cutoff",
+    "week_seed": 20261028
+  },
+  "model_forward_authorized": false,
+  "output_dir": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_TEMPORAL_CONDITIONAL_20261029_001",
+  "relaunch_allowed": false,
+  "schema_version": "gx1_direction_m1_conditional_audit_plan_v1",
+  "sources": {
+    "gx1/contracts/entry_closed_m1_ofi_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_closed_m1_ofi_window_v1.py",
+      "sha256": "61d54cc83a73081cef22c7255f4fbdce13630afb6779cf9491377d7e22beb79f"
+    },
+    "gx1/contracts/entry_direction_block_rank_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_block_rank_v1.py",
+      "sha256": "6e5a7184914463e0fefee22cdd509c01c029bd4fa7a4dcc9a33e326dbeb6eb5c"
+    },
+    "gx1/contracts/entry_direction_probability_reference_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_probability_reference_v1.py",
+      "sha256": "59d57110cf7a51da8158f9535088147d50673dea10728a2ebe3c9e469f0cee76"
+    },
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_bundle_commit_v1.py",
+      "sha256": "86dfe4cb7eb58e3f20ba29b85348ba296bdb614cd0330c6aa4c862b08b93133e"
+    },
+    "gx1/contracts/gx1_capped_execution_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "gx1/contracts/immutable_event_authority_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "gx1/contracts/local_random_access_campaign_v2.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/local_random_access_campaign_v2.py",
+      "sha256": "0f7edcc8cafcc1b1b73ebdb6673194271173ed83c2bae86dbd80361bc4edeafb"
+    },
+    "gx1/scripts/audit_direction_m1_conditional_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_direction_m1_conditional_v1.py",
+      "sha256": "37af02599c358256c88b6f1c6399494d5aa54d8b40b4e5fbe25866f68f2a4dee"
+    },
+    "gx1/scripts/audit_entry_direction_candle_midpoints_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_direction_candle_midpoints_v1.py",
+      "sha256": "530e930eb07769627ce093ffe6ad1aa0e5304594ed50447ef92de300bb4cd811"
+    },
+    "gx1/scripts/audit_raw_gc_m1_reference_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_raw_gc_m1_reference_v1.py",
+      "sha256": "800f4bfd2652b12f3bdf562e5442a3c57b7d825b0b4c78281ca46b3dddf2158c"
+    },
+    "gx1/scripts/compare_entry_direction_saved_bps_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/compare_entry_direction_saved_bps_v1.py",
+      "sha256": "dd52c189ce6075b22014241338fc85939be5749c4a18e608ed68e0d6595619a8"
+    },
+    "gx1/scripts/materialize_entry_direction_dense_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_direction_dense_v1.py",
+      "sha256": "77462078a177af15836f50d6cbe1e1bd37c1be37988e0742a5a21ec580930c69"
+    },
+    "gx1/scripts/score_entry_direction_dense_minutes_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/score_entry_direction_dense_minutes_v1.py",
+      "sha256": "046aad3e76137c76469fee77366a918ed1f060cbcb16367bc725fea49cb8c93d"
+    },
+    "scripts/gx1_capped_run.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "42be63429d4b5c12377da5ac7a6631252fa4b083ad4a5b6595e76eb80e971e55"
+    },
+    "tests/test_audit_direction_m1_conditional_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_audit_direction_m1_conditional_v1.py",
+      "sha256": "194177eafdf2979a1528c286147e6e5530a8b05e9977316db53aa2675b889f6b"
+    }
+  },
+  "stage": "independent_direction_m1_temporal_conditional_20261029_001",
+  "test_data_used": false,
+  "wall_seconds": 1200
+}
