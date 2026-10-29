@@ -44703,5 +44703,53 @@
     "predictive_edge_qualified": false,
     "economic_edge_qualified": false,
     "test_data_used": false
+  },
+  "direction_dense_loss_vs_primary_five_minute_20261029": {
+    "status": "SOURCE_AND_SAVED_TRAIN_AGGREGATE_REVIEW_NO_NEW_RUN",
+    "scope": "Corrected one-pass sixty-head fold1; fixed 5-minute primary evaluation versus equal eligible-cell BCE in each training batch.",
+    "fitted_loss_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_v1.py",
+      "sha256": "ec86135c00aaaceb41f44f91517345e4d54a6efc217d3efdbcf0e414d1ae1a3a"
+    },
+    "git_revision_with_matching_source_blob": "c77767fab929d0c306add3f79a1a381d76d0b645",
+    "current_loss_function_ast_matches_fitted": true,
+    "evaluation_protocol": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_EVALUATION_20261028.json",
+      "sha256": "123a10ca84750c7083e524b24ae6df60a4012d56b4b0e7c4efce7aa8ef8cfbd5"
+    },
+    "evaluation_primary_minutes": 5,
+    "per_batch_loss": "sum of unweighted BCE for all eligible observed nonzero mature minute cells divided by their count",
+    "train_prior_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "a773849f2895a77c3af0567a3d9421f9f8724fb5592f8e1c43204af497218757"
+    },
+    "full_train_eligible_all_horizons": 2792676,
+    "full_train_eligible_five_minute": 47282,
+    "pooled_five_minute_cell_fraction": 0.01693071448316955,
+    "pooled_one_to_fifteen_cell_fraction": 0.2539091538008706,
+    "pooled_sixteen_to_sixty_cell_fraction": 0.7460908461991295,
+    "eligible_per_head_min": 45482,
+    "eligible_per_head_max": 47460,
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "a9f4fe99fbccd89178fddabaf2cf30c22fd66843e545bdcba3b2a24b41c6fbd8"
+    },
+    "first_batch_five_minute_cell_fraction": {
+      "eligible_5min": 16,
+      "eligible_all_minutes": 959,
+      "fraction": 0.016684045881126174
+    },
+    "last_batch_five_minute_cell_fraction": {
+      "eligible_5min": 2,
+      "eligible_all_minutes": 120,
+      "fraction": 0.016666666666666666
+    },
+    "limitation": "Pooled cell shares and two saved batches are not the aggregate per-update loss share, gradient contribution, or a causal explanation. Preserve all 60 heads; a 5-minute-priority hypothesis requires a separately predeclared matched comparison.",
+    "actual_gradient_contribution_per_head_measured": false,
+    "loss_change_authorized": false,
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "economic_edge_qualified": false
   }
 }
