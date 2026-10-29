@@ -44342,7 +44342,25 @@
       "model_forwards": 0,
       "optimizer_steps": 0,
       "test_data_used": false,
-      "economic_edge_qualified": false
+      "economic_edge_qualified": false,
+      "existing_m1_reduction_global_calendar_mask_counts": {
+        "reducer_review": {
+          "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_ACTUAL_REVIEW_001.json",
+          "sha256": "f89244376ca6675621e5e7b5af6df89d66f44f774e3a2798619e5ac8054d171b"
+        },
+        "mask_source": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_raw_gc_m1_reference_v1.py",
+          "sha256": "800f4bfd2652b12f3bdf562e5442a3c57b7d825b0b4c78281ca46b3dddf2158c"
+        },
+        "all_calendar_minute_rows": 878400,
+        "volume_valid_minutes": 589198,
+        "strict_signed_valid_minutes": 317024,
+        "volume_valid_with_some_unknown_aggressor_volume_minutes": 272174,
+        "fraction_of_volume_valid": 0.4619397893407649,
+        "logic": "Strict signed_valid requires volume_valid and zero unknown aggressor volume. These are whole reduced calendar-grid counts, not model-decision-aligned coverage.",
+        "known_partial_buy_sell_necessarily_nonzero": false,
+        "model_input_or_incremental_value_qualified": false
+      }
     }
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
