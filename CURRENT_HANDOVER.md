@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — KILDEFORKONTROLL 002 FEILET I STIKONTROLL: Ved ombinding ble referansen til den fullførte fit 001 feilaktig endret til en ikke-eksisterende fit 002. Ingen modell, checkpoint eller TEST ble åpnet. Forsøket er konsumert. I ny kontroll 003 er alle faste stier, fitreferansene og de 63 fysiske kildehashene forhåndskontrollert; kontrollen skal fortsatt validere hele fit-oppskriften. Se NEXT_RUN_POLICY.
+
 29.10 — KILDEFORKONTROLL 001 FEILET FØR PROSJEKTIMPORT: En CPU-jobb utenfor repoets kildekatalog fant ikke gx1-pakken. Ingen prosjektdata, modell, checkpoint eller TEST ble åpnet; forsøk 001 er konsumert og bevart. Ny kontroll 002 har eksplisitt kanonisk importsøkesti, kontrollert på forhånd, og samme avgrensning. Se NEXT_RUN_POLICY.
 
 29.10 — HISTORISK FIT-KILDEKONTROLL ÅPNET: Én 4 GB CPU-metadatajobb skal kontrollere den fullførte M5-fitens opprinnelige oppskrift og 63 fysiske kildeeiere mens runneren fortsatt har treningens hash, samt kontrollere Git-kilde ved faktisk fit-commit. Dette er nødvendig før en eventuell snever justering av produsentens effektvakt; ingen modell, checkpoint, TRAIN/VAL-markedslesing, TEST eller handel er åpnet. Se NEXT_RUN_POLICY for eksakt engangsadgang.
