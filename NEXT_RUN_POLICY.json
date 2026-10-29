@@ -44145,6 +44145,8 @@
       "focused_synthetic_tests_passed": 14,
       "synthetic_n4000_h60_boot200_seconds": 5.34,
       "synthetic_bootstrap_n10000_77blocks_5h_seconds": 0.04,
+      "synthetic_full_size_n17288_h60_rep10000_77day_12week_seconds": 27.63,
+      "synthetic_full_size_timing_excludes_runtime_profile_guard": true,
       "target_archive_members_loaded_for_shape_and_dtype_only_before_plan": true,
       "target_values_or_statistics_inspected_before_plan": false
     },
