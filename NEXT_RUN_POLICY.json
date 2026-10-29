@@ -44241,6 +44241,29 @@
     "candidate_m1_ordered_qualification_recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_ORDERED_PRIVATE_QUALIFICATION_RECIPE_20261029.json",
       "sha256": "426abaa4049235d44276e481941367cc5d25103d8884d34684c82ad49047417c"
+    },
+    "candidate_m1_actual_metadata_preflight": {
+      "status": "PASS_REAL_METADATA_ONLY_PAYLOAD_HASHES_DEFERRED",
+      "variants": [
+        "price_and_m1_coarsened",
+        "price_and_m1"
+      ],
+      "metadata_refs_per_variant": 59,
+      "provider_metadata_refs": 51,
+      "corrected_and_original_target_hash_checks_stubbed_per_variant": 2,
+      "qualification_inputs_and_target_join_checks_ran": true,
+      "raw_payloads_opened": false,
+      "target_file_hashes_recomputed": false,
+      "model_or_torch_imported": false,
+      "model_forwards": 0,
+      "optimizer_steps": 0,
+      "gpu_used": false,
+      "test_data_used": false,
+      "claim_or_run_created": false,
+      "capped_cpu_memory": "4G",
+      "first_probe": "Read-only metadata audit hook blocked Python importlib attempt to open .pyc before provider metadata; both provider pyc files are absent.",
+      "final_probe": "Separate empty pycache prefix allowed source import; the no-payload/no-model guard remained active.",
+      "scope": "Current source and referenced metadata only; the two original/corrected target byte checks were deliberately deferred. Actual guarded run must verify genuine payload SHA and model behavior."
     }
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
