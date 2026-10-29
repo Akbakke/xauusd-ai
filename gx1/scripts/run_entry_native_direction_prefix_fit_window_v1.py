@@ -192,7 +192,7 @@ def _launch_metadata(launch, common):
             context['decimal_sign_audit']=receipts['audit_result']
         if candidate:
             mode=launch.get('candidate_mode')
-            _require(mode in ('price_only','price_and_m1'), 'CANDIDATE_METADATA_MODE')
+            _require(mode in ('price_only','price_and_m1',authority.M1_PRICE_COARSENED_MODE), 'CANDIDATE_METADATA_MODE')
             if mode=='price_only':
                 _require('candidate_m1_refs' not in launch, 'CANDIDATE_PRICE_ONLY_REFS')
                 context['candidate_inputs']={'mode':'price_only'}
@@ -307,7 +307,7 @@ def _load_bound_candidate_m1(context, launch, np, *, common):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     refs=common._candidate_m1_refs(context.get('candidate_m1_refs'))
     _require(launch.get('run_scope')==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
-        and launch.get('candidate_mode')=='price_and_m1' and launch.get('candidate_m1_refs')==refs
+        and launch.get('candidate_mode') in ('price_and_m1',authority.M1_PRICE_COARSENED_MODE) and launch.get('candidate_m1_refs')==refs
         and context.get('candidate_m1_guard_installed') is True, 'CANDIDATE_M1_NOT_GUARDED')
     before={key:common._stat(ref['path']) for key,ref in refs.items()}
     for key,ref in refs.items():
@@ -329,7 +329,7 @@ def _load_bound_candidate_m1(context, launch, np, *, common):
         _require(common._stat(ref['path'])==before[key] and common._hash_file(ref['path'])==ref,
             'CANDIDATE_M1_SOURCE_BOOKEND:'+key)
     context['candidate_m1_snapshot']=before
-    return {'mode':'price_and_m1','source':source,'roll_bytes':roll_bytes,
+    return {'mode':launch['candidate_mode'],'source':source,'roll_bytes':roll_bytes,
         'roll_ref':refs['roll'],'normalization':fitted}
 
 
@@ -342,8 +342,9 @@ def _candidate_view_inputs(context, launch, prepared, sources):
     """
     from gx1.contracts import entry_closed_m1_ofi_window_v1 as windows
     from gx1.contracts import entry_native_direction_m1_ofi_normalization_v1 as normalization
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     candidate=context.get('candidate_inputs')
-    _require(isinstance(candidate,dict) and candidate.get('mode') in ('price_only','price_and_m1'), 'CANDIDATE_MODE')
+    _require(isinstance(candidate,dict) and candidate.get('mode') in ('price_only','price_and_m1',authority.M1_PRICE_COARSENED_MODE), 'CANDIDATE_MODE')
     owner_paths={'price_momentum_profile_source':'gx1/features/entry_direction_momentum_profile_v1.py'}
     if candidate['mode']=='price_only':
         _require(set(candidate)=={'mode'}, 'CANDIDATE_PRICE_ONLY_KEYS')
@@ -373,7 +374,9 @@ def _candidate_view_inputs(context, launch, prepared, sources):
     sources.update({name:launch['source_owners'][path] for name,path in owner_paths.items()})
     sources['m1_ofi_roll_schedule']=roll_ref
     prepared['m1_ofi_source']=source;prepared['m1_ofi_clock']=clock
-    return {'price_momentum':True,'m1_ofi_normalization':fitted}
+    kwargs={'price_momentum':True,'m1_ofi_normalization':fitted}
+    if candidate['mode']==authority.M1_PRICE_COARSENED_MODE:kwargs['m1_ofi_coarsened']=True
+    return kwargs
 
 
 def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False, dense_minutes=False):

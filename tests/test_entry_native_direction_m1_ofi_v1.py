@@ -63,6 +63,39 @@ def test_m1_branch_preserves_initial_rng_and_logits_then_gets_gradients(monkeypa
         new(**native_fixture._inputs(),m1_ofi_contracts=x,m1_ofi_observed=missing)
 
 
+def test_coarsened_m1_control_keeps_capacity_masks_and_sum_but_removes_order(monkeypatch):
+    monkeypatch.setattr(EntryV10CtxHybridTransformer,'forward',native_fixture._native_forward_spy)
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(812)
+        ordered=dense.DenseNativeEntryDirectionResearch(native_fixture._native_shell(),m1_ofi_normalization=_stats()).eval()
+        torch.manual_seed(812)
+        coarse=dense.DenseNativeEntryDirectionResearch(native_fixture._native_shell(),m1_ofi_normalization=_stats(),m1_ofi_coarsened=True).eval()
+    left,right=ordered.state_dict(),coarse.state_dict()
+    assert left.keys()==right.keys()
+    assert all(torch.equal(left[k],right[k]) for k in left if k!='m1_ofi_coarsened')
+    assert left['m1_ofi_coarsened'].item()==0 and right['m1_ofi_coarsened'].item()==1
+    first=torch.tensor([[0.,1.,2.,3.,4.],[0.,3.,0.,7.,0.]],dtype=torch.float64)
+    second=torch.tensor([[4.,3.,2.,1.,0.],[0.,7.,0.,3.,0.]],dtype=torch.float64)
+    mask=torch.tensor([[True]*5,[False,True,False,True,False]])
+    assert torch.equal(first.sum(dim=1),second.sum(dim=1))
+    for model in (ordered,coarse):
+        with torch.no_grad():
+            model.m1_ofi_in.weight.zero_();model.m1_ofi_in.bias.zero_()
+            model.m1_ofi_in.weight[0,model._bound_hidden_width]=1.
+            model.m1_ofi_out.weight.zero_();model.m1_ofi_out.bias.zero_();model.m1_ofi_out.weight[0,0]=1.
+    def predict(model,values,observed=mask):
+        return model(**native_fixture._inputs(),m1_ofi_contracts=values,m1_ofi_observed=observed)['logit_up']
+    assert torch.equal(predict(coarse,first),predict(coarse,second))
+    assert not torch.equal(predict(ordered,first)[0],predict(ordered,second)[0])
+    missing=torch.zeros_like(mask);zeros=torch.zeros_like(first)
+    assert torch.isfinite(predict(coarse,zeros,missing)).all()
+    with pytest.raises(RuntimeError,match='M1_REPRESENTATION'):
+        dense.DenseNativeEntryDirectionResearch(native_fixture._native_shell(),m1_ofi_coarsened=True)
+    with torch.no_grad():coarse.m1_ofi_coarsened.zero_()
+    with pytest.raises(RuntimeError,match='M1_REPRESENTATION'):
+        predict(coarse,first)
+
+
 def _bound_minutes(case):
     parents=case['parent_rows'].copy();decisions=case['decision_ns'].copy();contracts=np.ones(len(parents),np.int16)
     t=np.unique((decisions[:,None]-np.arange(5,0,-1,dtype=np.int64)[None,:]*windows.MINUTE_NS).ravel())
@@ -93,6 +126,11 @@ def test_combined_price_and_m1_view_source_and_decision_bound(bound_case,monkeyp
     args['source_bindings']['m1_ofi_roll_schedule']={'path':'/synthetic/roll.json','sha256':clock.roll_sha256}
     view=view_owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,m1_ofi_normalization=fitted)
     assert view['m1_ofi_normalization']['contract_sha256']==fitted['contract_sha256']
+    coarse=view_owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,
+        m1_ofi_normalization=fitted,m1_ofi_coarsened=True)
+    assert coarse['m1_ofi_coarsened'] is True and coarse['contract_sha256']!=view['contract_sha256']
+    with pytest.raises(RuntimeError,match='OBJECTIVE_MODE'):
+        view_owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,m1_ofi_coarsened=True)
     unbound=windows.qualify_clock(clock.parent_rows,clock.decision_ns,clock.current_m5_contract_index)
     unbound_stats=normalizer.fit(source,unbound,prefix_rows=4,cutoff_ns=case['cutoff_ns'])
     with pytest.raises(RuntimeError,match='M1_OFI_ROLL_JOIN'):
@@ -110,6 +148,8 @@ def test_combined_price_and_m1_view_source_and_decision_bound(bound_case,monkeyp
     expected=windows.gather(source,clock,batch_parent_rows=inputs['batch_parent_rows'])
     assert np.array_equal(gathered['features']['m1_ofi_contracts'],expected['ofi_contracts'])
     assert np.array_equal(gathered['features']['m1_ofi_observed'],expected['ofi_observed'])
+    coarse_raw=view_owner.gather_native_direction_feature_batch(coarse,**inputs,m1_ofi_source=source,m1_ofi_clock=clock)
+    for name in gathered['features']:assert np.array_equal(gathered['features'][name],coarse_raw['features'][name])
     calls,_=_constructor_spy(monkeypatch)
     model=view_owner.build_native_direction_research_model(view,prefix_normalization=args['prefix_normalization'],
         constructor_metadata=args['constructor_metadata'],device=torch.device('cpu'))
@@ -140,7 +180,17 @@ def test_actual_native_backbone_with_compact_price_and_m1_together_gets_learning
         temporal_alias_signal_indices=[int(x['signal_index']) for x in aliases],
         temporal_alias_ctx_cont_indices=[int(x['ctx_cont_index']) for x in aliases],
         input_normalization=normalization,gc_mtf_history=history,dropout=0.0,entry_execution_profile=_reference(profile)).eval()
-    model=dense.DenseNativeEntryDirectionResearch(backbone,m1_ofi_normalization=_stats()).eval()
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(20260911)
+        price_only=dense.DenseNativeEntryDirectionResearch(deepcopy(backbone)).eval()
+        torch.manual_seed(20260911)
+        coarse_model=dense.DenseNativeEntryDirectionResearch(deepcopy(backbone),m1_ofi_normalization=_stats(),m1_ofi_coarsened=True).eval()
+        torch.manual_seed(20260911)
+        model=dense.DenseNativeEntryDirectionResearch(backbone,m1_ofi_normalization=_stats()).eval()
+    only_state=price_only.state_dict();m1_state=model.state_dict();coarse_state=coarse_model.state_dict()
+    assert set(only_state).issubset(m1_state) and all(torch.equal(value,m1_state[name]) for name,value in only_state.items())
+    assert coarse_state.keys()==m1_state.keys()
+    assert all(torch.equal(value,m1_state[name]) for name,value in coarse_state.items() if name!='m1_ofi_coarsened')
     source=windows.qualify_source(_freeze(_sample()));minutes=windows.gather(source,_clock(),batch_parent_rows=np.array([3],np.int64))
     kwargs={'m1_ofi_contracts':torch.from_numpy(minutes['ofi_contracts'].copy()),
         'm1_ofi_observed':torch.from_numpy(minutes['ofi_observed'].copy())}
@@ -169,6 +219,12 @@ def test_actual_native_backbone_with_compact_price_and_m1_together_gets_learning
         ceiling=2,device=torch.device('cpu'),torch=torch,np=np,tree_sha=digest,parity=True)
     assert count==1 and measured['initial_parity_passed'] and evaluation['forward_returns']==2
     assert measured['arrays']['logit_up'].shape==(1,60) and np.isfinite(measured['arrays']['logit_up']).all()
+    reference_counts={'forward_calls':0,'forward_kind_calls':{},'forward_returns':0}
+    reference=_forward(price_only,inputs,kind='SYNTHETIC_MATCHED_INITIAL',counters=reference_counts,ceiling=1,torch=torch)
+    assert np.array_equal(reference.detach().cpu().numpy(),measured['arrays']['logit_up'])
+    coarse_counts={'forward_calls':0,'forward_kind_calls':{},'forward_returns':0}
+    coarse_initial=_forward(coarse_model,{**inputs,**kwargs},kind='SYNTHETIC_COARSE_INITIAL',counters=coarse_counts,ceiling=1,torch=torch)
+    assert np.array_equal(coarse_initial.detach().cpu().numpy(),measured['arrays']['logit_up'])
     assert all(p.grad is None for p in model.parameters())
     counters={'forward_calls':0,'forward_kind_calls':{},'forward_returns':0}
     output=_forward(model,{**inputs,**kwargs},kind='SYNTHETIC',counters=counters,ceiling=1,torch=torch,grad=True)
@@ -303,6 +359,9 @@ def test_private_input_adapter_binds_matched_price_and_m1_without_granting_launc
     assert kwargs['price_momentum'] is True and kwargs['m1_ofi_normalization']==fitted
     assert prepared['m1_ofi_clock'].clock_sha256==clock.clock_sha256
     assert sources['m1_ofi_roll_schedule']==roll_ref and sources['m1_ofi_roll_owner_source']==owners['gx1/scripts/audit_raw_gc_m1_reference_v1.py']
+    coarse_sources={};coarse=_candidate_view_inputs({'candidate_inputs':{**candidate,'mode':authority.M1_PRICE_COARSENED_MODE}},
+        launch,prepared,coarse_sources)
+    assert coarse['m1_ofi_coarsened'] is True and coarse['m1_ofi_normalization']==fitted and coarse_sources==sources
     price_sources={};price=_candidate_view_inputs({'candidate_inputs':{'mode':'price_only'}},launch,prepared,price_sources)
     assert price=={'price_momentum':True} and set(price_sources)=={'price_momentum_profile_source'}
     bad={**candidate,'roll_bytes':candidate['roll_bytes']+b' '}
@@ -367,6 +426,8 @@ def test_guarded_m1_source_loader_binds_real_bytes_and_detects_mutation(tmp_path
     assert candidate['source'].source_sha256==case['source'].source_sha256
     assert candidate['roll_bytes']==case['roll_bytes'] and candidate['normalization']==fitted
     assert all(not array.flags.writeable for array in candidate['source'].arrays.values())
+    coarse_candidate=runner._load_bound_candidate_m1(context,{**launch,'candidate_mode':authority.M1_PRICE_COARSENED_MODE},np,common=common)
+    assert coarse_candidate['mode']==authority.M1_PRICE_COARSENED_MODE and coarse_candidate['normalization']==candidate['normalization']
     m5={'available_ns':case['m5_available_ns'],'native_row_indices':case['m5_native_row_indices'],
         'features':case['m5_features'],'field_names':case['m5_field_names']}
     prepared={'arrays':{'parent_rows':case['parent_rows'],'decision_ns':case['decision_ns']},

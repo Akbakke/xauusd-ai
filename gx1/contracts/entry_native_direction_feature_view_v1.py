@@ -135,11 +135,12 @@ def _require_view(view):
     dense = 'dense_minute_supervision' in view
     price_momentum = 'price_momentum_profile' in view
     m1_ofi = 'm1_ofi_normalization' in view
-    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'m1_ofi_normalization'} if m1_ofi else set())
+    coarsened = 'm1_ofi_coarsened' in view
+    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set())
         and sum((dense, 'bps_scale' in view, 'magnitude_weight_contract' in view)) <= 1
         and (not dense or view['dense_minute_supervision'] is True)
         and (not price_momentum or (dense and view['price_momentum_profile'] is True))
-        and (not m1_ofi or dense), 'VIEW_KEYS')
+        and (not m1_ofi or dense) and (not coarsened or (m1_ofi and view['m1_ofi_coarsened'] is True)), 'VIEW_KEYS')
     if dense:
         from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_research_contract
         objective = dense_direction_research_contract()
@@ -181,7 +182,7 @@ def _require_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -210,10 +211,11 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         and gc_history['normalization']['provenance']['train_end_ns'] == proof['prefix']['cutoff_ns'], 'PREFIX_LINEAGE_JOIN')
     for tf, item in gc_history['normalization']['provenance']['row_union'].items():
         _require(all(item[key] == proof['gc'][tf][key] for key in ('rows', 'native_row_indices_sha256', 'available_ns_sha256')), 'GC_PREFIX_ROW_UNION:' + tf)
-    _require(type(dense_minutes) is bool and type(price_momentum) is bool
+    _require(type(dense_minutes) is bool and type(price_momentum) is bool and type(m1_ofi_coarsened) is bool
         and not (dense_minutes and (bps_scale is not None or magnitude_weight_contract is not None))
         and (not price_momentum or dense_minutes)
-        and (m1_ofi_normalization is None or dense_minutes), 'OBJECTIVE_MODE')
+        and (m1_ofi_normalization is None or dense_minutes)
+        and (not m1_ofi_coarsened or m1_ofi_normalization is not None), 'OBJECTIVE_MODE')
     _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()), 'SOURCE_REF_KEYS')
     source_bindings = {key: _ref(value) for key, value in source_bindings.items()}
     provenance = proof['source_bindings']
@@ -256,6 +258,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['price_momentum_profile'] = True
     if m1_ofi_normalization is not None:
         value['m1_ofi_normalization'] = _copy(m1_ofi_normalization)
+    if m1_ofi_coarsened:
+        value['m1_ofi_coarsened'] = True
     value['contract_sha256'] = _sha(value)
     _require_view(value)
     _require(expected is None or expected == value, 'EXPECTED_VIEW_MISMATCH')
@@ -358,7 +362,7 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         constructor_metadata_ref=view['constructor_metadata']['binding'], source_bindings=view['source_bindings'],
         max_batch_rows=view['max_batch_rows'], expected=view, bps_scale=view.get('bps_scale'), magnitude_weight_contract=view.get('magnitude_weight_contract'),
         dense_minutes=view.get('dense_minute_supervision', False), price_momentum=view.get('price_momentum_profile', False),
-        m1_ofi_normalization=view.get('m1_ofi_normalization'))
+        m1_ofi_normalization=view.get('m1_ofi_normalization'), m1_ofi_coarsened=view.get('m1_ofi_coarsened', False))
     _, routes, widths = _canonical()
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])
@@ -375,7 +379,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
     backbone.require_input_normalization_state()
     if view.get('dense_minute_supervision', False):
         from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch
-        wrapper = DenseNativeEntryDirectionResearch(backbone, m1_ofi_normalization=view.get('m1_ofi_normalization'))
+        wrapper = DenseNativeEntryDirectionResearch(backbone, m1_ofi_normalization=view.get('m1_ofi_normalization'),
+            m1_ofi_coarsened=view.get('m1_ofi_coarsened', False))
     else:
         wrapper = NativeEntryDirectionResearch(backbone, bps_scale=view.get('bps_scale'), magnitude_weight_contract=view.get('magnitude_weight_contract'))
     wrapper.feature_view_identity = {'contract_sha256': view['contract_sha256'],

@@ -111,7 +111,7 @@ def test_m1_price_internal_adapter_scope_cannot_authorize_private_research(fixtu
     from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import M1_PRICE_PRIVATE_ADAPTER_SCOPE
     f=fixture;recipe=copy.deepcopy(f['recipe']);recipe['run_scope']=M1_PRICE_PRIVATE_ADAPTER_SCOPE
     reseal(recipe,'recipe_sha256');ref=write(f['runtime']/'PRIVATE_ADAPTER_RECIPE.json',recipe)
-    with pytest.raises(RuntimeError,match='RECIPE_SCOPE'):
+    with pytest.raises(RuntimeError,match='FIELDS'):
         owner.require_research_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
 
 
@@ -329,3 +329,108 @@ def test_dense_private_recipe_requires_exact_scope_and_keeps_target_unopened(fix
     reseal(wrong,'recipe_sha256')
     with pytest.raises(RuntimeError):
         owner.require_research_launch_recipe(write(runtime/'BAD_RECIPE.json',wrong),source_repo=repo,source_commit='a'*40)
+
+
+def candidate_price_fixture(f, monkeypatch, mode):
+    """Bound metadata only; the raw candidate/target paths do not exist."""
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    repo,runtime=f['repo'],f['runtime'];dummy=f['dummy']
+    names={'owner_profile_source':'gx1/features/entry_specialist_feature_groups_v1.py',
+        'native_constructor_source':'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
+        'direction_component_source':'gx1/contracts/entry_native_direction_research_v1.py'}
+    owners={'source.py':f['source']}
+    owners.update({name:write(repo/name,{'synthetic_source':name}) for name in names.values()})
+    decimal_owner='gx1/contracts/entry_native_direction_decimal_input_v1.py'
+    owners[decimal_owner]=write(repo/decimal_owner,{'synthetic_source':decimal_owner})
+    original={key:{'path':owners[name]['path'],'sha256':'a'*64} for key,name in names.items()}
+    manifest=write(runtime/'candidate-manifest.json',{'view_source_bindings':original})
+    proof=write(repo/'docs/candidate-transition.json',{'schema_version':'gx1_dense_source_transition_proof_v1',
+        'status':'SOURCE_ONLY_VERIFIED_NO_DATA_OR_TRAINING','test_data_used':False,'genuine_training_authorized':False,
+        'input_manifest':manifest,'source_transitions':{key:{'original':original[key],'current':owners[name]}
+            for key,name in names.items()}})
+    original_target={'path':str(runtime/'original.npz'),'sha256':'1'*64}
+    corrected={'path':str(runtime/'corrected.npz'),'sha256':'2'*64}
+    orig_result=write(runtime/'original-result.json',{'synthetic':True})
+    refs={'original':original_target,'original_result':orig_result,'corrected':corrected,'corrected_result':dummy}
+    audit=write(runtime/'decimal-audit.json',{'schema_version':'gx1_decimal_bound_input_actual_audit_v1',
+        'status':'COMPLETE','parents':118249,'horizons_minutes':list(range(1,61)),'test_data_used':False,
+        'new_model_forwards':0,'optimizer_steps':0,'physical_parent_and_bar_start_hashes_verified':True,
+        'corrected_archive_and_receipt_links_verified':True,'original_legacy_anchors_verified':True,
+        'immutable_outputs':True,'inputs':refs,'source':owners[decimal_owner]})
+    source={'path':str(runtime/'m1.npz'),'sha256':'3'*64}
+    roll={'path':str(runtime/'roll.json'),'sha256':'4'*64}
+    normal=write(runtime/'normalization.json',{'schema_version':'gx1_native_direction_m1_ofi_normalization_v1',
+        'scope':'observed_closed_minutes_in_strict_train_prefix_only','contract_sha256':'5'*64,
+        'prefix_rows':owner.BPS_FOLD['prefix_rows'],'cutoff_ns':owner.BPS_FOLD['train_cutoff_ns'],
+        'roll_sha256':roll['sha256'],'model_contract_clock_bound':True,'genuine_fit_authorized':False,
+        'native_launch_authorized':False})
+    norm_plan=write(runtime/'normalization-plan.json',{'inputs':{'m1_source':source,'roll':roll}})
+    norm_result=write(runtime/'normalization-result.json',{'status':'COMPLETE','plan':norm_plan,
+        'train_parent_rows':owner.BPS_FOLD['prefix_rows'],'normalization_fit_calls':1,'target_values_used':False,
+        'model_forwards':0,'optimizer_steps':0,'test_data_used':False,'normalization':normal,
+        'normalization_contract_sha256':'5'*64})
+    for key,value in {'REQUIRED_SOURCE_PATHS':tuple(owners),'DENSE_EXTRA_SOURCE_PATHS':(),
+        'DECIMAL_EXTRA_SOURCE_PATHS':(),'M1_PRICE_EXTRA_SOURCE_PATHS':(),'DENSE_INPUT_MANIFEST':manifest,
+        'DENSE_TARGET_RESULT':orig_result,'DENSE_TARGET':original_target,'BPS_GC_PARITY':dummy,
+        'ORDER_SUPPORTED_DESIGN':dummy,'DECIMAL_INPUT_AUDIT':audit,'M1_PRICE_SOURCE_TRANSITION':proof,
+        'M1_NORMALIZATION_PLAN':norm_plan,'M1_NORMALIZATION_RESULT':norm_result}.items():
+        monkeypatch.setattr(owner,key,value)
+    item=copy.deepcopy(f['recipe']);item.update(run_scope=prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE,
+        input_manifest=manifest,source_owners=owners,fold=owner.BPS_FOLD,gc_layout_metadata_parity=dummy,
+        qualification_design=dummy,dense_source_transition_proof=proof,dense_target_result=dummy,dense_target=corrected,
+        decimal_input_audit=audit,decimal_target_refs=refs,max_forwards=21,candidate_mode=mode,
+        parent_order_algorithm=prefix.PARENT_ORDER_ALGORITHM)
+    numerical=item['numerical_recipe'];numerical['batch_size']=16;numerical['dense_minute_supervision']=True
+    numerical.pop('contract_sha256');numerical['contract_sha256']=hashlib.sha256(json.dumps(numerical,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    if mode in ('price_and_m1',prefix.M1_PRICE_COARSENED_MODE):item['candidate_m1_refs']={'source':source,'roll':roll,'normalization':normal}
+    reseal(item,'recipe_sha256')
+    return item
+
+
+@pytest.mark.parametrize('mode',['price_only','price_and_m1','price_and_m1_coarsened'])
+def test_candidate_qualification_recipe_binds_corrected_targets_and_exact_current_sources(fixture,monkeypatch,mode):
+    f=fixture;recipe=candidate_price_fixture(f,monkeypatch,mode)
+    checked=owner.require_research_launch_recipe(write(f['runtime']/'candidate-recipe.json',recipe),
+        source_repo=f['repo'],source_commit='a'*40)
+    assert checked['candidate_mode']==mode and checked['numerical_recipe']['dense_minute_supervision'] is True
+    assert checked['qualification_weights_for_main_fit'] is False and checked['test_data_used'] is False
+    assert not Path(checked['dense_target']['path']).exists()
+    if mode!='price_only':assert not Path(checked['candidate_m1_refs']['source']['path']).exists()
+
+
+@pytest.mark.parametrize('fault',['mode','order','m1_source','normalization','stale_constructor','wrong_proof',
+    'max_updates','test','private_weights','extra_fields'])
+def test_candidate_qualification_recipe_rejects_resealed_scope_or_binding_changes(fixture,monkeypatch,fault):
+    f=fixture;recipe=candidate_price_fixture(f,monkeypatch,'price_and_m1')
+    if fault=='mode':recipe['candidate_mode']='price_only'
+    elif fault=='order':recipe['parent_order_algorithm']='unbound-order'
+    elif fault=='m1_source':recipe['candidate_m1_refs']['source']['sha256']='9'*64
+    elif fault=='normalization':recipe['candidate_m1_refs']['normalization']['sha256']='9'*64
+    elif fault=='stale_constructor':recipe['source_owners']['gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py']['sha256']='9'*64
+    elif fault=='wrong_proof':recipe['dense_source_transition_proof']=f['dummy']
+    elif fault=='max_updates':recipe['max_private_updates']=5
+    elif fault=='test':recipe['test_data_used']=True
+    elif fault=='private_weights':recipe['qualification_weights_for_main_fit']=True
+    else:recipe['unbound']='extra'
+    reseal(recipe,'recipe_sha256')
+    with pytest.raises(RuntimeError):owner.require_research_launch_recipe(write(f['runtime']/'bad-candidate.json',recipe),
+        source_repo=f['repo'],source_commit='a'*40)
+
+
+def test_candidate_pair_preflight_requires_same_data_recipe_and_sources(fixture,monkeypatch):
+    f=fixture
+    coarse=candidate_price_fixture(f,monkeypatch,'price_and_m1_coarsened')
+    ordered=candidate_price_fixture(f,monkeypatch,'price_and_m1')
+    ordered['admission_stage']+='b';ordered['runtime_root']=str(f['runtime']/'other')
+    ordered['execution_binding_path']=str(f['runtime']/'other'/'EXECUTION_BINDING.json')
+    reseal(ordered,'recipe_sha256')
+    c=write(f['runtime']/'coarse-recipe.json',coarse);o=write(f['runtime']/'ordered-recipe.json',ordered)
+    pair=owner.require_m1_structure_matched_recipes(c,o,source_repo=f['repo'],source_commit='a'*40)
+    assert pair['coarsened']['candidate_mode']=='price_and_m1_coarsened' and pair['ordered']['candidate_mode']=='price_and_m1'
+    wrong=copy.deepcopy(ordered);wrong['numerical_recipe']['research_objective_sha256']='f'*64
+    num=wrong['numerical_recipe'];num.pop('contract_sha256');num['contract_sha256']=hashlib.sha256(json.dumps(num,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    reseal(wrong,'recipe_sha256');bad=write(f['runtime']/'bad-pair.json',wrong)
+    with pytest.raises(RuntimeError,match='M1_PRICE_MATCHED_PAIR'):
+        owner.require_m1_structure_matched_recipes(c,bad,source_repo=f['repo'],source_commit='a'*40)
+    with pytest.raises(RuntimeError,match='M1_PRICE_MATCHED_PAIR'):
+        owner.require_m1_structure_matched_recipes(o,c,source_repo=f['repo'],source_commit='a'*40)

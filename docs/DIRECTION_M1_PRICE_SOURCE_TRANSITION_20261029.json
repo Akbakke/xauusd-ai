@@ -1,0 +1,59 @@
+{
+  "checks": {
+    "all_current_refs_match_source_bytes": true,
+    "all_original_refs_match_input_manifest": true,
+    "constructor_class_methods_changed_against_previous_proof": [
+      "__init__"
+    ],
+    "constructor_diff_sha256": "8f4f19c944d5e2bf76b979af56ec83e75d8a6299a05986ae820c07e467504333",
+    "previous_constructor_blob_matches_prior_proof": true,
+    "previous_constructor_git_revision": "c77767fa"
+  },
+  "genuine_training_authorized": false,
+  "input_manifest": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/INPUT_MANIFEST.json",
+    "sha256": "befabac7ebff4e5e8b6233b299b2fc8f03b87b94d99bc7ec4d43b0fb76f9246f"
+  },
+  "limitations": "The price-momentum profile changes initialization and routing; this lineage check does not prove legacy function equivalence, genuine model behavior, learning or predictive edge.",
+  "previous_dense_transition_proof": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_SOURCE_TRANSITION_20261028.json",
+    "sha256": "faf934e3336a4959e8bcb1bac33a73579627042d895ff8d1ec82869ab7d94cc8"
+  },
+  "schema_version": "gx1_dense_source_transition_proof_v1",
+  "scope": "Candidate price-momentum and optional M1 research profile; establishes exact source lineage only.",
+  "source_commit_at_inspection": "33bb95462ceded5a8b72491f2142dc4ca1323269",
+  "source_transitions": {
+    "direction_component_source": {
+      "current": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "8beccc55c551c22c37e0af9bec10bc3b911e6ff11c69c6d5ba83abcc1b096e16"
+      },
+      "original": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "595cad387b5461382cdd697c3e93630b4e22b7c779ce4aa2c6b81708119f0e92"
+      }
+    },
+    "native_constructor_source": {
+      "current": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "ac35009027d496c997bbb8e3ce615d00f22d3d97214176fd67bc7d2d6425115f"
+      },
+      "original": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "3e5cea0ef2b77de3384e0779f93ba57ea36743f8dd7b2a392edd39a490606bee"
+      }
+    },
+    "owner_profile_source": {
+      "current": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+        "sha256": "67ac3e96ee1ce305b5e38fec5379d9a877675d5c16076b7f4d76fafcda9fb8a4"
+      },
+      "original": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+        "sha256": "1eddc4c7ba64636d9c87dce264c7c8086049373dd32481a8eebf5a9aec4aa9bb"
+      }
+    }
+  },
+  "status": "SOURCE_ONLY_VERIFIED_NO_DATA_OR_TRAINING",
+  "test_data_used": false
+}

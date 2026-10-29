@@ -38,8 +38,9 @@ DENSE_DECIMAL_FIT_SCOPE = 'single_prefix_dense_decimal_direction_fit'
 # Internal adapter for a separately admitted private decimal qualification only.
 # The prefix-fit launch validator does not accept this as a training scope.
 DENSE_DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_input_adapter'
-# Internal input adapter only; neither public campaign validator admits this scope.
+# Private research qualification only; the prefix-fit validator rejects it.
 M1_PRICE_PRIVATE_ADAPTER_SCOPE = 'private_dense_decimal_m1_price_input_adapter'
+M1_PRICE_COARSENED_MODE = 'price_and_m1_coarsened'
 DENSE_NATIVE_QUALIFICATION = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json',
     'sha256':'7b5768f2310446716f9954ab2e5887831e5dc8e6bde143c7bc4fa72156b17b24'}
 DENSE_DECIMAL_NATIVE_QUALIFICATION = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_PRIVATE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json',

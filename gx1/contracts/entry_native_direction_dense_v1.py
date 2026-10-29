@@ -56,7 +56,8 @@ def dense_direction_research_contract() -> dict[str, Any]:
 class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
     """One native forward, three original heads and 57 distinct new heads."""
 
-    def __init__(self, backbone, *, m1_ofi_normalization=None):
+    def __init__(self, backbone, *, m1_ofi_normalization=None, m1_ofi_coarsened=False):
+        _require(type(m1_ofi_coarsened) is bool and (not m1_ofi_coarsened or m1_ofi_normalization is not None), 'M1_REPRESENTATION')
         super().__init__(backbone)
         device = self.direction_head.weight.device
         with torch.random.fork_rng(devices=[device.index] if device.type == 'cuda' else []):
@@ -66,6 +67,7 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
         self.register_buffer('dense_reorder', torch.tensor(_REORDER, dtype=torch.int64, device=device))
         self._dense_objective_json = _OBJECTIVE_JSON
         self._m1_normalization_json = None
+        self._m1_ofi_coarsened = m1_ofi_coarsened
         if m1_ofi_normalization is not None:
             from gx1.contracts.entry_native_direction_m1_ofi_normalization_v1 import require
             fitted = require(m1_ofi_normalization)
@@ -80,6 +82,7 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
             self.register_buffer('m1_ofi_scale', torch.tensor(fitted['surface']['scale'][0], dtype=torch.float64, device=device))
             self.register_buffer('m1_ofi_normalization_sha256', torch.tensor(
                 list(bytes.fromhex(fitted['contract_sha256'])), dtype=torch.uint8, device=device))
+            self.register_buffer('m1_ofi_coarsened', torch.tensor(int(m1_ofi_coarsened), dtype=torch.uint8, device=device))
 
     @property
     def research_objective(self) -> dict[str, Any]:
@@ -116,6 +119,10 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
             value = self.m1_ofi_normalization_sha256
             _require(value.dtype == torch.uint8 and value.device == device and not value.requires_grad
                 and torch.equal(value, torch.tensor(list(bytes.fromhex(fitted['contract_sha256'])), dtype=torch.uint8, device=device)), 'M1_IDENTITY')
+            representation=self.m1_ofi_coarsened
+            _require(type(self._m1_ofi_coarsened) is bool and representation.dtype==torch.uint8
+                and representation.device==device and not representation.requires_grad and tuple(representation.shape)==()
+                and representation.item()==int(self._m1_ofi_coarsened), 'M1_REPRESENTATION')
 
     def forward(self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,
         ctx_cat: torch.Tensor, ctx_cont: torch.Tensor,
@@ -147,7 +154,14 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
             and hidden.device == self.direction_head.weight.device
             and bool(torch.isfinite(hidden).all()), 'NATIVE_HIDDEN')
         if self._m1_normalization_json is not None:
-            normalized = torch.asinh((m1_ofi_contracts - self.m1_ofi_center) / self.m1_ofi_scale)
+            value = m1_ofi_contracts
+            if self._m1_ofi_coarsened:
+                # Same raw inputs and masks; remove within-bucket temporal detail.
+                # Multiplying the mean by observed count reconstructs the sum.
+                count=m1_ofi_observed.sum(dim=1,keepdim=True)
+                mean=value.sum(dim=1,keepdim=True)/count.clamp_min(1)
+                value=torch.where(m1_ofi_observed,mean,torch.zeros_like(value))
+            normalized = torch.asinh((value - self.m1_ofi_center) / self.m1_ofi_scale)
             normalized = torch.where(m1_ofi_observed, normalized, torch.zeros_like(normalized)).to(torch.float32)
             _require(bool(torch.isfinite(normalized).all()), 'M1_NORMALIZED_FINITE')
             candidate = self.m1_ofi_out(F.gelu(self.m1_ofi_in(torch.cat(

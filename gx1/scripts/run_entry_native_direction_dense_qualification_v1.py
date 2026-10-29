@@ -77,7 +77,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     decimal=launch['run_scope']==authority.DECIMAL_PRIVATE_SCOPE or candidate
     _require(launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
         prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE) and invocation['batch_size']==16
-        and (not candidate or launch.get('candidate_mode') in ('price_only','price_and_m1')), 'EXACT_SCOPE')
+        and (not candidate or launch.get('candidate_mode') in ('price_only','price_and_m1',prefix_authority.M1_PRICE_COARSENED_MODE)), 'EXACT_SCOPE')
     sys.dont_write_bytecode=True
     import numpy as np
     import torch

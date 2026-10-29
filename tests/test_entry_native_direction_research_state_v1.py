@@ -356,7 +356,7 @@ def _make_dense_m1(monkeypatch):
     return SimpleNamespace(model=model,optimizer=optimizer,recipe=recipe,order=torch.arange(4,dtype=torch.int64),identity=identity)
 
 
-@pytest.mark.parametrize('name',['m1_ofi_center','m1_ofi_scale','m1_ofi_normalization_sha256'])
+@pytest.mark.parametrize('name',['m1_ofi_center','m1_ofi_scale','m1_ofi_normalization_sha256','m1_ofi_coarsened'])
 def test_m1_normalization_checkpoint_mismatch_is_rejected_before_any_mutation(monkeypatch,name):
     case=_make_dense_m1(monkeypatch);model,optimizer,recipe,identity=(case.model,case.optimizer,case.recipe,case.identity)
     saved=state_owner.capture_native_direction_research_state(model,optimizer,recipe=recipe,feature_view_identity=identity,
@@ -365,6 +365,7 @@ def test_m1_normalization_checkpoint_mismatch_is_rejected_before_any_mutation(mo
     for component in ('model_state','buffer_state'):
         tensor=bad[component][name]
         if name.endswith('sha256'):tensor[0]=(int(tensor[0])+1)%256
+        elif name=='m1_ofi_coarsened':tensor.add_(1)
         else:tensor.add_(0.5)
     bad['model_state_sha256']=state_owner.canonical_model_state_sha256(bad['model_state'])
     bad['buffer_state_sha256']=state_owner._tree_sha(bad['buffer_state']);_reseal(bad)

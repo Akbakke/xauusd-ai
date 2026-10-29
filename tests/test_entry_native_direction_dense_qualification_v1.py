@@ -94,7 +94,7 @@ def test_failed_dense_worker_publishes_failure_before_nonzero_exit(monkeypatch,t
     assert published['progress.json']=={'outcome':'FAILED','terminal':True}
 
 
-@pytest.mark.parametrize('variant',['dense','decimal','price_only','price_and_m1'])
+@pytest.mark.parametrize('variant',['dense','decimal','price_only','price_and_m1','price_and_m1_coarsened'])
 def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_path,variant):
     from copy import deepcopy
     from pathlib import Path
@@ -104,7 +104,7 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
     from gx1.contracts import entry_native_direction_research_state_v1 as state_owner
     from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as prefix
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
-    decimal=variant!='dense';candidate=variant in ('price_only','price_and_m1');legacy_decimal=decimal and not candidate
+    decimal=variant!='dense';candidate=variant in ('price_only','price_and_m1','price_and_m1_coarsened');legacy_decimal=decimal and not candidate
     def ref(name):return {'path':str(tmp_path/name),'sha256':'a'*64}
     recipe=recipes.native_direction_research_recipe(batch_size=16,max_updates=2,dense_minutes=True)
     launch={'run_scope':authority.DENSE_PRIVATE_SCOPE,'numerical_recipe':recipe,'execution_binding_path':str(tmp_path/'binding'),
@@ -119,7 +119,7 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
             monkeypatch.setattr(authority,'DECIMAL_INITIAL_PREDICTIONS',ref('initial-predictions'))
         if candidate:
             launch.update(run_scope=prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,candidate_mode=variant)
-            if variant=='price_and_m1':launch['candidate_m1_refs']={'synthetic':'exact'}
+            if variant in ('price_and_m1','price_and_m1_coarsened'):launch['candidate_m1_refs']={'synthetic':'exact'}
     window={'recipe':ref('recipe'),'output_directory':str(tmp_path/'output'),'campaign_cursor_path':str(tmp_path/'cursor')}
     plan={'plan_sha256':'b'*64};invocation={'batch_size':16,'invocation_sha256':'c'*64}
     prior={key:[1]*60 for key in ('eligible_up','eligible_down')}
@@ -150,7 +150,7 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
             'schema_version':'gx1_direction_decimal_sign_audit_result_v1','status':'COMPLETE','test_data_used':False,
             'new_model_forwards':0,'optimizer_steps':0,'target_source_rows_and_masks_parity':True,
             'vendor_to_canonical_float64_and_clock_parity':True,'confusions':{'fold1_train':rows}})
-    if candidate and variant=='price_and_m1':context['candidate_m1_refs']=launch['candidate_m1_refs']
+    if candidate and variant in ('price_and_m1','price_and_m1_coarsened'):context['candidate_m1_refs']=launch['candidate_m1_refs']
     metadata_scopes=[];guard_originals=[];guard_initials=[];guard_candidates=[];initial_checks=[]
     def metadata(actual,*_args):metadata_scopes.append(actual['run_scope']);return context
     def guard(*_args,**kwargs):

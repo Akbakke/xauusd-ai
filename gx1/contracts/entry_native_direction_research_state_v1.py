@@ -28,7 +28,7 @@ INACTIVE_PREFIXES = ('backbone.head_', 'backbone.dynamic_m5_query_projection.',
 IMMUTABLE_BUFFER_NAMES = frozenset(('backbone.gc_mtf_layout_sha256', 'backbone.gc_mtf_normalization_sha256',
     'backbone.entry_execution_profile_contract_sha256', 'direction_horizon_minutes', 'bps_rms', 'bps_scale_sha256',
     'magnitude_rms_bps', 'magnitude_raw_weight_mean', 'magnitude_weight_sha256',
-    'dense_horizon_minutes', 'dense_reorder', 'm1_ofi_center', 'm1_ofi_scale', 'm1_ofi_normalization_sha256'))
+    'dense_horizon_minutes', 'dense_reorder', 'm1_ofi_center', 'm1_ofi_scale', 'm1_ofi_normalization_sha256', 'm1_ofi_coarsened'))
 IMMUTABLE_BUFFER_PREFIXES = ('backbone.input_norm_', 'backbone.gc_mtf_specialist_idx_')
 STATE_KEYS = frozenset(('schema_version', 'binding', 'model_state', 'buffer_state', 'optimizer_state',
     'rng_state', 'module_training', 'parent_order', 'cursor', 'optimizer_updates', 'model_state_sha256',

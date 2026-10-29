@@ -73,6 +73,16 @@ DENSE_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_native_direction_prefix_fit_cam
     'gx1/scripts/run_entry_native_direction_dense_qualification_v1.py')
 DECIMAL_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_native_direction_decimal_data_v1.py',
     'gx1/contracts/entry_native_direction_decimal_input_v1.py')
+M1_PRICE_EXTRA_SOURCE_PATHS = ('gx1/features/entry_direction_momentum_profile_v1.py',
+    'gx1/contracts/entry_closed_m1_ofi_window_v1.py',
+    'gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py',
+    'gx1/scripts/audit_raw_gc_m1_reference_v1.py')
+M1_PRICE_SOURCE_TRANSITION = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_PRICE_SOURCE_TRANSITION_20261029.json',
+    'sha256':'d07be3985c931205f2482f566a3ec2087316346f31d84e34127590692a604524'}
+M1_NORMALIZATION_PLAN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TRAIN_NORMALIZATION_20261029.json',
+    'sha256':'78f035271c8cf2e70fb224bff0656eba0044046942f7a407fd4a091301e0fc93'}
+M1_NORMALIZATION_RESULT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001/OUTPUT/RESULT.json',
+    'sha256':'e3cc9b2c99c5ab1afe404b6d642ae018fe708fbdfa824f8a0e502b0b292b6983'}
 MODULE = 'gx1.scripts.run_unified_exit_native_candidate_window_v1'
 CANONICAL_REPO = Path('/home/andre2/src/GX1_CURRENT')
 REPO_SOURCE_PATHS = (
@@ -154,22 +164,31 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         'max_checkpoint_bytes', 'max_published_json_bytes', 'training_enabled',
         'full_epoch_training_allowed', 'test_data_used', 'predictive_value_claimed',
         'qualification_weights_for_main_fit'}
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    candidate = value.get('run_scope') == prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE
     bps = value.get('run_scope') == BPS_SCOPE
     weighted = value.get('run_scope') == WEIGHT_SCOPE
     supported = value.get('run_scope') == ORDER_SUPPORTED_SCOPE
     chronological = value.get('run_scope') == ORDER_PRIVATE_SCOPE or supported
-    decimal = value.get('run_scope') == DECIMAL_PRIVATE_SCOPE
+    decimal = value.get('run_scope') == DECIMAL_PRIVATE_SCOPE or candidate
     dense = value.get('run_scope') == DENSE_PRIVATE_SCOPE or decimal
     b16 = bps or weighted or chronological or dense
     if b16: fields |= {'fold','gc_layout_metadata_parity','qualification_design'}
     if dense: fields |= {'dense_source_transition_proof','dense_target_result','dense_target'}
-    if decimal: fields |= {'decimal_input_audit','decimal_target_refs','decimal_initial_predictions'}
+    if decimal: fields |= {'decimal_input_audit','decimal_target_refs'}
+    if decimal and not candidate: fields.add('decimal_initial_predictions')
+    if candidate:
+        fields |= {'candidate_mode','parent_order_algorithm'}
+        if value.get('candidate_mode') in ('price_and_m1',prefix.M1_PRICE_COARSENED_MODE): fields.add('candidate_m1_refs')
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     _path(recipe['runtime_root'], 'runtime root')
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE, ORDER_SUPPORTED_SCOPE, DENSE_PRIVATE_SCOPE, DECIMAL_PRIVATE_SCOPE), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE, ORDER_SUPPORTED_SCOPE, DENSE_PRIVATE_SCOPE, DECIMAL_PRIVATE_SCOPE, prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE), 'RECIPE_SCOPE')
+    if candidate:
+        _require(recipe['candidate_mode'] in ('price_only','price_and_m1',prefix.M1_PRICE_COARSENED_MODE)
+            and recipe['parent_order_algorithm']==prefix.PARENT_ORDER_ALGORITHM, 'M1_PRICE_MATCHED_SCOPE')
     for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if bps or weighted else 3,
             'max_forwards':21 if chronological or dense else 6 if bps or weighted else 4,
             'max_backwards':5 if bps or weighted else 4,
@@ -228,8 +247,9 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
             and recipe['qualification_design']==ORDER_SUPPORTED_DESIGN, 'DENSE_FIXED_INPUT_SCOPE')
         if decimal:
             _require(recipe['decimal_input_audit']==DECIMAL_INPUT_AUDIT
-                and recipe['decimal_initial_predictions']==DECIMAL_INITIAL_PREDICTIONS, 'DECIMAL_INPUT_AUDIT_SCOPE')
-            campaign.require_binding(recipe['decimal_initial_predictions'],label='decimal initial predictions',verify_file=True)
+                and (candidate or recipe['decimal_initial_predictions']==DECIMAL_INITIAL_PREDICTIONS), 'DECIMAL_INPUT_AUDIT_SCOPE')
+            if not candidate:
+                campaign.require_binding(recipe['decimal_initial_predictions'],label='decimal initial predictions',verify_file=True)
             audit_ref=campaign.require_binding(recipe['decimal_input_audit'],label='decimal input audit',verify_file=True)
             audit=campaign.read_bound_json(Path(audit_ref['path']),audit_ref['sha256'])
             refs=recipe['decimal_target_refs']
@@ -250,17 +270,76 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         for key in ('gc_layout_metadata_parity','qualification_design','dense_source_transition_proof','dense_target_result'):
             campaign.require_binding(recipe[key],label='dense '+key,verify_file=True)
         campaign.require_binding(recipe['dense_target'],label='dense target',verify_file=False)
-        _require(recipe['dense_source_transition_proof']['path']==str(source_repo/'docs/DIRECTION_DENSE_SOURCE_TRANSITION_20261028.json'), 'DENSE_PROOF_PATH')
+        if candidate:
+            _require(recipe['dense_source_transition_proof']==M1_PRICE_SOURCE_TRANSITION, 'M1_PRICE_TRANSITION_REF')
+            if recipe['candidate_mode'] in ('price_and_m1',prefix.M1_PRICE_COARSENED_MODE):
+                plan=campaign.read_bound_json(Path(M1_NORMALIZATION_PLAN['path']),M1_NORMALIZATION_PLAN['sha256'])
+                result=campaign.read_bound_json(Path(M1_NORMALIZATION_RESULT['path']),M1_NORMALIZATION_RESULT['sha256'])
+                refs=recipe['candidate_m1_refs']
+                _require(result.get('status')=='COMPLETE' and result.get('plan')==M1_NORMALIZATION_PLAN
+                    and result.get('train_parent_rows')==recipe['fold']['prefix_rows']
+                    and result.get('normalization_fit_calls')==1 and result.get('target_values_used') is False
+                    and result.get('model_forwards')==result.get('optimizer_steps')==0
+                    and result.get('test_data_used') is False
+                    and refs=={'source':plan['inputs']['m1_source'],'roll':plan['inputs']['roll'],
+                        'normalization':result.get('normalization')}, 'M1_PRICE_NORMALIZATION_EVIDENCE')
+                for key,ref in refs.items():
+                    campaign.require_binding(ref,label='candidate M1 '+key,verify_file=(key=='normalization'))
+                normalized=campaign.read_bound_json(Path(refs['normalization']['path']),refs['normalization']['sha256'])
+                _require(normalized.get('schema_version')=='gx1_native_direction_m1_ofi_normalization_v1'
+                    and normalized.get('scope')=='observed_closed_minutes_in_strict_train_prefix_only'
+                    and normalized.get('contract_sha256')==result.get('normalization_contract_sha256')
+                    and normalized.get('prefix_rows')==recipe['fold']['prefix_rows']
+                    and normalized.get('cutoff_ns')==recipe['fold']['train_cutoff_ns']
+                    and normalized.get('roll_sha256')==refs['roll']['sha256']
+                    and normalized.get('model_contract_clock_bound') is True
+                    and normalized.get('genuine_fit_authorized') is False
+                    and normalized.get('native_launch_authorized') is False, 'M1_PRICE_NORMALIZATION_CONTRACT')
+        else:
+            _require(recipe['dense_source_transition_proof']['path']==str(source_repo/'docs/DIRECTION_DENSE_SOURCE_TRANSITION_20261028.json'), 'DENSE_PROOF_PATH')
     owners = recipe['source_owners']
     required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if bps or weighted else ORDER_EXTRA_SOURCE_PATHS if chronological else DENSE_EXTRA_SOURCE_PATHS if dense else ())
     if decimal: required_sources += DECIMAL_EXTRA_SOURCE_PATHS
+    if candidate: required_sources += M1_PRICE_EXTRA_SOURCE_PATHS
     _require(isinstance(owners, Mapping) and set(owners) == set(required_sources), 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='research source', verify_file=True)
         _require(checked['path'] == str(source_repo / key), 'SOURCE_OWNER_PATH:' + key)
     if decimal:
         _require(audit.get('source')==owners['gx1/contracts/entry_native_direction_decimal_input_v1.py'], 'DECIMAL_QUALIFIED_OWNER')
+    if candidate:
+        proof=campaign.read_bound_json(Path(M1_PRICE_SOURCE_TRANSITION['path']),M1_PRICE_SOURCE_TRANSITION['sha256'])
+        manifest=campaign.read_bound_json(Path(recipe['input_manifest']['path']),recipe['input_manifest']['sha256'])
+        names={'owner_profile_source':'gx1/features/entry_specialist_feature_groups_v1.py',
+            'native_constructor_source':'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
+            'direction_component_source':'gx1/contracts/entry_native_direction_research_v1.py'}
+        transitions=proof.get('source_transitions')
+        _require(proof.get('schema_version')=='gx1_dense_source_transition_proof_v1'
+            and proof.get('status')=='SOURCE_ONLY_VERIFIED_NO_DATA_OR_TRAINING'
+            and proof.get('test_data_used') is False and proof.get('genuine_training_authorized') is False
+            and proof.get('input_manifest')==recipe['input_manifest']
+            and isinstance(transitions,Mapping) and set(transitions)==set(names), 'M1_PRICE_SOURCE_PROOF')
+        for key,name in names.items():
+            item=transitions[key]
+            _require(isinstance(item,Mapping) and set(item)=={'original','current'}
+                and item['original']==manifest['view_source_bindings'][key] and item['current']==owners[name]
+                and item['original']['path']==item['current']['path'], 'M1_PRICE_SOURCE_TRANSITION:'+key)
     return recipe
+
+
+def require_m1_structure_matched_recipes(coarse_ref, ordered_ref, *, source_repo: Path, source_commit: str):
+    """Preflight both private recipes; no model, data payload or authority."""
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    coarse=require_research_launch_recipe(coarse_ref,source_repo=source_repo,source_commit=source_commit)
+    ordered=require_research_launch_recipe(ordered_ref,source_repo=source_repo,source_commit=source_commit)
+    varying={'admission_stage','runtime_root','execution_binding_path','candidate_mode','recipe_sha256'}
+    _require(coarse['run_scope']==ordered['run_scope']==prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+        and coarse['candidate_mode']==prefix.M1_PRICE_COARSENED_MODE and ordered['candidate_mode']=='price_and_m1'
+        and {k:v for k,v in coarse.items() if k not in varying}=={k:v for k,v in ordered.items() if k not in varying}
+        and coarse['admission_stage']!=ordered['admission_stage'] and coarse['runtime_root']!=ordered['runtime_root']
+        and coarse['execution_binding_path']!=ordered['execution_binding_path'] and coarse_ref!=ordered_ref,
+        'M1_PRICE_MATCHED_PAIR')
+    return {'coarsened':coarse,'ordered':ordered}
 
 
 def require_research_window_policy(value: Any, *, verify_files: bool = True) -> dict[str, Any]:

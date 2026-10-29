@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
-  "next_action": "Prepare a separately authorized fresh initial/gradient/resume qualification for matched M1/M5 candidates using the completed TRAIN-only normalization; the separate conditional audit is not admitted. Training, TEST and trading remain sealed.",
+  "next_action": "Await explicit approval of the two sequential, capacity-matched private qualification campaigns; full fitting, the separate conditional audit, TEST and trading remain unadmitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -44012,7 +44012,7 @@
     "economic_edge_qualified": false
   },
   "independent_direction_m1_price_research_routes_20261029": {
-    "status": "GUARDED_PRIVATE_INPUT_LOADER_SYNTHETIC_ONLY_NOT_GENUINELY_ADMITTED",
+    "status": "CAPACITY_MATCHED_M1_STRUCTURE_PRIVATE_QUALIFICATION_PREPARED_NOT_ADMITTED",
     "m1": "five closed ordered M1 OFI values with distinct observed masks and own-prefix-only normalization",
     "price": "four genuine XAU MTF fields: rsi14_centered, macd_line_atr, macd_hist_atr, ret_1",
     "existing_8_specialists_and_d1_macro_preserved": true,
@@ -44118,37 +44118,38 @@
     "source_sha256": {
       "gx1/contracts/entry_closed_m1_ofi_window_v1.py": "61d54cc83a73081cef22c7255f4fbdce13630afb6779cf9491377d7e22beb79f",
       "gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py": "41f2bcacee98ff7b73ef038ccac21f01bc185645f434c8d17c533711a0dbd1b4",
-      "gx1/contracts/entry_native_direction_dense_v1.py": "8a2621586c7d940d6ca8478f7fd5b509f434952b0ec8593cbb2b42d9d5889ba6",
-      "gx1/contracts/entry_native_direction_feature_view_v1.py": "d0f75637b20de0f56ad82f8af3cd0766cf9adb3c94070a47b6133d5f3e395c11",
+      "gx1/contracts/entry_native_direction_dense_v1.py": "a5b201d6c28a27ec037fbf3d17e7c0d5de56b9c013cd096cef2c9b7806397a20",
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": "40fdc8f3a04f6d323367ee9110389330cf711661011b960fbe6ad9c23c9cce4a",
       "gx1/features/entry_direction_momentum_profile_v1.py": "36d050af771de69f50b0fd2f86c4c76df824cd944534885c467b55cd1c0eb308",
       "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "ac35009027d496c997bbb8e3ce615d00f22d3d97214176fd67bc7d2d6425115f",
       "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
-      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "30880b457f72cdd149f76672ff69c1d33921550cb3c19578761187799c729e09",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "2196f76e56ead674e2e0e7f6b71814188e412e8ff7401a73cd77691b4a217eb8",
       "tests/test_entry_closed_m1_ofi_window_v1.py": "7081a0e289f8cfd5fbc69b26f448ec5e8e9c365feb0f9924245461bce7e1a8b4",
       "tests/test_entry_direction_momentum_profile_v1.py": "17dca97a97359f0186ef41656d192566eab1b472e7ca2747d92b5846eca9e07f",
-      "tests/test_entry_native_direction_m1_ofi_v1.py": "26fa056b6c1701973c6bf04bf4202edf19f1faf5e65c5df0818e74074455cc84",
-      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": "10b963e9cbcceac74789ab7fffd633276b721a9d112a4478b7fe3ee6f249d644",
-      "tests/test_entry_native_direction_prefix_fit_window_v1.py": "e13c88a9c23b25f2a313594adde0b20f392be52482dc77ad55b83ed9a1e957ef",
+      "tests/test_entry_native_direction_m1_ofi_v1.py": "722c291054ff8f2512083891a715a3b72abca893e4ebe5b7a03067fa45577250",
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": "7ca10e52f857506ea6061395570143661d8c4e51efd50f37756dce9c83b557c7",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py": "5f29d3ce81e7518d0131bd25daf8a0d2cd5e5d7ece2f0b1c342faa3252cba271",
       "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "c9ec19ed0d3b2da2779c0d92f76acb6087739a41621d70b3da669aa385084677",
-      "tests/test_entry_native_direction_research_campaign_v1.py": "294851b129d26b5d25cc4251fd72a28108222249d399709f6eb0b87c364716cb",
+      "tests/test_entry_native_direction_research_campaign_v1.py": "32a0ee89caacea97c1b181ad1a508a4a00d9b7721495e4726b6d552b190f4531",
       "gx1/scripts/run_entry_native_direction_research_window_v1.py": "fd167cb7d6cf9711f5fd5a1ebb68fa53a6611d970544c4ef2e3bddf2657d9afe",
       "tests/test_entry_native_direction_decimal_private_integration_v1.py": "30503bfad1ed66a3864b4b3fe239ac3d167a14eea3f395ea43641e63a692af8e",
-      "gx1/contracts/entry_native_direction_research_state_v1.py": "062fdc24bb3586380c7ddd4d8b6ccfe529e7010075ae4d907da63fe23d2e0c38",
-      "tests/test_entry_native_direction_research_state_v1.py": "72839ae6cdc872f4d32bcc2f51974b78949367cefd87f785483ff1f4384cd08b",
-      "gx1/scripts/run_entry_native_direction_dense_qualification_v1.py": "b2b1c2b1cf1eb9787e4f5e0deaab65041a17ed36184ea4b2831b15d81c8cc4b9",
-      "tests/test_entry_native_direction_dense_qualification_v1.py": "2861efef579032b49ee0146eff669f6fb0ed90c225d592bd18f6cb295d239dc3"
+      "gx1/contracts/entry_native_direction_research_state_v1.py": "411b6780a0dccf3f55ca79dd5a9f78cc8463a952fdac72a576afc8389a4c2857",
+      "tests/test_entry_native_direction_research_state_v1.py": "5a5ea9977fb0b41939b29b8119dc464f3cd14371a9435c759652587ad47479c1",
+      "gx1/scripts/run_entry_native_direction_dense_qualification_v1.py": "447f1c276528e38c34ce5e33aa2f9e96e93b60ceae7519cd56462fc8c8ea245d",
+      "tests/test_entry_native_direction_dense_qualification_v1.py": "8be14f6c900ee98ed0f0f78d16eba5bac67eb443fe8a336fd12521499d2f654c",
+      "gx1/contracts/entry_native_direction_research_campaign_v1.py": "56d91902284d9f409dfcfb688337c521daab7c666626ae9d910a834d5ad4a1a6"
     },
     "candidate_private_adapter_scope": "private_dense_decimal_m1_price_input_adapter",
-    "candidate_private_adapter_explanation": "An internal candidate scope can now load exact guarded source files and an existing normalization, or accept explicitly supplied synthetic objects. Public campaign validators reject the scope; no genuine fit, genuine source load or training admission has happened.",
+    "candidate_private_adapter_explanation": "The private research campaign validator accepts only exact, source-bound private qualification recipes after separate gated admission; the full prefix-fit campaign still rejects this adapter.",
     "candidate_matched_arms": [
-      "price_momentum_plus_existing_m5_ofi",
-      "price_momentum_plus_existing_m5_ofi_plus_five_ordered_closed_m1_ofi_values"
+      "price_momentum_plus_m5_plus_coarsened_observed_m1_sum_and_masks",
+      "price_momentum_plus_m5_plus_five_observed_ordered_m1_values_and_same_masks"
     ],
     "candidate_adapter_synthetic_tests_passed": 184,
     "candidate_source_bound_guarded_real_loader_implemented": true,
     "candidate_genuine_m1_normalization_fit_authorized": false,
-    "candidate_public_campaign_admits_scope": false,
-    "candidate_parent_order_binding": "An explicit future plan must choose chronological prefix order or the original fixed TRAIN-only permutation; missing or unknown order is rejected. Both candidate arms must bind the same chosen order.",
+    "candidate_public_campaign_admits_scope": true,
+    "candidate_parent_order_binding": "Both private recipes bind the same original fixed MT19937 TRAIN-only permutation; the TRAIN/later split remains chronological.",
     "candidate_order_targeted_synthetic_tests_passed": 5,
     "candidate_order_bug_was_in_new_private_adapter_only": true,
     "candidate_source_bound_guarded_loader_scope": "Internal candidate only: exact source NPZ, roll JSON and existing fitted normalization JSON; guard/read-only, file hash and stat bookends, exact qualified source/roll/TRAIN prefix/model-clock joins. The sole exercised inputs are synthetic.",
@@ -44189,7 +44190,31 @@
     "candidate_m1_normalization_observed_minutes": 234875,
     "candidate_m1_normalization_train_parents": 47602,
     "candidate_m1_actual_backbone_context_evaluation_synthetic_passed": true,
-    "candidate_m1_actual_backbone_context_evaluation_synthetic_scope": "One synthetic parent; real strict 14-field context reporter, device conversion, native eight-family price+M1 backbone, 60-head scorer and grad/no-grad parity. No market input, fit or predictive claim."
+    "candidate_m1_actual_backbone_context_evaluation_synthetic_scope": "One synthetic parent; real strict 14-field context reporter, device conversion, native eight-family price+M1 backbone, 60-head scorer and grad/no-grad parity. No market input, fit or predictive claim.",
+    "candidate_full_prefix_fit_campaign_admits_scope": false,
+    "candidate_m1_capacity_confound_identified": true,
+    "candidate_m1_capacity_matched_control_implemented": true,
+    "candidate_m1_control_scope": "Same trainable branch and M1 masks. Coarsened control keeps the observed sum and count but removes within-bucket OFI variation and ordering; it does not isolate ordering alone or mask value.",
+    "candidate_m1_structure_focused_tests_passed": 296,
+    "candidate_m1_structure_pair_validator_tests_passed": 59,
+    "candidate_m1_structure_synthetic_native_equal_initial": true,
+    "candidate_m1_structure_actual_runs": 0,
+    "candidate_m1_structure_proposal": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_STRUCTURE_PRIVATE_QUALIFICATION_20261029.md",
+      "sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23"
+    },
+    "candidate_m1_source_transition_proof": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_PRICE_SOURCE_TRANSITION_20261029.json",
+      "sha256": "d07be3985c931205f2482f566a3ec2087316346f31d84e34127590692a604524"
+    },
+    "candidate_m1_coarsened_qualification_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_COARSENED_PRIVATE_QUALIFICATION_RECIPE_20261029.json",
+      "sha256": "cd5f78f913272ea0c61e46569ed60c2c431075fff149903cddb839e60f7c22e3"
+    },
+    "candidate_m1_ordered_qualification_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_ORDERED_PRIVATE_QUALIFICATION_RECIPE_20261029.json",
+      "sha256": "426abaa4049235d44276e481941367cc5d25103d8884d34684c82ad49047417c"
+    }
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",
@@ -44278,5 +44303,71 @@
     "target_values_used": false,
     "source_and_inputs_unchanged": true,
     "elapsed_seconds": 1.0453709679968597
+  },
+  "dynamic_m5_direction_matched_m1_coarsened_qualification_20261029_001": {
+    "status": "PREPARED_NOT_AUTHORIZED",
+    "proposal": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_STRUCTURE_PRIVATE_QUALIFICATION_20261029.md",
+      "sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23"
+    },
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_COARSENED_PRIVATE_QUALIFICATION_RECIPE_20261029.json",
+      "sha256": "cd5f78f913272ea0c61e46569ed60c2c431075fff149903cddb839e60f7c22e3"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_PRIVATE_QUALIFICATION_20261029_001/RUNTIME",
+    "scope": "One private 256-initial, 32-TRAIN-parent and four-physical-update gradient/resume qualification; no full fit or trading.",
+    "candidate_mode": "price_and_m1_coarsened",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
+  },
+  "dynamic_m5_direction_matched_m1_ordered_qualification_20261029_001": {
+    "status": "PREPARED_NOT_AUTHORIZED",
+    "proposal": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_STRUCTURE_PRIVATE_QUALIFICATION_20261029.md",
+      "sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23"
+    },
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_ORDERED_PRIVATE_QUALIFICATION_RECIPE_20261029.json",
+      "sha256": "426abaa4049235d44276e481941367cc5d25103d8884d34684c82ad49047417c"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_ORDERED_PRIVATE_QUALIFICATION_20261029_001/RUNTIME",
+    "scope": "One private 256-initial, 32-TRAIN-parent and four-physical-update gradient/resume qualification; no full fit or trading.",
+    "candidate_mode": "price_and_m1",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false
   }
 }

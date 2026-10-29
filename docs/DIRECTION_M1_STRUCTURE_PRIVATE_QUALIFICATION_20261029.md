@@ -1,0 +1,25 @@
+# Foreslått privat kontroll: M1-struktur mot samme modellkapasitet
+
+**Forberedt, ikke godkjent og ikke kjørt.** Målet er å kontrollere modell- og treningsmekanikken før en senere, separat godkjent retningssammenligning. Fire private oppdateringer per variant kan ikke vise retningsedge.
+
+## Hvorfor to matchede varianter
+
+Den opprinnelige pris+M5-varianten og pris+M5+M1-varianten hadde ulik modellkapasitet: M1-varianten hadde et ekstra trenbart nettverksledd som også mottok modellens eksisterende representasjon. En forskjell mellom dem ville derfor ikke isolere minuttinformasjonen.
+
+Begge de nye variantene bruker den samme kompakte RSI/MACD/ret_1-profilen, eksisterende M5-ordreflyt, alle åtte spesialistfamilier, D1/makro og det samme ekstra nettverksleddet. Begge mottar de samme ekte, kausalt avsluttede M1-verdiene og observasjonsmaskene, og bruker samme fullførte TRAIN-normalisering. I kontrollvarianten erstatter en eksplisitt transformasjon **inne i modellen** de observerte minuttenes verdier med deres gjennomsnitt; antall og masker beholdes, og summen kan dermed gjenskapes. Den andre varianten bruker de fem verdiene enkeltvis. Manglende minutter behandles fortsatt som manglende.
+
+En senere, parret resultatforskjell vil gjelde den samlede ekstra informasjonen i variasjonen og plasseringen av OFI gjennom bøtten, sammenlignet med samme sum og masker. Den isolerer ikke plassering fra variasjon, beviser ikke at én enkelt indikator forårsaket resultatet, og kan ikke alene bevise lønnsomhet. Kontrollmodellen har også M1-observeringsmaskene; forsøket måler ikke deres tilleggsverdi. Ulike måter å representere samme informasjon på kan også påvirke hvor lett modellen lærer den. Q1 2025 er gjenbrukt utvikling.
+
+## Fast omfang ved eventuell godkjenning
+
+1. Kjør [kontrollvarianten](DIRECTION_M1_COARSENED_PRIVATE_QUALIFICATION_RECIPE_20261029.json) én gang og deretter [M1-varianten](DIRECTION_M1_ORDERED_PRIVATE_QUALIFICATION_RECIPE_20261029.json) én gang. Oppskriftene er validert mot hverandre og har samme 62 kildeeiere, input, mål, seed, loss, normalisering, fold og TRAIN-rekkefølge. De skiller seg bare i representasjon, eget run-/admisjonsnavn og oppskriftens identitet. Dette er to selvstendige, sekvensielle engangskampanjer uten relansering.
+2. Hver variant måler egen ny initialtilstand på de samme 256 forhåndsvalgte TRAIN-foreldrene og kontrollerer de 60 korrigerte TRAIN-priorene. De samme 32 faste TRAIN-foreldrene brukes i to batcher à 16: to logiske oppdateringer sammenlignes med én oppdatering, lagring og én etter gjenopptak. Det gir fire fysiske optimizeroppdateringer per variant, åtte totalt. Sluttilstandene må være byteidentiske innen hver variant. Private vekter gjenbrukes ikke.
+3. Etter begge terminalkvitteringene sammenlignes de 256 initialforeldrene, beslutningsklokkene og alle 60 startlogits mellom variantene. Identiske startprediksjoner skal kontrolleres, ikke antas; avvik må forklares før en senere fit. Dette er en startkontroll og ikke et resultat av trening.
+4. Begge går gjennom eksisterende capped native-kampanje, prosjektlås og signerte maskinvarevakter. Ingen kilde eller policy endres under kjøring. Fysisk Windows-restart og ny verifisert boot kreves før **hvert** treningsvindu. Sett GPU-grensen til 250 W under hvert vindu og verifiser 160 W grense etterpå. Den private arbeiderens grense er 1 200 sekunder per vindu, og eksisterende ytre kampanjevakt har sin egen grense. Ingen gitt kjøretid er garantert.
+5. Stopp ved første feil eller avvik; bevar originale kvitteringer og checkpoints. Ingen relansering, full fit, ekstra epoke, valg på senere data, TEST, broker, paper, live, ordre, Exit, spending eller promotion. Eksisterende treningstillatelser står stengt frem til nytt uttrykkelig vedtak.
+
+## Verifisert før forespørselen
+
+Den tidligere kildeovergangen pekte til en eldre modellkonstruktør. Den nye [kildeovergangen](DIRECTION_M1_PRICE_SOURCE_TRANSITION_20261029.json) binder de opprinnelige manifestreferansene og nåværende kildebytes uten å hevde prediktiv effekt. 296 fokuserte syntetiske tester bestod; den siste utvidelsen av den private parvalidatoren bestod ytterligere 59 fokuserte tester. På én syntetisk rad hadde de to faktiske modellarkitekturene de samme parameterne ved start og identiske 60 startlogits. En annen syntetisk kontroll viste at kontrollvarianten beholder samme sum og maske når minuttverdiene bytter plass. Checkpoint med feil representasjonsidentitet avvises før modellmutasjon.
+
+Oppskriftene er forhåndskontrollert som metadata og er ikke en kjøretillatelse. Det finnes ingen genuin M1-kandidatforward, optimizeroppdatering eller retningsmåling fra dette forslaget. Etter en eventuell bestått kontroll må en egen plan og godkjenning til for faktisk trening og sammenligning mot senere data.

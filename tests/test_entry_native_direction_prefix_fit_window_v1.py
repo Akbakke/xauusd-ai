@@ -491,6 +491,10 @@ def test_dense_prepare_joins_only_bound_synthetic_targets_and_current_sources(mo
     assert view['m1_ofi_normalization']==fitted and got['m1_ofi_clock'].clock_sha256==clock.clock_sha256
     assert context['candidate_m1_snapshot']['source']==common._stat(str(m1_path))
     assert view['source_bindings']['m1_ofi_roll_schedule']==m1_refs['roll']
+    launch['candidate_mode']=authority.M1_PRICE_COARSENED_MODE
+    got,target,coarse_view,_,_=runner._prepare(context,launch,np,dense_minutes=True)
+    assert coarse_view['m1_ofi_coarsened'] is True and coarse_view['m1_ofi_normalization']==view['m1_ofi_normalization']
+    assert 'm1_ofi_coarsened' not in view and got['m1_ofi_clock'].clock_sha256==clock.clock_sha256
     norm_path.write_text(norm_path.read_text()+' ')
     with pytest.raises(RuntimeError,match='CANDIDATE_M1_SOURCE_SHA:normalization'):
         runner._prepare(context,launch,np,dense_minutes=True)
