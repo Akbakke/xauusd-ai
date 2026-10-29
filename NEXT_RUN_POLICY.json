@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T18:41:31.436921+00:00",
-  "status": "M5_MOMENTUM_INTERVENTION_003_ADMITTED",
+  "observed_utc": "2026-10-29T19:05:01.059528+00:00",
+  "status": "M5_MOMENTUM_INTERVENTION_FINISHED_INDEPENDENT_REPLAY_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Verify the exact fresh plan and idle/signed telemetry, then run it once through the canonical capped CUDA producer; no optimizer and no relaunch.",
+  "next_action": "Run the admitted CPU-only saved-output replay once; then close its gate and report source-confirmed indicator influence, limitations and next root-cause work.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -45299,7 +45299,7 @@
       ],
       "source_quote_event_time_available": false,
       "reported_terminal_time": "nominal M1 candle start at decision_ns plus horizon, not a recorded individual quote timestamp",
-      "endpoint_population": "Exact entry and terminal candle starts required; intervening candle continuity is not checked. Actual frequency of gaps among qualified outcomes is unmeasured.",
+      "endpoint_population": "Exact entry and terminal candle starts required; intervening candle continuity is not checked. A separate real-data audit measured intervening gaps on reused Q1 and sampled Q2 2025; it does not measure their impact on model scores or establish other periods.",
       "oanda_instrument_schema_reference": "https://developer.oanda.com/rest-live-v20/instrument-df/",
       "oanda_specific_instrument_endpoint_reference": "https://github.com/oanda/v20-openapi/blob/master/yaml/separate/v20_instrument.yaml",
       "conditional_elapsed_assumptions": "Unsmoothed M1 first-open observations each in the half-open candle interval [start,start+60 seconds), and each midpoint derived from synchronized bid/ask of a single quote in that minute. Neither historical effective smooth default nor synchronized quote times are established by these artifacts.",
@@ -45324,14 +45324,38 @@
         "actual historical smooth behavior",
         "bid/ask synchronization",
         "individual quote event or arrival times",
-        "actual frequency or effect of missing intervening minutes",
+        "frequency outside the measured Q1 and sampled Q2 populations, or model-score effect of missing intervening minutes",
         "impact on predictions or AUC",
         "economic edge"
       ],
       "new_market_or_prediction_payload_reads": 0,
       "new_model_forwards": 0,
       "new_optimizer_steps": 0,
-      "test_data_used": false
+      "test_data_used": false,
+      "measured_intermediate_gap_population": {
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_OBSERVATION_GAPS_20261028_001/OUTPUT/RESULT.json",
+          "sha256": "a8c21c9b93e59432e394af49213074d4d04612771f92addd8567476add4864e0"
+        },
+        "q1_5min": {
+          "observed": 17224,
+          "observed_with_intermediate_missing": 1
+        },
+        "q1_60min": {
+          "observed": 16520,
+          "observed_with_intermediate_missing": 7
+        },
+        "q2_5min": {
+          "observed": 1754,
+          "observed_with_intermediate_missing": 0
+        },
+        "q2_60min": {
+          "observed": 1688,
+          "observed_with_intermediate_missing": 0
+        },
+        "q1_five_observed_sixty_endpoint_missing": 693,
+        "limitations": "Counts are for these measured development cohorts only, not full historical data; no impact on model scores or quote-event timing has been established."
+      }
     }
   },
   "direction_m1_ofi_decimal_sensitivity_and_capture_clock_20261029": {
@@ -46449,14 +46473,14 @@
     "test_data_used": false
   },
   "independent_m5_momentum_intervention_20261029_003": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_ONE_SHOT_CONSUMED_INDEPENDENT_REVIEW_PENDING",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_003.json",
       "sha256": "477d30cb0c687cd3f688acacd0b0a7f565fd438e8ca68053923d72d9f00c70d2"
     },
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "model_forwards_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_forwards_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "native_launch_authorized": false,
@@ -46466,8 +46490,8 @@
     "broker_access_allowed": false,
     "relaunch_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "class": "guarded_cuda_producer",
     "memory_max": "20G",
     "wall_seconds": 3300,
@@ -46492,6 +46516,77 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_PRELAUNCH_REJECTION_20261029_002.json",
       "sha256": "cf7443f5cb823d35a5166b15bab865afa6af704ef6b7183c9868214a2ba34a32"
     },
-    "focused_test_count_after_guard_fix": 15
+    "focused_test_count_after_guard_fix": 15,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003/OUTPUT/RESULT.json",
+      "sha256": "9b18161cec38395bb82debaef8c46caae31a14cdfb4959e12bd40e37ec1231a2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003/TERMINAL.json",
+      "sha256": "20fccc28e0a3d4999028cbd6b0649925ebaaddcd77e914d993cf1b5054039f87"
+    },
+    "bound_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003/OUTPUT/TERMINAL.json",
+      "sha256": "35dfd7b727fad815aa6933c8ef6dfac57c20f514480593115bcfb5e696f5247f"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003/INVOCATION_CLAIM.json",
+      "sha256": "4d987a686648bb34ec4cec5fc03488c0049cab069abdaabbabf8e95a25d4574f"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003.guard.s63VwUEQ.log",
+      "sha256": "6926391f1fb8ea6393e2e06a0eb9016799a4d5d8b0fe4a5dd50f838978cfd19e"
+    },
+    "paired_outputs": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "091bc1454fa2a3337c951ce8cbef810cb70a13145081f6d69336b3b9bd57ed1e"
+    },
+    "guard_peak_power_draw_w": 147.48,
+    "guard_peak_core_c": 48,
+    "guard_peak_memory_c": 52
+  },
+  "independent_m5_momentum_result_replay_20261029_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/m5_momentum_independent_20261029_001.py",
+      "sha256": "13672515ebc6ef015b9fba10aab68c910171b5f826ec68f511737ec33a8fa69c"
+    },
+    "inputs": {
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003/OUTPUT/RESULT.json",
+        "sha256": "9b18161cec38395bb82debaef8c46caae31a14cdfb4959e12bd40e37ec1231a2"
+      },
+      "paired_outputs": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003/OUTPUT/PAIRED_OUTPUTS.npz",
+        "sha256": "091bc1454fa2a3337c951ce8cbef810cb70a13145081f6d69336b3b9bd57ed1e"
+      },
+      "train_predictions": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.npz",
+        "sha256": "4cb156a4f7390fadac3a63967221d557646d512a6dfa5aa3d6e2f5772e26a20b"
+      },
+      "oof_predictions": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+        "sha256": "6df82d7649b61ebc17e6c14fee0d60c542604b650c141e3d88cd6d30f183f321"
+      },
+      "independent_rank_worker": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/verify_m5_predictions_once.py",
+        "sha256": "30500fd4c449edf38ce8789a162b8b5b739c267e07543303d411017c9407e40a"
+      }
+    },
+    "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INDEPENDENT_20261029_001",
+    "class": "audit",
+    "memory_max": "4G",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "synthetic_rank_tie_checks": "PASS",
+    "scope": "Independently recompute 600 original/ablated rank, logloss and Brier panels and 600 train/development influence panels from the exact saved paired logits and original prediction inputs, on 60 horizons. Reuse the independent Mann-Whitney rank owner. No new model, training, TEST or trading; source-reported bootstrap intervals are not independently recomputed."
   }
 }
