@@ -38955,7 +38955,7 @@
     }
   },
   "direction_matched_exposure_continuation_source_20261027": {
-    "status": "THREE_PASS_AND_PAIRED_OOF_COMPLETED_FULL_TRAIN_ASSESSMENT_PENDING",
+    "status": "THREE_PASS_OOF_AND_FULL_TRAIN_PAIRED_COMPARISONS_COMPLETE",
     "purpose": "Integrate exact opt-in continuation from baseline276 into the existing native prefix owner; compare fixed one and three passes without changing the original sign target.",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_DESIGN_20261027.json",
@@ -39017,7 +39017,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_PREFLIGHT_ACTUAL_20261027_002/TERMINAL.json",
       "sha256": "651a20a8f3a3c127008dbfec2fef0de54522e4499bda833e71f9828fde09a5be"
     },
-    "full_train_evaluation_note": "The native runner publishes a fixed 256-row FINAL_TRAIN measurement. The predeclared full 47602-row final-TRAIN assessment requires a separate complete fixed-prefix extraction after training; do not claim it from the 256-row panel.",
+    "full_train_evaluation_note": "The initial 256-row diagnostic was followed by a separately completed, matched full 47602-parent fixed-model TRAIN assessment; it is descriptive in-sample evidence.",
     "actual_campaign_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "78a123219f19c70ecdc2a2b1a5b6f5110f0563edcb5484e307e77baad1defd1f"
@@ -39039,6 +39039,10 @@
     "paired_evaluation_review": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_PAIRED_RESULT_20261028.json",
       "sha256": "45029be6927ee78c615556fe36cee9707523d07758cf3345c2bc6dc8aac11eb1"
+    },
+    "full_train_paired_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
+      "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
     }
   },
   "independent_direction_last_m1_ofi_sign_refinement_20261027": {
@@ -39467,7 +39471,7 @@
     "optimizer_steps": 0
   },
   "dynamic_m5_direction_exposure_1v3_fold1_20261027_002": {
-    "status": "COMPLETE_CONSUMED_OOF_PAIRED_EVALUATION_COMPLETE_FULL_TRAIN_ASSESSMENT_PENDING",
+    "status": "COMPLETE_CONSUMED_OOF_AND_FULL_TRAIN_PAIRED_EVALUATION_COMPLETE",
     "run_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002_RUNTIME",
     "evidence_root": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002",
     "design": {
@@ -39535,7 +39539,7 @@
     "qualification_weights_for_main_fit": false,
     "fixed_protocol_no_hpo_early_stopping_or_checkpoint_selection": true,
     "predictive_value_qualified": false,
-    "full_train_assessment_pending": true,
+    "full_train_assessment_pending": false,
     "authorization_basis": "User gave free rein to take over and asked whether additional epochs could improve direction. This is a fresh, explicitly scoped 1-vs-3-pass campaign; the earlier one-epoch authority is not reused.",
     "unused_windows_revoked": [
       3,
@@ -39555,7 +39559,11 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_PAIRED_RESULT_20261028.json",
       "sha256": "45029be6927ee78c615556fe36cee9707523d07758cf3345c2bc6dc8aac11eb1"
     },
-    "paired_oof_evaluation_complete": true
+    "paired_oof_evaluation_complete": true,
+    "full_train_paired_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
+      "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
+    }
   },
   "direction_matched_exposure_paired_source_20261028": {
     "status": "SOURCE_AND_SYNTHETIC_PASS_GENUINE_PAYLOAD_CLOSED",
@@ -39705,7 +39713,7 @@
     }
   },
   "dynamic_m5_direction_threepass_terminal_train_20261028_001": {
-    "status": "COMPLETE_CONSUMED_FULL_TRAIN_PAIRED_SCORING_PENDING",
+    "status": "COMPLETE_CONSUMED_FULL_TRAIN_PAIRED_SCORING_COMPLETE",
     "unit": "threepass_terminal_prefix",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_RECIPE_20261028_001.json",
@@ -39770,7 +39778,11 @@
     "actual_forwards": 2976,
     "actual_optimizer_steps": 0,
     "actual_reverse_calls": 0,
-    "first_256_prediction_parity": true
+    "first_256_prediction_parity": true,
+    "full_train_paired_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
+      "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
+    }
   },
   "direction_threepass_train_paired_source_20261028": {
     "status": "SOURCE_AND_SYNTHETIC_PASS_GENUINE_PAYLOAD_CLOSED",
@@ -44541,7 +44553,14 @@
     "economic_edge_qualified": false,
     "new_model_forwards": 0,
     "new_optimizer_steps": 0,
-    "test_data_used": false
+    "test_data_used": false,
+    "full_train_assessment_pending_scope": "Bps candidate versus baseline was assessed on 256 diagnostic TRAIN rows in that comparison; the separate one-versus-three exposure comparison is complete on the full 47602-parent TRAIN prefix.",
+    "exposure_full_train_assessment_pending": false,
+    "exposure_full_train_paired_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
+      "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
+    },
+    "bps_comparison_train_diagnostic_rows": 256
   },
   "direction_corrected_five_minute_prediction_skew_20261029": {
     "status": "EXISTING_HASHED_AGGREGATE_NO_NEW_RUN",
@@ -44973,6 +44992,64 @@
     "vendor_timestamp_reference": "https://databento.com/docs/api-historical/basics/",
     "physical_availability": "Databento defines ts_recv at the capture server, not at this machine. The historical reduction does not establish network/gateway/local-processing availability by the nominal close. No physical lateness, resulting data change, leakage or edge impact measured.",
     "source_data_reduction_matches_recipe": true,
+    "new_raw_market_or_prediction_payload_reads": 0,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "test_data_used": false,
+    "edge_qualified": false
+  },
+  "direction_fulltrain_status_and_decimal_sensitivity_20261029": {
+    "status": "COMPLETE_SAVED_RESULT_STATUS_CORRECTION_NO_NEW_RUN",
+    "scope": "One-versus-three original three-head 1/5/15 direction fit on same TRAIN prefix and reused Q1; separate one-pass bps candidate on same Q1. Not retraining on the corrected 60-head objective.",
+    "full_train_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
+      "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
+    },
+    "full_train_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_threepass_terminal_prefix_CAMPAIGN_20261028_001/TRAIN_EXPOSURE_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "59cb71d3cbc8636f5c81ed9294a9fc4e788b07c83413636b7af9bb66f0820de9"
+    },
+    "later_exposure_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/MATCHED_EXPOSURE_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "f7d2e4c9459a874dbeda505af94125da7fcd3c6c2ab135dc92435b47dc4324ae"
+    },
+    "bps_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_COMPARISON_001/OUTPUT/RESULT.json",
+      "sha256": "5e8d6a2de22ff9d6d53c814d139ae62b58cdb9925f1bf1b14f40e8ac905f8c21"
+    },
+    "decimal_audit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+    },
+    "full_train_matching_parent_rows": 47602,
+    "five_minute_train_eligible": 47308,
+    "five_minute_train_one_pass_auc": 0.515888213111177,
+    "five_minute_train_three_pass_auc": 0.5335340953576608,
+    "five_minute_later_eligible": 17197,
+    "five_minute_later_one_pass_auc": 0.5030210874582608,
+    "five_minute_later_three_pass_auc": 0.5009502780173811,
+    "later_exposure_day_week_auc_intervals_include_zero": true,
+    "bps_train_measurement_rows_in_this_comparison": 256,
+    "five_minute_later_bps_auc": 0.49682269234877807,
+    "corrected_targets_fixed_predictions_sensitivity": {
+      "train_at_most_removed_up_down": [
+        12,
+        14
+      ],
+      "later_at_most_removed_up_down": [
+        2,
+        3
+      ],
+      "no_nonzero_sign_flips_or_zero_to_nonzero": true,
+      "maximum_removed_train_pair_fraction": 0.0011007646197570553,
+      "maximum_removed_later_pair_fraction": 0.000585671717043823,
+      "train_three_minus_one_auc_lower_bound": 0.01656334997636536,
+      "later_three_minus_one_auc_upper_bound": -0.0014860080367142532,
+      "later_bps_minus_sign_auc_upper_bound": -0.00561601253214154,
+      "method": "Pairwise AUC contrast lies in [-1,1]. If q is the maximum removed up/down-pair fraction, a retained contrast is in [(old-q)/(1-q),(old+q)/(1-q)]. Bounds use the fixed old models and same eligible cohort, and are not newly computed scores or intervals."
+    },
+    "interpretation": "Fixed three-pass model fits reused TRAIN better than one-pass, while later ranking has no statistically supported improvement. This is a generalization gap, not proof of its cause.",
+    "limitations": "No claim that three-pass cannot generalize in another setting, or that correcting and retraining 60 heads has the same outcome. This bps comparison has only 256 matched TRAIN diagnostic parents. Sealed TEST and all trading remain closed.",
     "new_raw_market_or_prediction_payload_reads": 0,
     "new_model_forwards": 0,
     "new_optimizer_steps": 0,
