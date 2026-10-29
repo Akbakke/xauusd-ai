@@ -293,14 +293,22 @@ def test_preparation_routes_corrected_60_bps_to_loss_only(tmp_path, monkeypatch)
     monkeypatch.setattr(window,'_candidate_view_inputs',lambda *a,**k:{'price_momentum':True})
     monkeypatch.setattr(view_owner,'bind_native_direction_feature_view',lambda **kwargs:kwargs)
     monkeypatch.setattr(report,'native_direction_context_map',lambda **kwargs:{})
-    expected_scale = _scale()
-    monkeypatch.setattr(bps,'fit_dense_direction_bps_scale',lambda **kwargs:captures.append(kwargs) or expected_scale)
+    synthetic_values=np.ones((2,60),np.float64)
+    expected_scale=bps.fit_dense_direction_bps_scale(parent_rows=arrays['parent_rows'],decision_ns=arrays['decision_ns'],
+        terminal_time_ns=arrays['decision_ns'][:,None]+np.arange(1,61,dtype=np.int64)[None,:]*M,
+        observed=np.ones((2,60),np.bool_),sign=np.ones((2,60),np.int8),mid_return_bps=synthetic_values,
+        cutoff_ns=launch['fold']['train_cutoff_ns'],target_source=refs['corrected'],fit_partition='train')
+    context['dense_bps_qualified_scale']=expected_scale
+    monkeypatch.setattr(bps,'fit_dense_direction_bps_scale',lambda **kwargs:pytest.fail('qualified scale must be reused'))
     _, targets, view, _, _ = window._prepare(context,launch,np_proxy,dense_minutes=True,dense_bps=True)
     assert np.array_equal(targets['mid_return_bps'],corrected['mid_return_bps'])
-    assert captures[0]['target_source']==refs['corrected'] and captures[0]['fit_partition']=='train'
-    assert captures[0]['mid_return_bps'].shape==(2,60)
     assert view['dense_bps_scale']==expected_scale and view['price_momentum'] is True
     assert all(not value.flags.writeable for value in targets.values())
+    wrong=deepcopy(expected_scale);wrong['target_source']['sha256']='0'*64
+    wrong.pop('contract_sha256');wrong['contract_sha256']=bps._sha(wrong)
+    context['dense_bps_qualified_scale']=wrong
+    with pytest.raises(RuntimeError,match='DENSE_BPS_SCALE_SCOPE'):
+        window._prepare(context,launch,np_proxy,dense_minutes=True,dense_bps=True)
 
 
 def test_dense_bps_evaluation_saves_all_sixty_scores_without_state_change(monkeypatch):
@@ -355,7 +363,7 @@ def test_dense_bps_physical_shape_validation_rejects_wrong_sign_and_mode():
 def test_private_step_dispatches_dense_bps_and_preserves_all_horizons(monkeypatch):
     from contextlib import contextmanager
     from gx1.scripts import run_entry_native_direction_research_window_v1 as private
-    model, optimizer, *_ = _state_case(monkeypatch)
+    parts = _state_case(monkeypatch);model, optimizer, *_ = parts
     @contextmanager
     def no_fastpath(backbone):
         before=torch.backends.mha.get_fastpath_enabled();torch.backends.mha.set_fastpath_enabled(False)
@@ -371,6 +379,17 @@ def test_private_step_dispatches_dense_bps_and_preserves_all_horizons(monkeypatc
     result=private._step(model,optimizer,existing._features(0),target,cutoff=200*M,counters=counters,torch=torch)
     assert result['counts']['eligible_cells']==120 and len(result['per_horizon_counts'])==60
     assert counters['optimizer_updates']==1 and not torch.equal(before,model.dense_bps_head.weight)
+    saved=_capture(parts,2,1)
+    probed=private._step(model,optimizer,existing._features(1),target,cutoff=200*M,counters=counters,torch=torch,bps_only_probe=True)
+    assert counters['optimizer_updates']==2 and counters['backwards']==3
+    assert probed['bps_only_probe']['joint_projection_nonzero']>0
+    expected=_capture(parts,4,2)
+    resumed=_state_case(monkeypatch); rm,ro,recipe,identity,order,_=resumed
+    state.restore_native_direction_research_state(saved,rm,ro,recipe=recipe,feature_view_identity=identity,
+        parent_order=order,device=torch.device('cpu'))
+    other={k:0 for k in ('forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates')}
+    private._step(rm,ro,existing._features(1),target,cutoff=200*M,counters=other,torch=torch)
+    assert _capture(resumed,4,2)['contract_sha256']==expected['contract_sha256']
 
 
 def test_private_gradient_evidence_checks_all_sixty_bps_rows(monkeypatch):

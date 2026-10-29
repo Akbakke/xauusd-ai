@@ -40,6 +40,7 @@ DENSE_DECIMAL_FIT_SCOPE = 'single_prefix_dense_decimal_direction_fit'
 DENSE_DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_input_adapter'
 # Private research qualification only; the prefix-fit validator rejects it.
 M1_PRICE_PRIVATE_ADAPTER_SCOPE = 'private_dense_decimal_m1_price_input_adapter'
+M5_DENSE_BPS_PRIVATE_SCOPE = 'private_dense_decimal_m5_signed_bps_60_qualification'
 M1_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m1_price_direction_fit'
 M5_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m5_price_direction_fit'
 M5_FIVE_PRIORITY_FIT_SCOPE = 'single_prefix_dense_decimal_m5_five_priority_direction_fit'
@@ -303,6 +304,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     _require(isinstance(numerical, Mapping)
         and numerical.get('signed_bps_supervision', False) is bps
         and numerical.get('dense_minute_supervision', False) is dense
+        and numerical.get('dense_signed_bps_supervision', False) is False
         and numerical.get('magnitude_weighted_direction', False) is False
         and numerical.get('five_minute_priority', False) is priority_fit, 'NUMERICAL_OBJECTIVE_SCOPE')
     _require(isinstance(numerical, Mapping) and numerical.get('schema_version') == 'gx1_native_direction_research_recipe_v1'

@@ -77,6 +77,15 @@ M1_PRICE_EXTRA_SOURCE_PATHS = ('gx1/features/entry_direction_momentum_profile_v1
     'gx1/contracts/entry_closed_m1_ofi_window_v1.py',
     'gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py',
     'gx1/scripts/audit_raw_gc_m1_reference_v1.py')
+M5_DENSE_BPS_STAGE = 'dynamic_m5_direction_dense_bps_private_20261030_001'
+_M5_DENSE_BPS_ROOT = '/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63'
+M5_DENSE_BPS_SCALE = {'path':_M5_DENSE_BPS_ROOT+'/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT/OWN_TRAIN_DENSE_BPS_SCALE.json', 'sha256':'b5f26bbda63f9fa02bc19eb370f17608d116432eef935b85d97270a37a7bedd9'}
+M5_DENSE_BPS_SCALE_RESULT = {'path':_M5_DENSE_BPS_ROOT+'/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT/RESULT.json', 'sha256':'a3ca04a15b3d31af514e0a6fe1faccc6b144797a1f63f427d7d2f1588a91176e'}
+M5_DENSE_BPS_SCALE_TERMINAL = {'path':_M5_DENSE_BPS_ROOT+'/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT/TERMINAL.json', 'sha256':'b9df328fbb446da62815fb72691ec7ff76437a2b8d87700701f67b96bbe57664'}
+M5_DENSE_BPS_COUNT_REVIEW = {'path':_M5_DENSE_BPS_ROOT+'/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT/INDEPENDENT_PRIOR_AUDIT_COUNT_CHECK.json', 'sha256':'fb41cef41756c43706a18f57a7d842061b3036e7eb79e962074dbb5ed0d29b62'}
+M5_DENSE_BPS_BASELINE_INITIAL = {'path':_M5_DENSE_BPS_ROOT+'/DIRECTION_M5_PRICE_ONLY_PRIVATE_QUALIFICATION_20261029_001/RUNTIME/private-research/INITIAL_TRAIN.npz', 'sha256':'90c298464bf2282ee17f5b71a02fc05c1fd942d9254a11e7edad63d631bf7792'}
+M5_DENSE_BPS_BASELINE_REPORT = {'path':_M5_DENSE_BPS_ROOT+'/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json', 'sha256':'a468c941d3d6246581e94c6ae4d728fc2689d51eee4d29e28f6302ac460d7005'}
+
 M1_PRICE_SOURCE_TRANSITION = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_PRICE_SOURCE_TRANSITION_20261029.json',
     'sha256':'d07be3985c931205f2482f566a3ec2087316346f31d84e34127590692a604524'}
 M1_NORMALIZATION_PLAN = {'path':'/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TRAIN_NORMALIZATION_20261029.json',
@@ -165,7 +174,8 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         'full_epoch_training_allowed', 'test_data_used', 'predictive_value_claimed',
         'qualification_weights_for_main_fit'}
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
-    candidate = value.get('run_scope') == prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    dense_bps = value.get('run_scope') == prefix.M5_DENSE_BPS_PRIVATE_SCOPE
+    candidate = value.get('run_scope') in (prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE, prefix.M5_DENSE_BPS_PRIVATE_SCOPE)
     priority = value.get('numerical_recipe', {}).get('five_minute_priority', False)
     _require(type(priority) is bool and (not priority or (candidate and value.get('candidate_mode') == 'price_only')), 'FIVE_PRIORITY_PRIVATE_SCOPE')
     bps = value.get('run_scope') == BPS_SCOPE
@@ -182,19 +192,23 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     if candidate:
         fields |= {'candidate_mode','parent_order_algorithm'}
         if priority: fields |= {'priority_design','priority_baseline_initial_report','priority_source_review'}
+        if dense_bps: fields |= {'dense_bps_scale','dense_bps_scale_result','dense_bps_scale_terminal','dense_bps_count_review','dense_bps_initial_predictions','dense_bps_initial_report'}
         if value.get('candidate_mode') in ('price_and_m1',prefix.M1_PRICE_COARSENED_MODE): fields.add('candidate_m1_refs')
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     _path(recipe['runtime_root'], 'runtime root')
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE, ORDER_SUPPORTED_SCOPE, DENSE_PRIVATE_SCOPE, DECIMAL_PRIVATE_SCOPE, prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE, ORDER_SUPPORTED_SCOPE, DENSE_PRIVATE_SCOPE, DECIMAL_PRIVATE_SCOPE, prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE, prefix.M5_DENSE_BPS_PRIVATE_SCOPE), 'RECIPE_SCOPE')
+    if dense_bps:
+        _require(recipe['admission_stage']==M5_DENSE_BPS_STAGE and recipe.get('candidate_mode')=='price_only'
+            and not priority, 'DENSE_BPS_PRIVATE_SCOPE')
     if candidate:
         _require(recipe['candidate_mode'] in ('price_only','price_and_m1',prefix.M1_PRICE_COARSENED_MODE)
             and recipe['parent_order_algorithm']==prefix.PARENT_ORDER_ALGORITHM, 'M1_PRICE_MATCHED_SCOPE')
     for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if bps or weighted else 3,
             'max_forwards':21 if chronological or dense else 6 if bps or weighted else 4,
-            'max_backwards':5 if bps or weighted else 4,
+            'max_backwards':5 if bps or weighted or dense_bps else 4,
             'max_checkpoint_bytes':1073741824, 'max_published_json_bytes':33554432}.items():
         _require(type(recipe[key]) is int and recipe[key] == expected, 'RECIPE_BUDGET:' + key)
     for key, expected in {'training_enabled':True, 'full_epoch_training_allowed':False,
@@ -206,6 +220,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         and numerical.get('signed_bps_supervision',False) is bps
         and numerical.get('magnitude_weighted_direction',False) is weighted
         and numerical.get('dense_minute_supervision',False) is dense
+        and numerical.get('dense_signed_bps_supervision', False) is dense_bps
         and type(numerical.get('max_updates')) is int and numerical['max_updates'] == 2
         and numerical.get('genuine_updates_authorized') is False and numerical.get('native_launch_authorized') is False,
         'NUMERICAL_RECIPE_ROLE')
@@ -304,6 +319,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if bps or weighted else ORDER_EXTRA_SOURCE_PATHS if chronological else DENSE_EXTRA_SOURCE_PATHS if dense else ())
     if decimal: required_sources += DECIMAL_EXTRA_SOURCE_PATHS
     if candidate: required_sources += M1_PRICE_EXTRA_SOURCE_PATHS
+    if dense_bps: required_sources += ('gx1/contracts/entry_native_direction_bps_v1.py',)
     if priority:
         from gx1.contracts.entry_native_direction_five_priority_private_v1 import EXTRA_SOURCE_PATHS
         required_sources += EXTRA_SOURCE_PATHS
@@ -330,6 +346,41 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
             _require(isinstance(item,Mapping) and set(item)=={'original','current'}
                 and item['original']==manifest['view_source_bindings'][key] and item['current']==owners[name]
                 and item['original']['path']==item['current']['path'], 'M1_PRICE_SOURCE_TRANSITION:'+key)
+    if dense_bps:
+        _require(recipe['dense_bps_scale']==M5_DENSE_BPS_SCALE and recipe['dense_bps_scale_result']==M5_DENSE_BPS_SCALE_RESULT
+            and recipe['dense_bps_scale_terminal']==M5_DENSE_BPS_SCALE_TERMINAL
+            and recipe['dense_bps_count_review']==M5_DENSE_BPS_COUNT_REVIEW
+            and recipe['dense_bps_initial_predictions']==M5_DENSE_BPS_BASELINE_INITIAL
+            and recipe['dense_bps_initial_report']==M5_DENSE_BPS_BASELINE_REPORT, 'DENSE_BPS_EVIDENCE_REFS')
+        scale_ref=campaign.require_binding(recipe['dense_bps_scale'],label='dense bps scale',verify_file=True)
+        result_ref=campaign.require_binding(recipe['dense_bps_scale_result'],label='dense bps scale result',verify_file=True)
+        terminal_ref=campaign.require_binding(recipe['dense_bps_scale_terminal'],label='dense bps scale terminal',verify_file=True)
+        review_ref=campaign.require_binding(recipe['dense_bps_count_review'],label='dense bps count review',verify_file=True)
+        initial_ref=campaign.require_binding(recipe['dense_bps_initial_report'],label='dense bps initial report',verify_file=True)
+        campaign.require_binding(recipe['dense_bps_initial_predictions'],label='dense bps initial predictions',verify_file=True)
+        scale=campaign.read_bound_json(Path(scale_ref['path']),scale_ref['sha256'])
+        sr=campaign.read_bound_json(Path(result_ref['path']),result_ref['sha256'])
+        terminal=campaign.read_bound_json(Path(terminal_ref['path']),terminal_ref['sha256'])
+        count_review=campaign.read_bound_json(Path(review_ref['path']),review_ref['sha256'])
+        initial=campaign.read_bound_json(Path(initial_ref['path']),initial_ref['sha256'])
+        sealed={k:v for k,v in scale.items() if k!='contract_sha256'}
+        _require(scale.get('contract_sha256')==hashlib.sha256(json.dumps(sealed,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+            and scale.get('schema_version')=='gx1_direction_own_prefix_dense_signed_bps_scale_v1'
+            and scale.get('fit_partition')=='train' and scale.get('horizons_minutes')==list(range(1,61))
+            and scale.get('prefix_rows')==recipe['fold']['prefix_rows'] and scale.get('cutoff_ns')==recipe['fold']['train_cutoff_ns']
+            and scale.get('target_source')==recipe['dense_target'], 'DENSE_BPS_SCALE_IDENTITY')
+        _require(sr.get('status')=='COMPLETE_TRAIN_PREFIX_SCALE_ONLY' and sr.get('scale')==scale_ref
+            and sr.get('model_forwards')==sr.get('optimizer_steps')==0 and sr.get('test_data_used') is False
+            and sr.get('independent_counts_and_fsum_with_error_bounds') is True
+            and terminal.get('status')=='COMPLETE' and terminal.get('result')==result_ref and terminal.get('scale')==scale_ref
+            and count_review.get('status')=='PASS' and count_review.get('scale')==scale_ref
+            and count_review.get('prior_decimal_sign_audit')==recipe['decimal_target_refs']['audit_result']
+            and count_review.get('all_mature_observed_counts_equal') is True and count_review.get('horizons_checked')==60
+            and count_review.get('test_data_used') is False, 'DENSE_BPS_SCALE_PROOF')
+        _require(initial.get('role')=='INITIAL_TRAIN' and initial.get('fold')==recipe['fold']
+            and initial.get('test_data_used') is False and initial.get('predictions',{}).get('sha256')==M5_DENSE_BPS_BASELINE_INITIAL['sha256']
+            and all(type(initial.get('preservation',{}).get(k)) is str for k in ('model','all_buffers','rng')),
+            'DENSE_BPS_INITIAL_REPORT')
     if priority:
         from gx1.contracts.entry_native_direction_five_priority_private_v1 import require_private_recipe
         require_private_recipe(recipe, owners, source_repo=source_repo, source_commit=source_commit)

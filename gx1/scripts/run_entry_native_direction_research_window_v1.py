@@ -428,7 +428,7 @@ def _gradient_evidence(model, torch):
     return evidence
 
 
-def _step(model, optimizer, features, target, *, cutoff, counters, torch):
+def _step(model, optimizer, features, target, *, cutoff, counters, torch, bps_only_probe=False):
     from gx1.contracts.entry_native_direction_research_v1 import native_direction_binary_loss
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     from gx1.models.entry_v10 import entry_v10_ctx_hybrid_transformer as hybrid
@@ -453,13 +453,26 @@ def _step(model, optimizer, features, target, *, cutoff, counters, torch):
     _require(loss['update_allowed'] and all(row['eligible_cells']>0 for row in loss['per_horizon_counts']),'ALL_HORIZON_LOSS_NO_SEARCH')
     if getattr(model,'dense_signed_bps',False):
         _require(all(count>0 for count in loss['bps_per_horizon_counts']), 'ALL_HORIZON_BPS_LOSS')
-    counters['backwards']+=1;_require(counters['backwards']<=4,'BACKWARD_BUDGET');loss['loss'].backward();counters['backward_returns']+=1
+    _require(type(bps_only_probe) is bool and (not bps_only_probe or getattr(model,'dense_signed_bps',False)), 'BPS_PROBE_SCOPE')
+    bps_probe=None
+    if bps_only_probe:
+        _require(loss['bps_loss'] is not None and all(p.grad is None for p in model.parameters()), 'BPS_PROBE_INPUT')
+        counters['backwards']+=1;_require(counters['backwards']<=5,'BACKWARD_BUDGET')
+        (gradient,)=torch.autograd.grad(loss['bps_loss'],(model.backbone.entry_q_joint_in.weight,),retain_graph=True,allow_unused=False)
+        counters['backward_returns']+=1
+        _require(bool(torch.isfinite(gradient).all()) and int(torch.count_nonzero(gradient))>0
+            and all(p.grad is None for p in model.parameters()), 'BPS_ONLY_SHARED_GRADIENT')
+        bps_probe={'joint_projection_nonzero':int(torch.count_nonzero(gradient)),
+            'joint_projection_l2':float(torch.linalg.vector_norm(gradient).detach())}
+    ceiling=5 if getattr(model,'dense_signed_bps',False) else 4
+    counters['backwards']+=1;_require(counters['backwards']<=ceiling,'BACKWARD_BUDGET');loss['loss'].backward();counters['backward_returns']+=1
     gradients=_gradient_evidence(model,torch)
     counters['optimizer_step_calls']+=1;_require(counters['optimizer_step_calls']<=4,'OPTIMIZER_STEP_BUDGET')
     norm=trainer._optimizer_step_with_finite_gradients(model=model,optimizer=optimizer)
     counters['optimizer_updates']+=1;_require(counters['optimizer_updates']<=4,'UPDATE_BUDGET')
     return {'loss':float(loss['loss'].detach()),'counts':loss['counts'],'per_horizon_counts':loss['per_horizon_counts'],
-        'gradient_nonzero_counts':gradients,'gradient_norm':float(norm)}
+        'gradient_nonzero_counts':gradients,'gradient_norm':float(norm),
+        **({'bps_only_probe':bps_probe} if bps_probe is not None else {})}
 
 
 def _deny_legacy_work(previous, counters):
@@ -493,7 +506,7 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
         from gx1.scripts.run_entry_native_direction_order_qualification_v1 import run_order_qualification
         return run_order_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     if launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
-            prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE):
+            prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE):
         from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import run_dense_qualification
         return run_dense_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     sys.dont_write_bytecode=True

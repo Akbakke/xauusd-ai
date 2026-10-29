@@ -399,7 +399,7 @@ def test_candidate_qualification_recipe_binds_corrected_targets_and_exact_curren
 
 
 @pytest.mark.parametrize('fault',['mode','order','m1_source','normalization','stale_constructor','wrong_proof',
-    'max_updates','test','private_weights','extra_fields'])
+    'max_updates','test','private_weights','dense_bps','extra_fields'])
 def test_candidate_qualification_recipe_rejects_resealed_scope_or_binding_changes(fixture,monkeypatch,fault):
     f=fixture;recipe=candidate_price_fixture(f,monkeypatch,'price_and_m1')
     if fault=='mode':recipe['candidate_mode']='price_only'
@@ -411,6 +411,9 @@ def test_candidate_qualification_recipe_rejects_resealed_scope_or_binding_change
     elif fault=='max_updates':recipe['max_private_updates']=5
     elif fault=='test':recipe['test_data_used']=True
     elif fault=='private_weights':recipe['qualification_weights_for_main_fit']=True
+    elif fault=='dense_bps':
+        numeric=recipe['numerical_recipe'];numeric['dense_signed_bps_supervision']=True;numeric.pop('contract_sha256')
+        numeric['contract_sha256']=hashlib.sha256(json.dumps(numeric,sort_keys=True,separators=(',',':')).encode()).hexdigest()
     else:recipe['unbound']='extra'
     reseal(recipe,'recipe_sha256')
     with pytest.raises(RuntimeError):owner.require_research_launch_recipe(write(f['runtime']/'bad-candidate.json',recipe),

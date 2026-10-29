@@ -222,6 +222,10 @@ def _launch_metadata(launch, common):
         for ref in (launch['gc_layout_metadata_parity'],launch['native_continuation_qualification'],
                 launch['continuation_origin']['terminal_train_measurement']):
             common._read(ref,metadata)
+    if 'dense_bps_scale' in launch:
+        ref=launch['dense_bps_scale']
+        context['dense_bps_qualified_scale_ref']=dict(ref)
+        context['dense_bps_qualified_scale']=common._read(ref,context['info']['metadata'])
     if 'native_bps_qualification' in launch:
         metadata = context['info']['metadata']
         common._read(launch['gc_layout_metadata_parity'], metadata)
@@ -443,11 +447,11 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
             decision_ns=prepared['arrays']['decision_ns'][:n], **{key:value[:n] for key,value in targets.items()},
             cutoff_ns=launch['fold']['train_cutoff_ns'],target_source=manifest['targets'],fit_partition='train')
     if dense_bps:
-        from gx1.contracts.entry_native_direction_bps_v1 import fit_dense_direction_bps_scale
-        n=launch['fold']['prefix_rows']
-        dense_bps_scale=fit_dense_direction_bps_scale(parent_rows=prepared['arrays']['parent_rows'][:n],
-            decision_ns=prepared['arrays']['decision_ns'][:n], **{key:value[:n] for key,value in targets.items()},
-            cutoff_ns=launch['fold']['train_cutoff_ns'],target_source=context['dense_target'],fit_partition='train')
+        from gx1.contracts.entry_native_direction_bps_v1 import require_dense_direction_bps_scale
+        dense_bps_scale=require_dense_direction_bps_scale(context.get('dense_bps_qualified_scale'))
+        _require(dense_bps_scale['prefix_rows']==launch['fold']['prefix_rows']
+            and dense_bps_scale['cutoff_ns']==launch['fold']['train_cutoff_ns']
+            and dense_bps_scale['target_source']==context['dense_target'], 'DENSE_BPS_SCALE_SCOPE')
     if magnitude_weighted:
         from gx1.contracts.entry_native_direction_bps_v1 import fit_direction_magnitude_weight_contract
         n=launch['fold']['prefix_rows']

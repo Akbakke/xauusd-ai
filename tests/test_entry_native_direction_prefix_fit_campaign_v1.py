@@ -151,7 +151,7 @@ def test_bound_window_cannot_expand_limits(fixture,key,value):
     with pytest.raises(RuntimeError):owner.require_prefix_fit_window_policy(value_dict)
 
 
-@pytest.mark.parametrize('fault',['fold','batch','updates','order','passes','qualification_weights'])
+@pytest.mark.parametrize('fault',['fold','batch','updates','order','passes','dense_bps','qualification_weights'])
 def test_recipe_rejects_resealed_scope_mutations(fixture,fault):
     f=fixture;recipe=copy.deepcopy(f['recipe'])
     if fault=='fold':recipe['fold']['prefix_rows']+=1
@@ -159,6 +159,7 @@ def test_recipe_rejects_resealed_scope_mutations(fixture,fault):
     elif fault=='updates':recipe['numerical_recipe']['max_updates']=4
     elif fault=='order':recipe['parent_order_algorithm']='last_emitted_or_sampled'
     elif fault=='passes':recipe['train_passes']=2
+    elif fault=='dense_bps':recipe['numerical_recipe']['dense_signed_bps_supervision']=True
     else:recipe['qualification_weights_for_main_fit']=True
     numerical_seal(recipe['numerical_recipe']);reseal(recipe,'recipe_sha256');ref=write(f['runtime']/'BAD_RECIPE.json',recipe)
     with pytest.raises(RuntimeError):owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)

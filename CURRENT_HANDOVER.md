@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+30.10 — BPS-PRIVAT RUTE FORBEREDT: Egen M5-recipe med 63 hashbundne kildeeiere passerte metadataforkontroll på modifisert kilde; kontrollen må gjentas etter ren commit. Syntetiske tester dekker gjenbruk av kvalifisert skala, 256-logits/felles modell-/buffer-/RNG-paritet, alle 60 bps-hoder, separat bps-gradient til delt representasjon og eksakt resume. En ekte privat kontroll på 32 TRAIN-foreldre/fire oppdateringer er ikke startet. Ingen kvalifiseringsvekter skal brukes videre; TEST og handel er stengt. Se NEXT_RUN_POLICY.
+
 30.10 — 60 BPS-TAPSSKALAER BEREGNET OG LUKKET: 47 602 TRAIN-beslutninger; observerte modne antall 45 514–47 596 per horisont. Fem minutter: 47 420, RMS 5,256305 bps. Alle 60 antall samsvarer med tidligere uavhengig korrigert fasit-audit; uavhengig fsum-kontroll av summer og kvadratsummer bestod. Ingen modellforward, optimizer, TEST eller handel. Dette er tapsnormalisering, ikke edge. Den nye private kampanjeruten og de separate treningene gjenstår. Se NEXT_RUN_POLICY.
 
 30.10 — 60-HODERS BPS OG TO-PASS KILDEFORBEREDELSE: Ny M5-variant beholder alle 60 retningsmål og legger til signert bps-tap med egen TRAIN-RMS per horisont. Kilde, input-/modellbinding, mål- og tapsdispatch er syntetisk testet; kontrollert to-pass checkpoint-/cursor-semantikk er forberedt. Reell kvalifisering, kampanjer og sammenligninger gjenstår. Én CPU-tilpasning av 60 RMS fra nøyaktig 47 602 TRAIN-rader er separat bundet og autorisert; all modelltrening og TEST er stengt. Se docs/DIRECTION_M5_DENSE_BPS_FACTOR_DESIGN_20261030.md og NEXT_RUN_POLICY.
