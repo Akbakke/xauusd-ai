@@ -44453,6 +44453,34 @@
     "model_forwards": 0,
     "optimizer_steps": 0,
     "test_data_used": false,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "train_256_initial_vs_final": {
+      "initial_report": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
+        "sha256": "ff697a8f41f9e8390976b8e40185022c36778d6ad37fb83deb29047861dcde78"
+      },
+      "final_report": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json",
+        "sha256": "9a32188710b49a977414206e68298c307fead89912e84c37625532c7bc8d0e01"
+      },
+      "same_train_selection_confirmed_from_bound_source": true,
+      "bound_source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "6391155733bc21dde378b84c162cbc4aaa8fcb33a0d52a0088852df1e3109696"
+      },
+      "git_revision_with_matching_source_blob": "ddf13f78990c1f1589b10e04d64706b1e6015525",
+      "train_selected_rows": 256,
+      "actual_up": 128,
+      "actual_down": 128,
+      "initial_predicted_down": 255,
+      "initial_predicted_up": 1,
+      "final_predicted_down": 197,
+      "final_predicted_up": 59,
+      "initial_auc": 0.44097900390625,
+      "final_auc": 0.54541015625,
+      "initial_logloss": 0.7848345715463445,
+      "final_logloss": 0.6923114237942509,
+      "scope": "Fixed in-sample diagnostic, not full TRAIN or proof that initial bias causes the later-fold result."
+    }
   }
 }
