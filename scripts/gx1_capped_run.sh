@@ -251,13 +251,21 @@ validate_target_command() {
       TRAINER_MODEL_MAX_WALL_SECONDS=3600
       if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
         && "${4:-}" == --direction-m5-momentum-intervention-plan ]]; then
-        # The user chose 250 W for this inference. Only the bound 003 plan gets
-        # this configured-limit exception; the 170 W actual-draw stop, 65/80 C
-        # temperatures, signed telemetry, cgroup and all other limits remain.
+        # Only the two exact one-shot M5 plans have this configured-limit
+        # exception. The 170 W draw stop, 65/80 C temperature stops, signed
+        # telemetry, cgroup, lock, GPU memory and timeout remain unchanged.
         local m5_root=/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63
-        if ! matches_bound_m5_intervention \
-          "$m5_root/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_003.json" \
-          "$m5_root/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003" "$@"; then
+        local m5_plan m5_output
+        case "${5:-}" in
+          "$m5_root/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_003.json")
+            m5_plan="$m5_root/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_003.json"
+            m5_output="$m5_root/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003" ;;
+          "$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_001.json")
+            m5_plan="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_001.json"
+            m5_output="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_20261029_001" ;;
+          *) echo "FATAL: unknown M5 momentum producer plan" >&2; exit 75 ;;
+        esac
+        if ! matches_bound_m5_intervention "$m5_plan" "$m5_output" "$@"; then
           echo "FATAL: M5 momentum producer 250W scope is not exactly bound" >&2
           exit 75
         fi

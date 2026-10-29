@@ -1097,7 +1097,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         momentum_args = momentum_parser.parse_args(supplied)
         if not momentum_args.out_dir.is_absolute():
             momentum_parser.error("--out-dir must be an absolute path")
-        from gx1.audit.direction_m5_momentum_intervention_v1 import run as run_m5_momentum_intervention
+        trace_plan = Path("/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_001.json")
+        if momentum_args.direction_m5_momentum_intervention_plan == trace_plan:
+            from gx1.audit.direction_m5_momentum_trace_v1 import run as run_m5_momentum_intervention
+        else:
+            from gx1.audit.direction_m5_momentum_intervention_v1 import run as run_m5_momentum_intervention
         report = run_m5_momentum_intervention(plan_path=momentum_args.direction_m5_momentum_intervention_plan,
             plan_sha256=str(momentum_args.direction_m5_momentum_intervention_plan_sha256),
             device="cuda", out_dir=momentum_args.out_dir)

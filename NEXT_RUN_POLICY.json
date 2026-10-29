@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T19:14:33.634549+00:00",
-  "status": "M5_FUSION_STATE_PARTIAL_BUT_ROUTE_HYPOTHESIS_CORRECTED",
+  "observed_utc": "2026-10-29T19:21:15.627493+00:00",
+  "status": "M5_MOMENTUM_TRACE_SOURCE_TESTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Trace the actual change from price projection to MTF representation and Entry head on a small predeclared matched sample, or derive it from existing activation evidence; do not claim zero residuals block the direct MTF path or change training without evidence.",
+  "next_action": "Bind one fresh exact intervention-trace plan to the current reviewed source, prior paired outputs, original M5 checkpoint and predeclared fixed sampling; verify scope before execution.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46799,5 +46799,34 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_PRIVATE_QUALIFICATION_20261029_001/RUNTIME/private-research/RESULT.json",
       "sha256": "62c1c94207f8fac08e6288da53b78ab32e2d1e4588f836273708e9757b33cb64"
     }
+  },
+  "independent_m5_momentum_trace_source_20261029_001": {
+    "status": "SOURCE_TESTED_NO_EXECUTION",
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/direction_m5_momentum_trace_v1.py",
+      "sha256": "69cfb9d8d906deef976103158b0f50c78f3485c6caa8dc4226d7507e8af85490"
+    },
+    "validator": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/validate_entry_model_native_technical_checkpoint_v1.py",
+      "sha256": "8a9f11bcdf74743d8c8ea32f8ea2cc2480b64d28c1f72cd961b69f77d6263171"
+    },
+    "runner": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "f9347ceffc78b4145cc0566eea10e7d62e44f9cae7eeeb4ea94806673170fa21"
+    },
+    "tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_direction_m5_momentum_trace_v1.py",
+      "sha256": "57b63ec866ee7f1b1d592716c538a21671780d88af730d355efa0aa065ea8c8a"
+    },
+    "focused_tests_passed": 19,
+    "native_architecture_synthetic_hook_test": "PASS",
+    "scope": "Replay original and all-four-neutralized price projection on the same fixed TRAIN/Q1 parents, demand exact saved logits for both, and record aggregate input-to-output activation changes; no new training, TEST, broker, trade or promotion.",
+    "configured_gpu_max_w": 250,
+    "actual_gpu_draw_stop_w": 170,
+    "core_temp_limit_c": 65,
+    "memory_temp_limit_c": 80,
+    "signed_telemetry_required": true,
+    "execution_authorized": false,
+    "test_data_used": false
   }
 }
