@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T19:11:07.938821+00:00",
-  "status": "M5_FUSION_STATE_INSPECTION_002_ADMITTED",
+  "observed_utc": "2026-10-29T19:12:07.779036+00:00",
+  "status": "M5_FUSION_STATE_INSPECTION_003_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Run the new exact CPU-only fusion checkpoint inspection once with the tested self-source read allowance; never relaunch the failed 001 plan.",
+  "next_action": "Run the new exact CPU-only fusion checkpoint inspection once with the tested PyTorch-package exception; never relaunch failed 001 or 002.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46666,9 +46666,9 @@
     }
   },
   "independent_m5_fusion_state_20261029_002": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "status": "FAILED_CONSUMED_TORCH_TEST_PACKAGE_GUARD",
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
     "worker": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/m5_fusion_state_20261029_002.py",
       "sha256": "194ff9aee3494b4b6019bb22028a6fdbd657cda9910f623f4352e7ccea4a8648"
@@ -46703,7 +46703,7 @@
     "class": "audit",
     "memory_max": "4G",
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "model_forwards_authorized": false,
@@ -46716,6 +46716,67 @@
     "supersedes_failed": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_001/FAILED_TERMINAL.json",
       "sha256": "ac927ed4b7dcce02b89a6f91d3655dd8d74a9b40df77d024bd5b73c291d8a914"
+    },
+    "failure": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_002/FAILED_TERMINAL.json",
+      "sha256": "b839a58a0a841530a5b3107b21e28ba828b43832765b123d57cb1a8c3a6ee2f4"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_002/CLAIM.json",
+      "sha256": "ee52999d83fbfe53f78acc58993cb9c8329540d94c69005e46f25530228c25fa"
+    }
+  },
+  "independent_m5_fusion_state_20261029_003": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/m5_fusion_state_20261029_003.py",
+      "sha256": "b52bbed65ead4a6ed6eed7a2780437c7e83f5191f3937f8f3a506ec4de27f7eb"
+    },
+    "inputs": {
+      "initial_state": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/states/INITIAL_0U.pt",
+        "sha256": "f194a33144a291f9b390ad20cc61f82abe3e46a2b929b84769073577c35c0956"
+      },
+      "final_state": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/states/w0001_TERMINAL_u002976_p047602.pt",
+        "sha256": "4ee6aab6d583a7ed16061a881f88206739830bdd36ea8cd400297d4cc24fc73e"
+      },
+      "state_review": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/M5_MOMENTUM_STATE_CHECK_001/RESULT.json",
+        "sha256": "2cf9aaad52af8b8542236625a455ccb2100e1097311850e6eadcd152113584d9"
+      },
+      "intervention_review": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INDEPENDENT_20261029_001/RESULT.json",
+        "sha256": "3fc7e1b2c43d25e9af8c69b282605547af7750410d343a1ab37ac69989e52396"
+      },
+      "model_source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "ac35009027d496c997bbb8e3ce615d00f22d3d97214176fd67bc7d2d6425115f"
+      },
+      "constructor_metadata": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/CONSTRUCTOR_METADATA.json",
+        "sha256": "8d0fc19b646b142dced37ad86dd0e43a71bb8efe299a9ba4fd2de08e324db2bf"
+      }
+    },
+    "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_003",
+    "class": "audit",
+    "memory_max": "4G",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "synthetic_tensor_stats": "PASS",
+    "scope": "Read only the two existing hash-bound M5 initial/final checkpoints. Compare the zero-initialized price projection and the two source-identified MTF fusion output matrices, biases and fixed residual scales; describe same-family GC projection and direction-head parameter magnitudes. No model construction, forward, training, market inputs, TEST or trading.",
+    "source_guard_synthetic_test": "PASS_PYTORCH_PACKAGE_ALLOWED_SEALED_TEST_AND_UNBOUND_RUNS_DENIED",
+    "supersedes_failed": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_002/FAILED_TERMINAL.json",
+      "sha256": "b839a58a0a841530a5b3107b21e28ba828b43832765b123d57cb1a8c3a6ee2f4"
     }
   }
 }

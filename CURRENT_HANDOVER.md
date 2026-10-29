@@ -11,7 +11,9 @@ Programrot:
 
 ## Aktuell status
 
-29.10 — FUSJONSKONTROLL 001 FEILET FØR CHECKPOINTÅPNING: Den nye lesesperren avviste kontrollskriptets egen kildefil under PyTorch-import. Claim og feilterminal er bevart, forsøket er konsumert. Ny kontroll 002 tillater kun den eksakt hashbundne egenfilen i tillegg; syntetisk test bekrefter at andre RUNS-filer og TEST fortsatt avvises. Ingen modell eller trening er kjørt. Se NEXT_RUN_POLICY.
+29.10 — FUSJONSKONTROLL 002 FEILET UNDER PYTORCH-IMPORT: TEST-navnsperren rammet installert torch.testing, ikke forseglet markeds-TEST. Begge mislykkede kontroller hadde allerede lest checkpointfilenes bytes for hashkontroll, men hadde ikke deserialisert vektene eller kjørt modell. 002 er konsumert med claim/feilkvittering. Ny 003 importerer PyTorch før runtime-sperren; syntetisk test tillater bare installerte pakker og eksakt egenfil, mens forseglet TEST og ubundne RUNS-filer fortsatt avvises. Se NEXT_RUN_POLICY.
+
+29.10 — FUSJONSKONTROLL 001 FEILET FØR CHECKPOINT-DESERIALISERING: Den nye lesesperren avviste kontrollskriptets egen kildefil under PyTorch-import. Claim og feilterminal er bevart, forsøket er konsumert. Ny kontroll 002 tillater kun den eksakt hashbundne egenfilen i tillegg; syntetisk test bekrefter at andre RUNS-filer og TEST fortsatt avvises. Ingen modell eller trening er kjørt. Se NEXT_RUN_POLICY.
 
 29.10 — DIREKTE SPOR: FUSJONSVEIEN FOR SVAKT PRISSIGNAL: Kilden viser at både den nye momentumprojeksjonen og de to videre residualutgangene cross_tf_out og family_tf_cooperation_out starter med null vekter og bias. Konstruktormetadata oppgir faste skalaer 0,5 og 0,25. Det er en konkret mulig startbarriere, ikke bevis for at dagens trente modell har null gradient eller at dette forårsaker manglende markedsedge. Én hashbundet 4 GB CPU-kontroll er åpnet for opprinnelige initial- og sluttvekters aggregerte normer og skalaer; ingen modellforward, optimizersteg, markedspayload, TEST eller handel. Se NEXT_RUN_POLICY.
 
