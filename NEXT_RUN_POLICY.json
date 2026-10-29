@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T20:56:57.495318+00:00",
-  "status": "M5_FIVE_PRIORITY_ONEPASS_FIT_AUTHORIZED",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "observed_utc": "2026-10-29T23:14:34.699539+00:00",
+  "status": "M5_FIVE_PRIORITY_FIT_COMPLETE_COMPARISON_AUTHORIZED",
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the bound one-pass M5 five-priority research fit is admitted; require fresh initial parity, one capped job, physical restart per window and retained 250 W. All 60 targets, eight specialists and D1/macro are preserved. TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Materialize the exact separate one-shot M5 five-priority plan on clean source, verify readiness and machine-wide idle/write state, then physically reboot before the first training window. Retain 250 W and existing guards; compare saved later Q1 scores with the prior M5 price-only fit after terminal.",
+  "rule": "The completed M5 five-priority fit is consumed and all training ports are closed. Only its separately bound saved-prediction comparison against the M5 reference is admitted. Preserve all 60 targets and M5/MTF scope; TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
+  "next_action": "Run the separately bound one-shot saved-prediction comparison of the completed five-priority fit against the previous M5 price-only fit on the same predefined Q1 2025 rows. Verify all 60 parent/clock/target arrays, retain primary five-minute paired day/week intervals and all-60 simultaneous candidate bands; report exploratory accuracy and 5/6 class counts. TEST, broker, trade and Exit remain sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -26287,7 +26287,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": true,
+  "native_launch_authorized": false,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -47373,7 +47373,7 @@
     "test_data_used": false
   },
   "dynamic_m5_direction_five_priority_onepass_fit_20261029_001": {
-    "status": "AUTHORIZED_ONE_FRESH_M5_FIVE_PRIORITY_FIT",
+    "status": "COMPLETE_FIT_COMPARISON_AUTHORIZED",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_RECIPE_20261029.json",
       "sha256": "e8d76c2edf331cca0105c022025d06675be8b56653badce3364a1d207511d4df"
@@ -47390,26 +47390,26 @@
     "candidate_mode": "price_only",
     "m1_values_or_masks_as_entry_inputs": false,
     "max_invocations": 4,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "train_parents": 47602,
     "max_optimizer_updates": 2976,
     "train_passes": 1,
     "requested_physical_gpu_power_limit_w": 250,
     "retain_physical_gpu_power_limit_w_afterward": 250,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
-    "physical_restart_before_each_invocation_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
+    "physical_restart_before_each_invocation_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -47419,7 +47419,7 @@
     "relaunch_allowed": false,
     "qualification_weights_for_main_fit": false,
     "test_or_trading_authority": false,
-    "fixed_comparison_authorized": false,
+    "fixed_comparison_authorized": true,
     "metadata_preflight": "PASS_COMMITTED_CLEAN_SOURCE_METADATA_ONLY",
     "focused_tests_passed": 183,
     "numeric_recipe_validation": "PASS",
@@ -47436,6 +47436,92 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/PREPARED_WINDOWS_BOOT.json",
       "sha256": "b6367572044bf7da825bae75d6aa26fb4e1c76813d017999b701f14314951920"
     },
-    "user_authorization": "Direct independent M5 direction work without repeated approvals; physical restart per window and 250 W retained."
+    "user_authorization": "Direct independent M5 direction work without repeated approvals; physical restart per window and 250 W retained.",
+    "actual_fit_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/ACTUAL_FIT_REVIEW_001.json",
+      "sha256": "a8fd34078604ed4be24b3f24e1e692f1fa237a9cbe79e40d05f20e99e5bf80b3"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "17e98d41f9c4f522569764641660e28e6c3c613dcce4bcc775d8b06be9677115"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "47d9630300930493cfd5df0804c555f9809527668d4084eeb5f6dd350af52b1b"
+    },
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "dd84ee19785f9fba719d37630cfc26a09b66144d92e1955cd3e19ccd3ca9bce8"
+    },
+    "power_after": {
+      "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/POWER_RETAIN_M5_FIVE_PRIORITY_FIT_20261029_001.json",
+      "sha256": "e7dd5e554e02a5622c64a050ac72f7fbcd0d628be98ec19cd096f26d5e252de7"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "737d9bd41de9cb2011f8efc25506396f9648c85accfc62290567c66db94e1f93"
+    },
+    "oof_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "0fd3cb828eb8ceb4083063164e805fcc17457271481d940d629832eb95809336"
+    },
+    "physical_boot_id": 582,
+    "actual_optimizer_updates": 2976,
+    "actual_train_parents": 47602,
+    "comparison_wrapper": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/compare_five_priority_once.py",
+      "sha256": "6cab3ec2c8a506ea8fcfb7dda9e140d95b7fe386d0a7cfed3c057f3db36783bd"
+    },
+    "comparison_synthetic_check": "PASS_PAIRED_ACCURACY_AND_ALL_60_TARGET_ALIGNMENT",
+    "comparison_synthetic_test": {
+      "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/gx1_test_five_priority_comparison.py",
+      "sha256": "d346a8d4137f5723c3c73bf1b536ec7b59d94056809810009f96c3838391aa36"
+    }
+  },
+  "direction_independent_input_and_clock_audit_20261030_001": {
+    "status": "COMPLETE_BOUND_DATA_QUALITY_REVIEW_NO_EDGE_CLAIM",
+    "evidence": {
+      "momentum_history_formulas": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MTF_ALL_HISTORY_MOMENTUM_AUDIT_20261029_001.json",
+        "sha256": "0b8b1e2f5097312d418e0ee0b555ae2fa9f703d2227c6f70132f75be00c6f67f"
+      },
+      "gc_six_field_history_parity": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_ALL_HISTORY_PARITY_20261029_001.json",
+        "sha256": "41dcf94b89d799cc1987535934894465c72472614c93bccb635703ec3ded2115"
+      },
+      "d1_gc_coverage": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_FLOW_HISTORY_COVERAGE_20261029_001.json",
+        "sha256": "b5031b4dc5dbf65428af1121380052ab9bf37a6608ee2053f1410483b7025887"
+      },
+      "d1_gc_masks": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_GC_MASK_NORMALIZATION_AUDIT_20261029_001.json",
+        "sha256": "808d104ec086e2dd649551a9c9536bf403adad472e24a5226d8f8a4ce6b73bbf"
+      },
+      "d1_coverage_interpretation": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_FLOW_COVERAGE_INTERPRETATION_20261029_001.json",
+        "sha256": "e447fc44218cbaf8e8f70615b3acc55786f1d89f2fd8531462fa7d2316707bfa"
+      },
+      "momentum_distribution": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MTF_MOMENTUM_DISTRIBUTION_AUDIT_20261029_001.json",
+        "sha256": "049b35876412aefe60dae67a8756f041de0a8d3cfeb180c7170c205a678388a1"
+      },
+      "d1_drift_vs_old_scores": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_SHIFT_FIVE_MINUTE_REVIEW_20261029_001.json",
+        "sha256": "2b81793e8a6c60a350fbc0f75403b7b00bd98517a2206165f7be697dc7cc33c4"
+      },
+      "quote_clock_review": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CANDLE_QUOTE_EVENT_CLOCK_REVIEW_20261029_001.json",
+        "sha256": "803767546bfaf4bdd099a65f62664a1f24f580dc505d1b77f27aa37a1fd82d75"
+      }
+    },
+    "scope": "Six GC values/masks across actual history windows, four XAU momentum formulas across all five TF/history, D1 source coverage and mask normalization; quote-bar event-clock source review; all TRAIN and reused Q1 decision windows. No TEST, trading or model update.",
+    "d1_gc_train_mean_valid_days": 82.88752573421284,
+    "d1_gc_q1_mean_valid_days": 199.38888246182324,
+    "d1_gc_train_max_valid_days": 168,
+    "d1_gc_q1_min_valid_days": 169,
+    "d1_gc_window_days": 252,
+    "limitation": "Only checked fields and historical selected windows; source nominal timestamps do not prove local arrival, true quote-event time, fills or economic edge. Unequal D1 coverage is real but causation not proven. Prior all-GC-history ablation used another model and did not isolate D1.",
+    "test_data_used": false,
+    "broker_access_allowed": false
   }
 }
