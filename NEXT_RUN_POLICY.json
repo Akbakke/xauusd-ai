@@ -44422,5 +44422,37 @@
     "new_model_forwards": 0,
     "new_optimizer_steps": 0,
     "test_data_used": false
+  },
+  "direction_corrected_five_minute_prediction_skew_20261029": {
+    "status": "EXISTING_HASHED_AGGREGATE_NO_NEW_RUN",
+    "source_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "a773849f2895a77c3af0567a3d9421f9f8724fb5592f8e1c43204af497218757"
+    },
+    "scope": "Corrected 60-head one-pass model; 5-minute head on one reused chronological Q1 2025 development fold, 17192 mature observed nonzero outcomes; no model or prediction payload read.",
+    "eligible_parents": 17192,
+    "predicted_down": 13942,
+    "predicted_up": 3250,
+    "predicted_down_fraction": 0.8109585853885528,
+    "actual_up": 8868,
+    "actual_down": 8324,
+    "actual_up_fraction": 0.5158213122382503,
+    "confusion": {
+      "fn": 7227,
+      "fp": 1609,
+      "tn": 6715,
+      "tp": 1641
+    },
+    "below_half_group_observed_up_fraction": 0.5183617845359346,
+    "below_half_group_mean_probability_up": 0.486225778161798,
+    "all_probabilities_in_0_4_to_0_6": true,
+    "accuracy": 0.48604001861330853,
+    "auc": 0.4969763225475591,
+    "own_prefix_up_prior": 0.509052070555391,
+    "cause_established": false,
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "economic_edge_qualified": false
   }
 }
