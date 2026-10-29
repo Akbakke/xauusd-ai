@@ -41349,7 +41349,7 @@
     }
   },
   "dynamic_m5_direction_order_full_fit_20261028_001": {
-    "status": "COMPLETE_CONSUMED_PAIRED_COMPARISON_PENDING",
+    "status": "COMPLETE_CONSUMED_PAIRED_COMPARISON_COMPLETE_NO_DOCUMENTED_AUC_IMPROVEMENT",
     "campaign_preparation_authorized": false,
     "execution_authorized": false,
     "data_reads_authorized": false,
@@ -41401,6 +41401,10 @@
     "actual_root_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_CHRONOLOGICAL_SIGN_ONE_PASS_20261028_001/ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "df1668188c0c968e78790482a20d3ce8c001bf0aae201f3be30b36f0c1fcdb65"
+    },
+    "paired_comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_ORDER_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "f62b5afad12c784fe681f7ee2bdd5f07fba9d721a454860627e16b85d12db3d3"
     }
   },
   "direction_order_paired_actual_20261028_001": {
@@ -45158,5 +45162,99 @@
     "new_optimizer_steps": 0,
     "test_data_used": false,
     "edge_qualified": false
+  },
+  "direction_training_order_audit_20261029_001": {
+    "status": "EXISTING_EVIDENCE_VERIFIED_NO_DOCUMENTED_AUC_IMPROVEMENT",
+    "scope": "Hash-bound original and chronological one-pass source/metadata; paired Q1 development scores and aggregate decimal sensitivity. No new payload, fit, model, TEST or trading.",
+    "execution_authorized": false,
+    "genuine_prediction_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "original_recipe": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RECIPE.json",
+      "sha256": "8ba298a148af3b923c7b4a567f98bf8ddd2eaef1e4eeb5144e2a785e9f9e2d93"
+    },
+    "chronological_recipe": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_CHRONOLOGICAL_SIGN_ONE_PASS_20261028_001/RECIPE.json",
+      "sha256": "133bcd7647985b47cb24984f27c9196199c1295904bb971d06084970aa862ec4"
+    },
+    "source_comparability_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/ORDER_CHRONOLOGICAL_SIGN_ONE_PASS_20261028_001/SOURCE_COMPARABILITY_REVIEW_001.json",
+      "sha256": "7e2571308730a1837e0b702dda691f445526a4ad334d9b677803a86bfbc981d7"
+    },
+    "paired_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_ORDER_PAIRED_PLAN_20261028_001.json",
+      "sha256": "7f6cc130844dbfb54683f15d077066ce1c89716d769e8049a4dd406bc15ceae7"
+    },
+    "paired_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_ORDER_PAIRED_RESULT_20261028_001/RESULT.json",
+      "sha256": "f62b5afad12c784fe681f7ee2bdd5f07fba9d721a454860627e16b85d12db3d3"
+    },
+    "decimal_sign_audit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+    },
+    "dense_target_anchor_parity": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json",
+      "sha256": "1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b"
+    },
+    "corrected_target_audit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "legacy_target": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "original_source_commit": "41dc5c89fea5741ba0864fc3a4b1c7d925598ee5",
+    "chronological_source_commit": "37db8028ff483ff175aaa6754edbd09c1c6d5c03",
+    "training_parent_order": "fixed seed permutation of the chronological TRAIN prefix; later OOF rows excluded from training; loss accepts only nonzero observed TRAIN labels whose terminal time is strictly before TRAIN cutoff",
+    "fold": {
+      "fold_id": 1,
+      "oof_cutoff_ns": 1743465600000000000,
+      "oof_end_row": 64890,
+      "oof_start_row": 47602,
+      "prefix_rows": 47602,
+      "train_cutoff_ns": 1735689600000000000
+    },
+    "train_parents": 47602,
+    "horizons_minutes": [
+      1,
+      5,
+      15
+    ],
+    "five_minute_paired": {
+      "eligible": 17197,
+      "up": 8870,
+      "down": 8327,
+      "mixed_auc": 0.5030210874582608,
+      "chronological_auc": 0.4985006598250296,
+      "chronological_minus_mixed_auc": -0.004520427633231183,
+      "auc_delta_intervals": {
+        "UTC_DAY": {
+          "low": -0.016738290457161065,
+          "high": 0.008308540832197984
+        },
+        "UTC_WEEK_MONDAY": {
+          "low": -0.015272152930781614,
+          "high": 0.005841800774786406
+        }
+      }
+    },
+    "decimal_fixed_scores_sensitivity": {
+      "old_nonzero_to_exact_zero_up": 2,
+      "old_nonzero_to_exact_zero_down": 3,
+      "zero_to_nonzero": 0,
+      "nonzero_sign_flips": 0,
+      "maximum_removed_positive_negative_pair_fraction": 0.000585671717043823,
+      "upper_bound_chronological_minus_mixed_auc": -0.003937061741897845,
+      "method": "For pairwise AUC difference d in [-1,1], old_delta=(1-q)*retained_delta+q*removed_delta. The displayed upper bound uses removed_delta=-1. Bound only; no corrected-score calculation, new interval or retraining."
+    },
+    "source_revision_limit": "Original and candidate use different source commits; important functional AST and initial parity checks exist, but post-update bitwise parity was not proved. Changed final two-row batch grouping remains a confounder.",
+    "full_post_update_parity_measured": false,
+    "changed_shared_source_files": 13,
+    "conclusion": "No documented 5-minute ranking improvement from chronological presentation in this reused old-label three-head development comparison; source differences prevent attribution solely to row order. No edge or corrected-60-head training conclusion."
   }
 }
