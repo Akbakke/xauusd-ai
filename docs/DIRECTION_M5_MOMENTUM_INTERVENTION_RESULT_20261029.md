@@ -94,6 +94,14 @@ Hvert tall er original AUC eller endring i AUC etter nulling, på samme kvalifis
 | 59 | 1657 | 0.514651 | +0.00e+00 | +0.00e+00 | +0.00e+00 | +1.48e-06 | +1.48e-06 |
 | 60 | 1651 | 0.518740 | +7.50e-07 | +1.50e-06 | +0.00e+00 | +1.50e-06 | +1.50e-06 |
 
+## Oppfølging av fusjonsveien
+
+Kilden viser at `mtf_repr` går direkte inn i Entry-hodets felles representasjon, i tillegg til to residualveier som begge starter med null vekter. Nullinitialisering av residualutgangene stenger derfor ikke hele MTF-veien. I en tidligere privat mekanikkontroll hadde alle 512 vekter i prisprojeksjonen ikke-null gradient allerede på første steg i begge forløpene. M5-gatene hadde null gradient på første steg og ikke-null gradient på andre. Dette er en kontroll på et lite fast TRAIN-utvalg, ikke en måling av prediktiv verdi.
+
+I det ferdigtrente checkpointet var alle 16 384 vekter i hver residualutgang ikke-null; RMS var 0,003641 for `cross_tf_out` og 0,003666 for `family_tf_cooperation_out`. De faste skalaene var henholdsvis 0,5 og 0,25. Den felles prisprojeksjonens vekt-RMS var 0,002574. Dette avviser at disse utgangsmatrisene eller skalaene fortsatt er eksakt null, men identifiserer ikke hvor den målte påvirkningen blir liten. Den planlagte ekstra statistikken for retningshodevekter ble ikke funnet av kontrollskriptets navnefilter og er dermed ikke målt.
+
+Fusjonskontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_003/RESULT.json` SHA-256 `c4273ecdb0360fd9faa4a6cd136957d22e10deee22f1f11d75aa4c6ac045f037`. Ingen ny modellforward eller trening ble utført.
+
 ## Begrensninger
 
 Nulling er en intern intervensjon og kan gi en unaturlig tilstand. Samme informasjon kan finnes i andre inndata eller være korrelert med dem. Resultatet viser at denne ene ruten har svært liten funksjonell påvirkning i denne faste modellen og dette utvalget; det fastslår ikke hvorfor, hva retrening ville oppnådd, eller at modellen har handelsverdi. Fasit er en candle-basert proxy; eksakte quote-tider, kostnader og utførelse er ikke testet.

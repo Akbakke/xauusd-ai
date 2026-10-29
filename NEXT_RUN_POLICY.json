@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T19:12:07.779036+00:00",
-  "status": "M5_FUSION_STATE_INSPECTION_003_ADMITTED",
+  "observed_utc": "2026-10-29T19:14:33.634549+00:00",
+  "status": "M5_FUSION_STATE_PARTIAL_BUT_ROUTE_HYPOTHESIS_CORRECTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Run the new exact CPU-only fusion checkpoint inspection once with the tested PyTorch-package exception; never relaunch failed 001 or 002.",
+  "next_action": "Trace the actual change from price projection to MTF representation and Entry head on a small predeclared matched sample, or derive it from existing activation evidence; do not claim zero residuals block the direct MTF path or change training without evidence.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46550,7 +46550,7 @@
     },
     "aggregated_report": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_MOMENTUM_INTERVENTION_RESULT_20261029.md",
-      "sha256": "cda9d590457bc67fd44476ad428380efaa94e8478190a13345c388b3212f57ff"
+      "sha256": "555df3aca38d0be00f1533e2736fe75a72c390fb7d9f70d42c24f297127de73c"
     }
   },
   "independent_m5_momentum_result_replay_20261029_001": {
@@ -46727,9 +46727,9 @@
     }
   },
   "independent_m5_fusion_state_20261029_003": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
+    "status": "COMPLETE_CONSUMED_FUSION_STATS_HEAD_STATS_MISSING",
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
     "worker": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/m5_fusion_state_20261029_003.py",
       "sha256": "b52bbed65ead4a6ed6eed7a2780437c7e83f5191f3937f8f3a506ec4de27f7eb"
@@ -46764,8 +46764,8 @@
     "class": "audit",
     "memory_max": "4G",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
@@ -46777,6 +46777,27 @@
     "supersedes_failed": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_002/FAILED_TERMINAL.json",
       "sha256": "b839a58a0a841530a5b3107b21e28ba828b43832765b123d57cb1a8c3a6ee2f4"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_003/RESULT.json",
+      "sha256": "c4273ecdb0360fd9faa4a6cd136957d22e10deee22f1f11d75aa4c6ac045f037"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_003/TERMINAL.json",
+      "sha256": "e3f2d728e638b83dce64169d19dec560986b4650d6514fbf2de9402d97360c6f"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_003/CLAIM.json",
+      "sha256": "f342b10a17d7573e34cf4d5ab3d3698b62c2c3121d0c74f000db264831d54fbd"
+    },
+    "missing_requested_measurement": "direction_head_stats is empty because the helper suffix did not match root-level head names; no head-norm conclusion may be drawn",
+    "route_correction": "mtf_repr also enters entry_q_joint_source directly; zero residual outputs do not block the whole MTF-to-direction path.",
+    "private_first_step_projection_gradient_nonzero": 512,
+    "private_first_step_m5_gate_gradient_nonzero": 0,
+    "private_second_step_m5_each_gate_gradient_nonzero": 129,
+    "private_gradient_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_PRIVATE_QUALIFICATION_20261029_001/RUNTIME/private-research/RESULT.json",
+      "sha256": "62c1c94207f8fac08e6288da53b78ab32e2d1e4588f836273708e9757b33cb64"
     }
   }
 }
