@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — AKTIVERINGSSPORING 002 BUNDET: Den konkrete designstibindingen er rettet og kontrollert sammen med 20 fokuserte tester. Ny engangsplan 002 gjenbruker samme forhåndsbestemte protokoll, tidligere logits, foreldre og checkpoint; plan 001 er konsumert. Maks 250 forwardkall, ingen optimizer, TEST eller handel. Signert GPU-vakt og tidligere effekt-/temperaturgrenser beholdes. Se NEXT_RUN_POLICY.
+
 29.10 — AKTIVERINGSSPORING 001 FEILET FØR MODELL: Den gjenbrukte intervensjonsrutinen var hardbundet til den tidligere designfilen og avviste den nye hashbundne sporingsprotokollen. Signert vakt og feilutskrift er bevart; ingen claim, checkpoint-deserialisering, modellforward eller optimizersteg. Den tidligere paired-outputfilen ble lest. Plan 001 er konsumert og stengt. Eksakt designbinding for separat 002 skal testes før ny plan; ingen ny retningsscore. Se NEXT_RUN_POLICY.
 
 29.10 — M5 AKTIVERINGSSPORING BUNDET: Én ny engangsplan bruker de samme 256 TRAIN- og 1 736 senere Q1-foreldrene, maks 250 forwardkall, ingen optimizer. Originale og samlet nullstilte logits må begge gjenskapes byteidentisk mot den fullførte intervensjonen. Kun aggregerte endringer måles ved pris-/GC-projeksjoner, MTF-representasjon og Entry-hode. 19 fokuserte tester, inkludert faktisk native arkitektur og vakttester, bestod. 250 W konfigurert, 170 W stopp for faktisk trekk og eksisterende temperatur-/kapasitetsvakter. Ingen TEST, Exit, broker eller handel. Se NEXT_RUN_POLICY.

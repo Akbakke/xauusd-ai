@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T19:24:52.745386+00:00",
-  "status": "M5_MOMENTUM_TRACE_002_SOURCE_TESTED",
+  "observed_utc": "2026-10-29T19:25:17.610585+00:00",
+  "status": "M5_MOMENTUM_ACTIVATION_TRACE_002_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Bind a new 002 trace plan to tested source and unchanged predeclared trace design; verify the actual stage/design binding and hardware before one execution.",
+  "next_action": "Verify exact actual stage/design and source bindings, idle system, and signed telemetry; then run 002 once without training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46899,5 +46899,47 @@
     "native_architecture_synthetic_hook_test": "PASS",
     "execution_authorized": false,
     "test_data_used": false
+  },
+  "independent_m5_momentum_trace_20261029_002": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_002.json",
+      "sha256": "48cc9e5c61c9b78e4f40cc0400555e629eee635035c77085c09e9f57b7910d56"
+    },
+    "execution_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "model_forwards_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "class": "guarded_cuda_producer",
+    "memory_max": "20G",
+    "wall_seconds": 3300,
+    "max_model_forwards": 250,
+    "scope": "Trace original versus all-four-neutralized price projection across five closed timeframes on exactly the 256 saved TRAIN and 1736 reused Q1 2025 parents. Both logits must byte-reproduce the previously completed intervention. Record aggregate effects through price and GC projections, MTF and Entry head; no gradient, optimizer, TEST, Exit or trade.",
+    "prior_paired_outputs": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003/OUTPUT/PAIRED_OUTPUTS.npz",
+      "sha256": "091bc1454fa2a3337c951ce8cbef810cb70a13145081f6d69336b3b9bd57ed1e"
+    },
+    "historical_fit_preflight": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIT_SOURCE_PREFLIGHT_20261029_003.json",
+      "sha256": "c8e91791e02f04078fe232576a9247bc3c406a8ab7574e3c77586bc8f4c29813"
+    },
+    "configured_gpu_max_w": 250,
+    "actual_gpu_draw_stop_w": 170,
+    "focused_test_count": 20,
+    "user_authorization": "Direct independent root-cause work and M5 testing without repeated approvals.",
+    "supersedes_failed": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_PRECLAIM_FAILURE_20261029_001.json",
+      "sha256": "7725402b9cab79a489045b44713c611f14ad4a691c57fc025cb68985341a35b3"
+    }
   }
 }
