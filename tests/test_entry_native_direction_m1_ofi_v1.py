@@ -232,3 +232,86 @@ def test_private_input_adapter_binds_matched_price_and_m1_without_granting_launc
     with pytest.raises(RuntimeError,match='CANDIDATE_ROLL_BINDING'):
         _candidate_view_inputs({'candidate_inputs':bad},launch,prepared,{})
     assert authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE not in (authority.DENSE_SCOPE,authority.DENSE_DECIMAL_FIT_SCOPE)
+
+
+def test_candidate_m1_guard_allows_only_exact_readonly_bound_inputs(monkeypatch):
+    import os
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    hooks=[];monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
+    refs={name:{'path':'/home/andre2/GX1_RUNS/synthetic/'+filename,'sha256':char*64}
+        for name,filename,char in (('source','m1.npz','a'),('roll','roll.json','b'),('normalization','norm.json','c'))}
+    context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache',
+        'gc_surfaces':{'path':'/synthetic/gc/surface'}},
+        'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/audit'}},'candidate_m1_refs':refs}
+    denied=common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',candidate_m1_refs=refs)
+    assert context['candidate_m1_guard_installed'] is True
+    for ref in refs.values():
+        hooks[0]('open',(ref['path'],'rb',0))
+        with pytest.raises(RuntimeError,match='ORIGINAL_WRITE'):
+            hooks[0]('open',(ref['path'],'wb',os.O_WRONLY))
+    with pytest.raises(RuntimeError,match='UNBOUND_OPEN'):
+        hooks[0]('open',('/home/andre2/GX1_RUNS/synthetic/unbound.npz','rb',0))
+    assert len(denied)==4
+    bad=deepcopy(refs);bad['source']['sha256']='0'*64
+    with pytest.raises(RuntimeError,match='CANDIDATE_M1_GUARD_BINDING'):
+        common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',candidate_m1_refs=bad)
+    bad=deepcopy(refs);bad['source']['path']='/home/andre2/GX1_RUNS/TEST/m1.npz'
+    with pytest.raises(RuntimeError,match='CANDIDATE_M1_PATH'):
+        common._candidate_m1_refs(bad)
+    bad=deepcopy(refs);bad['normalization']['path']=bad['roll']['path']
+    with pytest.raises(RuntimeError,match='CANDIDATE_M1_DISTINCT'):
+        common._candidate_m1_refs(bad)
+
+
+def test_guarded_m1_source_loader_binds_real_bytes_and_detects_mutation(tmp_path,monkeypatch):
+    import os
+    from types import SimpleNamespace
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as runner
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from tests.test_entry_closed_m1_ofi_window_v1 import _model_clock_case
+    case=_model_clock_case();clock=windows.qualify_model_clock(**case);cutoff=int(case['decision_ns'][1])
+    fitted=normalizer.fit(case['source'],clock,prefix_rows=1,cutoff_ns=cutoff)
+    src=tmp_path/'m1.npz';roll=tmp_path/'roll.json';norm=tmp_path/'norm.json'
+    np.savez(src,**case['source'].arrays);roll.write_bytes(case['roll_bytes']);norm.write_text(json.dumps(fitted))
+    refs={key:common._hash_file(str(path)) for key,path in (('source',src),('roll',roll),('normalization',norm))}
+    launch={'run_scope':authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,'candidate_mode':'price_and_m1',
+        'candidate_m1_refs':refs,'fold':{'prefix_rows':1,'train_cutoff_ns':cutoff},'source_owners':{}}
+    context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache',
+        'gc_surfaces':{'path':'/synthetic/gc/surface'}},
+        'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/audit'}},'candidate_m1_refs':refs}
+    with pytest.raises(RuntimeError,match='CANDIDATE_M1_NOT_GUARDED'):
+        runner._load_bound_candidate_m1(context,launch,np,common=common)
+    hooks=[];monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
+    common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',candidate_m1_refs=refs)
+    with pytest.raises(RuntimeError,match='ORIGINAL_WRITE'):
+        hooks[0]('open',(str(src),'wb',os.O_WRONLY))
+    candidate=runner._load_bound_candidate_m1(context,launch,np,common=common)
+    assert candidate['source'].source_sha256==case['source'].source_sha256
+    assert candidate['roll_bytes']==case['roll_bytes'] and candidate['normalization']==fitted
+    assert all(not array.flags.writeable for array in candidate['source'].arrays.values())
+    m5={'available_ns':case['m5_available_ns'],'native_row_indices':case['m5_native_row_indices'],
+        'features':case['m5_features'],'field_names':case['m5_field_names']}
+    prepared={'arrays':{'parent_rows':case['parent_rows'],'decision_ns':case['decision_ns']},
+        'gc':{'surfaces':{'M5':m5},'layout':{'field_names':{'M5':case['m5_field_names']}}},
+        'cache':{'M5':SimpleNamespace(attrs={'ts_int64':case['m5_cache_start_ns']})}}
+    paths=('gx1/features/entry_direction_momentum_profile_v1.py','gx1/contracts/entry_closed_m1_ofi_window_v1.py',
+        'gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py','gx1/scripts/audit_raw_gc_m1_reference_v1.py')
+    launch['source_owners']={path:_ref(path) for path in paths}
+    view=runner._candidate_view_inputs({'candidate_inputs':candidate},launch,prepared,{})
+    assert view['m1_ofi_normalization']==fitted and prepared['m1_ofi_clock'].clock_sha256==clock.clock_sha256
+    wrong={**launch,'fold':{'prefix_rows':1,'train_cutoff_ns':cutoff+1}}
+    with pytest.raises(RuntimeError,match='CANDIDATE_M1_FIT_BINDING'):
+        runner._load_bound_candidate_m1(context,wrong,np,common=common)
+    policy=tmp_path/'policy.json';policy.write_text('{}');policy_ref=common._hash_file(str(policy))
+    binding={'source_head':'synthetic','policy':policy_ref}
+    monkeypatch.setattr(common.subprocess,'check_output',lambda args,**kwargs:'synthetic\n' if 'rev-parse' in args else '')
+    # Source owners are handled by their own preexisting freeze path; this test
+    # isolates the newly added payload bookend with no physical market data.
+    launch['source_owners']={}
+    common._freeze(launch,binding,context)
+    src.write_bytes(src.read_bytes()+b'altered')
+    with pytest.raises(RuntimeError,match='CANDIDATE_M1_FREEZE:source'):
+        common._freeze(launch,binding,context)
+    with pytest.raises(RuntimeError,match='CANDIDATE_M1_SOURCE_SHA:source'):
+        runner._load_bound_candidate_m1(context,launch,np,common=common)

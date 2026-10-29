@@ -184,6 +184,17 @@ def test_decimal_launch_metadata_preserves_original_target_and_receipts(monkeypa
     context=prefix._launch_metadata(launch,helper)
     assert context['dense_target']==refs['corrected'] and context['decimal_original']==refs['original']
     assert context['decimal_sign_audit']=={'kind':'audit_result'} and context['decimal_target_refs']==refs
+    helper._candidate_m1_refs=common._candidate_m1_refs
+    candidate={**launch,'run_scope':prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,'candidate_mode':'price_only'}
+    assert prefix._launch_metadata(candidate,helper)['candidate_inputs']=={'mode':'price_only'}
+    m1_refs={name:{'path':'/synthetic/'+filename,'sha256':char*64}
+        for name,filename,char in (('source','m1.npz','a'),('roll','roll.json','b'),('normalization','norm.json','c'))}
+    candidate.update(candidate_mode='price_and_m1',candidate_m1_refs=m1_refs)
+    assert prefix._launch_metadata(candidate,helper)['candidate_m1_refs']==m1_refs
+    with pytest.raises(RuntimeError,match='CANDIDATE_PRICE_ONLY_REFS'):
+        prefix._launch_metadata({**candidate,'candidate_mode':'price_only'},helper)
+    with pytest.raises(RuntimeError,match='CANDIDATE_METADATA_MODE'):
+        prefix._launch_metadata({**candidate,'candidate_mode':'unknown'},helper)
     wrong=copy.deepcopy(launch);wrong['decimal_target_refs']['corrected']['sha256']='0'*64
     with pytest.raises(RuntimeError,match='DECIMAL_TARGET_RESULT'):prefix._launch_metadata(wrong,helper)
     target['target_identity']='wrong'

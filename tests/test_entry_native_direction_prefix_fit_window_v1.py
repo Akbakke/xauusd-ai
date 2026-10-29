@@ -377,6 +377,7 @@ def test_dense_target_guard_allows_only_bound_archive_read(monkeypatch):
 
 
 def test_dense_prepare_joins_only_bound_synthetic_targets_and_current_sources(monkeypatch,tmp_path):
+    real_read=common._read;real_candidate_loader=runner._load_bound_candidate_m1
     from gx1.contracts import entry_native_direction_dense_data_v1 as bind
     from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
     from gx1.contracts import entry_native_direction_context_report_v1 as report_owner
@@ -457,8 +458,41 @@ def test_dense_prepare_joins_only_bound_synthetic_targets_and_current_sources(mo
     assert view['price_momentum'] is True and view['m1_ofi_normalization']==fitted
     assert got['m1_ofi_clock'].clock_sha256==clock.clock_sha256 and target['sign'].shape==(2,60)
     assert view['source_bindings']['m1_ofi_roll_schedule']==roll_ref
-    context.pop('candidate_inputs')
+    candidate_input=context.pop('candidate_inputs')
     with pytest.raises(RuntimeError,match='CANDIDATE_PRIVATE_SCOPE'):
+        runner._prepare(context,launch,np,dense_minutes=True)
+    context['candidate_m1_refs']={'synthetic':'only'}
+    monkeypatch.setattr(runner,'_load_bound_candidate_m1',lambda *a,**k:candidate_input)
+    got,target,view,_,_=runner._prepare(context,launch,np,dense_minutes=True)
+    assert view['m1_ofi_normalization']==fitted and got['m1_ofi_clock'].clock_sha256==clock.clock_sha256
+    context['candidate_inputs']=candidate_input
+    with pytest.raises(RuntimeError,match='CANDIDATE_PRIVATE_SCOPE'):
+        runner._prepare(context,launch,np,dense_minutes=True)
+
+    # Actual guarded file-loader and _prepare routing together, using only
+    # synthetic files and the already-qualified synthetic M5/model clock.
+    import json
+    context.pop('candidate_inputs');monkeypatch.setattr(runner,'_load_bound_candidate_m1',real_candidate_loader)
+    m1_path=tmp_path/'m1.npz';roll_path=tmp_path/'roll.json';norm_path=tmp_path/'norm.json'
+    np.savez(m1_path,**case['source'].arrays);roll_path.write_bytes(case['roll_bytes']);norm_path.write_text(json.dumps(fitted))
+    m1_refs={key:common._hash_file(str(path)) for key,path in
+        (('source',m1_path),('roll',roll_path),('normalization',norm_path))}
+    context['candidate_m1_refs']=m1_refs;launch.update(candidate_mode='price_and_m1',candidate_m1_refs=m1_refs)
+    context['ancestor_plan']={'payloads':{},'native_cache_dir':'/synthetic/cache',
+        'gc_surfaces':{'path':'/synthetic/gc/surface'}}
+    context['info']['audit']={'manifest_path':'/synthetic/audit'}
+    def read_actual_or_layout(ref,metadata):
+        if ref==m1_refs['normalization']:return real_read(ref,metadata)
+        return prepared['gc']['layout'] if ref==source_refs['raw_gc_layout'] else {}
+    monkeypatch.setattr(common,'_read',read_actual_or_layout)
+    hooks=[];monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
+    common._install_read_guard(context,'/synthetic/output','/synthetic/runtime',candidate_m1_refs=m1_refs)
+    got,target,view,_,_=runner._prepare(context,launch,np,dense_minutes=True)
+    assert view['m1_ofi_normalization']==fitted and got['m1_ofi_clock'].clock_sha256==clock.clock_sha256
+    assert context['candidate_m1_snapshot']['source']==common._stat(str(m1_path))
+    assert view['source_bindings']['m1_ofi_roll_schedule']==m1_refs['roll']
+    norm_path.write_text(norm_path.read_text()+' ')
+    with pytest.raises(RuntimeError,match='CANDIDATE_M1_SOURCE_SHA:normalization'):
         runner._prepare(context,launch,np,dense_minutes=True)
 
 

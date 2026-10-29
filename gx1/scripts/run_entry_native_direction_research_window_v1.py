@@ -90,6 +90,24 @@ def _validate_metadata(recipe):
         'info':info,'fitted':fitted,'constructor':constructor}
 
 
+def _candidate_m1_refs(value):
+    """Validate exact caller-bound files without granting admission or reading data."""
+    _require(isinstance(value,dict) and set(value)=={'source','roll','normalization'}, 'CANDIDATE_M1_REFS')
+    result={}
+    for key,suffix in (('source','.npz'),('roll','.json'),('normalization','.json')):
+        ref=value[key]
+        _require(isinstance(ref,dict) and set(ref)=={'path','sha256'}
+            and type(ref['path']) is str and type(ref['sha256']) is str
+            and len(ref['sha256'])==64 and all(c in '0123456789abcdef' for c in ref['sha256']),
+            'CANDIDATE_M1_REF:'+key)
+        path=Path(ref['path'])
+        _require(path.is_absolute() and '..' not in path.parts and path.suffix==suffix
+            and all(part.upper()!='TEST' for part in path.parts), 'CANDIDATE_M1_PATH:'+key)
+        result[key]=dict(ref)
+    _require(len({ref['path'] for ref in result.values()})==3, 'CANDIDATE_M1_DISTINCT')
+    return result
+
+
 def _freeze(recipe, binding, context):
     _require(subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()==binding['source_head']
         and subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)=='','SOURCE_FREEZE')
@@ -107,11 +125,19 @@ def _freeze(recipe, binding, context):
         ref=context['decimal_initial_predictions']
         _require(_stat(ref['path'])==context['decimal_initial_predictions_stat']
             and _hash_file(ref['path'])==ref,'DECIMAL_INITIAL_FREEZE')
+    if 'candidate_m1_snapshot' in context:
+        refs=_candidate_m1_refs(context.get('candidate_m1_refs'))
+        snapshot=context['candidate_m1_snapshot']
+        _require(refs==recipe.get('candidate_m1_refs') and isinstance(snapshot,dict)
+            and set(snapshot)==set(refs), 'CANDIDATE_M1_FREEZE_BINDING')
+        for key,ref in refs.items():
+            _require(_stat(ref['path'])==snapshot[key] and _hash_file(ref['path'])==ref,
+                'CANDIDATE_M1_FREEZE:'+key)
     for path,item in context['info']['metadata'].items():
         _require(_stat(path)==item['stat'] and _hash_file(path)==item['ref'],'METADATA_FREEZE:'+path)
 
 
-def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None, dense_target=None, decimal_original=None, decimal_initial_predictions=None):
+def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None, dense_target=None, decimal_original=None, decimal_initial_predictions=None, candidate_m1_refs=None):
     plan=context['ancestor_plan'];info=context['info']
     _require(isinstance(extra_read_paths, tuple), 'EXTRA_READ_PATHS')
     if extra_read_paths:
@@ -137,6 +163,12 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
         _require(decimal_initial_predictions==DECIMAL_INITIAL_PREDICTIONS
             and decimal_initial_predictions==context.get('decimal_initial_predictions'), 'DECIMAL_INITIAL_BINDING')
         extra_read_paths += (decimal_initial_predictions['path'],)
+    if candidate_m1_refs is not None:
+        refs=_candidate_m1_refs(candidate_m1_refs)
+        _require(refs==context.get('candidate_m1_refs') and all(
+            ref['path']!=str(root) and not ref['path'].startswith(str(root)+'/')
+            for ref in refs.values() for root in (output,runtime)), 'CANDIDATE_M1_GUARD_BINDING')
+        extra_read_paths += tuple(ref['path'] for ref in refs.values())
     allowed={p for p,v in plan['payloads'].items() if v['verification'] not in ('inherited_stat_only_no_open','reused_original051_stat_only_no_open')}|set(info['metadata'])|set(extra_read_paths)
     directories={plan['native_cache_dir'],str(Path(plan['gc_surfaces']['path']).parent),str(output)}
     relative={Path(p).name:p for p in allowed if p.endswith('.npy')};denied=[]
@@ -150,16 +182,18 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
         if path in directories:
             flags=args[2] if len(args)>2 else None
             _require(isinstance(flags,int) and flags&os.O_DIRECTORY and not flags&(os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC),'READONLY_EXACT_DIRECTORY');return
+        flags=args[2] if len(args)>2 else None
+        if path in extra_read_paths and isinstance(flags,int) and flags & (os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC|os.O_APPEND):
+            if len(denied)<16:denied.append(path)
+            raise RuntimeError('NATIVE_DIRECTION_RESEARCH_WINDOW_ORIGINAL_WRITE:'+path)
         if path.startswith(('/home/andre2/GX1_DATA/','/home/andre2/GX1_RUNS/')):
-            flags=args[2] if len(args)>2 else None
-            if path in extra_read_paths and isinstance(flags,int) and flags & (os.O_WRONLY|os.O_RDWR|os.O_CREAT|os.O_TRUNC|os.O_APPEND):
-                if len(denied)<16:denied.append(path)
-                raise RuntimeError('NATIVE_DIRECTION_RESEARCH_WINDOW_ORIGINAL_WRITE:'+path)
             permitted=path in allowed or path.startswith(str(output)+'/') or path.startswith(str(runtime)+'/')
             if not permitted or path==info['audit']['manifest_path']:
                 if len(denied)<16:denied.append(path)
                 raise RuntimeError('NATIVE_DIRECTION_RESEARCH_WINDOW_UNBOUND_OPEN:'+path)
-    sys.addaudithook(guard);return denied
+    sys.addaudithook(guard)
+    if candidate_m1_refs is not None:context['candidate_m1_guard_installed']=True
+    return denied
 
 
 def _qualify_fixed_targets(arrays, target, *, cutoff_ns, np):

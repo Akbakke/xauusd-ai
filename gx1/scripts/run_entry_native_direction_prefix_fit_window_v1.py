@@ -103,7 +103,8 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
         names = {'owner_profile_source':'gx1/features/entry_specialist_feature_groups_v1.py',
             'native_constructor_source':'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
             'direction_component_source':'gx1/contracts/entry_native_direction_research_v1.py'}
-        _require(launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE) and independent_design is None
+        _require(launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE,
+            authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE) and independent_design is None
             and weight_design is None and order_transition is None
             and isinstance(dense_source_transition,dict) and set(dense_source_transition)==set(names), 'DENSE_TRANSITION_SCOPE')
         for key, source in names.items():
@@ -143,8 +144,10 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
 
 def _launch_metadata(launch, common):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    if launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE):
-        decimal=launch['run_scope']==authority.DENSE_DECIMAL_PRIVATE_SCOPE
+    candidate=launch.get('run_scope')==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    if launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE,
+            authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE):
+        decimal=launch['run_scope'] in (authority.DENSE_DECIMAL_PRIVATE_SCOPE, authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE)
         metadata = {}
         proof=common._read(launch['dense_source_transition_proof'],metadata)
         target_report=common._read(launch['dense_target_result'],metadata)
@@ -187,6 +190,14 @@ def _launch_metadata(launch, common):
             context['decimal_original_stat']=common._stat(context['decimal_original']['path'])
             _require(common._hash_file(context['decimal_original']['path'])==context['decimal_original'], 'DECIMAL_ORIGINAL_SHA')
             context['decimal_sign_audit']=receipts['audit_result']
+        if candidate:
+            mode=launch.get('candidate_mode')
+            _require(mode in ('price_only','price_and_m1'), 'CANDIDATE_METADATA_MODE')
+            if mode=='price_only':
+                _require('candidate_m1_refs' not in launch, 'CANDIDATE_PRICE_ONLY_REFS')
+                context['candidate_inputs']={'mode':'price_only'}
+            else:
+                context['candidate_m1_refs']=common._candidate_m1_refs(launch.get('candidate_m1_refs'))
     elif launch.get('run_scope') == authority.ORDER_SCOPE:
         metadata = {}
         proof = common._read(launch['native_order_qualification'], metadata)
@@ -284,12 +295,50 @@ def _select_price_targets(archive, *, signed_bps=False, magnitude_weighted=False
     return {key:archive[key] for key in members}
 
 
+def _load_bound_candidate_m1(context, launch, np, *, common):
+    """Load only the guarded, explicitly bound M1 source and existing fit.
+
+    This adapter grants no access or launch authority. Its caller must first
+    validate an admitted recipe and install the exact candidate read guard.
+    No normalization is fitted here; all three source files are bookended.
+    """
+    from gx1.contracts import entry_closed_m1_ofi_window_v1 as windows
+    from gx1.contracts import entry_native_direction_m1_ofi_normalization_v1 as normalization
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    refs=common._candidate_m1_refs(context.get('candidate_m1_refs'))
+    _require(launch.get('run_scope')==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+        and launch.get('candidate_mode')=='price_and_m1' and launch.get('candidate_m1_refs')==refs
+        and context.get('candidate_m1_guard_installed') is True, 'CANDIDATE_M1_NOT_GUARDED')
+    before={key:common._stat(ref['path']) for key,ref in refs.items()}
+    for key,ref in refs.items():
+        _require(common._hash_file(ref['path'])==ref, 'CANDIDATE_M1_SOURCE_SHA:'+key)
+    fitted=normalization.require(common._read(refs['normalization'],context['info']['metadata']))
+    roll_bytes=Path(refs['roll']['path']).read_bytes()
+    with np.load(refs['source']['path'],allow_pickle=False) as archive:
+        fields=tuple(windows._FIELDS)
+        _require(set(fields).issubset(archive.files) and len(archive.files)==len(set(archive.files)),
+            'CANDIDATE_M1_ARCHIVE_MEMBERS')
+        arrays={key:archive[key] for key in fields}
+    for array in arrays.values():array.setflags(write=False)
+    source=windows.qualify_source(arrays)
+    _require(fitted['model_contract_clock_bound'] is True and fitted['source_sha256']==source.source_sha256
+        and fitted['roll_sha256']==hashlib.sha256(roll_bytes).hexdigest()==refs['roll']['sha256']
+        and fitted['prefix_rows']==launch['fold']['prefix_rows']
+        and fitted['cutoff_ns']==launch['fold']['train_cutoff_ns'], 'CANDIDATE_M1_FIT_BINDING')
+    for key,ref in refs.items():
+        _require(common._stat(ref['path'])==before[key] and common._hash_file(ref['path'])==ref,
+            'CANDIDATE_M1_SOURCE_BOOKEND:'+key)
+    context['candidate_m1_snapshot']=before
+    return {'mode':'price_and_m1','source':source,'roll_bytes':roll_bytes,
+        'roll_ref':refs['roll'],'normalization':fitted}
+
+
 def _candidate_view_inputs(context, launch, prepared, sources):
     """Bind price-only or price+M1 inputs; this grants no execution authority.
 
-    The future admitted caller owns file hashes, guarded loading and the
-    separately approved prefix normalization fit. This pure adapter rechecks
-    full model/roll/source clocks and the supplied normalization identity.
+    The admitted caller owns the separately approved normalization fit.
+    Bound-file loading is guarded separately; a caller supplying objects owns
+    their provenance. This adapter rechecks model/roll/source clock identity.
     """
     from gx1.contracts import entry_closed_m1_ofi_window_v1 as windows
     from gx1.contracts import entry_native_direction_m1_ofi_normalization_v1 as normalization
@@ -399,8 +448,14 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
             'dense_native_constructor_source':owners['gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py']})
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     is_candidate=launch.get('run_scope')==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
-    _require(is_candidate==('candidate_inputs' in context) and (not is_candidate or dense_minutes), 'CANDIDATE_PRIVATE_SCOPE')
-    candidate_kwargs=_candidate_view_inputs(context,launch,prepared,sources) if is_candidate else {}
+    supplied='candidate_inputs' in context; bound='candidate_m1_refs' in context
+    _require((is_candidate and dense_minutes and supplied!=bound) or (not is_candidate and not supplied and not bound),
+        'CANDIDATE_PRIVATE_SCOPE')
+    if bound:
+        candidate_context={**context,'candidate_inputs':_load_bound_candidate_m1(context,launch,np,common=common)}
+    else:
+        candidate_context=context
+    candidate_kwargs=_candidate_view_inputs(candidate_context,launch,prepared,sources) if is_candidate else {}
     view=view_owner.bind_native_direction_feature_view(prefix_normalization=context['fitted'],
         prefix_normalization_ref=manifest['prefix_normalization']['output'],constructor_metadata=context['constructor'],
         constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=sources,max_batch_rows=BATCH_SIZE,
@@ -733,8 +788,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         extra_read_paths=(origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else (),
         original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None,
         dense_target=context.get('dense_target'),
-        decimal_original=context.get('decimal_original') if decimal_fit else None,
-        decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal_fit else None)
+        decimal_original=context.get('decimal_original') if decimal_fit or input_launch['run_scope']==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE else None,
+        decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal_fit else None,
+        candidate_m1_refs=context.get('candidate_m1_refs'))
     counters={k:0 for k in ('model_constructions','model_construction_returns','optimizer_constructions','forward_calls','forward_returns',
         'backward_calls','backward_returns','optimizer_step_calls','optimizer_step_returns','empty_batches',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns','forbidden_legacy_calls')}
