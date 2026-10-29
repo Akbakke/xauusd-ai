@@ -11,6 +11,10 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — PRIVAT OPPSKRIFT KILDEFORKONTROLLERT: Én separat M5 price_only-oppskrift binder den vektede kandidaten, 65 aktuelle kildeeiere, eksisterende data/fasit og tidligere initialreferanse. Metadata- og kildeforkontrollen passerte uten modellkall eller oppdateringer; den ble kjørt før commit og skal gjentas på ren commit. Ingen engangsplan, fysisk restart eller treningsautorisasjon er opprettet ennå. Se NEXT_RUN_POLICY.
+
+29.10 — PRIVAT FEMMINUTTERSKVALIFISERING FORBEREDT: 91 fokuserte tester bestod. Kildekontrollen gjenkjenner alle 63 eierne fra den tidligere fit-en og bare syv erklærte endrede kodeeiere; Dense.forward og øvrige ikke-erklærte definisjoner er AST-uendret. Den faktiske private kjøringen skal kreve identisk startmodell, buffere og 256 prediksjoner før fire private oppdateringer og byteidentisk resume. Bare kilde/test er gjort; engangsplan, maskindekkende idle-/skrivekontroll og fysisk restart gjenstår. Trening og TEST er stengt. Se NEXT_RUN_POLICY.
+
 29.10 — FEMMINUTTERSVEKTING KOBLET OG SYNTHETISK TESTET: Egen objektividentitet er bundet til M5 price_only-view, oppskrift og private/full-fit tapsdispatch. 56 fokuserte tester bestod, inkludert uendrede syntetiske startvekter/prediksjoner/RNG, alle 60 mål og identisk stokastisk resume. Én test av gammel syntetisk input avdekket manglende valgfritt oppskriftfelt; kompatibiliteten er rettet og kontrollene kjørt på nytt. Ingen virkelig modellforward eller treningsåpning i denne bølgen. Egen kildeovergang og privat kvalifisering må fullføres før en full fit. Se NEXT_RUN_POLICY.
 
 29.10 — VEKTET FEMMINUTTERSHYPOTESE FORBEREDT: En enkelt forhåndsvalgt kandidat gir 5-minuttersceller 10 ganger vekten til hver av de øvrige 59, normalisert med samlet kvalifisert vekt. Faktor 10 bygger på målt TRAIN-gradientforhold, ikke utvalg etter Q1-score. Fem minutter er kun eksisterende sammenlignings primærhorisont; M5 er beslutningsfrekvens, og alle 60 mål beholdes og rapporteres. Separat objektiv og syntetiske maskerings-/gradienttester er bestått, men native integrasjon, privat kvalifisering og engangsplan gjenstår. Trening er stengt. Se NEXT_RUN_POLICY.

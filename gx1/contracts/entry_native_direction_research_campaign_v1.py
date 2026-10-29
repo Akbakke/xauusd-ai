@@ -166,6 +166,8 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         'qualification_weights_for_main_fit'}
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
     candidate = value.get('run_scope') == prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    priority = value.get('numerical_recipe', {}).get('five_minute_priority', False)
+    _require(type(priority) is bool and (not priority or (candidate and value.get('candidate_mode') == 'price_only')), 'FIVE_PRIORITY_PRIVATE_SCOPE')
     bps = value.get('run_scope') == BPS_SCOPE
     weighted = value.get('run_scope') == WEIGHT_SCOPE
     supported = value.get('run_scope') == ORDER_SUPPORTED_SCOPE
@@ -179,6 +181,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     if decimal and not candidate: fields.add('decimal_initial_predictions')
     if candidate:
         fields |= {'candidate_mode','parent_order_algorithm'}
+        if priority: fields |= {'priority_design','priority_baseline_initial_report','priority_source_review'}
         if value.get('candidate_mode') in ('price_and_m1',prefix.M1_PRICE_COARSENED_MODE): fields.add('candidate_m1_refs')
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
@@ -301,6 +304,9 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     required_sources = REQUIRED_SOURCE_PATHS + (BPS_EXTRA_SOURCE_PATHS if bps or weighted else ORDER_EXTRA_SOURCE_PATHS if chronological else DENSE_EXTRA_SOURCE_PATHS if dense else ())
     if decimal: required_sources += DECIMAL_EXTRA_SOURCE_PATHS
     if candidate: required_sources += M1_PRICE_EXTRA_SOURCE_PATHS
+    if priority:
+        from gx1.contracts.entry_native_direction_five_priority_private_v1 import EXTRA_SOURCE_PATHS
+        required_sources += EXTRA_SOURCE_PATHS
     _require(isinstance(owners, Mapping) and set(owners) == set(required_sources), 'SOURCE_OWNER_SET')
     for key, item in owners.items():
         checked = campaign.require_binding(item, label='research source', verify_file=True)
@@ -324,6 +330,9 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
             _require(isinstance(item,Mapping) and set(item)=={'original','current'}
                 and item['original']==manifest['view_source_bindings'][key] and item['current']==owners[name]
                 and item['original']['path']==item['current']['path'], 'M1_PRICE_SOURCE_TRANSITION:'+key)
+    if priority:
+        from gx1.contracts.entry_native_direction_five_priority_private_v1 import require_private_recipe
+        require_private_recipe(recipe, owners, source_repo=source_repo, source_commit=source_commit)
     return recipe
 
 

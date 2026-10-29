@@ -95,6 +95,15 @@ def require_decimal_initial_prediction_parity(arrays, ref, *, np):
     _require(arrays['parent_rows'].shape==(256,) and arrays['logit_up'].shape==(256,60), 'DECIMAL_INITIAL_SHAPE')
 
 
+def require_five_priority_initial_parity(measured, baseline_report, initial_ref, *, np):
+    """Verify unchanged initial logits and model/buffer values against the M5 fit."""
+    require_decimal_initial_prediction_parity(measured['arrays'],initial_ref,np=np)
+    before=baseline_report.get('preservation');after=measured.get('state_preservation')
+    _require(isinstance(before,dict) and isinstance(after,dict)
+        and all(type(before.get(k)) is str and before[k] == after.get(k) for k in ('model','all_buffers')),
+        'FIVE_PRIORITY_INITIAL_MODEL_BUFFER_PARITY')
+
+
 def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progress_path:Path):
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits=require_guarded_cuda_trainer_execution()
@@ -117,6 +126,8 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
 
     recipe=require_native_direction_research_recipe(launch['numerical_recipe'])
+    priority=recipe.get('five_minute_priority',False)
+    _require(type(priority) is bool and (not priority or (candidate and launch['candidate_mode']=='price_only')), 'FIVE_PRIORITY_SCOPE')
     _require(recipe['batch_size']==16 and recipe['max_updates']==2
         and recipe.get('dense_minute_supervision') is True and recipe.get('signed_bps_supervision',False) is False
         and recipe.get('magnitude_weighted_direction',False) is False, 'DENSE_RECIPE')
@@ -139,6 +150,18 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     actual_launch={**launch,'run_scope':(prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE if candidate
         else prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE if decimal else prefix_authority.DENSE_SCOPE)}
     context=prefix._launch_metadata(actual_launch,common);context['info']['metadata'].update(extra)
+    priority_baseline=None
+    if priority:
+        from gx1.contracts.entry_native_direction_m5_fullfit_v1 import INITIAL
+        priority_baseline=common._read(launch['priority_baseline_initial_report'],context['info']['metadata'])
+        _require(priority_baseline.get('role')=='INITIAL_TRAIN' and priority_baseline.get('fold')==launch['fold']
+            and priority_baseline.get('test_data_used') is False
+            and priority_baseline.get('predictions',{}).get('sha256')==INITIAL['sha256'], 'FIVE_PRIORITY_BASELINE_REPORT')
+        context['decimal_initial_predictions']=dict(INITIAL)
+        context['decimal_initial_predictions_stat']=common._stat(INITIAL['path'])
+        _require(common._hash_file(INITIAL['path'])==INITIAL, 'FIVE_PRIORITY_INITIAL_SHA')
+        for ref in (launch['priority_design'],launch['priority_source_review']):
+            common._read(ref,context['info']['metadata'])
     if decimal and not candidate:
         ref=launch['decimal_initial_predictions']
         _require(ref==authority.DECIMAL_INITIAL_PREDICTIONS, 'DECIMAL_INITIAL_REFERENCE')
@@ -152,7 +175,8 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),dense_target=context['dense_target'],
         decimal_original=context.get('decimal_original') if decimal else None,
         decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal and not candidate else None,
-        candidate_m1_refs=context.get('candidate_m1_refs') if candidate else None)
+        candidate_m1_refs=context.get('candidate_m1_refs') if candidate else None,
+        candidate_initial_predictions=context.get('decimal_initial_predictions') if priority else None)
     counters={key:0 for key in ('model_constructions','model_construction_returns','optimizer_constructions',
         'forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns',
@@ -160,7 +184,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     evaluation={'forward_calls':0,'forward_returns':0,'forward_kind_calls':{}}
     before=common._io();started=time.monotonic();previous=sys.getprofile();device=torch.device('cuda',0)
     full_state=initial=initial_identity=None;error=None;initial_checked=parity=unchanged=False;cursor=0
-    steps=[];batch_support=[];order_sha='0'*64;prepared=model=optimizer=None;prior=None;decimal_prior_checked=False;decimal_initial_checked=False
+    steps=[];batch_support=[];order_sha='0'*64;prepared=model=optimizer=None;prior=None;decimal_prior_checked=False;decimal_initial_checked=False;priority_initial_checked=False
     common._json(output/'CLAIM.json',{'recipe':window['recipe'],'plan_sha256':plan['plan_sha256'],
         'limits':limits,'additional_worker_ceiling_seconds':1200},counters,launch['max_published_json_bytes'])
 
@@ -209,6 +233,9 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
                 if decimal and not candidate:
                     require_decimal_initial_prediction_parity(measured['arrays'],context['decimal_initial_predictions'],np=np)
                     decimal_initial_checked=True
+                if priority:
+                    require_five_priority_initial_parity(measured,priority_baseline,context['decimal_initial_predictions'],np=np)
+                    priority_initial_checked=True
                 initial_prediction=prefix._save_predictions(output/'INITIAL_TRAIN.npz',measured['arrays'],np=np,common=common,tree_sha=tree_sha)
                 del measured
                 initial=common._save_state(output/'INITIAL_STATE.pt',fresh,torch=torch,
@@ -263,7 +290,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         signal.alarm(0);signal.signal(signal.SIGALRM,old_handler);sys.setprofile(previous)
     after=common._io()
     if after['rchar']>io_budget:error='RCHAR_BUDGET_EXCEEDED'
-    passed=initial_checked and parity and unchanged and error is None and (not decimal or (decimal_prior_checked and (candidate or decimal_initial_checked)))
+    passed=initial_checked and parity and unchanged and error is None and (not decimal or (decimal_prior_checked and (candidate or decimal_initial_checked))) and (not priority or priority_initial_checked)
     outcome='COMPLETE' if passed else 'FAILED'
     result=common._json(output/'RESULT.json',{'schema_version':('gx1_native_m1_price_private_qualification_result_v1' if candidate
         else 'gx1_native_decimal_dense_private_qualification_result_v1' if decimal else 'gx1_native_dense_private_qualification_result_v1'),
@@ -279,6 +306,9 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
             'decimal_prior_against_sign_audit':decimal_prior_checked} if candidate else {}),'recipe':window['recipe'],
         'execution_binding':binding_ref,'counts':{k:v for k,v in counters.items() if k!='json_bytes'},
         'initial_evaluation_counts':evaluation,'initial_state':initial,'initial_identity_sha256':initial_identity,
+        **({'priority_initial_prediction_and_model_buffer_byte_parity':priority_initial_checked,
+            'priority_baseline_initial_report':launch['priority_baseline_initial_report'],
+            'priority_design':launch['priority_design'],'priority_source_review':launch['priority_source_review']} if priority else {}),
         'initial_predictions':locals().get('initial_prediction'),'own_prefix_prior':prior,
         'dense_target':context['dense_target'],'source_transition_proof':launch['dense_source_transition_proof'],
         'final_state':full_state,'initial_checked':initial_checked,'bit_exact_resume':parity,
