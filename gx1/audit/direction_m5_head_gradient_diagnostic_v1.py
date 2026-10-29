@@ -16,8 +16,8 @@ import torch
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 ROOT = Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
-OUT = ROOT / 'DIRECTION_M5_HEAD_GRADIENT_20261029_001'
-STAGE = 'independent_m5_head_gradient_20261029_001'
+OUT = ROOT / 'DIRECTION_M5_HEAD_GRADIENT_20261029_002'
+STAGE = 'independent_m5_head_gradient_20261029_002'
 BATCH = 16
 HORIZONS = tuple(range(1, 61))
 ANCHORS = (1, 5, 15)
@@ -73,11 +73,11 @@ def gradients(logits, sign, observed, terminal, decisions, cutoff, weights, *, b
         sq5 = float(np.sum(g5*g5)); sqo = float(np.sum(go*go)); dot = float(np.sum(g5*go))
         combined = float(np.sum((g5+go)*(g5+go)))
         total5 += sq5; total_other += sqo; total_dot += dot; total_combined += combined
-        cosine = dot / np.sqrt(sq5*sqo) if sq5 > 0 and sqo > 0 else None
+        cosine = float(dot / np.sqrt(sq5*sqo)) if sq5 > 0 and sqo > 0 else None
         result_batches.append({'parents': stop-start, 'eligible_cells': n,
                                'eligible_five_minute_cells': int(eligible[start:stop,4].sum()),
                                'cosine_five_vs_other': cosine})
-    cosine = total_dot / np.sqrt(total5*total_other) if total5 > 0 and total_other > 0 else None
+    cosine = float(total_dot / np.sqrt(total5*total_other)) if total5 > 0 and total_other > 0 else None
     return {'parents': len(z), 'batch_size': batch_size, 'batch_count': len(result_batches),
             'eligible_cells': int(eligible.sum()), 'eligible_five_minute_cells': int(eligible[:,4].sum()),
             'eligible_five_minute_cell_fraction': float(eligible[:,4].sum()/eligible.sum()),
@@ -86,9 +86,9 @@ def gradients(logits, sign, observed, terminal, decisions, cutoff, weights, *, b
             'five_norm_div_other_norm': float(np.sqrt(total5/total_other)) if total_other > 0 else None,
             'five_norm_div_combined_norm': float(np.sqrt(total5/total_combined)) if total_combined > 0 else None,
             'five_dot_other': total_dot, 'five_vs_other_cosine': cosine,
-            'batches_negative_cosine': sum(x['cosine_five_vs_other'] is not None and x['cosine_five_vs_other'] < 0 for x in result_batches),
-            'batches_positive_cosine': sum(x['cosine_five_vs_other'] is not None and x['cosine_five_vs_other'] > 0 for x in result_batches),
-            'batches_zero_or_undefined_cosine': sum(x['cosine_five_vs_other'] is None or x['cosine_five_vs_other'] == 0 for x in result_batches),
+            'batches_negative_cosine': int(sum(x['cosine_five_vs_other'] is not None and x['cosine_five_vs_other'] < 0 for x in result_batches)),
+            'batches_positive_cosine': int(sum(x['cosine_five_vs_other'] is not None and x['cosine_five_vs_other'] > 0 for x in result_batches)),
+            'batches_zero_or_undefined_cosine': int(sum(x['cosine_five_vs_other'] is None or x['cosine_five_vs_other'] == 0 for x in result_batches)),
             'batch_details': result_batches}
 
 

@@ -1,3 +1,4 @@
+import json
 import numpy as np
 import pytest
 import torch
@@ -45,6 +46,7 @@ def test_hidden_gradients_match_autograd_with_missing_ties_and_maturity():
     assert actual['five_dot_other'] == pytest.approx(totaldot, abs=1e-14)
     assert actual['combined_norm'] == pytest.approx(totalcombined**.5, abs=1e-14)
     assert actual['five_vs_other_cosine'] == pytest.approx(totaldot/(total5*totalother)**.5, abs=1e-14)
+    json.dumps(actual, allow_nan=False)  # Actual artifact must contain JSON-native scalar types.
     assert actual['eligible_cells'] == int(elig.sum())
     assert actual['eligible_five_minute_cells'] == int(elig[:,4].sum())
 
