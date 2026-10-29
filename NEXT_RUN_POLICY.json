@@ -44897,5 +44897,86 @@
     "new_optimizer_steps": 0,
     "test_data_used": false,
     "edge_qualified": false
+  },
+  "direction_m1_ofi_decimal_sensitivity_and_capture_clock_20261029": {
+    "status": "SAVED_FIXED_SCORES_SOURCE_BOUND_SENSITIVITY_AND_CLOCK_REVIEW",
+    "scope": "Two existing 5-minute M1-OFI versus M5-OFI rank comparisons on the same reused Q1 2025 subset; no model, new score or new data run.",
+    "shared_selected_parent_clock_sha256": "da5d5743f72bf10cfd39adceb0631647cc7f48e1bf2e63a4ddb7c9b7761323ba",
+    "eligible_rows": 16977,
+    "positive_rows": 8754,
+    "negative_rows": 8223,
+    "decimal_sign_audit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+    },
+    "original_oof_report": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RUNTIME/prefix-fit/window-0002/OOF.json",
+      "sha256": "76cf81ac015abe30e9c1d27d3e837ee477a83703d6775cc518c6100662ca395f"
+    },
+    "original_dense_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json",
+      "sha256": "1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b"
+    },
+    "corrected_target_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "same_legacy_target_fold_and_anchor_verified": true,
+    "decimal_eligible_rows_lost_maximum": {
+      "up": 2,
+      "down": 3
+    },
+    "decimal_new_nonzero_or_nonzero_sign_flips": 0,
+    "maximum_removed_up_down_pair_fraction": 0.0005932139887143695,
+    "method": "AUC candidate minus baseline is the mean of pairwise score differences in [-1,1]. For removed-pair fraction q, retained difference <= (old difference+q)/(1-q). Upper q assumes all five globally corrected rows appear in the subset. The exact overlap is unknown.",
+    "bounds": {
+      "sign": {
+        "original_candidate_minus_baseline_auc": -0.0031559381509332907,
+        "corrected_candidate_minus_baseline_upper_bound": -0.002564245308406363,
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_SIGN_RESULT_001.json",
+          "sha256": "859d41d9c74bfe1d89e1f170eae6f733f882d7d43b2cba4aa7b9c4be7d627003"
+        },
+        "independent_verification": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_VERIFY_RESULT_001.json",
+          "sha256": "62b64879e3fa5641c3ef04cad4335e031dbb96df2d27f6e457c3509daaa376a6"
+        }
+      },
+      "weighted": {
+        "original_candidate_minus_baseline_auc": -0.006309375751120283,
+        "corrected_candidate_minus_baseline_upper_bound": -0.005719554682252642,
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_RESULT_001.json",
+          "sha256": "85364044ea0d70d2c415ef7a5e8b3958741c2ec8cf16e9793e2c3c8f629752b9"
+        },
+        "independent_verification": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/LAST_M1_OFI_WEIGHT_VERIFY_RESULT_001.json",
+          "sha256": "48475ee8b9a58b15a0fd38ab107fe7d09247d07df4db0a982212d84269b85d3e"
+        }
+      }
+    },
+    "independent_prior_day_week_resamples_physically_replayed": true,
+    "limitation": "Bounds are not recomputed corrected AUCs or confidence intervals. Original intervals include zero; reused Q1 and post-hoc continuous weight do not establish generalization, all M1 forms, feature usefulness or economic edge.",
+    "m1_reduction_worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/reduce_direction_train_gc_m1.py",
+      "sha256": "27ec64c88ace5ec957f66829661efa440ca9ce25929401877109514dcbd9cfcc"
+    },
+    "raw_reference": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_raw_gc_m1_reference_v1.py",
+      "sha256": "800f4bfd2652b12f3bdf562e5442a3c57b7d825b0b4c78281ca46b3dddf2158c"
+    },
+    "candidate_window_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_closed_m1_ofi_window_v1.py",
+      "sha256": "61d54cc83a73081cef22c7255f4fbdce13630afb6779cf9491377d7e22beb79f"
+    },
+    "capture_clock": "Raw MBP-1 reference bins events by Databento ts_recv; the M1 window selects five minutes ending at the M5 decision and uses nominal minute-end availability.",
+    "vendor_timestamp_reference": "https://databento.com/docs/api-historical/basics/",
+    "physical_availability": "Databento defines ts_recv at the capture server, not at this machine. The historical reduction does not establish network/gateway/local-processing availability by the nominal close. No physical lateness, resulting data change, leakage or edge impact measured.",
+    "source_data_reduction_matches_recipe": true,
+    "new_raw_market_or_prediction_payload_reads": 0,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "test_data_used": false,
+    "edge_qualified": false
   }
 }
