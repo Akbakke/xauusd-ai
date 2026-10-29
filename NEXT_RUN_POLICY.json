@@ -44952,7 +44952,79 @@
     "new_model_forwards": 0,
     "new_optimizer_steps": 0,
     "test_data_used": false,
-    "edge_qualified": false
+    "edge_qualified": false,
+    "conditional_event_time_and_endpoint_eligibility": {
+      "scope": "Source-bound corrected 1..60-minute candle-open labels and synthetic endpoint/clock cases; no market, prediction or model payload.",
+      "target_builder": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_direction_dense_v1.py",
+        "sha256": "77462078a177af15836f50d6cbe1e1bd37c1be37988e0742a5a21ec580930c69",
+        "matching_git_revision": "d619ff2a452303546fd4bfbe7c8c2aa915006acf"
+      },
+      "endpoint_lookup": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_direction_candle_midpoints_v1.py",
+        "sha256": "530e930eb07769627ce093ffe6ad1aa0e5304594ed50447ef92de300bb4cd811",
+        "matching_git_revision": "d619ff2a452303546fd4bfbe7c8c2aa915006acf"
+      },
+      "fitted_loss": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_v1.py",
+        "sha256": "ec86135c00aaaceb41f44f91517345e4d54a6efc217d3efdbcf0e414d1ae1a3a",
+        "matching_git_revision": "c77767fab929d0c306add3f79a1a381d76d0b645"
+      },
+      "source_endpoint": "/instruments/XAU_USD/candles",
+      "source_granularity": "M1",
+      "candle_timestamp_semantics": "bar_start_utc",
+      "required_source_columns": [
+        "time",
+        "open",
+        "high",
+        "low",
+        "close",
+        "bid_open",
+        "bid_high",
+        "bid_low",
+        "bid_close",
+        "ask_open",
+        "ask_high",
+        "ask_low",
+        "ask_close",
+        "volume"
+      ],
+      "source_quote_event_time_available": false,
+      "reported_terminal_time": "nominal M1 candle start at decision_ns plus horizon, not a recorded individual quote timestamp",
+      "endpoint_population": "Exact entry and terminal candle starts required; intervening candle continuity is not checked. Actual frequency of gaps among qualified outcomes is unmeasured.",
+      "oanda_instrument_schema_reference": "https://developer.oanda.com/rest-live-v20/instrument-df/",
+      "oanda_specific_instrument_endpoint_reference": "https://github.com/oanda/v20-openapi/blob/master/yaml/separate/v20_instrument.yaml",
+      "conditional_elapsed_assumptions": "Unsmoothed M1 first-open observations each in the half-open candle interval [start,start+60 seconds), and each midpoint derived from synchronized bid/ask of a single quote in that minute. Neither historical effective smooth default nor synchronized quote times are established by these artifacts.",
+      "conditional_event_elapsed_minutes_exclusive": {
+        "1": [
+          0,
+          2
+        ],
+        "5": [
+          4,
+          6
+        ],
+        "60": [
+          59,
+          61
+        ]
+      },
+      "conditional_bound_derivation": "For minute length L=60 seconds and first-quote offsets e0,eH in [0,L), observed elapsed = horizon*L+eH-e0; actual event times and errors are not measured.",
+      "strict_cutoff_conditional": "For an unsmoothed M1 first observation inside its nominal minute, strict terminal_start<minute-aligned cutoff ensures that observation is earlier than cutoff. This is not a proof of online network availability.",
+      "synthetic_checks": "Actual hash-matched endpoint lookup returns missing for absent starts, does not require intervening starts, and excludes a start at cutoff; boundary cases of the conditional time inequality passed.",
+      "not_established": [
+        "actual historical smooth behavior",
+        "bid/ask synchronization",
+        "individual quote event or arrival times",
+        "actual frequency or effect of missing intervening minutes",
+        "impact on predictions or AUC",
+        "economic edge"
+      ],
+      "new_market_or_prediction_payload_reads": 0,
+      "new_model_forwards": 0,
+      "new_optimizer_steps": 0,
+      "test_data_used": false
+    }
   },
   "direction_m1_ofi_decimal_sensitivity_and_capture_clock_20261029": {
     "status": "SAVED_FIXED_SCORES_SOURCE_BOUND_SENSITIVITY_AND_CLOCK_REVIEW",
