@@ -1,0 +1,141 @@
+{
+  "baseline": {
+    "description": "existing corrected 60-head one-pass compact M5 development predictions without the four XAU momentum fields",
+    "predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "083d76cb29e778e119cc6e9979af1284d111e7e288f1674f8b8918ba07031482"
+    },
+    "report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "a773849f2895a77c3af0567a3d9421f9f8724fb5592f8e1c43204af497218757"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "a9f4fe99fbccd89178fddabaf2cf30c22fd66843e545bdcba3b2a24b41c6fbd8"
+    }
+  },
+  "broker_orders_paper_live_promotion_authorized": false,
+  "candidate_input_mode": "price_only",
+  "comparison": {
+    "later_data": "reused Q1 2025 development; strict mature observed nonzero labels",
+    "limitation": "Price fields and associated model projection/gating change together; this is not a single-feature or equal-capacity ablation.",
+    "metrics": [
+      "auc",
+      "accuracy_at_0.5",
+      "logloss",
+      "brier"
+    ],
+    "primary_minutes": 5,
+    "references": [
+      "fixed_old_model",
+      "always_up",
+      "own_train_prior"
+    ],
+    "secondary_minutes": "1..60",
+    "simultaneous_auc_bands_all_60": true,
+    "threshold_or_checkpoint_selection": false,
+    "utc_day_and_week_paired_bootstrap_replicates": 10000
+  },
+  "decision_cadence": "closed M5 only; closed M15, H1, H4 and D1 as context",
+  "economic_edge_claimed": false,
+  "fit": {
+    "batch_size": 16,
+    "fresh_initial_state": true,
+    "maximum_updates": 2976,
+    "train_parent_rows": 47602,
+    "train_passes": 1,
+    "use_existing_corrected_60_head_objective": true
+  },
+  "fold": {
+    "fold_id": 1,
+    "oof_cutoff_ns": 1743465600000000000,
+    "oof_end_row": 64890,
+    "oof_start_row": 47602,
+    "prefix_rows": 47602,
+    "train_cutoff_ns": 1735689600000000000
+  },
+  "future_outcome_horizons_minutes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60
+  ],
+  "hardware": {
+    "existing_thermal_guards_preserved": true,
+    "gpu_power_limit_w_during_and_after": 250,
+    "physical_restart_before_each_training_window": true
+  },
+  "input_profile": "existing compact eight-specialist GC, geometry and D1/macro with RSI14, MACD line, MACD histogram and ret_1 in XAU MTF",
+  "m1_values_or_masks_as_entry_inputs": false,
+  "post_open_management": "future M1 and eventually tick research; no Exit evaluation or training in this Entry wave",
+  "qualification": {
+    "fixed_train_parents": 32,
+    "initial_train_parents": 256,
+    "physical_optimizer_updates": 4,
+    "private_weights_reused_for_fit": false,
+    "verify_each_price_gradient_and_exact_resume": true
+  },
+  "schema_version": "gx1_m5_price_only_direction_protocol_v1",
+  "status": "PREDECLARED_NO_TRAINING_AUTHORITY",
+  "target": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+    "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+  },
+  "test_data_used": false
+}

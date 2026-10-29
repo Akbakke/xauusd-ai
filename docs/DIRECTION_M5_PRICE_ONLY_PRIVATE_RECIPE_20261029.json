@@ -1,0 +1,409 @@
+{
+  "admission_stage": "dynamic_m5_direction_price_only_qualification_20261029_001",
+  "candidate_mode": "price_only",
+  "decimal_input_audit": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json",
+    "sha256": "8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19"
+  },
+  "decimal_target_refs": {
+    "audit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+    },
+    "consumer_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_PLAN_20261028_002.json",
+      "sha256": "fff5f468adf5f4967a3bbbd21a7c5d50b21f65680218126ef2e8d36119265062"
+    },
+    "consumer_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_CONSUMER_AUDIT_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "87b2240484f48b1c7341467947357e25cda28c8d47fcf91f43b87614fa664632"
+    },
+    "corrected": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "corrected_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "legacy": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "materialization_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_PLAN_20261028_001.json",
+      "sha256": "47919b63a2e31d7534f7196b7d69511502c989babbb0b385af7522abd765dcb6"
+    },
+    "original": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
+      "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d"
+    },
+    "original_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json",
+      "sha256": "1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b"
+    }
+  },
+  "dense_source_transition_proof": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_PRICE_SOURCE_TRANSITION_20261029.json",
+    "sha256": "d07be3985c931205f2482f566a3ec2087316346f31d84e34127590692a604524"
+  },
+  "dense_target": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+    "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+  },
+  "dense_target_result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+    "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+  },
+  "execution_binding_path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_PRIVATE_QUALIFICATION_20261029_001/RUNTIME/EXECUTION_BINDING.json",
+  "fold": {
+    "fold_id": 1,
+    "oof_cutoff_ns": 1743465600000000000,
+    "oof_end_row": 64890,
+    "oof_start_row": 47602,
+    "prefix_rows": 47602,
+    "train_cutoff_ns": 1735689600000000000
+  },
+  "full_epoch_training_allowed": false,
+  "gc_layout_metadata_parity": {
+    "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_GC_LAYOUT_REUSE_QUALIFICATION_ROOT_REVIEW_003.json",
+    "sha256": "1d3347ee52f02af7afcac5d55c02532c0e2823e1ce20397633785a2512d39263"
+  },
+  "input_manifest": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/INPUT_MANIFEST.json",
+    "sha256": "befabac7ebff4e5e8b6233b299b2fc8f03b87b94d99bc7ec4d43b0fb76f9246f"
+  },
+  "max_backwards": 4,
+  "max_checkpoint_bytes": 1073741824,
+  "max_forwards": 21,
+  "max_model_constructions": 3,
+  "max_private_updates": 4,
+  "max_published_json_bytes": 33554432,
+  "numerical_recipe": {
+    "batch_size": 16,
+    "contract_sha256": "09ae5c75fe211e4bc036624b38ae6bbd890ba2f5816bae2d0465a3995c7d231a",
+    "dense_minute_supervision": true,
+    "existing_recipe_origins": [
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_INITIAL_20261023_229/RECIPE_BOUND.json",
+        "sha256": "058eb7e8702b958120d1e6bc52bec9fd700852d1f3d45cff45f31f3375d91721"
+      },
+      {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_TECHNICAL_20261023_231/RECIPE.json",
+        "sha256": "8e1d7d8c6ae4845207974ec553e5148c346fa875475f4941752d4165b1bc21cd"
+      }
+    ],
+    "genuine_updates_authorized": false,
+    "grad_accum_steps": 1,
+    "grad_clip_norm": 1.0,
+    "installed_adamw_runtime_owners": {
+      "torch/optim/adamw.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/adamw.py",
+        "sha256": "e680a255db9c53c4248a55f414b7af9aab90bb672312ac960bb459903a161c1d"
+      },
+      "torch/optim/optimizer.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/optimizer.py",
+        "sha256": "354f41f784630a031195509d6b65bd5faaaa7a92402102c3b4c50423082e7ec9"
+      },
+      "torch/utils/_foreach_utils.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py",
+        "sha256": "723a4e8aea24cb778a260e36a7986f44807ea0fd728ec81bae98bc2dec88c901"
+      },
+      "torch/version.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/version.py",
+        "sha256": "fb37823f3a4c3c29cd008fac7d3ce5aeb8e7da6f883b17aa9ea6d73ce6eecbfd"
+      }
+    },
+    "lr_cosine_decay": "0",
+    "max_updates": 2,
+    "native_launch_authorized": false,
+    "optimizer": {
+      "kwargs": {
+        "amsgrad": false,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "capturable": false,
+        "differentiable": false,
+        "eps": 1e-08,
+        "foreach": null,
+        "fused": null,
+        "lr": 0.0001,
+        "maximize": false,
+        "weight_decay": 0.0001
+      },
+      "name": "torch.optim.AdamW"
+    },
+    "precision_policy": "deterministic_fp32",
+    "predictions": "ONLINE",
+    "research_objective_sha256": "3af0b2ad9450d74578138c91dc2e27cfb908c901503e3d825a4ea49a8599b3ea",
+    "schema_version": "gx1_native_direction_research_recipe_v1",
+    "seed": 20260911,
+    "weight_ema": "0.0"
+  },
+  "parent_order_algorithm": "numpy.random.RandomState(MT19937).permutation",
+  "predictive_value_claimed": false,
+  "qualification_design": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_ORDER_SUPPORTED_QUALIFICATION_20261028.json",
+    "sha256": "d78335c7d089ff44beb2d3a470ec8e88fe204899e8ef6e1524cbcba089913cb1"
+  },
+  "qualification_weights_for_main_fit": false,
+  "recipe_sha256": "e4b28fe747e091725af8d38758bad49978504cae6be055990ab04427d2f66678",
+  "run_scope": "private_dense_decimal_m1_price_input_adapter",
+  "runtime_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_PRIVATE_QUALIFICATION_20261029_001/RUNTIME",
+  "schema_version": "gx1_native_direction_research_launch_recipe_v1",
+  "source_owners": {
+    ".venv/lib/python3.10/site-packages/numpy/lib/_npyio_impl.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/numpy/lib/_npyio_impl.py",
+      "sha256": "500f386e9385f717c42c1b1a8004a31dfd44e4680b5afb3f63f1a6b69964a2fc"
+    },
+    ".venv/lib/python3.10/site-packages/torch/_tensor.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/_tensor.py",
+      "sha256": "86b69bb087da1b0080b6e9f3e8b927d39aa2409513f2762127d233b3b63e80fa"
+    },
+    ".venv/lib/python3.10/site-packages/torch/autograd/__init__.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/autograd/__init__.py",
+      "sha256": "98f86d295e386f647ad234ec63e36cb4b5d6acc3df696546c03bd62bf67a7503"
+    },
+    ".venv/lib/python3.10/site-packages/torch/optim/adamw.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/adamw.py",
+      "sha256": "e680a255db9c53c4248a55f414b7af9aab90bb672312ac960bb459903a161c1d"
+    },
+    ".venv/lib/python3.10/site-packages/torch/optim/optimizer.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/optimizer.py",
+      "sha256": "354f41f784630a031195509d6b65bd5faaaa7a92402102c3b4c50423082e7ec9"
+    },
+    ".venv/lib/python3.10/site-packages/torch/serialization.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/serialization.py",
+      "sha256": "db42dbd71fcd9ca4fb83283350bacde067659b5a53dd647588236a0693bb0d38"
+    },
+    ".venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py",
+      "sha256": "723a4e8aea24cb778a260e36a7986f44807ea0fd728ec81bae98bc2dec88c901"
+    },
+    ".venv/lib/python3.10/site-packages/torch/version.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/version.py",
+      "sha256": "fb37823f3a4c3c29cd008fac7d3ce5aeb8e7da6f883b17aa9ea6d73ce6eecbfd"
+    },
+    "gx1/contracts/entry_causal_m1_outcomes_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_outcomes_v1.py",
+      "sha256": "4cba6a5fb49c518eedd67bd8264af51bb319a3af604aeda483c415d4ea864ac7"
+    },
+    "gx1/contracts/entry_closed_m1_ofi_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_closed_m1_ofi_window_v1.py",
+      "sha256": "61d54cc83a73081cef22c7255f4fbdce13630afb6779cf9491377d7e22beb79f"
+    },
+    "gx1/contracts/entry_direction_probability_reference_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_probability_reference_v1.py",
+      "sha256": "59d57110cf7a51da8158f9535088147d50673dea10728a2ebe3c9e469f0cee76"
+    },
+    "gx1/contracts/entry_exit_feature_base_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_exit_feature_base_v1.py",
+      "sha256": "4596f4399c000ca4dae3ba11061bef20430decc74f91118649d968111ad89d1c"
+    },
+    "gx1/contracts/entry_exit_feature_surface_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_exit_feature_surface_v1.py",
+      "sha256": "64bef1d239f7ef4cc347e08243c13f2e2cb7b9b2e799ac5a114cb76176b49d31"
+    },
+    "gx1/contracts/entry_exit_production_architecture_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_exit_production_architecture_v1.py",
+      "sha256": "620a76145b49a5c8283d2960bdd63b18e0e41b4460d2f6b425c0658622752a4d"
+    },
+    "gx1/contracts/entry_gc_mtf_history_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_gc_mtf_history_v1.py",
+      "sha256": "de3a254f605c8e84543855b09f9ab98e6401225f7c212af5926c6b58ae250d12"
+    },
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+      "sha256": "57711527c2f9ad0d96696a805a6aeb70079c69228755d72b4800f9cb962238f9"
+    },
+    "gx1/contracts/entry_model_native_signal_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_signal_v1.py",
+      "sha256": "521f089a9b6d98121939610ff7cc37e1093e5f651fdb2f5b94b2aab7ab2c0f83"
+    },
+    "gx1/contracts/entry_model_native_train_recipe_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_train_recipe_v1.py",
+      "sha256": "b073e19f6bde66d4c50a153fcd1076ead39ec972af2934f2863f8d404871d938"
+    },
+    "gx1/contracts/entry_model_native_training_objective_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_training_objective_v1.py",
+      "sha256": "076366e793368bdd079455151cbd6592e4f96432baffaa2239d869c1147cf07b"
+    },
+    "gx1/contracts/entry_native_direction_context_report_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_context_report_v1.py",
+      "sha256": "2b6e5cf4bc32cec17091d964a8dd3c64fd91698fa5fce6d3d4fc7216bf1fcf49"
+    },
+    "gx1/contracts/entry_native_direction_decimal_data_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_decimal_data_v1.py",
+      "sha256": "07bdd987d5528eec1aa1b20feb624c0b142b9fda294253cd1e0bd44b2b04c944"
+    },
+    "gx1/contracts/entry_native_direction_decimal_input_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_decimal_input_v1.py",
+      "sha256": "27f9612c4120ebdb7d01380c65a14619830619df8ea80075bf0995c2be6e0ea8"
+    },
+    "gx1/contracts/entry_native_direction_dense_data_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_data_v1.py",
+      "sha256": "ee2246a483bdfa65adbfc8222cac335f483edaa0bbc5870c38cc8b5af2fe4743"
+    },
+    "gx1/contracts/entry_native_direction_dense_report_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_report_v1.py",
+      "sha256": "52f2f011019a4ed7157cc53825f42ded5936f8c1411a7043e62f8a7c11c2c6c5"
+    },
+    "gx1/contracts/entry_native_direction_dense_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_v1.py",
+      "sha256": "a5b201d6c28a27ec037fbf3d17e7c0d5de56b9c013cd096cef2c9b7806397a20"
+    },
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+      "sha256": "40fdc8f3a04f6d323367ee9110389330cf711661011b960fbe6ad9c23c9cce4a"
+    },
+    "gx1/contracts/entry_native_direction_frozen_extraction_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_frozen_extraction_v1.py",
+      "sha256": "bbb8821802fffc522587d4672df47d0ca2268b56938c2e936083ace11695d676"
+    },
+    "gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py",
+      "sha256": "41f2bcacee98ff7b73ef038ccac21f01bc185645f434c8d17c533711a0dbd1b4"
+    },
+    "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+      "sha256": "81eada460473bee1dd284c86b4e4218c0d1c9d693d9d7c7a09bac192ce7d86c3"
+    },
+    "gx1/contracts/entry_native_direction_prefix_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_normalization_v1.py",
+      "sha256": "377b0f8759d451da48ebb158fba6e323c1d0713e24b99145c054723acbb7e244"
+    },
+    "gx1/contracts/entry_native_direction_research_campaign_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_campaign_v1.py",
+      "sha256": "56d91902284d9f409dfcfb688337c521daab7c666626ae9d910a834d5ad4a1a6"
+    },
+    "gx1/contracts/entry_native_direction_research_state_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_state_v1.py",
+      "sha256": "411b6780a0dccf3f55ca79dd5a9f78cc8463a952fdac72a576afc8389a4c2857"
+    },
+    "gx1/contracts/entry_native_direction_research_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+      "sha256": "8beccc55c551c22c37e0af9bec10bc3b911e6ff11c69c6d5ba83abcc1b096e16"
+    },
+    "gx1/contracts/entry_training_precision_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_training_precision_v1.py",
+      "sha256": "e6cb312ca004848cfe9533e6882ea7014fa82ab966d5c84d18268de559e5a6b6"
+    },
+    "gx1/contracts/gx1_capped_execution_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "gx1/contracts/immutable_event_authority_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "gx1/contracts/local_random_access_campaign_v2.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/local_random_access_campaign_v2.py",
+      "sha256": "0f7edcc8cafcc1b1b73ebdb6673194271173ed83c2bae86dbd80361bc4edeafb"
+    },
+    "gx1/contracts/model_state_digest_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/model_state_digest_v1.py",
+      "sha256": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4"
+    },
+    "gx1/contracts/registry_hyperparameter_fit_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/registry_hyperparameter_fit_v1.py",
+      "sha256": "3673c598dfaaa8c0ae2d7c8b5b2393c88f382fefd337382ce72539b570eb2794"
+    },
+    "gx1/contracts/unified_exit_random_access_state_view_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_state_view_v1.py",
+      "sha256": "4315ac48e860cba4c83e246e5688564342e97da4a89376f015a5b1c552104436"
+    },
+    "gx1/features/basic_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/basic_v1.py",
+      "sha256": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220"
+    },
+    "gx1/features/entry_direction_momentum_profile_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_direction_momentum_profile_v1.py",
+      "sha256": "36d050af771de69f50b0fd2f86c4c76df824cd944534885c467b55cd1c0eb308"
+    },
+    "gx1/features/entry_model_native_feature_layers_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_model_native_feature_layers_v1.py",
+      "sha256": "97f29b0ccc13a2fb98bcec2fc661a71b5e0ec3a3579afa220ad61972c6dd6ec4"
+    },
+    "gx1/features/entry_specialist_feature_groups_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+      "sha256": "67ac3e96ee1ce305b5e38fec5379d9a877675d5c16076b7f4d76fafcda9fb8a4"
+    },
+    "gx1/features/gc_native_context_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_context_v1.py",
+      "sha256": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf"
+    },
+    "gx1/features/htf_features.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+      "sha256": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520"
+    },
+    "gx1/features/micro_structure_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/micro_structure_v1.py",
+      "sha256": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd"
+    },
+    "gx1/features/volatility_squeeze_state_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/volatility_squeeze_state_v1.py",
+      "sha256": "0ad2121c620008909d290b24686a095cec05e52f60e41527a4498e7ac663936f"
+    },
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+      "sha256": "ac35009027d496c997bbb8e3ce615d00f22d3d97214176fd67bc7d2d6425115f"
+    },
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+      "sha256": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e"
+    },
+    "gx1/models/entry_v10/entry_v10_input_normalization.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_input_normalization.py",
+      "sha256": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148"
+    },
+    "gx1/scripts/audit_raw_gc_m1_reference_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_raw_gc_m1_reference_v1.py",
+      "sha256": "800f4bfd2652b12f3bdf562e5442a3c57b7d825b0b4c78281ca46b3dddf2158c"
+    },
+    "gx1/scripts/local_random_access_campaign_v2.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/local_random_access_campaign_v2.py",
+      "sha256": "bf24876a455e9d0c3fa9b6a75f5152403c692441d7e459bc5e074c0d7ec4e3d1"
+    },
+    "gx1/scripts/run_entry_native_direction_dense_qualification_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
+      "sha256": "98b335c35c1e7925c6e60cd16fa6ebdd050cdf8d222a0b1f33235933ef3dbf4f"
+    },
+    "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "sha256": "aff674da4bd46fcce36607d2c4d2c2b11517d6a0b8ad73df34b8d8d0de6abf9c"
+    },
+    "gx1/scripts/run_entry_native_direction_research_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "sha256": "db29e2db936e3b53c71411105f5402f5c2b02cd321af0db9f781bc2c19c3f2ff"
+    },
+    "gx1/scripts/run_unified_exit_native_candidate_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+      "sha256": "13f02b222d83befabcb62ee833dbccbdcb270925c2394c04ea1e9a4604bde8a7"
+    },
+    "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+      "sha256": "78b3a253f13643794d5fa4a92a3359a4acc72114e9f0cc7f32f7794f60db7032"
+    },
+    "gx1/utils/artifact_primitives_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/utils/artifact_primitives_v1.py",
+      "sha256": "94a85b804a10c28ff82ef83be5bd67d114ef686ec3e7d4cd36362a308af68932"
+    },
+    "scripts/collect_gx1_handover_readonly.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/collect_gx1_handover_readonly.py",
+      "sha256": "dc3bae9705f72163a2db0fa0b2554effb28830fb21e096e7e0e6d839b3c40d14"
+    },
+    "scripts/gx1_capped_run.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "42be63429d4b5c12377da5ac7a6631252fa4b083ad4a5b6595e76eb80e971e55"
+    },
+    "scripts/gx1_guarded_trainer_exec.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_guarded_trainer_exec.sh",
+      "sha256": "6c4a4bfe704828aeb1c5ad2d89160e4cbb8fadb210be5fc33d26f12b96db0c45"
+    }
+  },
+  "source_repo": "/home/andre2/src/GX1_CURRENT",
+  "test_data_used": false,
+  "training_enabled": true
+}
