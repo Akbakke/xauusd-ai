@@ -44481,6 +44481,19 @@
       "initial_logloss": 0.7848345715463445,
       "final_logloss": 0.6923114237942509,
       "scope": "Fixed in-sample diagnostic, not full TRAIN or proof that initial bias causes the later-fold result."
+    },
+    "five_minute_head_initialization_source": {
+      "source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "8beccc55c551c22c37e0af9bec10bc3b911e6ff11c69c6d5ba83abcc1b096e16"
+      },
+      "mechanism": "Seeded torch.nn.Linear default initialization; TRAIN class prior is not supplied to this constructor or used to initialize this head.",
+      "train_prefix_up_fraction": 0.509052070555391,
+      "initial_sample_down_count": 255,
+      "sample_rows": 256,
+      "later_bias_cause_proven": false,
+      "initialization_change_authorized": false,
+      "fit_or_test_executed": false
     }
   }
 }
