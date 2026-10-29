@@ -56,7 +56,7 @@ def dense_direction_research_contract() -> dict[str, Any]:
 class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
     """One native forward, three original heads and 57 distinct new heads."""
 
-    def __init__(self, backbone):
+    def __init__(self, backbone, *, m1_ofi_normalization=None):
         super().__init__(backbone)
         device = self.direction_head.weight.device
         with torch.random.fork_rng(devices=[device.index] if device.type == 'cuda' else []):
@@ -65,6 +65,21 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
         self.register_buffer('dense_horizon_minutes', torch.tensor(HORIZONS_MINUTES, dtype=torch.int64, device=device))
         self.register_buffer('dense_reorder', torch.tensor(_REORDER, dtype=torch.int64, device=device))
         self._dense_objective_json = _OBJECTIVE_JSON
+        self._m1_normalization_json = None
+        if m1_ofi_normalization is not None:
+            from gx1.contracts.entry_native_direction_m1_ofi_normalization_v1 import require
+            fitted = require(m1_ofi_normalization)
+            self._m1_normalization_json = json.dumps(fitted, sort_keys=True, separators=(',', ':'), allow_nan=False)
+            width = self._bound_hidden_width
+            with torch.random.fork_rng(devices=[device.index] if device.type == 'cuda' else []):
+                self.m1_ofi_in = nn.Linear(width + 10, width, device=device, dtype=torch.float32)
+                self.m1_ofi_out = nn.Linear(width, width, device=device, dtype=torch.float32)
+                nn.init.zeros_(self.m1_ofi_out.weight)
+                nn.init.zeros_(self.m1_ofi_out.bias)
+            self.register_buffer('m1_ofi_center', torch.tensor(fitted['surface']['center'][0], dtype=torch.float64, device=device))
+            self.register_buffer('m1_ofi_scale', torch.tensor(fitted['surface']['scale'][0], dtype=torch.float64, device=device))
+            self.register_buffer('m1_ofi_normalization_sha256', torch.tensor(
+                list(bytes.fromhex(fitted['contract_sha256'])), dtype=torch.uint8, device=device))
 
     @property
     def research_objective(self) -> dict[str, Any]:
@@ -85,6 +100,22 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
             _require(isinstance(value, torch.Tensor) and value.dtype == torch.int64 and value.device == device
                 and not value.requires_grad and tuple(value.shape) == (60,)
                 and torch.equal(value, torch.tensor(expected, dtype=torch.int64, device=device)), name.upper())
+        if self._m1_normalization_json is not None:
+            from gx1.contracts.entry_native_direction_m1_ofi_normalization_v1 import require
+            fitted = require(json.loads(self._m1_normalization_json))
+            for name, inputs, outputs in (('m1_ofi_in', width + 10, width), ('m1_ofi_out', width, width)):
+                layer = getattr(self, name)
+                _require(type(layer) is nn.Linear and layer.in_features == inputs and layer.out_features == outputs
+                    and layer.weight.dtype == layer.bias.dtype == torch.float32
+                    and layer.weight.device == layer.bias.device == device
+                    and bool(torch.isfinite(layer.weight).all()) and bool(torch.isfinite(layer.bias).all()), 'M1_LAYER:' + name)
+            for name, expected in (('m1_ofi_center', fitted['surface']['center'][0]), ('m1_ofi_scale', fitted['surface']['scale'][0])):
+                value = getattr(self, name)
+                _require(value.dtype == torch.float64 and value.device == device and not value.requires_grad
+                    and tuple(value.shape) == () and value.item() == float(expected), 'M1_STAT:' + name)
+            value = self.m1_ofi_normalization_sha256
+            _require(value.dtype == torch.uint8 and value.device == device and not value.requires_grad
+                and torch.equal(value, torch.tensor(list(bytes.fromhex(fitted['contract_sha256'])), dtype=torch.uint8, device=device)), 'M1_IDENTITY')
 
     def forward(self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,
         ctx_cat: torch.Tensor, ctx_cont: torch.Tensor,
@@ -92,9 +123,19 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
         seq_h4: torch.Tensor, seq_d1: torch.Tensor,
         gc_seq_m5: torch.Tensor | None = None, gc_seq_m15: torch.Tensor | None = None,
         gc_seq_h1: torch.Tensor | None = None, gc_seq_h4: torch.Tensor | None = None,
-        gc_seq_d1: torch.Tensor | None = None) -> dict[str, Any]:
+        gc_seq_d1: torch.Tensor | None = None,
+        m1_ofi_contracts: torch.Tensor | None = None, m1_ofi_observed: torch.Tensor | None = None) -> dict[str, Any]:
         self._require_binding()
         _require(isinstance(seq_x, torch.Tensor) and seq_x.ndim == 3 and seq_x.shape[0] > 0, 'FEATURE_BATCH')
+        if self._m1_normalization_json is None:
+            _require(m1_ofi_contracts is None and m1_ofi_observed is None, 'UNBOUND_M1_INPUT')
+        else:
+            _require(isinstance(m1_ofi_contracts, torch.Tensor) and m1_ofi_contracts.dtype == torch.float64
+                and isinstance(m1_ofi_observed, torch.Tensor) and m1_ofi_observed.dtype == torch.bool
+                and tuple(m1_ofi_contracts.shape) == tuple(m1_ofi_observed.shape) == (seq_x.shape[0], 5)
+                and m1_ofi_contracts.device == m1_ofi_observed.device == self.direction_head.weight.device
+                and bool(torch.isfinite(m1_ofi_contracts).all())
+                and bool((m1_ofi_contracts[~m1_ofi_observed] == 0).all()), 'M1_INPUT')
         output = self.backbone(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
             seq_m5=seq_m5, seq_m15=seq_m15, seq_h1=seq_h1, seq_h4=seq_h4, seq_d1=seq_d1,
             gc_seq_m5=gc_seq_m5, gc_seq_m15=gc_seq_m15, gc_seq_h1=gc_seq_h1,
@@ -105,6 +146,14 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
             and tuple(hidden.shape) == (seq_x.shape[0], self._bound_hidden_width)
             and hidden.device == self.direction_head.weight.device
             and bool(torch.isfinite(hidden).all()), 'NATIVE_HIDDEN')
+        if self._m1_normalization_json is not None:
+            normalized = torch.asinh((m1_ofi_contracts - self.m1_ofi_center) / self.m1_ofi_scale)
+            normalized = torch.where(m1_ofi_observed, normalized, torch.zeros_like(normalized)).to(torch.float32)
+            _require(bool(torch.isfinite(normalized).all()), 'M1_NORMALIZED_FINITE')
+            candidate = self.m1_ofi_out(F.gelu(self.m1_ofi_in(torch.cat(
+                (hidden, normalized, m1_ofi_observed.to(torch.float32)), dim=1))))
+            _require(bool(torch.isfinite(candidate).all()), 'M1_RESIDUAL_FINITE')
+            hidden = hidden + torch.where(m1_ofi_observed.any(dim=1, keepdim=True), candidate, torch.zeros_like(candidate))
         combined = torch.cat((self.direction_head(hidden), self.dense_aux_head(hidden)), dim=1)
         logits = combined.index_select(1, self.dense_reorder)
         _require(logits.dtype == torch.float32 and tuple(logits.shape) == (seq_x.shape[0], 60)

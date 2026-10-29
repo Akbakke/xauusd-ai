@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
-  "next_action": "Implement and verify the user-requested compact price momentum input route and the bounded closed-M1 OFI input adapter. Any new genuine fit or normalization plan requires its own authority; keep TEST and trading sealed.",
+  "next_action": "Verify authoritative model M5 contract and symbol lineage, then prepare an exact source-bound fresh initial qualification and candidate normalization/comparison for separate explicit authority. The new M1 and price routes have synthetic tests only; keep training, TEST and trading sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -44010,5 +44010,59 @@
     "optimizer_steps": 0,
     "test_data_used": false,
     "economic_edge_qualified": false
+  },
+  "independent_direction_m1_price_research_routes_20261029": {
+    "status": "RESEARCH_ROUTES_SYNTHETICALLY_TESTED_NOT_GENUINELY_ADMITTED",
+    "m1": "five closed ordered M1 OFI values with distinct observed masks and own-prefix-only normalization",
+    "price": "four genuine XAU MTF fields: rsi14_centered, macd_line_atr, macd_hist_atr, ret_1",
+    "existing_8_specialists_and_d1_macro_preserved": true,
+    "production_profile_rejected": true,
+    "focused_tests_passed": 108,
+    "post_import_cleanup_targeted_tests_passed": 5,
+    "real_model_forwards_on_new_route": 0,
+    "genuine_m1_normalization_fits": 0,
+    "new_model_optimizer_updates": 0,
+    "fresh_initial_baseline_required": true,
+    "genuine_fit_authorized": false,
+    "training_enabled": false,
+    "fit_provider_preparation_currently_enables_new_routes": false,
+    "test_data_used": false,
+    "economic_edge_qualified": false,
+    "model_m5_contract_identity_and_symbol_mapping_independently_verified": false,
+    "independent_m5_contract_audit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/INDEPENDENT_M5_CONTRACT_AUDIT.json",
+      "sha256": "c67a031e8625424916d452c4141768c4831fd9c41d37ac5962593c6e16bb8f02"
+    },
+    "independent_m5_contract_audit_script": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/independent_m5_contract_audit.py",
+      "sha256": "5808ac1f1e3b1c4ee6c8841b316dd24eb04cdafff64784fe9c25c361915d9b40"
+    },
+    "independent_m5_006_train": {
+      "parents": 47602,
+      "indices_matched_where_both_available": 29960,
+      "index_mismatches": 0,
+      "missing_contract_including_missing_clock": 17642,
+      "missing_clock": 3634
+    },
+    "independent_m5_006_later_q1": {
+      "parents": 17288,
+      "indices_matched_where_both_available": 10572,
+      "index_mismatches": 0,
+      "missing_contract_including_missing_clock": 6716,
+      "missing_clock": 1204
+    },
+    "source_sha256": {
+      "gx1/contracts/entry_closed_m1_ofi_window_v1.py": "83be71db6f8d1a77d0874aab1be66930fccf276be8dad995960d5c5feb7c6b4d",
+      "gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py": "cfc84504b5fbe299d4800384f028f1ecc0d9e9ac128a07570fd391d734c483b1",
+      "gx1/contracts/entry_native_direction_dense_v1.py": "8a2621586c7d940d6ca8478f7fd5b509f434952b0ec8593cbb2b42d9d5889ba6",
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": "1c2e9dda39f7cf56f01107f62d7c713034bf54e9d40206985a015699a3d74b98",
+      "gx1/features/entry_direction_momentum_profile_v1.py": "36d050af771de69f50b0fd2f86c4c76df824cd944534885c467b55cd1c0eb308",
+      "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "ac35009027d496c997bbb8e3ce615d00f22d3d97214176fd67bc7d2d6425115f",
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "b9413a78b945bf77be148ef110001ec14e928eb892321491650e5fea3aa329ec",
+      "tests/test_entry_closed_m1_ofi_window_v1.py": "3684f386cde23cef63992b36739c291b603e3344db6f239c4a240e46f4cff9b9",
+      "tests/test_entry_direction_momentum_profile_v1.py": "17dca97a97359f0186ef41656d192566eab1b472e7ca2747d92b5846eca9e07f",
+      "tests/test_entry_native_direction_m1_ofi_v1.py": "661eb5d5ea0a89614606d15433f38abb8516c0d35bcb410227362ac31b6901c8"
+    }
   }
 }

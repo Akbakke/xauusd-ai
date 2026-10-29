@@ -365,7 +365,9 @@ def _batch(prepared, targets, view, selected, np):
         bar_start_ns=prepared['arrays']['bar_start_ns'],decision_ns=prepared['arrays']['decision_ns'],
         entry_sequence_source=prepared['entry_sequence_source'],snap_x=prepared['current']['snap'],
         ctx_cont=prepared['current']['ctx_cont'],ctx_cat=prepared['current']['ctx_cat'],multi_tf_sources=prepared['cache'],
-        gc_surfaces=prepared['gc']['surfaces'],gc_layout=prepared['gc']['layout'],batch_parent_rows=selected)
+        gc_surfaces=prepared['gc']['surfaces'],gc_layout=prepared['gc']['layout'],batch_parent_rows=selected,
+        **({'m1_ofi_source':prepared['m1_ofi_source'], 'm1_ofi_clock':prepared['m1_ofi_clock']}
+            if 'm1_ofi_normalization' in view else {}))
     at=np.searchsorted(prepared['arrays']['parent_rows'],selected)
     _require(np.array_equal(prepared['arrays']['parent_rows'][at],selected),'TARGET_EXACT_PARENT_JOIN')
     target={key:np.ascontiguousarray(value[at]) for key,value in targets.items()}

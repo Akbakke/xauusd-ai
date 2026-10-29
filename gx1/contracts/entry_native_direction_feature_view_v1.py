@@ -27,6 +27,7 @@ from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DY
 from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
 from gx1.contracts.entry_native_direction_research_v1 import NativeEntryDirectionResearch, native_direction_research_contract
 from gx1.features import entry_specialist_feature_groups_v1 as owners
+from gx1.features import entry_direction_momentum_profile_v1 as price_momentum_owner
 from gx1.features.htf_features import MULTI_TF_SHIFT, get_model_native_multi_tf_route_windows
 from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
 
@@ -37,6 +38,8 @@ SOURCE_REF_KEYS = frozenset({'feature_view_design', 'input_qualification', 'raw_
     'raw_gc_layout', 'raw_gc_transition', 'direction_component_source', 'native_constructor_source',
     'mtf_window_source', 'gc_gather_source', 'owner_profile_source'})
 DENSE_SOURCE_REF_KEYS = frozenset({'dense_direction_component_source', 'dense_profile_source', 'dense_native_constructor_source'})
+PRICE_MOMENTUM_SOURCE_REF_KEYS = frozenset({'price_momentum_profile_source'})
+M1_OFI_SOURCE_REF_KEYS = frozenset({'m1_ofi_window_source', 'm1_ofi_normalization_source'})
 VIEW_KEYS = frozenset({'schema_version', 'prefix_normalization', 'prefix', 'full_axes', 'base_lineage',
     'prefix_source_bindings_sha256', 'physical_widths', 'physical_field_names_sha256', 'sequence_bars',
     'window_rows', 'canonical_routing_sha256', 'constructor_scalar_config', 'constructor_metadata',
@@ -129,9 +132,13 @@ def _configuration(metadata):
 def _require_view(view):
     _require(isinstance(view, Mapping), 'VIEW_KEYS')
     dense = 'dense_minute_supervision' in view
-    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set())
+    price_momentum = 'price_momentum_profile' in view
+    m1_ofi = 'm1_ofi_normalization' in view
+    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'m1_ofi_normalization'} if m1_ofi else set())
         and sum((dense, 'bps_scale' in view, 'magnitude_weight_contract' in view)) <= 1
-        and (not dense or view['dense_minute_supervision'] is True), 'VIEW_KEYS')
+        and (not dense or view['dense_minute_supervision'] is True)
+        and (not price_momentum or (dense and view['price_momentum_profile'] is True))
+        and (not m1_ofi or dense), 'VIEW_KEYS')
     if dense:
         from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_research_contract
         objective = dense_direction_research_contract()
@@ -146,8 +153,17 @@ def _require_view(view):
         and view['research_objective'] == objective
         and view['evidence_scope'] == EVIDENCE_SCOPE
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
-    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()), 'SOURCE_REF_KEYS')
+    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()), 'SOURCE_REF_KEYS')
     for item in view['source_bindings'].values(): _ref(item)
+    if m1_ofi:
+        from gx1.contracts.entry_native_direction_m1_ofi_normalization_v1 import require as require_m1_ofi
+        fitted = require_m1_ofi(view['m1_ofi_normalization'])
+        _require(fitted['prefix_rows'] == view['prefix']['rows']
+            and fitted['cutoff_ns'] == view['prefix']['cutoff_ns'], 'M1_OFI_OWN_PREFIX')
+        _require(fitted['full_rows'] == view['full_axes']['rows']
+            and all(fitted['full_' + key] == view['full_axes'][key]
+                and fitted['prefix_' + key] == view['prefix'][key]
+                for key in ('parent_rows_sha256', 'decision_ns_sha256')), 'M1_OFI_AXIS_JOIN')
     if 'bps_scale' in view:
         from gx1.contracts.entry_native_direction_bps_v1 import require_direction_bps_scale
         scale = require_direction_bps_scale(view['bps_scale'])
@@ -162,7 +178,7 @@ def _require_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -191,8 +207,11 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         and gc_history['normalization']['provenance']['train_end_ns'] == proof['prefix']['cutoff_ns'], 'PREFIX_LINEAGE_JOIN')
     for tf, item in gc_history['normalization']['provenance']['row_union'].items():
         _require(all(item[key] == proof['gc'][tf][key] for key in ('rows', 'native_row_indices_sha256', 'available_ns_sha256')), 'GC_PREFIX_ROW_UNION:' + tf)
-    _require(type(dense_minutes) is bool and not (dense_minutes and (bps_scale is not None or magnitude_weight_contract is not None)), 'OBJECTIVE_MODE')
-    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()), 'SOURCE_REF_KEYS')
+    _require(type(dense_minutes) is bool and type(price_momentum) is bool
+        and not (dense_minutes and (bps_scale is not None or magnitude_weight_contract is not None))
+        and (not price_momentum or dense_minutes)
+        and (m1_ofi_normalization is None or dense_minutes), 'OBJECTIVE_MODE')
+    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()), 'SOURCE_REF_KEYS')
     source_bindings = {key: _ref(value) for key, value in source_bindings.items()}
     provenance = proof['source_bindings']
     _require(source_bindings['raw_input_provider_plan'] == provenance['ancestral264_plan']
@@ -202,7 +221,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
             ('mtf_window_source', 'gx1/features/htf_features.py'), ('gc_gather_source', 'gx1/contracts/entry_gc_mtf_history_v1.py'),
             ('owner_profile_source', 'gx1/features/entry_specialist_feature_groups_v1.py'))), 'SOURCE_PROVENANCE_JOINS')
     scalars = _configuration(constructor_metadata)
-    compiled = (owners.compile_gc_mtf_geometry_entry_execution_profile(gc_history) if dense_minutes
+    compiled = (price_momentum_owner.compile_price_momentum_profile(gc_history) if price_momentum
+        else owners.compile_gc_mtf_geometry_entry_execution_profile(gc_history) if dense_minutes
         else owners.compile_gc_mtf_entry_execution_profile(gc_history))
     _require(type(max_batch_rows) is int and max_batch_rows > 0, 'MAX_BATCH_ROWS')
     if dense_minutes:
@@ -229,6 +249,10 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['magnitude_weight_contract'] = _copy(magnitude_weight_contract)
     if dense_minutes:
         value['dense_minute_supervision'] = True
+    if price_momentum:
+        value['price_momentum_profile'] = True
+    if m1_ofi_normalization is not None:
+        value['m1_ofi_normalization'] = _copy(m1_ofi_normalization)
     value['contract_sha256'] = _sha(value)
     _require_view(value)
     _require(expected is None or expected == value, 'EXPECTED_VIEW_MISMATCH')
@@ -236,7 +260,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
 
 
 def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, decision_ns,
-    entry_sequence_source, snap_x, ctx_cont, ctx_cat, multi_tf_sources, gc_surfaces, gc_layout, batch_parent_rows):
+    entry_sequence_source, snap_x, ctx_cont, ctx_cat, multi_tf_sources, gc_surfaces, gc_layout, batch_parent_rows,
+    m1_ofi_source=None, m1_ofi_clock=None):
     """Gather one bounded raw batch from caller-verified immutable full backings.
 
     The normalization cutoff describes fitted statistics; later OOF feature rows
@@ -299,6 +324,18 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
     for tf in history.TIMEFRAMES:
         features['seq_' + tf.lower()] = np.stack(collected[tf])
         features['gc_seq_' + tf.lower()] = np.stack(gc_collected[tf])
+    if 'm1_ofi_normalization' in view:
+        from gx1.contracts import entry_closed_m1_ofi_window_v1 as m1
+        fitted = view['m1_ofi_normalization']
+        _require(isinstance(m1_ofi_source, m1.QualifiedSource) and isinstance(m1_ofi_clock, m1.QualifiedClock)
+            and m1_ofi_source.source_sha256 == fitted['source_sha256']
+            and m1_ofi_clock.clock_sha256 == fitted['clock_sha256'], 'M1_OFI_SOURCE_IDENTITY')
+        minute = m1.gather(m1_ofi_source, m1_ofi_clock, batch_parent_rows=selected)
+        _require(np.array_equal(minute['parent_rows'], selected) and np.array_equal(minute['decision_ns'], decisions), 'M1_OFI_EXACT_PARENT_CLOCK')
+        features['m1_ofi_contracts'] = minute['ofi_contracts'].copy()
+        features['m1_ofi_observed'] = minute['ofi_observed'].copy()
+    else:
+        _require(m1_ofi_source is None and m1_ofi_clock is None, 'UNBOUND_M1_OFI_INPUT')
     _require(all(array.flags.c_contiguous and np.isfinite(array).all() for array in features.values()), 'FINITE_CONTIGUOUS_RAW_BATCH')
     return {'features': features, 'witness': {'view_sha256': view['contract_sha256'], 'parent_rows': selected.tolist(),
         'bar_start_ns': starts.tolist(), 'decision_ns': decisions.tolist(), 'source_positions': take.tolist(),
@@ -317,7 +354,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         prefix_normalization_ref=view['prefix_normalization']['binding'], constructor_metadata=constructor_metadata,
         constructor_metadata_ref=view['constructor_metadata']['binding'], source_bindings=view['source_bindings'],
         max_batch_rows=view['max_batch_rows'], expected=view, bps_scale=view.get('bps_scale'), magnitude_weight_contract=view.get('magnitude_weight_contract'),
-        dense_minutes=view.get('dense_minute_supervision', False))
+        dense_minutes=view.get('dense_minute_supervision', False), price_momentum=view.get('price_momentum_profile', False),
+        m1_ofi_normalization=view.get('m1_ofi_normalization'))
     _, routes, widths = _canonical()
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])
@@ -334,7 +372,7 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
     backbone.require_input_normalization_state()
     if view.get('dense_minute_supervision', False):
         from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch
-        wrapper = DenseNativeEntryDirectionResearch(backbone)
+        wrapper = DenseNativeEntryDirectionResearch(backbone, m1_ofi_normalization=view.get('m1_ofi_normalization'))
     else:
         wrapper = NativeEntryDirectionResearch(backbone, bps_scale=view.get('bps_scale'), magnitude_weight_contract=view.get('magnitude_weight_contract'))
     wrapper.feature_view_identity = {'contract_sha256': view['contract_sha256'],

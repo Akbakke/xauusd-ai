@@ -83,7 +83,10 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     compile_compact_entry_execution_profile,
     compile_gc_mtf_entry_execution_profile,
     compile_gc_mtf_geometry_entry_execution_profile, GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
-    require_compact_entry_execution_profile_reference,
+)
+from gx1.features.entry_direction_momentum_profile_v1 import (
+    MOMENTUM_FAMILY as PRICE_MOMENTUM_FAMILY, PROFILE_NAME as PRICE_MOMENTUM_PROFILE_NAME,
+    compile_price_momentum_profile, require_entry_execution_profile_reference,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
     UNIFIED_EXIT_MODEL_REPRESENTATION_KEY,
@@ -516,13 +519,15 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if gc_mtf_history is not None:
             from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history
             gc_mtf_history = require_gc_mtf_history(gc_mtf_history)
-        profile_reference = require_compact_entry_execution_profile_reference(
+        profile_reference = require_entry_execution_profile_reference(
             entry_execution_profile, context="ENTRY_MODEL_EXECUTION_PROFILE",
             gc_mtf_history=gc_mtf_history,
         )
         if profile_reference is not None and entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
             raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE")
         compiled_profile = (
+            compile_price_momentum_profile(gc_mtf_history)
+            if profile_reference is not None and profile_reference["name"] == PRICE_MOMENTUM_PROFILE_NAME else
             compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
             if profile_reference is not None and profile_reference["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME else
             compile_gc_mtf_entry_execution_profile(gc_mtf_history)
@@ -537,11 +542,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if unit_test_shape:
             object.__delattr__(self, "_gx1_unit_test_architecture_token")
         else:
+            # The research profile retains the parent's physical architecture.
+            # Its additional research-only route is separately validated above;
+            # it must not become a production-selectable profile.
+            architecture_profile = (compiled_profile['research_parent_entry_execution_profile']
+                if profile_reference is not None and profile_reference['name'] == PRICE_MOMENTUM_PROFILE_NAME
+                else profile_reference)
             architecture = (
                 current_entry_exit_architecture_observation(
-                    entry_execution_profile=profile_reference, gc_mtf_history=gc_mtf_history,
+                    entry_execution_profile=architecture_profile, gc_mtf_history=gc_mtf_history,
                 )
-                if profile_reference is not None else current_entry_exit_architecture_observation()
+                if architecture_profile is not None else current_entry_exit_architecture_observation()
             )
             architecture["shared_surface"] = {
                 "signal_dim": seq_input_dim,
@@ -1547,11 +1558,20 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 for index in mtf_categorical_indices
             }
         )
+        # Add the four price-momentum fields as an initially neutral residual.
+        # Isolating its initializer preserves all existing seeded parameters.
+        price_momentum = (profile_reference is not None
+                          and profile_reference["name"] == PRICE_MOMENTUM_PROFILE_NAME)
+        def _mtf_projection(name):
+            if price_momentum and name == PRICE_MOMENTUM_FAMILY:
+                with torch.random.fork_rng(devices=[]):
+                    layer = nn.Linear(len(cleaned_mtf[name]), d_model)
+                nn.init.zeros_(layer.weight)
+                nn.init.zeros_(layer.bias)
+                return layer
+            return nn.Linear(len(cleaned_mtf[name]), d_model)
         self.mtf_family_proj = nn.ModuleDict(
-            {
-                name: nn.Linear(len(cleaned_mtf[name]), d_model)
-                for name in self._base_mtf_specialist_names
-            }
+            {name: _mtf_projection(name) for name in self._base_mtf_specialist_names}
         )
         self.mtf_family_encoder = nn.ModuleDict(
             {
@@ -1563,7 +1583,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
         for tf_name in TF_INPUT_SCALE_NAMES:
             for name in self._base_mtf_specialist_names:
                 key = f"{tf_name}__{name}"
-                gate = nn.Linear(d_model, len(cleaned_mtf[name]))
+                if price_momentum and name == PRICE_MOMENTUM_FAMILY:
+                    with torch.random.fork_rng(devices=[]):
+                        gate = nn.Linear(d_model, len(cleaned_mtf[name]))
+                else:
+                    gate = nn.Linear(d_model, len(cleaned_mtf[name]))
                 # 2*sigmoid(0)=1: every feature×timeframe path starts neutral;
                 # no timeframe receives a hand-authored preference.
                 nn.init.zeros_(gate.weight)

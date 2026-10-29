@@ -6476,15 +6476,20 @@ def _dynamic_m5_gate_execution_kwargs(model) -> tuple[dict[str, Any], dict[str, 
         compile_compact_entry_execution_profile,
         compile_gc_mtf_entry_execution_profile,
         compile_gc_mtf_geometry_entry_execution_profile, GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
-        require_compact_entry_execution_profile_reference,
+    )
+    from gx1.features.entry_direction_momentum_profile_v1 import (
+        PROFILE_NAME as PRICE_MOMENTUM_PROFILE_NAME, compile_price_momentum_profile,
+        require_entry_execution_profile_reference,
     )
     gc_history = getattr(model, "gc_mtf_history", None)
-    require_compact_entry_execution_profile_reference(
+    require_entry_execution_profile_reference(
         value, context="ENTRY_DYNAMIC_M5_GATE_PROFILE", gc_mtf_history=gc_history,
     )
     if getattr(model, "entry_training_phase", None) != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
         raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE")
-    compiled = (compile_gc_mtf_geometry_entry_execution_profile(gc_history)
+    compiled = (compile_price_momentum_profile(gc_history)
+                if value["name"] == PRICE_MOMENTUM_PROFILE_NAME else
+                compile_gc_mtf_geometry_entry_execution_profile(gc_history)
                 if value["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME else
                 compile_gc_mtf_entry_execution_profile(gc_history)
                 if gc_history is not None else compile_compact_entry_execution_profile())
