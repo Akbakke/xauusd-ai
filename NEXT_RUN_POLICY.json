@@ -44,12 +44,12 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T08:50:46.093481+00:00",
-  "status": "DECIMAL_COMPARISON_COMPLETE_NO_DIRECTION_IMPROVEMENT",
-  "training_enabled": false,
+  "observed_utc": "2026-10-29T13:50:00.664382+00:00",
+  "status": "MATCHED_M1_M5_COARSENED_PRIVATE_QUALIFICATION_PREPARATION_AUTHORIZED",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
+  "rule": "Only the exact bound coarsened M1/M5 private qualification may be prepared and run once through the guarded campaign. The ordered arm remains closed until the first arm is complete and reviewed. Preserve genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No full fit, broker, order, live/paper, Exit, spending, promotion or qualification weight reuse.",
   "next_action": "Await explicit approval of the two sequential, capacity-matched private qualification campaigns; full fitting, the separate conditional audit, TEST and trading remain unadmitted.",
   "required_evidence": {
     "risk_objective": {
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -44622,7 +44622,7 @@
     "elapsed_seconds": 1.0453709679968597
   },
   "dynamic_m5_direction_matched_m1_coarsened_qualification_20261029_001": {
-    "status": "PREPARED_NOT_AUTHORIZED",
+    "status": "AUTHORIZED_EXACT_PRIVATE_QUALIFICATION_PREPARATION",
     "proposal": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_STRUCTURE_PRIVATE_QUALIFICATION_20261029.md",
       "sha256": "e3dd865653c01ed97d315063d6084b2768b62a83924a23027277c8924e6cc353"
@@ -44634,14 +44634,14 @@
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_PRIVATE_QUALIFICATION_20261029_001/RUNTIME",
     "scope": "One private 256-initial, 32-TRAIN-parent and four-physical-update gradient/resume qualification; no full fit or trading.",
     "candidate_mode": "price_and_m1_coarsened",
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
-    "genuine_updates_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
@@ -44654,8 +44654,18 @@
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "superseded_proposal_sha256": "be7123d229c2f8a21aa517bbc367f39c16d330d7cc8ea76be16e3433d8eb7f95",
-    "updated_guard_requires_new_explicit_approval": true,
-    "earlier_superseded_proposal_sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23"
+    "updated_guard_requires_new_explicit_approval": false,
+    "earlier_superseded_proposal_sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23",
+    "campaign_preparation_authorized": true,
+    "physical_restart_before_invocation_authorized": true,
+    "max_private_optimizer_steps": 4,
+    "requested_physical_gpu_power_limit_w": 250,
+    "qualification_weights_for_main_fit": false,
+    "user_approval": {
+      "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler på deg. kjør M1 og M5 test",
+      "scope": "sequential matched M1/M5 private qualification; this admission only coarsened arm",
+      "recorded_utc": "2026-10-29T13:49:46.552429+00:00"
+    }
   },
   "dynamic_m5_direction_matched_m1_ordered_qualification_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",
