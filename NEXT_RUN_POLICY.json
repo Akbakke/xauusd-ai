@@ -44125,6 +44125,8 @@
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",
+    "pre_admission_rejection_verified_before_payload_and_claim": true,
+    "pre_admission_source_commit": "d22858b3e2caf6818ccc485140ea664e010494e8",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TEMPORAL_CONDITIONAL_AUDIT_20261029.json",
       "sha256": "04de7e785ceb1cc5bc1b5796f72ac077418ad2b36eaa474f220d7a6dcba8f27d"
