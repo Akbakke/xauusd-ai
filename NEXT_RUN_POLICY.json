@@ -44206,6 +44206,8 @@
     "training_authorized": false,
     "test_data_used": false,
     "focused_synthetic_tests_passed": 32,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "pre_admission_rejection_verified_before_payload_and_claim": true,
+    "pre_admission_source_commit": "c414dafc"
   }
 }
