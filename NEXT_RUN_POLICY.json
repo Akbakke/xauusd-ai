@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T08:49:13.900266+00:00",
-  "status": "DECIMAL_FULLFIT_COMPLETE_FIXED_COMPARISON_PENDING",
+  "observed_utc": "2026-10-29T08:50:46.093481+00:00",
+  "status": "DECIMAL_COMPARISON_COMPLETE_NO_DIRECTION_IMPROVEMENT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
-  "next_action": "Run the user-approved fixed saved-score comparison on the exact corrected outcomes. Keep all training and trading gates closed; then document measured results and prepare the separate compact M1/price-momentum candidate.",
+  "next_action": "Implement and verify the user-requested compact price momentum input route and the bounded closed-M1 OFI input adapter. Any new genuine fit or normalization plan requires its own authority; keep TEST and trading sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -43715,7 +43715,7 @@
     }
   },
   "direction_decimal_fullfit_preparation_20261028": {
-    "status": "FIT_COMPLETE_FIXED_COMPARISON_PENDING",
+    "status": "COMPLETE_CONSUMED_NO_DIRECTION_IMPROVEMENT",
     "proposal": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_PROPOSAL_20261028.md",
       "sha256": "2282d4c20b01c0114e97754fb2b3decc5ff0e13249dbba30239a50ee7a8306ac"
@@ -43819,7 +43819,7 @@
     "broker_access_allowed": false,
     "full_val_allowed": false,
     "relaunch_allowed": false,
-    "status": "FIT_COMPLETE_FIXED_COMPARISON_PENDING",
+    "status": "COMPLETE_CONSUMED_NO_DIRECTION_IMPROVEMENT",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_RECIPE_CANDIDATE_20261028.json",
       "sha256": "9ec7d21494f80a5537d0fd0c6ed6132fc2514083d30c27a3195005cbcdda7dd8"
@@ -43852,12 +43852,105 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/POWER_IDLE_RESTORE_001.json",
       "sha256": "bb1d89a10b0128c9c1beeec4ba44781f2480e8fbf61651721d1d81bc83d7e1b2"
     },
-    "fixed_comparison_authorized": true,
+    "fixed_comparison_authorized": false,
     "fixed_comparison_wrapper": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/OPERATOR_PREPARED/compare_predeclared_v2.py",
       "sha256": "9304f614bf3924b9d3ec2572b5efbd53a53e4b46ab729358aedf5e1dc16a378d"
     },
-    "fixed_comparison_output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/DECIMAL_FIXED_COMPARISON_001"
+    "fixed_comparison_output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/DECIMAL_FIXED_COMPARISON_001",
+    "fixed_comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/DECIMAL_FIXED_COMPARISON_001/RESULT.json",
+      "sha256": "73e8e15ade4b456a882f5d84b5f7fe1579d79d38142f84c41b771d4baf38e266"
+    },
+    "fixed_comparison_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/DECIMAL_FIXED_COMPARISON_001/TERMINAL.json",
+      "sha256": "1ef5bf047e18c7de022f894aa1fe644f43009f6422f87e9cbfb1c3a6f9b7cbc8"
+    },
+    "independent_point_check": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/DECIMAL_FIXED_COMPARISON_001/INDEPENDENT_POINT_CHECK.json",
+      "sha256": "bc2fde13a830e7796401dd50d92bc152d5d8fcae0eebefb465b0f5fe64713988"
+    },
+    "five_minute_summary": {
+      "eligible_rows": 17192,
+      "new_auc": 0.4969763225475591,
+      "old_auc": 0.5001748981863747,
+      "new_accuracy": 0.48604001861330853,
+      "old_accuracy": 0.4887738483015356,
+      "always_up_accuracy": 0.5158213122382503,
+      "own_train_prior_logloss": 0.6927381622470601,
+      "new_logloss": 0.694378960324258,
+      "paired_auc_intervals": [
+        {
+          "blocks": 77,
+          "candidate_auc": {
+            "alpha": 0.0125,
+            "high": 0.5064499089073083,
+            "low": 0.487595159501148,
+            "replicates": 10000,
+            "undefined_replicates": 0
+          },
+          "candidate_minus_baseline": {
+            "auc": {
+              "alpha": 0.0125,
+              "high": 0.0010352186786723979,
+              "low": -0.007660077198287424,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.0125,
+              "high": 6.662955884910101e-06,
+              "low": -0.0001914211999738899,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.0125,
+              "high": 1.2836327103060354e-05,
+              "low": -0.00038406944682975143,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "scheme": "UTC_DAY"
+        },
+        {
+          "blocks": 14,
+          "candidate_auc": {
+            "alpha": 0.0125,
+            "high": 0.5066861211943733,
+            "low": 0.48674701790047137,
+            "replicates": 10000,
+            "undefined_replicates": 0
+          },
+          "candidate_minus_baseline": {
+            "auc": {
+              "alpha": 0.0125,
+              "high": 0.0011559609953587689,
+              "low": -0.007691968210912478,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "brier": {
+              "alpha": 0.0125,
+              "high": 9.081289050278624e-06,
+              "low": -0.00020321831626114766,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            },
+            "logloss": {
+              "alpha": 0.0125,
+              "high": 1.7768270284960625e-05,
+              "low": -0.00040789166976982854,
+              "replicates": 10000,
+              "undefined_replicates": 0
+            }
+          },
+          "scheme": "UTC_WEEK_MONDAY"
+        }
+      ],
+      "all60_above_half_both_simultaneous_intervals": 0
+    }
   },
   "independent_direction_m1_m5_momentum_input_audit_20261029": {
     "status": "COMPLETED_SOURCE_AND_BOUNDED_DATA_AUDIT_NO_MODEL",
