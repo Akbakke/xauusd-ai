@@ -43381,7 +43381,134 @@
     },
     "independent_score_verification_complete": true,
     "partial_versus_full_comparison_complete": true,
-    "economic_edge_qualified": false
+    "economic_edge_qualified": false,
+    "model_identity_and_corrected_fit_gradient_review": {
+      "status": "EXISTING_SOURCE_AND_AGGREGATES_VERIFIED_NO_NEW_RUN",
+      "scope": "Two distinct already completed 1..60 direction fits; no new data or model execution.",
+      "freshness_plan": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_FULL_STALE_PLAN_20261028_001.json",
+        "sha256": "f360edf8d7e6bb37533727617c318c0497f89b00a77e7281e11422128a5ac35c"
+      },
+      "freshness_result": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_FULL_STALE_20261028_001/OUTPUT/RESULT.json",
+        "sha256": "488c856752b461ade6eff21f89ba258ddbab7dadab336fbc06ab8abbc86ca725"
+      },
+      "freshness_independent_check": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_FULL_STALE_INDEPENDENT_CHECK_20261028_001.json",
+        "sha256": "719dd6f6555927312ce43755fc0f4bf21f0d43655cbc3c1145141ff36eb8f5ac"
+      },
+      "freshness_model_recipe": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RECIPE.json",
+        "sha256": "64a7243076812506b7c2dc3ebd32c89cc2202ba9ff5ae2159f936bc830e75d2d"
+      },
+      "freshness_model_training_target": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/DENSE_TARGETS.npz",
+        "sha256": "07b504dfc95f39ff818f1bafd76ff9de3a4c3133f85e85e06ec09edae675676d"
+      },
+      "freshness_scoring_target": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+        "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+      },
+      "corrected_fit_recipe": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_RECIPE_CANDIDATE_20261028.json",
+        "sha256": "9ec7d21494f80a5537d0fd0c6ed6132fc2514083d30c27a3195005cbcdda7dd8"
+      },
+      "corrected_fit_result": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+        "sha256": "a9f4fe99fbccd89178fddabaf2cf30c22fd66843e545bdcba3b2a24b41c6fbd8"
+      },
+      "corrected_fit_gradient_worker": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "6391155733bc21dde378b84c162cbc4aaa8fcb33a0d52a0088852df1e3109696",
+        "matching_git_revision": "ddf13f78990c1f1589b10e04d64706b1e6015525"
+      },
+      "old_fitted_dense_model": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_v1.py",
+        "sha256": "ec86135c00aaaceb41f44f91517345e4d54a6efc217d3efdbcf0e414d1ae1a3a",
+        "matching_git_revision": "303635f3552d10ac531da71fe6aab76a88ace616",
+        "separate_five_m1_ofi_input_exists": false
+      },
+      "five_minute_freshness_auc": {
+        "eligible": 1747,
+        "fresh": 0.4900822048515542,
+        "stale_context_and_new_history_hidden": 0.49938660920715305,
+        "paired_stale_minus_fresh_intervals": {
+          "UTC_DAY": {
+            "low": -0.011957544673674545,
+            "high": 0.03159543936224784
+          },
+          "UTC_WEEK_MONDAY": {
+            "low": -0.005833646542996758,
+            "high": 0.025425633906140402
+          }
+        }
+      },
+      "corrected_fit_gradient_nonzero_counts": {
+        "m5": {
+          "first": {
+            "projection": 79872,
+            "gate": 80496
+          },
+          "last": {
+            "projection": 75520,
+            "gate": 76110
+          }
+        },
+        "m15": {
+          "first": {
+            "projection": 62208,
+            "gate": 62694
+          },
+          "last": {
+            "projection": 60800,
+            "gate": 61275
+          }
+        },
+        "h1": {
+          "first": {
+            "projection": 54528,
+            "gate": 54954
+          },
+          "last": {
+            "projection": 53376,
+            "gate": 53793
+          }
+        },
+        "h4": {
+          "first": {
+            "projection": 54016,
+            "gate": 54438
+          },
+          "last": {
+            "projection": 53760,
+            "gate": 54180
+          }
+        },
+        "d1": {
+          "first": {
+            "projection": 49408,
+            "gate": 49794
+          },
+          "last": {
+            "projection": 48128,
+            "gate": 48504
+          }
+        }
+      },
+      "interpretation": "The old-model intervention uses corrected evaluation labels but does not test the corrected-target retrained model or new M1 momentum profile. The corrected fit shows nonzero parameter-gradient counts aggregated across specialist GC projection and gate modules for each timeframe at the first and final recorded batches only. This is contact under the joint 60-head loss, not a per-feature or 5-minute-specific influence test, proof of useful information, or generalization.",
+      "no_new_market_or_prediction_payload_reads": true,
+      "new_model_forwards": 0,
+      "new_optimizer_steps": 0,
+      "test_data_used": false,
+      "economic_edge_qualified": false,
+      "five_minute_hard_prediction": {
+        "eligible": 1747,
+        "fresh_correct": 859,
+        "stale_correct": 859,
+        "accuracy_each": 0.49170005724098453,
+        "limitations": "The saved summary reports 86 changed directions, but does not explicitly specify whether the flip count excludes the seven ineligible parents. Do not infer paired correctness split from that count without a payload-bound recheck."
+      }
+    }
   },
   "independent_direction_corrected_factors_20261028_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
