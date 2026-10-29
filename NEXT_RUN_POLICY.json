@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
-  "next_action": "Await separate approval for the fixed read-only M1 temporal-information audit; prepare exact candidate normalization and fresh-initial qualification admission for the guarded matched M1/price arms. Training, TEST and trading remain sealed.",
+  "next_action": "Await separate approval for the fixed read-only M1 temporal-information audit; the separate TRAIN-only M1 normalization plan is also prepared but not admitted, and fresh-initial qualification remains to be bound. Training, TEST and trading remain sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -44149,7 +44149,12 @@
     "candidate_order_bug_was_in_new_private_adapter_only": true,
     "candidate_source_bound_guarded_loader_scope": "Internal candidate only: exact source NPZ, roll JSON and existing fitted normalization JSON; guard/read-only, file hash and stat bookends, exact qualified source/roll/TRAIN prefix/model-clock joins. The sole exercised inputs are synthetic.",
     "candidate_source_bound_guarded_loader_real_input_runs": 0,
-    "candidate_guarded_loader_focused_synthetic_tests_passed": 201
+    "candidate_guarded_loader_focused_synthetic_tests_passed": 201,
+    "candidate_m1_normalization_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TRAIN_NORMALIZATION_20261029.json",
+      "sha256": "78f035271c8cf2e70fb224bff0656eba0044046942f7a407fd4a091301e0fc93"
+    },
+    "candidate_m1_normalization_plan_authorized": false
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",
@@ -44179,5 +44184,28 @@
       "target_values_or_statistics_inspected_before_plan": false
     },
     "limitations": "Not conditional on all existing model inputs; complete M1 selection and reused development prevent generalization or economic claims."
+  },
+  "independent_direction_m1_train_normalization_20261029_001": {
+    "status": "PREPARED_NOT_AUTHORIZED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TRAIN_NORMALIZATION_20261029.json",
+      "sha256": "78f035271c8cf2e70fb224bff0656eba0044046942f7a407fd4a091301e0fc93"
+    },
+    "execution_authorized": false,
+    "normalization_fit_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "scope": "One source/roll/model-clock-bound M1 OFI normalization fit using only observed closed minutes of the fixed 47602-row TRAIN prefix; no target values, model, optimizer, TEST, broker or trading.",
+    "wall_seconds": 1200,
+    "memory_limit": "4G",
+    "cpu_only": true,
+    "genuine_fit_executed": false,
+    "model_forward_authorized": false,
+    "training_authorized": false,
+    "test_data_used": false,
+    "focused_synthetic_tests_passed": 32,
+    "economic_edge_qualified": false
   }
 }

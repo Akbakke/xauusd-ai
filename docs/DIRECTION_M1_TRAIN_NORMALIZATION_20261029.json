@@ -1,0 +1,110 @@
+{
+  "economic_edge_claimed": false,
+  "fold": {
+    "axis_end_before_ns": 1767225600000000000,
+    "full_axis_rows": 118249,
+    "prefix_rows": 47602,
+    "train_cutoff_ns": 1735689600000000000
+  },
+  "inputs": {
+    "full_axis_qualification": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/MODEL_BOUND_M1_CLOCK_FULL_AXIS_20261029_004.json",
+      "sha256": "bf192f43cc34f4c0910d09459709ced13c033bfa8e0165e0fd9330699071b262"
+    },
+    "legacy_axes": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    },
+    "m1_source": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/D_TRAIN_M1_REDUCTION_20261026_001/FINAL/TRAIN_M1.npz",
+      "sha256": "74a0f8b659c6d8f736766cdb0edc3b0baecfd52d2406d8fe2453d60db701ad55"
+    },
+    "m5_manifest": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_TEMPORAL_SUPPORT_PHYSICAL_QUALIFIED_SEMANTICS_20261023_223/OUTPUT/SURFACES.json",
+      "sha256": "16e96c7f8b4e5b92d6d610cab4b0df4c0025282e924e717a78bbc90dc8e55c92"
+    },
+    "roll": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_GC_RAW_REBUILD_20261018_001/RESULTS/ROLL_SCHEDULE.json",
+      "sha256": "71262543da79a79ca0c6a0fa2c2d0f78494fa001d3f2409188d3ad80d4f7dc69"
+    }
+  },
+  "method": {
+    "axes_members": [
+      "parent_rows",
+      "bar_start_ns",
+      "decision_ns"
+    ],
+    "input_members": [
+      "bar_start_ns",
+      "available_ns",
+      "contract_index",
+      "assigned",
+      "ofi_contracts",
+      "ofi_valid",
+      "receive_clock_excluded",
+      "book_event_state_excluded"
+    ],
+    "later_observations_in_fit": false,
+    "model_clock": "qualified_existing_m5_contract_mask_and_roll",
+    "statistic": "existing_observed_closed_m1_ofi_train_prefix_normalization",
+    "target_values_used": false
+  },
+  "model_forward_authorized": false,
+  "output_dir": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_NORMALIZATION_TRAIN_20261029_001",
+  "relaunch_allowed": false,
+  "schema_version": "gx1_m1_train_normalization_plan_v1",
+  "sources": {
+    "gx1/contracts/entry_closed_m1_ofi_window_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_closed_m1_ofi_window_v1.py",
+      "sha256": "61d54cc83a73081cef22c7255f4fbdce13630afb6779cf9491377d7e22beb79f"
+    },
+    "gx1/contracts/entry_model_native_bundle_commit_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_bundle_commit_v1.py",
+      "sha256": "86dfe4cb7eb58e3f20ba29b85348ba296bdb614cd0330c6aa4c862b08b93133e"
+    },
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+      "sha256": "57711527c2f9ad0d96696a805a6aeb70079c69228755d72b4800f9cb962238f9"
+    },
+    "gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py",
+      "sha256": "41f2bcacee98ff7b73ef038ccac21f01bc185645f434c8d17c533711a0dbd1b4"
+    },
+    "gx1/contracts/gx1_capped_execution_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "gx1/contracts/immutable_event_authority_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "gx1/contracts/local_random_access_campaign_v2.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/local_random_access_campaign_v2.py",
+      "sha256": "0f7edcc8cafcc1b1b73ebdb6673194271173ed83c2bae86dbd80361bc4edeafb"
+    },
+    "gx1/scripts/audit_entry_direction_candle_midpoints_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_direction_candle_midpoints_v1.py",
+      "sha256": "530e930eb07769627ce093ffe6ad1aa0e5304594ed50447ef92de300bb4cd811"
+    },
+    "gx1/scripts/audit_raw_gc_m1_reference_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_raw_gc_m1_reference_v1.py",
+      "sha256": "800f4bfd2652b12f3bdf562e5442a3c57b7d825b0b4c78281ca46b3dddf2158c"
+    },
+    "gx1/scripts/materialize_entry_direction_m1_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_entry_direction_m1_normalization_v1.py",
+      "sha256": "fed9da4060af116e2dc2391dcea646a8d06cf94913d7448efe74d0e9572f598e"
+    },
+    "scripts/gx1_capped_run.sh": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "42be63429d4b5c12377da5ac7a6631252fa4b083ad4a5b6595e76eb80e971e55"
+    },
+    "tests/test_materialize_entry_direction_m1_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_materialize_entry_direction_m1_normalization_v1.py",
+      "sha256": "5654d3baa22a4188d6df3280ff67afe0ca28e76f1d845873626ef967392a45e2"
+    }
+  },
+  "stage": "independent_direction_m1_train_normalization_20261029_001",
+  "test_data_used": false,
+  "training_authorized": false,
+  "wall_seconds": 1200
+}
