@@ -44240,7 +44240,7 @@
     "candidate_m1_structure_actual_runs": 0,
     "candidate_m1_structure_proposal": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_STRUCTURE_PRIVATE_QUALIFICATION_20261029.md",
-      "sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23"
+      "sha256": "be7123d229c2f8a21aa517bbc367f39c16d330d7cc8ea76be16e3433d8eb7f95"
     },
     "candidate_m1_source_transition_proof": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_PRICE_SOURCE_TRANSITION_20261029.json",
@@ -44248,20 +44248,19 @@
     },
     "candidate_m1_coarsened_qualification_recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_COARSENED_PRIVATE_QUALIFICATION_RECIPE_20261029.json",
-      "sha256": "cd5f78f913272ea0c61e46569ed60c2c431075fff149903cddb839e60f7c22e3"
+      "sha256": "84b45643d038e606b6e52a101efa67cea5726fd62c28bdde622b82945c946922"
     },
     "candidate_m1_ordered_qualification_recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_ORDERED_PRIVATE_QUALIFICATION_RECIPE_20261029.json",
-      "sha256": "426abaa4049235d44276e481941367cc5d25103d8884d34684c82ad49047417c"
+      "sha256": "6c8ce377eec760ffd149cb56b95f8680f2af09986f4c9a5853f50738240d2b9e"
     },
     "candidate_m1_actual_metadata_preflight": {
-      "status": "PASS_REAL_METADATA_ONLY_PAYLOAD_HASHES_DEFERRED",
+      "status": "PASS_UPDATED_GRADIENT_GUARD_METADATA_ONLY_PAYLOAD_HASHES_DEFERRED",
       "variants": [
         "price_and_m1_coarsened",
         "price_and_m1"
       ],
       "metadata_refs_per_variant": 59,
-      "provider_metadata_refs": 51,
       "corrected_and_original_target_hash_checks_stubbed_per_variant": 2,
       "qualification_inputs_and_target_join_checks_ran": true,
       "raw_payloads_opened": false,
@@ -44273,9 +44272,12 @@
       "test_data_used": false,
       "claim_or_run_created": false,
       "capped_cpu_memory": "4G",
-      "first_probe": "Read-only metadata audit hook blocked Python importlib attempt to open .pyc before provider metadata; both provider pyc files are absent.",
-      "final_probe": "Separate empty pycache prefix allowed source import; the no-payload/no-model guard remained active.",
-      "scope": "Current source and referenced metadata only; the two original/corrected target byte checks were deliberately deferred. Actual guarded run must verify genuine payload SHA and model behavior."
+      "first_probe": "Conservative audit guard rejected source-qualified synthetic TEST metadata receipts; no market payload was opened.",
+      "final_probe": "Metadata preflight allowed only source-qualified synthetic test metadata, kept market payload, model, network and TEST data blocked; both target-archive hash checks deliberately deferred.",
+      "scope": "Updated recipe and real metadata chain only; actual guarded run must verify the two deferred target archive hashes and genuine model behavior.",
+      "previous_worker_preflight_superseded": true,
+      "previous_provider_metadata_refs": 51,
+      "provider_ancestor_payload_refs": 48
     },
     "candidate_m1_trade_vs_book_flow_scope_review": {
       "status": "SOURCE_AND_BOUND_PROFILE_METADATA_ONLY",
@@ -44373,6 +44375,22 @@
         "known_partial_buy_sell_necessarily_nonzero": false,
         "model_input_or_incremental_value_qualified": false
       }
+    },
+    "candidate_m1_value_gradient_guard_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
+      "sha256": "6c7a2f6c4d623a5aa3ae8d540a235b710e832204ab7047b33bab1078475e725a"
+    },
+    "candidate_m1_value_gradient_guard_scope": "For both matched M1 representations, require at least one of the five M1 value-weight gradient columns nonzero on logical step 2 in both reference and resumed trajectories; otherwise fail closed, preserving the observed diagnostic. This does not establish all-minute influence or predictive value.",
+    "candidate_m1_previous_pending_proposal_superseded": true,
+    "candidate_m1_gradient_guard_tests": {
+      "focused_synthetic_passed": 41,
+      "campaign_validator_synthetic_passed": 59,
+      "negative_both_representations_before_fix": "FAILED_DID_NOT_RAISE",
+      "negative_reference_and_resumed_after_fix": "PASS",
+      "source_and_metadata_pair_preflight_passed": true,
+      "raw_payloads_opened": false,
+      "model_or_gpu_used_in_preflight": false,
+      "native_synthetic_gate_before_and_after_one_update_passed": true
     }
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
@@ -44467,11 +44485,11 @@
     "status": "PREPARED_NOT_AUTHORIZED",
     "proposal": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_STRUCTURE_PRIVATE_QUALIFICATION_20261029.md",
-      "sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23"
+      "sha256": "be7123d229c2f8a21aa517bbc367f39c16d330d7cc8ea76be16e3433d8eb7f95"
     },
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_COARSENED_PRIVATE_QUALIFICATION_RECIPE_20261029.json",
-      "sha256": "cd5f78f913272ea0c61e46569ed60c2c431075fff149903cddb839e60f7c22e3"
+      "sha256": "84b45643d038e606b6e52a101efa67cea5726fd62c28bdde622b82945c946922"
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_PRIVATE_QUALIFICATION_20261029_001/RUNTIME",
     "scope": "One private 256-initial, 32-TRAIN-parent and four-physical-update gradient/resume qualification; no full fit or trading.",
@@ -44494,17 +44512,19 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "superseded_proposal_sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23",
+    "updated_guard_requires_new_explicit_approval": true
   },
   "dynamic_m5_direction_matched_m1_ordered_qualification_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",
     "proposal": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_STRUCTURE_PRIVATE_QUALIFICATION_20261029.md",
-      "sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23"
+      "sha256": "be7123d229c2f8a21aa517bbc367f39c16d330d7cc8ea76be16e3433d8eb7f95"
     },
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_ORDERED_PRIVATE_QUALIFICATION_RECIPE_20261029.json",
-      "sha256": "426abaa4049235d44276e481941367cc5d25103d8884d34684c82ad49047417c"
+      "sha256": "6c8ce377eec760ffd149cb56b95f8680f2af09986f4c9a5853f50738240d2b9e"
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_ORDERED_PRIVATE_QUALIFICATION_20261029_001/RUNTIME",
     "scope": "One private 256-initial, 32-TRAIN-parent and four-physical-update gradient/resume qualification; no full fit or trading.",
@@ -44527,7 +44547,9 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "superseded_proposal_sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23",
+    "updated_guard_requires_new_explicit_approval": true
   },
   "direction_separate_bps_and_training_exposure_evidence_20261029": {
     "status": "EXISTING_REUSED_DEVELOPMENT_RESULTS_RECONCILED_NO_NEW_RUN",

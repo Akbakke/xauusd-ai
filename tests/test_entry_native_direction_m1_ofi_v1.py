@@ -233,7 +233,10 @@ def test_actual_native_backbone_with_compact_price_and_m1_together_gets_learning
     for gradient in (model.m1_ofi_out.weight.grad,backbone.mtf_family_proj[MOMENTUM_FAMILY].weight.grad):
         assert gradient is not None and torch.isfinite(gradient).all() and torch.count_nonzero(gradient)>0
     from gx1.scripts.run_entry_native_direction_research_window_v1 import _candidate_gradient_counts
+    from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_m1_value_gradient_contact
     evidence=_candidate_gradient_counts(model,torch)
+    with pytest.raises(RuntimeError,match='M1_VALUE_GRADIENT_NOT_OBSERVED'):
+        require_m1_value_gradient_contact({'gradient_nonzero_counts':evidence})
     for field in ('rsi14_centered','macd_line_atr','macd_hist_atr','ret_1'):
         assert 'price_momentum_'+field+'_projection_nonzero' in evidence
         for tf in ('m5','m15','h1','h4','d1'):
@@ -248,6 +251,7 @@ def test_actual_native_backbone_with_compact_price_and_m1_together_gets_learning
     model.zero_grad(set_to_none=True)
     again=_forward(model,{**inputs,**kwargs},kind='SYNTHETIC',counters=counters,ceiling=2,torch=torch,grad=True)
     again.square().mean().backward();after=_candidate_gradient_counts(model,torch)
+    require_m1_value_gradient_contact({'gradient_nonzero_counts':after})
     width=model._bound_hidden_width;grad=model.m1_ofi_in.weight.grad
     assert after['m1_ofi_in_weight_nonzero']>0
     for minute in range(5):

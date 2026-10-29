@@ -94,8 +94,24 @@ def test_failed_dense_worker_publishes_failure_before_nonzero_exit(monkeypatch,t
     assert published['progress.json']=={'outcome':'FAILED','terminal':True}
 
 
-@pytest.mark.parametrize('variant',['dense','decimal','price_only','price_and_m1','price_and_m1_coarsened'])
-def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_path,variant):
+def test_m1_value_gradient_guard_requires_real_nonzero_value_contact():
+    from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_m1_value_gradient_contact
+    names=['m1_ofi_value_minute_'+str(i)+'_weight_nonzero' for i in range(1,6)]
+    counts=dict.fromkeys(names,0)
+    with pytest.raises(RuntimeError,match='M1_VALUE_GRADIENT_NOT_OBSERVED'):
+        require_m1_value_gradient_contact({'gradient_nonzero_counts':counts})
+    counts[names[2]]=1
+    require_m1_value_gradient_contact({'gradient_nonzero_counts':counts})
+    for invalid in (None,-1,True):
+        bad=dict(counts);bad[names[0]]=invalid
+        with pytest.raises(RuntimeError,match='M1_VALUE_GRADIENT_EVIDENCE'):
+            require_m1_value_gradient_contact({'gradient_nonzero_counts':bad})
+    with pytest.raises(RuntimeError,match='M1_VALUE_GRADIENT_EVIDENCE'):
+        require_m1_value_gradient_contact({'gradient_nonzero_counts':{}})
+
+
+@pytest.mark.parametrize('variant,missing_m1_gradient',[('dense',False),('decimal',False),('price_only',False),('price_and_m1',False),('price_and_m1_coarsened',False),('price_and_m1',True),('price_and_m1_coarsened',True),('price_and_m1','resumed_only'),('price_and_m1_coarsened','resumed_only')])
+def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_path,variant,missing_m1_gradient):
     from copy import deepcopy
     from pathlib import Path
     import torch
@@ -174,7 +190,8 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
         def named_parameters(self):return []
     def fresh(_context,_view,_recipe,_device,counters,**kwargs):
         for k in ('model_constructions','model_construction_returns','optimizer_constructions'):counters[k]+=1
-        return FakeModel(),object(),{}
+        model=FakeModel();model.instance_number=counters['model_constructions']
+        return model,object(),{}
     monkeypatch.setattr(common,'_fresh',fresh)
     def capture(model,optimizer,**kwargs):
         return {'binding':{},'model_state':model.number,'buffer_state':{},'optimizer_state':model.number,
@@ -201,7 +218,12 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
     def step(model,optimizer,features,target,*,counters,**kwargs):
         model.number+=1
         for key in ('forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates'):counters[key]+=1
-        return {'gradient_nonzero_counts':{'chart_local_weight_nonzero':1,'chart_mtf_weight_nonzero':1}}
+        gradients={'chart_local_weight_nonzero':1,'chart_mtf_weight_nonzero':1}
+        if variant in ('price_and_m1','price_and_m1_coarsened'):
+            for minute in range(1,6):
+                broken=(missing_m1_gradient is True or (missing_m1_gradient=='resumed_only' and model.instance_number==3))
+                gradients['m1_ofi_value_minute_'+str(minute)+'_weight_nonzero']=int(minute==1 and model.number>=2 and not broken)
+        return {'gradient_nonzero_counts':gradients}
     monkeypatch.setattr(common,'_step',step);monkeypatch.setattr(torch.cuda,'empty_cache',lambda:None)
     published={}
     def publish(path,value,counters,limit):published[Path(path).name]=value;return ref(Path(path).name)
@@ -209,6 +231,14 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
     monkeypatch.setattr(authority,'build_research_cursor',lambda **kwargs:{'outcome':kwargs['outcome']})
     monkeypatch.setattr(authority,'build_research_progress',lambda **kwargs:{'outcome':kwargs['outcome'],'terminal':True})
     monkeypatch.setattr(authority,'require_research_progress',lambda *args,**kwargs:None)
+    if missing_m1_gradient:
+        with pytest.raises(RuntimeError,match='M1_VALUE_GRADIENT_NOT_OBSERVED'):
+            worker.run_dense_qualification(policy_path=tmp_path/'policy',policy_file_sha256='0'*64,progress_path=tmp_path/'progress.json')
+        assert published['RESULT.json']['decision']=='FAILED'
+        assert published['RESULT.json']['steps'][-1]['logical_step']==2
+        assert published['RESULT.json']['steps'][-1]['trajectory']==('resumed' if missing_m1_gradient=='resumed_only' else 'reference')
+        assert all(published['RESULT.json']['steps'][-1]['gradient_nonzero_counts']['m1_ofi_value_minute_'+str(i)+'_weight_nonzero']==0 for i in range(1,6))
+        return
     result=worker.run_dense_qualification(policy_path=tmp_path/'policy',policy_file_sha256='0'*64,progress_path=tmp_path/'progress.json')
     assert result=={'outcome':'COMPLETE','terminal':True}
     assert published['RESULT.json']['decision']==('PASS_M1_PRICE_PRIVATE_MECHANICS' if candidate

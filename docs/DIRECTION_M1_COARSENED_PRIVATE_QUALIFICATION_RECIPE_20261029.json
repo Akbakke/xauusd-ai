@@ -163,7 +163,7 @@
     "sha256": "d78335c7d089ff44beb2d3a470ec8e88fe204899e8ef6e1524cbcba089913cb1"
   },
   "qualification_weights_for_main_fit": false,
-  "recipe_sha256": "1cb74870ed6deef20c96d9ebf6c1780a8bc71546352047b8ba0636853e21b8a5",
+  "recipe_sha256": "0b75638699c4b750c4da981e5da9c262dade55615fc58090323b32458dfbc144",
   "run_scope": "private_dense_decimal_m1_price_input_adapter",
   "runtime_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_PRIVATE_QUALIFICATION_20261029_001/RUNTIME",
   "schema_version": "gx1_native_direction_research_launch_recipe_v1",
@@ -382,7 +382,7 @@
     },
     "gx1/scripts/run_entry_native_direction_dense_qualification_v1.py": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
-      "sha256": "447f1c276528e38c34ce5e33aa2f9e96e93b60ceae7519cd56462fc8c8ea245d"
+      "sha256": "6c7a2f6c4d623a5aa3ae8d540a235b710e832204ab7047b33bab1078475e725a"
     },
     "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",

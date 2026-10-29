@@ -18,6 +18,15 @@ def _require(ok, reason):
         raise RuntimeError('NATIVE_DENSE_QUALIFICATION_' + reason)
 
 
+def require_m1_value_gradient_contact(evidence):
+    """Require observed M1 value contact after the zero-residual first step."""
+    gradients=evidence.get('gradient_nonzero_counts') if isinstance(evidence,dict) else None
+    _require(isinstance(gradients,dict), 'M1_VALUE_GRADIENT_EVIDENCE')
+    counts=[gradients.get('m1_ofi_value_minute_'+str(i)+'_weight_nonzero') for i in range(1,6)]
+    _require(all(type(value) is int and value>=0 for value in counts), 'M1_VALUE_GRADIENT_EVIDENCE')
+    _require(any(counts), 'M1_VALUE_GRADIENT_NOT_OBSERVED')
+
+
 def select_qualification_parents(ordered, diagnostic_ids, design, *, np):
     parents=design.get('parents_sorted') if isinstance(design,dict) else None
     _require(isinstance(parents,list) and len(parents)==32 and all(type(x) is int for x in parents)
@@ -204,6 +213,8 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
                 if index==1:
                     _require(evidence['gradient_nonzero_counts']['chart_local_weight_nonzero']>0, 'CHART_LOCAL_AFTER_ONE_UPDATE')
                 cursor=16*(index+1);steps.append({'trajectory':trajectory,'logical_step':index+1,**evidence})
+                if candidate and launch['candidate_mode'] in ('price_and_m1',prefix_authority.M1_PRICE_COARSENED_MODE) and index==1:
+                    require_m1_value_gradient_contact(evidence)
                 _require(tree_sha({name:p for name,p in model.named_parameters() if not p.requires_grad})==initial_inactive,
                     'INACTIVE_WEIGHTS_UNCHANGED')
             saved=capture(model,optimizer,cursor,1 if trajectory=='interrupted' else 2)
