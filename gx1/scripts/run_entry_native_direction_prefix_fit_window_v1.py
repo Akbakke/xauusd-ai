@@ -747,6 +747,8 @@ def _fit_input_launch(launch, authority):
     """Reuse the qualified private target adapter for the separate full-fit scope."""
     if launch['run_scope'] == authority.DENSE_DECIMAL_FIT_SCOPE:
         return {**launch, 'run_scope': authority.DENSE_DECIMAL_PRIVATE_SCOPE}
+    if launch['run_scope'] == authority.M1_PRICE_FIT_SCOPE:
+        return {**launch, 'run_scope': authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE}
     return launch
 
 
@@ -767,7 +769,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
     continuation=launch['run_scope']==authority.CONTINUATION_SCOPE;order_variant=launch['run_scope']==authority.ORDER_SCOPE;train_passes=launch['train_passes']
-    decimal_fit=launch['run_scope']==authority.DENSE_DECIMAL_FIT_SCOPE
+    candidate_fit=launch['run_scope']==authority.M1_PRICE_FIT_SCOPE
+    decimal_fit=launch['run_scope']==authority.DENSE_DECIMAL_FIT_SCOPE or candidate_fit
     input_launch=_fit_input_launch(launch,authority)
     binding_ref=common._hash_file(launch['execution_binding_path']);extra={};binding=common._read(binding_ref,extra)
     context=_launch_metadata(input_launch,common);context['info']['metadata'].update(extra)
@@ -778,6 +781,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         for ref in (private_plan['recipe'],review['result'],review['receipt'],review['idle_restore'],
                 launch['dense_evaluation_protocol']):
             common._read(ref,metadata)
+        if candidate_fit:
+            common._read(launch['m1_pair_initial_parity'],metadata)
         initial=launch['decimal_initial_predictions']
         context['decimal_initial_predictions']=dict(initial)
         context['decimal_initial_predictions_stat']=common._stat(initial['path'])
@@ -797,8 +802,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None,
         dense_target=context.get('dense_target'),
         decimal_original=context.get('decimal_original') if decimal_fit or input_launch['run_scope']==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE else None,
-        decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal_fit else None,
-        candidate_m1_refs=context.get('candidate_m1_refs'))
+        decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal_fit and not candidate_fit else None,
+        candidate_m1_refs=context.get('candidate_m1_refs'),
+        candidate_initial_predictions=context.get('decimal_initial_predictions') if candidate_fit else None)
     counters={k:0 for k in ('model_constructions','model_construction_returns','optimizer_constructions','forward_calls','forward_returns',
         'backward_calls','backward_returns','optimizer_step_calls','optimizer_step_returns','empty_batches',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns','forbidden_legacy_calls')}

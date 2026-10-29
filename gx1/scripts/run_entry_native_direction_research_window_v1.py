@@ -137,7 +137,7 @@ def _freeze(recipe, binding, context):
         _require(_stat(path)==item['stat'] and _hash_file(path)==item['ref'],'METADATA_FREEZE:'+path)
 
 
-def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None, dense_target=None, decimal_original=None, decimal_initial_predictions=None, candidate_m1_refs=None):
+def _install_read_guard(context, output, runtime, *, extra_read_paths=(), original_initial_prediction=None, dense_target=None, decimal_original=None, decimal_initial_predictions=None, candidate_m1_refs=None, candidate_initial_predictions=None):
     plan=context['ancestor_plan'];info=context['info']
     _require(isinstance(extra_read_paths, tuple), 'EXTRA_READ_PATHS')
     if extra_read_paths:
@@ -163,6 +163,12 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
         _require(decimal_initial_predictions==DECIMAL_INITIAL_PREDICTIONS
             and decimal_initial_predictions==context.get('decimal_initial_predictions'), 'DECIMAL_INITIAL_BINDING')
         extra_read_paths += (decimal_initial_predictions['path'],)
+    if candidate_initial_predictions is not None:
+        from gx1.contracts.entry_native_direction_m1_fullfit_v1 import INITIALS
+        _require(candidate_initial_predictions in INITIALS.values()
+            and candidate_initial_predictions==context.get('decimal_initial_predictions')
+            and candidate_m1_refs==context.get('candidate_m1_refs'), 'CANDIDATE_INITIAL_BINDING')
+        extra_read_paths += (candidate_initial_predictions['path'],)
     if candidate_m1_refs is not None:
         refs=_candidate_m1_refs(candidate_m1_refs)
         _require(refs==context.get('candidate_m1_refs') and all(
