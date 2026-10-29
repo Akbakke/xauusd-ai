@@ -756,7 +756,7 @@ def _fit_input_launch(launch, authority):
     """Reuse the qualified private target adapter for the separate full-fit scope."""
     if launch['run_scope'] == authority.DENSE_DECIMAL_FIT_SCOPE:
         return {**launch, 'run_scope': authority.DENSE_DECIMAL_PRIVATE_SCOPE}
-    if launch['run_scope'] in (authority.M1_PRICE_FIT_SCOPE, authority.M5_PRICE_FIT_SCOPE):
+    if launch['run_scope'] in (authority.M1_PRICE_FIT_SCOPE, authority.M5_PRICE_FIT_SCOPE, authority.M5_FIVE_PRIORITY_FIT_SCOPE):
         return {**launch, 'run_scope': authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE}
     return launch
 
@@ -779,7 +779,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
     continuation=launch['run_scope']==authority.CONTINUATION_SCOPE;order_variant=launch['run_scope']==authority.ORDER_SCOPE;train_passes=launch['train_passes']
     m1_fit=launch['run_scope']==authority.M1_PRICE_FIT_SCOPE
-    m5_fit=launch['run_scope']==authority.M5_PRICE_FIT_SCOPE
+    priority_fit=launch['run_scope']==authority.M5_FIVE_PRIORITY_FIT_SCOPE
+    m5_fit=launch['run_scope']==authority.M5_PRICE_FIT_SCOPE or priority_fit
     candidate_fit=m1_fit or m5_fit
     decimal_fit=launch['run_scope']==authority.DENSE_DECIMAL_FIT_SCOPE or candidate_fit
     input_launch=_fit_input_launch(launch,authority)
@@ -794,6 +795,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             common._read(ref,metadata)
         if m1_fit:
             common._read(launch['m1_pair_initial_parity'],metadata)
+        if priority_fit:
+            priority_baseline_initial=common._read(launch['priority_baseline_initial_report'],metadata)
         initial=launch['decimal_initial_predictions']
         context['decimal_initial_predictions']=dict(initial)
         context['decimal_initial_predictions_stat']=common._stat(initial['path'])
@@ -882,7 +885,10 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
             if order_variant:
                 _require_original_initial_match(measured,launch['order_origin']['initial_predictions'],common=common,np=np)
-            if decimal_fit:
+            if priority_fit:
+                from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_five_priority_initial_parity
+                require_five_priority_initial_parity(measured,priority_baseline_initial,context['decimal_initial_predictions'],np=np)
+            elif decimal_fit:
                 from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_decimal_initial_prediction_parity
                 require_decimal_initial_prediction_parity(measured['arrays'],context['decimal_initial_predictions'],np=np)
             initial_measurement=_publish_measurement('INITIAL_TRAIN',measured,output=work,view=view_identity,prior=prior,

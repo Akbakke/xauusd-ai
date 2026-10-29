@@ -42,6 +42,7 @@ DENSE_DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_input_adapter'
 M1_PRICE_PRIVATE_ADAPTER_SCOPE = 'private_dense_decimal_m1_price_input_adapter'
 M1_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m1_price_direction_fit'
 M5_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m5_price_direction_fit'
+M5_FIVE_PRIORITY_FIT_SCOPE = 'single_prefix_dense_decimal_m5_five_priority_direction_fit'
 M1_PRICE_COARSENED_MODE = 'price_and_m1_coarsened'
 DENSE_NATIVE_QUALIFICATION = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json',
     'sha256':'7b5768f2310446716f9954ab2e5887831e5dc8e6bde143c7bc4fa72156b17b24'}
@@ -258,7 +259,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     continuation = value.get('run_scope') == CONTINUATION_SCOPE
     chronological = value.get('run_scope') == ORDER_SCOPE
     m1_fit = value.get('run_scope') == M1_PRICE_FIT_SCOPE
-    m5_fit = value.get('run_scope') == M5_PRICE_FIT_SCOPE
+    priority_fit = value.get('run_scope') == M5_FIVE_PRIORITY_FIT_SCOPE
+    m5_fit = value.get('run_scope') == M5_PRICE_FIT_SCOPE or priority_fit
     decimal = value.get('run_scope') == DENSE_DECIMAL_FIT_SCOPE or m1_fit or m5_fit
     dense = value.get('run_scope') in (DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE) or m1_fit or m5_fit
     if dense:
@@ -269,6 +271,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         fields |= {'candidate_mode','candidate_m1_refs','m1_pair_initial_parity'}
     if m5_fit:
         fields |= {'candidate_mode'}
+    if priority_fit:
+        fields |= {'priority_baseline_initial_report'}
     if chronological:
         fields |= {'gc_layout_metadata_parity', 'order_origin', 'native_order_qualification'}
     if bps:
@@ -280,7 +284,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE, M1_PRICE_FIT_SCOPE, M5_PRICE_FIT_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE, M1_PRICE_FIT_SCOPE, M5_PRICE_FIT_SCOPE, M5_FIVE_PRIORITY_FIT_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
     fold = _fold(recipe['fold'])
     if bps:
         _require(fold == private.BPS_FOLD
@@ -299,7 +303,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     _require(isinstance(numerical, Mapping)
         and numerical.get('signed_bps_supervision', False) is bps
         and numerical.get('dense_minute_supervision', False) is dense
-        and numerical.get('magnitude_weighted_direction', False) is False, 'NUMERICAL_OBJECTIVE_SCOPE')
+        and numerical.get('magnitude_weighted_direction', False) is False
+        and numerical.get('five_minute_priority', False) is priority_fit, 'NUMERICAL_OBJECTIVE_SCOPE')
     _require(isinstance(numerical, Mapping) and numerical.get('schema_version') == 'gx1_native_direction_research_recipe_v1'
         and type(numerical.get('batch_size')) is int and numerical['batch_size'] == BATCH_SIZE
         and type(numerical.get('max_updates')) is int and numerical['max_updates'] == (3 if continuation else 1) * ((fold['prefix_rows'] + 15) // 16)
@@ -319,6 +324,10 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     if decimal: required_sources |= set(private.DECIMAL_EXTRA_SOURCE_PATHS)
     if m1_fit: required_sources |= set(private.M1_PRICE_EXTRA_SOURCE_PATHS) | {'gx1/contracts/entry_native_direction_m1_fullfit_v1.py'}
     if m5_fit: required_sources |= set(private.M1_PRICE_EXTRA_SOURCE_PATHS) | {'gx1/contracts/entry_native_direction_m5_fullfit_v1.py'}
+    if priority_fit:
+        from gx1.contracts import entry_native_direction_five_priority_private_v1 as priority_private
+        from gx1.contracts import entry_native_direction_five_priority_fullfit_v1 as priority_authority
+        required_sources |= set(priority_private.EXTRA_SOURCE_PATHS) | {priority_authority.OWN_SOURCE}
     if continuation or chronological:
         required_sources.add('gx1/contracts/entry_native_direction_frozen_extraction_v1.py')
     _require(isinstance(owners, Mapping) and set(owners) == required_sources, 'SOURCE_OWNER_SET')
@@ -336,6 +345,11 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
                     and recipe['decimal_initial_predictions']==m1_authority.INITIALS[recipe['candidate_mode']]
                     and recipe['m1_pair_initial_parity']==m1_authority.PAIR_PARITY
                     and recipe['dense_source_transition_proof']==private.M1_PRICE_SOURCE_TRANSITION, 'M1_QUALIFIED_INPUT_SCOPE')
+            elif priority_fit:
+                _require(recipe['candidate_mode']=='price_only'
+                    and recipe['native_dense_qualification']==priority_authority.QUALIFICATION
+                    and recipe['decimal_initial_predictions']==priority_authority.m5.INITIAL
+                    and recipe['dense_source_transition_proof']==private.M1_PRICE_SOURCE_TRANSITION, 'PRIORITY_QUALIFIED_INPUT_SCOPE')
             elif m5_fit:
                 from gx1.contracts import entry_native_direction_m5_fullfit_v1 as m5_authority
                 _require(recipe['candidate_mode']=='price_only'
@@ -369,13 +383,16 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
                 'DENSE_ORIGINAL_INPUT_SCOPE')
         for key in ('gc_layout_metadata_parity','native_dense_qualification','dense_source_transition_proof','dense_target_result','dense_evaluation_protocol'):
             campaign.require_binding(recipe[key],label='dense '+key,verify_file=True)
-        evaluation_name=('DIRECTION_M5_PRICE_ONLY_PROTOCOL_20261029.json' if m5_fit else
+        evaluation_name=('DIRECTION_M5_FIVE_PRIORITY_DESIGN_20261029.json' if priority_fit else
+            'DIRECTION_M5_PRICE_ONLY_PROTOCOL_20261029.json' if m5_fit else
             'DIRECTION_MATCHED_M1_M5_FULLFIT_PROTOCOL_20261029.json' if m1_fit else
             'DIRECTION_DENSE_DECIMAL_EVALUATION_20261028.json' if decimal else 'DIRECTION_DENSE_ONEPASS_EVALUATION_20261028.json')
         _require(recipe['dense_evaluation_protocol']['path']==str(source_repo/'docs'/evaluation_name), 'DENSE_EVALUATION_PATH')
         protocol=campaign.read_bound_json(Path(recipe['dense_evaluation_protocol']['path']),recipe['dense_evaluation_protocol']['sha256'])
         if m1_fit:
             m1_authority.require_protocol(protocol,recipe)
+        elif priority_fit:
+            priority_authority.require_protocol(protocol,recipe)
         elif m5_fit:
             m5_authority.require_protocol(protocol,recipe)
         else:
@@ -397,6 +414,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         campaign.require_binding(recipe['dense_target'],label='dense target',verify_file=False)
         if m1_fit:
             m1_authority.require_qualification(recipe,owners,source_repo=source_repo,private_scope=M1_PRICE_PRIVATE_ADAPTER_SCOPE)
+        elif priority_fit:
+            priority_authority.require_qualification(recipe,owners,source_repo=source_repo,source_commit=source_commit,private_scope=M1_PRICE_PRIVATE_ADAPTER_SCOPE)
         elif m5_fit:
             m5_authority.require_qualification(recipe,owners,source_repo=source_repo,private_scope=M1_PRICE_PRIVATE_ADAPTER_SCOPE)
         else:
