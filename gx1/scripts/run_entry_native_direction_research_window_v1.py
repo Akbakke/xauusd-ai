@@ -281,6 +281,32 @@ def _fresh(context, view, recipe, device, counters, *, max_constructions=3):
     return model,optimizer,binding
 
 
+
+def _candidate_gradient_counts(model, torch):
+    """Report new research paths separately; zero is evidence, not a pass."""
+    from gx1.features.entry_direction_momentum_profile_v1 import PROFILE_NAME, MOMENTUM_FAMILY
+    has_input=hasattr(model,'m1_ofi_in');has_output=hasattr(model,'m1_ofi_out')
+    _require(has_input==has_output, 'M1_GRADIENT_BINDING')
+    result={}
+    if has_input:
+        for name in ('m1_ofi_in','m1_ofi_out'):
+            layer=getattr(model,name)
+            _require(type(layer) is torch.nn.Linear, 'M1_GRADIENT_LAYER:'+name)
+            for parameter in ('weight','bias'):
+                grad=getattr(layer,parameter).grad
+                result[name+'_'+parameter+'_nonzero']=int(torch.count_nonzero(grad)) if grad is not None else 0
+    profile=getattr(model.backbone,'entry_execution_profile',None)
+    if isinstance(profile,dict) and profile.get('name')==PROFILE_NAME:
+        modules=model.backbone.mtf_family_proj
+        _require(MOMENTUM_FAMILY in modules and type(modules[MOMENTUM_FAMILY]) is torch.nn.Linear,
+            'PRICE_MOMENTUM_GRADIENT_BINDING')
+        layer=modules[MOMENTUM_FAMILY]
+        for parameter in ('weight','bias'):
+            grad=getattr(layer,parameter).grad
+            result['price_momentum_'+parameter+'_nonzero']=int(torch.count_nonzero(grad)) if grad is not None else 0
+    return result
+
+
 def _gradient_evidence(model, torch):
     groups={'direction_head':list(model.direction_head.parameters()),'entry_q_joint':list(model.backbone.entry_q_joint_in.parameters())+list(model.backbone.entry_q_joint_norm.parameters())}
     for tf in ('m5','m15','h1','h4','d1'):
@@ -313,6 +339,7 @@ def _gradient_evidence(model, torch):
         for name,layer in (('chart_local',model.backbone.specialist_proj['chart_geometry_encoder']),
                 ('chart_mtf',model.backbone.mtf_family_proj['chart_geometry_encoder'])):
             evidence[name+'_weight_nonzero']=int(torch.count_nonzero(layer.weight.grad)) if layer.weight.grad is not None else 0
+    evidence.update(_candidate_gradient_counts(model,torch))
     return evidence
 
 

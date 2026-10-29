@@ -175,3 +175,28 @@ def test_exact_native_research_constructor_does_not_promote_profile(bound_case):
     with pytest.raises(RuntimeError):
         entry_exit_production_architecture_contract(entry_execution_profile=view['entry_execution_profile'],
             gc_mtf_history=args['prefix_normalization']['gc_mtf_history'])
+
+
+def test_private_qualification_reports_m1_and_price_gradients_without_inventing_liveness():
+    from types import SimpleNamespace
+    from torch import nn
+    from torch.nn import functional as F
+    from gx1.features.entry_direction_momentum_profile_v1 import PROFILE_NAME, MOMENTUM_FAMILY
+    from gx1.scripts.run_entry_native_direction_research_window_v1 import _candidate_gradient_counts
+    torch.manual_seed(142)
+    m1in=nn.Linear(2,2);m1out=nn.Linear(2,2);price=nn.Linear(2,2)
+    with torch.no_grad():
+        m1out.weight.zero_();m1out.bias.zero_();price.weight.zero_();price.bias.zero_()
+    model=SimpleNamespace(m1_ofi_in=m1in,m1_ofi_out=m1out,
+        backbone=SimpleNamespace(entry_execution_profile={'name':PROFILE_NAME},
+            mtf_family_proj=nn.ModuleDict({MOMENTUM_FAMILY:price})))
+    x=torch.tensor([[1.,2.],[3.,-1.]])
+    loss=(m1out(F.gelu(m1in(x)))+price(x)-1).square().mean();loss.backward()
+    first=_candidate_gradient_counts(model,torch)
+    assert first['m1_ofi_out_weight_nonzero']>0 and first['m1_ofi_in_weight_nonzero']==0
+    assert first['price_momentum_weight_nonzero']>0
+    with torch.no_grad():m1out.weight.add_(m1out.weight.grad,alpha=-.1)
+    for layer in (m1in,m1out,price):layer.zero_grad(set_to_none=True)
+    (m1out(F.gelu(m1in(x)))+price(x)-1).square().mean().backward()
+    assert _candidate_gradient_counts(model,torch)['m1_ofi_in_weight_nonzero']>0
+    assert _candidate_gradient_counts(SimpleNamespace(backbone=SimpleNamespace(entry_execution_profile=None)),torch)=={}

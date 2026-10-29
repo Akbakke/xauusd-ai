@@ -44066,6 +44066,12 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/qualify_model_bound_m1_clock_20261029_003.py",
       "sha256": "16bd3c12624fdc49d05c8f9545deec89fe6f04086d9cdbb50a8c66b8bfe9b262"
     },
+    "candidate_gradient_diagnostic_synthetic_tests_passed": 75,
+    "candidate_gradient_diagnostic_no_genuine_learning_claim": true,
+    "candidate_gradient_diagnostic_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "sha256": "859fb06b6b7e10023a2b8cde4cedade6661e4a5335b104774825b766594cc155"
+    },
     "latest_focused_tests_passed": 45,
     "extra_negative_binding_tests_passed": 23,
     "new_normalization_fits": 0,
@@ -44120,7 +44126,7 @@
       "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "b9413a78b945bf77be148ef110001ec14e928eb892321491650e5fea3aa329ec",
       "tests/test_entry_closed_m1_ofi_window_v1.py": "7081a0e289f8cfd5fbc69b26f448ec5e8e9c365feb0f9924245461bce7e1a8b4",
       "tests/test_entry_direction_momentum_profile_v1.py": "17dca97a97359f0186ef41656d192566eab1b472e7ca2747d92b5846eca9e07f",
-      "tests/test_entry_native_direction_m1_ofi_v1.py": "1b796ee7bbb8b65ddcf31461efe3a3667b3fcbd6cad60038d6bace2fdef20727"
+      "tests/test_entry_native_direction_m1_ofi_v1.py": "4be8b8af0fa39273dfb0fe419a8ba5381f66b785c625be04fb55a00d2bcf7bd3"
     }
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
