@@ -102,6 +102,26 @@ I det ferdigtrente checkpointet var alle 16 384 vekter i hver residualutgang ikk
 
 Fusjonskontroll: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FUSION_STATE_20261029_003/RESULT.json` SHA-256 `c4273ecdb0360fd9faa4a6cd136957d22e10deee22f1f11d75aa4c6ac045f037`. Ingen ny modellforward eller trening ble utført.
 
+## Aktiveringssporing på samme foreldre
+
+En separat guarded CUDA-kjøring gjenskapte både originale og samlet nullstilte logits byteidentisk mot den forrige intervensjonen på 256 TRAIN- og 1 736 senere Q1-foreldre. Den brukte 250 forwardkall og null optimizersteg. Maksimalt målt GPU-trekk var 132,68 W, kjernetemperatur 54 °C og minnetemperatur 56 °C.
+
+De to projeksjonene legges sammen i samme momentumfamilie. Tabellen viser RMS av endringen som kommer fra alle fire prisfeltene sammenlignet med RMS av den uendrede GC-projeksjonen, på samme tidsrute-celler i Q1-utvalget. Det er en amplitudesammenligning, ikke en måling av informasjonsinnhold. GC-grenen omfatter flere inndata, og tidsvinduene overlapper.
+
+| Tidsramme | Prisendring RMS | GC RMS | Prisendring / GC |
+|---|---:|---:|---:|
+| M5 | 0.004803 | 0.468456 | 1.025 % |
+| M15 | 0.004202 | 0.494213 | 0.850 % |
+| H1 | 0.004323 | 0.512231 | 0.844 % |
+| H4 | 0.004206 | 0.591210 | 0.711 % |
+| D1 | 0.005170 | 0.528481 | 0.978 % |
+
+Endringen i MTF-representasjonen hadde RMS 0.00002779 mot original RMS 0.998604; ved inngangen til retningshodet var endringen 0.00000337 mot 0.229388. RMS over alle 60 logits endret seg med 0.00000190 mot original RMS 0.110684. Lokal og global kontekst og GC-projeksjonene var uendret av dette inngrepet.
+
+Dette viser hvor små de observerte forskjellene er underveis i den faste modellen. Verdiene fra ulike lag har ulike dimensjoner og skalaer; de kan ikke brukes som en enkelt forsterkningsfaktor. Store GC-aktiveringer beviser ikke at GC har mer prediktiv informasjon eller at oppskalering av prisfeltene gir bedre retning. Aktiveringsaggregatene er ikke gjenskapt fra separate lagrede råaktiveringer.
+
+Sporingsresultat: `/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_20261029_002/TRACE_RESULT.json` SHA-256 `a317baab48bdeaf49f0fcae93ab6e0621e2a6da833ba6dee71b7e20405267434`.
+
 ## Begrensninger
 
 Nulling er en intern intervensjon og kan gi en unaturlig tilstand. Samme informasjon kan finnes i andre inndata eller være korrelert med dem. Resultatet viser at denne ene ruten har svært liten funksjonell påvirkning i denne faste modellen og dette utvalget; det fastslår ikke hvorfor, hva retrening ville oppnådd, eller at modellen har handelsverdi. Fasit er en candle-basert proxy; eksakte quote-tider, kostnader og utførelse er ikke testet.
