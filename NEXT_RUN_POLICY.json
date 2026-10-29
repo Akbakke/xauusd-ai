@@ -44724,7 +44724,129 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
       "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
     },
-    "bps_comparison_train_diagnostic_rows": 256
+    "bps_comparison_train_diagnostic_rows": 256,
+    "original_source_comparability_review": {
+      "status": "HISTORIC_RECIPE_AND_SOURCE_VERIFIED_PARTIAL_PARITY_ONLY",
+      "baseline_recipe": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/RECIPE.json",
+        "sha256": "8ba298a148af3b923c7b4a567f98bf8ddd2eaef1e4eeb5144e2a785e9f9e2d93"
+      },
+      "baseline_terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD1_20261025_276/OUTER_TERMINAL.json",
+        "sha256": "c374ebd9dee324f734f2d97d3d8d05a433a17d14d6eb04d916285c29dcb60ee9"
+      },
+      "bps_recipe": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/RECIPE.json",
+        "sha256": "7f553f7361717257e9b28a8f7e74622d7ebec87b2f64173999ae75229e65647b"
+      },
+      "bps_root_review": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/ACTUAL_ROOT_REVIEW.json",
+        "sha256": "32dbd4c59cd22188cdfb8f4070c02795061a321c100a13547a4d355769d663d6"
+      },
+      "bps_paired_review": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
+        "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
+      },
+      "three_pass_recipe": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_RECIPE_20261027_002.json",
+        "sha256": "f893d82cff61339b752f29a7901cac8f09d7f62333a1b8bde8f946d3e7153f71"
+      },
+      "three_pass_root_review": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_MATCHED_EXPOSURE_1V3_FOLD1_20261027_002/ACTUAL_ROOT_REVIEW_001.json",
+        "sha256": "78a123219f19c70ecdc2a2b1a5b6f5110f0563edcb5484e307e77baad1defd1f"
+      },
+      "three_pass_zero_update_proof": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_TERMINAL_CONTINUATION_ZERO_UPDATE_PROOF_20261027_002.json",
+        "sha256": "4afa60e4f9cac17b6b69c672491f504538b7daf19a419aeb030da8e1eba018fe"
+      },
+      "corrected_fixed_prediction_comparison": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_20261028_001/OUTPUT/RESULT.json",
+        "sha256": "48ba0989f59bc6edfc4feb2f5e5a7295d4c9280ee136eacd05a6f33f297e834e"
+      },
+      "corrected_comparison_independent_check": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CORRECTED_FACTORS_INDEPENDENT_CHECK_20261028_001.json",
+        "sha256": "38c8f3246fe14182d4c9ed26e7b86fbd1fed64b80bed83fbcec99123efa5ecc3"
+      },
+      "fitted_source_commits": {
+        "baseline": "41dc5c89fea5741ba0864fc3a4b1c7d925598ee5",
+        "bps": "84086af89ffbb6ad378e0514f9512ce55c817d84",
+        "continuation": "a56da52ca7ed4de27f0dc4ac63e13ea29a28809d"
+      },
+      "changed_common_source_owner_count_each": 13,
+      "changed_common_source_owners": [
+        "gx1/contracts/entry_gc_mtf_history_v1.py",
+        "gx1/contracts/entry_model_native_train_recipe_v1.py",
+        "gx1/contracts/entry_native_direction_feature_view_v1.py",
+        "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+        "gx1/contracts/entry_native_direction_research_campaign_v1.py",
+        "gx1/contracts/entry_native_direction_research_state_v1.py",
+        "gx1/contracts/entry_native_direction_research_v1.py",
+        "gx1/contracts/local_random_access_campaign_v2.py",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+        "gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+        "scripts/collect_gx1_handover_readonly.py",
+        "scripts/gx1_capped_run.sh"
+      ],
+      "ast_identical_across_all_three_selected_functions": [
+        "gx1/contracts/entry_native_direction_research_v1.py:native_direction_binary_loss",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:_batch",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:_device_batch",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:_fixed_order",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:_prefix_prior",
+        "gx1/contracts/entry_native_direction_feature_view_v1.py:gather_native_direction_feature_batch",
+        "gx1/contracts/entry_gc_mtf_history_v1.py:gather_gc_mtf_history_rows"
+      ],
+      "ast_changed_in_both_candidate_versions_selected_functions": [
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:_forward",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:_train_batch",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:_evaluate",
+        "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py:_prepare"
+      ],
+      "identity_scope": {
+        "bps_exact_initial_direction_prediction_parity_rows": 256,
+        "bps_recipe_matches_baseline_except_objective_mode_identity": true,
+        "continuation_original_checkpoint_full_state_parity_before_additional_updates": true,
+        "continuation_terminal_train_prediction_parity_rows": 256,
+        "continuation_zero_update_source_owners_match_training": true,
+        "continuation_recipe_max_updates": 8928,
+        "baseline_max_updates": 2976,
+        "additional_optimizer_steps": 5952
+      },
+      "corrected_five_minute_fixed_scores": {
+        "eligible": 17192,
+        "auc": {
+          "one": 0.5029782883216212,
+          "bps": 0.4967564145455901,
+          "three": 0.500961266063187
+        },
+        "paired_auc_intervals": {
+          "bps_UTC_DAY": {
+            "low": -0.01755200206635228,
+            "high": 0.006047580380353466
+          },
+          "three_UTC_DAY": {
+            "low": -0.01001883288355812,
+            "high": 0.006035470600811663
+          },
+          "bps_UTC_WEEK_MONDAY": {
+            "low": -0.02127295662023491,
+            "high": 0.006081864851363333
+          },
+          "three_UTC_WEEK_MONDAY": {
+            "low": -0.008015826999922737,
+            "high": 0.004302421777434047
+          }
+        }
+      },
+      "limits": "Sources changed in deliberately extended worker, data owners and launch/guard files; different hashes are not proof of behavioral mismatch. Exact seed, selected function AST and 256 initial/resumed prediction/state checks do not establish numerical equivalence of every unchanged computation across all rows or updates. Both factors therefore remain separate intended interventions with source revision confounding; corrected re-scoring is not corrected-target retraining.",
+      "next_evidence_needed": "Same bound current shared sources, inputs, target, fold, seed and initial state; vary bps supervision and extra exposure separately with fixed appropriate evaluations and explicit fresh authority.",
+      "new_model_forwards": 0,
+      "new_optimizer_steps": 0,
+      "new_market_or_prediction_payload_reads": 0,
+      "test_data_used": false,
+      "economic_edge_qualified": false
+    }
   },
   "direction_corrected_five_minute_prediction_skew_20261029": {
     "status": "EXISTING_HASHED_AGGREGATE_NO_NEW_RUN",
