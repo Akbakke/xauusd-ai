@@ -16,8 +16,8 @@ import torch
 
 REPO=Path('/home/andre2/src/GX1_CURRENT')
 ROOT=Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
-STAGE='independent_m5_momentum_intervention_20261029_001'
-OUTPUT_NAME='DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_001'
+STAGE='independent_m5_momentum_intervention_20261029_002'
+OUTPUT_NAME='DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_002'
 BATCH=16
 STRIDE=10
 ARMS=('rsi14_centered','macd_line_atr','macd_hist_atr','ret_1','all_four')
