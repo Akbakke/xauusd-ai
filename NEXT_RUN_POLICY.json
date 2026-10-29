@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T19:44:38.710206+00:00",
-  "status": "M5_MOMENTUM_ACTIVATION_TRACE_COMPLETE",
+  "status": "M5_HEAD_GRADIENT_DIAGNOSTIC_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Reconcile existing genuine RSI/MACD/ret_1 feature-value and causality audits; then predeclare the smallest controlled training or intervention experiment that addresses measured projection imbalance without using TEST or selecting on reused Q1.",
+  "next_action": "Execute the predeclared TRAIN-only saved-logit/head analytic gradient diagnostic once under capped CPU audit; verify terminal and close its one-shot gate.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46982,5 +46982,64 @@
     "q1_mtf_repr_delta_rms": 2.7794966204201386e-05,
     "q1_entry_hidden_delta_rms": 3.370320351099556e-06,
     "q1_all60_logits_delta_rms": 1.9013558940154133e-06
+  },
+  "independent_m5_head_gradient_20261029_001": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "train_prediction_reads_authorized": true,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "broker_access_allowed": false,
+    "test_data_used": false,
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_HEAD_GRADIENT_20261029.json",
+      "sha256": "66353bc902c3bc77a9d96ca2086b11563deadeda2308b578c220c8dc53923c84"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/direction_m5_head_gradient_diagnostic_v1.py",
+      "sha256": "eb0dd2d5b4816fe7c4bad1fb8c06dd3ec13c42a1659d3cb0f4926df5213172ae"
+    },
+    "inputs": {
+      "checkpoint": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/states/w0001_TERMINAL_u002976_p047602.pt",
+        "sha256": "4ee6aab6d583a7ed16061a881f88206739830bdd36ea8cd400297d4cc24fc73e"
+      },
+      "train_report": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json",
+        "sha256": "7852725b42b5292038efaa573015e5723495f0c0448380f2b0a45ef245c99004"
+      },
+      "train_predictions": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.npz",
+        "sha256": "4cb156a4f7390fadac3a63967221d557646d512a6dfa5aa3d6e2f5772e26a20b"
+      },
+      "fit_result": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+        "sha256": "11f2319ccf9c815473659465480982aabe6f7f4497201f70bfbcd333aeef4e90"
+      },
+      "fit_recipe": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_RECIPE_20261029.json",
+        "sha256": "14ba328acbaff66dadd1e6e6b40fda628badf0767ff414bde49fefa113c1eb71"
+      },
+      "loss_source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_dense_v1.py",
+        "sha256": "a5b201d6c28a27ec037fbf3d17e7c0d5de56b9c013cd096cef2c9b7806397a20"
+      },
+      "head_source": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "8beccc55c551c22c37e0af9bec10bc3b911e6ff11c69c6d5ba83abcc1b096e16"
+      }
+    },
+    "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_HEAD_GRADIENT_20261029_001",
+    "class": "audit",
+    "memory_max": "4G",
+    "wall_seconds": 600,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "scope": "TRAIN-only analytic derivatives of equal-eligible-cell BCE at fixed final evaluation logits and fitted direction heads. No model forward, autograd, optimizer, training, raw market data, Q1, TEST or trading.",
+    "focused_synthetic_tests": "PASS: head ordering, masked/matured BCE analytic gradients vs PyTorch autograd, closed failures",
+    "user_authorization": "Direct independent M5 direction work without repeated approval; all 60 horizons retained."
   }
 }
