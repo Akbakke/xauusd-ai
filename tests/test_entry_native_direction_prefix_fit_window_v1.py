@@ -309,6 +309,14 @@ def test_chronological_order_scope_preserves_original_shuffle_and_global_rng():
     assert np.array_equal(actual,parents[:256])
     legacy=runner._presentation_order(parents,256,runner.SEED,np,launch={'run_scope':'single_prefix_one_pass_direction_fit'})
     assert np.array_equal(legacy,runner._fixed_order(parents,256,runner.SEED,np))
+    candidate={'run_scope':authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,'parent_order_algorithm':authority.ORDER_ALGORITHM}
+    assert np.array_equal(runner._presentation_order(parents,256,runner.SEED,np,launch=candidate),parents[:256])
+    candidate['parent_order_algorithm']=authority.PARENT_ORDER_ALGORITHM
+    assert np.array_equal(runner._presentation_order(parents,256,runner.SEED,np,launch=candidate),legacy)
+    for bad_algorithm in ('unbound',None):
+        candidate['parent_order_algorithm']=bad_algorithm
+        with pytest.raises(RuntimeError,match='CANDIDATE_ORDER'):
+            runner._presentation_order(parents,256,runner.SEED,np,launch=candidate)
     after=np.random.get_state()
     assert before[0]==after[0] and np.array_equal(before[1],after[1]) and before[2:]==after[2:]
     for bad in ({**launch,'parent_order_algorithm':'permutation'},launch):

@@ -264,7 +264,11 @@ def _fixed_order(parents, prefix_rows, seed, np):
 
 def _presentation_order(parents, prefix_rows, seed, np, *, launch):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    if launch.get('run_scope') == authority.ORDER_SCOPE:
+    scope=launch.get('run_scope'); candidate=scope==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    if candidate:
+        _require(launch.get('parent_order_algorithm') in (authority.ORDER_ALGORITHM,authority.PARENT_ORDER_ALGORITHM),
+            'CANDIDATE_ORDER')
+    if scope == authority.ORDER_SCOPE or (candidate and launch['parent_order_algorithm']==authority.ORDER_ALGORITHM):
         _require(launch.get('parent_order_algorithm') == authority.ORDER_ALGORITHM
             and type(prefix_rows) is int and 256 <= prefix_rows <= len(parents)
             and seed == SEED and parents.dtype == np.int64 and parents.ndim == 1
@@ -278,7 +282,6 @@ def _select_price_targets(archive, *, signed_bps=False, magnitude_weighted=False
     _require(archive.files==list(PRICE_MEMBERS),'EXACT_ELEVEN_ARCHIVE_NAMES')
     members=TARGET_MEMBERS + (('mid_return_bps',) if signed_bps or magnitude_weighted else ())
     return {key:archive[key] for key in members}
-
 
 
 def _candidate_view_inputs(context, launch, prepared, sources):
