@@ -44070,7 +44070,7 @@
     "candidate_gradient_diagnostic_no_genuine_learning_claim": true,
     "candidate_gradient_diagnostic_source": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
-      "sha256": "da2d5e973ad3b6ef400c559a0d3fa197c0b0e9c8034cc4a2725118c1543e573c"
+      "sha256": "bda54730fbbea6ef24bf30b2a57f0e471ba9b6fc74258cae68f8a1e1a1c3cbb2"
     },
     "latest_focused_tests_passed": 45,
     "extra_negative_binding_tests_passed": 23,
@@ -44126,12 +44126,12 @@
       "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "a0a1eced0640054e91cbdb1576ebecd0812f9d32c8bff417e839036917a1edf4",
       "tests/test_entry_closed_m1_ofi_window_v1.py": "7081a0e289f8cfd5fbc69b26f448ec5e8e9c365feb0f9924245461bce7e1a8b4",
       "tests/test_entry_direction_momentum_profile_v1.py": "17dca97a97359f0186ef41656d192566eab1b472e7ca2747d92b5846eca9e07f",
-      "tests/test_entry_native_direction_m1_ofi_v1.py": "094388f1ff27a052d20bbd796f948339a64d2e533065ddbda7e52925ed3461f4",
+      "tests/test_entry_native_direction_m1_ofi_v1.py": "54b2a8e93e704c4e7cd6e6e484e3f79fdd5e0a86896739f3e3db6d56685fc501",
       "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": "10b963e9cbcceac74789ab7fffd633276b721a9d112a4478b7fe3ee6f249d644",
       "tests/test_entry_native_direction_prefix_fit_window_v1.py": "192613dfb26331d48a9535f47436b9ceb9b37f060cc55ca0eb520643740a7ae5",
       "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "c9ec19ed0d3b2da2779c0d92f76acb6087739a41621d70b3da669aa385084677",
       "tests/test_entry_native_direction_research_campaign_v1.py": "294851b129d26b5d25cc4251fd72a28108222249d399709f6eb0b87c364716cb",
-      "gx1/scripts/run_entry_native_direction_research_window_v1.py": "da2d5e973ad3b6ef400c559a0d3fa197c0b0e9c8034cc4a2725118c1543e573c",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py": "bda54730fbbea6ef24bf30b2a57f0e471ba9b6fc74258cae68f8a1e1a1c3cbb2",
       "tests/test_entry_native_direction_decimal_private_integration_v1.py": "30503bfad1ed66a3864b4b3fe239ac3d167a14eea3f395ea43641e63a692af8e"
     },
     "candidate_private_adapter_scope": "private_dense_decimal_m1_price_input_adapter",
@@ -44154,7 +44154,10 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TRAIN_NORMALIZATION_20261029.json",
       "sha256": "78f035271c8cf2e70fb224bff0656eba0044046942f7a407fd4a091301e0fc93"
     },
-    "candidate_m1_normalization_plan_authorized": false
+    "candidate_m1_normalization_plan_authorized": false,
+    "candidate_gradient_detail_synthetic_tests_passed": 212,
+    "candidate_gradient_detail_scope": "Separately count each ordered M1 value and missingness-mask input column; count each price feature projection column shared across timeframes and each feature-specific timeframe gate gradient. Zero stays zero. Synthetic native-model test only; no genuine learning or edge claim.",
+    "candidate_gradient_detail_real_model_runs": 0
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",

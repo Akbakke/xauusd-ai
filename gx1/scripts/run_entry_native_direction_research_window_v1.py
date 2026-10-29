@@ -318,7 +318,7 @@ def _fresh(context, view, recipe, device, counters, *, max_constructions=3):
 
 def _candidate_gradient_counts(model, torch):
     """Report new research paths separately; zero is evidence, not a pass."""
-    from gx1.features.entry_direction_momentum_profile_v1 import PROFILE_NAME, MOMENTUM_FAMILY
+    from gx1.features.entry_direction_momentum_profile_v1 import PROFILE_NAME, MOMENTUM_FAMILY, PRICE_MOMENTUM_FIELDS
     has_input=hasattr(model,'m1_ofi_in');has_output=hasattr(model,'m1_ofi_out')
     _require(has_input==has_output, 'M1_GRADIENT_BINDING')
     result={}
@@ -329,6 +329,13 @@ def _candidate_gradient_counts(model, torch):
             for parameter in ('weight','bias'):
                 grad=getattr(layer,parameter).grad
                 result[name+'_'+parameter+'_nonzero']=int(torch.count_nonzero(grad)) if grad is not None else 0
+        width=getattr(model,'_bound_hidden_width',None);layer=model.m1_ofi_in
+        _require(type(width) is int and width>0 and layer.in_features==width+10, 'M1_GRADIENT_MINUTE_LAYOUT')
+        grad=layer.weight.grad
+        for minute in range(5):
+            for label,offset in (('value',0),('mask',5)):
+                key='m1_ofi_'+label+'_minute_'+str(minute+1)+'_weight_nonzero'
+                result[key]=int(torch.count_nonzero(grad[:,width+offset+minute])) if grad is not None else 0
     profile=getattr(model.backbone,'entry_execution_profile',None)
     if isinstance(profile,dict) and profile.get('name')==PROFILE_NAME:
         modules=model.backbone.mtf_family_proj
@@ -338,6 +345,30 @@ def _candidate_gradient_counts(model, torch):
         for parameter in ('weight','bias'):
             grad=getattr(layer,parameter).grad
             result['price_momentum_'+parameter+'_nonzero']=int(torch.count_nonzero(grad)) if grad is not None else 0
+        names=getattr(model.backbone,'_input_normalization_field_names',None)
+        routing=getattr(model.backbone,'_multi_tf_specialist_index_tuples',None)
+        timeframes=('m5','m15','h1','h4','d1')
+        _require(isinstance(names,dict) and all(isinstance(names.get('mtf_'+tf),list) for tf in timeframes)
+            and all(names['mtf_'+tf]==names['mtf_m5'] for tf in timeframes)
+            and isinstance(routing,dict) and isinstance(routing.get(MOMENTUM_FAMILY),tuple), 'PRICE_MOMENTUM_FIELD_LAYOUT')
+        indices=routing[MOMENTUM_FAMILY];fields=names['mtf_m5']
+        _require(len(indices)==layer.in_features==len(PRICE_MOMENTUM_FIELDS) and len(set(indices))==len(indices)
+            and all(type(i) is int and 0<=i<len(fields) for i in indices), 'PRICE_MOMENTUM_FIELD_INDICES')
+        routed=[fields[index] for index in indices]
+        _require(set(routed)==set(PRICE_MOMENTUM_FIELDS) and len(set(routed))==len(routed), 'PRICE_MOMENTUM_FIELD_NAMES')
+        projection=layer.weight.grad;gates=getattr(model.backbone,'mtf_feature_context_gate',None)
+        _require(isinstance(gates,torch.nn.ModuleDict), 'PRICE_MOMENTUM_GATE_BINDING')
+        for position,field in enumerate(routed):
+            result['price_momentum_'+field+'_projection_nonzero']=(
+                int(torch.count_nonzero(projection[:,position])) if projection is not None else 0)
+            for tf in timeframes:
+                key=tf+'__'+MOMENTUM_FAMILY
+                _require(key in gates and type(gates[key]) is torch.nn.Linear
+                    and gates[key].out_features==len(routed), 'PRICE_MOMENTUM_GATE_LAYOUT:'+tf)
+                weight=gates[key].weight.grad;bias=gates[key].bias.grad
+                result['price_momentum_'+tf+'_'+field+'_gate_nonzero']=(
+                    (int(torch.count_nonzero(weight[position])) if weight is not None else 0)
+                    +(int(bias[position]!=0) if bias is not None else 0))
     return result
 
 

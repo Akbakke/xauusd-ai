@@ -155,6 +155,38 @@ def test_actual_native_backbone_with_compact_price_and_m1_together_gets_learning
     output.square().mean().backward()
     for gradient in (model.m1_ofi_out.weight.grad,backbone.mtf_family_proj[MOMENTUM_FAMILY].weight.grad):
         assert gradient is not None and torch.isfinite(gradient).all() and torch.count_nonzero(gradient)>0
+    from gx1.scripts.run_entry_native_direction_research_window_v1 import _candidate_gradient_counts
+    evidence=_candidate_gradient_counts(model,torch)
+    for field in ('rsi14_centered','macd_line_atr','macd_hist_atr','ret_1'):
+        assert 'price_momentum_'+field+'_projection_nonzero' in evidence
+        for tf in ('m5','m15','h1','h4','d1'):
+            assert 'price_momentum_'+tf+'_'+field+'_gate_nonzero' in evidence
+    for minute in range(1,6):
+        assert evidence['m1_ofi_value_minute_'+str(minute)+'_weight_nonzero']==0
+        assert evidence['m1_ofi_mask_minute_'+str(minute)+'_weight_nonzero']==0
+    with torch.no_grad():
+        model.m1_ofi_out.weight.add_(model.m1_ofi_out.weight.grad,alpha=-.01)
+        backbone.mtf_family_proj[MOMENTUM_FAMILY].weight.add_(
+            backbone.mtf_family_proj[MOMENTUM_FAMILY].weight.grad,alpha=-.01)
+    model.zero_grad(set_to_none=True)
+    again=_forward(model,{**inputs,**kwargs},kind='SYNTHETIC',counters=counters,ceiling=2,torch=torch,grad=True)
+    again.square().mean().backward();after=_candidate_gradient_counts(model,torch)
+    width=model._bound_hidden_width;grad=model.m1_ofi_in.weight.grad
+    assert after['m1_ofi_in_weight_nonzero']>0
+    for minute in range(5):
+        assert after['m1_ofi_value_minute_'+str(minute+1)+'_weight_nonzero']==int(torch.count_nonzero(grad[:,width+minute]))
+        assert after['m1_ofi_mask_minute_'+str(minute+1)+'_weight_nonzero']==int(torch.count_nonzero(grad[:,width+5+minute]))
+    routed=backbone._multi_tf_specialist_index_tuples[MOMENTUM_FAMILY]
+    names=backbone._input_normalization_field_names['mtf_m5']
+    projection=backbone.mtf_family_proj[MOMENTUM_FAMILY].weight.grad
+    for position,index in enumerate(routed):
+        field=names[index]
+        assert after['price_momentum_'+field+'_projection_nonzero']==int(torch.count_nonzero(projection[:,position]))
+        for tf in ('m5','m15','h1','h4','d1'):
+            gate=backbone.mtf_feature_context_gate[tf+'__'+MOMENTUM_FAMILY]
+            expected=(int(torch.count_nonzero(gate.weight.grad[position])) if gate.weight.grad is not None else 0)
+            expected+=(int(gate.bias.grad[position]!=0) if gate.bias.grad is not None else 0)
+            assert after['price_momentum_'+tf+'_'+field+'_gate_nonzero']==expected
 
 
 from tests.test_entry_gc_mtf_model_v1 import bound_history, candidate_case
@@ -184,21 +216,45 @@ def test_private_qualification_reports_m1_and_price_gradients_without_inventing_
     from gx1.features.entry_direction_momentum_profile_v1 import PROFILE_NAME, MOMENTUM_FAMILY
     from gx1.scripts.run_entry_native_direction_research_window_v1 import _candidate_gradient_counts
     torch.manual_seed(142)
-    m1in=nn.Linear(2,2);m1out=nn.Linear(2,2);price=nn.Linear(2,2)
+    m1in=nn.Linear(12,2);m1out=nn.Linear(2,2);price=nn.Linear(4,2)
     with torch.no_grad():
         m1out.weight.zero_();m1out.bias.zero_();price.weight.zero_();price.bias.zero_()
-    model=SimpleNamespace(m1_ofi_in=m1in,m1_ofi_out=m1out,
+    fields=['macd_hist_atr','other','ret_1','rsi14_centered','macd_line_atr']
+    indices=(2,0,4,3)  # Deliberately different from the canonical feature order.
+    gates=nn.ModuleDict({tf+'__'+MOMENTUM_FAMILY:nn.Linear(2,4) for tf in ('m5','m15','h1','h4','d1')})
+    model=SimpleNamespace(m1_ofi_in=m1in,m1_ofi_out=m1out,_bound_hidden_width=2,
         backbone=SimpleNamespace(entry_execution_profile={'name':PROFILE_NAME},
-            mtf_family_proj=nn.ModuleDict({MOMENTUM_FAMILY:price})))
-    x=torch.tensor([[1.,2.],[3.,-1.]])
-    loss=(m1out(F.gelu(m1in(x)))+price(x)-1).square().mean();loss.backward()
+            mtf_family_proj=nn.ModuleDict({MOMENTUM_FAMILY:price}),mtf_feature_context_gate=gates,
+            _multi_tf_specialist_index_tuples={MOMENTUM_FAMILY:indices},
+            _input_normalization_field_names={'mtf_'+tf:fields for tf in ('m5','m15','h1','h4','d1')}))
+    x=torch.tensor([[0.,1.,1.,2.,3.,4.,5.,1.,1.,1.,1.,1.],[1.,2.,6.,7.,8.,9.,10.,1.,1.,1.,1.,1.]])
+    price_x=torch.tensor([[1.,2.,3.,4.],[3.,-1.,0.,2.]])
+    loss=(m1out(F.gelu(m1in(x)))+price(price_x)-1).square().mean();loss.backward()
     first=_candidate_gradient_counts(model,torch)
     assert first['m1_ofi_out_weight_nonzero']>0 and first['m1_ofi_in_weight_nonzero']==0
     assert first['price_momentum_weight_nonzero']>0
+    assert all(first['m1_ofi_value_minute_'+str(i)+'_weight_nonzero']==0 for i in range(1,6))
+    price.weight.grad=torch.tensor([[0.,1.,1.,0.],[0.,1.,0.,1.]])
+    m15=gates['m15__'+MOMENTUM_FAMILY];m15.weight.grad=torch.zeros_like(m15.weight)
+    m15.bias.grad=torch.zeros_like(m15.bias);m15.weight.grad[0,:]=1
+    mapped=_candidate_gradient_counts(model,torch)
+    assert mapped['price_momentum_ret_1_projection_nonzero']==0
+    assert mapped['price_momentum_macd_hist_atr_projection_nonzero']==2
+    assert mapped['price_momentum_macd_line_atr_projection_nonzero']==1
+    assert mapped['price_momentum_rsi14_centered_projection_nonzero']==1
+    assert mapped['price_momentum_m15_ret_1_gate_nonzero']==2
+    assert mapped['price_momentum_h1_ret_1_gate_nonzero']==0
     with torch.no_grad():m1out.weight.add_(m1out.weight.grad,alpha=-.1)
     for layer in (m1in,m1out,price):layer.zero_grad(set_to_none=True)
-    (m1out(F.gelu(m1in(x)))+price(x)-1).square().mean().backward()
-    assert _candidate_gradient_counts(model,torch)['m1_ofi_in_weight_nonzero']>0
+    (m1out(F.gelu(m1in(x)))+price(price_x)-1).square().mean().backward()
+    second=_candidate_gradient_counts(model,torch)
+    assert second['m1_ofi_in_weight_nonzero']>0
+    for minute in range(1,6):
+        assert second['m1_ofi_value_minute_'+str(minute)+'_weight_nonzero']==int(torch.count_nonzero(m1in.weight.grad[:,1+minute]))
+        assert second['m1_ofi_mask_minute_'+str(minute)+'_weight_nonzero']==int(torch.count_nonzero(m1in.weight.grad[:,6+minute]))
+    bad=SimpleNamespace(**vars(model.backbone));bad._multi_tf_specialist_index_tuples={MOMENTUM_FAMILY:(0,0,2,3)}
+    with pytest.raises(RuntimeError,match='PRICE_MOMENTUM_FIELD_INDICES'):
+        _candidate_gradient_counts(SimpleNamespace(**{**vars(model),'backbone':bad}),torch)
     assert _candidate_gradient_counts(SimpleNamespace(backbone=SimpleNamespace(entry_execution_profile=None)),torch)=={}
 
 
