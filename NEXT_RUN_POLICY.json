@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T18:27:58.416382+00:00",
-  "status": "M5_MOMENTUM_INTERVENTION_002_ADMITTED",
+  "observed_utc": "2026-10-29T18:33:52.316944+00:00",
+  "status": "M5_MOMENTUM_INTERVENTION_POWER_GUARD_MISMATCH_BLOCKED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Use the canonical absolute Python executable to run the new guarded producer; do not relaunch the rejected plan.",
+  "next_action": "Resolve the producer configured-power mismatch with a reviewed, fresh source-bound design while preserving actual-draw, signed telemetry, thermal and capacity guards; never relaunch the two rejected plans.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46266,14 +46266,14 @@
     }
   },
   "independent_m5_momentum_intervention_20261029_002": {
-    "status": "ADMITTED",
+    "status": "REJECTED_PRELAUNCH_CONSUMED_NO_MODEL_OR_DATA",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_002.json",
       "sha256": "92402e5e60dfbec8f5d87a7454f9bac9255d0fca95770abb109cbca36795cc4d"
     },
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "model_forwards_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_forwards_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "native_launch_authorized": false,
@@ -46298,6 +46298,11 @@
     "supersedes_prelaunch_rejected_plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_001.json",
       "sha256": "e47abc6baf35f8fb9c600d8e0dc867e5a0af3724b2e7c7f8920e5aec1f99446f"
+    },
+    "prelaunch_attempts": 1,
+    "prelaunch_rejection": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_PRELAUNCH_REJECTION_20261029_002.json",
+      "sha256": "cf7443f5cb823d35a5166b15bab865afa6af704ef6b7183c9868214a2ba34a32"
     }
   }
 }
