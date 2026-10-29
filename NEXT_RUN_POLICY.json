@@ -44824,5 +44824,78 @@
     "new_market_or_prediction_payload_reads": 0,
     "test_data_used": false,
     "edge_qualified": false
+  },
+  "direction_candle_price_clock_and_native_midpoint_bounds_20261029": {
+    "status": "SOURCE_AND_HASH_BOUND_AGGREGATE_INFERENCE_NO_NEW_PAYLOAD",
+    "scope": "2024/2025 reused development, matched original and corrected candle target identities; native candle midpoint vs corrected decimal bid/ask midpoint at 1, 5, 15 minutes only.",
+    "candle_audit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/CANDLE_MIDPOINT_AUDIT_001/OUTPUT/RESULT.json",
+      "sha256": "b29c557755c975f036600679f0108015f82d5117cf9b4d64c1d3f76cd405e2ca"
+    },
+    "decimal_sign_audit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_SIGN_AUDIT_20261028_002/OUTPUT/RESULT.json",
+      "sha256": "9f3441e79017b4e2d00656e9843af3a96ca3c2bef143275b7b28d927aed5b096"
+    },
+    "original_dense_target_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_20261028_001/RESULT.json",
+      "sha256": "1c832da918aee94ab2535898aab340e33e771c8ad9739e97ece21599be50128b"
+    },
+    "corrected_target_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/RESULT.json",
+      "sha256": "71ea36e8fd8048a32aa1136f342264bdbd28122ae674dc1452a3d17207979648"
+    },
+    "corrected_fit_oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "a773849f2895a77c3af0567a3d9421f9f8724fb5592f8e1c43204af497218757"
+    },
+    "corrected_fit_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_RECIPE_CANDIDATE_20261028.json",
+      "sha256": "9ec7d21494f80a5537d0fd0c6ed6132fc2514083d30c27a3195005cbcdda7dd8"
+    },
+    "shared_native_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"
+    },
+    "producer_git_commit": "fb6e044289230a03e4dc52916ed3ef6e2e4f0939",
+    "producer_source_sha256": "e441422d51df4fe03d148b1c4d0b74041800f32aa0c643db172ed8099048f9c5",
+    "cohort_identity_evidence": "Same manifest, 2024/2025 year refs and legacy target; original dense anchor-byte parity; corrected target retains axes and masks and reproduces independent audit confusions; corrected fit binds that target.",
+    "aggregate_bounds": {
+      "1": {
+        "observed": 118237,
+        "maximum_native_vs_corrected_disagreements": 112,
+        "direct_nonzero_sign_flips": 0
+      },
+      "5": {
+        "observed": 117799,
+        "maximum_native_vs_corrected_disagreements": 80,
+        "direct_nonzero_sign_flips": 0
+      },
+      "15": {
+        "observed": 116936,
+        "maximum_native_vs_corrected_disagreements": 36,
+        "direct_nonzero_sign_flips": 0
+      }
+    },
+    "bound_method": "Both legacy-to-native and legacy-to-corrected matrices have no legacy-zero to nonzero or nonzero sign reversal; per horizon disagreement is confined to union of the two legacy-nonzero-to-zero sets. Equal aggregate matrices do not prove rowwise identity.",
+    "later_five_minute": {
+      "mature_observed": 17224,
+      "corrected_nonzero_rows": 17192,
+      "corrected_up": 8868,
+      "model_correct": 8356,
+      "native_changes_at_most_in_all_parents": 40,
+      "decimal_changes_in_later": 5,
+      "maximum_different_native_vs_corrected_memberships": 45,
+      "minimum_always_up_advantage_pp_under_bound": 2.7092881591924347
+    },
+    "gap_bound_method": "With identical saved predictions and threshold, each membership change changes model-correct minus always-up-correct by at most one; denominator at most 17192+45. No native-midpoint model was fitted or rescored.",
+    "oanda_candle_schema_reference": "https://developer.oanda.com/rest-live-v20/instrument-df/",
+    "oanda_smooth_request_reference": "https://github.com/oanda/v20-openapi/blob/master/yaml/separate/v20_instrument.yaml",
+    "quote_clock_scope": "Candle time is bar start; raw candle schema does not give individual first-price event time. Historical producer did not set smooth explicitly; effective historical endpoint default is not established. For unsmoothed candles, OANDA describes open as first price within the bar; no latency or exact event horizon was measured.",
+    "limitations": "This bound is for saved predictions in reused Q1, at 5min; it does not bound AUC, other horizons, learned model changes from different targets, alternate tick or quote-event labels, or future performance. Exact overlap and quote-event age remain unknown.",
+    "new_raw_market_or_prediction_payload_reads": 0,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "test_data_used": false,
+    "edge_qualified": false
   }
 }
