@@ -44,12 +44,12 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T14:01:12.165699+00:00",
-  "status": "MATCHED_M1_M5_ORDERED_PRIVATE_QUALIFICATION_PREPARATION_AUTHORIZED",
-  "training_enabled": true,
+  "observed_utc": "2026-10-29T14:09:50.522979+00:00",
+  "status": "MATCHED_M1_M5_PRIVATE_MECHANICS_COMPLETE_NO_DIRECTION_EDGE_MEASURED",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the exact bound ordered M1/M5 private qualification may be prepared and run once through the guarded campaign. The coarsened arm is complete and consumed. Preserve genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No full fit, broker, order, live/paper, Exit, spending, promotion or qualification weight reuse.",
+  "rule": "Both exact matched M1/M5 private qualifications are complete and consumed. Any further offline fit must use its own bounded source-bound plan and gates. Preserve genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending, promotion or qualification weight reuse.",
   "next_action": "Await explicit approval of the two sequential, capacity-matched private qualification campaigns; full fitting, the separate conditional audit, TEST and trading remain unadmitted.",
   "required_evidence": {
     "risk_objective": {
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -44672,7 +44672,7 @@
     }
   },
   "dynamic_m5_direction_matched_m1_ordered_qualification_20261029_001": {
-    "status": "AUTHORIZED_EXACT_PRIVATE_QUALIFICATION_PREPARATION",
+    "status": "COMPLETE_CONSUMED_PRIVATE_MECHANICS",
     "proposal": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_STRUCTURE_PRIVATE_QUALIFICATION_20261029.md",
       "sha256": "e3dd865653c01ed97d315063d6084b2768b62a83924a23027277c8924e6cc353"
@@ -44684,14 +44684,14 @@
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_ORDERED_PRIVATE_QUALIFICATION_20261029_001/RUNTIME",
     "scope": "One private 256-initial, 32-TRAIN-parent and four-physical-update gradient/resume qualification; no full fit or trading.",
     "candidate_mode": "price_and_m1",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
@@ -44700,13 +44700,13 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "superseded_proposal_sha256": "be7123d229c2f8a21aa517bbc367f39c16d330d7cc8ea76be16e3433d8eb7f95",
     "updated_guard_requires_new_explicit_approval": false,
     "earlier_superseded_proposal_sha256": "41ad4e92a4d10b7f6f2d11cbbd3c1572ad50d9d1c16ac12b95d9337f23a49b23",
-    "campaign_preparation_authorized": true,
+    "campaign_preparation_authorized": false,
     "physical_restart_before_invocation_authorized": true,
     "max_private_optimizer_steps": 4,
     "requested_physical_gpu_power_limit_w": 250,
@@ -44719,6 +44719,14 @@
     "coarsened_predecessor_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_PRIVATE_QUALIFICATION_20261029_001/ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "50a940e16257abc6e9a1ad440a45082301af4ea227e9448cf15512e2a6c45c22"
+    },
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_ORDERED_PRIVATE_QUALIFICATION_20261029_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "e179fbde91a492b78aa704246b90672c847e9df8fe1f6f30da6b07f2bb9476ae"
+    },
+    "matched_initial_parity_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_INITIAL_PARITY_20261029_001/RESULT.json",
+      "sha256": "0361289d022d168d158473f2d97d3bb45ef061883a3bdec1c11d2c19ba179b67"
     }
   },
   "direction_separate_bps_and_training_exposure_evidence_20261029": {
@@ -45605,5 +45613,30 @@
     "full_post_update_parity_measured": false,
     "changed_shared_source_files": 13,
     "conclusion": "No documented 5-minute ranking improvement from chronological presentation in this reused old-label three-head development comparison; source differences prevent attribution solely to row order. No edge or corrected-60-head training conclusion."
+  },
+  "direction_matched_m1_m5_initial_parity_20261029_001": {
+    "status": "PASS_MATCHED_INITIAL_PREDICTIONS_NO_EDGE_MEASUREMENT",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_INITIAL_PARITY_20261029_001/RESULT.json",
+      "sha256": "0361289d022d168d158473f2d97d3bb45ef061883a3bdec1c11d2c19ba179b67"
+    },
+    "coarsened_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_PRIVATE_QUALIFICATION_20261029_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "50a940e16257abc6e9a1ad440a45082301af4ea227e9448cf15512e2a6c45c22"
+    },
+    "ordered_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_ORDERED_PRIVATE_QUALIFICATION_20261029_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "e179fbde91a492b78aa704246b90672c847e9df8fe1f6f30da6b07f2bb9476ae"
+    },
+    "initial_parent_count": 256,
+    "initial_logits_shape": [
+      256,
+      60
+    ],
+    "same_fixed_train_parents": 32,
+    "private_optimizer_updates_per_arm": 4,
+    "test_data_used": false,
+    "later_direction_evaluated": false,
+    "economic_edge_qualified": false
   }
 }

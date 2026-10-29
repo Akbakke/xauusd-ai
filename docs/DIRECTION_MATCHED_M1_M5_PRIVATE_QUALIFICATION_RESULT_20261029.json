@@ -1,0 +1,31 @@
+{
+  "all_sixty_heads_gradient_on_fixed_batches": true,
+  "coarsened_review": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_PRIVATE_QUALIFICATION_20261029_001/ACTUAL_ROOT_REVIEW_001.json",
+    "sha256": "50a940e16257abc6e9a1ad440a45082301af4ea227e9448cf15512e2a6c45c22"
+  },
+  "economic_edge_qualified": false,
+  "fixed_initial_parents": 256,
+  "fixed_train_parents_per_arm": 32,
+  "initial_parity": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_INITIAL_PARITY_20261029_001/RESULT.json",
+    "sha256": "0361289d022d168d158473f2d97d3bb45ef061883a3bdec1c11d2c19ba179b67"
+  },
+  "later_direction_evaluated": false,
+  "limitations": "The control retains M1 masks and within-M5 aggregate. The ordered arm adds intra-bucket variation and position jointly. Graduate contact is a parameter-level observation on 32 fixed parents, not proof of standalone feature value, exact quote arrival, generalization or profitability. 250 W power limit is proven only at recorded guard samples; the generic guard ceiling is 300 W.",
+  "logits_per_parent": 60,
+  "m1_value_gradient_both_second_steps": true,
+  "ordered_five_value_columns_nonzero_gradient_second_step": true,
+  "ordered_review": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_ORDERED_PRIVATE_QUALIFICATION_20261029_001/ACTUAL_ROOT_REVIEW_001.json",
+    "sha256": "e179fbde91a492b78aa704246b90672c847e9df8fe1f6f30da6b07f2bb9476ae"
+  },
+  "private_updates_per_arm": 4,
+  "qualification_weights_reused_for_fit": false,
+  "rsi_macd_ret1_projection_gradient_both_trajectories": true,
+  "schema_version": "gx1_matched_m1_m5_private_qualification_summary_v1",
+  "source_commits_differ_only_in_policy_and_handover": true,
+  "status": "BOTH_MECHANICS_QUALIFICATIONS_CONSUMED_INITIAL_PARITY_PASS",
+  "test_data_used": false,
+  "training_initials_and_decision_clocks_byte_identical": true
+}
