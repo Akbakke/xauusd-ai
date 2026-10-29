@@ -121,7 +121,7 @@ def test_combined_price_and_m1_view_source_and_decision_bound(bound_case,monkeyp
         view_owner.gather_native_direction_feature_batch(view,**inputs)
 
 
-def test_actual_native_backbone_with_compact_price_and_m1_together_gets_learning_contact(bound_history,candidate_case):
+def test_actual_native_backbone_with_compact_price_and_m1_together_gets_learning_contact(bound_history,candidate_case,monkeypatch):
     from gx1.features import entry_specialist_feature_groups_v1 as groups
     from gx1.features.entry_direction_momentum_profile_v1 import compile_price_momentum_profile, MOMENTUM_FAMILY
     from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EXACT_SPECIALIST_NAMES
@@ -149,6 +149,27 @@ def test_actual_native_backbone_with_compact_price_and_m1_together_gets_learning
     gates, feature_gates=trainer._dynamic_m5_gate_execution_kwargs(backbone)
     assert feature_gates['gate_shape']==(5,182)
     assert gates['gate_widths']['family_tf_cooperation_gate']==5*len(backbone._mtf_specialist_names)
+    # Join the real strict context reporter, device conversion, native forward
+    # and dense scorer on the same synthetic batch. The qualification worker's
+    # earlier control-flow test mocks these boundaries independently.
+    from gx1.contracts import entry_native_direction_context_report_v1 as reporter
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as runner
+    from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as digest
+    from tests.test_entry_native_direction_context_report_v1 import _case
+    _,_,witness=_case(1)
+    context_map=reporter.native_direction_context_map(gc_layout=history['layout'],mtf_field_names=physical['mtf'])
+    raw={'features':{name:value.detach().cpu().numpy().copy() for name,value in {**inputs,**kwargs}.items()},'witness':witness}
+    selected=np.asarray(witness['parent_rows'],np.int64);decisions=np.asarray(witness['decision_ns'],np.int64)
+    target={'decision_ns':decisions,'terminal_time_ns':decisions[:,None]+np.arange(1,61,dtype=np.int64)[None,:]*runner.MINUTE_NS,
+        'observed':np.ones((1,60),np.bool_),'sign':np.ones((1,60),np.int8)}
+    monkeypatch.setattr(runner,'_batch',lambda *args:(raw,target))
+    evaluation={'forward_calls':0,'forward_kind_calls':{},'forward_returns':0}
+    measured,count=runner._evaluate(model,{}, {},{'dense_minute_supervision':True,'m1_ofi_normalization':_stats()},
+        context_map,selected,cutoff=int(decisions[-1]+120*runner.MINUTE_NS),kind='SYNTHETIC_INITIAL',counters=evaluation,
+        ceiling=2,device=torch.device('cpu'),torch=torch,np=np,tree_sha=digest,parity=True)
+    assert count==1 and measured['initial_parity_passed'] and evaluation['forward_returns']==2
+    assert measured['arrays']['logit_up'].shape==(1,60) and np.isfinite(measured['arrays']['logit_up']).all()
+    assert all(p.grad is None for p in model.parameters())
     counters={'forward_calls':0,'forward_kind_calls':{},'forward_returns':0}
     output=_forward(model,{**inputs,**kwargs},kind='SYNTHETIC',counters=counters,ceiling=1,torch=torch,grad=True)
     assert output.shape==(1,60) and torch.isfinite(output).all() and counters['forward_returns']==1

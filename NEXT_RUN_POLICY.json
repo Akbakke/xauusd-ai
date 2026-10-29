@@ -44126,7 +44126,7 @@
       "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "30880b457f72cdd149f76672ff69c1d33921550cb3c19578761187799c729e09",
       "tests/test_entry_closed_m1_ofi_window_v1.py": "7081a0e289f8cfd5fbc69b26f448ec5e8e9c365feb0f9924245461bce7e1a8b4",
       "tests/test_entry_direction_momentum_profile_v1.py": "17dca97a97359f0186ef41656d192566eab1b472e7ca2747d92b5846eca9e07f",
-      "tests/test_entry_native_direction_m1_ofi_v1.py": "54b2a8e93e704c4e7cd6e6e484e3f79fdd5e0a86896739f3e3db6d56685fc501",
+      "tests/test_entry_native_direction_m1_ofi_v1.py": "26fa056b6c1701973c6bf04bf4202edf19f1faf5e65c5df0818e74074455cc84",
       "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": "10b963e9cbcceac74789ab7fffd633276b721a9d112a4478b7fe3ee6f249d644",
       "tests/test_entry_native_direction_prefix_fit_window_v1.py": "e13c88a9c23b25f2a313594adde0b20f392be52482dc77ad55b83ed9a1e957ef",
       "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "c9ec19ed0d3b2da2779c0d92f76acb6087739a41621d70b3da669aa385084677",
@@ -44187,7 +44187,9 @@
       "sha256": "e3cc9b2c99c5ab1afe404b6d642ae018fe708fbdfa824f8a0e502b0b292b6983"
     },
     "candidate_m1_normalization_observed_minutes": 234875,
-    "candidate_m1_normalization_train_parents": 47602
+    "candidate_m1_normalization_train_parents": 47602,
+    "candidate_m1_actual_backbone_context_evaluation_synthetic_passed": true,
+    "candidate_m1_actual_backbone_context_evaluation_synthetic_scope": "One synthetic parent; real strict 14-field context reporter, device conversion, native eight-family price+M1 backbone, 60-head scorer and grad/no-grad parity. No market input, fit or predictive claim."
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",
