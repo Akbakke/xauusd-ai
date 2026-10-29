@@ -41,6 +41,7 @@ DENSE_DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_input_adapter'
 # Private research qualification only; the prefix-fit validator rejects it.
 M1_PRICE_PRIVATE_ADAPTER_SCOPE = 'private_dense_decimal_m1_price_input_adapter'
 M1_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m1_price_direction_fit'
+M5_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m5_price_direction_fit'
 M1_PRICE_COARSENED_MODE = 'price_and_m1_coarsened'
 DENSE_NATIVE_QUALIFICATION = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_NATIVE_QUALIFICATION_20261028_001/ACTUAL_ROOT_REVIEW_001.json',
     'sha256':'7b5768f2310446716f9954ab2e5887831e5dc8e6bde143c7bc4fa72156b17b24'}
@@ -257,14 +258,17 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     continuation = value.get('run_scope') == CONTINUATION_SCOPE
     chronological = value.get('run_scope') == ORDER_SCOPE
     m1_fit = value.get('run_scope') == M1_PRICE_FIT_SCOPE
-    decimal = value.get('run_scope') == DENSE_DECIMAL_FIT_SCOPE or m1_fit
-    dense = value.get('run_scope') in (DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE) or m1_fit
+    m5_fit = value.get('run_scope') == M5_PRICE_FIT_SCOPE
+    decimal = value.get('run_scope') == DENSE_DECIMAL_FIT_SCOPE or m1_fit or m5_fit
+    dense = value.get('run_scope') in (DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE) or m1_fit or m5_fit
     if dense:
         fields |= {'gc_layout_metadata_parity','native_dense_qualification','dense_source_transition_proof','dense_target_result','dense_target','dense_evaluation_protocol'}
     if decimal:
         fields |= {'decimal_input_audit','decimal_target_refs','decimal_initial_predictions'}
     if m1_fit:
         fields |= {'candidate_mode','candidate_m1_refs','m1_pair_initial_parity'}
+    if m5_fit:
+        fields |= {'candidate_mode'}
     if chronological:
         fields |= {'gc_layout_metadata_parity', 'order_origin', 'native_order_qualification'}
     if bps:
@@ -276,7 +280,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE, M1_PRICE_FIT_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE, M1_PRICE_FIT_SCOPE, M5_PRICE_FIT_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
     fold = _fold(recipe['fold'])
     if bps:
         _require(fold == private.BPS_FOLD
@@ -314,6 +318,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     if dense: required_sources |= set(private.DENSE_EXTRA_SOURCE_PATHS)
     if decimal: required_sources |= set(private.DECIMAL_EXTRA_SOURCE_PATHS)
     if m1_fit: required_sources |= set(private.M1_PRICE_EXTRA_SOURCE_PATHS) | {'gx1/contracts/entry_native_direction_m1_fullfit_v1.py'}
+    if m5_fit: required_sources |= set(private.M1_PRICE_EXTRA_SOURCE_PATHS) | {'gx1/contracts/entry_native_direction_m5_fullfit_v1.py'}
     if continuation or chronological:
         required_sources.add('gx1/contracts/entry_native_direction_frozen_extraction_v1.py')
     _require(isinstance(owners, Mapping) and set(owners) == required_sources, 'SOURCE_OWNER_SET')
@@ -331,6 +336,12 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
                     and recipe['decimal_initial_predictions']==m1_authority.INITIALS[recipe['candidate_mode']]
                     and recipe['m1_pair_initial_parity']==m1_authority.PAIR_PARITY
                     and recipe['dense_source_transition_proof']==private.M1_PRICE_SOURCE_TRANSITION, 'M1_QUALIFIED_INPUT_SCOPE')
+            elif m5_fit:
+                from gx1.contracts import entry_native_direction_m5_fullfit_v1 as m5_authority
+                _require(recipe['candidate_mode']=='price_only'
+                    and recipe['native_dense_qualification']==m5_authority.QUALIFICATION
+                    and recipe['decimal_initial_predictions']==m5_authority.INITIAL
+                    and recipe['dense_source_transition_proof']==private.M1_PRICE_SOURCE_TRANSITION, 'M5_QUALIFIED_INPUT_SCOPE')
             else:
                 _require(recipe['native_dense_qualification']==DENSE_DECIMAL_NATIVE_QUALIFICATION
                     and recipe['decimal_initial_predictions']==private.DECIMAL_INITIAL_PREDICTIONS, 'DECIMAL_QUALIFIED_INPUT_SCOPE')
@@ -358,12 +369,15 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
                 'DENSE_ORIGINAL_INPUT_SCOPE')
         for key in ('gc_layout_metadata_parity','native_dense_qualification','dense_source_transition_proof','dense_target_result','dense_evaluation_protocol'):
             campaign.require_binding(recipe[key],label='dense '+key,verify_file=True)
-        evaluation_name=('DIRECTION_MATCHED_M1_M5_FULLFIT_PROTOCOL_20261029.json' if m1_fit else
+        evaluation_name=('DIRECTION_M5_PRICE_ONLY_PROTOCOL_20261029.json' if m5_fit else
+            'DIRECTION_MATCHED_M1_M5_FULLFIT_PROTOCOL_20261029.json' if m1_fit else
             'DIRECTION_DENSE_DECIMAL_EVALUATION_20261028.json' if decimal else 'DIRECTION_DENSE_ONEPASS_EVALUATION_20261028.json')
         _require(recipe['dense_evaluation_protocol']['path']==str(source_repo/'docs'/evaluation_name), 'DENSE_EVALUATION_PATH')
         protocol=campaign.read_bound_json(Path(recipe['dense_evaluation_protocol']['path']),recipe['dense_evaluation_protocol']['sha256'])
         if m1_fit:
             m1_authority.require_protocol(protocol,recipe)
+        elif m5_fit:
+            m5_authority.require_protocol(protocol,recipe)
         else:
             protocol_schema=('gx1_dense_decimal_direction_evaluation_protocol_v1' if decimal else 'gx1_dense_onepass_direction_evaluation_protocol_v1')
             _require(protocol.get('schema_version')==protocol_schema
@@ -383,6 +397,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         campaign.require_binding(recipe['dense_target'],label='dense target',verify_file=False)
         if m1_fit:
             m1_authority.require_qualification(recipe,owners,source_repo=source_repo,private_scope=M1_PRICE_PRIVATE_ADAPTER_SCOPE)
+        elif m5_fit:
+            m5_authority.require_qualification(recipe,owners,source_repo=source_repo,private_scope=M1_PRICE_PRIVATE_ADAPTER_SCOPE)
         else:
             review=campaign.read_bound_json(Path(recipe['native_dense_qualification']['path']),recipe['native_dense_qualification']['sha256'])
             if decimal:

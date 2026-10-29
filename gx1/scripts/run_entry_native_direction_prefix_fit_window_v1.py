@@ -747,7 +747,7 @@ def _fit_input_launch(launch, authority):
     """Reuse the qualified private target adapter for the separate full-fit scope."""
     if launch['run_scope'] == authority.DENSE_DECIMAL_FIT_SCOPE:
         return {**launch, 'run_scope': authority.DENSE_DECIMAL_PRIVATE_SCOPE}
-    if launch['run_scope'] == authority.M1_PRICE_FIT_SCOPE:
+    if launch['run_scope'] in (authority.M1_PRICE_FIT_SCOPE, authority.M5_PRICE_FIT_SCOPE):
         return {**launch, 'run_scope': authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE}
     return launch
 
@@ -769,7 +769,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
     continuation=launch['run_scope']==authority.CONTINUATION_SCOPE;order_variant=launch['run_scope']==authority.ORDER_SCOPE;train_passes=launch['train_passes']
-    candidate_fit=launch['run_scope']==authority.M1_PRICE_FIT_SCOPE
+    m1_fit=launch['run_scope']==authority.M1_PRICE_FIT_SCOPE
+    m5_fit=launch['run_scope']==authority.M5_PRICE_FIT_SCOPE
+    candidate_fit=m1_fit or m5_fit
     decimal_fit=launch['run_scope']==authority.DENSE_DECIMAL_FIT_SCOPE or candidate_fit
     input_launch=_fit_input_launch(launch,authority)
     binding_ref=common._hash_file(launch['execution_binding_path']);extra={};binding=common._read(binding_ref,extra)
@@ -778,10 +780,10 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         metadata=context['info']['metadata']
         review=common._read(launch['native_dense_qualification'],metadata)
         private_plan=common._read(review['plan'],metadata)
-        for ref in (private_plan['recipe'],review['result'],review['receipt'],review['idle_restore'],
+        for ref in (private_plan['recipe'],review['result'],review['receipt'],review['power_after' if m5_fit else 'idle_restore'],
                 launch['dense_evaluation_protocol']):
             common._read(ref,metadata)
-        if candidate_fit:
+        if m1_fit:
             common._read(launch['m1_pair_initial_parity'],metadata)
         initial=launch['decimal_initial_predictions']
         context['decimal_initial_predictions']=dict(initial)

@@ -164,10 +164,16 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
             and decimal_initial_predictions==context.get('decimal_initial_predictions'), 'DECIMAL_INITIAL_BINDING')
         extra_read_paths += (decimal_initial_predictions['path'],)
     if candidate_initial_predictions is not None:
-        from gx1.contracts.entry_native_direction_m1_fullfit_v1 import INITIALS
-        _require(candidate_initial_predictions in INITIALS.values()
-            and candidate_initial_predictions==context.get('decimal_initial_predictions')
-            and candidate_m1_refs==context.get('candidate_m1_refs'), 'CANDIDATE_INITIAL_BINDING')
+        if context.get('candidate_inputs')=={'mode':'price_only'}:
+            from gx1.contracts.entry_native_direction_m5_fullfit_v1 import INITIAL
+            candidate_bound=(candidate_initial_predictions==INITIAL and candidate_m1_refs is None
+                and context.get('candidate_m1_refs') is None)
+        else:
+            from gx1.contracts.entry_native_direction_m1_fullfit_v1 import INITIALS
+            candidate_bound=(candidate_initial_predictions in INITIALS.values() and candidate_m1_refs is not None
+                and candidate_m1_refs==context.get('candidate_m1_refs'))
+        _require(candidate_bound and candidate_initial_predictions==context.get('decimal_initial_predictions'),
+            'CANDIDATE_INITIAL_BINDING')
         extra_read_paths += (candidate_initial_predictions['path'],)
     if candidate_m1_refs is not None:
         refs=_candidate_m1_refs(candidate_m1_refs)
