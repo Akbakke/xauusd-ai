@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T19:05:01.059528+00:00",
-  "status": "M5_MOMENTUM_INTERVENTION_FINISHED_INDEPENDENT_REPLAY_ADMITTED",
+  "observed_utc": "2026-10-29T19:06:22.651999+00:00",
+  "status": "M5_MOMENTUM_INTERVENTION_INDEPENDENTLY_VERIFIED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Run the admitted CPU-only saved-output replay once; then close its gate and report source-confirmed indicator influence, limitations and next root-cause work.",
+  "next_action": "Trace the measured near-zero contribution through the existing projection, fusion and output path, using the fixed source and checkpoint evidence without retraining; identify a concrete mechanism before any further design change.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46473,7 +46473,7 @@
     "test_data_used": false
   },
   "independent_m5_momentum_intervention_20261029_003": {
-    "status": "COMPLETE_ONE_SHOT_CONSUMED_INDEPENDENT_REVIEW_PENDING",
+    "status": "COMPLETE_REVIEWED_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INTERVENTION_PLAN_20261029_003.json",
       "sha256": "477d30cb0c687cd3f688acacd0b0a7f565fd438e8ca68053923d72d9f00c70d2"
@@ -46543,11 +46543,19 @@
     },
     "guard_peak_power_draw_w": 147.48,
     "guard_peak_core_c": 48,
-    "guard_peak_memory_c": 52
+    "guard_peak_memory_c": 52,
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INDEPENDENT_20261029_001/RESULT.json",
+      "sha256": "3fc7e1b2c43d25e9af8c69b282605547af7750410d343a1ab37ac69989e52396"
+    },
+    "aggregated_report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_MOMENTUM_INTERVENTION_RESULT_20261029.md",
+      "sha256": "cda9d590457bc67fd44476ad428380efaa94e8478190a13345c388b3212f57ff"
+    }
   },
   "independent_m5_momentum_result_replay_20261029_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
+    "execution_authorized": false,
     "worker": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/m5_momentum_independent_20261029_001.py",
       "sha256": "13672515ebc6ef015b9fba10aab68c910171b5f826ec68f511737ec33a8fa69c"
@@ -46578,8 +46586,8 @@
     "class": "audit",
     "memory_max": "4G",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
@@ -46587,6 +46595,18 @@
     "test_data_used": false,
     "broker_access_allowed": false,
     "synthetic_rank_tie_checks": "PASS",
-    "scope": "Independently recompute 600 original/ablated rank, logloss and Brier panels and 600 train/development influence panels from the exact saved paired logits and original prediction inputs, on 60 horizons. Reuse the independent Mann-Whitney rank owner. No new model, training, TEST or trading; source-reported bootstrap intervals are not independently recomputed."
+    "scope": "Independently recompute 600 original/ablated rank, logloss and Brier panels and 600 train/development influence panels from the exact saved paired logits and original prediction inputs, on 60 horizons. Reuse the independent Mann-Whitney rank owner. No new model, training, TEST or trading; source-reported bootstrap intervals are not independently recomputed.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INDEPENDENT_20261029_001/RESULT.json",
+      "sha256": "3fc7e1b2c43d25e9af8c69b282605547af7750410d343a1ab37ac69989e52396"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INDEPENDENT_20261029_001/TERMINAL.json",
+      "sha256": "6d9bad9439b3b77fc3b134ffbc91e719f74cea244b3e4deea8cbb48f67538714"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_INDEPENDENT_20261029_001/CLAIM.json",
+      "sha256": "c0c6a8f48d795ce6ba2c2b8c4728efa4e9b853a4c44894aac480217b7f1d403a"
+    }
   }
 }
