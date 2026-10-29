@@ -1,0 +1,133 @@
+{
+  "schema_version": "gx1_m5_five_priority_candidate_design_v1",
+  "status": "PREDECLARED_NO_EXECUTION_AUTHORITY",
+  "research_question": "Can a single change to give 5-minute direction more training weight improve the existing fixed 5-minute development comparison without unacceptable loss across other future horizons?",
+  "rationale": "On 256 saved final-TRAIN parents, the 5-minute hidden-gradient norm was 0.08737 times that of the other 59 combined. Tenfold raw weighting would give approximately 0.874 times their norm at this fixed evaluated state, before common loss normalization. This is not a prediction of training behavior.",
+  "scope_note": "5 minutes is the existing comparison primary horizon, not a consequence of M5 entry cadence or a fixed holding rule. Retain and report all 60 future-minute heads.",
+  "candidate": {
+    "change": "BCE cell weight 10 at h=5 and 1 at each other h=1..60, divided by the sum of eligible weights in each batch",
+    "preserve_model_inputs_targets_and_seed": true,
+    "five_minute_weight": 10,
+    "other_horizon_weight": 1,
+    "horizon_minutes": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60
+    ]
+  },
+  "baseline": {
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_RECIPE_20261029.json",
+      "sha256": "14ba328acbaff66dadd1e6e6b40fda628badf0767ff414bde49fefa113c1eb71"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "11f2319ccf9c815473659465480982aabe6f7f4497201f70bfbcd333aeef4e90"
+    },
+    "later_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "f5df28a7e2ea830ac9f80ed7bf71825d52d390b322f9e3e929aadbe72543b4a4"
+    },
+    "scope": "Completed M5 price-only one-pass fit with unweighted 60-head BCE, same corrected targets and no M1 entry series/masks."
+  },
+  "fit": {
+    "train_parent_rows": 47602,
+    "batch_size": 16,
+    "max_optimizer_updates": 2976,
+    "passes": 1,
+    "fresh_own_initial_state": true,
+    "baseline_same_initial_logits_required": true,
+    "resume_private_qualification_required": true,
+    "qualification_weights_reused": false,
+    "separate_one_shot_plan_required": true,
+    "physical_restart_before_each_training_window": true,
+    "gpu_limit_during_and_after_w": 250,
+    "existing_power_draw_and_temperature_guards_preserved": true
+  },
+  "comparison": {
+    "first_later_rows": "Same predefined, reused Q1 2025 development parents as baseline; not untouched confirmation.",
+    "primary_minutes": 5,
+    "report_all_horizons": true,
+    "validate_exact_parent_clock_targets_before_scores": true,
+    "metrics": [
+      "auc",
+      "logloss",
+      "brier",
+      "accuracy",
+      "always_long_accuracy"
+    ],
+    "paired_day_and_week_intervals_for_primary": true,
+    "simultaneous_candidate_auc_intervals_all_60": true,
+    "no_horizon_or_parameter_search": true,
+    "training_predictive_or_economic_edge_claimed": false
+  },
+  "evidence": {
+    "train_gradient_diagnostic": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_HEAD_GRADIENT_20261029_002/RESULT.json",
+      "sha256": "f06e5bf47076812c5d5679309fac6bd1ee885434b751f345862cfc531905f251"
+    },
+    "price_momentum_trace": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_20261029_002/TRACE_RESULT.json",
+      "sha256": "a317baab48bdeaf49f0fcae93ab6e0621e2a6da833ba6dee71b7e20405267434"
+    }
+  },
+  "test_data_used": false,
+  "broker_orders_live_paper_exit_or_promotion_authorized": false
+}

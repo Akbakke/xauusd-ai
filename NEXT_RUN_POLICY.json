@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T19:44:38.710206+00:00",
-  "status": "M5_HEAD_GRADIENT_DIAGNOSTIC_COMPLETE",
+  "status": "M5_FIVE_PRIORITY_CANDIDATE_SOURCE_TESTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Predeclare and assess a single-factor five-minute-priority loss comparison against the existing M5 price-only one-pass fit, preserving all 60 heads and all input routes; examine minimum source and authority changes before any training.",
+  "next_action": "Integrate the single fixed 5-minute-priority loss as a separate bound research objective, preserve baseline behavior and exact initial model, then perform focused native/private qualification before any full fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -47137,5 +47137,26 @@
       "limitations": "Final evaluation-mode hidden-activation derivatives for 256 saved TRAIN parents, not historical optimizer-step or parameter gradients. Same-row, no independence or economic-edge claim."
     },
     "verification": "Result/terminal SHA, input bindings, fixed source, aggregate batch counts, cosine and vector norm identity independently checked; analytic formula against synthetic PyTorch autograd passed."
+  },
+  "direction_m5_five_priority_source_20261029_001": {
+    "status": "SYNTHETIC_SOURCE_TESTED_NO_EXECUTION",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FIVE_PRIORITY_DESIGN_20261029.json",
+      "sha256": "b4a06aaa2d723941c1b64a58fc5ec34ec6456642f71296a7bbac6788df98581b"
+    },
+    "loss_source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_five_priority_v1.py",
+      "sha256": "6619c96ec802aae3dcfe6894431b18a409964df62b2045ad7069cc1d3f1f7fa6"
+    },
+    "focused_tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_native_direction_five_priority_v1.py",
+      "sha256": "73efdcd5dd451305cdb624ef6d450abfd05636aebb68da9ed4f1d342894577bd"
+    },
+    "tests_passed": 7,
+    "scope": "One fixed tenfold 5-minute BCE cell weight; all 60 corrected targets preserved. Candidate code has no data/model/training authority; native integration and separate qualification remain outstanding.",
+    "training_authorized": false,
+    "model_forwards_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false
   }
 }

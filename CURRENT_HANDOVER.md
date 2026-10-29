@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — VEKTET FEMMINUTTERSHYPOTESE FORBEREDT: En enkelt forhåndsvalgt kandidat gir 5-minuttersceller 10 ganger vekten til hver av de øvrige 59, normalisert med samlet kvalifisert vekt. Faktor 10 bygger på målt TRAIN-gradientforhold, ikke utvalg etter Q1-score. Fem minutter er kun eksisterende sammenlignings primærhorisont; M5 er beslutningsfrekvens, og alle 60 mål beholdes og rapporteres. Separat objektiv og syntetiske maskerings-/gradienttester er bestått, men native integrasjon, privat kvalifisering og engangsplan gjenstår. Trening er stengt. Se NEXT_RUN_POLICY.
+
 29.10 — FEMMINUTTERS LÆRINGSSIGNAL MÅLT: Kontroll 002 er fullført og konsumert uten modellforward eller optimizer. I 256 lagrede TRAIN-foreldre utgjorde 5-minutterscellene 256/15 095 av de modne cellene. Ved felles hodeinput var normforholdet 5 minutter/øvrige 59 0,08737 og cosinus 0,01376; fire av 16 grupper hadde negativ cosinus. Dette er et ettertreningens evalueringspunkt, ikke målte parametergradienter under de opprinnelige treningsstegene. Se resultatrapport og NEXT_RUN_POLICY.
 
 29.10 — GRADIENTKONTROLL 001 FEILET VED JSON-LAGRING: Checkpoint og 256 TRAIN-score ble lest og beregningen utført, men NumPy-int64-tellinger kunne ikke serialiseres. Ingen RESULT eller suksesskvittering; claim og feil er bevart, planen er konsumert. En ny 002-kontroll har fokusert serialiseringstest i tillegg til autogradparitet, uendret vitenskapelig avgrensning og egen engangsåpning. Ingen modellforward eller optimizersteg. Se NEXT_RUN_POLICY.
