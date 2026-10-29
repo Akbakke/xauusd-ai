@@ -44029,6 +44029,16 @@
     "test_data_used": false,
     "economic_edge_qualified": false,
     "model_m5_contract_identity_and_symbol_mapping_independently_verified": false,
+    "m1_and_independent_006_symbol_order_and_roll_selection_verified": true,
+    "m1_and_006_roll_map_days_matched": 791,
+    "m1_and_006_roll_map_audit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/INDEPENDENT_M5_M1_ROLL_MAP.json",
+      "sha256": "29a4abff06a5faaf67d5bb3b57a2d52dbc169992589f9462249d7a34d6e6028e"
+    },
+    "m1_and_006_roll_map_script": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/independent_m5_m1_roll_map.py",
+      "sha256": "52d73ea214aa09f579dae8c163e4af59398a4530a2b449b4a51a0c9c1644e1ee"
+    },
     "independent_m5_contract_audit": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/INDEPENDENT_M5_CONTRACT_AUDIT.json",
       "sha256": "c67a031e8625424916d452c4141768c4831fd9c41d37ac5962593c6e16bb8f02"
