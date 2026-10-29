@@ -11,6 +11,12 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — 250 W-PRODUSENTRETTELSE KONTROLLERT: 15 fokuserte tester bestod, inkludert syntetiske sperrer ved faktisk trekk 171 W, konfigurert grense 251 W, kjerne 66 °C og minne 81 °C. Kun en eksakt hashbundet M5-intervensjonsplan 003 kan få 250 W konfigurert; øvrige produsenter beholder eksisterende grense. Historisk fit-runner og ny aktiv runner har hver sin kontrollerte kildebinding. Ingen modell er kjørt; neste steg er å binde én ny plan til testet kilde. Se NEXT_RUN_POLICY.
+
+29.10 — SNEVER 250 W-PRODUSENTRUTE UNDER KILDEKONTROLL: Kun eksakt hashbundet M5-intervensjonsplan 003 kan få 250 W konfigurert grense i CUDA-produsenten. Vakten for faktisk trekk 170 W, 65/80 °C, signert telemetri, GPU-minne, tids- og kapasitetsgrenser beholdes. Den fullstendige historiske fit-kildevalideringen og den opprinnelige Git-bloben kontrolleres separat fra den nye kjørende runnerens hash; de øvrige 62 fit-kildeeierne må fortsatt være byteidentiske. Koden må testes før en ny plan eventuelt bindes. Ingen modellkjøring er startet og ingen ny edge er målt. Se NEXT_RUN_POLICY.
+
+29.10 — M5 FIT-KILDEVALIDERING FULLFØRT OG KONSUMERT: Den eksisterende fit-validatoren passerte med alle 63 originale fysiske kildeeiere. Opprinnelig capped-runner og GPU-vakt samsvarte også bytevis med faktisk fit-commit 6b199953; 4 GB capped CPU, ingen modellforward, optimizer, checkpoint eller TEST. Kvitteringen er hashbundet og skal bevare historisk proveniens ved en eventuell separat, snever runnerendring. Ingen ny retningsscore. Se NEXT_RUN_POLICY.
+
 29.10 — KILDEFORKONTROLL 002 FEILET I STIKONTROLL: Ved ombinding ble referansen til den fullførte fit 001 feilaktig endret til en ikke-eksisterende fit 002. Ingen modell, checkpoint eller TEST ble åpnet. Forsøket er konsumert. I ny kontroll 003 er alle faste stier, fitreferansene og de 63 fysiske kildehashene forhåndskontrollert; kontrollen skal fortsatt validere hele fit-oppskriften. Se NEXT_RUN_POLICY.
 
 29.10 — KILDEFORKONTROLL 001 FEILET FØR PROSJEKTIMPORT: En CPU-jobb utenfor repoets kildekatalog fant ikke gx1-pakken. Ingen prosjektdata, modell, checkpoint eller TEST ble åpnet; forsøk 001 er konsumert og bevart. Ny kontroll 002 har eksplisitt kanonisk importsøkesti, kontrollert på forhånd, og samme avgrensning. Se NEXT_RUN_POLICY.

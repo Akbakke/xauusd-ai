@@ -6,6 +6,8 @@ an offline sensitivity test, not an executable model or a trading rule.
 """
 from __future__ import annotations
 import json
+import hashlib
+import subprocess
 import os
 from pathlib import Path
 import signal
@@ -16,8 +18,8 @@ import torch
 
 REPO=Path('/home/andre2/src/GX1_CURRENT')
 ROOT=Path('/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63')
-STAGE='independent_m5_momentum_intervention_20261029_002'
-OUTPUT_NAME='DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_002'
+STAGE='independent_m5_momentum_intervention_20261029_003'
+OUTPUT_NAME='DIRECTION_M5_MOMENTUM_INTERVENTION_20261029_003'
 BATCH=16
 STRIDE=10
 ARMS=('rsi14_centered','macd_line_atr','macd_hist_atr','ret_1','all_four')
@@ -40,6 +42,7 @@ SOURCE_PATHS=(
  'gx1/contracts/entry_model_native_bundle_commit_v1.py',
  'scripts/gx1_capped_run.sh', 'scripts/gx1_guarded_trainer_exec.sh',
  'tests/test_direction_m5_momentum_intervention_v1.py',
+ 'tests/test_direction_m5_momentum_power_guard_v1.py',
 )
 
 def require(value,why):
@@ -100,6 +103,25 @@ def influence_summary(sign,observed,terminal,baseline,ablated,cutoff):
             'ablated_correct_original_wrong':int(np.count_nonzero((new_dec==up)&(old_dec!=up)))})
     return out
 
+def verified_fit_source_transition(preflight, plan, launch, review, historical_runner):
+    """Retain full validated fit provenance while pinning the new live runner."""
+    runner='scripts/gx1_capped_run.sh';guard='scripts/gx1_guarded_trainer_exec.sh'
+    owners=launch['source_owners'];old_runner=owners[runner];new_runner=plan['sources'][runner]
+    historical=preflight['historical_and_current_execution_sources_equal']
+    require(preflight['status']=='PASS' and preflight['fit_authority_full_validation_passed'] is True
+        and preflight['review_and_fit_source_hashes_verified'] is True
+        and preflight['fit_source_owners_count']==len(owners)==63
+        and preflight['model_forward_calls']==preflight['optimizer_steps']==0
+        and preflight['test_data_used'] is False and preflight['recipe']==plan['inputs']['recipe']
+        and preflight['review']==plan['inputs']['fit_review']
+        and preflight['historical_fit_source_head']==review['source_commit']
+        and historical[runner]==old_runner and historical[guard]==owners[guard]
+        and plan['sources'][guard]==owners[guard] and new_runner['path']==old_runner['path']
+        and new_runner['sha256']!=old_runner['sha256']
+        and hashlib.sha256(historical_runner).hexdigest()==old_runner['sha256'], 'FIT_SOURCE_TRANSITION')
+    replacement=dict(owners);replacement[runner]=new_runner
+    return {**launch,'source_owners':replacement}
+
 def run(*,plan_path,plan_sha256,device,out_dir):
     from gx1.audit import direction_gc_mtf_intervention_v1 as gc
     from gx1.contracts import gx1_capped_execution_v1 as cap,local_random_access_campaign_v2 as binding
@@ -119,7 +141,7 @@ def run(*,plan_path,plan_sha256,device,out_dir):
     source_head,branch,dirty=candle.git_state();require(branch=='work/gx1-current' and not dirty,'INITIAL_SOURCE')
     with binding.fresh_file_verification_scope():
         plan=binding.read_bound_json(Path(plan_ref['path']),plan_ref['sha256'])
-        require(set(plan)=={'schema_version','stage','design','inputs','sources','output_dir','wall_seconds','batch_size','batch_stride','test_data_used'}
+        require(set(plan)=={'schema_version','stage','design','inputs','sources','fit_source_preflight','output_dir','wall_seconds','batch_size','batch_stride','test_data_used'}
             and plan['schema_version']=='gx1_m5_momentum_intervention_plan_v1' and plan['stage']==STAGE
             and plan['wall_seconds']==3300 and plan['batch_size']==BATCH and plan['batch_stride']==STRIDE
             and plan['test_data_used'] is False,'PLAN')
@@ -147,8 +169,20 @@ def run(*,plan_path,plan_sha256,device,out_dir):
         require(set(plan['inputs'])==keys,'INPUT_SET');meta={}
         for key in keys-{'checkpoint','oof_predictions','train_predictions','corrected_target'}:
             ref=plan['inputs'][key];meta[key]=binding.read_bound_json(Path(ref['path']),ref['sha256'])
-        launch=fit_authority.require_prefix_fit_launch_recipe(plan['inputs']['recipe'],source_repo=REPO,source_commit=source_head)
+        # The original complete fit validator ran before the runner was changed.
+        # Recheck its immutable receipt, the historical Git blob, all 62 other
+        # original source owners, and the currently bound runner separately.
+        preflight=binding.read_bound_json(Path(plan['fit_source_preflight']['path']),plan['fit_source_preflight']['sha256'])
+        previous_gate=policy['independent_m5_fit_source_preflight_20261029_003']
+        require(previous_gate['status']=='COMPLETE_CONSUMED' and previous_gate['result']==plan['fit_source_preflight']
+            and previous_gate['execution_authorized'] is False,'FIT_PREFLIGHT_GATE')
         fit=meta['fit_result'];review=meta['fit_review'];receipt=meta['fit_receipt'];oof=meta['oof_report'];train=meta['train_report']
+        launch=binding.read_bound_json(Path(plan['inputs']['recipe']['path']),plan['inputs']['recipe']['sha256'])
+        require(launch['recipe_sha256']==binding.canonical_sha256({k:v for k,v in launch.items() if k!='recipe_sha256'}),'FIT_RECIPE_SEAL')
+        subprocess.run(['git','merge-base','--is-ancestor',review['source_commit'],preflight['source_head']],cwd=REPO,check=True)
+        subprocess.run(['git','merge-base','--is-ancestor',preflight['source_head'],source_head],cwd=REPO,check=True)
+        historical_runner=subprocess.check_output(['git','show',review['source_commit']+':scripts/gx1_capped_run.sh'],cwd=REPO)
+        freeze_launch=verified_fit_source_transition(preflight,plan,launch,review,historical_runner)
         require(launch['run_scope']==fit_authority.M5_PRICE_FIT_SCOPE and launch['candidate_mode']=='price_only'
             and 'candidate_m1_refs' not in launch and launch['dense_target']==plan['inputs']['corrected_target']
             and review['status']=='PASS_CONSUMED_M5_PRICE_ONLY_FIT' and review['recipe']==plan['inputs']['recipe']
@@ -166,7 +200,9 @@ def run(*,plan_path,plan_sha256,device,out_dir):
             and meta['comparison_result']['test_data_used'] is meta['similarity_review']['test_data_used'] is False,'COMPARISON_LINEAGE')
         gc.require_synthetic_receipts(plan['inputs'],fit,meta['synthetic_test_terminal'],meta['synthetic_test_plan'])
         require(len(launch['source_owners'])==63,'FIT_SOURCE_COUNT')
-        for ref in launch['source_owners'].values():candle.regular(ref['path']);binding.require_binding(ref,label='fit source')
+        for name,ref in launch['source_owners'].items():
+            if name=='scripts/gx1_capped_run.sh':continue
+            candle.regular(ref['path']);binding.require_binding(ref,label='fit source')
         control_snapshot=binding.capture_verified_file_snapshot()
     hardware,lock=cap.require_guarded_cuda_producer_execution(),cap.require_capped_lock_ancestry()
     require(lock['scope']==hardware['cgroup_path'][len('/sys/fs/cgroup'):],'CAPPED_LOCK_SCOPE')
@@ -190,7 +226,7 @@ def run(*,plan_path,plan_sha256,device,out_dir):
         for ref in payloads:
             before=common._stat(ref['path']);require(common._hash_file(ref['path'])==ref,'PAYLOAD_SHA')
             context['info']['metadata'][ref['path']]={'ref':dict(ref),'stat':before}
-        freeze={'source_head':source_head,'policy':policy_ref};common._freeze(launch,freeze,context)
+        freeze={'source_head':source_head,'policy':policy_ref};common._freeze(freeze_launch,freeze,context)
         denied=common._install_read_guard(context,out_dir,out_dir,dense_target=context['dense_target'],decimal_original=context['decimal_original'])
         prepared,targets,view,_map,_order=window._prepare(context,input_launch,np,dense_minutes=True)
         names=('parent_rows','bar_start_ns','decision_ns','terminal_time_ns','observed','sign','logit_up');saved={}
@@ -262,9 +298,11 @@ def run(*,plan_path,plan_sha256,device,out_dir):
         npz_path=stage/'PAIRED_OUTPUTS.npz'
         with npz_path.open('xb') as handle:
             np.savez_compressed(handle,**{role+'__'+key:value for role,items in paired.items() for key,value in items.items()});handle.flush();os.fsync(handle.fileno())
-        common._freeze(launch,freeze,context);control_snapshot.require_unchanged();require(cap.require_capped_lock_ancestry()==lock and not denied,'FINAL_SOURCE_LOCK')
+        common._freeze(freeze_launch,freeze,context);control_snapshot.require_unchanged();require(cap.require_capped_lock_ancestry()==lock and not denied,'FINAL_SOURCE_LOCK')
         result={'schema_version':'gx1_m5_momentum_intervention_result_v1','status':'COMPLETE','plan':plan_ref,'source_head':source_head,
-            'fit_recipe':plan['inputs']['recipe'],'checkpoint':plan['inputs']['checkpoint'],'fold':fold,'field_order':list(routed),
+            'fit_recipe':plan['inputs']['recipe'],'fit_source_preflight':plan['fit_source_preflight'],
+            'historical_runner':launch['source_owners']['scripts/gx1_capped_run.sh'],'current_runner':plan['sources']['scripts/gx1_capped_run.sh'],
+            'checkpoint':plan['inputs']['checkpoint'],'fold':fold,'field_order':list(routed),
             'selection':{'train_saved_fixed_parents':len(paired['train']['parent_rows']),'train_batches':batch_counts['train'],
                 'oof_every_tenth_original_batch_parents':len(paired['oof']['parent_rows']),'oof_batches':batch_counts['oof'],'batch_size':BATCH,'batch_stride':STRIDE},
             'exact_saved_train_and_oof_logits_reproduced':True,'intervention':'Each selected XAU price feature is set to zero at its normalized, gated input to the shared momentum projection on all five timeframes; GC, local aliases, other inputs and projection bias remain.',

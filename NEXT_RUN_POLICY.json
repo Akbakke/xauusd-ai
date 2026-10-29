@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T18:37:21.856848+00:00",
-  "status": "M5_FIT_HISTORICAL_SOURCE_PREFLIGHT_003_ADMITTED",
+  "observed_utc": "2026-10-29T18:40:50.192045+00:00",
+  "status": "M5_INFERENCE_POWER_GUARD_TRANSITION_TESTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Run the single bounded metadata preflight using statically checked 003 paths and original completed fit 001; never relaunch earlier attempts.",
+  "next_action": "Bind a fresh one-shot M5 intervention 003 to the reviewed current source, completed historical fit preflight and existing model artifacts; retain all seals and never relaunch prior rejected plans.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46379,8 +46379,8 @@
     }
   },
   "independent_m5_fit_source_preflight_20261029_003": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "COMPLETE_CONSUMED",
+    "execution_authorized": false,
     "script": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/m5_fit_source_preflight_20261029_003.py",
       "sha256": "9639e36001f59fbbd1bde3faea8fdd6c7c055210f01b145a2398bb88cbfda195"
@@ -46395,8 +46395,8 @@
     },
     "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIT_SOURCE_PREFLIGHT_20261029_003.json",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "audit",
     "memory_max": "4G",
@@ -46411,6 +46411,41 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIT_SOURCE_PREFLIGHT_FAILURE_20261029_002.json",
       "sha256": "5705821f32d07ddd11725692fad9a365a4be61c91e33609a7a6b50290fb2ca80"
     },
-    "preflight_exact_inputs_and_63_physical_owner_hashes": "PASS"
+    "preflight_exact_inputs_and_63_physical_owner_hashes": "PASS",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIT_SOURCE_PREFLIGHT_20261029_003.json",
+      "sha256": "c8e91791e02f04078fe232576a9247bc3c406a8ab7574e3c77586bc8f4c29813"
+    }
+  },
+  "independent_m5_inference_power_guard_transition_20261029_001": {
+    "status": "SOURCE_REVIEWED_AND_SYNTHETIC_TESTED_NO_MODEL_EXECUTION",
+    "historical_fit_preflight": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIT_SOURCE_PREFLIGHT_20261029_003.json",
+      "sha256": "c8e91791e02f04078fe232576a9247bc3c406a8ab7574e3c77586bc8f4c29813"
+    },
+    "runner": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "3c330f06ea14831cdd130958252715f11ff7ea3513995e2b91e179550e588a2a"
+    },
+    "intervention_worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/direction_m5_momentum_intervention_v1.py",
+      "sha256": "4e59b4bd404f9460e2a495921b36bba275bdf67ed34f3d9f1690a3b09b681118"
+    },
+    "guard_tests": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_direction_m5_momentum_power_guard_v1.py",
+      "sha256": "e2ea13d2db3f423432675653bdfb4485e1f07df9217f69ab108fee557ced890a"
+    },
+    "scope": "Only exact hash-bound M5 momentum intervention 003 may use configured GPU limit 250 W; actual draw 170 W, 65/80 C thermal thresholds, GPU memory, signed telemetry, timeout, cgroup and lock remain. The fit historical runner is verified separately against its pinned completed preflight and historical Git blob; all 62 other fit sources remain byte-identical.",
+    "focused_test_count": 15,
+    "synthetic_guard_preflight_cases": [
+      "safe_250W",
+      "draw_171W_rejected",
+      "limit_251W_rejected",
+      "core_66C_rejected",
+      "memory_81C_rejected"
+    ],
+    "training_enabled": false,
+    "model_forward_authorized": false,
+    "test_data_used": false
   }
 }
