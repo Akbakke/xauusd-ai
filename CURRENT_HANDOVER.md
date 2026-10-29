@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — PRIVAT FEMMINUTTERSKVALIFISERING BESTÅTT OG STENGT: Fysisk boot 581; identisk initialmodell/buffere og 256 startprediksjoner mot eksisterende M5-fit, 32 unike TRAIN-foreldre, fire fysiske oppdateringer og byteidentisk resume. Alle 60 hoder og alle fire prisfelter fikk gradientkontakt. Signert vakt PASS, topp faktisk GPU 131,48 W, 50/56 °C; engangstask deaktivert, GPU beholdt 250 W konfigurert. Ingen senere score eller edge. En uavhengig lagret-skår-gjennomgang fant ulik 5-/6-minutts binærretning i 13 684/17 157 Q1-rader mot 2 423 faktiske fortegnsskifter; eldre modell 13 659. Dette er post-hoc og kan ikke alene bevise en feil eller edge. Se NEXT_RUN_POLICY.
+
 29.10 — PRIVAT ENGANGSKONTROLL BUNDET: Én privat M5 price_only-kvalifisering på 32 TRAIN-foreldre og fire fysiske oppdateringer er autorisert for den låste 10x-femminuttershypotesen. Den krever 256 identiske initialprediksjoner, identisk initialmodell/buffere og eksakt resume; ingen private vekter gjenbrukes til hovedtrening. Rengjort kilde- og 65-eierforkontroll bestod; maskinens faktiske boot 580 og 250 W konfigurert grense er avlest. Kampanjen skal klargjøres én gang, deretter kreves maskindekkende idle-/skrivekontroll og fysisk restart før kjøring. Full fit, TEST, broker og Exit er stengt. Se NEXT_RUN_POLICY.
 
 29.10 — PRIVAT OPPSKRIFT KILDEFORKONTROLLERT: Én separat M5 price_only-oppskrift binder den vektede kandidaten, 65 aktuelle kildeeiere, eksisterende data/fasit og tidligere initialreferanse. Metadata- og kildeforkontrollen passerte uten modellkall eller oppdateringer; den ble kjørt før commit og skal gjentas på ren commit. Ingen engangsplan, fysisk restart eller treningsautorisasjon er opprettet ennå. Se NEXT_RUN_POLICY.
