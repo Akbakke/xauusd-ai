@@ -1,0 +1,39 @@
+{
+  "schema_version": "gx1_direction_chronological_coverage_design_v1",
+  "stage": "independent_direction_chronological_coverage_20261030_001",
+  "status": "PREDECLARED_EXACT_SAVED_SCORE_REVIEW",
+  "question": "Across the four existing expanding chronological prefixes, what were corrected 1/5/15-minute direction scores and observed D1 GC history coverage in their own later quarters?",
+  "inputs": {
+    "fold_plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DENSE_MINUTE_TARGETS_PLAN_20261028_001.json",
+      "sha256": "2494af08975ee22c0ea546562141f5ff5bde52368e74716df40279539c31a96b"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "gc_transition": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/RAW_DOMAIN_TRANSITION.json",
+      "sha256": "98bc67279431199725ff64630dcce0687e6b0908bef0595724b8e861a7306a00"
+    },
+    "gc_layout": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/CURRENT_GC_LAYOUT.json",
+      "sha256": "c0cdc60447ceb303ebdcdc790716789585fb32c0c30918f5d58d030ad6baffde"
+    },
+    "d1_native_clock": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_ts.npy",
+      "sha256": "e3ed0e97376b178a2629341df88f859182a269b85ed19cd8cad3808c154d2a0f"
+    }
+  },
+  "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CHRONOLOGICAL_COVERAGE_REVIEW_20261030_001/OUTPUT",
+  "population": "All parents in four predefined distinct Q1–Q4 2025 development quarters, TRAIN prefixes strictly preceding each quarter; no model retraining or selection.",
+  "method": "Verify parent and target clocks/observation masks against corrected 60-head targets; rescore original saved 1/5/15 logits using corrected signs, strict terminal maturity and no ties. Reconstruct observed D1 volume count in each exact 252-row historical window. Report each horizon and simple baselines descriptively.",
+  "interpretation": "Different expanding prefixes and different market quarters vary together. No causal claim about training exposure or D1 coverage, no independent holdout and no selection from reused development. Older three-head models were fitted to original float labels.",
+  "max_invocations": 1,
+  "wall_seconds": 600,
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "raw_event_reads": false,
+  "test_data_used": false,
+  "broker_orders_live_paper_exit_or_promotion_authorized": false
+}

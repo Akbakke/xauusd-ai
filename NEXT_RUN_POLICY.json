@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T23:17:00.634104+00:00",
-  "status": "M5_FIVE_PRIORITY_COMPARISON_COMPLETE_NO_DIRECTION_EDGE",
+  "observed_utc": "2026-10-29T23:21:51.619030+00:00",
+  "status": "DIRECTION_CHRONOLOGICAL_COVERAGE_REVIEW_AUTHORIZED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "The M5 five-priority fit and its fixed comparison are consumed. Training and all trading ports remain closed; any new factor requires its own exact source/data binding and capped admission. Preserve all 60 heads, M5/MTF, eight specialists and D1/macro; TEST, Exit, broker, orders, paper/live, spending and promotion stay closed.",
-  "next_action": "Continue independent direction work: treat the measured D1-GC history gap and candle-event-clock limit as open, inspect qualified data before any change, and prepare separately bound controls for 60-head bps supervision and extra TRAIN exposure. Reused Q1 cannot confirm edge. Do not relaunch either consumed fit or comparison.",
+  "rule": "Only the separately bound one-shot CPU review of saved Q1–Q4 2025 forecasts, corrected labels and D1 GC coverage is authorized. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
+  "next_action": "Run the bounded saved-score review once under audit4G with exact target/clock bindings; report observational results without attributing changes to exposure or D1 coverage, then close the review port. Prepare separate 60-head bps and extra-exposure controls after this review.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -47553,5 +47553,31 @@
     "limitation": "Only checked fields and historical selected windows; source nominal timestamps do not prove local arrival, true quote-event time, fills or economic edge. Unequal D1 coverage is real but causation not proven. Prior all-GC-history ablation used another model and did not isolate D1.",
     "test_data_used": false,
     "broker_access_allowed": false
+  },
+  "independent_direction_chronological_coverage_20261030_001": {
+    "status": "AUTHORIZED_SAVED_SCORE_REVIEW",
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_CHRONOLOGICAL_COVERAGE_REVIEW_20261030.json",
+      "sha256": "9e779d852459dd30629753057c5e8440fe3e73247c9e0b028415b94c30598393"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CHRONOLOGICAL_COVERAGE_REVIEW_20261030_001/review_chronological_coverage_once.py",
+      "sha256": "60de050463a1a3ed1ec2a73aa6ddfd440566ed66b3290b5a9d61f2ddb8c0199b"
+    },
+    "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CHRONOLOGICAL_COVERAGE_REVIEW_20261030_001/OUTPUT",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "scope": "Only the four existing pre-2026 chronological 3-head OOF prediction files, corrected label anchors and already-qualified D1 mask windows; no model, raw events, TEST, training, trade, selection or promotion."
   }
 }
