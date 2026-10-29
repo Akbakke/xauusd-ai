@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T14:20:18.325288+00:00",
-  "status": "MATCHED_M1_M5_COARSENED_ONEPASS_PREPARATION_AUTHORIZED",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "observed_utc": "2026-10-29T15:08:27.830151+00:00",
+  "status": "USER_STOPPED_M1_ARM_M5_ENTRY_REALIGNMENT_IN_PROGRESS",
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the exact bound coarsened matched M1/M5 one-pass prefix fit may be prepared and run in its finite guarded campaign. The ordered arm remains closed until control completes and is reviewed. Preserve genuine inputs, eight families, D1/macro, hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending, promotion or qualification weight reuse.",
-  "next_action": "Await explicit approval of the two sequential, capacity-matched private qualification campaigns; full fitting, the separate conditional audit, TEST and trading remain unadmitted.",
+  "rule": "User stopped the prior M1 arm. Prepare a new strict M5-entry direction route with closed M5 and higher timeframes, compact RSI/MACD and corrected 1–60-minute targets; preserve eight specialists, D1/macro, hardware guards, 250 W configured limit and sealed TEST. M1/tick after position open is future scope. Never resume the stopped one-shot. No broker, order, live/paper, Exit, spending or promotion.",
+  "next_action": "Qualify and bind the existing price_only M5 input route with exact source/target identity, then prepare a new bounded fresh fit and predeclared chronological comparison under the existing physical restart and hardware guards.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -26287,7 +26287,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": true,
+  "native_launch_authorized": false,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -45663,17 +45663,17 @@
     "economic_edge_qualified": false
   },
   "dynamic_m5_direction_matched_m1_coarsened_onepass_fit_20261029_001": {
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -45682,20 +45682,20 @@
     "full_val_allowed": false,
     "relaunch_allowed": false,
     "qualification_weights_for_main_fit": false,
-    "status": "AUTHORIZED_EXACT_ONEPASS_PREPARATION",
-    "campaign_preparation_authorized": true,
+    "status": "USER_STOPPED_ABORTED_CONSUMED_NO_EVALUATION",
+    "campaign_preparation_authorized": false,
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_COARSENED_ONEPASS_FIT_RECIPE_20261029.json",
       "sha256": "e2c8b4a3bcdddc353d80a75b80864094377bd3107a2b57d513a22b8522d5a39a"
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_ONEPASS_FIT_20261029_001/RUNTIME",
     "max_invocations": 4,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "train_parents": 47602,
     "max_optimizer_updates": 2976,
     "train_passes": 1,
-    "physical_restart_before_each_invocation_authorized": true,
+    "physical_restart_before_each_invocation_authorized": false,
     "requested_physical_gpu_power_limit_w": 250,
     "test_or_trading_authority": false,
     "scope": "One fresh matched M1/M5 RSI/MACD model, one TRAIN-prefix pass and fixed reused-Q1 1–60 minute direction evaluation; qualification weights not reused. Sequential arms only.",
@@ -45703,7 +45703,33 @@
       "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler på deg. kjør M1 og M5 test",
       "scope": "matched sequential offline M1/M5 direction test with bounded training and fixed development evaluation",
       "recorded_utc": "2026-10-29T14:20:18.325046+00:00"
-    }
+    },
+    "user_stop_request": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_ONEPASS_FIT_20261029_001/USER_STOP_M5_SCOPE_20261029_001.json",
+      "sha256": "119d3d706302fd270490062d25e2127fdfbd79532191a952c92822b1bafd3fc9"
+    },
+    "last_durable_checkpoint_metadata": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_ONEPASS_FIT_20261029_001/RUNTIME/prefix-fit/window-0001/CHECKPOINT_u001024_p016384.json",
+      "sha256": "b48259a4bd6ef84139a6bb6daa303be866f5d5a8977291a3dad555f0ab91de08"
+    },
+    "signed_guard_after_stop": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_ONEPASS_FIT_20261029_001/RUNTIME/logs/invocation-0001.signed-guard.log",
+      "sha256": "cebb036f4b138225f4cc22135f8d305d86b4db3f5287b0e74fe5555e5fd9e47a"
+    },
+    "active_marker_retained": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_ONEPASS_FIT_20261029_001/RUNTIME/ACTIVE_INVOCATION.json",
+      "sha256": "d8f1b292407b2f8788e61177235b62e7fee6f181b61f357cac3935db390bd785"
+    },
+    "terminal_receipt_missing_after_signal": true,
+    "scheduled_task_disabled_after_stop": true,
+    "post_stop_power_receipt": {
+      "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/POWER_RETAIN_M1_COARSE_FIT_20261029_001.json",
+      "sha256": "a1b1c5e65ca9c550a31d16127c5b92f309343be2134ffb5a4b82a36b6465e8c5"
+    },
+    "last_durable_optimizer_updates": 1024,
+    "last_durable_train_parents": 16384,
+    "actual_progress_at_signal_unknown": true,
+    "economic_edge_qualified": false
   },
   "dynamic_m5_direction_matched_m1_ordered_onepass_fit_20261029_001": {
     "execution_authorized": false,
@@ -45725,7 +45751,7 @@
     "full_val_allowed": false,
     "relaunch_allowed": false,
     "qualification_weights_for_main_fit": false,
-    "status": "PREPARED_NOT_YET_ADMITTED",
+    "status": "SUPERSEDED_BY_USER_M5_ENTRY_SCOPE_NOT_RUN",
     "campaign_preparation_authorized": false,
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_ORDERED_ONEPASS_FIT_RECIPE_20261029.json",
@@ -45747,5 +45773,25 @@
       "scope": "matched sequential offline M1/M5 direction test with bounded training and fixed development evaluation",
       "recorded_utc": "2026-10-29T14:20:18.325267+00:00"
     }
+  },
+  "direction_m5_entry_scope_reaffirmation_20261029": {
+    "status": "M5_ONLY_SOURCE_PREPARATION_REQUIRED_AFTER_USER_STOP",
+    "decision_cadence_seconds": 300,
+    "entry_input": "M5 and closed higher timeframes with RSI14, MACD line/histogram and ret_1; no separate M1 values or minute masks",
+    "minute_outcomes": "corrected 1..60 elapsed minutes after M5 decision",
+    "after_open_position_management": "M1 and later tick; future wave, not admitted in this entry wave",
+    "specialists": "preserve eight specialist families and D1/macro",
+    "user_requested_stop_and_restart_with_correct_scope": true,
+    "user_stop_request": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_MATCHED_M1_COARSENED_ONEPASS_FIT_20261029_001/USER_STOP_M5_SCOPE_20261029_001.json",
+      "sha256": "119d3d706302fd270490062d25e2127fdfbd79532191a952c92822b1bafd3fc9"
+    },
+    "configured_gpu_limit_w_during_and_after_training": 250,
+    "thermal_guard_retained": true,
+    "old_campaign_relaunch_allowed": false,
+    "training_enabled": false,
+    "test_or_trading_authority": false,
+    "genuine_price_only_qualification_complete": false,
+    "pure_m5_trained_model_complete": false
   }
 }
