@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — PRIVAT ENGANGSKONTROLL BUNDET: Én privat M5 price_only-kvalifisering på 32 TRAIN-foreldre og fire fysiske oppdateringer er autorisert for den låste 10x-femminuttershypotesen. Den krever 256 identiske initialprediksjoner, identisk initialmodell/buffere og eksakt resume; ingen private vekter gjenbrukes til hovedtrening. Rengjort kilde- og 65-eierforkontroll bestod; maskinens faktiske boot 580 og 250 W konfigurert grense er avlest. Kampanjen skal klargjøres én gang, deretter kreves maskindekkende idle-/skrivekontroll og fysisk restart før kjøring. Full fit, TEST, broker og Exit er stengt. Se NEXT_RUN_POLICY.
+
 29.10 — PRIVAT OPPSKRIFT KILDEFORKONTROLLERT: Én separat M5 price_only-oppskrift binder den vektede kandidaten, 65 aktuelle kildeeiere, eksisterende data/fasit og tidligere initialreferanse. Metadata- og kildeforkontrollen passerte uten modellkall eller oppdateringer; den ble kjørt før commit og skal gjentas på ren commit. Ingen engangsplan, fysisk restart eller treningsautorisasjon er opprettet ennå. Se NEXT_RUN_POLICY.
 
 29.10 — PRIVAT FEMMINUTTERSKVALIFISERING FORBEREDT: 91 fokuserte tester bestod. Kildekontrollen gjenkjenner alle 63 eierne fra den tidligere fit-en og bare syv erklærte endrede kodeeiere; Dense.forward og øvrige ikke-erklærte definisjoner er AST-uendret. Den faktiske private kjøringen skal kreve identisk startmodell, buffere og 256 prediksjoner før fire private oppdateringer og byteidentisk resume. Bare kilde/test er gjort; engangsplan, maskindekkende idle-/skrivekontroll og fysisk restart gjenstår. Trening og TEST er stengt. Se NEXT_RUN_POLICY.

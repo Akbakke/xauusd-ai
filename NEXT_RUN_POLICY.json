@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T19:44:38.710206+00:00",
-  "status": "M5_FIVE_PRIORITY_PRIVATE_RECIPE_PREFLIGHT",
-  "training_enabled": false,
+  "status": "M5_FIVE_PRIORITY_PRIVATE_BOUND_FOR_CAMPAIGN_PREPARATION",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Revalidate the committed private recipe and 65 source owners, prepare a distinct one-shot plan, then execute only after machine-wide idle/write check and physical reboot. Keep full-fit and trading gates closed.",
+  "next_action": "Prepare exactly one private four-update campaign from the bound priority recipe; verify source/boot and all machine-wide idle and writer checks before physical restart. No full fit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -47237,5 +47237,64 @@
       "test_data_used": false,
       "post_commit_revalidation_required": true
     }
+  },
+  "dynamic_m5_direction_five_priority_private_20261029_001": {
+    "status": "AUTHORIZED_EXACT_PRIVATE_QUALIFICATION",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FIVE_PRIORITY_PRIVATE_RECIPE_20261029.json",
+      "sha256": "dc637459d1222a16a4a48f4575f9ce4443e97247206fbb2b1cbe69fc4befb011"
+    },
+    "protocol": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FIVE_PRIORITY_DESIGN_20261029.json",
+      "sha256": "b4a06aaa2d723941c1b64a58fc5ec34ec6456642f71296a7bbac6788df98581b"
+    },
+    "source_review": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FIVE_PRIORITY_SOURCE_REVIEW_20261029.json",
+      "sha256": "3867cecc4f3a9b8ed2b2054997cb39493a221ab335f0a5d206ea5bbc401fe628"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_PRIVATE_20261029_001/RUNTIME",
+    "candidate_mode": "price_only",
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "max_private_optimizer_steps": 4,
+    "requested_physical_gpu_power_limit_w": 250,
+    "retain_physical_gpu_power_limit_w_afterward": true,
+    "qualification_weights_for_main_fit": false,
+    "physical_restart_before_invocation_authorized": true,
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_PRIVATE_20261029_001/materialize_research_campaign_once.py",
+      "sha256": "139a2f627de4987da137782f65620521ebb73e7253c1fe0760aefc2b7d144da1"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_PRIVATE_20261029_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "09916cba929c1207f6c26f39cac6504ef3c65fde0911a63bbf69b6ecb1270008"
+    },
+    "source_preflight": {
+      "status": "PASS_COMMITTED_CLEAN_SOURCE",
+      "source_commit": "2fe09083ba27b3b22448556e255fc9dd496ed123",
+      "physical_source_owners_verified": 65,
+      "model_forward": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false
+    },
+    "user_authorization": "Direct independent direction work without repeated approvals; M5 decision cadence, 60 heads, physical restart and retained 250W limit."
   }
 }
