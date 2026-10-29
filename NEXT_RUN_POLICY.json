@@ -44219,6 +44219,8 @@
     "focused_synthetic_tests_passed": 32,
     "economic_edge_qualified": false,
     "pre_admission_rejection_verified_before_payload_and_claim": true,
-    "pre_admission_source_commit": "c414dafc"
+    "pre_admission_source_commit": "c414dafc",
+    "synthetic_fit_passed_under_no_model_profile": true,
+    "synthetic_profile_torch_imported": false
   }
 }
