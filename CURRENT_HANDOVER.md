@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — KILDEFORKONTROLL 001 FEILET FØR PROSJEKTIMPORT: En CPU-jobb utenfor repoets kildekatalog fant ikke gx1-pakken. Ingen prosjektdata, modell, checkpoint eller TEST ble åpnet; forsøk 001 er konsumert og bevart. Ny kontroll 002 har eksplisitt kanonisk importsøkesti, kontrollert på forhånd, og samme avgrensning. Se NEXT_RUN_POLICY.
+
 29.10 — HISTORISK FIT-KILDEKONTROLL ÅPNET: Én 4 GB CPU-metadatajobb skal kontrollere den fullførte M5-fitens opprinnelige oppskrift og 63 fysiske kildeeiere mens runneren fortsatt har treningens hash, samt kontrollere Git-kilde ved faktisk fit-commit. Dette er nødvendig før en eventuell snever justering av produsentens effektvakt; ingen modell, checkpoint, TRAIN/VAL-markedslesing, TEST eller handel er åpnet. Se NEXT_RUN_POLICY for eksakt engangsadgang.
 
 29.10 — INTERVENSJON 002 AVVIST FØR MODELL/DATA: CUDA-produsentens eksisterende signerte preflight målte 250 W konfigurert grense og stoppet med exit 75 fordi denne ruten fortsatt har 160 W-grense, selv om brukerens gjeldende policy er 250 W. Ingen claim, outputmappe, modellforward eller dataåpning; logg og avvisningskvittering er bevart. Plan 002 er lukket og konsumert. Produsentens separate faktiske effektgrense er 170 W; temperatur-, telemetri- og kapasitetsvakter skal beholdes. Å endre capped-runner berører den historisk hashbundne fit-kilden og krever derfor en korrekt kildeovergang før ny engangsplan. Ingen ny retningseffekt er målt. Se NEXT_RUN_POLICY.

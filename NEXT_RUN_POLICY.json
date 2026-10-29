@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T18:35:26.732887+00:00",
-  "status": "M5_FIT_HISTORICAL_SOURCE_PREFLIGHT_001_ADMITTED",
+  "observed_utc": "2026-10-29T18:36:14.402626+00:00",
+  "status": "M5_FIT_HISTORICAL_SOURCE_PREFLIGHT_002_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Run the one bounded metadata-only preflight before any runner source change; then close it and review an exact source transition.",
+  "next_action": "Run the new bounded metadata-only preflight with the verified canonical project import path; never relaunch preflight 001.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -46306,8 +46306,8 @@
     }
   },
   "independent_m5_fit_source_preflight_20261029_001": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
+    "status": "FAILED_CONSUMED_BEFORE_PROJECT_IMPORT",
+    "execution_authorized": false,
     "script": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/m5_fit_source_preflight_20261029_001.py",
       "sha256": "19f36a5c062582c5537f0bea330ec8fbb205a8ee86bbcae39a87e2d76d82f5e4"
@@ -46332,6 +46332,45 @@
     "checkpoint_read_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false,
-    "scope": "Validate the completed M5 fit recipe and all 63 physical source owners while the original runner is still current; verify its Git blob and unchanged guard at the recorded fit commit. No model, checkpoint, TRAIN/VAL payload or sealed TEST access."
+    "scope": "Validate the completed M5 fit recipe and all 63 physical source owners while the original runner is still current; verify its Git blob and unchanged guard at the recorded fit commit. No model, checkpoint, TRAIN/VAL payload or sealed TEST access.",
+    "attempts": 1,
+    "failure_receipt": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIT_SOURCE_PREFLIGHT_FAILURE_20261029_001.json",
+      "sha256": "56556d35dbbc163027fdd509fbb8037d99a7a4327be7d90cd4ec4a7fb8cd563a"
+    }
+  },
+  "independent_m5_fit_source_preflight_20261029_002": {
+    "status": "ADMITTED",
+    "execution_authorized": true,
+    "script": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/m5_fit_source_preflight_20261029_002.py",
+      "sha256": "56fda4da69d141662a3e5d69a5ee65f82f822931b1cf51ec5a6ad39090256918"
+    },
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_RECIPE_20261029.json",
+      "sha256": "14ba328acbaff66dadd1e6e6b40fda628badf0767ff414bde49fefa113c1eb71"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_PRICE_ONLY_ONEPASS_FIT_20261029_001/ACTUAL_FIT_REVIEW_001.json",
+      "sha256": "922aede63c4ecb21223caf6d13d9395124573d5f5e1ba088e26bdd3bc46f1c9e"
+    },
+    "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIT_SOURCE_PREFLIGHT_20261029_002.json",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "audit",
+    "memory_max": "4G",
+    "training_enabled": false,
+    "model_forward_authorized": false,
+    "checkpoint_read_authorized": false,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "scope": "Validate the completed M5 fit recipe and all 63 physical source owners while the original runner is still current; verify its Git blob and unchanged guard at the recorded fit commit. No model, checkpoint, TRAIN/VAL payload or sealed TEST access.",
+    "preflight_import_test": "PASS",
+    "supersedes_failed": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIT_SOURCE_PREFLIGHT_FAILURE_20261029_001.json",
+      "sha256": "56556d35dbbc163027fdd509fbb8037d99a7a4327be7d90cd4ec4a7fb8cd563a"
+    }
   }
 }
