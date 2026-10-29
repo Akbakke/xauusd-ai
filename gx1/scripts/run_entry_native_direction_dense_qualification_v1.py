@@ -70,17 +70,19 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits=require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(
         policy_path,policy_file_sha256,progress_path)
-    decimal=launch['run_scope']==authority.DECIMAL_PRIVATE_SCOPE
-    _require(launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE)
-        and invocation['batch_size']==16, 'EXACT_SCOPE')
+    candidate=launch['run_scope']==prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    decimal=launch['run_scope']==authority.DECIMAL_PRIVATE_SCOPE or candidate
+    _require(launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
+        prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE) and invocation['batch_size']==16
+        and (not candidate or launch.get('candidate_mode') in ('price_only','price_and_m1')), 'EXACT_SCOPE')
     sys.dont_write_bytecode=True
     import numpy as np
     import torch
     from gx1.contracts.entry_model_native_train_recipe_v1 import require_native_direction_research_recipe
     from gx1.contracts import entry_native_direction_research_state_v1 as state_owner
-    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as prefix
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
@@ -105,9 +107,10 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         and proof.get('test_cases_passed')==6 and isinstance(proof.get('counters'),dict)
         and set(proof['counters'])=={'cuda_initializations','fit_calls','native_model_calls','optimizer_steps','payload_loads'}
         and all(v==0 for v in proof['counters'].values()), 'GC_METADATA_PROOF')
-    actual_launch={**launch,'run_scope':prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE if decimal else prefix_authority.DENSE_SCOPE}
+    actual_launch={**launch,'run_scope':(prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE if candidate
+        else prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE if decimal else prefix_authority.DENSE_SCOPE)}
     context=prefix._launch_metadata(actual_launch,common);context['info']['metadata'].update(extra)
-    if decimal:
+    if decimal and not candidate:
         ref=launch['decimal_initial_predictions']
         _require(ref==authority.DECIMAL_INITIAL_PREDICTIONS, 'DECIMAL_INITIAL_REFERENCE')
         context['decimal_initial_predictions']=dict(ref)
@@ -119,7 +122,8 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     output=Path(window['output_directory']);output.mkdir(parents=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),dense_target=context['dense_target'],
         decimal_original=context.get('decimal_original') if decimal else None,
-        decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal else None)
+        decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal and not candidate else None,
+        candidate_m1_refs=context.get('candidate_m1_refs') if candidate else None)
     counters={key:0 for key in ('model_constructions','model_construction_returns','optimizer_constructions',
         'forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns',
@@ -173,7 +177,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
                     ceiling=17,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
                 _require(count==256 and measured['initial_parity_passed']
                     and measured['arrays']['logit_up'].shape==(256,60), 'FRESH_DENSE_INITIAL')
-                if decimal:
+                if decimal and not candidate:
                     require_decimal_initial_prediction_parity(measured['arrays'],context['decimal_initial_predictions'],np=np)
                     decimal_initial_checked=True
                 initial_prediction=prefix._save_predictions(output/'INITIAL_TRAIN.npz',measured['arrays'],np=np,common=common,tree_sha=tree_sha)
@@ -226,14 +230,20 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         signal.alarm(0);signal.signal(signal.SIGALRM,old_handler);sys.setprofile(previous)
     after=common._io()
     if after['rchar']>io_budget:error='RCHAR_BUDGET_EXCEEDED'
-    passed=initial_checked and parity and unchanged and error is None and (not decimal or (decimal_prior_checked and decimal_initial_checked))
+    passed=initial_checked and parity and unchanged and error is None and (not decimal or (decimal_prior_checked and (candidate or decimal_initial_checked)))
     outcome='COMPLETE' if passed else 'FAILED'
-    result=common._json(output/'RESULT.json',{'schema_version':('gx1_native_decimal_dense_private_qualification_result_v1' if decimal else 'gx1_native_dense_private_qualification_result_v1'),
-        'decision':(('PASS_DECIMAL_DENSE_NATIVE_MECHANICS' if decimal else 'PASS_DENSE_NATIVE_MECHANICS') if passed else 'FAILED'),
+    result=common._json(output/'RESULT.json',{'schema_version':('gx1_native_m1_price_private_qualification_result_v1' if candidate
+        else 'gx1_native_decimal_dense_private_qualification_result_v1' if decimal else 'gx1_native_dense_private_qualification_result_v1'),
+        'decision':(('PASS_M1_PRICE_PRIVATE_MECHANICS' if candidate else 'PASS_DECIMAL_DENSE_NATIVE_MECHANICS' if decimal
+            else 'PASS_DENSE_NATIVE_MECHANICS') if passed else 'FAILED'),
         **({'decimal_input_audit':launch['decimal_input_audit'],'decimal_target_refs':launch['decimal_target_refs'],
             'decimal_initial_predictions':launch['decimal_initial_predictions'],
             'decimal_initial_prediction_byte_parity':decimal_initial_checked,
-            'decimal_prior_against_sign_audit':decimal_prior_checked} if decimal else {}),'recipe':window['recipe'],
+            'decimal_prior_against_sign_audit':decimal_prior_checked} if decimal and not candidate else {}),
+        **({'candidate_mode':launch['candidate_mode'],'candidate_m1_refs':launch.get('candidate_m1_refs'),
+            'own_candidate_initial_measured':initial_checked,'previous_model_initial_used':False,
+            'decimal_input_audit':launch['decimal_input_audit'],'decimal_target_refs':launch['decimal_target_refs'],
+            'decimal_prior_against_sign_audit':decimal_prior_checked} if candidate else {}),'recipe':window['recipe'],
         'execution_binding':binding_ref,'counts':{k:v for k,v in counters.items() if k!='json_bytes'},
         'initial_evaluation_counts':evaluation,'initial_state':initial,'initial_identity_sha256':initial_identity,
         'initial_predictions':locals().get('initial_prediction'),'own_prefix_prior':prior,

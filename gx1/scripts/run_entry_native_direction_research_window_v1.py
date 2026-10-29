@@ -454,6 +454,7 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits=require_guarded_cuda_trainer_execution()
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(policy_path,policy_file_sha256,progress_path)
     if launch['run_scope'] in (authority.BPS_SCOPE, authority.WEIGHT_SCOPE):
         from gx1.scripts.run_entry_native_direction_bps_qualification_v1 import run_bps_qualification
@@ -461,7 +462,8 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     if launch['run_scope'] in (authority.ORDER_PRIVATE_SCOPE, authority.ORDER_SUPPORTED_SCOPE):
         from gx1.scripts.run_entry_native_direction_order_qualification_v1 import run_order_qualification
         return run_order_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
-    if launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE):
+    if launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
+            prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE):
         from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import run_dense_qualification
         return run_dense_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     sys.dont_write_bytecode=True

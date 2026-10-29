@@ -27,12 +27,16 @@ def test_fixed_supported_parents_are_not_reselected():
             worker.select_qualification_parents(ordered,diagnostics,wrong,np=np)
 
 
-def test_guarded_dispatcher_selects_only_explicit_dense_scope(monkeypatch,tmp_path):
+@pytest.mark.parametrize('scope',['dense','decimal','candidate'])
+def test_guarded_dispatcher_selects_only_explicit_dense_scope(monkeypatch,tmp_path,scope):
     from gx1.scripts import run_entry_native_direction_research_window_v1 as dispatcher
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
+    scopes={'dense':authority.DENSE_PRIVATE_SCOPE,'decimal':authority.DECIMAL_PRIVATE_SCOPE,
+        'candidate':prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE}
     calls=[]
     monkeypatch.setattr(capped,'require_guarded_cuda_trainer_execution',lambda:calls.append('guard') or {})
     monkeypatch.setattr(authority,'require_native_direction_research_context',lambda *args:
-        (None,None,None,None,{'run_scope':authority.DENSE_PRIVATE_SCOPE}))
+        (None,None,None,None,{'run_scope':scopes[scope]}))
     monkeypatch.setattr(worker,'run_dense_qualification',lambda **kwargs:calls.append('dense') or {'scope':'synthetic'})
     result=dispatcher.run_native_direction_research_window(policy_path=tmp_path/'policy',
         policy_file_sha256='0'*64,progress_path=tmp_path/'progress')
@@ -90,8 +94,8 @@ def test_failed_dense_worker_publishes_failure_before_nonzero_exit(monkeypatch,t
     assert published['progress.json']=={'outcome':'FAILED','terminal':True}
 
 
-@pytest.mark.parametrize('decimal',[False,True])
-def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_path,decimal):
+@pytest.mark.parametrize('variant',['dense','decimal','price_only','price_and_m1'])
+def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_path,variant):
     from copy import deepcopy
     from pathlib import Path
     import torch
@@ -100,6 +104,7 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
     from gx1.contracts import entry_native_direction_research_state_v1 as state_owner
     from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as prefix
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    decimal=variant!='dense';candidate=variant in ('price_only','price_and_m1');legacy_decimal=decimal and not candidate
     def ref(name):return {'path':str(tmp_path/name),'sha256':'a'*64}
     recipe=recipes.native_direction_research_recipe(batch_size=16,max_updates=2,dense_minutes=True)
     launch={'run_scope':authority.DENSE_PRIVATE_SCOPE,'numerical_recipe':recipe,'execution_binding_path':str(tmp_path/'binding'),
@@ -108,8 +113,13 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
         'max_published_json_bytes':33554432,'max_checkpoint_bytes':1073741824}
     if decimal:
         launch.update(run_scope=authority.DECIMAL_PRIVATE_SCOPE,decimal_input_audit=ref('decimal-audit'),
-            decimal_target_refs={'original':ref('original')},decimal_initial_predictions=ref('initial-predictions'))
-        monkeypatch.setattr(authority,'DECIMAL_INITIAL_PREDICTIONS',ref('initial-predictions'))
+            decimal_target_refs={'original':ref('original')})
+        if legacy_decimal:
+            launch['decimal_initial_predictions']=ref('initial-predictions')
+            monkeypatch.setattr(authority,'DECIMAL_INITIAL_PREDICTIONS',ref('initial-predictions'))
+        if candidate:
+            launch.update(run_scope=prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,candidate_mode=variant)
+            if variant=='price_and_m1':launch['candidate_m1_refs']={'synthetic':'exact'}
     window={'recipe':ref('recipe'),'output_directory':str(tmp_path/'output'),'campaign_cursor_path':str(tmp_path/'cursor')}
     plan={'plan_sha256':'b'*64};invocation={'batch_size':16,'invocation_sha256':'c'*64}
     prior={key:[1]*60 for key in ('eligible_up','eligible_down')}
@@ -118,7 +128,7 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
     monkeypatch.setattr(capped,'require_guarded_cuda_trainer_execution',lambda:{})
     monkeypatch.setattr(authority,'require_native_direction_research_context',lambda *args:(window,plan,invocation,None,launch))
     monkeypatch.setattr(common,'_hash_file',lambda path:ref('initial-predictions')
-        if decimal and str(path)==ref('initial-predictions')['path'] else ref('binding'))
+        if legacy_decimal and str(path)==ref('initial-predictions')['path'] else ref('binding'))
     monkeypatch.setattr(common,'_stat',lambda _path:{'synthetic':1})
     def read(item,metadata):
         if item==ref('binding'):return {'plan':ref('plan')}
@@ -140,10 +150,12 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
             'schema_version':'gx1_direction_decimal_sign_audit_result_v1','status':'COMPLETE','test_data_used':False,
             'new_model_forwards':0,'optimizer_steps':0,'target_source_rows_and_masks_parity':True,
             'vendor_to_canonical_float64_and_clock_parity':True,'confusions':{'fold1_train':rows}})
-    metadata_scopes=[];guard_originals=[];guard_initials=[];initial_checks=[]
+    if candidate and variant=='price_and_m1':context['candidate_m1_refs']=launch['candidate_m1_refs']
+    metadata_scopes=[];guard_originals=[];guard_initials=[];guard_candidates=[];initial_checks=[]
     def metadata(actual,*_args):metadata_scopes.append(actual['run_scope']);return context
     def guard(*_args,**kwargs):
-        guard_originals.append(kwargs.get('decimal_original'));guard_initials.append(kwargs.get('decimal_initial_predictions'));return []
+        guard_originals.append(kwargs.get('decimal_original'));guard_initials.append(kwargs.get('decimal_initial_predictions'))
+        guard_candidates.append(kwargs.get('candidate_m1_refs'));return []
     monkeypatch.setattr(worker,'require_decimal_initial_prediction_parity',lambda arrays,reference,**kwargs:initial_checks.append(reference))
     monkeypatch.setattr(prefix,'_launch_metadata',metadata)
     monkeypatch.setattr(common,'_freeze',lambda *args:None)
@@ -199,12 +211,20 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
     monkeypatch.setattr(authority,'require_research_progress',lambda *args,**kwargs:None)
     result=worker.run_dense_qualification(policy_path=tmp_path/'policy',policy_file_sha256='0'*64,progress_path=tmp_path/'progress.json')
     assert result=={'outcome':'COMPLETE','terminal':True}
-    assert published['RESULT.json']['decision']==('PASS_DECIMAL_DENSE_NATIVE_MECHANICS' if decimal else 'PASS_DENSE_NATIVE_MECHANICS')
-    assert metadata_scopes==[prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE if decimal else prefix_authority.DENSE_SCOPE]
+    assert published['RESULT.json']['decision']==('PASS_M1_PRICE_PRIVATE_MECHANICS' if candidate
+        else 'PASS_DECIMAL_DENSE_NATIVE_MECHANICS' if decimal else 'PASS_DENSE_NATIVE_MECHANICS')
+    assert metadata_scopes==[prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE if candidate
+        else prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE if decimal else prefix_authority.DENSE_SCOPE]
     assert guard_originals==[ref('original') if decimal else None]
-    assert guard_initials==[ref('initial-predictions') if decimal else None]
+    assert guard_initials==[ref('initial-predictions') if legacy_decimal else None]
+    assert guard_candidates==[launch.get('candidate_m1_refs') if candidate else None]
     if decimal:
         assert published['RESULT.json']['decimal_prior_against_sign_audit'] is True
+    if candidate:
+        assert published['RESULT.json']['candidate_mode']==variant
+        assert published['RESULT.json']['own_candidate_initial_measured'] is True
+        assert published['RESULT.json']['previous_model_initial_used'] is False and initial_checks==[]
+    elif decimal:
         assert published['RESULT.json']['decimal_initial_prediction_byte_parity'] is True
         assert initial_checks==[ref('initial-predictions')]
     else:assert initial_checks==[]
