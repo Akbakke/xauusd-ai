@@ -28,7 +28,7 @@ INACTIVE_PREFIXES = ('backbone.head_', 'backbone.dynamic_m5_query_projection.',
 IMMUTABLE_BUFFER_NAMES = frozenset(('backbone.gc_mtf_layout_sha256', 'backbone.gc_mtf_normalization_sha256',
     'backbone.entry_execution_profile_contract_sha256', 'direction_horizon_minutes', 'bps_rms', 'bps_scale_sha256',
     'magnitude_rms_bps', 'magnitude_raw_weight_mean', 'magnitude_weight_sha256',
-    'dense_horizon_minutes', 'dense_reorder', 'm1_ofi_center', 'm1_ofi_scale', 'm1_ofi_normalization_sha256', 'm1_ofi_coarsened'))
+    'dense_horizon_minutes', 'dense_reorder', 'dense_bps_rms', 'dense_bps_scale_sha256', 'm1_ofi_center', 'm1_ofi_scale', 'm1_ofi_normalization_sha256', 'm1_ofi_coarsened'))
 IMMUTABLE_BUFFER_PREFIXES = ('backbone.input_norm_', 'backbone.gc_mtf_specialist_idx_')
 STATE_KEYS = frozenset(('schema_version', 'binding', 'model_state', 'buffer_state', 'optimizer_state',
     'rng_state', 'module_training', 'parent_order', 'cursor', 'optimizer_updates', 'model_state_sha256',
@@ -99,6 +99,7 @@ def _binding(model, optimizer, recipe, feature_view_identity):
         'recipe': recipe, 'feature_view_identity': _view(model, feature_view_identity),
         'research_objective': model.research_objective,
         **({'bps_scale_contract_sha256':model.bps_scale['contract_sha256']} if model.signed_bps else {}),
+        **({'dense_bps_scale_contract_sha256':model.dense_bps_scale['contract_sha256']} if getattr(model, 'dense_signed_bps', False) else {}),
         **({'magnitude_weight_contract_sha256':model.magnitude_weight_contract['contract_sha256']} if model.magnitude_weighted else {}),
         'active_parameter_names': [name for name, _ in active],
         'inactive_parameter_names': [name for name, _ in inactive],
@@ -139,13 +140,13 @@ def _order(value):
 
 def _progress(cursor, updates, order, recipe, *, train_passes=1):
     # cursor counts parent presentations, not fabricated or duplicated IDs.
-    _require(type(train_passes) is int and train_passes in (1, 3), 'TRAIN_PASSES')
+    _require(type(train_passes) is int and train_passes in (1, 2, 3), 'TRAIN_PASSES')
     n = order.numel(); batch = recipe['batch_size']; batches_per_pass = (n + batch - 1) // batch
     _require(type(cursor) is int and 0 <= cursor <= train_passes * n, 'CURSOR')
     completed, within = divmod(cursor, n)
     _require(within % batch == 0, 'CURSOR')
-    if train_passes == 3:
-        _require(recipe['max_updates'] == 3 * batches_per_pass, 'MULTIPASS_RECIPE_BUDGET')
+    if train_passes != 1:
+        _require(recipe['max_updates'] == train_passes * batches_per_pass, 'MULTIPASS_RECIPE_BUDGET')
     batches = completed * batches_per_pass + (within + batch - 1) // batch
     _require(type(updates) is int and 0 <= updates <= min(recipe['max_updates'], batches), 'OPTIMIZER_UPDATES')
 
@@ -229,7 +230,7 @@ def restore_native_direction_research_state(state, model, optimizer, *, recipe, 
     """
     recipe = require_native_direction_research_recipe(recipe); _device(model, device); _no_partial_gradients(model)
     binding = _binding(model, optimizer, recipe, feature_view_identity); order = _order(parent_order)
-    _require(type(train_passes) is int and train_passes in (1, 3), 'TRAIN_PASSES')
+    _require(type(train_passes) is int and train_passes in (1, 2, 3), 'TRAIN_PASSES')
     expected_keys = STATE_KEYS if train_passes == 1 else STATE_KEYS | {'train_passes'}
     expected_schema = SCHEMA_VERSION if train_passes == 1 else MULTIPASS_SCHEMA_VERSION
     _require(isinstance(state, Mapping) and set(state) == expected_keys and state['schema_version'] == expected_schema
@@ -271,19 +272,20 @@ def restore_native_direction_research_state(state, model, optimizer, *, recipe, 
     return {'parent_order': order, 'cursor': state['cursor'], 'optimizer_updates': state['optimizer_updates']}
 
 
-def migrate_one_pass_terminal_to_three_pass(state, model, optimizer, *, original_recipe, continuation_recipe,
-        feature_view_identity, parent_order, device):
-    """Strictly restore a completed one-pass state and bind it to three passes.
+def _migrate_one_pass_terminal_to_multi_pass(state, model, optimizer, *, original_recipe, continuation_recipe,
+        feature_view_identity, parent_order, device, train_passes):
+    """Strictly restore a completed one-pass state and bind it to more passes.
 
     No model update or IO occurs. The caller must bind and authorize the input
     checkpoint and independently verify actual prediction parity before training.
     """
+    _require(type(train_passes) is int and train_passes in (2, 3), 'MIGRATION_PASSES')
     original_recipe = require_native_direction_research_recipe(original_recipe)
     continuation_recipe = require_native_direction_research_recipe(continuation_recipe)
     order = _order(parent_order); n = order.numel(); batch = original_recipe['batch_size']
     per_pass = (n + batch - 1) // batch
     _require(original_recipe['max_updates'] == per_pass
-        and continuation_recipe['max_updates'] == 3 * per_pass
+        and continuation_recipe['max_updates'] == train_passes * per_pass
         and {k:v for k,v in original_recipe.items() if k not in ('max_updates','contract_sha256')}
             == {k:v for k,v in continuation_recipe.items() if k not in ('max_updates','contract_sha256')},
         'MIGRATION_RECIPE')
@@ -293,8 +295,23 @@ def migrate_one_pass_terminal_to_three_pass(state, model, optimizer, *, original
         feature_view_identity=feature_view_identity, parent_order=order, device=device)
     migrated = capture_native_direction_research_state(model, optimizer, recipe=continuation_recipe,
         feature_view_identity=feature_view_identity, parent_order=order, cursor=restored['cursor'],
-        optimizer_updates=restored['optimizer_updates'], device=device, train_passes=3)
+        optimizer_updates=restored['optimizer_updates'], device=device, train_passes=train_passes)
     _require(all(migrated[key] == state[key] for key in ('model_state_sha256', 'buffer_state_sha256',
         'optimizer_state_sha256', 'rng_state_sha256'))
         and migrated['module_training'] == state['module_training'], 'MIGRATION_FULL_STATE_PARITY')
     return migrated
+
+
+def migrate_one_pass_terminal_to_three_pass(state, model, optimizer, *, original_recipe, continuation_recipe,
+        feature_view_identity, parent_order, device):
+    return _migrate_one_pass_terminal_to_multi_pass(state, model, optimizer, original_recipe=original_recipe,
+        continuation_recipe=continuation_recipe, feature_view_identity=feature_view_identity,
+        parent_order=parent_order, device=device, train_passes=3)
+
+
+def migrate_one_pass_terminal_to_two_pass(state, model, optimizer, *, original_recipe, continuation_recipe,
+        feature_view_identity, parent_order, device):
+    """In-memory exact checkpoint migration; does not admit a continuation run."""
+    return _migrate_one_pass_terminal_to_multi_pass(state, model, optimizer, original_recipe=original_recipe,
+        continuation_recipe=continuation_recipe, feature_view_identity=feature_view_identity,
+        parent_order=parent_order, device=device, train_passes=2)

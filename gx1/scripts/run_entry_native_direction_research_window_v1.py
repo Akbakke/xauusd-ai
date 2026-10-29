@@ -391,6 +391,7 @@ def _gradient_evidence(model, torch):
             keys=[key for key in modules if key.startswith(tf+'__')];_require(len(keys)==5,'GC_FAMILY_COUNT')
             groups[label+'_'+tf]=[p for key in keys for p in modules[key].parameters()]
     if getattr(model,'signed_bps',False):groups['bps_mean_head']=list(model.bps_mean_head.parameters())
+    if getattr(model,'dense_signed_bps',False):groups['dense_bps_head']=list(model.dense_bps_head.parameters())
     from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch
     if type(model) is DenseNativeEntryDirectionResearch:
         groups['dense_aux_head']=list(model.dense_aux_head.parameters())
@@ -413,6 +414,13 @@ def _gradient_evidence(model, torch):
         evidence['dense_aux_head_bias_rows']=[int(value!=0) for value in aux.bias.grad]
         _require(all(w or b for w,b in zip(evidence['dense_aux_head_weight_rows'],evidence['dense_aux_head_bias_rows'])),
             'ALL_FIFTY_SEVEN_SUPERVISED_HEAD_ROWS')
+        if model.dense_signed_bps:
+            mean=model.dense_bps_head
+            _require(mean.weight.grad is not None and mean.bias.grad is not None,'DENSE_BPS_GRADIENTS')
+            evidence['dense_bps_head_weight_rows']=[int(torch.count_nonzero(row)) for row in mean.weight.grad]
+            evidence['dense_bps_head_bias_rows']=[int(value!=0) for value in mean.bias.grad]
+            _require(all(w or b for w,b in zip(evidence['dense_bps_head_weight_rows'],evidence['dense_bps_head_bias_rows'])),
+                'ALL_SIXTY_BPS_HEAD_ROWS')
         for name,layer in (('chart_local',model.backbone.specialist_proj['chart_geometry_encoder']),
                 ('chart_mtf',model.backbone.mtf_family_proj['chart_geometry_encoder'])):
             evidence[name+'_weight_nonzero']=int(torch.count_nonzero(layer.weight.grad)) if layer.weight.grad is not None else 0
@@ -431,7 +439,11 @@ def _step(model, optimizer, features, target, *, cutoff, counters, torch):
         out=trainer._model_forward_fp32(model,**features)
     counters['forward_returns']+=1
     from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch, dense_direction_binary_loss
-    if type(model) is DenseNativeEntryDirectionResearch and model.five_minute_priority:
+    if type(model) is DenseNativeEntryDirectionResearch and model.dense_signed_bps:
+        from gx1.contracts.entry_native_direction_bps_v1 import dense_direction_bps_loss
+        loss=dense_direction_bps_loss(out['logit_up'],out['mean_return_bps'],rms_bps=model.dense_bps_rms,
+            **target,cutoff_ns=cutoff)
+    elif type(model) is DenseNativeEntryDirectionResearch and model.five_minute_priority:
         from gx1.contracts.entry_native_direction_five_priority_v1 import five_priority_direction_binary_loss
         loss=five_priority_direction_binary_loss(out['logit_up'],**target,cutoff_ns=cutoff)
     else:
@@ -439,6 +451,8 @@ def _step(model, optimizer, features, target, *, cutoff, counters, torch):
             if type(model) is DenseNativeEntryDirectionResearch else native_direction_binary_loss(out['logit_up'],**target,cutoff_ns=cutoff))
     _require(loss['research_objective_sha256']==model.research_objective['contract_sha256'], 'LOSS_OBJECTIVE_IDENTITY')
     _require(loss['update_allowed'] and all(row['eligible_cells']>0 for row in loss['per_horizon_counts']),'ALL_HORIZON_LOSS_NO_SEARCH')
+    if getattr(model,'dense_signed_bps',False):
+        _require(all(count>0 for count in loss['bps_per_horizon_counts']), 'ALL_HORIZON_BPS_LOSS')
     counters['backwards']+=1;_require(counters['backwards']<=4,'BACKWARD_BUDGET');loss['loss'].backward();counters['backward_returns']+=1
     gradients=_gradient_evidence(model,torch)
     counters['optimizer_step_calls']+=1;_require(counters['optimizer_step_calls']<=4,'OPTIMIZER_STEP_BUDGET')

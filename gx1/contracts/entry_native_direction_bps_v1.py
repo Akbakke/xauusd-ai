@@ -13,6 +13,8 @@ import numpy as np
 import torch
 
 HORIZONS = (1, 5, 15)
+DENSE_HORIZONS = tuple(range(1, 61))
+DENSE_SCHEMA = "gx1_direction_own_prefix_dense_signed_bps_scale_v1"
 MINUTE_NS = 60_000_000_000
 SCHEMA = "gx1_direction_own_prefix_signed_bps_scale_v1"
 
@@ -31,15 +33,15 @@ def _array_sha(value):
     return hashlib.sha256(np.ascontiguousarray(value).tobytes()).hexdigest()
 
 
-def require_direction_bps_scale(value):
+def _require_bps_scale(value, *, horizons, schema):
     _require(isinstance(value, Mapping) and set(value) == {
         "schema_version", "horizons_minutes", "fit_partition", "prefix_rows", "cutoff_ns",
         "target_source", "parent_rows_sha256", "decision_ns_sha256", "eligible_targets_sha256",
         "counts", "sum_bps", "sumsq_bps", "rms_bps", "mean_bps", "contract_sha256"}, "SCALE_KEYS")
     plain = {k: v for k, v in value.items() if k != "contract_sha256"}
     _require(value["contract_sha256"] == _sha(plain), "SCALE_SEAL")
-    _require(value["schema_version"] == SCHEMA and value["fit_partition"] == "train"
-        and value["horizons_minutes"] == list(HORIZONS)
+    _require(value["schema_version"] == schema and value["fit_partition"] == "train"
+        and value["horizons_minutes"] == list(horizons)
         and type(value["prefix_rows"]) is int and value["prefix_rows"] > 0
         and type(value["cutoff_ns"]) is int and 0 < value["cutoff_ns"] <= 2**63 - 1, "SCALE_SCOPE")
     ref = value["target_source"]
@@ -50,7 +52,7 @@ def require_direction_bps_scale(value):
         _require(type(digest) is str and len(digest) == 64
             and all(c in "0123456789abcdef" for c in digest), "SCALE_DIGEST")
     for key in ("counts", "sum_bps", "sumsq_bps", "rms_bps", "mean_bps"):
-        _require(type(value[key]) is list and len(value[key]) == 3, "SCALE_COORDINATES")
+        _require(type(value[key]) is list and len(value[key]) == len(horizons), "SCALE_COORDINATES")
     n = np.asarray(value["counts"], np.float64)
     sums = np.asarray(value["sum_bps"], np.float64)
     ss = np.asarray(value["sumsq_bps"], np.float64)
@@ -64,8 +66,17 @@ def require_direction_bps_scale(value):
     return json.loads(json.dumps(value, allow_nan=False))
 
 
-def fit_direction_bps_scale(*, parent_rows, decision_ns, terminal_time_ns, observed,
-                            sign, mid_return_bps, cutoff_ns, target_source, fit_partition):
+def require_direction_bps_scale(value):
+    return _require_bps_scale(value, horizons=HORIZONS, schema=SCHEMA)
+
+
+def require_dense_direction_bps_scale(value):
+    return _require_bps_scale(value, horizons=DENSE_HORIZONS, schema=DENSE_SCHEMA)
+
+
+def _fit_direction_bps_scale(*, parent_rows, decision_ns, terminal_time_ns, observed,
+                             sign, mid_return_bps, cutoff_ns, target_source, fit_partition,
+                             horizons, schema):
     _require(fit_partition == "train", "TRAIN_ONLY")
     n = len(parent_rows)
     _require(type(cutoff_ns) is int and 0 < cutoff_ns <= 2**63 - 1, "CUTOFF")
@@ -75,13 +86,13 @@ def fit_direction_bps_scale(*, parent_rows, decision_ns, terminal_time_ns, obser
     _require(isinstance(decision_ns, np.ndarray) and decision_ns.dtype == np.int64
         and decision_ns.shape == (n,) and np.all(decision_ns > 0)
         and np.all(np.diff(decision_ns) > 0) and np.all(decision_ns < cutoff_ns)
-        and np.all(decision_ns <= 2**63 - 1 - 15 * MINUTE_NS), "PREFIX_CLOCK")
-    _require(terminal_time_ns.dtype == np.int64 and terminal_time_ns.shape == (n, 3)
+        and np.all(decision_ns <= 2**63 - 1 - horizons[-1] * MINUTE_NS), "PREFIX_CLOCK")
+    _require(terminal_time_ns.dtype == np.int64 and terminal_time_ns.shape == (n, len(horizons))
         and np.array_equal(terminal_time_ns, decision_ns[:, None]
-            + np.asarray(HORIZONS, np.int64)[None, :] * MINUTE_NS), "EXACT_HORIZONS")
-    _require(observed.dtype == np.bool_ and observed.shape == (n, 3)
-        and sign.dtype == np.int8 and sign.shape == (n, 3)
-        and mid_return_bps.dtype == np.float64 and mid_return_bps.shape == (n, 3)
+            + np.asarray(horizons, np.int64)[None, :] * MINUTE_NS), "EXACT_HORIZONS")
+    _require(observed.dtype == np.bool_ and observed.shape == (n, len(horizons))
+        and sign.dtype == np.int8 and sign.shape == (n, len(horizons))
+        and mid_return_bps.dtype == np.float64 and mid_return_bps.shape == (n, len(horizons))
         and np.isfinite(mid_return_bps).all() and np.all(mid_return_bps[~observed] == 0)
         and np.array_equal(np.sign(mid_return_bps).astype(np.int8), sign), "TARGET_DOMAIN")
     target = mid_return_bps.astype(np.float32)
@@ -93,7 +104,7 @@ def fit_direction_bps_scale(*, parent_rows, decision_ns, terminal_time_ns, obser
     sums = values.sum(axis=0, dtype=np.float64)
     ss = (values**2).sum(axis=0, dtype=np.float64)
     _require(np.all(counts > 0) and np.isfinite(ss).all() and np.all(ss > 0), "EMPTY_OR_ZERO_RMS")
-    value = {"schema_version": SCHEMA, "horizons_minutes": list(HORIZONS), "fit_partition": "train",
+    value = {"schema_version": schema, "horizons_minutes": list(horizons), "fit_partition": "train",
         "prefix_rows": n, "cutoff_ns": cutoff_ns, "target_source": dict(target_source),
         "parent_rows_sha256": _array_sha(parent_rows.astype("<i8")),
         "decision_ns_sha256": _array_sha(decision_ns.astype("<i8")),
@@ -101,23 +112,38 @@ def fit_direction_bps_scale(*, parent_rows, decision_ns, terminal_time_ns, obser
         "counts": counts.tolist(), "sum_bps": sums.tolist(), "sumsq_bps": ss.tolist(),
         "rms_bps": np.sqrt(ss / counts).tolist(), "mean_bps": (sums / counts).tolist()}
     value["contract_sha256"] = _sha(value)
-    return require_direction_bps_scale(value)
+    return _require_bps_scale(value, horizons=horizons, schema=schema)
 
 
-def native_direction_bps_loss(logit_up, mean_return_bps, *, rms_bps, mid_return_bps,
-                              sign, observed, decision_ns, terminal_time_ns, cutoff_ns):
-    from gx1.contracts.entry_native_direction_research_v1 import (
-        native_direction_binary_loss, native_direction_research_contract)
-    direction = native_direction_binary_loss(logit_up, sign=sign, observed=observed,
-        decision_ns=decision_ns, terminal_time_ns=terminal_time_ns, cutoff_ns=cutoff_ns)
+
+def fit_direction_bps_scale(*, parent_rows, decision_ns, terminal_time_ns, observed,
+                            sign, mid_return_bps, cutoff_ns, target_source, fit_partition):
+    return _fit_direction_bps_scale(parent_rows=parent_rows, decision_ns=decision_ns,
+        terminal_time_ns=terminal_time_ns, observed=observed, sign=sign, mid_return_bps=mid_return_bps,
+        cutoff_ns=cutoff_ns, target_source=target_source, fit_partition=fit_partition,
+        horizons=HORIZONS, schema=SCHEMA)
+
+
+def fit_dense_direction_bps_scale(*, parent_rows, decision_ns, terminal_time_ns, observed,
+                                  sign, mid_return_bps, cutoff_ns, target_source, fit_partition):
+    """Fit each of 60 RMS scales on its own strictly mature TRAIN endpoints."""
+    return _fit_direction_bps_scale(parent_rows=parent_rows, decision_ns=decision_ns,
+        terminal_time_ns=terminal_time_ns, observed=observed, sign=sign, mid_return_bps=mid_return_bps,
+        cutoff_ns=cutoff_ns, target_source=target_source, fit_partition=fit_partition,
+        horizons=DENSE_HORIZONS, schema=DENSE_SCHEMA)
+
+def _bps_regression_terms(mean_return_bps, *, rms_bps, mid_return_bps, sign, observed,
+                          terminal_time_ns, cutoff_ns):
+    """Shared signed-bps MSE; caller first validates its direction clocks/masks."""
     _require(isinstance(mean_return_bps, torch.Tensor) and mean_return_bps.dtype == torch.float32
-        and mean_return_bps.shape == logit_up.shape and mean_return_bps.device == logit_up.device
+        and mean_return_bps.shape == sign.shape and mean_return_bps.device == sign.device
         and bool(torch.isfinite(mean_return_bps).all()), "PREDICTION")
+    width = sign.shape[1]
     _require(isinstance(rms_bps, torch.Tensor) and rms_bps.dtype == torch.float32
-        and rms_bps.shape == (3,) and rms_bps.device == logit_up.device and not rms_bps.requires_grad
+        and rms_bps.shape == (width,) and rms_bps.device == sign.device and not rms_bps.requires_grad
         and bool(torch.isfinite(rms_bps).all()) and bool((rms_bps > 0).all()), "RMS")
     _require(isinstance(mid_return_bps, torch.Tensor) and mid_return_bps.dtype == torch.float64
-        and mid_return_bps.shape == logit_up.shape and mid_return_bps.device == logit_up.device
+        and mid_return_bps.shape == sign.shape and mid_return_bps.device == sign.device
         and not mid_return_bps.requires_grad and bool(torch.isfinite(mid_return_bps).all())
         and bool((mid_return_bps[~observed] == 0).all())
         and torch.equal(torch.sign(mid_return_bps).to(torch.int8), sign), "TARGET")
@@ -127,8 +153,7 @@ def native_direction_bps_loss(logit_up, mean_return_bps, *, rms_bps, mid_return_
     eligible = observed & (terminal_time_ns < cutoff_ns)
     counts = eligible.sum(dim=0)
     count = int(counts.sum())
-    bps_loss = None
-    raw_sse = normalized_sse = None
+    bps_loss = raw_sse = normalized_sse = None
     if count:
         residual = mean_return_bps[eligible] - target[eligible]
         scales = rms_bps.expand_as(mean_return_bps)[eligible]
@@ -136,25 +161,50 @@ def native_direction_bps_loss(logit_up, mean_return_bps, *, rms_bps, mid_return_
         raw_sse = (residual.double()**2).sum()
         bps_loss = normalized_sse / count
         _require(bool(torch.isfinite(bps_loss)), "FINITE_LOSS")
-    terms = [x for x in (direction["loss"], bps_loss) if x is not None]
-    loss = sum(terms) if terms else None
-    return {**direction, "loss": loss, "direction_loss": direction["loss"], "bps_loss": bps_loss,
-        "update_allowed": bool(count), "bps_eligible_mask": eligible, "bps_eligible_cells": count,
+    return {"bps_loss": bps_loss, "bps_eligible_mask": eligible, "bps_eligible_cells": count,
         "bps_per_horizon_counts": counts.detach().cpu().tolist(),
-        "bps_raw_sse": raw_sse, "bps_normalized_sse": normalized_sse,
+        "bps_raw_sse": raw_sse, "bps_normalized_sse": normalized_sse}
+
+
+def native_direction_bps_loss(logit_up, mean_return_bps, *, rms_bps, mid_return_bps,
+                              sign, observed, decision_ns, terminal_time_ns, cutoff_ns):
+    from gx1.contracts.entry_native_direction_research_v1 import (
+        native_direction_binary_loss, native_direction_research_contract)
+    direction = native_direction_binary_loss(logit_up, sign=sign, observed=observed,
+        decision_ns=decision_ns, terminal_time_ns=terminal_time_ns, cutoff_ns=cutoff_ns)
+    bps = _bps_regression_terms(mean_return_bps, rms_bps=rms_bps, mid_return_bps=mid_return_bps,
+        sign=sign, observed=observed, terminal_time_ns=terminal_time_ns, cutoff_ns=cutoff_ns)
+    terms = [x for x in (direction["loss"], bps["bps_loss"]) if x is not None]
+    return {**direction, **bps, "loss": sum(terms) if terms else None, "direction_loss": direction["loss"],
+        "update_allowed": bool(bps["bps_eligible_cells"]),
         "research_objective_sha256": native_direction_research_contract(signed_bps=True)["contract_sha256"]}
 
 
-def score_direction_bps(mean_return_bps, *, mid_return_bps, observed, terminal_time_ns,
-                        cutoff_ns, scale):
-    scale = require_direction_bps_scale(scale)
+def dense_direction_bps_loss(logit_up, mean_return_bps, *, rms_bps, mid_return_bps,
+                             sign, observed, decision_ns, terminal_time_ns, cutoff_ns):
+    """All 60 directions plus an equally weighted own-prefix-scaled bps term."""
+    from gx1.contracts.entry_native_direction_dense_v1 import (
+        dense_direction_binary_loss, dense_direction_bps_research_contract)
+    direction = dense_direction_binary_loss(logit_up, sign=sign, observed=observed,
+        decision_ns=decision_ns, terminal_time_ns=terminal_time_ns, cutoff_ns=cutoff_ns)
+    bps = _bps_regression_terms(mean_return_bps, rms_bps=rms_bps, mid_return_bps=mid_return_bps,
+        sign=sign, observed=observed, terminal_time_ns=terminal_time_ns, cutoff_ns=cutoff_ns)
+    terms = [x for x in (direction["loss"], bps["bps_loss"]) if x is not None]
+    return {**direction, **bps, "loss": sum(terms) if terms else None, "direction_loss": direction["loss"],
+        "update_allowed": bool(bps["bps_eligible_cells"]),
+        "research_objective_sha256": dense_direction_bps_research_contract()["contract_sha256"]}
+
+
+def _score_direction_bps(mean_return_bps, *, mid_return_bps, observed, terminal_time_ns,
+                         cutoff_ns, scale, horizons, schema):
+    scale = _require_bps_scale(scale, horizons=horizons, schema=schema)
     _require(mean_return_bps.shape == mid_return_bps.shape == observed.shape == terminal_time_ns.shape
-        and mean_return_bps.ndim == 2 and mean_return_bps.shape[1] == 3
+        and mean_return_bps.ndim == 2 and mean_return_bps.shape[1] == len(horizons)
         and np.isfinite(mean_return_bps).all() and np.isfinite(mid_return_bps).all()
         and observed.dtype == np.bool_ and terminal_time_ns.dtype == np.int64, "SCORE_INPUTS")
     mask = observed & (terminal_time_ns < cutoff_ns)
     rows = []
-    for h, minute in enumerate(HORIZONS):
+    for h, minute in enumerate(horizons):
         target = mid_return_bps[mask[:, h], h].astype(np.float64)
         pred = mean_return_bps[mask[:, h], h].astype(np.float64)
         count = len(target)
@@ -170,6 +220,16 @@ def score_direction_bps(mean_return_bps, *, mid_return_bps, observed, terminal_t
     return {"scope": "Gross midpoint conditional-mean error; no uncertainty, trading or economic claim.",
         "target_precision": "Original float64 saved bps for scoring; optimizer uses checked float32 targets.",
         "scale_contract_sha256": scale["contract_sha256"], "per_horizon": rows}
+
+
+def score_direction_bps(mean_return_bps, *, mid_return_bps, observed, terminal_time_ns, cutoff_ns, scale):
+    return _score_direction_bps(mean_return_bps, mid_return_bps=mid_return_bps, observed=observed,
+        terminal_time_ns=terminal_time_ns, cutoff_ns=cutoff_ns, scale=scale, horizons=HORIZONS, schema=SCHEMA)
+
+
+def score_dense_direction_bps(mean_return_bps, *, mid_return_bps, observed, terminal_time_ns, cutoff_ns, scale):
+    return _score_direction_bps(mean_return_bps, mid_return_bps=mid_return_bps, observed=observed,
+        terminal_time_ns=terminal_time_ns, cutoff_ns=cutoff_ns, scale=scale, horizons=DENSE_HORIZONS, schema=DENSE_SCHEMA)
 
 
 MAGNITUDE_WEIGHT_SCHEMA = "gx1_direction_own_prefix_bounded_magnitude_weight_v1"

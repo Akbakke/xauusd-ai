@@ -43,6 +43,17 @@ _OBJECTIVE = {
 _OBJECTIVE_JSON = json.dumps(_OBJECTIVE, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
 _OBJECTIVE_SHA = hashlib.sha256(_OBJECTIVE_JSON).hexdigest()
 
+_BPS_OBJECTIVE = {**_OBJECTIVE,
+    'schema_version': 'gx1_entry_native_direction_dense_signed_bps_v1',
+    'research_objective': 'sixty_midpoint_directions_and_sixty_signed_bps_means',
+    'bps_head': 'zero_initialized_independent_60_output_linear_head_on_shared_hidden',
+    'bps_scale': 'own_train_prefix_per_horizon_rms_float32_target_no_centering',
+    'loss': 'unweighted_60_direction_BCE_plus_unweighted_60_normalized_signed_bps_MSE',
+    'bps_eligible': 'observed_including_ties_and_terminal_strictly_before_own_cutoff',
+}
+_BPS_OBJECTIVE_JSON = json.dumps(_BPS_OBJECTIVE, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
+_BPS_OBJECTIVE_SHA = hashlib.sha256(_BPS_OBJECTIVE_JSON).hexdigest()
+
 
 def _require(ok: bool, reason: str) -> None:
     if not ok:
@@ -53,12 +64,17 @@ def dense_direction_research_contract() -> dict[str, Any]:
     return {**json.loads(_OBJECTIVE_JSON), 'contract_sha256': _OBJECTIVE_SHA}
 
 
+def dense_direction_bps_research_contract() -> dict[str, Any]:
+    return {**json.loads(_BPS_OBJECTIVE_JSON), 'contract_sha256': _BPS_OBJECTIVE_SHA}
+
+
 class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
     """One native forward, three original heads and 57 distinct new heads."""
 
-    def __init__(self, backbone, *, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False):
+    def __init__(self, backbone, *, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None):
         _require(type(five_minute_priority) is bool and (not five_minute_priority or m1_ofi_normalization is None), 'FIVE_PRIORITY_SCOPE')
         _require(type(m1_ofi_coarsened) is bool and (not m1_ofi_coarsened or m1_ofi_normalization is not None), 'M1_REPRESENTATION')
+        _require(dense_bps_scale is None or (not five_minute_priority and m1_ofi_normalization is None), 'BPS_SCOPE')
         super().__init__(backbone)
         device = self.direction_head.weight.device
         with torch.random.fork_rng(devices=[device.index] if device.type == 'cuda' else []):
@@ -67,7 +83,20 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
         self.register_buffer('dense_horizon_minutes', torch.tensor(HORIZONS_MINUTES, dtype=torch.int64, device=device))
         self.register_buffer('dense_reorder', torch.tensor(_REORDER, dtype=torch.int64, device=device))
         self._five_minute_priority = five_minute_priority
-        if five_minute_priority:
+        self._dense_bps_scale_json = None
+        if dense_bps_scale is not None:
+            from gx1.contracts.entry_native_direction_bps_v1 import require_dense_direction_bps_scale
+            fitted_bps = require_dense_direction_bps_scale(dense_bps_scale)
+            self._dense_bps_scale_json = json.dumps(fitted_bps, sort_keys=True, separators=(',', ':'), allow_nan=False)
+            with torch.random.fork_rng(devices=[device.index] if device.type == 'cuda' else []):
+                self.dense_bps_head = nn.Linear(self._bound_hidden_width, 60, device=device, dtype=torch.float32)
+                nn.init.zeros_(self.dense_bps_head.weight)
+                nn.init.zeros_(self.dense_bps_head.bias)
+            self.register_buffer('dense_bps_rms', torch.tensor(fitted_bps['rms_bps'], dtype=torch.float32, device=device))
+            self.register_buffer('dense_bps_scale_sha256', torch.tensor(list(bytes.fromhex(fitted_bps['contract_sha256'])), dtype=torch.uint8, device=device))
+        if self.dense_signed_bps:
+            self._dense_objective_json = _BPS_OBJECTIVE_JSON
+        elif five_minute_priority:
             from gx1.contracts.entry_native_direction_five_priority_v1 import _PRIORITY_OBJECTIVE_JSON
             self._dense_objective_json = _PRIORITY_OBJECTIVE_JSON
         else:
@@ -96,7 +125,19 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
         return self._five_minute_priority
 
     @property
+    def dense_signed_bps(self) -> bool:
+        return self._dense_bps_scale_json is not None
+
+    @property
+    def dense_bps_scale(self):
+        _require(self.dense_signed_bps, 'BPS_MODE_REQUIRED')
+        return json.loads(self._dense_bps_scale_json)
+
+    @property
     def research_objective(self) -> dict[str, Any]:
+        if self.dense_signed_bps:
+            _require(self._dense_objective_json == _BPS_OBJECTIVE_JSON, 'OBJECTIVE_IDENTITY')
+            return dense_direction_bps_research_contract()
         if self.five_minute_priority:
             from gx1.contracts.entry_native_direction_five_priority_v1 import _PRIORITY_OBJECTIVE_JSON, five_priority_direction_contract
             _require(self._dense_objective_json == _PRIORITY_OBJECTIVE_JSON, 'OBJECTIVE_IDENTITY')
@@ -106,7 +147,26 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
 
     def _require_binding(self) -> None:
         super()._require_binding()
-        if self.five_minute_priority:
+        if not self.dense_signed_bps:
+            _require(not any(hasattr(self, name) for name in ('dense_bps_head', 'dense_bps_rms', 'dense_bps_scale_sha256')), 'UNBOUND_BPS_STATE')
+        if self.dense_signed_bps:
+            _require(self._dense_objective_json == _BPS_OBJECTIVE_JSON and not self.five_minute_priority
+                and self._m1_normalization_json is None, 'BPS_OBJECTIVE_IDENTITY')
+            from gx1.contracts.entry_native_direction_bps_v1 import require_dense_direction_bps_scale
+            fitted = require_dense_direction_bps_scale(self.dense_bps_scale)
+            head = self.dense_bps_head
+            device = self.direction_head.weight.device
+            _require(type(head) is nn.Linear and head.in_features == self._bound_hidden_width and head.out_features == 60
+                and head.bias is not None and head.weight.dtype == head.bias.dtype == torch.float32
+                and head.weight.device == head.bias.device == device
+                and bool(torch.isfinite(head.weight).all()) and bool(torch.isfinite(head.bias).all()), 'BPS_HEAD')
+            _require(self.dense_bps_rms.dtype == torch.float32 and self.dense_bps_rms.device == device
+                and not self.dense_bps_rms.requires_grad and torch.equal(self.dense_bps_rms,
+                    torch.tensor(fitted['rms_bps'], dtype=torch.float32, device=device))
+                and self.dense_bps_scale_sha256.dtype == torch.uint8 and self.dense_bps_scale_sha256.device == device
+                and torch.equal(self.dense_bps_scale_sha256,
+                    torch.tensor(list(bytes.fromhex(fitted['contract_sha256'])), dtype=torch.uint8, device=device)), 'BPS_SCALE')
+        elif self.five_minute_priority:
             from gx1.contracts.entry_native_direction_five_priority_v1 import _PRIORITY_OBJECTIVE_JSON
             _require(self._dense_objective_json == _PRIORITY_OBJECTIVE_JSON, 'OBJECTIVE_IDENTITY')
         else:
@@ -191,7 +251,13 @@ class DenseNativeEntryDirectionResearch(NativeEntryDirectionResearch):
         logits = combined.index_select(1, self.dense_reorder)
         _require(logits.dtype == torch.float32 and tuple(logits.shape) == (seq_x.shape[0], 60)
             and bool(torch.isfinite(logits).all()), 'FINITE_LOGITS')
-        return {'logit_up': logits, 'horizons_minutes': HORIZONS_MINUTES}
+        result = {'logit_up': logits, 'horizons_minutes': HORIZONS_MINUTES}
+        if self.dense_signed_bps:
+            mean = self.dense_bps_head(hidden) * self.dense_bps_rms
+            _require(mean.dtype == torch.float32 and tuple(mean.shape) == tuple(logits.shape)
+                and bool(torch.isfinite(mean).all()), 'FINITE_BPS_MEAN')
+            result['mean_return_bps'] = mean
+        return result
 
 
 def dense_direction_binary_loss(logit_up: torch.Tensor, *, sign: torch.Tensor, observed: torch.Tensor,

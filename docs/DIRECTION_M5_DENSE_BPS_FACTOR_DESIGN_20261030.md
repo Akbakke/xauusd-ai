@@ -1,0 +1,13 @@
+# M5: egne sammenligninger for bps og mer trening
+
+Den nye forskningsvarianten beholder den eksisterende M5-entryprofilen, åtte spesialistfamilier, D1/makro, lukkede høyere tidsrammer, RSI14, MACD-linje/-histogram, ret_1 og alle 60 korrigerte retningsmål. M1 og tick er ikke entryinput. En egen nullinitialisert utgang lærer signert midtprisendring i bps på alle 60 horisonter; den deler eksisterende representasjon. Ett enkelt tap er summen av vanlig 60-hoders retnings-BCE og 60-hoders bps-MSE, der hvert bps-mål skaleres med egen TRAIN-RMS. Dette viderefører den eksisterende bps-metodens relative tapsvekt 1, uten tapsvektsøk. Observerte nullbevegelser er med i bps-tapet, men ikke i retnings-BCE. Fremtidige mål er aldri inputs. Beregningshorisontene er ikke holdetid eller Exit-regler.
+
+## To faktorer, samme grunnlag
+
+Før faktisk kjøring bindes tre separate forløp til samme kildeversjon, egne friske felles initialverdier, frø, foreldrerader, rekkefølge, features og korrigert fasit. Den ene armen trener ren retning ett pass, den andre samme retning med bps-tap ett pass. En tredje fortsetter den første modellens eksakte checkpoint gjennom ett ekstra pass med uendret rent retningstap. Dermed sammenlignes bps mot ren retning ved lik eksponering, og to pass mot ett pass uten endret mål. De ekstra bps-parametrene nullinitialiseres uten å flytte den delte RNG-tilstanden; faktisk identitet i modellens felles tilstand og de 256 første prediksjonene må måles før oppdateringer.
+
+En eventuell sammenligning bruker de samme forhåndsbundne senere Q1 2025-utviklingsradene, primært fem minutter, alle 60 horisonter og parret dag-/ukeblokk-usikkerhet. Q1 er gjenbrukt utvikling og kan ikke være uberørt bekreftelse. En lønnsom handelsedge følger ikke av disse skårene. Se også `DIRECTION_M5_FIVE_PRIORITY_RESULT_20261030.md` for de eksisterende referansene.
+
+## Faktisk status
+
+Kildekomponenten, skalaeieren, tapsdispatch, modell-/featurebinding og syntetisk kontrollert gjenopptak er forberedt. Det foreligger ennå ingen reell konstruksjons-/gradientkvalifisering, kvalifisert kampanjerute eller trening for denne varianten. Forberedelse av to-pass checkpoint-semantikk åpner ingen launch. Neste konkrete steg er én avgrenset CPU-tilpasning av 60 taps-RMS fra de 47 602 TRAIN-foreldrene, bundet i `DIRECTION_M5_DENSE_BPS_SCALE_PLAN_20261030.json`. TEST, broker, handel, Exit og promotion er stengt.

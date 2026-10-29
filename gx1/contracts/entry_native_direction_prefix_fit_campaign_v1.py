@@ -734,7 +734,7 @@ def require_native_direction_prefix_fit_context(policy_path, policy_file_sha256,
 def build_prefix_fit_cursor(*, recipe_ref, fold, feature_view_identity, phase_state, outcome,
         optimizer_updates, parent_cursor, parent_order_sha256, full_state, own_initial_state,
         initial_measurement, final_train_measurement, oof_cursor, result, train_passes=1):
-    _require(type(train_passes) is int and train_passes in (1, 3), 'CURSOR_PASSES')
+    _require(type(train_passes) is int and train_passes in (1, 2, 3), 'CURSOR_PASSES')
     value = _seal({'schema_version':CURSOR_SCHEMA if train_passes == 1 else MULTIPASS_CURSOR_SCHEMA,
         **({'train_passes':train_passes} if train_passes != 1 else {}), 'recipe':dict(recipe_ref), 'fold':dict(fold),
         'feature_view_identity':feature_view_identity, 'phase_state':phase_state, 'outcome':outcome,
@@ -753,7 +753,7 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     if multipass: fields = fields | {'train_passes'}
     result = _identity(value, fields, MULTIPASS_CURSOR_SCHEMA if multipass else CURSOR_SCHEMA, 'cursor_sha256')
     passes = result['train_passes'] if multipass else 1
-    _require(type(passes) is int and passes == (3 if multipass else 1), 'CURSOR_PASSES')
+    _require(type(passes) is int and ((multipass and passes in (2, 3)) or (not multipass and passes == 1)), 'CURSOR_PASSES')
     fold = _fold(result['fold']); n = fold['prefix_rows']; quarter = fold['oof_end_row']-n
     _require(result['recipe'] == expected_recipe and (expected_fold is None or fold == _fold(expected_fold))
         and result['test_data_used'] is False and result['outcome'] in {'RESUMABLE','COMPLETE','FAILED'}
@@ -827,7 +827,7 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     if multipass: fields = fields | {'train_passes'}
     result = _identity(value, fields, campaign.PROGRESS_SCHEMA, 'progress_sha256')
     passes = result.get('train_passes', 1)
-    _require(type(passes) is int and passes == (3 if multipass else 1), 'PROGRESS_PASSES')
+    _require(type(passes) is int and ((multipass and passes in (2, 3)) or (not multipass and passes == 1)), 'PROGRESS_PASSES')
     fold = _fold(result['fold']); n = fold['prefix_rows']; quarter = fold['oof_end_row']-n
     _require(invocation['optimizer_step_budget'] == passes*((n+15)//16), 'PROGRESS_PASS_BUDGET')
     _require(expected_selection_receipt_sha256 is None and invocation['kind'] == KIND

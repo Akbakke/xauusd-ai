@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T23:21:51.619030+00:00",
-  "status": "DIRECTION_CHRONOLOGICAL_COVERAGE_REVIEW_COMPLETE_TRAINING_CLOSED",
+  "status": "DIRECTION_DENSE_BPS_TRAIN_PREFIX_SCALE_AUTHORIZED_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the separately bound one-shot CPU review of saved Q1–Q4 2025 forecasts, corrected labels and D1 GC coverage is authorized. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Prepare separate controlled 60-head signed-bps supervision and additional training exposure comparisons, with matched initialization, inputs and causal targets; retain closed TEST and no trading. Existing four-fold D1 review is descriptive only.",
+  "next_action": "Run the separately bound 60-horizon own-TRAIN bps scale fit exactly once through the capped CPU audit. Verify terminal, close its port, then source-bind private qualification and separate same-source one-pass bps and two-pass exposure controls.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Improve M5 entry direction with separate controlled signed-bps and training-exposure factors; eight specialists, D1/macro and 60 corrected horizons retained. TEST and trading closed.",
+    "current_activity": "Prepare M5 direction research with separate 60-horizon signed-bps supervision and additional training exposure factors; all training gates closed during CPU scale qualification.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-29T23:25:50.322543+00:00",
+  "updated_utc": "2026-10-29T23:44:28.603653+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -47609,5 +47609,42 @@
     "optimizer_steps": 0,
     "test_data_used": false,
     "relaunch_allowed": false
+  },
+  "direction_dense_bps_factor_preparation_20261030": {
+    "status": "SOURCE_COMPONENTS_SYNTHETIC_ONLY_NO_MODEL_OR_TRAINING_ADMISSION",
+    "design": "docs/DIRECTION_M5_DENSE_BPS_FACTOR_DESIGN_20261030.md",
+    "scope": "M5 price-only 60 direction BCE plus own-TRAIN-RMS-normalized signed bps MSE, 60 outputs; separate two-pass state/cursor preparation. Genuine qualification, private model, campaigns and same-source paired fits pending.",
+    "synthetic_checks": "299 pre-two-pass checks and 170 later affected checks passed in capped CPU tests; no real market model fit.",
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "training_enabled": false,
+    "two_pass_launch_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false
+  },
+  "direction_m5_dense_bps_scale_20261030_001": {
+    "status": "AUTHORIZED_ONE_SHOT_TRAIN_PREFIX_SCALE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_DENSE_BPS_SCALE_PLAN_20261030.json",
+      "sha256": "ac2928d535401c4a144736a126ceb72556613a3439ca3e655d515a83f6af18f0"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/fit_dense_bps_scale_once.py",
+      "sha256": "859d97fb2cc1afd50d301d95b585358a1b6e62272316c81e4f873fff90b19ff4"
+    },
+    "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "scope": "Hash the bound pre-2026 corrected archive; decode first 47602 TRAIN rows only; fit 60 own-prefix loss RMS and verify with independent sums. No features, model, later scores, TEST, trading or promotion."
   }
 }

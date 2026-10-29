@@ -40,6 +40,7 @@ SOURCE_REF_KEYS = frozenset({'feature_view_design', 'input_qualification', 'raw_
 DENSE_SOURCE_REF_KEYS = frozenset({'dense_direction_component_source', 'dense_profile_source', 'dense_native_constructor_source'})
 PRICE_MOMENTUM_SOURCE_REF_KEYS = frozenset({'price_momentum_profile_source'})
 FIVE_PRIORITY_SOURCE_REF_KEYS = frozenset({'five_priority_source'})
+DENSE_BPS_SOURCE_REF_KEYS = frozenset({'dense_bps_component_source'})
 M1_OFI_SOURCE_REF_KEYS = frozenset({'m1_ofi_window_source', 'm1_ofi_normalization_source',
     'm1_ofi_roll_owner_source', 'm1_ofi_roll_schedule'})
 VIEW_KEYS = frozenset({'schema_version', 'prefix_normalization', 'prefix', 'full_axes', 'base_lineage',
@@ -136,15 +137,20 @@ def _require_view(view):
     dense = 'dense_minute_supervision' in view
     price_momentum = 'price_momentum_profile' in view
     five_priority = 'five_minute_priority' in view
+    dense_bps = 'dense_bps_scale' in view
     m1_ofi = 'm1_ofi_normalization' in view
     coarsened = 'm1_ofi_coarsened' in view
-    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set())
+    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set())
         and sum((dense, 'bps_scale' in view, 'magnitude_weight_contract' in view)) <= 1
         and (not dense or view['dense_minute_supervision'] is True)
         and (not price_momentum or (dense and view['price_momentum_profile'] is True))
         and (not five_priority or (price_momentum and not m1_ofi and view['five_minute_priority'] is True))
+        and (not dense_bps or (dense and price_momentum and not five_priority and not m1_ofi))
         and (not m1_ofi or dense) and (not coarsened or (m1_ofi and view['m1_ofi_coarsened'] is True)), 'VIEW_KEYS')
-    if five_priority:
+    if dense_bps:
+        from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_bps_research_contract
+        objective = dense_direction_bps_research_contract()
+    elif five_priority:
         from gx1.contracts.entry_native_direction_five_priority_v1 import five_priority_direction_contract
         objective = five_priority_direction_contract()
     elif dense:
@@ -161,7 +167,7 @@ def _require_view(view):
         and view['research_objective'] == objective
         and view['evidence_scope'] == EVIDENCE_SCOPE
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
-    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()), 'SOURCE_REF_KEYS')
+    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()), 'SOURCE_REF_KEYS')
     for item in view['source_bindings'].values(): _ref(item)
     if m1_ofi:
         from gx1.contracts.entry_native_direction_m1_ofi_normalization_v1 import require as require_m1_ofi
@@ -174,6 +180,11 @@ def _require_view(view):
             and all(fitted['full_' + key] == view['full_axes'][key]
                 and fitted['prefix_' + key] == view['prefix'][key]
                 for key in ('parent_rows_sha256', 'decision_ns_sha256')), 'M1_OFI_AXIS_JOIN')
+    if dense_bps:
+        from gx1.contracts.entry_native_direction_bps_v1 import require_dense_direction_bps_scale
+        scale = require_dense_direction_bps_scale(view['dense_bps_scale'])
+        _require(scale['prefix_rows'] == view['prefix']['rows'] and scale['cutoff_ns'] == view['prefix']['cutoff_ns']
+            and all(scale[key] == view['prefix'][key] for key in ('parent_rows_sha256', 'decision_ns_sha256')), 'DENSE_BPS_OWN_PREFIX')
     if 'bps_scale' in view:
         from gx1.contracts.entry_native_direction_bps_v1 import require_direction_bps_scale
         scale = require_direction_bps_scale(view['bps_scale'])
@@ -188,7 +199,7 @@ def _require_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -221,9 +232,10 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         and not (dense_minutes and (bps_scale is not None or magnitude_weight_contract is not None))
         and (not price_momentum or dense_minutes)
         and (not five_minute_priority or (price_momentum and m1_ofi_normalization is None))
+        and (dense_bps_scale is None or (dense_minutes and price_momentum and not five_minute_priority and m1_ofi_normalization is None))
         and (m1_ofi_normalization is None or dense_minutes)
         and (not m1_ofi_coarsened or m1_ofi_normalization is not None), 'OBJECTIVE_MODE')
-    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_minute_priority else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()), 'SOURCE_REF_KEYS')
+    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_minute_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps_scale is not None else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()), 'SOURCE_REF_KEYS')
     source_bindings = {key: _ref(value) for key, value in source_bindings.items()}
     provenance = proof['source_bindings']
     _require(source_bindings['raw_input_provider_plan'] == provenance['ancestral264_plan']
@@ -237,7 +249,10 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         else owners.compile_gc_mtf_geometry_entry_execution_profile(gc_history) if dense_minutes
         else owners.compile_gc_mtf_entry_execution_profile(gc_history))
     _require(type(max_batch_rows) is int and max_batch_rows > 0, 'MAX_BATCH_ROWS')
-    if five_minute_priority:
+    if dense_bps_scale is not None:
+        from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_bps_research_contract
+        objective = dense_direction_bps_research_contract()
+    elif five_minute_priority:
         from gx1.contracts.entry_native_direction_five_priority_v1 import five_priority_direction_contract
         objective = five_priority_direction_contract()
     elif dense_minutes:
@@ -260,6 +275,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         'max_batch_rows': max_batch_rows, 'evidence_scope': EVIDENCE_SCOPE}
     if bps_scale is not None:
         value['bps_scale'] = _copy(bps_scale)
+    if dense_bps_scale is not None:
+        value['dense_bps_scale'] = _copy(dense_bps_scale)
     if magnitude_weight_contract is not None:
         value['magnitude_weight_contract'] = _copy(magnitude_weight_contract)
     if dense_minutes:
@@ -375,7 +392,7 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         max_batch_rows=view['max_batch_rows'], expected=view, bps_scale=view.get('bps_scale'), magnitude_weight_contract=view.get('magnitude_weight_contract'),
         dense_minutes=view.get('dense_minute_supervision', False), price_momentum=view.get('price_momentum_profile', False),
         m1_ofi_normalization=view.get('m1_ofi_normalization'), m1_ofi_coarsened=view.get('m1_ofi_coarsened', False),
-        five_minute_priority=view.get('five_minute_priority', False))
+        five_minute_priority=view.get('five_minute_priority', False), dense_bps_scale=view.get('dense_bps_scale'))
     _, routes, widths = _canonical()
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])
@@ -393,7 +410,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
     if view.get('dense_minute_supervision', False):
         from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch
         wrapper = DenseNativeEntryDirectionResearch(backbone, m1_ofi_normalization=view.get('m1_ofi_normalization'),
-            m1_ofi_coarsened=view.get('m1_ofi_coarsened', False), five_minute_priority=view.get('five_minute_priority', False))
+            m1_ofi_coarsened=view.get('m1_ofi_coarsened', False), five_minute_priority=view.get('five_minute_priority', False),
+            dense_bps_scale=view.get('dense_bps_scale'))
     else:
         wrapper = NativeEntryDirectionResearch(backbone, bps_scale=view.get('bps_scale'), magnitude_weight_contract=view.get('magnitude_weight_contract'))
     wrapper.feature_view_identity = {'contract_sha256': view['contract_sha256'],

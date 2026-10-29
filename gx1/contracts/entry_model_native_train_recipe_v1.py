@@ -395,7 +395,7 @@ NATIVE_DIRECTION_RESEARCH_RECIPE_ORIGINS = [{'path': '/home/andre2/GX1_RUNS/NATI
 NATIVE_DIRECTION_RESEARCH_ADAMW_OWNERS = {'torch/optim/adamw.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/adamw.py', 'sha256': 'e680a255db9c53c4248a55f414b7af9aab90bb672312ac960bb459903a161c1d'}, 'torch/optim/optimizer.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/optimizer.py', 'sha256': '354f41f784630a031195509d6b65bd5faaaa7a92402102c3b4c50423082e7ec9'}, 'torch/utils/_foreach_utils.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py', 'sha256': '723a4e8aea24cb778a260e36a7986f44807ea0fd728ec81bae98bc2dec88c901'}, 'torch/version.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/version.py', 'sha256': 'fb37823f3a4c3c29cd008fac7d3ce5aeb8e7da6f883b17aa9ea6d73ce6eecbfd'}}
 
 
-def native_direction_research_recipe(*, batch_size: int, max_updates: int, signed_bps: bool = False, magnitude_weighted: bool = False, dense_minutes: bool = False, five_minute_priority: bool = False) -> dict[str, Any]:
+def native_direction_research_recipe(*, batch_size: int, max_updates: int, signed_bps: bool = False, magnitude_weighted: bool = False, dense_minutes: bool = False, five_minute_priority: bool = False, dense_bps: bool = False) -> dict[str, Any]:
     """Explicit ONLINE/BCE research controls; never a native launch recipe.
 
     LR/WD/clip/seed/precision are the bound229/231 controls. EMA and scheduler
@@ -406,10 +406,14 @@ def native_direction_research_recipe(*, batch_size: int, max_updates: int, signe
     if type(batch_size) is not int or batch_size <= 0 or type(max_updates) is not int or max_updates <= 0:
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_POSITIVE_BUDGET')
     from gx1.contracts.entry_native_direction_research_v1 import native_direction_research_contract
-    if (type(dense_minutes) is not bool or type(five_minute_priority) is not bool
-            or (dense_minutes and (signed_bps or magnitude_weighted)) or (five_minute_priority and not dense_minutes)):
+    if (type(dense_minutes) is not bool or type(five_minute_priority) is not bool or type(dense_bps) is not bool
+            or (dense_minutes and (signed_bps or magnitude_weighted)) or (five_minute_priority and not dense_minutes)
+            or (dense_bps and (not dense_minutes or five_minute_priority))):
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_OBJECTIVE_MODE')
-    if five_minute_priority:
+    if dense_bps:
+        from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_bps_research_contract
+        objective = dense_direction_bps_research_contract()
+    elif five_minute_priority:
         from gx1.contracts.entry_native_direction_five_priority_v1 import five_priority_direction_contract
         objective = five_priority_direction_contract()
     elif dense_minutes:
@@ -439,6 +443,8 @@ def native_direction_research_recipe(*, batch_size: int, max_updates: int, signe
         value['dense_minute_supervision'] = True
     if five_minute_priority:
         value['five_minute_priority'] = True
+    if dense_bps:
+        value['dense_signed_bps_supervision'] = True
     value['contract_sha256'] = hashlib.sha256(json.dumps(value, sort_keys=True, separators=(',', ':'),
         ensure_ascii=True, allow_nan=False).encode()).hexdigest()
     return value
@@ -449,7 +455,8 @@ def require_native_direction_research_recipe(value: Mapping[str, Any]) -> dict[s
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_MAPPING')
     expected = native_direction_research_recipe(batch_size=value.get('batch_size'), max_updates=value.get('max_updates'),
         signed_bps=value.get('signed_bps_supervision', False), magnitude_weighted=value.get('magnitude_weighted_direction', False),
-        dense_minutes=value.get('dense_minute_supervision', False), five_minute_priority=value.get('five_minute_priority', False))
+        dense_minutes=value.get('dense_minute_supervision', False), five_minute_priority=value.get('five_minute_priority', False),
+        dense_bps=value.get('dense_signed_bps_supervision', False))
     if json.dumps(dict(value), sort_keys=True, separators=(',', ':'), allow_nan=False) != json.dumps(expected, sort_keys=True, separators=(',', ':'), allow_nan=False):
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_MISMATCH')
     return expected

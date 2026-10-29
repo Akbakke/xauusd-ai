@@ -232,6 +232,10 @@ def _launch_metadata(launch, common):
 
 
 def _qualified_bps_scale(context, view):
+    if 'dense_bps_scale' in view:
+        _require(view['dense_bps_scale'] == context.get('dense_bps_qualified_scale')
+            and 'dense_bps_qualified_scale_ref' in context, 'QUALIFIED_DENSE_BPS_SCALE')
+        return context['dense_bps_qualified_scale_ref']
     if 'bps_qualified_scale' in context:
         _require(view.get('bps_scale') == context['bps_qualified_scale'], 'QUALIFIED_OWN_PREFIX_BPS_SCALE')
         return context['bps_qualified_scale_ref']
@@ -239,7 +243,7 @@ def _qualified_bps_scale(context, view):
     return None
 
 
-def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False, magnitude_weighted=False, dense_minutes=False):
+def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False, magnitude_weighted=False, dense_minutes=False, dense_bps=False):
     parents,starts,decisions=(axes[k] for k in ('parent_rows','bar_start_ns','decision_ns'))
     size=len(parents)
     _require(size==118249 and parents.dtype==starts.dtype==decisions.dtype==np.int64
@@ -250,8 +254,9 @@ def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False, magnitud
         and fold['oof_start_row']==fold['prefix_rows']
         and int(np.searchsorted(decisions,fold['oof_cutoff_ns'],side='left'))==fold['oof_end_row'],'FOLD_CLOCK_AND_ROW_COHORT')
     _require(type(signed_bps) is bool and type(magnitude_weighted) is bool and type(dense_minutes) is bool
-        and sum((signed_bps,magnitude_weighted,dense_minutes))<=1,'OBJECTIVE_MODE')
-    has_bps=signed_bps or magnitude_weighted
+        and type(dense_bps) is bool and sum((signed_bps,magnitude_weighted,dense_minutes))<=1
+        and (not dense_bps or dense_minutes),'OBJECTIVE_MODE')
+    has_bps=signed_bps or magnitude_weighted or dense_bps
     horizons=np.arange(1,61,dtype=np.int64) if dense_minutes else np.asarray([1,5,15],np.int64)
     width=len(horizons)
     _require(set(targets)==set(TARGET_MEMBERS + (('mid_return_bps',) if has_bps else ())) and targets['terminal_time_ns'].dtype==np.int64
@@ -263,7 +268,7 @@ def _qualify_axes_targets(axes, targets, fold, np, *, signed_bps=False, magnitud
         and np.isin(targets['sign'],(-1,0,1)).all() and np.all(targets['sign'][~targets['observed']]==0),'TARGET_CLOCK_AND_DOMAIN')
     if has_bps:
         value=targets['mid_return_bps']
-        _require(value.dtype==np.float64 and value.shape==(size,3) and np.isfinite(value).all()
+        _require(value.dtype==np.float64 and value.shape==(size,width) and np.isfinite(value).all()
             and np.all(value[~targets['observed']]==0)
             and np.array_equal(np.sign(value).astype(np.int8),targets['sign']),'BPS_TARGET_DOMAIN')
 
@@ -379,7 +384,7 @@ def _candidate_view_inputs(context, launch, prepared, sources):
     return kwargs
 
 
-def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False, dense_minutes=False):
+def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False, dense_minutes=False, dense_bps=False):
     from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
     from gx1.contracts import entry_native_direction_context_report_v1 as report_owner
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
@@ -391,7 +396,9 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
     _require(prepared['gc']['layout']==common._read(manifest['view_source_bindings']['raw_gc_layout'],info['metadata'])
         and prepared['gc']['transition']==common._read(manifest['view_source_bindings']['raw_gc_transition'],info['metadata']),
         'CURRENT_QUALIFIED_RAW_GC_DOMAIN')
-    _require(type(dense_minutes) is bool and not (dense_minutes and (signed_bps or magnitude_weighted)), 'PREPARE_MODE')
+    _require(type(dense_minutes) is bool and type(dense_bps) is bool
+        and not (dense_minutes and (signed_bps or magnitude_weighted))
+        and (not dense_bps or dense_minutes), 'PREPARE_MODE')
     with np.load(manifest['targets']['path'],allow_pickle=False) as archive:
         if dense_minutes:
             from gx1.contracts.entry_native_direction_dense_data_v1 import AXES, TARGETS
@@ -412,9 +419,10 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
                 and refs['original']==context.get('decimal_original') and refs['corrected']==context['dense_target'],
                 'DECIMAL_EXACT_SCOPE')
             bound=load_bound_decimal_direction_targets(refs=refs,axes=physical_axes,legacy=legacy)
-            targets={key:bound[key] for key in TARGET_MEMBERS}
+            targets={key:bound[key] for key in TARGET_MEMBERS + (('mid_return_bps',) if dense_bps else ())}
             del bound
         else:
+            _require(not dense_bps, 'DENSE_BPS_REQUIRES_CORRECTED_TARGET')
             from gx1.contracts.entry_native_direction_dense_data_v1 import DENSE_MEMBERS, bind_dense_targets
             ref=context['dense_target']; before=common._stat(ref['path'])
             _require(common._hash_file(ref['path'])==ref, 'DENSE_ARCHIVE_SHA')
@@ -426,14 +434,20 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
             del dense
         del legacy
     _qualify_axes_targets(prepared['arrays'],targets,launch['fold'],np,signed_bps=signed_bps,
-        magnitude_weighted=magnitude_weighted,dense_minutes=dense_minutes)
-    bps_scale=None; magnitude_weight_contract=None
+        magnitude_weighted=magnitude_weighted,dense_minutes=dense_minutes,dense_bps=dense_bps)
+    bps_scale=None; dense_bps_scale=None; magnitude_weight_contract=None
     if signed_bps:
         from gx1.contracts.entry_native_direction_bps_v1 import fit_direction_bps_scale
         n=launch['fold']['prefix_rows']
         bps_scale=fit_direction_bps_scale(parent_rows=prepared['arrays']['parent_rows'][:n],
             decision_ns=prepared['arrays']['decision_ns'][:n], **{key:value[:n] for key,value in targets.items()},
             cutoff_ns=launch['fold']['train_cutoff_ns'],target_source=manifest['targets'],fit_partition='train')
+    if dense_bps:
+        from gx1.contracts.entry_native_direction_bps_v1 import fit_dense_direction_bps_scale
+        n=launch['fold']['prefix_rows']
+        dense_bps_scale=fit_dense_direction_bps_scale(parent_rows=prepared['arrays']['parent_rows'][:n],
+            decision_ns=prepared['arrays']['decision_ns'][:n], **{key:value[:n] for key,value in targets.items()},
+            cutoff_ns=launch['fold']['train_cutoff_ns'],target_source=context['dense_target'],fit_partition='train')
     if magnitude_weighted:
         from gx1.contracts.entry_native_direction_bps_v1 import fit_direction_magnitude_weight_contract
         n=launch['fold']['prefix_rows']
@@ -459,6 +473,10 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
     else:
         candidate_context=context
     candidate_kwargs=_candidate_view_inputs(candidate_context,launch,prepared,sources) if is_candidate else {}
+    if dense_bps:
+        _require(is_candidate and candidate_kwargs == {'price_momentum':True}, 'DENSE_BPS_M5_SCOPE')
+        sources['dense_bps_component_source']=launch['source_owners']['gx1/contracts/entry_native_direction_bps_v1.py']
+        candidate_kwargs['dense_bps_scale']=dense_bps_scale
     five_priority=launch.get('numerical_recipe',{}).get('five_minute_priority',False)
     _require(type(five_priority) is bool and (not five_priority or (is_candidate and candidate_kwargs == {'price_momentum':True})), 'FIVE_PRIORITY_VIEW_SCOPE')
     if five_priority:
@@ -527,7 +545,8 @@ def _evaluate(model, prepared, targets, view, context_map, selected, *, cutoff, 
     from gx1.contracts import entry_native_direction_context_report_v1 as reporter
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     before=_online_identity(model,device,tree_sha,trainer);modes=[(module,module.training) for module in model.modules()]
-    signed_bps=getattr(model,'signed_bps',False)
+    dense_bps=getattr(model,'dense_signed_bps',False)
+    signed_bps=getattr(model,'signed_bps',False) or dense_bps
     predictions=[];bps_predictions=[];bps_targets=[];tags=[];decisions=[];sign=[];observed=[];terminal=[];starts=[];completed=0;parity_passed=not parity;context_header=None
     _require(all(p.grad is None for p in model.parameters()),'EVAL_PARTIAL_GRADIENT')
     try:
@@ -583,11 +602,13 @@ def _evaluate(model, prepared, targets, view, context_map, selected, *, cutoff, 
         report=reporter.score_native_direction_logits(arrays['logit_up'],sign=arrays['sign'],observed=arrays['observed'],
             decision_ns=arrays['decision_ns'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff,context_tags=context)
     if signed_bps:
-        from gx1.contracts.entry_native_direction_bps_v1 import score_direction_bps
+        from gx1.contracts.entry_native_direction_bps_v1 import score_direction_bps, score_dense_direction_bps
         arrays['mean_return_bps']=np.concatenate(bps_predictions)
         arrays['mid_return_bps']=np.concatenate(bps_targets)
-        report['signed_bps']=score_direction_bps(arrays['mean_return_bps'],mid_return_bps=arrays['mid_return_bps'],
-            observed=arrays['observed'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff,scale=model.bps_scale)
+        scorer=score_dense_direction_bps if dense_bps else score_direction_bps
+        scale=model.dense_bps_scale if dense_bps else model.bps_scale
+        report['signed_bps']=scorer(arrays['mean_return_bps'],mid_return_bps=arrays['mid_return_bps'],
+            observed=arrays['observed'],terminal_time_ns=arrays['terminal_time_ns'],cutoff_ns=cutoff,scale=scale)
     arrays.update({'context__'+key:value for key,value in tag_arrays.items()})
     return {'arrays':arrays,'report':report,'context_tags':context,'state_preservation':before,'initial_parity_passed':parity_passed},completed
 
@@ -661,6 +682,10 @@ def _gradient_summary(model, torch):
         aux=model.dense_aux_head
         out['dense_aux_head_weight_rows']=[int(torch.count_nonzero(row)) for row in aux.weight.grad] if aux.weight.grad is not None else [0]*57
         out['dense_aux_head_bias_rows']=[int(value!=0) for value in aux.bias.grad] if aux.bias.grad is not None else [0]*57
+    if getattr(model,'dense_signed_bps',False):
+        mean=model.dense_bps_head
+        out['dense_bps_head_weight_rows']=[int(torch.count_nonzero(row)) for row in mean.weight.grad] if mean.weight.grad is not None else [0]*60
+        out['dense_bps_head_bias_rows']=[int(value!=0) for value in mean.bias.grad] if mean.bias.grad is not None else [0]*60
     if getattr(model,'signed_bps',False):
         mean=model.bps_mean_head
         out['bps_head_weight_rows']=[int(torch.count_nonzero(row)) for row in mean.weight.grad] if mean.weight.grad is not None else [0]*3
@@ -677,8 +702,15 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     _require(model.training and all(module.training for module in model.modules()),'TRAIN_MODE')
     signed_bps=getattr(model,'signed_bps',False); magnitude_weighted=getattr(model,'magnitude_weighted',False)
-    _require(not (signed_bps and magnitude_weighted),'OBJECTIVE_MODE')
-    if signed_bps:
+    dense_bps=getattr(model,'dense_signed_bps',False)
+    _require(sum((signed_bps,magnitude_weighted,dense_bps))<=1,'OBJECTIVE_MODE')
+    if dense_bps:
+        outputs=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True,return_outputs=True)
+        from gx1.contracts.entry_native_direction_bps_v1 import dense_direction_bps_loss
+        loss=dense_direction_bps_loss(outputs['logit_up'],outputs['mean_return_bps'],
+            rms_bps=model.dense_bps_rms,**target,cutoff_ns=cutoff)
+        _require(loss['research_objective_sha256']==model.research_objective['contract_sha256'],'DENSE_BPS_LOSS_IDENTITY')
+    elif signed_bps:
         outputs=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True,return_outputs=True)
         from gx1.contracts.entry_native_direction_bps_v1 import native_direction_bps_loss
         loss=native_direction_bps_loss(outputs['logit_up'],outputs['mean_return_bps'],
@@ -705,7 +737,7 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
     if magnitude_weighted:
         for key in ('unweighted_direction_loss','magnitude_weighted_loss'):
             record[key]=None if loss[key] is None else float(loss[key].detach())
-    if signed_bps:
+    if signed_bps or dense_bps:
         record['bps_eligible_cells']=loss['bps_eligible_cells']
         record['bps_per_horizon_counts']=loss['bps_per_horizon_counts']
         for key in ('direction_loss','bps_loss','bps_raw_sse','bps_normalized_sse'):
@@ -722,7 +754,7 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
 
 
 def _next_training_parent_range(cursor, n, train_passes):
-    _require(type(n) is int and n > 0 and type(train_passes) is int and train_passes in (1,3)
+    _require(type(n) is int and n > 0 and type(train_passes) is int and train_passes in (1,2,3)
         and type(cursor) is int and 0 <= cursor < train_passes*n, 'TRAIN_PARENT_RANGE')
     within=cursor%n
     _require(within%BATCH_SIZE == 0, 'TRAIN_PARENT_BOUNDARY')
@@ -837,7 +869,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     try:
         sys.setprofile(common._deny_legacy_work(previous_profile,counters))
         prepared,targets,view,context_map,ordered=_prepare(context,input_launch,np,signed_bps=recipe.get('signed_bps_supervision',False),
-            magnitude_weighted=recipe.get('magnitude_weighted_direction',False),dense_minutes=recipe.get('dense_minute_supervision',False))
+            magnitude_weighted=recipe.get('magnitude_weighted_direction',False),dense_minutes=recipe.get('dense_minute_supervision',False),
+            dense_bps=recipe.get('dense_signed_bps_supervision',False))
         bps_scale_ref=_qualified_bps_scale(context,view)
         order=torch.from_numpy(ordered.copy());order_sha=tree_sha(order)
         prior=_prefix_prior(prepared['arrays'],targets,fold,np)
