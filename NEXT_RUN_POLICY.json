@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T23:21:51.619030+00:00",
-  "status": "DIRECTION_DENSE_BPS_TRAIN_PREFIX_SCALE_AUTHORIZED_TRAINING_CLOSED",
+  "status": "DIRECTION_DENSE_BPS_SCALE_COMPLETE_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the separately bound one-shot CPU review of saved Q1–Q4 2025 forecasts, corrected labels and D1 GC coverage is authorized. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Run the separately bound 60-horizon own-TRAIN bps scale fit exactly once through the capped CPU audit. Verify terminal, close its port, then source-bind private qualification and separate same-source one-pass bps and two-pass exposure controls.",
+  "next_action": "Extend the existing private campaign and full-fit admissions for the explicitly separate dense-bps and two-pass M5 scopes; bind the verified scale, shared-source baseline and exact initial parity. Qualification and genuine fits have not been launched.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-29T23:44:28.603653+00:00",
+  "updated_utc": "2026-10-29T23:47:38.272981+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -47621,10 +47621,15 @@
     "training_enabled": false,
     "two_pass_launch_authorized": false,
     "test_data_used": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "own_train_scale": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT/OWN_TRAIN_DENSE_BPS_SCALE.json",
+      "sha256": "b5f26bbda63f9fa02bc19eb370f17608d116432eef935b85d97270a37a7bedd9"
+    },
+    "scale_qualification": "60 per-horizon TRAIN-only RMS values; independent counts match prior decimal audit; model qualification remains pending."
   },
   "direction_m5_dense_bps_scale_20261030_001": {
-    "status": "AUTHORIZED_ONE_SHOT_TRAIN_PREFIX_SCALE",
+    "status": "COMPLETE_CONSUMED_TRAIN_PREFIX_SCALE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_DENSE_BPS_SCALE_PLAN_20261030.json",
       "sha256": "ac2928d535401c4a144736a126ceb72556613a3439ca3e655d515a83f6af18f0"
@@ -47634,17 +47639,38 @@
       "sha256": "859d97fb2cc1afd50d301d95b585358a1b6e62272316c81e4f873fff90b19ff4"
     },
     "output": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "training_enabled": false,
     "native_launch_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "test_data_used": false,
-    "scope": "Hash the bound pre-2026 corrected archive; decode first 47602 TRAIN rows only; fit 60 own-prefix loss RMS and verify with independent sums. No features, model, later scores, TEST, trading or promotion."
+    "scope": "Hash the bound pre-2026 corrected archive; decode first 47602 TRAIN rows only; fit 60 own-prefix loss RMS and verify with independent sums. No features, model, later scores, TEST, trading or promotion.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT/RESULT.json",
+      "sha256": "a3ca04a15b3d31af514e0a6fe1faccc6b144797a1f63f427d7d2f1588a91176e"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT/TERMINAL.json",
+      "sha256": "b9df328fbb446da62815fb72691ec7ff76437a2b8d87700701f67b96bbe57664"
+    },
+    "own_train_scale": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT/OWN_TRAIN_DENSE_BPS_SCALE.json",
+      "sha256": "b5f26bbda63f9fa02bc19eb370f17608d116432eef935b85d97270a37a7bedd9"
+    },
+    "independent_count_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_SCALE_20261030_001/OUTPUT/INDEPENDENT_PRIOR_AUDIT_COUNT_CHECK.json",
+      "sha256": "fb41cef41756c43706a18f57a7d842061b3036e7eb79e962074dbb5ed0d29b62"
+    },
+    "five_minute": {
+      "eligible_including_ties": 47420,
+      "rms_bps": 5.256305368706632
+    },
+    "all_60_counts_match_prior_decimal_audit": true
   }
 }

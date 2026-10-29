@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+30.10 — 60 BPS-TAPSSKALAER BEREGNET OG LUKKET: 47 602 TRAIN-beslutninger; observerte modne antall 45 514–47 596 per horisont. Fem minutter: 47 420, RMS 5,256305 bps. Alle 60 antall samsvarer med tidligere uavhengig korrigert fasit-audit; uavhengig fsum-kontroll av summer og kvadratsummer bestod. Ingen modellforward, optimizer, TEST eller handel. Dette er tapsnormalisering, ikke edge. Den nye private kampanjeruten og de separate treningene gjenstår. Se NEXT_RUN_POLICY.
+
 30.10 — 60-HODERS BPS OG TO-PASS KILDEFORBEREDELSE: Ny M5-variant beholder alle 60 retningsmål og legger til signert bps-tap med egen TRAIN-RMS per horisont. Kilde, input-/modellbinding, mål- og tapsdispatch er syntetisk testet; kontrollert to-pass checkpoint-/cursor-semantikk er forberedt. Reell kvalifisering, kampanjer og sammenligninger gjenstår. Én CPU-tilpasning av 60 RMS fra nøyaktig 47 602 TRAIN-rader er separat bundet og autorisert; all modelltrening og TEST er stengt. Se docs/DIRECTION_M5_DENSE_BPS_FACTOR_DESIGN_20261030.md og NEXT_RUN_POLICY.
 
 30.10 — FEM/SEKS PÅ SAMME BESLUTNINGER: I 17 157 felles Q1-rader er ny 5-/6-minutters treffprosent 50,236/50,836 %, og retningen er uenig i 34,750 %; forrige modell 79,758 %, mens fasiten bytter fortegn i 14,123 %. Ny modell ligger ofte nær 50 % estimert oppsannsynlighet. Deskriptivt, ikke bevist kodefeil eller edge. Se docs/DIRECTION_M5_FIVE_PRIORITY_RESULT_20261030.md.
