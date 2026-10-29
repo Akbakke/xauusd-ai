@@ -1,0 +1,51 @@
+{
+  "all_60_simultaneous_day_and_week_intervals_include_half": true,
+  "bootstrap_replicates": 10000,
+  "complete_m1_parents": 17135,
+  "day_blocks": 77,
+  "economic_edge_qualified": false,
+  "limits": "reused development data; selection excludes missing M1, unknown outcomes and ties; does not condition on all other model inputs; no trading or profitability claim This conditional rank test does not measure the trained matched M1 model; capture-server receive times do not prove arrival before the M5 decision.",
+  "model_forwards": 0,
+  "optimizer_steps": 0,
+  "parents": 17288,
+  "plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TEMPORAL_CONDITIONAL_AUDIT_20261029.json",
+    "sha256": "04de7e785ceb1cc5bc1b5796f72ac077418ad2b36eaa474f220d7a6dcba8f27d"
+  },
+  "primary": {
+    "auc_simultaneous_day": {
+      "high": 0.511530133198358,
+      "low": 0.4726647889849183
+    },
+    "auc_simultaneous_week": {
+      "high": 0.5128844959101174,
+      "low": 0.4713104262731589
+    },
+    "both_lower_bounds_above_half": false,
+    "conditional_auc": 0.49209746109163816,
+    "eligible": 17039,
+    "horizon_minutes": 5,
+    "matched_groups": 849,
+    "matched_rows": 16464,
+    "undefined_day_replicates": 0,
+    "undefined_week_replicates": 0,
+    "within_m5_total_up_down_pairs": 140651
+  },
+  "primary_horizon_minutes": 5,
+  "result": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_TEMPORAL_CONDITIONAL_20261029_001/OUTPUT/RESULT.json",
+    "sha256": "6cce130c915f91503bd910a5e721b2ee5550f25c93ad0e419ea90606d68cbc14"
+  },
+  "saved_result_check": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_TEMPORAL_CONDITIONAL_20261029_001/SAVED_RESULT_CHECK_001.json",
+    "sha256": "28d1776a0b8e15fce1be6fec160f61d05fb4e90a29e19394f190c28f336b0b2b"
+  },
+  "schema_version": "gx1_m1_conditional_saved_summary_v1",
+  "status": "COMPLETE_CONSUMED_REUSED_DEVELOPMENT",
+  "terminal": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_TEMPORAL_CONDITIONAL_20261029_001/TERMINAL.json",
+    "sha256": "e44a2a36dd067b31828c417ca995ed1355fd08a25c3bf94f93162d31ac3c8c94"
+  },
+  "test_data_used": false,
+  "week_blocks": 14
+}

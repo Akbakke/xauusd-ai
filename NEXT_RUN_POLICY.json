@@ -44,12 +44,12 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T14:10:41.776077+00:00",
-  "status": "M1_CONDITIONAL_DIRECTION_AUDIT_ADMITTED",
+  "observed_utc": "2026-10-29T14:12:51.874931+00:00",
+  "status": "MATCHED_M1_M5_MECHANICS_AND_CONDITIONAL_REUSED_DEVELOPMENT_AUDIT_COMPLETE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the exact fixed one-shot CPU audit of last M1 OFI within identical M5 OFI strata on reused development data is admitted. All native training remains closed. Preserve genuine inputs, eight families, D1/macro, hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending, promotion or qualification weight reuse.",
+  "rule": "Both exact M1/M5 private qualifications and the conditional M1 audit are complete and consumed. Any further offline fit must use its own bounded source-bound plan and gates. Preserve genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending, promotion or qualification weight reuse.",
   "next_action": "Await explicit approval of the two sequential, capacity-matched private qualification campaigns; full fitting, the separate conditional audit, TEST and trading remain unadmitted.",
   "required_evidence": {
     "risk_objective": {
@@ -44534,17 +44534,17 @@
     "candidate_price_momentum_gradient_guard_scope": "For the compact candidate profile, RSI14, MACD line, MACD histogram and ret_1 each require nonzero shared price-projection gradient in at least one of two logical steps, both for reference and for interrupted/resumed trajectory. Failure means contact was not demonstrated; it is not proof of a data bug, all-timeframe influence or predictive value."
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_REUSED_DEVELOPMENT",
     "pre_admission_rejection_verified_before_payload_and_claim": true,
     "pre_admission_source_commit": "d22858b3e2caf6818ccc485140ea664e010494e8",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TEMPORAL_CONDITIONAL_AUDIT_20261029.json",
       "sha256": "04de7e785ceb1cc5bc1b5796f72ac077418ad2b36eaa474f220d7a6dcba8f27d"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "test_data_used": false,
     "model_forward_authorized": false,
@@ -44565,7 +44565,25 @@
       "response": "Ja, du trenger ikke godkjenning av meg hele tiden, jeg stoler på deg. kjør M1 og M5 test",
       "scope": "one fixed conditional M1-versus-M5 direction audit, 1–60 minute corrected targets on reused Q1 development",
       "recorded_utc": "2026-10-29T14:10:41.776060+00:00"
-    }
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_TEMPORAL_CONDITIONAL_20261029_001/OUTPUT/RESULT.json",
+      "sha256": "6cce130c915f91503bd910a5e721b2ee5550f25c93ad0e419ea90606d68cbc14"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_TEMPORAL_CONDITIONAL_20261029_001/TERMINAL.json",
+      "sha256": "e44a2a36dd067b31828c417ca995ed1355fd08a25c3bf94f93162d31ac3c8c94"
+    },
+    "saved_result_check": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M1_TEMPORAL_CONDITIONAL_20261029_001/SAVED_RESULT_CHECK_001.json",
+      "sha256": "28d1776a0b8e15fce1be6fec160f61d05fb4e90a29e19394f190c28f336b0b2b"
+    },
+    "primary_5min_conditional_auc": 0.49209746109163816,
+    "primary_5min_eligible_rows": 17039,
+    "primary_5min_matched_rows": 16464,
+    "all_60_simultaneous_day_and_week_intervals_include_half": true,
+    "later_generalization_qualified": false,
+    "economic_edge_qualified": false
   },
   "independent_direction_m1_train_normalization_20261029_001": {
     "status": "COMPLETE_ONE_SHOT_CONSUMED",
