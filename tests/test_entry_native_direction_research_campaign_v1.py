@@ -107,6 +107,14 @@ def test_complete_metadata_chain_without_legacy_supervision(fixture):
     assert campaign.campaign_hardware_policy(owner.PHASE)==campaign.campaign_hardware_policy('native_candidate')
 
 
+def test_m1_price_internal_adapter_scope_cannot_authorize_private_research(fixture):
+    from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    f=fixture;recipe=copy.deepcopy(f['recipe']);recipe['run_scope']=M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    reseal(recipe,'recipe_sha256');ref=write(f['runtime']/'PRIVATE_ADAPTER_RECIPE.json',recipe)
+    with pytest.raises(RuntimeError,match='RECIPE_SCOPE'):
+        owner.require_research_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
 @pytest.mark.parametrize('key,value',[('requires_fresh_windows_boot',False),('signed_guard_only',False),
     ('batch_size',True),('optimizer_step_budget',5),('expected_success_outcome','RESUMABLE'),('kind','native_candidate_window')])
 def test_resealed_invocation_cannot_broaden_scope(fixture,key,value):

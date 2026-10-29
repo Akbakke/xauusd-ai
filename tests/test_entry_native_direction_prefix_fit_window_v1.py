@@ -409,6 +409,50 @@ def test_dense_prepare_joins_only_bound_synthetic_targets_and_current_sources(mo
     with pytest.raises(RuntimeError,match='DENSE_EXACT_SCOPE'):
         runner._prepare(context,{**launch,'run_scope':'not_admitted'},np,dense_minutes=True)
 
+    # Exercise the private corrected-target preparation path with a real,
+    # purely synthetic qualified M1 clock and both matched input profiles.
+    import hashlib
+    from gx1.contracts import entry_closed_m1_ofi_window_v1 as windows
+    from gx1.contracts import entry_native_direction_decimal_input_v1 as decimal
+    from gx1.contracts import entry_native_direction_m1_ofi_normalization_v1 as normalization
+    from tests.test_entry_closed_m1_ofi_window_v1 import _model_clock_case
+    case=_model_clock_case(); clock=windows.qualify_model_clock(**case)
+    cutoff=int(case['decision_ns'][1])
+    fitted=normalization.fit(case['source'],clock,prefix_rows=1,cutoff_ns=cutoff)
+    prepared['arrays']={'parent_rows':case['parent_rows'],'decision_ns':case['decision_ns'],
+        'bar_start_ns':case['decision_ns']-5*windows.MINUTE_NS}
+    prepared['gc']['layout']={'field_names':{'M5':case['m5_field_names']}}
+    prepared['gc']['surfaces']={'M5':{'available_ns':case['m5_available_ns'],
+        'native_row_indices':case['m5_native_row_indices'],'features':case['m5_features'],
+        'field_names':case['m5_field_names']}}
+    prepared['cache']={'M5':SimpleNamespace(attrs={'ts_int64':case['m5_cache_start_ns']})}
+    monkeypatch.setattr(common,'_read',lambda ref,*_:prepared['gc']['layout']
+        if ref==source_refs['raw_gc_layout'] else {})
+    monkeypatch.setattr(decimal,'load_bound_decimal_direction_targets',
+        lambda **kwargs:{key:dense[key].copy() for key in runner.TARGET_MEMBERS})
+    owners.update({path:{'path':'/synthetic/'+path,'sha256':'b'*64} for path in (
+        'gx1/features/entry_direction_momentum_profile_v1.py',
+        'gx1/contracts/entry_closed_m1_ofi_window_v1.py',
+        'gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py',
+        'gx1/scripts/audit_raw_gc_m1_reference_v1.py')})
+    refs={'legacy':manifest['targets'],'original':{'path':'/synthetic/original'},'corrected':ref}
+    context.update(decimal_target_refs=refs,decimal_original=refs['original'])
+    launch.update(run_scope=authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,decimal_target_refs=refs,
+        fold={'prefix_rows':1,'train_cutoff_ns':cutoff})
+    context['candidate_inputs']={'mode':'price_only'}
+    got, target, view, _, _ = runner._prepare(context,launch,np,dense_minutes=True)
+    assert got is prepared and view['price_momentum'] is True and 'm1_ofi_normalization' not in view
+    roll_ref={'path':'/synthetic/roll.json','sha256':hashlib.sha256(case['roll_bytes']).hexdigest()}
+    context['candidate_inputs']={'mode':'price_and_m1','source':case['source'],'roll_bytes':case['roll_bytes'],
+        'roll_ref':roll_ref,'normalization':fitted}
+    got, target, view, _, _ = runner._prepare(context,launch,np,dense_minutes=True)
+    assert view['price_momentum'] is True and view['m1_ofi_normalization']==fitted
+    assert got['m1_ofi_clock'].clock_sha256==clock.clock_sha256 and target['sign'].shape==(2,60)
+    assert view['source_bindings']['m1_ofi_roll_schedule']==roll_ref
+    context.pop('candidate_inputs')
+    with pytest.raises(RuntimeError,match='CANDIDATE_PRIVATE_SCOPE'):
+        runner._prepare(context,launch,np,dense_minutes=True)
+
 
 def test_dense_launch_metadata_requires_qualified_anchors_and_exact_target_binding(monkeypatch):
     proof_ref={'path':'/synthetic/transition.json','sha256':'1'*64}

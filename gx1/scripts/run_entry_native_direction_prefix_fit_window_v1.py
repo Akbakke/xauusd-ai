@@ -280,6 +280,50 @@ def _select_price_targets(archive, *, signed_bps=False, magnitude_weighted=False
     return {key:archive[key] for key in members}
 
 
+
+def _candidate_view_inputs(context, launch, prepared, sources):
+    """Bind price-only or price+M1 inputs; this grants no execution authority.
+
+    The future admitted caller owns file hashes, guarded loading and the
+    separately approved prefix normalization fit. This pure adapter rechecks
+    full model/roll/source clocks and the supplied normalization identity.
+    """
+    from gx1.contracts import entry_closed_m1_ofi_window_v1 as windows
+    from gx1.contracts import entry_native_direction_m1_ofi_normalization_v1 as normalization
+    candidate=context.get('candidate_inputs')
+    _require(isinstance(candidate,dict) and candidate.get('mode') in ('price_only','price_and_m1'), 'CANDIDATE_MODE')
+    owner_paths={'price_momentum_profile_source':'gx1/features/entry_direction_momentum_profile_v1.py'}
+    if candidate['mode']=='price_only':
+        _require(set(candidate)=={'mode'}, 'CANDIDATE_PRICE_ONLY_KEYS')
+        sources.update({name:launch['source_owners'][path] for name,path in owner_paths.items()})
+        return {'price_momentum':True}
+    _require(set(candidate)=={'mode','source','roll_bytes','roll_ref','normalization'}, 'CANDIDATE_M1_KEYS')
+    source,roll_bytes,roll_ref=candidate['source'],candidate['roll_bytes'],candidate['roll_ref']
+    _require(isinstance(source,windows.QualifiedSource) and type(roll_bytes) is bytes
+        and isinstance(roll_ref,dict) and set(roll_ref)=={'path','sha256'}
+        and hashlib.sha256(roll_bytes).hexdigest()==roll_ref['sha256'], 'CANDIDATE_ROLL_BINDING')
+    fitted=normalization.require(candidate['normalization'])
+    _require(fitted['model_contract_clock_bound'] is True and fitted['roll_sha256']==roll_ref['sha256']
+        and fitted['source_sha256']==source.source_sha256
+        and fitted['prefix_rows']==launch['fold']['prefix_rows']
+        and fitted['cutoff_ns']==launch['fold']['train_cutoff_ns'], 'CANDIDATE_NORMALIZATION_BINDING')
+    m5=prepared['gc']['surfaces']['M5'];layout=prepared['gc']['layout']
+    _require(m5['field_names']==layout['field_names']['M5'], 'CANDIDATE_M5_FIELDS')
+    cache=prepared['cache']['M5'].attrs['ts_int64']
+    clock=windows.qualify_model_clock(source,parent_rows=prepared['arrays']['parent_rows'],
+        decision_ns=prepared['arrays']['decision_ns'],roll_bytes=roll_bytes,
+        m5_available_ns=m5['available_ns'],m5_native_row_indices=m5['native_row_indices'],
+        m5_features=m5['features'],m5_field_names=m5['field_names'],m5_cache_start_ns=cache)
+    _require(clock.clock_sha256==fitted['clock_sha256'], 'CANDIDATE_MODEL_CLOCK_BINDING')
+    owner_paths.update({'m1_ofi_window_source':'gx1/contracts/entry_closed_m1_ofi_window_v1.py',
+        'm1_ofi_normalization_source':'gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py',
+        'm1_ofi_roll_owner_source':'gx1/scripts/audit_raw_gc_m1_reference_v1.py'})
+    sources.update({name:launch['source_owners'][path] for name,path in owner_paths.items()})
+    sources['m1_ofi_roll_schedule']=roll_ref
+    prepared['m1_ofi_source']=source;prepared['m1_ofi_clock']=clock
+    return {'price_momentum':True,'m1_ofi_normalization':fitted}
+
+
 def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False, dense_minutes=False):
     from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
     from gx1.contracts import entry_native_direction_context_report_v1 as report_owner
@@ -302,10 +346,11 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
             targets=_select_price_targets(archive,signed_bps=signed_bps,magnitude_weighted=magnitude_weighted)
     if dense_minutes:
         from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-        _require(launch.get('run_scope') in (authority.DENSE_SCOPE,authority.DENSE_DECIMAL_PRIVATE_SCOPE)
+        _require(launch.get('run_scope') in (authority.DENSE_SCOPE,authority.DENSE_DECIMAL_PRIVATE_SCOPE,
+            authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE)
             and context.get('dense_target')==launch.get('dense_target'), 'DENSE_EXACT_SCOPE')
         physical_axes={**prepared['arrays'],'dynamic_entry_m1_row':legacy['dynamic_entry_m1_row']}
-        if launch['run_scope']==authority.DENSE_DECIMAL_PRIVATE_SCOPE:
+        if launch['run_scope'] in (authority.DENSE_DECIMAL_PRIVATE_SCOPE,authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE):
             from gx1.contracts.entry_native_direction_decimal_input_v1 import load_bound_decimal_direction_targets
             refs=launch['decimal_target_refs']
             _require(context.get('decimal_target_refs')==refs and refs['legacy']==manifest['targets']
@@ -349,10 +394,14 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
         sources.update({'dense_direction_component_source':owners['gx1/contracts/entry_native_direction_dense_v1.py'],
             'dense_profile_source':owners['gx1/features/entry_specialist_feature_groups_v1.py'],
             'dense_native_constructor_source':owners['gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py']})
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    is_candidate=launch.get('run_scope')==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    _require(is_candidate==('candidate_inputs' in context) and (not is_candidate or dense_minutes), 'CANDIDATE_PRIVATE_SCOPE')
+    candidate_kwargs=_candidate_view_inputs(context,launch,prepared,sources) if is_candidate else {}
     view=view_owner.bind_native_direction_feature_view(prefix_normalization=context['fitted'],
         prefix_normalization_ref=manifest['prefix_normalization']['output'],constructor_metadata=context['constructor'],
         constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=sources,max_batch_rows=BATCH_SIZE,
-        bps_scale=bps_scale,magnitude_weight_contract=magnitude_weight_contract,dense_minutes=dense_minutes)
+        bps_scale=bps_scale,magnitude_weight_contract=magnitude_weight_contract,dense_minutes=dense_minutes,**candidate_kwargs)
     context_map=report_owner.native_direction_context_map(gc_layout=prepared['gc']['layout'],
         mtf_field_names=context['fitted']['base_normalization']['surfaces']['mtf_m5']['field_names'])
     order=_presentation_order(prepared['arrays']['parent_rows'],launch['fold']['prefix_rows'],SEED,np,launch=launch)

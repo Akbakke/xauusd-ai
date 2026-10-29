@@ -200,3 +200,35 @@ def test_private_qualification_reports_m1_and_price_gradients_without_inventing_
     (m1out(F.gelu(m1in(x)))+price(x)-1).square().mean().backward()
     assert _candidate_gradient_counts(model,torch)['m1_ofi_in_weight_nonzero']>0
     assert _candidate_gradient_counts(SimpleNamespace(backbone=SimpleNamespace(entry_execution_profile=None)),torch)=={}
+
+
+def test_private_input_adapter_binds_matched_price_and_m1_without_granting_launch():
+    import hashlib
+    from types import SimpleNamespace
+    from gx1.scripts.run_entry_native_direction_prefix_fit_window_v1 import _candidate_view_inputs
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    from tests.test_entry_closed_m1_ofi_window_v1 import _model_clock_case
+    case=_model_clock_case();source=case['source'];clock=windows.qualify_model_clock(**case)
+    fitted=normalizer.fit(source,clock,prefix_rows=1,cutoff_ns=int(case['decision_ns'][1]))
+    m5={'available_ns':case['m5_available_ns'],'native_row_indices':case['m5_native_row_indices'],
+        'features':case['m5_features'],'field_names':case['m5_field_names']}
+    prepared={'arrays':{'parent_rows':case['parent_rows'],'decision_ns':case['decision_ns']},
+        'gc':{'surfaces':{'M5':m5},'layout':{'field_names':{'M5':case['m5_field_names']}}},
+        'cache':{'M5':SimpleNamespace(attrs={'ts_int64':case['m5_cache_start_ns']})}}
+    owners={path:_ref(path) for path in ('gx1/features/entry_direction_momentum_profile_v1.py',
+        'gx1/contracts/entry_closed_m1_ofi_window_v1.py','gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py',
+        'gx1/scripts/audit_raw_gc_m1_reference_v1.py')}
+    launch={'run_scope':authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,'fold':{'prefix_rows':1,
+        'train_cutoff_ns':int(case['decision_ns'][1])},'source_owners':owners}
+    roll_ref={'path':'/synthetic/roll.json','sha256':hashlib.sha256(case['roll_bytes']).hexdigest()}
+    candidate={'mode':'price_and_m1','source':source,'roll_bytes':case['roll_bytes'],'roll_ref':roll_ref,'normalization':fitted}
+    sources={};kwargs=_candidate_view_inputs({'candidate_inputs':candidate},launch,prepared,sources)
+    assert kwargs['price_momentum'] is True and kwargs['m1_ofi_normalization']==fitted
+    assert prepared['m1_ofi_clock'].clock_sha256==clock.clock_sha256
+    assert sources['m1_ofi_roll_schedule']==roll_ref and sources['m1_ofi_roll_owner_source']==owners['gx1/scripts/audit_raw_gc_m1_reference_v1.py']
+    price_sources={};price=_candidate_view_inputs({'candidate_inputs':{'mode':'price_only'}},launch,prepared,price_sources)
+    assert price=={'price_momentum':True} and set(price_sources)=={'price_momentum_profile_source'}
+    bad={**candidate,'roll_bytes':candidate['roll_bytes']+b' '}
+    with pytest.raises(RuntimeError,match='CANDIDATE_ROLL_BINDING'):
+        _candidate_view_inputs({'candidate_inputs':bad},launch,prepared,{})
+    assert authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE not in (authority.DENSE_SCOPE,authority.DENSE_DECIMAL_FIT_SCOPE)

@@ -164,6 +164,13 @@ def test_recipe_rejects_resealed_scope_mutations(fixture,fault):
     with pytest.raises(RuntimeError):owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
 
 
+def test_m1_price_internal_adapter_scope_cannot_authorize_prefix_training(fixture):
+    f=fixture;recipe=copy.deepcopy(f['recipe']);recipe['run_scope']=owner.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    reseal(recipe,'recipe_sha256');ref=write(f['runtime']/'PRIVATE_ADAPTER_RECIPE.json',recipe)
+    with pytest.raises(RuntimeError,match='RECIPE_SCOPE'):
+        owner.require_prefix_fit_launch_recipe(ref,source_repo=f['repo'],source_commit='a'*40)
+
+
 @pytest.mark.parametrize('key,value',[('batch_size',8),('epoch_index',0),('window_count',5),('optimizer_step_budget',4),
     ('expected_success_outcome','COMPLETE'),('requires_fresh_windows_boot',False)])
 def test_resealed_invocation_keeps_fixed_budget_and_guards(fixture,key,value):
