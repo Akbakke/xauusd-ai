@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-29T20:51:53.591645+00:00",
-  "status": "M5_FIVE_PRIORITY_FULLFIT_SOURCE_PREPARED",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "observed_utc": "2026-10-29T20:56:57.495318+00:00",
+  "status": "M5_FIVE_PRIORITY_ONEPASS_FIT_AUTHORIZED",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
-  "rule": "Training remains closed until the separately bound one-pass M5 five-priority fit is admitted after clean-source preflight. Preserve all 60 targets, price_only M5 entry, eight specialists, D1/macro, existing hardware guards, physical restart per window and retained 250 W. TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Repeat metadata/source-owner preflight on the clean committed source; then bind a separate one-pass 10x-five-minute M5 campaign, perform machine-wide idle/write checks and a physical reboot before each training window. Keep all 60 heads and retained 250 W configuration; compare fixed reused Q1 rows against the earlier M5 price-only fit.",
+  "rule": "Only the bound one-pass M5 five-priority research fit is admitted; require fresh initial parity, one capped job, physical restart per window and retained 250 W. All 60 targets, eight specialists and D1/macro are preserved. TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
+  "next_action": "Materialize the exact separate one-shot M5 five-priority plan on clean source, verify readiness and machine-wide idle/write state, then physically reboot before the first training window. Retain 250 W and existing guards; compare saved later Q1 scores with the prior M5 price-only fit after terminal.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -26287,7 +26287,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": false,
+  "native_launch_authorized": true,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -47373,7 +47373,7 @@
     "test_data_used": false
   },
   "dynamic_m5_direction_five_priority_onepass_fit_20261029_001": {
-    "status": "SOURCE_PREPARED_NO_TRAINING_AUTHORITY",
+    "status": "AUTHORIZED_ONE_FRESH_M5_FIVE_PRIORITY_FIT",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_RECIPE_20261029.json",
       "sha256": "e8d76c2edf331cca0105c022025d06675be8b56653badce3364a1d207511d4df"
@@ -47397,19 +47397,19 @@
     "train_passes": 1,
     "requested_physical_gpu_power_limit_w": 250,
     "retain_physical_gpu_power_limit_w_afterward": 250,
-    "campaign_preparation_authorized": false,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
-    "genuine_updates_authorized": false,
-    "genuine_predictor_fit_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
-    "full_epoch_training_allowed": false,
-    "native_launch_authorized": false,
-    "physical_restart_before_each_invocation_authorized": false,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "physical_restart_before_each_invocation_authorized": true,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -47420,9 +47420,22 @@
     "qualification_weights_for_main_fit": false,
     "test_or_trading_authority": false,
     "fixed_comparison_authorized": false,
-    "metadata_preflight": "PASS_DIRTY_SOURCE_METADATA_ONLY; rerun on clean commit",
+    "metadata_preflight": "PASS_COMMITTED_CLEAN_SOURCE_METADATA_ONLY",
     "focused_tests_passed": 183,
     "numeric_recipe_validation": "PASS",
-    "predictive_or_economic_edge_qualified": false
+    "predictive_or_economic_edge_qualified": false,
+    "source_preflight": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/SOURCE_PREFLIGHT_001.json",
+      "sha256": "4561856b963ff9b302acf09324d0f3b18d9053ed550271291ca52cb7452ea2a3"
+    },
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/materialize_prefix_campaign_once.py",
+      "sha256": "92ba26f3ae092775ec0a5a15633b4e48cf24b1cafea8e1e101ba3da13a95c1c1"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FIVE_PRIORITY_ONEPASS_FIT_20261029_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "b6367572044bf7da825bae75d6aa26fb4e1c76813d017999b701f14314951920"
+    },
+    "user_authorization": "Direct independent M5 direction work without repeated approvals; physical restart per window and 250 W retained."
   }
 }
