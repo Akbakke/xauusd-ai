@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
-  "next_action": "Await separate approval for the fixed read-only M1 temporal-information audit; the separate TRAIN-only M1 normalization plan is also prepared but not admitted, and fresh-initial qualification remains to be bound. Training, TEST and trading remain sealed.",
+  "next_action": "Run the explicitly approved one-shot, TRAIN-only M1 normalization (CPU 4G, max 1200 seconds), verify and close its authority; the separate conditional audit and all model training remain unadmitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -44123,12 +44123,12 @@
       "gx1/features/entry_direction_momentum_profile_v1.py": "36d050af771de69f50b0fd2f86c4c76df824cd944534885c467b55cd1c0eb308",
       "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "ac35009027d496c997bbb8e3ce615d00f22d3d97214176fd67bc7d2d6425115f",
       "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
-      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "a0a1eced0640054e91cbdb1576ebecd0812f9d32c8bff417e839036917a1edf4",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "30880b457f72cdd149f76672ff69c1d33921550cb3c19578761187799c729e09",
       "tests/test_entry_closed_m1_ofi_window_v1.py": "7081a0e289f8cfd5fbc69b26f448ec5e8e9c365feb0f9924245461bce7e1a8b4",
       "tests/test_entry_direction_momentum_profile_v1.py": "17dca97a97359f0186ef41656d192566eab1b472e7ca2747d92b5846eca9e07f",
       "tests/test_entry_native_direction_m1_ofi_v1.py": "54b2a8e93e704c4e7cd6e6e484e3f79fdd5e0a86896739f3e3db6d56685fc501",
       "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": "10b963e9cbcceac74789ab7fffd633276b721a9d112a4478b7fe3ee6f249d644",
-      "tests/test_entry_native_direction_prefix_fit_window_v1.py": "192613dfb26331d48a9535f47436b9ceb9b37f060cc55ca0eb520643740a7ae5",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py": "e13c88a9c23b25f2a313594adde0b20f392be52482dc77ad55b83ed9a1e957ef",
       "tests/test_entry_native_direction_prefix_fit_campaign_v1.py": "c9ec19ed0d3b2da2779c0d92f76acb6087739a41621d70b3da669aa385084677",
       "tests/test_entry_native_direction_research_campaign_v1.py": "294851b129d26b5d25cc4251fd72a28108222249d399709f6eb0b87c364716cb",
       "gx1/scripts/run_entry_native_direction_research_window_v1.py": "fd167cb7d6cf9711f5fd5a1ebb68fa53a6611d970544c4ef2e3bddf2657d9afe",
@@ -44146,7 +44146,7 @@
     ],
     "candidate_adapter_synthetic_tests_passed": 184,
     "candidate_source_bound_guarded_real_loader_implemented": true,
-    "candidate_genuine_m1_normalization_fit_authorized": false,
+    "candidate_genuine_m1_normalization_fit_authorized": true,
     "candidate_public_campaign_admits_scope": false,
     "candidate_parent_order_binding": "An explicit future plan must choose chronological prefix order or the original fixed TRAIN-only permutation; missing or unknown order is rejected. Both candidate arms must bind the same chosen order.",
     "candidate_order_targeted_synthetic_tests_passed": 5,
@@ -44158,7 +44158,7 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TRAIN_NORMALIZATION_20261029.json",
       "sha256": "78f035271c8cf2e70fb224bff0656eba0044046942f7a407fd4a091301e0fc93"
     },
-    "candidate_m1_normalization_plan_authorized": false,
+    "candidate_m1_normalization_plan_authorized": true,
     "candidate_gradient_detail_synthetic_tests_passed": 212,
     "candidate_gradient_detail_scope": "Separately count each ordered M1 value and missingness-mask input column; count each price feature projection column shared across timeframes and each feature-specific timeframe gate gradient. Zero stays zero. Synthetic native-model test only; no genuine learning or edge claim.",
     "candidate_gradient_detail_real_model_runs": 0,
@@ -44172,7 +44172,11 @@
     "candidate_private_qualification_synthetic_scope": "Price-only and price+M1 candidate route to dense qualification, produce own 256-row fresh initial measurement, preserve corrected TRAIN prior, 2 logical and 4 physical synthetic updates, exact restore; fake control-flow model and no admitted execution.",
     "candidate_private_qualification_focused_synthetic_tests_passed": 212,
     "candidate_private_qualification_real_execution_authorized": false,
-    "candidate_private_qualification_real_runs": 0
+    "candidate_private_qualification_real_runs": 0,
+    "candidate_m1_context_report_join_bug_fixed": true,
+    "candidate_m1_context_join_pre_fix_reproduced": true,
+    "candidate_m1_context_report_synthetic_tests_passed": 98,
+    "candidate_m1_context_join_genuine_runs": 0
   },
   "independent_direction_m1_temporal_conditional_20261029_001": {
     "status": "PREPARED_NOT_AUTHORIZED",
@@ -44204,13 +44208,13 @@
     "limitations": "Not conditional on all existing model inputs; complete M1 selection and reused development prevent generalization or economic claims."
   },
   "independent_direction_m1_train_normalization_20261029_001": {
-    "status": "PREPARED_NOT_AUTHORIZED",
+    "status": "ADMITTED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M1_TRAIN_NORMALIZATION_20261029.json",
       "sha256": "78f035271c8cf2e70fb224bff0656eba0044046942f7a407fd4a091301e0fc93"
     },
-    "execution_authorized": false,
-    "normalization_fit_authorized": false,
+    "execution_authorized": true,
+    "normalization_fit_authorized": true,
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
@@ -44228,6 +44232,7 @@
     "pre_admission_rejection_verified_before_payload_and_claim": true,
     "pre_admission_source_commit": "c414dafc",
     "synthetic_fit_passed_under_no_model_profile": true,
-    "synthetic_profile_torch_imported": false
+    "synthetic_profile_torch_imported": false,
+    "user_approval": "2026-10-29: Ja, kjør M1-normaliseringen; exact one-shot TRAIN-only CPU plan."
   }
 }

@@ -525,3 +525,52 @@ def test_dense_launch_metadata_requires_qualified_anchors_and_exact_target_bindi
     with pytest.raises(RuntimeError,match='DENSE_TARGET_RESULT'):
         runner._launch_metadata(launch,common)
     assert len(calls)==1
+
+
+def test_m1_evaluation_reports_existing_context_and_delivers_both_inputs_to_model(monkeypatch):
+    from gx1.contracts import entry_native_direction_context_report_v1 as reporter
+    from gx1.contracts import entry_native_direction_dense_report_v1 as dense_report
+    from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as digest
+    from tests.test_entry_native_direction_context_report_v1 import _case
+    mapping,features,witness=_case(2)
+    features['m1_ofi_contracts']=np.array([[1.,2.,3.,4.,5.],[5.,0.,3.,2.,1.]],np.float64)
+    features['m1_ofi_observed']=np.array([[True]*5,[True,False,True,True,True]],np.bool_)
+    selected=np.asarray(witness['parent_rows'],np.int64);decisions=np.asarray(witness['decision_ns'],np.int64)
+    raw={'features':features,'witness':witness}
+    target={'decision_ns':decisions,'terminal_time_ns':decisions[:,None]+np.arange(1,61,dtype=np.int64)[None,:]*runner.MINUTE_NS,
+        'observed':np.ones((2,60),np.bool_),'sign':np.vstack([np.ones(60,np.int8),-np.ones(60,np.int8)])}
+    view={'dense_minute_supervision':True,'m1_ofi_normalization':{'synthetic':True}}
+    model=torch.nn.Linear(1,60);model.train();calls=[]
+    monkeypatch.setattr(runner,'_batch',lambda *args:(raw,target))
+    monkeypatch.setattr(dense_report,'score_dense_direction_logits',lambda logits,**kwargs:{'rows':len(logits)})
+    def forward(m,actual,*,grad=False,**kwargs):
+        assert actual['m1_ofi_contracts'].dtype==torch.float64 and actual['m1_ofi_observed'].dtype==torch.bool
+        assert torch.equal(actual['m1_ofi_contracts'],torch.from_numpy(features['m1_ofi_contracts']))
+        assert torch.equal(actual['m1_ofi_observed'],torch.from_numpy(features['m1_ofi_observed']))
+        calls.append(grad)
+        with torch.set_grad_enabled(grad):return m(actual['m1_ofi_contracts'][:,:1].float())
+    monkeypatch.setattr(runner,'_forward',forward)
+    # The standalone context reporter retains its exact 14-field contract.
+    with pytest.raises(ValueError,match='RAW14_KEYS'):
+        reporter.tag_native_direction_contexts(features,context_map=mapping,witness=witness)
+    measured,count=runner._evaluate(model,{}, {},view,mapping,selected,
+        cutoff=int(decisions[-1]+120*runner.MINUTE_NS),kind='INITIAL_TRAIN',counters={},ceiling=2,
+        device=torch.device('cpu'),torch=torch,np=np,tree_sha=digest,parity=True)
+    assert count==2 and calls==[False,True] and measured['initial_parity_passed']
+    assert np.array_equal(measured['arrays']['parent_rows'],selected) and model.training
+
+    def evaluate_with(candidate_view):
+        return runner._evaluate(model,{}, {},candidate_view,mapping,selected,
+            cutoff=int(decisions[-1]+120*runner.MINUTE_NS),kind='INITIAL_TRAIN',counters={},ceiling=2,
+            device=torch.device('cpu'),torch=torch,np=np,tree_sha=digest,parity=True)
+    saved=features.pop('m1_ofi_observed')
+    with pytest.raises(RuntimeError,match='M1_REPORT_INPUT'):
+        evaluate_with(view)
+    features['m1_ofi_observed']=saved
+    features['unexpected_extra']=np.zeros(2)
+    with pytest.raises(ValueError,match='RAW14_KEYS'):
+        evaluate_with(view)
+    del features['unexpected_extra']
+    with pytest.raises(ValueError,match='RAW14_KEYS'):
+        evaluate_with({'dense_minute_supervision':True})
+    assert calls==[False,True] and model.training

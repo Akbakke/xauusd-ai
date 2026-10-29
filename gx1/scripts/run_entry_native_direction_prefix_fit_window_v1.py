@@ -527,7 +527,12 @@ def _evaluate(model, prepared, targets, view, context_map, selected, *, cutoff, 
         for left in range(0,len(selected),BATCH_SIZE):
             if deadline is not None and time.monotonic()>=deadline:break
             ids=selected[left:left+BATCH_SIZE];raw,target=_batch(prepared,targets,view,ids,np)
-            context=reporter.tag_native_direction_contexts(raw['features'],context_map=context_map,witness=raw['witness'])
+            report_features=raw['features']
+            if 'm1_ofi_normalization' in view:
+                m1_keys=('m1_ofi_contracts','m1_ofi_observed')
+                _require(all(key in report_features for key in m1_keys),'M1_REPORT_INPUT')
+                report_features={key:value for key,value in report_features.items() if key not in m1_keys}
+            context=reporter.tag_native_direction_contexts(report_features,context_map=context_map,witness=raw['witness'])
             header={key:value for key,value in context.items() if key not in ('parent_rows','decision_ns','tags')}
             if context_header is None:context_header=header
             else:_require(header==context_header,'CONTEXT_HEADER_PRESERVATION')
