@@ -252,6 +252,11 @@ def test_actual_native_backbone_with_compact_price_and_m1_together_gets_learning
     again=_forward(model,{**inputs,**kwargs},kind='SYNTHETIC',counters=counters,ceiling=2,torch=torch,grad=True)
     again.square().mean().backward();after=_candidate_gradient_counts(model,torch)
     require_m1_value_gradient_contact({'gradient_nonzero_counts':after})
+    from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_price_momentum_gradient_contact
+    synthetic_steps=[{'trajectory':trajectory,'logical_step':logical,'gradient_nonzero_counts':gradients}
+        for trajectory,logical,gradients in (('reference',1,evidence),('reference',2,after),
+            ('interrupted',1,evidence),('resumed',2,after))]
+    require_price_momentum_gradient_contact(synthetic_steps)
     width=model._bound_hidden_width;grad=model.m1_ofi_in.weight.grad
     assert after['m1_ofi_in_weight_nonzero']>0
     for minute in range(5):

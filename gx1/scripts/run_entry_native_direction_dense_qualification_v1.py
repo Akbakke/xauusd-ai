@@ -27,6 +27,26 @@ def require_m1_value_gradient_contact(evidence):
     _require(any(counts), 'M1_VALUE_GRADIENT_NOT_OBSERVED')
 
 
+def require_price_momentum_gradient_contact(steps):
+    """Check each compact price column on reference and resumed paths."""
+    from gx1.features.entry_direction_momentum_profile_v1 import PRICE_MOMENTUM_FIELDS
+    _require(isinstance(steps,list) and len(steps)==4, 'PRICE_MOMENTUM_GRADIENT_EVIDENCE')
+    indexed={}
+    for step in steps:
+        _require(isinstance(step,dict) and isinstance(step.get('gradient_nonzero_counts'),dict)
+            and type(step.get('trajectory')) is str and type(step.get('logical_step')) is int, 'PRICE_MOMENTUM_GRADIENT_EVIDENCE')
+        key=(step['trajectory'],step['logical_step'])
+        _require(key not in indexed, 'PRICE_MOMENTUM_GRADIENT_EVIDENCE')
+        indexed[key]=step['gradient_nonzero_counts']
+    expected={('reference',1),('reference',2),('interrupted',1),('resumed',2)}
+    _require(set(indexed)==expected, 'PRICE_MOMENTUM_GRADIENT_EVIDENCE')
+    for field in PRICE_MOMENTUM_FIELDS:
+        name='price_momentum_'+field+'_projection_nonzero'
+        counts=[indexed[key].get(name) for key in (('reference',1),('reference',2),('interrupted',1),('resumed',2))]
+        _require(all(type(value) is int and value>=0 for value in counts), 'PRICE_MOMENTUM_GRADIENT_EVIDENCE:'+field)
+        _require(any(counts[:2]) and any(counts[2:]), 'PRICE_MOMENTUM_GRADIENT_NOT_OBSERVED:'+field)
+
+
 def select_qualification_parents(ordered, diagnostic_ids, design, *, np):
     parents=design.get('parents_sorted') if isinstance(design,dict) else None
     _require(isinstance(parents,list) and len(parents)==32 and all(type(x) is int for x in parents)
@@ -226,6 +246,8 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
                 full_state=common._save_state(output/'RESUMED_STEP2.pt',saved,torch=torch,
                     maximum=launch['max_checkpoint_bytes'],counters=counters);parity=True
             del saved,model,optimizer;model=optimizer=None;gc.collect();torch.cuda.empty_cache()
+        if candidate:
+            require_price_momentum_gradient_contact(steps)
         expected={'model_constructions':3,'model_construction_returns':3,'optimizer_constructions':3,
             'forwards':4,'forward_returns':4,'backwards':4,'backward_returns':4,'optimizer_step_calls':4,
             'optimizer_updates':4,'staged_state_load_calls':3,'staged_state_load_returns':3,

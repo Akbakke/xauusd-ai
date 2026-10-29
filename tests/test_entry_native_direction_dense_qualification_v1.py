@@ -110,8 +110,31 @@ def test_m1_value_gradient_guard_requires_real_nonzero_value_contact():
         require_m1_value_gradient_contact({'gradient_nonzero_counts':{}})
 
 
-@pytest.mark.parametrize('variant,missing_m1_gradient',[('dense',False),('decimal',False),('price_only',False),('price_and_m1',False),('price_and_m1_coarsened',False),('price_and_m1',True),('price_and_m1_coarsened',True),('price_and_m1','resumed_only'),('price_and_m1_coarsened','resumed_only')])
-def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_path,variant,missing_m1_gradient):
+def test_price_momentum_gradient_guard_checks_each_field_on_both_paths():
+    from gx1.features.entry_direction_momentum_profile_v1 import PRICE_MOMENTUM_FIELDS
+    from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_price_momentum_gradient_contact
+    keys=[('reference',1),('reference',2),('interrupted',1),('resumed',2)]
+    steps=[{'trajectory':trajectory,'logical_step':logical,'gradient_nonzero_counts':{
+        'price_momentum_'+field+'_projection_nonzero':int(logical==2) for field in PRICE_MOMENTUM_FIELDS}}
+        for trajectory,logical in keys]
+    require_price_momentum_gradient_contact(steps)
+    name='price_momentum_rsi14_centered_projection_nonzero'
+    steps[3]['gradient_nonzero_counts'][name]=0
+    with pytest.raises(RuntimeError,match='PRICE_MOMENTUM_GRADIENT_NOT_OBSERVED:rsi14_centered'):
+        require_price_momentum_gradient_contact(steps)
+    steps[3]['gradient_nonzero_counts'][name]=True
+    with pytest.raises(RuntimeError,match='PRICE_MOMENTUM_GRADIENT_EVIDENCE:rsi14_centered'):
+        require_price_momentum_gradient_contact(steps)
+    del steps[3]['gradient_nonzero_counts'][name]
+    with pytest.raises(RuntimeError,match='PRICE_MOMENTUM_GRADIENT_EVIDENCE:rsi14_centered'):
+        require_price_momentum_gradient_contact(steps)
+    steps[3]['trajectory']=[]
+    with pytest.raises(RuntimeError,match='PRICE_MOMENTUM_GRADIENT_EVIDENCE'):
+        require_price_momentum_gradient_contact(steps)
+
+
+@pytest.mark.parametrize('variant,missing_m1_gradient,missing_price_gradient',[('dense',False,None),('decimal',False,None),('price_only',False,None),('price_and_m1',False,None),('price_and_m1_coarsened',False,None),('price_and_m1',True,None),('price_and_m1_coarsened',True,None),('price_and_m1','resumed_only',None),('price_and_m1_coarsened','resumed_only',None),('price_only',False,'rsi14_centered'),('price_and_m1',False,'macd_line_atr'),('price_and_m1_coarsened',False,'macd_hist_atr'),('price_and_m1',False,'ret_1'),('price_and_m1',False,'replay_only:rsi14_centered')])
+def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_path,variant,missing_m1_gradient,missing_price_gradient):
     from copy import deepcopy
     from pathlib import Path
     import torch
@@ -219,6 +242,10 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
         model.number+=1
         for key in ('forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates'):counters[key]+=1
         gradients={'chart_local_weight_nonzero':1,'chart_mtf_weight_nonzero':1}
+        if candidate:
+            for field in ('rsi14_centered','macd_line_atr','macd_hist_atr','ret_1'):
+                broken=(missing_price_gradient==field or (missing_price_gradient=='replay_only:'+field and model.instance_number in (2,3)))
+                gradients['price_momentum_'+field+'_projection_nonzero']=int(not broken)
         if variant in ('price_and_m1','price_and_m1_coarsened'):
             for minute in range(1,6):
                 broken=(missing_m1_gradient is True or (missing_m1_gradient=='resumed_only' and model.instance_number==3))
@@ -231,6 +258,12 @@ def test_synthetic_private_control_flow_completes_fixed_resume(monkeypatch,tmp_p
     monkeypatch.setattr(authority,'build_research_cursor',lambda **kwargs:{'outcome':kwargs['outcome']})
     monkeypatch.setattr(authority,'build_research_progress',lambda **kwargs:{'outcome':kwargs['outcome'],'terminal':True})
     monkeypatch.setattr(authority,'require_research_progress',lambda *args,**kwargs:None)
+    if missing_price_gradient:
+        with pytest.raises(RuntimeError,match='PRICE_MOMENTUM_GRADIENT_NOT_OBSERVED'):
+            worker.run_dense_qualification(policy_path=tmp_path/'policy',policy_file_sha256='0'*64,progress_path=tmp_path/'progress.json')
+        assert published['RESULT.json']['decision']=='FAILED'
+        assert len(published['RESULT.json']['steps'])==4
+        return
     if missing_m1_gradient:
         with pytest.raises(RuntimeError,match='M1_VALUE_GRADIENT_NOT_OBSERVED'):
             worker.run_dense_qualification(policy_path=tmp_path/'policy',policy_file_sha256='0'*64,progress_path=tmp_path/'progress.json')
