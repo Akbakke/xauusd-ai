@@ -44495,5 +44495,93 @@
       "initialization_change_authorized": false,
       "fit_or_test_executed": false
     }
+  },
+  "direction_corrected_sixty_horizon_aggregate_review_20261029": {
+    "status": "EXISTING_HASHED_AGGREGATES_RECONCILED_NO_NEW_RUN",
+    "scope": "All 60 fixed elapsed-minute heads, corrected one-pass model on one reused Q1 2025 development fold; horizon eligibility varies, overlapping outcomes are dependent.",
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "a773849f2895a77c3af0567a3d9421f9f8724fb5592f8e1c43204af497218757"
+    },
+    "fixed_comparison_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/DECIMAL_FIXED_COMPARISON_001/RESULT.json",
+      "sha256": "73e8e15ade4b456a882f5d84b5f7fe1579d79d38142f84c41b771d4baf38e266"
+    },
+    "horizons": 60,
+    "auc_point_above_half": 54,
+    "auc_point_median": 0.5128490885754708,
+    "simultaneous_day_lower_above_half": 0,
+    "simultaneous_week_lower_above_half": 0,
+    "eligible_min": 16512,
+    "eligible_max": 17253,
+    "examples": {
+      "1": {
+        "auc": 0.49913636891890134,
+        "eligible": 17211,
+        "simultaneous_day": {
+          "high": 0.5284634352567033,
+          "low": 0.46980930258109943
+        },
+        "simultaneous_week": {
+          "high": 0.5268228197105309,
+          "low": 0.4714499181272718
+        }
+      },
+      "5": {
+        "auc": 0.4969763225475591,
+        "eligible": 17192,
+        "simultaneous_day": {
+          "high": 0.526303388885361,
+          "low": 0.46764925620975717
+        },
+        "simultaneous_week": {
+          "high": 0.5246627733391886,
+          "low": 0.46928987175592957
+        }
+      },
+      "15": {
+        "auc": 0.5073871126550765,
+        "eligible": 17077,
+        "simultaneous_day": {
+          "high": 0.5367141789928784,
+          "low": 0.4780600463172746
+        },
+        "simultaneous_week": {
+          "high": 0.5350735634467061,
+          "low": 0.479700661863447
+        }
+      },
+      "30": {
+        "auc": 0.5125079562012635,
+        "eligible": 16887,
+        "simultaneous_day": {
+          "high": 0.5418350225390655,
+          "low": 0.48318088986346164
+        },
+        "simultaneous_week": {
+          "high": 0.5401944069928931,
+          "low": 0.48482150540963403
+        }
+      },
+      "60": {
+        "auc": 0.5189506447926173,
+        "eligible": 16512,
+        "simultaneous_day": {
+          "high": 0.5482777111304192,
+          "low": 0.4896235784548154
+        },
+        "simultaneous_week": {
+          "high": 0.5466370955842469,
+          "low": 0.4912641940009878
+        }
+      }
+    },
+    "aggregate_report_comparison_parity": true,
+    "independent_new_bootstrap_run": false,
+    "new_model_forwards": 0,
+    "optimizer_steps": 0,
+    "predictive_edge_qualified": false,
+    "economic_edge_qualified": false,
+    "test_data_used": false
   }
 }
