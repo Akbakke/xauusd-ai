@@ -44751,5 +44751,78 @@
     "optimizer_steps": 0,
     "test_data_used": false,
     "economic_edge_qualified": false
+  },
+  "direction_dense_optimizer_and_tail_batch_20261029": {
+    "status": "SOURCE_AND_EXISTING_AGGREGATE_REVIEW_NO_NEW_RUN",
+    "scope": "Corrected one-pass sixty-head fit; fitted source versions, existing saved first and last update diagnostics, and fixed OOF scoring.",
+    "fit_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_RECIPE_CANDIDATE_20261028.json",
+      "sha256": "9ec7d21494f80a5537d0fd0c6ed6132fc2514083d30c27a3195005cbcdda7dd8"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "a9f4fe99fbccd89178fddabaf2cf30c22fd66843e545bdcba3b2a24b41c6fbd8"
+    },
+    "fitted_source_revisions": {
+      "gx1/contracts/entry_native_direction_dense_v1.py": {
+        "revision": "c77767fab929d0c306add3f79a1a381d76d0b645",
+        "sha256": "ec86135c00aaaceb41f44f91517345e4d54a6efc217d3efdbcf0e414d1ae1a3a"
+      },
+      "gx1/contracts/entry_native_direction_research_state_v1.py": {
+        "revision": "c77767fab929d0c306add3f79a1a381d76d0b645",
+        "sha256": "e530754670121ef0deee41367a859d5475b6b4ac54406a231f17d10a1ab8ad9b"
+      },
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+        "revision": "ddf13f78990c1f1589b10e04d64706b1e6015525",
+        "sha256": "6391155733bc21dde378b84c162cbc4aaa8fcb33a0d52a0088852df1e3109696"
+      },
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+        "revision": "c77767fab929d0c306add3f79a1a381d76d0b645",
+        "sha256": "352d135c6e35ba790655ac82015afdf62dda17b5d8fb3a265465f2281f894284"
+      }
+    },
+    "optimizer": "single AdamW group of active parameters; lr 0.0001, beta1 0.9, beta2 0.999, weight_decay 0.0001, no scheduler or weight EMA",
+    "direction_head_anchor_minutes": [
+      1,
+      5,
+      15
+    ],
+    "first_and_last_five_minute_head_weight_nonzero_gradient_coordinates": [
+      128,
+      128
+    ],
+    "first_and_last_five_minute_head_bias_has_nonzero_gradient": [
+      true,
+      true
+    ],
+    "gradient_observation_scope": "First and last batch only; nonzero counts are not actual per-head gradient magnitudes, individual feature value, causal contribution or evidence of later edge.",
+    "first_batch": {
+      "train_parents": 16,
+      "eligible_all_minute_cells": 959,
+      "five_minute_up": 6,
+      "five_minute_down": 10,
+      "gradient_norm_before_clip": 0.6802249550819397
+    },
+    "last_batch": {
+      "train_parents": 2,
+      "eligible_all_minute_cells": 120,
+      "five_minute_up": 1,
+      "five_minute_down": 1,
+      "gradient_norm_before_clip": 0.13456855714321136,
+      "all_sixty_horizons_one_up_one_down": true
+    },
+    "optimizer_update_count": 2976,
+    "train_parent_rows": 47602,
+    "nominal_batch_parents": 16,
+    "first_to_last_per_cell_loss_gradient_coefficient_ratio": 7.991666666666666,
+    "coefficient_ratio_scope": "For an equal sigmoid-minus-label residual, before optimizer/clipping and other gradients; not a parameter update or aggregate training weight ratio.",
+    "score_after_last_optimizer_update_without_ema": true,
+    "limitation": "No checkpoint replay or matched tail-batch comparison; outcome sensitivity and any effect on generalization remain unknown. Two observed norms were below the clipping threshold; no claim about other batches.",
+    "future_comparison_requires_separate_predeclared_approval": true,
+    "new_model_forwards": 0,
+    "new_optimizer_steps": 0,
+    "new_market_or_prediction_payload_reads": 0,
+    "test_data_used": false,
+    "edge_qualified": false
   }
 }
