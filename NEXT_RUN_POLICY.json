@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T19:44:38.710206+00:00",
-  "status": "M5_HEAD_GRADIENT_DIAGNOSTIC_002_ADMITTED",
+  "status": "M5_HEAD_GRADIENT_DIAGNOSTIC_COMPLETE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact bounded fresh price_only M5 private qualification may be prepared and run; no M1 inputs at entry, no full fit yet. Preserve eight specialists, D1/macro, hardware and 250 W, sealed TEST. No Exit, broker, orders, paper/live, spending or promotion.",
-  "next_action": "Execute the separate, serialization-tested 002 TRAIN-only analytic gradient diagnostic once under capped CPU audit; verify terminal and close its one-shot gate.",
+  "next_action": "Predeclare and assess a single-factor five-minute-priority loss comparison against the existing M5 price-only one-pass fit, preserving all 60 heads and all input routes; examine minimum source and authority changes before any training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -47053,10 +47053,10 @@
     "failure": "Computed metrics could not be published because NumPy int64 batch counts were not JSON serializable. No RESULT or success terminal; no native model forward or optimizer step."
   },
   "independent_m5_head_gradient_20261029_002": {
-    "status": "ADMITTED",
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "train_prediction_reads_authorized": true,
+    "status": "COMPLETE_ONE_SHOT_CONSUMED",
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "train_prediction_reads_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "broker_access_allowed": false,
@@ -47104,8 +47104,8 @@
     "memory_max": "4G",
     "wall_seconds": 600,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "scope": "TRAIN-only analytic derivatives of equal-eligible-cell BCE at fixed final evaluation logits and fitted direction heads. No model forward, autograd, optimizer, training, raw market data, Q1, TEST or trading.",
     "focused_synthetic_tests": "PASS: gradient and head-order parity, missing/maturity, and JSON serialization of all computed scalars",
@@ -47113,6 +47113,29 @@
     "supersedes_failed": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_HEAD_GRADIENT_20261029_001/FAILED_TERMINAL.json",
       "sha256": "320be95665733e2b52e46b4e6e5afa9b7620d28434fbbc4ee5aaeabdbadd2d7e"
-    }
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_HEAD_GRADIENT_20261029_002/RESULT.json",
+      "sha256": "f06e5bf47076812c5d5679309fac6bd1ee885434b751f345862cfc531905f251"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_HEAD_GRADIENT_20261029_002/TERMINAL.json",
+      "sha256": "0b38c7aa178948f95f20226088501cf7d8ca8c3aae66725682ff4edbfa36f99d"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_HEAD_GRADIENT_20261029_002/CLAIM.json",
+      "sha256": "8c354d7d004f4d0ae9bee4b0a6ebd5e4d42c35d6e5919bfcdea7d59963e775e9"
+    },
+    "summary": {
+      "train_parents": 256,
+      "eligible_cells": 15095,
+      "five_minute_cells": 256,
+      "five_to_other_hidden_gradient_norm": 0.08736668943814903,
+      "five_to_other_hidden_gradient_cosine": 0.01375543242596265,
+      "negative_batch_cosines": 4,
+      "positive_batch_cosines": 12,
+      "limitations": "Final evaluation-mode hidden-activation derivatives for 256 saved TRAIN parents, not historical optimizer-step or parameter gradients. Same-row, no independence or economic-edge claim."
+    },
+    "verification": "Result/terminal SHA, input bindings, fixed source, aggregate batch counts, cosine and vector norm identity independently checked; analytic formula against synthetic PyTorch autograd passed."
   }
 }

@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+29.10 — FEMMINUTTERS LÆRINGSSIGNAL MÅLT: Kontroll 002 er fullført og konsumert uten modellforward eller optimizer. I 256 lagrede TRAIN-foreldre utgjorde 5-minutterscellene 256/15 095 av de modne cellene. Ved felles hodeinput var normforholdet 5 minutter/øvrige 59 0,08737 og cosinus 0,01376; fire av 16 grupper hadde negativ cosinus. Dette er et ettertreningens evalueringspunkt, ikke målte parametergradienter under de opprinnelige treningsstegene. Se resultatrapport og NEXT_RUN_POLICY.
+
 29.10 — GRADIENTKONTROLL 001 FEILET VED JSON-LAGRING: Checkpoint og 256 TRAIN-score ble lest og beregningen utført, men NumPy-int64-tellinger kunne ikke serialiseres. Ingen RESULT eller suksesskvittering; claim og feil er bevart, planen er konsumert. En ny 002-kontroll har fokusert serialiseringstest i tillegg til autogradparitet, uendret vitenskapelig avgrensning og egen engangsåpning. Ingen modellforward eller optimizersteg. Se NEXT_RUN_POLICY.
 
 29.10 — FEMMINUTTERS LÆRINGSSIGNAL: Eksakt avgrenset CPU-kontroll er forberedt på de 256 lagrede TRAIN-prediksjonene og modellens ferdige retningshoder. Den beregner analytisk BCE-gradient ved felles representasjon for 5 minutter versus de øvrige 59, uten modellkall, trening, rå markedsdata, Q1 eller TEST. Tidligere formelreferanse kvalifiserer RSI på fem tidsrammer; MACD/ret_1 ble separat gjenskapt på TRAIN-utvalg. Tidsrutesamleren krever lukkede tidsrammer ved M5-beslutning, men dette beviser ikke fysisk datatilgjengelighet eller edge. Se NEXT_RUN_POLICY.
