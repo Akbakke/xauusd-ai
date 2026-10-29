@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
-  "next_action": "Prepare an exact source-bound fit provider and fresh initial qualification for the compact price/M1 candidate; its model-bound M1 clock and raw gather are qualified on 64890 fixed real inputs only. Separate authority is required for genuine normalization and candidate training/comparison. Keep training, TEST and trading sealed.",
+  "next_action": "Prepare an exact source-bound fit provider and fresh initial qualification for the compact price/M1 candidate; its model-bound M1 clock and raw gather are qualified on all 118249 pre-2026 parent inputs. Separate authority is required for genuine normalization and candidate training/comparison. Keep training, TEST and trading sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -44030,6 +44030,24 @@
     "economic_edge_qualified": false,
     "model_m5_contract_identity_and_symbol_mapping_independently_verified": false,
     "model_m5_contract_mask_and_roll_qualified_fixed_parents": 64890,
+    "model_bound_m1_full_axis_qualified_parents": 118249,
+    "model_bound_m1_full_axis_clock_sha256": "c379c735c82427538aaf1b5cfa2aaae89622c470c177dd45c3f51be4eef395ac",
+    "model_bound_m1_full_axis_counts": {
+      "five_minutes_observed": 116686,
+      "partial_minutes_observed": 942,
+      "none_observed": 621,
+      "mixed_contract_buckets": 8,
+      "unknown_contract_buckets": 276,
+      "wrong_contract_m1_observations": 0
+    },
+    "model_bound_m1_full_axis_qualification": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/MODEL_BOUND_M1_CLOCK_FULL_AXIS_20261029_004.json",
+      "sha256": "bf192f43cc34f4c0910d09459709ced13c033bfa8e0165e0fd9330699071b262"
+    },
+    "model_bound_m1_full_axis_qualification_script": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/qualify_model_bound_m1_full_axis_20261029_004.py",
+      "sha256": "1c7f54514ad980bb0f1ca5d6fb5815df3f92cc3a9e77a0d2f4bfa61e73353fd8"
+    },
     "raw_m5_source_newly_hashed": false,
     "raw_m5_source_stat_matches_prior_hashed_binding": true,
     "model_input_parity_audit": {
