@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
-  "next_action": "Verify authoritative model M5 contract and symbol lineage, then prepare an exact source-bound fresh initial qualification and candidate normalization/comparison for separate explicit authority. The new M1 and price routes have synthetic tests only; keep training, TEST and trading sealed.",
+  "next_action": "Prepare an exact source-bound fit provider and fresh initial qualification for the compact price/M1 candidate; its model-bound M1 clock and raw gather are qualified on 64890 fixed real inputs only. Separate authority is required for genuine normalization and candidate training/comparison. Keep training, TEST and trading sealed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -44029,6 +44029,36 @@
     "test_data_used": false,
     "economic_edge_qualified": false,
     "model_m5_contract_identity_and_symbol_mapping_independently_verified": false,
+    "model_m5_contract_mask_and_roll_qualified_fixed_parents": 64890,
+    "raw_m5_source_newly_hashed": false,
+    "raw_m5_source_stat_matches_prior_hashed_binding": true,
+    "model_input_parity_audit": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/MODEL_M1_M5_CONTRACT_INPUT_AUDIT_20261029.json",
+      "sha256": "72155533f5b08ce82cc27199ea62c01c93f2aecf7e9981fb39dca0f4eee470fd"
+    },
+    "model_input_parity_script": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/audit_model_m1_m5_contract_20261029.py",
+      "sha256": "3adc5fad7912b29be929ed39fe41d9c2b6589b45aa9c650067551d6825f3b9e3"
+    },
+    "model_bound_clock_qualification": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/MODEL_BOUND_M1_CLOCK_QUALIFICATION_20261029_003.json",
+      "sha256": "550671b042bfe325db12890bfff005b48d212fd40502930a1bc993ac29e3f4a6"
+    },
+    "model_bound_clock_qualification_script": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/M1_M5_INPUT_COVERAGE_20261029_001/qualify_model_bound_m1_clock_20261029_003.py",
+      "sha256": "16bd3c12624fdc49d05c8f9545deec89fe6f04086d9cdbb50a8c66b8bfe9b262"
+    },
+    "latest_focused_tests_passed": 45,
+    "extra_negative_binding_tests_passed": 23,
+    "new_normalization_fits": 0,
+    "new_genuine_model_forwards": 0,
+    "new_optimizer_updates": 0,
+    "roll_owner_source_binding_required": true,
+    "exact_roll_bytes_binding_required": true,
+    "train_known_mixed_roll_buckets": 3,
+    "train_unknown_contract_buckets": 276,
+    "q1_known_mixed_roll_buckets": 2,
+    "mixed_or_unknown_bucket_m1_observations": 0,
     "m1_and_independent_006_symbol_order_and_roll_selection_verified": true,
     "m1_and_006_roll_map_days_matched": 791,
     "m1_and_006_roll_map_audit": {
@@ -44062,17 +44092,17 @@
       "missing_clock": 1204
     },
     "source_sha256": {
-      "gx1/contracts/entry_closed_m1_ofi_window_v1.py": "83be71db6f8d1a77d0874aab1be66930fccf276be8dad995960d5c5feb7c6b4d",
-      "gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py": "cfc84504b5fbe299d4800384f028f1ecc0d9e9ac128a07570fd391d734c483b1",
+      "gx1/contracts/entry_closed_m1_ofi_window_v1.py": "61d54cc83a73081cef22c7255f4fbdce13630afb6779cf9491377d7e22beb79f",
+      "gx1/contracts/entry_native_direction_m1_ofi_normalization_v1.py": "41f2bcacee98ff7b73ef038ccac21f01bc185645f434c8d17c533711a0dbd1b4",
       "gx1/contracts/entry_native_direction_dense_v1.py": "8a2621586c7d940d6ca8478f7fd5b509f434952b0ec8593cbb2b42d9d5889ba6",
-      "gx1/contracts/entry_native_direction_feature_view_v1.py": "1c2e9dda39f7cf56f01107f62d7c713034bf54e9d40206985a015699a3d74b98",
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": "d0f75637b20de0f56ad82f8af3cd0766cf9adb3c94070a47b6133d5f3e395c11",
       "gx1/features/entry_direction_momentum_profile_v1.py": "36d050af771de69f50b0fd2f86c4c76df824cd944534885c467b55cd1c0eb308",
       "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "ac35009027d496c997bbb8e3ce615d00f22d3d97214176fd67bc7d2d6425115f",
       "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
       "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "b9413a78b945bf77be148ef110001ec14e928eb892321491650e5fea3aa329ec",
-      "tests/test_entry_closed_m1_ofi_window_v1.py": "3684f386cde23cef63992b36739c291b603e3344db6f239c4a240e46f4cff9b9",
+      "tests/test_entry_closed_m1_ofi_window_v1.py": "7081a0e289f8cfd5fbc69b26f448ec5e8e9c365feb0f9924245461bce7e1a8b4",
       "tests/test_entry_direction_momentum_profile_v1.py": "17dca97a97359f0186ef41656d192566eab1b472e7ca2747d92b5846eca9e07f",
-      "tests/test_entry_native_direction_m1_ofi_v1.py": "661eb5d5ea0a89614606d15433f38abb8516c0d35bcb410227362ac31b6901c8"
+      "tests/test_entry_native_direction_m1_ofi_v1.py": "1b796ee7bbb8b65ddcf31461efe3a3667b3fcbd6cad60038d6bace2fdef20727"
     }
   }
 }

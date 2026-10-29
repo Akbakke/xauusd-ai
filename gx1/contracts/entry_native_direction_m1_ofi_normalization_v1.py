@@ -44,6 +44,7 @@ def fit(source, clock, *, prefix_rows, cutoff_ns):
         allow_constant_train_fields=True)
     value = {'schema_version':'gx1_native_direction_m1_ofi_normalization_v1',
         'source_sha256':source.source_sha256, 'clock_sha256':clock.clock_sha256,
+        'roll_sha256':clock.roll_sha256, 'model_contract_clock_bound':clock.roll_sha256 is not None,
         'prefix_rows':prefix_rows, 'cutoff_ns':cutoff_ns, 'observed_minute_count':len(observed),
         'full_rows':len(clock.parent_rows),
         'full_parent_rows_sha256':_axis_sha256(clock.parent_rows),
@@ -57,7 +58,7 @@ def fit(source, clock, *, prefix_rows, cutoff_ns):
 
 
 def require(value):
-    keys={'schema_version','source_sha256','clock_sha256','prefix_rows','cutoff_ns',
+    keys={'schema_version','source_sha256','clock_sha256','roll_sha256','model_contract_clock_bound','prefix_rows','cutoff_ns',
         'observed_minute_count','full_rows','full_parent_rows_sha256','full_decision_ns_sha256',
         'prefix_parent_rows_sha256','prefix_decision_ns_sha256','surface','scope',
         'genuine_fit_authorized','native_launch_authorized','contract_sha256'}
@@ -67,7 +68,12 @@ def require(value):
         and value['scope']=='observed_closed_minutes_in_strict_train_prefix_only'
         and value['genuine_fit_authorized'] is False and value['native_launch_authorized'] is False
         and all(type(value[k]) is int and value[k]>0 for k in ('prefix_rows','cutoff_ns','observed_minute_count','full_rows'))
-        and value['full_rows'] >= value['prefix_rows'] and value['observed_minute_count'] <= 5*value['prefix_rows'], 'CONTRACT_SCOPE')
+        and value['full_rows'] >= value['prefix_rows'] and value['observed_minute_count'] <= 5*value['prefix_rows']
+        and type(value['model_contract_clock_bound']) is bool
+        and value['model_contract_clock_bound']==(value['roll_sha256'] is not None), 'CONTRACT_SCOPE')
+    if value['roll_sha256'] is not None:
+        _require(type(value['roll_sha256']) is str and len(value['roll_sha256'])==64
+            and all(c in '0123456789abcdef' for c in value['roll_sha256']), 'ROLL_IDENTITY')
     for key in ('source_sha256','clock_sha256','full_parent_rows_sha256','full_decision_ns_sha256',
         'prefix_parent_rows_sha256','prefix_decision_ns_sha256'):
         digest=value[key]

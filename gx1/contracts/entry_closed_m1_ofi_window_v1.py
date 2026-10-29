@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from collections.abc import Mapping
 from types import MappingProxyType
 import hashlib
+import json
 import numpy as np
 
 MINUTE_NS = 60_000_000_000
@@ -58,6 +59,7 @@ class QualifiedClock:
     decision_ns: np.ndarray
     current_m5_contract_index: np.ndarray
     clock_sha256: str
+    roll_sha256: str | None = None
 
 
 def qualify_clock(parent_rows, decision_ns, current_m5_contract_index):
@@ -71,6 +73,69 @@ def qualify_clock(parent_rows, decision_ns, current_m5_contract_index):
         and np.all(decision_ns%(5*MINUTE_NS)==0) and np.all(current_m5_contract_index>=-1), 'PARENT_CLOCK')
     return QualifiedClock(parent_rows,decision_ns,current_m5_contract_index,
         _array_hash((('parent_rows',parent_rows),('decision_ns',decision_ns),('current_m5_contract_index',current_m5_contract_index))))
+
+
+
+def qualify_model_clock(source, *, parent_rows, decision_ns, roll_bytes, m5_available_ns,
+    m5_native_row_indices, m5_features, m5_field_names, m5_cache_start_ns):
+    """Join the model M5 contract mask and canonical roll to each decision.
+
+    Callers verify input bytes, the roll reference and the model layout before
+    invoking this pure owner. A missing/invalid M5 contract masks the whole M1
+    bucket; a changed contract, native row or clock fails closed. No prices,
+    labels, fitted statistics or model executions are used here.
+    """
+    from gx1.scripts import audit_raw_gc_m1_reference_v1 as roll_owner
+    _require(isinstance(source,QualifiedSource) and type(roll_bytes) is bytes, 'MODEL_SOURCE_OR_ROLL')
+    try:
+        roll=json.loads(roll_bytes)
+    except (UnicodeDecodeError,ValueError) as exc:
+        raise RuntimeError('CLOSED_M1_OFI_WINDOW_MODEL_ROLL_DECODE') from exc
+    _require(isinstance(roll,Mapping), 'MODEL_ROLL_MAPPING')
+    roll_sha=hashlib.sha256(roll_bytes).hexdigest()
+    for name,a in (('parent',parent_rows),('decision',decision_ns),('m5_available',m5_available_ns),
+        ('m5_native',m5_native_row_indices),('m5_cache',m5_cache_start_ns)):
+        _require(isinstance(a,np.ndarray) and a.dtype==np.int64 and a.ndim==1
+            and not a.flags.writeable and len(a)>0, 'MODEL_AXIS:'+name)
+    _require(parent_rows.shape==decision_ns.shape and np.all(np.diff(parent_rows)>0)
+        and np.all(np.diff(decision_ns)>0) and np.all(decision_ns%(5*MINUTE_NS)==0)
+        and np.all(decision_ns>=5*MINUTE_NS) and np.all(np.diff(m5_available_ns)>0)
+        and m5_available_ns.shape==m5_native_row_indices.shape
+        and np.all(np.diff(m5_native_row_indices)>0) and np.all(np.diff(m5_cache_start_ns)>0), 'MODEL_CLOCKS')
+    _require(isinstance(m5_features,np.ndarray) and m5_features.dtype==np.float32
+        and m5_features.ndim==2 and m5_features.shape[0]==len(m5_available_ns)
+        and not m5_features.flags.writeable and isinstance(m5_field_names,(tuple,list))
+        and len(m5_field_names)==m5_features.shape[1] and len(set(m5_field_names))==len(m5_field_names), 'MODEL_FEATURES')
+    value_name='gc_m5_observed_book_contract_valid';mask_name=value_name+'_observed'
+    _require(value_name in m5_field_names and mask_name in m5_field_names, 'MODEL_CONTRACT_FIELDS')
+    at=np.searchsorted(m5_available_ns,decision_ns);inside=at<len(m5_available_ns)
+    _require(np.all(inside) and np.array_equal(m5_available_ns[at],decision_ns), 'MODEL_DECISION_JOIN')
+    native=m5_native_row_indices[at]
+    _require(np.all(native>=0) and np.all(native<len(m5_cache_start_ns))
+        and np.array_equal(m5_cache_start_ns[native],decision_ns-5*MINUTE_NS), 'MODEL_NATIVE_M5_JOIN')
+    marker=m5_features[at,m5_field_names.index(value_name)]
+    marker_observed=m5_features[at,m5_field_names.index(mask_name)]
+    _require(np.isin(marker,(0.,1.)).all() and np.isin(marker_observed,(0.,1.)).all()
+        and np.all(marker[marker_observed==0]==0), 'MODEL_CONTRACT_MASK')
+    order=roll.get('contract_order');daily=roll.get('selected_daily')
+    _require(roll.get('origin_ns')==roll_owner._MASK134_ORIGIN and roll.get('availability_offset_ns')==MINUTE_NS
+        and isinstance(order,list) and 0<len(order)<=32768 and len(set(order))==len(order)
+        and all(type(x) is str and x for x in order) and isinstance(daily,list) and len(daily)>0
+        and all(type(x) is int and -1<=x<len(order) for x in daily), 'MODEL_ROLL')
+    wanted=decision_ns[:,None]-np.arange(5,0,-1,dtype=np.int64)[None,:]*MINUTE_NS
+    scheduled=roll_owner.reference_roll_minutes134(wanted.ravel(),np.asarray(daily,np.int16)).reshape(wanted.shape)
+    a=source.arrays;positions=np.searchsorted(a['bar_start_ns'],wanted);found=positions<len(a['bar_start_ns'])
+    clip=np.minimum(positions,len(a['bar_start_ns'])-1);found &= a['bar_start_ns'][clip]==wanted
+    _require(np.all(a['contract_index'][clip][found]==scheduled[found]), 'MODEL_ROLL_M1_CONTRACT')
+    same=(scheduled[:,0]>=0)&np.all(scheduled==scheduled[:,0,None],axis=1)
+    is_observed=marker_observed==1
+    _require(np.all((marker[is_observed]==1)==same[is_observed]), 'MODEL_ROLL_M5_CONTRACT')
+    current=np.where(is_observed & same,scheduled[:,0],-1).astype(np.int16)
+    current.setflags(write=False)
+    base=qualify_clock(parent_rows,decision_ns,current)
+    identity=hashlib.sha256(bytes.fromhex(base.clock_sha256)+bytes.fromhex(source.source_sha256)
+        +bytes.fromhex(roll_sha)).hexdigest()
+    return QualifiedClock(base.parent_rows,base.decision_ns,base.current_m5_contract_index,identity,roll_sha)
 
 
 def gather(source, clock, *, batch_parent_rows):

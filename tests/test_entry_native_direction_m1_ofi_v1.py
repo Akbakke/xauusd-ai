@@ -1,5 +1,6 @@
 """Synthetic causal M1 input, view binding and model learning-contact checks."""
 from copy import deepcopy
+import json
 import numpy as np
 import pytest
 import torch
@@ -70,8 +71,18 @@ def _bound_minutes(case):
         'ofi_valid':np.ones(len(t),bool),'receive_clock_excluded':np.zeros(len(t),bool),
         'book_event_state_excluded':np.zeros(len(t),bool)}
     data['ofi_valid'][1]=False
-    for v in (parents,decisions,contracts):v.setflags(write=False)
-    return windows.qualify_source(_freeze(data)),windows.qualify_clock(parents,decisions,contracts)
+    from gx1.scripts import audit_raw_gc_m1_reference_v1 as roll_owner
+    roll={'origin_ns':roll_owner._MASK134_ORIGIN,'availability_offset_ns':windows.MINUTE_NS,
+        'contract_order':['unused','GCM4'],'selected_daily':[1]*791}
+    model_available=decisions.copy();native=np.arange(len(parents),dtype=np.int64)
+    cache=decisions-5*windows.MINUTE_NS;model=np.tile(np.array([[1.,1.]],dtype=np.float32),(len(parents),1))
+    for v in (parents,decisions,contracts,model_available,native,cache,model):v.setflags(write=False)
+    source=windows.qualify_source(_freeze(data))
+    clock=windows.qualify_model_clock(source,parent_rows=parents,decision_ns=decisions,
+        roll_bytes=json.dumps(roll,sort_keys=True).encode(),m5_available_ns=model_available,
+        m5_native_row_indices=native,m5_features=model,m5_field_names=['gc_m5_observed_book_contract_valid',
+        'gc_m5_observed_book_contract_valid_observed'],m5_cache_start_ns=cache)
+    return source,clock
 
 
 def test_combined_price_and_m1_view_source_and_decision_bound(bound_case,monkeypatch):
@@ -79,11 +90,19 @@ def test_combined_price_and_m1_view_source_and_decision_bound(bound_case,monkeyp
     fitted=normalizer.fit(source,clock,prefix_rows=4,cutoff_ns=case['cutoff_ns'])
     for names in (view_owner.DENSE_SOURCE_REF_KEYS,view_owner.PRICE_MOMENTUM_SOURCE_REF_KEYS,view_owner.M1_OFI_SOURCE_REF_KEYS):
         args['source_bindings'].update({key:_ref(key+'.py') for key in names})
+    args['source_bindings']['m1_ofi_roll_schedule']={'path':'/synthetic/roll.json','sha256':clock.roll_sha256}
     view=view_owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,m1_ofi_normalization=fitted)
     assert view['m1_ofi_normalization']['contract_sha256']==fitted['contract_sha256']
+    unbound=windows.qualify_clock(clock.parent_rows,clock.decision_ns,clock.current_m5_contract_index)
+    unbound_stats=normalizer.fit(source,unbound,prefix_rows=4,cutoff_ns=case['cutoff_ns'])
+    with pytest.raises(RuntimeError,match='M1_OFI_ROLL_JOIN'):
+        view_owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,m1_ofi_normalization=unbound_stats)
     foreign_parents=clock.parent_rows.copy();foreign_parents[0]+=1;foreign_parents.setflags(write=False)
-    foreign=windows.qualify_clock(foreign_parents,clock.decision_ns,clock.current_m5_contract_index)
-    foreign_stats=normalizer.fit(source,foreign,prefix_rows=4,cutoff_ns=case['cutoff_ns'])
+    foreign_source,foreign=_bound_minutes({**case,'parent_rows':foreign_parents})
+    foreign_stats=normalizer.fit(foreign_source,foreign,prefix_rows=4,cutoff_ns=case['cutoff_ns'])
+    bad_roll=deepcopy(args);bad_roll['source_bindings']['m1_ofi_roll_schedule']['sha256']='0'*64
+    with pytest.raises(RuntimeError,match='M1_OFI_ROLL_JOIN'):
+        view_owner.bind_native_direction_feature_view(**bad_roll,dense_minutes=True,price_momentum=True,m1_ofi_normalization=fitted)
     with pytest.raises(RuntimeError,match='M1_OFI_AXIS_JOIN'):
         view_owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,m1_ofi_normalization=foreign_stats)
     inputs=_inputs(bound)
@@ -147,6 +166,7 @@ def test_exact_native_research_constructor_does_not_promote_profile(bound_case):
     fitted=normalizer.fit(source,clock,prefix_rows=4,cutoff_ns=bound['case']['cutoff_ns'])
     for names in (view_owner.DENSE_SOURCE_REF_KEYS,view_owner.PRICE_MOMENTUM_SOURCE_REF_KEYS,view_owner.M1_OFI_SOURCE_REF_KEYS):
         args['source_bindings'].update({key:_ref(key+'.py') for key in names})
+    args['source_bindings']['m1_ofi_roll_schedule']={'path':'/synthetic/roll.json','sha256':clock.roll_sha256}
     view=view_owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,m1_ofi_normalization=fitted)
     model=view_owner.build_native_direction_research_model(view,prefix_normalization=args['prefix_normalization'],
         constructor_metadata=args['constructor_metadata'],device=torch.device('cpu'))

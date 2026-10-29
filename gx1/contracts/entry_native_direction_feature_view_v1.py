@@ -39,7 +39,8 @@ SOURCE_REF_KEYS = frozenset({'feature_view_design', 'input_qualification', 'raw_
     'mtf_window_source', 'gc_gather_source', 'owner_profile_source'})
 DENSE_SOURCE_REF_KEYS = frozenset({'dense_direction_component_source', 'dense_profile_source', 'dense_native_constructor_source'})
 PRICE_MOMENTUM_SOURCE_REF_KEYS = frozenset({'price_momentum_profile_source'})
-M1_OFI_SOURCE_REF_KEYS = frozenset({'m1_ofi_window_source', 'm1_ofi_normalization_source'})
+M1_OFI_SOURCE_REF_KEYS = frozenset({'m1_ofi_window_source', 'm1_ofi_normalization_source',
+    'm1_ofi_roll_owner_source', 'm1_ofi_roll_schedule'})
 VIEW_KEYS = frozenset({'schema_version', 'prefix_normalization', 'prefix', 'full_axes', 'base_lineage',
     'prefix_source_bindings_sha256', 'physical_widths', 'physical_field_names_sha256', 'sequence_bars',
     'window_rows', 'canonical_routing_sha256', 'constructor_scalar_config', 'constructor_metadata',
@@ -158,6 +159,8 @@ def _require_view(view):
     if m1_ofi:
         from gx1.contracts.entry_native_direction_m1_ofi_normalization_v1 import require as require_m1_ofi
         fitted = require_m1_ofi(view['m1_ofi_normalization'])
+        _require(fitted['model_contract_clock_bound'] is True
+            and fitted['roll_sha256'] == view['source_bindings']['m1_ofi_roll_schedule']['sha256'], 'M1_OFI_ROLL_JOIN')
         _require(fitted['prefix_rows'] == view['prefix']['rows']
             and fitted['cutoff_ns'] == view['prefix']['cutoff_ns'], 'M1_OFI_OWN_PREFIX')
         _require(fitted['full_rows'] == view['full_axes']['rows']
