@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-28T18:15:12.101010+00:00",
-  "status": "DECIMAL_FULLFIT_SOURCE_PREPARED_NO_TRAINING",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "status": "DECIMAL_FULLFIT_EXACT_ONE_PASS_APPROVED_PREPARATION",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
-  "rule": "Completed dense one-pass fit is consumed and never relaunched. The midpoint float-sign defect has been measured and a separate corrected target prepared; native model qualification and a full fit need their own exact admissions. Preserve genuine inputs, eight families, D1/macro, hardware guards and sealed TEST; genuine payload reads, model forwards and training require their exact separate gate.",
-  "next_action": "Review the predeclared corrected-target one-pass proposal and consider its approximately two-hour historical runtime. No full fit or follow-up data audit is authorized. A new exact user decision, physical restart per training invocation and all existing hardware/TEST guards remain required. The earlier frozen-head readout is consumed and must not be repeated.",
+  "rule": "Only the exact user-approved corrected-decimal sixty-head one-pass recipe may run through its one-shot gated campaign. No failed or consumed invocation may be relaunched. Keep genuine inputs, eight families, D1/macro, all hardware guards and sealed TEST. No broker, order, live/paper, Exit, spending or promotion.",
+  "next_action": "Prepare and bind the approved one-pass recipe to this clean source commit, verify machine-wide idle, physically restart before every invocation, use a 250 W physical limit during work, restore 160 W while idle, then compare against the old model on the fixed later development evaluation.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-28T15:17:58.016214+00:00",
+  "updated_utc": "2026-10-29T06:35:11.264111+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -26287,7 +26287,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": false,
+  "native_launch_authorized": true,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -43715,7 +43715,7 @@
     }
   },
   "direction_decimal_fullfit_preparation_20261028": {
-    "status": "SOURCE_SYNTHETIC_AND_METADATA_PREFLIGHT_ONLY_NO_TRAINING",
+    "status": "USER_APPROVED_EXACT_ONE_PASS_PREPARATION",
     "proposal": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_PROPOSAL_20261028.md",
       "sha256": "2282d4c20b01c0114e97754fb2b3decc5ff0e13249dbba30239a50ee7a8306ac"
@@ -43736,7 +43736,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_TERMINAL_READOUT_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "d52af9c879e7fe2f3bd99f4f841b1b33ee2c7bb528d639eeb433d1e8aa807ff8"
     },
-    "training_authorized": false,
+    "training_authorized": true,
     "full_fit_executed": false,
     "predictive_improvement_qualified": false,
     "test_data_used": false
@@ -43794,5 +43794,43 @@
     "common_auc_cohort_uses_later_other_horizons": true,
     "all_valid_5m_aggregate_rows": 70294,
     "all_valid_5m_auc_interval_qualified": false
+  },
+  "dynamic_m5_direction_decimal_onepass_20261028_001": {
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "relaunch_allowed": false,
+    "status": "USER_APPROVED_EXACT_RECIPE_PREPARATION",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_DENSE_DECIMAL_FULLFIT_RECIPE_CANDIDATE_20261028.json",
+      "sha256": "9ec7d21494f80a5537d0fd0c6ed6132fc2514083d30c27a3195005cbcdda7dd8"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_DECIMAL_ONEPASS_FIT_20261028_001/RUNTIME",
+    "max_invocations": 4,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "train_parents": 47602,
+    "max_optimizer_updates": 2976,
+    "train_passes": 1,
+    "physical_restart_before_each_invocation_authorized": true,
+    "requested_physical_gpu_power_limit_w": 250,
+    "qualification_weights_for_main_fit": false,
+    "test_or_trading_authority": false,
+    "scope": "One fresh eight-family sixty-head model with exact-decimal 1-60 minute targets, one TRAIN-prefix pass and its fixed later development comparison; no TEST, broker, orders, live/paper, Exit or promotion."
   }
 }
