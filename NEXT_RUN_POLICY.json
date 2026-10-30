@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T23:21:51.619030+00:00",
-  "status": "DIRECTION_M5_MATCHED_FACTOR_SOURCE_PREPARED_FIT_CLOSED",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "status": "DIRECTION_M5_FACTOR_SIGN_ONEPASS_PREPARATION_ONLY",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "Only the separately bound one-shot CPU review of saved Q1–Q4 2025 forecasts, corrected labels and D1 GC coverage is authorized. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Verify the committed clean 64-owner sign and bps recipes and their fixed comparison, then bind one new sign-only baseline campaign; require machine-wide idle review and fresh physical boot. Bps and exact sign continuation remain separate subsequent campaigns. TEST and trading remain closed.",
+  "next_action": "Materialize the single sign-only prefix campaign once, review machine-wide idle/writers, then require fresh physical boot before each capped training window. Bps fit and two-pass continuation remain closed until their separate bindings. TEST, broker and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-30T00:34:16.356085+00:00",
+  "updated_utc": "2026-10-30T00:37:36.057834+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -47770,7 +47770,7 @@
     "predictive_or_economic_edge_qualified": false
   },
   "dynamic_m5_direction_factor_sign_one_pass_20261030_001": {
-    "status": "SOURCE_AND_DIRTY_METADATA_PREFLIGHT_ONLY",
+    "status": "ONE_SHOT_SIGN_BASELINE_PREPARATION_AUTHORIZED_NOT_STARTED",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_SIGN_ONEPASS_FIT_RECIPE_20261030.json",
       "sha256": "627c6e97365f528755965a72656d7b44e37c64c1d1c1b862f68474957467f29c"
@@ -47789,18 +47789,18 @@
     "all_60_corrected_direction_heads": true,
     "signed_bps_supervision": false,
     "initial_shared_parameters_buffers_rng_and_256_predictions_must_match": true,
-    "campaign_preparation_authorized": false,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
-    "genuine_updates_authorized": false,
-    "genuine_predictor_fit_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
-    "full_epoch_training_allowed": false,
-    "native_launch_authorized": false,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "full_val_allowed": false,
@@ -47808,15 +47808,33 @@
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "relaunch_allowed": false,
-    "physical_restart_before_each_invocation_authorized": false,
+    "physical_restart_before_each_invocation_authorized": true,
     "requested_physical_gpu_power_limit_w": 250,
     "retain_physical_gpu_power_limit_w_afterward": 250,
     "qualification_weights_for_main_fit": false,
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "metadata_preflight": "PASS_DIRTY_SOURCE_ONLY; repeat after clean commit",
-    "predictive_or_economic_edge_qualified": false
+    "metadata_preflight": "PASS at committed source 66e4de8bb69f80a6f2d7c76217b7b8c2cdc0174f; repeat after policy commit.",
+    "predictive_or_economic_edge_qualified": false,
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_ONEPASS_20261030_001/materialize_prefix_campaign_once.py",
+      "sha256": "01d19a415cdcd10e50cd5305b4a36f269ad408268d0801a8f434a6e8e4855ff0"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_ONEPASS_20261030_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "dea1f83544e63f524e4b12d94476ff8abfc12585bfe671bc4865cdbdd44cfb4c"
+    },
+    "source_preflight": {
+      "status": "PASS_COMMITTED_CLEAN_MATCHED_SOURCE",
+      "source_commit": "66e4de8bb69f80a6f2d7c76217b7b8c2cdc0174f",
+      "physical_source_owners_verified": 64,
+      "shared_input_target_and_order": true,
+      "model_forward": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false
+    },
+    "user_authorization": "Direct independent M5 direction research without repeated approvals; one sign-only baseline for the fixed factor comparison, fresh physical boot per window, and retained 250 W."
   },
   "dynamic_m5_direction_factor_bps_one_pass_20261030_001": {
     "status": "SOURCE_AND_DIRTY_METADATA_PREFLIGHT_ONLY",
