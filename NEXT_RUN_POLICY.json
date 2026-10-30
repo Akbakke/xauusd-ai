@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T05:52:31.668015+00:00",
-  "status": "DIRECTION_M5_BPS_SIGN_COMPARISON_ADMITTED",
+  "observed_utc": "2026-10-30T05:56:12.423791+00:00",
+  "status": "DIRECTION_M5_BPS_SIGN_COMPARISON_CONSUMED_NO_EDGE_PROVEN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the separately bound one-shot CPU comparison of fixed Q1 M5 sign and BPS predictions and their two initial states is authorized. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Run the exact capped one-shot saved-prediction comparison, then verify and close its receipt; do not refit or select on Q1.",
+  "rule": "Training and all TEST or trading gates are closed. Prepare separately bound sign second pass and GC fresh-information intervention under the existing M5 and machine guards.",
+  "next_action": "Bind a separate sign second pass from the verified one-pass checkpoint, and a matched GC freshness intervention; do not reuse consumed plans or select on Q1.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Run the exact capped one-shot saved-prediction comparison, then verify and close its receipt; do not refit or select on Q1.",
+    "current_activity": "Bind a separate sign second pass from the verified one-pass checkpoint, and a matched GC freshness intervention; do not reuse consumed plans or select on Q1.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -17854,6 +17854,10 @@
       "bps_fit_review": {
         "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_BPS_ONEPASS_20261030_001/ACTUAL_FIT_REVIEW_001.json",
         "sha256": "3e61f4fa8cffd85bfc9486566d7483b05c97d17c10fa522f84e7f83431ef3829"
+      },
+      "bps_sign_comparison": {
+        "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_BPS_ONEPASS_20261030_001/BPS_SIGN_COMPARISON_REVIEW_001.json",
+        "sha256": "f6e100ff646d952cfbdd31f9ac599a78f51729bbcc8400ed5d903dc06775cf29"
       }
     }
   },
@@ -20419,7 +20423,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-30T05:52:31.668015+00:00",
+  "updated_utc": "2026-10-30T05:56:12.423791+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -37179,7 +37183,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SOURCE_ADMISSION_009.json",
       "sha256": "0796c1888109b630e613f6ef3352596d985106fb5c941902b0e13034307fb6d6"
     },
-    "current_unit": "direction_m5_factor_bps_sign_saved_compare_20261030_001",
+    "current_unit": "dynamic_m5_direction_factor_sign_two_pass_20261030_001",
     "own_source_scope": [
       "gx1/contracts/entry_direction_price_projection_v1.py",
       "gx1/contracts/entry_direction_snapshot_data_v1.py",
@@ -37219,7 +37223,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Run the exact capped one-shot saved-prediction comparison, then verify and close its receipt; do not refit or select on Q1.",
+    "next_action": "Bind a separate sign second pass from the verified one-pass checkpoint, and a matched GC freshness intervention; do not reuse consumed plans or select on Q1.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -47998,7 +48002,7 @@
     }
   },
   "dynamic_m5_direction_factor_sign_two_pass_20261030_001": {
-    "status": "SOURCE_PREPARED_AWAITING_EXACT_ONE_PASS_TERMINAL",
+    "status": "ONEPASS_TERMINAL_AVAILABLE_TWO_PASS_BINDING_PENDING",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_SIGN_BPS_EXPOSURE_PROTOCOL_20261030.json",
       "sha256": "7a708aad48991e7d17bca073eab67ecf9321e8cf1028343c176e76c8d1f21f11"
@@ -48011,17 +48015,21 @@
     "execution_authorized": false,
     "test_data_used": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "one_pass_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_ONEPASS_20261030_001/ACTUAL_FIT_REVIEW_001.json",
+      "sha256": "7cf4f4f2fde38d0eb3ce9e104b21262ee0b39b26ecc0861dffed48b4c3aa24de"
+    }
   },
   "direction_m5_factor_bps_sign_saved_compare_20261030_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_EDGE_PROVEN",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_BPS_ONEPASS_20261030_001/BPS_SIGN_COMPARISON_PLAN_001.json",
       "sha256": "def4f09930dca94053ac54c728622ad3556480a29a615d1fe7c75a541b5e2bba"
     },
-    "execution_authorized": true,
-    "genuine_prediction_reads_authorized": true,
-    "initial_checkpoint_reads_authorized": true,
+    "execution_authorized": false,
+    "genuine_prediction_reads_authorized": false,
+    "initial_checkpoint_reads_authorized": false,
     "initial_checkpoint_reads_max": 2,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
@@ -48029,13 +48037,25 @@
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "memory_cap_gib": 4,
     "max_wall_seconds": 600,
     "bootstrap_replicates": 10000,
     "primary_minutes": 5,
-    "scope": "Exact BPS-versus-sign saved Q1 predictions and initial-state parity; no new training or model inference."
+    "scope": "Exact BPS-versus-sign saved Q1 predictions and initial-state parity; no new training or model inference.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_BPS_ONEPASS_20261030_001/BPS_SIGN_COMPARISON_001/RESULT.json",
+      "sha256": "da0520099e0cfa2710acca782f43a7bffdd64e98b116c99da2dc6d8c0479f484"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_BPS_ONEPASS_20261030_001/BPS_SIGN_COMPARISON_REVIEW_001.json",
+      "sha256": "f6e100ff646d952cfbdd31f9ac599a78f51729bbcc8400ed5d903dc06775cf29"
+    },
+    "report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_BPS_ONEPASS_RESULT_20261030.md",
+      "sha256": "11c9c61197fae4252445d2ec339e3cd05be0df3865f02ac7538b250545cb664d"
+    }
   }
 }
