@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+30.10 — BPS-PRIVATKONTROLL BESTÅTT OG STENGT: Etter fysisk boot 583 er én kvalifisering konsumert: 32 TRAIN-foreldre, fire fysiske oppdateringer/to logiske steg og 256 identiske startprediksjoner med identiske felles modell-/buffer-/RNG-verdier. Alle 60 bps-hoder fikk gradient, bps-tapet nådde felles projeksjon og resume var byteidentisk. Signert vakt PASS, topp 131,54 W, 50/56 °C; engangstask deaktivert, 250 W beholdt, målt idle 22,77 W. Ingen private vekter brukes videre. Dette beviser teknikk, ikke bedre retning eller edge. Separat matchet full-fit og senere sammenligning gjenstår. TEST/handel/Exit er stengt. Se NEXT_RUN_POLICY.
+
 30.10 — AVGRENSET BPS-KVALIFISERING AUTORISERT: Ren kildeforkontroll bestod for 63 eiere, og den eksakte ruten håndhever 250 W konfigurert grense. Én privat kontroll med 32 TRAIN-foreldre, fire oppdateringer, 60 bps-hoder og separat gradientkontroll kan klargjøres; fysisk restart kreves etter maskindekkende idle-/skrivekontroll. 256 startprediksjoner, felles modell/buffere/RNG og resume må samsvare. Ingen modell er startet, private vekter brukes ikke i hovedfit, og full fit/TEST/handel/Exit er stengt. Se NEXT_RUN_POLICY.
 
 30.10 — EFFEKTGRENSE KVALIFISERINGSRUTE: Den generelle native vakten tillot inntil 300 W selv om brukeren hadde valgt 250 W. Den nye privat-ruten velger nå maks konfigurert 250 W etter kontroll av eksakt vindu/recipe; øvrige eksisterende temperatur-, effekt- og telemetrivakter beholdes. Kilden og revidert recipe trenger ny test og ren metadataforkontroll før eventuell start. Ingen trening er startet.

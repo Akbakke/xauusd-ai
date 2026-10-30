@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T23:21:51.619030+00:00",
-  "status": "DIRECTION_DENSE_BPS_PRIVATE_ONE_SHOT_PREPARATION_ONLY",
-  "training_enabled": true,
+  "status": "DIRECTION_DENSE_BPS_PRIVATE_QUALIFIED_FULL_FIT_CLOSED",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the separately bound one-shot CPU review of saved Q1–Q4 2025 forecasts, corrected labels and D1 GC coverage is authorized. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Materialize the exact single private qualification once; require machine-wide idle/writer review and a fresh physical Windows boot before its four-update capped execution. No full fit, TEST, Exit or trading.",
+  "next_action": "Prepare separately bound matched full-fit sign-only and signed-bps comparisons, then an exposure continuation, using the same source and fixed later development rows. Actual later predictive and economic edge remain unqualified; TEST and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-30T00:10:15.639920+00:00",
+  "updated_utc": "2026-10-30T00:19:08.444753+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -47678,7 +47678,7 @@
     "all_60_counts_match_prior_decimal_audit": true
   },
   "dynamic_m5_direction_dense_bps_private_20261030_001": {
-    "status": "PRIVATE_ONE_SHOT_PREPARATION_AUTHORIZED_NOT_STARTED",
+    "status": "PASS_CONSUMED_M5_DENSE_BPS_PRIVATE_MECHANICS",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_DENSE_BPS_PRIVATE_RECIPE_20261030.json",
       "sha256": "05da3f3422010d7c7707ef5d16795e57ba291a6e2fd39a99bb3a7c6e8641905a"
@@ -47688,21 +47688,21 @@
     "synthetic_tests_last_focused_run": 234,
     "metadata_preflight": "PASS at committed source cc7b8b9eab2cbb011f3919bb16a44f913d93080e; repeat after policy commit.",
     "scope": "M5 price-only; unchanged 60 direction heads plus 60 normalized signed-bps heads, 32 fixed TRAIN parents, four physical optimizer updates and one bps-only reverse proof; 256 initial predictions and all shared model/buffer/RNG values must match prior M5 initial.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "test_data_used": false,
     "exit_evaluation": false,
@@ -47720,8 +47720,8 @@
       "optimizer_steps": 0,
       "test_data_used": false
     },
-    "campaign_preparation_authorized": true,
-    "physical_restart_before_invocation_authorized": true,
+    "campaign_preparation_authorized": false,
+    "physical_restart_before_invocation_authorized": false,
     "qualification_weights_for_main_fit": false,
     "preparation_materializer": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/materialize_research_campaign_once.py",
@@ -47739,6 +47739,34 @@
       "optimizer_steps": 0,
       "test_data_used": false
     },
-    "user_authorization": "Direct independent direction research without repeated approvals; M5 decision cadence, physical restart, and 250 W retained. One private mechanics qualification only."
+    "user_authorization": "Direct independent direction research without repeated approvals; M5 decision cadence, physical restart, and 250 W retained. One private mechanics qualification only.",
+    "actual_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "11a0245c0a753c359f8ef9f29474f7a4144609b677c8babcabca67715cce2d8e"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "6b110022c5370e2ef02b8404d961a27c43d17c3b2b9b72ef06fc53ad6e7eb96e"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/RUNTIME/private-research/RESULT.json",
+      "sha256": "a3ea6b6f6f145c2a653f3f4632c23c595c0d096b82778c30fc219a0d45ced275"
+    },
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "f90f564f83fd736916a9e246bafacef86c6f7dd2eb3abd3bcc7a79383bbf52c1"
+    },
+    "power_after": {
+      "path": "/mnt/c/ProgramData/GX1/RandomAccessCampaignV2/POWER_RETAIN_M5_DENSE_BPS_PRIVATE_20261030_001.json",
+      "sha256": "85e232535c9ce01a272115067ee76a6282f0f5d93c44515ec8e1790c4ea0dbcf"
+    },
+    "physical_boot_id": 583,
+    "actual_private_optimizer_steps": 4,
+    "actual_unique_train_parents": 32,
+    "initial_predictions_model_buffers_rng_exact": true,
+    "sixty_bps_gradient_rows": true,
+    "bps_only_shared_gradient_nonzero": true,
+    "bit_exact_resume": true,
+    "predictive_or_economic_edge_qualified": false
   }
 }
