@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T09:38:15.913998+00:00",
-  "status": "DIRECTION_FAMILY_FULL_INPUT_AUDIT_BOUND",
-  "training_enabled": false,
+  "observed_utc": "2026-10-30T21:10:35.272833+00:00",
+  "status": "DIRECTION_FAMILY_BASELINE_PRIVATE_PREPARATION",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "GC frozen-model sensitivity and saved-output verification are consumed. All training, inference, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed until a separately bound scope is prepared.",
-  "next_action": "Run single capped complete47602TRAIN+17288Q1 support audit. Source frozen during run; inspect15–30minutes. After terminal qualify own native baseline and exact serial refits. Training remains closed.",
+  "rule": "Only the exact named family baseline private qualification is admitted. Full family fits, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
+  "next_action": "Prepare one exact family baseline private qualification: fresh committed recipe/source/policy, existing signed campaign,250W cap, fresh machine-wide idle/writer proof and physical reboot before four private updates. Full family fits remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Run single capped complete47602TRAIN+17288Q1 support audit. Source frozen during run; inspect15–30minutes. After terminal qualify own native baseline and exact serial refits. Training remains closed.",
+    "current_activity": "Prepare one exact family baseline private qualification: fresh committed recipe/source/policy, existing signed campaign,250W cap, fresh machine-wide idle/writer proof and physical reboot before four private updates. Full family fits remain closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -284,11 +284,11 @@
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Completed frozenGC Q1 freshness intervention, independently verified; not a family refit or edge qualification.",
-    "runtime_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001",
+    "latest_terminal_role": "Verified full family input support audit; not a model or learned-value result.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001/VERIFIED_TERMINAL.json",
-      "sha256": "bc1c7754a4dbecb36229caea0ab1c9603c5aee36ee701bf0b65f26e6195fe8a2"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/VERIFIED_TERMINAL.json",
+      "sha256": "dec55404316cf079484c630babcbafb74c5a626cc731774471f8b6b2d5262f69"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -31217,7 +31217,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35959,7 +35959,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Closed; sign comparison and GC freshness intervention and review consumed.",
+  "training_enabled_scope": "dynamic_m5_direction_family_private_baseline_20261030_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48260,7 +48260,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "FULL_INPUT_SUPPORT_AUDIT_BOUND",
+    "status": "FULL_INPUT_AUDIT_VERIFIED_BASELINE_PRIVATE_PREPARATION",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48299,7 +48299,7 @@
         "sha256": "afb17db16a032436d31f6eaa9d9d45cce7fe6f5a4a080623d4e114642c828829"
       },
       "synthetic_tests_passed": 325,
-      "actual_raw_input_intervention_checked": false,
+      "actual_raw_input_intervention_checked": true,
       "genuine_model_forwards": 0
     },
     "prepared_baseline_private_recipe": {
@@ -48307,10 +48307,11 @@
       "sha256": "84002c33e86b077999ae4d782cbeb21876ac8f231e4568dc80c0543633c22101"
     },
     "baseline_recipe_metadata_preflight": {
-      "status": "PASS_63_CURRENT_SOURCE_OWNERS_AFTER_VALIDATOR_REFRESH",
-      "source_worktree_not_yet_committed": true,
+      "status": "PASS_63_COMMITTED_SOURCE_OWNERS",
+      "source_worktree_not_yet_committed": false,
       "native_execution_authorized": false,
-      "initial_metadata_seal_mismatch_corrected_before_launch": true
+      "initial_metadata_seal_mismatch_corrected_before_launch": true,
+      "source_commit": "49220918dc4c238343510abcba1e06ac21b73dda"
     },
     "source_followup_tests": {
       "result": {
@@ -48344,7 +48345,16 @@
         "sha256": "48a4fa35f6da867d973a2fb8b80babb05860c2e9b8f280a977595d040786500c"
       },
       "synthetic_420_surface_outputs_byte_identical": true,
-      "genuine_after_timing_pending": true
+      "genuine_after_timing_pending": false,
+      "genuine_20_interventions_seconds": 5.153087792998122
+    },
+    "full_input_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/RESULT.json",
+      "sha256": "7361baad30ea2f0cc21699952b6336a49e701a6b64c86d1401d2828bdfc83c64"
+    },
+    "full_input_independent_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/INDEPENDENT_AGGREGATE_REVIEW_001.json",
+      "sha256": "cfe793cdbede0ea59c507ad4cf33b5443caae925e16a2f277af3c6b50abdd601"
     }
   },
   "direction_family_input_pilot_20261030_001": {
@@ -48381,15 +48391,15 @@
     }
   },
   "direction_family_input_full_20261030_001": {
-    "status": "BOUND_SINGLE_FULL_INPUT_AUDIT",
+    "status": "PASS_CONSUMED_FULL_INPUT_SUPPORT_AUDIT",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/PLAN.json",
       "sha256": "d2e649fc1ddc7bf1835df5528f575912421c82877c09d724911bc18535403e69"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
     "training_enabled": false,
@@ -48399,6 +48409,80 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "scope": "All47602TRAIN+17288laterQ1 parents through actual14surface gather; source/provider/axis/mask/alias bookends. Zero targets decoded/model/fit. Same32intervention witnesses, detailed cgrouppeak/events and bounded progress."
+    "scope": "All47602TRAIN+17288laterQ1 parents through actual14surface gather; source/provider/axis/mask/alias bookends. Zero targets decoded/model/fit. Same32intervention witnesses, detailed cgrouppeak/events and bounded progress.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/RESULT.json",
+      "sha256": "7361baad30ea2f0cc21699952b6336a49e701a6b64c86d1401d2828bdfc83c64"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/TERMINAL.json",
+      "sha256": "9cf15b9bdf63ef7f7bd7ce0e3ec85f325b28630e72f87587319266ddcb7ff3a3"
+    },
+    "outer": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/OUTER.json",
+      "sha256": "25e7990f3ba94974b1ada3e17607dec38e7f9fa52d9d6af9d78c34a341be7ad5"
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/INDEPENDENT_AGGREGATE_REVIEW_001.json",
+      "sha256": "cfe793cdbede0ea59c507ad4cf33b5443caae925e16a2f277af3c6b50abdd601"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/VERIFIED_TERMINAL.json",
+      "sha256": "dec55404316cf079484c630babcbafb74c5a626cc731774471f8b6b2d5262f69"
+    }
+  },
+  "dynamic_m5_direction_family_private_baseline_20261030_001": {
+    "status": "ADMITTED_SINGLE_FAMILY_BASELINE_PRIVATE_PREPARATION",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_BASELINE_PRIVATE_RECIPE_20261030.json",
+      "sha256": "84002c33e86b077999ae4d782cbeb21876ac8f231e4568dc80c0543633c22101"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_BASELINE_001/RUNTIME",
+    "source_owner_count": 63,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "scope": "One baseline family private mechanics qualification,32 unique TRAIN parents,4 physical updates,37 forwards maximum; shared initial parity,own initial report and exact resume. No full fit.",
+    "qualification_weights_for_main_fit": false,
+    "requested_physical_gpu_power_limit_w": 250,
+    "retain_physical_gpu_power_limit_w_afterward": 250,
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_BASELINE_001/materialize_research_campaign_once.py",
+      "sha256": "97168dfa6ecc5cbbdbf529232c30d0478fac2cba57ba53604e81017b567e344b"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_BASELINE_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "32ed4cc34a7dbe20a1dd7264f60b9e06ce3b1001c5be4d975687534d809f74ea"
+    },
+    "input_audit_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/INDEPENDENT_AGGREGATE_REVIEW_001.json",
+      "sha256": "cfe793cdbede0ea59c507ad4cf33b5443caae925e16a2f277af3c6b50abdd601"
+    },
+    "metadata_preflight": {
+      "source_head": "49220918dc4c238343510abcba1e06ac21b73dda",
+      "physical_source_owners_verified": 63,
+      "canonical_recipe_validation": "PASS",
+      "configured_power_limit_w": 250
+    },
+    "user_authorization": "30.10 matched-family study and subsequent continue instruction; exact bounded mechanics qualification only.",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "campaign_preparation_authorized": true,
+    "physical_restart_before_each_invocation_authorized": true,
+    "physical_restart_before_invocation_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }
