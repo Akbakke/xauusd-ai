@@ -1043,6 +1043,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             device="cuda", out_dir=unseen_args.out_dir)
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    gc_q1_options = ("--direction-gc-q1-freshness-plan", "--direction-gc-q1-freshness-plan-sha256")
+    if any(value.partition("=")[0] in gc_q1_options for value in supplied):
+        gc_q1_parser = argparse.ArgumentParser(description="Frozen current M5 GC freshness comparison",
+            allow_abbrev=False, add_help=False)
+        gc_q1_parser.add_argument(gc_q1_options[0], type=Path, required=True)
+        gc_q1_parser.add_argument(gc_q1_options[1], required=True)
+        gc_q1_parser.add_argument("--device", choices=("cuda",), required=True)
+        gc_q1_parser.add_argument("--out-dir", type=Path, required=True)
+        for option in (*gc_q1_options, "--device", "--out-dir"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                gc_q1_parser.error(f"duplicate flag: {option}")
+        gc_q1_args = gc_q1_parser.parse_args(supplied)
+        if not gc_q1_args.out_dir.is_absolute():
+            gc_q1_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.direction_gc_q1_freshness_v1 import run as run_gc_q1
+        report = run_gc_q1(plan_path=gc_q1_args.direction_gc_q1_freshness_plan,
+            plan_sha256=str(gc_q1_args.direction_gc_q1_freshness_plan_sha256),
+            device="cuda", out_dir=gc_q1_args.out_dir)
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     full_stale_options = ("--direction-gc-full-stale-plan", "--direction-gc-full-stale-plan-sha256")
     if any(value.partition("=")[0] in full_stale_options for value in supplied):
         full_stale_parser = argparse.ArgumentParser(description="Frozen model GC freshness across current context and history",

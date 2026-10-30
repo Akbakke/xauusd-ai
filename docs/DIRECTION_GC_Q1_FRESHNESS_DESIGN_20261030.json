@@ -1,0 +1,130 @@
+{
+  "bootstrap_replicates": 10000,
+  "headline_minutes": [
+    5,
+    60
+  ],
+  "horizons_minutes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60
+  ],
+  "inputs": {
+    "checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/RUNTIME/prefix-fit/states/w0001_TERMINAL_u005952_p095204.pt",
+      "sha256": "7eabadd5188b567f2ddee2d6bd5285a39b1bd8a397b4a9163d51c7e9dd66072f"
+    },
+    "corrected_target": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+      "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+    },
+    "feasibility": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_STALE_INTERVENTION_FEASIBILITY_20261030_001/RESULT.json",
+      "sha256": "fd4b6fcef62d9a25ca566a947f521998124f3be25d3d416320cec8d05cb0041e"
+    },
+    "fit_receipt": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "93c05680740b525a9766aef08b85499fe3015f532c010beb38214fbcdd315524"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "a0d98bb17513839dc831d98b1f35ddd084e349a1a457152fc755543f30ff4bf8"
+    },
+    "fit_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/ACTUAL_FIT_REVIEW_001.json",
+      "sha256": "edf9b6db9b859cb5ab3911fe03e3e25caf91e6196f1fb51a4a6524dd32937364"
+    },
+    "oof_predictions": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/RUNTIME/prefix-fit/window-0001/OOF.npz",
+      "sha256": "d70aa764f26376054a8dcc38c769223acc73aad979af27f17c62d7a40528e05e"
+    },
+    "oof_report": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "6acd5b2d08b75f36feaf386e46463c9700ff5633b2bb2d63619461155167a3a2"
+    },
+    "profile_preflight": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_CURRENT_PROFILE_INTERVENTION_PREFLIGHT_20261030_001/RESULT.json",
+      "sha256": "8e55543912c00acd1d11f10655334fb4809ed2b120bbd29f1856e4b0762798ea"
+    },
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_SIGN_TWOPASS_FIT_RECIPE_20261030.json",
+      "sha256": "9d197c52302452ebe8f1996347a001a03c38a47a91b7f41d8e879c5b3520ba29"
+    },
+    "synthetic_test_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/TEST_PLAN.json",
+      "sha256": "affd254170ff12186cc1ef3139583558f38ee181db7164ff9edac31ca0107f57"
+    },
+    "synthetic_test_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/TEST_TERMINAL.json",
+      "sha256": "3e7283293ae5fc46aac5e2d2f89c8396be90f10d8ab1c0882d1e2ea88e6b5992"
+    }
+  },
+  "intervention": "Replace named current GC context and final-row aliases with exact prior M5 values; mask named GC history buckets closed since then. Other inputs stay current.",
+  "limitations": "Joint named-input intervention can be out of distribution; not proof of local arrival, isolated feature attribution, or economic edge. Reused Q1 and dependent horizons.",
+  "optimizer_steps": 0,
+  "paired_interval_alpha": 0.004166666666666667,
+  "primary_minutes": 5,
+  "prior_available_parents": 1727,
+  "schema_version": "gx1_direction_gc_q1_freshness_design_v1",
+  "selected_parents": 1736,
+  "selection": "Every tenth contiguous 16-row batch from Q1 parent rows 47602..64889; require exact previous M5 decision. No target-based selection.",
+  "status": "PREDECLARED_BEFORE_INTERVENTION",
+  "test_data_used": false
+}

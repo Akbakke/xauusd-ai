@@ -158,6 +158,22 @@ matches_bound_m5_intervention() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+# Exact current-profile GC freshness scope, with the existing signed guard.
+matches_bound_gc_q1_freshness() {
+  local expected_plan="$1" expected_output="$2"
+  shift 2
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
+    && "$4" == --direction-gc-q1-freshness-plan && "$5" == "$expected_plan" \
+    && "$6" == --direction-gc-q1-freshness-plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
+    && "${11}" == "$expected_output" && "$expected_plan" == /* && "$expected_output" == /* ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
@@ -249,6 +265,17 @@ validate_target_command() {
       # window, but is still terminated after one hour if it stalls.
       TRAINER_MAX_WALL_SECONDS=3600
       TRAINER_MODEL_MAX_WALL_SECONDS=3600
+      if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
+        && "${4:-}" == --direction-gc-q1-freshness-plan ]]; then
+        local gc_root=/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63
+        local gc_plan="$gc_root/DIRECTION_GC_Q1_FRESHNESS_PLAN_20261030_001.json"
+        local gc_output="$gc_root/DIRECTION_GC_Q1_FRESHNESS_20261030_001"
+        if ! matches_bound_gc_q1_freshness "$gc_plan" "$gc_output" "$@"; then
+          echo "FATAL: GC Q1 freshness producer 250W scope is not exactly bound" >&2
+          exit 75
+        fi
+        TRAINER_GPU_MAX_POWER_LIMIT_W=250
+      fi
       if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
         && "${4:-}" == --direction-m5-momentum-intervention-plan ]]; then
         # Only the two exact one-shot M5 plans have this configured-limit

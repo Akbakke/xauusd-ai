@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T08:34:42.684981+00:00",
-  "status": "DIRECTION_M5_SIGN_TWO_PASS_COMPARISON_COMPLETE_GC_SENSITIVITY_PREPARATION",
+  "observed_utc": "2026-10-30T08:41:50.078637+00:00",
+  "status": "DIRECTION_GC_Q1_FRESHNESS_ONE_SHOT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "The sign comparison is consumed. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed; GC intervention requires a new exact binding.",
-  "next_action": "Prepare the smallest source-bound GC freshness sensitivity comparison on fixed existing Q1 rows, using a verified checkpoint and exact frozen prediction replay.",
+  "rule": "Only the exact GC freshness frozen-model producer is admitted once with existing signed hardware and data guards. All training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
+  "next_action": "Run the bound Q1 GC freshness comparison; verify exact saved prediction replay, terminal and paired five-minute scores.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Prepare the smallest source-bound GC freshness sensitivity comparison on fixed existing Q1 rows, using a verified checkpoint and exact frozen prediction replay.",
+    "current_activity": "Run the bound Q1 GC freshness comparison; verify exact saved prediction replay, terminal and paired five-minute scores.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -281,7 +281,7 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_SIGN_PASS_COMPARISON_COMPLETE_GC_SENSITIVITY_PENDING",
+    "gc_goal_status": "ACTIVE_FROZEN_GC_FRESHNESS_ONE_SHOT_ADMITTED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Completed second sign pass; fixed Q1 paired comparison pending.",
@@ -48157,5 +48157,32 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_SIGN_TWOPASS_RESULT_20261030.md",
       "sha256": "e8bd941d5639badb65aa447972c2ed0cc7ab9d4a31522211a3c772cd902e8176"
     }
+  },
+  "independent_direction_gc_q1_freshness_20261030_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_PLAN_20261030_001.json",
+      "sha256": "490ec5272ebde7e09e165e0f50eb9465ddcab712827e4042ad3a86c2a719b23b"
+    },
+    "execution_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "model_forwards_authorized": true,
+    "optimizer_steps_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "class": "guarded_cuda_producer",
+    "memory_max": "20G",
+    "wall_seconds": 3300,
+    "max_model_forwards": 218,
+    "configured_gpu_max_w": 250,
+    "actual_gpu_draw_stop_w": 170,
+    "scope": "Frozen completed M5 sign two-pass checkpoint; exactly replay every tenth Q1 batch before prior-M5 GC context and newly closed GC-history masking; 1736 selected, 1727 exact prior, all 60 corrected horizons. No training or trading.",
+    "focused_synthetic_tests_passed": 17,
+    "metadata_preflight": "PASS: 64 fit owners and 59 metadata refs; current GC profile and aliases match; no model calls.",
+    "checkpoint_preflight": "PASS after correcting the new GC reader to require the valid two-pass schema and train_passes=2; checkpoint content, model digest, feature identity and 95204/5952 cursor verified."
   }
 }
