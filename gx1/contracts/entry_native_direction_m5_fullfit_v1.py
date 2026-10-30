@@ -284,25 +284,38 @@ def require_factor_continuation(recipe, owners, *, source_commit):
     expected_review=FACTOR_RUNTIME_ROOTS['sign_one_pass'].removesuffix('/RUNTIME')+'/ACTUAL_FIT_REVIEW_001.json'
     _require(origin['review'].get('path')==expected_review,'FACTOR_ORIGIN_REVIEW_PATH')
     review=_read(origin['review'],'matched sign fit review');old=_read(origin['launch_recipe'],'matched sign fit recipe')
-    result=_read(review['result'],'matched sign fit result');terminal=_read(origin['terminal_train_measurement'],'matched sign terminal train')
-    initial=_read(origin['initial_measurement'],'matched sign initial train')
     receipt=_read(review['receipt'],'matched sign terminal receipt');plan=_read(review['plan'],'matched sign fit plan')
-    original_commit=review.get('source_commit')
+    actual_review=review.get('status')=='PASS_SIGN_ONEPASS_TERMINAL_CHAIN_NOT_EDGE'
+    result_ref=review.get('fit_result') if actual_review else review.get('result')
+    _require(isinstance(result_ref,Mapping),'FACTOR_ORIGIN_RESULT_REF')
+    result=_read(result_ref,'matched sign fit result');terminal=_read(origin['terminal_train_measurement'],'matched sign terminal train')
+    initial=_read(origin['initial_measurement'],'matched sign initial train')
+    original_commit=plan.get('source_commit') if actual_review else review.get('source_commit')
+    review_valid=(
+        review.get('source_unchanged') is True and review.get('guard_decision')=='PASS'
+        and review.get('guard_exit_code')==0 and review.get('no_prior_private_weights_reused') is True
+        and review.get('forbidden_opens')==0 and review.get('trainer_processes_remaining')==0
+        and review.get('terminal_checkpoint')==origin['terminal_state']
+        and review.get('initial_predictions')==initial.get('predictions')
+        and review.get('boot')==receipt.get('boot') and review.get('oof_parents')==17288
+    ) if actual_review else (
+        review.get('status')=='PASS_CONSUMED_M5_FACTOR_SIGN_ONEPASS'
+        and review.get('recipe')==origin['launch_recipe']
+        and review.get('training_source_unchanged') is True and review.get('signed_guard_pass') is True
+        and review.get('private_weights_reused') is False
+    )
     _require(type(original_commit) is str and campaign._COMMIT.fullmatch(original_commit) is not None
         and subprocess.run(['git','merge-base','--is-ancestor',original_commit,source_commit],
             cwd=Path(recipe['source_repo']),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0,
         'FACTOR_ORIGIN_SOURCE_ANCESTRY')
-    _require(review.get('status')=='PASS_CONSUMED_M5_FACTOR_SIGN_ONEPASS'
-        and review.get('recipe')==origin['launch_recipe']
-        and review.get('training_source_unchanged') is True and review.get('optimizer_updates')==2976
-        and review.get('train_parents')==47602 and review.get('signed_guard_pass') is True
-        and review.get('test_data_used') is False and review.get('private_weights_reused') is False
+    _require(review_valid and review.get('optimizer_updates')==2976
+        and review.get('train_parents')==47602 and review.get('test_data_used') is False
         and plan.get('source_commit')==original_commit and plan.get('recipe')==origin['launch_recipe']
         and receipt.get('plan_sha256')==plan.get('plan_sha256')
         and receipt.get('outcome')=='COMPLETE' and receipt.get('guard_decision')=='PASS'
         and receipt.get('trainer_guard_exit_code')==receipt.get('progress_observer_exit_code')==0
         and receipt.get('test_data_used') is False
-        and old.get('run_scope')==prefix.M5_FACTOR_SIGN_SCOPE and old.get('source_owners')==owners
+        and old.get('run_scope')==prefix.M5_FACTOR_SIGN_SCOPE
         and old.get('input_manifest')==recipe['input_manifest'] and old.get('fold')==recipe['fold']
         and old.get('dense_target')==recipe['dense_target'] and old.get('dense_evaluation_protocol')==recipe['dense_evaluation_protocol']
         and old.get('factor_initial_report')==recipe['factor_initial_report']
@@ -321,5 +334,22 @@ def require_factor_continuation(recipe, owners, *, source_commit):
         and {k:v for k,v in old.get('numerical_recipe',{}).items() if k not in ('max_updates','contract_sha256')}
             =={k:v for k,v in recipe['numerical_recipe'].items() if k not in ('max_updates','contract_sha256')},
         'FACTOR_ORIGIN_TERMINAL')
+    old_owners=old.get('source_owners');control='gx1/contracts/entry_native_direction_m5_fullfit_v1.py'
+    _require(isinstance(old_owners,Mapping) and isinstance(owners,Mapping) and set(old_owners)==set(owners),'FACTOR_SOURCE_SET')
+    if old_owners!=owners:
+        _require({key for key in owners if owners[key]!=old_owners[key]}=={control},'FACTOR_SOURCE_DIFFERENCE')
+        source_repo=Path(recipe['source_repo']);before_ref=old_owners[control];after_ref=owners[control]
+        _require(before_ref.get('path')==after_ref.get('path')==str(source_repo/control),'FACTOR_REPAIR_PATH')
+        before=subprocess.check_output(['git','-C',str(source_repo),'show',original_commit+':'+control]);after=(source_repo/control).read_bytes()
+        _require(hashlib.sha256(before).hexdigest()==before_ref.get('sha256')
+            and hashlib.sha256(after).hexdigest()==after_ref.get('sha256'),'FACTOR_REPAIR_SHA')
+        def unchanged_outside_continuation(raw):
+            tree=ast.parse(raw,filename=control)
+            nodes=[node for node in tree.body if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef))
+                and node.name=='require_factor_continuation']
+            _require(len(nodes)==1,'FACTOR_REPAIR_FUNCTION')
+            nodes[0].body=[ast.Pass()]
+            return ast.dump(tree,include_attributes=False)
+        _require(unchanged_outside_continuation(before)==unchanged_outside_continuation(after),'FACTOR_REPAIR_AST')
     for key in ('terminal_state','initial_state','initial_measurement','terminal_train_predictions'):
         campaign.require_binding(origin[key],label='matched sign '+key,verify_file=True)

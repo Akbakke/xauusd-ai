@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T05:56:12.423791+00:00",
-  "status": "DIRECTION_M5_BPS_SIGN_COMPARISON_CONSUMED_NO_EDGE_PROVEN",
+  "observed_utc": "2026-10-30T06:04:13.792958+00:00",
+  "status": "DIRECTION_M5_SIGN_CONTINUATION_VALIDATOR_FIXED_BINDING_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Training and all TEST or trading gates are closed. Prepare separately bound sign second pass and GC fresh-information intervention under the existing M5 and machine guards.",
-  "next_action": "Bind a separate sign second pass from the verified one-pass checkpoint, and a matched GC freshness intervention; do not reuse consumed plans or select on Q1.",
+  "next_action": "Bind the exact sign second-pass recipe and independent campaign; original checkpoint, optimizer, RNG, parent order and 63 unchanged numerical owners remain fixed. Verify clean source and use the existing guarded physical-reboot workflow.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Bind a separate sign second pass from the verified one-pass checkpoint, and a matched GC freshness intervention; do not reuse consumed plans or select on Q1.",
+    "current_activity": "Bind the exact sign second-pass recipe and independent campaign; original checkpoint, optimizer, RNG, parent order and 63 unchanged numerical owners remain fixed. Verify clean source and use the existing guarded physical-reboot workflow.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -20423,7 +20423,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-30T05:56:12.423791+00:00",
+  "updated_utc": "2026-10-30T06:04:13.792958+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -37223,7 +37223,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Bind a separate sign second pass from the verified one-pass checkpoint, and a matched GC freshness intervention; do not reuse consumed plans or select on Q1.",
+    "next_action": "Bind the exact sign second-pass recipe and independent campaign; original checkpoint, optimizer, RNG, parent order and 63 unchanged numerical owners remain fixed. Verify clean source and use the existing guarded physical-reboot workflow.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -48002,7 +48002,7 @@
     }
   },
   "dynamic_m5_direction_factor_sign_two_pass_20261030_001": {
-    "status": "ONEPASS_TERMINAL_AVAILABLE_TWO_PASS_BINDING_PENDING",
+    "status": "CONTINUATION_REVIEW_SCHEMA_FIXED_EXACT_BINDING_PENDING",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_SIGN_BPS_EXPOSURE_PROTOCOL_20261030.json",
       "sha256": "7a708aad48991e7d17bca073eab67ecf9321e8cf1028343c176e76c8d1f21f11"
@@ -48019,7 +48019,16 @@
     "one_pass_review": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_ONEPASS_20261030_001/ACTUAL_FIT_REVIEW_001.json",
       "sha256": "7cf4f4f2fde38d0eb3ce9e104b21262ee0b39b26ecc0861dffed48b4c3aa24de"
-    }
+    },
+    "metadata_repair_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_SIGN_CONTINUATION_REPAIR_20261030_001/RESULT.json",
+      "sha256": "a7ff371fd0ac2b5af8f4946b6ed90124b825971d2ac14aa879a64eac5ed0bac9"
+    },
+    "metadata_repair_doc": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_SIGN_CONTINUATION_REPAIR_20261030.md",
+      "sha256": "067b87f5d2ee5d6016e2454ec6e1fd716a7678e4d1e72803791e20ee119c7982"
+    },
+    "source_owner_exception": "One validator-only function changed; 63 original owners byte-identical and AST outside that function identical."
   },
   "direction_m5_factor_bps_sign_saved_compare_20261030_001": {
     "status": "COMPLETE_CONSUMED_NO_EDGE_PROVEN",

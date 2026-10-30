@@ -214,7 +214,7 @@ def test_factor_second_pass_guard_is_exact_readonly(monkeypatch,tmp_path):
         common._install_read_guard(context,tmp_path/'output',tmp_path/'runtime',extra_read_paths=context['factor_continuation_reads'])
 
 
-def test_factor_continuation_requires_original_terminal_and_identical_code_owners(monkeypatch):
+def test_factor_continuation_requires_original_terminal_and_identical_code_owners(monkeypatch, tmp_path):
     from types import SimpleNamespace
     from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_research_recipe
     ref=lambda name:{'path':'/'+name,'sha256':name[0]*64}
@@ -257,3 +257,46 @@ def test_factor_continuation_requires_original_terminal_and_identical_code_owner
         previous=obj[key];obj[key]=value
         with pytest.raises(RuntimeError):call()
         obj[key]=previous
+
+    # The real, previously verified review uses fit_result and guard fields.
+    initial['predictions']=ref('initial_predictions');receipt['boot']={'boot_id':584}
+    actual={'status':'PASS_SIGN_ONEPASS_TERMINAL_CHAIN_NOT_EDGE','fit_result':result_ref,
+        'source_unchanged':True,'guard_decision':'PASS','guard_exit_code':0,
+        'no_prior_private_weights_reused':True,'forbidden_opens':0,'trainer_processes_remaining':0,
+        'terminal_checkpoint':origin['terminal_state'],'initial_predictions':initial['predictions'],
+        'boot':receipt['boot'],'oof_parents':17288,'optimizer_updates':2976,'train_parents':47602,
+        'test_data_used':False,'plan':plan_ref,'receipt':receipt_ref}
+    objects[review_ref['path']]=actual
+    call()
+    for key,value in (('guard_decision','FAIL'),('guard_exit_code',1),('source_unchanged',False),
+        ('no_prior_private_weights_reused',False),('forbidden_opens',1),('oof_parents',17287),
+        ('terminal_checkpoint',ref('other')),('initial_predictions',ref('other')),
+        ('boot',{'boot_id':585}),('test_data_used',True),('status','OTHER')):
+        previous=actual[key];actual[key]=value
+        with pytest.raises(RuntimeError):call()
+        actual[key]=previous
+
+    # Only the continuation validator may differ; all other owner bytes remain bound.
+    control='gx1/contracts/entry_native_direction_m5_fullfit_v1.py';file=tmp_path/control
+    file.parent.mkdir(parents=True)
+    before=b'def stable():\n    return 1\n\ndef require_factor_continuation(recipe, owners, *, source_commit):\n    return 1\n'
+    # Change only the continuation body, not the stable function.
+    after=before.replace(b'    return 1\n',b'    return 2\n',2)
+    after=after.replace(b'def stable():\n    return 2',b'def stable():\n    return 1',1)
+    file.write_bytes(after);path=str(file)
+    old_owners={control:{'path':path,'sha256':hashlib.sha256(before).hexdigest()},'other':ref('other')}
+    owners={control:{'path':path,'sha256':hashlib.sha256(after).hexdigest()},'other':ref('other')}
+    old['source_owners']=old_owners;recipe['source_repo']=str(tmp_path)
+    monkeypatch.setattr(m5.subprocess,'check_output',lambda *args,**kwargs:before)
+    call()
+    changed=owners['other'];owners['other']=ref('changed')
+    with pytest.raises(RuntimeError):call()
+    owners['other']=changed
+    changed_bytes=after.replace(b'def stable():\n    return 1',b'def stable():\n    return 3',1)
+    file.write_bytes(changed_bytes);owners[control]['sha256']=hashlib.sha256(changed_bytes).hexdigest()
+    with pytest.raises(RuntimeError):call()
+    changed_signature=after.replace(b'*, source_commit):',b'*, source_commit, extra=None):')
+    file.write_bytes(changed_signature);owners[control]['sha256']=hashlib.sha256(changed_signature).hexdigest()
+    with pytest.raises(RuntimeError):call()
+    file.write_bytes(after);owners[control]['sha256']='0'*64
+    with pytest.raises(RuntimeError):call()
