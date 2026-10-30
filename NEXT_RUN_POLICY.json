@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T06:04:13.792958+00:00",
-  "status": "DIRECTION_M5_SIGN_CONTINUATION_VALIDATOR_FIXED_BINDING_PENDING",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "observed_utc": "2026-10-30T06:09:53.228013+00:00",
+  "status": "DIRECTION_M5_SIGN_TWO_PASS_PREPARATION_ONLY",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
-  "rule": "Training and all TEST or trading gates are closed. Prepare separately bound sign second pass and GC fresh-information intervention under the existing M5 and machine guards.",
-  "next_action": "Bind the exact sign second-pass recipe and independent campaign; original checkpoint, optimizer, RNG, parent order and 63 unchanged numerical owners remain fixed. Verify clean source and use the existing guarded physical-reboot workflow.",
+  "rule": "Only the exact separately bound sign second pass from the verified one-pass terminal may be prepared and run under existing guards; TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
+  "next_action": "Materialize the single sign second-pass campaign, verify machine-wide idle and writers, then require a fresh physical boot before each capped window. Compare fixed Q1 predictions against the sign one-pass reference.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Bind the exact sign second-pass recipe and independent campaign; original checkpoint, optimizer, RNG, parent order and 63 unchanged numerical owners remain fixed. Verify clean source and use the existing guarded physical-reboot workflow.",
+    "current_activity": "Materialize the single sign second-pass campaign, verify machine-wide idle and writers, then require a fresh physical boot before each capped window. Compare fixed Q1 predictions against the sign one-pass reference.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -20423,7 +20423,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-30T06:04:13.792958+00:00",
+  "updated_utc": "2026-10-30T06:09:53.228013+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -31209,7 +31209,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -37223,7 +37223,7 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/SAVED_BPS_ROOT_REVIEW_001.json",
       "sha256": "eabccc91156fa7331dcc25ad4c1346d054c6bdb140c47344c23acf3bfaca9d73"
     },
-    "next_action": "Bind the exact sign second-pass recipe and independent campaign; original checkpoint, optimizer, RNG, parent order and 63 unchanged numerical owners remain fixed. Verify clean source and use the existing guarded physical-reboot workflow.",
+    "next_action": "Materialize the single sign second-pass campaign, verify machine-wide idle and writers, then require a fresh physical boot before each capped window. Compare fixed Q1 predictions against the sign one-pass reference.",
     "qualification_state": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/QUALIFICATION_STATE_003.json",
       "sha256": "d3d5b01bb18a0a85b9a8f74ab32d0b5860ac779105c63f20bdcbfa214e627939"
@@ -48002,7 +48002,7 @@
     }
   },
   "dynamic_m5_direction_factor_sign_two_pass_20261030_001": {
-    "status": "CONTINUATION_REVIEW_SCHEMA_FIXED_EXACT_BINDING_PENDING",
+    "status": "ONE_SHOT_SIGN_SECOND_PASS_PREPARATION_AUTHORIZED_NOT_STARTED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_SIGN_BPS_EXPOSURE_PROTOCOL_20261030.json",
       "sha256": "7a708aad48991e7d17bca073eab67ecf9321e8cf1028343c176e76c8d1f21f11"
@@ -48010,9 +48010,9 @@
     "train_passes": 2,
     "additional_passes": 1,
     "requires_exact_one_pass_checkpoint_and_identical_64_source_owners": true,
-    "training_enabled": false,
-    "native_training_enabled": false,
-    "execution_authorized": false,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "execution_authorized": true,
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
@@ -48028,7 +48028,46 @@
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_SIGN_CONTINUATION_REPAIR_20261030.md",
       "sha256": "067b87f5d2ee5d6016e2454ec6e1fd716a7678e4d1e72803791e20ee119c7982"
     },
-    "source_owner_exception": "One validator-only function changed; 63 original owners byte-identical and AST outside that function identical."
+    "source_owner_exception": "One validator-only function changed; 63 original owners byte-identical and AST outside that function identical.",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_SIGN_TWOPASS_FIT_RECIPE_20261030.json",
+      "sha256": "9d197c52302452ebe8f1996347a001a03c38a47a91b7f41d8e879c5b3520ba29"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/RUNTIME",
+    "source_owner_count": 64,
+    "unchanged_original_owner_count": 63,
+    "max_optimizer_updates_total": 5952,
+    "additional_optimizer_updates": 2976,
+    "train_parent_rows": 47602,
+    "candidate_mode": "price_only",
+    "m1_values_or_masks_as_entry_inputs": false,
+    "all_60_corrected_direction_heads": true,
+    "signed_bps_supervision": false,
+    "campaign_preparation_authorized": true,
+    "max_invocations": 4,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "physical_restart_before_each_invocation_authorized": true,
+    "requested_physical_gpu_power_limit_w": 250,
+    "retain_physical_gpu_power_limit_w_afterward": 250,
+    "qualification_weights_for_main_fit": false,
+    "predictive_or_economic_edge_qualified": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "full_val_allowed": false,
+    "materializer": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/materialize_prefix_campaign_once.py",
+      "sha256": "09f8f427ee8abc5b2e04f48584d68b3324bf88e79980d567c661a55cc110c006"
+    },
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true
   },
   "direction_m5_factor_bps_sign_saved_compare_20261030_001": {
     "status": "COMPLETE_CONSUMED_NO_EDGE_PROVEN",
