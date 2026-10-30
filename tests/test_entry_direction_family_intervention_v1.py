@@ -185,3 +185,96 @@ def test_macro_inventory_is_canonical_source_bound(case):
     assert len(owner['fields_by_group']['positioning_cot']) == 4
     assert len(owner['fields_by_group']['panel_oanda']) == 44
     assert len(owner['fields_by_group']['drivers']) == 13
+
+
+# Frozen pre-vectorization reference; no repository/history subprocess needed.
+def _legacy_require(ok, reason):
+    if not ok:
+        raise RuntimeError("FAMILY_INTERVENTION_" + reason)
+
+def _legacy_validate_inputs(features, contract):
+    _legacy_require(isinstance(features, dict) and set(features) == set(contract['surfaces']), 'INPUT_KEYS_NO_TARGETS')
+    batch = None
+    for key, item in contract['surfaces'].items():
+        x = features[key]
+        _legacy_require(isinstance(x, np.ndarray) and x.dtype == np.dtype(item['dtype'])
+            and x.ndim == (2 if item['rows'] is None else 3), 'INPUT_DTYPE_OR_RANK:' + key)
+        if batch is None:
+            batch = x.shape[0]
+        _legacy_require(batch > 0 and x.shape == ((batch, len(item['field_names'])) if item['rows'] is None else (batch, item['rows'], len(item['field_names'])))
+            and np.isfinite(x).all(), 'INPUT_SHAPE_OR_FINITE:' + key)
+        for i, value in item['source_constants'].items():
+            _legacy_require(np.all(x[..., int(i)] == value), 'SOURCE_CONSTANT_DOMAIN:' + key)
+        for i in item['binary_indices']:
+            _legacy_require(np.isin(x[..., i], (0.0, 1.0)).all(), 'BINARY_DOMAIN:' + key)
+        for name, domain in item['categorical_domains'].items():
+            _legacy_require(np.isin(x[..., item['field_names'].index(name)], domain).all(), 'CATEGORICAL_DOMAIN:' + key)
+        for v, m in item['mask_pairs']:
+            _legacy_require(np.isin(x[..., m], (0.0, 1.0)).all() and np.all(x[..., v][x[..., m] == 0] == 0), 'MASKED_STORAGE:' + key)
+        if key.startswith('seq_') and 'ema_stack_aligned_v2' in item['field_names']:
+            _legacy_require(np.isin(x[..., item['field_names'].index('ema_stack_aligned_v2')], (-1.0, 0.0, 1.0)).all(), 'TERNARY_DOMAIN:' + key)
+    _legacy_require(np.array_equal(features['seq_x'][:, -1], features['snap_x']), 'SNAPSHOT_ALIAS')
+    for a in contract['aliases']:
+        _legacy_require(np.array_equal(features['snap_x'][:, int(a['signal_index'])], features['ctx_cont'][:, int(a['ctx_cont_index'])]), 'CONTEXT_ALIAS')
+
+def _legacy_apply(features, contract, *, arm, expected_sha256):
+    """Independent raw arrays, only declared value columns changed; no labels."""
+    contract = intervention.require_family_intervention(contract, expected_sha256=expected_sha256)
+    _legacy_require(arm in contract['arms'], 'UNKNOWN_ARM')
+    _legacy_validate_inputs(features, contract)
+    output = {key: value.copy() for key, value in features.items()}
+    for key, indices in contract['arms'][arm].items():
+        item, target, raw = contract['surfaces'][key], output[key], features[key]
+        pairs = dict(item['mask_pairs'])
+        for i in indices:
+            _legacy_require(i not in item['preserved_mask_indices'] and i not in item['preserved_constant_indices'], 'MASK_OR_CONSTANT_MUTATION')
+            value = item['replacement_raw'][i]
+            target[..., i] = np.where(raw[..., pairs[i]] == 1, value, 0.0) if i in pairs else value
+        protected = sorted(set(range(raw.shape[-1])) - set(indices))
+        _legacy_require(target[..., protected].tobytes() == raw[..., protected].tobytes(), 'UNRELATED_VALUE_CHANGED:' + key)
+    _legacy_validate_inputs(output, contract)
+    return output
+
+
+def test_vectorized_validator_bitexact_legacy_all_arms_16_parents(case):
+    _args, contract, fixture = case
+    features = {key: np.concatenate([value] * 8, axis=0) for key, value in fixture.items()}
+    before = {key: value.tobytes() for key, value in features.items()}
+    for arm in contract['arms']:
+        old = _legacy_apply(features, contract, arm=arm, expected_sha256=contract['contract_sha256'])
+        new = intervention.apply_family_intervention_numpy(features, contract, arm=arm, expected_sha256=contract['contract_sha256'])
+        assert set(old) == set(new) and len(new) == 14
+        for key in old:
+            assert old[key].dtype == new[key].dtype and old[key].shape == new[key].shape
+            assert old[key].tobytes() == new[key].tobytes()
+            assert features[key].tobytes() == before[key]
+
+
+@pytest.mark.parametrize('failure', ['binary', 'categorical', 'mask_domain', 'masked_value', 'ternary', 'context_alias'])
+def test_vectorized_domains_reject_same_as_legacy(case, failure):
+    _args, contract, original = case
+    features = {k: x.copy() for k, x in original.items()}
+    item = contract['surfaces']['gc_seq_m5']
+    if failure == 'binary':
+        features['gc_seq_m5'][0, 0, item['binary_indices'][0]] = 0.5
+    elif failure == 'categorical':
+        features['ctx_cat'][0, 0] = 999
+    elif failure == 'mask_domain':
+        features['gc_seq_m5'][0, 0, item['mask_pairs'][0][1]] = 0.5
+    elif failure == 'masked_value':
+        v, m = item['mask_pairs'][0]
+        features['gc_seq_m5'][0, 0, m] = 0
+        features['gc_seq_m5'][0, 0, v] = 1
+    elif failure == 'ternary':
+        i = contract['surfaces']['seq_m5']['field_names'].index('ema_stack_aligned_v2')
+        features['seq_m5'][0, 0, i] = 0.5
+    else:
+        ctx = contract['surfaces']['ctx_cont']
+        a = next(a for a in contract['aliases'] if a['ctx_cont_index'] not in dict(ctx['mask_pairs'])
+            and ctx['replacement_convention'][a['ctx_cont_index']] == intervention.CONVENTION['continuous'])
+        features['ctx_cont'][0, a['ctx_cont_index']] += 0.5
+    with pytest.raises(RuntimeError) as old:
+        _legacy_validate_inputs(features, contract)
+    with pytest.raises(RuntimeError) as new:
+        intervention._validate_inputs(features, contract)
+    assert str(new.value) == str(old.value)

@@ -159,17 +159,21 @@ def _validate_inputs(features, contract):
             and np.isfinite(x).all(), 'INPUT_SHAPE_OR_FINITE:' + key)
         for i, value in item['source_constants'].items():
             _require(np.all(x[..., int(i)] == value), 'SOURCE_CONSTANT_DOMAIN:' + key)
-        for i in item['binary_indices']:
-            _require(np.isin(x[..., i], (0.0, 1.0)).all(), 'BINARY_DOMAIN:' + key)
+        binary = x[..., item['binary_indices']]
+        _require(((binary == 0.0) | (binary == 1.0)).all(), 'BINARY_DOMAIN:' + key)
         for name, domain in item['categorical_domains'].items():
             _require(np.isin(x[..., item['field_names'].index(name)], domain).all(), 'CATEGORICAL_DOMAIN:' + key)
-        for v, m in item['mask_pairs']:
-            _require(np.isin(x[..., m], (0.0, 1.0)).all() and np.all(x[..., v][x[..., m] == 0] == 0), 'MASKED_STORAGE:' + key)
+        if item['mask_pairs']:
+            values, masks = np.asarray(item['mask_pairs'], dtype=np.intp).T
+            observed = x[..., masks]
+            _require(((observed == 0.0) | (observed == 1.0)).all()
+                and ((observed != 0.0) | (x[..., values] == 0.0)).all(), 'MASKED_STORAGE:' + key)
         if key.startswith('seq_') and 'ema_stack_aligned_v2' in item['field_names']:
             _require(np.isin(x[..., item['field_names'].index('ema_stack_aligned_v2')], (-1.0, 0.0, 1.0)).all(), 'TERNARY_DOMAIN:' + key)
     _require(np.array_equal(features['seq_x'][:, -1], features['snap_x']), 'SNAPSHOT_ALIAS')
-    for a in contract['aliases']:
-        _require(np.array_equal(features['snap_x'][:, int(a['signal_index'])], features['ctx_cont'][:, int(a['ctx_cont_index'])]), 'CONTEXT_ALIAS')
+    signal_aliases = [int(a['signal_index']) for a in contract['aliases']]
+    context_aliases = [int(a['ctx_cont_index']) for a in contract['aliases']]
+    _require(np.array_equal(features['snap_x'][:, signal_aliases], features['ctx_cont'][:, context_aliases]), 'CONTEXT_ALIAS')
 
 def apply_family_intervention_numpy(features, contract, *, arm, expected_sha256):
     """Independent raw arrays, only declared value columns changed; no labels."""

@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-30T09:38:15.913998+00:00",
-  "status": "DIRECTION_FAMILY_ACTUAL_INPUT_PILOT_BOUND",
+  "status": "DIRECTION_FAMILY_FULL_INPUT_AUDIT_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "GC frozen-model sensitivity and saved-output verification are consumed. All training, inference, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed until a separately bound scope is prepared.",
-  "next_action": "Run single capped256 input pilot under exact bound source; verify raw domains, all10 intervention arms and measured cost before full TRAIN/Q1 support audit. No model/training execution.",
+  "next_action": "Run single capped complete47602TRAIN+17288Q1 support audit. Source frozen during run; inspect15–30minutes. After terminal qualify own native baseline and exact serial refits. Training remains closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Run single capped256 input pilot under exact bound source; verify raw domains, all10 intervention arms and measured cost before full TRAIN/Q1 support audit. No model/training execution.",
+    "current_activity": "Run single capped complete47602TRAIN+17288Q1 support audit. Source frozen during run; inspect15–30minutes. After terminal qualify own native baseline and exact serial refits. Training remains closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run single capped256 input pilot under exact bound source; verify raw domains, all10 intervention arms and measured cost before full TRAIN/Q1 support audit. No model/training execution.",
+    "next_action": "Run single capped complete47602TRAIN+17288Q1 support audit. Source frozen during run; inspect15–30minutes. After terminal qualify own native baseline and exact serial refits. Training remains closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -48260,7 +48260,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "ACTUAL_INPUT_PILOT_BOUND",
+    "status": "FULL_INPUT_SUPPORT_AUDIT_BOUND",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48304,10 +48304,10 @@
     },
     "prepared_baseline_private_recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_BASELINE_PRIVATE_RECIPE_20261030.json",
-      "sha256": "fe6de5955b3857ecb78f211e95c0b924e23b4f4f4f9bee7482b74838f7692309"
+      "sha256": "84002c33e86b077999ae4d782cbeb21876ac8f231e4568dc80c0543633c22101"
     },
     "baseline_recipe_metadata_preflight": {
-      "status": "PASS_63_PHYSICAL_SOURCE_OWNERS",
+      "status": "PASS_63_CURRENT_SOURCE_OWNERS_AFTER_VALIDATOR_REFRESH",
       "source_worktree_not_yet_committed": true,
       "native_execution_authorized": false,
       "initial_metadata_seal_mismatch_corrected_before_launch": true
@@ -48322,13 +48322,69 @@
         "sha256": "043fbe6cdc34e812c8b1c24f3994688805695b4db1023ccac321c53b956ebd6c"
       },
       "tests": 58
+    },
+    "pilot_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_PILOT_001/RESULT.json",
+      "sha256": "621a770941ac83728937c88929a77415474b02f6bfe00dbad13c6f99267eb351"
+    },
+    "validator_efficiency": {
+      "reason": "Measured actual pilot20interventions30.863s before thousands of native batches",
+      "change": "Vectorized binary/mask/alias validation only; intervention assignment and all guards retained",
+      "source_tests": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SOURCE_QUALIFICATION_003/RESULT.json",
+        "sha256": "23789d18229b5be13b458c41d7d17554324d5d74ce73a04278c2beb4dae76fd2"
+      },
+      "tests_passed": 37,
+      "before": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INTERVENTION_SYNTHETIC_COST_BEFORE.json",
+        "sha256": "7d616aea27735a90633b5dbb22b3ea9248531a7e6a5f4ca4533dc9b4071a50c9"
+      },
+      "after": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INTERVENTION_SYNTHETIC_COST_AFTER.json",
+        "sha256": "48a4fa35f6da867d973a2fb8b80babb05860c2e9b8f280a977595d040786500c"
+      },
+      "synthetic_420_surface_outputs_byte_identical": true,
+      "genuine_after_timing_pending": true
     }
   },
   "direction_family_input_pilot_20261030_001": {
-    "status": "BOUND_SINGLE_INPUT_PILOT",
+    "status": "PASS_CONSUMED_ACTUAL_INPUT_PILOT",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_PILOT_001/PLAN.json",
       "sha256": "90734a3185efcbecec49af35d0935fb79871fd67b534f3bd94edd00c94c50063"
+    },
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "model_forwards_authorized": false,
+    "normalization_fit_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "scope": "256 predeclared streamed parents and32 actual intervention witnesses; provider preparation reuses qualified full development backing/axis/snapshot checks, no target arrays decoded.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_PILOT_001/RESULT.json",
+      "sha256": "621a770941ac83728937c88929a77415474b02f6bfe00dbad13c6f99267eb351"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_PILOT_001/TERMINAL.json",
+      "sha256": "6281d23ce43e54b384d09a98764dba85d9645a5c9e6358cc8a711d549eb7aa59"
+    },
+    "outer": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_PILOT_001/OUTER.json",
+      "sha256": "0bf0b2731af233dbe67c2dbeb7f2265ab0d00a5fa4749c5ddcd49f550000cf38"
+    }
+  },
+  "direction_family_input_full_20261030_001": {
+    "status": "BOUND_SINGLE_FULL_INPUT_AUDIT",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/PLAN.json",
+      "sha256": "d2e649fc1ddc7bf1835df5528f575912421c82877c09d724911bc18535403e69"
     },
     "execution_authorized": true,
     "data_reads_authorized": true,
@@ -48343,6 +48399,6 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "scope": "256 predeclared streamed parents and32 actual intervention witnesses; provider preparation reuses qualified full development backing/axis/snapshot checks, no target arrays decoded."
+    "scope": "All47602TRAIN+17288laterQ1 parents through actual14surface gather; source/provider/axis/mask/alias bookends. Zero targets decoded/model/fit. Same32intervention witnesses, detailed cgrouppeak/events and bounded progress."
   }
 }
