@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T08:31:25.122525+00:00",
-  "status": "DIRECTION_M5_SIGN_TWO_PASS_COMPLETE_SAVED_COMPARISON_ADMITTED",
+  "observed_utc": "2026-10-30T08:34:42.684981+00:00",
+  "status": "DIRECTION_M5_SIGN_TWO_PASS_COMPARISON_COMPLETE_GC_SENSITIVITY_PREPARATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the exact separately bound saved-prediction and continuation-state comparison is admitted once; all training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Run the bounded comparison of saved one- and two-pass sign predictions with exact continuation-state parity, then assess GC freshness sensitivity.",
+  "rule": "The sign comparison is consumed. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed; GC intervention requires a new exact binding.",
+  "next_action": "Prepare the smallest source-bound GC freshness sensitivity comparison on fixed existing Q1 rows, using a verified checkpoint and exact frozen prediction replay.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Compare saved one- and two-pass sign predictions and verify checkpoint migration; then assess prebound GC freshness sensitivity.",
+    "current_activity": "Prepare the smallest source-bound GC freshness sensitivity comparison on fixed existing Q1 rows, using a verified checkpoint and exact frozen prediction replay.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -281,7 +281,7 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_SIGN_PASS_COMPARISON_AND_GC_SENSITIVITY_PENDING",
+    "gc_goal_status": "ACTIVE_SIGN_PASS_COMPARISON_COMPLETE_GC_SENSITIVITY_PENDING",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Completed second sign pass; fixed Q1 paired comparison pending.",
@@ -35951,7 +35951,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Closed after the completed sign second pass; saved-prediction comparison only.",
+  "training_enabled_scope": "Closed; sign one-/two-pass comparison consumed. GC sensitivity preparation only.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48122,14 +48122,14 @@
     }
   },
   "direction_m5_factor_twopass_sign_saved_compare_20261030_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_NO_EDGE_PROVEN",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/SIGN_PASS_COMPARISON_PLAN_001.json",
       "sha256": "5dd3dce9e0f4b7a6dcdb7a96d77daffd77b7813f5ec49aa3d206dc033027b2c2"
     },
-    "execution_authorized": true,
-    "genuine_prediction_reads_authorized": true,
-    "continuation_checkpoint_reads_authorized": true,
+    "execution_authorized": false,
+    "genuine_prediction_reads_authorized": false,
+    "continuation_checkpoint_reads_authorized": false,
     "checkpoint_reads_max": 2,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
@@ -48137,13 +48137,25 @@
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "memory_cap_gib": 4,
     "max_wall_seconds": 600,
     "bootstrap_replicates": 10000,
     "primary_minutes": 5,
-    "scope": "Compare existing one- versus two-pass sign predictions on exact Q1 rows and independently check original versus migrated full numerical state. No new model inference or training."
+    "scope": "Compare existing one- versus two-pass sign predictions on exact Q1 rows and independently check original versus migrated full numerical state. No new model inference or training.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/SIGN_PASS_COMPARISON_001/RESULT.json",
+      "sha256": "ddb822d338162aca9db1af9394905e98314da24ac943d1288afe8cdddb4d40ec"
+    },
+    "review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/SIGN_PASS_COMPARISON_REVIEW_001.json",
+      "sha256": "5ccc744409e25c8f945bab91dff242053bb7224f5fbb3c98d03d1fb81067427d"
+    },
+    "report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_SIGN_TWOPASS_RESULT_20261030.md",
+      "sha256": "e8bd941d5639badb65aa447972c2ed0cc7ab9d4a31522211a3c772cd902e8176"
+    }
   }
 }

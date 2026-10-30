@@ -11,7 +11,7 @@ Programrot:
 
 ## Aktuell status
 
-30.10 — EKSTRA SIGN-PASS FULLFØRT: Boot 586; ett ekstra pass fra sign-ettpass-terminalen, 47 602 TRAIN-foreldre, 2 976 nye oppdateringer og 17 288 Q1-prediksjoner. Signert vakt og terminalkjede PASS; engangstask deaktivert, trening stengt, 250 W beholdt og faktisk tomgang 23,44 W. En separat bundet sammenligning og uavhengig kontroll av videreført modell-/optimizer-/RNG-tilstand er tillatt én gang; edge er ikke bevist. 63 av 64 kildeeiere er byteidentiske og siste endring gjelder metadata-validering. TEST, Exit og handel er stengt.
+30.10 — EKSTRA SIGN-PASS OG SAMMENLIGNING FULLFØRT: Femminutters treff 48,62 % → 48,94 % mot 51,58 % alltid opp; AUC 0,496961 → 0,506181, parrede dag-/ukebånd inkluderer null. Seks minutter 50,79 % → 49,50 % mot 50,82 % alltid opp. To-pass-logloss var dårligere på alle 60, og ingen simultane AUC-bånd bekreftet over 0,5. Original og migrert modell-/optimizer-/RNG-tilstand var eksakt identisk. Signert vakt og terminalkjede PASS, engangstask deaktivert, trening og sammenligningsport stengt, 250 W beholdt. Se docs/DIRECTION_M5_FACTOR_SIGN_TWOPASS_RESULT_20261030.md. Neste er separat bundet GC-følsomhet; TEST, Exit og handel er stengt.
 
 30.10 — BPS-SAMMENLIGNING FULLFØRT: Femminutters AUC 0,503214 mot sign 0,496961, med parete intervaller som inkluderer null; bps sa opp i 99,79 %. Ingen av 60 samtidige bånd bekrefter AUC over 0,5. Se docs/DIRECTION_M5_FACTOR_BPS_ONEPASS_RESULT_20261030.md.
 
