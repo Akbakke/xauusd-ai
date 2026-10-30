@@ -104,7 +104,7 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
             'native_constructor_source':'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
             'direction_component_source':'gx1/contracts/entry_native_direction_research_v1.py'}
         _require(launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE,
-            authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE) and independent_design is None
+            authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE, authority.FAMILY_PRIVATE_ADAPTER_SCOPE) and independent_design is None
             and weight_design is None and order_transition is None
             and isinstance(dense_source_transition,dict) and set(dense_source_transition)==set(names), 'DENSE_TRANSITION_SCOPE')
         for key, source in names.items():
@@ -144,10 +144,10 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
 
 def _launch_metadata(launch, common):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    candidate=launch.get('run_scope')==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    candidate=launch.get('run_scope') in (authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,authority.FAMILY_PRIVATE_ADAPTER_SCOPE)
     if launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE,
-            authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE):
-        decimal=launch['run_scope'] in (authority.DENSE_DECIMAL_PRIVATE_SCOPE, authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE)
+            authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE, authority.FAMILY_PRIVATE_ADAPTER_SCOPE):
+        decimal=launch['run_scope'] in (authority.DENSE_DECIMAL_PRIVATE_SCOPE, authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE, authority.FAMILY_PRIVATE_ADAPTER_SCOPE)
         metadata = {}
         proof=common._read(launch['dense_source_transition_proof'],metadata)
         target_report=common._read(launch['dense_target_result'],metadata)
@@ -284,7 +284,7 @@ def _fixed_order(parents, prefix_rows, seed, np):
 
 def _presentation_order(parents, prefix_rows, seed, np, *, launch):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    scope=launch.get('run_scope'); candidate=scope==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    scope=launch.get('run_scope'); candidate=scope in (authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,authority.FAMILY_PRIVATE_ADAPTER_SCOPE)
     if candidate:
         _require(launch.get('parent_order_algorithm') in (authority.ORDER_ALGORITHM,authority.PARENT_ORDER_ALGORITHM),
             'CANDIDATE_ORDER')
@@ -413,10 +413,10 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
     if dense_minutes:
         from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
         _require(launch.get('run_scope') in (authority.DENSE_SCOPE,authority.DENSE_DECIMAL_PRIVATE_SCOPE,
-            authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE)
+            authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE, authority.FAMILY_PRIVATE_ADAPTER_SCOPE)
             and context.get('dense_target')==launch.get('dense_target'), 'DENSE_EXACT_SCOPE')
         physical_axes={**prepared['arrays'],'dynamic_entry_m1_row':legacy['dynamic_entry_m1_row']}
-        if launch['run_scope'] in (authority.DENSE_DECIMAL_PRIVATE_SCOPE,authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE):
+        if launch['run_scope'] in (authority.DENSE_DECIMAL_PRIVATE_SCOPE,authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,authority.FAMILY_PRIVATE_ADAPTER_SCOPE):
             from gx1.contracts.entry_native_direction_decimal_input_v1 import load_bound_decimal_direction_targets
             refs=launch['decimal_target_refs']
             _require(context.get('decimal_target_refs')==refs and refs['legacy']==manifest['targets']
@@ -468,7 +468,7 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
             'dense_profile_source':owners['gx1/features/entry_specialist_feature_groups_v1.py'],
             'dense_native_constructor_source':owners['gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py']})
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    is_candidate=launch.get('run_scope')==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE
+    is_candidate=launch.get('run_scope') in (authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,authority.FAMILY_PRIVATE_ADAPTER_SCOPE)
     supplied='candidate_inputs' in context; bound='candidate_m1_refs' in context
     _require((is_candidate and dense_minutes and supplied!=bound) or (not is_candidate and not supplied and not bound),
         'CANDIDATE_PRIVATE_SCOPE')
@@ -486,6 +486,21 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
     if five_priority:
         sources['five_priority_source']=launch['source_owners']['gx1/contracts/entry_native_direction_five_priority_v1.py']
         candidate_kwargs['five_minute_priority']=True
+    family_adapter=launch.get('run_scope')==authority.FAMILY_PRIVATE_ADAPTER_SCOPE
+    _require(family_adapter or not any(k in launch for k in ('family_arm','family_intervention_sha256')), 'UNBOUND_FAMILY_ADAPTER')
+    if family_adapter:
+        from gx1.contracts.entry_direction_family_intervention_v1 import compile_family_intervention, require_family_intervention
+        from gx1.features.entry_direction_momentum_profile_v1 import compile_price_momentum_profile
+        _require(candidate_kwargs=={'price_momentum':True} and dense_minutes and not dense_bps,
+            'FAMILY_PRICE_SIGN_ONLY')
+        fitted=context['fitted']; profile=compile_price_momentum_profile(fitted['gc_mtf_history'])
+        intervention=compile_family_intervention(profile_reference={k:profile[k] for k in ('name','contract_sha256')},
+            gc_mtf_history=fitted['gc_mtf_history'],base_normalization=fitted['base_normalization'],
+            gc_normalization=fitted['gc_mtf_history']['normalization'])
+        require_family_intervention(intervention,expected_sha256=launch['family_intervention_sha256'])
+        prepared['family_intervention_contract']=intervention
+        candidate_kwargs['family_intervention']={'arm':launch['family_arm'],'contract_sha256':launch['family_intervention_sha256']}
+        sources['family_intervention_source']=launch['source_owners'][authority.FAMILY_INTERVENTION_SOURCE]
     view=view_owner.bind_native_direction_feature_view(prefix_normalization=context['fitted'],
         prefix_normalization_ref=manifest['prefix_normalization']['output'],constructor_metadata=context['constructor'],
         constructor_metadata_ref=manifest['constructor_metadata'],source_bindings=sources,max_batch_rows=BATCH_SIZE,
@@ -509,7 +524,29 @@ def _batch(prepared, targets, view, selected, np):
     _require(np.array_equal(prepared['arrays']['parent_rows'][at],selected),'TARGET_EXACT_PARENT_JOIN')
     target={key:np.ascontiguousarray(value[at]) for key,value in targets.items()}
     target['decision_ns']=np.ascontiguousarray(prepared['arrays']['decision_ns'][at])
+    if 'family_intervention' in view:
+        from gx1.contracts.entry_direction_family_intervention_v1 import apply_family_intervention_numpy
+        reference=view['family_intervention']
+        _require('family_intervention_contract' in prepared,'FAMILY_PREPARED_CONTRACT')
+        original=raw['features']
+        intervened=apply_family_intervention_numpy(original,prepared['family_intervention_contract'],
+            arm=reference['arm'],expected_sha256=reference['contract_sha256'])
+        raw={**raw,'features':intervened,'report_features':original}
+    else:
+        _require('family_intervention_contract' not in prepared,'FAMILY_VIEW_MISSING')
     return raw,target
+
+
+def _final_train_selection(prepared, diagnostic_ids, launch, updates_in_invocation):
+    """Whole-prefix family scoring starts only in a fresh scoring invocation."""
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    if launch['run_scope'] != authority.FAMILY_SIGN_SCOPE:
+        return diagnostic_ids
+    if updates_in_invocation > 0:
+        return None
+    selected=prepared['arrays']['parent_rows'][:launch['fold']['prefix_rows']]
+    _require(len(selected)==launch['final_train_measurement_rows']==47602, 'FAMILY_FULL_TRAIN_SELECTION')
+    return selected
 
 
 def _device_batch(raw, target, torch, device):
@@ -558,7 +595,7 @@ def _evaluate(model, prepared, targets, view, context_map, selected, *, cutoff, 
         for left in range(0,len(selected),BATCH_SIZE):
             if deadline is not None and time.monotonic()>=deadline:break
             ids=selected[left:left+BATCH_SIZE];raw,target=_batch(prepared,targets,view,ids,np)
-            report_features=raw['features']
+            report_features=raw.get('report_features',raw['features'])
             if 'm1_ofi_normalization' in view:
                 m1_keys=('m1_ofi_contracts','m1_ofi_observed')
                 _require(all(key in report_features for key in m1_keys),'M1_REPORT_INPUT')
@@ -790,6 +827,8 @@ def _latest_cursor(path, value, *, common, counters, limit):
 
 def _fit_input_launch(launch, authority):
     """Reuse the qualified private target adapter for the separate full-fit scope."""
+    if launch['run_scope'] == authority.FAMILY_SIGN_SCOPE:
+        return {**launch,'run_scope':authority.FAMILY_PRIVATE_ADAPTER_SCOPE}
     if launch['run_scope'] == authority.DENSE_DECIMAL_FIT_SCOPE:
         return {**launch, 'run_scope': authority.DENSE_DECIMAL_PRIVATE_SCOPE}
     if launch['run_scope'] in (authority.M1_PRICE_FIT_SCOPE, authority.M5_PRICE_FIT_SCOPE, authority.M5_FIVE_PRIORITY_FIT_SCOPE,
@@ -815,12 +854,13 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
     factor_bps=launch['run_scope']==authority.M5_FACTOR_BPS_SCOPE
+    family_fit=launch['run_scope']==authority.FAMILY_SIGN_SCOPE
     factor_continuation=launch['run_scope']==authority.M5_FACTOR_CONTINUATION_SCOPE
     factor=launch['run_scope'] in (authority.M5_FACTOR_SIGN_SCOPE,authority.M5_FACTOR_BPS_SCOPE,authority.M5_FACTOR_CONTINUATION_SCOPE)
     continuation=launch['run_scope']==authority.CONTINUATION_SCOPE or factor_continuation;order_variant=launch['run_scope']==authority.ORDER_SCOPE;train_passes=launch['train_passes']
     m1_fit=launch['run_scope']==authority.M1_PRICE_FIT_SCOPE
     priority_fit=launch['run_scope']==authority.M5_FIVE_PRIORITY_FIT_SCOPE
-    m5_fit=launch['run_scope']==authority.M5_PRICE_FIT_SCOPE or priority_fit or factor
+    m5_fit=launch['run_scope']==authority.M5_PRICE_FIT_SCOPE or priority_fit or factor or family_fit
     candidate_fit=m1_fit or m5_fit
     decimal_fit=launch['run_scope']==authority.DENSE_DECIMAL_FIT_SCOPE or candidate_fit
     input_launch=_fit_input_launch(launch,authority)
@@ -835,6 +875,11 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             common._read(ref,metadata)
         if m1_fit:
             common._read(launch['m1_pair_initial_parity'],metadata)
+        if family_fit:
+            family_initial=common._read(launch['family_initial_report'],metadata)
+            # Only metadata already admitted by require_family_qualification
+            # can grant the own-arm immutable prediction read.
+            context['family_initial_read_authority']={'launch':launch,'review':review,'initial_report':family_initial}
         if priority_fit:
             priority_baseline_initial=common._read(launch['priority_baseline_initial_report'],metadata)
         if factor:
@@ -864,7 +909,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             (origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else ()),
         original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None,
         dense_target=context.get('dense_target'),
-        decimal_original=context.get('decimal_original') if decimal_fit or input_launch['run_scope']==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE else None,
+        decimal_original=context.get('decimal_original') if decimal_fit or input_launch['run_scope'] in (authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,authority.FAMILY_PRIVATE_ADAPTER_SCOPE) else None,
         decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal_fit and not candidate_fit else None,
         candidate_m1_refs=context.get('candidate_m1_refs'),
         candidate_initial_predictions=context.get('decimal_initial_predictions') if candidate_fit else None)
@@ -878,7 +923,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     phase='TRAINING';outcome='FAILED';error=None;source_unchanged=False;checkpoint_refs=[];first_diagnostic=last_diagnostic=None
     prepared=model=optimizer=None;order_sha='0'*64;prior_cursor=None;fresh_identity=None;prior=None;initial_inactive=None
     ceiling=(((train_passes-1 if continuation else train_passes)*((fold['prefix_rows']+15)//16))
-        +33+(16 if factor_continuation else 0)+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
+        +17+((launch['final_train_measurement_rows']+15)//16 if family_fit else 16)
+        +(16 if factor_continuation else 0)+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
     durable=None;observed_progress=None;bps_scale_ref=None
     common._json(work/'CLAIM.json',{'recipe':window['recipe'],'fold':fold,'invocation_number':number,
         'source_head':binding['source_head'],'plan_sha256':plan['plan_sha256'],'limits':limits},counters,launch['max_published_json_bytes'])
@@ -944,7 +990,11 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
             if order_variant:
                 _require_original_initial_match(measured,launch['order_origin']['initial_predictions'],common=common,np=np)
-            if factor:
+            if family_fit:
+                from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_family_initial_parity
+                require_family_initial_parity(measured,family_initial,context['decimal_initial_predictions'],
+                    family_arm=launch['family_arm'],intervention_sha256=launch['family_intervention_sha256'],np=np)
+            elif factor:
                 from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_dense_bps_initial_parity, require_five_priority_initial_parity
                 if factor_bps:
                     require_dense_bps_initial_parity(measured,factor_baseline_initial,context['decimal_initial_predictions'],model,np=np,tree_sha=tree_sha)
@@ -997,11 +1047,17 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 common._json(work/f'CHECKPOINT_u{updates:06d}_p{parent_cursor:06d}.json',{'recipe':window['recipe'],'fold':fold,
                     'feature_view_identity':view_identity,'parent_order_sha256':order_sha,**durable},counters,launch['max_published_json_bytes'])
         if parent_cursor==train_passes*len(ordered):phase='SCORING'
-        if phase=='SCORING' and final_measurement is None and time.monotonic()<deadline:
-            measured,_=_evaluate(model,prepared,targets,view,context_map,diagnostic_ids,cutoff=fold['train_cutoff_ns'],kind='FINAL_TRAIN',
-                counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha)
-            final_measurement=_publish_measurement('FINAL_TRAIN',measured,output=work,view=view_identity,prior=prior,
-                own_initial_state=initial_ref,fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
+        # Family comparisons score the complete prefix in a fresh scoring
+        # window. No partial TRAIN measurement is published or marked complete.
+        final_ids=_final_train_selection(prepared,diagnostic_ids,launch,counters['optimizer_step_returns'])
+        if phase=='SCORING' and final_measurement is None and time.monotonic()<deadline and final_ids is not None:
+            measured,completed=_evaluate(model,prepared,targets,view,context_map,final_ids,cutoff=fold['train_cutoff_ns'],kind='FINAL_TRAIN',
+                counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,
+                **({'deadline':deadline} if family_fit else {}))
+            if measured is not None:
+                _require(not family_fit or completed==launch['final_train_measurement_rows'], 'FAMILY_COMPLETE_TRAIN_MEASUREMENT')
+                final_measurement=_publish_measurement('FINAL_TRAIN',measured,output=work,view=view_identity,prior=prior,
+                    own_initial_state=initial_ref,fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
             del measured
         oof_ref=None
         if phase=='SCORING' and final_measurement is not None:

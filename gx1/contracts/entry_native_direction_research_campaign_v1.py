@@ -28,6 +28,9 @@ ORDER_PRIVATE_SCOPE = 'private_sign_b16_chronological_initial_resume_qualificati
 ORDER_SUPPORTED_SCOPE = 'private_sign_b16_chronological_supported_initial_resume_qualification'
 DENSE_PRIVATE_SCOPE = 'private_dense_b16_initial_resume_qualification'
 DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_b16_initial_resume_qualification'
+FAMILY_PRIVATE_SCOPE = 'private_m5_family_sign_b16_initial_resume_qualification'
+FAMILY_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_direction_family_intervention_v1.py',)
+FAMILY_PROTOCOL_PATH = '/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json'
 DECIMAL_INPUT_AUDIT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json',
     'sha256':'8415d195256ea7dd9bc9cd35661c1536fe57c1db330b0969d16a963a3381be19'}
 DECIMAL_INITIAL_PREDICTIONS = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.npz',
@@ -175,7 +178,8 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         'qualification_weights_for_main_fit'}
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
     dense_bps = value.get('run_scope') == prefix.M5_DENSE_BPS_PRIVATE_SCOPE
-    candidate = value.get('run_scope') in (prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE, prefix.M5_DENSE_BPS_PRIVATE_SCOPE)
+    family = value.get('run_scope') == FAMILY_PRIVATE_SCOPE
+    candidate = value.get('run_scope') in (prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE, prefix.M5_DENSE_BPS_PRIVATE_SCOPE, FAMILY_PRIVATE_SCOPE)
     priority = value.get('numerical_recipe', {}).get('five_minute_priority', False)
     _require(type(priority) is bool and (not priority or (candidate and value.get('candidate_mode') == 'price_only')), 'FIVE_PRIORITY_PRIVATE_SCOPE')
     bps = value.get('run_scope') == BPS_SCOPE
@@ -189,6 +193,9 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     if dense: fields |= {'dense_source_transition_proof','dense_target_result','dense_target'}
     if decimal: fields |= {'decimal_input_audit','decimal_target_refs'}
     if decimal and not candidate: fields.add('decimal_initial_predictions')
+    if family:
+        fields |= {'family_arm','family_intervention_sha256','family_protocol',
+            'family_baseline_initial_report','family_baseline_initial_predictions'}
     if candidate:
         fields |= {'candidate_mode','parent_order_algorithm'}
         if priority: fields |= {'priority_design','priority_baseline_initial_report','priority_source_review'}
@@ -199,7 +206,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     _path(recipe['runtime_root'], 'runtime root')
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE, ORDER_SUPPORTED_SCOPE, DENSE_PRIVATE_SCOPE, DECIMAL_PRIVATE_SCOPE, prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE, prefix.M5_DENSE_BPS_PRIVATE_SCOPE), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in ('private_four_update_resume_qualification', BPS_SCOPE, WEIGHT_SCOPE, ORDER_PRIVATE_SCOPE, ORDER_SUPPORTED_SCOPE, DENSE_PRIVATE_SCOPE, DECIMAL_PRIVATE_SCOPE, prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE, prefix.M5_DENSE_BPS_PRIVATE_SCOPE, FAMILY_PRIVATE_SCOPE), 'RECIPE_SCOPE')
     if dense_bps:
         _require(recipe['admission_stage']==M5_DENSE_BPS_STAGE and recipe.get('candidate_mode')=='price_only'
             and not priority, 'DENSE_BPS_PRIVATE_SCOPE')
@@ -207,7 +214,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
         _require(recipe['candidate_mode'] in ('price_only','price_and_m1',prefix.M1_PRICE_COARSENED_MODE)
             and recipe['parent_order_algorithm']==prefix.PARENT_ORDER_ALGORITHM, 'M1_PRICE_MATCHED_SCOPE')
     for key, expected in {'max_private_updates':4, 'max_model_constructions':4 if bps or weighted else 3,
-            'max_forwards':21 if chronological or dense else 6 if bps or weighted else 4,
+            'max_forwards':37 if family else 21 if chronological or dense else 6 if bps or weighted else 4,
             'max_backwards':5 if bps or weighted or dense_bps else 4,
             'max_checkpoint_bytes':1073741824, 'max_published_json_bytes':33554432}.items():
         _require(type(recipe[key]) is int and recipe[key] == expected, 'RECIPE_BUDGET:' + key)
@@ -320,6 +327,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     if decimal: required_sources += DECIMAL_EXTRA_SOURCE_PATHS
     if candidate: required_sources += M1_PRICE_EXTRA_SOURCE_PATHS
     if dense_bps: required_sources += ('gx1/contracts/entry_native_direction_bps_v1.py',)
+    if family: required_sources += FAMILY_EXTRA_SOURCE_PATHS
     if priority:
         from gx1.contracts.entry_native_direction_five_priority_private_v1 import EXTRA_SOURCE_PATHS
         required_sources += EXTRA_SOURCE_PATHS
@@ -346,6 +354,29 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
             _require(isinstance(item,Mapping) and set(item)=={'original','current'}
                 and item['original']==manifest['view_source_bindings'][key] and item['current']==owners[name]
                 and item['original']['path']==item['current']['path'], 'M1_PRICE_SOURCE_TRANSITION:'+key)
+    if family:
+        _require(recipe['candidate_mode']=='price_only' and not priority and not dense_bps
+            and type(recipe['family_arm']) is str and bool(recipe['family_arm'])
+            and recipe['admission_stage'].startswith('dynamic_m5_direction_family_private_'),
+            'FAMILY_PRIVATE_SCOPE')
+        campaign._sha(recipe['family_intervention_sha256'], 'family intervention')
+        _require(recipe['family_baseline_initial_predictions']==M5_DENSE_BPS_BASELINE_INITIAL
+            and recipe['family_baseline_initial_report']==M5_DENSE_BPS_BASELINE_REPORT,
+            'FAMILY_BASELINE_REFS')
+        for key in ('family_baseline_initial_predictions','family_baseline_initial_report','family_protocol'):
+            campaign.require_binding(recipe[key], label='family private '+key, verify_file=True)
+        protocol=campaign.read_bound_json(Path(recipe['family_protocol']['path']),recipe['family_protocol']['sha256'])
+        _require(recipe['family_protocol']['path']==FAMILY_PROTOCOL_PATH
+            and protocol.get('schema_version')=='gx1_current_family_added_value_study_v1'
+            and protocol.get('fixed_fold')==recipe['fold'] and protocol.get('targets')==recipe['dense_target']
+            and protocol.get('horizons_minutes')==list(range(1,61))
+            and protocol.get('test_data_used') is False and protocol.get('exit_evaluation') is False
+            and protocol.get('broker_access_allowed') is False, 'FAMILY_PROTOCOL')
+        expected=protocol.get('comparison',{}).get('fixed_training',{}).get('numerical_recipe')
+        _require(isinstance(expected,Mapping)
+            and {k:v for k,v in expected.items() if k not in ('max_updates','contract_sha256')}
+                =={k:v for k,v in numerical.items() if k not in ('max_updates','contract_sha256')},
+            'FAMILY_MATCHED_NUMERICS')
     if dense_bps:
         _require(recipe['dense_bps_scale']==M5_DENSE_BPS_SCALE and recipe['dense_bps_scale_result']==M5_DENSE_BPS_SCALE_RESULT
             and recipe['dense_bps_scale_terminal']==M5_DENSE_BPS_SCALE_TERMINAL
@@ -387,10 +418,101 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     return recipe
 
 
+def require_family_qualification(recipe, owners, *, source_repo, source_commit):
+    """Bind a real same-arm private result; no historical qualification relabel."""
+    def read(ref, label):
+        checked=campaign.require_binding(ref,label=label,verify_file=True)
+        return campaign.read_bound_json(Path(checked['path']),checked['sha256'])
+    review=read(recipe['native_dense_qualification'],'family private review')
+    _require(review.get('schema_version')=='gx1_m5_family_private_root_review_v1'
+        and review.get('status')=='PASS_CONSUMED_FAMILY_PRIVATE_NATIVE_MECHANICS'
+        and review.get('family_arm')==recipe.get('family_arm')
+        and review.get('family_intervention_sha256')==recipe.get('family_intervention_sha256')
+        and review.get('initial_predictions')==recipe.get('decimal_initial_predictions')
+        and review.get('initial_report')==recipe.get('family_initial_report')
+        and review.get('initial_parent_count')==256
+        and review.get('private_optimizer_updates')==4
+        and review.get('unperturbed_initial_prediction_shared_state_parity') is True
+        and review.get('bit_exact_resume_reported_and_bound') is True
+        and review.get('actual_input_intervention_checked') is True
+        and review.get('qualification_weights_for_main_fit') is False
+        and review.get('test_data_used') is False,'FAMILY_PRIVATE_REVIEW')
+    plan=read(review['plan'],'family private plan')
+    prior_ref=plan['recipe'];prior=read(prior_ref,'family private recipe')
+    result=read(review['result'],'family private result')
+    receipt=read(review['receipt'],'family private receipt')
+    power=read(review['power_after'],'family private retained power')
+    own=read(recipe['family_initial_report'],'family private own initial')
+    campaign.require_binding(recipe['decimal_initial_predictions'],label='family private initial arrays',verify_file=True)
+    _require(plan.get('source_commit')==review.get('source_commit')
+        and receipt.get('plan_sha256')==plan.get('plan_sha256')
+        and receipt.get('outcome')=='COMPLETE' and receipt.get('guard_decision')=='PASS'
+        and receipt.get('trainer_guard_exit_code')==receipt.get('progress_observer_exit_code')==0
+        and receipt.get('test_data_used') is False,'FAMILY_PRIVATE_TERMINAL')
+    gpu=power.get('gpu')
+    _require(isinstance(gpu,list) and len(gpu)==1 and isinstance(gpu[0],str),
+        'FAMILY_PRIVATE_POWER')
+    gpu_fields=[value.strip() for value in gpu[0].split(',')]
+    try:
+        actual_power=float(gpu_fields[1])
+    except (IndexError,TypeError,ValueError):
+        actual_power=None
+    keepers=power.get('keeper')
+    _require(power.get('task_state')=='Disabled'
+        and power.get('configured_power_limit_w')==actual_power==250
+        and len(gpu_fields)==6 and isinstance(plan.get('gpu_uuid'),str)
+        and gpu_fields[0]==plan['gpu_uuid']
+        and isinstance(keepers,list) and len(keepers)==2
+        and all(isinstance(item,Mapping) and type(item.get('State')) is int
+            and item['State']==4 for item in keepers)
+        and {item.get('TaskName') for item in keepers}=={'GX1GpuPowerLimit','GX1HostTelemetryBridge'}
+        and power.get('test_data_used') is False,
+        'FAMILY_PRIVATE_POWER')
+    _require(result.get('schema_version')=='gx1_native_m5_family_private_qualification_result_v1'
+        and result.get('decision')=='PASS_M5_FAMILY_PRIVATE_MECHANICS'
+        and result.get('recipe')==prior_ref
+        and result.get('family_arm')==recipe['family_arm']
+        and result.get('family_intervention_sha256')==recipe['family_intervention_sha256']
+        and result.get('initial_predictions')==recipe['decimal_initial_predictions']
+        and result.get('family_initial_report')==recipe['family_initial_report']
+        and result.get('unperturbed_initial_prediction_shared_state_parity') is True
+        and result.get('actual_input_intervention_checked') is True
+        and result.get('decimal_prior_against_sign_audit') is True
+        and result.get('bit_exact_resume') is True and result.get('physical_optimizer_updates')==4
+        and result.get('source_unchanged') is True and result.get('test_data_used') is False
+        and result.get('private_weights_for_main_fit') is False,'FAMILY_PRIVATE_RESULT')
+    _require(own.get('schema_version')=='gx1_native_m5_family_initial_measurement_v1'
+        and own.get('role')=='INITIAL_TRAIN' and own.get('fold')==recipe['fold']
+        and own.get('family_arm')==recipe['family_arm']
+        and own.get('family_intervention_sha256')==recipe['family_intervention_sha256']
+        and own.get('predictions')==recipe['decimal_initial_predictions']
+        and own.get('test_data_used') is False,'FAMILY_PRIVATE_INITIAL')
+    keys=('input_manifest','fold','dense_target','dense_target_result','dense_source_transition_proof',
+        'decimal_input_audit','decimal_target_refs','candidate_mode','parent_order_algorithm',
+        'family_arm','family_intervention_sha256')
+    _require(prior.get('run_scope')==FAMILY_PRIVATE_SCOPE
+        and prior.get('candidate_mode')=='price_only'
+        and all(prior.get(k)==recipe.get(k) for k in keys)
+        and prior.get('qualification_weights_for_main_fit') is False
+        and {k:v for k,v in prior.get('numerical_recipe',{}).items() if k not in ('max_updates','contract_sha256')}
+            =={k:v for k,v in recipe['numerical_recipe'].items() if k not in ('max_updates','contract_sha256')},
+        'FAMILY_PRIVATE_RECIPE')
+    _require(set(prior['source_owners'])<=set(owners)
+        and all(prior['source_owners'][k]==owners[k] for k in prior['source_owners']),
+        'FAMILY_PRIVATE_UNCHANGED_SOURCES')
+    return review
+
+
 def guarded_research_power_limit(recipe):
     """Return the user-approved cap after the caller validates the bound recipe."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
     _require(isinstance(recipe, Mapping), 'POWER_RECIPE')
+    if recipe.get('run_scope') == FAMILY_PRIVATE_SCOPE:
+        _require(recipe.get('admission_stage','').startswith('dynamic_m5_direction_family_private_')
+            and recipe.get('candidate_mode')=='price_only'
+            and recipe.get('numerical_recipe',{}).get('dense_minute_supervision') is True
+            and recipe.get('numerical_recipe',{}).get('dense_signed_bps_supervision',False) is False, 'FAMILY_POWER_SCOPE')
+        return 250
     if recipe.get('run_scope') == prefix.M5_DENSE_BPS_PRIVATE_SCOPE:
         _require(recipe.get('admission_stage') == M5_DENSE_BPS_STAGE
             and recipe.get('candidate_mode') == 'price_only'

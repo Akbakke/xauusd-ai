@@ -171,7 +171,31 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
             and decimal_initial_predictions==context.get('decimal_initial_predictions'), 'DECIMAL_INITIAL_BINDING')
         extra_read_paths += (decimal_initial_predictions['path'],)
     if candidate_initial_predictions is not None:
-        if context.get('candidate_inputs')=={'mode':'price_only'}:
+        if 'family_initial_read_authority' in context:
+            from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import FAMILY_SIGN_SCOPE
+            authority=context['family_initial_read_authority']
+            _require(isinstance(authority,dict) and set(authority)=={'launch','review','initial_report'},
+                'FAMILY_INITIAL_READ_AUTHORITY')
+            launch,review,initial=(authority[k] for k in ('launch','review','initial_report'))
+            _require(all(isinstance(x,dict) for x in (launch,review,initial))
+                and launch.get('run_scope')==FAMILY_SIGN_SCOPE
+                and review.get('schema_version')=='gx1_m5_family_private_root_review_v1'
+                and review.get('status')=='PASS_CONSUMED_FAMILY_PRIVATE_NATIVE_MECHANICS'
+                and initial.get('schema_version')=='gx1_native_m5_family_initial_measurement_v1'
+                and initial.get('role')=='INITIAL_TRAIN'
+                and type(launch.get('family_arm')) is str and bool(launch['family_arm'])
+                and launch['family_arm']==review.get('family_arm')==initial.get('family_arm')
+                and type(launch.get('family_intervention_sha256')) is str
+                and len(launch['family_intervention_sha256'])==64
+                and launch['family_intervention_sha256']==review.get('family_intervention_sha256')==initial.get('family_intervention_sha256')
+                and launch.get('family_initial_report')==review.get('initial_report')
+                and launch.get('test_data_used') is review.get('test_data_used') is initial.get('test_data_used') is False,
+                'FAMILY_INITIAL_READ_SCOPE')
+            candidate_bound=(context.get('candidate_inputs')=={'mode':'price_only'}
+                and candidate_m1_refs is None and context.get('candidate_m1_refs') is None
+                and candidate_initial_predictions==launch.get('decimal_initial_predictions')
+                    ==review.get('initial_predictions')==initial.get('predictions'))
+        elif context.get('candidate_inputs')=={'mode':'price_only'}:
             from gx1.contracts.entry_native_direction_m5_fullfit_v1 import INITIAL
             candidate_bound=(candidate_initial_predictions==INITIAL and candidate_m1_refs is None
                 and context.get('candidate_m1_refs') is None)
@@ -513,7 +537,8 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
         from gx1.scripts.run_entry_native_direction_order_qualification_v1 import run_order_qualification
         return run_order_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     if launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
-            prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE):
+            prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE,
+            authority.FAMILY_PRIVATE_SCOPE):
         from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import run_dense_qualification
         return run_dense_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     sys.dont_write_bytecode=True

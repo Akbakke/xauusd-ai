@@ -44,6 +44,10 @@ M5_DENSE_BPS_PRIVATE_SCOPE = 'private_dense_decimal_m5_signed_bps_60_qualificati
 M1_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m1_price_direction_fit'
 M5_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m5_price_direction_fit'
 M5_FIVE_PRIORITY_FIT_SCOPE = 'single_prefix_dense_decimal_m5_five_priority_direction_fit'
+FAMILY_SIGN_SCOPE = 'single_prefix_m5_family_value_sign_one_pass'
+# Input adapter only; not independently admitted for fit or private execution.
+FAMILY_PRIVATE_ADAPTER_SCOPE = 'private_dense_decimal_m5_family_value_input_adapter'
+FAMILY_INTERVENTION_SOURCE = 'gx1/contracts/entry_direction_family_intervention_v1.py'
 M5_FACTOR_SIGN_SCOPE = 'single_prefix_m5_factor_sign_one_pass'
 M5_FACTOR_BPS_SCOPE = 'single_prefix_m5_factor_bps_one_pass'
 M5_FACTOR_CONTINUATION_SCOPE = 'single_prefix_m5_factor_sign_two_pass'
@@ -247,6 +251,39 @@ def _require_decimal_source_equivalence(source_repo, qualified_commit, qualified
             'DECIMAL_TRANSITION_MODULE:'+path)
 
 
+def _require_family_recipe_fields(recipe):
+    # Metadata only. Actual canonical arm closure is checked against the bound
+    # TRAIN normalization during input preparation and private qualification.
+    from gx1.features.entry_specialist_feature_groups_v1 import MODEL_NATIVE_TRAINING_SPECIALISTS
+    _require(type(recipe.get('family_arm')) is str
+        and recipe['family_arm'] in ('baseline', 'macro_context', *MODEL_NATIVE_TRAINING_SPECIALISTS), 'FAMILY_ARM')
+    campaign._sha(recipe.get('family_intervention_sha256'), 'family intervention')
+    _require(type(recipe.get('final_train_measurement_rows')) is int
+        and recipe['final_train_measurement_rows']==recipe['fold']['prefix_rows']==47602, 'FAMILY_FULL_TRAIN_ROWS')
+    campaign.require_binding(recipe.get('family_initial_report'), label='family initial report', verify_file=True)
+
+
+def _require_family_protocol(protocol, recipe):
+    _require(isinstance(protocol, Mapping)
+        and protocol.get('schema_version')=='gx1_current_family_added_value_study_v1'
+        and protocol.get('fixed_fold')==recipe['fold']
+        and protocol.get('targets')==recipe['dense_target']
+        and protocol.get('horizons_minutes')==list(range(1,61))
+        and protocol.get('primary_horizon_minutes')==5
+        and protocol.get('test_data_used') is False and protocol.get('exit_evaluation') is False
+        and protocol.get('broker_access_allowed') is False, 'FAMILY_PROTOCOL_SCOPE')
+    comparison=protocol.get('comparison',{}); fit=comparison.get('fixed_training',{})
+    _require(fit.get('same_initial_parameters_buffers_rng_order') is True
+        and fit.get('passes')==recipe['train_passes']==1 and fit.get('parents')==recipe['fold']['prefix_rows']
+        and fit.get('max_updates_per_arm')==2976 and fit.get('numerical_recipe')==recipe['numerical_recipe']
+        and comparison.get('maximum_refit_arms')==10, 'FAMILY_PROTOCOL_FIT')
+    execution=protocol.get('execution',{})
+    _require(execution.get('one_heavy_job') is True and execution.get('capped_runner') is True
+        and execution.get('signed_gpu_guards') is True and execution.get('source_frozen') is True
+        and execution.get('gpu_limit_w')==250 and execution.get('no_hpo') is True
+        and execution.get('no_extra_passes') is True, 'FAMILY_PROTOCOL_GUARDS')
+
+
 def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, verify_files=True):
     """Check exact metadata/source bytes; numerical270 validation stays in CUDA."""
     ref = campaign.require_binding(binding, label='prefix fit recipe', verify_file=verify_files)
@@ -263,12 +300,13 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     legacy_continuation = value.get('run_scope') == CONTINUATION_SCOPE
     factor_continuation = value.get('run_scope') == M5_FACTOR_CONTINUATION_SCOPE
     factor_bps = value.get('run_scope') == M5_FACTOR_BPS_SCOPE
+    family = value.get('run_scope') == FAMILY_SIGN_SCOPE
     factor = value.get('run_scope') in (M5_FACTOR_SIGN_SCOPE, M5_FACTOR_BPS_SCOPE, M5_FACTOR_CONTINUATION_SCOPE)
     continuation = legacy_continuation or factor_continuation
     chronological = value.get('run_scope') == ORDER_SCOPE
     m1_fit = value.get('run_scope') == M1_PRICE_FIT_SCOPE
     priority_fit = value.get('run_scope') == M5_FIVE_PRIORITY_FIT_SCOPE
-    m5_fit = value.get('run_scope') == M5_PRICE_FIT_SCOPE or priority_fit or factor
+    m5_fit = value.get('run_scope') == M5_PRICE_FIT_SCOPE or priority_fit or factor or family
     decimal = value.get('run_scope') == DENSE_DECIMAL_FIT_SCOPE or m1_fit or m5_fit
     dense = value.get('run_scope') in (DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE) or m1_fit or m5_fit
     if dense:
@@ -281,6 +319,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         fields |= {'candidate_mode'}
     if priority_fit:
         fields |= {'priority_baseline_initial_report'}
+    if family:
+        fields |= {'family_arm', 'family_intervention_sha256', 'family_initial_report', 'final_train_measurement_rows'}
     if factor:
         fields |= {'factor_initial_report'}
         if factor_bps: fields |= {'dense_bps_scale'}
@@ -296,7 +336,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
     _require(type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_m5_direction_')
-        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE, M1_PRICE_FIT_SCOPE, M5_PRICE_FIT_SCOPE, M5_FIVE_PRIORITY_FIT_SCOPE, M5_FACTOR_SIGN_SCOPE, M5_FACTOR_BPS_SCOPE, M5_FACTOR_CONTINUATION_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
+        and recipe['run_scope'] in (BPS_SCOPE, CONTINUATION_SCOPE, ORDER_SCOPE, DENSE_SCOPE, DENSE_DECIMAL_FIT_SCOPE, M1_PRICE_FIT_SCOPE, M5_PRICE_FIT_SCOPE, M5_FIVE_PRIORITY_FIT_SCOPE, M5_FACTOR_SIGN_SCOPE, M5_FACTOR_BPS_SCOPE, M5_FACTOR_CONTINUATION_SCOPE, FAMILY_SIGN_SCOPE, 'single_prefix_one_pass_direction_fit'), 'RECIPE_SCOPE')
     fold = _fold(recipe['fold'])
     if bps:
         _require(fold == private.BPS_FOLD
@@ -338,6 +378,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     if m1_fit: required_sources |= set(private.M1_PRICE_EXTRA_SOURCE_PATHS) | {'gx1/contracts/entry_native_direction_m1_fullfit_v1.py'}
     if m5_fit: required_sources |= set(private.M1_PRICE_EXTRA_SOURCE_PATHS) | {'gx1/contracts/entry_native_direction_m5_fullfit_v1.py'}
     if factor: required_sources.add('gx1/contracts/entry_native_direction_bps_v1.py')
+    if family: required_sources |= {FAMILY_INTERVENTION_SOURCE, 'gx1/scripts/compare_entry_direction_matched_exposure_v1.py'}
     if priority_fit:
         from gx1.contracts import entry_native_direction_five_priority_private_v1 as priority_private
         from gx1.contracts import entry_native_direction_five_priority_fullfit_v1 as priority_authority
@@ -359,6 +400,10 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
                     and recipe['decimal_initial_predictions']==m1_authority.INITIALS[recipe['candidate_mode']]
                     and recipe['m1_pair_initial_parity']==m1_authority.PAIR_PARITY
                     and recipe['dense_source_transition_proof']==private.M1_PRICE_SOURCE_TRANSITION, 'M1_QUALIFIED_INPUT_SCOPE')
+            elif family:
+                _require(recipe['candidate_mode']=='price_only'
+                    and recipe['dense_source_transition_proof']==private.M1_PRICE_SOURCE_TRANSITION, 'FAMILY_QUALIFIED_INPUT_SCOPE')
+                _require_family_recipe_fields(recipe)
             elif factor:
                 from gx1.contracts import entry_native_direction_m5_fullfit_v1 as m5_authority
                 _require(recipe['candidate_mode']=='price_only'
@@ -403,7 +448,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
                 'DENSE_ORIGINAL_INPUT_SCOPE')
         for key in ('gc_layout_metadata_parity','native_dense_qualification','dense_source_transition_proof','dense_target_result','dense_evaluation_protocol'):
             campaign.require_binding(recipe[key],label='dense '+key,verify_file=True)
-        evaluation_name=('DIRECTION_M5_SIGN_BPS_EXPOSURE_PROTOCOL_20261030.json' if factor else
+        evaluation_name=('DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json' if family else
+            'DIRECTION_M5_SIGN_BPS_EXPOSURE_PROTOCOL_20261030.json' if factor else
             'DIRECTION_M5_FIVE_PRIORITY_DESIGN_20261029.json' if priority_fit else
             'DIRECTION_M5_PRICE_ONLY_PROTOCOL_20261029.json' if m5_fit else
             'DIRECTION_MATCHED_M1_M5_FULLFIT_PROTOCOL_20261029.json' if m1_fit else
@@ -412,6 +458,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         protocol=campaign.read_bound_json(Path(recipe['dense_evaluation_protocol']['path']),recipe['dense_evaluation_protocol']['sha256'])
         if m1_fit:
             m1_authority.require_protocol(protocol,recipe)
+        elif family:
+            _require_family_protocol(protocol,recipe)
         elif factor:
             m5_authority.require_factor_protocol(protocol,recipe)
         elif priority_fit:
@@ -437,6 +485,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         campaign.require_binding(recipe['dense_target'],label='dense target',verify_file=False)
         if m1_fit:
             m1_authority.require_qualification(recipe,owners,source_repo=source_repo,private_scope=M1_PRICE_PRIVATE_ADAPTER_SCOPE)
+        elif family:
+            private.require_family_qualification(recipe,owners,source_repo=source_repo,source_commit=source_commit)
         elif factor:
             m5_authority.require_factor_qualification(recipe,owners,source_repo=source_repo,source_commit=source_commit)
         elif priority_fit:
@@ -592,7 +642,7 @@ def guarded_prefix_power_limit(recipe):
     """Keep the user-selected 250 W limit for the matched factor routes."""
     _require(isinstance(recipe, Mapping), 'FACTOR_POWER_RECIPE')
     scope = recipe.get('run_scope')
-    if scope in (M5_FACTOR_SIGN_SCOPE, M5_FACTOR_BPS_SCOPE, M5_FACTOR_CONTINUATION_SCOPE):
+    if scope in (M5_FACTOR_SIGN_SCOPE, M5_FACTOR_BPS_SCOPE, M5_FACTOR_CONTINUATION_SCOPE, FAMILY_SIGN_SCOPE):
         _require(recipe.get('candidate_mode') == 'price_only'
             and recipe.get('numerical_recipe', {}).get('dense_signed_bps_supervision', False) is (scope == M5_FACTOR_BPS_SCOPE), 'FACTOR_POWER_SCOPE')
         return 250

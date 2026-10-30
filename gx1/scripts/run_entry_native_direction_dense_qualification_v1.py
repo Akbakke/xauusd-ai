@@ -121,6 +121,46 @@ def require_dense_bps_initial_parity(measured, baseline_report, initial_ref, mod
         and after.get('rng')==before.get('rng'), 'BPS_INITIAL_SHARED_MODEL_BUFFER_RNG_PARITY')
 
 
+def require_family_initial_parity(measured, report, initial_ref, *, family_arm, intervention_sha256, np):
+    """Require a same-arm initial function and unchanged parameters/buffers/RNG."""
+    _require(report.get('schema_version')=='gx1_native_m5_family_initial_measurement_v1'
+        and report.get('role')=='INITIAL_TRAIN' and report.get('family_arm')==family_arm
+        and report.get('family_intervention_sha256')==intervention_sha256
+        and report.get('predictions')==initial_ref and report.get('test_data_used') is False,
+        'FAMILY_INITIAL_IDENTITY')
+    require_five_priority_initial_parity(measured,report,initial_ref,np=np)
+    _require(report.get('preservation',{}).get('rng')==measured.get('state_preservation',{}).get('rng'),
+        'FAMILY_INITIAL_RNG_PARITY')
+
+
+def require_family_input_intervention(raw, contract, *, arm, np):
+    """Check actual transformed batches independently against bound references."""
+    original=raw.get('report_features'); changed=raw.get('features')
+    _require(isinstance(original,dict) and isinstance(changed,dict)
+        and set(original)==set(changed)==set(contract['surfaces'])
+        and arm in contract['arms'],'FAMILY_INPUT_KEYS')
+    removed=changed_cells=0
+    for key,spec in contract['surfaces'].items():
+        before,after=original[key],changed[key]
+        _require(before.dtype==after.dtype and before.shape==after.shape,'FAMILY_INPUT_SHAPE:'+key)
+        indices=set(contract['arms'][arm][key]); masks=set(spec['preserved_mask_indices'])
+        _require(not indices.intersection(masks),'FAMILY_MASK_SELECTED:'+key)
+        protected=sorted(set(range(before.shape[-1]))-indices)
+        _require(before[...,protected].tobytes()==after[...,protected].tobytes(),
+            'FAMILY_UNRELATED_OR_MASK_CHANGED:'+key)
+        pairs=dict(spec['mask_pairs'])
+        for i in sorted(indices):
+            expected=np.full_like(before[...,i],spec['replacement_raw'][i])
+            if i in pairs:
+                expected[before[...,pairs[i]]==0]=0
+            _require(expected.tobytes()==after[...,i].tobytes(),'FAMILY_VALUE_REFERENCE:'+key)
+            removed+=before[...,i].size
+            changed_cells+=int(np.count_nonzero(before[...,i]!=after[...,i]))
+    _require(arm=='baseline' or removed>0,'FAMILY_EMPTY_ARM')
+    return {'arm':arm,'conditional_value_cells':removed,'actually_changed_cells':changed_cells,
+        'all_masks_and_unrelated_values_bit_identical':True,'all_selected_values_equal_bound_reference':True}
+
+
 def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progress_path:Path):
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits=require_guarded_cuda_trainer_execution()
@@ -129,10 +169,11 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(
         policy_path,policy_file_sha256,progress_path)
     dense_bps=launch['run_scope']==prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE
-    candidate=launch['run_scope'] in (prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE)
+    family=launch['run_scope']==authority.FAMILY_PRIVATE_SCOPE
+    candidate=launch['run_scope'] in (prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE,authority.FAMILY_PRIVATE_SCOPE)
     decimal=launch['run_scope']==authority.DECIMAL_PRIVATE_SCOPE or candidate
     _require(launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
-        prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE) and invocation['batch_size']==16
+        prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE,authority.FAMILY_PRIVATE_SCOPE) and invocation['batch_size']==16
         and (not candidate or launch.get('candidate_mode') in ('price_only','price_and_m1',prefix_authority.M1_PRICE_COARSENED_MODE)), 'EXACT_SCOPE')
     sys.dont_write_bytecode=True
     import numpy as np
@@ -166,7 +207,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         and proof.get('test_cases_passed')==6 and isinstance(proof.get('counters'),dict)
         and set(proof['counters'])=={'cuda_initializations','fit_calls','native_model_calls','optimizer_steps','payload_loads'}
         and all(v==0 for v in proof['counters'].values()), 'GC_METADATA_PROOF')
-    actual_launch={**launch,'run_scope':(prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE if candidate
+    actual_launch={**launch,'run_scope':(prefix_authority.FAMILY_PRIVATE_ADAPTER_SCOPE if family else prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE if candidate
         else prefix_authority.DENSE_DECIMAL_PRIVATE_SCOPE if decimal else prefix_authority.DENSE_SCOPE)}
     context=prefix._launch_metadata(actual_launch,common);context['info']['metadata'].update(extra)
     priority_baseline=None
@@ -187,6 +228,14 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         context['decimal_initial_predictions']=dict(launch['dense_bps_initial_predictions'])
         context['decimal_initial_predictions_stat']=common._stat(context['decimal_initial_predictions']['path'])
         _require(common._hash_file(context['decimal_initial_predictions']['path'])==context['decimal_initial_predictions'], 'BPS_INITIAL_SHA')
+    family_baseline=None
+    if family:
+        family_baseline=common._read(launch['family_baseline_initial_report'],context['info']['metadata'])
+        common._read(launch['family_protocol'],context['info']['metadata'])
+        context['decimal_initial_predictions']=dict(launch['family_baseline_initial_predictions'])
+        context['decimal_initial_predictions_stat']=common._stat(context['decimal_initial_predictions']['path'])
+        _require(common._hash_file(context['decimal_initial_predictions']['path'])==context['decimal_initial_predictions'],
+            'FAMILY_BASELINE_INITIAL_SHA')
     if decimal and not candidate:
         ref=launch['decimal_initial_predictions']
         _require(ref==authority.DECIMAL_INITIAL_PREDICTIONS, 'DECIMAL_INITIAL_REFERENCE')
@@ -201,7 +250,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         decimal_original=context.get('decimal_original') if decimal else None,
         decimal_initial_predictions=context.get('decimal_initial_predictions') if decimal and not candidate else None,
         candidate_m1_refs=context.get('candidate_m1_refs') if candidate else None,
-        candidate_initial_predictions=context.get('decimal_initial_predictions') if priority or dense_bps else None)
+        candidate_initial_predictions=context.get('decimal_initial_predictions') if priority or dense_bps or family else None)
     counters={key:0 for key in ('model_constructions','model_construction_returns','optimizer_constructions',
         'forwards','forward_returns','backwards','backward_returns','optimizer_step_calls','optimizer_updates',
         'staged_state_load_calls','staged_state_load_returns','resume_state_load_calls','resume_state_load_returns',
@@ -209,7 +258,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     evaluation={'forward_calls':0,'forward_returns':0,'forward_kind_calls':{}}
     before=common._io();started=time.monotonic();previous=sys.getprofile();device=torch.device('cuda',0)
     full_state=initial=initial_identity=None;error=None;initial_checked=parity=unchanged=False;cursor=0
-    steps=[];batch_support=[];order_sha='0'*64;prepared=model=optimizer=None;prior=None;decimal_prior_checked=False;decimal_initial_checked=False;priority_initial_checked=False;dense_bps_initial_checked=False
+    steps=[];batch_support=[];family_batch_checks=[];family_shared_checked=False;family_initial_report=None;order_sha='0'*64;prepared=model=optimizer=None;prior=None;decimal_prior_checked=False;decimal_initial_checked=False;priority_initial_checked=False;dense_bps_initial_checked=False
     common._json(output/'CLAIM.json',{'recipe':window['recipe'],'plan_sha256':plan['plan_sha256'],
         'limits':limits,'additional_worker_ceiling_seconds':1200},counters,launch['max_published_json_bytes'])
 
@@ -232,7 +281,13 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         order=torch.from_numpy(selected);order_sha=tree_sha(order);batches=[]
         for left in (0,16):
             raw,target=prefix._batch(prepared,targets,view,selected[left:left+16],np)
-            support=common._gc_support(raw,prepared['gc']['layout'],np)
+            if family:
+                family_batch_checks.append(require_family_input_intervention(raw,prepared['family_intervention_contract'],
+                    arm=launch['family_arm'],np=np))
+                support_raw={**raw,'features':raw['report_features']}
+            else:
+                support_raw=raw
+            support=common._gc_support(support_raw,prepared['gc']['layout'],np)
             _require(all(sum(item['raw_nonzero_values_per_parent'])>0 for families in support.values()
                 for item in families.values()),'BOUND_GC_NONZERO_INPUTS')
             batch_support.append({'parent_rows':selected[left:left+16].tolist(),'gc':support})
@@ -251,9 +306,21 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
                 'optimizer_state','rng_state','module_training')})
             if initial_identity is None:
                 initial_identity=identity
+                if family:
+                    from gx1.contracts.entry_native_direction_feature_view_v1 import family_reference_view
+                    baseline_view=family_reference_view(view)
+                    unperturbed,n=prefix._evaluate(model,prepared,targets,baseline_view,context_map,diagnostic_ids,
+                        cutoff=launch['fold']['train_cutoff_ns'],kind='UNPERTURBED_INITIAL_TRAIN',counters=evaluation,
+                        ceiling=33,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=False)
+                    _require(n==256 and unperturbed is not None,'FAMILY_UNPERTURBED_COUNT')
+                    require_five_priority_initial_parity(unperturbed,family_baseline,context['decimal_initial_predictions'],np=np)
+                    _require(unperturbed['state_preservation']['rng']==family_baseline['preservation']['rng'],
+                        'FAMILY_UNPERTURBED_RNG_PARITY')
+                    family_shared_checked=True
+                    del unperturbed
                 measured,count=prefix._evaluate(model,prepared,targets,view,context_map,diagnostic_ids,
                     cutoff=launch['fold']['train_cutoff_ns'],kind='INITIAL_TRAIN',counters=evaluation,
-                    ceiling=17,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
+                    ceiling=33 if family else 17,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
                 _require(count==256 and measured['initial_parity_passed']
                     and measured['arrays']['logit_up'].shape==(256,60), 'FRESH_DENSE_INITIAL')
                 if decimal and not candidate:
@@ -266,6 +333,15 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
                     require_dense_bps_initial_parity(measured,dense_bps_baseline,context['decimal_initial_predictions'],model,np=np,tree_sha=tree_sha)
                     dense_bps_initial_checked=True
                 initial_prediction=prefix._save_predictions(output/'INITIAL_TRAIN.npz',measured['arrays'],np=np,common=common,tree_sha=tree_sha)
+                if family:
+                    family_initial_report=common._json(output/'INITIAL_TRAIN.json',{
+                        'schema_version':'gx1_native_m5_family_initial_measurement_v1','role':'INITIAL_TRAIN',
+                        'fold':launch['fold'],'family_arm':launch['family_arm'],
+                        'family_intervention_sha256':launch['family_intervention_sha256'],
+                        'feature_view_identity':model.feature_view_identity,
+                        'predictions':initial_prediction,'preservation':measured['state_preservation'],
+                        'own_prefix_prior':prior,'report':measured['report'],'test_data_used':False},
+                        counters,launch['max_published_json_bytes'])
                 del measured
                 initial=common._save_state(output/'INITIAL_STATE.pt',fresh,torch=torch,
                     maximum=launch['max_checkpoint_bytes'],counters=counters)
@@ -287,9 +363,10 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
                 probe=dense_bps and trajectory=='reference' and index==1
                 evidence=common._step(model,optimizer,*batches[index],cutoff=launch['fold']['train_cutoff_ns'],
                     counters=counters,torch=torch,**({'bps_only_probe':True} if probe else {}))
-                _require(evidence['gradient_nonzero_counts']['chart_mtf_weight_nonzero']>0, 'CHART_MTF_GRADIENT')
-                if index==1:
-                    _require(evidence['gradient_nonzero_counts']['chart_local_weight_nonzero']>0, 'CHART_LOCAL_AFTER_ONE_UPDATE')
+                if not family or launch['family_arm']!='chart_geometry_encoder':
+                    _require(evidence['gradient_nonzero_counts']['chart_mtf_weight_nonzero']>0, 'CHART_MTF_GRADIENT')
+                    if index==1:
+                        _require(evidence['gradient_nonzero_counts']['chart_local_weight_nonzero']>0, 'CHART_LOCAL_AFTER_ONE_UPDATE')
                 cursor=16*(index+1);steps.append({'trajectory':trajectory,'logical_step':index+1,**evidence})
                 if candidate and launch['candidate_mode'] in ('price_and_m1',prefix_authority.M1_PRICE_COARSENED_MODE) and index==1:
                     require_m1_value_gradient_contact(evidence)
@@ -304,7 +381,7 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
                 full_state=common._save_state(output/'RESUMED_STEP2.pt',saved,torch=torch,
                     maximum=launch['max_checkpoint_bytes'],counters=counters);parity=True
             del saved,model,optimizer;model=optimizer=None;gc.collect();torch.cuda.empty_cache()
-        if candidate:
+        if candidate and (not family or launch['family_arm']!='momentum_flow_encoder'):
             require_price_momentum_gradient_contact(steps)
         if dense_bps:
             probes=[item['bps_only_probe'] for item in steps if 'bps_only_probe' in item]
@@ -313,8 +390,8 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
             'forwards':4,'forward_returns':4,'backwards':5 if dense_bps else 4,'backward_returns':5 if dense_bps else 4,'optimizer_step_calls':4,
             'optimizer_updates':4,'staged_state_load_calls':3,'staged_state_load_returns':3,
             'resume_state_load_calls':1,'resume_state_load_returns':1,'forbidden_legacy_calls':0}
-        _require(all(counters[k]==v for k,v in expected.items()) and evaluation['forward_calls']==17
-            and evaluation['forward_returns']==17 and tree_sha(batches)==batch_sha,'EXACT_WORK')
+        _require(all(counters[k]==v for k,v in expected.items()) and evaluation['forward_calls']==(33 if family else 17)
+            and evaluation['forward_returns']==(33 if family else 17) and tree_sha(batches)==batch_sha,'EXACT_WORK')
         common._freeze(launch,binding,context);unchanged=True
     except BaseException as exc:
         error=type(exc).__name__+':'+str(exc)
@@ -324,16 +401,22 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
         signal.alarm(0);signal.signal(signal.SIGALRM,old_handler);sys.setprofile(previous)
     after=common._io()
     if after['rchar']>io_budget:error='RCHAR_BUDGET_EXCEEDED'
-    passed=initial_checked and parity and unchanged and error is None and (not decimal or (decimal_prior_checked and (candidate or decimal_initial_checked))) and (not priority or priority_initial_checked) and (not dense_bps or dense_bps_initial_checked)
+    passed=initial_checked and parity and unchanged and error is None and (not decimal or (decimal_prior_checked and (candidate or decimal_initial_checked))) and (not priority or priority_initial_checked) and (not dense_bps or dense_bps_initial_checked) and (not family or (family_shared_checked and len(family_batch_checks)==2))
     outcome='COMPLETE' if passed else 'FAILED'
-    result=common._json(output/'RESULT.json',{'schema_version':('gx1_native_m5_dense_bps_private_qualification_result_v1' if dense_bps else 'gx1_native_m1_price_private_qualification_result_v1' if candidate
+    result=common._json(output/'RESULT.json',{'schema_version':('gx1_native_m5_family_private_qualification_result_v1' if family else 'gx1_native_m5_dense_bps_private_qualification_result_v1' if dense_bps else 'gx1_native_m1_price_private_qualification_result_v1' if candidate
         else 'gx1_native_decimal_dense_private_qualification_result_v1' if decimal else 'gx1_native_dense_private_qualification_result_v1'),
-        'decision':(('PASS_M5_DENSE_BPS_PRIVATE_MECHANICS' if dense_bps else 'PASS_M1_PRICE_PRIVATE_MECHANICS' if candidate else 'PASS_DECIMAL_DENSE_NATIVE_MECHANICS' if decimal
+        'decision':(('PASS_M5_FAMILY_PRIVATE_MECHANICS' if family else 'PASS_M5_DENSE_BPS_PRIVATE_MECHANICS' if dense_bps else 'PASS_M1_PRICE_PRIVATE_MECHANICS' if candidate else 'PASS_DECIMAL_DENSE_NATIVE_MECHANICS' if decimal
             else 'PASS_DENSE_NATIVE_MECHANICS') if passed else 'FAILED'),
         **({'decimal_input_audit':launch['decimal_input_audit'],'decimal_target_refs':launch['decimal_target_refs'],
             'decimal_initial_predictions':launch['decimal_initial_predictions'],
             'decimal_initial_prediction_byte_parity':decimal_initial_checked,
             'decimal_prior_against_sign_audit':decimal_prior_checked} if decimal and not candidate else {}),
+        **({'family_arm':launch['family_arm'],'family_intervention_sha256':launch['family_intervention_sha256'],
+            'family_initial_report':family_initial_report,
+            'unperturbed_initial_prediction_shared_state_parity':family_shared_checked,
+            'actual_input_intervention_checked':len(family_batch_checks)==2,
+            'family_batch_checks':family_batch_checks,
+            'gradient_interpretation':'Removed raw value variation is replaced before normalization; nonzero parameter gradients can remain from constants/masks. Remaining aggregate groups and all60heads retain original liveness checks.'} if family else {}),
         **({'dense_bps_initial_prediction_and_shared_state_parity':dense_bps_initial_checked,'dense_bps_scale':launch['dense_bps_scale']} if dense_bps else {}),
         **({'candidate_mode':launch['candidate_mode'],'candidate_m1_refs':launch.get('candidate_m1_refs'),
             'own_candidate_initial_measured':initial_checked,'previous_model_initial_used':False,

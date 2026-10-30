@@ -156,6 +156,127 @@ def score_and_compare(one, three, *, cutoff=LATER_END, replicates=REPLICATES,
             'scope': 'One repeatedly used chronological TRAIN-development fold; no threshold, checkpoint or horizon selection.'}
 
 
+
+def compare_family_value_predictions(train, later, *, arm_order, train_cutoff, later_cutoff,
+                                     expected_train_rows, expected_later_rows, expected_axis_hashes,
+                                     replicates, seed, familywise_alpha, minimum_blocks=8):
+    """Pure current60 family comparison; caller binds source/model/data/plan.
+
+    Reuses exact paired rank/proper-score algebra. TRAIN is descriptive learning
+    evidence; uncertainty applies only to predeclared five-minute later contrasts.
+    Every arm, including failures, must be accounted for before calling.
+    """
+    require(isinstance(arm_order, (list, tuple)) and len(arm_order) >= 2
+        and arm_order[0] == 'baseline' and len(set(arm_order)) == len(arm_order)
+        and set(train) == set(later) == set(arm_order), 'FAMILY_ARM_SET')
+    require(type(replicates) is int and replicates > 0 and type(seed) is int
+        and 0 < familywise_alpha < 1 and train_cutoff < later_cutoff, 'FAMILY_PROTOCOL')
+    mandatory = {'parent_rows', 'bar_start_ns', 'decision_ns', 'terminal_time_ns',
+                 'observed', 'sign', 'logit_up'}
+    axis_keys = {'parent_rows', 'bar_start_ns', 'decision_ns'}
+    require(isinstance(expected_axis_hashes, dict) and set(expected_axis_hashes) == {'train', 'later'}
+        and all(isinstance(v, dict) and set(v) == axis_keys for v in expected_axis_hashes.values()),
+        'FAMILY_BOUND_AXIS_HASHES')
+    for partition_name, partition, rows, cutoff in (('train', train, expected_train_rows, train_cutoff),
+                                     ('later', later, expected_later_rows, later_cutoff)):
+        base = partition['baseline']
+        require(all(saved.digest(base[k], np) == expected_axis_hashes[partition_name][k] for k in axis_keys),
+            'FAMILY_DECLARED_COHORT')
+        require(type(rows) is int and rows > 0 and mandatory <= set(base), 'FAMILY_ROWS_OR_KEYS')
+        for arm in arm_order:
+            data = partition[arm]
+            require(set(data) == set(base), 'FAMILY_ARCHIVE_KEYS:' + arm)
+            for key in ('parent_rows', 'bar_start_ns', 'decision_ns'):
+                require(data[key].dtype == np.int64 and data[key].shape == (rows,), 'FAMILY_AXIS:' + key)
+            require(np.all(np.diff(data['parent_rows']) > 0)
+                and np.all(np.diff(data['decision_ns']) > 0)
+                and np.array_equal(data['decision_ns'], data['bar_start_ns'] + 300_000_000_000)
+                and np.all(data['decision_ns'] < cutoff), 'FAMILY_CLOCK')
+            for key, dtype in (('terminal_time_ns', np.int64), ('observed', np.bool_), ('sign', np.int8)):
+                require(data[key].dtype == dtype and data[key].shape == (rows, 60), 'FAMILY_TARGET:' + key)
+            require(np.array_equal(data['terminal_time_ns'], data['decision_ns'][:, None]
+                + np.arange(1, 61, dtype=np.int64)[None, :] * 60_000_000_000)
+                and np.isin(data['sign'], (-1, 0, 1)).all()
+                and np.all(data['sign'][~data['observed']] == 0), 'FAMILY_TARGET_DOMAIN')
+            z = data['logit_up']
+            require(z.dtype in (np.float32, np.float64) and z.shape == (rows, 60)
+                and np.isfinite(z).all(), 'FAMILY_LOGITS')
+            for key in set(data) - {'logit_up'}:
+                require(data[key].shape == base[key].shape and data[key].dtype == base[key].dtype
+                    and data[key].tobytes() == base[key].tobytes(), 'FAMILY_MATCHED:' + key)
+    require(train['baseline']['parent_rows'][-1] < later['baseline']['parent_rows'][0]
+        and np.all(later['baseline']['decision_ns'] >= train_cutoff), 'FAMILY_SPLIT_ORDER')
+    priors = []
+    for j in range(60):
+        b = train['baseline']
+        take = b['observed'][:, j] & (b['sign'][:, j] != 0) & (b['terminal_time_ns'][:, j] < train_cutoff)
+        up = int(np.sum(b['sign'][take, j] == 1)); n = int(take.sum())
+        require(0 < up < n, 'FAMILY_TRAIN_PRIOR_CLASSES')
+        priors.append({'eligible': n, 'up': up, 'probability_up': up / n,
+                       'logit_up': float(np.log(up / (n - up)))})
+    panels = {}
+    for label, partition, cutoff in (('train', train, train_cutoff), ('later', later, later_cutoff)):
+        output = []
+        b = partition['baseline']; rows = len(b['parent_rows'])
+        for j in range(60):
+            mature = b['terminal_time_ns'][:, j] < cutoff
+            take = b['observed'][:, j] & (b['sign'][:, j] != 0) & mature
+            y = np.ascontiguousarray((b['sign'][take, j] == 1).astype(np.int8))
+            require(len(y) > 0 and np.unique(y).size == 2, 'FAMILY_SCORE_CLASSES')
+            counts = {'parents': rows, 'eligible': int(take.sum()),
+                'mature_zero': int(np.sum(mature & b['observed'][:, j] & (b['sign'][:, j] == 0))),
+                'mature_missing': int(np.sum(mature & ~b['observed'][:, j])),
+                'immature': int(np.sum(~mature))}
+            require(sum(counts[k] for k in counts if k != 'parents') == rows, 'FAMILY_COUNT_PARTITION')
+            metrics = {}
+            for arm in list(arm_order) + ['fixed_train_prior']:
+                z = (np.full(len(y), priors[j]['logit_up'], np.float64) if arm == 'fixed_train_prior'
+                     else np.ascontiguousarray(partition[arm]['logit_up'][take, j], dtype=np.float64))
+                m = probability.direction_probability_metrics(y, z)
+                metrics[arm] = {k: v for k, v in m.items() if not k.endswith('_by_row')}
+                metrics[arm]['auc'] = probability.direction_rank_diagnostics(y, z, score_kind='logit_up')['auc']
+            output.append({'horizon_minutes': j + 1, 'counts': counts, 'arms': metrics,
+                'always_up_accuracy': float(np.mean(y)),
+                'role': 'primary' if j == 4 else 'descriptive'})
+        panels[label] = output
+    b = later['baseline']; days = b['decision_ns'] // DAY_NS
+    groups = []
+    for name, labels in (('UTC_DAY', days), ('UTC_WEEK_MONDAY', (days + 3) // 7)):
+        blocks, inverse = np.unique(labels, return_inverse=True)
+        require(len(blocks) >= minimum_blocks, 'FAMILY_MINIMUM_BLOCKS')
+        weights = saved.block_weights(len(blocks), seed=seed, np=np, replicates=replicates)
+        require(np.all(weights.sum(axis=1) == len(blocks)), 'FAMILY_RESAMPLES')
+        groups.append((name, blocks, inverse.astype(np.int64), weights))
+    alpha = familywise_alpha / ((len(arm_order) - 1) * 3 * 2)
+    take = b['observed'][:, 4] & (b['sign'][:, 4] != 0) & (b['terminal_time_ns'][:, 4] < later_cutoff)
+    y = np.ascontiguousarray((b['sign'][take, 4] == 1).astype(np.int8))
+    full_z = np.ascontiguousarray(b['logit_up'][take, 4], dtype=np.float64)
+    primary = []
+    for arm in arm_order[1:]:
+        removed_z = np.ascontiguousarray(later[arm]['logit_up'][take, 4], dtype=np.float64)
+        intervals = []
+        for name, blocks, ids, weights in groups:
+            # old=excluded,new=full: positive AUC / negative proper-score favours full.
+            draws = paired_draws(y, removed_z, full_z, ids[take], weights)
+            intervals.append({'scheme': name, 'blocks': len(blocks),
+                'resampling_population': 'all fixed later parents before eligibility',
+                'weights_sha256': saved.digest(weights, np),
+                'full_minus_excluded': {m: interval(draws[m], alpha) for m in ('auc','logloss','brier')}})
+        metrics = panels['later'][4]['arms']
+        support = {m: all((g['full_minus_excluded'][m]['low'] > 0 if m == 'auc'
+                           else g['full_minus_excluded'][m]['high'] < 0) for g in intervals)
+                   for m in ('auc','logloss','brier')}
+        primary.append({'excluded_arm': arm,
+            'full_minus_excluded': {m: metrics['baseline'][m] - metrics[arm][m] for m in ('auc','logloss','brier')},
+            'intervals': intervals, 'support_by_metric': support})
+    return {'schema_version': 'gx1_family_value_saved_comparison_v1',
+        'arm_order': list(arm_order), 'panels': panels, 'own_train_prior': priors,
+        'primary_five_minute': primary, 'familywise_alpha': familywise_alpha,
+        'per_interval_alpha': alpha, 'replicates': replicates, 'seed': seed,
+        'interpretation': 'Conditional family value at fixed recipe and unchanged availability; TRAIN descriptive, Q1 reused development.',
+        'economic_edge_qualified': False, 'test_data_used': False}
+
+
 def _metadata_ref(ref):
     require(isinstance(ref, dict) and set(ref) == {'path','sha256'}
             and Path(ref['path']).suffix in ('.json','.py','.sh'), 'METADATA_REF')

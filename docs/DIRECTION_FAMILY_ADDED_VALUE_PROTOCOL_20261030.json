@@ -1,0 +1,268 @@
+{
+  "schema_version": "gx1_current_family_added_value_study_v1",
+  "status": "PREDECLARED_STUDY_DESIGN",
+  "user_authorization": {
+    "date": "2026-10-30",
+    "chat_id": "01a18c19-1a49-7f61-a8b3-282834dd1518",
+    "request": "Ja, gjør dette. Husk å sørge for at vi får all informasjon vi trenger, og samtidig ha øynene åpne for feil/mangler/mismatches. Lag deg et mål om dette",
+    "scope": "Matched family added value, correctness audit and necessary bounded implementation; existing safety boundaries preserved."
+  },
+  "baseline_recipe": {
+    "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_SIGN_ONEPASS_FIT_RECIPE_20261030.json",
+    "sha256": "627c6e97365f528755965a72656d7b44e37c64c1d1c1b862f68474957467f29c"
+  },
+  "fixed_fold": {
+    "fold_id": 1,
+    "oof_cutoff_ns": 1743465600000000000,
+    "oof_end_row": 64890,
+    "oof_start_row": 47602,
+    "prefix_rows": 47602,
+    "train_cutoff_ns": 1735689600000000000
+  },
+  "targets": {
+    "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_TARGETS_20261028_001/OUTPUT/DENSE_DECIMAL_TARGETS.npz",
+    "sha256": "cb31d4754d3db1282b1c9c5523aee661da4fbfc4938ea4bf803ca8716829bfeb"
+  },
+  "horizons_minutes": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60
+  ],
+  "primary_horizon_minutes": 5,
+  "question": "Can the fixed native learning procedure learn conditional family value information on TRAIN and retain it on later development rows?",
+  "comparison": {
+    "model": "Current compact native M5 price-momentum model; eight specialists plus existing D1/macro context.",
+    "arms": "Full reference plus each of eight canonical family value exclusions and separate overlapping macro context subgroup; exact ten-arm order bound below.",
+    "maximum_refit_arms": 10,
+    "intervention": "All consumed value routes replaced with TRAIN-only reference constants; all observation/availability masks preserved. Conditional value contribution given coverage, not total family-information removal.",
+    "shared_masks": "Preserve every observation mask across all arms; report cross-family dependencies and prohibit collateral value removal.",
+    "categories": "First source-declared domain member is explicit constant-category reference, never claimed neutral. Source constants retained; source ternary EMA uses declared zero.",
+    "aliases": "Exact aliases changed consistently; conflicting references reject.",
+    "fixed_training": {
+      "same_initial_parameters_buffers_rng_order": true,
+      "passes": 1,
+      "parents": 47602,
+      "max_updates_per_arm": 2976,
+      "numerical_recipe": {
+        "batch_size": 16,
+        "contract_sha256": "dc4032b7317b0da1e134e536187a4c41e2865602a79f8722f6178b05030d8505",
+        "dense_minute_supervision": true,
+        "existing_recipe_origins": [
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_INITIAL_20261023_229/RECIPE_BOUND.json",
+            "sha256": "058eb7e8702b958120d1e6bc52bec9fd700852d1f3d45cff45f31f3375d91721"
+          },
+          {
+            "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_HISTORY_TECHNICAL_20261023_231/RECIPE.json",
+            "sha256": "8e1d7d8c6ae4845207974ec553e5148c346fa875475f4941752d4165b1bc21cd"
+          }
+        ],
+        "genuine_updates_authorized": false,
+        "grad_accum_steps": 1,
+        "grad_clip_norm": 1.0,
+        "installed_adamw_runtime_owners": {
+          "torch/optim/adamw.py": {
+            "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/adamw.py",
+            "sha256": "e680a255db9c53c4248a55f414b7af9aab90bb672312ac960bb459903a161c1d"
+          },
+          "torch/optim/optimizer.py": {
+            "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/optimizer.py",
+            "sha256": "354f41f784630a031195509d6b65bd5faaaa7a92402102c3b4c50423082e7ec9"
+          },
+          "torch/utils/_foreach_utils.py": {
+            "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py",
+            "sha256": "723a4e8aea24cb778a260e36a7986f44807ea0fd728ec81bae98bc2dec88c901"
+          },
+          "torch/version.py": {
+            "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/version.py",
+            "sha256": "fb37823f3a4c3c29cd008fac7d3ce5aeb8e7da6f883b17aa9ea6d73ce6eecbfd"
+          }
+        },
+        "lr_cosine_decay": "0",
+        "max_updates": 2976,
+        "native_launch_authorized": false,
+        "optimizer": {
+          "kwargs": {
+            "amsgrad": false,
+            "betas": [
+              0.9,
+              0.999
+            ],
+            "capturable": false,
+            "differentiable": false,
+            "eps": 1e-08,
+            "foreach": null,
+            "fused": null,
+            "lr": 0.0001,
+            "maximize": false,
+            "weight_decay": 0.0001
+          },
+          "name": "torch.optim.AdamW"
+        },
+        "precision_policy": "deterministic_fp32",
+        "predictions": "ONLINE",
+        "research_objective_sha256": "3af0b2ad9450d74578138c91dc2e27cfb908c901503e3d825a4ea49a8599b3ea",
+        "schema_version": "gx1_native_direction_research_recipe_v1",
+        "seed": 20260911,
+        "weight_ema": "0.0"
+      }
+    },
+    "training_measurement": "All47602 TRAIN parents; per-horizon own mature/nonzero masks;256witnesses never stand for fullTRAIN.",
+    "later_measurement": "All17288 fixedQ1 parents with identical IDs/clocks/labels/masks across arms.",
+    "initial": "Unperturbed shared-state and256prediction parity first; each intervened function gets own fresh baseline and resume proof.",
+    "reuse": "Qualified same-function evidence only; consumed plans never relaunch.",
+    "capacity": "Identical architecture and parameter count; same intervention in fit and evaluation.",
+    "arm_order": [
+      "baseline",
+      "structure_swing_encoder",
+      "smc_liquidity_encoder",
+      "trend_ema_encoder",
+      "vol_compression_encoder",
+      "momentum_flow_encoder",
+      "session_regime_encoder",
+      "chart_geometry_encoder",
+      "price_action_candle_encoder",
+      "macro_context"
+    ],
+    "intervention_contract": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/METADATA_QUALIFICATION_001/INTERVENTION_CONTRACT.json",
+      "sha256": "c59205318a72fc9c6d342983ea89da971d89db47e6f6b3fefcd9004b7c7626f3"
+    },
+    "intervention_contract_sha256": "5234d710ea64b237a8e6da6c88f23feb75398ad63777710dc24f7b8aff7f7fdd"
+  },
+  "required_evidence": [
+    "Current field manifest: local sequence/snapshot/context/category, fiveXAU histories, fiveGC histories, aliases, availability masks, parked fields, macro subgroup.",
+    "All-parent per-family/TF observed/missing/constant/history-support counts on TRAIN andQ1.",
+    "Separate input consistency, real gradient/update/resume, fullTRAIN learning, later generalization and economic unknown.",
+    "Full saved TRAIN andQ1 predictions with model/input/target identities and fixedTRAIN prior.",
+    "All60 horizons: denominators, classes, confusion, AUC, logloss, Brier and reliability; no winning horizon selection.",
+    "Paired primary5min full-versus-excluded AUC/logloss/Brier with identical UTCday/week resamples and familywise multiplicity.",
+    "Independent score/cohort/mask verification and original guard/terminal evidence; failed/incomplete arms remain explicit."
+  ],
+  "uncertainty": {
+    "replicates": 10000,
+    "seed": 20260911,
+    "block_schemes": [
+      "UTC_day",
+      "UTC_week"
+    ],
+    "familywise_alpha": 0.05,
+    "primary_metrics": [
+      "auc",
+      "logloss",
+      "brier"
+    ],
+    "multiplicity": "Bonferroni over bound contrast count times3metrics times2block schemes; bind count before fit. Other59horizons descriptive.",
+    "limits": "Overlapping outcomes/calendar dependence;Q1 reused development."
+  },
+  "stages": [
+    "source_inventory_and_tests",
+    "genuine_input_support_audit",
+    "private_initial_gradient_resume",
+    "serial_matched_refits_and_full_train_scoring",
+    "paired_review_and_independent_verification"
+  ],
+  "execution": {
+    "one_heavy_job": true,
+    "capped_runner": true,
+    "signed_gpu_guards": true,
+    "source_frozen": true,
+    "gpu_limit_w": 250,
+    "physical_restart_before_training": "Existing campaign requirement after machine-wide idle/writer proof",
+    "no_hpo": true,
+    "no_extra_passes": true,
+    "monitor_minutes": [
+      15,
+      30
+    ]
+  },
+  "admission": {
+    "authorization_owner": "NEXT_RUN_POLICY.json exact stage plan",
+    "exact_stage_plan_required": true,
+    "historical_relaunch_allowed": false,
+    "test_data_used": false,
+    "broker_access_allowed": false
+  },
+  "limitations": [
+    "Fixed recipe/prefix does not settle all intrinsic/nonlinear/temporal indicator usefulness.",
+    "Availability information remains; values-only conditional comparison.",
+    "No profitability, FLAT/path quality or all-period confirmation."
+  ],
+  "test_data_used": false,
+  "exit_evaluation": false,
+  "broker_access_allowed": false,
+  "qualification": {
+    "source_tests": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SOURCE_QUALIFICATION_001/RESULT.json",
+      "sha256": "9ca656ba89a71f8066cc54d081894af4cfcd99e6ce5a0d4cb471ad2125af1f64"
+    },
+    "metadata_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/METADATA_QUALIFICATION_001/RESULT.json",
+      "sha256": "55ae2775471b493e80731b989b5cd63634fa70e712d60466b48d087a2601daa3"
+    },
+    "metadata_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/METADATA_QUALIFICATION_001/TERMINAL.json",
+      "sha256": "afb17db16a032436d31f6eaa9d9d45cce7fe6f5a4a080623d4e114642c828829"
+    },
+    "synthetic_tests_passed": 325,
+    "actual_raw_input_intervention_checked": false,
+    "genuine_model_forwards": 0
+  }
+}

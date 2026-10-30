@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T09:08:04.269500+00:00",
-  "status": "DIRECTION_GC_Q1_FRESHNESS_REVIEWED_NO_INCREMENTAL_EDGE_QUALIFIED",
+  "observed_utc": "2026-10-30T09:38:15.913998+00:00",
+  "status": "DIRECTION_FAMILY_ACTUAL_INPUT_PILOT_BOUND",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "GC frozen-model sensitivity and saved-output verification are consumed. All training, inference, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed until a separately bound scope is prepared.",
-  "next_action": "Review observed five-minute direction bias and unresolved input, target and distribution hypotheses; do not infer improvement from reused Q1.",
+  "next_action": "Run single capped256 input pilot under exact bound source; verify raw domains, all10 intervention arms and measured cost before full TRAIN/Q1 support audit. No model/training execution.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Review observed five-minute direction bias and unresolved input, target and distribution hypotheses; do not infer improvement from reused Q1.",
+    "current_activity": "Run single capped256 input pilot under exact bound source; verify raw domains, all10 intervention arms and measured cost before full TRAIN/Q1 support audit. No model/training execution.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -277,14 +277,14 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "direction_diagnostic_execution_program_20261025",
+    "current_research_id": "direction_family_added_value_20261030_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Completed frozen GC Q1 intervention; independent saved-output verification pending.",
+    "latest_terminal_role": "Completed frozenGC Q1 freshness intervention, independently verified; not a family refit or edge qualification.",
     "runtime_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001/VERIFIED_TERMINAL.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "One fixed CPUaudit qualification:36synthetic endpoint tests for explicit1..60targets, including10; no actual market payload/model/fit/update.120sworker/150souter. Preserve baseline and all guards.",
+    "next_action": "Run single capped256 input pilot under exact bound source; verify raw domains, all10 intervention arms and measured cost before full TRAIN/Q1 support audit. No model/training execution.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8908,10 +8908,10 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "The new 60-head eight-family model passed private mechanics; full fitting and later chronological development scoring are pending.",
-      "No separate causal comparison isolates geometry restoration from the 60-head objective.",
-      "Quote-event age, H1 signed-flow coverage, decision selectivity and cost-adjusted performance remain unresolved.",
-      "The sealed TEST and all trading surfaces remain untouched."
+      "Current-family matched refits and fullTRAIN versus later comparison not measured.",
+      "Earlier geometry restoration and60-head objective not separately isolated.",
+      "Quote-event age, macro publication/version provenance, H1signed-flow coverage and cost-adjusted performance unresolved.",
+      "Q1 reused development;sealedTEST and trading untouched."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -16225,7 +16225,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Original terminal, source/policy and summary verified;9savedTRAINpayloads;54proper/362rank calls;0model/fit/update;all authority closed.",
+    "latest_terminal_evidence_scope": "OriginalGC Q1 predictions reproduced; independent saved-output review reproduced all60scores and12paired intervals. No incremental edge qualified.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17859,6 +17859,14 @@
         "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_BPS_ONEPASS_20261030_001/BPS_SIGN_COMPARISON_REVIEW_001.json",
         "sha256": "f6e100ff646d952cfbdd31f9ac599a78f51729bbcc8400ed5d903dc06775cf29"
       }
+    },
+    "family_added_value_goal": {
+      "status": "ACTIVE",
+      "protocol": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
+        "sha256": "0c21a3658338a169a15c535cbdb964613081a6b0ff8e41272592ab63730ba6f0"
+      },
+      "chat_id": "01a18c19-1a49-7f61-a8b3-282834dd1518"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -48250,5 +48258,91 @@
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_SAVED_VERIFY_20261030_001/CLAIM.json",
       "sha256": "3c2b514421a7b48af1bfdf67bbfd7d2910eecc553eca6458cc458ddc361524e1"
     }
+  },
+  "direction_family_added_value_20261030_001": {
+    "status": "ACTUAL_INPUT_PILOT_BOUND",
+    "protocol": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
+      "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
+    },
+    "user_authorization": {
+      "date": "2026-10-30",
+      "chat_id": "01a18c19-1a49-7f61-a8b3-282834dd1518",
+      "request": "Ja, gjør dette. Husk å sørge for at vi får all informasjon vi trenger, og samtidig ha øynene åpne for feil/mangler/mismatches. Lag deg et mål om dette",
+      "scope": "Matched family added value, correctness audit and necessary bounded implementation; existing safety boundaries preserved."
+    },
+    "source_edits_authorized": true,
+    "source_scope": [
+      "current family intervention pure contract and tests",
+      "minimal native prefix campaign/view/runner and qualification integration",
+      "protocol/current policy/handover"
+    ],
+    "synthetic_tests_authorized": true,
+    "genuine_data_reads_authorized": true,
+    "execution_authorized": true,
+    "training_enabled": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_refit_arms": 10,
+    "historical_relaunch_allowed": false,
+    "qualification": {
+      "source_tests": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SOURCE_QUALIFICATION_001/RESULT.json",
+        "sha256": "9ca656ba89a71f8066cc54d081894af4cfcd99e6ce5a0d4cb471ad2125af1f64"
+      },
+      "metadata_result": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/METADATA_QUALIFICATION_001/RESULT.json",
+        "sha256": "55ae2775471b493e80731b989b5cd63634fa70e712d60466b48d087a2601daa3"
+      },
+      "metadata_terminal": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/METADATA_QUALIFICATION_001/TERMINAL.json",
+        "sha256": "afb17db16a032436d31f6eaa9d9d45cce7fe6f5a4a080623d4e114642c828829"
+      },
+      "synthetic_tests_passed": 325,
+      "actual_raw_input_intervention_checked": false,
+      "genuine_model_forwards": 0
+    },
+    "prepared_baseline_private_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_BASELINE_PRIVATE_RECIPE_20261030.json",
+      "sha256": "fe6de5955b3857ecb78f211e95c0b924e23b4f4f4f9bee7482b74838f7692309"
+    },
+    "baseline_recipe_metadata_preflight": {
+      "status": "PASS_63_PHYSICAL_SOURCE_OWNERS",
+      "source_worktree_not_yet_committed": true,
+      "native_execution_authorized": false,
+      "initial_metadata_seal_mismatch_corrected_before_launch": true
+    },
+    "source_followup_tests": {
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SOURCE_QUALIFICATION_002/RESULT.json",
+        "sha256": "09ccbce5ecd0e0955a0d2ea830aaf2a6be436d0585a594bbb4c50367faf95211"
+      },
+      "junit": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SOURCE_QUALIFICATION_002/JUNIT.xml",
+        "sha256": "043fbe6cdc34e812c8b1c24f3994688805695b4db1023ccac321c53b956ebd6c"
+      },
+      "tests": 58
+    }
+  },
+  "direction_family_input_pilot_20261030_001": {
+    "status": "BOUND_SINGLE_INPUT_PILOT",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_PILOT_001/PLAN.json",
+      "sha256": "90734a3185efcbecec49af35d0935fb79871fd67b534f3bd94edd00c94c50063"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "model_forwards_authorized": false,
+    "normalization_fit_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "scope": "256 predeclared streamed parents and32 actual intervention witnesses; provider preparation reuses qualified full development backing/axis/snapshot checks, no target arrays decoded."
   }
 }
