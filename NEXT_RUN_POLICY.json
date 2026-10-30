@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T09:05:32.854774+00:00",
-  "status": "DIRECTION_GC_Q1_FRESHNESS_COMPLETE_SAVED_VERIFY_ADMITTED",
+  "observed_utc": "2026-10-30T09:08:04.269500+00:00",
+  "status": "DIRECTION_GC_Q1_FRESHNESS_REVIEWED_NO_INCREMENTAL_EDGE_QUALIFIED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "GC model inference is consumed; only the exact CPU saved-output verification is admitted. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Independently verify saved GC paired outcomes and finish report.",
+  "rule": "GC frozen-model sensitivity and saved-output verification are consumed. All training, inference, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed until a separately bound scope is prepared.",
+  "next_action": "Review observed five-minute direction bias and unresolved input, target and distribution hypotheses; do not infer improvement from reused Q1.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Independently verify saved GC paired outcomes and finish report.",
+    "current_activity": "Review observed five-minute direction bias and unresolved input, target and distribution hypotheses; do not infer improvement from reused Q1.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -281,7 +281,7 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_GC_Q1_SAVED_VERIFY_PENDING",
+    "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Completed frozen GC Q1 intervention; independent saved-output verification pending.",
@@ -35951,7 +35951,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "Closed; sign one-/two-pass comparison consumed. GC sensitivity preparation only.",
+  "training_enabled_scope": "Closed; sign comparison and GC freshness intervention and review consumed.",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48159,7 +48159,7 @@
     }
   },
   "independent_direction_gc_q1_freshness_20261030_001": {
-    "status": "COMPLETE_CONSUMED_INDEPENDENT_REVIEW_PENDING",
+    "status": "COMPLETE_REVIEWED_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_PLAN_20261030_001.json",
       "sha256": "490ec5272ebde7e09e165e0f50eb9465ddcab712827e4042ad3a86c2a719b23b"
@@ -48207,26 +48207,48 @@
     "verified_terminal": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001/VERIFIED_TERMINAL.json",
       "sha256": "bc1c7754a4dbecb36229caea0ab1c9603c5aee36ee701bf0b65f26e6195fe8a2"
-    }
+    },
+    "independent_review": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_SAVED_VERIFY_20261030_001/RESULT.json",
+      "sha256": "6527188090594fbe8ea3d0876063a0f540f8fff8aadb72b8b7b47647a78a95e4"
+    },
+    "report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_GC_Q1_FRESHNESS_RESULT_20261030.md",
+      "sha256": "7fbe5bfcf7b6d07efe721a01fe42ae4b25dcc0f184d2a4a1fb87952941752051"
+    },
+    "fresh_gc_incremental_value_qualified": false,
+    "economic_edge_qualified": false
   },
   "independent_direction_gc_q1_saved_verify_20261030_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_SAVED_VERIFY_PLAN_20261030_001.json",
       "sha256": "55c8a7ae6e4d75dfee802ba5bca99f79375d9d2c1d41e39a3d2fa4fea58855dc"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "checkpoint_reads_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "memory_cap_gib": 4,
     "max_wall_seconds": 600,
-    "scope": "Independently reconstruct fixed prior-clock cohort, saved logits, all 60 point scores and paired day/week intervals at 5 and 60 minutes; no model or training."
+    "scope": "Independently reconstruct fixed prior-clock cohort, saved logits, all 60 point scores and paired day/week intervals at 5 and 60 minutes; no model or training.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_SAVED_VERIFY_20261030_001/RESULT.json",
+      "sha256": "6527188090594fbe8ea3d0876063a0f540f8fff8aadb72b8b7b47647a78a95e4"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_SAVED_VERIFY_20261030_001/TERMINAL.json",
+      "sha256": "1d21219b8896c83915f47cf28dce09c0b73175b2c64006732390f889575d138a"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_SAVED_VERIFY_20261030_001/CLAIM.json",
+      "sha256": "3c2b514421a7b48af1bfdf67bbfd7d2910eecc553eca6458cc458ddc361524e1"
+    }
   }
 }
