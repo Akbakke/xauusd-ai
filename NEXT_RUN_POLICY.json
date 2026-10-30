@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T08:41:50.078637+00:00",
-  "status": "DIRECTION_GC_Q1_FRESHNESS_ONE_SHOT_ADMITTED",
+  "observed_utc": "2026-10-30T09:05:32.854774+00:00",
+  "status": "DIRECTION_GC_Q1_FRESHNESS_COMPLETE_SAVED_VERIFY_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only the exact GC freshness frozen-model producer is admitted once with existing signed hardware and data guards. All training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Run the bound Q1 GC freshness comparison; verify exact saved prediction replay, terminal and paired five-minute scores.",
+  "rule": "GC model inference is consumed; only the exact CPU saved-output verification is admitted. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
+  "next_action": "Independently verify saved GC paired outcomes and finish report.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Run the bound Q1 GC freshness comparison; verify exact saved prediction replay, terminal and paired five-minute scores.",
+    "current_activity": "Independently verify saved GC paired outcomes and finish report.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -281,14 +281,14 @@
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
-    "gc_goal_status": "ACTIVE_FROZEN_GC_FRESHNESS_ONE_SHOT_ADMITTED",
+    "gc_goal_status": "ACTIVE_GC_Q1_SAVED_VERIFY_PENDING",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Completed second sign pass; fixed Q1 paired comparison pending.",
-    "runtime_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/RUNTIME",
+    "latest_terminal_role": "Completed frozen GC Q1 intervention; independent saved-output verification pending.",
+    "runtime_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/VERIFIED_TERMINAL.json",
-      "sha256": "c9aec4bf2630550030e2286b89b25c8dfc42737f5d33f646cbfee1d775cff307"
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001/VERIFIED_TERMINAL.json",
+      "sha256": "bc1c7754a4dbecb36229caea0ab1c9603c5aee36ee701bf0b65f26e6195fe8a2"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -48159,20 +48159,20 @@
     }
   },
   "independent_direction_gc_q1_freshness_20261030_001": {
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_INDEPENDENT_REVIEW_PENDING",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_PLAN_20261030_001.json",
       "sha256": "490ec5272ebde7e09e165e0f50eb9465ddcab712827e4042ad3a86c2a719b23b"
     },
-    "execution_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "model_forwards_authorized": true,
+    "execution_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "model_forwards_authorized": false,
     "optimizer_steps_authorized": false,
     "test_data_used": false,
     "broker_access_allowed": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "class": "guarded_cuda_producer",
     "memory_max": "20G",
@@ -48183,6 +48183,50 @@
     "scope": "Frozen completed M5 sign two-pass checkpoint; exactly replay every tenth Q1 batch before prior-M5 GC context and newly closed GC-history masking; 1736 selected, 1727 exact prior, all 60 corrected horizons. No training or trading.",
     "focused_synthetic_tests_passed": 17,
     "metadata_preflight": "PASS: 64 fit owners and 59 metadata refs; current GC profile and aliases match; no model calls.",
-    "checkpoint_preflight": "PASS after correcting the new GC reader to require the valid two-pass schema and train_passes=2; checkpoint content, model digest, feature identity and 95204/5952 cursor verified."
+    "checkpoint_preflight": "PASS after correcting the new GC reader to require the valid two-pass schema and train_passes=2; checkpoint content, model digest, feature identity and 95204/5952 cursor verified.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001/OUTPUT/RESULT.json",
+      "sha256": "a551132353028cae2561bdd013303d0f90ed8dc12ee11f80f5e593adae3f1581"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001/INVOCATION_CLAIM.json",
+      "sha256": "d2f927b0eea0121fc4fba352a1fe1e2456505b03b0bae48e8a177ad1825a8d1c"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001/TERMINAL.json",
+      "sha256": "2d673bd198a56fd2a26f0ccdae47bd09daf33bbd5f361ee455c5acd1bf3104a0"
+    },
+    "inner_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001/OUTPUT/TERMINAL.json",
+      "sha256": "4078dec5cfb74fad6600711b447ccaccd9ba3dc7252337efa7a97c52fc156451"
+    },
+    "guard_log": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/.DIRECTION_GC_Q1_FRESHNESS_20261030_001.guard.PGMpNKvp.log",
+      "sha256": "78edf834482f70d2cad06a4fdff20647bc8bc03e3cef12d91272b15d3aeb88f5"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_FRESHNESS_20261030_001/VERIFIED_TERMINAL.json",
+      "sha256": "bc1c7754a4dbecb36229caea0ab1c9603c5aee36ee701bf0b65f26e6195fe8a2"
+    }
+  },
+  "independent_direction_gc_q1_saved_verify_20261030_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_GC_Q1_SAVED_VERIFY_PLAN_20261030_001.json",
+      "sha256": "55c8a7ae6e4d75dfee802ba5bca99f79375d9d2c1d41e39a3d2fa4fea58855dc"
+    },
+    "execution_authorized": true,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "memory_cap_gib": 4,
+    "max_wall_seconds": 600,
+    "scope": "Independently reconstruct fixed prior-clock cohort, saved logits, all 60 point scores and paired day/week intervals at 5 and 60 minutes; no model or training."
   }
 }
