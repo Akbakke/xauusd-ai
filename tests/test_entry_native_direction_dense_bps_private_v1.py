@@ -61,6 +61,10 @@ def test_private_dense_bps_recipe_requires_qualified_scale_and_exact_scope(resea
     assert checked['run_scope']==prefix.M5_DENSE_BPS_PRIVATE_SCOPE
     assert checked['candidate_mode']=='price_only' and checked['numerical_recipe']['dense_signed_bps_supervision'] is True
     assert checked['qualification_weights_for_main_fit'] is False and checked['test_data_used'] is False
+    assert authority.guarded_research_power_limit(checked)==250
+    assert authority.guarded_research_power_limit({'run_scope':prefix.M1_PRICE_PRIVATE_ADAPTER_SCOPE,'admission_stage':'dynamic_m5_direction_other'})==300
+    with pytest.raises(RuntimeError,match='DENSE_BPS_POWER_SCOPE'):
+        authority.guarded_research_power_limit({**checked,'candidate_mode':'price_and_m1'})
     for name in ('scale','stage','mode','initial','review'):
         value=copy.deepcopy(recipe)
         if name=='scale':value['dense_bps_scale']['sha256']='0'*64

@@ -387,6 +387,19 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     return recipe
 
 
+def guarded_research_power_limit(recipe):
+    """Return the user-approved cap after the caller validates the bound recipe."""
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    _require(isinstance(recipe, Mapping), 'POWER_RECIPE')
+    if recipe.get('run_scope') == prefix.M5_DENSE_BPS_PRIVATE_SCOPE:
+        _require(recipe.get('admission_stage') == M5_DENSE_BPS_STAGE
+            and recipe.get('candidate_mode') == 'price_only'
+            and recipe.get('numerical_recipe', {}).get('dense_signed_bps_supervision') is True, 'DENSE_BPS_POWER_SCOPE')
+        return 250
+    _require(recipe.get('admission_stage') != M5_DENSE_BPS_STAGE, 'DENSE_BPS_POWER_SCOPE')
+    return 300
+
+
 def require_m1_structure_matched_recipes(coarse_ref, ordered_ref, *, source_repo: Path, source_commit: str):
     """Preflight both private recipes; no model, data payload or authority."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix

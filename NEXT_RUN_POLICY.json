@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the separately bound one-shot CPU review of saved Q1–Q4 2025 forecasts, corrected labels and D1 GC coverage is authorized. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Repeat the 63-owner private-recipe metadata preflight on a clean commit, then bind a new single guarded four-update private campaign with the existing 250 W policy and physical restart. Do not use private weights for full fit; keep TEST, broker, trading and Exit closed.",
+  "next_action": "Validate the exact 250 W private guard and repeat the 63-owner metadata preflight on a clean commit, then bind one guarded four-update private campaign and physical restart; TEST and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -47629,7 +47629,7 @@
     "scale_qualification": "60 per-horizon TRAIN-only RMS values; independent counts match prior decimal audit; model qualification remains pending.",
     "private_recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_DENSE_BPS_PRIVATE_RECIPE_20261030.json",
-      "sha256": "01d3880fe7061208f2ec0400f96e837f191a2c17467fafb2874592306089ecc6"
+      "sha256": "05da3f3422010d7c7707ef5d16795e57ba291a6e2fd39a99bb3a7c6e8641905a"
     }
   },
   "direction_m5_dense_bps_scale_20261030_001": {
@@ -47681,12 +47681,12 @@
     "status": "PRIVATE_SOURCE_AND_DIRTY_METADATA_PREFLIGHT_ONLY",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_DENSE_BPS_PRIVATE_RECIPE_20261030.json",
-      "sha256": "01d3880fe7061208f2ec0400f96e837f191a2c17467fafb2874592306089ecc6"
+      "sha256": "05da3f3422010d7c7707ef5d16795e57ba291a6e2fd39a99bb3a7c6e8641905a"
     },
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/RUNTIME",
     "source_owner_count": 63,
     "synthetic_tests_last_focused_run": 234,
-    "metadata_preflight": "PASS on modified source; repeat after clean commit.",
+    "metadata_preflight": "Requires fresh preflight after scoped 250 W guard update and clean commit.",
     "scope": "M5 price-only; unchanged 60 direction heads plus 60 normalized signed-bps heads, 32 fixed TRAIN parents, four physical optimizer updates and one bps-only reverse proof; 256 initial predictions and all shared model/buffer/RNG values must match prior M5 initial.",
     "execution_authorized": false,
     "data_reads_authorized": false,
@@ -47707,6 +47707,18 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "physical_restart_before_each_invocation_authorized": false
+    "physical_restart_before_each_invocation_authorized": false,
+    "requested_physical_gpu_power_limit_w": 250,
+    "retain_physical_gpu_power_limit_w_afterward": 250,
+    "power_guard_preflight": {
+      "status": "PASS_EXACT_CAP_SNIPPET_METADATA_ONLY",
+      "configured_max_w": 250,
+      "other_native_limit_w_unchanged": 300,
+      "bad_window_hash_rejected": true,
+      "guard_telemetry_tests_passed": true,
+      "model_forwards": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false
+    }
   }
 }

@@ -314,6 +314,31 @@ validate_target_command() {
     TRAINER_MODEL_MAX_WALL_SECONDS=$TRAINER_MAX_WALL_SECONDS
     # Operator-authorized native main training; legacy invocations retain their limits.
     TRAINER_GPU_MAX_POWER_LIMIT_W=300
+    # This single research scope retains the user's configured 250 W ceiling.
+    # The window and full recipe are revalidated before selecting the tighter
+    # bound; all other native/thermal limits and signed telemetry stay intact.
+    local research_power_limit
+    research_power_limit=$(cd "$REPO_ROOT" && "$CANONICAL_TRAINER_PYTHON" -c '
+from pathlib import Path
+import hashlib, json, subprocess, sys
+repo = Path.cwd()
+raw = Path(sys.argv[1]).read_bytes()
+if hashlib.sha256(raw).hexdigest() != sys.argv[2]:
+    raise RuntimeError("native window hash mismatch")
+window = json.loads(raw)
+if window.get("schema_version") != "gx1_native_direction_research_window_policy_v1":
+    print(300)
+else:
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as research
+    from gx1.contracts import local_random_access_campaign_v2 as campaign
+    window = campaign.read_bound_json(Path(sys.argv[1]), sys.argv[2])
+    window = research.require_research_window_policy(window)
+    head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    recipe = research.require_research_launch_recipe(window["recipe"], source_repo=repo, source_commit=head)
+    print(research.guarded_research_power_limit(recipe))
+' "${target_args[4]}" "${target_args[6]}") || exit 75
+    [[ "$research_power_limit" == 250 || "$research_power_limit" == 300 ]] || exit 75
+    TRAINER_GPU_MAX_POWER_LIMIT_W="$research_power_limit"
     TRAINER_GPU_MAX_POWER_DRAW_W=310
     TRAINER_GPU_MAX_CORE_TEMP_C=85
     TRAINER_DEVICE=cuda

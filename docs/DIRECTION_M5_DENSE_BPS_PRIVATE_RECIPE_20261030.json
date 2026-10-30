@@ -174,7 +174,7 @@
     "sha256": "d78335c7d089ff44beb2d3a470ec8e88fe204899e8ef6e1524cbcba089913cb1"
   },
   "qualification_weights_for_main_fit": false,
-  "recipe_sha256": "df334f3a13e502abea2bd9419bb53a47d1534237e060fbf35e6d88391dafa163",
+  "recipe_sha256": "1ed2f9ad2aabdd3f0dfb166b540da7191ed86a8fba962f66f7765a0736b2b71d",
   "run_scope": "private_dense_decimal_m5_signed_bps_60_qualification",
   "runtime_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/RUNTIME",
   "schema_version": "gx1_native_direction_research_launch_recipe_v1",
@@ -305,7 +305,7 @@
     },
     "gx1/contracts/entry_native_direction_research_campaign_v1.py": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_campaign_v1.py",
-      "sha256": "91702a86db5e1d7cfc1908b91a6cd8485d1392928fa7688bed97bdf4d150ec00"
+      "sha256": "da5633636ea6a02ff5243e116681182aa560a3fcaa6a005efb3bc01c7b30422f"
     },
     "gx1/contracts/entry_native_direction_research_state_v1.py": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_state_v1.py",
@@ -425,7 +425,7 @@
     },
     "scripts/gx1_capped_run.sh": {
       "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
-      "sha256": "3684571298441ebbbd3f6951250b57e8e4fb75f71f3ed2138a0aea8866b10ef2"
+      "sha256": "e5f934bfb3fc408090e4028c029c1cef8678c952cd791dea2c49614bfa77e279"
     },
     "scripts/gx1_guarded_trainer_exec.sh": {
       "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_guarded_trainer_exec.sh",
