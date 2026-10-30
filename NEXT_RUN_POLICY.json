@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Family baseline private mechanics complete; new full-fit requires exact separate recipe/campaign admission. TEST, Exit, broker, orders, live/paper, spending and promotion closed.",
-  "next_action": "Prepare exact baseline family one-pass recipe from verified own initial/native qualification; same47602TRAIN/17288Q1 and2976updates plus fullTRAIN scoring. Other nine private qualifications/refits and matched saved comparison remain. Verify unattended connectivity at next planned fresh boot.",
+  "next_action": "Materialize exact family baseline one-pass campaign after fresh clean-source validation and explicit stage binding. Prepared recipe passed capped canonical validation; no full-fit campaign installed or started. Preserve same2976updates/fullTRAIN47602/Q117288,250W,fresh idle and durable reboot receipts; verify unattended connection at next planned reboot.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Prepare exact baseline family one-pass recipe from verified own initial/native qualification; same47602TRAIN/17288Q1 and2976updates plus fullTRAIN scoring. Other nine private qualifications/refits and matched saved comparison remain. Verify unattended connectivity at next planned fresh boot.",
+    "current_activity": "Materialize exact family baseline one-pass campaign after fresh clean-source validation and explicit stage binding. Prepared recipe passed capped canonical validation; no full-fit campaign installed or started. Preserve same2976updates/fullTRAIN47602/Q117288,250W,fresh idle and durable reboot receipts; verify unattended connection at next planned reboot.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -48359,6 +48359,14 @@
     "baseline_private_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_BASELINE_001/ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "d0d87d49fb80160bf1beb288eaa18b029c2542c69fceaa176e08127ab07ec535"
+    },
+    "prepared_baseline_full_fit_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_BASELINE_ONEPASS_FIT_RECIPE_20261030.json",
+      "sha256": "331e3d39c28558afb077a37a9293b8883762c0eadbfb60969b0c018c7bb6554b"
+    },
+    "baseline_full_fit_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/BASELINE_FULLFIT_RECIPE_PREFLIGHT_001.json",
+      "sha256": "b034b54adf713a194a7c099cedefb830c7f8790ca9e741854aeaf149fdfc4942"
     }
   },
   "direction_family_input_pilot_20261030_001": {
