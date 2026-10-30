@@ -11,7 +11,7 @@ Programrot:
 
 ## Aktuell status
 
-30.10 — EKSTRA SIGN-PASS FORBEREDES: Oppskriften viderefører det verifiserte sign-ettpass-checkpointet, med 47 602 TRAIN-foreldre og høyst 2 976 nye oppdateringer (5 952 totalt), uendret signert retningsmål og alle 60 horisonter. Metadataforkontroll PASS; én kontrollfil har endret hash og 63 kildeeiere er byteidentiske. Nøyaktig engangsplan, maskindekkende idle-/skrivekontroll og fysisk restart kreves før kjøring; 250 W beholdes. TEST, Exit og handel er stengt. Ingen to-pass-resultat finnes ennå. Se NEXT_RUN_POLICY og docs/DIRECTION_M5_SIGN_CONTINUATION_REPAIR_20261030.md.
+30.10 — EKSTRA SIGN-PASS FULLFØRT: Boot 586; ett ekstra pass fra sign-ettpass-terminalen, 47 602 TRAIN-foreldre, 2 976 nye oppdateringer og 17 288 Q1-prediksjoner. Signert vakt og terminalkjede PASS; engangstask deaktivert, trening stengt, 250 W beholdt og faktisk tomgang 23,44 W. En separat bundet sammenligning og uavhengig kontroll av videreført modell-/optimizer-/RNG-tilstand er tillatt én gang; edge er ikke bevist. 63 av 64 kildeeiere er byteidentiske og siste endring gjelder metadata-validering. TEST, Exit og handel er stengt.
 
 30.10 — BPS-SAMMENLIGNING FULLFØRT: Femminutters AUC 0,503214 mot sign 0,496961, med parete intervaller som inkluderer null; bps sa opp i 99,79 %. Ingen av 60 samtidige bånd bekrefter AUC over 0,5. Se docs/DIRECTION_M5_FACTOR_BPS_ONEPASS_RESULT_20261030.md.
 
