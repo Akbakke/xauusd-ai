@@ -141,9 +141,16 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
     plan=context['ancestor_plan'];info=context['info']
     _require(isinstance(extra_read_paths, tuple), 'EXTRA_READ_PATHS')
     if extra_read_paths:
-        from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import CONTINUATION_ORIGIN
-        _require(extra_read_paths == (CONTINUATION_ORIGIN['terminal_state']['path'],
-            CONTINUATION_ORIGIN['initial_state']['path']), 'EXTRA_READ_PATHS')
+        matched=context.get('factor_continuation_reads')
+        if matched is not None:
+            from gx1.contracts.entry_native_direction_m5_fullfit_v1 import FACTOR_RUNTIME_ROOTS
+            root=FACTOR_RUNTIME_ROOTS['sign_one_pass']+'/prefix-fit/'
+            _require(isinstance(matched,tuple) and extra_read_paths==matched and len(set(matched))==3
+                and all(isinstance(path,str) and path.startswith(root) for path in matched), 'FACTOR_EXTRA_READ_PATHS')
+        else:
+            from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import CONTINUATION_ORIGIN
+            _require(extra_read_paths == (CONTINUATION_ORIGIN['terminal_state']['path'],
+                CONTINUATION_ORIGIN['initial_state']['path']), 'EXTRA_READ_PATHS')
     if original_initial_prediction is not None:
         from gx1.contracts.entry_native_direction_research_campaign_v1 import WEIGHT_INITIAL_PREDICTIONS
         _require(original_initial_prediction == WEIGHT_INITIAL_PREDICTIONS['path'], 'INITIAL_PREDICTION_PATH')

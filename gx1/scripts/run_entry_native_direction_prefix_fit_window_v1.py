@@ -792,7 +792,8 @@ def _fit_input_launch(launch, authority):
     """Reuse the qualified private target adapter for the separate full-fit scope."""
     if launch['run_scope'] == authority.DENSE_DECIMAL_FIT_SCOPE:
         return {**launch, 'run_scope': authority.DENSE_DECIMAL_PRIVATE_SCOPE}
-    if launch['run_scope'] in (authority.M1_PRICE_FIT_SCOPE, authority.M5_PRICE_FIT_SCOPE, authority.M5_FIVE_PRIORITY_FIT_SCOPE):
+    if launch['run_scope'] in (authority.M1_PRICE_FIT_SCOPE, authority.M5_PRICE_FIT_SCOPE, authority.M5_FIVE_PRIORITY_FIT_SCOPE,
+            authority.M5_FACTOR_SIGN_SCOPE, authority.M5_FACTOR_BPS_SCOPE, authority.M5_FACTOR_CONTINUATION_SCOPE):
         return {**launch, 'run_scope': authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE}
     return launch
 
@@ -813,10 +814,13 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
-    continuation=launch['run_scope']==authority.CONTINUATION_SCOPE;order_variant=launch['run_scope']==authority.ORDER_SCOPE;train_passes=launch['train_passes']
+    factor_bps=launch['run_scope']==authority.M5_FACTOR_BPS_SCOPE
+    factor_continuation=launch['run_scope']==authority.M5_FACTOR_CONTINUATION_SCOPE
+    factor=launch['run_scope'] in (authority.M5_FACTOR_SIGN_SCOPE,authority.M5_FACTOR_BPS_SCOPE,authority.M5_FACTOR_CONTINUATION_SCOPE)
+    continuation=launch['run_scope']==authority.CONTINUATION_SCOPE or factor_continuation;order_variant=launch['run_scope']==authority.ORDER_SCOPE;train_passes=launch['train_passes']
     m1_fit=launch['run_scope']==authority.M1_PRICE_FIT_SCOPE
     priority_fit=launch['run_scope']==authority.M5_FIVE_PRIORITY_FIT_SCOPE
-    m5_fit=launch['run_scope']==authority.M5_PRICE_FIT_SCOPE or priority_fit
+    m5_fit=launch['run_scope']==authority.M5_PRICE_FIT_SCOPE or priority_fit or factor
     candidate_fit=m1_fit or m5_fit
     decimal_fit=launch['run_scope']==authority.DENSE_DECIMAL_FIT_SCOPE or candidate_fit
     input_launch=_fit_input_launch(launch,authority)
@@ -833,6 +837,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             common._read(launch['m1_pair_initial_parity'],metadata)
         if priority_fit:
             priority_baseline_initial=common._read(launch['priority_baseline_initial_report'],metadata)
+        if factor:
+            factor_baseline_initial=common._read(launch['factor_initial_report'],metadata)
         initial=launch['decimal_initial_predictions']
         context['decimal_initial_predictions']=dict(initial)
         context['decimal_initial_predictions_stat']=common._stat(initial['path'])
@@ -843,12 +849,19 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         original_launch=common._read(origin['launch_recipe'],context['info']['metadata'])
         original_recipe=require_native_direction_research_recipe(original_launch['numerical_recipe'])
         original_initial_measurement=common._read(origin['initial_measurement'],context['info']['metadata'])
+        if factor_continuation:
+            original_terminal_measurement=common._read(origin['terminal_train_measurement'],context['info']['metadata'])
+            terminal_predictions=origin['terminal_train_predictions']
+            _require(original_terminal_measurement['predictions']==terminal_predictions and common._hash_file(terminal_predictions['path'])==terminal_predictions, 'FACTOR_TERMINAL_PREDICTIONS')
+            context['info']['metadata'][terminal_predictions['path']]={'ref':dict(terminal_predictions),'stat':common._stat(terminal_predictions['path'])}
+            context['factor_continuation_reads']=(origin['terminal_state']['path'],origin['initial_state']['path'],terminal_predictions['path'])
     for ref in (window['recipe'],binding['plan'],{'path':str(policy_path),'sha256':policy_file_sha256}):common._read(ref,context['info']['metadata'])
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
-        extra_read_paths=(origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else (),
+        extra_read_paths=(context['factor_continuation_reads'] if factor_continuation else
+            (origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else ()),
         original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None,
         dense_target=context.get('dense_target'),
         decimal_original=context.get('decimal_original') if decimal_fit or input_launch['run_scope']==authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE else None,
@@ -864,8 +877,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     initial_ref=initial_measurement=final_measurement=full_state=None;view_identity=None;parent_cursor=updates=oof_cursor=0
     phase='TRAINING';outcome='FAILED';error=None;source_unchanged=False;checkpoint_refs=[];first_diagnostic=last_diagnostic=None
     prepared=model=optimizer=None;order_sha='0'*64;prior_cursor=None;fresh_identity=None;prior=None;initial_inactive=None
-    ceiling=((2 if continuation else 1)*((fold['prefix_rows']+15)//16)
-        +33+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
+    ceiling=(((train_passes-1 if continuation else train_passes)*((fold['prefix_rows']+15)//16))
+        +33+(16 if factor_continuation else 0)+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
     durable=None;observed_progress=None;bps_scale_ref=None
     common._json(work/'CLAIM.json',{'recipe':window['recipe'],'fold':fold,'invocation_number':number,
         'source_head':binding['source_head'],'plan_sha256':plan['plan_sha256'],'limits':limits},counters,launch['max_published_json_bytes'])
@@ -907,13 +920,22 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             _require(original_initial_measurement['fresh_identity_sha256']==fresh_identity
                 and original_initial_measurement['own_prefix_prior']==prior, 'CONTINUATION_SAME_OWN_FRESH_BASELINE')
             loaded=common._load_state(origin['terminal_state'],torch=torch,maximum=launch['max_checkpoint_bytes'],counters=counters)
-            migrated=state_owner.migrate_one_pass_terminal_to_three_pass(loaded,model,optimizer,
-                original_recipe=original_recipe,continuation_recipe=recipe,feature_view_identity=view_identity,parent_order=order,device=device)
+            migrate=(state_owner.migrate_one_pass_terminal_to_two_pass if factor_continuation
+                else state_owner.migrate_one_pass_terminal_to_three_pass)
+            migrated=migrate(loaded,model,optimizer,original_recipe=original_recipe,continuation_recipe=recipe,
+                feature_view_identity=view_identity,parent_order=order,device=device)
             parent_cursor=migrated['cursor'];updates=migrated['optimizer_updates']
             full_state,seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=parent_cursor,updates=updates,
                 state_directory=state_directory,name='CONTINUATION_INITIAL_1PASS',launch=launch,counters=counters,torch=torch,device=device,
                 common=common,state_owner=state_owner,train_passes=train_passes)
             _require(seal==migrated['contract_sha256'],'CONTINUATION_MIGRATED_STATE_PARITY')
+            if factor_continuation:
+                from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_five_priority_initial_parity
+                measured,_=_evaluate(model,prepared,targets,view,context_map,diagnostic_ids,cutoff=fold['train_cutoff_ns'],
+                    kind='CONTINUATION_PARITY',counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha)
+                require_five_priority_initial_parity(measured,original_terminal_measurement,origin['terminal_train_predictions'],np=np)
+                _require(measured['state_preservation']['rng']==original_terminal_measurement['preservation']['rng'], 'FACTOR_CONTINUATION_RNG_PARITY')
+                del measured
             del loaded,migrated
         elif prior_cursor is None:
             initial_ref,_seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=0,updates=0,
@@ -922,7 +944,14 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
             if order_variant:
                 _require_original_initial_match(measured,launch['order_origin']['initial_predictions'],common=common,np=np)
-            if priority_fit:
+            if factor:
+                from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_dense_bps_initial_parity, require_five_priority_initial_parity
+                if factor_bps:
+                    require_dense_bps_initial_parity(measured,factor_baseline_initial,context['decimal_initial_predictions'],model,np=np,tree_sha=tree_sha)
+                else:
+                    require_five_priority_initial_parity(measured,factor_baseline_initial,context['decimal_initial_predictions'],np=np)
+                    _require(measured['state_preservation']['rng']==factor_baseline_initial['preservation']['rng'], 'FACTOR_INITIAL_RNG_PARITY')
+            elif priority_fit:
                 from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_five_priority_initial_parity
                 require_five_priority_initial_parity(measured,priority_baseline_initial,context['decimal_initial_predictions'],np=np)
             elif decimal_fit:

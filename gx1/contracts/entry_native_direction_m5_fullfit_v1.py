@@ -123,3 +123,203 @@ def require_qualification(recipe,owners,*,source_repo,private_scope):
     old=prior['source_owners'];_require(set(old)-set(TRANSITIONS) <= set(owners)
         and all(old[k]==owners[k] for k in set(old)-set(TRANSITIONS)),'QUALIFIED_UNCHANGED_SOURCES')
     require_qualified_source_transition(source_repo,review['source_commit'],old,owners)
+
+# The completed private qualification is a mechanics witness, not fit weights.
+FACTOR_QUALIFICATION = {'path': _ROOT+'/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/ACTUAL_ROOT_REVIEW_001.json',
+    'sha256':'11a0245c0a753c359f8ef9f29474f7a4144609b677c8babcabca67715cce2d8e'}
+FACTOR_PROTOCOL_NAME = 'DIRECTION_M5_SIGN_BPS_EXPOSURE_PROTOCOL_20261030.json'
+FACTOR_RUNTIME_ROOTS = {
+    'sign_one_pass': _ROOT+'/DIRECTION_M5_FACTOR_SIGN_ONEPASS_20261030_001/RUNTIME',
+    'bps_one_pass': _ROOT+'/DIRECTION_M5_FACTOR_BPS_ONEPASS_20261030_001/RUNTIME',
+    'sign_two_pass': _ROOT+'/DIRECTION_M5_FACTOR_SIGN_TWOPASS_20261030_001/RUNTIME',
+}
+FACTOR_TRANSITIONS = {
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': {
+        'functions':('require_prefix_fit_launch_recipe',),
+        'new_functions':('guarded_prefix_power_limit',),
+        'new_assignments':('M5_FACTOR_SIGN_SCOPE','M5_FACTOR_BPS_SCOPE','M5_FACTOR_CONTINUATION_SCOPE')},
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py': {
+        'functions':('_fit_input_launch','run_native_direction_prefix_fit_window')},
+    'gx1/scripts/run_entry_native_direction_research_window_v1.py': {'functions':('_install_read_guard',)},
+}
+
+
+def require_factor_protocol(protocol, recipe):
+    """Bind both hypotheses before either full fit; grant no execution authority."""
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as private
+    scopes={prefix.M5_FACTOR_SIGN_SCOPE:'sign_one_pass',prefix.M5_FACTOR_BPS_SCOPE:'bps_one_pass',
+        prefix.M5_FACTOR_CONTINUATION_SCOPE:'sign_two_pass'}
+    arm=scopes.get(recipe.get('run_scope'))
+    _require(arm is not None and isinstance(protocol,Mapping)
+        and protocol.get('schema_version')=='gx1_m5_direction_bps_exposure_comparison_v1'
+        and protocol.get('status')=='PREDECLARED_NO_EXECUTION_AUTHORITY'
+        and protocol.get('fold')==recipe['fold'] and protocol.get('target')==recipe['dense_target']
+        and protocol.get('candidate_input_mode')=='price_only' and protocol.get('m1_values_or_masks_as_entry_inputs') is False
+        and protocol.get('future_outcome_horizons_minutes')==list(range(1,61))
+        and protocol.get('private_qualification')==FACTOR_QUALIFICATION
+        and protocol.get('initial_predictions')==private.M5_DENSE_BPS_BASELINE_INITIAL
+        and protocol.get('initial_report')==private.M5_DENSE_BPS_BASELINE_REPORT
+        and protocol.get('bps_scale')==private.M5_DENSE_BPS_SCALE
+        and protocol.get('runtime_roots')==FACTOR_RUNTIME_ROOTS and recipe['runtime_root']==FACTOR_RUNTIME_ROOTS[arm],
+        'FACTOR_PROTOCOL_IDENTITY')
+    _require(protocol.get('fit')=={'batch_size':16,'seed':20260911,'train_parent_rows':47602,
+        'updates_per_pass':2976,'same_source_and_parent_order_required':True,
+        'same_initial_shared_parameters_buffers_rng_and_256_predictions_required':True,'private_weights_reused':False}
+        and protocol.get('arms')=={
+            'sign_one_pass':{'passes':1,'signed_bps_auxiliary':False,'origin':'fresh'},
+            'bps_one_pass':{'passes':1,'signed_bps_auxiliary':True,'origin':'fresh'},
+            'sign_two_pass':{'passes':2,'signed_bps_auxiliary':False,'origin':'exact_sign_one_pass_checkpoint'}}
+        and protocol.get('comparison')=={'later_data':'reused Q1 2025 development','fixed_parent_range':[47602,64890],
+            'primary_minutes':5,'all_horizons':True,
+            'separate_contrasts':['bps_one_pass_minus_sign_one_pass','sign_two_pass_minus_sign_one_pass'],
+            'metrics':['auc','accuracy_at_0.5','logloss','brier'],'paired_utc_day_and_week_bootstrap_replicates':10000,
+            'simultaneous_auc_bands_all_60':True,'threshold_or_checkpoint_selection':False}
+        and protocol.get('hardware')=={'gpu_power_limit_w_during_and_after':250,
+            'physical_restart_before_each_training_window':True,'existing_thermal_guards_preserved':True}
+        and protocol.get('test_data_used') is False and protocol.get('broker_orders_paper_live_exit_promotion_authorized') is False
+        and protocol.get('economic_edge_claimed') is False, 'FACTOR_PROTOCOL_DESIGN')
+    sources=protocol.get('comparison_sources');repo=Path(recipe['source_repo'])
+    _require(isinstance(sources,Mapping) and set(sources)==set(COMPARISON_SOURCES), 'FACTOR_COMPARISON_SOURCES')
+    for name, ref in sources.items():
+        checked=campaign.require_binding(ref,label='factor comparison source',verify_file=True)
+        _require(checked['path']==str(repo/name),'FACTOR_COMPARISON_SOURCE_PATH:'+name)
+
+
+def require_factor_source_transition(source_repo, source_commit, qualified_commit, old, owners):
+    """Keep the qualified numerical owners; permit only declared launch plumbing."""
+    from gx1.contracts import entry_native_direction_five_priority_private_v1 as ast_owner
+    _require(set(owners)==set(old)|{'gx1/contracts/entry_native_direction_m5_fullfit_v1.py'},'FACTOR_SOURCE_SET')
+    _require(subprocess.run(['git','merge-base','--is-ancestor',qualified_commit,source_commit],
+        cwd=source_repo,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0,'FACTOR_SOURCE_ANCESTRY')
+    guard='scripts/gx1_capped_run.sh'
+    for name,original in old.items():
+        current=owners[name]
+        if name not in FACTOR_TRANSITIONS and name != guard:
+            _require(current==original,'FACTOR_UNCHANGED_SOURCE:'+name);continue
+        _require(original['path']==current['path']==str(source_repo/name),'FACTOR_SOURCE_PATH:'+name)
+        before=subprocess.check_output(['git','show',qualified_commit+':'+name],cwd=source_repo)
+        after=(source_repo/name).read_bytes()
+        _require(hashlib.sha256(before).hexdigest()==original['sha256'] and hashlib.sha256(after).hexdigest()==current['sha256'],
+            'FACTOR_SOURCE_SHA:'+name)
+        if name != guard:
+            spec=FACTOR_TRANSITIONS[name]
+            _require(ast_owner._unchanged_ast(before,spec,original=True)==ast_owner._unchanged_ast(after,spec,original=False),
+                'FACTOR_SOURCE_AST:'+name)
+        else:
+            old_block=b'if window.get("schema_version") != "gx1_native_direction_research_window_policy_v1":\n    print(300)\nelse:\n'
+            new_block=b'''if window.get("schema_version") == "gx1_native_direction_prefix_fit_window_policy_v1":
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    from gx1.contracts import local_random_access_campaign_v2 as campaign
+    window = campaign.read_bound_json(Path(sys.argv[1]), sys.argv[2])
+    window = prefix.require_prefix_fit_window_policy(window)
+    head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    recipe = prefix.require_prefix_fit_launch_recipe(window["recipe"], source_repo=repo, source_commit=head)
+    print(prefix.guarded_prefix_power_limit(recipe))
+elif window.get("schema_version") != "gx1_native_direction_research_window_policy_v1":
+    print(300)
+else:
+'''
+            old_comment=b"# This single research scope retains the user's configured 250 W ceiling."
+            new_comment=b"# Exact matched research scopes retain the user's configured 250 W ceiling."
+            _require(before.count(old_block)==1 and before.count(old_comment)==1
+                and before.replace(old_block,new_block,1).replace(old_comment,new_comment,1)==after,
+                'FACTOR_GUARD_TRANSITION')
+
+
+def require_factor_qualification(recipe, owners, *, source_repo, source_commit):
+    """Require the actual bounded bps witness and matching sign/bps fit numerics."""
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as private
+    from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_research_recipe
+    bps=recipe['run_scope']==prefix.M5_FACTOR_BPS_SCOPE
+    continuation=recipe['run_scope']==prefix.M5_FACTOR_CONTINUATION_SCOPE
+    _require(recipe.get('candidate_mode')=='price_only' and 'candidate_m1_refs' not in recipe
+        and recipe.get('native_dense_qualification')==FACTOR_QUALIFICATION
+        and recipe.get('decimal_initial_predictions')==private.M5_DENSE_BPS_BASELINE_INITIAL
+        and recipe.get('factor_initial_report')==private.M5_DENSE_BPS_BASELINE_REPORT
+        and (recipe.get('dense_bps_scale')==private.M5_DENSE_BPS_SCALE if bps else 'dense_bps_scale' not in recipe),
+        'FACTOR_QUALIFICATION_BINDING')
+    expected=native_direction_research_recipe(batch_size=16,max_updates=5952 if continuation else 2976,
+        dense_minutes=True,dense_bps=bps)
+    _require(recipe['numerical_recipe']==expected,'FACTOR_CANONICAL_NUMERICS')
+    review=_read(FACTOR_QUALIFICATION,'matched factor private review')
+    _require(review.get('status')=='PASS_VERIFIED_PRIVATE_MECHANICS_NOT_EDGE' and review.get('physical_boot_id')==583
+        and review.get('unique_train_parents')==32 and review.get('physical_optimizer_updates')==4
+        and review.get('initial_predictions')==256 and review.get('initial_shared_state_and_rng_parity') is True
+        and review.get('signed_bps_gradient_rows')==60 and review.get('bps_only_joint_projection_nonzero',0)>0
+        and review.get('bit_exact_resume') is True and review.get('m1_entry_input') is False
+        and review.get('private_weights_for_main_fit') is False and review.get('test_data_used') is False,'FACTOR_PRIVATE_REVIEW')
+    plan=_read(review['plan'],'factor private plan');prior_ref=plan['recipe'];prior=_read(prior_ref,'factor private recipe')
+    result=_read(review['result'],'factor private result');receipt=_read(review['receipt'],'factor private receipt')
+    power=_read(review['power_after'],'factor post-campaign power')
+    _require(plan.get('source_commit')==review.get('source_commit') and receipt.get('plan_sha256')==plan.get('plan_sha256')
+        and receipt.get('outcome')=='COMPLETE' and receipt.get('guard_decision')=='PASS'
+        and receipt.get('trainer_guard_exit_code')==receipt.get('progress_observer_exit_code')==0
+        and receipt.get('test_data_used') is False and result.get('recipe')==prior_ref and result.get('decision')=='PASS_M5_DENSE_BPS_PRIVATE_MECHANICS'
+        and result.get('dense_bps_initial_prediction_and_shared_state_parity') is True
+        and result.get('bit_exact_resume') is True and result.get('source_unchanged') is True
+        and result.get('private_weights_for_main_fit') is False and result.get('test_data_used') is False
+        and power.get('task_state')=='Disabled' and power.get('configured_power_limit_w')==250, 'FACTOR_PRIVATE_TERMINAL')
+    keys=('input_manifest','fold','dense_target','dense_target_result','dense_source_transition_proof',
+        'decimal_input_audit','decimal_target_refs','candidate_mode','parent_order_algorithm')
+    omitted={'max_updates','contract_sha256','dense_signed_bps_supervision','research_objective_sha256'}
+    _require(prior.get('run_scope')==prefix.M5_DENSE_BPS_PRIVATE_SCOPE
+        and all(prior.get(k)==recipe.get(k) for k in keys)
+        and {k:v for k,v in prior['numerical_recipe'].items() if k not in omitted}
+            =={k:v for k,v in recipe['numerical_recipe'].items() if k not in omitted}, 'FACTOR_PRIVATE_INPUTS')
+    for key in ('factor_initial_report','decimal_initial_predictions'):
+        campaign.require_binding(recipe[key],label='factor '+key,verify_file=True)
+    if bps: campaign.require_binding(recipe['dense_bps_scale'],label='factor bps scale',verify_file=True)
+    require_factor_source_transition(source_repo,source_commit,review['source_commit'],prior['source_owners'],owners)
+    if continuation: require_factor_continuation(recipe,owners,source_commit=source_commit)
+
+
+def require_factor_continuation(recipe, owners, *, source_commit):
+    """Accept only the terminal checkpoint of the exact matched sign fit."""
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    origin=recipe.get('continuation_origin');keys={'review','launch_recipe','terminal_state','initial_state',
+        'initial_measurement','terminal_train_measurement','terminal_train_predictions'}
+    _require(isinstance(origin,Mapping) and set(origin)==keys, 'FACTOR_ORIGIN_FIELDS')
+    expected_review=FACTOR_RUNTIME_ROOTS['sign_one_pass'].removesuffix('/RUNTIME')+'/ACTUAL_FIT_REVIEW_001.json'
+    _require(origin['review'].get('path')==expected_review,'FACTOR_ORIGIN_REVIEW_PATH')
+    review=_read(origin['review'],'matched sign fit review');old=_read(origin['launch_recipe'],'matched sign fit recipe')
+    result=_read(review['result'],'matched sign fit result');terminal=_read(origin['terminal_train_measurement'],'matched sign terminal train')
+    initial=_read(origin['initial_measurement'],'matched sign initial train')
+    receipt=_read(review['receipt'],'matched sign terminal receipt');plan=_read(review['plan'],'matched sign fit plan')
+    original_commit=review.get('source_commit')
+    _require(type(original_commit) is str and campaign._COMMIT.fullmatch(original_commit) is not None
+        and subprocess.run(['git','merge-base','--is-ancestor',original_commit,source_commit],
+            cwd=Path(recipe['source_repo']),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0,
+        'FACTOR_ORIGIN_SOURCE_ANCESTRY')
+    _require(review.get('status')=='PASS_CONSUMED_M5_FACTOR_SIGN_ONEPASS'
+        and review.get('recipe')==origin['launch_recipe']
+        and review.get('training_source_unchanged') is True and review.get('optimizer_updates')==2976
+        and review.get('train_parents')==47602 and review.get('signed_guard_pass') is True
+        and review.get('test_data_used') is False and review.get('private_weights_reused') is False
+        and plan.get('source_commit')==original_commit and plan.get('recipe')==origin['launch_recipe']
+        and receipt.get('plan_sha256')==plan.get('plan_sha256')
+        and receipt.get('outcome')=='COMPLETE' and receipt.get('guard_decision')=='PASS'
+        and receipt.get('trainer_guard_exit_code')==receipt.get('progress_observer_exit_code')==0
+        and receipt.get('test_data_used') is False
+        and old.get('run_scope')==prefix.M5_FACTOR_SIGN_SCOPE and old.get('source_owners')==owners
+        and old.get('input_manifest')==recipe['input_manifest'] and old.get('fold')==recipe['fold']
+        and old.get('dense_target')==recipe['dense_target'] and old.get('dense_evaluation_protocol')==recipe['dense_evaluation_protocol']
+        and old.get('factor_initial_report')==recipe['factor_initial_report']
+        and result.get('recipe')==origin['launch_recipe'] and result.get('source_unchanged') is True
+        and result.get('test_data_used') is False and result.get('qualification_weights_reused') is False
+        and result.get('outcome')=='COMPLETE' and result.get('parent_cursor')==47602
+        and result.get('optimizer_updates')==2976 and result.get('full_state')==origin['terminal_state']
+        and result.get('own_initial_state')==origin['initial_state']
+        and result.get('initial_measurement')==origin['initial_measurement']
+        and result.get('final_train_measurement')==origin['terminal_train_measurement']
+        and initial.get('role')=='INITIAL_TRAIN' and initial.get('own_initial_state')==origin['initial_state']
+        and initial.get('fold')==recipe['fold'] and initial.get('test_data_used') is False
+        and terminal.get('role')=='FINAL_TRAIN' and terminal.get('fold')==recipe['fold']
+        and terminal.get('own_initial_state')==origin['initial_state'] and terminal.get('test_data_used') is False
+        and terminal.get('predictions')==origin['terminal_train_predictions']
+        and {k:v for k,v in old.get('numerical_recipe',{}).items() if k not in ('max_updates','contract_sha256')}
+            =={k:v for k,v in recipe['numerical_recipe'].items() if k not in ('max_updates','contract_sha256')},
+        'FACTOR_ORIGIN_TERMINAL')
+    for key in ('terminal_state','initial_state','initial_measurement','terminal_train_predictions'):
+        campaign.require_binding(origin[key],label='matched sign '+key,verify_file=True)
