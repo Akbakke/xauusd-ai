@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+30.10 — MATCHEDE BPS-ETTPASS KLARGJØRES: Korrigert fasit og alle 60 TRAIN-bps-skalaer er kontrollert mot originalkilden. Den rene signreferansen er fullført og konsumert; en egen bps-kampanje skal bindes én gang på samme 64 kildeeiere, 47 602 TRAIN-foreldre, startreferanse og Q1-rader. Ingen bps-hovedtrening er startet. Etter maskindekkende idle-/skrivekontroll kreves fysisk restart før hvert capped vindu; 250 W beholdes. To-pass, TEST og handel har ikke åpnet. Se NEXT_RUN_POLICY.
+
 30.10 — REN M5-RETNINGSREFERANSE FULLFØRT OG KONSUMERT: Boot 584, 47 602 TRAIN-foreldre, 2 976 oppdateringer og 17 288 senere Q1-foreldre; signert vakt og terminalkjede PASS. Prediksjonsarkivet er byteidentisk med tidligere M5-price-only. På 17 192 femminuttersrader var treff 48,616 % mot 51,582 % alltid opp og AUC 0,496961; ingen av 60 horisonter har begge simultane AUC-nedre grenser over 0,5. Engangsoppgaven er deaktivert, GPU-grensen er 250 W og faktisk ettertrekk 25,7 W. Alle treningsporter er stengt. Se docs/DIRECTION_M5_FACTOR_SIGN_ONEPASS_RESULT_20261030.md og NEXT_RUN_POLICY.
 
 30.10 — NESTE RETNINGSARBEID: Bind og forbered separat ettpass med signert bps-supervisjon på samme 64 eiere, TRAIN/Q1-rader og startreferanse; ekstra sign-pass fra eksakt terminalcheckpoint er en separat faktor. Maskindekkende idle-/skrivekontroll og fysisk restart kreves før hvert treningsvindu. Fasit og bps-skalaer er kildeverifisert; GC har påvist første-dags historikkbegrensning. Ingen årsak til manglende edge er bevist. TEST, Exit, broker, ordre, live/paper, spending og promotion er stengt.
