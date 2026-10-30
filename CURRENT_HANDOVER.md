@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+30.10 — AVGRENSET BPS-KVALIFISERING AUTORISERT: Ren kildeforkontroll bestod for 63 eiere, og den eksakte ruten håndhever 250 W konfigurert grense. Én privat kontroll med 32 TRAIN-foreldre, fire oppdateringer, 60 bps-hoder og separat gradientkontroll kan klargjøres; fysisk restart kreves etter maskindekkende idle-/skrivekontroll. 256 startprediksjoner, felles modell/buffere/RNG og resume må samsvare. Ingen modell er startet, private vekter brukes ikke i hovedfit, og full fit/TEST/handel/Exit er stengt. Se NEXT_RUN_POLICY.
+
 30.10 — EFFEKTGRENSE KVALIFISERINGSRUTE: Den generelle native vakten tillot inntil 300 W selv om brukeren hadde valgt 250 W. Den nye privat-ruten velger nå maks konfigurert 250 W etter kontroll av eksakt vindu/recipe; øvrige eksisterende temperatur-, effekt- og telemetrivakter beholdes. Kilden og revidert recipe trenger ny test og ren metadataforkontroll før eventuell start. Ingen trening er startet.
 
 30.10 — BPS-PRIVAT RUTE FORBEREDT: Egen M5-recipe med 63 hashbundne kildeeiere passerte metadataforkontroll på modifisert kilde; kontrollen må gjentas etter ren commit. Syntetiske tester dekker gjenbruk av kvalifisert skala, 256-logits/felles modell-/buffer-/RNG-paritet, alle 60 bps-hoder, separat bps-gradient til delt representasjon og eksakt resume. En ekte privat kontroll på 32 TRAIN-foreldre/fire oppdateringer er ikke startet. Ingen kvalifiseringsvekter skal brukes videre; TEST og handel er stengt. Se NEXT_RUN_POLICY.

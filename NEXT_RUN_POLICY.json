@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-29T23:21:51.619030+00:00",
-  "status": "DIRECTION_DENSE_BPS_PRIVATE_RECIPE_PREPARED_TRAINING_CLOSED",
-  "training_enabled": false,
+  "status": "DIRECTION_DENSE_BPS_PRIVATE_ONE_SHOT_PREPARATION_ONLY",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only the separately bound one-shot CPU review of saved Q1–Q4 2025 forecasts, corrected labels and D1 GC coverage is authorized. Training, TEST, Exit, broker, orders, paper/live, spending and promotion remain closed.",
-  "next_action": "Validate the exact 250 W private guard and repeat the 63-owner metadata preflight on a clean commit, then bind one guarded four-update private campaign and physical restart; TEST and trading remain closed.",
+  "next_action": "Materialize the exact single private qualification once; require machine-wide idle/writer review and a fresh physical Windows boot before its four-update capped execution. No full fit, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -20385,7 +20385,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-29T23:56:45.668280+00:00",
+  "updated_utc": "2026-10-30T00:10:15.639920+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -31171,7 +31171,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -47678,7 +47678,7 @@
     "all_60_counts_match_prior_decimal_audit": true
   },
   "dynamic_m5_direction_dense_bps_private_20261030_001": {
-    "status": "PRIVATE_SOURCE_AND_DIRTY_METADATA_PREFLIGHT_ONLY",
+    "status": "PRIVATE_ONE_SHOT_PREPARATION_AUTHORIZED_NOT_STARTED",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_DENSE_BPS_PRIVATE_RECIPE_20261030.json",
       "sha256": "05da3f3422010d7c7707ef5d16795e57ba291a6e2fd39a99bb3a7c6e8641905a"
@@ -47686,17 +47686,17 @@
     "run_root": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/RUNTIME",
     "source_owner_count": 63,
     "synthetic_tests_last_focused_run": 234,
-    "metadata_preflight": "Requires fresh preflight after scoped 250 W guard update and clean commit.",
+    "metadata_preflight": "PASS at committed source cc7b8b9eab2cbb011f3919bb16a44f913d93080e; repeat after policy commit.",
     "scope": "M5 price-only; unchanged 60 direction heads plus 60 normalized signed-bps heads, 32 fixed TRAIN parents, four physical optimizer updates and one bps-only reverse proof; 256 initial predictions and all shared model/buffer/RNG values must match prior M5 initial.",
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
-    "genuine_updates_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
     "genuine_predictor_fit_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
+    "training_enabled": true,
+    "native_training_enabled": true,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -47719,6 +47719,26 @@
       "model_forwards": 0,
       "optimizer_steps": 0,
       "test_data_used": false
-    }
+    },
+    "campaign_preparation_authorized": true,
+    "physical_restart_before_invocation_authorized": true,
+    "qualification_weights_for_main_fit": false,
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/materialize_research_campaign_once.py",
+      "sha256": "b7e450e1296fd5a2221f939b5dc57b3b72f3f1d311e76756f02b0eda646c8fb3"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_DENSE_BPS_PRIVATE_20261030_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "000e2f9b2c9927c5c8da017a13a969d3985819be4fb0ed2a6808cfb380719e95"
+    },
+    "source_preflight": {
+      "status": "PASS_COMMITTED_CLEAN_SOURCE",
+      "source_commit": "cc7b8b9eab2cbb011f3919bb16a44f913d93080e",
+      "physical_source_owners_verified": 63,
+      "model_forward": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false
+    },
+    "user_authorization": "Direct independent direction research without repeated approvals; M5 decision cadence, physical restart, and 250 W retained. One private mechanics qualification only."
   }
 }
