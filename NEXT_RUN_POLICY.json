@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "40focusedtests and source/metadata review qualified upstream diagnostic. Verify clean exactplan then admit one TRAIN-only producer before next family. Five fits/five remaining; allpaired contrasts pending.",
+  "next_action": "Execute exact admitted UPSTREAM_GRADIENT_PLAN_20261031_001 once through capped CUDAproducer; keep source frozen through terminal. Then close gate and interpret bounded activation evidence before next family.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "40focusedtests and source/metadata review qualified upstream diagnostic. Verify clean exactplan then admit one TRAIN-only producer before next family. Five fits/five remaining; allpaired contrasts pending.",
+    "next_action": "Execute exact admitted UPSTREAM_GRADIENT_PLAN_20261031_001 once through capped CUDAproducer; keep source frozen through terminal. Then close gate and interpret bounded activation evidence before next family.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "FIVE_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_SYNTHETIC_QUALIFIED",
+    "status": "FIVE_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_ADMITTED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -49396,9 +49396,9 @@
     "power_retained_w": 250
   },
   "direction_family_upstream_gradient_diagnostic_20261031_001": {
-    "status": "SOURCE_SYNTHETIC_QUALIFIED_PLAN_BOUND_NOT_LAUNCHED",
+    "status": "ADMITTED",
     "user_authorization": "31October user challenges weak direction and asks investigation of whether work looks in wrong place; original bounded family study and mismatch audit remain active.",
-    "scope": "One frozen family baseline; fixed256TRAIN,16evalforwards,32activationreverse,zerooptimizer. Gated inputs and outputs; additive output gradients are identity checks. No genuine admission yet.",
+    "scope": "One exact frozenbaseline TRAIN256 diagnostic:16evalforwards/32autogradreverse/zerooptimizer. Existing cappedCUDAproducer and250W guard. No reboot and no model updates. Claim then immutable terminal; never relaunch.",
     "source_edits_authorized": true,
     "synthetic_tests_authorized": true,
     "source_scope": [
@@ -49418,10 +49418,10 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_RECONNAISSANCE_20261031_001.json",
       "sha256": "cfa58d4b4834a739d44f7057c39f01bb2b9e59ff78e82428e8bac12e5656afee"
     },
-    "execution_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
+    "execution_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
     "genuine_updates_authorized": false,
     "training_enabled": false,
     "native_launch_authorized": false,
@@ -49448,6 +49448,11 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_SOURCE_QUALIFICATION_001/CLEAN_METADATA_PREFLIGHT.json",
+      "sha256": "311061762fccb40162850b40c4c445bc0aefaef612f50e34668c2c4b8d439376"
+    },
+    "data_reads_authorized": true
   }
 }
