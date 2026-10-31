@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-31T19:56:28.486117+00:00",
-  "status": "FIVE_FITS_COMPLETE_MOMENTUM_FULLFIT_SOURCE_PREPARED",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "status": "FIVE_FITS_COMPLETE_MOMENTUM_FULLFIT_ADMITTED",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Run capped exact momentum full-fit recipe preflight on clean committed source; all genuine training gates closed pending separate admission.",
+  "next_action": "Materialize the exact momentum full-fit campaign once, install task and collect fresh Windows/WSL idle proof before manual same-boot launch. No extra pass or TEST/Exit/trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Momentum private complete; exact matched momentum full-fit recipe source-prepared, canonical preflight pending.",
+    "current_activity": "Momentum private and clean canonical full-fit preflight passed. Exact one-pass momentum family campaign admitted; materialization and fresh idle proof pending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run capped exact momentum full-fit recipe preflight on clean committed source; all genuine training gates closed pending separate admission.",
+    "next_action": "Materialize the exact momentum full-fit campaign once, install task and collect fresh Windows/WSL idle proof before manual same-boot launch. No extra pass or TEST/Exit/trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17458,8 +17458,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": false,
-    "current_training_scope": "All native execution closed after momentum private qualification; next full fit requires its own exact admission.",
+    "current_native_launch_authorized": true,
+    "current_training_scope": "EXACT_MOMENTUM_FAMILY_ONEPASS_47602_TRAIN_2976_UPDATES_FULLTRAIN_AND_17288_Q1_ONLY",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17821,7 +17821,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
     },
-    "native_training_stage": "dynamic_m5_direction_family_private_momentum_flow_20261031_001",
+    "native_training_stage": "dynamic_m5_direction_family_momentum_flow_onepass_fit_20261031_001",
     "genuine_predictor_fit_completed": true,
     "current_m5_direction_evidence": {
       "fit_review": {
@@ -20432,7 +20432,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-10-31T20:41:54.121454+00:00",
+  "updated_utc": "2026-10-31T20:42:28.904829+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -26334,7 +26334,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": false,
+  "native_launch_authorized": true,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -31218,7 +31218,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35960,7 +35960,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_ALL_CURRENT_EXECUTION_CLOSED",
+  "training_enabled_scope": "EXACT_MOMENTUM_FAMILY_ONEPASS_47602_TRAIN_2976_UPDATES_FULLTRAIN_AND_17288_Q1_ONLY",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "FIVE_FITS_COMPLETE_MOMENTUM_PRIVATE_CONSUMED",
+    "status": "FIVE_FITS_COMPLETE_MOMENTUM_FULLFIT_ADMITTED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48446,6 +48446,14 @@
     "momentum_flow_private_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_MOMENTUM_FLOW_001/VERIFIED_TERMINAL.json",
       "sha256": "5a171359c5ef674cfeb83fac2a2de28f3e317b7b4bdbaa2c860179a7ef683267"
+    },
+    "prepared_momentum_flow_full_fit_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_MOMENTUM_FLOW_ONEPASS_FIT_RECIPE_20261031.json",
+      "sha256": "b931c3cf8dea4358288a7194181d8b2f8fa47a580efcb40ae5636b3020668092"
+    },
+    "momentum_flow_full_fit_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_MOMENTUM_FLOW_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "f3c10a5a91d812cbdf19497ef194590d32c6e5f8f782810921c013ad6068881f"
     }
   },
   "direction_family_input_pilot_20261030_001": {
@@ -49624,7 +49632,7 @@
     "power_retained_w": 250
   },
   "dynamic_m5_direction_family_momentum_flow_onepass_fit_20261031_001": {
-    "status": "SOURCE_PREPARED_MOMENTUM_FULLFIT_PREFLIGHT_PENDING",
+    "status": "ADMITTED_MATCHED_MOMENTUM_ONEPASS_FULLTRAIN_LATER",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_MOMENTUM_FLOW_ONEPASS_FIT_RECIPE_20261031.json",
       "sha256": "b931c3cf8dea4358288a7194181d8b2f8fa47a580efcb40ae5636b3020668092"
@@ -49662,18 +49670,18 @@
     },
     "user_authorization": "Original explicit matched-nine-family study; continue unchanged prespecified momentum arm after own private qualification. No new model/loss/extra pass.",
     "scope": "Same initial/model/order/numerics,2976updates total across up to4guarded windows. FullTRAIN47602 scoring in separate post-training window and same17288Q1. Each window requires fresh one-use machine-wide idle proof; may reuse same boot. No HPO or extra pass.",
-    "campaign_preparation_authorized": false,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
-    "genuine_updates_authorized": false,
-    "genuine_predictor_fit_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
-    "full_epoch_training_allowed": false,
-    "native_launch_authorized": false,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
     "physical_restart_before_each_invocation_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -49681,6 +49689,10 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_val_allowed": false,
-    "same_boot_after_idle_review_authorized": false
+    "same_boot_after_idle_review_authorized": true,
+    "metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_MOMENTUM_FLOW_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "f3c10a5a91d812cbdf19497ef194590d32c6e5f8f782810921c013ad6068881f"
+    }
   }
 }
