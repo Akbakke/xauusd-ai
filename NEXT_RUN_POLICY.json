@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Interpret upstream finding against existing simple-reference profile/representation scope before next genuine run; no repeat of head-gradient/10xweight/extra-pass tests and no unproved rescaling. Original5remaining familyfits/allpairedcontrasts remain open. Genuine gatesclosed.",
+  "next_action": "Qualify exactmomentumfamilyprivate recipe/controlscope then admit32TRAIN/4updates once afterfreshsamebootidleproof. No modelnumericschange; fivecompleted/fiveremain and allpairedcontrasts pending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Interpret upstream finding against existing simple-reference profile/representation scope before next genuine run; no repeat of head-gradient/10xweight/extra-pass tests and no unproved rescaling. Original5remaining familyfits/allpairedcontrasts remain open. Genuine gatesclosed.",
+    "next_action": "Qualify exactmomentumfamilyprivate recipe/controlscope then admit32TRAIN/4updates once afterfreshsamebootidleproof. No modelnumericschange; fivecompleted/fiveremain and allpairedcontrasts pending.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "FIVE_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_COMPLETE_CAUSE_UNPROVED",
+    "status": "FIVE_FITS_COMPLETE_MOMENTUM_PRIVATE_SOURCE_PREPARATION",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48434,7 +48434,11 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/VERIFIED_TERMINAL.json",
       "sha256": "bad38b76fd8efa901141bdfe500b73790e213c104479dbbb181502f8d65e1aa0"
     },
-    "diagnostic_followup": "direction_family_upstream_gradient_diagnostic_20261031_001"
+    "diagnostic_followup": "direction_family_upstream_gradient_diagnostic_20261031_002",
+    "existing_simple_reference_scope_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/EXISTING_SIMPLE_REFERENCE_SCOPE_REVIEW_20261031_002.json",
+      "sha256": "45136a9d2cb207e12334daa7c68c7db7cb1a3e26de4e1f11ce506d1f5feead06"
+    }
   },
   "direction_family_input_pilot_20261030_001": {
     "status": "PASS_CONSUMED_ACTUAL_INPUT_PILOT",
@@ -49540,5 +49544,57 @@
     "model_state_preserved": true,
     "root_cause_established": false,
     "predictive_improvement_established": false
+  },
+  "dynamic_m5_direction_family_private_momentum_flow_20261031_001": {
+    "status": "SOURCE_RECIPE_PREPARATION_ONLY",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_MOMENTUM_FLOW_PRIVATE_RECIPE_20261031.json",
+      "sha256": "deec024953d8875bb04fd298d3ad07a524b25103f7c8c366f42b73d4224ce3df"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_MOMENTUM_FLOW_001/RUNTIME",
+    "source_owner_count": 63,
+    "family_arm": "momentum_flow_encoder",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "scope": "One private32TRAIN/4physicalupdates/37forwards proposed for nextprespecifiedmomentumfamily. Source/metadataonly; no genuineadmission yet.",
+    "qualification_weights_for_main_fit": false,
+    "requested_physical_gpu_power_limit_w": 250,
+    "retain_physical_gpu_power_limit_w_afterward": 250,
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_MOMENTUM_FLOW_001/materialize_research_campaign_same_boot_once.py",
+      "sha256": "ef8a64e1ff828838832150f6c6673ef8ee3688cd00e2e7d8f5d1f6485e31de13"
+    },
+    "input_audit_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/INDEPENDENT_AGGREGATE_REVIEW_001.json",
+      "sha256": "cfe793cdbede0ea59c507ad4cf33b5443caae925e16a2f277af3c6b50abdd601"
+    },
+    "control_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SAME_BOOT_CONTROL_QUALIFICATION_001/FOCUSED_ADMISSION_RETEST_RESULT.json",
+      "sha256": "0a830360592b2d336375716d6952a823832a24f22343cb297b3149979d0b52c1"
+    },
+    "user_authorization": "Original explicit matchedninefamily study and continuation; after source-reviewed upstream/reference limits, continue unchangedprespecifiedmomentumarm. No architecture/loss/extra-pass change.",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
+    "same_boot_after_idle_review_authorized": false,
+    "physical_restart_before_each_invocation_authorized": false,
+    "physical_restart_before_invocation_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false
   }
 }
