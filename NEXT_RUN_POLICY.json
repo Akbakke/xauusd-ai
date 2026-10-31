@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-31T15:47:27.772558+00:00",
-  "status": "DIRECTION_FAMILY_VOL_COMPRESSION_ONEPASS_PREPARATION",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "observed_utc": "2026-10-31T19:56:28.486117+00:00",
+  "status": "FIVE_FAMILY_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_SOURCE_PREPARATION",
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only exact volatility/compression matched family fit admitted:47602TRAIN,2976updates total,fullTRAIN and17288Q1scoring. Fresh one-use same-boot idle proof per window. Other arms,TEST,Exit,trading closed.",
-  "next_action": "Prepare and launch exact volatility/compression matched one-pass fit after clean metadata preflight and fresh machine-wide one-use idle proof. Four fits complete; six families and all paired contrasts remain.",
+  "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
+  "next_action": "Implement and synthetically qualify the bounded TRAIN-only upstream activation-gradient diagnostic on existing baseline checkpoint before next family; no genuine diagnostic/model execution admitted yet. Five fits complete; five arms and all paired contrasts remain.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Prepare and launch exact volatility/compression matched one-pass fit after clean metadata preflight and fresh machine-wide one-use idle proof. Four fits complete; six families and all paired contrasts remain.",
+    "current_activity": "Implement and synthetically qualify the bounded TRAIN-only upstream activation-gradient diagnostic on existing baseline checkpoint before next family; no genuine diagnostic/model execution admitted yet. Five fits complete; five arms and all paired contrasts remain.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -284,11 +284,11 @@
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Volatility/compression private mechanics complete; four full matched fits complete and all paired contrasts pending.",
+    "latest_terminal_role": "Volatility/compression full TRAIN/later evaluation verified; no family value qualified.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_TREND_EMA_001/VERIFIED_TERMINAL.json",
-      "sha256": "6c6f2797e3898242fa9c86c7219512e639e801cbbebfa9ced5289a3b22d082a8"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/VERIFIED_TERMINAL.json",
+      "sha256": "bad38b76fd8efa901141bdfe500b73790e213c104479dbbb181502f8d65e1aa0"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare and launch exact volatility/compression matched one-pass fit after clean metadata preflight and fresh machine-wide one-use idle proof. Four fits complete; six families and all paired contrasts remain.",
+    "next_action": "Implement and synthetically qualify the bounded TRAIN-only upstream activation-gradient diagnostic on existing baseline checkpoint before next family; no genuine diagnostic/model execution admitted yet. Five fits complete; five arms and all paired contrasts remain.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -16226,7 +16226,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Volatility private:32TRAINparents,4updates,37forwards,exactresume and selected-input checks. No family predictive-value claim.",
+    "latest_terminal_evidence_scope": "47602TRAIN/2976updates;17288later/0newupdates;all60savedpanelsreproduced. Five-minute lateraccuracy0.5047696603,AUC0.5077022666;worsefixedpriorpropermetrics.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -17458,8 +17458,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": true,
-    "current_training_scope": "Same initial/model/order/numerics,2976updates total across up to4guarded windows. FullTRAIN47602 scoring in separate post-training window and same17288Q1. Each window requires fresh one-use machine-wide idle proof; may reuse same boot. No HPO or extra pass.",
+    "current_native_launch_authorized": false,
+    "current_training_scope": "All genuine training/diagnostic execution closed; source-only upstream diagnostic preparation before next family.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17821,7 +17821,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
     },
-    "native_training_stage": "dynamic_m5_direction_family_vol_compression_onepass_fit_20261031_001",
+    "native_training_stage": "direction_family_upstream_gradient_diagnostic_20261031_001",
     "genuine_predictor_fit_completed": true,
     "current_m5_direction_evidence": {
       "fit_review": {
@@ -26334,7 +26334,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": true,
+  "native_launch_authorized": false,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -31218,7 +31218,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35960,7 +35960,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "dynamic_m5_direction_family_vol_compression_onepass_fit_20261031_001",
+  "training_enabled_scope": "NONE",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "FOUR_FITS_COMPLETE_VOL_PRIVATE_COMPLETE_FULLFIT_PREPARATION",
+    "status": "FIVE_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_SOURCE_PREPARATION",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48381,10 +48381,10 @@
       "baseline",
       "structure_swing_encoder",
       "smc_liquidity_encoder",
-      "trend_ema_encoder"
+      "trend_ema_encoder",
+      "vol_compression_encoder"
     ],
     "remaining_full_fit_arms": [
-      "vol_compression_encoder",
       "momentum_flow_encoder",
       "session_regime_encoder",
       "chart_geometry_encoder",
@@ -48405,9 +48405,10 @@
       "baseline",
       "structure_swing_encoder",
       "smc_liquidity_encoder",
-      "trend_ema_encoder"
+      "trend_ema_encoder",
+      "vol_compression_encoder"
     ],
-    "remaining_nonbaseline_fit_arms": 6,
+    "remaining_nonbaseline_fit_arms": 5,
     "paired_family_comparison_complete": false,
     "structure_swing_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_STRUCTURE_SWING_001/VERIFIED_TERMINAL.json",
@@ -48428,7 +48429,12 @@
     "vol_compression_private_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_VOL_COMPRESSION_001/VERIFIED_TERMINAL.json",
       "sha256": "30d4c4e677ac411179add96f2c04804982b4afe6f8e9e4e4a0a70f69848a0d35"
-    }
+    },
+    "vol_compression_verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/VERIFIED_TERMINAL.json",
+      "sha256": "bad38b76fd8efa901141bdfe500b73790e213c104479dbbb181502f8d65e1aa0"
+    },
+    "diagnostic_followup": "direction_family_upstream_gradient_diagnostic_20261031_001"
   },
   "direction_family_input_pilot_20261030_001": {
     "status": "PASS_CONSUMED_ACTUAL_INPUT_PILOT",
@@ -49312,7 +49318,7 @@
     "power_retained_w": 250
   },
   "dynamic_m5_direction_family_vol_compression_onepass_fit_20261031_001": {
-    "status": "ADMITTED_EXACT_VOL_COMPRESSION_ONEPASS_SAME_BOOT",
+    "status": "COMPLETE_CONSUMED_VOL_COMPRESSION_FULLTRAIN_LATER",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_VOL_COMPRESSION_ONEPASS_FIT_RECIPE_20261031.json",
       "sha256": "41e7628104da56aa1a5360e3da5b34dbbc6f47264cd0ea57000b499e786d3fe2"
@@ -49330,8 +49336,8 @@
     "max_optimizer_updates": 2976,
     "train_passes": 1,
     "max_invocations": 4,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 2,
+    "completed_invocations": 2,
     "relaunch_allowed": false,
     "requested_physical_gpu_power_limit_w": 250,
     "retain_physical_gpu_power_limit_w_afterward": 250,
@@ -49350,18 +49356,18 @@
     },
     "user_authorization": "30October explicit matched-family study and continue;31October fewer restarts. Exactly one volatility/compression conditional-value intervention pass after own private qualification.",
     "scope": "Same initial/model/order/numerics,2976updates total across up to4guarded windows. FullTRAIN47602 scoring in separate post-training window and same17288Q1. Each window requires fresh one-use machine-wide idle proof; may reuse same boot. No HPO or extra pass.",
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
     "physical_restart_before_each_invocation_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -49369,10 +49375,58 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_val_allowed": false,
-    "same_boot_after_idle_review_authorized": true,
+    "same_boot_after_idle_review_authorized": false,
     "metadata_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/RECIPE_PREFLIGHT_001.json",
       "sha256": "21fbad5992835de65ce463c6f23071b53a69ec4c0569f9a8c2adb24da9e2c625"
-    }
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/VERIFIED_TERMINAL.json",
+      "sha256": "bad38b76fd8efa901141bdfe500b73790e213c104479dbbb181502f8d65e1aa0"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "bd6fa7ee0f8048d5c1714ebbc56c6bce534abd43ca64628db21a1a3b010f3c4d"
+    },
+    "saved_prediction_verification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/SAVED_PREDICTION_VERIFY_001/RESULT.json",
+      "sha256": "e6e2f49437abae709565bcb910c197935853988ac124a37c6ce114ed3c9cd81b"
+    },
+    "task_disabled": true,
+    "power_retained_w": 250
+  },
+  "direction_family_upstream_gradient_diagnostic_20261031_001": {
+    "status": "SOURCE_DESIGN_PREPARATION_ONLY",
+    "user_authorization": "31October user challenges weak direction and asks investigation of whether work looks in wrong place; original bounded family study and mismatch audit remain active.",
+    "scope": "Bounded TRAIN-only upstream activation-gradient diagnosis before next family. One frozen baseline checkpoint, existing256diagnosticTRAINparents,16forwards,32reversecalls,zerooptimizer proposed; no genuine execution yet.",
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": true,
+    "source_scope": [
+      "existing momentum trace/intervention diagnostic and technical/producer dispatch",
+      "focused synthetic tests",
+      "exact diagnostic design/policy/handover"
+    ],
+    "diagnostic_scope_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/DIAGNOSTIC_SCOPE_REVIEW_20261031_001.json",
+      "sha256": "af5b675ae48f70a5167aa6a7959a3aa433dfe25d482d77973fa5bb2ca27baaca"
+    },
+    "optimizer_reference_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/DIAGNOSTIC_OPTIMIZER_AND_REFERENCE_REVIEW_20261031_001.json",
+      "sha256": "4104ac1568f61ddfb4f1f59642ab40f15405ce45c0302155fb990fa8de961c98"
+    },
+    "implementation_reconnaissance": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_RECONNAISSANCE_20261031_001.json",
+      "sha256": "cfa58d4b4834a739d44f7057c39f01bb2b9e59ff78e82428e8bac12e5656afee"
+    },
+    "execution_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }
