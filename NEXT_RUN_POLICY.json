@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-31T11:28:52.308947+00:00",
-  "status": "DIRECTION_FAMILY_TREND_EMA_ONEPASS_ADMITTED",
+  "observed_utc": "2026-10-31T15:35:28.434773+00:00",
+  "status": "DIRECTION_FAMILY_VOL_COMPRESSION_PRIVATE_PREPARATION",
   "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only exact trend/EMA family fixed-prefix one-pass campaign admitted; four windows share 2976 updates total, with full TRAIN and fixed Q1 scoring. No other arm, extra epoch, HPO, TEST, Exit, broker, trading or promotion.",
-  "next_action": "Materialize/install exact trend/EMA one-pass campaign on committed source; fresh Windows/WSL idle proof and manual same-boot start. Preserve 2976-update ceiling and full TRAIN47602/Q117288 scoring. Observe actual handle every15-30min; no routine reboot.",
+  "rule": "Only exact volatility/compression private family mechanics qualification admitted: 32 TRAIN parents, four updates, 37 forwards; fresh one-use same-boot idle proof required. Full fit, other arms, TEST, Exit and trading closed.",
+  "next_action": "Qualify volatility/compression private mechanics on unchanged source owners after metadata preflight and fresh same-boot idle proof. Four matched fits complete; six families and all paired contrasts remain.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Materialize/install exact trend/EMA one-pass campaign on committed source; fresh Windows/WSL idle proof and manual same-boot start. Preserve 2976-update ceiling and full TRAIN47602/Q117288 scoring. Observe actual handle every15-30min; no routine reboot.",
+    "current_activity": "Qualify volatility/compression private mechanics on unchanged source owners after metadata preflight and fresh same-boot idle proof. Four matched fits complete; six families and all paired contrasts remain.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -284,11 +284,11 @@
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": false,
-    "latest_terminal_role": "Trend/EMA own private mechanics complete; three matched full fits complete; seven family fits and all contrasts pending.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_TREND_EMA_001/RUNTIME",
+    "latest_terminal_role": "Trend/EMA fullTRAIN/later consistency verified; family value and paired uncertainty not established.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_VOL_COMPRESSION_001/RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_TREND_EMA_001/VERIFIED_TERMINAL.json",
-      "sha256": "c015a5e4d7913f63826cd58dfaef84f93165e86480bb41278dd8937614fb9e39"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_TREND_EMA_001/VERIFIED_TERMINAL.json",
+      "sha256": "6c6f2797e3898242fa9c86c7219512e639e801cbbebfa9ced5289a3b22d082a8"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -26334,7 +26334,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": true,
+  "native_launch_authorized": false,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -35960,7 +35960,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "dynamic_m5_direction_family_trend_ema_onepass_fit_20261031_001",
+  "training_enabled_scope": "dynamic_m5_direction_family_private_vol_compression_20261031_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "BASELINE_STRUCTURE_SMC_COMPLETE_TREND_FIT_ADMITTED",
+    "status": "FOUR_FITS_COMPLETE_VOL_PRIVATE_PREPARATION",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48405,7 +48405,7 @@
       "baseline",
       "structure_swing_encoder"
     ],
-    "remaining_nonbaseline_fit_arms": 7,
+    "remaining_nonbaseline_fit_arms": 6,
     "paired_family_comparison_complete": false,
     "structure_swing_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_STRUCTURE_SWING_001/VERIFIED_TERMINAL.json",
@@ -48414,6 +48414,10 @@
     "smc_liquidity_verified_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SMC_LIQUIDITY_001/VERIFIED_TERMINAL.json",
       "sha256": "31e1e980ae09cf1ff9859c504f09fec38c1bda4f7f99cadd324a903485bd6c5d"
+    },
+    "trend_ema_verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_TREND_EMA_001/VERIFIED_TERMINAL.json",
+      "sha256": "6c6f2797e3898242fa9c86c7219512e639e801cbbebfa9ced5289a3b22d082a8"
     }
   },
   "direction_family_input_pilot_20261030_001": {
@@ -49150,7 +49154,7 @@
     "post_review_metadata_correction": "Initial power observation omitted keeper states; original retained, fresh POWER_RETAIN_002.json and reviewer002 passed. No native rerun or source change."
   },
   "dynamic_m5_direction_family_trend_ema_onepass_fit_20261031_001": {
-    "status": "ADMITTED_EXACT_TREND_EMA_ONEPASS_SAME_BOOT",
+    "status": "COMPLETE_CONSUMED_TREND_EMA_FULLTRAIN_LATER",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_TREND_EMA_ONEPASS_FIT_RECIPE_20261031.json",
       "sha256": "195d53d1eebd9274de8fedb549a038cfa6e047246866c8555e026cee6918d729"
@@ -49168,8 +49172,8 @@
     "max_optimizer_updates": 2976,
     "train_passes": 1,
     "max_invocations": 4,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 2,
+    "completed_invocations": 2,
     "relaunch_allowed": false,
     "requested_physical_gpu_power_limit_w": 250,
     "retain_physical_gpu_power_limit_w_afterward": 250,
@@ -49188,18 +49192,18 @@
     },
     "user_authorization": "30October explicit matched-family study and continue;31October fewer restarts. Exactly one trend/EMA conditional-value intervention pass after own private qualification.",
     "scope": "Same initial/model/order/numerics,2976updates total across up to4guarded windows. FullTRAIN47602 scoring in separate post-training window and same17288Q1. Each window requires fresh one-use machine-wide idle proof; may reuse same boot. No HPO or extra pass.",
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
     "physical_restart_before_each_invocation_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -49207,10 +49211,84 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_val_allowed": false,
-    "same_boot_after_idle_review_authorized": true,
+    "same_boot_after_idle_review_authorized": false,
     "metadata_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_TREND_EMA_001/RECIPE_PREFLIGHT_001.json",
       "sha256": "2e1c898f3f2eb13835a0b1d872bf026f87c0f7ed1c445be75233eeb72e427e97"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_TREND_EMA_001/VERIFIED_TERMINAL.json",
+      "sha256": "6c6f2797e3898242fa9c86c7219512e639e801cbbebfa9ced5289a3b22d082a8"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_TREND_EMA_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "642de2cf3c281250e6eb63bf048d005f767023ae407af9e39f7a48ce8a8ff09b"
+    },
+    "saved_prediction_verification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_TREND_EMA_001/SAVED_PREDICTION_VERIFY_001/RESULT.json",
+      "sha256": "0d1bb7cb59af012b9be4df717e7d42a19ea76f0352e2bfa2a3360fce1d0c3605"
+    },
+    "task_disabled": true,
+    "power_retained_w": 250
+  },
+  "dynamic_m5_direction_family_private_vol_compression_20261031_001": {
+    "status": "ADMITTED_EXACT_VOL_COMPRESSION_PRIVATE_SAME_BOOT_PREPARATION",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_VOL_COMPRESSION_PRIVATE_RECIPE_20261031.json",
+      "sha256": "22351ae3fbbe329319791fd7a53898ae59cbd3aaff880fe89002343917263f28"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_VOL_COMPRESSION_001/RUNTIME",
+    "source_owner_count": 63,
+    "family_arm": "vol_compression_encoder",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "scope": "One same-boot family private mechanics qualification:32uniqueTRAINparents,4physicalupdates,37forwards; unperturbedsharedinitialparity,owninitial,gradientcontact,exactresume. No fullfit.",
+    "qualification_weights_for_main_fit": false,
+    "requested_physical_gpu_power_limit_w": 250,
+    "retain_physical_gpu_power_limit_w_afterward": 250,
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_VOL_COMPRESSION_001/materialize_research_campaign_same_boot_once.py",
+      "sha256": "b34284afe939ec572f405f880def4c9d7a340a05a6af0b17191d98e2763c0ce1"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_VOL_COMPRESSION_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "47135dc721eee7d2cdbe28474da82b9f6354a4d08b4091432b765dfb41523fbe"
+    },
+    "input_audit_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/INDEPENDENT_AGGREGATE_REVIEW_001.json",
+      "sha256": "cfe793cdbede0ea59c507ad4cf33b5443caae925e16a2f277af3c6b50abdd601"
+    },
+    "control_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SAME_BOOT_CONTROL_QUALIFICATION_001/FOCUSED_ADMISSION_RETEST_RESULT.json",
+      "sha256": "0a830360592b2d336375716d6952a823832a24f22343cb297b3149979d0b52c1"
+    },
+    "user_authorization": "30October matchedfamily study;31October continue and fewerrestarts instruction. Sameboot only after fresh exact idleproof.",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "campaign_preparation_authorized": true,
+    "same_boot_after_idle_review_authorized": true,
+    "physical_restart_before_each_invocation_authorized": false,
+    "physical_restart_before_invocation_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_VOL_COMPRESSION_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "8d95cd555f1d6cfba60a992cb18c396bf85d34e380edd8bb6cbbbe2d27aef424"
     }
   }
 }
