@@ -290,9 +290,9 @@ validate_target_command() {
           "$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_002.json")
             m5_plan="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_002.json"
             m5_output="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_20261029_002" ;;
-          /home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_PLAN_20261031_001.json)
-            m5_plan=/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_PLAN_20261031_001.json
-            m5_output=/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_20261031_001 ;;
+          /home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_PLAN_20261031_002.json)
+            m5_plan=/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_PLAN_20261031_002.json
+            m5_output=/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_20261031_002 ;;
           *) echo "FATAL: unknown M5 momentum producer plan" >&2; exit 75 ;;
         esac
         if ! matches_bound_m5_intervention "$m5_plan" "$m5_output" "$@"; then

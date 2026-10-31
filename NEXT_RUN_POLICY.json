@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Execute exact admitted UPSTREAM_GRADIENT_PLAN_20261031_001 once through capped CUDAproducer; keep source frozen through terminal. Then close gate and interpret bounded activation evidence before next family.",
+  "next_action": "41focusedtests and source/metadata review qualified upstream diagnostic. Verify clean exactplan then admit one TRAIN-only producer before next family. Five fits/five remaining; allpaired contrasts pending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute exact admitted UPSTREAM_GRADIENT_PLAN_20261031_001 once through capped CUDAproducer; keep source frozen through terminal. Then close gate and interpret bounded activation evidence before next family.",
+    "next_action": "41focusedtests and source/metadata review qualified upstream diagnostic. Verify clean exactplan then admit one TRAIN-only producer before next family. Five fits/five remaining; allpaired contrasts pending.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "FIVE_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_ADMITTED",
+    "status": "FIVE_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_SYNTHETIC_QUALIFIED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -49396,7 +49396,7 @@
     "power_retained_w": 250
   },
   "direction_family_upstream_gradient_diagnostic_20261031_001": {
-    "status": "ADMITTED",
+    "status": "FAILED_CONSUMED_PRECONSTRUCTOR_LEGACY_SYNTHETIC_RECEIPT_GUARD",
     "user_authorization": "31October user challenges weak direction and asks investigation of whether work looks in wrong place; original bounded family study and mismatch audit remain active.",
     "scope": "One exact frozenbaseline TRAIN256 diagnostic:16evalforwards/32autogradreverse/zerooptimizer. Existing cappedCUDAproducer and250W guard. No reboot and no model updates. Claim then immutable terminal; never relaunch.",
     "source_edits_authorized": true,
@@ -49418,10 +49418,10 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_RECONNAISSANCE_20261031_001.json",
       "sha256": "cfa58d4b4834a739d44f7057c39f01bb2b9e59ff78e82428e8bac12e5656afee"
     },
-    "execution_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
+    "execution_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
     "genuine_updates_authorized": false,
     "training_enabled": false,
     "native_launch_authorized": false,
@@ -49446,13 +49446,70 @@
     },
     "synthetic_tests_passed": 40,
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "metadata_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_SOURCE_QUALIFICATION_001/CLEAN_METADATA_PREFLIGHT.json",
       "sha256": "311061762fccb40162850b40c4c445bc0aefaef612f50e34668c2c4b8d439376"
     },
-    "data_reads_authorized": true
+    "data_reads_authorized": false,
+    "failed_invocations": 1,
+    "failed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_20261031_001/FAILED_TERMINAL.json",
+      "sha256": "f02ab488558bac131f21061bae0a7a9cad23bf997fcb5e4f982d867a374058b1"
+    },
+    "outer_exit": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_SOURCE_QUALIFICATION_001/GENUINE_OUTER_EXIT.json",
+      "sha256": "b880db4e176e3994a7f2590b159a2096cbbde05747961e865d7dc0c0f56281d6"
+    },
+    "failure_scope": "Existing metadata provider reads two115-case historical syntheticTEST_PLAN/TEST_TERMINAL receipts. New worker mistakenly passed new receipt paths to guard. Rejected at_launch_metadata before modelconstructor/forward/reverse; originalattempt never relaunched."
+  },
+  "direction_family_upstream_gradient_diagnostic_20261031_002": {
+    "user_authorization": "31October user challenges weak direction and asks investigation of whether work looks in wrong place; original bounded family study and mismatch audit remain active.",
+    "source_edits_authorized": true,
+    "synthetic_tests_authorized": true,
+    "source_scope": [
+      "existing momentum trace/intervention diagnostic and technical/producer dispatch",
+      "focused synthetic tests",
+      "exact diagnostic design/policy/handover"
+    ],
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "status": "SOURCE_SYNTHETIC_QUALIFIED_PLAN_BOUND_NOT_LAUNCHED",
+    "scope": "One frozen family baseline; fixed256TRAIN,16evalforwards,32activationreverse,zerooptimizer. Gated inputs and outputs; additive output gradients are identity checks. No genuine admission yet.",
+    "execution_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "predecessor_failed_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_20261031_001/FAILED_TERMINAL.json",
+      "sha256": "f02ab488558bac131f21061bae0a7a9cad23bf997fcb5e4f982d867a374058b1"
+    },
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_PLAN_20261031_002.json",
+      "sha256": "842a96cc49e02b38c2587a06d4af1ecbfc2ea62c88a4f6d5226478fcc5eb3726"
+    },
+    "design": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_UPSTREAM_GRADIENT_DESIGN_20261031_002.json",
+      "sha256": "125007115724ad5bff640c50dced74222000f735e5ed422bb89dcf39404cba4f"
+    },
+    "source_transition": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_SOURCE_QUALIFICATION_002/SOURCE_TRANSITION.json",
+      "sha256": "0d2816257aba7176a91417bcf1fa33b7cda88e6f7ae997f2d891e3c25e3dcb15"
+    },
+    "synthetic_test_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_SOURCE_QUALIFICATION_002/SYNTHETIC_TEST_TERMINAL.json",
+      "sha256": "cca67aa3c7589bb9670f8b29392e4a99b162b073579d6530a4745a254442a513"
+    },
+    "synthetic_tests_passed": 41
   }
 }

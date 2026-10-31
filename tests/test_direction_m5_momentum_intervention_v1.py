@@ -159,3 +159,17 @@ def test_upstream_exact_dispatch_and_power_scope(monkeypatch,tmp_path):
     assert validator.main(args)==0 and len(calls)==1
     source=(Path(__file__).resolve().parents[1]/'scripts/gx1_capped_run.sh').read_text()
     assert str(audit.UPSTREAM_PLAN)+')' in source and 'm5_output='+str(audit.UPSTREAM_OUTPUT) in source
+
+def test_upstream_reuses_exact_historical_test_receipt_exception_only(monkeypatch,tmp_path):
+    hooks=[];monkeypatch.setattr(gc.sys,'addaudithook',hooks.append)
+    root='/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266/'
+    paths=(root+'TEST_TERMINAL.json',root+'TEST_PLAN.json')
+    gc._install_runtime_guard(tmp_path,paths)
+    for path in paths:hooks[0]('open',(path,'r',0))
+    with pytest.raises(RuntimeError,match='TEST_PATH'):
+        hooks[0]('open',('/home/andre2/GX1_DATA/TEST/targets.npz','r',0))
+    with pytest.raises(RuntimeError,match='TEST_PATH'):
+        hooks[0]('open',(root+'TEST_OTHER.json','r',0))
+    source=__import__('pathlib').Path(audit.__file__).read_text()
+    assert "gc.require_synthetic_receipts(legacy_refs,fit," in source
+    assert "gc._install_runtime_guard(out_dir,(legacy_refs[" in source

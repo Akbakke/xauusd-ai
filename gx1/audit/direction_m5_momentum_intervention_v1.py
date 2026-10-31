@@ -328,10 +328,10 @@ def run(*,plan_path,plan_sha256,device,out_dir):
 # Separate exact TRAIN-only diagnostic; the consumed intervention scopes above
 # retain their original no-reverse behavior.
 UPSTREAM_ROOT = Path('/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19')
-UPSTREAM_STAGE = 'direction_family_upstream_gradient_diagnostic_20261031_001'
-UPSTREAM_PLAN = UPSTREAM_ROOT/'UPSTREAM_GRADIENT_PLAN_20261031_001.json'
-UPSTREAM_OUTPUT = UPSTREAM_ROOT/'UPSTREAM_GRADIENT_20261031_001'
-UPSTREAM_DESIGN = REPO/'docs/DIRECTION_FAMILY_UPSTREAM_GRADIENT_DESIGN_20261031.json'
+UPSTREAM_STAGE = 'direction_family_upstream_gradient_diagnostic_20261031_002'
+UPSTREAM_PLAN = UPSTREAM_ROOT/'UPSTREAM_GRADIENT_PLAN_20261031_002.json'
+UPSTREAM_OUTPUT = UPSTREAM_ROOT/'UPSTREAM_GRADIENT_20261031_002'
+UPSTREAM_DESIGN = REPO/'docs/DIRECTION_FAMILY_UPSTREAM_GRADIENT_DESIGN_20261031_002.json'
 UPSTREAM_CHANGED_OWNERS = frozenset((
     'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py',
     'gx1/contracts/entry_native_direction_research_campaign_v1.py',
@@ -518,13 +518,18 @@ def run_upstream(*,plan_path,plan_sha256,device,out_dir):
         for name,ref in plan['sources'].items():
             require(ref['path']==str(REPO/name),'UPSTREAM_SOURCE_PATH')
             candle.regular(ref['path']);binding.require_binding(ref,label='upstream diagnostic source')
+        legacy_root=Path('/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_DOMAIN_REPAIR_20261024_266')
+        legacy_refs={key:fit['metadata_bookends'][str(legacy_root/name)]['ref']
+            for key,name in (('synthetic_test_plan','TEST_PLAN.json'),('synthetic_test_terminal','TEST_TERMINAL.json'))}
+        legacy_meta={key:binding.read_bound_json(Path(ref['path']),ref['sha256']) for key,ref in legacy_refs.items()}
+        gc.require_synthetic_receipts(legacy_refs,fit,legacy_meta['synthetic_test_terminal'],legacy_meta['synthetic_test_plan'])
         control_snapshot=binding.capture_verified_file_snapshot()
     hardware,lock=cap.require_guarded_cuda_producer_execution(),cap.require_capped_lock_ancestry()
     require(lock['scope']==hardware['cgroup_path'][len('/sys/fs/cgroup'):],'UPSTREAM_CAPPED_LOCK')
     out_dir.mkdir(exist_ok=False)
     def publish(path,value):publication._publish_bytes(path,binding.canonical_bytes(value))
     publish(out_dir/'INVOCATION_CLAIM.json',{'plan':plan_ref,'policy':policy_ref,'source_head':source_head,'execution':hardware,'lock':lock})
-    gc._install_runtime_guard(out_dir,(refs['synthetic_test_terminal']['path'],refs['synthetic_test_plan']['path']))
+    gc._install_runtime_guard(out_dir,(legacy_refs['synthetic_test_terminal']['path'],legacy_refs['synthetic_test_plan']['path']))
     start=time.monotonic();old_profile=sys.getprofile();old_handler=signal.getsignal(signal.SIGALRM)
     phase={'name':'PREPARE'};counts={};model=None;modes=None;identity=None
     codes={fn.__code__:(name,p,n) for fn,name,p,n in (
@@ -624,7 +629,7 @@ def run_upstream(*,plan_path,plan_sha256,device,out_dir):
         publish(out_dir/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'plan':plan_ref,'result_path':str(out_dir/'OUTPUT/RESULT.json')})
         return result
     except Exception as exc:
-        publish(out_dir/'FAILED_TERMINAL.json',{'status':'FAILED','exit_code':1,'error':type(exc).__name__+': '+str(exc),'relaunch_allowed':False})
+        publish(out_dir/'FAILED_TERMINAL.json',{'status':'FAILED','exit_code':1,'error':type(exc).__name__+': '+str(exc),'relaunch_allowed':False,'phase':phase['name'],'call_counts':dict(counts)})
         raise
     finally:
         if modes is not None:

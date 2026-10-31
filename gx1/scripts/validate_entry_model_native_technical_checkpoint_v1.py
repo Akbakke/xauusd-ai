@@ -1118,7 +1118,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if not momentum_args.out_dir.is_absolute():
             momentum_parser.error("--out-dir must be an absolute path")
         trace_plan = Path("/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_002.json")
-        upstream_plan = Path("/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_PLAN_20261031_001.json")
+        upstream_plan = Path("/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_PLAN_20261031_002.json")
         if momentum_args.direction_m5_momentum_intervention_plan == trace_plan:
             from gx1.audit.direction_m5_momentum_trace_v1 import run as run_m5_momentum_intervention
         elif momentum_args.direction_m5_momentum_intervention_plan == upstream_plan:
