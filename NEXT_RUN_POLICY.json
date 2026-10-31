@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-10-30T21:46:44.511230+00:00",
-  "status": "DIRECTION_FAMILY_BASELINE_ONEPASS_ADMITTED",
+  "observed_utc": "2026-10-31T02:53:55.468537+00:00",
+  "status": "DIRECTION_FAMILY_STRUCTURE_SWING_ONEPASS_ADMITTED",
   "training_enabled": true,
-  "full_epoch_training_allowed": false,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "Only exact family baseline fixed-prefix one-pass campaign admitted; four windows share2976updates total, with fullTRAIN and fixedQ1 scoring. No other arm, extra epoch,HPO,TEST,Exit,broker,trading or promotion.",
-  "next_action": "Materialize/install exactly one family baseline campaign on committed source, fresh machine-wide idle/writer proof, atomic durable preboot receipts and fresh physical restart. Observe original handles every15-30min; do not relaunch. Total2976updates,fullTRAIN47602 andQ117288; later scoring uses fresh window. Verify Tailscale unattended reconnection.",
+  "next_action": "Materialize/install exact structure/swing one-pass campaign on committed source; fresh Windows/WSL idle proof and manual same-boot start. Preserve2976update ceiling and fullTRAIN47602/Q117288 scoring. Observe actual handle every15-30min;no routine reboot.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Materialize/install one exact structure_swing_encoder private qualification on committed source; collect fresh Windows/WSL idle observations, publish one-use admission and manually start existing capped/signed task on sameboot. No reboot; no fullfit/otherarm admitted.",
+    "current_activity": "Materialize/install exact structure/swing one-pass campaign on committed source; fresh Windows/WSL idle proof and manual same-boot start. Preserve2976update ceiling and fullTRAIN47602/Q117288 scoring. Observe actual handle every15-30min;no routine reboot.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -283,12 +283,12 @@
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
-    "training_started": true,
-    "latest_terminal_role": "Matched baseline one-pass plus fullTRAIN/later scoring complete; nine nonbaseline arms and family contrasts remain.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_BASELINE_001/RUNTIME",
+    "training_started": false,
+    "latest_terminal_role": "Structure/swing private same-boot mechanics complete; baseline complete; nine family fits/contrasts still pending.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_STRUCTURE_SWING_001/RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_BASELINE_001/VERIFIED_TERMINAL_002.json",
-      "sha256": "f1ce82cd48bb10d5874698892819de2358a4af7fedbd8a22f0d67b09951eeabf"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/VERIFIED_TERMINAL.json",
+      "sha256": "2315117a0ec7e9c11dc6dd33492898e3d17c177db1d4f0722adf8302d52da1ac"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -26334,7 +26334,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": false,
+  "native_launch_authorized": true,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -35960,7 +35960,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "dynamic_m5_direction_family_private_structure_swing_20261031_001",
+  "training_enabled_scope": "dynamic_m5_direction_family_structure_swing_onepass_fit_20261031_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48716,7 +48716,7 @@
     "test_data_used": false
   },
   "direction_family_same_boot_boundary_20261031_001": {
-    "status": "SOURCE_QUALIFIED_PRIVATE_NATIVE_QUALIFICATION_PENDING",
+    "status": "SOURCE_AND_ACTUAL_PRIVATE_SAME_BOOT_QUALIFIED",
     "operator_request_date": "2026-10-31",
     "operator_request": "nå. Men ikke restart så jævla ofte da, så slipper vi dette problemet",
     "scope": "Existing matched family study only: private_m5_family_sign_b16_initial_resume_qualification and single_prefix_m5_family_value_sign_one_pass. Sequential completed-window boundaries may reuse exact physical boot after fresh one-use idle attestation.",
@@ -48751,10 +48751,14 @@
     "prior_focused_tests_passed": 202,
     "prior_stdout_original_durability": false,
     "peer_source_review": "PASS after fixing receipt/progress placement and rejection of held/waiting project locks; read-only review, no genuine execution.",
-    "native_same_boot_execution_observed": false
+    "native_same_boot_execution_observed": true,
+    "actual_private_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "0b916c98311554b8297a75d2e46143d14e3694d2e755b0bb78e13834f1b7517b"
+    }
   },
   "dynamic_m5_direction_family_private_structure_swing_20261031_001": {
-    "status": "ADMITTED_EXACT_STRUCTURE_SWING_PRIVATE_SAME_BOOT_PREPARATION",
+    "status": "COMPLETE_CONSUMED_SAME_BOOT_PRIVATE_MECHANICS",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_STRUCTURE_SWING_PRIVATE_RECIPE_20261031.json",
       "sha256": "4d06302031bf1d01cd72f3e8a22d0f1296908fda31222fe7e66b698466d89c8c"
@@ -48763,8 +48767,8 @@
     "source_owner_count": 63,
     "family_arm": "structure_swing_encoder",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "scope": "One same-boot family private mechanics qualification:32uniqueTRAINparents,4physicalupdates,37forwards; unperturbedsharedinitialparity,owninitial,gradientcontact,exactresume. No fullfit.",
     "qualification_weights_for_main_fit": false,
@@ -48791,16 +48795,16 @@
       "sha256": "0a830360592b2d336375716d6952a823832a24f22343cb297b3149979d0b52c1"
     },
     "user_authorization": "30October matchedfamily study;31October continue and fewerrestarts instruction. Sameboot only after fresh exact idleproof.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "campaign_preparation_authorized": true,
-    "same_boot_after_idle_review_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
+    "same_boot_after_idle_review_authorized": false,
     "physical_restart_before_each_invocation_authorized": false,
     "physical_restart_before_invocation_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -48811,6 +48815,81 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_epoch_training_allowed": false,
-    "full_val_allowed": false
+    "full_val_allowed": false,
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/VERIFIED_TERMINAL.json",
+      "sha256": "2315117a0ec7e9c11dc6dd33492898e3d17c177db1d4f0722adf8302d52da1ac"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "0b916c98311554b8297a75d2e46143d14e3694d2e755b0bb78e13834f1b7517b"
+    },
+    "task_disabled": true,
+    "power_retained_w": 250,
+    "same_boot_execution_verified": true
+  },
+  "dynamic_m5_direction_family_structure_swing_onepass_fit_20261031_001": {
+    "status": "ADMITTED_EXACT_STRUCTURE_SWING_ONEPASS_SAME_BOOT",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_STRUCTURE_SWING_ONEPASS_FIT_RECIPE_20261031.json",
+      "sha256": "902a4ed0b0add1ea3f792c58f8b6007fcb6f1239f27a7c2ea966971620c7bdaf"
+    },
+    "protocol": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
+      "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_STRUCTURE_SWING_001/RUNTIME",
+    "source_owner_count": 65,
+    "family_arm": "structure_swing_encoder",
+    "train_parent_rows": 47602,
+    "later_parent_rows": 17288,
+    "final_train_measurement_rows": 47602,
+    "max_optimizer_updates": 2976,
+    "train_passes": 1,
+    "max_invocations": 4,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "requested_physical_gpu_power_limit_w": 250,
+    "retain_physical_gpu_power_limit_w_afterward": 250,
+    "qualification_weights_for_main_fit": false,
+    "private_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "0b916c98311554b8297a75d2e46143d14e3694d2e755b0bb78e13834f1b7517b"
+    },
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_STRUCTURE_SWING_001/materialize_prefix_campaign_same_boot_once.py",
+      "sha256": "62eaad42f871f8a6dd24e484fab2fd41f049cb7065a0e11b467c4b9b6305d2ce"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_STRUCTURE_SWING_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "47135dc721eee7d2cdbe28474da82b9f6354a4d08b4091432b765dfb41523fbe"
+    },
+    "user_authorization": "30October explicit matched-family added-value study and continue;31October fewerrestarts. Exactly one structure/swing conditional-value intervention pass on fixed prefix after own private qualification.",
+    "scope": "Same initial/model/order/numerics,2976updates total across up to4guarded windows. FullTRAIN47602 scoring in separate post-training window and same17288Q1. Each window requires fresh one-use machine-wide idle proof; may reuse same boot. No HPO or extra pass.",
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "physical_restart_before_each_invocation_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "same_boot_after_idle_review_authorized": true,
+    "metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_STRUCTURE_SWING_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "f21b944caf97d0168486d3e506622ad939c667bdefb08e99e86a34fd6a723160"
+    }
   }
 }
