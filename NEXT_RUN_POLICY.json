@@ -46,11 +46,11 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-31T19:56:28.486117+00:00",
   "status": "FIVE_FAMILY_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_SOURCE_PREPARATION",
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Qualify exactmomentumfamilyprivate recipe/controlscope then admit32TRAIN/4updates once afterfreshsamebootidleproof. No modelnumericschange; fivecompleted/fiveremain and allpairedcontrasts pending.",
+  "next_action": "Materialize exactmomentumfamilyprivate once,install existingmanualtask,collect/review freshWindowsWSLidleproof,andrun4privateupdates. No fullfit/TEST/Exit/handel.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify exactmomentumfamilyprivate recipe/controlscope then admit32TRAIN/4updates once afterfreshsamebootidleproof. No modelnumericschange; fivecompleted/fiveremain and allpairedcontrasts pending.",
+    "next_action": "Materialize exactmomentumfamilyprivate once,install existingmanualtask,collect/review freshWindowsWSLidleproof,andrun4privateupdates. No fullfit/TEST/Exit/handel.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -31218,7 +31218,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35960,7 +35960,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE",
+  "training_enabled_scope": "EXACT_MOMENTUM_FLOW_FAMILY_PRIVATE_32_TRAIN_4_UPDATES_ONLY",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "FIVE_FITS_COMPLETE_MOMENTUM_PRIVATE_SOURCE_PREPARATION",
+    "status": "FIVE_FITS_COMPLETE_MOMENTUM_PRIVATE_ADMITTED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -49546,7 +49546,7 @@
     "predictive_improvement_established": false
   },
   "dynamic_m5_direction_family_private_momentum_flow_20261031_001": {
-    "status": "SOURCE_RECIPE_PREPARATION_ONLY",
+    "status": "ADMITTED_PRIVATE_MOMENTUM_MECHANICS_ONLY",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_MOMENTUM_FLOW_PRIVATE_RECIPE_20261031.json",
       "sha256": "deec024953d8875bb04fd298d3ad07a524b25103f7c8c366f42b73d4224ce3df"
@@ -49558,7 +49558,7 @@
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "relaunch_allowed": false,
-    "scope": "One private32TRAIN/4physicalupdates/37forwards proposed for nextprespecifiedmomentumfamily. Source/metadataonly; no genuineadmission yet.",
+    "scope": "One sameboot familyprivate mechanics:32uniqueTRAIN,4physicalupdates,37forwards; owninitial/sharedunperturbedparity,60headcontact,selectivefamilywitnesses,exactresume. Momentuminputcontact skip follows canonical excluded-family condition; no fullfit.",
     "qualification_weights_for_main_fit": false,
     "requested_physical_gpu_power_limit_w": 250,
     "retain_physical_gpu_power_limit_w_afterward": 250,
@@ -49575,16 +49575,16 @@
       "sha256": "0a830360592b2d336375716d6952a823832a24f22343cb297b3149979d0b52c1"
     },
     "user_authorization": "Original explicit matchedninefamily study and continuation; after source-reviewed upstream/reference limits, continue unchangedprespecifiedmomentumarm. No architecture/loss/extra-pass change.",
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
-    "genuine_updates_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
-    "campaign_preparation_authorized": false,
-    "same_boot_after_idle_review_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "campaign_preparation_authorized": true,
+    "same_boot_after_idle_review_authorized": true,
     "physical_restart_before_each_invocation_authorized": false,
     "physical_restart_before_invocation_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -49595,6 +49595,14 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_epoch_training_allowed": false,
-    "full_val_allowed": false
+    "full_val_allowed": false,
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_MOMENTUM_FLOW_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "e6e41ae67f272771651da244dca554a7fdbb9bb6fa04fb0cbc04779dbcf812f7"
+    },
+    "metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_MOMENTUM_FLOW_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "a0023049d63d70cd62fc4ed2de9fb049a24f42f7990ec8f0c2cbe3ec27034774"
+    }
   }
 }
