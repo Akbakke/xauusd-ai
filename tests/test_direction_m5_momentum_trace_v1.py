@@ -116,3 +116,115 @@ def test_design_path_is_bound_to_exact_intervention_stage():
  assert base.design_path_for_stage('independent_m5_momentum_intervention_20261029_003').name=='DIRECTION_M5_MOMENTUM_INTERVENTION_20261029.json'
  assert base.design_path_for_stage(trace.STAGE).name=='DIRECTION_M5_MOMENTUM_TRACE_20261029.json'
  with pytest.raises(RuntimeError,match='DESIGN_STAGE'):base.design_path_for_stage('other_stage')
+
+
+class _LinearUpstreamToy(_Toy):
+ def __init__(self):
+  super().__init__();self.backbone.entry_q_joint_norm=nn.Identity()
+
+def _upstream_case(*,input_grad=True):
+ torch.manual_seed(317)
+ model=_LinearUpstreamToy().eval();features={'price':{},'gc':{}}
+ for i,tf in enumerate(trace.TIMEFRAMES):
+  for branch,width in (('price',4),('gc',2)):
+   features[branch][tf]=torch.randn(2,i+2,width,requires_grad=input_grad)
+ decisions=torch.tensor([10**15,10**15+31*60*10**9],dtype=torch.int64)
+ terminal=decisions[:,None]+torch.arange(1,61,dtype=torch.int64)[None,:]*60*10**9
+ sign=torch.ones(2,60,dtype=torch.int8);sign[:,1::2]=-1
+ observed=torch.ones(2,60,dtype=torch.bool)
+ observed[0,0]=False;sign[0,0]=0;sign[0,1]=0
+ target={'decision_ns':decisions,'terminal_time_ns':terminal,'sign':sign,'observed':observed}
+ return model,features,target,int(decisions[0]+60*60*10**9)
+
+def test_upstream_two_reverses_match_linear_chain_analytic_gradients_and_preserve_state():
+ model,features,target,cutoff=_upstream_case()
+ original={k:v.clone() for k,v in model.state_dict().items()};rng=torch.get_rng_state().clone()
+ recorder=trace.UpstreamGradientRecorder();calls=[]
+ def reverse(*args,**kwargs):
+  calls.append(kwargs.copy());return torch.autograd.grad(*args,**kwargs)
+ with torch.no_grad():expected_logits=model(features)
+ with recorder.capture(model):
+  logits=model(features)
+  assert torch.equal(logits.detach(),expected_logits)
+ row=recorder.measure(logits,target,cutoff,reverse=reverse)
+ assert len(calls)==2 and calls[0]['retain_graph'] is True and calls[1]['retain_graph'] is False
+ assert all(p.grad is None for p in model.parameters())
+ assert all(torch.equal(model.state_dict()[k],v) for k,v in original.items()) and torch.equal(torch.get_rng_state(),rng)
+ assert not model.direction_head._forward_pre_hooks and not model.backbone.mtf_family_proj[trace.FAMILY]._forward_hooks
+ mask=target['observed']&(target['sign']!=0)&(target['terminal_time_ns']<cutoff)
+ n=int(mask.sum());residual=torch.where(mask,logits.detach().sigmoid()-(target['sign']==1).to(logits.dtype),0.)/n
+ w=model.direction_head.weight.detach()
+ head5=residual[:,4:5]*w[4:5];other=residual@w-head5
+ assert row['eligible_cells']==n and row['eligible_five_minute_cells']==int(mask[:,4].sum())
+ for tf in trace.TIMEFRAMES:
+  length=features['price'][tf].shape[1]
+  g5=head5[:,None,:].expand(-1,length,-1)/(5*length)
+  go=other[:,None,:].expand(-1,length,-1)/(5*length)
+  for branch,layer in [('price',model.backbone.mtf_family_proj[trace.FAMILY]),('gc',model.backbone.gc_mtf_family_proj[tf+'__'+trace.FAMILY])]:
+   output=row['locations'][branch+'_projection_output_'+tf]
+   assert output['five_sumsq']==pytest.approx(float(g5.double().square().sum()),rel=2e-5)
+   assert output['dot']==pytest.approx(float((g5.double()*go.double()).sum()),rel=2e-5,abs=1e-12)
+   gin=g5@layer.weight.detach();input_row=row['locations'][branch+'_projection_input_'+tf]
+   assert input_row['five_sumsq']==pytest.approx(float(gin.double().square().sum()),rel=2e-5)
+   assert input_row['five_dot_activation']==pytest.approx(float((gin.double()*features[branch][tf].detach().double()).sum()),rel=2e-5,abs=1e-12)
+  assert row['additive_output_gradient_equal'][tf]==[True,True]
+ summary=recorder.result()
+ assert summary['reverse_calls']==2 and summary['batch_count']==1 and summary['parents']==2
+ assert summary['aggregate']['head_input']['five_norm']==pytest.approx(float(head5.double().norm()),rel=2e-5)
+ assert row['locations']['joint_source_local']['five_gradient_state']=='zero'
+ assert row['locations']['joint_source_mtf_repr']['five_gradient_state']=='nonzero'
+
+
+def test_upstream_masks_zero_five_and_nondifferentiable_inputs_are_distinct():
+ model,features,target,cutoff=_upstream_case(input_grad=False)
+ target['sign'][:,4]=0
+ recorder=trace.UpstreamGradientRecorder()
+ with recorder.capture(model):
+  row=recorder.measure(model(features),target,cutoff)
+ output=row['locations']['price_projection_output_m5'];inputs=row['locations']['price_projection_input_m5']
+ assert output['five_gradient_state']=='zero' and output['five_sumsq']==0.
+ assert output['cosine'] is None and inputs['five_gradient_state']=='not_requires_grad'
+ assert inputs['five_sumsq'] is None and inputs['five_dot_activation'] is None
+ assert inputs['activation_sumsq']>0
+ assert recorder.result()['aggregate']['price_projection_input_m5']['five_norm'] is None
+
+
+def test_upstream_disconnected_is_not_fabricated_zero():
+ x=torch.ones(2,3,4,requires_grad=True)
+ missing=trace._upstream_geometry(x,[None,None])
+ zero=trace._upstream_geometry(x,[torch.zeros_like(x),torch.zeros_like(x)])
+ assert missing['five_gradient_state']=='disconnected' and missing['five_sumsq'] is None
+ assert zero['five_gradient_state']=='zero' and zero['five_sumsq']==0.
+ assert missing['dot'] is None and zero['dot']==0. and zero['cosine'] is None
+
+
+def test_upstream_aggregates_add_squares_not_batch_norms():
+ model,features,target,cutoff=_upstream_case();recorder=trace.UpstreamGradientRecorder()
+ for _ in range(2):
+  with recorder.capture(model):row=recorder.measure(model(features),target,cutoff)
+ result=recorder.result();location='price_projection_input_m15'
+ assert result['parents']==4 and result['reverse_calls']==4
+ aggregate=result['aggregate'][location];single=row['locations'][location]
+ assert aggregate['five_sumsq']==pytest.approx(2*single['five_sumsq'])
+ assert aggregate['five_norm']==pytest.approx(2**.5*single['five_norm'])
+ assert aggregate['five_dot_activation']==pytest.approx(2*single['five_dot_activation'])
+ assert aggregate['cosine']==pytest.approx(single['cosine'])
+ assert aggregate['cells']==2*single['cells']
+
+
+@pytest.mark.parametrize('fault',['train_mode','no_graph','empty','wrong_clock','exception'])
+def test_upstream_fails_closed_and_removes_hooks(fault):
+ model,features,target,cutoff=_upstream_case();recorder=trace.UpstreamGradientRecorder()
+ if fault=='train_mode':model.train()
+ if fault=='empty':target['sign'].zero_()
+ if fault=='wrong_clock':target['terminal_time_ns'][0,0]+=1
+ with pytest.raises(RuntimeError):
+  with recorder.capture(model):
+   if fault=='exception':raise RuntimeError('synthetic interrupt')
+   if fault=='no_graph':
+    with torch.no_grad():logits=model(features)
+   else:logits=model(features)
+   recorder.measure(logits,target,cutoff)
+ assert not model.direction_head._forward_pre_hooks and not model.backbone.mtf_family_proj[trace.FAMILY]._forward_hooks
+ assert not recorder._handles and recorder._captured is None and not recorder.batches
+ assert all(p.grad is None for p in model.parameters())

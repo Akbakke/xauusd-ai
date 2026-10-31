@@ -323,3 +323,310 @@ def run(*,plan_path,plan_sha256,device,out_dir):
     finally:
         for handle in handles:handle.remove()
         sys.setprofile(old_profile);signal.alarm(0);signal.signal(signal.SIGALRM,old_handler)
+
+
+# Separate exact TRAIN-only diagnostic; the consumed intervention scopes above
+# retain their original no-reverse behavior.
+UPSTREAM_ROOT = Path('/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19')
+UPSTREAM_STAGE = 'direction_family_upstream_gradient_diagnostic_20261031_001'
+UPSTREAM_PLAN = UPSTREAM_ROOT/'UPSTREAM_GRADIENT_PLAN_20261031_001.json'
+UPSTREAM_OUTPUT = UPSTREAM_ROOT/'UPSTREAM_GRADIENT_20261031_001'
+UPSTREAM_DESIGN = REPO/'docs/DIRECTION_FAMILY_UPSTREAM_GRADIENT_DESIGN_20261031.json'
+UPSTREAM_CHANGED_OWNERS = frozenset((
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py',
+    'gx1/contracts/entry_native_direction_research_campaign_v1.py',
+    'gx1/contracts/local_random_access_campaign_v2.py',
+    'gx1/scripts/local_random_access_campaign_v2.py',
+    'scripts/gx1_capped_run.sh',
+))
+UPSTREAM_EXTRA_SOURCES = (
+    'gx1/audit/direction_m5_momentum_intervention_v1.py',
+    'gx1/audit/direction_m5_momentum_trace_v1.py',
+    'gx1/audit/direction_gc_mtf_intervention_v1.py',
+    'gx1/scripts/validate_entry_model_native_technical_checkpoint_v1.py',
+    'gx1/scripts/audit_entry_direction_candle_midpoints_v1.py',
+    'tests/test_direction_m5_momentum_intervention_v1.py',
+    'tests/test_direction_m5_momentum_trace_v1.py',
+    'tests/test_direction_m5_momentum_power_guard_v1.py',
+)
+
+
+def upstream_selected_predictions(initial, terminal, prepared, targets, prefix_rows):
+    """Exact ordered INITIAL axes, joined to terminal TRAIN predictions."""
+    axes = ('parent_rows','bar_start_ns','decision_ns','terminal_time_ns','observed','sign')
+    require(all(k in initial and k in terminal for k in axes)
+        and 'logit_up' in terminal, 'UPSTREAM_SAVED_FIELDS')
+    rows = initial['parent_rows']
+    require(rows.dtype == np.int64 and rows.shape == (256,)
+        and len(np.unique(rows)) == 256 and np.all((rows >= 0) & (rows < prefix_rows))
+        and np.array_equal(terminal['parent_rows'], np.arange(prefix_rows,dtype=np.int64)),
+        'UPSTREAM_TRAIN_POPULATION')
+    at = np.searchsorted(prepared['parent_rows'], rows)
+    require(np.all(at < len(prepared['parent_rows']))
+        and np.array_equal(prepared['parent_rows'][at], rows), 'UPSTREAM_PARENT_JOIN')
+    for key in axes[1:]:
+        require(np.array_equal(initial[key], terminal[key][rows]), 'UPSTREAM_TERMINAL_JOIN:'+key)
+        actual = prepared[key] if key in ('bar_start_ns','decision_ns') else targets[key]
+        require(np.array_equal(initial[key], actual[at]), 'UPSTREAM_TARGET_JOIN:'+key)
+    logits = terminal['logit_up']
+    require(logits.dtype == np.float32 and logits.shape == (prefix_rows,60)
+        and np.isfinite(logits).all(), 'UPSTREAM_TERMINAL_LOGITS')
+    return {**{k:np.ascontiguousarray(initial[k]) for k in axes},
+        'logit_up':np.ascontiguousarray(logits[rows])}
+
+
+def upstream_source_transition(launch, sources, proof, historical):
+    """Bind 65 original owners and explicit control-only transitions."""
+    owners=launch['source_owners']
+    require(len(owners)==65 and set(historical)==set(owners)
+        and set(sources)==set(owners)|set(UPSTREAM_EXTRA_SOURCES)
+        and proof['schema_version']=='gx1_family_upstream_source_transition_v1'
+        and proof['status']=='SOURCE_ONLY_REVIEWED'
+        and proof['original_sources']==owners
+        and proof['current_sources']=={name:sources[name] for name in owners}
+        and proof['changed_paths']==sorted(UPSTREAM_CHANGED_OWNERS)
+        and proof['numerical_model_sources_unchanged'] is True
+        and proof['test_data_used'] is False, 'UPSTREAM_SOURCE_TRANSITION')
+    changed=set()
+    for name, old in owners.items():
+        new=sources[name]
+        require(old['path']==new['path']==str(REPO/name)
+            and hashlib.sha256(historical[name]).hexdigest()==old['sha256'],
+            'UPSTREAM_HISTORICAL_SOURCE:'+name)
+        if old != new:changed.add(name)
+    require(changed==UPSTREAM_CHANGED_OWNERS,'UPSTREAM_SOURCE_DELTA')
+    return {**launch,'source_owners':{name:sources[name] for name in owners}}
+
+
+def upstream_profile_budget(codes, phase, counts):
+    """Count real Python boundaries; reverse is admitted only in this scope."""
+    def profile(frame,event,arg):
+        code=frame.f_code;item=codes.get(code)
+        if item is not None:
+            name,allowed,ceiling=item
+            if event=='call':
+                require(phase['name']==allowed,'UPSTREAM_CALL_PHASE:'+name)
+                counts[name+'_calls']=counts.get(name+'_calls',0)+1
+                require(counts[name+'_calls']<=ceiling,'UPSTREAM_CALL_BUDGET:'+name)
+            elif event=='return':
+                counts[name+'_returns']=counts.get(name+'_returns',0)+1
+        if event=='call':
+            path=code.co_filename.replace('\\','/');name=code.co_name
+            forbidden=(('/torch/optim/' in path and name in ('__init__','step','_init_group'))
+                or ('/torch/' in path and name=='backward')
+                or (path.endswith('/torch/serialization.py') and name=='save')
+                or ('/site-packages/sklearn/' in path and (name=='fit' or name.startswith('fit_')))
+                or (path.startswith(str(REPO)+'/') and name in
+                    ('_optimizer_step_with_finite_gradients','_save_state','_save_snapshot')))
+            require(not forbidden,'UPSTREAM_FORBIDDEN_OPERATION:'+name)
+            if path.endswith('/torch/nn/modules/module.py') and name=='__init__':
+                require(phase['name']=='CONSTRUCT','UPSTREAM_EXTRA_MODULE')
+    return profile
+
+
+def run_upstream(*,plan_path,plan_sha256,device,out_dir):
+    """One frozen family-baseline checkpoint; 256 TRAIN, no optimizer."""
+    from gx1.audit import direction_gc_mtf_intervention_v1 as gc
+    from gx1.audit.direction_m5_momentum_trace_v1 import UpstreamGradientRecorder
+    from gx1.contracts import gx1_capped_execution_v1 as cap,local_random_access_campaign_v2 as binding
+    from gx1.contracts import immutable_event_authority_v1 as publication,entry_native_direction_research_state_v1 as state_owner
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    from gx1.contracts.entry_native_direction_feature_view_v1 import build_native_direction_research_model
+    from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch
+    from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
+    from gx1.models.entry_v10.entry_v10_ctx_hybrid_transformer import EntryV10CtxHybridTransformer
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as window
+    from gx1.scripts import audit_entry_direction_candle_midpoints_v1 as candle
+    sys.dont_write_bytecode=True
+    require(device=='cuda' and not torch.cuda.is_initialized(),'UPSTREAM_EXPLICIT_CUDA')
+    require(Path(plan_path)==UPSTREAM_PLAN and Path(out_dir)==UPSTREAM_OUTPUT,'UPSTREAM_EXACT_PATHS')
+    out_dir=Path(out_dir);plan_ref={'path':str(candle.regular(plan_path)),'sha256':plan_sha256}
+    source_head,branch,dirty=candle.git_state()
+    require(branch=='work/gx1-current' and not dirty,'UPSTREAM_INITIAL_SOURCE')
+    policy_path=REPO/'NEXT_RUN_POLICY.json'
+    with binding.fresh_file_verification_scope():
+        plan=binding.read_bound_json(Path(plan_ref['path']),plan_ref['sha256'])
+        require(set(plan)=={'schema_version','stage','design','inputs','sources','output_dir','wall_seconds','batch_size','train_parents','forward_calls','reverse_calls','test_data_used'}
+            and plan['schema_version']=='gx1_family_upstream_gradient_plan_v1' and plan['stage']==UPSTREAM_STAGE
+            and plan['output_dir']==str(out_dir) and plan['wall_seconds']==3300
+            and plan['batch_size']==16 and plan['train_parents']==256
+            and plan['forward_calls']==16 and plan['reverse_calls']==32 and plan['test_data_used'] is False,'UPSTREAM_PLAN')
+        require(out_dir.parent.resolve(strict=True)==UPSTREAM_ROOT
+            and not out_dir.exists() and not out_dir.is_symlink(),'UPSTREAM_OUTPUT')
+        require(plan['design']['path']==str(UPSTREAM_DESIGN),'UPSTREAM_DESIGN_PATH')
+        design=binding.read_bound_json(UPSTREAM_DESIGN,plan['design']['sha256'])
+        require(design['schema_version']=='gx1_family_upstream_gradient_design_v1'
+            and design['inputs']==plan['inputs'] and design['stage']==UPSTREAM_STAGE
+            and design['train_parents']==256 and design['batch_size']==16
+            and design['forward_calls']==16 and design['reverse_calls']==32
+            and design['optimizer_constructions']==design['optimizer_updates']==0
+            and design['test_data_used'] is False,'UPSTREAM_DESIGN')
+        policy_ref=common._hash_file(str(policy_path));policy=binding.read_bound_json(policy_path,policy_ref['sha256']);gate=policy[UPSTREAM_STAGE]
+        require(gate['status']=='ADMITTED' and gate['plan']==plan_ref
+            and all(gate[k] is True for k in ('execution_authorized','genuine_constructor_authorized','genuine_forward_authorized','genuine_backward_authorized'))
+            and gate['max_invocations']==1 and gate['claimed_invocations']==gate['completed_invocations']==0
+            and gate['relaunch_allowed'] is False,'UPSTREAM_ONE_SHOT')
+        require(all(policy[k] is False for k in ('training_enabled','native_training_enabled','full_epoch_training_allowed','full_val_allowed','native_launch_authorized'))
+            and all(gate[k] is False for k in ('genuine_updates_authorized','training_enabled','native_launch_authorized','test_data_used','exit_evaluation','broker_access_allowed')),'UPSTREAM_CLOSED_GATES')
+        refs=plan['inputs']
+        expected={'recipe','fit_review','fit_result','fit_receipt','baseline_terminal','checkpoint','initial_report','diagnostic_axes',
+            'train_report','terminal_predictions','synthetic_test_terminal','synthetic_test_plan','source_transition'}
+        require(set(refs)==expected,'UPSTREAM_INPUT_SET')
+        meta={k:binding.read_bound_json(Path(refs[k]['path']),refs[k]['sha256'])
+            for k in expected-{'checkpoint','diagnostic_axes','terminal_predictions'}}
+        launch=meta['recipe'];review=meta['fit_review'];fit=meta['fit_result'];receipt=meta['fit_receipt']
+        baseline=policy['dynamic_m5_direction_family_baseline_onepass_fit_20261030_001']
+        require(baseline['status']=='COMPLETE_CONSUMED_BASELINE_FULLTRAIN_LATER_NO_EDGE_QUALIFIED'
+            and baseline['recipe']==refs['recipe'] and baseline['root_review']==refs['fit_review']
+            and baseline['verified_terminal']==refs['baseline_terminal']
+            and meta['baseline_terminal']['root_review']==refs['fit_review']
+            and meta['baseline_terminal']['status']=='COMPLETE' and meta['baseline_terminal']['exit_code']==0,'UPSTREAM_BASELINE_POLICY')
+        require(launch['recipe_sha256']==binding.canonical_sha256({k:v for k,v in launch.items() if k!='recipe_sha256'})
+            and launch['run_scope']==authority.FAMILY_SIGN_SCOPE and launch['family_arm']=='baseline'
+            and launch['candidate_mode']=='price_only' and 'candidate_m1_refs' not in launch
+            and review['status']=='PASS_BASELINE_ONEPASS_FULLTRAIN_LATER_TERMINAL'
+            and review['result']==refs['fit_result'] and review['receipt']==refs['fit_receipt']
+            and review['full_state']==refs['checkpoint'] and review['full_train_predictions']==refs['terminal_predictions']
+            and review['initial_measurement']==refs['initial_report']
+            and fit['outcome']=='COMPLETE' and fit['recipe']==refs['recipe'] and fit['source_unchanged'] is True
+            and fit['qualification_weights_reused'] is False and fit['full_state']==refs['checkpoint']
+            and fit['initial_measurement']==refs['initial_report'] and fit['final_train_measurement']==refs['train_report']
+            and receipt['outcome']=='COMPLETE' and receipt['guard_decision']=='PASS' and receipt['trainer_guard_exit_code']==0
+            and fit['optimizer_updates']==2976 and fit['parent_cursor']==47602
+            and all(meta[k]['test_data_used'] is False for k in ('fit_result','fit_review','baseline_terminal','initial_report','train_report')),
+            'UPSTREAM_FIT_LINEAGE')
+        for key,role,payload in (('initial_report','INITIAL_TRAIN','diagnostic_axes'),('train_report','FINAL_TRAIN','terminal_predictions')):
+            record=meta[key]
+            require(record['role']==role and record['predictions']==refs[payload]
+                and record['fold']==launch['fold']==fit['fold']
+                and record['feature_view_identity']==fit['feature_view_identity'],'UPSTREAM_MEASUREMENT:'+key)
+        synthetic=meta['synthetic_test_terminal']
+        require(synthetic['status']=='COMPLETE_SYNTHETIC_ONLY_NO_GENUINE_ADMISSION'
+            and synthetic['plan']==refs['synthetic_test_plan'] and synthetic['exit_code']==0
+            and synthetic['tests_passed']>0 and synthetic['genuine_payloads_or_fit_admitted'] is False
+            and meta['synthetic_test_plan']['sources']==plan['sources'],'UPSTREAM_SYNTHETIC')
+        proof=meta['source_transition']
+        require(proof['baseline_source_head']==review['source_head']
+            and proof['recipe']==refs['recipe'] and proof['baseline_review']==refs['fit_review'],'UPSTREAM_SOURCE_ORIGIN')
+        subprocess.run(['git','merge-base','--is-ancestor',review['source_head'],source_head],cwd=REPO,check=True)
+        historical={name:(subprocess.check_output(['git','show',review['source_head']+':'+name],cwd=REPO)
+            if name in UPSTREAM_CHANGED_OWNERS else Path(ref['path']).read_bytes())
+            for name,ref in launch['source_owners'].items()}
+        freeze_launch=upstream_source_transition(launch,plan['sources'],proof,historical)
+        for name,ref in plan['sources'].items():
+            require(ref['path']==str(REPO/name),'UPSTREAM_SOURCE_PATH')
+            candle.regular(ref['path']);binding.require_binding(ref,label='upstream diagnostic source')
+        control_snapshot=binding.capture_verified_file_snapshot()
+    hardware,lock=cap.require_guarded_cuda_producer_execution(),cap.require_capped_lock_ancestry()
+    require(lock['scope']==hardware['cgroup_path'][len('/sys/fs/cgroup'):],'UPSTREAM_CAPPED_LOCK')
+    out_dir.mkdir(exist_ok=False)
+    def publish(path,value):publication._publish_bytes(path,binding.canonical_bytes(value))
+    publish(out_dir/'INVOCATION_CLAIM.json',{'plan':plan_ref,'policy':policy_ref,'source_head':source_head,'execution':hardware,'lock':lock})
+    gc._install_runtime_guard(out_dir,(refs['synthetic_test_terminal']['path'],refs['synthetic_test_plan']['path']))
+    start=time.monotonic();old_profile=sys.getprofile();old_handler=signal.getsignal(signal.SIGALRM)
+    phase={'name':'PREPARE'};counts={};model=None;modes=None;identity=None
+    codes={fn.__code__:(name,p,n) for fn,name,p,n in (
+        (build_native_direction_research_model,'model_constructor','CONSTRUCT',1),
+        (torch.load,'checkpoint_load','LOAD',1),
+        (EntryV10CtxHybridTransformer.forward,'backbone_forward','FORWARD',16),
+        (DenseNativeEntryDirectionResearch.forward,'research_forward','FORWARD',16),
+        (trainer._model_forward_fp32,'trainer_forward','FORWARD',16),
+        (torch.autograd.grad,'autograd_grad','REVERSE',32),
+        (torch.autograd.graph._engine_run_backward,'engine_reverse','REVERSE',32))}
+    def expired(*_):raise RuntimeError('UPSTREAM_GRADIENT_WALL_LIMIT')
+    signal.signal(signal.SIGALRM,expired);signal.alarm(plan['wall_seconds'])
+    sys.setprofile(upstream_profile_budget(codes,phase,counts))
+    stage=out_dir/'.OUTPUT.staging'
+    try:
+        stage.mkdir(exist_ok=False)
+        input_launch=window._fit_input_launch(launch,authority);context=window._launch_metadata(input_launch,common)
+        require(context.get('candidate_inputs')=={'mode':'price_only'},'UPSTREAM_PRICE_CONTEXT')
+        for key in ('checkpoint','diagnostic_axes','terminal_predictions'):
+            ref=refs[key];before=common._stat(ref['path'])
+            require(common._hash_file(ref['path'])==ref,'UPSTREAM_PAYLOAD_SHA:'+key)
+            context['info']['metadata'][ref['path']]={'ref':dict(ref),'stat':before}
+        freeze={'source_head':source_head,'policy':policy_ref};common._freeze(freeze_launch,freeze,context)
+        denied=common._install_read_guard(context,out_dir,out_dir,dense_target=context['dense_target'],decimal_original=context['decimal_original'])
+        prepared,targets,view,_map,_order=window._prepare(context,input_launch,np,dense_minutes=True)
+        saved={}
+        axes=('parent_rows','bar_start_ns','decision_ns','terminal_time_ns','observed','sign')
+        for key,names in (('diagnostic_axes',axes),('terminal_predictions',axes+('logit_up',))):
+            with np.load(refs[key]['path'],allow_pickle=False) as archive:
+                require(all(name in archive.files for name in names),'UPSTREAM_ARCHIVE_FIELDS')
+                saved[key]={name:archive[name].copy() for name in names}
+        sample=upstream_selected_predictions(saved['diagnostic_axes'],saved['terminal_predictions'],
+            prepared['arrays'],targets,launch['fold']['prefix_rows']);del saved
+        dev=torch.device('cuda',0)
+        trainer._set_deterministic(launch['numerical_recipe']['seed'],dev,launch['numerical_recipe']['precision_policy'])
+        torch.set_num_threads(1);require(torch.get_num_threads()==1,'UPSTREAM_THREADS')
+        phase['name']='CONSTRUCT'
+        model=build_native_direction_research_model(view,prefix_normalization=context['fitted'],constructor_metadata=context['constructor'],device=dev)
+        require(model.feature_view_identity==fit['feature_view_identity'],'UPSTREAM_VIEW')
+        phase['name']='LOAD';state=torch.load(refs['checkpoint']['path'],map_location='cpu',weights_only=True)
+        require(isinstance(state,dict) and set(state)==state_owner.STATE_KEYS
+            and state['contract_sha256']==state_owner._tree_sha({k:v for k,v in state.items() if k!='contract_sha256'})
+            and state['contract_sha256']==fit['durable_checkpoint']['contract_sha256']
+            and state['model_state_sha256']==state_owner.canonical_model_state_sha256(state['model_state'])
+            and state['binding']['feature_view_identity']==model.feature_view_identity
+            and state['cursor']==47602 and state['optimizer_updates']==2976,'UPSTREAM_CHECKPOINT')
+        model.load_state_dict(state['model_state'],strict=True)
+        with torch.no_grad():
+            for name,buffer in model.named_buffers():buffer.copy_(state['buffer_state'][name].to(buffer.device))
+        require(state_owner.canonical_model_state_sha256(model.state_dict())==state['model_state_sha256']
+            and state_owner._tree_sha(dict(model.named_buffers()))==state['buffer_state_sha256'],'UPSTREAM_LOADED_STATE')
+        # Restore exactly the checkpoint's active parameter names without AdamW.
+        pairs,active,inactive=state_owner._parameters(model)
+        require([name for name,_ in active]==state['binding']['active_parameter_names']
+            and [name for name,_ in inactive]==state['binding']['inactive_parameter_names']
+            and [[name for name,_ in active]]==state['binding']['optimizer_group_parameter_names'],
+            'UPSTREAM_ACTIVE_PARAMETERS')
+        for _,param in active:param.requires_grad_(True)
+        for _,param in inactive:param.requires_grad_(False)
+        model.backbone.require_input_normalization_state();model._require_binding();del state
+        require(all(p.grad is None for p in model.parameters()),'UPSTREAM_INITIAL_GRADS')
+        identity=window._online_identity(model,dev,state_owner._tree_sha,trainer)
+        modes=[(module,module.training) for module in model.modules()];model.eval()
+        recorder=UpstreamGradientRecorder();forward={'forward_calls':0,'forward_returns':0,'forward_kind_calls':{}}
+        for offset in range(0,256,16):
+            raw,target=window._batch(prepared,targets,view,sample['parent_rows'][offset:offset+16],np)
+            features,target_device=window._device_batch(raw,target,torch,dev)
+            phase['name']='FORWARD'
+            with recorder.capture(model):
+                logits=window._forward(model,features,kind='TRAIN_UPSTREAM_DIAGNOSTIC',counters=forward,ceiling=16,torch=torch,grad=True)
+            gc.require_exact_replay(logits.detach().cpu().numpy(),sample['logit_up'][offset:offset+16])
+            phase['name']='REVERSE'
+            recorder.measure(logits,target_device,launch['fold']['train_cutoff_ns'])
+            del raw,target,features,target_device,logits
+        phase['name']='FINAL'
+        for module,training in modes:module.training=training
+        require(window._online_identity(model,dev,state_owner._tree_sha,trainer)==identity
+            and all(p.grad is None for p in model.parameters()),'UPSTREAM_STATE_PRESERVATION')
+        for name,_p,n in codes.values():
+            require(counts.get(name+'_calls')==counts.get(name+'_returns')==n,'UPSTREAM_EXACT_CALLS:'+name)
+        require(forward['forward_calls']==forward['forward_returns']==16 and not denied,'UPSTREAM_FORWARD_READS')
+        geometry=recorder.result()
+        require(geometry['batch_count']==16 and geometry['parents']==256 and geometry['reverse_calls']==32,'UPSTREAM_GEOMETRY_COUNTS')
+        common._freeze(freeze_launch,freeze,context);control_snapshot.require_unchanged()
+        require(cap.require_capped_lock_ancestry()==lock,'UPSTREAM_FINAL_LOCK')
+        result={'schema_version':'gx1_family_upstream_gradient_result_v1','status':'COMPLETE','plan':plan_ref,
+            'source_head':source_head,'checkpoint':refs['checkpoint'],'train_parents':256,'batch_size':16,
+            'forward_calls':16,'reverse_calls':32,'call_counts':counts,'optimizer_constructions':0,'optimizer_updates':0,
+            'saved_terminal_logits_exact':True,'axes_and_targets_exact':True,'state_preservation':identity,
+            'model_buffers_rng_modes_unchanged':True,'parameter_grads_all_none':True,'geometry':geometry,
+            'test_data_used':False,'later_rows_forwarded_or_scored':0,'economic_edge_qualified':False,
+            'limitations':design['limitations']}
+        publish(stage/'RESULT.json',result)
+        publish(stage/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'elapsed_seconds':time.monotonic()-start,
+            'source_unchanged':True,'inputs_unchanged':True,'test_data_used':False})
+        publish_bundle_directory_noreplace(stage,out_dir/'OUTPUT')
+        publish(out_dir/'TERMINAL.json',{'status':'COMPLETE','exit_code':0,'plan':plan_ref,'result_path':str(out_dir/'OUTPUT/RESULT.json')})
+        return result
+    except Exception as exc:
+        publish(out_dir/'FAILED_TERMINAL.json',{'status':'FAILED','exit_code':1,'error':type(exc).__name__+': '+str(exc),'relaunch_allowed':False})
+        raise
+    finally:
+        if modes is not None:
+            for module,training in modes:module.training=training
+        sys.setprofile(old_profile);signal.alarm(0);signal.signal(signal.SIGALRM,old_handler)

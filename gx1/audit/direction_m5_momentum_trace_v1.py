@@ -96,6 +96,161 @@ class TraceRecorder:
   return out
 
 
+
+def _upstream_geometry(activation, gradients):
+ """Local activation derivatives; a missing derivative is not an observed zero."""
+ x=activation.detach().to(dtype=torch.float64)
+ require(bool(torch.isfinite(x).all()),'UPSTREAM_ACTIVATION_FINITE')
+ row={'cells':x.numel(),'activation_sumsq':float(x.square().sum()),'activation_rms':float(x.square().mean().sqrt())}
+ values=[]
+ for label,g in zip(('five','other59'),gradients):
+  state=('not_requires_grad' if not activation.requires_grad else 'disconnected') if g is None else ('zero' if not bool(torch.count_nonzero(g)) else 'nonzero')
+  row[label+'_gradient_state']=state
+  if g is None:
+   row[label+'_sumsq']=row[label+'_norm']=row[label+'_dot_activation']=None;values.append(None)
+  else:
+   require(g.shape==activation.shape and bool(torch.isfinite(g).all()),'UPSTREAM_GRADIENT_DOMAIN')
+   value=g.detach().to(dtype=torch.float64);square=float(value.square().sum())
+   row[label+'_sumsq']=square;row[label+'_norm']=square**.5
+   row[label+'_dot_activation']=float((value*x).sum());values.append(value)
+ if all(v is not None for v in values):
+  dot=float((values[0]*values[1]).sum());combined=float((values[0]+values[1]).square().sum())
+  row.update(dot=dot,combined_sumsq=combined,
+   cosine=dot/(row['five_norm']*row['other59_norm']) if row['five_norm'] and row['other59_norm'] else None,
+   five_norm_div_other59_norm=row['five_norm']/row['other59_norm'] if row['other59_norm'] else None)
+ else:row.update(dot=None,combined_sumsq=None,cosine=None,five_norm_div_other59_norm=None)
+ return row
+
+
+class UpstreamGradientRecorder:
+ """TRAIN diagnostic hooks only; the caller owns source/data/guard/state proofs.
+
+ Two reverse calls measure five-minute versus other-59 contributions using the
+ actual dense-loss mask and total denominator. Captures never change requires_grad.
+ Projection-output pair equality checks their additive merge, not attenuation.
+ sum(g*x) is a local derivative for activation scaling, not a parameter update.
+ """
+ def __init__(self):
+  self.batches=[];self._captured=None;self._handles=[];self.reverse_calls=0
+
+ def capture(self,model):
+  from contextlib import contextmanager
+  @contextmanager
+  def installed():
+   require(self._captured is None and not self._handles,'UPSTREAM_CAPTURE_ACTIVE')
+   require(not model.training and all(not m.training for m in model.modules()),'UPSTREAM_EVAL_MODE')
+   self._captured={'price':[],'gc':{},'joint':[],'head':[]}
+   backbone=model.backbone
+   def price(_module,args,output):
+    require(len(args)==1,'UPSTREAM_PRICE_ARGS');self._captured['price'].append((args[0],output))
+   def gc(tf):
+    def hook(_module,args,output):
+     require(len(args)==1 and tf not in self._captured['gc'],'UPSTREAM_GC_ACCOUNTING')
+     self._captured['gc'][tf]=(args[0],output)
+    return hook
+   def pre(key):
+    def hook(_module,args):
+     require(len(args)==1,'UPSTREAM_PRE_ARGS');self._captured[key].append(args[0])
+    return hook
+   try:
+    self._handles.append(backbone.mtf_family_proj[FAMILY].register_forward_hook(price))
+    for tf in TIMEFRAMES:self._handles.append(backbone.gc_mtf_family_proj[tf+'__'+FAMILY].register_forward_hook(gc(tf)))
+    self._handles.append(backbone.entry_q_joint_norm.register_forward_pre_hook(pre('joint')))
+    self._handles.append(model.direction_head.register_forward_pre_hook(pre('head')))
+    yield self
+   except BaseException:
+    self._captured=None
+    raise
+   finally:
+    for handle in self._handles:handle.remove()
+    self._handles=[]
+  return installed()
+
+ def measure(self,logits,target,cutoff_ns,*,reverse=None):
+  from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_binary_loss
+  require(self._captured is not None,'UPSTREAM_CAPTURE_REQUIRED')
+  captured=self._captured;self._captured=None
+  try:
+   require(len(captured['price'])==5 and set(captured['gc'])==set(TIMEFRAMES)
+    and len(captured['joint'])==len(captured['head'])==1,'UPSTREAM_HOOK_ACCOUNTING')
+   require(logits.requires_grad,'UPSTREAM_LOGITS_GRAPH')
+   loss=dense_direction_binary_loss(logits,**target,cutoff_ns=cutoff_ns)
+   require(loss['update_allowed'],'UPSTREAM_EMPTY_ELIGIBLE')
+   n=logits.shape[0];points={}
+   for i,tf in enumerate(TIMEFRAMES):
+    price,gc=captured['price'][i],captured['gc'][tf]
+    require(price[1].shape==gc[1].shape and price[1].ndim==3
+     and price[1].shape[0]==n and price[1].shape[2]==128,'UPSTREAM_MATCHED_PROJECTIONS')
+    for branch,pair in (('price',price),('gc',gc)):
+     require(pair[0].ndim==3 and pair[0].shape[:2]==pair[1].shape[:2],'UPSTREAM_PROJECTION_INPUT')
+     for side,tensor in zip(('input','output'),pair):points[branch+'_projection_'+side+'_'+tf]=tensor
+   points['joint_input']=captured['joint'][0];points['head_input']=captured['head'][0]
+   require(points['joint_input'].shape==(n,512) and points['head_input'].shape==(n,128),'UPSTREAM_FUSION_SHAPE')
+   require(all(isinstance(x,torch.Tensor) and x.device==logits.device and x.dtype==logits.dtype
+    and bool(torch.isfinite(x).all()) for x in points.values()),'UPSTREAM_CAPTURE_DOMAIN')
+   mask=loss['eligible_mask'];count=loss['counts']['eligible_cells']
+   bce=torch.nn.functional.binary_cross_entropy_with_logits(logits,(target['sign']==1).to(logits.dtype),reduction='none')
+   other=mask.clone();other[:,4]=False
+   pieces=(bce[:,4][mask[:,4]].sum()/count,bce[other].sum()/count)
+   rounding=(count+len(pieces))*torch.finfo(logits.dtype).eps
+   require(rounding<1 and bool(torch.isclose(sum(pieces),loss['loss'],rtol=rounding/(1-rounding),atol=0)),'UPSTREAM_LOSS_DECOMPOSITION')
+   names=[name for name,x in points.items() if x.requires_grad]
+   require(bool(names),'UPSTREAM_DIFFERENTIABLE_CAPTURES')
+   reverse=torch.autograd.grad if reverse is None else reverse
+   gradients=[]
+   for index,piece in enumerate(pieces):
+    values=reverse(piece,[points[name] for name in names],retain_graph=index==0,create_graph=False,allow_unused=True)
+    self.reverse_calls+=1
+    require(len(values)==len(names),'UPSTREAM_REVERSE_ARITY')
+    gradients.append(dict(zip(names,values)))
+   equality={}
+   for tf in TIMEFRAMES:
+    pair=[]
+    for component in gradients:
+     a=component.get('price_projection_output_'+tf);b=component.get('gc_projection_output_'+tf)
+     pair.append((a is None and b is None) or (a is not None and b is not None and torch.equal(a,b)))
+    equality[tf]=pair
+   require(all(all(v) for v in equality.values()),'UPSTREAM_ADDITIVE_MERGE_GRADIENT')
+   rows={name:_upstream_geometry(x,[g.get(name) for g in gradients]) for name,x in points.items()}
+   for index,name in enumerate(JOINT_FIELDS):
+    sl=slice(index*128,(index+1)*128)
+    rows['joint_source_'+name]=_upstream_geometry(points['joint_input'][:,sl],
+     [g['joint_input'][:,sl] if g.get('joint_input') is not None else None for g in gradients])
+   batch={'parents':n,'eligible_cells':count,'eligible_five_minute_cells':int(mask[:,4].sum()),
+    'loss_five':float(pieces[0].detach()),'loss_other59':float(pieces[1].detach()),
+    'additive_output_gradient_equal':equality,'locations':rows}
+   self.batches.append(batch)
+   return batch
+  finally:
+   captured.clear()
+
+ def result(self):
+  require(self._captured is None and not self._handles and bool(self.batches),'UPSTREAM_RESULT_BOUNDARY')
+  require(self.reverse_calls==2*len(self.batches),'UPSTREAM_REVERSE_COUNTS')
+  aggregate={}
+  for name in self.batches[0]['locations']:
+   rows=[batch['locations'][name] for batch in self.batches]
+   cells=sum(row['cells'] for row in rows);square=sum(row['activation_sumsq'] for row in rows)
+   out={'cells':cells,'activation_sumsq':square,'activation_rms':(square/cells)**.5}
+   for label in ('five','other59'):
+    states=[row[label+'_gradient_state'] for row in rows]
+    out[label+'_batch_states']={state:states.count(state) for state in ('not_requires_grad','disconnected','zero','nonzero')}
+    for metric in ('sumsq','dot_activation'):
+     values=[row[label+'_'+metric] for row in rows]
+     out[label+'_'+metric]=sum(values) if all(v is not None for v in values) else None
+    v=out[label+'_sumsq'];out[label+'_norm']=v**.5 if v is not None else None
+   for metric in ('dot','combined_sumsq'):
+    values=[row[metric] for row in rows];out[metric]=sum(values) if all(v is not None for v in values) else None
+   a,b=out['five_norm'],out['other59_norm']
+   out['cosine']=out['dot']/(a*b) if a and b and out['dot'] is not None else None
+   out['five_norm_div_other59_norm']=a/b if a is not None and b else None
+   aggregate[name]=out
+  return {'batch_count':len(self.batches),'parents':sum(b['parents'] for b in self.batches),
+   'reverse_calls':self.reverse_calls,'batches':self.batches,'aggregate':aggregate,
+   'measurement':'eval activation gradients; shared eligible-cell denominator; no parameter-update claim',
+   'interpretation':'Projection-output gradient equality is an additive-merge identity. Raw gradient norms depend on activation scale; dot_activation is a local activation-scaling derivative. No attenuation or predictive-value claim.'}
+
+
 def run(*,plan_path,plan_sha256,device,out_dir):
  from gx1.contracts import local_random_access_campaign_v2 as binding,immutable_event_authority_v1 as publication
  from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as window

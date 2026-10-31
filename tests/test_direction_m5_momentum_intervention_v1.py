@@ -66,3 +66,96 @@ def test_cuda_validator_dispatch_and_rejected_duplicate_flags(monkeypatch,tmp_pa
     assert validator.main(args)==0 and len(calls)==1
     with pytest.raises(SystemExit):validator.main(args+['--device','cuda'])
     with pytest.raises(SystemExit):validator.main(args[:4]+['--device','cpu','--out-dir',str(tmp_path)])
+
+
+def _upstream_arrays():
+    n=300
+    axes={'parent_rows':np.arange(n,dtype=np.int64),
+        'bar_start_ns':np.arange(n,dtype=np.int64)*100,
+        'decision_ns':np.arange(n,dtype=np.int64)*100+5}
+    targets={'terminal_time_ns':np.ones((n,60),np.int64)*10,
+        'observed':np.ones((n,60),np.bool_),'sign':np.ones((n,60),np.int8)}
+    terminal={**axes,**targets,'logit_up':np.arange(n*60,dtype=np.float32).reshape(n,60)}
+    rows=np.random.default_rng(1).permutation(n)[:256]
+    initial={k:v[rows].copy() for k,v in terminal.items() if k!='logit_up'}
+    return initial,terminal,axes,targets,n
+
+
+def test_upstream_joins_fixed_shuffled_axes_to_terminal_logits():
+    initial,terminal,axes,targets,n=_upstream_arrays()
+    selected=audit.upstream_selected_predictions(initial,terminal,axes,targets,n)
+    assert np.array_equal(selected['parent_rows'],initial['parent_rows'])
+    assert np.array_equal(selected['logit_up'],terminal['logit_up'][initial['parent_rows']])
+
+
+@pytest.mark.parametrize('corruption',['duplicate','target','decision','population'])
+def test_upstream_rejects_population_or_target_mismatch(corruption):
+    initial,terminal,axes,targets,n=_upstream_arrays()
+    if corruption=='duplicate':initial['parent_rows'][0]=initial['parent_rows'][1]
+    elif corruption=='target':initial['sign'][0,4]=-1
+    elif corruption=='decision':initial['decision_ns'][0]+=1
+    else:terminal['parent_rows'][0]=1
+    with pytest.raises(RuntimeError,match='UPSTREAM_'):
+        audit.upstream_selected_predictions(initial,terminal,axes,targets,n)
+
+
+def test_upstream_source_transition_keeps_original_and_rejects_extra_change():
+    import copy,hashlib
+    names=sorted(audit.UPSTREAM_CHANGED_OWNERS)+[f'synthetic_{i}.py' for i in range(60)]
+    historical={name:name.encode() for name in names}
+    old={name:{'path':str(audit.REPO/name),'sha256':hashlib.sha256(historical[name]).hexdigest()} for name in names}
+    current=copy.deepcopy(old)
+    for name in audit.UPSTREAM_CHANGED_OWNERS:current[name]['sha256']='a'*64
+    sources={**current,**{name:{'path':str(audit.REPO/name),'sha256':'b'*64}
+        for name in audit.UPSTREAM_EXTRA_SOURCES if name not in current}}
+    proof={'schema_version':'gx1_family_upstream_source_transition_v1','status':'SOURCE_ONLY_REVIEWED',
+        'original_sources':old,'current_sources':current,'changed_paths':sorted(audit.UPSTREAM_CHANGED_OWNERS),
+        'numerical_model_sources_unchanged':True,'test_data_used':False}
+    launch={'source_owners':old}
+    result=audit.upstream_source_transition(launch,sources,proof,historical)
+    assert launch['source_owners']==old and result['source_owners']==current
+    bad=copy.deepcopy(sources);bad['synthetic_0.py']['sha256']='c'*64
+    proofbad=copy.deepcopy(proof);proofbad['current_sources']['synthetic_0.py']['sha256']='c'*64
+    with pytest.raises(RuntimeError,match='UPSTREAM_SOURCE_DELTA'):
+        audit.upstream_source_transition(launch,bad,proofbad,historical)
+    broken=dict(historical);broken[names[0]]=b'wrong historical bytes'
+    with pytest.raises(RuntimeError,match='UPSTREAM_HISTORICAL_SOURCE'):
+        audit.upstream_source_transition(launch,sources,proof,broken)
+
+
+def test_upstream_profiler_counts_reverse_and_blocks_wrong_phase_or_excess():
+    from types import SimpleNamespace
+    def reverse():pass
+    code=reverse.__code__;frame=SimpleNamespace(f_code=code)
+    phase={'name':'REVERSE'};counts={}
+    profile=audit.upstream_profile_budget({code:('reverse','REVERSE',2)},phase,counts)
+    for _ in range(2):profile(frame,'call',None);profile(frame,'return',None)
+    assert counts=={'reverse_calls':2,'reverse_returns':2}
+    with pytest.raises(RuntimeError,match='UPSTREAM_CALL_BUDGET'):profile(frame,'call',None)
+    phase['name']='FORWARD'
+    with pytest.raises(RuntimeError,match='UPSTREAM_CALL_PHASE'):profile(frame,'call',None)
+
+
+@pytest.mark.parametrize('path,name',[
+    ('/site-packages/torch/optim/adamw.py','__init__'),
+    ('/site-packages/torch/optim/adamw.py','step'),
+    ('/site-packages/torch/autograd/__init__.py','backward'),
+    ('/site-packages/torch/serialization.py','save'),
+])
+def test_upstream_profiler_forbids_updates_saves_and_optimizer(path,name):
+    from types import SimpleNamespace
+    scope={};exec(compile('def '+name+'(): pass',path,'exec'),scope)
+    frame=SimpleNamespace(f_code=scope[name].__code__)
+    profile=audit.upstream_profile_budget({}, {'name':'REVERSE'}, {})
+    with pytest.raises(RuntimeError,match='UPSTREAM_FORBIDDEN_OPERATION'):profile(frame,'call',None)
+
+
+def test_upstream_exact_dispatch_and_power_scope(monkeypatch,tmp_path):
+    from pathlib import Path
+    from gx1.scripts import validate_entry_model_native_technical_checkpoint_v1 as validator
+    calls=[];monkeypatch.setattr(audit,'run_upstream',lambda **kwargs:calls.append(kwargs) or {'status':'SYNTHETIC'})
+    args=['--direction-m5-momentum-intervention-plan',str(audit.UPSTREAM_PLAN),
+        '--direction-m5-momentum-intervention-plan-sha256','a'*64,'--device','cuda','--out-dir',str(audit.UPSTREAM_OUTPUT)]
+    assert validator.main(args)==0 and len(calls)==1
+    source=(Path(__file__).resolve().parents[1]/'scripts/gx1_capped_run.sh').read_text()
+    assert str(audit.UPSTREAM_PLAN)+')' in source and 'm5_output='+str(audit.UPSTREAM_OUTPUT) in source

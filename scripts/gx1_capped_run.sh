@@ -278,7 +278,7 @@ validate_target_command() {
       fi
       if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
         && "${4:-}" == --direction-m5-momentum-intervention-plan ]]; then
-        # Only the two exact one-shot M5 plans have this configured-limit
+        # Only the exact one-shot M5 plans below have this configured-limit
         # exception. The 170 W draw stop, 65/80 C temperature stops, signed
         # telemetry, cgroup, lock, GPU memory and timeout remain unchanged.
         local m5_root=/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63
@@ -290,6 +290,9 @@ validate_target_command() {
           "$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_002.json")
             m5_plan="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_PLAN_20261029_002.json"
             m5_output="$m5_root/DIRECTION_M5_MOMENTUM_TRACE_20261029_002" ;;
+          /home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_PLAN_20261031_001.json)
+            m5_plan=/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_PLAN_20261031_001.json
+            m5_output=/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_20261031_001 ;;
           *) echo "FATAL: unknown M5 momentum producer plan" >&2; exit 75 ;;
         esac
         if ! matches_bound_m5_intervention "$m5_plan" "$m5_output" "$@"; then
