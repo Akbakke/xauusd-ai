@@ -550,3 +550,26 @@ def test_dense_fit_requires_exact_private_qualification_sources_and_protocol(fix
     numerical_seal(bad_num['numerical_recipe']);reseal(bad_num,'recipe_sha256')
     with pytest.raises(RuntimeError):
         owner.require_prefix_fit_launch_recipe(write(runtime/'BAD_DENSE.json',bad_num),source_repo=repo,source_commit='a'*40)
+
+
+def test_family_same_boot_plan_keeps_four_fixed_windows(fixture, monkeypatch):
+    f = fixture
+    protocol = write(f['runtime']/'PROTOCOL.synthetic.json', {'transport_only':True})
+    monkeypatch.setattr(campaign, 'FAMILY_PROTOCOL_PATH', protocol['path'])
+    recipe = {**f['recipe'], 'run_scope':owner.FAMILY_SIGN_SCOPE,
+              'family_arm':'structure_swing_encoder', 'dense_evaluation_protocol':protocol}
+    monkeypatch.setattr(owner, 'require_prefix_fit_launch_recipe', lambda *a, **kw:recipe)
+    plan = copy.deepcopy(f['plan'])
+    plan['family_same_boot'] = {'protocol':protocol, 'family_arm':recipe['family_arm'], 'require_idle_review':True}
+    plan['policy']['fresh_physical_windows_boot_before_every_invocation'] = False
+    for ref in plan['invocations']:
+        path = Path(ref['path']); inv = json.loads(path.read_text())
+        inv['requires_fresh_windows_boot'] = False
+        reseal(inv, 'invocation_sha256')
+        ref.update(write(path, inv))
+    reseal(plan, 'plan_sha256')
+    checked = campaign.require_plan(plan)
+    assert len(checked['checked_invocations']) == 4
+    assert all(inv['optimizer_step_budget'] == 2976 and inv['maximum_wall_seconds'] == 13800
+               for inv in checked['checked_invocations'])
+    assert campaign.next_action(checked, [], current_boot=f['boot'])['decision'] == 'FAMILY_IDLE_REVIEW_REQUIRED'

@@ -46,7 +46,7 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-30T21:46:44.511230+00:00",
   "status": "DIRECTION_FAMILY_BASELINE_ONEPASS_ADMITTED",
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Only exact family baseline fixed-prefix one-pass campaign admitted; four windows share2976updates total, with fullTRAIN and fixedQ1 scoring. No other arm, extra epoch,HPO,TEST,Exit,broker,trading or promotion.",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Baseline fullTRAIN47602/Q117288 completed and saved panels replayed. Prepare own private qualification then one-pass fit for structure_swing_encoder, followed by remaining eight arms and predeclared paired comparisons. No consumed campaign relaunch; TEST/Exit/trading closed.",
+    "current_activity": "Materialize/install one exact structure_swing_encoder private qualification on committed source; collect fresh Windows/WSL idle observations, publish one-use admission and manually start existing capped/signed task on sameboot. No reboot; no fullfit/otherarm admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -31218,7 +31218,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35960,7 +35960,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE; family baseline COMPLETE and consumed; each remaining arm requires its own exact private/fit admission.",
+  "training_enabled_scope": "dynamic_m5_direction_family_private_structure_swing_20261031_001",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "BASELINE_COMPLETE_NINE_MATCHED_ARMS_PENDING",
+    "status": "STRUCTURE_SWING_PRIVATE_SAME_BOOT_PREPARATION",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48280,7 +48280,7 @@
     ],
     "synthetic_tests_authorized": true,
     "genuine_data_reads_authorized": true,
-    "execution_authorized": false,
+    "execution_authorized": true,
     "training_enabled": false,
     "test_data_used": false,
     "broker_access_allowed": false,
@@ -48391,7 +48391,16 @@
       "price_action_candle_encoder",
       "macro_context"
     ],
-    "matched_family_contrasts_completed": 0
+    "matched_family_contrasts_completed": 0,
+    "control_followup": "direction_family_same_boot_boundary_20261031_001",
+    "prepared_structure_swing_private_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_STRUCTURE_SWING_PRIVATE_RECIPE_20261031.json",
+      "sha256": "4d06302031bf1d01cd72f3e8a22d0f1296908fda31222fe7e66b698466d89c8c"
+    },
+    "structure_swing_private_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/RECIPE_PREFLIGHT_002.json",
+      "sha256": "82e88a40c706690999e34d1cee11caf80490cf0cf53bedb29c86d2093bae7971"
+    }
   },
   "direction_family_input_pilot_20261030_001": {
     "status": "PASS_CONSUMED_ACTUAL_INPUT_PILOT",
@@ -48705,5 +48714,103 @@
     "scope": "Only current_work goal summary had stale file hash; both exact program/stage bindings already matched. Native model/data/recipe unchanged.",
     "matching_protocol_references_reviewed": 3,
     "test_data_used": false
+  },
+  "direction_family_same_boot_boundary_20261031_001": {
+    "status": "SOURCE_QUALIFIED_PRIVATE_NATIVE_QUALIFICATION_PENDING",
+    "operator_request_date": "2026-10-31",
+    "operator_request": "nå. Men ikke restart så jævla ofte da, så slipper vi dette problemet",
+    "scope": "Existing matched family study only: private_m5_family_sign_b16_initial_resume_qualification and single_prefix_m5_family_value_sign_one_pass. Sequential completed-window boundaries may reuse exact physical boot after fresh one-use idle attestation.",
+    "source_edits_authorized": true,
+    "synthetic_test_execution_authorized": true,
+    "genuine_data_reads_authorized": false,
+    "genuine_model_forwards_authorized": false,
+    "genuine_updates_authorized": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "routine_physical_restart_authorized": false,
+    "required_guards": [
+      "Explicit hash-bound family-only plan opt-in and truthful invocation boot mode",
+      "Fresh machine-wide Windows/WSL observations, reviewed exclusions, one-use idle attestation tied to exact plan/invocation/source/boot/prior terminal and checkpoint",
+      "Current launch authorization in NEXT_RUN_POLICY, clean source and unchanged canonical capped/signed250W/temperature/memory/CPU/heavy-lock checks",
+      "Controller stops at idle-review boundary without automatic continuation or reboot",
+      "Unrelated and consumed plans retain original fresh-boot behavior"
+    ],
+    "model_numerics_change_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "source_test_observation": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SAME_BOOT_CONTROL_QUALIFICATION_001/PRIOR_202_TESTS_TOOL_OBSERVATION.json",
+      "sha256": "5cf46b89f233334a28f57f72889947ef340e2e4dba50983442845bb4afa4c8c6"
+    },
+    "focused_final_source_retest": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SAME_BOOT_CONTROL_QUALIFICATION_001/FOCUSED_ADMISSION_RETEST_RESULT.json",
+      "sha256": "0a830360592b2d336375716d6952a823832a24f22343cb297b3149979d0b52c1"
+    },
+    "final_source_targeted_tests_passed": 35,
+    "prior_focused_tests_passed": 202,
+    "prior_stdout_original_durability": false,
+    "peer_source_review": "PASS after fixing receipt/progress placement and rejection of held/waiting project locks; read-only review, no genuine execution.",
+    "native_same_boot_execution_observed": false
+  },
+  "dynamic_m5_direction_family_private_structure_swing_20261031_001": {
+    "status": "ADMITTED_EXACT_STRUCTURE_SWING_PRIVATE_SAME_BOOT_PREPARATION",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_STRUCTURE_SWING_PRIVATE_RECIPE_20261031.json",
+      "sha256": "4d06302031bf1d01cd72f3e8a22d0f1296908fda31222fe7e66b698466d89c8c"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/RUNTIME",
+    "source_owner_count": 63,
+    "family_arm": "structure_swing_encoder",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "scope": "One same-boot family private mechanics qualification:32uniqueTRAINparents,4physicalupdates,37forwards; unperturbedsharedinitialparity,owninitial,gradientcontact,exactresume. No fullfit.",
+    "qualification_weights_for_main_fit": false,
+    "requested_physical_gpu_power_limit_w": 250,
+    "retain_physical_gpu_power_limit_w_afterward": 250,
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/materialize_research_campaign_same_boot_once.py",
+      "sha256": "44a222465f3fe3950a91203d1d603b86ba12f8d958c826fb5d42b1a42632ac44"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "47135dc721eee7d2cdbe28474da82b9f6354a4d08b4091432b765dfb41523fbe"
+    },
+    "input_audit_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/INDEPENDENT_AGGREGATE_REVIEW_001.json",
+      "sha256": "cfe793cdbede0ea59c507ad4cf33b5443caae925e16a2f277af3c6b50abdd601"
+    },
+    "metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_STRUCTURE_SWING_001/RECIPE_PREFLIGHT_002.json",
+      "sha256": "82e88a40c706690999e34d1cee11caf80490cf0cf53bedb29c86d2093bae7971"
+    },
+    "control_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SAME_BOOT_CONTROL_QUALIFICATION_001/FOCUSED_ADMISSION_RETEST_RESULT.json",
+      "sha256": "0a830360592b2d336375716d6952a823832a24f22343cb297b3149979d0b52c1"
+    },
+    "user_authorization": "30October matchedfamily study;31October continue and fewerrestarts instruction. Sameboot only after fresh exact idleproof.",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "campaign_preparation_authorized": true,
+    "same_boot_after_idle_review_authorized": true,
+    "physical_restart_before_each_invocation_authorized": false,
+    "physical_restart_before_invocation_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false
   }
 }

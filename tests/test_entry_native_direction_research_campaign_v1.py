@@ -437,3 +437,191 @@ def test_candidate_pair_preflight_requires_same_data_recipe_and_sources(fixture,
         owner.require_m1_structure_matched_recipes(c,bad,source_repo=f['repo'],source_commit='a'*40)
     with pytest.raises(RuntimeError,match='M1_PRICE_MATCHED_PAIR'):
         owner.require_m1_structure_matched_recipes(o,c,source_repo=f['repo'],source_commit='a'*40)
+
+
+@pytest.fixture
+def family_control(fixture, monkeypatch):
+    """Isolate launch transport from the separately qualified model recipe."""
+    from datetime import datetime, timedelta, timezone
+    from gx1.scripts import local_random_access_campaign_v2 as cli
+    f = fixture
+    now = datetime.now(timezone.utc)
+    protocol = write(f['runtime']/'PROTOCOL.synthetic.json', {'synthetic_transport_only':True})
+    monkeypatch.setattr(campaign, 'FAMILY_PROTOCOL_PATH', protocol['path'])
+    family_recipe = {**f['recipe'], 'run_scope':owner.FAMILY_PRIVATE_SCOPE,
+                     'family_arm':'structure_swing_encoder', 'family_protocol':protocol}
+    monkeypatch.setattr(owner, 'require_research_launch_recipe', lambda *a, **kw:family_recipe)
+    monkeypatch.setattr(cli, 'require_clean_source', lambda plan:None)
+    inv = copy.deepcopy(f['invocation'])
+    inv['requires_fresh_windows_boot'] = False
+    reseal(inv, 'invocation_sha256')
+    plan = copy.deepcopy(f['plan'])
+    plan['created_utc'] = (now-timedelta(seconds=10)).isoformat()
+    plan['family_same_boot'] = {'protocol':protocol, 'family_arm':family_recipe['family_arm'],
+                                'require_idle_review':True}
+    plan['policy']['fresh_physical_windows_boot_before_every_invocation'] = False
+    plan['invocations'] = [write(f['runtime']/'INVOCATION.json', inv)]
+    reseal(plan, 'plan_sha256')
+    plan_ref = write(f['runtime']/'PLAN.json', plan)
+    f['policy'][f['recipe']['admission_stage']]['same_boot_after_idle_review_authorized'] = True
+    write(f['repo']/'NEXT_RUN_POLICY.json', f['policy'])
+    observed = (now-timedelta(seconds=3)).isoformat()
+    windows = write(f['runtime']/'WINDOWS.json', {'observed_utc':observed,
+        'boot_id':f['boot']['boot_id'], 'last_boot_utc':f['boot']['last_boot_utc']})
+    wsl = write(f['runtime']/'WSL.json', {
+        'schema_version':'gx1_pre_reboot_wsl_readonly_observation_v1',
+        'started_utc':observed, 'finished_utc':observed,
+        'observation_gaps':[], 'active_marker_exists':False,
+        'collection_complete_without_gaps':True, 'active_named_project_locks':[], 'project_fd_locks':[]})
+    common = {'status':'PASS', 'plan':plan_ref, 'plan_sha256':plan['plan_sha256'],
+        'source_commit':plan['source_commit'], 'invocation_number':1,
+        'invocation_sha256':inv['invocation_sha256'], 'boot':f['boot'],
+        'previous_receipt':None, 'previous_checkpoint':None,
+        'windows_observation':windows, 'wsl_observation':wsl,
+        'reviewed_utc':(now-timedelta(seconds=1)).isoformat(),
+        'valid_until_utc':(now+timedelta(minutes=1)).isoformat(), 'test_data_used':False}
+    review = {'schema_version':campaign.FAMILY_IDLE_REVIEW_SCHEMA, **common,
+              'machine_wide_idle':True, 'no_active_marker':True,
+              'reviewed_exclusions':['Synthetic transport fixture; no real machine claim.']}
+    admission = {'schema_version':campaign.FAMILY_IDLE_SCHEMA, **common,
+                 'root_review':write(f['runtime']/'ROOT_REVIEW.json', review)}
+    path = campaign.family_idle_admission_path(plan, 1)
+    args = {'plan_path':Path(plan_ref['path']), 'plan_file_sha256':plan_ref['sha256'], 'current_boot':f['boot']}
+    return locals()
+
+
+def test_family_same_boot_requires_idle_then_consumes_and_snapshots_proof(family_control):
+    t = family_control; f = t['f']; cli = t['cli']
+    assert cli.inspect_campaign(**t['args'])['action']['decision'] == 'FAMILY_IDLE_REVIEW_REQUIRED'
+    with pytest.raises(RuntimeError, match='no admissible launch'):
+        cli.begin_invocation(**t['args'])
+    ref = write(t['path'], t['admission'])
+    assert cli.inspect_campaign(**t['args'])['action']['decision'] == 'LAUNCH'
+    begun = cli.begin_invocation(**t['args'])
+    active = json.loads(Path(begun['active_marker']['path']).read_text())
+    assert active['idle_admission'] == ref and active['boot'] == f['boot']
+    with pytest.raises(RuntimeError, match='RECOVERY'):
+        cli.begin_invocation(**t['args'])
+    plan = campaign.require_plan(t['plan']); inv = plan['checked_invocations'][0]
+    state = write(f['runtime']/'STATE.synthetic.json', {'no_model':True})
+    result = write(f['runtime']/'RESULT.synthetic.json', {'no_model':True})
+    cursor = owner.build_research_cursor(recipe_ref=f['recipe_ref'], outcome='COMPLETE',
+        optimizer_updates=4, parent_cursor=4, parent_order_sha256='d'*64, full_state=state, result=result)
+    pointer = write(Path(f['window']['campaign_cursor_path']), cursor)
+    progress = owner.build_research_progress(window=f['window'], plan=plan, invocation=inv,
+        checkpoint_pointer=pointer, optimizer_updates=4, parent_cursor=4,
+        parent_order_sha256='d'*64, outcome='COMPLETE')
+    write(Path(inv['progress_path']), progress)
+    guard = Path(inv['guard_log_path'])
+    guard.write_text('telemetry_owner=signed_windows_bridge\nevent=telemetry\nevent=exit child_status=0\n')
+    result = cli.record_invocation(plan_path=t['args']['plan_path'],
+        plan_file_sha256=t['args']['plan_file_sha256'], trainer_guard_exit_code=0,
+        progress_observer_exit_code=0, outcome='COMPLETE')
+    receipt = result['receipt']
+    assert receipt['idle_admission']['sha256'] == ref['sha256']
+    assert Path(receipt['idle_admission']['path']).name == 'IDLE_ADMISSION.json'
+    # History validates at start time; expiry and later policy closure do not undo evidence.
+    f['policy'][f['recipe']['admission_stage']]['same_boot_after_idle_review_authorized'] = False
+    write(f['repo']/'NEXT_RUN_POLICY.json', f['policy'])
+    assert campaign.require_receipt_chain(plan, [receipt])[0] == receipt
+    assert cli.inspect_campaign(**t['args'])['action']['decision'] == 'COMPLETE'
+    with pytest.raises(RuntimeError, match='no admissible launch'):
+        cli.begin_invocation(**t['args'])
+
+
+@pytest.mark.parametrize('fault', [
+    'source', 'plan', 'invocation', 'boot', 'prior', 'checkpoint', 'expired', 'future',
+    'old_windows', 'future_wsl', 'observation_gap', 'active_marker',
+    'review_status', 'review_source', 'review_not_idle', 'stage', 'tamper',
+    'held_named_lock', 'held_fd_lock', 'waiting_fd_lock', 'collection_incomplete', 'boolean_invocation',
+])
+def test_family_idle_admission_rejects_foreign_stale_or_unreviewed_proof(family_control, fault):
+    from datetime import timedelta
+    t = family_control; a = t['admission']; f = t['f']
+    if fault == 'source': a['source_commit'] = 'b'*40
+    if fault == 'plan': a['plan_sha256'] = 'b'*64
+    if fault == 'invocation': a['invocation_number'] = 2
+    if fault == 'boolean_invocation': a['invocation_number'] = True
+    if fault == 'boot':
+        a['boot'] = {**f['boot'], 'boot_id':0}
+        reseal(a['boot'], 'identity_sha256')
+    if fault == 'prior': a['previous_receipt'] = t['plan_ref']
+    if fault == 'checkpoint': a['previous_checkpoint'] = t['plan_ref']
+    if fault == 'expired': a['valid_until_utc'] = (t['now']-timedelta(seconds=2)).isoformat()
+    if fault == 'future': a['reviewed_utc'] = (t['now']+timedelta(days=1)).isoformat()
+    if fault in ('old_windows', 'future_wsl', 'observation_gap', 'active_marker',
+                 'held_named_lock', 'held_fd_lock', 'waiting_fd_lock', 'collection_incomplete'):
+        key = 'windows_observation' if fault == 'old_windows' else 'wsl_observation'
+        path = Path(a[key]['path']); value = json.loads(path.read_text())
+        if fault == 'old_windows': value['observed_utc'] = '2000-01-01T00:00:00Z'
+        if fault == 'future_wsl': value['finished_utc'] = (t['now']+timedelta(days=1)).isoformat()
+        if fault == 'observation_gap': value['observation_gaps'] = ['unreadable process']
+        if fault == 'active_marker': value['active_marker_exists'] = True
+        if fault == 'held_named_lock': value['active_named_project_locks'] = [{'pid':123, 'path':'synthetic.lock'}]
+        if fault == 'held_fd_lock': value['project_fd_locks'] = [{'pid':123, 'blocked_waiter':False}]
+        if fault == 'waiting_fd_lock': value['project_fd_locks'] = [{'pid':123, 'blocked_waiter':True}]
+        if fault == 'collection_incomplete': value['collection_complete_without_gaps'] = False
+        a[key] = write(path, value)
+        t['review'][key] = a[key]
+        a['root_review'] = write(Path(a['root_review']['path']), t['review'])
+    if fault.startswith('review_'):
+        review = t['review']
+        if fault == 'review_status': review['status'] = 'UNKNOWN'
+        if fault == 'review_source': review['source_commit'] = 'b'*40
+        if fault == 'review_not_idle': review['machine_wide_idle'] = False
+        a['root_review'] = write(Path(a['root_review']['path']), review)
+    if fault == 'stage':
+        f['policy'][f['recipe']['admission_stage']]['same_boot_after_idle_review_authorized'] = False
+        write(f['repo']/'NEXT_RUN_POLICY.json', f['policy'])
+    write(t['path'], a)
+    if fault == 'tamper': Path(a['windows_observation']['path']).write_text('{}')
+    with pytest.raises(RuntimeError):
+        t['cli'].begin_invocation(**t['args'])
+    assert not (f['runtime']/'ACTIVE_INVOCATION.json').exists()
+
+
+@pytest.mark.parametrize('fault', ['arm', 'protocol', 'flags', 'hardware', 'scope'])
+def test_family_optin_cannot_broaden_recipe_or_hardware(family_control, fault, monkeypatch):
+    t = family_control; plan = copy.deepcopy(t['plan'])
+    if fault == 'arm': plan['family_same_boot']['family_arm'] = 'macro_context'
+    if fault == 'protocol': plan['family_same_boot']['protocol']['sha256'] = 'b'*64
+    if fault == 'flags': plan['policy']['fresh_physical_windows_boot_before_every_invocation'] = True
+    if fault == 'hardware': plan['policy']['human_status_seconds'] = 1
+    if fault == 'scope': t['family_recipe']['run_scope'] = 'private_four_update_resume_qualification'
+    reseal(plan, 'plan_sha256')
+    with pytest.raises(RuntimeError): campaign.require_plan(plan)
+
+
+@pytest.mark.parametrize('fault', [None, 'old_observation', 'wrong_receipt', 'wrong_checkpoint', 'failed_prior', 'rollback', 'foreign_host'])
+def test_family_continuation_requires_current_terminal_and_real_boot(family_control, fault):
+    from datetime import timedelta
+    t = family_control; a = t['admission']; f = t['f']
+    pointer = write(f['runtime']/'prior-pointer.synthetic.json', {'synthetic_cursor':1})
+    prior = {'invocation_number':1, 'finished_utc':(t['now']-timedelta(seconds=5)).isoformat(),
+             'boot':f['boot'], 'outcome':'RESUMABLE', 'checkpoint_pointer_snapshot':pointer}
+    if fault == 'failed_prior': prior['outcome'] = 'FAILED'
+    prior_ref = write(f['runtime']/'receipts/invocation-0001.json', prior)
+    inv = {**t['inv'], 'invocation_number':2, 'invocation_sha256':'d'*64}
+    a.update(invocation_number=2, invocation_sha256=inv['invocation_sha256'],
+             previous_receipt=prior_ref, previous_checkpoint=pointer)
+    boot = copy.deepcopy(f['boot'])
+    if fault == 'rollback': boot['boot_id'] = 0
+    if fault == 'foreign_host': boot['computer_name'] = 'FOREIGN'
+    reseal(boot, 'identity_sha256'); a['boot'] = boot
+    if fault == 'old_observation':
+        prior['finished_utc'] = (t['now']-timedelta(seconds=2)).isoformat()
+        a['previous_receipt'] = write(Path(prior_ref['path']), prior)
+    if fault == 'wrong_receipt': a['previous_receipt'] = t['plan_ref']
+    if fault == 'wrong_checkpoint': a['previous_checkpoint'] = t['plan_ref']
+    review = {k:v for k,v in a.items() if k not in ('schema_version', 'root_review')}
+    review.update(schema_version=campaign.FAMILY_IDLE_REVIEW_SCHEMA, machine_wide_idle=True,
+                  no_active_marker=True, reviewed_exclusions=[])
+    a['root_review'] = write(f['runtime']/'ROOT_REVIEW_2.json', review)
+    ref = write(f['runtime']/'idle-admissions/invocation-0002.json', a)
+    def check():
+        return campaign.require_family_idle_admission(ref, plan=t['plan'], invocation=inv,
+            previous=prior, current_boot=boot, at_utc=t['now'].isoformat())
+    if fault is None:
+        assert check() == ref
+    else:
+        with pytest.raises(RuntimeError): check()

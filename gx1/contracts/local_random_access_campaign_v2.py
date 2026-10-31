@@ -380,7 +380,9 @@ def require_invocation(
         or result.get("decision") != "PASS"
         or kind not in _KINDS
         or result.get("source_commit") != source_commit
-        or result.get("requires_fresh_windows_boot") is not True
+        or (result.get("requires_fresh_windows_boot") is not True and not (
+            result.get("requires_fresh_windows_boot") is False and kind in {
+                "native_direction_research_window", "native_direction_prefix_fit_window"}))
         or result.get("signed_guard_only") is not True
         or result.get("test_data_used") is not False
         or claimed != canonical_sha256(result)
@@ -1346,6 +1348,159 @@ def require_progress(
     return result
 
 
+FAMILY_IDLE_SCHEMA = "gx1_family_idle_admission_v1"
+FAMILY_IDLE_REVIEW_SCHEMA = "gx1_family_machine_idle_review_v1"
+FAMILY_PROTOCOL_PATH = "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json"
+FAMILY_SCOPES = {
+    "native_direction_research": "private_m5_family_sign_b16_initial_resume_qualification",
+    "native_direction_prefix_fit": "single_prefix_m5_family_value_sign_one_pass",
+}
+
+
+def family_campaign_policy(plan: Mapping[str, Any]) -> dict[str, Any]:
+    policy = campaign_hardware_policy(plan["phase"])
+    if "family_same_boot" in plan:
+        mode = plan["family_same_boot"]
+        if (plan["phase"] not in FAMILY_SCOPES or not isinstance(mode, Mapping)
+                or set(mode) != {"protocol", "family_arm", "require_idle_review"}
+                or mode["require_idle_review"] is not True
+                or not isinstance(mode["family_arm"], str) or not mode["family_arm"]):
+            raise RandomAccessCampaignError("family same-boot mode invalid")
+        ref = require_binding(mode["protocol"], label="family protocol", verify_file=False)
+        if ref["path"] != FAMILY_PROTOCOL_PATH:
+            raise RandomAccessCampaignError("foreign same-boot protocol")
+        policy["fresh_physical_windows_boot_before_every_invocation"] = False
+    return policy
+
+
+def require_family_plan_mode(plan: Mapping[str, Any], recipe: Mapping[str, Any],
+                             invocations: Sequence[Mapping[str, Any]]) -> None:
+    family_campaign_policy(plan)
+    mode = plan.get("family_same_boot")
+    if mode is not None:
+        protocol = recipe.get("family_protocol", recipe.get("dense_evaluation_protocol"))
+        if (recipe.get("run_scope") != FAMILY_SCOPES.get(plan["phase"])
+                or mode["family_arm"] != recipe.get("family_arm")
+                or mode["protocol"] != protocol):
+            raise RandomAccessCampaignError("same-boot requires exact family recipe")
+    if any(item.get("requires_fresh_windows_boot") is not (mode is None) for item in invocations):
+        raise RandomAccessCampaignError("family plan/invocation boot policy differs")
+
+
+def require_family_boot(current: Mapping[str, Any], previous: Mapping[str, Any]) -> None:
+    now = require_boot_identity(current)
+    prior = require_boot_identity(previous)
+    if now != prior and not fresh_boot(now, prior):
+        raise RandomAccessCampaignError("family boot identity rollback or foreign host")
+
+
+def family_idle_admission_path(plan: Mapping[str, Any], number: int) -> Path:
+    return Path(plan["runtime_root"]) / "idle-admissions" / f"invocation-{number:04d}.json"
+
+
+def require_family_idle_admission(
+    binding: Any, *, plan: Mapping[str, Any], invocation: Mapping[str, Any],
+    previous: Mapping[str, Any] | None, current_boot: Mapping[str, Any],
+    at_utc: str, expected_plan_binding: Mapping[str, Any] | None = None,
+    live: bool = False,
+) -> dict[str, Any]:
+    """Check a reviewed one-use launch proof; replay uses the recorded start time."""
+    if "family_same_boot" not in plan:
+        raise RandomAccessCampaignError("idle admission requires family opt-in")
+    ref = require_binding(binding, label="family idle admission", verify_file=True)
+    value = read_bound_json(Path(ref["path"]), ref["sha256"])
+    fields = {"schema_version", "status", "plan", "plan_sha256", "source_commit",
+              "invocation_number", "invocation_sha256", "boot", "previous_receipt",
+              "previous_checkpoint", "windows_observation", "wsl_observation",
+              "root_review", "reviewed_utc", "valid_until_utc", "test_data_used"}
+    if (set(value) != fields or value.get("schema_version") != FAMILY_IDLE_SCHEMA
+            or value.get("status") != "PASS" or value.get("test_data_used") is not False):
+        raise RandomAccessCampaignError("family idle admission schema/status invalid")
+    plan_ref = require_binding(value["plan"], label="idle plan", verify_file=True)
+    raw_plan = read_bound_json(Path(plan_ref["path"]), plan_ref["sha256"])
+    if (value["plan_sha256"] != plan["plan_sha256"]
+            or raw_plan.get("plan_sha256") != plan["plan_sha256"]
+            or canonical_sha256({k:v for k,v in raw_plan.items() if k != "plan_sha256"}) != plan["plan_sha256"]
+            or (expected_plan_binding is not None and plan_ref != expected_plan_binding)
+            or value["source_commit"] != plan["source_commit"]
+            or type(value["invocation_number"]) is not int
+            or value["invocation_number"] != invocation["invocation_number"]
+            or value["invocation_sha256"] != invocation["invocation_sha256"]
+            or require_boot_identity(value["boot"]) != require_boot_identity(current_boot)):
+        raise RandomAccessCampaignError("family idle admission identity differs")
+    prior_boot = plan["prepared_windows_boot"] if previous is None else previous["boot"]
+    require_family_boot(current_boot, prior_boot)
+    if previous is None:
+        expected_receipt = expected_checkpoint = None
+        lower = _utc(plan["created_utc"], "plan creation")
+    else:
+        expected_receipt = {
+            "path": str(Path(plan["runtime_root"]) / "receipts" /
+                        f'invocation-{previous["invocation_number"]:04d}.json'),
+            "sha256": file_sha256(Path(plan["runtime_root"]) / "receipts" /
+                                  f'invocation-{previous["invocation_number"]:04d}.json'),
+        }
+        prior = read_bound_json(Path(expected_receipt["path"]), expected_receipt["sha256"])
+        if prior != previous or previous["outcome"] != "RESUMABLE":
+            raise RandomAccessCampaignError("idle prior terminal differs")
+        expected_checkpoint = previous["checkpoint_pointer_snapshot"]
+        lower = max(_utc(plan["created_utc"], "plan creation"),
+                    _utc(previous["finished_utc"], "prior terminal"))
+    if value["previous_receipt"] != expected_receipt or value["previous_checkpoint"] != expected_checkpoint:
+        raise RandomAccessCampaignError("idle prior receipt/checkpoint binding differs")
+    reviewed = _utc(value["reviewed_utc"], "idle review")
+    expires = _utc(value["valid_until_utc"], "idle expiry")
+    at = _utc(at_utc, "launch start")
+    if not lower <= reviewed <= at <= expires or expires <= reviewed:
+        raise RandomAccessCampaignError("family idle admission stale or future")
+    observations = {}
+    for key in ("windows_observation", "wsl_observation", "root_review"):
+        item = require_binding(value[key], label=key, verify_file=True)
+        observations[key] = read_bound_json(Path(item["path"]), item["sha256"])
+    windows, wsl, review = (observations[k] for k in
+                           ("windows_observation", "wsl_observation", "root_review"))
+    boot = require_boot_identity(current_boot)
+    if (wsl.get("collection_complete_without_gaps") is not True
+            or wsl.get("active_named_project_locks") != []
+            or wsl.get("project_fd_locks") != []):
+        raise RandomAccessCampaignError("idle observation has held project locks or collection gaps")
+    if (windows.get("boot_id") != boot["boot_id"]
+            or _utc(windows.get("last_boot_utc"), "Windows boot") != _utc(boot["last_boot_utc"], "boot")
+            or not lower <= _utc(windows.get("observed_utc"), "Windows observation") <= reviewed
+            or wsl.get("schema_version") != "gx1_pre_reboot_wsl_readonly_observation_v1"
+            or not lower <= _utc(wsl.get("started_utc"), "WSL observation start")
+                <= _utc(wsl.get("finished_utc"), "WSL observation end") <= reviewed
+            or wsl.get("observation_gaps") != []
+            or wsl.get("active_marker_exists") is not False):
+        raise RandomAccessCampaignError("idle observation provenance/time differs")
+    review_keys = {"schema_version", "status", "plan", "plan_sha256", "source_commit",
+                   "invocation_number", "invocation_sha256", "boot", "previous_receipt",
+                   "previous_checkpoint", "windows_observation", "wsl_observation",
+                   "reviewed_utc", "valid_until_utc", "machine_wide_idle",
+                   "no_active_marker", "reviewed_exclusions", "test_data_used"}
+    provenance = fields - {"schema_version", "status", "root_review"}
+    if (set(review) != review_keys or review.get("schema_version") != FAMILY_IDLE_REVIEW_SCHEMA
+            or review.get("status") != "PASS" or review.get("machine_wide_idle") is not True
+            or review.get("no_active_marker") is not True
+            or not isinstance(review.get("reviewed_exclusions"), list)
+            or any(not isinstance(x, str) or not x.strip() for x in review["reviewed_exclusions"])
+            or any(review.get(key) != value[key] for key in provenance)):
+        raise RandomAccessCampaignError("root machine-wide idle review differs")
+    if live:
+        runtime = Path(plan["runtime_root"])
+        if (runtime / "ACTIVE_INVOCATION.json").exists() or (runtime / "ACTIVE_INVOCATION.json").is_symlink():
+            raise RandomAccessCampaignError("active invocation forbids idle admission")
+        if ref["path"] != str(family_idle_admission_path(plan, invocation["invocation_number"])):
+            raise RandomAccessCampaignError("idle admission is not the next one-use path")
+        recipe = read_bound_json(Path(plan["recipe"]["path"]), plan["recipe"]["sha256"])
+        policy_path = Path(plan["source_repo"]) / "NEXT_RUN_POLICY.json"
+        policy = read_bound_json(policy_path, file_sha256(policy_path))
+        stage = policy.get(recipe["admission_stage"], {})
+        if stage.get("same_boot_after_idle_review_authorized") is not True:
+            raise RandomAccessCampaignError("family same-boot stage not authorized")
+    return ref
+
+
 def require_receipt(
     value: Any,
     *,
@@ -1378,6 +1533,8 @@ def require_receipt(
         "test_data_used",
         "receipt_sha256",
     }
+    if invocation.get("requires_fresh_windows_boot") is False:
+        keys.add("idle_admission")
     is_full_val = invocation.get("kind") == "full_val_window"
     if is_full_val:
         keys.update(
@@ -1402,6 +1559,11 @@ def require_receipt(
         or claimed != canonical_sha256(result)
     ):
         raise RandomAccessCampaignError("receipt identity invalid")
+    if invocation.get("requires_fresh_windows_boot") is False:
+        admission = require_binding(result["idle_admission"], label="idle admission snapshot", verify_file=verify_files)
+        expected = Path(invocation["progress_path"]).parent.parent / "invocation-evidence" / invocation["invocation_id"] / "IDLE_ADMISSION.json"
+        if admission["path"] != str(expected):
+            raise RandomAccessCampaignError("idle admission snapshot path differs")
     selection = result.get("selection_receipt_sha256")
     if selection is not None:
         _sha(selection, "receipt selection")
@@ -1585,7 +1747,13 @@ def require_receipt_chain(
             previous_boot = checked_plan["prepared_windows_boot"]
         else:
             previous_boot = checked[-1]["boot"]
-        if not fresh_boot(item["boot"], previous_boot):
+        if "family_same_boot" in checked_plan:
+            require_family_boot(item["boot"], previous_boot)
+            if verify_files:
+                require_family_idle_admission(item["idle_admission"], plan=checked_plan,
+                    invocation=invocation, previous=checked[-1] if checked else None,
+                    current_boot=item["boot"], at_utc=item["started_utc"])
+        elif not fresh_boot(item["boot"], previous_boot):
             raise RandomAccessCampaignError(
                 "each heavy invocation requires a fresh Windows boot"
             )
@@ -1691,14 +1859,16 @@ def next_action(
         if not checked_receipts
         else checked_receipts[-1]["boot"]
     )
-    if not fresh_boot(current_boot, prior_boot):
+    if "family_same_boot" in checked_plan:
+        require_family_boot(current_boot, prior_boot)
+    elif not fresh_boot(current_boot, prior_boot):
         return {
             "decision": "REBOOT_REQUIRED",
             "next_invocation_number": len(checked_receipts) + 1,
         }
     invocation = invocations[len(checked_receipts)]
     return {
-        "decision": "LAUNCH",
+        "decision": "FAMILY_IDLE_REVIEW_REQUIRED" if "family_same_boot" in checked_plan else "LAUNCH",
         "invocation_number": invocation["invocation_number"],
         "invocation_id": invocation["invocation_id"],
         "kind": invocation["kind"],

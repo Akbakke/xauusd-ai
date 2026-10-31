@@ -359,6 +359,20 @@ på maskinen må være ledige. Ingen aktiv jobb avbrytes for periodisk omstart.
 Etterpå bekreftes ny boottid, WSL/tilkobling, uendret kilde og intakte artefakter
 gjennom eksisterende vakter. Native profiler kan kreve fersk fysisk Windows-boot.
 
+
+Operatørpresisering31.10.2026: unngå hyppige rutinemessige PC-omstarter
+mellom deltestene i den matchede indikatorfamiliestudien. De navngitte
+familie-private kontrollene, ettpass-fit og etterfølgende skåring kan bruke
+samme fysiske Windows-oppstart ved verifiserte grenser mellom avsluttede
+jobber. Dette krever først en kvalifisert, eksplisitt hashbundet familie-
+admisjon og en fersk engangs idle-kvittering med faktisk Windows-/WSL-
+observasjon, kilde, plan, vindu, boot og foregående terminal/checkpoint.
+Eksisterende kapasitets-, lås-, temperatur-, effekt-, minne-, kilde- og
+engangsvakter beholdes. Ingen automatisk kjøringssløyfe eller omstart
+innføres. Omstart vurderes ved konkret teknisk behov; tidligere konsumerte
+planer omskrives ikke, og øvrige scopes beholder sine eksisterende krav.
+Før implementasjon og fokuserte kontroller består, er den nye ruten stengt.
+
 ## Brukte engangstillatelser
 
 COST_TERMS_REVALIDATION_001 brukte det særskilte lesekall-unntaket 02.10.2026:

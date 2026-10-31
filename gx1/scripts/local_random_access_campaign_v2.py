@@ -24,6 +24,8 @@ from gx1.contracts.local_random_access_campaign_v2 import (
     file_sha256,
     file_verification_scope,
     next_action,
+    family_idle_admission_path,
+    require_family_idle_admission,
     require_boot_identity,
     require_binding,
     require_clean_source,
@@ -270,11 +272,13 @@ def inspect_campaign(
     *, plan_path: Path, plan_file_sha256: str, current_boot: Mapping[str, Any]
 ) -> dict[str, Any]:
     plan = _load_plan(plan_path, plan_file_sha256)
-    return _inspect_loaded_plan(plan=plan, current_boot=current_boot)
+    return _inspect_loaded_plan(plan=plan, current_boot=current_boot,
+        plan_binding={"path":str(plan_path), "sha256":plan_file_sha256})
 
 
 def _inspect_loaded_plan(
-    *, plan: Mapping[str, Any], current_boot: Mapping[str, Any]
+    *, plan: Mapping[str, Any], current_boot: Mapping[str, Any],
+    plan_binding: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     require_clean_source(plan)
     runtime = Path(plan["runtime_root"])
@@ -282,7 +286,17 @@ def _inspect_loaded_plan(
     require_receipt_chain(plan, receipts, verify_files=True)
     _reconcile_active(plan=plan, receipts=receipts)
     action = next_action(plan, receipts, current_boot=current_boot)
-    if action["decision"] == "LAUNCH" and receipts:
+    if action["decision"] == "FAMILY_IDLE_REVIEW_REQUIRED":
+        admission_path = family_idle_admission_path(plan, action["invocation_number"])
+        if admission_path.exists() or admission_path.is_symlink():
+            # Invalid or expired evidence is a hard failure; absence is the idle-review boundary.
+            ref = {"path":str(admission_path), "sha256":file_sha256(admission_path)}
+            require_family_idle_admission(ref, plan=plan, invocation=action["invocation"],
+                previous=receipts[-1] if receipts else None, current_boot=current_boot,
+                at_utc=datetime.now(timezone.utc).isoformat(), expected_plan_binding=plan_binding, live=True)
+            action["decision"] = "LAUNCH"
+            action["idle_admission"] = ref
+    elif action["decision"] == "LAUNCH" and receipts:
         _require_reboot_receipt(plan=plan, receipts=receipts, current_boot=current_boot)
     return {
         "ok": True,
@@ -307,7 +321,8 @@ def begin_invocation(
     # Full VAL validates the checkpoint authority here; do not deserialize
     # that authority twice before the controller's bounded metadata deadline.
     plan = _load_plan(plan_path, plan_file_sha256)
-    inspected = _inspect_loaded_plan(plan=plan, current_boot=current_boot)
+    inspected = _inspect_loaded_plan(plan=plan, current_boot=current_boot,
+        plan_binding={"path":str(plan_path), "sha256":plan_file_sha256})
     action = inspected["action"]
     if action["decision"] != "LAUNCH":
         raise RandomAccessCampaignError("campaign has no admissible launch")
@@ -386,6 +401,12 @@ def begin_invocation(
     }
     if invocation["kind"] == "full_val_window":
         marker["rollout_cursor_before_sha256"] = rollout_cursor_before
+    if "family_same_boot" in plan:
+        receipts = _receipts(runtime)
+        marker["idle_admission"] = require_family_idle_admission(action["idle_admission"],
+            plan=plan, invocation=invocation, previous=receipts[-1] if receipts else None,
+            current_boot=current_boot, at_utc=marker["started_utc"],
+            expected_plan_binding={"path":str(plan_path), "sha256":plan_file_sha256}, live=True)
     marker["marker_sha256"] = canonical_sha256(marker)
     path = _active_path(runtime)
     _atomic_new(path, marker)
@@ -473,6 +494,16 @@ def record_invocation(
         "PROGRESS.json": progress_path,
         "SIGNED_GUARD.log": guard_path,
     }
+    if "family_same_boot" in plan:
+        receipts = _receipts(runtime)
+        require_receipt_chain(plan, receipts, verify_files=True)
+        if len(receipts) != number - 1:
+            raise RandomAccessCampaignError("idle admission invocation already consumed")
+        ref = require_family_idle_admission(active.get("idle_admission"), plan=plan,
+            invocation=invocation, previous=receipts[-1] if receipts else None,
+            current_boot=active["boot"], at_utc=active["started_utc"],
+            expected_plan_binding={"path":str(plan_path), "sha256":plan_file_sha256})
+        evidence_sources["IDLE_ADMISSION.json"] = Path(ref["path"])
     rollout_cursor: Path | None = None
     if invocation["kind"] == "full_val_window":
         rollout_cursor = Path(invocation["rollout_cursor_path"])
@@ -520,6 +551,10 @@ def record_invocation(
             "sha256": file_sha256(rollout_cursor),
         }
         receipt["rollout_cursor_snapshot"] = snapshots["ROLLOUT_CURSOR.json"]
+    if "family_same_boot" in plan:
+        receipt["idle_admission"] = snapshots["IDLE_ADMISSION.json"]
+        if receipt["idle_admission"]["sha256"] != active["idle_admission"]["sha256"]:
+            raise RandomAccessCampaignError("idle admission changed while recording")
     receipt["receipt_sha256"] = canonical_sha256(receipt)
     require_receipt(
         receipt,

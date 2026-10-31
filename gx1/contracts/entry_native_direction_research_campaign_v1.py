@@ -556,6 +556,7 @@ def require_research_invocation_execution(result: dict[str, Any], execution: Map
     recipe = require_research_launch_recipe(recipe_ref, source_repo=source_repo, source_commit=source_commit)
     policy_ref = campaign.require_binding(execution['train_session_manifest'], label='research window')
     window = require_research_window_policy(campaign.read_bound_json(Path(policy_ref['path']),policy_ref['sha256']))
+    _require(result['requires_fresh_windows_boot'] is True or recipe['run_scope'] == FAMILY_PRIVATE_SCOPE, 'FAMILY_ONLY_BOOT_MODE')
     separator = result['launcher_argv'].index('--')
     _require(result['launcher_argv'][separator+1:] == [str(source_repo/'.venv/bin/python'),'-m',MODULE,
         '--window-policy',policy_ref['path'],'--window-policy-file-sha256',policy_ref['sha256'],
@@ -578,6 +579,8 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
     fields = {'schema_version','decision','campaign_id','phase','created_utc','source_repo','source_commit',
         'runtime_root','gpu_uuid','prepared_windows_boot','recipe','invocations','signed_guard_sources',
         'controller_sources','policy','authority','test_data_used'}
+    if isinstance(value, Mapping) and 'family_same_boot' in value:
+        fields = fields | {'family_same_boot'}
     result = _identity(value, fields, campaign.PLAN_SCHEMA, 'plan_sha256')
     _require(result['phase'] == PHASE and result['decision'] == 'PASS_PREPARED'
         and type(result['campaign_id']) is str and bool(result['campaign_id'])
@@ -588,7 +591,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
     campaign._utc(result['created_utc'], 'research plan creation')
     runtime = Path(_path(result['runtime_root'], 'runtime root'))
     result['prepared_windows_boot'] = campaign.require_boot_identity(result['prepared_windows_boot'])
-    _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(campaign.campaign_hardware_policy(PHASE))
+    _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(campaign.family_campaign_policy(result))
         and campaign.canonical_sha256(result['authority']) == campaign.canonical_sha256({'test':False,'promotion':False,'paper':False,'live':False,'cloud_spend':False}), 'PLAN_AUTHORITY')
     for key, keys in (('signed_guard_sources',{'runner','guard','query','certificate'}),
             ('controller_sources',{'controller','observer','campaign_cli'})):
@@ -611,6 +614,7 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
             and window.get('campaign_cursor_path') == str(runtime/'research-cursor'/'RESUME_CURSOR.json')
             and window.get('progress_path') == str(runtime/'progress'/'invocation-0001.json')
             and invocation['guard_log_path'] == str(runtime/'logs'/'invocation-0001.signed-guard.log'), 'PLAN_LAYOUT')
+        campaign.require_family_plan_mode(result, recipe, [invocation])
         result['checked_invocations'] = [invocation]
     return result
 
@@ -680,6 +684,12 @@ def require_native_direction_research_context(policy_path: Path, policy_file_sha
                 'plan_sha256':plan['plan_sha256'],'invocation_sha256':invocation['invocation_sha256'],
                 'invocation_number':1,'invocation_id':'invocation-0001','kind':KIND,
                 'launcher_argv_sha256':invocation['launcher_argv_sha256'],'pointer_before_sha256':'GENESIS'}.items()), 'ACTIVE_MARKER')
+        if 'family_same_boot' in plan:
+            campaign.require_family_idle_admission(marker.get('idle_admission'), plan=plan,
+                invocation=invocation, previous=None, current_boot=marker['boot'],
+                at_utc=marker['started_utc'], expected_plan_binding=plan_ref)
+            policy = campaign.read_bound_json(CANONICAL_REPO/'NEXT_RUN_POLICY.json', campaign.file_sha256(CANONICAL_REPO/'NEXT_RUN_POLICY.json'))
+            _require(policy.get(recipe['admission_stage'], {}).get('same_boot_after_idle_review_authorized') is True, 'FAMILY_BOOT_READINESS')
         binding_path = Path(recipe['execution_binding_path'])
         binding = campaign.read_bound_json(binding_path,campaign.file_sha256(binding_path))
         _require(set(binding) == {'plan','source_head','policy'} and binding['plan'] == plan_ref

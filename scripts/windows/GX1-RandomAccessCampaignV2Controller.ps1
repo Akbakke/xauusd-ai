@@ -508,6 +508,17 @@ function Write-Gx1RebootBoundary {
         automatic_shutdown_requested = $false
     } | ConvertTo-Json -Compress
 }
+function Write-Gx1FamilyIdleBoundary {
+    param([object]$Boot)
+    [ordered]@{
+        decision = 'FAMILY_IDLE_REVIEW_REQUIRED'
+        plan_json = $PlanJson
+        plan_file_sha256 = $PlanFileSha256
+        boot_identity_path = $Boot.Linux
+        checkpoint_and_receipts_preserved = $true
+        automatic_shutdown_requested = $false
+    } | ConvertTo-Json -Compress
+}
 $bootstrapStage = 'mutex'
 try {
 $campaignMutex = [Threading.Mutex]::new($false, 'Global\GX1RandomAccessCampaignV2WslBootstrap')
@@ -553,6 +564,10 @@ if ((-not $legacyPower -and -not $nativePower) -or
     throw 'Campaign safety policy differs'
 }
 $bootstrapStage = 'campaign_action'
+if ($status.action.decision -ceq 'FAMILY_IDLE_REVIEW_REQUIRED') {
+    Write-Gx1FamilyIdleBoundary -Boot $boot
+    exit 0
+}
 if ($status.action.decision -ceq 'REBOOT_REQUIRED') {
     Write-Gx1RebootBoundary -Boot $boot
     exit 0
@@ -665,6 +680,11 @@ $after = Invoke-Gx1Json -Arguments @(
 # just as the pre-launch branch does. Exhausted windows never request a reboot.
 if ($after.action.decision -ceq 'COMPLETE' -or $after.action.decision -like 'BLOCKED*') {
     $after | ConvertTo-Json -Depth 16 -Compress
+    exit 0
+}
+if ($after.action.decision -ceq 'FAMILY_IDLE_REVIEW_REQUIRED' -or
+    ($after.action.decision -ceq 'LAUNCH' -and $after.policy.fresh_physical_windows_boot_before_every_invocation -eq $false)) {
+    Write-Gx1FamilyIdleBoundary -Boot $boot
     exit 0
 }
 if ($after.action.decision -cne 'REBOOT_REQUIRED') { throw 'Campaign returned no admissible reboot' }

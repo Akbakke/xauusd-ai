@@ -290,3 +290,11 @@ def test_installer_opt_in_keeps_the_default_and_binds_only_the_capped_wrapper() 
     assert "if ($CampaignPython -cne '')" in source
     assert "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_campaign_control.sh" in source
     assert "$argumentParts += @('-Python'" in source
+
+
+def test_family_controller_stops_at_each_idle_review_boundary():
+    source = CONTROLLER.read_text()
+    assert "function Write-Gx1FamilyIdleBoundary" in source
+    assert source.count("Write-Gx1FamilyIdleBoundary -Boot $boot") == 2
+    assert source.index("'record'") < source.rindex("Write-Gx1FamilyIdleBoundary -Boot $boot")
+    assert "'LAUNCH' -and $after.policy.fresh_physical_windows_boot_before_every_invocation -eq $false" in source
