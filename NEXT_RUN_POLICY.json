@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Run exact002once with sourcefrozen throughterminal; closegate then interpret activation evidence before nextfamily.",
+  "next_action": "Interpret upstream finding against existing simple-reference profile/representation scope before next genuine run; no repeat of head-gradient/10xweight/extra-pass tests and no unproved rescaling. Original5remaining familyfits/allpairedcontrasts remain open. Genuine gatesclosed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run exact002once with sourcefrozen throughterminal; closegate then interpret activation evidence before nextfamily.",
+    "next_action": "Interpret upstream finding against existing simple-reference profile/representation scope before next genuine run; no repeat of head-gradient/10xweight/extra-pass tests and no unproved rescaling. Original5remaining familyfits/allpairedcontrasts remain open. Genuine gatesclosed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "FIVE_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_002_ADMITTED",
+    "status": "FIVE_FITS_COMPLETE_UPSTREAM_DIAGNOSTIC_COMPLETE_CAUSE_UNPROVED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -49479,16 +49479,16 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "status": "ADMITTED",
+    "status": "COMPLETE_CONSUMED_CONNECTED_LOW_AMPLITUDE_PRICE_ROUTE_CAUSE_UNPROVED",
     "scope": "Corrected exact002: original baselineTRAIN256,16evalforwards/32reverse/zerooptimizer. Original001failed preconstructor and staysconsumed. Legacy115syntheticreceipts exactly validated;TESTsealed. ExistingcappedCUDAproducer250W; no reboot.",
-    "execution_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
+    "execution_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
     "genuine_updates_authorized": false,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "predecessor_failed_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_20261031_001/FAILED_TERMINAL.json",
@@ -49515,6 +49515,30 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_SOURCE_QUALIFICATION_002/CLEAN_METADATA_PREFLIGHT.json",
       "sha256": "5b5e635da1ff17b0f65b0ffac8460f1c2a79af00beefb00327bc31e4b4fe6e15"
     },
-    "data_reads_authorized": true
+    "data_reads_authorized": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_20261031_002/OUTPUT/RESULT.json",
+      "sha256": "9c87600452a5780e6b78a80f340f8c70e629edece00f1ee0b2241078afb434a6"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_20261031_002/OUTPUT/TERMINAL.json",
+      "sha256": "7aec5ed43fbf5feca0ce93fd61b4a03427e92d849408e1e20da3b665ce225e6c"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/UPSTREAM_GRADIENT_20261031_002/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "bffcc521092f1fd629ea6e913942a191f4359e5e1b86568a49c8edf6a79bc8e1"
+    },
+    "report": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_UPSTREAM_GRADIENT_RESULT_20261031.md",
+      "sha256": "0d915b55116ddd0046e8ec12826749fdcb1d66c6a8ca5f95787a8aadb3de09cd"
+    },
+    "actual_forward_calls": 16,
+    "actual_reverse_calls": 32,
+    "optimizer_constructions": 0,
+    "optimizer_updates": 0,
+    "all_captured_gradients_nonzero": true,
+    "model_state_preserved": true,
+    "root_cause_established": false,
+    "predictive_improvement_established": false
   }
 }
