@@ -22,6 +22,23 @@ en senere FLAT-handling. Et middel nær null kan skjule stor sannsynlig
 bevegelse i begge retninger; marginale prognoser ved flere tider beviser
 ingen felles prisbane.
 
+Begge retninger i et tur–retur-forløp skal inngå i prognosemålet og
+evalueringen på M5/M15/H1/H4/D1. Første-hendelse-klassen alene forkaster
+returen; to uavhengige OPP/NED-sannsynligheter beskriver heller ikke
+rekkefølgen. En retur ned til start er en nedbevegelse fra den foregående
+toppen selv uten passering under opprinnelig startpris. Målkontrakten må
+bevare meningsfulle bevegelsers rekkefølge, størrelse og tidsforløp, uten
+å gjette segmenteringsregel eller begrense antallet til to. Full observert
+prisbane og deklarert skala er nødvendig for en STILLE-fasit; ukjent
+intrabarrekkefølge beholdes som ukjent. Fem input-TF dokumenterer ikke
+automatisk fem prognosemål eller en kvalifisert måling på hver skala.
+
+Forløpsfasit kan bruke framtidige observerte vendepunkter, men disse kan
+aldri velge prognosens starttid eller mates inn som kjente queryankre. En
+prognose av begge bevegelser fra samme tidspunkt må vurderes separat fra
+nye prognoser som får observere den første bevegelsen. Overlappende
+hendelser og TF håndteres som avhengige observasjoner i evalueringen.
+
 Gjenbruk den eksisterende dynamiske M1-eieren og first-positive-quote-eieren
 der deres kilde-/pris-/klokkesemantikk faktisk stemmer. Behold sett av mulige
 utfall ved ukjent rekkefølge. Bare entydige etiketter er et utfallsavhengig

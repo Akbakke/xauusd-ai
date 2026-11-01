@@ -116,6 +116,20 @@ Et prognosemål må ha eksplisitt tids-/hendelsesreferanse og en begrunnet
 bevegelsesdefinisjon; dette innfører ingen maksimal holdetid. Ingen terskel
 for «meningsfull» eller ny horisontliste er vedtatt som et gjettet tall.
 
+Brukerens svar01.11 fastsetter at begge bevegelsene skal telle når prisen
+først stiger og deretter faller tilbake: OPP fulgt av NED, i riktig rekkefølge.
+Det samme gjelder motsatt forløp og videre meningsfulle bevegelser; målet
+låses verken til første hendelse eller til nøyaktig to bevegelser. Nedgangen
+måles også fra toppen av oppgangen, ikke bare mot opprinnelig startpris.
+Forløpet skal prognostiseres og måles på alle fem tidsrammer: M5, M15, H1,
+H4 og D1. Bevegelsenes retning, størrelse, rekkefølge og tidsforløp må beholdes;
+en lukket bar eller nettoendring alene kan skjule dem. Tidsramme, framtidig
+målehorisont og kildeoppløsning er ulike størrelser. Samme underliggende
+bevegelse på flere TF er ikke fem uavhengige bevis. Skalaavhengig relevans
+må defineres; like etiketter på tvers av alle TF er ingen forutsetning.
+Presis uttrekking av bevegelser/vendinger, tallgrenser, tidsdomene og
+observasjonskrav gjenstår. Dette vedtar målsemantikken, ikke ny modellkjøring.
+
 Den gjennomførte binære1..60minuttersforskningen er et snevrere mål:
 den har ingen lært STILLE-klasse og skiller ikke små fra store fortegn.
 Målbeskrivelsen er nå presisert; en samsvarende ny target-/loss-/outputkontrakt
