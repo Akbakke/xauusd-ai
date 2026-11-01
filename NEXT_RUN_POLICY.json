@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-31T19:56:28.486117+00:00",
-  "status": "SIX_FITS_COMPLETE_ALL_NATIVE_GATES_CLOSED",
+  "status": "SIX_FITS_COMPLETE_SESSION_PRIVATE_SOURCE_PREPARED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Prepare a new exact session/regime family private qualification from the existing unchanged protocol and numerical sources. Four full-fit arms and all54 paired primary metric/block contrasts remain; do not rerun consumed plans.",
+  "next_action": "Run capped session/regime private recipe preflight on clean committed source; all native gates closed until separate exact admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Momentum one-pass fit, full TRAIN/later scoring and all60 saved panel verification complete and consumed; prepare next prescribed session/regime private qualification.",
+    "current_activity": "Session/regime private recipe source-prepared with63unchanged owners; clean canonical preflight pending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare a new exact session/regime family private qualification from the existing unchanged protocol and numerical sources. Four full-fit arms and all54 paired primary metric/block contrasts remain; do not rerun consumed plans.",
+    "next_action": "Run capped session/regime private recipe preflight on clean committed source; all native gates closed until separate exact admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20432,7 +20432,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-01T00:56:31.016036+00:00",
+  "updated_utc": "2026-11-01T01:00:22.031117+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -49713,5 +49713,61 @@
     },
     "task_disabled": true,
     "power_retained_w": 250
+  },
+  "dynamic_m5_direction_family_private_session_regime_20261101_001": {
+    "status": "SOURCE_PREPARED_SESSION_PRIVATE_PREFLIGHT_PENDING",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_SESSION_REGIME_PRIVATE_RECIPE_20261101.json",
+      "sha256": "fb5dabaa42303032e2c72b507bf0d001eb90a6947a8b856cf13b1649c401730a"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/RUNTIME",
+    "source_owner_count": 63,
+    "family_arm": "session_regime_encoder",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "scope": "One same-boot family private mechanics qualification:32unique TRAIN parents,4physical updates,37forwards; own initial,shared unperturbed parity,all60heads and remaining gradient contact,selective replacement,exact resume. No full fit.",
+    "qualification_weights_for_main_fit": false,
+    "requested_physical_gpu_power_limit_w": 250,
+    "retain_physical_gpu_power_limit_w_afterward": 250,
+    "preparation_materializer": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/materialize_research_campaign_same_boot_once.py",
+      "sha256": "90914a14932808b06b150e19802cd5deba29fa90954f31bfe7423bb087bbc0ce"
+    },
+    "input_audit_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/INPUT_FULL_001/INDEPENDENT_AGGREGATE_REVIEW_001.json",
+      "sha256": "cfe793cdbede0ea59c507ad4cf33b5443caae925e16a2f277af3c6b50abdd601"
+    },
+    "control_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SAME_BOOT_CONTROL_QUALIFICATION_001/FOCUSED_ADMISSION_RETEST_RESULT.json",
+      "sha256": "0a830360592b2d336375716d6952a823832a24f22343cb297b3149979d0b52c1"
+    },
+    "user_authorization": "Original explicit matched-nine-family study and continuation; next prescribed session/regime arm after six completed fits, unchanged numerics/protocol. No architecture/loss/extra-pass change.",
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
+    "same_boot_after_idle_review_authorized": false,
+    "physical_restart_before_each_invocation_authorized": false,
+    "physical_restart_before_invocation_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "c6ddcdb2e7bc4d7280fa0af6719ca6381de3ea8127bc783a3250fdac7b136ecd"
+    }
   }
 }
