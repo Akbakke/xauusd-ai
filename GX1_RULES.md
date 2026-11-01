@@ -105,6 +105,9 @@ Dette presiserer retning-først-vedtaket24.10 og avløser begrensningen om at
 dager bare kan være støtte i målbeskrivelsen. M5-beslutningstakt, kausal
 M15/H1/H4/D1-kontekst, åtte familier og D1/makro beholdes. Handler, Exit og
 økonomisk beslutningslogikk kommer i en senere fase.
+Presiseringen gjelder først en markedsprognose; Entry kommer senere og
+velger eventuelt en handel. M5 er her prognosens eksisterende observasjonstakt.
+Ingen forecast-klasse, bevegelsesgrense eller tidsforespørsel er en Entry-regel.
 
 Markedets stillstand er forskjellig fra modellens usikkerhet, manglende
 observasjon og en senere FLAT-handling. P(OPP)=0,5 er ikke en prognose om

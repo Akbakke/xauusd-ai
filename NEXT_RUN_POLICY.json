@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T19:13:02.808754+00:00",
-  "status": "OBJECTIVE_ALIGNMENT_GAPS_AND_SAVED_DIAGNOSTICS_COMPLETE_NO_NATIVE_RUNS",
+  "observed_utc": "2026-11-01T19:43:04.019910+00:00",
+  "status": "MOVEMENT_FORECAST_TARGET_DESIGN_REVIEW_COMPLETE_NO_NATIVE_RUNS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest explicit user instruction rejects all new model runs, including the proposed256-row capacity test. Existing chart stop remains final; preserve all original results, weights, checkpoints and incomplete status. Only read-only saved-evidence/source diagnosis is authorized. TEST, broker and trading remain closed.",
-  "next_action": "Review explicit movement/stillness/time target semantics against the user objective before any future source implementation. No automatic target rebuild, model run, native qualification, training or restart; existing execution prohibition persists.",
+  "next_action": "Resolve forecast semantics (path-first versus terminal-first), source-verifiable price/grid, declared time/size domain and partial-observation treatment in the proposed contract. No automatic source/model/target build, fit, evaluation or restart is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "01.11: forecast meaningful UP/DOWN/STILL across scalping, intraday and swing; trades later. Audit actual targets/loss/indicator consumption and answer saved-prediction questions. New model runs and restarts remain prohibited.",
-    "current_activity": "Objective/source alignment and saved-prediction diagnostics completed; no revised target/loss implementation or native execution.",
+    "current_activity": "Read-only longer-target inventory and forecast-target design review delivered; source implementation and all genuine model work remain unadmitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Current binary1..60minute target omits STILLE and meaningful movement semantics. Revised numerical target/time contract unresolved; binary-ranking root cause remains unknown.",
+    "current_blocker": "No identified causal cure for weak binary ranking. Proposed forecast objective requires explicit price/time/size/partial-observation semantics before any implementation; model-run prohibition persists.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Review explicit movement/stillness/time target semantics against the user objective before any future source implementation. No automatic target rebuild, model run, native qualification, training or restart; existing execution prohibition persists.",
+    "next_action": "Resolve forecast semantics (path-first versus terminal-first), source-verifiable price/grid, declared time/size domain and partial-observation treatment in the proposed contract. No automatic source/model/target build, fit, evaluation or restart is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -15947,10 +15947,11 @@
         "path": "/home/andre2/src/GX1_CURRENT/docs/ORIGINAL_PROJECT_GOAL.md",
         "sha256": "da21eeb1ec9e712e3d5372140a8165e1d771f12df7ff8efdefd341bdf849454c"
       },
-      "current_phase": "Offline market-direction/stillness forecast objective and saved-evidence audit; trades and Exit later; no new model runs.",
+      "current_phase": "Offline market-forecast objective/source/evidence investigation. Entry and trades are later decisions; no new native model work.",
       "entry_decision_cadence_seconds": 300,
       "future_outcome_queries": "Exact revised time/event/size contract unresolved; no hard60minute project ceiling or holding rule. Existing1..60binary outputs remain historical evidence;1..480minute and session-day outcome owners are reusable but not a qualified three-class target.",
-      "latest_operator_clarification_date": "2026-11-01"
+      "latest_operator_clarification_date": "2026-11-01",
+      "current_forecast_role": "Existing M5 observation cadence with multi-timeframe inputs; no action authority. Requested time/size forecast coordinates are not holding periods."
     },
     "active_readiness_generation": "18October full-feature M5/MTF audit; historical sampler/baseline/preprocessing receipts remain in their original policy scopes and confer no current readiness.",
     "read_only_oanda_terms_20261019": {
@@ -17710,7 +17711,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_PRIOR_OFFSET_ROOT_REVIEW_001.json",
       "sha256": "cb8aefe756ebaabf9661410626bec88746fe5fe63e9f33cad4226fdaea3ac5c1"
     },
-    "current_direction_objective": "Forutse meningsfull OPP/NED/STILLE for XAUUSD fra kausal M5-beslutning, på skalperings-, intradag- og swingskala uten hard60minuttersgrense. Tids-/hendelsesreferanse er prognosedefinisjon, ikke holderegel. Skill markedsstillstand, usikkerhet og senere FLAT-handling. Behold åtte familier og D1/makro; trades og Exit senere.",
+    "current_direction_objective": "Forutsi meningsfull oppgang, nedgang og markedsstillstand med eksplisitt tid og størrelse på tvers av minutter/timer/dager. Prognosen er ikke Entry; Entry og trades kommer senere. Ingen hard60minuttersgrense. Behold genuin kausal MTF, åtte familier og D1/makro.",
     "current_direction_cause_synthesis": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_1_60_CAUSE_SYNTHESIS_008.json",
       "sha256": "ed4da77dcf102b3bd1de461ad44bd3ba9a07ddea345c4d21585c486fe14fd62d"
@@ -17984,7 +17985,7 @@
       "status": "OBJECTIVE_MISMATCH_PROVEN_BINARY_RANKING_CAUSE_UNKNOWN",
       "review": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "a7e012d0ae8cc488e76f7e86b3cf1ae3f33763960d8cc646ad1b91de4befdff0"
+        "sha256": "d41ab3e89e0dd370d7257671b96115ba9d3797b5bb8c287bb3eea55ce90f9618"
       },
       "saved_result": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_OBJECTIVE_SAVED_DIAGNOSTICS_20261101_001/RESULT.json",
@@ -17999,7 +18000,38 @@
       "root_cause_proven": false,
       "new_model_runs_authorized": false,
       "restart_authorized": false
-    }
+    },
+    "movement_forecast_target_review_20261101": {
+      "status": "DESIGN_RECOMMENDATION_DELIVERED_NUMERIC_AND_OBSERVATION_CHOICES_OPEN",
+      "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
+      "runtime_root": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001",
+      "model_calls_authorized": false,
+      "training_enabled": false,
+      "target_rebuild_authorized": false,
+      "restart_authorized": false,
+      "test_data_used": false,
+      "result": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
+        "sha256": "d41ab3e89e0dd370d7257671b96115ba9d3797b5bb8c287bb3eea55ce90f9618"
+      },
+      "inventory": {
+        "path": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001/EXISTING_TARGET_INVENTORY.json",
+        "sha256": "ef2ff3f38d57fcdf32c64a133fb84f606aea3b8e55c01e75741d3bc18e292d45"
+      },
+      "reused_evidence": {
+        "path": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001/REUSED_EVIDENCE_VERIFICATION.json",
+        "sha256": "ac9b775d35f3fbf68020c21224da42537d2a391b29bdec52898bd7f26a56223a"
+      },
+      "new_native_model_calls": 0,
+      "new_optimizer_steps": 0,
+      "new_target_materializations": 0,
+      "native_implementation_completed": false,
+      "new_target_qualified": false,
+      "root_cause_proven": false,
+      "forecast_role_separate_from_entry": true,
+      "semantic_preference": "Asynchronous user clarification pending; path-first recommendation is not recorded as an operator decision."
+    },
+    "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653"
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",

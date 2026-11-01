@@ -5,6 +5,42 @@ og NEXT_RUN_POLICY.json. Dette er metodekrav, ikke en launchordre eller
 historikk over daglige forsøk. Bruk eksisterende eiere og genuine resultater;
 ikke relanser ferdige inputs, kapasitetstester eller engangsplaner.
 
+## Prognosemål før Entry
+
+Målpresiseringen i GX1_RULES omfatter meningsfull OPP/NED/STILLE på tvers av
+minutter, timer og dager. Entry og handler er en senere oppgave. Dagens
+binære1..60minuttersfunksjon er avgrenset forskning; grensen utvider seg ikke
+automatisk fordi inputtene har lang historikk. En ny prognosekontrakt må
+binde prisreferanse, bevegelsesstørrelse, tidsklokke, utfall, observasjonsmasker,
+output og tap sammen. Ingen enkelt holdetid eller gjettet bevegelsesterskel
+skal erstatte dette.
+
+Liten nettoendring, ingen observert terskelpassering og kontinuerlig rolig
+prisbane er ulike utfall. Første passering og første globale MFE er også
+ulike størrelser. Markedsro er verken manglende fasit, retningsusikkerhet eller
+en senere FLAT-handling. Et middel nær null kan skjule stor sannsynlig
+bevegelse i begge retninger; marginale prognoser ved flere tider beviser
+ingen felles prisbane.
+
+Gjenbruk den eksisterende dynamiske M1-eieren og first-positive-quote-eieren
+der deres kilde-/pris-/klokkesemantikk faktisk stemmer. Behold sett av mulige
+utfall ved ukjent rekkefølge. Bare entydige etiketter er et utfallsavhengig
+utvalg; verken filtrering til dette utvalget eller en ubekreftet partial-label-
+loss er en kvalifisert løsning. En prognose på observerte M1-åpninger må
+beskrives med denne oppløsningen, uten påstand om subminuttforløpet.
+
+Veggklokkeminutter, antall observerte M5-rader og observerte UTC22-sesjoner
+holdes atskilt. Realisert framtidig forløpslengde, hendelsestid, maskering og
+prisekstremer er fasitmetadata, aldri modellinput. Numerisk querydomene og
+tapsfordeling deklareres før eventuell materialisering eller fit. Kildegrenser
+som480minutter er implementasjonsgrenser, ikke maksimal holdetid eller
+permanent prosjektgrense. Tidligere bps-hoder, lengre path-trening og
+first-hurdle-diagnoser skal ikke presenteres som uprøvde ideer.
+
+Den konkrete foreslåtte etterfølgeren og dens uavklarte valg er samlet i
+docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json. Et designforslag
+gir ingen kjøreautorisasjon; aktuell adgang eies fortsatt av NEXT_RUN_POLICY.
+
 ## Før en modell kan startes
 
 Aktuell ren/committet/pushet kilde, fysiske inputs, preprocessing og

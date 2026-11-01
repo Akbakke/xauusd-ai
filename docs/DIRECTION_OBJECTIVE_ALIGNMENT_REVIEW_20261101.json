@@ -1,7 +1,7 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "OBJECTIVE_MISMATCH_PROVEN_BINARY_RANKING_CAUSE_UNKNOWN",
-  "observed_utc": "2026-11-01T19:13:02.808754+00:00",
+  "status": "FORECAST_TARGET_DESIGN_REVIEW_COMPLETE_ROOT_CAUSE_UNPROVEN",
+  "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Predict meaningful upward movement, downward movement or market stillness; trades are a later task.",
     "duration": "Scalping, intraday and swing are relevant according to movement; no hard60minute forecast ceiling or imposed holding period.",
@@ -447,5 +447,241 @@
     "No revised target generation, normalization fit, model construction, forward/backward, training, evaluation launch or restart.",
     "No economic inference, TEST access, trades or feature activation/filtering.",
     "The two earlier source variants remain implemented but not genuinely qualified or measured for improvement."
-  ]
+  ],
+  "latest_followup_goal": {
+    "thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
+    "user_instruction": "Extend the thinking beyond60minutes; Entry comes later. Continue investigating the forecast objective.",
+    "status": "SOURCE_AND_SAVED_EVIDENCE_DESIGN_REVIEW_COMPLETE",
+    "new_model_runs": 0,
+    "new_optimizer_steps": 0,
+    "new_target_materializations": 0,
+    "new_broad_data_scans": 0,
+    "test_data_used": false,
+    "longer_target_inventory": {
+      "path": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001/EXISTING_TARGET_INVENTORY.json",
+      "sha256": "ef2ff3f38d57fcdf32c64a133fb84f606aea3b8e55c01e75741d3bc18e292d45"
+    },
+    "reused_evidence_verification": {
+      "path": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001/REUSED_EVIDENCE_VERIFICATION.json",
+      "sha256": "ac9b775d35f3fbf68020c21224da42537d2a391b29bdec52898bd7f26a56223a"
+    },
+    "metadata_evidence_limit": "Parquet headers and historical manifest counts only; no target values decoded and no fresh full parquet/quote-file hash."
+  },
+  "longer_target_semantics": [
+    {
+      "name": "dynamic_m1_prefix",
+      "supported_source_domain": "1..480 elapsed wall-clock minutes",
+      "storage": "M1 quote pointer and first-prefix masks; dense_future_paths_materialized=false.",
+      "role": "Existing dynamic path/terminal machinery; earlier separate phases trained path/terminal tasks, not the current binary60head nor a market-stillness classifier.",
+      "limits": "480 is the current owner implementation bound, not a project horizon or holding limit. Extension requires explicit source/time/coverage qualification.",
+      "owner": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_outcomes_v1.py",
+        "sha256": "4cba6a5fb49c518eedd67bd8264af51bb319a3af604aeda483c415d4ea864ac7"
+      }
+    },
+    {
+      "name": "observed_day_targets",
+      "source_domain": "1/5/20 observedUTC22sessions",
+      "manifest_observed_counts": [
+        117454,
+        116209,
+        111674
+      ],
+      "price_basis": "Gross LONG/SHORT bid/ask markout, not pure midpoint direction.",
+      "limits": "Sessions with no source bars are skipped; this is not an independently qualified exchange calendar. Realized elapsed_seconds is outcome metadata, never a forward input.",
+      "owner": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_observed_market_horizons_v1.py",
+        "sha256": "030a4d9972451d2b21fd5327ff9f25ee7a7431cc727ce04a06ca0994eaceb867"
+      }
+    },
+    {
+      "name": "K24_forecast",
+      "source_domain": "24 observed M5 rows; nominal120minutes only",
+      "manifest_observed_rows": 118226,
+      "price_basis": "Close-to-close bps",
+      "limits": "Row offset is not guaranteed elapsed wall time across gaps/closures.",
+      "owner": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_aux_targets_v3.py",
+        "sha256": "d4195bb30277862afe52a41b11adee96880f1e9e27b4bef3124becd60960c0c0"
+      }
+    },
+    {
+      "name": "fixed_M5_path",
+      "source_domain": "19M5-bars /95minute legacy observation",
+      "manifest_valid_rows": 109583,
+      "price_basis": "Executable bid/ask path extrema with pre-MFE lower/upper bounds.",
+      "limits": "First global maximum is not first threshold passage. This legacy fixed window does not define the new goal."
+    },
+    {
+      "name": "K48_K96_legacy_aux",
+      "source_domain": "48/96 observed M5 rows, not guaranteed240/480elapsed minutes",
+      "manifest_complete_legacy_aux_rows": 118154,
+      "active_current_phase": false,
+      "limits": "Stored risk/timing fields are not trained by the current binary direction loss."
+    }
+  ],
+  "prior_attempts_not_new_solutions": [
+    {
+      "proposal_not_to_repeat_as_new": "Add signed-bps mean plus BCE or TRAIN-RMS scaling",
+      "completed": "Both older1/5/15 and corrected60output one-pass comparisons were completed without qualified later direction gain.",
+      "refs": [
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_BPS_SAVED_COMPARISON_RESULT_20261027.json",
+          "sha256": "17f867ab7f28234819cb28446ab8a2174a7c8d32ec8e0782cd7f506d317a5300"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_BPS_ONEPASS_RESULT_20261030.md",
+          "sha256": "11c9c61197fae4252445d2ec339e3cd05be0df3865f02ac7538b250545cb664d"
+        }
+      ]
+    },
+    {
+      "proposal_not_to_repeat_as_new": "Refit the last linear head on frozen hidden states",
+      "completed": "TRAIN fit improved, later direction gain unqualified and later proper scores worse.",
+      "ref": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FROZEN_READOUT_RESULT_20261027.json",
+        "sha256": "d52af9c879e7fe2f3bd99f4f841b1b33ee2c7bb528d639eeb433d1e8aa807ff8"
+      }
+    },
+    {
+      "proposal_not_to_repeat_as_new": "Longer horizons alone or repeated identical passes",
+      "completed": "Earlier1..480minute path/terminal phases existed; corrected two-pass and10x-five-minute comparisons also did not qualify useful future direction.",
+      "refs": [
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_SIGN_TWOPASS_RESULT_20261030.md",
+          "sha256": "e8bd941d5639badb65aa447972c2ed0cc7ab9d4a31522211a3c772cd902e8176"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FIVE_PRIORITY_RESULT_20261030.md",
+          "sha256": "b55976672a7fa8ed2d51704b89de217e4bf5e9a9a7475dd484863be202a3ba95"
+        }
+      ]
+    },
+    {
+      "proposal_not_to_repeat_as_new": "Discover or rescore the same10bps first-hurdle study",
+      "completed": "Three-outcome source owner and genuine label audit already exist; no model trained on this objective.",
+      "refs": [
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FIRST_HURDLE_OOF_RESULT_20261028.json",
+          "sha256": "84dbe60087ab97b33fe1a55c1f276e72d3355dd33c23f63f3b8d6f0d82dcb00a"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FIRST_HURDLE_ENDPOINT_ALIGNMENT_RESULT_20261028.json",
+          "sha256": "9ea60c150f74fb156609066ae074bab3bd0e58ed4e28c453030f601978d06a6e"
+        },
+        {
+          "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FIRST_HURDLE_REFERENCE_RESULT_20261028.json",
+          "sha256": "921e2b46d7c01720e531d187b6c1ad9f26c54904443a2c3284ffe212a703c931"
+        }
+      ]
+    }
+  ],
+  "first_event_existing_work": {
+    "owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_first_positive_quote_v1.py",
+      "sha256": "75bc4a1a8d9031c885d4bc5527addf282b42605abf80c9db67074a8dc4ad9258"
+    },
+    "actual_audit_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_entry_direction_first_hurdle_v1.py",
+      "sha256": "5857ff2ce45d648122fde75f91207ee68b79cfdcab4fe916559353800472416f"
+    },
+    "actual_basis": "gross_quote_markout, strictly greater than10bps, closed_m1_prefix,1..60minutes",
+    "price_basis_limit": "Same-side quote movement and gross quote markout exist; midpoint event mode does not.",
+    "primary_five_minute_counts": {
+      "long_first": 484,
+      "short_first": 558,
+      "neither": 16230,
+      "unknown": 16
+    },
+    "first_minute_counts": {
+      "known_direction": 0,
+      "known_neither": 17221,
+      "entry_minute_ambiguous": 67
+    },
+    "old_endpoint_predictor_conditional_auc5": 0.42676767676767674,
+    "endpoint_same_direction_on_known_first_direction": {
+      "same": 1017,
+      "total": 1042
+    },
+    "interpretation": "On this old selected first-event subset, terminal and first-event direction mostly agree and the old predictor is weak on both; changing the label name alone does not manufacture information.",
+    "partial_label_loss_implemented": false,
+    "native_model_consumption_implemented": false,
+    "new_issue_for_any_successor": "Discarding ambiguous observations selects on outcomes. The one-minute singleton set has no known directional event; treating it as representative would reward no-event.",
+    "not_current_baseline_result": true,
+    "not_a_trading_threshold": true
+  },
+  "recommended_forecast_contract_proposal": {
+    "status": "PARAMETERIZED_DESIGN_RECOMMENDATION_NOT_IMPLEMENTED_OR_RUN_ADMITTED",
+    "semantic_preference": "Recommend movement along the path first, terminal direction/distribution as separate evidence. User was asked about a rise-and-return path; no answer assumed.",
+    "forecast_role": "Only a market forecast from information observable atD. Entry, sizing, Exit, orders and economic utility are later roles.",
+    "origin": "Existing completed-M5 observation clock and existing causal multi-timeframe/family inputs. Naming a stored field entry does not grant trade authority.",
+    "query": {
+      "movement_size_a": "Explicit positive size in source-defined bps or an explicitly bound causal-scale unit. It is a forecast query, not a stop or take-profit. No default10bps or fitted later-data threshold is adopted.",
+      "time_reference_h": "Explicit clock kind and supported horizon/session query. A finite measurement domain is necessary; no hard60minute product limit is adopted.",
+      "supported_domain": "Must be declared and verified before any genuine target or fit; current owners do not accept arbitrary hours/days or arbitrary source clocks automatically."
+    },
+    "candidate_price_reference": "Source-verified nominal M1 opening bid/ask midpoint convention can preserve the current decimal target basis. It is not a proof of synchronized subminute executable quotes; midpoint intrabar extrema cannot be invented from separately timed bid/ask highs/lows.",
+    "path_first_formal_definition": {
+      "r_D_u": "10000*(m(D+u)-m(D))/m(D), for the explicitly observable price grid/path",
+      "tau_up_a": "first observed u with r_D_u strictly greater than a",
+      "tau_down_a": "first observed u with r_D_u strictly less than -a",
+      "up": "tau_up_a < tau_down_a and tau_up_a within h",
+      "down": "tau_down_a < tau_up_a and tau_down_a within h",
+      "no_event": "neither boundary reached within fully observed h",
+      "ambiguous_or_missing": "A set of possible underlying outcomes plus a reason; never replace with no_event.",
+      "round_trip": "An up crossing followed by a down crossing is up_first, not quiet. A later forecast reanchors at its ownD.",
+      "outputs": [
+        "P(up_first by h | X_D,a,h)",
+        "P(down_first by h | X_D,a,h)",
+        "P(no_event by h | X_D,a,h)"
+      ],
+      "probability_identities": "For a fixed fully defined query, the three underlying-outcome probabilities sum to1. For fixeda, first-event probabilities are nondecreasing in h and no_event nonincreasing. Endpoint-up probabilities have no such monotonicity requirement.",
+      "resolution_limit": "For a sampled M1 midpoint grid, no_event means no observed grid crossing, not proof of a continuously quiet market or subminute scalping capacity."
+    },
+    "terminal_companion": {
+      "quantity": "Distribution of signed endpoint return R_h, not just its conditional mean.",
+      "interpretation": "P(R_h>a),P(R_h<-a),P(abs(R_h)<=a) describe terminal movement only. A broad symmetric distribution has mean0 but is not quiet.",
+      "no_joint_path_claim": "Marginal endpoint distributions alone do not identify a first crossing, joint reversal trajectory or executable trade.",
+      "implementation_scope": "A separate proposed forecasting quantity, not authority to add another head or loss now."
+    },
+    "partial_observation_requirement": {
+      "existing_support": "Reuse allowed_outcomes and exact reason codes from the first-quote owner where its price/time semantics match.",
+      "rejected_shortcut": "Train/evaluate only singleton outcomes and present their accuracy as full-population quality.",
+      "unproven_shortcut": "A negative-log-sum over allowed classes is not assumed to yield identifiable calibrated class probabilities without a justified observation/coarsening model.",
+      "minimum_honest_route": "Either define an observable sampled-grid target with appropriate limited claim, or establish the partial-observation likelihood/identification and coverage before fitting.",
+      "evaluation": "Show identifiable labels, partial-label sets and wholly unknown outcomes separately. Evaluate no-event and directional components with appropriate references and bounds; no favorable subset selection."
+    },
+    "minimum_owner_changes_if_later_authorized": [
+      "Reuse causal quote/axis/clock owners; extend first-positive-quote owner only after explicit price-basis and uncertainty design.",
+      "Reuse current native representation and existing shared-query-decoder pattern; no new encoder or parallel feature framework is needed to define the forecast role.",
+      "Bind exact query domain, source identity, class/mask semantics, loss and forecast output identity together. Do not edit only HORIZONS_MINUTES or rename old targets.",
+      "Keep the original binary function/checkpoints for scoped comparisons; any changed function needs its own qualification, which remains prohibited.",
+      "Preserve eight families and D1/macro. Parked features and missing observations remain documented; no automatic feature activation or deletion is implied."
+    ],
+    "evaluation_success_criteria": [
+      "Better probability scores than ownTRAIN class-frequency references on predeclared chronological development comparisons, separately for movement/no-event and direction.",
+      "Per-class coverage/quality, proper probability scoring where labels are identified, and explicit uncertainty where they are not.",
+      "Show all declared time/size scales and overlapping-outcome dependence; no best-horizon or best-threshold choice from later results.",
+      "Keep TRAIN fit, later generalization and eventual trading value separate. Improved no-event accuracy alone does not establish directional edge."
+    ],
+    "unresolved_before_implementation": [
+      "User preference for path-first versus endpoint-first versus equal forecasting roles.",
+      "Exact source-verifiable price/path reference and resolution, including synchronization limits.",
+      "Supported time/size query set and its source/recipe-derived numeric values.",
+      "Justified treatment of partial labels; actual data coverage for the chosen successor target."
+    ],
+    "no_causal_edge_claim": "This repairs objective semantics. It is not a demonstrated cause or cure of the old binary-ranking weakness."
+  },
+  "method_references": [
+    {
+      "title": "Evaluating time-to-event forecasts under fixed-horizon right-censoring",
+      "url": "https://arxiv.org/abs/2603.14835v2",
+      "role": "Supports treating not-yet-observed event times as censored and evaluating the observable horizon with appropriate scores; does not establish financial predictive signal."
+    }
+  ],
+  "followup_review": {
+    "source_inventory": "Read-only independent agent checked physical headers, manifest counts and exact clock/price ownership.",
+    "prior_interventions": "Separate read-only agent checked completed bps, readout, longer-path and first-hurdle evidence to avoid relaunch/rebranding.",
+    "semantic_review": "Independent reviewer found the proposed three underlying first-event outcomes coherent, conditional on explicitprice/time/size domain and honest partial-observation treatment; no code implementation required for this proposal."
+  }
 }
