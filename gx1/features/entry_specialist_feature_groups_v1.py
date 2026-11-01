@@ -1719,6 +1719,59 @@ def compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history: Mapping[str,
     return {**payload, "contract_sha256": _canonical_sha256(payload)}
 
 
+
+FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME = "full_xau_gc_mtf_entry_research_v1"
+
+
+def compile_full_gc_mtf_entry_execution_profile(gc_mtf_history: Mapping[str, object]) -> dict[str, object]:
+    """Use every declared XAU field and GC history coordinate, without parking.
+
+    This is a distinct research input function, not a change to old compact
+    profiles. Full physical TRAIN normalization, original masks, unique family
+    ownership and existing temporal-alias handling remain the same owners.
+    GC coordinates follow the caller's explicitly bound raw/relative history;
+    no coordinate conversion or normalization fit is performed here.
+    """
+    base = compile_gc_mtf_entry_execution_profile(gc_mtf_history)
+    fields = base["physical_field_names"]
+    signal, ctx, mtf = (fields[key] for key in ("signal", "ctx_cont", "mtf"))
+    families = tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
+    local_routes = {family: tuple(i for i, name in enumerate(signal)
+        if classify_entry_specialist_feature(name) == family) for family in families}
+    ctx_routes = {family: tuple(i for i, name in enumerate(ctx)
+        if classify_entry_specialist_feature("ctx_cont." + name) == family) for family in families}
+    mtf_routes = require_multi_tf_specialist_routing_v4(mtf)
+    for width, routes in ((len(signal), local_routes), (len(ctx), ctx_routes), (len(mtf), mtf_routes)):
+        if tuple(routes) != families or sorted(i for indices in routes.values() for i in indices) != list(range(width)):
+            raise RuntimeError("FULL_GC_MTF_PROFILE_FAMILY_PARTITION")
+    if any(not local_routes[family] or not mtf_routes[family] for family in families):
+        raise RuntimeError("FULL_GC_MTF_PROFILE_EMPTY_XAU_FAMILY")
+    for tf, width in base["gc_mtf_widths"].items():
+        routes = base["gc_mtf_family_indices"][tf]
+        if set(routes) != set(families) or sorted(i for indices in routes.values() for i in indices) != list(range(width)):
+            raise RuntimeError("FULL_GC_MTF_PROFILE_GC_PARTITION:" + tf)
+    aliases = set(model_native_context_temporal_alias_policy(signal)["signal_indices"])
+    payload = {
+        "schema_version": "gx1_full_gc_mtf_entry_research_profile_v1",
+        "name": FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME,
+        "gather_stage": base["gather_stage"],
+        "physical_field_names": fields, "active_field_names": dict(fields),
+        "physical_widths": {key: len(names) for key, names in fields.items()},
+        "timeframes": tuple(gc_mtf_history["layout"]["timeframes"]),
+        "signal_indices": tuple(range(len(signal))),
+        "ctx_cont_indices": tuple(range(len(ctx))),
+        "mtf_indices": tuple(range(len(mtf))),
+        "generic_snap_signal_indices": tuple(i for i in range(len(signal)) if i not in aliases),
+        "local_specialists": families, "mtf_specialists": families, "base_mtf_specialists": families,
+        "local_signal_indices_by_specialist": local_routes,
+        "ctx_cont_indices_by_specialist": ctx_routes, "mtf_indices_by_specialist": mtf_routes,
+        "gc_context_fields": base["gc_context_fields"], "macro_context_fields": base["macro_context_fields"],
+        **{key: base[key] for key in ("gc_mtf_history", "gc_mtf_field_names", "gc_mtf_family_indices",
+            "gc_mtf_widths", "gc_mtf_window_rows")},
+    }
+    return {**payload, "contract_sha256": _canonical_sha256(payload)}
+
+
 def require_compact_entry_execution_profile_reference(
     value: object, *, context: str = "ENTRY_EXECUTION_PROFILE",
     gc_mtf_history: Mapping[str, object] | None = None,
@@ -1732,7 +1785,9 @@ def require_compact_entry_execution_profile_reference(
         raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_CONTEXT_INVALID")
     if not isinstance(value, Mapping) or set(value) != {"name", "contract_sha256"}:
         raise RuntimeError(f"{context}_COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE_INVALID")
-    if value["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME:
+    if value["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
+        compiled = compile_full_gc_mtf_entry_execution_profile(gc_mtf_history)
+    elif value["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME:
         compiled = compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
     elif value["name"] == GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
         compiled = compile_gc_mtf_entry_execution_profile(gc_mtf_history)

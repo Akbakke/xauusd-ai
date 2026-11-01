@@ -138,6 +138,7 @@ def _require_view(view):
     _require(isinstance(view, Mapping), 'VIEW_KEYS')
     dense = 'dense_minute_supervision' in view
     price_momentum = 'price_momentum_profile' in view
+    full = 'full_feature_profile' in view
     five_priority = 'five_minute_priority' in view
     dense_bps = 'dense_bps_scale' in view
     m1_ofi = 'm1_ofi_normalization' in view
@@ -145,10 +146,11 @@ def _require_view(view):
     family = 'family_intervention' in view
     initialization = view.get('price_momentum_initialization', 'zero_residual')
     relative = 'gc_relative_coordinates_sha256' in view
-    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set())
+    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set())
         and sum((dense, 'bps_scale' in view, 'magnitude_weight_contract' in view)) <= 1
         and (not dense or view['dense_minute_supervision'] is True)
         and (not price_momentum or (dense and view['price_momentum_profile'] is True))
+        and (not full or (view['full_feature_profile'] is True and not price_momentum and not family))
         and initialization in ('zero_residual', 'linear_default')
         and (initialization == 'zero_residual' or (price_momentum and not family))
         and (not relative or (not family and initialization == 'zero_residual'))
@@ -181,6 +183,7 @@ def _require_view(view):
     if relative:
         digest = view['gc_relative_coordinates_sha256']
         _require(type(digest) is str and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest), 'GC_COORDINATE_IDENTITY')
+    _require((view['entry_execution_profile']['name'] == owners.FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME) == full, 'FULL_PROFILE_IDENTITY')
     if price_momentum:
         expected_name = (price_momentum_owner.PROFILE_NAME if initialization == 'zero_residual'
             else price_momentum_owner.LINEAR_INIT_PROFILE_NAME)
@@ -238,7 +241,7 @@ def family_reference_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual'):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -272,6 +275,7 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     for tf, item in gc_history['normalization']['provenance']['row_union'].items():
         _require(all(item[key] == proof['gc'][tf][key] for key in ('rows', 'native_row_indices_sha256', 'available_ns_sha256')), 'GC_PREFIX_ROW_UNION:' + tf)
     _require(type(dense_minutes) is bool and type(price_momentum) is bool and type(m1_ofi_coarsened) is bool and type(five_minute_priority) is bool
+        and type(full_feature_profile) is bool and (not full_feature_profile or (not price_momentum and family_intervention is None))
         and not (dense_minutes and (bps_scale is not None or magnitude_weight_contract is not None))
         and (not price_momentum or dense_minutes)
         and (not five_minute_priority or (price_momentum and m1_ofi_normalization is None))
@@ -288,7 +292,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
             ('mtf_window_source', 'gx1/features/htf_features.py'), ('gc_gather_source', 'gx1/contracts/entry_gc_mtf_history_v1.py'),
             ('owner_profile_source', 'gx1/features/entry_specialist_feature_groups_v1.py'))), 'SOURCE_PROVENANCE_JOINS')
     scalars = _configuration(constructor_metadata)
-    compiled = (price_momentum_owner.compile_price_momentum_profile(gc_history, initialization=price_momentum_initialization) if price_momentum
+    compiled = (owners.compile_full_gc_mtf_entry_execution_profile(gc_history) if full_feature_profile
+        else price_momentum_owner.compile_price_momentum_profile(gc_history, initialization=price_momentum_initialization) if price_momentum
         else owners.compile_gc_mtf_geometry_entry_execution_profile(gc_history) if dense_minutes
         else owners.compile_gc_mtf_entry_execution_profile(gc_history))
     if family_intervention is not None:
@@ -334,6 +339,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['dense_minute_supervision'] = True
     if price_momentum:
         value['price_momentum_profile'] = True
+    if full_feature_profile:
+        value['full_feature_profile'] = True
     if price_momentum_initialization != 'zero_residual':
         value['price_momentum_initialization'] = price_momentum_initialization
     if relative is not None:
@@ -451,7 +458,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         m1_ofi_normalization=view.get('m1_ofi_normalization'), m1_ofi_coarsened=view.get('m1_ofi_coarsened', False),
         five_minute_priority=view.get('five_minute_priority', False), dense_bps_scale=view.get('dense_bps_scale'),
         family_intervention=view.get('family_intervention'),
-        price_momentum_initialization=view.get('price_momentum_initialization', 'zero_residual'))
+        price_momentum_initialization=view.get('price_momentum_initialization', 'zero_residual'),
+        full_feature_profile=view.get('full_feature_profile', False))
     _, routes, widths = _canonical()
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])

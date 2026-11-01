@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "DYNAMIC_FIVE_TIMEFRAME_FORECAST_OBJECTIVE_COVERED_IMPLEMENTATION_GAPS_EXPLICIT",
+  "status": "NEW_SHORT_TRAIN_PREPARATION_FULL_INPUT_PROFILE_IMPLEMENTED_TARGET_RULE_OPEN",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
@@ -455,7 +455,7 @@
   },
   "limits": [
     "No causal root cause of weak binary ranking established.",
-    "No revised target generation, normalization fit, model construction, forward/backward, training, evaluation launch or restart.",
+    "Original saved-only objective review made no model or datafit calls. New user-authorized preparation now permits required source/data/model qualification and one short training, but the new target/loss and genuine readiness remain incomplete.",
     "No economic inference, TEST access, trades or feature activation/filtering.",
     "The two earlier source variants remain implemented but not genuinely qualified or measured for improvement."
   ],
@@ -702,7 +702,127 @@
     "honest_uncertainty": "Flatness, model uncertainty and missing/ambiguous observations stay distinct; sampled observations never claim unobserved intrabar order.",
     "measurement": "Class/probability quality plus continuation/transition errors, lead/delay, magnitude/duration and full coverage, with chronological references and overlap accounted for.",
     "entry_and_trading": "Market forecast first; Entry, Exit, sizing and economic qualification later.",
-    "implementation_status": "The fitted60binary-head target/output/loss remains unchanged and does not cover this objective. Dynamic-state targets, full TF loss mapping and actual skill are not implemented or qualified by this document.",
+    "implementation_status": "Full XAU+GC profile source is implemented with26 pure metadata/gather checks. Actual bind to historical normalization is blocked by old source pins. Fitted60binary target/output/loss remains unchanged and does not implement the dynamic-state objective.",
     "launch_status": "No model construction, forward/backward, fit, target rebuild, restart, TEST or trading authorized."
+  },
+  "current_short_training_preparation": {
+    "status": "FULL_PROFILE_SOURCE_IMPLEMENTED_PURE_CHECKS_PASS_GENUINE_BINDING_BLOCKED",
+    "name": "full_xau_gc_mtf_entry_research_v1",
+    "pure_checks": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
+      "sha256": "e4771949e7f0a7f3f14c5dc68aac5f7d11b4759ac09f3672d9a72db2870d5691"
+    },
+    "source_files": {
+      "gx1/features/entry_specialist_feature_groups_v1.py": "eb6b2b8238fa8e9348b7473f9720c1537b4bfba8e42b1a5b35e2400bb4df5b4b",
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": "e1f926601175463566fb444ff4160e45beac6331dc322e6d5e5b0cb83934653c",
+      "gx1/contracts/entry_exit_production_architecture_v1.py": "3f7a9bd0a6990f03098da43c5bdc5d532fc92595601a2a8c7264a642025840dd",
+      "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "5540f0bb95dfd317719880ae763749518211891b309006e8e43c4ca182f6e404"
+    },
+    "mapping": {
+      "gc_per_tf_family_counts": {
+        "D1": {
+          "chart_geometry_encoder": 0,
+          "momentum_flow_encoder": 129,
+          "price_action_candle_encoder": 8,
+          "session_regime_encoder": 72,
+          "smc_liquidity_encoder": 170,
+          "structure_swing_encoder": 0,
+          "trend_ema_encoder": 0,
+          "vol_compression_encoder": 20
+        },
+        "H1": {
+          "chart_geometry_encoder": 0,
+          "momentum_flow_encoder": 159,
+          "price_action_candle_encoder": 16,
+          "session_regime_encoder": 72,
+          "smc_liquidity_encoder": 186,
+          "structure_swing_encoder": 0,
+          "trend_ema_encoder": 0,
+          "vol_compression_encoder": 20
+        },
+        "H4": {
+          "chart_geometry_encoder": 0,
+          "momentum_flow_encoder": 141,
+          "price_action_candle_encoder": 16,
+          "session_regime_encoder": 72,
+          "smc_liquidity_encoder": 182,
+          "structure_swing_encoder": 0,
+          "trend_ema_encoder": 0,
+          "vol_compression_encoder": 20
+        },
+        "M15": {
+          "chart_geometry_encoder": 0,
+          "momentum_flow_encoder": 159,
+          "price_action_candle_encoder": 16,
+          "session_regime_encoder": 72,
+          "smc_liquidity_encoder": 226,
+          "structure_swing_encoder": 0,
+          "trend_ema_encoder": 0,
+          "vol_compression_encoder": 20
+        },
+        "M5": {
+          "chart_geometry_encoder": 0,
+          "momentum_flow_encoder": 201,
+          "price_action_candle_encoder": 18,
+          "session_regime_encoder": 82,
+          "smc_liquidity_encoder": 316,
+          "structure_swing_encoder": 0,
+          "trend_ema_encoder": 0,
+          "vol_compression_encoder": 22
+        }
+      },
+      "gc_per_tf_widths": {
+        "D1": 399,
+        "H1": 453,
+        "H4": 431,
+        "M15": 493,
+        "M5": 639
+      },
+      "local_family_counts": {
+        "chart_geometry_encoder": 32,
+        "momentum_flow_encoder": 819,
+        "price_action_candle_encoder": 97,
+        "session_regime_encoder": 440,
+        "smc_liquidity_encoder": 1149,
+        "structure_swing_encoder": 30,
+        "trend_ema_encoder": 40,
+        "vol_compression_encoder": 118
+      },
+      "parked_fields": {
+        "ctx_cat": 0,
+        "ctx_cont": 0,
+        "mtf": 0,
+        "signal": 0
+      },
+      "physical_widths": {
+        "ctx_cat": 1,
+        "ctx_cont": 2542,
+        "mtf": 253,
+        "signal": 2725
+      },
+      "timeframes": [
+        "M5",
+        "M15",
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "xau_per_tf_family_counts": {
+        "chart_geometry_encoder": 39,
+        "momentum_flow_encoder": 29,
+        "price_action_candle_encoder": 24,
+        "session_regime_encoder": 9,
+        "smc_liquidity_encoder": 76,
+        "structure_swing_encoder": 24,
+        "trend_ema_encoder": 39,
+        "vol_compression_encoder": 13
+      }
+    },
+    "existing_normalization_content": "All physical surfaces are covered by the old statistics; no compact-only numerical statistics were substituted.",
+    "actual_current_source_binding": "Metadata-only bind against original267 normalization fails NATIVE_DIRECTION_FEATURE_VIEW_SOURCE_PROVENANCE_JOINS because current GC-history and profile-owner SHA differ. This blocks direct operational reuse; no guard is bypassed.",
+    "normalization_repair": "Prepare one new fold1 fit through the existing normalization owner using existing inputs, with new immutable evidence and comparison to old numerical statistics. No new compatibility framework or old plan relaunch.",
+    "genuine_native_consumption_qualified": false,
+    "new_state_target_loss_implemented": false,
+    "learning_improvement_qualified": false
   }
 }

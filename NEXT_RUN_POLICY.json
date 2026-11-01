@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T21:30:01.347381+00:00",
-  "status": "DYNAMIC_FIVE_TIMEFRAME_FORECAST_OBJECTIVE_DEFINED_NO_NATIVE_RUNS",
+  "observed_utc": "2026-11-01T22:12:46.412748+00:00",
+  "status": "DYNAMIC_STATE_SHORT_TRAIN_PREPARATION_OPERATOR_AUTHORIZED_LAUNCH_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Latest explicit user instruction rejects all new model runs, including the proposed256-row capacity test. Existing chart stop remains final; preserve all original results, weights, checkpoints and incomplete status. Only read-only saved-evidence/source diagnosis is authorized. TEST, broker and trading remain closed.",
-  "next_action": "Specify rolling local UP/DOWN/FLAT states, continuations and transitions for M5/M15/H1/H4/D1 without a fixed issue-price line. Bind local-state definition, time/size domain, source/maturity/masks, output/loss and future-prediction scoring. Existing60binary-head implementation remains insufficient; no automatic source/model/target build, fit, evaluation or restart is admitted.",
+  "rule": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
+  "next_action": "Resolve the explicit meaningful-movement/flatness target definition while completing independent source/profile/campaign checks. Implement and qualify the aligned five-timeframe objective and new one-shot recipe; verify machine-wide idle, restart safely, then execute one bounded short training only after gates pass.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -254,8 +254,8 @@
     }
   },
   "current_work": {
-    "operator_request": "01.11 latest: forecast dynamically when the market moves up, down or stays flat, and transitions between these states, on M5/M15/H1/H4/D1. No starting-price line or required return; cover the whole goal. Entry/trades later; model-run and restart prohibitions remain.",
-    "current_activity": "Corrected the anchor-based example into the full dynamic five-timeframe forecast objective; recorded requirement-to-implementation gaps. Documentation only.",
+    "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
+    "current_activity": "Coordinated source/target/model/campaign preparation for the newly authorized single short training; no native job launched.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Current60binary terminal heads do not implement the requested rolling local UP/DOWN/FLAT objective. Exact local-state definition, source/maturity/uncertainty and all-five-TF target/output/loss mappings remain open; no proven cause or cure of weak binary ranking.",
+    "current_blocker": "Explicit local-state/meaningful-flatness definition remains unanswered. Full input profile source passes26 pure checks, but historical prefix normalization fails current source-provenance joins; prepare one fresh fold1 normalization through the existing owner. New target/output/loss and genuine qualification still required.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Specify rolling local UP/DOWN/FLAT states, continuations and transitions for M5/M15/H1/H4/D1 without a fixed issue-price line. Bind local-state definition, time/size domain, source/maturity/masks, output/loss and future-prediction scoring. Existing60binary-head implementation remains insufficient; no automatic source/model/target build, fit, evaluation or restart is admitted.",
+    "next_action": "Resolve the explicit meaningful-movement/flatness target definition while completing independent source/profile/campaign checks. Implement and qualify the aligned five-timeframe objective and new one-shot recipe; verify machine-wide idle, restart safely, then execute one bounded short training only after gates pass.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17444,7 +17444,7 @@
     },
     "current_training_started": false,
     "private_optimizer_qualification_admitted": false,
-    "active_continuous_goal_thread_id": null,
+    "active_continuous_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "current_generation_initial_baseline_is_current_function": false,
     "current_function_initial_baseline_required_after184": false,
     "current_generation_saved_state_audit_pending": false,
@@ -17884,7 +17884,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "NONE_READONLY_SAVED_EVIDENCE_ONLY",
+    "current_native_launch_scope": "CLOSED_PENDING_DYNAMIC_STATE_TARGET_AND_FRESH_QUALIFICATION",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -17992,7 +17992,7 @@
       "status": "OBJECTIVE_MISMATCH_PROVEN_BINARY_RANKING_CAUSE_UNKNOWN",
       "review": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "797f7dc4a406d6b545718305b4809c7ac5a8177f47524ff767207bb43fc0d304"
+        "sha256": "0ebb7adc8ccfa065a6a71fa64a87ff22f602cb494b13ec8e7e416dbb42ed65bb"
       },
       "saved_result": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_OBJECTIVE_SAVED_DIAGNOSTICS_20261101_001/RESULT.json",
@@ -18019,7 +18019,7 @@
       "test_data_used": false,
       "result": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "797f7dc4a406d6b545718305b4809c7ac5a8177f47524ff767207bb43fc0d304"
+        "sha256": "0ebb7adc8ccfa065a6a71fa64a87ff22f602cb494b13ec8e7e416dbb42ed65bb"
       },
       "inventory": {
         "path": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001/EXISTING_TARGET_INVENTORY.json",
@@ -18047,7 +18047,186 @@
       ],
       "latest_operator_followup": "Ja, stemmer. Men du skriver Oppgang → nedgang tilbake til start. Tilbake til hvilken start egentlig? For opp og ned beveger seg jo dynamisk, så vi har jo ingen «start». Vi skal merke når markedet går opp, ned og holder seg flatt. Det er det vi er ute etter. Det finnes ingen «start» strek. Dekk målene fullt ut"
     },
-    "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653"
+    "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
+    "dynamic_state_short_training_20261101": {
+      "status": "PREPARATION_ACTIVE_TARGET_DEFINITION_PENDING_NO_LAUNCH",
+      "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
+      "operator_authorized_source_target_preparation": true,
+      "operator_authorized_required_genuine_qualification": true,
+      "operator_requested_safe_pc_restart": true,
+      "operator_requested_single_short_training": true,
+      "duration_clarification": "Approximately2–3hours like prior short runs, not a hard7200s deadline. Training work/population must be explicitly bounded; unchanged hardguards still apply.",
+      "maximum_training_rounds": 1,
+      "automatic_full_training_authorized": false,
+      "automatic_repetition_authorized": false,
+      "training_enabled": false,
+      "native_launch_authorized": false,
+      "training_launched": false,
+      "restart_executed": false,
+      "test_data_used": false,
+      "trading_authorized": false,
+      "forecast_timeframes": [
+        "M5",
+        "M15",
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "state_classes": [
+        "UP",
+        "DOWN",
+        "FLAT"
+      ],
+      "target_rule_question": "Minimum relevant local movement versus flatness: causal volatility-relative scale or explicit USD/percentage magnitude. No threshold found in existing owners is adopted by guessing.",
+      "preexisting_dirty_files": 0,
+      "integrator": "root",
+      "owner_tasks": {
+        "edge_source_evidence": "target/source semantics and coverage",
+        "prior_interventions": "native model/loss/input/output integration audit",
+        "saved_learning_source_audit": "campaign/qualification/host and preexisting-diff audit"
+      },
+      "counts_scope": "No new training or restart has occurred in this preparation phase.",
+      "cancelled_capacity_source_cleanup": {
+        "status": "SELECTIVELY_REMOVED_UNNEEDED_REJECTED_SCOPE",
+        "tracked_files_restored_to_existing_head": 8,
+        "untracked_capacity_tests_removed": 2,
+        "reversible_patch": {
+          "path": "/tmp/gx1_cancelled_capacity_20261101T214724Z.patch",
+          "sha256": "4b26c76305d7bf3a5d10f1b040ccd18cde9a5481f1b24797f77cef16aaeb8dcf"
+        },
+        "verification": {
+          "path": "/tmp/gx1_cancelled_capacity_20261101T214724Z_APPLIED.json",
+          "sha256": "113b068591bcd23850b3a09f36909c1a37f5812f0c74b0671e94110f70d88807"
+        },
+        "historical_policy_references_role": "Revoked scope only; removed test names no longer identify executable current code. Original measurements/checkpoints unchanged.",
+        "model_calls": 0
+      },
+      "full_input_profile_source": {
+        "status": "FULL_PROFILE_SOURCE_IMPLEMENTED_PURE_CHECKS_PASS_GENUINE_BINDING_BLOCKED",
+        "name": "full_xau_gc_mtf_entry_research_v1",
+        "pure_checks": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
+          "sha256": "e4771949e7f0a7f3f14c5dc68aac5f7d11b4759ac09f3672d9a72db2870d5691"
+        },
+        "source_files": {
+          "gx1/features/entry_specialist_feature_groups_v1.py": "eb6b2b8238fa8e9348b7473f9720c1537b4bfba8e42b1a5b35e2400bb4df5b4b",
+          "gx1/contracts/entry_native_direction_feature_view_v1.py": "e1f926601175463566fb444ff4160e45beac6331dc322e6d5e5b0cb83934653c",
+          "gx1/contracts/entry_exit_production_architecture_v1.py": "3f7a9bd0a6990f03098da43c5bdc5d532fc92595601a2a8c7264a642025840dd",
+          "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "5540f0bb95dfd317719880ae763749518211891b309006e8e43c4ca182f6e404"
+        },
+        "mapping": {
+          "gc_per_tf_family_counts": {
+            "D1": {
+              "chart_geometry_encoder": 0,
+              "momentum_flow_encoder": 129,
+              "price_action_candle_encoder": 8,
+              "session_regime_encoder": 72,
+              "smc_liquidity_encoder": 170,
+              "structure_swing_encoder": 0,
+              "trend_ema_encoder": 0,
+              "vol_compression_encoder": 20
+            },
+            "H1": {
+              "chart_geometry_encoder": 0,
+              "momentum_flow_encoder": 159,
+              "price_action_candle_encoder": 16,
+              "session_regime_encoder": 72,
+              "smc_liquidity_encoder": 186,
+              "structure_swing_encoder": 0,
+              "trend_ema_encoder": 0,
+              "vol_compression_encoder": 20
+            },
+            "H4": {
+              "chart_geometry_encoder": 0,
+              "momentum_flow_encoder": 141,
+              "price_action_candle_encoder": 16,
+              "session_regime_encoder": 72,
+              "smc_liquidity_encoder": 182,
+              "structure_swing_encoder": 0,
+              "trend_ema_encoder": 0,
+              "vol_compression_encoder": 20
+            },
+            "M15": {
+              "chart_geometry_encoder": 0,
+              "momentum_flow_encoder": 159,
+              "price_action_candle_encoder": 16,
+              "session_regime_encoder": 72,
+              "smc_liquidity_encoder": 226,
+              "structure_swing_encoder": 0,
+              "trend_ema_encoder": 0,
+              "vol_compression_encoder": 20
+            },
+            "M5": {
+              "chart_geometry_encoder": 0,
+              "momentum_flow_encoder": 201,
+              "price_action_candle_encoder": 18,
+              "session_regime_encoder": 82,
+              "smc_liquidity_encoder": 316,
+              "structure_swing_encoder": 0,
+              "trend_ema_encoder": 0,
+              "vol_compression_encoder": 22
+            }
+          },
+          "gc_per_tf_widths": {
+            "D1": 399,
+            "H1": 453,
+            "H4": 431,
+            "M15": 493,
+            "M5": 639
+          },
+          "local_family_counts": {
+            "chart_geometry_encoder": 32,
+            "momentum_flow_encoder": 819,
+            "price_action_candle_encoder": 97,
+            "session_regime_encoder": 440,
+            "smc_liquidity_encoder": 1149,
+            "structure_swing_encoder": 30,
+            "trend_ema_encoder": 40,
+            "vol_compression_encoder": 118
+          },
+          "parked_fields": {
+            "ctx_cat": 0,
+            "ctx_cont": 0,
+            "mtf": 0,
+            "signal": 0
+          },
+          "physical_widths": {
+            "ctx_cat": 1,
+            "ctx_cont": 2542,
+            "mtf": 253,
+            "signal": 2725
+          },
+          "timeframes": [
+            "M5",
+            "M15",
+            "H1",
+            "H4",
+            "D1"
+          ],
+          "xau_per_tf_family_counts": {
+            "chart_geometry_encoder": 39,
+            "momentum_flow_encoder": 29,
+            "price_action_candle_encoder": 24,
+            "session_regime_encoder": 9,
+            "smc_liquidity_encoder": 76,
+            "structure_swing_encoder": 24,
+            "trend_ema_encoder": 39,
+            "vol_compression_encoder": 13
+          }
+        },
+        "existing_normalization_content": "All physical surfaces are covered by the old statistics; no compact-only numerical statistics were substituted.",
+        "actual_current_source_binding": "Metadata-only bind against original267 normalization fails NATIVE_DIRECTION_FEATURE_VIEW_SOURCE_PROVENANCE_JOINS because current GC-history and profile-owner SHA differ. This blocks direct operational reuse; no guard is bypassed.",
+        "normalization_repair": "Prepare one new fold1 fit through the existing normalization owner using existing inputs, with new immutable evidence and comparison to old numerical statistics. No new compatibility framework or old plan relaunch.",
+        "genuine_native_consumption_qualified": false,
+        "new_state_target_loss_implemented": false,
+        "learning_improvement_qualified": false
+      },
+      "current_goal_report": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
+        "sha256": "0ebb7adc8ccfa065a6a71fa64a87ff22f602cb494b13ec8e7e416dbb42ed65bb"
+      },
+      "required_native_source_contract_checks": "Repository pre-commit native contract checks are permitted by the new preparation instruction; synthetic CPU model checks are not genuine target/gradient/resume qualification or training."
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -36139,7 +36318,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_USER_REJECTED_ALL_NEW_MODEL_RUNS",
+  "training_enabled_scope": "CLOSED_PENDING_NEW_DYNAMIC_STATE_QUALIFICATION_AND_SHORT_TRAIN_ADMISSION",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {

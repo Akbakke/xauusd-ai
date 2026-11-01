@@ -156,9 +156,19 @@ er fortsatt ikke implementert eller kvalifisert. Gjenbruk eksisterende
 utfallseiere, masker og prisbaner før ny mekanikk vurderes. Endrede mål må
 kontrolleres mot denne bestillingen før noen eventuell modellkjøring.
 
-Brukerens forbud mot nye modellkjøringer, trening, forward/backward og omstart
-består. Denne presiseringen åpner bare lesende diagnose og dokumentasjon;
-den åpner ikke TEST, handler eller en ny kjøreplan.
+Siste brukerbestilling01.11 åpner nødvendige mål-/kodejusteringer og faktisk
+kvalifisering før én ny kort trening, med trygg PC-omstart først. De tidligere
+engangsplanene, chart-avbruddet og kapasitetstesten relanseres ikke. Ny source,
+fasit, inputprofil, output, loss, måling og recipe/campaign må samsvare og
+kvalifiseres før launch. Tidligere modellforbud er avløst bare innen denne nye
+bestillingen; training_enabled forblir false til riktig eksakt admisjon finnes.
+
+Brukeren presiserte at om lag2–3timer er et anslag for én kort runde som de
+sju tidligere, ikke en hard7200s-grense. Avgrens genuine TRAIN-populasjon og
+oppdateringsomfang før launch, behold eksisterende invokasjons-/hardguards,
+og bevar checkpoint/resultat. Ingen automatisk ny runde eller full trening
+følger av dette; full trening vurderes først etter resultatet. TEST, broker,
+handel, Exit-trening og gjentakelse av konsumerte planer forblir stengt.
 
 ## Første kompakte treningsprofil, operatørpresisering19.10.2026
 

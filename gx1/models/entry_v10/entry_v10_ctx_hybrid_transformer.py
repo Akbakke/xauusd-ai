@@ -83,6 +83,7 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     compile_compact_entry_execution_profile,
     compile_gc_mtf_entry_execution_profile,
     compile_gc_mtf_geometry_entry_execution_profile, GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
+    compile_full_gc_mtf_entry_execution_profile, FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME,
 )
 from gx1.features.entry_direction_momentum_profile_v1 import (
     MOMENTUM_FAMILY as PRICE_MOMENTUM_FAMILY,
@@ -531,6 +532,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if profile_reference is not None and profile_reference["name"] in PRICE_MOMENTUM_PROFILE_NAMES else None
         )
         compiled_profile = (
+            compile_full_gc_mtf_entry_execution_profile(gc_mtf_history)
+            if profile_reference is not None and profile_reference["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME else
             compile_price_momentum_profile(gc_mtf_history, initialization=price_momentum_mode)
             if price_momentum_mode is not None else
             compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
