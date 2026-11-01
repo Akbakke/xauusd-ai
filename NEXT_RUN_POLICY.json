@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T11:11:03.557724+00:00",
+  "observed_utc": "2026-11-01T11:34:42.574052+00:00",
   "status": "SEVEN_FITS_COMPLETE_CHART_SCORING_INTERRUPTED_HOST_BUGCHECK",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "No native execution or training admitted. Chart W1 completed47602TRAIN/2976updates and its bytes are preserved. W2 was interrupted by Windows bugcheck0x20001; original exit unknown,2claimed/1completed/1interrupted,windows3-4revoked. Exact chart taskDisabled; preserve ACTIVE/CLAIM/logs. Host cause remainsUNKNOWN. No original relaunch,reboot,TEST,Exit or trading.",
-  "next_action": "Preserve chart W1 and original interrupted W2. Diagnose the concrete Windows0x20001 crash with bounded offline evidence before further native work. Existing session-only recovery is not chart authority; any chart scoring recovery requires its own qualified binding and fresh capped campaign. Do not relaunch the original. Three complete variants and54pairedcontrasts remain.",
+  "next_action": "Review targeted host stability measures using the symbol-resolved intelppm CPU-idle/Hyper-V crash path and measured i9-10900K/PRIME Z490M-PLUS/BIOS1621. ASUS1806 is beta and not a documented fix for this crash; no firmware/settings/reboot change admitted by the diagnostic. Preserve chart W1; any chart scoring recovery still needs its own qualified binding and fresh capped campaign. Do not relaunch the original. Three complete variants and54pairedcontrasts remain.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Seven matched full variants verified. Chart W1 training completed47602parents/2976updates. W2 fullTRAIN/later scoring interrupted by Windows0x20001 automatic restart; exact model/initial/cursor/result hashes preserved. Chart taskDisabled and all native gates closed.",
+    "current_activity": "Seven complete matched variants. Chart W1 training and bytes preserved; W2 interrupted. Bounded KD analysis with Microsoft symbols completed and independently reviewed: CPU idle/Hyper-V path at intelppm!HvRequestIdle; underlying cause UNKNOWN. No model job or native launch admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Repeated host crash interrupted chart scoring. Underlying cause UNKNOWN; no eighth full variant. Existing scoring-recovery validator is session-specific and does not authorize chart.",
+    "current_blocker": "Host stability unresolved after symbol-resolved CPU-idle/Hyper-V crash. A failure-bucket/module is not proof of driver,firmware or hardware fault. ASUS1806beta is a candidate for assessment,not a verified fix. Existing chart recovery binding remains unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Preserve chart W1 and original interrupted W2. Diagnose the concrete Windows0x20001 crash with bounded offline evidence before further native work. Existing session-only recovery is not chart authority; any chart scoring recovery requires its own qualified binding and fresh capped campaign. Do not relaunch the original. Three complete variants and54pairedcontrasts remain.",
+    "next_action": "Review targeted host stability measures using the symbol-resolved intelppm CPU-idle/Hyper-V crash path and measured i9-10900K/PRIME Z490M-PLUS/BIOS1621. ASUS1806 is beta and not a documented fix for this crash; no firmware/settings/reboot change admitted by the diagnostic. Preserve chart W1; any chart scoring recovery still needs its own qualified binding and fresh capped campaign. Do not relaunch the original. Three complete variants and54pairedcontrasts remain.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17879,6 +17879,10 @@
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
+    },
+    "current_host_crash_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/ACTUAL_REVIEW_001.json",
+      "sha256": "0e1e7d13dcecf160ae2ee71c6c6e939e61550471d532cb3ff0657ea0d7fa40f4"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -20443,7 +20447,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-01T11:11:03.557741+00:00",
+  "updated_utc": "2026-11-01T11:34:42.574052+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -50554,6 +50558,10 @@
       "sha256": "0620da7f545767727cea2fe113e71eef6b3a49f3af4032839077ff98e07e0b8c"
     },
     "underlying_crash_cause": "UNKNOWN",
-    "recovery_execution_authorized": false
+    "recovery_execution_authorized": false,
+    "host_crash_diagnostic_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/ACTUAL_REVIEW_001.json",
+      "sha256": "0e1e7d13dcecf160ae2ee71c6c6e939e61550471d532cb3ff0657ea0d7fa40f4"
+    }
   }
 }
