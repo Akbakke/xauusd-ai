@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T17:26:05.028742+00:00",
-  "status": "RETENTION_72GB_AND_SAVED_EVIDENCE_DIAGNOSIS_COMPLETE_NO_EDGE_PROVEN_NO_MODEL_RUNS",
+  "observed_utc": "2026-11-01T18:07:55.787741+00:00",
+  "status": "TWO_EDGE_DESIGN_CHANGES_IMPLEMENTED_SYNTHETIC_PASS_NO_NATIVE_QUALIFICATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest explicit user instruction rejects all new model runs, including the proposed256-row capacity test. Existing chart stop remains final; preserve all original results, weights, checkpoints and incomplete status. Only read-only saved-evidence/source diagnosis is authorized. TEST, broker and trading remain closed.",
-  "next_action": "No model run, restart or automatic experiment is queued. Present the completed evidence review and proposals. Root cause and improvement remain unproven; any new genuine model execution requires the user to lift the current prohibition.",
+  "next_action": "Source implementation and focused synthetic review delivered. No automatic model job, genuine normalization fit or restart queued; actual native qualification and edge require explicit release of the user prohibition.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "01.11: investigate weak learning using existing results, source and saved states only. All new model runs and restarts explicitly rejected, including256-row control.",
-    "current_activity": "72.13 GB retention deletion verified. Saved-prediction/state diagnosis and prior-control synthesis complete; two bounded design proposals documented, neither implemented or proven to improve edge.",
+    "current_activity": "Both approved designs implemented as separate identified source variants;76 focused synthetic checks passed. Genuine native qualification and edge remain unproven.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "No model run, restart or automatic experiment is queued. Present the completed evidence review and proposals. Root cause and improvement remain unproven; any new genuine model execution requires the user to lift the current prohibition.",
+    "next_action": "Source implementation and focused synthetic review delivered. No automatic model job, genuine normalization fit or restart queued; actual native qualification and edge require explicit release of the user prohibition.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17953,7 +17953,32 @@
         "sha256": "9fcb03143d398975351a691300b3c30fd631b9bd02137cf83469985dd9a3774f"
       }
     },
-    "completed_evidence_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653"
+    "completed_evidence_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
+    "edge_design_implementation_20261101": {
+      "status": "SOURCE_IMPLEMENTED_76_SYNTHETIC_PASS_NATIVE_EXECUTION_PROHIBITED",
+      "user_request": "Lag nytt mål og gjør disse 2",
+      "scope": [
+        "explicit ordinary four-field price projection initialization with a distinct profile",
+        "native GC relative coordinates with preserved masks/anchor/basis and own normalization identity"
+      ],
+      "implementation_authorized": true,
+      "model_runs_authorized": false,
+      "training_enabled": false,
+      "restart_authorized": false,
+      "test_data_used": false,
+      "root_cause_proven": false,
+      "improvement_proven": false,
+      "result": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_EDGE_DESIGN_IMPLEMENTATION_20261101.json",
+        "sha256": "12ef18deef9dd02d8fbe783068d11cbb40a7dbf7579343050f7f2176f185b026"
+      },
+      "focused_synthetic_passes": 76,
+      "native_model_runs": 0,
+      "genuine_normalization_fits": 0,
+      "source_qualification_only": true,
+      "independent_source_review": "No functional defect found within read scope; raw versus projection widths explicitly documented."
+    },
+    "completed_design_implementation_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653"
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",

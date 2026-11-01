@@ -1,4 +1,4 @@
-"""Bounded205 common-level GC coordinates; no fit, payload loader or native action.
+"""Source-bound snapshot/native GC coordinates; no model, fit or payload loader.
 
 All242 source-proven levels are transformed; all other local values and every
 original mask retain their exact bits. The log uses the selected F64 USD anchor,
@@ -15,6 +15,9 @@ from gx1.contracts.gc_price_coordinate_contract_v1 import SCHEMA_VERSION as SOUR
 from gx1.contracts.local_random_access_campaign_v2 import canonical_sha256
 
 SCHEMA_VERSION = "gx1_gc_relative_price_layout_v1"
+NATIVE_SCHEMA_VERSION = "gx1_gc_native_relative_price_layout_v1"
+NATIVE_SOURCE_MAP_CANONICAL_SHA256 = "f54f3ada955cea9206905bc6261cb25fcac55cba87f863818ead7f443abbc251"
+NATIVE_ANCHOR_FIELDS = ("gc_relative_anchor_usd", "gc_relative_anchor_observed")
 SOURCE_MAP_FILE_SHA256 = "c3dd04288d93d9d78d96ac7444db2f9ba887157142513334445eb3c75a138996"
 SOURCE_MAP_CANONICAL_SHA256 = "6c62311ea684dee51f1fc2f394b1fce95d29940eecff5c1c7a3863245f96f148"
 LOCAL_WIDTH = 2622
@@ -183,6 +186,11 @@ def transform_gc_relative_price_block(local_values, *, layout, tick_size_raw):
         and np.isfinite(local_values).all(), "LOCAL_BLOCK")
     _require(type(tick_size_raw) is int and 0 < tick_size_raw <= np.iinfo(np.int64).max,
         "TICK_SIZE_RAW")
+    return _transform_relative_price_values(local_values, layout=layout, tick_size_raw=tick_size_raw)
+
+
+def _transform_relative_price_values(local_values, *, layout, tick_size_raw):
+    """Shared source-unit/anchor/log kernel for snapshot and native row adapters."""
     masks = local_values[:, layout["registry_mask_indices"]]
     values = local_values[:, layout["registry_value_indices"]]
     _require(np.isin(masks, (0, 1)).all(), "MASK_DOMAIN")
@@ -238,3 +246,176 @@ def transform_gc_relative_price_block(local_values, *, layout, tick_size_raw):
     return {"local_values": output, "anchor_usd": anchor,
         "anchor_observed": anchor_observed.astype(np.uint8), "anchor_source_id": source_ids,
         "roundtrip_audit": audit}
+
+
+def compile_gc_native_relative_price_layout(*, history_layout, source_contract, tick_size_raw):
+    """Bind own-TF raw row coordinates; append the real anchor and its mask.
+
+    The existing native selector remains the sole row/clock owner. Each row's
+    anchor is selected only from that same row and TF, by the existing immutable
+    source priority. No current-M5 price is joined into historical TF rows.
+    The two added model columns belong to the first priority source's declared
+    family; this assignment is fixed even when another observed source anchors
+    a row. The source ID remains provenance, never a model input.
+    """
+    from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history_layout
+    raw = require_gc_mtf_history_layout(history_layout)
+    _require(isinstance(source_contract, Mapping)
+        and source_contract.get("schema_version") == SOURCE_SCHEMA
+        and source_contract.get("source_mode") == "native_current"
+        and canonical_sha256(source_contract) == NATIVE_SOURCE_MAP_CANONICAL_SHA256, "NATIVE_SOURCE_MAP")
+    _require(type(tick_size_raw) is int and 0 < tick_size_raw <= np.iinfo(np.int64).max,
+        "TICK_SIZE_RAW")
+    records = {item["name"]: item for item in source_contract["fields"]}
+    source_names = set(records)
+    surfaces = {}
+    consumed_sources = set()
+    for tf in raw["timeframes"]:
+        names = list(raw["field_names"][tf])
+        _require(not set(NATIVE_ANCHOR_FIELDS).intersection(names), "NATIVE_ANCHOR_NAME_COLLISION")
+        positions = {name: index for index, name in enumerate(names)}
+        fields = [item for item in raw["source_fields"][tf] if item["name"] in source_names]
+        for item in fields:
+            record = records[item["name"]]
+            _require(all(item[key] == record[key]
+                for key in ("table", "column", "availability_field", "owner")), "NATIVE_SOURCE_MAPPING")
+            _require(item["name"] not in consumed_sources, "NATIVE_SOURCE_DUPLICATE")
+            consumed_sources.add(item["name"])
+        local_sources = {item["name"] for item in fields}
+        priority = [name for name in source_contract["anchor_source_priority"] if name in local_sources]
+        _require(bool(priority), "NATIVE_LEVELS:" + tf)
+        levels = [records[name] for name in priority]
+        values = [positions[item["name"]] for item in levels]
+        masks = [positions[item["availability_field"]] for item in levels]
+        units = [item["source_unit"] for item in levels]
+        _require(all(unit in ("USD", "ticks") for unit in units), "NATIVE_LEVEL_UNITS")
+        width = len(names)
+        anchor_family = levels[0]["owner"]
+        family_indices = {name: list(indices) for name, indices in raw["family_indices"][tf].items()}
+        _require(anchor_family in family_indices, "NATIVE_ANCHOR_FAMILY")
+        family_indices[anchor_family].extend((width, width + 1))
+        pairs = raw["value_mask_pairs"][tf]
+        surfaces[tf] = {"raw_field_names": names,
+            "model_field_names": names + list(NATIVE_ANCHOR_FIELDS),
+            "raw_width": width, "model_width": width + 2,
+            "family_indices": family_indices,
+            "registry_value_indices": [pair[0] for pair in pairs],
+            "registry_mask_indices": [pair[1] for pair in pairs],
+            "binary_indices": [positions[name] for name in raw["binary_fields"][tf]],
+            "level_value_indices": values, "level_mask_indices": masks, "level_units": units,
+            "unchanged_indices": [index for index in range(width) if index not in set(values)],
+            "anchor_source_priority": priority, "anchor_family": anchor_family,
+            "anchor_value_index": width, "anchor_mask_index": width + 1,
+            "price_scale": source_contract["tick_to_usd"]["price_scale"]}
+    _require(consumed_sources == source_names
+        and sum(len(s["level_value_indices"]) for s in surfaces.values())
+            == len(source_contract["anchor_source_priority"]), "NATIVE_COMPLETE_SOURCE_MAPPING")
+    value = {"schema_version": NATIVE_SCHEMA_VERSION, "timeframes": list(raw["timeframes"]),
+        "raw_layout_sha256": raw["contract_sha256"],
+        "source_mode": "native_current", "source_map": dict(source_contract),
+        "source_sha256": dict(source_contract["source_sha256"]),
+        "source_map_contract_sha256": NATIVE_SOURCE_MAP_CANONICAL_SHA256,
+        "tick_size_raw": tick_size_raw, "price_scale": source_contract["tick_to_usd"]["price_scale"],
+        "surfaces": surfaces, "anchor_source_id_is_model_input": False,
+        "anchor_row_scope": "same_caller_selected_native_timeframe_row",
+        "anchor_family_policy": "first_source_priority_declared_family",
+        "transformed_scope": "five_native_gc_history_surfaces_only; current_context_and_signal_unchanged",
+        "max_block_rows": MAX_BLOCK_ROWS}
+    return {**value, "contract_sha256": canonical_sha256(value)}
+
+
+def require_gc_native_relative_price_layout(value, *, history_layout):
+    """Recompile source-bound metadata once at the caller's admission boundary."""
+    from gx1.contracts.gc_price_coordinate_contract_v1 import build_gc_price_coordinate_source_contract
+    _require(isinstance(value, Mapping), "NATIVE_LAYOUT")
+    expected = compile_gc_native_relative_price_layout(history_layout=history_layout,
+        source_contract=build_gc_price_coordinate_source_contract(source_mode="native_current"),
+        tick_size_raw=value.get("tick_size_raw"))
+    _require(dict(value) == expected, "NATIVE_LAYOUT_CANONICAL")
+    return expected
+
+
+def _native_surface(layout, timeframe):
+    # The full source/layout join is validated by require_gc_native_relative_price_layout
+    # at metadata/constructor admission. The hot path does no source-file I/O.
+    _require(isinstance(layout, Mapping) and layout.get("schema_version") == NATIVE_SCHEMA_VERSION
+        and layout.get("source_mode") == "native_current"
+        and layout.get("source_map_contract_sha256") == NATIVE_SOURCE_MAP_CANONICAL_SHA256
+        and layout.get("max_block_rows") == MAX_BLOCK_ROWS
+        and layout.get("contract_sha256") == canonical_sha256(
+            {key: value for key, value in layout.items() if key != "contract_sha256"}), "NATIVE_LAYOUT")
+    _require(timeframe in layout["timeframes"] and timeframe in layout["surfaces"], "NATIVE_TIMEFRAME")
+    _require(type(layout["tick_size_raw"]) is int
+        and 0 < layout["tick_size_raw"] <= np.iinfo(np.int64).max, "TICK_SIZE_RAW")
+    return layout["surfaces"][timeframe]
+
+
+def transform_gc_native_relative_price_block(raw_values, *, layout, timeframe):
+    """Transform a bounded pure NumPy block; raw fields/row clocks are unchanged.
+
+    The returned values have two appended columns. The anchor is retained as a
+    model input, so this is not a claim that every absolute GC level is removed.
+    Missing levels stay unknown with their original storage bits and masks.
+    """
+    surface = _native_surface(layout, timeframe)
+    _require(isinstance(raw_values, np.ndarray) and raw_values.dtype == np.float32
+        and raw_values.ndim == 2 and raw_values.shape[1] == surface["raw_width"]
+        and 0 < len(raw_values) <= MAX_BLOCK_ROWS and np.isfinite(raw_values).all(), "NATIVE_BLOCK")
+    _require(np.isin(raw_values[:, surface["binary_indices"]], (0, 1)).all(), "NATIVE_BINARY_DOMAIN")
+    result = _transform_relative_price_values(raw_values, layout=surface, tick_size_raw=layout["tick_size_raw"])
+    model_values = np.concatenate((result["local_values"], result["anchor_usd"][:, None],
+        result["anchor_observed"].astype(np.float32)[:, None]), axis=1)
+    _require(model_values.shape == (len(raw_values), surface["model_width"])
+        and model_values.dtype == np.float32, "NATIVE_MODEL_BLOCK")
+    return {"values": model_values, "anchor_usd": result["anchor_usd"],
+        "anchor_observed": result["anchor_observed"], "anchor_source_id": result["anchor_source_id"],
+        "roundtrip_audit": result["roundtrip_audit"]}
+
+
+def transform_gc_native_relative_price_tensor(raw_values, *, layout, timeframe):
+    """Differentiable Torch counterpart; no model, fitting or normalization.
+
+    Native batch/window geometry is caller-owned and can exceed the CPU audit's
+    block-row cap. This function uses FP64 for unit conversion/log and stores
+    F32 coordinates, exactly the numerical roles of the NumPy owner. The pure
+    array audit measures F32 round-trip; CUDA kernel parity remains a separate
+    qualification, not a claim made by this implementation.
+    """
+    import torch
+    surface = _native_surface(layout, timeframe)
+    _require(isinstance(raw_values, torch.Tensor) and raw_values.dtype == torch.float32
+        and raw_values.ndim >= 2 and raw_values.shape[-1] == surface["raw_width"]
+        and raw_values.numel() > 0 and bool(torch.isfinite(raw_values).all()), "NATIVE_TENSOR")
+    flat = raw_values.reshape(-1, surface["raw_width"])
+    masks = flat[:, surface["registry_mask_indices"]]
+    values = flat[:, surface["registry_value_indices"]]
+    binary = flat[:, surface["binary_indices"]]
+    _require(bool(((masks == 0) | (masks == 1)).all())
+        and bool(((binary == 0) | (binary == 1)).all()), "NATIVE_BINARY_DOMAIN")
+    _require(bool((values[masks == 0] == 0).all()), "MASKED_STORAGE")
+    observed = flat[:, surface["level_mask_indices"]] == 1
+    raw = flat[:, surface["level_value_indices"]].to(torch.float64)
+    _require(bool((raw[observed] > 0).all()), "OBSERVED_LEVEL_NONPOSITIVE_OR_NONFINITE")
+    factor = layout["tick_size_raw"] / layout["price_scale"]
+    factors = raw.new_tensor([factor if unit == "ticks" else 1.0 for unit in surface["level_units"]])
+    prices = raw * factors
+    _require(bool(torch.isfinite(prices[observed]).all()) and bool((prices[observed] > 0).all()),
+        "OBSERVED_USD_NONPOSITIVE_OR_NONFINITE")
+    anchor_observed = observed.any(dim=1)
+    chosen = observed.to(torch.int64).argmax(dim=1)
+    anchor64 = prices.gather(1, chosen[:, None]).squeeze(1)
+    anchor64 = torch.where(anchor_observed, anchor64, torch.zeros_like(anchor64))
+    _require(bool((anchor64[anchor_observed] <= torch.finfo(torch.float32).max).all()), "ANCHOR32_OVERFLOW")
+    anchor = anchor64.to(torch.float32)
+    _require(bool((anchor[anchor_observed] > 0).all()) and bool(torch.isfinite(anchor).all()),
+        "ANCHOR32_UNREPRESENTABLE")
+    rows, columns = torch.nonzero(observed, as_tuple=True)
+    ratio = prices[rows, columns] / anchor64[rows]
+    _require(bool(torch.isfinite(ratio).all()) and bool((ratio > 0).all()), "LOG_RATIO")
+    relative = torch.log(ratio).to(torch.float32)
+    _require(bool(torch.isfinite(relative).all()), "RELATIVE32_FINITE")
+    output = flat.clone()
+    level_indices = torch.tensor(surface["level_value_indices"], dtype=torch.int64, device=flat.device)
+    output[rows, level_indices[columns]] = relative
+    combined = torch.cat((output, anchor[:, None], anchor_observed.to(torch.float32)[:, None]), dim=1)
+    return combined.reshape(*raw_values.shape[:-1], surface["model_width"])

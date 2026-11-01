@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+01.11 — BEGGE VEDTATTE DESIGNENDRINGER IMPLEMENTERT I KILDE. Egen profil for ordinær prisprojeksjonsinitialisering bevarer legacy-nullstart og RNG-isolering. Separat GC-variant konverterer242 nivåer på M5/M15/H1/H4/D1 til log(P/A), beholder ekte anker/masker/basis, egne TRAIN-statistikker og native konsumkobling; signal/nåkontekst er urørt.76 fokuserte syntetiske kontroller bestod. En foreldet kildehash ble rettet med skilt historisk/current-kildeidentitet. Ingen native modellkonstruksjon, forward/backward, genuine statistikkfit, trening, omstart eller TEST. To eksisterende native commit-tester utelates uttrykkelig under brukerforbudet. Kildeimplementasjon er ikke native kvalifikasjon eller bedre edge. Se docs/DIRECTION_EDGE_DESIGN_IMPLEMENTATION_20261101.json og NEXT_RUN_POLICY.current_work.edge_design_implementation_20261101.
+
 01.11 — OPPRYDDING OG LESEDIAGNOSE FERDIG; INGEN EDGE PÅVIST. Retention-eieren slettet tre ubrukte tempmapper, 72 128 162 964 bytes (72,13 GB / 67,17 GiB); ledig Linux-plass økte målt 72 128 102 400 bytes. Aktive data, tilstander, prediksjoner og gjenbrukt SUPPORT_SCRATCH er bevart. Ny analyse av alle sju komplette varianters lagrede prediksjoner finner svak femminutters TRAIN-rangering også på siste treningsdesil og Q1-måneds-AUC 0,49116–0,51745. Kilde og lagrede vekter bekrefter bevisst nullinitialisering av firefelts prisprojeksjon, mot ordinær GC-initialisering; tidligere aktiveringsmåling viser en liten prisrute. Dette er et konkret designspor, ikke bevist rotårsak. To separate forslag er dokumentert: eksplisitt prisinitialisering og native prisrelative GC-koordinater. Ingen av dem er implementert. Ekstrapass, 10x-vekt og øvrige eksisterende kontrollforsøk skal ikke gjentas som nye ideer. Målet om en avgrenset evidensdiagnose og løsningsforslag er levert; faktisk årsak, forbedring og edge er uavklart. Ingen nye modellkjøringer, trening, omstart, TEST eller handel. Se docs/DIRECTION_EDGE_CAUSE_REVIEW_20261101.json, siste del av docs/DIRECTION_FAMILY_BASELINE_RESULT_20261031.md og NEXT_RUN_POLICY.current_work.edge_cause_goal_20261101.
 
 01.11 — SISTE BRUKERBESKJED: ALLE NYE MODELLKJØRINGER AVVIST. Chart-evalueringen er stoppet og skal ikke relanseres. Den foreslåtte 256-raders kapasitetstesten er uttrykkelig avvist og aldri kjørt. Ingen trening, evaluering, forward/backward, omstart eller nye familievarianter. Tillatt arbeid er lesende undersøkelse av eksisterende resultater, kode og lagrede tilstander. Lesediagnosen i FIT_BASELINE_001 er fullført: samme256 matcher eksakt; femminutters treff129→126/256, logloss0,784835→0,692317, AUC0,440979→0,545166. Alle627 aktive parametertensorer er endret og har2976 Adam-steg;179inaktive og buffere er uendret. Sluttmålingen brukte trente vekter. Tilpasning finnes, men årsaken til svak senere rangering er fortsatt ukjent. Se docs/DIRECTION_FAMILY_BASELINE_RESULT_20261031.md og den hashbundne saved_learning_diagnosis i policy. Ingen native modellprosess observert ved overtakelsen. Ucommittet kontrollkode og tester fra forrige agent er bevart, ikke autorisert for kjøring. TEST, broker og handel er stengt. Eldre neste-steg-tekst nedenfor er historikk og gir ingen kjøreautoritet.
@@ -651,13 +653,12 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 
 ## Neste minste steg
 
-Lesediagnosen og to konkrete løsningsforslag er levert. Ingen ny automatisk
-modelljobb eller omstart er planlagt. Rotårsak og forbedring er ikke bevist.
-Dagens mål er 60 terminalretninger, ikke hele M5 Entry-forløpsmålet.
-Eventuelle nye modellkjøringer forutsetter at brukeren uttrykkelig opphever
-forbudet; tidligere engangstillatelser gir ingen autoritet. Ikke gjenta
-allerede fullførte ekstra-pass-, rekkefølge-, hode-, 10x-vekt- eller
-momentumkontroller som uprøvde tiltak. TEST og handel forblir stengt.
+Begge vedtatte kildeendringer er implementert og syntetisk kontrollert.
+Ingen automatisk kjøring følger av dette. Genuine input-/normaliseringsbevis,
+fersk native baseline, konstruksjon/gradient/resume og effekt på senere
+retningspresisjon er uutført. Brukerens modellforbud gjelder fortsatt;
+ingen tidligere engangstillatelse kan brukes til de nye funksjonene.
+TEST, broker og handel forblir stengt.
 
 ## Hva som er endret og fortsatt åpent
 

@@ -11,6 +11,7 @@ from collections import Counter
 import hashlib
 import importlib
 import json
+import subprocess
 from pathlib import Path
 
 SCHEMA_VERSION = "gx1_gc_price_coordinate_source_map_v1"
@@ -31,6 +32,16 @@ SOURCE_SHA256 = {
     "gx1/scripts/rebuild_native_gc_inputs_v1.py": "d44a0a1a5b14dd18d8e619f4782650009e475a15103f65e368cfcd8c9109ba67",
     "gx1/scripts/gc_order_flow_features_v1.py": "8ad8c50ad0427a7c45ac86a45a963da044e131019bf57021341ec04489e7b81f",
 }
+SNAPSHOT_SOURCE_MODE = "snapshot_204"
+NATIVE_SOURCE_MODE = "native_current"
+HISTORICAL_SOURCE_REVISION = "396fe41aae54b2d73eae636c0e7e24acc2b5f7da"
+_CONTEXT_SOURCE = "gx1/features/gc_native_context_v1.py"
+NATIVE_SOURCE_SHA256 = {**SOURCE_SHA256,
+    _CONTEXT_SOURCE: "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf"}
+# The current context owner adds five masked trailing-support values and source
+# Boolean domains. The immutable049 registry, level identities and units did
+# not change. Only this non-executed source needs historical bytes for204;
+# unit-owner/producer changes still fail before importing metadata functions.
 _REPO = Path(__file__).resolve().parents[2]
 
 # Closed products of the actual producer's declared arguments/outputs. These are
@@ -76,12 +87,21 @@ def _require(condition, reason):
         raise RuntimeError("GC_PRICE_COORDINATE_" + reason)
 
 
-def _read_bound_source(relative):
+def _read_bound_source(relative, *, source_mode=SNAPSHOT_SOURCE_MODE):
+    _require(source_mode in (SNAPSHOT_SOURCE_MODE, NATIVE_SOURCE_MODE), "SOURCE_MODE")
+    expected = SOURCE_SHA256 if source_mode == SNAPSHOT_SOURCE_MODE else NATIVE_SOURCE_SHA256
     path = _REPO / relative
     _require(path.is_file() and not path.is_symlink(), "SOURCE_FILE:" + relative)
     data = path.read_bytes()
-    _require(hashlib.sha256(data).hexdigest() == SOURCE_SHA256[relative],
-        "SOURCE_SHA256:" + relative)
+    if (hashlib.sha256(data).hexdigest() != expected[relative]
+            and source_mode == SNAPSHOT_SOURCE_MODE and relative == _CONTEXT_SOURCE):
+        # Read immutable source bytes only. Never checkout, mutate or execute
+        # old code; the still-current unit owner is verified separately below.
+        result = subprocess.run(["git", "show", HISTORICAL_SOURCE_REVISION + ":" + relative],
+            cwd=_REPO, capture_output=True, check=False)
+        _require(result.returncode == 0, "SOURCE_HISTORICAL:" + relative)
+        data = result.stdout
+    _require(hashlib.sha256(data).hexdigest() == expected[relative], "SOURCE_SHA256:" + relative)
     return data
 
 
@@ -172,14 +192,18 @@ def _compile_fields(fields, units, evidence):
     return records
 
 
-def build_gc_price_coordinate_source_contract():
+def build_gc_price_coordinate_source_contract(*, source_mode=SNAPSHOT_SOURCE_MODE):
     """Return the complete source-bound JSON catalog; never read market payloads.
 
     The existing independent unit owners are imported lazily and only their five
     metadata functions are called. No fit, array replay or native forward occurs.
     This map does not implement log(P/A), normalization or anchor selection.
+    Default snapshot204 preserves its exact historical catalog identity. The
+    explicit native mode binds current source bytes and has a separate identity.
     """
-    bound = {name: _read_bound_source(name) for name in SOURCE_SHA256}
+    _require(source_mode in (SNAPSHOT_SOURCE_MODE, NATIVE_SOURCE_MODE), "SOURCE_MODE")
+    source_hashes = SOURCE_SHA256 if source_mode == SNAPSHOT_SOURCE_MODE else NATIVE_SOURCE_SHA256
+    bound = {name: _read_bound_source(name, source_mode=source_mode) for name in source_hashes}
     registry = json.loads(bound[REGISTRY_PATH])
     reference = importlib.import_module("gx1.scripts.audit_entry_gc_foundation_v1")
     _require(Path(reference.__file__).resolve() == (_REPO / UNIT_OWNER_PATH).resolve(), "UNIT_OWNER_PATH")
@@ -195,9 +219,9 @@ def build_gc_price_coordinate_source_contract():
     levels = [item["name"] for item in fields if item["coordinate_kind"] != "unchanged"]
     _require("gc_book_close_usd" in levels, "ANCHOR_FIRST_SOURCE")
     priority = ["gc_book_close_usd"] + [name for name in levels if name != "gc_book_close_usd"]
-    return {"schema_version": SCHEMA_VERSION, "scope": "static_source_map_only",
+    result = {"schema_version": SCHEMA_VERSION, "scope": "static_source_map_only",
         "numerical_transformation_implemented": False, "execution_authorized": False,
-        "source_sha256": dict(SOURCE_SHA256), "unit_owner_functions": list(UNIT_OWNER_FUNCTIONS),
+        "source_sha256": dict(source_hashes), "unit_owner_functions": list(UNIT_OWNER_FUNCTIONS),
         "fields": fields, "field_count": len(fields), "coordinate_kind_counts": counts,
         "source_column_count": 318, "source_unit_counts": dict(sorted(Counter(
             item["source_unit"] for item in fields).items())),
@@ -228,3 +252,7 @@ def build_gc_price_coordinate_source_contract():
             "no_observed_levels": "anchor unavailable; no fabricated price or changed original masks",
             "observed_invalid_level": "hard failure, never silently remove observation",
             "normalization_and_roundtrip": "separate reviewed numerical design; not implemented here"}}
+
+    if source_mode == NATIVE_SOURCE_MODE:
+        result["source_mode"] = NATIVE_SOURCE_MODE
+    return result

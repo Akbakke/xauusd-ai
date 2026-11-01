@@ -263,7 +263,7 @@ def qualify_native_direction_prefix_population(
     return {"report": report, "population": population}
 
 
-def fit_native_direction_prefix_normalization(qualification):
+def fit_native_direction_prefix_normalization(qualification, *, gc_relative_coordinates=None):
     """Recheck exact prefix hashes/support, then fit native-compatible contracts."""
     _require(isinstance(qualification, Mapping) and set(qualification) == {"report", "population"}, "QUALIFICATION_KEYS")
     report, held = qualification["report"], qualification["population"]
@@ -302,7 +302,8 @@ def fit_native_direction_prefix_normalization(qualification):
         lineage=lineage, temporal_aliases=proof["temporal_aliases"],
         entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     gc_norm = history.fit_gc_mtf_history_normalization(pop["gc_surfaces"], pop["tf_ids"],
-        train_start_ns=int(inputs["decision_ns"][0]), train_end_ns=inputs["cutoff_ns"], layout=inputs["gc_layout"])
+        train_start_ns=int(inputs["decision_ns"][0]), train_end_ns=inputs["cutoff_ns"], layout=inputs["gc_layout"],
+        relative_price_coordinates=gc_relative_coordinates)
     norm.require_input_normalization_contract(base, expected_field_names={name: surfaces[name]["field_names"] for name in norm.EXPECTED_SURFACES},
         expected_ctx_cat_names=physical["ctx_cat"], expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     gc_history = history.require_gc_mtf_history({"layout": inputs["gc_layout"], "normalization": gc_norm})

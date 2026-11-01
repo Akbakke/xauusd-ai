@@ -85,7 +85,8 @@ from gx1.features.entry_specialist_feature_groups_v1 import (
     compile_gc_mtf_geometry_entry_execution_profile, GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME,
 )
 from gx1.features.entry_direction_momentum_profile_v1 import (
-    MOMENTUM_FAMILY as PRICE_MOMENTUM_FAMILY, PROFILE_NAME as PRICE_MOMENTUM_PROFILE_NAME,
+    MOMENTUM_FAMILY as PRICE_MOMENTUM_FAMILY,
+    PRICE_MOMENTUM_PROFILE_NAMES, price_momentum_initialization,
     compile_price_momentum_profile, require_entry_execution_profile_reference,
 )
 from gx1.models.entry_v10.direction_decision_contract import (
@@ -525,9 +526,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
         )
         if profile_reference is not None and entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
             raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE")
+        price_momentum_mode = (
+            price_momentum_initialization(profile_reference["name"])
+            if profile_reference is not None and profile_reference["name"] in PRICE_MOMENTUM_PROFILE_NAMES else None
+        )
         compiled_profile = (
-            compile_price_momentum_profile(gc_mtf_history)
-            if profile_reference is not None and profile_reference["name"] == PRICE_MOMENTUM_PROFILE_NAME else
+            compile_price_momentum_profile(gc_mtf_history, initialization=price_momentum_mode)
+            if price_momentum_mode is not None else
             compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
             if profile_reference is not None and profile_reference["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME else
             compile_gc_mtf_entry_execution_profile(gc_mtf_history)
@@ -546,7 +551,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             # Its additional research-only route is separately validated above;
             # it must not become a production-selectable profile.
             architecture_profile = (compiled_profile['research_parent_entry_execution_profile']
-                if profile_reference is not None and profile_reference['name'] == PRICE_MOMENTUM_PROFILE_NAME
+                if price_momentum_mode is not None
                 else profile_reference)
             architecture = (
                 current_entry_exit_architecture_observation(
@@ -903,9 +908,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 "gc_mtf_normalization_sha256",
                 torch.tensor(list(bytes.fromhex(self._gc_mtf_history_identity[1])), dtype=torch.uint8),
             )
-            for tf in gc_mtf_history["layout"]["timeframes"]:
-                surface = f"gc_mtf_{tf.lower()}"
-                stats = gc_mtf_history["normalization"]["surfaces"][surface]
+            from gx1.contracts.entry_gc_mtf_history_v1 import gc_mtf_normalization_surfaces
+            for surface, stats in gc_mtf_normalization_surfaces(gc_mtf_history).items():
                 self._input_normalization_field_names[surface] = list(stats["field_names"])
                 self._input_norm_categorical_domains[surface] = {
                     name: tuple(domain) for name, domain in stats["categorical_domains"].items()
@@ -1558,16 +1562,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 for index in mtf_categorical_indices
             }
         )
-        # Add the four price-momentum fields as an initially neutral residual.
-        # Isolating its initializer preserves all existing seeded parameters.
-        price_momentum = (profile_reference is not None
-                          and profile_reference["name"] == PRICE_MOMENTUM_PROFILE_NAME)
+        # Both explicit price profiles isolate RNG draws from existing paths.
+        # The original profile retains its zero residual; the separate linear
+        # profile retains nn.Linear's ordinary constructor initialization.
+        price_momentum = price_momentum_mode is not None
         def _mtf_projection(name):
             if price_momentum and name == PRICE_MOMENTUM_FAMILY:
                 with torch.random.fork_rng(devices=[]):
                     layer = nn.Linear(len(cleaned_mtf[name]), d_model)
-                nn.init.zeros_(layer.weight)
-                nn.init.zeros_(layer.bias)
+                if price_momentum_mode == 'zero_residual':
+                    nn.init.zeros_(layer.weight)
+                    nn.init.zeros_(layer.bias)
                 return layer
             return nn.Linear(len(cleaned_mtf[name]), d_model)
         self.mtf_family_proj = nn.ModuleDict(
@@ -1597,10 +1602,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
             self.gc_mtf_family_proj = nn.ModuleDict()
             self.gc_mtf_feature_context_gate = nn.ModuleDict()
             self._gc_mtf_specialist_index_tuples = {}
+            from gx1.contracts.entry_gc_mtf_history_v1 import gc_mtf_model_layout
+            projection_layout = gc_mtf_model_layout(gc_mtf_history)
             for tf in gc_mtf_history["layout"]["timeframes"]:
                 suffix = tf.lower()
                 for family in self._mtf_specialist_names:
-                    indices = tuple(gc_mtf_history["layout"]["family_indices"][tf][family])
+                    indices = tuple(projection_layout["family_indices"][tf][family])
                     if not indices:
                         continue
                     key = f"{suffix}__{family}"
@@ -1861,11 +1868,14 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     torch.tensor(list(bytes.fromhex(digest)), dtype=torch.uint8),
                 ):
                     raise RuntimeError("GC_MTF_MODEL_STATE_HASH_MISMATCH")
-            state_surfaces.update(history["normalization"]["surfaces"])
+            from gx1.contracts.entry_gc_mtf_history_v1 import gc_mtf_model_layout, gc_mtf_normalization_surfaces
+            normalization_surfaces = gc_mtf_normalization_surfaces(history)
+            state_surfaces.update(normalization_surfaces)
+            projection_layout = gc_mtf_model_layout(history)
             expected_indices = {
                 f"{tf.lower()}__{family}": tuple(indices)
                 for tf in history["layout"]["timeframes"]
-                for family, indices in history["layout"]["family_indices"][tf].items()
+                for family, indices in projection_layout["family_indices"][tf].items()
                 if indices
             }
             if self._gc_mtf_specialist_index_tuples != expected_indices:
@@ -1876,7 +1886,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                     torch.tensor(indices, dtype=torch.long),
                 ):
                     raise RuntimeError("GC_MTF_MODEL_STATE_INDEX_BUFFER_MISMATCH")
-            for surface, stats in history["normalization"]["surfaces"].items():
+            for surface, stats in normalization_surfaces.items():
                 if (self._input_normalization_field_names[surface] != list(stats["field_names"])
                         or self._input_norm_categorical_domains[surface] != {
                             name: tuple(domain) for name, domain in stats["categorical_domains"].items()
@@ -2062,6 +2072,22 @@ class EntryV10CtxHybridTransformer(nn.Module):
         _assert_finite(f"normalized.{surface}", normalized)
         result = _gc_context.mask_normalized_torch(raw_float, normalized, field_names)
         return mask_normalized_range_torch(raw_float, result, field_names)
+
+    def _normalize_gc_history_surface(self, raw: torch.Tensor, *, timeframe: str) -> torch.Tensor:
+        """Coordinate conversion precedes its own TRAIN stats; raw callers stay unchanged."""
+        surface = "gc_mtf_" + timeframe.lower()
+        relative = self.gc_mtf_history["normalization"].get("relative_price")
+        if relative is None:
+            return self._normalize_input_surface(raw, surface=surface)
+        from gx1.contracts.gc_relative_price_coordinates_v1 import transform_gc_native_relative_price_tensor
+        encoded = transform_gc_native_relative_price_tensor(raw, layout=relative["layout"], timeframe=timeframe)
+        width = relative["layout"]["surfaces"][timeframe]["raw_width"]
+        values = self._normalize_input_surface(encoded[..., :width], surface=surface)
+        observed = encoded[..., width + 1:width + 2]
+        anchor = self._normalize_input_surface(encoded[..., width:width + 1],
+            surface="gc_anchor_" + timeframe.lower())
+        anchor = anchor.masked_fill(observed == 0, 0.0)
+        return torch.cat((values, anchor, observed), dim=-1)
 
     def _effective_tf_input_scale(self, suffix: str) -> torch.Tensor:
         raw = getattr(self, f"tf_input_scale_{suffix}")
@@ -2476,8 +2502,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             effective_scale = self._effective_tf_input_scale(suffix)
             if gc_by_tf:
                 gc_raw = gc_by_tf[suffix]
-                gc_surface = f"gc_mtf_{suffix}"
-                gc_numeric = self._normalize_input_surface(gc_raw, surface=gc_surface)
+                gc_numeric = self._normalize_gc_history_surface(gc_raw, timeframe=suffix.upper())
             full_feature_gate = torch.zeros(
                 batch_size,
                 self._mtf_feature_gate_width,

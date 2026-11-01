@@ -269,3 +269,55 @@ broker eller handel er utført. Kun lagrede arrays/tensorer og kilde er lest.
 
 Maskinlesbar sammenstilling, eksakte artefakthasher og målegrenser:
 [DIRECTION_EDGE_CAUSE_REVIEW_20261101.json](DIRECTION_EDGE_CAUSE_REVIEW_20261101.json).
+
+## Implementert etter nytt brukervedtak 01.11
+
+Brukeren vedtok «Lag nytt mål og gjør disse 2». Begge forslag er nå koblet
+inn i eksisterende eiere som separate kildevalg. Ingen genuine modellkjøringer,
+trening eller omstart er utført; eksisterende launch-porter forblir stengt.
+
+Prisruten har en egen profil med ordinær Linear-initialisering og bevart
+RNG-isolering. Den gamle profilen beholder nullstart og gammel identitet.
+Valget bindes eksplisitt i feature-view og følger den native konstruktørstien.
+
+GC-varianten konverterer alle 242 kildeklassifiserte nivåer i de fem native
+GC-historikkflatene til log(P/A), etter USD-/tick-enhetseieren. Prisankeret
+velges fra samme historiske rad/tidsramme med eksisterende kildeprioritet.
+Et faktisk USD-anker og dets observasjonsmaske legges til; alle opprinnelige
+masker, øvrige felt og rådata beholdes. Feltbreddene blir M5 639→641,
+M15 493→495, H1 453→455, H4 431→433 og D1 399→401. De to ankerfeltene
+rutes til den eksisterende price_action_candle-familien. Alle åtte familier
+og D1/makro beholdes. Arkitekturmetadataens gc_mtf_history.per_tf_widths
+angir projeksjonsbredde; rålayoutens hash/bredder gjelder fortsatt fysisk
+input. Koordinatvalget er bundet av normaliseringshashen.
+
+Varianten bruker egne statistikker for de transformerte TRAIN-kolonnene
+og separate ankerstatistikker tilpasset bare observerte TRAIN-ankre.
+Transformasjonen er koblet før native normalisering/projeksjon; fysisk
+radutvalg, klokker og target er uendret. Signal- og nåkontekstflatens absolutte
+GC-felt er fortsatt urørt. Eksisterende basis-/kildemetadata bevares; ingen
+manglende kontrakt-ID eller prisopprinnelsesklokke konstrueres. Feature-view
+avviser å slå sammen initialiserings- og koordinatendringen i samme variant.
+
+Første kontroll avdekket en foreldet kildehash i den eksisterende
+koordinatkontrakten. Semantisk kontroll viste bare additive BBO-/maske- og
+Boolean-endringer i én kildefil; pris-/enhetsprodusenter og originalregistry
+var uendret. Historisk snapshot verifiseres nå eksplisitt mot den opprinnelige
+Git-kilden, mens native_current får korrekt egen kildeidentitet.
+
+**76 fokuserte syntetiske kontroller bestod:** 14 initialiserings-/viewkontroller
+ble gjenbrukt, og 62 GC-/integrasjons-/regresjonskontroller bestod etter rettelsen.
+De fem rapporterte roundtrip-tilfellene omfatter 247 observerte syntetiske
+celler; største tilbakeberegningsfeil var 0,0000976562501 USD. Ingen av disse
+cellene endret F32-verdien ved tilbakekonvertering, og ingen målte
+feildekomponeringsgrenser ble overskredet. Dette er ikke en generell garanti
+for bitlik invers eller dokumentasjon på markedsdata/GPU-paritet.
+
+Genuine koordinat-/dekningstall, egne ekte normaliseringsstatistikker,
+fersk modellbaseline, native konstruksjon, gradienter, resume og senere edge
+er ikke undersøkt for de nye variantene. To eksisterende commit-tester som
+konstruerer/kjører native modell utelates uttrykkelig under brukerforbudet;
+øvrige commit-kontroller beholdes. Ingen eldre engangscampaign er gjenåpnet.
+
+Eksakte kildehasher, testkvitteringer, feltkart og ubeviste grenser:
+[DIRECTION_EDGE_DESIGN_IMPLEMENTATION_20261101.json](DIRECTION_EDGE_DESIGN_IMPLEMENTATION_20261101.json).

@@ -17,6 +17,7 @@ from gx1.features import gc_native_context_v1 as gc
 
 SCHEMA_VERSION = 'gx1_gc_mtf_history_layout_v1'
 NORMALIZATION_SCHEMA_VERSION = 'gx1_gc_mtf_history_normalization_v1'
+RELATIVE_NORMALIZATION_SCHEMA_VERSION = 'gx1_gc_mtf_relative_price_normalization_v1'
 TIMEFRAMES = ('M5', 'M15', 'H1', 'H4', 'D1')
 # Fixed218 geometry; the architecture/producer must match the existing native
 # selector. No alternate window selector or source-clock inference is exposed.
@@ -238,10 +239,13 @@ def _normalization_provenance(value, layout, surfaces):
 def require_gc_mtf_history_normalization(value, *, layout):
     from gx1.contracts.entry_model_native_input_normalization_v1 import require_surface_normalization
     layout = require_gc_mtf_history_layout(layout)
-    _require(isinstance(value, Mapping) and set(value) == {
-        'schema_version', 'layout_sha256', 'surfaces', 'provenance', 'contract_sha256'}, 'NORMALIZATION_KEYS')
+    _require(isinstance(value, Mapping), 'NORMALIZATION_KEYS')
+    relative = 'relative_price' in value
+    keys = {'schema_version', 'layout_sha256', 'surfaces', 'provenance', 'contract_sha256'}
+    _require(set(value) == keys | ({'relative_price'} if relative else set()), 'NORMALIZATION_KEYS')
     data = dict(value)
-    _require(data['schema_version'] == NORMALIZATION_SCHEMA_VERSION
+    expected_schema = RELATIVE_NORMALIZATION_SCHEMA_VERSION if relative else NORMALIZATION_SCHEMA_VERSION
+    _require(data['schema_version'] == expected_schema
         and data['layout_sha256'] == layout['contract_sha256']
         and isinstance(data['surfaces'], Mapping)
         and set(data['surfaces']) == {'gc_mtf_' + tf.lower() for tf in TIMEFRAMES}, 'NORMALIZATION_LAYOUT')
@@ -251,12 +255,30 @@ def require_gc_mtf_history_normalization(value, *, layout):
         _require(data['surfaces'][name]['categorical_domains'] == layout['categorical_domains'][tf],
             'NORMALIZATION_CATEGORICAL_DOMAINS:' + tf)
     _normalization_provenance(data['provenance'], layout, data['surfaces'])
+    if relative:
+        from gx1.contracts.gc_relative_price_coordinates_v1 import require_gc_native_relative_price_layout
+        coordinates = data['relative_price']
+        _require(isinstance(coordinates, Mapping) and set(coordinates) == {'layout', 'anchor_surfaces'},
+            'RELATIVE_NORMALIZATION_KEYS')
+        require_gc_native_relative_price_layout(coordinates['layout'], history_layout=layout)
+        anchors = coordinates['anchor_surfaces']
+        _require(isinstance(anchors, Mapping) and set(anchors) == set(TIMEFRAMES), 'ANCHOR_SURFACE_KEYS')
+        for tf in TIMEFRAMES:
+            anchor = anchors[tf]
+            require_surface_normalization(anchor, surface='gc_anchor_' + tf.lower(),
+                field_names=['gc_relative_anchor_usd'])
+            _require(type(anchor['fit_row_count']) is int
+                and 2 <= anchor['fit_row_count'] <= data['surfaces']['gc_mtf_' + tf.lower()]['fit_row_count']
+                and anchor['binary_mask'] == [0] and anchor['categorical_mask'] == [0]
+                and anchor['binary_field_count'] == anchor['categorical_field_count'] == 0
+                and anchor['categorical_domains'] == {}, 'ANCHOR_OBSERVED_FIT:' + tf)
     _require(_hash(data['contract_sha256']) and data['contract_sha256'] == _sha(
         {k: v for k, v in data.items() if k != 'contract_sha256'}), 'NORMALIZATION_HASH')
     return data
 
 
-def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train_start_ns, train_end_ns, layout):
+def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train_start_ns, train_end_ns, layout,
+        relative_price_coordinates=None):
     """Fit only the explicit unique TRAIN union chosen by the existing selector.
 
     Warmup history before TRAIN start is legal. CONTROL rows are never read by
@@ -269,7 +291,11 @@ def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train
         and 0 <= train_start_ns < train_end_ns <= TEST_BOUNDARY_NS, 'FIT_TRAIN_BOUNDARIES')
     _require(isinstance(train_row_indices_by_tf, Mapping)
         and set(train_row_indices_by_tf) == set(TIMEFRAMES), 'FIT_TRAIN_UNION_KEYS')
-    fitted, unions = {}, {}
+    coordinates = None
+    if relative_price_coordinates is not None:
+        from gx1.contracts.gc_relative_price_coordinates_v1 import require_gc_native_relative_price_layout
+        coordinates = require_gc_native_relative_price_layout(relative_price_coordinates, history_layout=layout)
+    fitted, unions, anchors = {}, {}, {}
     for tf in TIMEFRAMES:
         rows = _axis(train_row_indices_by_tf[tf], 'FIT_UNIQUE_TRAIN_ROWS:' + tf, nonnegative=True)
         surface = surfaces[tf]
@@ -280,6 +306,26 @@ def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train
         _require(np.all(closes < train_end_ns), 'FIT_CONTROL_OR_LATER_CLOCK:' + tf)
         selected = np.asarray(surface['features'][position], dtype=np.float32)
         gc.require_masked_storage_numpy(selected, layout['field_names'][tf])
+        if coordinates is not None:
+            from gx1.contracts.entry_direction_snapshot_data_v1 import MAX_BLOCK_ROWS
+            from gx1.contracts.gc_relative_price_coordinates_v1 import transform_gc_native_relative_price_block
+            relative_values = np.empty_like(selected)
+            anchor_values = np.empty(len(selected), np.float32)
+            anchor_observed = np.empty(len(selected), np.bool_)
+            for start in range(0, len(selected), MAX_BLOCK_ROWS):
+                stop = min(start + MAX_BLOCK_ROWS, len(selected))
+                transformed = transform_gc_native_relative_price_block(selected[start:stop],
+                    layout=coordinates, timeframe=tf)
+                relative_values[start:stop] = transformed['values'][:, :layout['widths'][tf]]
+                anchor_values[start:stop] = transformed['anchor_usd']
+                anchor_observed[start:stop] = transformed['anchor_observed'].astype(np.bool_)
+            anchor_count = int(np.count_nonzero(anchor_observed))
+            _require(anchor_count >= 2, 'ANCHOR_OBSERVED_FIT:' + tf)
+            anchors[tf] = fit_surface_normalization(anchor_values[anchor_observed, None],
+                surface='gc_anchor_' + tf.lower(), field_names=['gc_relative_anchor_usd'],
+                row_count=anchor_count, semantic_categorical_domains={}, semantic_binary_fields=[],
+                allow_constant_train_fields=True)
+            selected = relative_values
         name = 'gc_mtf_' + tf.lower()
         fitted[name] = fit_surface_normalization(selected, surface=name,
             field_names=layout['field_names'][tf], row_count=len(rows),
@@ -290,6 +336,9 @@ def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train
         'surfaces': fitted, 'provenance': {'split': 'train', 'fit_population': FIT_POPULATION,
             'train_start_ns': train_start_ns, 'train_end_ns': train_end_ns,
             'row_union': unions, 'source_registry': dict(layout['source_registry'])}}
+    if coordinates is not None:
+        value['schema_version'] = RELATIVE_NORMALIZATION_SCHEMA_VERSION
+        value['relative_price'] = {'layout': coordinates, 'anchor_surfaces': anchors}
     return require_gc_mtf_history_normalization({**value, 'contract_sha256': _sha(value)}, layout=layout)
 
 
@@ -299,6 +348,33 @@ def require_gc_mtf_history(value):
     layout = require_gc_mtf_history_layout(value['layout'])
     return {'layout': layout, 'normalization': require_gc_mtf_history_normalization(value['normalization'], layout=layout)}
 
+
+def gc_mtf_model_layout(history):
+    """Projection dimensions; the raw layout identity and loader stay unchanged.
+
+    Relative coordinates are bound by normalization.contract_sha256. This
+    derived model view is not a replacement raw artifact layout contract.
+    """
+    history = require_gc_mtf_history(history)
+    model_layout = json.loads(json.dumps(history['layout']))
+    relative = history['normalization'].get('relative_price')
+    if relative is not None:
+        for tf in TIMEFRAMES:
+            surface = relative['layout']['surfaces'][tf]
+            model_layout['field_names'][tf] = list(surface['model_field_names'])
+            model_layout['widths'][tf] = surface['model_width']
+            model_layout['family_indices'][tf] = json.loads(json.dumps(surface['family_indices']))
+    return model_layout
+
+
+def gc_mtf_normalization_surfaces(history):
+    """Expose original-column statistics plus the separate observed-anchor fits."""
+    history = require_gc_mtf_history(history)
+    surfaces = dict(history['normalization']['surfaces'])
+    relative = history['normalization'].get('relative_price')
+    if relative is not None:
+        surfaces.update({'gc_anchor_' + tf.lower(): relative['anchor_surfaces'][tf] for tf in TIMEFRAMES})
+    return surfaces
 
 
 def _gc_mtf_history_artifact_ref(value):

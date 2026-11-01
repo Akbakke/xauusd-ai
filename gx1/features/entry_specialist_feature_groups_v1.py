@@ -1615,10 +1615,10 @@ def compile_gc_mtf_entry_execution_profile(
     gc_mtf_history: Mapping[str, object],
 ) -> dict[str, object]:
     """Bind one additive GC view to the unchanged compact base and TRAIN stats."""
-    from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history
+    from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history, gc_mtf_model_layout
 
     history = require_gc_mtf_history(gc_mtf_history)
-    layout = history["layout"]
+    layout = gc_mtf_model_layout(history)
     base = compile_compact_entry_execution_profile()
     base_families = tuple(base["mtf_specialists"])
     gc_families = {

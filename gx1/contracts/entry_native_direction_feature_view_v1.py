@@ -39,6 +39,7 @@ SOURCE_REF_KEYS = frozenset({'feature_view_design', 'input_qualification', 'raw_
     'mtf_window_source', 'gc_gather_source', 'owner_profile_source'})
 DENSE_SOURCE_REF_KEYS = frozenset({'dense_direction_component_source', 'dense_profile_source', 'dense_native_constructor_source'})
 PRICE_MOMENTUM_SOURCE_REF_KEYS = frozenset({'price_momentum_profile_source'})
+GC_RELATIVE_SOURCE_REF_KEYS = frozenset({'gc_relative_coordinates_source', 'gc_price_coordinate_source_map_source'})
 FAMILY_SOURCE_REF_KEYS = frozenset({'family_intervention_source'})
 FIVE_PRIORITY_SOURCE_REF_KEYS = frozenset({'five_priority_source'})
 DENSE_BPS_SOURCE_REF_KEYS = frozenset({'dense_bps_component_source'})
@@ -142,10 +143,15 @@ def _require_view(view):
     m1_ofi = 'm1_ofi_normalization' in view
     coarsened = 'm1_ofi_coarsened' in view
     family = 'family_intervention' in view
-    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set())
+    initialization = view.get('price_momentum_initialization', 'zero_residual')
+    relative = 'gc_relative_coordinates_sha256' in view
+    _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set())
         and sum((dense, 'bps_scale' in view, 'magnitude_weight_contract' in view)) <= 1
         and (not dense or view['dense_minute_supervision'] is True)
         and (not price_momentum or (dense and view['price_momentum_profile'] is True))
+        and initialization in ('zero_residual', 'linear_default')
+        and (initialization == 'zero_residual' or (price_momentum and not family))
+        and (not relative or (not family and initialization == 'zero_residual'))
         and (not five_priority or (price_momentum and not m1_ofi and view['five_minute_priority'] is True))
         and (not dense_bps or (dense and price_momentum and not five_priority and not m1_ofi))
         and (not family or (dense and price_momentum and not five_priority and not dense_bps and not m1_ofi))
@@ -170,8 +176,15 @@ def _require_view(view):
         and view['research_objective'] == objective
         and view['evidence_scope'] == EVIDENCE_SCOPE
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
-    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()), 'SOURCE_REF_KEYS')
+    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()), 'SOURCE_REF_KEYS')
     for item in view['source_bindings'].values(): _ref(item)
+    if relative:
+        digest = view['gc_relative_coordinates_sha256']
+        _require(type(digest) is str and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest), 'GC_COORDINATE_IDENTITY')
+    if price_momentum:
+        expected_name = (price_momentum_owner.PROFILE_NAME if initialization == 'zero_residual'
+            else price_momentum_owner.LINEAR_INIT_PROFILE_NAME)
+        _require(view['entry_execution_profile']['name'] == expected_name, 'PRICE_INITIALIZATION_PROFILE')
     if m1_ofi:
         from gx1.contracts.entry_native_direction_m1_ofi_normalization_v1 import require as require_m1_ofi
         fitted = require_m1_ofi(view['m1_ofi_normalization'])
@@ -225,7 +238,7 @@ def family_reference_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual'):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -247,6 +260,10 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
             for name in norm.EXPECTED_SURFACES}, expected_ctx_cat_names=fields['ctx_cat'],
         expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     gc_history = history.require_gc_mtf_history(prefix_normalization['gc_mtf_history'])
+    relative = gc_history['normalization'].get('relative_price')
+    _require(price_momentum_initialization in ('zero_residual', 'linear_default')
+        and (price_momentum_initialization == 'zero_residual' or (price_momentum and family_intervention is None))
+        and (relative is None or (family_intervention is None and price_momentum_initialization == 'zero_residual')), 'SEPARATE_DESIGN_VARIANT')
     _require(base['lineage']['train_row_count'] == proof['prefix']['rows']
         and base['lineage']['context_fit_row_count'] == proof['prefix']['rows']
         and base['lineage']['local_fit_row_count'] == proof['local']['selected_unique_row_count']
@@ -261,7 +278,7 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         and (dense_bps_scale is None or (dense_minutes and price_momentum and not five_minute_priority and m1_ofi_normalization is None))
         and (m1_ofi_normalization is None or dense_minutes)
         and (not m1_ofi_coarsened or m1_ofi_normalization is not None), 'OBJECTIVE_MODE')
-    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_minute_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps_scale is not None else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()) | (FAMILY_SOURCE_REF_KEYS if family_intervention is not None else set()), 'SOURCE_REF_KEYS')
+    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_minute_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps_scale is not None else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()) | (FAMILY_SOURCE_REF_KEYS if family_intervention is not None else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative is not None else set()), 'SOURCE_REF_KEYS')
     source_bindings = {key: _ref(value) for key, value in source_bindings.items()}
     provenance = proof['source_bindings']
     _require(source_bindings['raw_input_provider_plan'] == provenance['ancestral264_plan']
@@ -271,7 +288,7 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
             ('mtf_window_source', 'gx1/features/htf_features.py'), ('gc_gather_source', 'gx1/contracts/entry_gc_mtf_history_v1.py'),
             ('owner_profile_source', 'gx1/features/entry_specialist_feature_groups_v1.py'))), 'SOURCE_PROVENANCE_JOINS')
     scalars = _configuration(constructor_metadata)
-    compiled = (price_momentum_owner.compile_price_momentum_profile(gc_history) if price_momentum
+    compiled = (price_momentum_owner.compile_price_momentum_profile(gc_history, initialization=price_momentum_initialization) if price_momentum
         else owners.compile_gc_mtf_geometry_entry_execution_profile(gc_history) if dense_minutes
         else owners.compile_gc_mtf_entry_execution_profile(gc_history))
     if family_intervention is not None:
@@ -317,6 +334,10 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['dense_minute_supervision'] = True
     if price_momentum:
         value['price_momentum_profile'] = True
+    if price_momentum_initialization != 'zero_residual':
+        value['price_momentum_initialization'] = price_momentum_initialization
+    if relative is not None:
+        value['gc_relative_coordinates_sha256'] = relative['layout']['contract_sha256']
     if five_minute_priority:
         value['five_minute_priority'] = True
     if m1_ofi_normalization is not None:
@@ -429,7 +450,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         dense_minutes=view.get('dense_minute_supervision', False), price_momentum=view.get('price_momentum_profile', False),
         m1_ofi_normalization=view.get('m1_ofi_normalization'), m1_ofi_coarsened=view.get('m1_ofi_coarsened', False),
         five_minute_priority=view.get('five_minute_priority', False), dense_bps_scale=view.get('dense_bps_scale'),
-        family_intervention=view.get('family_intervention'))
+        family_intervention=view.get('family_intervention'),
+        price_momentum_initialization=view.get('price_momentum_initialization', 'zero_residual'))
     _, routes, widths = _canonical()
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])

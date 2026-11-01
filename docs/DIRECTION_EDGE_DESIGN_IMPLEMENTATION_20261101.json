@@ -1,0 +1,222 @@
+{
+  "schema_version": "gx1_edge_design_implementation_review_v1",
+  "status": "SOURCE_IMPLEMENTED_SYNTHETIC_CHECKED_NOT_NATIVE_QUALIFIED",
+  "observed_utc": "2026-11-01T18:07:55.787741+00:00",
+  "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
+  "scope": "Two separate source variants; no new genuine model execution or launch admission",
+  "implementation": {
+    "price_initialization": {
+      "selection": "bind_native_direction_feature_view(..., dense_minutes=True, price_momentum=True, price_momentum_initialization='linear_default')",
+      "profile_name": "compact_mbp_gc_mtf_geometry_price_momentum_linear_init_direction_research_v1",
+      "semantics": "Existing ordinary nn.Linear initialization inside the existing CPU RNG isolation; legacy zero-residual profile and payload preserved"
+    },
+    "gc_relative_coordinates": {
+      "selection": "compile_gc_native_relative_price_layout(..., source_contract=build_gc_price_coordinate_source_contract(source_mode=\"native_current\"), tick_size_raw=explicit_source_value); fit_native_direction_prefix_normalization(..., gc_relative_coordinates=layout); bind the resulting own prefix normalization and required source refs",
+      "scope": "M5/M15/H1/H4/D1 native GC histories only. Signal/current-context absolute GC routes remain unchanged.",
+      "semantics": "Every observed source-proven price level becomes log(P_USD/A_USD), with a same-row/same-TF anchor from the original source priority; original masks/nonprice/basis and raw source arrays retained. Append actual anchor USD and observed mask, owned by price_action_candle_encoder.",
+      "normalization": "Own transformed-column TRAIN-union statistics plus separately fitted observed-anchor statistics. No later-row fit, future anchor, clipped level or invented observation.",
+      "model_wiring": "Raw gather/clock/layout unchanged; coordinate conversion occurs in native GC preprocessing before normalization and projection. Profile dimensions and state/buffer validation include the appended inputs.",
+      "native_source_map_sha256": "f54f3ada955cea9206905bc6261cb25fcac55cba87f863818ead7f443abbc251",
+      "mapping": {
+        "M5": {
+          "raw_width": 639,
+          "model_width": 641,
+          "price_level_count": 67,
+          "price_unit_counts": {
+            "USD": 65,
+            "ticks": 2
+          },
+          "anchor_family": "price_action_candle_encoder",
+          "anchor_priority_first": "gc_book_close_usd",
+          "observed_synthetic_cells": 68,
+          "max_roundtrip_error_usd": 9.765625009094947e-05,
+          "inverse_f32_differences": 0,
+          "bound_violations": 0
+        },
+        "M15": {
+          "raw_width": 493,
+          "model_width": 495,
+          "price_level_count": 50,
+          "price_unit_counts": {
+            "USD": 48,
+            "ticks": 2
+          },
+          "anchor_family": "price_action_candle_encoder",
+          "anchor_priority_first": "gc_m15_open_usd",
+          "observed_synthetic_cells": 51,
+          "max_roundtrip_error_usd": 9.765625009094947e-05,
+          "inverse_f32_differences": 0,
+          "bound_violations": 0
+        },
+        "H1": {
+          "raw_width": 453,
+          "model_width": 455,
+          "price_level_count": 46,
+          "price_unit_counts": {
+            "USD": 44,
+            "ticks": 2
+          },
+          "anchor_family": "price_action_candle_encoder",
+          "anchor_priority_first": "gc_h1_open_usd",
+          "observed_synthetic_cells": 47,
+          "max_roundtrip_error_usd": 9.765625009094947e-05,
+          "inverse_f32_differences": 0,
+          "bound_violations": 0
+        },
+        "H4": {
+          "raw_width": 431,
+          "model_width": 433,
+          "price_level_count": 44,
+          "price_unit_counts": {
+            "USD": 42,
+            "ticks": 2
+          },
+          "anchor_family": "price_action_candle_encoder",
+          "anchor_priority_first": "gc_h4_open_usd",
+          "observed_synthetic_cells": 45,
+          "max_roundtrip_error_usd": 9.765625009094947e-05,
+          "inverse_f32_differences": 0,
+          "bound_violations": 0
+        },
+        "D1": {
+          "raw_width": 399,
+          "model_width": 401,
+          "price_level_count": 35,
+          "price_unit_counts": {
+            "USD": 33,
+            "ticks": 2
+          },
+          "anchor_family": "price_action_candle_encoder",
+          "anchor_priority_first": "gc_d1_observed_open_usd",
+          "observed_synthetic_cells": 36,
+          "max_roundtrip_error_usd": 9.765625009094947e-05,
+          "inverse_f32_differences": 0,
+          "bound_violations": 0
+        }
+      }
+    },
+    "separation": "Feature-view binder rejects simultaneously choosing linear initialization and GC relative coordinates; each has its own identity."
+  },
+  "repaired_blocker": {
+    "problem": "Existing coordinate source binding was stale for gc_native_context_v1.py; first test pass blocked all GC-dependent cases.",
+    "resolution": "Explicit snapshot_204 mode verifies the historical context source using Git commit396fe41aae54b2d73eae636c0e7e24acc2b5f7da and original SHA. native_current verifies current source bytes and binds its own embedded map.",
+    "scope_evidence": "Only additive BBO trailing-support/mask/Boolean code differed; original049 registry,1205 mapped values,242 levels and all price/unit producers unchanged. Snapshot canonical SHA remains6c62311ea684dee51f1fc2f394b1fce95d29940eecff5c1c7a3863245f96f148."
+  },
+  "validation": {
+    "unique_focused_synthetic_passes": 76,
+    "receipts": [
+      {
+        "receipt": {
+          "path": "/home/andre2/GX1_RUNS/EDGE_DESIGN_IMPLEMENTATION_20261101_001/TESTS_001.xml",
+          "sha256": "22c82d9ece4dfe130c14acb425610ed4783b20505b2a6e86fdfe2232e033950f"
+        },
+        "name": "pytest",
+        "errors": "40",
+        "failures": "15",
+        "skipped": "0",
+        "tests": "69",
+        "time": "14.696",
+        "timestamp": "2026-11-01T18:57:31.722349+01:00",
+        "hostname": "Andre2"
+      },
+      {
+        "receipt": {
+          "path": "/home/andre2/GX1_RUNS/EDGE_DESIGN_IMPLEMENTATION_20261101_001/TESTS_002.xml",
+          "sha256": "bfc6cc5d8c32d02ac798b0def6f30702b028fac8024a9c895e2f549beb572d9e"
+        },
+        "name": "pytest",
+        "errors": "0",
+        "failures": "0",
+        "skipped": "0",
+        "tests": "62",
+        "time": "28.494",
+        "timestamp": "2026-11-01T19:03:20.520610+01:00",
+        "hostname": "Andre2"
+      }
+    ],
+    "initial_pass_reused": 14,
+    "gc_and_regression_passes": 62,
+    "roundtrip_evidence": {
+      "path": "/home/andre2/GX1_RUNS/EDGE_DESIGN_IMPLEMENTATION_20261101_001/SYNTHETIC_ROUNDTRIP.json",
+      "sha256": "2e45222c3d377b77437b299201bad1d4bf16f81904a9c4f8eb05ef5f2d954e7f"
+    },
+    "roundtrip_limit": "247 synthetic observed cells across five cases, not a population or CUDA accuracy qualification; no universal bit-exact inverse claim.",
+    "preexisting_capacity_files_unchanged": 10,
+    "native_model_constructions": 0,
+    "native_forwards": 0,
+    "backwards": 0,
+    "optimizer_updates": 0,
+    "genuine_normalization_fits": 0,
+    "test_data_accessed": false,
+    "source_freeze_receipt": {
+      "path": "/home/andre2/GX1_RUNS/EDGE_DESIGN_IMPLEMENTATION_20261101_001/SOURCE_BEFORE_TESTS_002.json",
+      "sha256": "3b43cc5d763af60f7557dc54ec8920cc47902172998016c105192bd302ccd56f"
+    }
+  },
+  "source_and_tests": [
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_gc_mtf_history_v1.py",
+      "sha256": "8565fe08662ef2e8dd1fc6a4def169d0eadf72102f5ac0bd7331cfa1fdaddd71"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+      "sha256": "ec7a8742b7d2ae1754bcddcad0b37de4bde820e90fae0a5946c43aa1e6620e97"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_normalization_v1.py",
+      "sha256": "01c146a1d4919723640ac40d51ebf97d94d469bf827bddb0c4e212d7e2915258"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gc_price_coordinate_contract_v1.py",
+      "sha256": "16abac658458dda098addd246ae1a96d2fa0c2dc824c7214dbcbfe69bb8ecab0"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gc_relative_price_coordinates_v1.py",
+      "sha256": "42fe8d1db00126214eac16166b9fa91749a33a389326dce41eab178d9bc1c4fd"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_direction_momentum_profile_v1.py",
+      "sha256": "2abff35933fa02e3644dc3045984c51a163783b27aa4b04e5e06ea1b16da7706"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+      "sha256": "f9ebe6a87c520f1401dc18b5664439237c25a47c6a7fdbea9f232a69fff3202b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+      "sha256": "0c82d5b763fe5ee5e56651d46d02345f44f98a94ceb866318bde1cfeccd66460"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_direction_design_variants_v1.py",
+      "sha256": "45b4f2c62b4ebc27d702d600c5b89926d85d110c155d57aa3af8a378d716e38b"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_direction_momentum_initialization_v1.py",
+      "sha256": "53a96a2e4bd6f3c98abd3248e17eb6c3e6ac844310c234fadffd4031ba5fd516"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_gc_mtf_relative_normalization_v1.py",
+      "sha256": "9eb43b88d862ee78689c133dd8cb743566af8345d66bd5b5260de748ca383f11"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_gc_native_relative_price_coordinates_v1.py",
+      "sha256": "13cc87daa20405a60b04d319abd0efd4e66c96a48141a0adf6b144b195540212"
+    }
+  ],
+  "unperformed": [
+    "Genuine input normalization and full-population coordinate/coverage audit",
+    "Native model construction, fresh initial baseline, GPU parity, gradients and resume qualification",
+    "Future direction/edge comparison and any economic validation",
+    "Existing precommit tests test_model_native_transformer_entry_q_is_direct_and_anchor_free and test_model_native_transformer_rejects_noncanonical_context_dimensions are excluded under the explicit no-model prohibition"
+  ],
+  "launch_authorized": false,
+  "training_enabled": false,
+  "restart_authorized": false,
+  "edge_improvement_proven": false,
+  "independent_source_review": {
+    "decision": "NO_FUNCTIONAL_DEFECT_FOUND_WITHIN_READ_SCOPE",
+    "profile_and_normalization": "Legacy init preserved; ordinary profile parent delegation intact; raw shape validation precedes transform and own normalization; appended model fields match projection indices.",
+    "architecture_metadata_note": "gc_mtf_history.per_tf_widths denotes projection/model widths (+2 for relative mode); layout_sha256 still identifies the unchanged physical raw layout. The normalization hash binds the coordinate mode.",
+    "hook_source_review": "Only the two named excluded tests construct/run native models; remaining hook tests inspected without execution."
+  }
+}
