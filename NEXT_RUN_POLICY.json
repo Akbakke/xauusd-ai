@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T04:43:23.398537+00:00",
-  "status": "SIX_FITS_COMPLETE_SESSION_ZERO_UPDATE_SCORING_RECOVERY_ADMITTED",
+  "observed_utc": "2026-11-01T07:21:51.038322+00:00",
+  "status": "SEVEN_FITS_COMPLETE_CHART_PRIVATE_RECIPE_PREFLIGHT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Training/backward/optimizer gates remain closed. Only dynamic_m5_direction_family_session_regime_scoring_recovery_20261101_001 admits one fresh checkpoint restore and full TRAIN/Q1 scoring with4057forwards/zero new updates, after exact campaign binding and fresh machine-wide idle admission. Original interrupted campaign remains consumed and unchanged; no reboot/TEST/Exit/trading. Metadata preflight is complete and consumed.",
-  "next_action": "Materialize the single fresh zero-update session scoring recovery campaign, install exact one-shot task, publish fresh machine-wide idle admission, then score preserved W1 state once. No new optimizer update/reboot; original interrupted campaign remains closed. Complete remaining prescribed arms and54pairedcontrasts afterward.",
+  "rule": "All genuine model/training/scoring gates are closed after complete consumed session recovery. The next prescribed chart-geometry arm may be prepared and metadata-qualified within the unchanged ten-arm protocol; native execution requires its own exact fresh admission. No original campaign relaunch, extra pass, reboot, TEST, Exit or trading.",
+  "next_action": "Run the single capped metadata/hash preflight for the prepared chart_geometry_encoder private recipe. Reuse the qualified current control owners and unchanged numerical/model helpers. All genuine native gates remain closed until fresh exact private admission. Three variants and54pairedcontrasts remain.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Exact session recovery preflight and independent preparation review passed. One fresh zero-update scoring operation admitted; campaign and fresh idle admission pending. Original training retained; no recovered model execution yet.",
+    "current_activity": "Seven matched variants complete. Preserved original session training has now been scored in one separate zero-update campaign; fullTRAIN47602/Q117288,4057forwards and exact state seal preserved. Saved predictions and actual recovered comparison lineage verified. Next prescribed chart geometry preparation. Chart private recipe prepared with unchanged numerics and63 current source owners; one metadata/hash preflight admitted, no genuine chart execution.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -284,11 +284,11 @@
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Last fully completed private session qualification before the interrupted full-fit campaign; not the interrupted W2 terminal.",
+    "latest_terminal_role": "Completed seventh matched variant through separate original training and recovered scoring chains.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/VERIFIED_TERMINAL.json",
-      "sha256": "5e1abca12a336e32c52cab1ce23b20034a48801708d627ad3ed6f6a9034c089e"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/VERIFIED_TERMINAL.json",
+      "sha256": "45b14620ffaa411fba4f2fd2bdf9c82ce896267a704c9afbae5cdf0287ae3adb"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Fresh campaign preparation and machine-wide idle admission pending; no genuine execution started.",
+    "current_blocker": "No execution blocker; exact prepared chart-private metadata preflight pending before native admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Materialize the single fresh zero-update session scoring recovery campaign, install exact one-shot task, publish fresh machine-wide idle admission, then score preserved W1 state once. No new optimizer update/reboot; original interrupted campaign remains closed. Complete remaining prescribed arms and54pairedcontrasts afterward.",
+    "next_action": "Run the single capped metadata/hash preflight for the prepared chart_geometry_encoder private recipe. Reuse the qualified current control owners and unchanged numerical/model helpers. All genuine native gates remain closed until fresh exact private admission. Three variants and54pairedcontrasts remain.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -8908,15 +8908,13 @@
       "required_next_boundary": "Define a separate native GC mask/representation/contract and fresh input parity before considering a source-bound native M5 learning plan; do not relaunch 007 or auto-launch the old D1 recipe."
     },
     "latest_terminal_evidence_gaps": [
-      "Session fullfit scoring was interrupted by Windows bugcheck; no W2exit code/progress/RESULT/receipt exists.",
-      "Six of ten full-fit variants remain complete; session scoring and three further fullfits plus54pairedcontrasts are pending.",
-      "Fresh zero-update recovery admitted but not executed; original W2 ACTIVE/CLAIM remain preserved and never relaunch authority.",
-      "Underlying Windows crash cause remains unknown despite bugcheck0x1e record.",
-      "TEST/Exit/trading remain sealed; no useful direction or economic edge qualified.",
-      "Saved prediction verification reuses the metric owner; independent metric algebra, raw target-source replay and all family confidence intervals remain incomplete.",
+      "Seven of ten matched variants complete; chart geometry, price action/candle, macro and all54paired primary contrasts remain.",
+      "No useful direction, generalization or economic edge qualified; later Q1 remains reused development.",
+      "Saved prediction verification reuses the metric owner; independent metric algebra and raw target-source replay remain incomplete.",
       "Initial256 and fullTRAIN47602 are different populations, not a matched before/after learning curve.",
       "Quote-event age, macro publication/version provenance, H1 signed-flow coverage and cost-adjusted performance remain unresolved.",
-      "Q1 is reused development, not untouched TEST."
+      "Original interrupted sessionW2 native exit is unknown; underlying Windows bugcheck cause remains unknown. Original artefacts preserved; recovery is a distinct completed scoring chain.",
+      "Generic producer OOF scope text says reused TRAIN development periods; explicit OOF role, fold and row count identify later Q1. No untouched-TEST claim."
     ],
     "strategic_feature_review_20261017": {
       "status": "ANALYSIS_AND_GAP_REPORT_COMPLETE_NO_NEW_EXPERIMENT",
@@ -16230,7 +16228,7 @@
         "Originals preserved; unusedwindows3/4revoked. No new epoch,HPO,checkpoint/threshold selection,normalization refit,trading,broker,Exit or promotion."
       ]
     },
-    "latest_terminal_evidence_scope": "Private session qualification was complete; subsequent fullfitW1 training now2976updates/47602parents and byte-intact after unexpectedboot590. Full TRAIN/Q1 scoring is not complete.",
+    "latest_terminal_evidence_scope": "OriginalW1 training2976updates/47602parents plus genuine recovered4057forwards/0newupdates; all60 saved panels for originalinitial256/fullTRAIN47602/later17288 verified.7of10variants complete; all family confidence intervals pending.",
     "training_efficiency_request_20261019": {
       "operator_request": "Effektivisertreningenmaks;unngågjentatteTB-ogunødvendigelesinger;organiserogoptimaliser heledataflyten.",
       "status": "ACTUAL108_SINGLE_EPOCH_TIMINGS_AND_SPARSE_IO_OBSERVED_NO_CONTROLLED_SPEEDUP_CLAIM",
@@ -16324,12 +16322,12 @@
       "latest_actual_initial_checkpoint_write_seconds": 0.531438
     },
     "latest_native_terminal": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/OUTER_TERMINAL.json",
-      "sha256": "4145c2caf72e997cac8d1cc12135a82c2b4fe93a561bd92f16d82f8de54fc892"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/VERIFIED_TERMINAL.json",
+      "sha256": "45b14620ffaa411fba4f2fd2bdf9c82ce896267a704c9afbae5cdf0287ae3adb"
     },
     "latest_native_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_PREFIX_FIT_FOLD3_20261025_279/ACTUAL_QUALIFICATION_REVIEW.json",
-      "sha256": "25582f59af879c02910d19814ee2d404733482dba1af86ce2e93549ebf7adc34"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "47f2e66661d3184ae1c2aeacc64bef8efa0a5310976ba5eebe917605934ab75f"
     },
     "latest_native_initial_review": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_INITIAL_20261022_188/ACTUAL_INITIAL_PEER_REVIEW.json",
@@ -17462,8 +17460,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": true,
-    "current_training_scope": "NONE_ZERO_UPDATE_SCORING_RECOVERY_ONLY",
+    "current_native_launch_authorized": false,
+    "current_training_scope": "NONE_SEVEN_MATCHED_VARIANTS_COMPLETE",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17609,7 +17607,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_terminal_prefix_part3_20261027_001_RUNTIME/receipts/invocation-0001.json",
       "sha256": "b85fffb36ed5ad0ed844a97d2d516a9406a33f5510874a283ff0a40e8fdca118"
     },
-    "terminal_exit_code_origin": "Both original family baseline native receipts have trainer_guard_exit_code=progress_observer_exit_code=0; saved-prediction audit exit0.",
+    "terminal_exit_code_origin": "Genuine recovered scoring receipt trainer_guard_exit_code; original interrupted W2 native exit remains unknown.",
     "latest_throughput_measurement_design": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/F_FROZEN_EXTRACTION_THROUGHPUT_MEASUREMENT_DESIGN_001.json",
       "sha256": "572bcbe54cb67e7d477c40272c3bde3ff179d9b349499643849d09493c1f4684"
@@ -17771,8 +17769,8 @@
       "sha256": "c30946767a52650ec071f0457ea8b127d0d7bd38c556922b34d139897edc040e"
     },
     "latest_terminal_review": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_PREFIX_FIT_FOLD1_20261027_001/ACTUAL_ROOT_REVIEW.json",
-      "sha256": "32dbd4c59cd22188cdfb8f4070c02795061a321c100a13547a4d355769d663d6"
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "47f2e66661d3184ae1c2aeacc64bef8efa0a5310976ba5eebe917605934ab75f"
     },
     "frozen_partition_completed_units": {
       "terminal_later_full": {
@@ -35968,7 +35966,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_TRAINING_CLOSED_EXACT_SESSION_ZERO_UPDATE_SCORING_STAGE_ONLY",
+  "training_enabled_scope": "NONE_NATIVE_CLOSED_SEVEN_MATCHED_VARIANTS_COMPLETE",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48269,7 +48267,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "SIX_FITS_COMPLETE_SESSION_ZERO_UPDATE_SCORING_RECOVERY_ADMITTED",
+    "status": "SEVEN_FITS_COMPLETE_CHART_PRIVATE_RECIPE_PREFLIGHT_ADMITTED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48391,10 +48389,10 @@
       "smc_liquidity_encoder",
       "trend_ema_encoder",
       "vol_compression_encoder",
-      "momentum_flow_encoder"
+      "momentum_flow_encoder",
+      "session_regime_encoder"
     ],
     "remaining_full_fit_arms": [
-      "session_regime_encoder",
       "chart_geometry_encoder",
       "price_action_candle_encoder",
       "macro_context"
@@ -48415,9 +48413,10 @@
       "smc_liquidity_encoder",
       "trend_ema_encoder",
       "vol_compression_encoder",
-      "momentum_flow_encoder"
+      "momentum_flow_encoder",
+      "session_regime_encoder"
     ],
-    "remaining_nonbaseline_fit_arms": 4,
+    "remaining_nonbaseline_fit_arms": 3,
     "paired_family_comparison_complete": false,
     "structure_swing_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_STRUCTURE_SWING_001/VERIFIED_TERMINAL.json",
@@ -48486,7 +48485,7 @@
     },
     "saved_comparison_stage": "direction_family_saved_comparison_20261101_001",
     "session_regime_training_preserved": true,
-    "session_regime_scoring_complete": false,
+    "session_regime_scoring_complete": true,
     "session_regime_interruption_integrity": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
@@ -48496,6 +48495,26 @@
     "session_scoring_recovery_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/RECIPE_PREFLIGHT_001.json",
       "sha256": "045f917b08b997e15dc5f5dfbdaf1ab40b7d2586b9e5c4ec401ddef0d8c8e8c0"
+    },
+    "session_regime_verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/VERIFIED_TERMINAL.json",
+      "sha256": "45b14620ffaa411fba4f2fd2bdf9c82ce896267a704c9afbae5cdf0287ae3adb"
+    },
+    "session_regime_saved_prediction_verification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/SAVED_PREDICTION_VERIFY_001/RESULT.json",
+      "sha256": "761bb4fc2d1b8453d684a5f705ca8df6fa8c220d1701d2db74e4e4f7dd570278"
+    },
+    "session_regime_saved_metadata_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/SAVED_PREDICTION_VERIFY_001/INDEPENDENT_METADATA_REVIEW_001.json",
+      "sha256": "217a5815354d79353888bf6bffc5d53f920507a70d8150514b124130c6f06505"
+    },
+    "session_regime_actual_comparison_metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/ACTUAL_COMPARISON_METADATA_REVIEW_001.json",
+      "sha256": "7712126038f0677cf4ffb3082219a12ac97a60daa50b9935085b5340d75dcc23"
+    },
+    "prepared_chart_geometry_private_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_PRIVATE_RECIPE_20261101.json",
+      "sha256": "d7f7dc87fed9b6339c4ecc72c7c512d7df29fbbf5b33703a3480466fb7283777"
     }
   },
   "direction_family_input_pilot_20261030_001": {
@@ -50076,7 +50095,7 @@
     }
   },
   "dynamic_m5_direction_family_session_regime_scoring_recovery_20261101_001": {
-    "status": "ADMITTED_FRESH_ZERO_UPDATE_SCORING_RECOVERY_PREPARATION_AND_IDLE_PENDING",
+    "status": "COMPLETE_CONSUMED_ZERO_UPDATE_SCORING_RECOVERY",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_SESSION_REGIME_SCORING_RECOVERY_RECIPE_20261101.json",
       "sha256": "1ad0b5a020e391db3b9119cc162fa71bfe256d3621e2da2812ce9168be5cd3d2"
@@ -50096,8 +50115,8 @@
     "new_training_passes": 0,
     "max_model_forwards": 4057,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "requested_physical_gpu_power_limit_w": 250,
     "retain_physical_gpu_power_limit_w_afterward": 250,
@@ -50156,15 +50175,15 @@
     },
     "user_authorization": "Complete already authorized matched family study by scoring preserved original session training after unexpected Windows crash. Fresh zero-update operation; no training replay, extra fit, or original invocation relaunch.",
     "scope": "Exactly one fresh GENESIS scoring invocation: restore genuine original W1 terminal state, evaluate full TRAIN47602 and later Q117288 on unchanged axes/targets/numerics.4057forwards,0backward/optimizer updates; original state semantic seal unchanged. Original interrupted ACTIVE/CLAIM/receipts untouched. Fresh machine-wide idle proof and existing signed guards required, no reboot.",
-    "campaign_preparation_authorized": true,
-    "same_boot_after_idle_review_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "zero_update_scoring_recovery_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "native_launch_authorized": true,
+    "campaign_preparation_authorized": false,
+    "same_boot_after_idle_review_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "zero_update_scoring_recovery_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "native_launch_authorized": false,
     "genuine_backward_authorized": false,
     "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -50177,6 +50196,72 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_val_allowed": false,
-    "physical_restart_before_each_invocation_authorized": false
+    "physical_restart_before_each_invocation_authorized": false,
+    "actual_new_optimizer_updates": 0,
+    "actual_forward_calls": 4057,
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/VERIFIED_TERMINAL.json",
+      "sha256": "45b14620ffaa411fba4f2fd2bdf9c82ce896267a704c9afbae5cdf0287ae3adb"
+    },
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "47f2e66661d3184ae1c2aeacc64bef8efa0a5310976ba5eebe917605934ab75f"
+    },
+    "saved_prediction_verification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/SAVED_PREDICTION_VERIFY_001/RESULT.json",
+      "sha256": "761bb4fc2d1b8453d684a5f705ca8df6fa8c220d1701d2db74e4e4f7dd570278"
+    },
+    "saved_prediction_metadata_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/SAVED_PREDICTION_VERIFY_001/INDEPENDENT_METADATA_REVIEW_001.json",
+      "sha256": "217a5815354d79353888bf6bffc5d53f920507a70d8150514b124130c6f06505"
+    },
+    "actual_comparison_metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/ACTUAL_COMPARISON_METADATA_REVIEW_001.json",
+      "sha256": "7712126038f0677cf4ffb3082219a12ac97a60daa50b9935085b5340d75dcc23"
+    },
+    "power_retain": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/POWER_RETAIN.json",
+      "sha256": "0732a284b78112f31b22b99f618e2e22ae2089f656ebc7f60737e803a5ec77bc"
+    },
+    "genuine_native_exit_code": 0,
+    "full_train_scoring_complete": true,
+    "later_scoring_complete": true
+  },
+  "direction_family_chart_geometry_preparation_20261101_001": {
+    "status": "RECIPE_PREPARED_EXACT_METADATA_PREFLIGHT_ADMITTED",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_PRIVATE_RECIPE_20261101.json",
+      "sha256": "d7f7dc87fed9b6339c4ecc72c7c512d7df29fbbf5b33703a3480466fb7283777"
+    },
+    "source_owner_count": 63,
+    "source_edits_authorized": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "genuine_forward_authorized": false,
+    "genuine_updates_authorized": false,
+    "test_data_used": false,
+    "control_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SESSION_SCORING_RECOVERY_SOURCE_002/RESULT.json",
+      "sha256": "e3debe064f4a0ca57f275a36bbab4c2385856d530f030fbd8bc13644f99850e5"
+    },
+    "metadata_preflight": {
+      "execution_authorized": true,
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_CHART_GEOMETRY_001/recipe_preflight_001.py",
+        "sha256": "1407ecdedd6f793720a85314650e3fea08f43965864cde86b01b8204ebd9809b"
+      },
+      "recipe": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_PRIVATE_RECIPE_20261101.json",
+        "sha256": "d7f7dc87fed9b6339c4ecc72c7c512d7df29fbbf5b33703a3480466fb7283777"
+      },
+      "max_invocations": 1,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "metadata_and_qualified_file_hash_reads_authorized": true,
+      "model_or_checkpoint_deserialization_authorized": false,
+      "optimizer_updates_authorized": false,
+      "test_data_used": false
+    }
   }
 }
