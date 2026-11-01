@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T11:42:44.886209+00:00",
-  "status": "SEVEN_FITS_COMPLETE_CHART_SCORING_INTERRUPTED_HOST_BUGCHECK",
+  "observed_utc": "2026-11-01T16:06:03.617060+00:00",
+  "status": "SEVEN_FITS_COMPLETE_SAVED_LEARNING_DIAGNOSIS_COMPLETE_NEW_MODEL_RUNS_REJECTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "No native execution or training admitted. Chart W1 completed47602TRAIN/2976updates and its bytes are preserved. W2 was interrupted by Windows bugcheck0x20001; original exit unknown,2claimed/1completed/1interrupted,windows3-4revoked. Exact chart taskDisabled; preserve ACTIVE/CLAIM/logs. Host cause remainsUNKNOWN. No original relaunch,reboot,TEST,Exit or trading.",
-  "next_action": "Review targeted host stability measures using the symbol-resolved intelppm CPU-idle/Hyper-V crash path and measured i9-10900K/PRIME Z490M-PLUS/BIOS1621. ASUS1806 is beta and not a documented fix for this crash; no firmware/settings/reboot change admitted by the diagnostic. Preserve chart W1; any chart scoring recovery still needs its own qualified binding and fresh capped campaign. Do not relaunch the original. Three complete variants and54pairedcontrasts remain.",
+  "rule": "Latest explicit user instruction rejects all new model runs, including the proposed256-row capacity test. Existing chart stop remains final; preserve all original results, weights, checkpoints and incomplete status. Only read-only saved-evidence/source diagnosis is authorized. TEST, broker and trading remain closed.",
+  "next_action": "Read-only saved-evidence diagnosis completed. Same256 identity, matched predictions, all627 active parameter updates and2976 Adam steps verified; weak later direction cause remainsUNKNOWN. No model run, capacity test, restart, family continuation, TEST or trading is authorized. Preserve existing code, original states and incomplete chart results; no automatic next execution.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -254,8 +254,8 @@
     }
   },
   "current_work": {
-    "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Exact chart zero-update scoring conditionally admitted after successful metadata qualification and reversible ACboost-off trial. Materialization then fresh Windows/WSL idle review required; no model started. One invocation4057forwards/0newupdates, existing guards/time limits. Hardware root cause/stability not proven; no reboot.",
+    "operator_request": "01.11: investigate weak learning using existing results, source and saved states only. All new model runs and restarts explicitly rejected, including256-row control.",
+    "current_activity": "Completed read-only matched256 TRAIN and saved parameter/optimizer diagnosis.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Host stability unresolved after symbol-resolved CPU-idle/Hyper-V crash. A failure-bucket/module is not proof of driver,firmware or hardware fault. ASUS1806beta is a candidate for assessment,not a verified fix. Existing chart recovery binding remains unqualified.",
+    "current_blocker": "Cause of weak learning unresolved; new model runs rejected by user. Existing saved evidence only.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Review targeted host stability measures using the symbol-resolved intelppm CPU-idle/Hyper-V crash path and measured i9-10900K/PRIME Z490M-PLUS/BIOS1621. ASUS1806 is beta and not a documented fix for this crash; no firmware/settings/reboot change admitted by the diagnostic. Preserve chart W1; any chart scoring recovery still needs its own qualified binding and fresh capped campaign. Do not relaunch the original. Three complete variants and54pairedcontrasts remain.",
+    "next_action": "Read-only saved-evidence diagnosis completed. Same256 identity, matched predictions, all627 active parameter updates and2976 Adam steps verified; weak later direction cause remainsUNKNOWN. No model run, capacity test, restart, family continuation, TEST or trading is authorized. Preserve existing code, original states and incomplete chart results; no automatic next execution.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17461,7 +17461,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "CLOSED_CHART_TRAINING_COMPLETE_SCORING_INTERRUPTED",
+    "current_training_scope": "CLOSED_ALL_NEW_MODEL_RUNS_REJECTED_BY_USER",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17875,7 +17875,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "dynamic_m5_direction_family_chart_geometry_scoring_recovery_20261101_001",
+    "current_native_launch_scope": "NONE_READONLY_SAVED_EVIDENCE_ONLY",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -17885,7 +17885,11 @@
       "sha256": "0e1e7d13dcecf160ae2ee71c6c6e939e61550471d532cb3ff0657ea0d7fa40f4"
     },
     "chart_recovery_source_stage": "direction_family_chart_scoring_recovery_source_20261101_001",
-    "current_host_cper_review": "direction_family_chart_host_cper_review_20261101_001"
+    "current_host_cper_review": "direction_family_chart_host_cper_review_20261101_001",
+    "latest_saved_learning_diagnosis": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_BASELINE_SAVED_DIAGNOSIS_20261101.json",
+      "sha256": "6b8b59f2c68f50c38110b0160bed6921ca4b0ad41c160e25766759dd53bf2bb5"
+    }
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -48278,7 +48282,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "SEVEN_FITS_COMPLETE_CHART_SCORING_INTERRUPTED_HOST_BUGCHECK",
+    "status": "SEVEN_FITS_COMPLETE_SAVED_LEARNING_DIAGNOSIS_COMPLETE_NEW_MODEL_RUNS_REJECTED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48289,13 +48293,13 @@
       "request": "Ja, gjør dette. Husk å sørge for at vi får all informasjon vi trenger, og samtidig ha øynene åpne for feil/mangler/mismatches. Lag deg et mål om dette",
       "scope": "Matched family added value, correctness audit and necessary bounded implementation; existing safety boundaries preserved."
     },
-    "source_edits_authorized": true,
+    "source_edits_authorized": false,
     "source_scope": [
       "current family intervention pure contract and tests",
       "minimal native prefix campaign/view/runner and qualification integration",
       "protocol/current policy/handover"
     ],
-    "synthetic_tests_authorized": true,
+    "synthetic_tests_authorized": false,
     "genuine_data_reads_authorized": false,
     "execution_authorized": false,
     "training_enabled": false,
@@ -48453,7 +48457,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/VERIFIED_TERMINAL.json",
       "sha256": "bad38b76fd8efa901141bdfe500b73790e213c104479dbbb181502f8d65e1aa0"
     },
-    "diagnostic_followup": "direction_family_fit_capacity_preparation_20261101_001",
+    "diagnostic_followup": "SAVED_EVIDENCE_READONLY_NO_MODEL_CALLS",
     "existing_simple_reference_scope_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/EXISTING_SIMPLE_REFERENCE_SCOPE_REVIEW_20261031_002.json",
       "sha256": "45136a9d2cb207e12334daa7c68c7db7cb1a3e26de4e1f11ce506d1f5feead06"
@@ -48556,6 +48560,16 @@
     "chart_geometry_interruption_peer_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/UNEXPECTED_INTERRUPTION_PEER_REVIEW_001.json",
       "sha256": "3d799937287a0cc5baa74fde3c99b641779628ecc0bdc684d5bf2ea918634074"
+    },
+    "future_family_launches_held": true,
+    "user_stop_closure": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/USER_STOP_CLOSURE_001.json",
+      "sha256": "d2f74bed143d5de55975b367442bc9b6115c68fec180908fe8c89ec82091c5d0"
+    },
+    "next_action": "Read-only saved-evidence diagnosis completed. Same256 identity, matched predictions, all627 active parameter updates and2976 Adam steps verified; weak later direction cause remainsUNKNOWN. No model run, capacity test, restart, family continuation, TEST or trading is authorized. Preserve existing code, original states and incomplete chart results; no automatic next execution.",
+    "saved_learning_diagnosis": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_BASELINE_SAVED_DIAGNOSIS_20261101.json",
+      "sha256": "6b8b59f2c68f50c38110b0160bed6921ca4b0ad41c160e25766759dd53bf2bb5"
     }
   },
   "direction_family_input_pilot_20261030_001": {
@@ -49974,7 +49988,7 @@
     }
   },
   "direction_family_fit_capacity_preparation_20261101_001": {
-    "status": "PROPOSED_SEPARATE_SCOPE_PENDING_USER_CHOICE_ORIGINAL_PROGRAM_CONTINUES",
+    "status": "REJECTED_BY_USER_NOT_RUN",
     "proposal": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_SMALL_TRAIN_CAPACITY_PROPOSAL_20261101.json",
       "sha256": "130223468b0a1ee5399cfaf7da4d6d90d5e927aa5d751b2b22055d95dfc3763f"
@@ -49989,8 +50003,45 @@
     "test_data_used": false,
     "broker_access_allowed": false,
     "current_model_code_changed": false,
-    "pending_choice": "Whether to add the separate bounded repeated-smallTRAIN diagnostic. No approval has been received; original ten-arm one-pass study is not revoked by this optional proposal.",
-    "blocks_original_authorized_family_study": false
+    "pending_choice": null,
+    "blocks_original_authorized_family_study": true,
+    "synthetic_tests_authorized": false,
+    "user_authorization": {
+      "initial_choice": "La denne bli ferdig, deretter læringskontrollen",
+      "latest_steering": "Vi får vel ikke noe særlig mer ut av denne siste. Stopp nå og angrep selve problemet",
+      "latest_stop_closure": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/USER_STOP_CLOSURE_001.json",
+        "sha256": "d2f74bed143d5de55975b367442bc9b6115c68fec180908fe8c89ec82091c5d0"
+      }
+    },
+    "source_files": [
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+      "gx1/contracts/entry_native_direction_research_state_v1.py",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "gx1/contracts/local_random_access_campaign_v2.py",
+      "scripts/gx1_capped_run.sh"
+    ],
+    "scope": "Rejected by latest explicit user instruction. No256-row capacity run, no additional qualification or training. Existing uncommitted control code/tests preserved; reported334 synthetic passes are not model-learning evidence.",
+    "focused_test_files": [
+      "tests/test_entry_native_direction_prefix_fit_campaign_v1.py",
+      "tests/test_entry_native_direction_research_state_v1.py",
+      "tests/test_entry_native_direction_prefix_fit_window_v1.py",
+      "tests/test_entry_native_direction_prefix_fit_integration_v1.py",
+      "tests/test_entry_direction_small_train_capacity_admission_v1.py",
+      "tests/test_entry_direction_small_train_capacity_runner_v1.py",
+      "tests/test_entry_direction_scoring_recovery_v1.py"
+    ],
+    "focused_shell_checks": [
+      "bash -n scripts/gx1_capped_run.sh",
+      "tests/test_gx1_capped_run_contract.py::test_capped_runner_has_valid_shell_syntax",
+      "tests/test_gx1_capped_run_contract.py::test_capped_runner_preserves_hard_limits_project_lock_and_validation_order"
+    ],
+    "historical_source_origin_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SMALL_TRAIN_CAPACITY_PREPARATION_001/SOURCE_ORIGIN_EQUIVALENCE_001.json",
+      "sha256": "1982f8bbb6be47145fc211ce5c8693e3b48430ea945e291749c2cbcde94cbe51"
+    },
+    "latest_operator_override": "01.11 handover: no new model runs or restarts; investigate existing predictions, source and saved states only."
   },
   "direction_family_saved_comparison_source_20261101_001": {
     "status": "SOURCE_QUALIFIED_WITH_EXPLICIT_RECOVERED_SCORING_LINEAGE",
@@ -50710,7 +50761,7 @@
     "latest_observed_new_whea_after_boot": 0
   },
   "dynamic_m5_direction_family_chart_geometry_scoring_recovery_20261101_001": {
-    "status": "ADMITTED_EXACT_ZERO_UPDATE_SCORING_PENDING_FRESH_IDLE_GATES",
+    "status": "STOPPED_BY_USER_INCOMPLETE_NOT_RELAUNCHABLE",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_SCORING_RECOVERY_RECIPE_20261101.json",
       "sha256": "d3a453ee17b7ece644ae6098b8d9ec8ac529e8b24def422b28240a66f1eb775d"
@@ -50730,7 +50781,7 @@
     "new_training_passes": 0,
     "max_model_forwards": 4057,
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "requested_physical_gpu_power_limit_w": 250,
@@ -50778,15 +50829,15 @@
     },
     "user_authorization": "Complete original matched family study using preserved chart training, separately qualified zero-update scoring only; no original relaunch or retraining.",
     "scope": "One new scoring invocation after exact metadata qualification and host readiness. Same full TRAIN47602/Q117288,4057forwards,zero backward/updates; original state and two actual evidence chains preserved.",
-    "campaign_preparation_authorized": true,
-    "same_boot_after_idle_review_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "zero_update_scoring_recovery_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "native_launch_authorized": true,
+    "campaign_preparation_authorized": false,
+    "same_boot_after_idle_review_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "zero_update_scoring_recovery_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "native_launch_authorized": false,
     "genuine_backward_authorized": false,
     "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -50823,7 +50874,12 @@
     "host_trial_active_scheme": "b42b918a-8710-41a4-ba0c-53b7023a3dba",
     "host_stability_claimed": false,
     "crash_root_cause": "UNKNOWN",
-    "monitor_scope": "At existing15-30minute native checks also inspect new Windows WHEA/bugcheck events and active trialplan. New hardware error aborts this single trial; no automatic retry or widened wall/capacity limits."
+    "monitor_scope": "At existing15-30minute native checks also inspect new Windows WHEA/bugcheck events and active trialplan. New hardware error aborts this single trial; no automatic retry or widened wall/capacity limits.",
+    "interrupted_invocations": 1,
+    "user_stop_closure": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/USER_STOP_CLOSURE_001.json",
+      "sha256": "d2f74bed143d5de55975b367442bc9b6115c68fec180908fe8c89ec82091c5d0"
+    }
   },
   "direction_family_host_cpu_boost_trial_20261101_001": {
     "status": "APPLIED_CONSUMED_SINGLE_AC_BOOST_CHANGE_STABILITY_UNPROVEN",

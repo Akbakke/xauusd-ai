@@ -11,11 +11,11 @@ Programrot:
 
 ## Aktuell status
 
-01.11 — CHART-TRENING BEVART, EVALUERING AVBRUTT AV WINDOWS-KRASJ: W1 fullførte 47602 TRAIN-rader og 2976 oppdateringer med vakt/sluttkode 0. W2 startet med fersk tomgangskontroll på samme boot 590, uten operatørinitiert omstart. Windows startet automatisk på nytt 11:01:54 UTC (12:01:54 norsk tid), boot 591, med feilkontroll 0x20001 HYPERVISOR_ERROR. Original native sluttkode er ukjent; ingen W2 RESULT, progress eller terminalkvittering finnes. Siste gyldige vaktlinje viste 56/66 grader og 121,99 W, uten registrert vaktbrudd; dette utelukker ikke maskin-/driverfeil. Capped etterkontroll og uavhengig metadatareview bekrefter identiske bytes for ferdig treningsmodell, initial, cursor og W1-resultat. Original ACTIVE/CLAIM/logg, inkludert ufullstendig logghale, er bevart. Chart-task Disabled; keepere kjører, 250 W beholdt. Alle chart-/native porter stengt: 2 claimede, 1 fullført, 1 avbrutt; vindu 3–4 tilbakekalt. Syv av ti komplette varianter og null av 54 parrede kontraster er ferdige. Avgrenset KD-analyse med Microsoft-symboler er fullført og uavhengig kontrollert: krasjsti ved Intel CPU-hvile/Hyper-V, intelppm!HvRequestIdle. Den underliggende årsaken er fortsatt ukjent; modulnavnet beviser ikke driver-/CPU-/BIOS-feil. Maskinen er i9-10900K / PRIME Z490M-PLUS / BIOS1621. ASUS har nyere1806beta med mikrokode-/stabilitetsendringer, men ingen dokumentert rettelse for dette krasjet; ingen innstillings-/firmwareendring er gjort. Vurder målrettet stabilitetstiltak før ny modelljobb. To korrigerte WHEA-hendelser fra treningsperioden er dekodet: gyldige CPU/cache-felt ved instruksjonsutførelse, samme logiske APIC-ID 18. Ingen gyldig DIMM-identitet; defekt komponent og sammenheng med krasjet er ukjent. CPU-hvile er aktivert i gjeldende strømplan (IdleDisable AC/DC=0), ingen innstilling endret. Eksakt chart-gjenoppretting er kildekvalifisert: 291 fokuserte syntetiske tester bestod; 3 av 65 native kildeeiere har bare godkjente kontrollendringer, øvrige 62 og numeriske deler er uendret. Ingen refit eller native kjøring er åpnet. Eksakt chart-oppskrift har bestått capped metadata-/hashforkontroll på ekte originalbindinger, uten modellkall eller ny trening. Det gjennomgåtte strømplanforsøket er utført uten omstart: 356 indekser kontrollert, bare AC CPU-boost 2 til 0, originalplan bevart. Uavhengig kontroll bestod. Ingen nye WHEA-hendelser observert frem til 12:18:58 UTC; dette beviser ikke stabilitet eller krasjretting. Én separat chart-scoring med 4057 forwards og null nye oppdateringer er betinget innrømmet: materialisering og fersk Windows-/WSL-tomgangskontroll gjenstår før start. Eksisterende vakter/tidsgrenser beholdes; ny maskinfeil stanser forsøket uten automatisk relansering. Ingen original relansering eller ny trening. Se docs/DIRECTION_FAMILY_CHART_GEOMETRY_INTERRUPTION_20261101.md og NEXT_RUN_POLICY.
+01.11 — SISTE BRUKERBESKJED: ALLE NYE MODELLKJØRINGER AVVIST. Chart-evalueringen er stoppet og skal ikke relanseres. Den foreslåtte 256-raders kapasitetstesten er uttrykkelig avvist og aldri kjørt. Ingen trening, evaluering, forward/backward, omstart eller nye familievarianter. Tillatt arbeid er lesende undersøkelse av eksisterende resultater, kode og lagrede tilstander. Lesediagnosen i FIT_BASELINE_001 er fullført: samme256 matcher eksakt; femminutters treff129→126/256, logloss0,784835→0,692317, AUC0,440979→0,545166. Alle627 aktive parametertensorer er endret og har2976 Adam-steg;179inaktive og buffere er uendret. Sluttmålingen brukte trente vekter. Tilpasning finnes, men årsaken til svak senere rangering er fortsatt ukjent. Se docs/DIRECTION_FAMILY_BASELINE_RESULT_20261031.md og den hashbundne saved_learning_diagnosis i policy. Ingen native modellprosess observert ved overtakelsen. Ucommittet kontrollkode og tester fra forrige agent er bevart, ikke autorisert for kjøring. TEST, broker og handel er stengt. Eldre neste-steg-tekst nedenfor er historikk og gir ingen kjøreautoritet.
 
 01.11 — SYV AV TI VARIANTER FULLFØRT: Session/regime er ferdig kontrollert. Original trening fullførte 47 602 TRAIN-rader og 2 976 oppdateringer før Windows-krasjet. Originalt evalueringsvindu er fortsatt avbrutt med ukjent native sluttkode. En separat kjøring fullførte full TRAIN og 17 288 senere Q1-rader med 4 057 forwards og null nye oppdateringer; semantisk modelltilstand er bevart. Sluttkvittering, vakter, alle 60 lagrede modell-/priorpaneler og faktisk metadataovergang til sammenligningskalleren bestod. Original trening og ny scoring beholdes som to ekte kjeder. Fem minutter: TRAIN 51,3028 % / AUC 0,515554; Q1 50,4886 % / 0,505650. Q1 er svakere enn fast TRAIN-prior på treff, logloss og Brier; ingen familieeffekt eller økonomisk fordel er fastslått. Begge session-oppgaver er deaktivert, 250 W beholdt og session-portene stengt. Ingen ny omstart. Chart geometry privat kvalifisering og treningsdelen er fullført, men evalueringen ble avbrutt som beskrevet ovenfor. Chart geometry full evaluering, price action/candle, macro og 54 parrede kontraster gjenstår. Ingen chart-kjøring er nå innrømmet. Se docs/DIRECTION_FAMILY_SESSION_REGIME_RESULT_20261101.md og NEXT_RUN_POLICY.
 
-01.11 — SEPARAT LÆRINGSKONTROLL FORTSATT KUN FORESLÅTT: docs/DIRECTION_FAMILY_SMALL_TRAIN_CAPACITY_PROPOSAL_20261101.json beskriver samme 256 TRAIN-rader, batch 16, maks 256 oppdateringer / 1 200 sekunder, samme 60 mål og numerikk, og ingen senere modellrader. Dette er en egen treningsplan uten kjøreautoritet; brukerens omfangsvalg gjenstår. Forslaget er ikke utført og blokkerer ikke den vedtatte familiesammenligningen. Svak full TRAIN etter én gjennomgang beviser ikke signalfravær eller optimal tilpasning.
+01.11 — SEPARAT 256-RADERS KAPASITETSTEST AVVIST AV BRUKEREN, ALDRI KJØRT. Forslagsfilen og eksisterende kontrollkode er bevart som uutført arbeid. Tidligere godkjenningstekst er overstyrt av siste brukerbeskjed; ingen native kjøring eller mer implementasjon følger av forslaget.
 
 01.11 — MOMENTUM/FLOW FULLFØRT OG KONSUMERT: Samme ettpassoppskrift, 47602 TRAIN og 2976 oppdateringer; deretter full TRAIN / 17288 Q1 med 4057 forwards og null nye oppdateringer. Kjede, tilstandsbevaring og alle 60 lagrede modell-/priorpaneler kontrollert. Varianten nøytraliserer momentum/flow-verdier; den er ikke en momentum-only-modell. Fem minutter TRAIN 51,4170 % treff / AUC 0,506338; Q1 51,0412 % / 0,504879. Q1 treff, logloss og Brier er svakere enn fast TRAIN-prior. Ingen familieeffekt fastslått før parrede intervaller. Begge vinduer på boot 589 uten omstart; task deaktivert, 250 W beholdt, alle native porter stengt. Seks av ti varianter er ferdige; session/regime, chart geometry, price action/candle og macro samt alle 54 primærkontraster gjenstår. Session/regime-privatkontrollen er fullført og konsumert: 32 TRAIN, fire oppdateringer, 37 forwards, egen initial, all gradientkontakt inkludert pris/momentum og eksakt resume bestod. To inputvitner endret 315285/352722 celler, med identiske masker og øvrige verdier. Task deaktivert, 250 W beholdt, private porter stengt. Den følgende session/regime-oppskriften bestod ren metadataforkontroll med 65 uendrede kildeeiere og samme numerikk; aktuell avbruddsstatus står ovenfor. Se docs/DIRECTION_FAMILY_MOMENTUM_FLOW_RESULT_20261101.md.
 
@@ -649,45 +649,12 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 
 ## Neste minste steg
 
-En avgrenset oppfølging av størrelsesskåren mot eksisterende kausal H1 ATR-z-
-fortegn er syntetisk kvalifisert og målt på samme 70376 lagrede foreldre.
-Native oppskår AUC for abs(5min-endepunkt)>10bps er 0,551582; H1 ATR-z-fortegn
-alene 0,557799, parrede 99%-intervaller for forskjellen inkluderer null. Innen
-hver faste H1-tilstand er native størrelses-AUC 0,548139. Fra eksisterende
-sign-aggregater er native retnings-AUC innen samme H1-tilstander 0,503991.
-Parpopulasjonene er ulike; ingen av differansene er et kausalt bidrag.
-Gjenbrukte utviklingsdata og midtprisendepunkt beviser ikke tradingedge.
-Se docs/DIRECTION_MAGNITUDE_H1_REGIME_RESULT_20261027.json.
-Kildehistorikk i policy skiller nå 19-tilfellers forgjenger fra 22-tilfellers gjeldende kilde; begge faktiske engangsplaner er konsumert.
-Se `direction_magnitude_h1_regime_source` i NEXT_RUN_POLICY.json.
-
-
-En kontroll av eksisterende femminuttsskårer mot større endepunkt er forberedt.
-Den bruker fast +/-10 bps og alle modne, observerte foreldre, også nuller.
-19 syntetiske tilfeller og én avgrenset måling på seks lagrede TRAIN-payloads
-er fullført og konsumert; ingen modell eller rådata ble åpnet. På 70376 modne,
-observerte 5min-foreldre er native AUC 0,536890 for opp over 10 bps og 0,440893
-for ned over 10 bps med negert oppskår. Dag-/ukeintervallene er nominelle og
-gjelder gjenbrukte utviklingsdata. Fra samme aggregerte parsummer er oppskårens
-AUC mot stor bevegelse i begge retninger 0,551582, ET252 0,517339; egne intervaller
-for størrelsesmålet mangler. R1/ref259 i råresultatet er nullplassholdere, ikke
-referansemodeller. Dette peker mot mulig størrelses-/regimeinformasjon, ikke
-bevist årsak eller edge. H1 ATR-z fortegnets forskjell i gjennomsnittlig
-oppsannsynlighet skifter fortegn mellom folder; dette er kun en grov, etterfølgende
-kildekontroll og hverken bekrefter eller utelukker regimeforklaring.
-Midtprisendepunkt er ikke første treff eller handel.
-Se docs/DIRECTION_FIVE_MINUTE_HURDLE_RESULT_20261027.json. Trening er stengt.
-Se `direction_five_minute_hurdle_rank_source` i NEXT_RUN_POLICY.json.
-
-
-Undersøk årsaken til at det nye bps-tapet ikke forbedret senere5min-rangering,
-uten å velge terskel, delgruppe eller horisont etterpå. Bruk først ferdige
-aggregerte resultater og eksisterende kausale kontroller. Kandidaten spådde OPP
-på 2 024 av 17 197 kvalifiserte5min-rader; logloss var 0,693465 mot 0,692740
-for egen prior. Dette peker mot et mulig kalibreringsproblem, men forklarer ikke
-svak rangering alene. Videre ny måling krever avgrenset plan og admisjon.
-Ingen automatisk flerfoldutvidelse er autorisert. En beregningshorisont er ikke
-en maksimal holdetid eller handelsregel.
+Den bestilte lesediagnosen er fullført innen eksisterende evidens. Ingen ny
+modellkjøring, kapasitetstest, familievariant eller omstart står i kø.
+Årsaken til svak senere retningsprediksjon forblir uavklart; dette åpner ikke
+mer trening. Originalvekter, resultater og ucommittet kontrollkode er bevart.
+Gjeldende detaljer og målegrenser står i NEXT_RUN_POLICY.json og
+docs/DIRECTION_FAMILY_BASELINE_RESULT_20261031.md.
 
 ## Hva som er endret og fortsatt åpent
 

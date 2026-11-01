@@ -1,8 +1,9 @@
 # Matchet familiebaseline: full TRAIN og senere utvikling
 
-Baseline er gjennomført, men familiesammenligningen er ikke ferdig. Ni egne
-familiekvalifiseringer/refits og de forhåndsregistrerte parrede kontrastene
-gjenstår. Ingen indikatorfamilie erklæres nyttig eller unyttig av denne baselinen.
+Baseline er gjennomført, men familiesammenligningen er ikke ferdig. Aktuell
+programstatus står i NEXT_RUN_POLICY.json. Brukeren avviste 01.11 alle nye
+modellkjøringer, også 256-raders kapasitetstesten. Ingen indikatorfamilie
+erklæres nyttig eller unyttig av denne baselinen.
 
 ## Målt på faktiske data
 
@@ -87,3 +88,52 @@ Runrot: /home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT
   faktisk avspilling, kilde-/inputbookends og eksplisitte evidensgrenser.
 - RUNTIME/prefix-fit/window-0002/FINAL_TRAIN.json og OOF.json binder
   sine komplette prediksjonsarkiver.
+
+## Lesende før/etter-diagnose 01.11 — ingen modellkjøring
+
+De 256 initialradene ble funnet entydig i lagret full-TRAIN-sluttfil. Foreldre,
+M5-/beslutningstider, alle 60 targettider, fortegn, observasjonsmasker og
+kontekstmerker matcher eksakt; initialidentitet, feature-view og prior er like.
+Dette er de første 256 presentasjonene i den lagrede treningsrekkefølgen.
+Uavhengig NumPy-regning gjenskapte alle 60 initial- og full-TRAIN-sluttpaneler.
+
+Samme 256 gyldige femminuttersutfall (128 opp, 128 ned):
+
+| Måling | Før | Etter |
+|---|---:|---:|
+| Riktige | 129/256 | 126/256 |
+| Treff | 50,3906 % | 49,2188 % |
+| AUC | 0,440979 | 0,545166 |
+| Logloss | 0,784835 | 0,692317 |
+| Brier | 0,291121 | 0,249585 |
+| Gjennomsnittlig oppsannsynlighet | 32,6995 % | 49,3432 % |
+| Standardavvik i oppsannsynlighet | 6,5024 prosentpoeng | 0,8328 prosentpoeng |
+
+Tilpasning og innsnevring av sannsynlighetene er målt; femminutters treffgevinst
+er ikke målt. Fast 50 %-prognose gir logloss 0,693147 på disse radene. Sluttens
+gevinst mot denne er bare 0,000830, mot 0,092518 reduksjon fra start. Dette er
+en deskriptiv sammenligning, ingen årsaksfordeling av læringen. Logloss bedres
+på 56/60 horisonter på samme utvalg; utvalget beviser ikke generalisering.
+
+Tre originale tilstandsfiler (276 497 592 bytes samlet) ble SHA-256-verifisert
+og lest som tensorordbøker på CPU med weights_only=True og mmap=True. Ingen
+modell eller optimizer ble konstruert eller gjenopprettet. Alle 627 aktive
+parametertensorer er endret, og alle 627 har Adam-stegteller 2 976. Alle 179
+inaktive er uendret; alle buffere er identiske. Trente parametere er identiske
+i trenings- og scoringterminalen, og optimizerdigesten er lik. Forklaringen
+er dermed ikke uteblitte parameteroppdateringer eller scoring av startvekter.
+
+Opprinnelig kilde 68d63d9210931663510f0a9cf490387e9c8b29be krever eksakt
+parent-join mellom inputs og targets. Loss er BCE over gyldige, observerte,
+ikke-null terminalfortegn ved 1–60 minutter, uten særprioritet for fem minutter.
+Størrelse, MAE/MFE og FLAT-supervisjon inngår ikke i denne baseline-loss.
+Dette er et dokumentert avgrenset mål, ingen bevist årsak til svak rangering.
+
+Årsaken til svak senere retningsprediksjon er fortsatt ukjent. Mellomliggende
+matchede prediksjoner mangler i denne kontrollen; vedvarende svak tilpasning
+kan ikke skilles fra læring som senere glemmes. Rå featureformler og rå quote-
+fasit er ikke revidert på nytt. Ingen trening, forward/backward, ny evaluering,
+omstart, TEST eller handel er utført.
+
+Aggregert evidens og eksakte originale filhasher:
+[DIRECTION_FAMILY_BASELINE_SAVED_DIAGNOSIS_20261101.json](DIRECTION_FAMILY_BASELINE_SAVED_DIAGNOSIS_20261101.json).
