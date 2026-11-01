@@ -1,4 +1,4 @@
-# GX1-regler — bindende for alle agenter (mål presisert 18.10.2026)
+# GX1-regler — bindende for alle agenter (mål senest presisert 01.11.2026)
 
 Originalbestillingen er bevart ordrett i
 [docs/ORIGINAL_PROJECT_GOAL.md](docs/ORIGINAL_PROJECT_GOAL.md).
@@ -16,6 +16,9 @@ Reglene gjelder beholdt kilde og alle nye planer. Tidligere versjoner finnes i G
 arkivfiler på disk er aldri kjøreautoritet.
 
 ## Varig prosjektmål og arbeidsmåte
+
+Siste målpresisering01.11 nedenfor styrer den aktive prognosefasen; eldre
+daterte beskrivelser beholdes som bakgrunn der de ikke er avløst.
 
 Operatørbestilling 18.10.2026 er gjeldende prosjektretning: bygg en
 fullautomatisk XAUUSD-bot med M5 Entry og kausal, lukket M15/H1/H4/D1-kontekst.
@@ -92,6 +95,34 @@ kvalifikasjon og korrekt prefixnormalisering før genuine fit. Hel-TRAIN-
 statistikk kan ikke brukes som normalisering i tidligere kronologiske folds.
 NEXT_RUN_POLICY binder hver konkret source-/test-/fitadmisjon; dette vedtaket
 åpner ingen kjøring eller TEST. Teknisk PASS er fortsatt ingen retningsedge.
+
+## Operatørpresisering01.11.2026: OPP/NED/STILLE før handler
+
+Gjeldende læringsmål er å forutse meningsfull oppgang, nedgang eller et
+stille marked. Scalping, intradag og swing er relevante etter bevegelsen;
+ingen hard60minuttersgrense eller fast holdetid skal definere prosjektmålet.
+Dette presiserer retning-først-vedtaket24.10 og avløser begrensningen om at
+dager bare kan være støtte i målbeskrivelsen. M5-beslutningstakt, kausal
+M15/H1/H4/D1-kontekst, åtte familier og D1/makro beholdes. Handler, Exit og
+økonomisk beslutningslogikk kommer i en senere fase.
+
+Markedets stillstand er forskjellig fra modellens usikkerhet, manglende
+observasjon og en senere FLAT-handling. P(OPP)=0,5 er ikke en prognose om
+stillstand. Liten terminalendring beviser heller ikke at prisbanen var rolig.
+Et prognosemål må ha eksplisitt tids-/hendelsesreferanse og en begrunnet
+bevegelsesdefinisjon; dette innfører ingen maksimal holdetid. Ingen terskel
+for «meningsfull» eller ny horisontliste er vedtatt som et gjettet tall.
+
+Den gjennomførte binære1..60minuttersforskningen er et snevrere mål:
+den har ingen lært STILLE-klasse og skiller ikke små fra store fortegn.
+Målbeskrivelsen er nå presisert; en samsvarende ny target-/loss-/outputkontrakt
+er fortsatt ikke implementert eller kvalifisert. Gjenbruk eksisterende
+utfallseiere, masker og prisbaner før ny mekanikk vurderes. Endrede mål må
+kontrolleres mot denne bestillingen før noen eventuell modellkjøring.
+
+Brukerens forbud mot nye modellkjøringer, trening, forward/backward og omstart
+består. Denne presiseringen åpner bare lesende diagnose og dokumentasjon;
+den åpner ikke TEST, handler eller en ny kjøreplan.
 
 ## Første kompakte treningsprofil, operatørpresisering19.10.2026
 
