@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-31T19:56:28.486117+00:00",
-  "status": "SIX_FITS_COMPLETE_SESSION_PRIVATE_SOURCE_PREPARED",
-  "training_enabled": false,
+  "status": "SIX_FITS_COMPLETE_SESSION_PRIVATE_ADMITTED",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Run capped session/regime private recipe preflight on clean committed source; all native gates closed until separate exact admission.",
+  "next_action": "Materialize exact session/regime private campaign once; install task, collect/review fresh Windows/WSL idle evidence, then manual same-boot private launch. No full fit, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Session/regime private recipe source-prepared with63unchanged owners; clean canonical preflight pending.",
+    "current_activity": "Session/regime private qualification admitted after clean63-owner preflight; preparation/start/terminal must be read from actual runtime evidence while source is frozen.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -285,7 +285,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Momentum/flow values neutralized: matched one-pass full TRAIN and later evaluation verified; family value not yet qualified.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_MOMENTUM_FLOW_001/RUNTIME",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/RUNTIME",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_MOMENTUM_FLOW_001/VERIFIED_TERMINAL.json",
       "sha256": "3e2959559fb673e53968c5314b6ad6ddd8e8b079f7c2f3eba60bd7698216dea6"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run capped session/regime private recipe preflight on clean committed source; all native gates closed until separate exact admission.",
+    "next_action": "Materialize exact session/regime private campaign once; install task, collect/review fresh Windows/WSL idle evidence, then manual same-boot private launch. No full fit, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17432,7 +17432,7 @@
       }
     },
     "current_training_started": false,
-    "private_optimizer_qualification_admitted": false,
+    "private_optimizer_qualification_admitted": true,
     "active_continuous_goal_thread_id": "01a1777e-c109-7351-b0ba-0d4bf5324429",
     "current_generation_initial_baseline_is_current_function": false,
     "current_function_initial_baseline_required_after184": false,
@@ -17459,7 +17459,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "All native execution closed after completed momentum fit. Four prescribed arms and paired contrasts remain.",
+    "current_training_scope": "EXACT_SESSION_REGIME_FAMILY_PRIVATE_32_TRAIN_4_UPDATES_ONLY",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17821,7 +17821,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
     },
-    "native_training_stage": "dynamic_m5_direction_family_momentum_flow_onepass_fit_20261031_001",
+    "native_training_stage": "dynamic_m5_direction_family_private_session_regime_20261101_001",
     "genuine_predictor_fit_completed": true,
     "current_m5_direction_evidence": {
       "fit_review": {
@@ -20432,7 +20432,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-01T01:00:22.031117+00:00",
+  "updated_utc": "2026-11-01T01:01:40.799684+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -31218,7 +31218,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35960,7 +35960,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_ALL_CURRENT_EXECUTION_CLOSED",
+  "training_enabled_scope": "EXACT_SESSION_REGIME_FAMILY_PRIVATE_32_TRAIN_4_UPDATES_ONLY",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "SIX_FITS_COMPLETE_FOUR_AND_PAIRED_CONTRASTS_PENDING",
+    "status": "SIX_FITS_COMPLETE_SESSION_PRIVATE_ADMITTED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -49715,7 +49715,7 @@
     "power_retained_w": 250
   },
   "dynamic_m5_direction_family_private_session_regime_20261101_001": {
-    "status": "SOURCE_PREPARED_SESSION_PRIVATE_PREFLIGHT_PENDING",
+    "status": "ADMITTED_PRIVATE_SESSION_REGIME_MECHANICS_ONLY",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_SESSION_REGIME_PRIVATE_RECIPE_20261101.json",
       "sha256": "fb5dabaa42303032e2c72b507bf0d001eb90a6947a8b856cf13b1649c401730a"
@@ -49744,16 +49744,16 @@
       "sha256": "0a830360592b2d336375716d6952a823832a24f22343cb297b3149979d0b52c1"
     },
     "user_authorization": "Original explicit matched-nine-family study and continuation; next prescribed session/regime arm after six completed fits, unchanged numerics/protocol. No architecture/loss/extra-pass change.",
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
-    "genuine_updates_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
-    "campaign_preparation_authorized": false,
-    "same_boot_after_idle_review_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "campaign_preparation_authorized": true,
+    "same_boot_after_idle_review_authorized": true,
     "physical_restart_before_each_invocation_authorized": false,
     "physical_restart_before_invocation_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -49768,6 +49768,10 @@
     "prepared_boot": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/PREPARED_WINDOWS_BOOT.json",
       "sha256": "c6ddcdb2e7bc4d7280fa0af6719ca6381de3ea8127bc783a3250fdac7b136ecd"
+    },
+    "metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "170e8c37e028a20360de98a4dcdc090b00628ab1562614f305a758146ba3fca7"
     }
   }
 }
