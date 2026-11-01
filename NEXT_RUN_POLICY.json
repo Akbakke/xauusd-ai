@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Chart exact recovery metadata/hash preflight completed with no model calls. One reviewed reversible cloned power-plan trial admitted: AC CPU boost2to0 only, all other settings preserved, no restart. Native recovery remains closed until actual host trial/readiness and fresh campaign gates.",
+    "current_activity": "Exact chart zero-update scoring conditionally admitted after successful metadata qualification and reversible ACboost-off trial. Materialization then fresh Windows/WSL idle review required; no model started. One invocation4057forwards/0newupdates, existing guards/time limits. Hardware root cause/stability not proven; no reboot.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -17875,7 +17875,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "NONE; original chart campaign consumed/interrupted and future windows revoked.",
+    "current_native_launch_scope": "dynamic_m5_direction_family_chart_geometry_scoring_recovery_20261101_001",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -20449,7 +20449,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-01T12:14:47.470833+00:00",
+  "updated_utc": "2026-11-01T12:20:45.420790+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -50710,7 +50710,7 @@
     "latest_observed_new_whea_after_boot": 0
   },
   "dynamic_m5_direction_family_chart_geometry_scoring_recovery_20261101_001": {
-    "status": "PREPARED_ZERO_UPDATE_SCORING_NOT_ADMITTED_HOST_PENDING",
+    "status": "ADMITTED_EXACT_ZERO_UPDATE_SCORING_PENDING_FRESH_IDLE_GATES",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_SCORING_RECOVERY_RECIPE_20261101.json",
       "sha256": "d3a453ee17b7ece644ae6098b8d9ec8ac529e8b24def422b28240a66f1eb775d"
@@ -50778,15 +50778,15 @@
     },
     "user_authorization": "Complete original matched family study using preserved chart training, separately qualified zero-update scoring only; no original relaunch or retraining.",
     "scope": "One new scoring invocation after exact metadata qualification and host readiness. Same full TRAIN47602/Q117288,4057forwards,zero backward/updates; original state and two actual evidence chains preserved.",
-    "campaign_preparation_authorized": false,
-    "same_boot_after_idle_review_authorized": false,
-    "checkpoint_reads_authorized": false,
-    "zero_update_scoring_recovery_authorized": false,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "native_launch_authorized": false,
+    "campaign_preparation_authorized": true,
+    "same_boot_after_idle_review_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "zero_update_scoring_recovery_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "native_launch_authorized": true,
     "genuine_backward_authorized": false,
     "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -50803,11 +50803,31 @@
     "metadata_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREFLIGHT_001.json",
       "sha256": "28dc28529466feda919e7039c7c744aaffeb99ea9e08c2d839fa71ecdf9586ab"
-    }
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "7fada22f586acb4ea67117849c221bd5efc9974ac267da0afb85711b165b3bcb"
+    },
+    "pre_materialization_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREPARATION_PEER_REVIEW_001.json",
+      "sha256": "58d3b9989c3024a5dd42f85048eabdb6a7e390e42941406ca1882489094615b2"
+    },
+    "host_trial_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/ACTUAL_RESULT.json",
+      "sha256": "8536528ce054483a8c5cafeab862d1e5370c2b9f83d21d3ce8b58dde6f4a2ff5"
+    },
+    "host_trial_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/ACTUAL_OUTPUT_PEER_REVIEW_001.json",
+      "sha256": "4ccebfbe1d0f2d4064a79a49864b6346e2c0be34def207543576240492020575"
+    },
+    "host_trial_active_scheme": "b42b918a-8710-41a4-ba0c-53b7023a3dba",
+    "host_stability_claimed": false,
+    "crash_root_cause": "UNKNOWN",
+    "monitor_scope": "At existing15-30minute native checks also inspect new Windows WHEA/bugcheck events and active trialplan. New hardware error aborts this single trial; no automatic retry or widened wall/capacity limits."
   },
   "direction_family_host_cpu_boost_trial_20261101_001": {
-    "status": "QUALIFIED_SINGLE_REVERSIBLE_POWER_PLAN_TRIAL",
-    "execution_authorized": true,
+    "status": "APPLIED_CONSUMED_SINGLE_AC_BOOST_CHANGE_STABILITY_UNPROVEN",
+    "execution_authorized": false,
     "worker": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/apply_boost_trial.ps1",
       "sha256": "c3c644f093aacff78f7a84ae94e2d6192fafc31959a2521896f14cb6c8a24c7d"
@@ -50821,8 +50841,8 @@
       "sha256": "dfce5e351a398d213c83bacdca5adbe04701285c3d3b9e18c3bdf4e412e10358"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "original_power_scheme": "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c",
     "trial_power_scheme": "b42b918a-8710-41a4-ba0c-53b7023a3dba",
@@ -50840,6 +50860,23 @@
     "firmware_or_driver_change_authorized": false,
     "native_launch_authorized": false,
     "model_calls_authorized": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "actual_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/ACTUAL_RESULT.json",
+      "sha256": "8536528ce054483a8c5cafeab862d1e5370c2b9f83d21d3ce8b58dde6f4a2ff5"
+    },
+    "actual_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/ACTUAL_OUTPUT_PEER_REVIEW_001.json",
+      "sha256": "4ccebfbe1d0f2d4064a79a49864b6346e2c0be34def207543576240492020575"
+    },
+    "active_trial_plan": true,
+    "verified_setting_indices": 356,
+    "observed_new_whea_since_change": 0,
+    "latest_read_observation": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/HOST_TRIAL_PREPARATION_OBSERVATION_001.json",
+      "sha256": "e1971f4578ae99a9716c59682791a65528f99bd6644823dcba35eef55267bc6b"
+    },
+    "original_scheme_preserved": true,
+    "rollback_command": "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
   }
 }

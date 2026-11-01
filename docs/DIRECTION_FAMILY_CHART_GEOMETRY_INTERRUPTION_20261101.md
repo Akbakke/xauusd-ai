@@ -126,13 +126,26 @@ med PASS, uendret numerikk/input/fold og null modellkall.
 - FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/HOST_RUNTIME_READONLY_001.json: 955a6a0e06736979c43dc87989ad70a439a556d1931240070777c2f6580aeb32
 - FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREPARATION_PEER_REVIEW_001.json: 58d3b9989c3024a5dd42f85048eabdb6a7e390e42941406ca1882489094615b2
 
-Ett reversibelt strømplanforsøk er kildegjennomgått og åpnet, men ikke utført:
+Ett reversibelt strømplanforsøk ble utført 12:15:27 UTC uten omstart:
 klon Høy ytelse og endre bare AC PERFBOOSTMODE fra 2 til 0. Originalplanen
 beholdes; alle enumererte AC/DC-innstillinger sammenlignes. BIOS, CPU-idle,
 GPU- og kjøregrenser endres ikke. Dette er et konservativt stabilitetsforsøk,
-ingen dokumentert reparasjon. Native scoring krever fortsatt egen admisjon.
+ingen dokumentert reparasjon. 356 indekser er kontrollert; bare AC-boost er
+endret. Uavhengig avlesningsreview bestod. Ved 12:18:58 UTC var samme boot og
+ny plan aktive, uten nye WHEA-hendelser siden endringen. CPU-counterne viste
+3696 MHz og 100 prosent ytelse i et tomgangsutvalg; idle-counteren var 104 og
+brukes ikke som fysisk prosentbevis. Ingen belastningsstabilitet er fastslått.
+
+Én separat chart-scoring er nå betinget innrømmet etter materialisering og
+ferske eksisterende idle-gater: 4057 forwards, null nye oppdateringer, samme
+modell/input/numerikk og uendrede vakter/tidsgrenser. Nye maskinfeil stanser
+forsøket uten automatisk relansering. Ingen modelljobb er ennå startet.
 - FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREFLIGHT_001.json: 28dc28529466feda919e7039c7c744aaffeb99ea9e08c2d839fa71ecdf9586ab
 - FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/POWER_TRIAL_PREPARATION_PEER_REVIEW_001.json: dfce5e351a398d213c83bacdca5adbe04701285c3d3b9e18c3bdf4e412e10358
 
 Innstillingens dokumenterte betydning:
 https://learn.microsoft.com/en-us/windows-hardware/customize/power-settings/options-for-perf-state-engine-perfboostmode
+
+- FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/ACTUAL_RESULT.json: 8536528ce054483a8c5cafeab862d1e5370c2b9f83d21d3ce8b58dde6f4a2ff5
+- FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/ACTUAL_OUTPUT_PEER_REVIEW_001.json: 4ccebfbe1d0f2d4064a79a49864b6346e2c0be34def207543576240492020575
+- FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/HOST_TRIAL_PREPARATION_OBSERVATION_001.json: e1971f4578ae99a9716c59682791a65528f99bd6644823dcba35eef55267bc6b
