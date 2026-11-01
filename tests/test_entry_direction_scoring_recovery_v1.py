@@ -16,16 +16,17 @@ from tests.test_entry_native_direction_prefix_fit_campaign_v1 import (
 )
 
 
-@pytest.fixture
-def recovery_fixture(base_fixture, monkeypatch):
+@pytest.fixture(params=('session_regime_encoder','chart_geometry_encoder'))
+def recovery_fixture(base_fixture, monkeypatch, request):
     f=base_fixture; repo=f['repo']; old=f['runtime']; stage='dynamic_m5_direction_synthetic_original'
+    arm=request.param; identity=owner.scoring_recovery_identity(arm)
     original=copy.deepcopy(f['recipe'])
-    original.update(run_scope=owner.FAMILY_SIGN_SCOPE,family_arm='session_regime_encoder',admission_stage=stage)
+    original.update(run_scope=owner.FAMILY_SIGN_SCOPE,family_arm=arm,admission_stage=stage)
     reseal(original,'recipe_sha256'); original_ref=write(old/'ORIGINAL.json',original)
-    plan=sealed({'source_commit':owner.SCORING_RECOVERY_HEAD,'recipe':original_ref,
+    plan=sealed({'source_commit':identity['source_head'],'recipe':original_ref,
         'runtime_root':str(old)},'plan_sha256')
     plan_ref=write(old/'PLAN.json',plan)
-    result={'durable_checkpoint':{'contract_sha256':owner.SCORING_RECOVERY_STATE_SEAL,'state':f['dummy']},
+    result={'durable_checkpoint':{'contract_sha256':identity['state_seal'],'state':f['dummy']},
         'source_unchanged':True,'error':None}
     result_ref=write(old/'RESULT.json',result)
     saved=cursor(f,recipe_ref=original_ref,parent_cursor=47602,optimizer_updates=2976,
@@ -35,41 +36,49 @@ def recovery_fixture(base_fixture, monkeypatch):
         'invocation_number':1,'outcome':'RESUMABLE','guard_decision':'PASS',
         'trainer_guard_exit_code':0,'progress_observer_exit_code':0,'checkpoint_pointer_snapshot':saved_ref},'receipt_sha256')
     receipt_ref=write(old/'RECEIPT.json',receipt)
-    execution_ref=write(old/'BINDING.json',{'source_head':owner.SCORING_RECOVERY_HEAD,'plan':plan_ref})
+    execution_ref=write(old/'BINDING.json',{'source_head':identity['source_head'],'plan':plan_ref})
     review={'schema_version':'gx1_family_training_window_review_v1','status':'PASS_TRAINING_COMPLETE_SCORING_PENDING',
-        'source_head':owner.SCORING_RECOVERY_HEAD,'family_arm':'session_regime_encoder','optimizer_updates':2976,
+        'source_head':identity['source_head'],'family_arm':arm,'optimizer_updates':2976,
         'train_parents':47602,'training_passes':1,'full_train_scored':False,'later_scored':False,
         'test_data_used':False,'execution_binding':execution_ref,'receipt':receipt_ref,
         'cursor':saved_ref,'full_state':f['dummy'],'result':result_ref}
     review_ref=write(old/'REVIEW.json',review)
-    integrity={'schema_version':'gx1_session_interrupted_scoring_integrity_v1',
-        'status':'TRAINING_STATE_BYTES_PRESERVED_SCORING_INTERRUPTED','source_head':owner.SCORING_RECOVERY_HEAD,
+    integrity={'schema_version':identity['integrity_schema'],'family_arm':arm,
+        'status':'TRAINING_STATE_BYTES_PRESERVED_SCORING_INTERRUPTED','source_head':identity['source_head'],
         'native_process_absent':True,'originals_modified':False,'model_or_checkpoint_deserialized':False,
         'completed_training_updates':2976,'training_parents':47602,'full_train_scoring_complete':False,
         'later_scoring_complete':False,'new_model_forwards':0,'new_optimizer_updates':0,'test_data_used':False,
         'training_receipt':receipt_ref,'cursor':saved_ref,'full_state':f['dummy'],'own_initial_state':f['dummy'],
         'training_result':result_ref}
     integrity_ref=write(old/'INTEGRITY.json',integrity)
-    peer={'schema_version':'gx1_session_interruption_independent_metadata_peer_review_v1',
+    peer={'schema_version':identity['peer_schema'],
         'status':'PASS_SCOPED_METADATA_WORKER_REVIEW','references':{'integrity':integrity_ref}}
+    if arm=='chart_geometry_encoder':
+        peer.update(family_arm=arm,test_data_used=False,
+            original_native_exit_code_known=False,original_native_exit_code=None)
     peer_ref=write(old/'PEER.json',peer)
-    closed_gate={'status':'INTERRUPTED_CONSUMED_W2_WINDOWS_BUGCHECK_W1_TRAINING_PRESERVED',
+    closed_gate={'status':identity['closed_status'],
         'claimed_invocations':2,'completed_invocations':1,'interrupted_invocations':1,'unclaimed_invocations_revoked':[3,4],
         'recipe':original_ref,**dict.fromkeys(('execution_authorized','training_enabled','native_training_enabled',
             'full_epoch_training_allowed','native_launch_authorized','genuine_updates_authorized','relaunch_allowed'),False)}
     closed_raw=json.dumps({stage:closed_gate}).encode()
     closure={'schema_version':'gx1_family_interrupted_scoring_closure_v1',
-        'status':'CLOSED_INTERRUPTED_SCORING_ORIGINALS_PRESERVED','family_arm':'session_regime_encoder',
-        'original_source_head':owner.SCORING_RECOVERY_HEAD,'original_relaunch_allowed':False,
+        'status':'CLOSED_INTERRUPTED_SCORING_ORIGINALS_PRESERVED','family_arm':arm,
+        'original_source_head':identity['source_head'],'original_relaunch_allowed':False,
         'training_state_preserved':True,'recovery_execution_authorized':False,'test_data_used':False,
         'interrupted_native_exit_code_known':False,'interrupted_native_exit_code':None,
         'active_native_pids':[],'revoked_invocations':[3,4],'state_integrity':integrity_ref,
         'training_window_review':review_ref,'interruption_review':peer_ref,'closure_source_head':'b'*40,
         'closed_stage':stage,'closed_policy_git':{'commit':'b'*40,'path':'NEXT_RUN_POLICY.json',
             'sha256':hashlib.sha256(closed_raw).hexdigest()}}
-    closure_ref=write(old/'CLOSURE.json',closure);monkeypatch.setattr(owner,'SCORING_RECOVERY_CLOSURE',closure_ref)
-    origin={'schema_version':'gx1_family_session_scoring_recovery_origin_v1','family_arm':'session_regime_encoder',
-        'original_source_head':owner.SCORING_RECOVERY_HEAD,'original_recipe':original_ref,
+    closure_ref=write(old/'CLOSURE.json',closure)
+    if arm=='chart_geometry_encoder':
+        monkeypatch.setattr(owner,'CHART_SCORING_RECOVERY_IDENTITY',
+            {**identity,'closure_review':closure_ref,'closed_policy_git':closure['closed_policy_git']})
+    else:
+        monkeypatch.setattr(owner,'SCORING_RECOVERY_CLOSURE',closure_ref)
+    origin={'schema_version':identity['origin_schema'],'family_arm':arm,
+        'original_source_head':identity['source_head'],'original_recipe':original_ref,
         'original_plan':plan_ref,'training_receipt':receipt_ref,'training_cursor':saved_ref,
         'training_review':review_ref,'state_integrity':integrity_ref,'interruption_review':peer_ref,'closure_review':closure_ref}
     recipe=copy.deepcopy(original); new=old.parent/'recovery'
@@ -157,7 +166,7 @@ def test_control_transition_preserves_numerical_bytes(tmp_path,monkeypatch):
     after=b'def control():\n    return 2\n\ndef numerical():\n    return 8\n'
     (repo/path).write_bytes(after)
     def ref(raw):return {'path':str(repo/path),'sha256':hashlib.sha256(raw).hexdigest()}
-    original={'source_owners':{path:ref(before)}};current={'source_owners':{path:ref(after)}}
+    original={'family_arm':'session_regime_encoder','source_owners':{path:ref(before)}};current={'source_owners':{path:ref(after)}}
     monkeypatch.setattr(owner,'SCORING_RECOVERY_CONTROL_CHANGES',{path:(('control',),(),())})
     monkeypatch.setattr(subprocess,'check_output',lambda *a,**k:before)
     owner._require_scoring_recovery_source_equivalence(repo,original,current)
@@ -173,7 +182,7 @@ def test_noncontrol_owner_cannot_take_hash_exemption(tmp_path,monkeypatch):
     after={'path':str(path),'sha256':hashlib.sha256(b'new').hexdigest()}
     monkeypatch.setattr(owner,'SCORING_RECOVERY_CONTROL_CHANGES',{})
     with pytest.raises(campaign.RandomAccessCampaignError,match='NUMERICAL_SOURCE_CHANGED'):
-        owner._require_scoring_recovery_source_equivalence(tmp_path,{'source_owners':{'numerical.py':before}},
+        owner._require_scoring_recovery_source_equivalence(tmp_path,{'family_arm':'session_regime_encoder','source_owners':{'numerical.py':before}},
             {'source_owners':{'numerical.py':after}})
 
 
@@ -268,19 +277,21 @@ def test_readiness_opens_scoring_only(base_fixture,monkeypatch,fault):
         assert scope['full_epoch_training_allowed'] is False
 
 
-def test_read_guard_accepts_only_original_state_pair_and_rejects_writes(tmp_path,monkeypatch):
+@pytest.mark.parametrize('arm', ['session_regime_encoder','chart_geometry_encoder'])
+def test_read_guard_accepts_only_original_state_pair_and_rejects_writes(tmp_path,monkeypatch,arm):
     import os
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
-    root=str(Path(owner.SCORING_RECOVERY_CLOSURE['path']).parent/'RUNTIME/prefix-fit/states')
+    identity=owner.scoring_recovery_identity(arm)
+    root=str(Path(identity['closure_review']['path']).parent/'RUNTIME/prefix-fit/states')
     paths=(root+'/w0001_TERMINAL_u002976_p047602.pt',root+'/INITIAL_0U.pt')
-    origin={'closure_review':owner.SCORING_RECOVERY_CLOSURE,'original_recipe':{'path':'/synthetic','sha256':'a'*64}}
+    origin={'family_arm':arm,'closure_review':identity['closure_review'],'original_recipe':{'path':'/synthetic','sha256':'a'*64}}
     saved={'recipe':origin['original_recipe'],'parent_cursor':47602,'optimizer_updates':2976,'phase_state':'SCORING',
         'full_state':{'path':paths[0],'sha256':'b'*64},'own_initial_state':{'path':paths[1],'sha256':'c'*64}}
     context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache',
         'gc_surfaces':{'path':'/synthetic/gc/surface.npy'}},
         'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/forbidden'}},
         'scoring_recovery_read_authority':{'launch':{'run_scope':owner.FAMILY_SIGN_SCOPE,
-            'family_arm':'session_regime_encoder','scoring_recovery_origin':origin},
+            'family_arm':arm,'scoring_recovery_origin':origin},
             'validated_origin':{'origin':origin,'cursor':saved}}}
     hooks=[];monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
     common._install_read_guard(context,tmp_path/'output',tmp_path/'runtime',extra_read_paths=paths)
@@ -292,3 +303,83 @@ def test_read_guard_accepts_only_original_state_pair_and_rejects_writes(tmp_path
     with pytest.raises(RuntimeError,match='RECOVERY_EXACT_READ_PATHS'):
         common._install_read_guard(context,tmp_path/'output',tmp_path/'runtime',
             extra_read_paths=(paths[0],root+'/foreign.pt'))
+
+
+@pytest.mark.parametrize('arm', ['baseline','momentum_flow_encoder',None])
+def test_recovery_selector_rejects_third_origin(arm):
+    with pytest.raises(campaign.RandomAccessCampaignError,match='RECOVERY_ARM'):
+        owner.scoring_recovery_identity(arm)
+
+
+@pytest.mark.parametrize('field', ['original_source_head','schema_version','closure_review'])
+def test_known_recovery_origins_cannot_be_crossed(recovery_fixture,field):
+    f=recovery_fixture
+    other=owner.scoring_recovery_identity(
+        'chart_geometry_encoder' if f['arm']=='session_regime_encoder' else 'session_regime_encoder')
+    key={'original_source_head':'source_head','schema_version':'origin_schema','closure_review':'closure_review'}[field]
+    f['origin'][field]=other[key]
+    with pytest.raises(campaign.RandomAccessCampaignError,match='RECOVERY_ORIGIN_ROLE'):
+        require(f)
+
+
+@pytest.mark.parametrize('recovery_fixture',['chart_geometry_encoder'],indirect=True)
+@pytest.mark.parametrize('nested,key,value',[
+    ('peer','family_arm','session_regime_encoder'),('peer','test_data_used',True),
+    ('peer','original_native_exit_code_known',True),('peer','original_native_exit_code',0),
+    ('integrity','schema_version','gx1_session_interrupted_scoring_integrity_v1'),
+    ('peer','schema_version','gx1_session_interruption_independent_metadata_peer_review_v1'),
+])
+def test_chart_uses_actual_peer_and_integrity_roles(recovery_fixture,monkeypatch,nested,key,value):
+    f=recovery_fixture; read=campaign.read_bound_json
+    def wrong(path,sha):
+        value_read=read(path,sha)
+        if str(path)==f[nested+'_ref']['path']:value_read[key]=value
+        return value_read
+    monkeypatch.setattr(campaign,'read_bound_json',wrong)
+    with pytest.raises(campaign.RandomAccessCampaignError):require(f)
+
+
+def test_chart_transition_has_exact_three_changed_owners(tmp_path,monkeypatch):
+    prefix='gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py'
+    runner='gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py'
+    guard='gx1/scripts/run_entry_native_direction_research_window_v1.py'
+    local='gx1/contracts/local_random_access_campaign_v2.py'
+    unchanged="SCORING_RECOVERY_HEAD = 'original'\n\ndef numerical():\n    return 8\n"
+    functions=('require_prefix_fit_launch_recipe','require_scoring_recovery_origin',
+        '_require_scoring_recovery_source_equivalence')
+    before={
+        prefix:"SCORING_RECOVERY_CONTROL_CHANGES = {}\n"+unchanged+
+            ''.join('\ndef '+name+'():\n    return 1\n' for name in functions),
+        runner:'def run_native_direction_prefix_fit_window():\n    return 1\n',
+        guard:'def _install_read_guard():\n    return 1\n',
+        local:'def require_invocation():\n    return 1\n',
+    }
+    after={path:raw.replace('return 1','return 2') if path!=local else raw for path,raw in before.items()}
+    after[prefix]+="\nCHART_SCORING_RECOVERY_IDENTITY = {}\n\ndef scoring_recovery_identity():\n    return 3\n"
+    def refs(values):
+        return {path:{'path':str(tmp_path/path),'sha256':hashlib.sha256(raw.encode()).hexdigest()}
+            for path,raw in values.items()}
+    def publish():
+        for path,raw in after.items():
+            target=tmp_path/path;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(raw)
+    original={'family_arm':'chart_geometry_encoder','source_owners':refs(before)}
+    def git(args,**kwargs):
+        head,path=args[-1].split(':',1)
+        assert head==owner.CHART_SCORING_RECOVERY_IDENTITY['source_head']
+        return before[path].encode()
+    monkeypatch.setattr(subprocess,'check_output',git)
+    def check():
+        publish()
+        owner._require_scoring_recovery_source_equivalence(tmp_path,original,{'source_owners':refs(after)})
+    check()
+    after[local]+='# forbidden fourth-owner change\n'
+    with pytest.raises(campaign.RandomAccessCampaignError,match='NUMERICAL_SOURCE_CHANGED'):check()
+    after[local]=before[local]
+    after[prefix]=after[prefix].replace('return 8','return 9')
+    with pytest.raises(campaign.RandomAccessCampaignError,match='NONCONTROL_SOURCE_CHANGED'):check()
+    after[prefix]=after[prefix].replace('return 9','return 8')
+    saved=after[runner];after[runner]=before[runner]
+    with pytest.raises(campaign.RandomAccessCampaignError,match='CHANGED_OWNER_SET'):check()
+    after[runner]=saved
+    after[prefix]=after[prefix].replace('def scoring_recovery_identity():','def foreign_selector():')
+    with pytest.raises(campaign.RandomAccessCampaignError,match='CONTROL_NODE_SET'):check()

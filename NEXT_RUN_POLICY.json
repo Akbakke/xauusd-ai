@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T11:34:42.574052+00:00",
+  "observed_utc": "2026-11-01T11:42:44.886209+00:00",
   "status": "SEVEN_FITS_COMPLETE_CHART_SCORING_INTERRUPTED_HOST_BUGCHECK",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Seven complete matched variants. Chart W1 training and bytes preserved; W2 interrupted. Bounded KD analysis with Microsoft symbols completed and independently reviewed: CPU idle/Hyper-V path at intelppm!HvRequestIdle; underlying cause UNKNOWN. No model job or native launch admitted.",
+    "current_activity": "Seven complete family variants. Chart training preserved; original campaign closed after Windows bugcheck. Exact chart scoring recovery control-source qualified with 291 passing synthetic tests and 3/65 changed native owners; no native recovery admitted. Two corrected CPU/cache WHEA events decoded; hardware cause and crash link unknown. Host readiness and actual recovery metadata/plan qualification remain.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -17883,7 +17883,9 @@
     "current_host_crash_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/ACTUAL_REVIEW_001.json",
       "sha256": "0e1e7d13dcecf160ae2ee71c6c6e939e61550471d532cb3ff0657ea0d7fa40f4"
-    }
+    },
+    "chart_recovery_source_stage": "direction_family_chart_scoring_recovery_source_20261101_001",
+    "current_host_cper_review": "direction_family_chart_host_cper_review_20261101_001"
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -20447,7 +20449,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-01T11:34:42.574052+00:00",
+  "updated_utc": "2026-11-01T11:53:31.616918+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -50563,5 +50565,101 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/ACTUAL_REVIEW_001.json",
       "sha256": "0e1e7d13dcecf160ae2ee71c6c6e939e61550471d532cb3ff0657ea0d7fa40f4"
     }
+  },
+  "direction_family_chart_scoring_recovery_source_20261101_001": {
+    "status": "PASS_SOURCE_AND_SYNTHETIC_QUALIFICATION_HOST_AND_NATIVE_BINDING_PENDING",
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": false,
+    "reason": "Existing session-only origin,readguard,state-seal and saved-comparison adapter cannot accept preserved chart W1; original chart source already contains recovery control nodes and needs exact per-origin AST expectations.",
+    "user_authorization": "Continue the original matched-family goal; smallest control-only repair to preserve completed chart training and enable separately qualified zero-update evaluation. This source scope does not authorize a native recovery run.",
+    "source_files": [
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "gx1/scripts/compare_entry_direction_family_saved_v1.py"
+    ],
+    "focused_test_files": [
+      "tests/test_entry_direction_scoring_recovery_v1.py",
+      "tests/test_compare_entry_direction_family_saved_v1.py"
+    ],
+    "original_source_head": "3ac1e688a54d0df7384d6aa6212513b264a63466",
+    "original_closure": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/INTERRUPTION_CLOSURE_REVIEW_001.json",
+      "sha256": "2a7cebe5e101b019427aafbbecbf4594ff23e51b2900062fb0d9778c85d3d48f"
+    },
+    "scope": "Only explicit session and chart origins. Preserve exact session behavior, both real receipt chains, all unchanged numerical/input/model helpers and guards. No arbitrary origin or refit.",
+    "execution_authorized": false,
+    "genuine_data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "recovery_execution_authorized": false,
+    "host_settings_change_authorized": false,
+    "test_data_used": false,
+    "qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/CHART_SCORING_RECOVERY_SOURCE_001/RESULT.json",
+      "sha256": "b2a3ff71f794efbca01ef4ae5aabcf185f8c96a4acad17c2f3c50d8ecb1c9ef1"
+    },
+    "test_execution": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/CHART_SCORING_RECOVERY_SOURCE_001/TEST_EXECUTION.json",
+      "sha256": "aac101de58a3690b204997b0210776b15d9e49b89d755a6816f52173c9882745"
+    },
+    "test_count": 291,
+    "bound_native_source_owners": 65,
+    "unchanged_native_source_owners": 62,
+    "changed_native_source_owners": [
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py"
+    ],
+    "root_review": "Reviewed all four control-source diffs and two focused test diffs; runner changes only two state-seal operands. Actual chart-source transition passes exact three changed owners and byte-identical remaining owners/noncontrol nodes; comparator separately retains both real chains.",
+    "limitations": [
+      "Source-only and synthetic evidence; no model/payload or checkpoint deserialization.",
+      "First report parser expected a summary suppressed by pytest quiet mode; original failed reporting attempt retained, corrected reporter only rerun; tests not repeated.",
+      "Actual full origin/plan binding and host readiness remain before separate zero-update scoring admission."
+    ]
+  },
+  "direction_family_chart_host_cper_review_20261101_001": {
+    "status": "COMPLETE_READONLY_CORRECTED_CPU_CACHE_CONTEXT_CAUSE_UNKNOWN",
+    "event_records": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/WHEA_EVENT_RECORDS_READONLY_001.json",
+      "sha256": "292336c13c6f969fd3d5c6aa757135301cffa4955bf0fe4929982383612b79cd"
+    },
+    "decode_result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/WHEA_CPER_DECODE_RESULT_001.json",
+      "sha256": "149db58eea2b8e82b22ae8eea4aa9a515653ffebad2807e7497b7ad2e9475035"
+    },
+    "power_idle_observation": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/PROCESSOR_IDLE_READONLY_001.json",
+      "sha256": "99b320286e2b4a435cf579ef48754d51613b46e1546d7052ceff4078bd4462dd"
+    },
+    "event_record_ids": [
+      133246,
+      133249
+    ],
+    "valid_generic_processor_fields": {
+      "severity": "corrected",
+      "error_type": "cache",
+      "operation": "instruction_execution",
+      "logical_apic_id": 18,
+      "cpu_version": "0xa0655"
+    },
+    "memory_validbits": 0,
+    "valid_dimm_identity": false,
+    "physical_defective_component": "UNKNOWN",
+    "hypervisor_crash_causality": "UNKNOWN",
+    "vendor_sections_interpreted": false,
+    "idle_disable_ac": 0,
+    "idle_disable_dc": 0,
+    "power_scheme": "High performance",
+    "os_settings_changed": false,
+    "reboot_performed": false,
+    "hardware_test_performed": false,
+    "model_calls": 0,
+    "test_data_used": false,
+    "native_launch_authorized": false
   }
 }

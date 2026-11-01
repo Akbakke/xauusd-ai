@@ -1048,7 +1048,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 parent_order=order,cursor=restored['cursor'],optimizer_updates=restored['optimizer_updates'],device=device,train_passes=train_passes)
             _require(restored_state['contract_sha256']==loaded['contract_sha256'],'EXACT_SERIALIZED_FULL_RESUME')
             if recovery:
-                _require(restored_state['contract_sha256']==authority.SCORING_RECOVERY_STATE_SEAL,
+                _require(restored_state['contract_sha256']==recovery_origin['identity']['state_seal'],
                     'RECOVERY_ORIGINAL_FULL_STATE_SEAL')
             del restored_state
             del loaded;parent_cursor=restored['cursor'];updates=restored['optimizer_updates'];phase=prior_cursor['phase_state']
@@ -1101,7 +1101,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             state_directory=state_directory,name=f'w{number:04d}_TERMINAL_u{updates:06d}_p{parent_cursor:06d}',launch=launch,
             counters=counters,torch=torch,device=device,common=common,state_owner=state_owner,train_passes=train_passes)
         if recovery:
-            _require(seal==authority.SCORING_RECOVERY_STATE_SEAL,'RECOVERY_SCORING_FULL_STATE_UNCHANGED')
+            _require(seal==recovery_origin['identity']['state_seal'],'RECOVERY_SCORING_FULL_STATE_UNCHANGED')
             _require(phase=='COMPLETE' and parent_cursor==47602 and updates==2976 and oof_cursor==17288
                 and counters['forward_calls']==counters['forward_returns']==4057
                 and counters['forward_kind_calls']=={'FINAL_TRAIN':2976,'OOF':1081}

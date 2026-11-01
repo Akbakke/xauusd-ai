@@ -49,19 +49,34 @@ er bevart. Underliggende årsak og dokumentert retting er fortsatt UNKNOWN.
 
 Fersk lesekontroll: Intel i9-10900K, ASUS PRIME Z490M-PLUS, BIOS1621,
 Windows11 Pro25H2 build26200.9457 og intelppm10.0.26100.9278.
-Aktiv strømplan er Høy ytelse. Den første skjulte idle-innstillingsspørringen
-returnerte ingen eksplisitt innstillingsverdi; den verdien er ikke antatt.
+Aktiv strømplan er Høy ytelse. En korrekt skjult innstillingsspørring
+bekrefter IdleDisable AC/DC=0: CPU-hvile er aktivert. Ingen verdi er endret.
 ASUS lister1806beta fra15.01.2026 med oppdatert Intel-mikrokode og
 stabilitets-/kompatibilitets-/sikkerhetsendringer. Release notes dokumenterer
 ingen spesifikk rettelse for dette krasjet. Ingen BIOS-/driver-/OS-/strømplan-
 endring eller ny omstart er utført. Beta-fastvare er ikke automatisk valgt.
 
-Neste steg er å vurdere et målrettet stabilitetstiltak fra denne konkrete
-krasjkonteksten før ny modelljobb.
-Eksisterende recovery-validator er bundet til session-familien, originalkilden
-og dens avslutningskvittering; nye chart-metadata alene gir ingen kjøreautoritet.
-En eventuell separat chart-scoring må kvalifisere sine egne bindinger og
-bevare opprinnelig trening. Ingen original relansering er tillatt.
+To lagrede WHEA-hendelser fra treningstiden (08:05:49 og 09:17:02 UTC)
+er dekodet mot standardfeltenes gyldighetsbiter. Begge rapporterer korrigert
+cachefeil ved instruksjonsutførelse på logisk APIC-ID 18, CPUVersion 0xA0655.
+Minneseksjonen har gyldighetsbiter 0; ingen DIMM eller fysisk defekt komponent
+kan identifiseres. Tre leverandørseksjoner er ikke tolket. Disse tidligere
+hendelsene beviser ikke årsaken til det senere hypervisorkrasjet.
+
+Den konkrete session-only-sperren i gjenopprettingskoden er rettet for akkurat
+den bevarte chart-kjøringen. 291 fokuserte syntetiske tester bestod med
+sluttkode 0. Faktisk kildekontroll mot original chart-kilde bekrefter nøyaktig
+tre endrede native kontrollfiler blant 65 eiere; øvrige 62 og numeriske deler
+er uendret. Sammenligningskoden beholder originale treningskvitteringer og
+separate nye scoringkvitteringer. Dette kvalifiserer kilde og syntetiske
+kontroller, ikke modellutførelse. Den første rapportgeneratoren forventet en
+pytest-oppsummering som quiet-modus undertrykte; bare rapporteringen ble
+korrigert og gjentatt, ikke testene. Originalforsøket er bevart.
+
+Vertsberedskap og full binding av den nye scoringplanen gjenstår. Ingen
+modellkjøring, innstillingsendring, ny trening eller omstart er gjort i denne
+rettelsen. Eventuell separat scoring må bevare opprinnelig trening; den
+avbrutte originalkampanjen kan ikke relanseres.
 
 Syv av ti komplette varianter er ferdige. Chart geometry-scoring, price
 action/candle, macro og alle 54 parrede kontraster gjenstår. Avbruddet gir
@@ -89,3 +104,9 @@ Microsofts symbolserver:
 https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/microsoft-public-symbols
 ASUS BIOS-versjoner:
 https://www.asus.com/us/motherboards-components/motherboards/prime/prime-z490m-plus/helpdesk_bios/?model2Name=PRIME-Z490M-PLUS
+
+Ny lesende host- og kildekvalifisering:
+- FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/WHEA_CPER_DECODE_RESULT_001.json: 149db58eea2b8e82b22ae8eea4aa9a515653ffebad2807e7497b7ad2e9475035
+- FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/PROCESSOR_IDLE_READONLY_001.json: 99b320286e2b4a435cf579ef48754d51613b46e1546d7052ceff4078bd4462dd
+- CHART_SCORING_RECOVERY_SOURCE_001/RESULT.json: b2a3ff71f794efbca01ef4ae5aabcf185f8c96a4acad17c2f3c50d8ecb1c9ef1
+- CHART_SCORING_RECOVERY_SOURCE_001/TEST_EXECUTION.json: aac101de58a3690b204997b0210776b15d9e49b89d755a6816f52173c9882745

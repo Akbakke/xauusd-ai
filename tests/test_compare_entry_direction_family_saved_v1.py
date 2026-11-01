@@ -425,11 +425,10 @@ def test_verification_schema_is_role_specific(arm):
     with pytest.raises(RuntimeError, match='SAVED_VERIFICATION'):
         a.require_arm_evidence(arm, entry, proto, lambda r: docs[r['path']])
 
-def recovered_metadata_chain():
-    arm = 'session_regime_encoder'
+def recovered_metadata_chain(arm='session_regime_encoder'):
     entry, proto, docs = metadata_chain(arm)
     root = Path(entry['terminal']['path']).parent
-    oldroot = a.STUDY/'FIT_SESSION_REGIME_001'
+    oldroot = a.STUDY/('FIT_SESSION_REGIME_001' if arm=='session_regime_encoder' else 'FIT_CHART_GEOMETRY_001')
     def put(path, value):
         r = ref(path)
         docs[r['path']] = value
@@ -488,6 +487,14 @@ def recovered_metadata_chain():
     peer_ref = put(oldroot/'PEER.json', {
         'status': 'PASS_SCOPED_METADATA_WORKER_REVIEW', 'references': {'integrity': integrity_ref},
         'scope': {'checkpoint_or_payload_bytes_read_by_peer': False, 'test_data_used': False}})
+    if arm=='chart_geometry_encoder':
+        docs[peer_ref['path']].pop('scope')
+        docs[peer_ref['path']].update(
+            schema_version='gx1_family_interruption_independent_metadata_peer_review_v1',
+            family_arm=arm,test_data_used=False,
+            original_native_exit_code_known=False,original_native_exit_code=None)
+        docs[integrity_ref['path']].update(
+            schema_version='gx1_family_interrupted_scoring_integrity_v1',family_arm=arm)
     closure_ref = put(oldroot/'CLOSURE.json', {
         'schema_version': 'gx1_family_interrupted_scoring_closure_v1',
         'status': 'CLOSED_INTERRUPTED_SCORING_ORIGINALS_PRESERVED', 'family_arm': arm,
@@ -497,7 +504,8 @@ def recovered_metadata_chain():
         'original_relaunch_allowed': False, 'interrupted_native_exit_code_known': False,
         'interrupted_native_exit_code': None, 'claimed_invocations': 2,
         'completed_invocations': 1, 'revoked_invocations': [3, 4], 'test_data_used': False})
-    origin = {'schema_version': 'gx1_family_session_scoring_recovery_origin_v1',
+    origin = {'schema_version': ('gx1_family_session_scoring_recovery_origin_v1' if arm=='session_regime_encoder'
+        else 'gx1_family_chart_scoring_recovery_origin_v1'),
         'family_arm': arm, 'original_source_head': 'e'*40, 'original_recipe': old_recipe_ref,
         'original_plan': old_plan_ref, 'training_receipt': training_ref, 'training_cursor': cursor_ref,
         'training_review': training_review_ref, 'state_integrity': integrity_ref,
@@ -527,13 +535,14 @@ def recovered_metadata_chain():
     return entry, proto, docs, origin
 
 
-def test_recovered_scoring_keeps_two_distinct_real_campaigns():
-    entry, proto, docs, origin = recovered_metadata_chain()
+@pytest.mark.parametrize('arm',['session_regime_encoder','chart_geometry_encoder'])
+def test_recovered_scoring_keeps_two_distinct_real_campaigns(arm):
+    entry, proto, docs, origin = recovered_metadata_chain(arm)
     reads = []
     def read(r):
         reads.append(r['path'])
         return docs[r['path']]
-    loaded = a.require_arm_evidence('session_regime_encoder', entry, proto, read)
+    loaded = a.require_arm_evidence(arm, entry, proto, read)
     assert loaded['recipe']['scoring_recovery_origin'] == origin
     assert all(Path(p).suffix == '.json' for p in reads)
     assert origin['training_receipt']['path'] in reads
@@ -546,8 +555,9 @@ def test_recovered_scoring_keeps_two_distinct_real_campaigns():
     'mutable_cursor', 'incomplete_training', 'missing_integrity', 'false_exit',
     'changed_state', 'extra_update', 'partial_scoring', 'changed_numeric_recipe',
     'changed_initial_state', 'foreign_arm', 'wrong_origin_schema'])
-def test_recovered_lineage_rejects_unproven_or_expanded_result(mutation):
-    entry, proto, docs, origin = recovered_metadata_chain()
+@pytest.mark.parametrize('arm',['session_regime_encoder','chart_geometry_encoder'])
+def test_recovered_lineage_rejects_unproven_or_expanded_result(mutation,arm):
+    entry, proto, docs, origin = recovered_metadata_chain(arm)
     root = Path(entry['terminal']['path']).parent
     terminal = docs[entry['terminal']['path']]
     result = docs[str(root/'RESULT.json')]
@@ -584,4 +594,31 @@ def test_recovered_lineage_rejects_unproven_or_expanded_result(mutation):
     recipe['recipe_sha256'] = a.matched.binding.canonical_sha256(
         {k: v for k, v in recipe.items() if k != 'recipe_sha256'})
     with pytest.raises(RuntimeError):
-        a.require_arm_evidence('session_regime_encoder', entry, proto, lambda r: docs[r['path']])
+        a.require_arm_evidence(arm, entry, proto, lambda r: docs[r['path']])
+
+
+@pytest.mark.parametrize('arm',['session_regime_encoder','chart_geometry_encoder'])
+def test_recovered_known_arm_schema_cannot_be_crossed(arm):
+    entry,proto,docs,origin=recovered_metadata_chain(arm)
+    origin['schema_version']=('gx1_family_chart_scoring_recovery_origin_v1' if arm=='session_regime_encoder'
+        else 'gx1_family_session_scoring_recovery_origin_v1')
+    recipe=docs[str(Path(entry['terminal']['path']).parent/'RECIPE.json')]
+    recipe['recipe_sha256']=a.matched.binding.canonical_sha256({k:v for k,v in recipe.items() if k!='recipe_sha256'})
+    with pytest.raises(RuntimeError,match='RECOVERY_ORIGIN'):
+        a.require_arm_evidence(arm,entry,proto,lambda r:docs[r['path']])
+
+
+@pytest.mark.parametrize('field,value',[
+    ('schema_version','gx1_session_interruption_independent_metadata_peer_review_v1'),
+    ('family_arm','session_regime_encoder'),('test_data_used',True),
+    ('original_native_exit_code_known',True),('original_native_exit_code',0),
+])
+def test_chart_recovered_peer_uses_actual_top_level_fields(field,value):
+    entry,proto,docs,origin=recovered_metadata_chain('chart_geometry_encoder')
+    peer=docs[origin['interruption_review']['path']]
+    assert 'scope' not in peer
+    peer[field]=value
+    # A fabricated session-style scope must not authorize a mismatched chart peer.
+    peer['scope']={'checkpoint_or_payload_bytes_read_by_peer':False,'test_data_used':False}
+    with pytest.raises(RuntimeError,match='RECOVERY_CHART_PEER'):
+        a.require_arm_evidence('chart_geometry_encoder',entry,proto,lambda r:docs[r['path']])

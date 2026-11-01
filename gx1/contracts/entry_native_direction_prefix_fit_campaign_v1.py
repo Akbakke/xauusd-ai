@@ -256,12 +256,27 @@ SCORING_RECOVERY_STATE_SEAL = 'acd03406a41c968b2346b49edf9995b29ea679b3f710d3637
 SCORING_RECOVERY_CLOSURE = {
     'path':'/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/INTERRUPTION_CLOSURE_REVIEW_001.json',
     'sha256':'fe507751a727533ee1d86ac210d2a79cdcc4fab9b29ea80a14bb9b11c0e473d8'}
+CHART_SCORING_RECOVERY_IDENTITY = {
+    'origin_schema':'gx1_family_chart_scoring_recovery_origin_v1',
+    'source_head':'3ac1e688a54d0df7384d6aa6212513b264a63466',
+    'state_seal':'0319a0522905bbbe4ca3dde04e51bc247df2c5ff6ed75743c736768450740bbf',
+    'closure_review':{
+        'path':'/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/INTERRUPTION_CLOSURE_REVIEW_001.json',
+        'sha256':'2a7cebe5e101b019427aafbbecbf4594ff23e51b2900062fb0d9778c85d3d48f'},
+    'integrity_schema':'gx1_family_interrupted_scoring_integrity_v1',
+    'peer_schema':'gx1_family_interruption_independent_metadata_peer_review_v1',
+    'closed_status':'INTERRUPTED_CONSUMED_W2_WINDOWS_HYPERVISOR_BUGCHECK_W1_TRAINING_PRESERVED',
+    'closed_policy_git':{'commit':'d58040e50f05b8b6455e92526774b5465c37d859',
+        'path':'NEXT_RUN_POLICY.json','sha256':'ea7c4a023dae0afa987b6008c760d8ee04772643ba7a7998c02c5e8d5f50a975'},
+}
 SCORING_RECOVERY_CONTROL_CHANGES = {
     'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': (
         ('require_prefix_fit_launch_recipe', 'require_prefix_fit_invocation_execution', 'require_prefix_fit_plan',
          'require_native_direction_prefix_fit_readiness', 'require_prefix_fit_progress'),
-        ('is_scoring_recovery', 'require_scoring_recovery_origin', '_require_scoring_recovery_source_equivalence'),
-        ('SCORING_RECOVERY_HEAD', 'SCORING_RECOVERY_STATE_SEAL', 'SCORING_RECOVERY_CLOSURE', 'SCORING_RECOVERY_CONTROL_CHANGES')),
+        ('is_scoring_recovery', 'require_scoring_recovery_origin', '_require_scoring_recovery_source_equivalence',
+          'scoring_recovery_identity'),
+        ('SCORING_RECOVERY_HEAD', 'SCORING_RECOVERY_STATE_SEAL', 'SCORING_RECOVERY_CLOSURE', 'SCORING_RECOVERY_CONTROL_CHANGES',
+         'CHART_SCORING_RECOVERY_IDENTITY')),
     'gx1/contracts/local_random_access_campaign_v2.py': (('require_invocation',), (), ()),
     'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py': (('run_native_direction_prefix_fit_window',), (), ()),
     'gx1/scripts/run_entry_native_direction_research_window_v1.py': (('_install_read_guard',), (), ()),
@@ -273,10 +288,38 @@ def is_scoring_recovery(recipe):
     return 'scoring_recovery_origin' in recipe
 
 
+def scoring_recovery_identity(family_arm):
+    """Only the two observed, closed interruptions have recovery identities."""
+    if family_arm == 'chart_geometry_encoder':
+        return dict(CHART_SCORING_RECOVERY_IDENTITY)
+    _require(family_arm == 'session_regime_encoder', 'RECOVERY_ARM')
+    return {
+        'origin_schema':'gx1_family_session_scoring_recovery_origin_v1',
+        'source_head':SCORING_RECOVERY_HEAD, 'state_seal':SCORING_RECOVERY_STATE_SEAL,
+        'closure_review':SCORING_RECOVERY_CLOSURE,
+        'integrity_schema':'gx1_session_interrupted_scoring_integrity_v1',
+        'peer_schema':'gx1_session_interruption_independent_metadata_peer_review_v1',
+        'closed_status':'INTERRUPTED_CONSUMED_W2_WINDOWS_BUGCHECK_W1_TRAINING_PRESERVED',
+    }
+
+
 def _require_scoring_recovery_source_equivalence(source_repo, original, current):
     """Only named launch/control definitions may change; numerical source is byte-identical."""
     import ast
     import subprocess
+    identity = scoring_recovery_identity(original.get('family_arm'))
+    chart = original['family_arm'] == 'chart_geometry_encoder'
+    control_changes = ({
+        'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': (
+            ('require_prefix_fit_launch_recipe', 'require_scoring_recovery_origin',
+             '_require_scoring_recovery_source_equivalence'),
+            ('scoring_recovery_identity',),
+            ('SCORING_RECOVERY_CONTROL_CHANGES', 'CHART_SCORING_RECOVERY_IDENTITY')),
+        'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py':
+            (('run_native_direction_prefix_fit_window',), (), ()),
+        'gx1/scripts/run_entry_native_direction_research_window_v1.py':
+            (('_install_read_guard',), (), ()),
+    } if chart else SCORING_RECOVERY_CONTROL_CHANGES)
     before_owners, after_owners = original['source_owners'], current['source_owners']
     _require(set(before_owners) == set(after_owners), 'RECOVERY_SOURCE_SET')
     for path, before_ref in before_owners.items():
@@ -284,12 +327,15 @@ def _require_scoring_recovery_source_equivalence(source_repo, original, current)
         _require(before_ref['path'] == after_ref['path'] == str(source_repo/path), 'RECOVERY_SOURCE_PATH')
         after = (source_repo/path).read_bytes()
         _require(hashlib.sha256(after).hexdigest() == after_ref['sha256'], 'RECOVERY_SOURCE_SHA:'+path)
-        if path not in SCORING_RECOVERY_CONTROL_CHANGES:
+        if path not in control_changes:
             _require(before_ref == after_ref, 'RECOVERY_NUMERICAL_SOURCE_CHANGED:'+path)
             continue
-        before = subprocess.check_output(['git','-C',str(source_repo),'show',SCORING_RECOVERY_HEAD+':'+path])
+        before = subprocess.check_output(['git','-C',str(source_repo),'show',identity['source_head']+':'+path])
         _require(hashlib.sha256(before).hexdigest() == before_ref['sha256'], 'RECOVERY_ORIGINAL_SOURCE_SHA:'+path)
-        changed, added, assignments = map(set, SCORING_RECOVERY_CONTROL_CHANGES[path])
+        changed, added, assignments = map(set, control_changes[path])
+        # Chart's original source already includes the qualified session recovery.
+        old_added = added - {'scoring_recovery_identity'} if chart else set()
+        old_assignments = assignments - {'CHART_SCORING_RECOVERY_IDENTITY'} if chart else set()
         def unchanged(raw, old):
             text = raw.decode('utf-8'); nodes = ast.parse(text).body
             kept=[]; functions=set(); constants=set()
@@ -301,32 +347,36 @@ def _require_scoring_recovery_source_equivalence(source_repo, original, current)
                     constants.add(node.targets[0].id)
                 else:
                     kept.append(ast.get_source_segment(text,node))
-            _require(functions == (changed if old else changed|added)
-                and constants == (set() if old else assignments), 'RECOVERY_CONTROL_NODE_SET:'+path)
+            _require(functions == (changed|old_added if old else changed|added)
+                and constants == (old_assignments if old else assignments), 'RECOVERY_CONTROL_NODE_SET:'+path)
             return kept
         _require(unchanged(before,True) == unchanged(after,False), 'RECOVERY_NONCONTROL_SOURCE_CHANGED:'+path)
+    if chart:
+        _require({path for path in before_owners if before_owners[path] != after_owners[path]} == set(control_changes),
+            'RECOVERY_CHART_CHANGED_OWNER_SET')
 
 
 def require_scoring_recovery_origin(recipe, *, source_repo, source_commit):
-    """Validate the one observed session interruption; no generic checkpoint import."""
+    """Validate either exact observed interruption; no generic checkpoint import."""
     import subprocess
+    identity = scoring_recovery_identity(recipe.get('family_arm'))
     origin = recipe.get('scoring_recovery_origin')
     fields = {'schema_version','family_arm','original_source_head','original_recipe','original_plan',
         'training_receipt','training_cursor','training_review','state_integrity','interruption_review','closure_review'}
     _require(isinstance(origin, Mapping) and set(origin)==fields
-        and origin['schema_version']=='gx1_family_session_scoring_recovery_origin_v1'
-        and origin['family_arm']==recipe.get('family_arm')=='session_regime_encoder'
+        and origin['schema_version']==identity['origin_schema']
+        and origin['family_arm']==recipe.get('family_arm')
         and recipe.get('run_scope')==FAMILY_SIGN_SCOPE
-        and origin['original_source_head']==SCORING_RECOVERY_HEAD
-        and source_commit != SCORING_RECOVERY_HEAD
-        and origin['closure_review']==SCORING_RECOVERY_CLOSURE, 'RECOVERY_ORIGIN_ROLE')
+        and origin['original_source_head']==identity['source_head']
+        and source_commit != identity['source_head']
+        and origin['closure_review']==identity['closure_review'], 'RECOVERY_ORIGIN_ROLE')
     def read(ref, label):
         bound=campaign.require_binding(ref,label=label,verify_file=True)
         return campaign.read_bound_json(Path(bound['path']),bound['sha256'])
     closure=read(origin['closure_review'],'recovery closure')
     _require(closure['schema_version']=='gx1_family_interrupted_scoring_closure_v1'
         and closure['status']=='CLOSED_INTERRUPTED_SCORING_ORIGINALS_PRESERVED'
-        and closure['family_arm']==origin['family_arm'] and closure['original_source_head']==SCORING_RECOVERY_HEAD
+        and closure['family_arm']==origin['family_arm'] and closure['original_source_head']==identity['source_head']
         and closure['original_relaunch_allowed'] is False and closure['training_state_preserved'] is True
         and closure['recovery_execution_authorized'] is False and closure['test_data_used'] is False
         and closure['interrupted_native_exit_code_known'] is False and closure['interrupted_native_exit_code'] is None
@@ -337,29 +387,36 @@ def require_scoring_recovery_origin(recipe, *, source_repo, source_commit):
     integrity=read(origin['state_integrity'],'recovery integrity')
     peer=read(origin['interruption_review'],'recovery peer')
     review=read(origin['training_review'],'recovery training review')
-    _require(integrity['schema_version']=='gx1_session_interrupted_scoring_integrity_v1'
+    _require(integrity['schema_version']==identity['integrity_schema']
         and integrity['status']=='TRAINING_STATE_BYTES_PRESERVED_SCORING_INTERRUPTED'
-        and integrity['source_head']==SCORING_RECOVERY_HEAD and integrity['native_process_absent'] is True
+        and integrity['source_head']==identity['source_head'] and integrity['native_process_absent'] is True
         and integrity['originals_modified'] is False and integrity['model_or_checkpoint_deserialized'] is False
         and integrity['completed_training_updates']==2976 and integrity['training_parents']==47602
         and integrity['full_train_scoring_complete'] is False and integrity['later_scoring_complete'] is False
         and integrity['new_model_forwards']==integrity['new_optimizer_updates']==0
         and integrity['test_data_used'] is False, 'RECOVERY_INTEGRITY')
-    _require(peer['schema_version']=='gx1_session_interruption_independent_metadata_peer_review_v1'
+    _require(peer['schema_version']==identity['peer_schema']
         and peer['status']=='PASS_SCOPED_METADATA_WORKER_REVIEW'
         and peer['references']['integrity']==origin['state_integrity'], 'RECOVERY_PEER')
+    if origin['family_arm']=='chart_geometry_encoder':
+        _require(integrity.get('family_arm')==peer.get('family_arm')==origin['family_arm']
+            and peer.get('test_data_used') is False
+            and peer.get('original_native_exit_code_known') is False
+            and peer.get('original_native_exit_code') is None, 'RECOVERY_CHART_PEER')
     _require(review['schema_version']=='gx1_family_training_window_review_v1'
         and review['status']=='PASS_TRAINING_COMPLETE_SCORING_PENDING'
-        and review['source_head']==SCORING_RECOVERY_HEAD and review['family_arm']==origin['family_arm']
+        and review['source_head']==identity['source_head'] and review['family_arm']==origin['family_arm']
         and review['optimizer_updates']==2976 and review['train_parents']==47602 and review['training_passes']==1
         and review['full_train_scored'] is False and review['later_scored'] is False
         and review['test_data_used'] is False, 'RECOVERY_TRAINING_REVIEW')
     closed=closure['closed_policy_git']
+    if origin['family_arm']=='chart_geometry_encoder':
+        _require(closed==identity['closed_policy_git'], 'RECOVERY_CHART_CLOSED_POLICY')
     raw=subprocess.check_output(['git','-C',str(source_repo),'show',closed['commit']+':'+closed['path']])
     _require(closed['commit']==closure['closure_source_head'] and closed['path']=='NEXT_RUN_POLICY.json'
         and hashlib.sha256(raw).hexdigest()==closed['sha256'], 'RECOVERY_CLOSED_POLICY_BYTES')
     policy=json.loads(raw); gate=policy[closure['closed_stage']]
-    _require(gate['status']=='INTERRUPTED_CONSUMED_W2_WINDOWS_BUGCHECK_W1_TRAINING_PRESERVED'
+    _require(gate['status']==identity['closed_status']
         and gate['claimed_invocations']==2 and gate['completed_invocations']==1
         and gate['interrupted_invocations']==1 and gate['unclaimed_invocations_revoked']==[3,4]
         and all(gate[key] is False for key in ('execution_authorized','training_enabled','native_training_enabled',
@@ -379,10 +436,10 @@ def require_scoring_recovery_origin(recipe, *, source_repo, source_commit):
     _require(new_runtime != old_runtime and old_runtime not in new_runtime.parents and new_runtime not in old_runtime.parents
         and recipe['admission_stage'] != original['admission_stage'], 'RECOVERY_NEW_RUNTIME')
     execution=read(review['execution_binding'],'original execution binding')
-    _require(execution['plan']==origin['original_plan'] and execution['source_head']==SCORING_RECOVERY_HEAD,
+    _require(execution['plan']==origin['original_plan'] and execution['source_head']==identity['source_head'],
         'RECOVERY_ORIGINAL_PLAN_REF')
     plan=read(origin['original_plan'],'original plan')
-    _require(plan['source_commit']==SCORING_RECOVERY_HEAD and plan['recipe']==origin['original_recipe']
+    _require(plan['source_commit']==identity['source_head'] and plan['recipe']==origin['original_recipe']
         and plan['runtime_root']==str(old_runtime)
         and plan['plan_sha256']==campaign.canonical_sha256({k:v for k,v in plan.items() if k!='plan_sha256'}),
         'RECOVERY_ORIGINAL_PLAN')
@@ -406,11 +463,11 @@ def require_scoring_recovery_origin(recipe, *, source_repo, source_commit):
         and cursor['full_state']==integrity['full_state']==review['full_state']
         and cursor['own_initial_state']==integrity['own_initial_state']
         and cursor['result']==integrity['training_result']==review['result']
-        and result['durable_checkpoint']['contract_sha256']==SCORING_RECOVERY_STATE_SEAL
+        and result['durable_checkpoint']['contract_sha256']==identity['state_seal']
         and result['durable_checkpoint']['state']==cursor['full_state']
         and result['source_unchanged'] is True and result['error'] is None, 'RECOVERY_TRAINING_STATE')
     _require_scoring_recovery_source_equivalence(source_repo,original,recipe)
-    return {'origin':dict(origin),'original_recipe':original,'cursor':cursor}
+    return {'origin':dict(origin),'original_recipe':original,'cursor':cursor,'identity':identity}
 
 
 def _require_family_recipe_fields(recipe):
@@ -497,7 +554,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     if legacy_continuation:
         fields |= {'gc_layout_metadata_parity', 'continuation_origin', 'native_continuation_qualification'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
-    _require(not recovery or (family and recipe.get('family_arm')=='session_regime_encoder'), 'RECOVERY_SCOPE')
+    _require(not recovery or (family and recipe.get('family_arm') in ('session_regime_encoder','chart_geometry_encoder')), 'RECOVERY_SCOPE')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
@@ -656,7 +713,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
                 recovered = require_scoring_recovery_origin(recipe,source_repo=source_repo,source_commit=source_commit)
                 original = recovered['original_recipe']
                 private.require_family_qualification(original,original['source_owners'],source_repo=source_repo,
-                    source_commit=SCORING_RECOVERY_HEAD)
+                    source_commit=recovered['identity']['source_head'])
             else:
                 private.require_family_qualification(recipe,owners,source_repo=source_repo,source_commit=source_commit)
         elif factor:

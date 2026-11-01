@@ -182,9 +182,15 @@ def require_recovered_scoring_lineage(arm, terminal, review, recipe, campaign, r
     fields = {'schema_version', 'family_arm', 'original_source_head', 'original_recipe',
               'original_plan', 'training_receipt', 'training_cursor', 'training_review',
               'state_integrity', 'interruption_review', 'closure_review'}
-    require(arm == 'session_regime_encoder' and isinstance(origin, dict)
+    identities = {
+        'session_regime_encoder': ('gx1_family_session_scoring_recovery_origin_v1', 'FIT_SESSION_REGIME_001'),
+        'chart_geometry_encoder': ('gx1_family_chart_scoring_recovery_origin_v1', 'FIT_CHART_GEOMETRY_001'),
+    }
+    require(arm in identities, 'RECOVERY_ARM')
+    origin_schema, original_name = identities[arm]
+    require(isinstance(origin, dict)
             and set(origin) == fields and origin.get('family_arm') == arm
-            and origin.get('schema_version') == 'gx1_family_session_scoring_recovery_origin_v1'
+            and origin.get('schema_version') == origin_schema
             and recipe.get('max_windows') == 1 and recipe.get('training_enabled') is False
             and recipe.get('full_epoch_training_allowed') is False,
             'RECOVERY_ORIGIN')
@@ -197,7 +203,7 @@ def require_recovered_scoring_lineage(arm, terminal, review, recipe, campaign, r
     old_recipe = read(origin['original_recipe'])
     old_campaign = read(origin['original_plan'])
     original_root = Path(old_recipe['runtime_root'])
-    require(original_root == STUDY/'FIT_SESSION_REGIME_001/RUNTIME'
+    require(original_root == STUDY/original_name/'RUNTIME'
             and old_campaign['recipe'] == origin['original_recipe']
             and old_campaign['source_commit'] == origin['original_source_head']
             and old_campaign['runtime_root'] == str(original_root)
@@ -264,9 +270,17 @@ def require_recovered_scoring_lineage(arm, terminal, review, recipe, campaign, r
             and integrity.get('originals_modified') is False and integrity.get('test_data_used') is False,
             'RECOVERY_INTEGRITY')
     require(peer.get('status') == 'PASS_SCOPED_METADATA_WORKER_REVIEW'
-            and peer.get('references', {}).get('integrity') == origin['state_integrity']
-            and peer.get('scope', {}).get('checkpoint_or_payload_bytes_read_by_peer') is False
-            and peer.get('scope', {}).get('test_data_used') is False, 'RECOVERY_PEER')
+            and peer.get('references', {}).get('integrity') == origin['state_integrity'], 'RECOVERY_PEER')
+    if arm == 'chart_geometry_encoder':
+        require(peer.get('schema_version') == 'gx1_family_interruption_independent_metadata_peer_review_v1'
+                and peer.get('family_arm') == arm and peer.get('test_data_used') is False
+                and peer.get('original_native_exit_code_known') is False
+                and peer.get('original_native_exit_code') is None
+                and integrity.get('schema_version') == 'gx1_family_interrupted_scoring_integrity_v1'
+                and integrity.get('family_arm') == arm, 'RECOVERY_CHART_PEER')
+    else:
+        require(peer.get('scope', {}).get('checkpoint_or_payload_bytes_read_by_peer') is False
+                and peer.get('scope', {}).get('test_data_used') is False, 'RECOVERY_PEER')
     require(closure.get('schema_version') == 'gx1_family_interrupted_scoring_closure_v1'
             and closure.get('status') == 'CLOSED_INTERRUPTED_SCORING_ORIGINALS_PRESERVED'
             and closure.get('family_arm') == arm
@@ -313,7 +327,7 @@ def require_arm_evidence(arm, entry, protocol, read):
     terminal = read(entry['terminal'])
     baseline = arm == 'baseline'
     recovered = terminal.get('schema_version') == 'gx1_family_recovered_scoring_verified_terminal_v1'
-    require(not recovered or arm == 'session_regime_encoder', 'RECOVERY_ARM')
+    require(not recovered or arm in ('session_regime_encoder', 'chart_geometry_encoder'), 'RECOVERY_ARM')
     require(terminal.get('schema_version') == ('gx1_family_baseline_verified_terminal_v1'
             if baseline else ('gx1_family_recovered_scoring_verified_terminal_v1'
                               if recovered else 'gx1_family_verified_terminal_v1'))
