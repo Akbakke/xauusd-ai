@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-31T19:56:28.486117+00:00",
-  "status": "SIX_FITS_COMPLETE_SESSION_FULLFIT_SOURCE_PREPARED",
+  "status": "SIX_FITS_COMPLETE_CAPACITY_SCOPE_REVIEW_SESSION_PREFLIGHT_PASSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Run capped exact session/regime full-fit recipe preflight on clean committed source; all native gates closed until separate exact admission.",
+  "next_action": "Resolve new repeated-subset diagnostic scope; independently prepare missing saved-prediction all-ten-family comparison caller without changing frozen fit owners.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Session/regime private qualification completed and independently reviewed; exact matched full-fit recipe source-prepared, canonical preflight pending.",
+    "current_activity": "Current-function smallTRAIN fit-capacity scope/source review complete; concrete separate proposal prepared. Session fullfit metadata preflight PASS; no native plan materialized or launched.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run capped exact session/regime full-fit recipe preflight on clean committed source; all native gates closed until separate exact admission.",
+    "next_action": "Resolve new repeated-subset diagnostic scope; independently prepare missing saved-prediction all-ten-family comparison caller without changing frozen fit owners.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17459,7 +17459,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "All native execution closed after session/regime private qualification; full-fit metadata preflight pending.",
+    "current_training_scope": "NONE: session fullfit remains unadmitted; proposed smallTRAIN diagnostic has no execution authority.",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -48435,7 +48435,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_VOL_COMPRESSION_001/VERIFIED_TERMINAL.json",
       "sha256": "bad38b76fd8efa901141bdfe500b73790e213c104479dbbb181502f8d65e1aa0"
     },
-    "diagnostic_followup": "direction_family_upstream_gradient_diagnostic_20261031_002",
+    "diagnostic_followup": "direction_family_fit_capacity_preparation_20261101_001",
     "existing_simple_reference_scope_review": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/EXISTING_SIMPLE_REFERENCE_SCOPE_REVIEW_20261031_002.json",
       "sha256": "45136a9d2cb207e12334daa7c68c7db7cb1a3e26de4e1f11ce506d1f5feead06"
@@ -48467,6 +48467,10 @@
     "session_regime_private_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/VERIFIED_TERMINAL.json",
       "sha256": "5e1abca12a336e32c52cab1ce23b20034a48801708d627ad3ed6f6a9034c089e"
+    },
+    "session_regime_full_fit_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "509e2b9f4a233c18e505418b388821970cec333c7e30569addec0940ab7a84b9"
     }
   },
   "direction_family_input_pilot_20261030_001": {
@@ -49793,7 +49797,7 @@
     "power_retained_w": 250
   },
   "dynamic_m5_direction_family_session_regime_onepass_fit_20261101_001": {
-    "status": "SOURCE_PREPARED_SESSION_FULLFIT_PREFLIGHT_PENDING",
+    "status": "METADATA_PREFLIGHT_PASSED_NOT_ADMITTED",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_SESSION_REGIME_ONEPASS_FIT_RECIPE_20261101.json",
       "sha256": "03f279c8c1a813e1415e31a1ba3e44cfca40da2bf18e1c6e8819a19d382792b5"
@@ -49850,6 +49854,28 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_val_allowed": false,
-    "same_boot_after_idle_review_authorized": false
+    "same_boot_after_idle_review_authorized": false,
+    "metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "509e2b9f4a233c18e505418b388821970cec333c7e30569addec0940ab7a84b9"
+    }
+  },
+  "direction_family_fit_capacity_preparation_20261101_001": {
+    "status": "SCOPE_AND_SOURCE_REVIEW_COMPLETE_PROPOSAL_PENDING_OPERATOR_CHOICE",
+    "proposal": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_SMALL_TRAIN_CAPACITY_PROPOSAL_20261101.json",
+      "sha256": "130223468b0a1ee5399cfaf7da4d6d90d5e927aa5d751b2b22055d95dfc3763f"
+    },
+    "scope_review_complete": true,
+    "equivalent_completed_control_found": false,
+    "equivalence_search_scope": "Current family private/fullfit, upstream002, checkpointC, fixedhiddenreadout, older215/236 references and completedextraepoch/fivepriority controls; no globalhistoricalabsence claim.",
+    "source_edits_authorized": false,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "current_model_code_changed": false,
+    "pending_choice": "Add this bounded diagnostic before remaining familyfits, or finish originalfamilycomparison first. No automatic diagnostictraining."
   }
 }
