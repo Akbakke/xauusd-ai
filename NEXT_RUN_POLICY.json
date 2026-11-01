@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-01T07:21:51.038322+00:00",
-  "status": "SEVEN_FITS_COMPLETE_CHART_PRIVATE_QUALIFICATION_ADMITTED",
-  "training_enabled": true,
+  "status": "SEVEN_FITS_COMPLETE_CHART_FULLFIT_METADATA_PREFLIGHT_ADMITTED",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only dynamic_m5_direction_family_private_chart_geometry_20261101_001 admits one prescribed32TRAIN/37forward/4update private qualification through the existing bound campaign after fresh full-machine idle review. Generic native launch, full fit, original campaign relaunch, extra passes, reboot, TEST, Exit and trading remain closed.",
-  "next_action": "Materialize the exact chart-private campaign on clean committed source, install its unique task, verify fresh full-machine idle evidence, and launch once without reboot. Then close qualification and review actual receipt before prescribed full fit. Three full variants and54pairedcontrasts remain.",
+  "rule": "Only one exact capped metadata/hash preflight for the prepared chart full-fit recipe is admitted. Chart private is complete and consumed; all genuine training/scoring gates remain closed until its own fresh native admission. No relaunch, extra passes, reboot, TEST, Exit or trading.",
+  "next_action": "Run the single capped metadata/hash preflight for the prepared chart full-fit recipe. Reuse qualified control owners and unchanged numerical/model helpers. Genuine full-fit execution remains closed until exact admission and fresh idle proof. Three full variants and54pairedcontrasts remain.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Seven matched fits verified. Chart geometry private metadata passed; one prescribed32TRAIN/37forward/4update mechanics qualification admitted with fresh same-boot idle gate. No chart native process started.",
+    "current_activity": "Seven matched full fits verified. Chart-private qualification completed32TRAIN/37forwards/4updates; own initial,remaining gradients,selective replacement and exact resume verified onboot590. Task disabled,250Wretained. Prescribed chart full-fit recipe preparation next. Full-fit recipe prepared with65current source owners and unchanged numerics; exact metadata preflight admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No known execution blocker; campaign materialization and fresh Windows/WSL idle review required before one manual start.",
+    "current_blocker": "No execution blocker; exact chart full-fit metadata preflight pending before native admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Materialize the exact chart-private campaign on clean committed source, install its unique task, verify fresh full-machine idle evidence, and launch once without reboot. Then close qualification and review actual receipt before prescribed full fit. Three full variants and54pairedcontrasts remain.",
+    "next_action": "Run the single capped metadata/hash preflight for the prepared chart full-fit recipe. Reuse qualified control owners and unchanged numerical/model helpers. Genuine full-fit execution remains closed until exact admission and fresh idle proof. Three full variants and54pairedcontrasts remain.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17461,7 +17461,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "EXACT_CHART_GEOMETRY_PRIVATE_32TRAIN_37FORWARD_4UPDATE_ONE_INVOCATION_ONLY",
+    "current_training_scope": "NONE_CHART_PRIVATE_CONSUMED_FULLFIT_NOT_YET_ADMITTED",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17875,7 +17875,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "Generic native launch remains closed. Only the exact chart-private qualification may execute through its bound existing campaign after fresh idle admission."
+    "current_native_launch_scope": "All genuine execution closed; chart private consumed, chart full fit not yet admitted."
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -31225,7 +31225,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35967,7 +35967,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "EXACT_CHART_GEOMETRY_PRIVATE_32TRAIN_37FORWARD_4UPDATE_ONE_INVOCATION_ONLY",
+  "training_enabled_scope": "NONE_CHART_PRIVATE_CONSUMED_FULLFIT_NOT_YET_ADMITTED",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48268,7 +48268,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "SEVEN_FITS_COMPLETE_CHART_PRIVATE_QUALIFICATION_ADMITTED",
+    "status": "SEVEN_FITS_COMPLETE_CHART_FULLFIT_METADATA_PREFLIGHT_ADMITTED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48520,6 +48520,18 @@
     "chart_geometry_private_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_CHART_GEOMETRY_001/RECIPE_PREFLIGHT_001.json",
       "sha256": "4f3c4fdc2de91498f7014c791c2623a6d03a0c2e54678b628e3abfb39331844f"
+    },
+    "chart_geometry_private_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_CHART_GEOMETRY_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "546257516142ab08b5579a40146c77682455a48ca19d1152196c58d93ad3639c"
+    },
+    "chart_geometry_private_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_CHART_GEOMETRY_001/VERIFIED_TERMINAL.json",
+      "sha256": "79a3f23170abf858f25a930e131dc9bc6d11ec423ae4edfb72579e6e463ad247"
+    },
+    "prepared_chart_geometry_full_fit_recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_ONEPASS_FIT_RECIPE_20261101.json",
+      "sha256": "7b6b3acf21c897607a67f5bb236e0b86a20bbefb30862139ea80cb26569fe0f0"
     }
   },
   "direction_family_input_pilot_20261030_001": {
@@ -50233,7 +50245,7 @@
     "later_scoring_complete": true
   },
   "direction_family_chart_geometry_preparation_20261101_001": {
-    "status": "METADATA_COMPLETE_EXACT_PRIVATE_QUALIFICATION_ADMITTED_SEPARATELY",
+    "status": "PRIVATE_QUALIFICATION_COMPLETE_CONSUMED",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_PRIVATE_RECIPE_20261101.json",
       "sha256": "d7f7dc87fed9b6339c4ecc72c7c512d7df29fbbf5b33703a3480466fb7283777"
@@ -50280,7 +50292,7 @@
     }
   },
   "dynamic_m5_direction_family_private_chart_geometry_20261101_001": {
-    "status": "ADMITTED_ONE_CHART_GEOMETRY_PRIVATE_QUALIFICATION",
+    "status": "COMPLETE_CONSUMED_CHART_GEOMETRY_PRIVATE",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_PRIVATE_RECIPE_20261101.json",
       "sha256": "d7f7dc87fed9b6339c4ecc72c7c512d7df29fbbf5b33703a3480466fb7283777"
@@ -50289,8 +50301,8 @@
     "source_owner_count": 63,
     "family_arm": "chart_geometry_encoder",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "scope": "One same-boot family private mechanics qualification:32unique TRAIN parents,4physical updates,37forwards; own initial,shared unperturbed parity,all60heads and remaining gradient contact,selective replacement,exact resume. No full fit.",
     "qualification_weights_for_main_fit": false,
@@ -50309,16 +50321,16 @@
       "sha256": "e3debe064f4a0ca57f275a36bbab4c2385856d530f030fbd8bc13644f99850e5"
     },
     "user_authorization": "Original explicit matched-nine-family study and continuation; prescribed chart geometry arm after seven completed fits. Unchanged numerics/protocol and fresh exact one-shot qualification. No architecture/loss/extra-pass change.",
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "campaign_preparation_authorized": true,
-    "same_boot_after_idle_review_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
+    "same_boot_after_idle_review_authorized": false,
     "physical_restart_before_each_invocation_authorized": false,
     "physical_restart_before_invocation_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -50341,6 +50353,65 @@
     "same_boot_control_qualification": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SAME_BOOT_CONTROL_QUALIFICATION_001/FOCUSED_ADMISSION_RETEST_RESULT.json",
       "sha256": "0a830360592b2d336375716d6952a823832a24f22343cb297b3149979d0b52c1"
+    },
+    "verified_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_CHART_GEOMETRY_001/VERIFIED_TERMINAL.json",
+      "sha256": "79a3f23170abf858f25a930e131dc9bc6d11ec423ae4edfb72579e6e463ad247"
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_CHART_GEOMETRY_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "546257516142ab08b5579a40146c77682455a48ca19d1152196c58d93ad3639c"
+    },
+    "task_disabled": true,
+    "power_retained_w": 250,
+    "peer_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_CHART_GEOMETRY_001/FINAL_PRIVATE_PEER_REVIEW_001.json",
+      "sha256": "75c6abfe04419b521f4ae3839613d33d40aa4f1d07a4a39c534fa1879d5464d2"
+    }
+  },
+  "direction_family_chart_geometry_fit_preparation_20261101_001": {
+    "status": "RECIPE_PREPARED_EXACT_METADATA_PREFLIGHT_ADMITTED",
+    "recipe": {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_ONEPASS_FIT_RECIPE_20261101.json",
+      "sha256": "7b6b3acf21c897607a67f5bb236e0b86a20bbefb30862139ea80cb26569fe0f0"
+    },
+    "source_owner_count": 65,
+    "source_edits_authorized": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "genuine_forward_authorized": false,
+    "genuine_updates_authorized": false,
+    "test_data_used": false,
+    "private_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_CHART_GEOMETRY_001/ACTUAL_ROOT_REVIEW_001.json",
+      "sha256": "546257516142ab08b5579a40146c77682455a48ca19d1152196c58d93ad3639c"
+    },
+    "private_peer_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_CHART_GEOMETRY_001/FINAL_PRIVATE_PEER_REVIEW_001.json",
+      "sha256": "75c6abfe04419b521f4ae3839613d33d40aa4f1d07a4a39c534fa1879d5464d2"
+    },
+    "control_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/SESSION_SCORING_RECOVERY_SOURCE_002/RESULT.json",
+      "sha256": "e3debe064f4a0ca57f275a36bbab4c2385856d530f030fbd8bc13644f99850e5"
+    },
+    "metadata_preflight": {
+      "execution_authorized": true,
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/recipe_preflight_001.py",
+        "sha256": "b01708d593aff58a0df995742a0410cb4a8ea8595e2f50b956d1c624e544e10b"
+      },
+      "recipe": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_ONEPASS_FIT_RECIPE_20261101.json",
+        "sha256": "7b6b3acf21c897607a67f5bb236e0b86a20bbefb30862139ea80cb26569fe0f0"
+      },
+      "max_invocations": 1,
+      "claimed_invocations": 0,
+      "completed_invocations": 0,
+      "relaunch_allowed": false,
+      "metadata_and_qualified_file_hash_reads_authorized": true,
+      "model_or_checkpoint_deserialization_authorized": false,
+      "optimizer_updates_authorized": false,
+      "test_data_used": false
     }
   }
 }
