@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+01.11 — OPPRYDDING OG LESEDIAGNOSE FERDIG; INGEN EDGE PÅVIST. Retention-eieren slettet tre ubrukte tempmapper, 72 128 162 964 bytes (72,13 GB / 67,17 GiB); ledig Linux-plass økte målt 72 128 102 400 bytes. Aktive data, tilstander, prediksjoner og gjenbrukt SUPPORT_SCRATCH er bevart. Ny analyse av alle sju komplette varianters lagrede prediksjoner finner svak femminutters TRAIN-rangering også på siste treningsdesil og Q1-måneds-AUC 0,49116–0,51745. Kilde og lagrede vekter bekrefter bevisst nullinitialisering av firefelts prisprojeksjon, mot ordinær GC-initialisering; tidligere aktiveringsmåling viser en liten prisrute. Dette er et konkret designspor, ikke bevist rotårsak. To separate forslag er dokumentert: eksplisitt prisinitialisering og native prisrelative GC-koordinater. Ingen av dem er implementert. Ekstrapass, 10x-vekt og øvrige eksisterende kontrollforsøk skal ikke gjentas som nye ideer. Målet om en avgrenset evidensdiagnose og løsningsforslag er levert; faktisk årsak, forbedring og edge er uavklart. Ingen nye modellkjøringer, trening, omstart, TEST eller handel. Se docs/DIRECTION_EDGE_CAUSE_REVIEW_20261101.json, siste del av docs/DIRECTION_FAMILY_BASELINE_RESULT_20261031.md og NEXT_RUN_POLICY.current_work.edge_cause_goal_20261101.
+
 01.11 — SISTE BRUKERBESKJED: ALLE NYE MODELLKJØRINGER AVVIST. Chart-evalueringen er stoppet og skal ikke relanseres. Den foreslåtte 256-raders kapasitetstesten er uttrykkelig avvist og aldri kjørt. Ingen trening, evaluering, forward/backward, omstart eller nye familievarianter. Tillatt arbeid er lesende undersøkelse av eksisterende resultater, kode og lagrede tilstander. Lesediagnosen i FIT_BASELINE_001 er fullført: samme256 matcher eksakt; femminutters treff129→126/256, logloss0,784835→0,692317, AUC0,440979→0,545166. Alle627 aktive parametertensorer er endret og har2976 Adam-steg;179inaktive og buffere er uendret. Sluttmålingen brukte trente vekter. Tilpasning finnes, men årsaken til svak senere rangering er fortsatt ukjent. Se docs/DIRECTION_FAMILY_BASELINE_RESULT_20261031.md og den hashbundne saved_learning_diagnosis i policy. Ingen native modellprosess observert ved overtakelsen. Ucommittet kontrollkode og tester fra forrige agent er bevart, ikke autorisert for kjøring. TEST, broker og handel er stengt. Eldre neste-steg-tekst nedenfor er historikk og gir ingen kjøreautoritet.
 
 01.11 — SYV AV TI VARIANTER FULLFØRT: Session/regime er ferdig kontrollert. Original trening fullførte 47 602 TRAIN-rader og 2 976 oppdateringer før Windows-krasjet. Originalt evalueringsvindu er fortsatt avbrutt med ukjent native sluttkode. En separat kjøring fullførte full TRAIN og 17 288 senere Q1-rader med 4 057 forwards og null nye oppdateringer; semantisk modelltilstand er bevart. Sluttkvittering, vakter, alle 60 lagrede modell-/priorpaneler og faktisk metadataovergang til sammenligningskalleren bestod. Original trening og ny scoring beholdes som to ekte kjeder. Fem minutter: TRAIN 51,3028 % / AUC 0,515554; Q1 50,4886 % / 0,505650. Q1 er svakere enn fast TRAIN-prior på treff, logloss og Brier; ingen familieeffekt eller økonomisk fordel er fastslått. Begge session-oppgaver er deaktivert, 250 W beholdt og session-portene stengt. Ingen ny omstart. Chart geometry privat kvalifisering og treningsdelen er fullført, men evalueringen ble avbrutt som beskrevet ovenfor. Chart geometry full evaluering, price action/candle, macro og 54 parrede kontraster gjenstår. Ingen chart-kjøring er nå innrømmet. Se docs/DIRECTION_FAMILY_SESSION_REGIME_RESULT_20261101.md og NEXT_RUN_POLICY.
@@ -649,12 +651,13 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 
 ## Neste minste steg
 
-Den bestilte lesediagnosen er fullført innen eksisterende evidens. Ingen ny
-modellkjøring, kapasitetstest, familievariant eller omstart står i kø.
-Årsaken til svak senere retningsprediksjon forblir uavklart; dette åpner ikke
-mer trening. Originalvekter, resultater og ucommittet kontrollkode er bevart.
-Gjeldende detaljer og målegrenser står i NEXT_RUN_POLICY.json og
-docs/DIRECTION_FAMILY_BASELINE_RESULT_20261031.md.
+Lesediagnosen og to konkrete løsningsforslag er levert. Ingen ny automatisk
+modelljobb eller omstart er planlagt. Rotårsak og forbedring er ikke bevist.
+Dagens mål er 60 terminalretninger, ikke hele M5 Entry-forløpsmålet.
+Eventuelle nye modellkjøringer forutsetter at brukeren uttrykkelig opphever
+forbudet; tidligere engangstillatelser gir ingen autoritet. Ikke gjenta
+allerede fullførte ekstra-pass-, rekkefølge-, hode-, 10x-vekt- eller
+momentumkontroller som uprøvde tiltak. TEST og handel forblir stengt.
 
 ## Hva som er endret og fortsatt åpent
 

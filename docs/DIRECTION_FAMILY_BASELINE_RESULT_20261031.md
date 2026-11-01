@@ -137,3 +137,135 @@ omstart, TEST eller handel er utført.
 
 Aggregert evidens og eksakte originale filhasher:
 [DIRECTION_FAMILY_BASELINE_SAVED_DIAGNOSIS_20261101.json](DIRECTION_FAMILY_BASELINE_SAVED_DIAGNOSIS_20261101.json).
+
+## Utvidet årsaksdiagnose og løsningsforslag 01.11
+
+Brukerens nye mål ble opprettet etter at retention-eieren slettet tre
+forlatte, byte-identiske materialiseringsmapper: **72 128 162 964 bytes**
+(72,13 GB / 67,17 GiB). Ledig Linux-plass økte målt 72 128 102 400 bytes.
+Aktive datasett, originale vekter/prediksjoner og gjenbrukt SUPPORT_SCRATCH
+er beholdt. Ingen omstart eller VHD-komprimering ble utført.
+
+### Ny måling uten modellkjøringer
+
+Alle sju komplette varianters lagrede TRAIN/Q1-prediksjoner ble undersøkt
+i én capped 4 GiB CPU-analyse. 396,6 MB arkiver, 3,45 sekunder i analysen.
+Samme 47 602 TRAIN- og 17 288 senere foreldre; gyldige femminuttersutfall
+47 282 og 17 192. Foreldre, klokker, fasit og masker matcher mellom armene.
+Den faktiske lagrede treningsrekkefølgen er digest-verifisert. Alle 14
+hele femminutterspaneler er gjenskapt; arkivene ble rehashet etter analysen.
+Dette fullfører ikke den avbrutte ti-armers familiesammenligningen.
+
+På forhånd fastsatte paneler: alle ti desiler i treningsrekkefølgen,
+første/siste 256 presentasjoner og alle kalendermåneder. Ingen beste arm,
+måned eller terskel er valgt. TRAIN dekker mai–desember 2024; senere data
+er januar–mars 2025. Disse periodene er gjenbrukt utvikling.
+
+- Siste TRAIN-desil har AUC **0,49946–0,52054**. Seks av sju varianter har
+  lavere AUC der enn i første desil. Ingen konsekvent fordel for de sist
+  presenterte radene; glemsel er likevel ikke formelt avvist.
+- Alle 21 variant/måneds-paneler i Q1 har AUC **0,49116–0,51745**. Ingen
+  sterk deskriptiv måned skjules av kvartalsgjennomsnittet. Dette er ikke
+  statistisk bevis for fravær av ethvert signal.
+- Svakhet finnes allerede på TRAIN. Et senere domene-skift kan derfor
+  ikke alene forklare hele problemet.
+
+Baseline viser også en tydelig horisontforskjell:
+
+| Prognosehorisont fra M5 | TRAIN AUC | Senere Q1 AUC |
+|---|---:|---:|
+| 1 minutt | 0,50038 | 0,49914 |
+| 5 minutter | 0,50235 | 0,49696 |
+| 15 minutter | 0,53277 | 0,50743 |
+| 30 minutter | 0,54556 | 0,51253 |
+| 60 minutter | 0,54801 | 0,51895 |
+
+Det finnes høyere målt rangering på lengre horisonter, særlig i TRAIN.
+Dette kvalifiserer ikke nyttig fremtidig retning; Q1-sannsynlighetsscorene
+er fortsatt svakere enn den faste TRAIN-prioren på alle 60 horisonter.
+
+### Konkret designasymmetri bekreftet fra kode og lagrede vekter
+
+Den utvidede prisruten for RSI14, MACD-linje, MACD-histogram og ret_1
+nullinitialiseres eksplisitt i `entry_v10_ctx_hybrid_transformer.py:1560`.
+Nullstarten er et bevisst valg for å bevare forgjengerens funksjon.
+GC-projeksjonene får ordinær Linear-initialisering. Den aktuelle kilden er
+byteidentisk med den opprinnelige baselinekilden.
+
+Alle 512 prisprojeksjonsvektene startet på null. Etter 2 976 Adam-steg er
+alle endret, vekt-RMS er 0,002574 og Frobenius-normen 0,058242. De fem
+GC-projeksjonene startet ikke på null. Matrisene har ulik bredde, så deres
+Frobenius-forhold er ikke et mål på aktiveringsforholdet. Den separate,
+allerede utførte aktiveringsmålingen viser prisruten på 0,81–1,52 % av GC.
+
+For p=Wx+b med W=b=0 er prisbidraget og gradienten tilbake til denne
+grenens input/gate null ved start, mens W selv kan få gradient. MTF har
+en direkte vei til entry_q_joint_hidden via mtf_repr, uten de nullstartede
+cross_tf/family_tf-residualene. Hele MTF-ruten er dermed ikke stengt.
+
+Dette viser en initial asymmetri og en liten terminal prisrute. Det
+beviser ikke hvorfor terminalruten forble liten, at råfeltene har nyttig
+retningsinformasjon, eller at annen initialisering vil gi edge.
+
+### Reelt inputskift, med avgrenset forklaringskraft
+
+Den fullførte inputauditen viser GC-D1-historikkdekning på 0–168 steg i
+TRAIN mot 169–230 senere, og 17 aktive nåkontekstfelt helt uten senere
+dekning. Dette er tilgjengelighet; D1-tallene er ikke volumverdiene.
+
+Rangeauditen finner GC-verdier utenfor TRAIN-området på 86,16 % av Q1-radene.
+Eksempel: gc_m5_observed_vwap_usd hadde TRAIN-maks 2 801,405 USD og
+Q1-median omtrent 2 907,042 USD. Fold og prefixnormalisering samsvarer med
+familiebaseline, men den eldre analysens fulle feature-view/modell er ulik.
+Rå domenefunn kan brukes som spor; eldre prognoseundergrupper kan ikke
+ommerkes som målinger av dagens modell.
+
+### Tiltak som allerede er prøvd
+
+| Kontroll | Målt senere femminuttersresultat | Begrensning |
+|---|---|---|
+| Ett til to pass, 60 mål | AUC 0,496961→0,506181; logloss 0,694381→0,696234. Begge parrede AUC-intervaller omfatter null. | Ingen kvalifisert forbedring; samme256 TRAIN bedres mens senere sannsynlighetsscore forverres. |
+| 10× femminuttersvekt | AUC 0,496961→0,500775; logloss 0,694381→0,693230. | Under fast prior; parrede AUC-intervaller omfatter null. |
+| Ett til tre pass, eldre tre-headmodell | TRAIN AUC 0,515888→0,533534; Q1 0,503021→0,500950. | Eldre funksjon; større TRAIN-fit løste ikke senere rangering. |
+| Kronologisk rekkefølge, eldre modell | Q1 AUC 0,503021→0,498501. | Ikke dagens 60-headfunksjon. |
+| Konvergert lineært hode på frosset eldre representasjon | TRAIN AUC 0,539421; Q1 0,503360, med dårligere logloss. | Svekker siste lineære hode som eneste forklaring. |
+| Nulle de fire momentumfeltene i trent modell | Ingen retningsskifter på 256 TRAIN/1 736 Q1, alle 60 horisonter. | Bare denne smale ruten; ikke all prisinformasjon. |
+
+Disse forsøkene er grunnlag for prioritering, ikke forslag om å kjøre dem igjen.
+
+### Prioriterte, konkrete løsningsforslag
+
+**1. Gjør prisrutens initialisering til et eksplisitt designvalg.** Minste
+kandidat er å beholde den eksisterende ordinære Linear-initialiseringen
+for de fire prisfeltene, med samme RNG-isolering, i stedet for å nullstille
+vektene etter konstruksjon. Bruk eksisterende profil-/kontrakteier og bind
+ny funksjonsidentitet; dagens sammenligningsbaseline skal ikke omskrives.
+Ingen vilkårlig oppskalering, nye felter eller endrede masker/targets trengs
+for dette avgrensede forslaget. Det er en hypotese, ikke en bevist rettelse.
+
+**2. Forbered native prisrelative GC-koordinater som et separat tiltak.**
+Gjenbruk kilde-, enhets- og ankerlogikken i gc_relative_price_coordinates_v1,
+som allerede brukes av snapshot-ruten. Native adapter må eksplisitt
+kartlegge nivåfeltene for hver tidsramme, bevare rådata, observasjonsmasker,
+prisanker og basis/kontraktsinformasjon, og måle numerisk roundtrip-feil.
+Dette skal ikke blandes med initialiseringsendringen i ett uatskillelig forsøk.
+Snapshot-evidensen beviser ikke at native innføring vil virke.
+
+Ingen av forslagene er implementert eller kjørt. Alle genuine familier og
+tidsrammer beholdes. En senere godkjenning av modellkjøringer må komme fra
+brukeren; da kreves fersk egenbaseline og forhåndsbestemte sammenligninger
+på hele populasjonen. Høyere aktivering eller TRAIN-fit alene er ikke suksess.
+
+### Uavklart
+
+Rotårsaken til manglende nyttig fremtidig retningspresisjon er ikke endelig
+bevist. Råinputenes potensielle informasjon, faktisk konvergens, historisk
+glemsel og effekten av de foreslåtte endringene er fortsatt uavklart.
+De 60 binære terminalretningene dekker heller ikke hele M5 Entry-målet
+med prisforløp, MAE/MFE og FLAT. Dette scopegapet forklarer ikke i seg
+selv svak retningsprediksjon.
+Ingen ny modellkonstruksjon, forward/backward, optimizeroppdatering, TEST,
+broker eller handel er utført. Kun lagrede arrays/tensorer og kilde er lest.
+
+Maskinlesbar sammenstilling, eksakte artefakthasher og målegrenser:
+[DIRECTION_EDGE_CAUSE_REVIEW_20261101.json](DIRECTION_EDGE_CAUSE_REVIEW_20261101.json).

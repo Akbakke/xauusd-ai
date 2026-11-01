@@ -1,0 +1,201 @@
+{
+  "schema_version": "gx1_existing_evidence_edge_cause_review_v1",
+  "status": "READONLY_DIAGNOSIS_COMPLETE_ROOT_CAUSE_AND_IMPROVEMENT_UNPROVEN",
+  "observed_utc": "2026-11-01T17:19:49.999527+00:00",
+  "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
+  "cleanup": {
+    "path": "/home/andre2/GX1_RUNS/RETENTION_UNUSED_20261101_001/VERIFIED_RESULT.json",
+    "sha256": "04ac5c36082f7d73bbfb1629b08fbdd8c72548bdd77a0cbd0f1de1591eb9660f"
+  },
+  "saved_prediction_analysis": {
+    "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/RESULT.json",
+    "sha256": "c783a8f99dfb41d77c99ae314401dd48342aad714311b37c549ac821c52eeaf0"
+  },
+  "saved_initialization_audit": {
+    "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/INITIALIZATION_AUDIT.json",
+    "sha256": "4bc8205cb061265c4143b89d9d2d85dc7c442b5825623a2c7ecfeb3db3f5ff31"
+  },
+  "independent_aggregate_and_input_verification": {
+    "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/AGGREGATE_AND_INPUT_VERIFICATION.json",
+    "sha256": "b59a43e1f3b190411c5b6edca38112c14e64466412923589f1d674a9dfd45c9a"
+  },
+  "analysis_workers": [
+    {
+      "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/analyze_saved_predictions.py",
+      "sha256": "4511ec686d636776238251836786bad06f4a83c4887fefcbf731108728d2e114"
+    },
+    {
+      "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/audit_saved_initialization.py",
+      "sha256": "f8c66ca11402cbd42df0b2bcfe2cc4ae2b1243cccac6d5dbd7746189360ae4ae"
+    }
+  ],
+  "reused_evidence": [
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FACTOR_SIGN_TWOPASS_RESULT_20261030.md",
+      "sha256": "e8bd941d5639badb65aa447972c2ed0cc7ab9d4a31522211a3c772cd902e8176"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_FIVE_PRIORITY_RESULT_20261030.md",
+      "sha256": "b55976672a7fa8ed2d51704b89de217e4bf5e9a9a7475dd484863be202a3ba95"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_MATCHED_EXPOSURE_FULLTRAIN_RESULT_20261028.json",
+      "sha256": "402482ddeb125d747baf4fc1e87b954c9772d761278af1a2dfd759c211acf03f"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FROZEN_READOUT_RESULT_20261027.json",
+      "sha256": "d52af9c879e7fe2f3bd99f4f841b1b33ee2c7bb528d639eeb433d1e8aa807ff8"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_M5_MOMENTUM_INTERVENTION_RESULT_20261029.md",
+      "sha256": "9f72547d975bbf2fbf050cf2e2a160a66de7598985249f4214b21996d92a4048"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_UPSTREAM_GRADIENT_RESULT_20261031.md",
+      "sha256": "0d915b55116ddd0046e8ec12826749fdcb1d66c6a8ca5f95787a8aadb3de09cd"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_INPUT_FULL_RESULT_20261030.md",
+      "sha256": "774239e3cf05eb9d87069e8b74678562ddc05f31f84384a2e335b06fe8cf3f60"
+    },
+    {
+      "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_GC_CONTEXT_RANGE_DIAGNOSIS_20261028.json",
+      "sha256": "a32df96dc55669ef6efc4b5b47a28249adf8cd71f4f5b32362e197d090f27962"
+    }
+  ],
+  "new_measurements": {
+    "completed_variants": 7,
+    "train_parent_rows": 47602,
+    "later_parent_rows": 17288,
+    "eligible_five_minute_train": 47282,
+    "eligible_five_minute_later": 17192,
+    "train_calendar_months": [
+      "2024-05",
+      "2024-06",
+      "2024-07",
+      "2024-08",
+      "2024-09",
+      "2024-10",
+      "2024-11",
+      "2024-12"
+    ],
+    "later_calendar_months": [
+      "2025-01",
+      "2025-02",
+      "2025-03"
+    ],
+    "last_train_decile_auc_min": 0.49945940588868754,
+    "last_train_decile_auc_max": 0.5205420376106997,
+    "last_decile_auc_lower_than_first_variants": 6,
+    "later_month_auc_min": 0.49116010966534157,
+    "later_month_auc_max": 0.5174542469416669,
+    "baseline_auc_by_horizon": [
+      {
+        "minutes": 1,
+        "train_auc": 0.5003817503843141,
+        "later_auc": 0.49913573422868407
+      },
+      {
+        "minutes": 5,
+        "train_auc": 0.5023466974356278,
+        "later_auc": 0.49696102801578906
+      },
+      {
+        "minutes": 15,
+        "train_auc": 0.5327708912327491,
+        "later_auc": 0.5074295726191865
+      },
+      {
+        "minutes": 30,
+        "train_auc": 0.5455551027240806,
+        "later_auc": 0.5125293921966942
+      },
+      {
+        "minutes": 60,
+        "train_auc": 0.548012089755275,
+        "later_auc": 0.5189470170049364
+      }
+    ],
+    "price_projection_weight": {
+      "name": "backbone.mtf_family_proj.momentum_flow_encoder.weight",
+      "shape": [
+        128,
+        4
+      ],
+      "elements": 512,
+      "initial_nonzero": 0,
+      "final_nonzero": 512,
+      "initial_frobenius_norm": 0.0,
+      "final_frobenius_norm": 0.058242442706336,
+      "initial_weight_rms": 0.0,
+      "final_weight_rms": 0.002573976636907448,
+      "change_frobenius_norm": 0.058242442706336,
+      "adam_step": 2976,
+      "adam_epsilon": 1e-08,
+      "coordinates_adam_second_moment_rms_le_epsilon": 0
+    }
+  },
+  "established": {
+    "parameter_updates_and_trained_scoring": true,
+    "saved_parent_target_mask_order_alignment": true,
+    "price_projection_zero_at_initialization": true,
+    "price_projection_can_receive_first_step_weight_gradient": true,
+    "all_MTF_paths_blocked_by_zero_residuals": false,
+    "new_model_calls": 0,
+    "new_optimizer_steps": 0,
+    "test_data_used": false,
+    "restart_performed": false,
+    "objective_scope": "The 60 binary terminal-direction targets do not cover the full M5 Entry path/MAE/MFE/FLAT objective. This scope limitation does not by itself explain weak direction discrimination."
+  },
+  "interpretation": [
+    "Weak five-minute discrimination appears on TRAIN, including late presentation groups; calendar aggregation does not hide a strong descriptive Q1 month in these seven variants.",
+    "This is not a formal rejection of forgetting or proof that raw inputs contain no signal.",
+    "Longer-horizon TRAIN ranking is stronger than short-horizon ranking, but useful future direction is unqualified.",
+    "Initial zero price projection versus ordinary GC initialization is a source-proven asymmetry. Terminal weight norms and separately measured weak activation support inspecting this integration, not a proven causal fix.",
+    "Input availability/range shifts are real. They cannot alone explain weak TRAIN ranking; some older output-subgroup measurements have different feature-view/model identity.",
+    "Matched two-pass and10x five-minute-weight results do not qualify more identical training as a solution."
+  ],
+  "prioritized_proposals": [
+    {
+      "priority": 1,
+      "proposal": "Make the four-field native price-projection initialization explicit; consider existing ordinary Linear initialization instead of the current zero residual, with RNG isolation and fresh function identity.",
+      "owners": [
+        "gx1/features/entry_direction_momentum_profile_v1.py",
+        "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py:1560"
+      ],
+      "basis": "Intentional zero initialization preserves the predecessor function. Exact initial zeros and small trained price activation motivate a distinct initialization hypothesis, not a proven bug or causal fix; no invented multiplier or blanket feature removal.",
+      "implementation_status": "PROPOSAL_ONLY_NOT_IMPLEMENTED",
+      "validation_required": "Any actual constructor/forward/training requires the user to lift the current prohibition. Preserve own fresh baseline, all other inputs/masks/targets and predetermined full-population comparisons; improved activation alone is insufficient."
+    },
+    {
+      "priority": 2,
+      "proposal": "Design native GC price-relative coordinates using the existing source/unit/anchor contract, including all relevant native timeframes, preserved masks/anchor/basis and measured numeric roundtrip error.",
+      "owners": [
+        "gx1/contracts/gc_relative_price_coordinates_v1.py",
+        "gx1/contracts/entry_relative_price_snapshot_v1.py",
+        "gx1/contracts/entry_native_direction_feature_view_v1.py"
+      ],
+      "basis": "Absolute price range and history-availability shift across the chronological split; snapshot implementation already exists but is not a proven native fix.",
+      "implementation_status": "PROPOSAL_ONLY_NOT_IMPLEMENTED",
+      "validation_required": "Explicit native field/unit mapping and TRAIN-only normalization; no changing the scoring population or introducing future anchors. Evaluate separately from initialization after distinct authorization."
+    }
+  ],
+  "not_recommended_as_untried_solutions": [
+    "Repeating same-family full fits",
+    "Repeating two-pass or10x five-minute-weight controls",
+    "Repeating the already-complete narrow momentum-zeroing or unseen-GC-field-zeroing interventions"
+  ],
+  "unknown": [
+    "Information potentially recoverable from genuine inputs before encoding",
+    "Causal effect of alternative initialization or native price coordinates",
+    "Current-function convergence and transient learning/forgetting history",
+    "Independent prospective directional or economic edge"
+  ],
+  "review": {
+    "separate_read_only_agents": true,
+    "aggregate_partition_checks": 21,
+    "maximum_peer_reported_weighted_metric_discrepancy": 2.220446049250313e-16,
+    "norm_caveat": "GC matrices contain more coordinates; Frobenius ratios alone are not activation-strength ratios. Use the separate actual activation audit for amplitude claims.",
+    "final_source_review": "Passed after correcting the momentum-profile owner path and replacing learned ranking with measured ranking in the horizon comparison. No causal improvement or edge is claimed."
+  }
+}

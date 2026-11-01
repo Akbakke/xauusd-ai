@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T16:06:03.617060+00:00",
-  "status": "SEVEN_FITS_COMPLETE_SAVED_LEARNING_DIAGNOSIS_COMPLETE_NEW_MODEL_RUNS_REJECTED",
+  "observed_utc": "2026-11-01T17:26:05.028742+00:00",
+  "status": "RETENTION_72GB_AND_SAVED_EVIDENCE_DIAGNOSIS_COMPLETE_NO_EDGE_PROVEN_NO_MODEL_RUNS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest explicit user instruction rejects all new model runs, including the proposed256-row capacity test. Existing chart stop remains final; preserve all original results, weights, checkpoints and incomplete status. Only read-only saved-evidence/source diagnosis is authorized. TEST, broker and trading remain closed.",
-  "next_action": "Read-only saved-evidence diagnosis completed. Same256 identity, matched predictions, all627 active parameter updates and2976 Adam steps verified; weak later direction cause remainsUNKNOWN. No model run, capacity test, restart, family continuation, TEST or trading is authorized. Preserve existing code, original states and incomplete chart results; no automatic next execution.",
+  "next_action": "No model run, restart or automatic experiment is queued. Present the completed evidence review and proposals. Root cause and improvement remain unproven; any new genuine model execution requires the user to lift the current prohibition.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "01.11: investigate weak learning using existing results, source and saved states only. All new model runs and restarts explicitly rejected, including256-row control.",
-    "current_activity": "Completed read-only matched256 TRAIN and saved parameter/optimizer diagnosis.",
+    "current_activity": "72.13 GB retention deletion verified. Saved-prediction/state diagnosis and prior-control synthesis complete; two bounded design proposals documented, neither implemented or proven to improve edge.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Read-only saved-evidence diagnosis completed. Same256 identity, matched predictions, all627 active parameter updates and2976 Adam steps verified; weak later direction cause remainsUNKNOWN. No model run, capacity test, restart, family continuation, TEST or trading is authorized. Preserve existing code, original states and incomplete chart results; no automatic next execution.",
+    "next_action": "No model run, restart or automatic experiment is queued. Present the completed evidence review and proposals. Root cause and improvement remain unproven; any new genuine model execution requires the user to lift the current prohibition.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17435,7 +17435,7 @@
     },
     "current_training_started": false,
     "private_optimizer_qualification_admitted": false,
-    "active_continuous_goal_thread_id": "01a1777e-c109-7351-b0ba-0d4bf5324429",
+    "active_continuous_goal_thread_id": null,
     "current_generation_initial_baseline_is_current_function": false,
     "current_function_initial_baseline_required_after184": false,
     "current_generation_saved_state_audit_pending": false,
@@ -17889,7 +17889,71 @@
     "latest_saved_learning_diagnosis": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_BASELINE_SAVED_DIAGNOSIS_20261101.json",
       "sha256": "6b8b59f2c68f50c38110b0160bed6921ca4b0ad41c160e25766759dd53bf2bb5"
-    }
+    },
+    "retention_unused_20261101": {
+      "status": "DELETE_COMPLETE_VERIFIED",
+      "operator_request": "Flott! Først, rydd opp masse GB og slett alt vi ikke trenger. Så lag deg et mål og jobb aktivt mot å finne ut av hvorfor vi ikke får Edge i fremtidig retningspresisjon, og kom med forslag og løsninger",
+      "owner": "gx1.scripts.cleanup_gx1_evidence_v1",
+      "run_root": "/home/andre2/GX1_RUNS/RETENTION_UNUSED_20261101_001",
+      "targets_inventory": "/home/andre2/GX1_RUNS/RETENTION_UNUSED_20261101_001/TARGETS.json",
+      "candidate_count": 3,
+      "candidate_payload_bytes": 72128162964,
+      "model_runs_authorized": false,
+      "restart_authorized": false,
+      "protected_scope": "Original model states, predictions, receipts, active26monthGC/native inputs and reused SUPPORT_SCRATCH remain intact.",
+      "verification": {
+        "path": "/home/andre2/GX1_RUNS/RETENTION_UNUSED_20261101_001/VERIFIED_RESULT.json",
+        "sha256": "04ac5c36082f7d73bbfb1629b08fbdd8c72548bdd77a0cbd0f1de1591eb9660f"
+      },
+      "deleted_payload_bytes": 72128162964,
+      "observed_filesystem_free_increase_bytes": 72128102400,
+      "execution_report": {
+        "path": "/home/andre2/GX1_RUNS/RETENTION_UNUSED_20261101_001/execution/GX1_EVIDENCE_CLEANUP_EXECUTION_20261101T164251156218Z.json",
+        "sha256": "ad2af4354ca49f501cd4e71e4d00619c9c1f8e0a1e296a11f88e6bb337fbd050"
+      },
+      "windows_vhd_compacted": false
+    },
+    "edge_cause_goal_20261101": {
+      "status": "EVIDENCE_REVIEW_COMPLETE_PROPOSALS_ONLY_ROOT_CAUSE_UNPROVEN",
+      "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
+      "scope": "Existing source, immutable results, saved predictions and tensor states only; diagnose causes and prioritized solutions. No new models or optimization.",
+      "saved_prediction_analysis": "Predeclare primary5min; allseven completed arms descriptively, fullTRAIN presentation-order deciles and first/last256, allQ1 calendar months. Exact row/target/mask/initial-order joins; no best-arm/period selection or completion claim for ten-arm family study.",
+      "model_calls_authorized": false,
+      "training_enabled": false,
+      "restart_authorized": false,
+      "test_data_used": false,
+      "saved_prediction_plan": {
+        "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/PLAN.json",
+        "sha256": "82b24632b2eff3bcb7972984bc015bcb1ea055f1157864c4fc8c851eb8c1dbb4"
+      },
+      "saved_prediction_worker": {
+        "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/analyze_saved_predictions.py",
+        "sha256": "4511ec686d636776238251836786bad06f4a83c4887fefcbf731108728d2e114"
+      },
+      "saved_prediction_source_review": "Read-only peer checked no model/fit/TEST, exact joins and fixed5min panels. Loaded order digest and plan bookends added; all-parent prediction similarity named explicitly. Canonical metric and typed array digest owners reused.",
+      "result": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_EDGE_CAUSE_REVIEW_20261101.json",
+        "sha256": "84320c1f2d631aa5cddd91fb26f351f521ba5d0df2c27c452e380db1089004a5"
+      },
+      "saved_prediction_result": {
+        "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/RESULT.json",
+        "sha256": "c783a8f99dfb41d77c99ae314401dd48342aad714311b37c549ac821c52eeaf0"
+      },
+      "saved_initialization_audit": {
+        "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/INITIALIZATION_AUDIT.json",
+        "sha256": "4bc8205cb061265c4143b89d9d2d85dc7c442b5825623a2c7ecfeb3db3f5ff31"
+      },
+      "root_cause_proven": false,
+      "fix_implemented": false,
+      "edge_qualified": false,
+      "new_model_calls": 0,
+      "final_review": "Final source peer corrections applied; 14 evidence references and proposal owner paths verified; 21 metric partitions reconciled. JSON, worker syntax, added-line stale-path scan, git diff --check and handover check passed. Handover source identity remains BLOCK_DIRTY_WORKTREE for preserved pre-existing capacity-control edits.",
+      "repository_verification": {
+        "path": "/home/andre2/GX1_RUNS/EDGE_CAUSE_SAVED_DIAGNOSIS_20261101_001/FINAL_REPOSITORY_VERIFICATION.json",
+        "sha256": "9fcb03143d398975351a691300b3c30fd631b9bd02137cf83469985dd9a3774f"
+      }
+    },
+    "completed_evidence_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653"
   },
   "gc_order_flow_research_20261006": {
     "research_id": "GC_ORDER_FLOW_RESEARCH_001",
@@ -35981,7 +36045,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "EXACT_CHART_GEOMETRY_FAMILY_ONEPASS_47602_TRAIN_2976_UPDATES_FULLTRAIN_AND_17288_Q1_ONLY",
+  "training_enabled_scope": "NONE_USER_REJECTED_ALL_NEW_MODEL_RUNS",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
