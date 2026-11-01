@@ -855,6 +855,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
     factor_bps=launch['run_scope']==authority.M5_FACTOR_BPS_SCOPE
     family_fit=launch['run_scope']==authority.FAMILY_SIGN_SCOPE
+    recovery=authority.is_scoring_recovery(launch)
+    recovery_origin=(authority.require_scoring_recovery_origin(launch,source_repo=Path(launch['source_repo']),
+        source_commit=plan['source_commit']) if recovery else None)
     factor_continuation=launch['run_scope']==authority.M5_FACTOR_CONTINUATION_SCOPE
     factor=launch['run_scope'] in (authority.M5_FACTOR_SIGN_SCOPE,authority.M5_FACTOR_BPS_SCOPE,authority.M5_FACTOR_CONTINUATION_SCOPE)
     continuation=launch['run_scope']==authority.CONTINUATION_SCOPE or factor_continuation;order_variant=launch['run_scope']==authority.ORDER_SCOPE;train_passes=launch['train_passes']
@@ -901,11 +904,19 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             context['info']['metadata'][terminal_predictions['path']]={'ref':dict(terminal_predictions),'stat':common._stat(terminal_predictions['path'])}
             context['factor_continuation_reads']=(origin['terminal_state']['path'],origin['initial_state']['path'],terminal_predictions['path'])
     for ref in (window['recipe'],binding['plan'],{'path':str(policy_path),'sha256':policy_file_sha256}):common._read(ref,context['info']['metadata'])
+    if recovery:
+        for key,ref in recovery_origin['origin'].items():
+            if isinstance(ref,dict) and set(ref)=={'path','sha256'}:
+                common._read(ref,context['info']['metadata'])
+        for key in ('initial_measurement','result'):
+            common._read(recovery_origin['cursor'][key],context['info']['metadata'])
+        context['scoring_recovery_read_authority']={'launch':launch,'validated_origin':recovery_origin}
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
-        extra_read_paths=(context['factor_continuation_reads'] if factor_continuation else
+        extra_read_paths=((recovery_origin['cursor']['full_state']['path'],recovery_origin['cursor']['own_initial_state']['path'])
+            if recovery else context['factor_continuation_reads'] if factor_continuation else
             (origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else ()),
         original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None,
         dense_target=context.get('dense_target'),
@@ -925,12 +936,22 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     ceiling=(((train_passes-1 if continuation else train_passes)*((fold['prefix_rows']+15)//16))
         +17+((launch['final_train_measurement_rows']+15)//16 if family_fit else 16)
         +(16 if factor_continuation else 0)+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
+    if recovery:ceiling=4057
     durable=None;observed_progress=None;bps_scale_ref=None
     common._json(work/'CLAIM.json',{'recipe':window['recipe'],'fold':fold,'invocation_number':number,
         'source_head':binding['source_head'],'plan_sha256':plan['plan_sha256'],'limits':limits},counters,launch['max_published_json_bytes'])
     previous_profile=sys.getprofile()
     try:
-        sys.setprofile(common._deny_legacy_work(previous_profile,counters))
+        legacy_profile=common._deny_legacy_work(previous_profile,counters)
+        def scoring_only_profile(frame,event,arg):
+            if event=='call':
+                name=frame.f_code.co_name
+                forbidden=name in ('_train_batch','_step','backward','grad','_engine_run_backward',
+                    '_optimizer_step_with_finite_gradients')
+                optimizer_step=name=='step' and isinstance(frame.f_locals.get('self'),torch.optim.Optimizer)
+                _require(not forbidden and not optimizer_step,'RECOVERY_FORBIDDEN_REVERSE_OR_UPDATE:'+name)
+            legacy_profile(frame,event,arg)
+        sys.setprofile(scoring_only_profile if recovery else legacy_profile)
         prepared,targets,view,context_map,ordered=_prepare(context,input_launch,np,signed_bps=recipe.get('signed_bps_supervision',False),
             magnitude_weighted=recipe.get('magnitude_weighted_direction',False),dense_minutes=recipe.get('dense_minute_supervision',False),
             dense_bps=recipe.get('dense_signed_bps_supervision',False))
@@ -940,6 +961,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         if decimal_fit:
             from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_decimal_prefix_prior
             require_decimal_prefix_prior(prior,context['decimal_sign_audit'])
+        if recovery:
+            prior_cursor=recovery_origin['cursor']
+            _require(prior_cursor['parent_order_sha256']==order_sha,'RECOVERY_SAME_FIXED_PERMUTATION')
         if number>1:
             cursor_ref={'path':window['campaign_cursor_path'],'sha256':marker['pointer_before_sha256']}
             saved_cursor=json.loads(Path(cursor_ref['path']).read_text())
@@ -1022,11 +1046,15 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 'RESTORED_PROGRESS')
             restored_state=state_owner.capture_native_direction_research_state(model,optimizer,recipe=recipe,feature_view_identity=view_identity,
                 parent_order=order,cursor=restored['cursor'],optimizer_updates=restored['optimizer_updates'],device=device,train_passes=train_passes)
-            _require(restored_state['contract_sha256']==loaded['contract_sha256'],'EXACT_SERIALIZED_FULL_RESUME');del restored_state
+            _require(restored_state['contract_sha256']==loaded['contract_sha256'],'EXACT_SERIALIZED_FULL_RESUME')
+            if recovery:
+                _require(restored_state['contract_sha256']==authority.SCORING_RECOVERY_STATE_SEAL,
+                    'RECOVERY_ORIGINAL_FULL_STATE_SEAL')
+            del restored_state
             del loaded;parent_cursor=restored['cursor'];updates=restored['optimizer_updates'];phase=prior_cursor['phase_state']
             final_measurement=prior_cursor['final_train_measurement'];full_state=prior_cursor['full_state']
         durable={'state':full_state or initial_ref,'parent_cursor':parent_cursor,'optimizer_updates':updates}
-        while parent_cursor<train_passes*len(ordered) and time.monotonic()<deadline:
+        while not recovery and parent_cursor<train_passes*len(ordered) and time.monotonic()<deadline:
             within,right,next_cursor=_next_training_parent_range(parent_cursor,len(ordered),train_passes)
             raw,target=_batch(prepared,targets,view,ordered[within:right],np)
             features,device_target=_device_batch(raw,target,torch,device)
@@ -1072,6 +1100,14 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         full_state,seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=parent_cursor,updates=updates,
             state_directory=state_directory,name=f'w{number:04d}_TERMINAL_u{updates:06d}_p{parent_cursor:06d}',launch=launch,
             counters=counters,torch=torch,device=device,common=common,state_owner=state_owner,train_passes=train_passes)
+        if recovery:
+            _require(seal==authority.SCORING_RECOVERY_STATE_SEAL,'RECOVERY_SCORING_FULL_STATE_UNCHANGED')
+            _require(phase=='COMPLETE' and parent_cursor==47602 and updates==2976 and oof_cursor==17288
+                and counters['forward_calls']==counters['forward_returns']==4057
+                and counters['forward_kind_calls']=={'FINAL_TRAIN':2976,'OOF':1081}
+                and counters['backward_calls']==counters['backward_returns']
+                    ==counters['optimizer_step_calls']==counters['optimizer_step_returns']==0,
+                'RECOVERY_EXACT_SCORING_CALLS')
         durable={'state':full_state,'contract_sha256':seal,'optimizer_updates':updates,'parent_cursor':parent_cursor};checkpoint_refs.append(durable)
         _require(counters['model_constructions']==counters['model_construction_returns']==counters['optimizer_constructions']==1
             and counters['forward_calls']==counters['forward_returns'] and counters['backward_calls']==counters['backward_returns']
@@ -1105,6 +1141,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         'forbidden_open_paths':denied,'limits':limits,'elapsed_seconds':time.monotonic()-started,'io_before':before,'io_after':after,
         'rchar_delta':after['rchar']-before['rchar'],'rchar_scope':'process reads; mmap fault bytes excluded','error':error,
         'test_data_used':False,'qualification_weights_reused':False,'predictive_value_qualified':False,
+        **({'scoring_recovery_origin':launch['scoring_recovery_origin']} if recovery else {}),
         **({'own_prefix_bps_scale':bps_scale_ref} if bps_scale_ref is not None else {})},counters,launch['max_published_json_bytes'])
     cursor=authority.build_prefix_fit_cursor(recipe_ref=window['recipe'],fold=fold,feature_view_identity=view_identity,phase_state=phase,outcome=outcome,
         optimizer_updates=updates,parent_cursor=parent_cursor,parent_order_sha256=order_sha,full_state=full_state,own_initial_state=initial_ref,

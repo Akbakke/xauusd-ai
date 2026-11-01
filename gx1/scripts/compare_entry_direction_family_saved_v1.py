@@ -176,12 +176,147 @@ def require_source_qualification(value, sources, tracked):
             require({case.get('classname') for case in cases} == expected, 'TEST_MODULES')
 
 
+def require_recovered_scoring_lineage(arm, terminal, review, recipe, campaign, result, read):
+    """Keep completed original training and fresh scoring as two real chains."""
+    origin = recipe.get('scoring_recovery_origin')
+    fields = {'schema_version', 'family_arm', 'original_source_head', 'original_recipe',
+              'original_plan', 'training_receipt', 'training_cursor', 'training_review',
+              'state_integrity', 'interruption_review', 'closure_review'}
+    require(arm == 'session_regime_encoder' and isinstance(origin, dict)
+            and set(origin) == fields and origin.get('family_arm') == arm
+            and origin.get('schema_version') == 'gx1_family_session_scoring_recovery_origin_v1'
+            and recipe.get('max_windows') == 1 and recipe.get('training_enabled') is False
+            and recipe.get('full_epoch_training_allowed') is False,
+            'RECOVERY_ORIGIN')
+    require(terminal.get('scoring_recovery_origin') == review.get('scoring_recovery_origin')
+            == result.get('scoring_recovery_origin') == origin
+            and terminal.get('exit_code_scope') == 'recovery_scoring_invocation'
+            and terminal.get('training_source_head') == origin['original_source_head']
+            and 'original_receipts' not in terminal and 'original_receipt' not in terminal,
+            'RECOVERY_NOT_ORIGINAL_RECEIPT_CHAIN')
+    old_recipe = read(origin['original_recipe'])
+    old_campaign = read(origin['original_plan'])
+    original_root = Path(old_recipe['runtime_root'])
+    require(original_root == STUDY/'FIT_SESSION_REGIME_001/RUNTIME'
+            and old_campaign['recipe'] == origin['original_recipe']
+            and old_campaign['source_commit'] == origin['original_source_head']
+            and old_campaign['runtime_root'] == str(original_root)
+            and campaign['runtime_root'] != str(original_root)
+            and campaign['plan_sha256'] != old_campaign['plan_sha256'],
+            'DISTINCT_RECOVERY_CAMPAIGN')
+    require(old_recipe.get('recipe_sha256') == matched.binding.canonical_sha256(
+            {k: v for k, v in old_recipe.items() if k != 'recipe_sha256'}),
+            'ORIGINAL_RECIPE_SEAL')
+    same = ('run_scope', 'family_arm', 'dense_evaluation_protocol',
+            'family_intervention_sha256', 'fold', 'numerical_recipe', 'train_passes',
+            'final_train_measurement_rows', 'input_manifest', 'dense_target',
+            'dense_target_result', 'dense_source_transition_proof', 'decimal_input_audit',
+            'decimal_target_refs', 'candidate_mode', 'parent_order_algorithm',
+            'native_dense_qualification', 'decimal_initial_predictions', 'family_initial_report')
+    require(all(recipe[k] == old_recipe[k] for k in same), 'RECOVERY_SAME_NUMERICAL_INPUTS')
+    require(terminal.get('training_receipt') == origin['training_receipt']
+            and terminal.get('scoring_receipt') == review['receipt']
+            and review.get('training_window_review') == origin['training_review']
+            and origin['training_receipt']['path'] == str(original_root/'receipts/invocation-0001.json')
+            and terminal['scoring_receipt']['path'] == str(
+                Path(campaign['runtime_root'])/'receipts/invocation-0001.json'),
+            'RECOVERY_RECEIPT_ROLES')
+    training = read(origin['training_receipt'])
+    scoring = read(terminal['scoring_receipt'])
+    for receipt, plan_sha, outcome in ((training, old_campaign['plan_sha256'], 'RESUMABLE'),
+                                       (scoring, campaign['plan_sha256'], 'COMPLETE')):
+        require(receipt.get('invocation_number') == 1 and receipt.get('plan_sha256') == plan_sha
+                and receipt.get('guard_decision') == 'PASS'
+                and receipt.get('trainer_guard_exit_code') == receipt.get('progress_observer_exit_code') == 0
+                and receipt.get('outcome') == outcome and receipt.get('test_data_used') is False,
+                'RECOVERY_TWO_NATIVE_CHAINS')
+    require(origin['training_cursor'] == training.get('checkpoint_pointer_snapshot')
+            and Path(origin['training_cursor']['path']) ==
+                original_root/'invocation-evidence/invocation-0001/CHECKPOINT_POINTER.json',
+            'RECOVERY_IMMUTABLE_ORIGIN_CURSOR')
+    cursor = read(origin['training_cursor'])
+    training_review = read(origin['training_review'])
+    integrity = read(origin['state_integrity'])
+    peer = read(origin['interruption_review'])
+    closure = read(origin['closure_review'])
+    require(cursor.get('recipe') == origin['original_recipe']
+            and cursor.get('phase_state') == 'SCORING' and cursor.get('outcome') == 'RESUMABLE'
+            and cursor.get('optimizer_updates') == 2976 and cursor.get('parent_cursor') == ROWS['train']
+            and cursor.get('oof_cursor') == 0 and cursor.get('final_train_measurement') is None,
+            'RECOVERY_TRAINING_COMPLETE')
+    require(training_review.get('status') == 'PASS_TRAINING_COMPLETE_SCORING_PENDING'
+            and training_review.get('family_arm') == arm
+            and training_review.get('source_head') == origin['original_source_head']
+            and training_review.get('receipt') == origin['training_receipt']
+            and training_review.get('full_state') == cursor['full_state']
+            and training_review.get('cursor', {}).get('sha256') == origin['training_cursor']['sha256'],
+            'RECOVERY_TRAINING_REVIEW')
+    require(integrity.get('status') == 'TRAINING_STATE_BYTES_PRESERVED_SCORING_INTERRUPTED'
+            and integrity.get('source_head') == origin['original_source_head']
+            and integrity.get('training_receipt') == origin['training_receipt']
+            and integrity.get('training_window_review') == origin['training_review']
+            and integrity.get('full_state') == cursor['full_state']
+            and integrity.get('own_initial_state') == cursor['own_initial_state']
+            and integrity.get('cursor', {}).get('sha256') == origin['training_cursor']['sha256']
+            and integrity.get('native_exit_code_known') is False
+            and integrity.get('completed_training_updates') == 2976
+            and integrity.get('training_parents') == ROWS['train']
+            and integrity.get('originals_modified') is False and integrity.get('test_data_used') is False,
+            'RECOVERY_INTEGRITY')
+    require(peer.get('status') == 'PASS_SCOPED_METADATA_WORKER_REVIEW'
+            and peer.get('references', {}).get('integrity') == origin['state_integrity']
+            and peer.get('scope', {}).get('checkpoint_or_payload_bytes_read_by_peer') is False
+            and peer.get('scope', {}).get('test_data_used') is False, 'RECOVERY_PEER')
+    require(closure.get('schema_version') == 'gx1_family_interrupted_scoring_closure_v1'
+            and closure.get('status') == 'CLOSED_INTERRUPTED_SCORING_ORIGINALS_PRESERVED'
+            and closure.get('family_arm') == arm
+            and closure.get('original_source_head') == origin['original_source_head']
+            and closure.get('state_integrity') == origin['state_integrity']
+            and closure.get('interruption_review') == origin['interruption_review']
+            and closure.get('training_window_review') == origin['training_review']
+            and closure.get('interrupted_active_marker') == integrity.get('interrupted_active_marker')
+            and closure.get('interrupted_claim') == integrity.get('interrupted_claim')
+            and closure.get('original_relaunch_allowed') is False
+            and closure.get('interrupted_native_exit_code_known') is False
+            and closure.get('interrupted_native_exit_code') is None
+            and closure.get('claimed_invocations') == 2 and closure.get('completed_invocations') == 1
+            and closure.get('revoked_invocations') == [3, 4]
+            and closure.get('test_data_used') is False, 'RECOVERY_CLOSURE')
+    old_result = read(cursor['result'])
+    require(old_result.get('recipe') == origin['original_recipe']
+            and old_result.get('outcome') == 'RESUMABLE'
+            and old_result.get('phase_state') == 'SCORING'
+            and old_result.get('error') is None and old_result.get('source_unchanged') is True
+            and old_result.get('optimizer_updates') == 2976
+            and old_result.get('parent_cursor') == ROWS['train']
+            and old_result.get('test_data_used') is False, 'RECOVERY_ORIGINAL_TRAIN_RESULT')
+    seal = old_result.get('durable_checkpoint', {}).get('contract_sha256')
+    require(isinstance(seal, str) and len(seal) == 64
+            and old_result.get('durable_checkpoint', {}).get('state') == cursor['full_state']
+            and result.get('durable_checkpoint', {}).get('contract_sha256') == seal
+            and result.get('own_initial_state') == cursor['own_initial_state']
+            and result.get('initial_measurement') == cursor['initial_measurement']
+            and result.get('optimizer_updates') == cursor['optimizer_updates']
+            and result.get('parent_cursor') == cursor['parent_cursor']
+            and result.get('error') is None and result.get('qualification_weights_reused') is False,
+            'RECOVERY_STATE_UNCHANGED')
+    counts = result.get('counts', {})
+    require(all(counts.get(k) == 0 for k in ('backward_calls', 'backward_returns',
+            'optimizer_step_calls', 'optimizer_step_returns', 'empty_batches', 'forbidden_legacy_calls'))
+            and counts.get('forward_calls') == counts.get('forward_returns') == 4057
+            and counts.get('forward_kind_calls') == {'FINAL_TRAIN': 2976, 'OOF': 1081},
+            'RECOVERY_ZERO_UPDATES_FULL_SCORING')
+
+
 def require_arm_evidence(arm, entry, protocol, read):
     """Read an explicit metadata chain, never recursively open arbitrary refs."""
     terminal = read(entry['terminal'])
     baseline = arm == 'baseline'
+    recovered = terminal.get('schema_version') == 'gx1_family_recovered_scoring_verified_terminal_v1'
+    require(not recovered or arm == 'session_regime_encoder', 'RECOVERY_ARM')
     require(terminal.get('schema_version') == ('gx1_family_baseline_verified_terminal_v1'
-            if baseline else 'gx1_family_verified_terminal_v1')
+            if baseline else ('gx1_family_recovered_scoring_verified_terminal_v1'
+                              if recovered else 'gx1_family_verified_terminal_v1'))
             and terminal.get('status') == 'COMPLETE' and terminal.get('exit_code') == 0
             and terminal.get('family_arm') == arm
             and terminal.get('source_unchanged') is True and terminal.get('test_data_used') is False
@@ -192,7 +327,8 @@ def require_arm_evidence(arm, entry, protocol, read):
     require(terminal['root_review']['path'] == str(root/'ACTUAL_ROOT_REVIEW_001.json'), 'OWN_REVIEW')
     review = read(terminal['root_review'])
     require(review.get('schema_version') == ('gx1_family_baseline_training_window_review_v1'
-            if baseline else 'gx1_family_training_window_review_v1')
+            if baseline else ('gx1_family_recovered_scoring_review_v1'
+                              if recovered else 'gx1_family_training_window_review_v1'))
             and (baseline or review.get('family_arm') == arm)
             and review.get('status', '').startswith('PASS_')
             and review.get('status', '').endswith('_ONEPASS_FULLTRAIN_LATER_TERMINAL')
@@ -248,21 +384,24 @@ def require_arm_evidence(arm, entry, protocol, read):
             and private.get('initial_report') == recipe['family_initial_report']
             and private.get('qualification_weights_for_main_fit') is False
             and private.get('test_data_used') is False, 'OWN_PRIVATE_PARITY')
-    receipts = ([read(review['training_window_review'])['receipt'], terminal['original_receipt']]
-                if baseline else terminal['original_receipts'])
-    require(isinstance(receipts, list) and 1 <= len(receipts) <= 4
-            and receipts[-1] == review['receipt'], 'ORIGINAL_RECEIPTS')
-    for number, ref in enumerate(receipts, 1):
-        receipt = read(ref)
-        require(receipt.get('invocation_number') == number
-                and receipt.get('plan_sha256') == campaign['plan_sha256']
-                and receipt.get('guard_decision') == 'PASS'
-                and receipt.get('trainer_guard_exit_code') == receipt.get('progress_observer_exit_code') == 0
-                and receipt.get('outcome') == ('COMPLETE' if number == len(receipts) else 'RESUMABLE')
-                and receipt.get('test_data_used') is False, 'NATIVE_RECEIPT')
+    if not recovered:
+        receipts = ([read(review['training_window_review'])['receipt'], terminal['original_receipt']]
+                    if baseline else terminal['original_receipts'])
+        require(isinstance(receipts, list) and 1 <= len(receipts) <= 4
+                and receipts[-1] == review['receipt'], 'ORIGINAL_RECEIPTS')
+        for number, ref in enumerate(receipts, 1):
+            receipt = read(ref)
+            require(receipt.get('invocation_number') == number
+                    and receipt.get('plan_sha256') == campaign['plan_sha256']
+                    and receipt.get('guard_decision') == 'PASS'
+                    and receipt.get('trainer_guard_exit_code') == receipt.get('progress_observer_exit_code') == 0
+                    and receipt.get('outcome') == ('COMPLETE' if number == len(receipts) else 'RESUMABLE')
+                    and receipt.get('test_data_used') is False, 'NATIVE_RECEIPT')
     result = read(review['result'])
     require(result.get('outcome') == 'COMPLETE' and result.get('recipe') == campaign['recipe']
             and result.get('source_unchanged') is True and result.get('test_data_used') is False, 'FIT_RESULT')
+    if recovered:
+        require_recovered_scoring_lineage(arm, terminal, review, recipe, campaign, result, read)
     reports = {part: read(result[key]) for part, key in
                (('train', 'final_train_measurement'), ('later', 'oof_measurement'))}
     for part, report in reports.items():

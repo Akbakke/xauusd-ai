@@ -412,6 +412,12 @@ def require_invocation(
                 or result["expected_success_outcome"] != "COMPLETE"
                 or result["window_count"] != 1 or result["window_index"] != 0):
             raise RandomAccessCampaignError("checkpoint diagnostic zero-step window invalid")
+    elif kind == "native_direction_prefix_fit_window" and type(budget) is int and budget == 0:
+        # Structural admission only. The bound prefix recipe validator below
+        # requires the explicit scoring recovery origin before actual execution.
+        if (number != 1 or result["expected_success_outcome"] != "COMPLETE"
+                or result["window_count"] != 1 or result["window_index"] != 0):
+            raise RandomAccessCampaignError("prefix recovery zero-step window invalid")
     elif kind in {"full_val_window", "native_candidate_window"}:
         if (
             budget is not None

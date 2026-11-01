@@ -251,6 +251,168 @@ def _require_decimal_source_equivalence(source_repo, qualified_commit, qualified
             'DECIMAL_TRANSITION_MODULE:'+path)
 
 
+SCORING_RECOVERY_HEAD = '78436e71296b8ef815e15fe9998562b956b19430'
+SCORING_RECOVERY_STATE_SEAL = 'acd03406a41c968b2346b49edf9995b29ea679b3f710d3637ad889ac0e75097f'
+SCORING_RECOVERY_CLOSURE = {
+    'path':'/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/INTERRUPTION_CLOSURE_REVIEW_001.json',
+    'sha256':'fe507751a727533ee1d86ac210d2a79cdcc4fab9b29ea80a14bb9b11c0e473d8'}
+SCORING_RECOVERY_CONTROL_CHANGES = {
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': (
+        ('require_prefix_fit_launch_recipe', 'require_prefix_fit_invocation_execution', 'require_prefix_fit_plan',
+         'require_native_direction_prefix_fit_readiness', 'require_prefix_fit_progress'),
+        ('is_scoring_recovery', 'require_scoring_recovery_origin', '_require_scoring_recovery_source_equivalence'),
+        ('SCORING_RECOVERY_HEAD', 'SCORING_RECOVERY_STATE_SEAL', 'SCORING_RECOVERY_CLOSURE', 'SCORING_RECOVERY_CONTROL_CHANGES')),
+    'gx1/contracts/local_random_access_campaign_v2.py': (('require_invocation',), (), ()),
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py': (('run_native_direction_prefix_fit_window',), (), ()),
+    'gx1/scripts/run_entry_native_direction_research_window_v1.py': (('_install_read_guard',), (), ()),
+}
+
+
+def is_scoring_recovery(recipe):
+    """Presence selects the strict recovery validator, never grants authority."""
+    return 'scoring_recovery_origin' in recipe
+
+
+def _require_scoring_recovery_source_equivalence(source_repo, original, current):
+    """Only named launch/control definitions may change; numerical source is byte-identical."""
+    import ast
+    import subprocess
+    before_owners, after_owners = original['source_owners'], current['source_owners']
+    _require(set(before_owners) == set(after_owners), 'RECOVERY_SOURCE_SET')
+    for path, before_ref in before_owners.items():
+        after_ref = after_owners[path]
+        _require(before_ref['path'] == after_ref['path'] == str(source_repo/path), 'RECOVERY_SOURCE_PATH')
+        after = (source_repo/path).read_bytes()
+        _require(hashlib.sha256(after).hexdigest() == after_ref['sha256'], 'RECOVERY_SOURCE_SHA:'+path)
+        if path not in SCORING_RECOVERY_CONTROL_CHANGES:
+            _require(before_ref == after_ref, 'RECOVERY_NUMERICAL_SOURCE_CHANGED:'+path)
+            continue
+        before = subprocess.check_output(['git','-C',str(source_repo),'show',SCORING_RECOVERY_HEAD+':'+path])
+        _require(hashlib.sha256(before).hexdigest() == before_ref['sha256'], 'RECOVERY_ORIGINAL_SOURCE_SHA:'+path)
+        changed, added, assignments = map(set, SCORING_RECOVERY_CONTROL_CHANGES[path])
+        def unchanged(raw, old):
+            text = raw.decode('utf-8'); nodes = ast.parse(text).body
+            kept=[]; functions=set(); constants=set()
+            for node in nodes:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in changed|added:
+                    _require(node.name not in functions, 'RECOVERY_DUPLICATE_FUNCTION')
+                    functions.add(node.name)
+                elif isinstance(node, ast.Assign) and len(node.targets)==1 and isinstance(node.targets[0], ast.Name) and node.targets[0].id in assignments:
+                    constants.add(node.targets[0].id)
+                else:
+                    kept.append(ast.get_source_segment(text,node))
+            _require(functions == (changed if old else changed|added)
+                and constants == (set() if old else assignments), 'RECOVERY_CONTROL_NODE_SET:'+path)
+            return kept
+        _require(unchanged(before,True) == unchanged(after,False), 'RECOVERY_NONCONTROL_SOURCE_CHANGED:'+path)
+
+
+def require_scoring_recovery_origin(recipe, *, source_repo, source_commit):
+    """Validate the one observed session interruption; no generic checkpoint import."""
+    import subprocess
+    origin = recipe.get('scoring_recovery_origin')
+    fields = {'schema_version','family_arm','original_source_head','original_recipe','original_plan',
+        'training_receipt','training_cursor','training_review','state_integrity','interruption_review','closure_review'}
+    _require(isinstance(origin, Mapping) and set(origin)==fields
+        and origin['schema_version']=='gx1_family_session_scoring_recovery_origin_v1'
+        and origin['family_arm']==recipe.get('family_arm')=='session_regime_encoder'
+        and recipe.get('run_scope')==FAMILY_SIGN_SCOPE
+        and origin['original_source_head']==SCORING_RECOVERY_HEAD
+        and source_commit != SCORING_RECOVERY_HEAD
+        and origin['closure_review']==SCORING_RECOVERY_CLOSURE, 'RECOVERY_ORIGIN_ROLE')
+    def read(ref, label):
+        bound=campaign.require_binding(ref,label=label,verify_file=True)
+        return campaign.read_bound_json(Path(bound['path']),bound['sha256'])
+    closure=read(origin['closure_review'],'recovery closure')
+    _require(closure['schema_version']=='gx1_family_interrupted_scoring_closure_v1'
+        and closure['status']=='CLOSED_INTERRUPTED_SCORING_ORIGINALS_PRESERVED'
+        and closure['family_arm']==origin['family_arm'] and closure['original_source_head']==SCORING_RECOVERY_HEAD
+        and closure['original_relaunch_allowed'] is False and closure['training_state_preserved'] is True
+        and closure['recovery_execution_authorized'] is False and closure['test_data_used'] is False
+        and closure['interrupted_native_exit_code_known'] is False and closure['interrupted_native_exit_code'] is None
+        and closure['active_native_pids']==[] and closure['revoked_invocations']==[3,4], 'RECOVERY_CLOSED_ORIGINAL')
+    for key, closure_key in (('state_integrity','state_integrity'),('training_review','training_window_review'),
+            ('interruption_review','interruption_review')):
+        _require(origin[key]==closure[closure_key], 'RECOVERY_CLOSURE_REF:'+key)
+    integrity=read(origin['state_integrity'],'recovery integrity')
+    peer=read(origin['interruption_review'],'recovery peer')
+    review=read(origin['training_review'],'recovery training review')
+    _require(integrity['schema_version']=='gx1_session_interrupted_scoring_integrity_v1'
+        and integrity['status']=='TRAINING_STATE_BYTES_PRESERVED_SCORING_INTERRUPTED'
+        and integrity['source_head']==SCORING_RECOVERY_HEAD and integrity['native_process_absent'] is True
+        and integrity['originals_modified'] is False and integrity['model_or_checkpoint_deserialized'] is False
+        and integrity['completed_training_updates']==2976 and integrity['training_parents']==47602
+        and integrity['full_train_scoring_complete'] is False and integrity['later_scoring_complete'] is False
+        and integrity['new_model_forwards']==integrity['new_optimizer_updates']==0
+        and integrity['test_data_used'] is False, 'RECOVERY_INTEGRITY')
+    _require(peer['schema_version']=='gx1_session_interruption_independent_metadata_peer_review_v1'
+        and peer['status']=='PASS_SCOPED_METADATA_WORKER_REVIEW'
+        and peer['references']['integrity']==origin['state_integrity'], 'RECOVERY_PEER')
+    _require(review['schema_version']=='gx1_family_training_window_review_v1'
+        and review['status']=='PASS_TRAINING_COMPLETE_SCORING_PENDING'
+        and review['source_head']==SCORING_RECOVERY_HEAD and review['family_arm']==origin['family_arm']
+        and review['optimizer_updates']==2976 and review['train_parents']==47602 and review['training_passes']==1
+        and review['full_train_scored'] is False and review['later_scored'] is False
+        and review['test_data_used'] is False, 'RECOVERY_TRAINING_REVIEW')
+    closed=closure['closed_policy_git']
+    raw=subprocess.check_output(['git','-C',str(source_repo),'show',closed['commit']+':'+closed['path']])
+    _require(closed['commit']==closure['closure_source_head'] and closed['path']=='NEXT_RUN_POLICY.json'
+        and hashlib.sha256(raw).hexdigest()==closed['sha256'], 'RECOVERY_CLOSED_POLICY_BYTES')
+    policy=json.loads(raw); gate=policy[closure['closed_stage']]
+    _require(gate['status']=='INTERRUPTED_CONSUMED_W2_WINDOWS_BUGCHECK_W1_TRAINING_PRESERVED'
+        and gate['claimed_invocations']==2 and gate['completed_invocations']==1
+        and gate['interrupted_invocations']==1 and gate['unclaimed_invocations_revoked']==[3,4]
+        and all(gate[key] is False for key in ('execution_authorized','training_enabled','native_training_enabled',
+            'full_epoch_training_allowed','native_launch_authorized','genuine_updates_authorized','relaunch_allowed')),
+        'RECOVERY_CLOSED_POLICY')
+    _require(origin['original_recipe']==gate['recipe'], 'RECOVERY_ORIGINAL_RECIPE_REF')
+    original=read(origin['original_recipe'],'original recipe')
+    _require(original['recipe_sha256']==campaign.canonical_sha256({k:v for k,v in original.items() if k!='recipe_sha256'})
+        and original['run_scope']==FAMILY_SIGN_SCOPE and original['family_arm']==origin['family_arm']
+        and original['train_passes']==1 and original['max_windows']==4
+        and original['training_enabled'] is True and original['full_epoch_training_allowed'] is True, 'RECOVERY_ORIGINAL_RECIPE')
+    allowed={'recipe_sha256','source_owners','runtime_root','admission_stage','execution_binding_path',
+        'max_windows','training_enabled','full_epoch_training_allowed','scoring_recovery_origin'}
+    _require({k:v for k,v in original.items() if k not in allowed} ==
+        {k:v for k,v in recipe.items() if k not in allowed}, 'RECOVERY_NUMERICAL_RECIPE_CHANGED')
+    old_runtime=Path(original['runtime_root']); new_runtime=Path(recipe['runtime_root'])
+    _require(new_runtime != old_runtime and old_runtime not in new_runtime.parents and new_runtime not in old_runtime.parents
+        and recipe['admission_stage'] != original['admission_stage'], 'RECOVERY_NEW_RUNTIME')
+    execution=read(review['execution_binding'],'original execution binding')
+    _require(execution['plan']==origin['original_plan'] and execution['source_head']==SCORING_RECOVERY_HEAD,
+        'RECOVERY_ORIGINAL_PLAN_REF')
+    plan=read(origin['original_plan'],'original plan')
+    _require(plan['source_commit']==SCORING_RECOVERY_HEAD and plan['recipe']==origin['original_recipe']
+        and plan['runtime_root']==str(old_runtime)
+        and plan['plan_sha256']==campaign.canonical_sha256({k:v for k,v in plan.items() if k!='plan_sha256'}),
+        'RECOVERY_ORIGINAL_PLAN')
+    _require(origin['training_receipt']==integrity['training_receipt']==review['receipt'], 'RECOVERY_TRAINING_RECEIPT_REF')
+    receipt=read(origin['training_receipt'],'training receipt')
+    _require(receipt['schema_version']==campaign.RECEIPT_SCHEMA
+        and receipt['receipt_sha256']==campaign.canonical_sha256({k:v for k,v in receipt.items() if k!='receipt_sha256'})
+        and receipt['plan_sha256']==plan['plan_sha256'] and receipt['invocation_number']==1
+        and receipt['outcome']=='RESUMABLE' and receipt['guard_decision']=='PASS'
+        and receipt['trainer_guard_exit_code']==receipt['progress_observer_exit_code']==0
+        and receipt['checkpoint_pointer_snapshot']==origin['training_cursor']
+        and origin['training_cursor']['path']==str(old_runtime/'invocation-evidence/invocation-0001/CHECKPOINT_POINTER.json')
+        and origin['training_cursor']['sha256']==integrity['cursor']['sha256']==review['cursor']['sha256'],
+        'RECOVERY_TRAINING_RECEIPT')
+    cursor=require_prefix_fit_cursor(read(origin['training_cursor'],'immutable training cursor'),
+        expected_recipe=origin['original_recipe'],expected_fold=recipe['fold'],verify_files=True)
+    result=read(cursor['result'],'training result')
+    _require(cursor['parent_cursor']==47602 and cursor['optimizer_updates']==2976
+        and cursor['phase_state']=='SCORING' and cursor['outcome']=='RESUMABLE'
+        and cursor['oof_cursor']==0 and cursor['final_train_measurement'] is None
+        and cursor['full_state']==integrity['full_state']==review['full_state']
+        and cursor['own_initial_state']==integrity['own_initial_state']
+        and cursor['result']==integrity['training_result']==review['result']
+        and result['durable_checkpoint']['contract_sha256']==SCORING_RECOVERY_STATE_SEAL
+        and result['durable_checkpoint']['state']==cursor['full_state']
+        and result['source_unchanged'] is True and result['error'] is None, 'RECOVERY_TRAINING_STATE')
+    _require_scoring_recovery_source_equivalence(source_repo,original,recipe)
+    return {'origin':dict(origin),'original_recipe':original,'cursor':cursor}
+
+
 def _require_family_recipe_fields(recipe):
     # Metadata only. Actual canonical arm closure is checked against the bound
     # TRAIN normalization during input preparation and private qualification.
@@ -301,6 +463,9 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     factor_continuation = value.get('run_scope') == M5_FACTOR_CONTINUATION_SCOPE
     factor_bps = value.get('run_scope') == M5_FACTOR_BPS_SCOPE
     family = value.get('run_scope') == FAMILY_SIGN_SCOPE
+    recovery = is_scoring_recovery(value)
+    if recovery:
+        fields |= {'scoring_recovery_origin'}
     factor = value.get('run_scope') in (M5_FACTOR_SIGN_SCOPE, M5_FACTOR_BPS_SCOPE, M5_FACTOR_CONTINUATION_SCOPE)
     continuation = legacy_continuation or factor_continuation
     chronological = value.get('run_scope') == ORDER_SCOPE
@@ -332,6 +497,7 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     if legacy_continuation:
         fields |= {'gc_layout_metadata_parity', 'continuation_origin', 'native_continuation_qualification'}
     recipe = _identity(value, fields, RECIPE_SCHEMA, 'recipe_sha256')
+    _require(not recovery or (family and recipe.get('family_arm')=='session_regime_encoder'), 'RECOVERY_SCOPE')
     _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
         and type(source_commit) is str and campaign._COMMIT.fullmatch(source_commit) is not None, 'RECIPE_SOURCE')
     runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
@@ -343,12 +509,12 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
             and recipe['gc_layout_metadata_parity'] == private.BPS_GC_PARITY
             and recipe['native_bps_qualification'] == BPS_NATIVE_QUALIFICATION, 'BPS_QUALIFIED_SCOPE')
         campaign.require_binding(recipe['gc_layout_metadata_parity'], label='bps GC metadata proof', verify_file=True)
-    for key, expected in {'train_passes':2 if factor_continuation else 3 if legacy_continuation else 1, 'max_windows':4, 'initial_measurement_rows':256,
+    for key, expected in {'train_passes':2 if factor_continuation else 3 if legacy_continuation else 1, 'max_windows':1 if recovery else 4, 'initial_measurement_rows':256,
             'eval_batch_size':16, 'checkpoint_every_updates':256, 'max_checkpoint_bytes':1073741824,
             'max_checkpoint_total_bytes':4294967296, 'max_published_json_bytes':67108864}.items():
         _require(type(recipe[key]) is int and recipe[key] == expected, 'RECIPE_BUDGET:' + key)
     _require(recipe['parent_order_algorithm'] == (ORDER_ALGORITHM if chronological else PARENT_ORDER_ALGORITHM), 'ORDER_ALGORITHM')
-    for key, expected in {'training_enabled':True, 'full_epoch_training_allowed':True,
+    for key, expected in {'training_enabled':not recovery, 'full_epoch_training_allowed':not recovery,
             'test_data_used':False, 'predictive_value_claimed':False, 'qualification_weights_for_main_fit':False}.items():
         _require(recipe[key] is expected, 'RECIPE_AUTHORITY:' + key)
     numerical = recipe['numerical_recipe']
@@ -486,7 +652,13 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         if m1_fit:
             m1_authority.require_qualification(recipe,owners,source_repo=source_repo,private_scope=M1_PRICE_PRIVATE_ADAPTER_SCOPE)
         elif family:
-            private.require_family_qualification(recipe,owners,source_repo=source_repo,source_commit=source_commit)
+            if recovery:
+                recovered = require_scoring_recovery_origin(recipe,source_repo=source_repo,source_commit=source_commit)
+                original = recovered['original_recipe']
+                private.require_family_qualification(original,original['source_owners'],source_repo=source_repo,
+                    source_commit=SCORING_RECOVERY_HEAD)
+            else:
+                private.require_family_qualification(recipe,owners,source_repo=source_repo,source_commit=source_commit)
         elif factor:
             m5_authority.require_factor_qualification(recipe,owners,source_repo=source_repo,source_commit=source_commit)
         elif priority_fit:
@@ -667,6 +839,7 @@ def require_prefix_fit_invocation_execution(result, execution, *, source_repo, s
     policy_ref = campaign.require_binding(execution['train_session_manifest'], label='prefix fit window')
     window = require_prefix_fit_window_policy(campaign.read_bound_json(Path(policy_ref['path']), policy_ref['sha256']))
     number = result['invocation_number']
+    recovery = is_scoring_recovery(recipe)
     _require(result['requires_fresh_windows_boot'] is True or recipe['run_scope'] == FAMILY_SIGN_SCOPE, 'FAMILY_ONLY_BOOT_MODE')
     separator = result['launcher_argv'].index('--')
     _require(result['launcher_argv'][separator+1:] == [str(source_repo/'.venv/bin/python'), '-m', MODULE,
@@ -674,9 +847,11 @@ def require_prefix_fit_invocation_execution(result, execution, *, source_repo, s
         '--progress-path', window['progress_path']], 'INVOCATION_ARGV')
     _require(result['kind'] == KIND and type(result['batch_size']) is int and result['batch_size'] == BATCH_SIZE
         and result['epoch_index'] is None and type(number) is int and 1 <= number <= MAX_WINDOWS
-        and result['window_index'] == number-1 and result['window_count'] == MAX_WINDOWS
-        and result['optimizer_step_budget'] == recipe['numerical_recipe']['max_updates']
-        and type(result['optimizer_step_budget']) is int and result['expected_success_outcome'] == 'RESUMABLE_OR_COMPLETE'
+        and result['window_index'] == number-1 and result['window_count'] == (1 if recovery else MAX_WINDOWS)
+        and (not recovery or number == 1)
+        and result['optimizer_step_budget'] == (0 if recovery else recipe['numerical_recipe']['max_updates'])
+        and type(result['optimizer_step_budget']) is int
+        and result['expected_success_outcome'] == ('COMPLETE' if recovery else 'RESUMABLE_OR_COMPLETE')
         and result['maximum_wall_seconds'] == 13800 and window['invocation_number'] == number
         and result['checkpoint'] == {'pointer_path':window['campaign_cursor_path'],
             'before_mode':'GENESIS' if number == 1 else 'PREVIOUS_RECEIPT_AFTER',
@@ -686,6 +861,8 @@ def require_prefix_fit_invocation_execution(result, execution, *, source_repo, s
         and execution['train_session_manifest_sha256'] == window['policy_sha256'], 'INVOCATION_BINDING')
     result['direction_prefix_fit_recipe'] = recipe_ref
     result['direction_prefix_fit_window'] = window
+    if recovery:
+        result['direction_prefix_fit_scoring_recovery'] = True
 
 
 def require_prefix_fit_plan(value, *, verify_files=True):
@@ -710,13 +887,14 @@ def require_prefix_fit_plan(value, *, verify_files=True):
         _require(isinstance(result[key], Mapping) and set(result[key]) == names, 'PLAN_SOURCES:' + key)
         result[key] = {name:campaign.require_binding(ref, label=key, verify_file=verify_files) for name,ref in result[key].items()}
     result['recipe'] = campaign.require_binding(result['recipe'], label='prefix fit recipe', verify_file=verify_files)
-    _require(isinstance(result['invocations'], list) and len(result['invocations']) == MAX_WINDOWS, 'PLAN_FOUR_WINDOWS')
+    _require(isinstance(result['invocations'], list) and len(result['invocations']) in (1, MAX_WINDOWS), 'PLAN_WINDOW_COUNT')
     result['invocations'] = [campaign.require_binding(ref, label='prefix invocation', verify_file=verify_files) for ref in result['invocations']]
-    _require(len({ref['path'] for ref in result['invocations']}) == MAX_WINDOWS, 'PLAN_DISTINCT_INVOCATIONS')
+    _require(len({ref['path'] for ref in result['invocations']}) == len(result['invocations']), 'PLAN_DISTINCT_INVOCATIONS')
     result['selection_artifact_sha256'] = None
     if verify_files:
         recipe = require_prefix_fit_launch_recipe(result['recipe'], source_repo=CANONICAL_REPO, source_commit=result['source_commit'])
         _require(recipe['runtime_root'] == str(runtime), 'PLAN_RECIPE_RUNTIME')
+        _require(len(result['invocations']) == (1 if is_scoring_recovery(recipe) else MAX_WINDOWS), 'PLAN_RECIPE_WINDOW_COUNT')
         checked = []
         for number, ref in enumerate(result['invocations'], 1):
             item = campaign.require_invocation(campaign.read_bound_json(Path(ref['path']), ref['sha256']),
@@ -744,21 +922,27 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
     dirty = subprocess.check_output(['git','-C',str(repo),'status','--porcelain=v1','--untracked-files=all'], text=True)
     recipe = require_prefix_fit_launch_recipe(window['recipe'], source_repo=repo, source_commit=head)
     gate = policy.get(recipe['admission_stage'])
+    recovery = is_scoring_recovery(recipe)
     _require(repo == CANONICAL_REPO and branch == 'work/gx1-current' and not dirty
         and policy.get('schema_version') == 'gx1_next_native_run_policy_v1'
         and policy.get('canonical_source_repo') == str(repo) and policy.get('canonical_branch') == branch
-        and policy.get('training_module') == MODULE and all(policy.get(key) is True for key in
+        and policy.get('training_module') == MODULE and all(policy.get(key) is (not recovery) for key in
             ('training_enabled','native_training_enabled','full_epoch_training_allowed'))
         and policy.get('full_val_allowed') is False, 'READINESS_GLOBAL')
     _require(isinstance(gate, Mapping) and gate.get('recipe') == window['recipe']
-        and gate.get('run_root') == recipe['runtime_root'] and type(gate.get('max_invocations')) is int and gate['max_invocations'] == MAX_WINDOWS
+        and gate.get('run_root') == recipe['runtime_root'] and type(gate.get('max_invocations')) is int and gate['max_invocations'] == (1 if recovery else MAX_WINDOWS)
         and type(gate.get('claimed_invocations')) is int and gate['claimed_invocations'] == 0
         and type(gate.get('completed_invocations')) is int and gate['completed_invocations'] == 0
         and gate.get('relaunch_allowed') is False, 'READINESS_ONCE')
     for key in ('execution_authorized','data_reads_authorized','genuine_constructor_authorized','genuine_forward_authorized',
             'genuine_backward_authorized','genuine_updates_authorized','genuine_predictor_fit_authorized',
             'training_enabled','native_training_enabled','full_epoch_training_allowed','native_launch_authorized'):
-        _require(gate.get(key) is True, 'READINESS_GATE:' + key)
+        expected = not recovery or key in ('execution_authorized','data_reads_authorized',
+            'genuine_constructor_authorized','genuine_forward_authorized','native_launch_authorized')
+        _require(gate.get(key) is expected, 'READINESS_GATE:' + key)
+    if recovery:
+        _require(gate.get('checkpoint_reads_authorized') is True
+            and gate.get('zero_update_scoring_recovery_authorized') is True, 'READINESS_RECOVERY_GATE')
     for key in ('normalization_fit_authorized','synthetic_test_execution_authorized','test_data_used',
             'exit_evaluation','broker_access_allowed','full_val_allowed'):
         _require(gate.get(key) is False, 'READINESS_CLOSED_GATE:' + key)
@@ -769,8 +953,8 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
         'canonical_source_repo':str(repo), 'source_commit':head, 'policy_sha256':campaign.file_sha256(policy_path),
         'training_started':False, 'native_invocation_seconds':12000, 'outer_guard_seconds':13800,
         'native_window_scope':{'prefix_fit_only':True, 'invocation_number':window['invocation_number'],
-            'fold':recipe['fold'], 'max_windows':MAX_WINDOWS, 'full_epoch_training_allowed':True,
-            'optimizer_step_ceiling':recipe['numerical_recipe']['max_updates'], 'window_policy_file_sha256':window_file_sha256}}
+            'fold':recipe['fold'], 'max_windows':1 if recovery else MAX_WINDOWS, 'full_epoch_training_allowed':not recovery,
+            'optimizer_step_ceiling':0 if recovery else recipe['numerical_recipe']['max_updates'], 'window_policy_file_sha256':window_file_sha256}}
 
 
 def require_native_direction_prefix_fit_context(policy_path, policy_file_sha256, progress_path):
@@ -924,7 +1108,12 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     passes = result.get('train_passes', 1)
     _require(type(passes) is int and ((multipass and passes in (2, 3)) or (not multipass and passes == 1)), 'PROGRESS_PASSES')
     fold = _fold(result['fold']); n = fold['prefix_rows']; quarter = fold['oof_end_row']-n
-    _require(invocation['optimizer_step_budget'] == passes*((n+15)//16), 'PROGRESS_PASS_BUDGET')
+    recovery = invocation.get('direction_prefix_fit_scoring_recovery') is True
+    _require(invocation['optimizer_step_budget'] == (0 if recovery else passes*((n+15)//16)), 'PROGRESS_PASS_BUDGET')
+    if recovery:
+        _require(passes==1 and invocation['invocation_number']==invocation['window_count']==1
+            and invocation['expected_success_outcome']=='COMPLETE' and result['outcome'] in ('COMPLETE','FAILED'),
+            'RECOVERY_PROGRESS_SCOPE')
     _require(expected_selection_receipt_sha256 is None and invocation['kind'] == KIND
         and result['plan_sha256'] == plan_sha256 and result['invocation_sha256'] == invocation['invocation_sha256']
         and result['phase'] == KIND and result['recipe'] == invocation['direction_prefix_fit_recipe']

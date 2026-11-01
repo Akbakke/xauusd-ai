@@ -424,3 +424,164 @@ def test_verification_schema_is_role_specific(arm):
         else 'gx1_family_baseline_saved_verification_result_v1')
     with pytest.raises(RuntimeError, match='SAVED_VERIFICATION'):
         a.require_arm_evidence(arm, entry, proto, lambda r: docs[r['path']])
+
+def recovered_metadata_chain():
+    arm = 'session_regime_encoder'
+    entry, proto, docs = metadata_chain(arm)
+    root = Path(entry['terminal']['path']).parent
+    oldroot = a.STUDY/'FIT_SESSION_REGIME_001'
+    def put(path, value):
+        r = ref(path)
+        docs[r['path']] = value
+        return r
+    terminal = docs[entry['terminal']['path']]
+    review = docs[str(root/'ACTUAL_ROOT_REVIEW_001.json')]
+    recipe = docs[str(root/'RECIPE.json')]
+    campaign = docs[str(root/'CAMPAIGN.json')]
+    campaign['runtime_root'] = str(root/'RUNTIME')
+    for key in ('dense_target', 'dense_target_result', 'dense_source_transition_proof',
+                'decimal_input_audit', 'decimal_target_refs'):
+        recipe[key] = ref(oldroot/(key+'.json'))
+    recipe.update(candidate_mode='price', parent_order_algorithm='fixed', max_windows=1,
+                  training_enabled=False, full_epoch_training_allowed=False)
+    old_recipe = copy.deepcopy(recipe)
+    old_recipe['runtime_root'] = str(oldroot/'RUNTIME')
+    old_recipe.update(max_windows=4, training_enabled=True, full_epoch_training_allowed=True)
+    old_recipe['recipe_sha256'] = a.matched.binding.canonical_sha256(
+        {k: v for k, v in old_recipe.items() if k != 'recipe_sha256'})
+    old_recipe_ref = put(oldroot/'RECIPE.json', old_recipe)
+    old_plan_ref = put(oldroot/'CAMPAIGN/CAMPAIGN_PLAN.json', {
+        'recipe': old_recipe_ref, 'source_commit': 'e'*40, 'plan_sha256': 'c'*64,
+        'runtime_root': str(oldroot/'RUNTIME')})
+    state = ref(oldroot/'RUNTIME/prefix-fit/states/TRAINED.pt')
+    initial = ref(oldroot/'RUNTIME/prefix-fit/states/INITIAL.pt')
+    initial_measurement = ref(oldroot/'RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json')
+    old_result_ref = put(oldroot/'RUNTIME/prefix-fit/window-0001/RESULT.json', {
+        'recipe': old_recipe_ref, 'outcome': 'RESUMABLE', 'phase_state': 'SCORING',
+        'error': None, 'source_unchanged': True, 'optimizer_updates': 2976,
+        'parent_cursor': 47602, 'test_data_used': False,
+        'durable_checkpoint': {'state': state, 'contract_sha256': 'b'*64}})
+    cursor_ref = put(oldroot/'RUNTIME/invocation-evidence/invocation-0001/CHECKPOINT_POINTER.json', {
+        'recipe': old_recipe_ref, 'phase_state': 'SCORING', 'outcome': 'RESUMABLE',
+        'optimizer_updates': 2976, 'parent_cursor': 47602, 'oof_cursor': 0,
+        'final_train_measurement': None, 'full_state': state, 'own_initial_state': initial,
+        'initial_measurement': initial_measurement, 'result': old_result_ref})
+    training_ref = put(oldroot/'RUNTIME/receipts/invocation-0001.json', {
+        'invocation_number': 1, 'plan_sha256': 'c'*64, 'guard_decision': 'PASS',
+        'trainer_guard_exit_code': 0, 'progress_observer_exit_code': 0,
+        'outcome': 'RESUMABLE', 'test_data_used': False,
+        'checkpoint_pointer_snapshot': cursor_ref})
+    training_review_ref = put(oldroot/'WINDOW_0001_VERIFIED_REVIEW.json', {
+        'status': 'PASS_TRAINING_COMPLETE_SCORING_PENDING', 'family_arm': arm,
+        'source_head': 'e'*40, 'receipt': training_ref, 'full_state': state,
+        'cursor': ref(oldroot/'RUNTIME/prefix-cursor/RESUME_CURSOR.json')})
+    active = ref(oldroot/'RUNTIME/ACTIVE_INVOCATION.json')
+    claim = ref(oldroot/'RUNTIME/prefix-fit/window-0002/CLAIM.json')
+    integrity_ref = put(oldroot/'INTEGRITY.json', {
+        'status': 'TRAINING_STATE_BYTES_PRESERVED_SCORING_INTERRUPTED', 'source_head': 'e'*40,
+        'training_receipt': training_ref, 'training_window_review': training_review_ref,
+        'full_state': state, 'own_initial_state': initial,
+        'cursor': ref(oldroot/'RUNTIME/prefix-cursor/RESUME_CURSOR.json'),
+        'native_exit_code_known': False, 'completed_training_updates': 2976,
+        'training_parents': 47602, 'originals_modified': False, 'test_data_used': False,
+        'interrupted_active_marker': active, 'interrupted_claim': claim})
+    peer_ref = put(oldroot/'PEER.json', {
+        'status': 'PASS_SCOPED_METADATA_WORKER_REVIEW', 'references': {'integrity': integrity_ref},
+        'scope': {'checkpoint_or_payload_bytes_read_by_peer': False, 'test_data_used': False}})
+    closure_ref = put(oldroot/'CLOSURE.json', {
+        'schema_version': 'gx1_family_interrupted_scoring_closure_v1',
+        'status': 'CLOSED_INTERRUPTED_SCORING_ORIGINALS_PRESERVED', 'family_arm': arm,
+        'original_source_head': 'e'*40, 'state_integrity': integrity_ref,
+        'interruption_review': peer_ref, 'training_window_review': training_review_ref,
+        'interrupted_active_marker': active, 'interrupted_claim': claim,
+        'original_relaunch_allowed': False, 'interrupted_native_exit_code_known': False,
+        'interrupted_native_exit_code': None, 'claimed_invocations': 2,
+        'completed_invocations': 1, 'revoked_invocations': [3, 4], 'test_data_used': False})
+    origin = {'schema_version': 'gx1_family_session_scoring_recovery_origin_v1',
+        'family_arm': arm, 'original_source_head': 'e'*40, 'original_recipe': old_recipe_ref,
+        'original_plan': old_plan_ref, 'training_receipt': training_ref, 'training_cursor': cursor_ref,
+        'training_review': training_review_ref, 'state_integrity': integrity_ref,
+        'interruption_review': peer_ref, 'closure_review': closure_ref}
+    recipe['scoring_recovery_origin'] = origin
+    recipe['recipe_sha256'] = a.matched.binding.canonical_sha256(
+        {k: v for k, v in recipe.items() if k != 'recipe_sha256'})
+    scoring_ref = put(root/'RUNTIME/receipts/invocation-0001.json', {
+        'invocation_number': 1, 'plan_sha256': 'd'*64, 'guard_decision': 'PASS',
+        'trainer_guard_exit_code': 0, 'progress_observer_exit_code': 0,
+        'outcome': 'COMPLETE', 'test_data_used': False})
+    terminal.pop('original_receipts')
+    terminal.update(schema_version='gx1_family_recovered_scoring_verified_terminal_v1',
+        scoring_recovery_origin=origin, exit_code_scope='recovery_scoring_invocation',
+        training_source_head='e'*40, training_receipt=training_ref, scoring_receipt=scoring_ref)
+    review.update(schema_version='gx1_family_recovered_scoring_review_v1',
+        status='PASS_RECOVERED_ONEPASS_FULLTRAIN_LATER_TERMINAL', scoring_recovery_origin=origin,
+        training_window_review=training_review_ref, receipt=scoring_ref)
+    result = docs[str(root/'RESULT.json')]
+    result.update(scoring_recovery_origin=origin, durable_checkpoint={'contract_sha256': 'b'*64},
+        own_initial_state=initial, initial_measurement=initial_measurement, optimizer_updates=2976,
+        parent_cursor=47602, error=None, qualification_weights_reused=False,
+        counts={**{k: 0 for k in ('backward_calls', 'backward_returns', 'optimizer_step_calls',
+            'optimizer_step_returns', 'empty_batches', 'forbidden_legacy_calls')},
+            'forward_calls': 4057, 'forward_returns': 4057,
+            'forward_kind_calls': {'FINAL_TRAIN': 2976, 'OOF': 1081}})
+    return entry, proto, docs, origin
+
+
+def test_recovered_scoring_keeps_two_distinct_real_campaigns():
+    entry, proto, docs, origin = recovered_metadata_chain()
+    reads = []
+    def read(r):
+        reads.append(r['path'])
+        return docs[r['path']]
+    loaded = a.require_arm_evidence('session_regime_encoder', entry, proto, read)
+    assert loaded['recipe']['scoring_recovery_origin'] == origin
+    assert all(Path(p).suffix == '.json' for p in reads)
+    assert origin['training_receipt']['path'] in reads
+    assert docs[entry['terminal']['path']]['scoring_receipt']['path'] in reads
+    assert origin['training_cursor']['path'] in reads
+
+
+@pytest.mark.parametrize('mutation', [
+    'fake_original_chain', 'wrong_receipt_plan', 'relabel_original_as_scoring',
+    'mutable_cursor', 'incomplete_training', 'missing_integrity', 'false_exit',
+    'changed_state', 'extra_update', 'partial_scoring', 'changed_numeric_recipe',
+    'changed_initial_state', 'foreign_arm', 'wrong_origin_schema'])
+def test_recovered_lineage_rejects_unproven_or_expanded_result(mutation):
+    entry, proto, docs, origin = recovered_metadata_chain()
+    root = Path(entry['terminal']['path']).parent
+    terminal = docs[entry['terminal']['path']]
+    result = docs[str(root/'RESULT.json')]
+    if mutation == 'fake_original_chain':
+        terminal['original_receipts'] = [origin['training_receipt'], terminal['scoring_receipt']]
+    elif mutation == 'wrong_receipt_plan':
+        docs[terminal['scoring_receipt']['path']]['plan_sha256'] = 'c'*64
+    elif mutation == 'relabel_original_as_scoring':
+        terminal['scoring_receipt'] = origin['training_receipt']
+    elif mutation == 'mutable_cursor':
+        origin['training_cursor'] = ref(a.STUDY/'FIT_SESSION_REGIME_001/RUNTIME/prefix-cursor/RESUME_CURSOR.json')
+    elif mutation == 'incomplete_training':
+        docs[origin['training_cursor']['path']]['optimizer_updates'] = 2975
+    elif mutation == 'missing_integrity':
+        docs[origin['state_integrity']['path']]['full_state'] = ref(root/'FOREIGN.pt')
+    elif mutation == 'false_exit':
+        docs[origin['closure_review']['path']]['interrupted_native_exit_code'] = 0
+    elif mutation == 'changed_state':
+        result['durable_checkpoint']['contract_sha256'] = 'c'*64
+    elif mutation == 'extra_update':
+        result['counts']['optimizer_step_calls'] = 1
+    elif mutation == 'partial_scoring':
+        result['counts']['forward_calls'] = result['counts']['forward_returns'] = 4056
+    elif mutation == 'changed_numeric_recipe':
+        docs[str(root/'RECIPE.json')]['numerical_recipe'] = {'seed': 1, 'max_updates': 2976}
+    elif mutation == 'changed_initial_state':
+        result['own_initial_state'] = ref(root/'FOREIGN.pt')
+    elif mutation == 'foreign_arm':
+        origin['family_arm'] = 'momentum_flow_encoder'
+    else:
+        origin['schema_version'] = 'unrecognized'
+    # Preserve the top recipe seal: semantic lineage, not a stale seal, must reject.
+    recipe = docs[str(root/'RECIPE.json')]
+    recipe['recipe_sha256'] = a.matched.binding.canonical_sha256(
+        {k: v for k, v in recipe.items() if k != 'recipe_sha256'})
+    with pytest.raises(RuntimeError):
+        a.require_arm_evidence('session_regime_encoder', entry, proto, lambda r: docs[r['path']])

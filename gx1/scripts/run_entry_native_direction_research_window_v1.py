@@ -142,7 +142,22 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
     _require(isinstance(extra_read_paths, tuple), 'EXTRA_READ_PATHS')
     if extra_read_paths:
         matched=context.get('factor_continuation_reads')
-        if matched is not None:
+        recovered=context.get('scoring_recovery_read_authority')
+        if recovered is not None:
+            from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import SCORING_RECOVERY_CLOSURE, FAMILY_SIGN_SCOPE
+            _require(isinstance(recovered,dict) and set(recovered)=={'launch','validated_origin'},
+                'RECOVERY_READ_AUTHORITY')
+            launch=recovered['launch']; validated=recovered['validated_origin']
+            origin=validated['origin'];cursor=validated['cursor']
+            root=str(Path(SCORING_RECOVERY_CLOSURE['path']).parent/'RUNTIME'/'prefix-fit'/'states')
+            expected=(root+'/w0001_TERMINAL_u002976_p047602.pt',root+'/INITIAL_0U.pt')
+            _require(launch.get('run_scope')==FAMILY_SIGN_SCOPE and launch.get('family_arm')=='session_regime_encoder'
+                and origin==launch.get('scoring_recovery_origin') and origin['closure_review']==SCORING_RECOVERY_CLOSURE
+                and cursor['recipe']==origin['original_recipe']
+                and cursor['parent_cursor']==47602 and cursor['optimizer_updates']==2976 and cursor['phase_state']=='SCORING'
+                and extra_read_paths==expected==(cursor['full_state']['path'],cursor['own_initial_state']['path']),
+                'RECOVERY_EXACT_READ_PATHS')
+        elif matched is not None:
             from gx1.contracts.entry_native_direction_m5_fullfit_v1 import FACTOR_RUNTIME_ROOTS
             root=FACTOR_RUNTIME_ROOTS['sign_one_pass']+'/prefix-fit/'
             _require(isinstance(matched,tuple) and extra_read_paths==matched and len(set(matched))==3

@@ -1120,3 +1120,41 @@ def test_running_control_cli_rejects_wrong_source_or_bytes(
     monkeypatch.setattr(cli, "__file__", str(other))
     with pytest.raises(RandomAccessCampaignError, match="running campaign CLI"):
         cli._require_running_cli(plan_path, file_sha256(plan_path))
+
+def _prefix_zero_step_fixture(tmp_path):
+    repo, commit, _, _ = _source(tmp_path)
+    runtime = tmp_path / 'recovery'
+    value, _ = _invocation(tmp_path, repo, commit, runtime, 1,
+        'native_direction_prefix_fit_window', 16, 0, 'COMPLETE', 'GENESIS', None,
+        'ATOMIC_UPDATE', runtime/'CURSOR.json', window=0, windows=1)
+    return repo, commit, value
+
+
+def test_zero_step_prefix_invocation_delegates_full_origin_validation(tmp_path, monkeypatch):
+    from gx1.contracts import local_random_access_campaign_v2 as c
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    repo, commit, value = _prefix_zero_step_fixture(tmp_path)
+    called = []
+    def reject_unqualified(invocation, execution, **kwargs):
+        called.append(invocation['optimizer_step_budget'])
+        raise c.RandomAccessCampaignError('explicit recovery origin rejected')
+    monkeypatch.setattr(prefix, 'require_prefix_fit_invocation_execution', reject_unqualified)
+    with pytest.raises(c.RandomAccessCampaignError, match='explicit recovery origin rejected'):
+        c.require_invocation(value, source_repo=repo, source_commit=commit, verify_files=True)
+    assert called == [0]
+
+
+@pytest.mark.parametrize('field,value', [
+    ('invocation_number', 2), ('window_count', 2), ('window_index', 1),
+    ('expected_success_outcome', 'RESUMABLE_OR_COMPLETE'),
+    ('optimizer_step_budget', False), ('optimizer_step_budget', -1)])
+def test_zero_step_prefix_invocation_rejects_expanded_shape(tmp_path, field, value):
+    from gx1.contracts import local_random_access_campaign_v2 as c
+    repo, commit, invocation = _prefix_zero_step_fixture(tmp_path)
+    invocation[field] = value
+    if field == 'invocation_number':
+        invocation['invocation_id'] = f'invocation-{value:04d}'
+    invocation = _seal({k: v for k, v in invocation.items() if k != 'invocation_sha256'},
+                       'invocation_sha256')
+    with pytest.raises(c.RandomAccessCampaignError):
+        c.require_invocation(invocation, source_repo=repo, source_commit=commit, verify_files=False)

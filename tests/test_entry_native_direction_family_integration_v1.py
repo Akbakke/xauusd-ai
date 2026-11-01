@@ -88,9 +88,11 @@ def test_actual_scoring_tail_never_repeats_optimizer_or_completes_partial_train(
     from types import SimpleNamespace
     source=ast.parse(inspect.getsource(runner.run_native_direction_prefix_fit_window))
     nodes=list(ast.walk(source))
-    loop=next(n for n in nodes if isinstance(n,ast.While)
-        and isinstance(n.test,ast.BoolOp) and isinstance(n.test.values[0],ast.Compare)
-        and isinstance(n.test.values[0].left,ast.Name) and n.test.values[0].left.id=='parent_cursor')
+    loops=[n for n in nodes if isinstance(n,ast.While)
+        and any(isinstance(condition,ast.Compare) and isinstance(condition.left,ast.Name)
+                and condition.left.id=='parent_cursor' for condition in ast.walk(n.test))]
+    assert len(loops)==1
+    loop=loops[0]
     parent=next(n for n in nodes if isinstance(getattr(n,'body',None),list) and loop in n.body)
     start=parent.body.index(loop)
     stop=next(i for i in range(start+1,len(parent.body))
@@ -106,7 +108,7 @@ def test_actual_scoring_tail_never_repeats_optimizer_or_completes_partial_train(
         published.append(kind); return {'path':kind,'sha256':'1'*64}
     def forbidden(*a,**kw): pytest.fail('Completed restored cursor repeated training')
     launch={'run_scope':authority.FAMILY_SIGN_SCOPE,'fold':{'prefix_rows':47602},'final_train_measurement_rows':47602}
-    env={**runner.__dict__,'parent_cursor':47602,'train_passes':1,'ordered':parents[:47602],
+    env={**runner.__dict__,'parent_cursor':47602,'train_passes':1,'ordered':parents[:47602],'recovery':False,
         'phase':'SCORING','final_measurement':None,'deadline':100,'time':SimpleNamespace(monotonic=lambda:0),
         'counters':{'optimizer_step_returns':updates_this_window},'family_fit':True,
         'prepared':{'arrays':{'parent_rows':parents}},'diagnostic_ids':parents[:256],
