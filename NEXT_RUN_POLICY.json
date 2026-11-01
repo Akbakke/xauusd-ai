@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-01T07:21:51.038322+00:00",
-  "status": "SEVEN_FITS_COMPLETE_CHART_FULLFIT_METADATA_PREFLIGHT_ADMITTED",
+  "status": "SEVEN_FITS_COMPLETE_CHART_FULLFIT_METADATA_QUALIFIED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Only one exact capped metadata/hash preflight for the prepared chart full-fit recipe is admitted. Chart private is complete and consumed; all genuine training/scoring gates remain closed until its own fresh native admission. No relaunch, extra passes, reboot, TEST, Exit or trading.",
-  "next_action": "Run the single capped metadata/hash preflight for the prepared chart full-fit recipe. Reuse qualified control owners and unchanged numerical/model helpers. Genuine full-fit execution remains closed until exact admission and fresh idle proof. Three full variants and54pairedcontrasts remain.",
+  "rule": "Chart-private qualification and chart full-fit metadata preflight are complete and consumed. All genuine execution gates are closed. Next is an exact fresh admission for the prescribed unchanged chart one-pass fullTRAIN/Q1 fit, with fresh same-boot machine idle proof before each invocation. No original campaign relaunch, extra passes, reboot, TEST, Exit or trading.",
+  "next_action": "Admit and materialize the prepared chart_geometry_encoder one-pass fit using the qualified same-boot materializer, fresh prepared boot and machine-wide idle review. Preserve47602TRAIN/2976updates and fullTRAIN+17288Q1 scoring. Three full variants and54pairedcontrasts remain.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Seven matched full fits verified. Chart-private qualification completed32TRAIN/37forwards/4updates; own initial,remaining gradients,selective replacement and exact resume verified onboot590. Task disabled,250Wretained. Prescribed chart full-fit recipe preparation next. Full-fit recipe prepared with65current source owners and unchanged numerics; exact metadata preflight admitted.",
+    "current_activity": "Seven matched full fits verified. Chart-private32TRAIN/37forwards/4updates and chart full-fit65owner metadata validation both passed and are consumed. Same numerics, own chart initial and exact private review bound. No chart full fit started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No execution blocker; exact chart full-fit metadata preflight pending before native admission.",
+    "current_blocker": "No execution failure; exact chart full-fit native admission and fresh machine idle proof remain before launch.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run the single capped metadata/hash preflight for the prepared chart full-fit recipe. Reuse qualified control owners and unchanged numerical/model helpers. Genuine full-fit execution remains closed until exact admission and fresh idle proof. Three full variants and54pairedcontrasts remain.",
+    "next_action": "Admit and materialize the prepared chart_geometry_encoder one-pass fit using the qualified same-boot materializer, fresh prepared boot and machine-wide idle review. Preserve47602TRAIN/2976updates and fullTRAIN+17288Q1 scoring. Three full variants and54pairedcontrasts remain.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -48268,7 +48268,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "SEVEN_FITS_COMPLETE_CHART_FULLFIT_METADATA_PREFLIGHT_ADMITTED",
+    "status": "SEVEN_FITS_COMPLETE_CHART_FULLFIT_METADATA_QUALIFIED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -48532,6 +48532,10 @@
     "prepared_chart_geometry_full_fit_recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_ONEPASS_FIT_RECIPE_20261101.json",
       "sha256": "7b6b3acf21c897607a67f5bb236e0b86a20bbefb30862139ea80cb26569fe0f0"
+    },
+    "chart_geometry_full_fit_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "5b3c7001db523bbb7594ddb4b1d2e5f5c3a54f06c7c931e66b390efd9d6ee677"
     }
   },
   "direction_family_input_pilot_20261030_001": {
@@ -50370,7 +50374,7 @@
     }
   },
   "direction_family_chart_geometry_fit_preparation_20261101_001": {
-    "status": "RECIPE_PREPARED_EXACT_METADATA_PREFLIGHT_ADMITTED",
+    "status": "METADATA_QUALIFIED_NATIVE_ADMISSION_PENDING",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_CHART_GEOMETRY_ONEPASS_FIT_RECIPE_20261101.json",
       "sha256": "7b6b3acf21c897607a67f5bb236e0b86a20bbefb30862139ea80cb26569fe0f0"
@@ -50395,7 +50399,7 @@
       "sha256": "e3debe064f4a0ca57f275a36bbab4c2385856d530f030fbd8bc13644f99850e5"
     },
     "metadata_preflight": {
-      "execution_authorized": true,
+      "execution_authorized": false,
       "worker": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/recipe_preflight_001.py",
         "sha256": "b01708d593aff58a0df995742a0410cb4a8ea8595e2f50b956d1c624e544e10b"
@@ -50405,13 +50409,27 @@
         "sha256": "7b6b3acf21c897607a67f5bb236e0b86a20bbefb30862139ea80cb26569fe0f0"
       },
       "max_invocations": 1,
-      "claimed_invocations": 0,
-      "completed_invocations": 0,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
-      "metadata_and_qualified_file_hash_reads_authorized": true,
+      "metadata_and_qualified_file_hash_reads_authorized": false,
       "model_or_checkpoint_deserialization_authorized": false,
       "optimizer_updates_authorized": false,
-      "test_data_used": false
+      "test_data_used": false,
+      "status": "COMPLETE_CONSUMED",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/RECIPE_PREFLIGHT_001.json",
+        "sha256": "5b3c7001db523bbb7594ddb4b1d2e5f5c3a54f06c7c931e66b390efd9d6ee677"
+      },
+      "claim": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/RECIPE_PREFLIGHT_CLAIM_001.json",
+        "sha256": "59d8fa835f1a522d147211e3bbe69d1cad7abd99a3841903a14da410124bd69c"
+      },
+      "outer_exit_code": 0
+    },
+    "prepared_materializer": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/materialize_prefix_campaign_same_boot_once.py",
+      "sha256": "9ff8ec16ec7b95891f003bef488b311cf85dbd05c4e4ec60498d552de728ffef"
     }
   }
 }
