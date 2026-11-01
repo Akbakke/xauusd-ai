@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-31T19:56:28.486117+00:00",
-  "status": "SIX_FITS_COMPLETE_CAPACITY_SCOPE_REVIEW_SESSION_PREFLIGHT_PASSED",
+  "status": "SIX_FITS_COMPLETE_COMPARISON_CALLER_QUALIFIED_CAPACITY_SCOPE_CHOICE_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Resolve new repeated-subset diagnostic scope; independently prepare missing saved-prediction all-ten-family comparison caller without changing frozen fit owners.",
+  "next_action": "Await operator choice on separate fixed-smallTRAIN repeated-fit proposal versus completing four remaining prescribed familyfits first. All-ten saved-comparison caller source-qualified; genuine comparison awaits four originalterminals and exactadmission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Current-function smallTRAIN fit-capacity scope/source review complete; concrete separate proposal prepared. Session fullfit metadata preflight PASS; no native plan materialized or launched.",
+    "current_activity": "Source-qualified all-ten saved-prediction comparison wrapper:43focusedtests and6actualmetadatachains,0archives/modelcalls. Capacity proposal independently reviewed; operator scopechoice pending. Sessionfullfit preflightPASS, no nativeplan or launch.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Resolve new repeated-subset diagnostic scope; independently prepare missing saved-prediction all-ten-family comparison caller without changing frozen fit owners.",
+    "next_action": "Await operator choice on separate fixed-smallTRAIN repeated-fit proposal versus completing four remaining prescribed familyfits first. All-ten saved-comparison caller source-qualified; genuine comparison awaits four originalterminals and exactadmission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -48471,7 +48471,12 @@
     "session_regime_full_fit_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/RECIPE_PREFLIGHT_001.json",
       "sha256": "509e2b9f4a233c18e505418b388821970cec333c7e30569addec0940ab7a84b9"
-    }
+    },
+    "saved_comparison_source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FAMILY_SAVED_COMPARISON_SOURCE_001/RESULT.json",
+      "sha256": "da3dd6dbcee12e0de0d8204c9027cfd3a7e1389b6d73d05efd2eaa2a8e9c0bc8"
+    },
+    "saved_comparison_stage": "direction_family_saved_comparison_20261101_001"
   },
   "direction_family_input_pilot_20261030_001": {
     "status": "PASS_CONSUMED_ACTUAL_INPUT_PILOT",
@@ -49877,5 +49882,74 @@
     "broker_access_allowed": false,
     "current_model_code_changed": false,
     "pending_choice": "Add this bounded diagnostic before remaining familyfits, or finish originalfamilycomparison first. No automatic diagnostictraining."
+  },
+  "direction_family_saved_comparison_source_20261101_001": {
+    "status": "PASS_SOURCE_QUALIFIED_CONSUMED_NO_PREDICTION_COMPARISON",
+    "source_edits_authorized": false,
+    "synthetic_tests_authorized": false,
+    "metadata_chain_reads_authorized": false,
+    "genuine_prediction_reads_authorized": false,
+    "execution_authorized": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "output_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FAMILY_SAVED_COMPARISON_SOURCE_001",
+    "sources": {
+      "gx1/scripts/compare_entry_direction_family_saved_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/compare_entry_direction_family_saved_v1.py",
+        "sha256": "978d6cae031e7fbc981642de99a7eb44f789473e1f02bb4782ab10c91b211373"
+      },
+      "tests/test_compare_entry_direction_family_saved_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_compare_entry_direction_family_saved_v1.py",
+        "sha256": "3b66ef4a141be3a4bd74b871d6c5acfb15ea98ef63645f6731397236eff570db"
+      },
+      "tests/test_direction_family_saved_comparison_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/tests/test_direction_family_saved_comparison_v1.py",
+        "sha256": "7e946213831f750a2e0d0a55a2cfe18f24b5ac159a44f02a0080583b67dc2ea3"
+      }
+    },
+    "scope": "Exactly two focused synthetic test files plus explicit metadata-only compatibility on six completed chains. No prediction archives/model/optimizer/rawinputs; genuine comparison still requires allten.",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FAMILY_SAVED_COMPARISON_SOURCE_001/RESULT.json",
+      "sha256": "da3dd6dbcee12e0de0d8204c9027cfd3a7e1389b6d73d05efd2eaa2a8e9c0bc8"
+    },
+    "outer_log": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FAMILY_SAVED_COMPARISON_SOURCE_001/OUTER.log",
+      "sha256": "c2a660165fcbf727d6cc5b47d9440bf8d162f9b853422b7fed6550f8f53f7077"
+    },
+    "tests_passed": 43,
+    "actual_metadata_chains_checked": 6,
+    "actual_metadata_files_checked": 80,
+    "genuine_prediction_archives_read": 0,
+    "independent_review": {
+      "status": "PASS",
+      "scope": "Source plus actual sourcequalification receipt,9sourcehashes,2testsourcehashes,exact2JUnitmodules,43caseswithoutfail/error/skip; no predictionpayloads or modelcalls.",
+      "reviewed_result_sha256": "da3dd6dbcee12e0de0d8204c9027cfd3a7e1389b6d73d05efd2eaa2a8e9c0bc8"
+    }
+  },
+  "direction_family_saved_comparison_20261101_001": {
+    "status": "SOURCE_QUALIFIED_AWAITING_ALL_TEN_TERMINALS_NOT_ADMITTED",
+    "source_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FAMILY_SAVED_COMPARISON_SOURCE_001/RESULT.json",
+      "sha256": "da3dd6dbcee12e0de0d8204c9027cfd3a7e1389b6d73d05efd2eaa2a8e9c0bc8"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/compare_entry_direction_family_saved_v1.py",
+      "sha256": "978d6cae031e7fbc981642de99a7eb44f789473e1f02bb4782ab10c91b211373"
+    },
+    "execution_authorized": false,
+    "genuine_prediction_reads_authorized": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "raw_input_reads_authorized": false,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "scope": "Exact ten protocol arms,20bound TRAIN/Q1 prediction archives; shared existing mathematics; primary54pairedcontrasts and all60descriptive panels. Source-only readiness, no fabricated missing terminal or partialstudyexecution."
   }
 }
