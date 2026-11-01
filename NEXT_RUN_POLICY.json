@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Exact chart recovery recipe and existing metadata workers prepared. Only one capped metadata/file-hash preflight admitted; zero model calls. Native chart scoring remains closed pending qualification and host stability review. Seven complete fits, chart training preserved, no original relaunch.",
+    "current_activity": "Chart exact recovery metadata/hash preflight completed with no model calls. One reviewed reversible cloned power-plan trial admitted: AC CPU boost2to0 only, all other settings preserved, no restart. Native recovery remains closed until actual host trial/readiness and fresh campaign gates.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -20449,7 +20449,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-01T12:09:29.358167+00:00",
+  "updated_utc": "2026-11-01T12:14:47.470833+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -50567,7 +50567,7 @@
     }
   },
   "direction_family_chart_scoring_recovery_source_20261101_001": {
-    "status": "PASS_SOURCE_AND_SYNTHETIC_QUALIFICATION_HOST_AND_NATIVE_BINDING_PENDING",
+    "status": "COMPLETE_CONSUMED_SOURCE_AND_EXACT_METADATA_PREFLIGHT_PASS_HOST_PENDING",
     "source_edits_authorized": false,
     "synthetic_tests_authorized": false,
     "reason": "Existing session-only origin,readguard,state-seal and saved-comparison adapter cannot accept preserved chart W1; original chart source already contains recovery control nodes and needs exact per-origin AST expectations.",
@@ -50622,8 +50622,8 @@
       "Actual full origin/plan binding and host readiness remain before separate zero-update scoring admission."
     ],
     "metadata_preflight": {
-      "status": "PREPARED_EXACT_CHART_METADATA_HASH_PREFLIGHT",
-      "execution_authorized": true,
+      "status": "PASS_CONSUMED",
+      "execution_authorized": false,
       "worker": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/recipe_preflight_001.py",
         "sha256": "be823be2222637b082e43047583321608a12b3c054229d486afdb2db5e31567f"
@@ -50633,8 +50633,8 @@
         "sha256": "d3a453ee17b7ece644ae6098b8d9ec8ac529e8b24def422b28240a66f1eb775d"
       },
       "max_invocations": 1,
-      "claimed_invocations": 0,
-      "completed_invocations": 0,
+      "claimed_invocations": 1,
+      "completed_invocations": 1,
       "relaunch_allowed": false,
       "metadata_and_qualified_file_hash_reads_authorized": true,
       "model_or_checkpoint_deserialization_authorized": false,
@@ -50643,6 +50643,10 @@
       "preparation_peer_review": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREPARATION_PEER_REVIEW_001.json",
         "sha256": "58d3b9989c3024a5dd42f85048eabdb6a7e390e42941406ca1882489094615b2"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREFLIGHT_001.json",
+        "sha256": "28dc28529466feda919e7039c7c744aaffeb99ea9e08c2d839fa71ecdf9586ab"
       }
     }
   },
@@ -50795,6 +50799,47 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_val_allowed": false,
-    "physical_restart_before_each_invocation_authorized": false
+    "physical_restart_before_each_invocation_authorized": false,
+    "metadata_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREFLIGHT_001.json",
+      "sha256": "28dc28529466feda919e7039c7c744aaffeb99ea9e08c2d839fa71ecdf9586ab"
+    }
+  },
+  "direction_family_host_cpu_boost_trial_20261101_001": {
+    "status": "QUALIFIED_SINGLE_REVERSIBLE_POWER_PLAN_TRIAL",
+    "execution_authorized": true,
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/apply_boost_trial.ps1",
+      "sha256": "c3c644f093aacff78f7a84ae94e2d6192fafc31959a2521896f14cb6c8a24c7d"
+    },
+    "powershell_parse": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/POWERSHELL_PARSE_002.json",
+      "sha256": "889c5e7342722b23d52e65957b19a15416dbeab8a86c1b9d60699d875648944d"
+    },
+    "peer_review": {
+      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/POWER_TRIAL_PREPARATION_PEER_REVIEW_001.json",
+      "sha256": "dfce5e351a398d213c83bacdca5adbe04701285c3d3b9e18c3bdf4e412e10358"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "original_power_scheme": "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c",
+    "trial_power_scheme": "b42b918a-8710-41a4-ba0c-53b7023a3dba",
+    "only_operational_change": "AC PERFBOOSTMODE 2 to0 in own cloned plan; all enumerated AC/DC indices verified otherwise equal and original retained.",
+    "expected_windows_boot_utc": "2026-11-01T11:01:54.5000000Z",
+    "rationale": "Bounded conservative host-stability experiment after two corrected CPU/cache records and later Hyper-V crash. No causal diagnosis or proven fix. Disable boost instead of increasing idle power; preserve all existing capacity/GPU/thermal/time guards.",
+    "user_authorization": "Original research completion and host recovery; reversible power-plan change within that scope, no BIOS/driver/reboot.",
+    "limitations": [
+      "Setting readback does not prove absence of BIOS OC/UV/XMP.",
+      "Successful scoring would show one stable run, not root-cause resolution.",
+      "CPU performance may decrease; existing wall limits remain.",
+      "No native job admitted by this host-only stage."
+    ],
+    "restart_authorized": false,
+    "firmware_or_driver_change_authorized": false,
+    "native_launch_authorized": false,
+    "model_calls_authorized": false,
+    "test_data_used": false
   }
 }

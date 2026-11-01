@@ -120,7 +120,19 @@ Ny lesende host- og kildekvalifisering:
 Chart-gjenopprettingens eksakte oppskrift og gjenbrukte kontrollarbeidere er
 klargjort. Uavhengig metadatareview fanget en manglende newline i den første
 oppskriftshashen; dette ble rettet med den eksisterende kanoniske hasheieren
-før utførelse. Bare én capped metadata-/filhashforkontroll er åpnet.
+før utførelse. Den ekte capped metadata-/filhashforkontrollen er nå fullført
+med PASS, uendret numerikk/input/fold og null modellkall.
 - FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/WHEA_MCA_EXTENSION_RESULT_001.json: be53c2a007c858271ba4d35b72eef2526ba70d7054cb2534b868f59c6faa186c
 - FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/HOST_RUNTIME_READONLY_001.json: 955a6a0e06736979c43dc87989ad70a439a556d1931240070777c2f6580aeb32
 - FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREPARATION_PEER_REVIEW_001.json: 58d3b9989c3024a5dd42f85048eabdb6a7e390e42941406ca1882489094615b2
+
+Ett reversibelt strømplanforsøk er kildegjennomgått og åpnet, men ikke utført:
+klon Høy ytelse og endre bare AC PERFBOOSTMODE fra 2 til 0. Originalplanen
+beholdes; alle enumererte AC/DC-innstillinger sammenlignes. BIOS, CPU-idle,
+GPU- og kjøregrenser endres ikke. Dette er et konservativt stabilitetsforsøk,
+ingen dokumentert reparasjon. Native scoring krever fortsatt egen admisjon.
+- FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREFLIGHT_001.json: 28dc28529466feda919e7039c7c744aaffeb99ea9e08c2d839fa71ecdf9586ab
+- FIT_CHART_GEOMETRY_001/HOST_BOOST_TRIAL_001/POWER_TRIAL_PREPARATION_PEER_REVIEW_001.json: dfce5e351a398d213c83bacdca5adbe04701285c3d3b9e18c3bdf4e412e10358
+
+Innstillingens dokumenterte betydning:
+https://learn.microsoft.com/en-us/windows-hardware/customize/power-settings/options-for-perf-state-engine-perfboostmode
