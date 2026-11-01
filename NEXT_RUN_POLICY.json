@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T20:13:42.036030+00:00",
-  "status": "ORDERED_MULTITF_FORECAST_OBJECTIVE_DEFINED_NO_NATIVE_RUNS",
+  "observed_utc": "2026-11-01T21:30:01.347381+00:00",
+  "status": "DYNAMIC_FIVE_TIMEFRAME_FORECAST_OBJECTIVE_DEFINED_NO_NATIVE_RUNS",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest explicit user instruction rejects all new model runs, including the proposed256-row capacity test. Existing chart stop remains final; preserve all original results, weights, checkpoints and incomplete status. Only read-only saved-evidence/source diagnosis is authorized. TEST, broker and trading remain closed.",
-  "next_action": "Define the ordered movement/reversal target for all M5/M15/H1/H4/D1 scales, reusing existing source/clock/mask owners. Both rise and return fall must count. Exact price/grid, segmentation, time/size domains, output/loss and partial observations remain open. No automatic source/model/target build, fit, evaluation or restart is admitted.",
+  "next_action": "Specify rolling local UP/DOWN/FLAT states, continuations and transitions for M5/M15/H1/H4/D1 without a fixed issue-price line. Bind local-state definition, time/size domain, source/maturity/masks, output/loss and future-prediction scoring. Existing60binary-head implementation remains insufficient; no automatic source/model/target build, fit, evaluation or restart is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -254,8 +254,8 @@
     }
   },
   "current_work": {
-    "operator_request": "01.11: forecast ordered meaningful movements, including both the rise and return fall, and stillness on M5/M15/H1/H4/D1 across scalping, intraday and swing; Entry/trades later. New model runs and restarts remain prohibited.",
-    "current_activity": "Recorded operator requirement for both ordered movement legs and forecast evaluation on all five timeframes; corrected the insufficient first-event-only proposal. Documentation only.",
+    "operator_request": "01.11 latest: forecast dynamically when the market moves up, down or stays flat, and transitions between these states, on M5/M15/H1/H4/D1. No starting-price line or required return; cover the whole goal. Entry/trades later; model-run and restart prohibitions remain.",
+    "current_activity": "Corrected the anchor-based example into the full dynamic five-timeframe forecast objective; recorded requirement-to-implementation gaps. Documentation only.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No identified causal cure for weak binary ranking. Ordered movement targets need explicit extraction, per-timeframe size/time/observation semantics and output/loss design. Model-run prohibition persists.",
+    "current_blocker": "Current60binary terminal heads do not implement the requested rolling local UP/DOWN/FLAT objective. Exact local-state definition, source/maturity/uncertainty and all-five-TF target/output/loss mappings remain open; no proven cause or cure of weak binary ranking.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Define the ordered movement/reversal target for all M5/M15/H1/H4/D1 scales, reusing existing source/clock/mask owners. Both rise and return fall must count. Exact price/grid, segmentation, time/size domains, output/loss and partial observations remain open. No automatic source/model/target build, fit, evaluation or restart is admitted.",
+    "next_action": "Specify rolling local UP/DOWN/FLAT states, continuations and transitions for M5/M15/H1/H4/D1 without a fixed issue-price line. Bind local-state definition, time/size domain, source/maturity/masks, output/loss and future-prediction scoring. Existing60binary-head implementation remains insufficient; no automatic source/model/target build, fit, evaluation or restart is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -15938,7 +15938,7 @@
       "optional_timeframe": "M30 only after declared added-value comparison",
       "feature_scope": "Every genuine indicator reviewed individually for formula, ownership, causal clock, availability, all-timeframe coverage and actual learned consumption; eight specialist families plus retained ninth D1/macro context. Unsupported/duplicate inputs are reported explicitly.",
       "data_priority": "Complete and exploit all genuinely observable GC MBP-1 information on the existing26month window before considering10year OHLC expansion. Preserve unknown aggressor, actual coverage, raw price grid, contract identity and GC/XAU basis alignment.",
-      "entry_objective_alignment": "Latest01.11followup: predict and evaluate both ordered movement legs, including an out-and-back path, on M5/M15/H1/H4/D1 before Entry/trades. Stillness is a path property at a declared scale, not endpoint cancellation. No hard60minute ceiling.",
+      "entry_objective_alignment": "Dynamic local UP/DOWN/FLAT, sustained states and transitions on all M5/M15/H1/H4/D1, without fixed starting-price or return conditions. Forecast before Entry/trades; no hard60minute ceiling or imposed state/holding duration.",
       "evidence_rule": "An earlier short CPU/rule/smoke test is scoped evidence and never a project-wide impossibility conclusion. Preserve measured results and original receipts.",
       "execution_rule": "Disjoint agents and one capped heavy job; freeze source during execution, reuse qualified bytes, safe idle-boundary reboot, brief stable checks every60minutes.",
       "audit_document": "docs/FEATURE_AUDIT.md",
@@ -15949,9 +15949,9 @@
       },
       "current_phase": "Offline market-forecast objective/source/evidence investigation. Entry and trades are later decisions; no new native model work.",
       "entry_decision_cadence_seconds": 300,
-      "future_outcome_queries": "Exact revised time/event/size and ordered-movement contract unresolved; no hard60minute project ceiling or holding rule. Existing1..60binary outputs remain historical evidence;1..480minute and session-day outcome owners are reusable but not qualified ordered-movement targets across M5/M15/H1/H4/D1.",
+      "future_outcome_queries": "Source-supported time/size domain for future local-state validity remains to be bound for each timeframe. Existing terminal/first-event/session-day targets are scoped historical evidence, not a ready dynamic-state contract.",
       "latest_operator_clarification_date": "2026-11-01",
-      "current_forecast_role": "Existing M5 observation cadence with causal multi-timeframe inputs; forecast and evaluate ordered movements on all M5/M15/H1/H4/D1 scales. No trade authority, no fixed future horizon implied by timeframe names.",
+      "current_forecast_role": "Rolling market-state forecasts from information available at each completed-M5 issue time, with explicit future validity times and all-five-timeframe targets/assessment. Issue time is not a price-level anchor or trade entry.",
       "required_forecast_timeframes": [
         "M5",
         "M15",
@@ -17992,7 +17992,7 @@
       "status": "OBJECTIVE_MISMATCH_PROVEN_BINARY_RANKING_CAUSE_UNKNOWN",
       "review": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "1ff2f2f958dd4bd692348edeae7a7b6d52ee97e5f047481311084a83735f6021"
+        "sha256": "797f7dc4a406d6b545718305b4809c7ac5a8177f47524ff767207bb43fc0d304"
       },
       "saved_result": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_OBJECTIVE_SAVED_DIAGNOSTICS_20261101_001/RESULT.json",
@@ -18009,7 +18009,7 @@
       "restart_authorized": false
     },
     "movement_forecast_target_review_20261101": {
-      "status": "OPERATOR_ORDERED_BIDIRECTIONAL_MTF_OBJECTIVE_RECORDED_CONTRACT_OPEN",
+      "status": "DYNAMIC_LOCAL_STATE_GOAL_COVERED_NUMERIC_AND_IMPLEMENTATION_GAPS_OPEN",
       "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
       "runtime_root": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001",
       "model_calls_authorized": false,
@@ -18019,7 +18019,7 @@
       "test_data_used": false,
       "result": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "1ff2f2f958dd4bd692348edeae7a7b6d52ee97e5f047481311084a83735f6021"
+        "sha256": "797f7dc4a406d6b545718305b4809c7ac5a8177f47524ff767207bb43fc0d304"
       },
       "inventory": {
         "path": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001/EXISTING_TARGET_INVENTORY.json",
@@ -18036,7 +18036,7 @@
       "new_target_qualified": false,
       "root_cause_proven": false,
       "forecast_role_separate_from_entry": true,
-      "semantic_preference": "Resolved by explicit user reply: both rise and return fall count in order on M5/M15/H1/H4/D1. First-event-only proposal superseded; exact numeric and observation contract remains open.",
+      "semantic_preference": "Resolved: continuously evolving local UP/DOWN/FLAT, continuations and transitions on all five timeframes. No fixed starting-price line, required return or two-leg template.",
       "operator_followup": "Da har vi i teorien 2 retninger. Først den ene veien, så den andre. Begge retningene skal telle. Og dette måler vi på alle 5 multi timeframe",
       "forecast_timeframes": [
         "M5",
@@ -18044,7 +18044,8 @@
         "H1",
         "H4",
         "D1"
-      ]
+      ],
+      "latest_operator_followup": "Ja, stemmer. Men du skriver Oppgang → nedgang tilbake til start. Tilbake til hvilken start egentlig? For opp og ned beveger seg jo dynamisk, så vi har jo ingen «start». Vi skal merke når markedet går opp, ned og holder seg flatt. Det er det vi er ute etter. Det finnes ingen «start» strek. Dekk målene fullt ut"
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653"
   },

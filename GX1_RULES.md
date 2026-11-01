@@ -116,19 +116,38 @@ Et prognosemål må ha eksplisitt tids-/hendelsesreferanse og en begrunnet
 bevegelsesdefinisjon; dette innfører ingen maksimal holdetid. Ingen terskel
 for «meningsfull» eller ny horisontliste er vedtatt som et gjettet tall.
 
-Brukerens svar01.11 fastsetter at begge bevegelsene skal telle når prisen
-først stiger og deretter faller tilbake: OPP fulgt av NED, i riktig rekkefølge.
-Det samme gjelder motsatt forløp og videre meningsfulle bevegelser; målet
-låses verken til første hendelse eller til nøyaktig to bevegelser. Nedgangen
-måles også fra toppen av oppgangen, ikke bare mot opprinnelig startpris.
-Forløpet skal prognostiseres og måles på alle fem tidsrammer: M5, M15, H1,
-H4 og D1. Bevegelsenes retning, størrelse, rekkefølge og tidsforløp må beholdes;
-en lukket bar eller nettoendring alene kan skjule dem. Tidsramme, framtidig
-målehorisont og kildeoppløsning er ulike størrelser. Samme underliggende
-bevegelse på flere TF er ikke fem uavhengige bevis. Skalaavhengig relevans
-må defineres; like etiketter på tvers av alle TF er ingen forutsetning.
-Presis uttrekking av bevegelser/vendinger, tallgrenser, tidsdomene og
-observasjonskrav gjenstår. Dette vedtar målsemantikken, ikke ny modellkjøring.
+Siste brukerpresisering01.11 gjelder løpende, dynamisk OPP/NED/FLATT på
+M5, M15, H1, H4 og D1. Markedet har ingen fast startpris eller nullstrek som
+må krysses for at retningen skal skifte. Det tidligere tur–retur-eksemplet
+avgrenser ikke målet: det kreves verken retur, et bestemt vendepunkt eller
+et par med nøyaktig to bevegelser. Fortsatt oppgang, fortsatt nedgang, flate
+perioder og alle skifter mellom dem inngår i det løpende forløpet.
+
+Tilstanden må beskrive den lokale prisutviklingen på den aktuelle skalaen,
+ikke bare prisens nivå over/under prisen da prognosen ble laget. Bevegelsenes
+retning, størrelse og tidsforløp skal kunne vurderes, og meningsfulle bevegelser
+i begge retninger må ikke kanselleres av en liten nettoendring. FLATT betyr
+ingen retningsbevegelse av betydning på den definerte skalaen; usikkerhet,
+manglende fasit og store motgående bevegelser er ikke automatisk FLATT.
+
+Målet er å forutse fortsettelse og tilstandsskifter før de relevante framtidige
+utfallene blir observerbare. Å gjenkjenne en allerede inntruffet bevegelse er
+ikke i seg selv framtidig prediksjon. Prognosens tidsstempel brukes til å
+kontrollere hva modellen visste; det er ingen startpris eller handelsstart.
+Løpende prognoser oppdateres ved nye kausalt tilgjengelige observasjoner.
+
+Alle fem TF skal ha egne eksplisitte mål og kvalitetsmålinger. En kort
+nedgang på M5 kan inngå i en opptrend på D1; enighet mellom TF er ikke et
+krav. Fem inputstrømmer beviser ikke fem lærte prognosemål. Tidsramme,
+framtidig målehorisont og kildeoppløsning holdes atskilt, uten fast60minutters-
+grense eller maksimal bevegelses-/holdetid. Overlappende observasjoner på
+flere TF er ikke uavhengige bevis. Alle genuine indikatorer revideres helt
+fram til faktisk konsum; åtte spesialister og D1/makro beholdes.
+
+Kontrakten må binde dynamisk tilstandsfasit, observerbarhet, output, tap og
+måling til samme mål på hver TF. Presis definisjon av lokal bevegelse/flathet,
+størrelses- og tidsdomene samt behandling av ukjente utfall gjenstår; ingen
+gjettet terskel eller segmenteringsregel følger av målpresiseringen.
 
 Den gjennomførte binære1..60minuttersforskningen er et snevrere mål:
 den har ingen lært STILLE-klasse og skiller ikke små fra store fortegn.

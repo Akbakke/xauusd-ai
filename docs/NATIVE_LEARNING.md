@@ -7,56 +7,72 @@ ikke relanser ferdige inputs, kapasitetstester eller engangsplaner.
 
 ## Prognosemål før Entry
 
-Målpresiseringen i GX1_RULES omfatter meningsfull OPP/NED/STILLE på tvers av
-minutter, timer og dager. Entry og handler er en senere oppgave. Dagens
-binære1..60minuttersfunksjon er avgrenset forskning; grensen utvider seg ikke
-automatisk fordi inputtene har lang historikk. En ny prognosekontrakt må
-binde prisreferanse, bevegelsesstørrelse, tidsklokke, utfall, observasjonsmasker,
-output og tap sammen. Ingen enkelt holdetid eller gjettet bevegelsesterskel
-skal erstatte dette.
+Prognosen gjelder løpende, dynamisk OPP/NED/FLATT på M5/M15/H1/H4/D1:
+fortsettelse, overgang til flathet, ny bevegelse og vendinger i begge retninger.
+Ingen fast startpris, returpris eller første terskelpassering definerer målet.
+Det er den lokale prisutviklingen på hver skala som skal beskrives. Entry og
+handler kommer senere; prognosetidspunktet er bare en kausal tidsreferanse.
 
-Liten nettoendring, ingen observert terskelpassering og kontinuerlig rolig
-prisbane er ulike utfall. Første passering og første globale MFE er også
-ulike størrelser. Markedsro er verken manglende fasit, retningsusikkerhet eller
-en senere FLAT-handling. Et middel nær null kan skjule stor sannsynlig
-bevegelse i begge retninger; marginale prognoser ved flere tider beviser
-ingen felles prisbane.
+En tilstandsfasit S_s(v) for skala s og gyldighetstid/-intervall v må ha en
+reproduserbar definisjon ut fra den deklarerte prisbanen. Den avhenger ikke
+av hvilken gammel prognosepris markedet tilfeldigvis sammenlignes med.
+En prognose utstedt ved t estimerer OPP/NED/FLATT ved framtidig v, basert bare
+på informasjon tilgjengelig ved t. De tre tilstandssannsynlighetene summerer
+til én for samme s/v. Et lengre forløp kan inneholde alle tre tilstander;
+oppgang og nedgang er ikke gjensidig utelukkende hendelser i hele perioden.
 
-Begge retninger i et tur–retur-forløp skal inngå i prognosemålet og
-evalueringen på M5/M15/H1/H4/D1. Første-hendelse-klassen alene forkaster
-returen; to uavhengige OPP/NED-sannsynligheter beskriver heller ikke
-rekkefølgen. En retur ned til start er en nedbevegelse fra den foregående
-toppen selv uten passering under opprinnelig startpris. Målkontrakten må
-bevare meningsfulle bevegelsers rekkefølge, størrelse og tidsforløp, uten
-å gjette segmenteringsregel eller begrense antallet til to. Full observert
-prisbane og deklarert skala er nødvendig for en STILLE-fasit; ukjent
-intrabarrekkefølge beholdes som ukjent. Fem input-TF dokumenterer ikke
-automatisk fem prognosemål eller en kvalifisert måling på hver skala.
+Dette er et målkrav, ikke et valg av ny modellarkitektur. Marginale tilstands-
+sannsynligheter dokumenterer ikke alene en felles sannsynlighet for hele
+forløpet. Eventuelle påstander om rekkefølge eller overgangssannsynligheter
+må støttes av outputens faktiske semantikk og tilsvarende måling. Løpende
+prognoser kan bruke nye observasjoner når de kommer; de må aldri omskrives
+i ettertid som om den nyere informasjonen var kjent i en tidligere prognose.
 
-Forløpsfasit kan bruke framtidige observerte vendepunkter, men disse kan
-aldri velge prognosens starttid eller mates inn som kjente queryankre. En
-prognose av begge bevegelser fra samme tidspunkt må vurderes separat fra
-nye prognoser som får observere den første bevegelsen. Overlappende
-hendelser og TF håndteres som avhengige observasjoner i evalueringen.
+FLATT er en observert tilstand på en eksplisitt skala, ikke lav konfidens,
+manglende fasit eller bare liten nettoendring. Store relevante bevegelser
+begge veier skal fortsatt telles. Ingen gjettet tallgrense, tilfeldig
+utglatting eller tapsvekt innføres. Definisjonen må skille relevant bevegelse
+fra små svingninger uten å gjøre et helt volatilt forløp flatt ved kansellering.
+Framtidig størrelse, varighet og tidspunkt brukes til å kontrollere at
+prognosen dekker bevegelsene brukeren etterspør; dette gir ingen handelsregel.
 
-Gjenbruk den eksisterende dynamiske M1-eieren og first-positive-quote-eieren
-der deres kilde-/pris-/klokkesemantikk faktisk stemmer. Behold sett av mulige
-utfall ved ukjent rekkefølge. Bare entydige etiketter er et utfallsavhengig
-utvalg; verken filtrering til dette utvalget eller en ubekreftet partial-label-
-loss er en kvalifisert løsning. En prognose på observerte M1-åpninger må
-beskrives med denne oppløsningen, uten påstand om subminuttforløpet.
+Hver av de fem TF trenger navngitt fasit, observasjonsmaske, output-/tapskobling
+og egne målinger. M5 NED og D1 OPP kan være samtidige gyldige tilstander.
+TF er ikke lik en enkelt framtidig barhorisont eller kildens oppløsning.
+Veggklokkeminutter, observerte M5-rader og UTC22-sesjoner holdes atskilt.
+Et avgrenset målevindu trengs for etterprøvbarhet, men innfører ingen fast
+60minuttersgrense, maksimal bevegelseslengde eller maksimal holdetid.
 
-Veggklokkeminutter, antall observerte M5-rader og observerte UTC22-sesjoner
-holdes atskilt. Realisert framtidig forløpslengde, hendelsestid, maskering og
-prisekstremer er fasitmetadata, aldri modellinput. Numerisk querydomene og
-tapsfordeling deklareres før eventuell materialisering eller fit. Kildegrenser
-som480minutter er implementasjonsgrenser, ikke maksimal holdetid eller
-permanent prosjektgrense. Tidligere bps-hoder, lengre path-trening og
-first-hurdle-diagnoser skal ikke presenteres som uprøvde ideer.
+Gjenbruk eksisterende kausale pris-/akse-/maskeeiere der semantikken passer.
+En gammel first-positive-quote-klasse eller terminalretning kan ikke bare
+omdøpes til dynamisk tilstand. Fasit fra framtidige observasjoner modnes først
+når det deklarerte observasjonsbehovet er dekket; disse observasjonene og
+etterfølgende vendepunkter mates aldri inn som kjent informasjon ved t.
+Ukjent intrabarrekkefølge og manglende dekning beholdes som ukjent. En fasit
+på observerte M1-åpninger beviser ikke subminuttforløpet.
 
-Den konkrete foreslåtte etterfølgeren og dens uavklarte valg er samlet i
-docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json. Et designforslag
-gir ingen kjøreautorisasjon; aktuell adgang eies fortsatt av NEXT_RUN_POLICY.
+Mål kvalitet på alle tre tilstander og alle fem TF, både fortsettelse og
+skifter: sannsynlighetskvalitet/kalibrering, feilvarsler, oversette bevegelser
+og hvor tidlig eller sent skift varsles. Bevegelsenes størrelse og varighet
+må følge resultatet, slik at mange små riktige etiketter ikke alene kalles
+nyttig prognose. Hele erklærte populasjonen, også ukjente utfall, rapporteres.
+Sammenlign med forhåndsvalgte TRAIN-priorer og kausale enkle referanser;
+en persistensreferanse må ikke få se en framtidsutjevnet fasit for nåtiden.
+Overlappende tidspunkter/TF behandles som avhengige observasjoner.
+
+Alle genuine indikatorer revideres fra formel og tilgjengelighet til faktisk
+modellkonsum på fem TF. Behold åtte spesialister og D1/makro; at en familie
+er representert beviser ikke at hvert felt brukes eller gir prognoseverdi.
+Ingen automatisk aktivering, sletting eller ny modellkjøring følger av dette.
+TRAIN-fit, senere generalisering og eventuell handelsverdi måles separat.
+
+Dagens binære1..60minuttersfunksjon dekker ikke denne kontrakten. Nøyaktig
+lokal tilstandsdefinisjon, støttet størrelses-/tidsdomene, prisoppløsning,
+partial-observation-behandling og samsvarende output/loss må fastsettes før
+implementasjon kan kalles dekkende. Tidligere lengre path-/bps-forsøk beholdes
+som avgrenset evidens, ikke nye uprøvde løsninger. Konkret dekningsoversikt
+står i docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json. Aktuell
+kjøreautorisasjon eies av NEXT_RUN_POLICY; målbeskrivelsen starter ingen jobb.
 
 ## Før en modell kan startes
 

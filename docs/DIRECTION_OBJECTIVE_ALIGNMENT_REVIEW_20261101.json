@@ -1,12 +1,12 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "OPERATOR_ORDERED_MULTITF_MOVEMENT_OBJECTIVE_RECORDED_CONTRACT_OPEN",
+  "status": "DYNAMIC_FIVE_TIMEFRAME_FORECAST_OBJECTIVE_COVERED_IMPLEMENTATION_GAPS_EXPLICIT",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
-    "forecast_first": "Predict meaningful upward movement, downward movement or market stillness; trades are a later task.",
+    "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
     "duration": "Scalping, intraday and swing are relevant according to movement; no hard60minute forecast ceiling or imposed holding period.",
     "unchanged": "Existing completed-M5 forecast observation cadence and causal closed M5/M15/H1/H4/D1 inputs, eight families and D1/macro; Entry later; no new model runs, training, restart, TEST or trading.",
-    "ordered_movements": "Both the rise and the subsequent fall count, in order, on M5/M15/H1/H4/D1; an out-and-back path is not still merely because its endpoint returns to the start.",
+    "ordered_movements": "Continuously evolving UP/DOWN/FLAT on all five timeframes; continuations and every transition count. No fixed reference price, return condition, required peak or two-leg template defines the objective.",
     "verbatim_followup": "Da har vi i teorien 2 retninger. F\u00f8rst den ene veien, s\u00e5 den andre. Begge retningene skal telle. Og dette m\u00e5ler vi p\u00e5 alle 5 multi timeframe",
     "forecast_timeframes": [
       "M5",
@@ -14,7 +14,8 @@
       "H1",
       "H4",
       "D1"
-    ]
+    ],
+    "dynamic_state_followup": "Ja, stemmer. Men du skriver Oppgang \u2192 nedgang tilbake til start. Tilbake til hvilken start egentlig? For opp og ned beveger seg jo dynamisk, s\u00e5 vi har jo ingen \u00abstart\u00bb. Vi skal merke n\u00e5r markedet g\u00e5r opp, ned og holder seg flatt. Det er det vi er ute etter. Det finnes ingen \u00abstart\u00bb strek. Dekk m\u00e5lene fullt ut"
   },
   "actual_objective_from_source": {
     "horizons_minutes": [
@@ -108,7 +109,7 @@
     "No STILLE target/output/loss exists in the fitted binary experiment.",
     "No declared size semantics separate negligible price changes from meaningful moves.",
     "The1..60minute experiment does not measure the requested minute/hour/swing domain.",
-    "A first-event-only target loses subsequent opposite movements. Five input timeframes are not proof of ordered movement targets and evaluation on all five requested scales.",
+    "The current fixed-origin terminal signs and proposed first-event target do not define rolling local UP/DOWN/FLAT states, continuations and transitions. Five input timeframes do not prove five trained/evaluated state targets.",
     "These are objective gaps, not proof of the cause of near-chance ranking on the narrower binary task."
   ],
   "saved_analysis": {
@@ -440,10 +441,10 @@
     "interpretation": "Profile parking, genuinely missing observations, input/gradient contact, and useful learned prediction are four different facts; causal indicator value remains unqualified."
   },
   "recommended_target_direction_not_implemented": {
-    "forecast_object": "Probabilistic ordered meaningful upward/downward movements and still intervals, with explicit size/time/observation semantics evaluated on M5/M15/H1/H4/D1. Output representation and loss are not yet selected.",
+    "forecast_object": "Rolling forecasts of local UP/DOWN/FLAT states, continuations and transitions on M5/M15/H1/H4/D1, with meaningful size/time semantics; no fixed reference-price line.",
     "quiet_versus_uncertain": "Quiet is a small observed movement/path; uncertain is a broad forecast. Probability_up0.5 does not define quiet. Neither is a trade FLAT decision.",
-    "path_requirement": "Count the rise and the return fall in order, including falls from a later peak back to the origin without crossing below that origin. Terminal evidence is separate; first-event-only classification is insufficient.",
-    "time_requirement": "Every forecast needs a time/event reference to be falsifiable. Multiple horizons or movement-event time can provide this without imposing a holding rule.",
+    "path_requirement": "Retain meaningful movements and flat periods throughout the evolving path. No return-to-start, first-crossing, predetermined peak, alternating-pair or fixed-length sequence requirement.",
+    "time_requirement": "Forecast issue time specifies the available information; future validity times/intervals specify what is predicted. Neither is a fixed price baseline, trade entry or holding limit.",
     "unresolved_numeric_contract": [
       "Definition/unit/source of meaningful movement and quiet range; no invented numerical cutoff.",
       "Which exact minute/hour/session-day queries or movement-event definition are supported by existing targets.",
@@ -621,61 +622,61 @@
     "not_a_trading_threshold": true
   },
   "recommended_forecast_contract_proposal": {
-    "status": "ORDERED_MULTITF_MOVEMENT_SEMANTICS_ADOPTED_EXTRACTION_AND_OUTPUT_CONTRACT_OPEN",
-    "semantic_preference": "Operator answered: both directions in an out-and-back sequence count on all five timeframes. This supersedes the earlier first-event-only recommendation; no endpoint-versus-first-event preference remains pending.",
-    "forecast_role": "Only a market forecast from information observable atD. Entry, sizing, Exit, orders and economic utility are later roles.",
-    "origin": "Existing completed-M5 observation clock and existing causal multi-timeframe/family inputs. Naming a stored field entry does not grant trade authority.",
+    "status": "DYNAMIC_LOCAL_STATE_OBJECTIVE_ADOPTED_EXACT_TARGET_OUTPUT_LOSS_CONTRACT_OPEN",
+    "semantic_preference": "Resolved: dynamic UP/DOWN/FLAT and their continuations/transitions on all five timeframes. The former rise-return example must not restrict the target to a starting-price anchor or two-leg template.",
+    "forecast_role": "Rolling market forecasts using information available when issued; actual future forecasting is evaluated separately from contemporaneous recognition. Entry, sizing, Exit and orders are later roles.",
     "query": {
-      "movement_size_a": "Explicit positive size in source-defined bps or an explicitly bound causal-scale unit. It is a forecast query, not a stop or take-profit. No default10bps or fitted later-data threshold is adopted.",
-      "time_reference_h": "Explicit clock kind and supported horizon/session query. A finite measurement domain is necessary; no hard60minute product limit is adopted.",
+      "time_reference_h": "Declare future validity times/intervals and clock kind for rolling state forecasts. State duration is not forced to equal this query or the timeframe; no fixed60minute ceiling.",
       "supported_domain": "Must be declared and verified before any genuine target or fit; current owners do not accept arbitrary hours/days or arbitrary source clocks automatically.",
-      "timeframe_scale": "M5/M15/H1/H4/D1 are all required forecast-assessment scales. A timeframe is not automatically a single future-bar horizon, a source sampling resolution or a separate model."
+      "timeframe_scale": "M5/M15/H1/H4/D1 are all required forecast-assessment scales. A timeframe is not automatically a single future-bar horizon, a source sampling resolution or a separate model.",
+      "local_movement_scale": "Define meaningful local upward/downward movement and flatness for each timeframe using an explicit price-path/size/time convention. No fixed issue-price barrier or guessed numeric cutoff."
     },
-    "candidate_price_reference": "Source-verified nominal M1 opening bid/ask midpoint convention can preserve the current decimal target basis. It is not a proof of synchronized subminute executable quotes; midpoint intrabar extrema cannot be invented from separately timed bid/ask highs/lows.",
     "terminal_companion": {
-      "quantity": "Distribution of signed endpoint return R_h, not just its conditional mean.",
-      "interpretation": "P(R_h>a),P(R_h<-a),P(abs(R_h)<=a) describe terminal movement only. A broad symmetric distribution has mean0 but is not quiet.",
-      "no_joint_path_claim": "Marginal endpoint distributions alone do not identify a first crossing, joint reversal trajectory or executable trade.",
-      "implementation_scope": "A separate proposed forecasting quantity, not authority to add another head or loss now."
+      "role": "Historical endpoint returns can remain separate diagnostic evidence; a new endpoint head or terminal task is not required by this dynamic-state objective.",
+      "limit": "Endpoint sign relative to an old issue price can remain positive during a local downtrend. It cannot substitute for local state, flatness or state-transition forecasts."
     },
     "partial_observation_requirement": {
-      "existing_support": "Reuse allowed_outcomes and exact reason codes from the first-quote owner where its price/time semantics match.",
+      "existing_support": "Reuse exact price/axis/availability/mask ownership where compatible. Historical first-event allowed_outcomes cannot be copied into dynamic-state labels without semantic qualification.",
       "rejected_shortcut": "Train/evaluate only singleton outcomes and present their accuracy as full-population quality.",
       "unproven_shortcut": "A negative-log-sum over allowed classes is not assumed to yield identifiable calibrated class probabilities without a justified observation/coarsening model.",
       "minimum_honest_route": "Either define an observable sampled-grid target with appropriate limited claim, or establish the partial-observation likelihood/identification and coverage before fitting.",
-      "evaluation": "Show identifiable labels, partial-label sets and wholly unknown outcomes separately. Evaluate no-event and directional components with appropriate references and bounds; no favorable subset selection."
+      "evaluation": "Report identified local states, ambiguous/unknown states and coverage separately for each timeframe. No missing label is FLAT, and no favorable singleton-only quality claim."
     },
     "minimum_owner_changes_if_later_authorized": [
-      "Reuse causal quote/axis/clock and observation-mask owners. First-positive-quote can be a component only; ordered subsequent legs and their observation semantics require an explicit successor contract.",
+      "Reuse causal quote/axis/clock and observation-mask owners; specify local-state labels and transitions with maturity semantics. Old terminal/first-event classes are not a ready dynamic-state target.",
       "Reuse current native representation and existing shared-query-decoder pattern; no new encoder or parallel feature framework is needed to define the forecast role.",
       "Bind exact query domain, source identity, class/mask semantics, loss and forecast output identity together. Do not edit only HORIZONS_MINUTES or rename old targets.",
       "Keep the original binary function/checkpoints for scoped comparisons; any changed function needs its own qualification, which remains prohibited.",
       "Preserve eight families and D1/macro. Parked features and missing observations remain documented; no automatic feature activation or deletion is implied."
     ],
     "evaluation_success_criteria": [
-      "Evaluate occurrence, direction, order, size and timing on each declared timeframe against suitable predeclared TRAIN-only references. Scoring rules and label observability must match the selected output contract.",
-      "Per-class coverage/quality, proper probability scoring where labels are identified, and explicit uncertainty where they are not.",
-      "Show every declared timeframe/time/size scale, observed and unknown outcomes, and overlapping-event dependence; no best-horizon or best-threshold choice from later results.",
-      "Keep TRAIN fit, later generalization and eventual trading value separate. Improved no-event accuracy alone does not establish directional edge."
+      "All three states on each of five timeframes: proper probability scores and calibration on identified labels, with explicit ambiguous/unknown coverage and suitable predeclared TRAIN-only references.",
+      "Continuations and transitions: missed movements, false transition alerts and forecast lead/delay, using a predeclared matching definition and output semantics. Do not confuse after-the-event recognition with advance forecasts.",
+      "Report movement size/duration and every declared time/size scale so accuracy on trivial fluctuations or a dominant flat class cannot alone establish useful prediction.",
+      "Chronological development comparisons with overlap/dependence accounted for. A causal persistence reference must not use future-smoothed current-state labels. No best-timeframe/threshold selection from later outcomes.",
+      "Keep TRAIN fit, later generalization and eventual economic value separate; no useful direction or edge is established by this semantic correction."
     ],
     "unresolved_before_implementation": [
-      "Exact source-verifiable price/path reference and resolution, including synchronization and intrabar ordering limits.",
-      "Reproducible movement/reversal extraction and event boundaries preserving both legs without future-dependent forecast origins.",
-      "Supported time/size query domain and scale semantics for each of M5/M15/H1/H4/D1, with source/recipe-derived numeric values.",
-      "Ordered probabilistic output, matching loss/scoring and justified partial-observation treatment; actual coverage for the chosen successor target."
+      "Reproducible scale-specific local UP/DOWN/FLAT and transition definition without fixed issue-price anchoring; no arbitrary guessed thresholds.",
+      "Exact source price/grid, label maturity/availability and source-supported time/size domains for M5/M15/H1/H4/D1.",
+      "Forecast output and loss matching that state definition; any transition/path claim needs corresponding output and scoring semantics.",
+      "Justified ambiguous/partial-observation treatment, actual coverage and explicit all-five-timeframe input/target/loss linkage."
     ],
     "no_causal_edge_claim": "This repairs objective semantics. It is not a demonstrated cause or cure of the old binary-ranking weakness.",
-    "ordered_movement_requirement": {
-      "scope": "Semantic requirement, not an implemented target extractor, model architecture, loss or execution admission.",
-      "forecast_quantity": "The ordered meaningful movements and still intervals after the declared forecast origin, including direction, size and timing on each required timeframe.",
-      "round_trip": "For an observed path P0 -> P1 above P0 -> P0, preserve UP then DOWN. The DOWN leg is relative to P1, even though the path never goes below P0. Likewise preserve DOWN then UP and further movements; no fixed two-leg cap.",
-      "first_event_limit": "The existing first-positive-quote owner may supply reusable observations and ambiguity logic; its three first-event classes alone cannot represent the return leg.",
-      "joint_order_requirement": "UP and DOWN can both occur in one future window. Two marginal occurrence probabilities are not mutually exclusive and need not sum to one; they also do not identify order. The eventual output must support the ordered-event claim it is scored on.",
-      "five_timeframe_requirement": "Declare targets and evaluation for M5/M15/H1/H4/D1, with the size/time domain and observation resolution for each. Do not assume that five input streams provide five forecast targets or that every timeframe must receive the same label.",
-      "stillness": "No meaningful movement under the declared scale on a sufficiently observed interval. Endpoint cancellation, a missing second leg, unknown intrabar order, or low forecast confidence cannot establish stillness.",
-      "causality": "Future realized turns may be target metadata only. Forecast origins, inputs and query settings cannot depend on those future turns. Score a sequence forecast issued atD separately from forecasts refreshed after part of the sequence becomes observable.",
-      "dependence": "Report each declared timeframe while accounting for overlapping paths and repeated views of the same movement; do not count them as independent confirmations.",
-      "open_design": "Exact source price/grid, movement and reversal extraction, size/time domain by scale, event boundaries and partial-observation handling must be specified before implementation. No threshold, segmentation algorithm or new model is adopted here."
+    "forecast_timestamp": "Existing completed-M5 observation cadence, with causal closed M5/M15/H1/H4/D1 inputs. The timestamp is an information cutoff, never a price-level baseline for all subsequent states.",
+    "candidate_price_source": "Source-verified nominal M1 opening bid/ask midpoint convention can preserve the current decimal source units. It is not a proof of synchronized subminute executable quotes; midpoint intrabar extrema cannot be invented from separately timed bid/ask highs/lows. This defines which observed prices are used, not a fixed starting-price threshold.",
+    "dynamic_state_requirement": {
+      "scope": "Complete semantic scope of the requested objective; exact numerical target extractor and native implementation remain unqualified.",
+      "state": "S_s(v) is UP, DOWN or FLAT for timeframe s and declared validity time/interval v, defined by the local observed price evolution at that scale rather than an arbitrary old issue-price line.",
+      "forecast": "At issue time t, forecast P(S_s(v)=c | information available at t), for future v and c in UP/DOWN/FLAT. The three probabilities sum to1 per s/v; a longer path may visit every state.",
+      "continuation_and_change": "Include sustained UP, DOWN and FLAT, entry into or departure from flatness, and reversals in both directions. No required return, fixed number of legs or fixed state duration.",
+      "refresh": "A later forecast may use newly available evidence. Preserve the earlier forecast and its information cutoff; do not credit retrospective recognition as advance prediction.",
+      "scale": "All M5/M15/H1/H4/D1 require explicit targets, consumption/loss mappings and evaluation. Different states across timeframes can be valid simultaneously; no mandatory agreement.",
+      "meaningful_flatness": "Flatness is a declared observed scale-specific state, not uncertainty, missing data, a zero mean, or cancellation of meaningful opposing moves. Every relevant move must remain visible in the assessment.",
+      "path_and_timing": "Preserve state order and movement size/duration in targets and assessment. Joint-transition probability claims require supporting output semantics; marginal state probabilities alone do not establish a joint path distribution.",
+      "causality": "Target observations may mature after v. Their prices, masks and retrospective turns cannot enter inputs at t or choose forecast issue times retrospectively.",
+      "source_resolution": "Declare price-source units, availability, sampled resolution and gaps. Unknown within-bar order remains unknown; coarse flat endpoints do not prove a quiet intrabar path.",
+      "open_numeric_definition": "Select and bind a reproducible local-state/transition definition, supported time/size domain, label maturity, uncertainty handling and matching loss before implementation. No guessed thresholds, automatic smoothing rule or model choice is adopted."
     }
   },
   "method_references": [
@@ -688,6 +689,20 @@
   "followup_review": {
     "source_inventory": "Read-only independent agent checked physical headers, manifest counts and exact clock/price ownership.",
     "prior_interventions": "Separate read-only agent checked completed bps, readout, longer-path and first-hurdle evidence to avoid relaunch/rebranding.",
-    "semantic_review": "The earlier review concerned the three first-event outcomes only. The operator followup now requires both ordered legs on all five timeframes; the former recommendation is insufficient and is superseded here. This is a documentation correction, not target or model qualification."
+    "semantic_review": "Latest operator clarification removes fixed starting-price framing entirely. The active proposal now covers rolling local states, continuations and transitions across all five timeframes; numeric target/output/loss and actual quality remain unqualified."
+  },
+  "full_goal_coverage": {
+    "scope": "Requirement coverage only; neither implementation completion nor learned skill.",
+    "dynamic_direction_and_flatness": "Local evolving UP/DOWN/FLAT, independent of a fixed reference-price line; sustained states and every type of change included.",
+    "all_relevant_movements": "No required round trip, first-event truncation, forced pair or hidden netting of meaningful opposing moves.",
+    "all_five_timeframes": "M5/M15/H1/H4/D1 each need their own target, mask, output/loss mapping and quality results; inputs alone are insufficient.",
+    "future_not_retrospective": "Freeze forecasts at issue time and score future validity intervals with exact label maturity. New observations update later forecasts only.",
+    "size_time_and_duration": "Meaningful scale, movement size, timing and duration must be declared and assessed; no hard60minute ceiling, state-duration cap or trading hold rule.",
+    "indicator_consumption": "Retain eight specialists and D1/macro; review all genuine indicators to actual consumption on all timeframes. Existing parked/missing fields remain documented gaps, not useful-signal proofs.",
+    "honest_uncertainty": "Flatness, model uncertainty and missing/ambiguous observations stay distinct; sampled observations never claim unobserved intrabar order.",
+    "measurement": "Class/probability quality plus continuation/transition errors, lead/delay, magnitude/duration and full coverage, with chronological references and overlap accounted for.",
+    "entry_and_trading": "Market forecast first; Entry, Exit, sizing and economic qualification later.",
+    "implementation_status": "The fitted60binary-head target/output/loss remains unchanged and does not cover this objective. Dynamic-state targets, full TF loss mapping and actual skill are not implemented or qualified by this document.",
+    "launch_status": "No model construction, forward/backward, fit, target rebuild, restart, TEST or trading authorized."
   }
 }
