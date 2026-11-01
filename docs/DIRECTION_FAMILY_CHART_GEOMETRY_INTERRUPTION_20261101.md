@@ -60,8 +60,14 @@ To lagrede WHEA-hendelser fra treningstiden (08:05:49 og 09:17:02 UTC)
 er dekodet mot standardfeltenes gyldighetsbiter. Begge rapporterer korrigert
 cachefeil ved instruksjonsutførelse på logisk APIC-ID 18, CPUVersion 0xA0655.
 Minneseksjonen har gyldighetsbiter 0; ingen DIMM eller fysisk defekt komponent
-kan identifiseres. Tre leverandørseksjoner er ikke tolket. Disse tidligere
-hendelsene beviser ikke årsaken til det senere hypervisorkrasjet.
+kan identifiseres. En separat utvidelse bekrefter Microsofts MCA-seksjon:
+begge poster har bank 0, APIC-ID 18 og status 0x9400004000040150. Status
+er gyldig og korrigert, uten overflow eller corrupt-context-markering. Bare
+det dokumenterte 72-byte-prefikset er tolket; resten er fortsatt ukjent.
+Disse tidligere hendelsene beviser ikke årsaken til hypervisorkrasjet.
+Fersk observasjon kl. 12:00:26 UTC viste samme boot, ingen nye WHEA-hendelser
+siden 11:02 og ingen kjørende kjente tuningprogrammer. Brukeren kjenner ikke
+BIOS-innstillingene; overklokking, undervolting og XMP står som ukjent.
 
 Den konkrete session-only-sperren i gjenopprettingskoden er rettet for akkurat
 den bevarte chart-kjøringen. 291 fokuserte syntetiske tester bestod med
@@ -110,3 +116,11 @@ Ny lesende host- og kildekvalifisering:
 - FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/PROCESSOR_IDLE_READONLY_001.json: 99b320286e2b4a435cf579ef48754d51613b46e1546d7052ceff4078bd4462dd
 - CHART_SCORING_RECOVERY_SOURCE_001/RESULT.json: b2a3ff71f794efbca01ef4ae5aabcf185f8c96a4acad17c2f3c50d8ecb1c9ef1
 - CHART_SCORING_RECOVERY_SOURCE_001/TEST_EXECUTION.json: aac101de58a3690b204997b0210776b15d9e49b89d755a6816f52173c9882745
+
+Chart-gjenopprettingens eksakte oppskrift og gjenbrukte kontrollarbeidere er
+klargjort. Uavhengig metadatareview fanget en manglende newline i den første
+oppskriftshashen; dette ble rettet med den eksisterende kanoniske hasheieren
+før utførelse. Bare én capped metadata-/filhashforkontroll er åpnet.
+- FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/WHEA_MCA_EXTENSION_RESULT_001.json: be53c2a007c858271ba4d35b72eef2526ba70d7054cb2534b868f59c6faa186c
+- FIT_CHART_GEOMETRY_001/HOST_DIAGNOSTIC_002/HOST_RUNTIME_READONLY_001.json: 955a6a0e06736979c43dc87989ad70a439a556d1931240070777c2f6580aeb32
+- FIT_CHART_GEOMETRY_SCORING_RECOVERY_001/RECIPE_PREPARATION_PEER_REVIEW_001.json: 58d3b9989c3024a5dd42f85048eabdb6a7e390e42941406ca1882489094615b2
