@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "NEW_SHORT_TRAIN_PREPARATION_FULL_INPUT_PROFILE_IMPLEMENTED_TARGET_RULE_OPEN",
+  "status": "INPUT_PREPARATION_VERIFIED_AWAITING_EXPLICIT_DYNAMIC_STATE_TARGET_DEFINITION",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
@@ -702,11 +702,11 @@
     "honest_uncertainty": "Flatness, model uncertainty and missing/ambiguous observations stay distinct; sampled observations never claim unobserved intrabar order.",
     "measurement": "Class/probability quality plus continuation/transition errors, lead/delay, magnitude/duration and full coverage, with chronological references and overlap accounted for.",
     "entry_and_trading": "Market forecast first; Entry, Exit, sizing and economic qualification later.",
-    "implementation_status": "Full XAU+GC profile source is implemented with26 pure metadata/gather checks. Actual bind to historical normalization is blocked by old source pins. Fitted60binary target/output/loss remains unchanged and does not implement the dynamic-state objective.",
+    "implementation_status": "Full XAU+GC input profile is implemented,26 pure metadata/gather checks passed, fresh fold1 input normalization is verified numerically identical to prior statistics, and current-source metadata binding passes. The dynamic UP/DOWN/FLAT target/output/loss, genuine model qualification, restart and requested short training remain incomplete.",
     "launch_status": "No model construction, forward/backward, fit, target rebuild, restart, TEST or trading authorized."
   },
   "current_short_training_preparation": {
-    "status": "FULL_PROFILE_SOURCE_IMPLEMENTED_PURE_CHECKS_PASS_GENUINE_BINDING_BLOCKED",
+    "status": "FULL_INPUT_PROFILE_AND_CURRENT_SOURCE_NORMALIZATION_BINDING_VERIFIED_NATIVE_TARGET_PENDING",
     "name": "full_xau_gc_mtf_entry_research_v1",
     "pure_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
@@ -819,10 +819,19 @@
       }
     },
     "existing_normalization_content": "All physical surfaces are covered by the old statistics; no compact-only numerical statistics were substituted.",
-    "actual_current_source_binding": "Metadata-only bind against original267 normalization fails NATIVE_DIRECTION_FEATURE_VIEW_SOURCE_PROVENANCE_JOINS because current GC-history and profile-owner SHA differ. This blocks direct operational reuse; no guard is bypassed.",
-    "normalization_repair": "Prepare one new fold1 fit through the existing normalization owner using existing inputs, with new immutable evidence and comparison to old numerical statistics. No new compatibility framework or old plan relaunch.",
+    "actual_current_source_binding": "PASS with the newly fitted immutable fold1 normalization and current source SHAs; original267 statistics remain unchanged. The earlier provenance failure was repaired through the existing owner, not bypassed.",
+    "normalization_repair": "Completed one fresh existing-owner fold1 normalization fit. All12numeric surfaces/support and categorical context exactly match original267; no new input scratch or target labels. New provenance passes actual full-profile metadata binding.",
     "genuine_native_consumption_qualified": false,
     "new_state_target_loss_implemented": false,
-    "learning_improvement_qualified": false
+    "learning_improvement_qualified": false,
+    "normalization_verification": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/VERIFIED_RESULT.json",
+      "sha256": "eab57d04a82693e2f01fb1d89dabf099bc5e62cbd20f9bf8b2030064b6f0a671"
+    },
+    "actual_metadata_binding": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/ACTUAL_FULL_PROFILE_BIND_REVIEW.json",
+      "sha256": "5bd8d91a4d780cb486336e67f909e3d96593570fca6f2defd9dfc03958df837f"
+    },
+    "synthetic_native_contract_checks": "The unfiltered repository pre-commit native contract suite passed; synthetic CPU model checks do not qualify genuine full-profile consumption or the new dynamic-state objective."
   }
 }

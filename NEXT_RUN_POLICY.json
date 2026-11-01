@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T22:17:49.681737+00:00",
-  "status": "DYNAMIC_STATE_SHORT_TRAIN_PREPARATION_OPERATOR_AUTHORIZED_LAUNCH_CLOSED",
+  "observed_utc": "2026-11-01T22:28:15.690017+00:00",
+  "status": "INPUT_PREPARATION_COMPLETE_TARGET_DEFINITION_REQUIRED_BEFORE_NATIVE_TRAINING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-  "next_action": "Resolve the explicit meaningful-movement/flatness target definition while completing independent source/profile/campaign checks. Implement and qualify the aligned five-timeframe objective and new one-shot recipe; verify machine-wide idle, restart safely, then execute one bounded short training only after gates pass.",
+  "next_action": "Obtain the pending meaningful-movement/flatness criterion, finish the dynamic five-timeframe target/output/loss/evaluation contract and source integration, then perform fresh genuine qualification and safe restart before one bounded short training. No relaunch of completed input normalization or automatic full training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Coordinated source/target/model/campaign preparation for the newly authorized single short training; no native job launched.",
+    "current_activity": "Independent input preparation completed and verified; dynamic-state target definition awaits the requested minimum-movement/flatness criterion. No genuine model qualification, PC restart or training launched.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Explicit local-state/meaningful-flatness definition remains unanswered. Full input profile source passes26 pure checks, but historical prefix normalization fails current source-provenance joins; prepare one fresh fold1 normalization through the existing owner. New target/output/loss and genuine qualification still required.",
+    "current_blocker": "Minimum relevant local movement versus FLAT remains unspecified. A non-arbitrary numerical/estimation criterion and local-state definition are needed before implementing matched labels, output/loss, metrics and genuine qualification. Input-source provenance failure is resolved.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Resolve the explicit meaningful-movement/flatness target definition while completing independent source/profile/campaign checks. Implement and qualify the aligned five-timeframe objective and new one-shot recipe; verify machine-wide idle, restart safely, then execute one bounded short training only after gates pass.",
+    "next_action": "Obtain the pending meaningful-movement/flatness criterion, finish the dynamic five-timeframe target/output/loss/evaluation contract and source integration, then perform fresh genuine qualification and safe restart before one bounded short training. No relaunch of completed input normalization or automatic full training.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17992,7 +17992,7 @@
       "status": "OBJECTIVE_MISMATCH_PROVEN_BINARY_RANKING_CAUSE_UNKNOWN",
       "review": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "0ebb7adc8ccfa065a6a71fa64a87ff22f602cb494b13ec8e7e416dbb42ed65bb"
+        "sha256": "bfe132f92e8ffb4b15f66aedca1fcbeb21da07d588a3cdb13c8bd19b40292d2f"
       },
       "saved_result": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_OBJECTIVE_SAVED_DIAGNOSTICS_20261101_001/RESULT.json",
@@ -18019,7 +18019,7 @@
       "test_data_used": false,
       "result": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "0ebb7adc8ccfa065a6a71fa64a87ff22f602cb494b13ec8e7e416dbb42ed65bb"
+        "sha256": "bfe132f92e8ffb4b15f66aedca1fcbeb21da07d588a3cdb13c8bd19b40292d2f"
       },
       "inventory": {
         "path": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001/EXISTING_TARGET_INVENTORY.json",
@@ -18049,7 +18049,7 @@
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "dynamic_state_short_training_20261101": {
-      "status": "PREPARATION_ACTIVE_TARGET_DEFINITION_PENDING_NO_LAUNCH",
+      "status": "INPUT_PREPARATION_VERIFIED_AWAITING_TARGET_DEFINITION",
       "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
       "operator_authorized_source_target_preparation": true,
       "operator_authorized_required_genuine_qualification": true,
@@ -18102,7 +18102,7 @@
         "model_calls": 0
       },
       "full_input_profile_source": {
-        "status": "FULL_PROFILE_SOURCE_IMPLEMENTED_PURE_CHECKS_PASS_GENUINE_BINDING_BLOCKED",
+        "status": "FULL_INPUT_PROFILE_AND_CURRENT_SOURCE_NORMALIZATION_BINDING_VERIFIED_NATIVE_TARGET_PENDING",
         "name": "full_xau_gc_mtf_entry_research_v1",
         "pure_checks": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
@@ -18215,29 +18215,39 @@
           }
         },
         "existing_normalization_content": "All physical surfaces are covered by the old statistics; no compact-only numerical statistics were substituted.",
-        "actual_current_source_binding": "Metadata-only bind against original267 normalization fails NATIVE_DIRECTION_FEATURE_VIEW_SOURCE_PROVENANCE_JOINS because current GC-history and profile-owner SHA differ. This blocks direct operational reuse; no guard is bypassed.",
-        "normalization_repair": "Prepare one new fold1 fit through the existing normalization owner using existing inputs, with new immutable evidence and comparison to old numerical statistics. No new compatibility framework or old plan relaunch.",
+        "actual_current_source_binding": "PASS with the newly fitted immutable fold1 normalization and current source SHAs; original267 statistics remain unchanged. The earlier provenance failure was repaired through the existing owner, not bypassed.",
+        "normalization_repair": "Completed one fresh existing-owner fold1 normalization fit. All12numeric surfaces/support and categorical context exactly match original267; no new input scratch or target labels. New provenance passes actual full-profile metadata binding.",
         "genuine_native_consumption_qualified": false,
         "new_state_target_loss_implemented": false,
-        "learning_improvement_qualified": false
+        "learning_improvement_qualified": false,
+        "normalization_verification": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/VERIFIED_RESULT.json",
+          "sha256": "eab57d04a82693e2f01fb1d89dabf099bc5e62cbd20f9bf8b2030064b6f0a671"
+        },
+        "actual_metadata_binding": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/ACTUAL_FULL_PROFILE_BIND_REVIEW.json",
+          "sha256": "5bd8d91a4d780cb486336e67f909e3d96593570fca6f2defd9dfc03958df837f"
+        },
+        "synthetic_native_contract_checks": "The unfiltered repository pre-commit native contract suite passed; synthetic CPU model checks do not qualify genuine full-profile consumption or the new dynamic-state objective."
       },
       "current_goal_report": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "0ebb7adc8ccfa065a6a71fa64a87ff22f602cb494b13ec8e7e416dbb42ed65bb"
+        "sha256": "bfe132f92e8ffb4b15f66aedca1fcbeb21da07d588a3cdb13c8bd19b40292d2f"
       },
       "required_native_source_contract_checks": "Repository pre-commit native contract checks are permitted by the new preparation instruction; synthetic CPU model checks are not genuine target/gradient/resume qualification or training.",
       "input_normalization_preparation": {
-        "status": "ADMITTED_PENDING_CLEAN_SOURCE_BINDING",
-        "plan": {
-          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/PLAN.json",
-          "sha256": "a1172d3e7b9d45cfac13bd529f432a020215f8515e32d44c16b1f7952498d831"
+        "status": "COMPLETE_CONSUMED",
+        "verified_result": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/VERIFIED_RESULT.json",
+          "sha256": "eab57d04a82693e2f01fb1d89dabf099bc5e62cbd20f9bf8b2030064b6f0a671"
         },
-        "source_scope": "raw GC and complete physical XAU; no relative conversion",
-        "new_normalization_fits_allowed": 1,
-        "new_target_builds_allowed": 0,
-        "model_calls_allowed": 0
+        "new_normalization_fits": 1,
+        "new_input_scratch_bytes": 0,
+        "model_calls": 0,
+        "target_builds": 0
       },
-      "source_commit_with_full_profile": "63e4008699f49ae8265b5c9024de0b0863ca975b"
+      "source_commit_with_full_profile": "63e4008699f49ae8265b5c9024de0b0863ca975b",
+      "synthetic_native_source_guards_passed": true
     }
   },
   "gc_order_flow_research_20261006": {
@@ -51285,7 +51295,7 @@
     "rollback_command": "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
   },
   "dynamic_mtf_state_prefix_normalization_20261101_001": {
-    "status": "READY_ONE_SHOT_CURRENT_SOURCE_INPUT_NORMALIZATION_ONLY",
+    "status": "CONSUMED_COMPLETE_NO_RELAUNCH",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/PLAN.json",
       "sha256": "a1172d3e7b9d45cfac13bd529f432a020215f8515e32d44c16b1f7952498d831"
@@ -51294,9 +51304,9 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/fit_fold1_prefix_guarded.py",
       "sha256": "4484e27d651710280966eb976a9a90f32efc39e92272b8617bc77cd30826f6eb"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "normalization_fit_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "normalization_fit_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "genuine_predictor_fit_authorized": false,
@@ -51305,8 +51315,8 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "scope": "One canonical fold1 input-normalization fit on47602parents using existing source/data owners and caches; no new target labels or model calls. Explicitly replaces stale input-source provenance without changing old artifacts or weakening joins.",
     "limits": {
@@ -51320,6 +51330,14 @@
       "reused_bytes": 26534936912,
       "scratch_bytes": 0,
       "swap": 536870912
+    },
+    "verified_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/VERIFIED_RESULT.json",
+      "sha256": "eab57d04a82693e2f01fb1d89dabf099bc5e62cbd20f9bf8b2030064b6f0a671"
+    },
+    "consumed_admission_policy": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/CONSUMED_ADMISSION_POLICY.json",
+      "sha256": "cc9fd7cd87810c4764ab9f71e335564a7df4e016f8853ef289554108327d9644"
     }
   }
 }
