@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T22:12:46.412748+00:00",
+  "observed_utc": "2026-11-01T22:17:49.681737+00:00",
   "status": "DYNAMIC_STATE_SHORT_TRAIN_PREPARATION_OPERATOR_AUTHORIZED_LAUNCH_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -18225,7 +18225,19 @@
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
         "sha256": "0ebb7adc8ccfa065a6a71fa64a87ff22f602cb494b13ec8e7e416dbb42ed65bb"
       },
-      "required_native_source_contract_checks": "Repository pre-commit native contract checks are permitted by the new preparation instruction; synthetic CPU model checks are not genuine target/gradient/resume qualification or training."
+      "required_native_source_contract_checks": "Repository pre-commit native contract checks are permitted by the new preparation instruction; synthetic CPU model checks are not genuine target/gradient/resume qualification or training.",
+      "input_normalization_preparation": {
+        "status": "ADMITTED_PENDING_CLEAN_SOURCE_BINDING",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/PLAN.json",
+          "sha256": "a1172d3e7b9d45cfac13bd529f432a020215f8515e32d44c16b1f7952498d831"
+        },
+        "source_scope": "raw GC and complete physical XAU; no relative conversion",
+        "new_normalization_fits_allowed": 1,
+        "new_target_builds_allowed": 0,
+        "model_calls_allowed": 0
+      },
+      "source_commit_with_full_profile": "63e4008699f49ae8265b5c9024de0b0863ca975b"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -51271,5 +51283,43 @@
     },
     "original_scheme_preserved": true,
     "rollback_command": "powercfg /setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
+  },
+  "dynamic_mtf_state_prefix_normalization_20261101_001": {
+    "status": "READY_ONE_SHOT_CURRENT_SOURCE_INPUT_NORMALIZATION_ONLY",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/PLAN.json",
+      "sha256": "a1172d3e7b9d45cfac13bd529f432a020215f8515e32d44c16b1f7952498d831"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/fit_fold1_prefix_guarded.py",
+      "sha256": "4484e27d651710280966eb976a9a90f32efc39e92272b8617bc77cd30826f6eb"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "normalization_fit_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "target_build_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "scope": "One canonical fold1 input-normalization fit on47602parents using existing source/data owners and caches; no new target labels or model calls. Explicitly replaces stale input-source provenance without changing old artifacts or weakening joins.",
+    "limits": {
+      "max_invocations": 1,
+      "max_json_output_bytes": 50331648,
+      "max_rchar_bytes": 137438953472,
+      "max_wall_seconds": 1800,
+      "memory_max": 4294967296,
+      "numerical_threads": 1,
+      "pids": 64,
+      "reused_bytes": 26534936912,
+      "scratch_bytes": 0,
+      "swap": 536870912
+    }
   }
 }
