@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-10-31T19:56:28.486117+00:00",
-  "status": "SIX_FITS_COMPLETE_COMPARISON_CALLER_QUALIFIED_CAPACITY_SCOPE_CHOICE_PENDING",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "status": "SIX_FITS_COMPLETE_SESSION_REGIME_FULLFIT_ADMITTED",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "All native/model/optimizer launch gates closed. Only source/design and focused synthetic qualification for exact upstream diagnostic. TEST,Exit,trading sealed; no nextfamily launch before diagnostic review.",
-  "next_action": "Await operator choice on separate fixed-smallTRAIN repeated-fit proposal versus completing four remaining prescribed familyfits first. All-ten saved-comparison caller source-qualified; genuine comparison awaits four originalterminals and exactadmission.",
+  "next_action": "Materialize the exact session/regime full-fit campaign once, install task and collect fresh Windows/WSL idle proof before manual same-boot launch. Optional repeated-smallTRAIN proposal remains unadmitted pending user choice; original prescribed family study remains authorized. No extra pass or TEST/Exit/trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "27.10: +0,1 og +50 bps deler UP-fasit. Prioriter faktisk størrelsessupervisjon; behold gyldig fortegnsoppgave og skill fra horisont- og epokeendring.",
-    "current_activity": "Source-qualified all-ten saved-prediction comparison wrapper:43focusedtests and6actualmetadatachains,0archives/modelcalls. Capacity proposal independently reviewed; operator scopechoice pending. Sessionfullfit preflightPASS, no nativeplan or launch.",
+    "current_activity": "Session/regime private and clean canonical full-fit preflight passed; all65recipeowners remain unchanged after separate comparisoncaller addition. Exact one-pass session/regime family campaign admitted; materialization and fresh idle proof pending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -285,7 +285,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": false,
     "latest_terminal_role": "Session/regime private mechanics only; no full fit or predictive-value claim.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/RUNTIME",
+    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/RUNTIME",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/PRIVATE_SESSION_REGIME_001/VERIFIED_TERMINAL.json",
       "sha256": "5e1abca12a336e32c52cab1ce23b20034a48801708d627ad3ed6f6a9034c089e"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Await operator choice on separate fixed-smallTRAIN repeated-fit proposal versus completing four remaining prescribed familyfits first. All-ten saved-comparison caller source-qualified; genuine comparison awaits four originalterminals and exactadmission.",
+    "next_action": "Materialize the exact session/regime full-fit campaign once, install task and collect fresh Windows/WSL idle proof before manual same-boot launch. Optional repeated-smallTRAIN proposal remains unadmitted pending user choice; original prescribed family study remains authorized. No extra pass or TEST/Exit/trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17458,8 +17458,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": false,
-    "current_training_scope": "NONE: session fullfit remains unadmitted; proposed smallTRAIN diagnostic has no execution authority.",
+    "current_native_launch_authorized": true,
+    "current_training_scope": "EXACT_SESSION_REGIME_FAMILY_ONEPASS_47602_TRAIN_2976_UPDATES_FULLTRAIN_AND_17288_Q1_ONLY",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17821,7 +17821,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_DIAGNOSTIC_EXECUTION_PROGRAM_20261025_01a171d2/DIRECTION_BPS_ALLOCATION_ACTUAL_ROOT_REVIEW_001.json",
       "sha256": "66e16e4e53b258083ae05e3da53b520bf2cfc2eeddbf031bf13041be70ccafd3"
     },
-    "native_training_stage": "dynamic_m5_direction_family_private_session_regime_20261101_001",
+    "native_training_stage": "dynamic_m5_direction_family_session_regime_onepass_fit_20261101_001",
     "genuine_predictor_fit_completed": true,
     "current_m5_direction_evidence": {
       "fit_review": {
@@ -26334,7 +26334,7 @@
       "sha256": "e9565142b3452010c60e04fce7cc9b52ec26d118c8458e8c434f09352b0f82ed"
     }
   },
-  "native_launch_authorized": false,
+  "native_launch_authorized": true,
   "dynamic_m5_fixed_snapshot_direction_reference_repair_200": {
     "status": "FAILED_CONSUMED_REFERENCE_COHORT_ORDER_GUARD_BEFORE_FIT",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_FIXED_SNAPSHOT_DIRECTION_REFERENCE_REPAIR_20261023_200",
@@ -31218,7 +31218,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -35960,7 +35960,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "NONE_ALL_CURRENT_EXECUTION_CLOSED",
+  "training_enabled_scope": "EXACT_SESSION_REGIME_FAMILY_ONEPASS_47602_TRAIN_2976_UPDATES_FULLTRAIN_AND_17288_Q1_ONLY",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -48261,7 +48261,7 @@
     }
   },
   "direction_family_added_value_20261030_001": {
-    "status": "SIX_FITS_COMPLETE_SESSION_PRIVATE_CONSUMED_FULLFIT_SOURCE_PREPARED",
+    "status": "SIX_FITS_COMPLETE_SESSION_REGIME_FULLFIT_ADMITTED",
     "protocol": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json",
       "sha256": "151f633dd401b950741f48e02faa62177725d47d9eaf8d1c4d08d28a44d24446"
@@ -49802,7 +49802,7 @@
     "power_retained_w": 250
   },
   "dynamic_m5_direction_family_session_regime_onepass_fit_20261101_001": {
-    "status": "METADATA_PREFLIGHT_PASSED_NOT_ADMITTED",
+    "status": "ADMITTED_MATCHED_SESSION_REGIME_ONEPASS_FULLTRAIN_LATER",
     "recipe": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_SESSION_REGIME_ONEPASS_FIT_RECIPE_20261101.json",
       "sha256": "03f279c8c1a813e1415e31a1ba3e44cfca40da2bf18e1c6e8819a19d382792b5"
@@ -49840,18 +49840,18 @@
     },
     "user_authorization": "Original explicit matched-nine-family study; next prescribed session/regime one-pass arm after own private qualification. Same numerics/protocol, no extra pass.",
     "scope": "Same initial/model/order/numerics,2976updates total across up to4guarded windows. FullTRAIN47602 scoring in separate post-training window and same17288Q1. Each window requires fresh one-use machine-wide idle proof; may reuse same boot. No HPO or extra pass.",
-    "campaign_preparation_authorized": false,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
-    "genuine_updates_authorized": false,
-    "genuine_predictor_fit_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
-    "full_epoch_training_allowed": false,
-    "native_launch_authorized": false,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
     "physical_restart_before_each_invocation_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -49859,14 +49859,14 @@
     "exit_evaluation": false,
     "broker_access_allowed": false,
     "full_val_allowed": false,
-    "same_boot_after_idle_review_authorized": false,
+    "same_boot_after_idle_review_authorized": true,
     "metadata_preflight": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/RECIPE_PREFLIGHT_001.json",
       "sha256": "509e2b9f4a233c18e505418b388821970cec333c7e30569addec0940ab7a84b9"
     }
   },
   "direction_family_fit_capacity_preparation_20261101_001": {
-    "status": "SCOPE_AND_SOURCE_REVIEW_COMPLETE_PROPOSAL_PENDING_OPERATOR_CHOICE",
+    "status": "PROPOSED_SEPARATE_SCOPE_PENDING_USER_CHOICE_ORIGINAL_PROGRAM_CONTINUES",
     "proposal": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_SMALL_TRAIN_CAPACITY_PROPOSAL_20261101.json",
       "sha256": "130223468b0a1ee5399cfaf7da4d6d90d5e927aa5d751b2b22055d95dfc3763f"
@@ -49881,7 +49881,8 @@
     "test_data_used": false,
     "broker_access_allowed": false,
     "current_model_code_changed": false,
-    "pending_choice": "Add this bounded diagnostic before remaining familyfits, or finish originalfamilycomparison first. No automatic diagnostictraining."
+    "pending_choice": "Whether to add the separate bounded repeated-smallTRAIN diagnostic. No approval has been received; original ten-arm one-pass study is not revoked by this optional proposal.",
+    "blocks_original_authorized_family_study": false
   },
   "direction_family_saved_comparison_source_20261101_001": {
     "status": "PASS_SOURCE_QUALIFIED_CONSUMED_NO_PREDICTION_COMPARISON",
