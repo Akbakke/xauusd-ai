@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_TRAIN_COUNT_AND_DRAFT_SOURCE_TESTED_NO_NATIVE_QUALIFICATION",
+  "status": "DYNAMIC_STATE_FULL_FEATURE_COVERAGE_REVIEWED_NO_NATIVE_QUALIFICATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Review concrete source/data/feature scope and remaining qualification gaps for a future explicitly selected plan; no automatic model, training, scoring, restart, TEST, Exit or trading.",
+  "next_action": "Trace the documented H1 unknown-aggressor and D1 proxy observation gaps through existing source metadata and assess what can be repaired without guessed values; retain all qualification gates. No automatic model, training, scoring, restart, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Prepare an evidence-bound causal current-state and loss design with explicit unknown/path masks and ONLINE event-order requirements. No automatic model, training, scoring, TEST, Exit or trading.",
+    "current_activity": "Review saved full-profile coverage, genuine partial versus complete signed flow, and remaining source and native qualification gaps. No automatic model, training, scoring, TEST, Exit or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Review concrete source/data/feature scope and remaining qualification gaps for a future explicitly selected plan; no automatic model, training, scoring, restart, TEST, Exit or trading.",
+    "next_action": "Trace the documented H1 unknown-aggressor and D1 proxy observation gaps through existing source metadata and assess what can be repaired without guessed values; retain all qualification gates. No automatic model, training, scoring, restart, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -52551,5 +52551,30 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/POWER_AFTER_SCORING_FAILURE.json",
       "sha256": "2680d6a20d39e02e2dacc498e8d999c3e17bf76c43a406baa2afb015621bd575"
     }
+  },
+  "dynamic_mtf_full_feature_coverage_reuse_20261102_001": {
+    "status": "SAVED_INPUT_IDENTITIES_AND_COVERAGE_REUSED",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/DYNAMIC_FULL_FEATURE_COVERAGE_REUSE_002/RESULT.json",
+      "sha256": "fa99d1358575e7c9882a698a392dcb4343f7c77ef9ce369ab7ea82c5b2416008"
+    },
+    "train_parents": 47602,
+    "later_development_parents": 17288,
+    "matched_train_support_surfaces": 12,
+    "strict_h1_fields_later_unobserved": 10,
+    "strict_h1_field_train_observed_parents": 36,
+    "bear_d1_proxy_fields_later_unobserved": 7,
+    "bear_d1_proxy_field_train_observed_parents": 550,
+    "partial_h1_known_delta_observed_train": 45214,
+    "partial_h1_known_delta_observed_later": 16560,
+    "partial_h1_unknown_aggressor_nonzero_later": 16560,
+    "original_data_generation_source_lineage_requalified": false,
+    "individual_indicator_value_qualified": false,
+    "new_model_or_optimizer_calls": false,
+    "new_target_data_used": false,
+    "test_data_used": false,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "trading_enabled": false
   }
 }
