@@ -5,6 +5,9 @@ The caller supplies the exact mature-observed mask from the objective owner.
 """
 from __future__ import annotations
 
+import io
+import math
+
 import numpy as np
 
 from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import STATE_NAMES, TIMEFRAMES
@@ -15,6 +18,26 @@ SCHEMA_VERSION = 'gx1_dynamic_mtf_state_report_v1'
 def _require(condition, code):
     if not condition:
         raise RuntimeError('[DYNAMIC_STATE_REPORT_' + code + ']')
+
+
+def dynamic_state_prediction_layout(rows, lead_count):
+    """Exact on-disk array shapes/dtypes for one dynamic-state measurement."""
+    _require(type(rows) is int and rows > 0 and type(lead_count) is int and lead_count > 0, 'OUTPUT_LAYOUT')
+    return {'probabilities': ((rows, len(TIMEFRAMES), lead_count, len(STATE_NAMES)), np.float32),
+            'sequence_nll': ((rows, len(TIMEFRAMES)), np.float32), 'parent_rows': ((rows,), np.int64),
+            'issue_ns': ((rows,), np.int64), 'bar_start_ns': ((rows,), np.int64)}
+
+
+def dynamic_state_prediction_file_bytes(rows, lead_count):
+    """Logical NPY bytes including headers; filesystem/VHD overhead is extra."""
+    result = {}
+    for name, (shape, dtype) in dynamic_state_prediction_layout(rows, lead_count).items():
+        dtype = np.dtype(dtype)
+        header = io.BytesIO()
+        np.lib.format.write_array_header_1_0(header, {'descr': np.lib.format.dtype_to_descr(dtype),
+                                                       'fortran_order': False, 'shape': shape})
+        result[name] = len(header.getvalue()) + math.prod(shape) * dtype.itemsize
+    return result
 
 
 def _grid(value):

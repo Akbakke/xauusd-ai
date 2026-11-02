@@ -395,7 +395,7 @@ NATIVE_DIRECTION_RESEARCH_RECIPE_ORIGINS = [{'path': '/home/andre2/GX1_RUNS/NATI
 NATIVE_DIRECTION_RESEARCH_ADAMW_OWNERS = {'torch/optim/adamw.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/adamw.py', 'sha256': 'e680a255db9c53c4248a55f414b7af9aab90bb672312ac960bb459903a161c1d'}, 'torch/optim/optimizer.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/optimizer.py', 'sha256': '354f41f784630a031195509d6b65bd5faaaa7a92402102c3b4c50423082e7ec9'}, 'torch/utils/_foreach_utils.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py', 'sha256': '723a4e8aea24cb778a260e36a7986f44807ea0fd728ec81bae98bc2dec88c901'}, 'torch/version.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/version.py', 'sha256': 'fb37823f3a4c3c29cd008fac7d3ce5aeb8e7da6f883b17aa9ea6d73ce6eecbfd'}}
 
 
-def native_direction_research_recipe(*, batch_size: int, max_updates: int, signed_bps: bool = False, magnitude_weighted: bool = False, dense_minutes: bool = False, five_minute_priority: bool = False, dense_bps: bool = False, dynamic_state: bool = False, current_state_first_loss_weight=None, extended_forecast_minutes=None) -> dict[str, Any]:
+def native_direction_research_recipe(*, batch_size: int, max_updates: int, signed_bps: bool = False, magnitude_weighted: bool = False, dense_minutes: bool = False, five_minute_priority: bool = False, dense_bps: bool = False, dynamic_state: bool = False, current_state_first_loss_weight=None, extended_forecast_minutes=None, extended_storage_reserve_bytes=None) -> dict[str, Any]:
     """Explicit ONLINE/BCE research controls; never a native launch recipe.
 
     LR/WD/clip/seed/precision are the bound229/231 controls. EMA and scheduler
@@ -416,6 +416,10 @@ def native_direction_research_recipe(*, batch_size: int, max_updates: int, signe
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_CURRENT_STATE_EXCLUSIVE')
     if extended_forecast_minutes is not None and current_state_first_loss_weight is None:
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_EXTENDED_REQUIRES_CURRENT_STATE')
+    if ((extended_forecast_minutes is None and extended_storage_reserve_bytes is not None)
+            or (extended_forecast_minutes is not None and (type(extended_storage_reserve_bytes) is not int
+                or extended_storage_reserve_bytes <= 0))):
+        raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_EXTENDED_STORAGE_RESERVE')
     if dynamic_state:
         from gx1.contracts.entry_native_direction_research_v1 import dynamic_mtf_state_research_contract
         objective = (dynamic_mtf_state_research_contract() if current_state_first_loss_weight is None
@@ -452,6 +456,7 @@ def native_direction_research_recipe(*, batch_size: int, max_updates: int, signe
         value['current_state_first_loss_weight'] = current_state_first_loss_weight
     if extended_forecast_minutes is not None:
         value['extended_forecast_minutes'] = extended_forecast_minutes
+        value['extended_storage_reserve_bytes'] = extended_storage_reserve_bytes
     if signed_bps:
         value['signed_bps_supervision'] = True
     if magnitude_weighted:
@@ -476,7 +481,8 @@ def require_native_direction_research_recipe(value: Mapping[str, Any]) -> dict[s
         dense_bps=value.get('dense_signed_bps_supervision', False),
         dynamic_state=value.get('dynamic_state_supervision', False),
         current_state_first_loss_weight=value.get('current_state_first_loss_weight'),
-        extended_forecast_minutes=value.get('extended_forecast_minutes'))
+        extended_forecast_minutes=value.get('extended_forecast_minutes'),
+        extended_storage_reserve_bytes=value.get('extended_storage_reserve_bytes'))
     if json.dumps(dict(value), sort_keys=True, separators=(',', ':'), allow_nan=False) != json.dumps(expected, sort_keys=True, separators=(',', ':'), allow_nan=False):
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_MISMATCH')
     return expected

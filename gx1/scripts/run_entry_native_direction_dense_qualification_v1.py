@@ -6,6 +6,7 @@ weights cannot be used by a later fit; this worker conveys no execution rights.
 """
 from __future__ import annotations
 
+import copy
 import gc
 import signal
 import sys
@@ -162,6 +163,18 @@ def require_family_input_intervention(raw, contract, *, arm, np):
 
 
 
+def require_dynamic_state_initial_measurement(measured, count, *, query_count):
+    """Bind private initial output shape to its declared dense query grid."""
+    _require(type(query_count) is int and query_count > 0, 'STATE_QUERY_COUNT')
+    _require(isinstance(measured, dict) and type(count) is int and count == 256
+        and measured.get('initial_parity_passed') is True, 'STATE_FRESH_INITIAL')
+    artifact = measured.get('state_artifact')
+    arrays = artifact.get('arrays') if isinstance(artifact, dict) else None
+    probabilities = arrays.get('probabilities') if isinstance(arrays, dict) else None
+    _require(isinstance(probabilities, dict) and probabilities.get('shape') == [256, 5, query_count, 3],
+        'STATE_FRESH_INITIAL')
+
+
 def require_dynamic_state_gradient_contact(steps):
     """Both logical trajectories must reach every declared native/head group."""
     expected = [('reference',1),('reference',2),('interrupted',1),('resumed',2)]
@@ -247,6 +260,13 @@ def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits
     output = Path(window['output_directory'])
     output.mkdir(parents=True)
     context['state_artifact_directory'] = output
+    if launch['numerical_recipe'].get('extended_forecast_minutes') is not None:
+        storage = prefix_authority.require_dynamic_state_storage_headroom(launch, output, private_scope=True)
+        context['extended_storage_guard'] = {'recipe':copy.deepcopy(launch), 'private_scope':True, 'recovery':False,
+            'host_identity':storage['host_identity']}
+        print('[dynamic_state_storage] at=' + storage['observed_utc'] + ' stage=PREFLIGHT required_bytes=' + str(storage['plan']['required_free_bytes'])
+            + ' guest_free=' + str(storage['observation']['guest_available_bytes'])
+            + ' host_free=' + str(min(storage['observation']['host_available_bytes'], storage['observation']['mounted_host_available_bytes'])), flush=True)
     denied = common._install_read_guard(context,output,Path(launch['runtime_root']))
     counters = {key:0 for key in ('model_constructions','model_construction_returns','optimizer_constructions',
         'forward_calls','forward_returns','backward_calls','backward_returns','optimizer_step_calls',
@@ -310,9 +330,7 @@ def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits
                 measured,count = prefix._evaluate(model,prepared,targets,view,context_map,diagnostic_ids,
                     cutoff=launch['fold']['train_cutoff_ns'],kind='INITIAL_TRAIN',counters=counters,
                     ceiling=launch['max_forwards'],device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
-                _require(count == 256 and measured['initial_parity_passed']
-                    and measured['state_artifact']['arrays']['probabilities']['shape'] == [256,5,1440,3],
-                    'STATE_FRESH_INITIAL')
+                require_dynamic_state_initial_measurement(measured, count, query_count=len(targets['lead_minutes']))
                 initial_report = prefix._publish_measurement('INITIAL_TRAIN',measured,output=output,
                     view=model.feature_view_identity,prior=prior,own_initial_state=initial,fresh_identity=identity,
                     context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)

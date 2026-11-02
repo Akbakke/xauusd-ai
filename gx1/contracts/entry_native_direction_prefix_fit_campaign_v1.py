@@ -7,10 +7,13 @@ prediction-quality or trading admission.
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import hashlib
 import json
 import math
 import os
+import re
+import subprocess
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -258,6 +261,113 @@ def require_dynamic_state_input_manifest(binding, *, fold, source_owners, verify
 
 
 
+
+_WSL_STORAGE_QUERY = r"""
+$ErrorActionPreference='Stop'
+[Console]::OutputEncoding=New-Object System.Text.UTF8Encoding $false
+$x=@(Get-ChildItem 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Lxss' | ForEach-Object {Get-ItemProperty $_.PSPath} | Where-Object {$_.DistributionName -eq 'Ubuntu-22.04'})
+if($x.Count -ne 1){throw 'distro identity'}
+$base=$x[0].BasePath
+$vhd=Get-Item -LiteralPath (Join-Path $base 'ext4.vhdx') -Force
+if($vhd.PSIsContainer){throw 'vhd not file'}
+$cur=$vhd; $noReparse=$true
+while($null -ne $cur){
+ if(($cur.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){$noReparse=$false}
+ if($cur.PSIsContainer){$cur=$cur.Parent}else{$cur=$cur.Directory}
+}
+$root=[IO.Path]::GetPathRoot($base)
+$drive=New-Object IO.DriveInfo($root)
+[pscustomobject]@{distribution=$x[0].DistributionName;base_path=$base;drive_root=$root;no_reparse=$noReparse;host_available_bytes=$drive.AvailableFreeSpace} | ConvertTo-Json -Compress
+"""
+
+
+def _extended_storage_plan(recipe, *, private_scope, recovery=False, stage=None, stage_rows=None):
+    """Known exact output files plus an explicit bound reserve, not a reservation."""
+    _require(type(private_scope) is bool and type(recovery) is bool and not (private_scope and recovery), 'STATE_STORAGE_SCOPE')
+    numerical = recipe['numerical_recipe']
+    horizon = numerical.get('extended_forecast_minutes')
+    if horizon is None:
+        _require(numerical.get('extended_storage_reserve_bytes') is None, 'STATE_STORAGE_UNBOUND_RESERVE')
+        return None
+    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import extended_dense_lead_minutes
+    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import dynamic_state_prediction_file_bytes
+    extended_dense_lead_minutes(horizon)
+    weight = numerical.get('current_state_first_loss_weight')
+    _require(type(weight) is float and math.isfinite(weight) and weight > 0, 'STATE_STORAGE_CURRENT_WEIGHT')
+    reserve = numerical.get('extended_storage_reserve_bytes')
+    _require(type(reserve) is int and reserve > 0, 'STATE_STORAGE_RESERVE')
+    max_checkpoint = recipe['max_checkpoint_bytes'] if private_scope else recipe['max_checkpoint_total_bytes']
+    max_json = recipe['max_published_json_bytes']
+    _require(type(max_checkpoint) is int and max_checkpoint > 0 and type(max_json) is int and max_json > 0
+        and reserve >= max_checkpoint + max_json, 'STATE_STORAGE_RESERVE_FLOOR')
+    if private_scope:
+        stages = [('INITIAL_TRAIN', 256)]
+    else:
+        fold = _fold(recipe['fold'])
+        stages = ([] if recovery else [('INITIAL_TRAIN', recipe['initial_measurement_rows'])])
+        stages += [('FINAL_TRAIN', recipe['final_train_measurement_rows']),
+                   ('OOF', fold['oof_end_row'] - fold['oof_start_row'])]
+    if stage is not None:
+        names = [name for name, _ in stages]
+        _require(stage in names and type(stage_rows) is int and stage_rows == stages[names.index(stage)][1],
+            'STATE_STORAGE_STAGE')
+        stages = stages[names.index(stage):]
+    else:
+        _require(stage_rows is None, 'STATE_STORAGE_STAGE')
+    files = {name: dynamic_state_prediction_file_bytes(rows, horizon) for name, rows in stages}
+    payload = sum(sum(item.values()) for item in files.values())
+    return {'horizon_minutes': horizon, 'remaining_stage_rows': dict(stages), 'logical_npy_bytes': payload,
+            'reserve_bytes': reserve, 'required_free_bytes': payload + reserve,
+            'scope': 'known_NPY_bytes_plus_bound_reserve_not_a_reservation'}
+
+
+def _observe_wsl_host_storage(directory):
+    """Resolve current distro's non-reparse VHD and measure guest and host free space."""
+    _require(os.environ.get('WSL_DISTRO_NAME') == 'Ubuntu-22.04', 'STATE_STORAGE_DISTRO')
+    path = Path(directory).resolve(strict=True)
+    _require(path.is_dir() and os.stat(path).st_dev == os.stat('/').st_dev, 'STATE_STORAGE_GUEST_DEVICE')
+    try:
+        process = subprocess.run(['/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',
+            '-NoProfile', '-NonInteractive', '-Command', _WSL_STORAGE_QUERY], stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30, check=True)
+        host = json.loads(process.stdout.decode('utf-8-sig').replace('\r', ''))
+    except (OSError, subprocess.SubprocessError, UnicodeError, ValueError) as exc:
+        raise RuntimeError('NATIVE_DIRECTION_PREFIX_FIT_STATE_STORAGE_HOST_UNAVAILABLE') from exc
+    _require(isinstance(host, Mapping) and set(host) == {'distribution','base_path','drive_root','no_reparse','host_available_bytes'}
+        and host['distribution'] == 'Ubuntu-22.04' and host['no_reparse'] is True
+        and type(host['base_path']) is str and type(host['drive_root']) is str
+        and re.fullmatch(r'[A-Za-z]:\\', host['drive_root']) is not None
+        and host['base_path'].lower().startswith(host['drive_root'].lower())
+        and type(host['host_available_bytes']) is int and host['host_available_bytes'] > 0, 'STATE_STORAGE_HOST_IDENTITY')
+    mount = '/mnt/' + host['drive_root'][0].lower()
+    try:
+        guest = os.statvfs(path)
+        mounted_host = os.statvfs(mount)
+    except OSError as exc:
+        raise RuntimeError('NATIVE_DIRECTION_PREFIX_FIT_STATE_STORAGE_VOLUME_UNAVAILABLE') from exc
+    guest_free, mount_free = guest.f_bavail * guest.f_frsize, mounted_host.f_bavail * mounted_host.f_frsize
+    _require(guest_free > 0 and mount_free > 0, 'STATE_STORAGE_AVAILABLE')
+    return {'guest_available_bytes': guest_free, 'host_available_bytes': host['host_available_bytes'],
+            'mounted_host_available_bytes': mount_free, 'host_base_path': host['base_path'],
+            'host_drive_root': host['drive_root']}
+
+
+def require_dynamic_state_storage_headroom(recipe, directory, *, private_scope, recovery=False,
+                                           stage=None, stage_rows=None, expected_host=None):
+    plan = _extended_storage_plan(recipe, private_scope=private_scope, recovery=recovery, stage=stage, stage_rows=stage_rows)
+    if plan is None:
+        return None
+    observation = _observe_wsl_host_storage(directory)
+    identity = (observation['host_base_path'], observation['host_drive_root'])
+    _require(expected_host is None or identity == expected_host, 'STATE_STORAGE_HOST_CHANGED')
+    available = min(observation['guest_available_bytes'], observation['host_available_bytes'],
+                    observation['mounted_host_available_bytes'])
+    _require(available >= plan['required_free_bytes'], 'STATE_STORAGE_INSUFFICIENT')
+    return {'plan': plan, 'observation': observation, 'host_identity': identity,
+            'observed_utc': datetime.now(timezone.utc).isoformat(),
+            'scope': 'timestamped_capacity_check_not_reserved_space'}
+
+
 def require_dynamic_state_target_binding(recipe):
     """TRAIN audit is the rule lock; later cache bytes give no selection authority."""
     from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (
@@ -356,6 +466,9 @@ def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, pr
         _require('current_state_first_loss_weight' in numerical, 'STATE_EXTENDED_REQUIRES_CURRENT_INPUT')
         from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import extended_dense_lead_minutes
         extended_dense_lead_minutes(numerical['extended_forecast_minutes'])
+        _extended_storage_plan(recipe, private_scope=private_scope, recovery=recovery)
+    else:
+        _require('extended_storage_reserve_bytes' not in numerical, 'STATE_STORAGE_UNBOUND_RESERVE')
     unsigned = {k:v for k,v in numerical.items() if k != 'contract_sha256'}
     # Numerical recipe seals use compact JSON without the campaign trailing newline.
     declared = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(',', ':'),

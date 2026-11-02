@@ -55,7 +55,8 @@ def test_extended_recipe_view_and_legacy_grid_are_separately_bound(bound_case):
     args['extended_forecast_minutes'] = 1441
     v3 = views.bind_native_direction_feature_view(**args)
     recipe = recipes.native_direction_research_recipe(batch_size=16, max_updates=2, dynamic_state=True,
-                                                       current_state_first_loss_weight=1.0, extended_forecast_minutes=1441)
+                                                       current_state_first_loss_weight=1.0, extended_forecast_minutes=1441,
+                                                       extended_storage_reserve_bytes=5 * 1024**3)
     assert recipes.require_native_direction_research_recipe(recipe) == recipe
     assert v3['research_objective']['contract_sha256'] == recipe['research_objective_sha256']
     assert v3['research_objective']['lead_minutes'] == list(range(1, 1442))
@@ -143,3 +144,18 @@ def test_seven_day_loss_uses_every_minute_without_model():
     assert result['counts']['eligible_cells'] == 5 * horizon
     assert result['eligible_mask'][0, 0, -1].item()
     torch.testing.assert_close(result['loss'], torch.tensor(3 * math.log(3)), atol=3e-4, rtol=3e-4)
+
+
+@pytest.mark.parametrize('query_count', [1440, 1441, 10080])
+def test_private_initial_shape_follows_declared_grid_without_model(query_count):
+    from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_dynamic_state_initial_measurement
+    measured = {'initial_parity_passed': True,
+                'state_artifact': {'arrays': {'probabilities': {'shape': [256, 5, query_count, 3]}}}}
+    require_dynamic_state_initial_measurement(measured, 256, query_count=query_count)
+    with pytest.raises(RuntimeError, match='STATE_FRESH_INITIAL'):
+        require_dynamic_state_initial_measurement(measured, 256, query_count=query_count + 1)
+    with pytest.raises(RuntimeError, match='STATE_FRESH_INITIAL'):
+        require_dynamic_state_initial_measurement(measured, 255, query_count=query_count)
+    measured['initial_parity_passed'] = False
+    with pytest.raises(RuntimeError, match='STATE_FRESH_INITIAL'):
+        require_dynamic_state_initial_measurement(measured, 256, query_count=query_count)

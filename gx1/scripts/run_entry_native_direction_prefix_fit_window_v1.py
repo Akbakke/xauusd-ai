@@ -8,6 +8,7 @@ Only the separate260 loss decides eligible cells.  Context tags are report-only.
 """
 from __future__ import annotations
 
+import copy
 import gc
 import hashlib
 import json
@@ -212,6 +213,11 @@ def _prepare_dynamic_state(context, launch, np):
         current_state_first_loss_weight=launch['numerical_recipe'].get('current_state_first_loss_weight'),
         extended_forecast_minutes=launch['numerical_recipe'].get('extended_forecast_minutes'))
     prepared['state_artifact_directory'] = context['state_artifact_directory']
+    if view.get('extended_forecast_minutes') is not None:
+        guard = context.get('extended_storage_guard')
+        _require(isinstance(guard, dict) and guard['recipe']['numerical_recipe'] == launch['numerical_recipe']
+            and isinstance(guard['host_identity'], tuple), 'STATE_EXTENDED_STORAGE_PREFLIGHT_REQUIRED')
+        prepared['extended_storage_guard'] = guard
     targets = {'dynamic_state_series':series, 'target_manifest':launch['target_manifest'],
         'target_sources':launch['target_sources'], 'prior':context['state_label_audit']['prior'],
         'lead_minutes':np.asarray(view['research_objective']['lead_minutes'], np.int64),
@@ -258,17 +264,29 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
         ceiling, device, torch, np, tree_sha, deadline=None, parity=False):
     """Bounded NPY outputs and incremental scores; no N-by-query target copy."""
     from gx1.contracts.entry_native_direction_research_v1 import dynamic_mtf_state_marginal_probabilities
-    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import StateScoreAccumulator
+    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import StateScoreAccumulator, dynamic_state_prediction_layout
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     from gx1.contracts.immutable_event_authority_v1 import _publish_bytes, _publish_file_noreplace, _fsync_directory
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     root = Path(prepared['state_artifact_directory'])
     destination = root/(kind + '_PREDICTIONS')
     _require(root.is_dir() and not destination.exists(), 'STATE_OUTPUT_DIRECTORY')
+    storage = prepared.get('extended_storage_guard')
+    extended = view.get('extended_forecast_minutes')
+    _require((storage is not None) == (extended is not None), 'STATE_EXTENDED_STORAGE_GUARD_MISMATCH')
+    if storage is not None:
+        _require(isinstance(storage, dict) and isinstance(storage.get('host_identity'), tuple)
+            and len(storage['host_identity']) == 2, 'STATE_EXTENDED_STORAGE_IDENTITY_REQUIRED')
+        _require(storage['recipe']['numerical_recipe'].get('extended_forecast_minutes') == extended,
+            'STATE_EXTENDED_STORAGE_HORIZON_MISMATCH')
+        from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import require_dynamic_state_storage_headroom
+        check = require_dynamic_state_storage_headroom(storage['recipe'], root, private_scope=storage['private_scope'],
+            recovery=storage['recovery'], stage=kind, stage_rows=len(selected), expected_host=storage['host_identity'])
+        print('[dynamic_state_storage] at=' + check['observed_utc'] + ' stage=' + kind + ' required_bytes=' + str(check['plan']['required_free_bytes'])
+            + ' guest_free=' + str(check['observation']['guest_available_bytes'])
+            + ' host_free=' + str(min(check['observation']['host_available_bytes'], check['observation']['mounted_host_available_bytes'])), flush=True)
     stage = Path(tempfile.mkdtemp(prefix='.'+destination.name+'.staging.', dir=root))
-    shapes = {'probabilities':((len(selected),5,len(targets['lead_minutes']),3),np.float32),
-        'sequence_nll':((len(selected),5),np.float32), 'parent_rows':((len(selected),),np.int64),
-        'issue_ns':((len(selected),),np.int64), 'bar_start_ns':((len(selected),),np.int64)}
+    shapes = dynamic_state_prediction_layout(len(selected), len(targets['lead_minutes']))
     arrays = {key:np.lib.format.open_memmap(stage/(key+'.npy'), mode='w+', dtype=dtype, shape=shape)
         for key,(shape,dtype) in shapes.items()}
     semantic = {key:hashlib.sha256() for key in arrays}
@@ -1224,7 +1242,15 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
-    if dynamic_state:context['state_artifact_directory'] = work
+    if dynamic_state:
+        context['state_artifact_directory'] = work
+        if launch['numerical_recipe'].get('extended_forecast_minutes') is not None:
+            storage = authority.require_dynamic_state_storage_headroom(launch, work, private_scope=False, recovery=recovery)
+            context['extended_storage_guard'] = {'recipe':copy.deepcopy(launch), 'private_scope':False, 'recovery':recovery,
+                'host_identity':storage['host_identity']}
+            print('[dynamic_state_storage] at=' + storage['observed_utc'] + ' stage=PREFLIGHT required_bytes=' + str(storage['plan']['required_free_bytes'])
+                + ' guest_free=' + str(storage['observation']['guest_available_bytes'])
+                + ' host_free=' + str(min(storage['observation']['host_available_bytes'], storage['observation']['mounted_host_available_bytes'])), flush=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
         extra_read_paths=((recovery_origin['cursor']['full_state']['path'],recovery_origin['cursor']['own_initial_state']['path'])
             if recovery else context['factor_continuation_reads'] if factor_continuation else
