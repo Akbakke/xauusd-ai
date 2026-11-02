@@ -20,6 +20,8 @@ De tre treffratene for senere periode bruker samme observerbare klasseutvalg på
 
 På +1 minutt er senere modell/Markov-treffrate M5 51.06/70.56 %, M15 60.06/87.51 %, H1 66.36/96.20 %, H4 67.84/99.00 %, D1 66.76/99.89 %. At D1-tilstanden vanligvis fortsetter til neste minutt gjør en god slik referanse naturlig; det er ikke i seg selv en handelsfordel. Markov får et eksplisitt kausalt input som modellen ikke har, så dette er en informativ systemreferanse, ikke en ren arkitekturduell på identiske inputs.
 
+En ekstra kontroll av lagrede +1-minuttsprognoser viser at modellen har noe sammenheng med kjent nåtilstand, men overser FLAT. I senere periode var M5-nåtilstanden FLAT i 1 028 observerbare tilfeller; i 691 av disse var neste tilstand også FLAT, mens modellen aldri valgte FLAT i denne gruppen. Når M5-nåtilstanden var NED, valgte modellen NED i 1 673 av 2 883 tilfeller; når nåtilstanden var OPP, valgte den OPP i 2 165 av 3 135. Gruppene er dannet i etterkontrollen; modellen fikk ikke nåtilstanden som eksplisitt input. Dette viser både delvis informasjon i de øvrige inputene og et tydelig hull, men isolerer ikke årsaken.
+
 ## Samme 256 rader før og etter
 
 Radidentiteter, beslutningstider og merkingsmasker ble koblet eksakt. Tallene under aggregerer observerte celler over alle 1–1 440 ledetider på de samme TRAIN-radene; lavere log-loss er bedre. Den opprinnelige initialrapporten ble gjenskapt fra lagrede sannsynligheter og target-masker.
@@ -86,5 +88,7 @@ Originale artefakter og sjekksummer (ingen rådata eller vekter er lagt i Git):
 
 - `additive_report_tests`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_STATE_EVENTS_001/ADDITIVE_REPORT_TEST_RECEIPT_001.json` — SHA-256 `8c1625a8bb2005c0444c53a6c08d4b184812675b74cc8415b632471e0edd07ab`
 - `saved_event_implementation_check`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_EVENT_IMPLEMENTATION_CHECK_001/RESULT.json` — SHA-256 `a5e841288923c8f52403a55a809ff387d7c008dd8915a8d7045a5a0c06fe8270`
+
+- `current_state_diagnosis`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CURRENT_STATE_DIAGNOSIS_001/RESULT.json` — SHA-256 `1bf732d8aaa6a28200858477388a5395981651b81b8f06393ca55a6005e7fbd8`
 
 TEST/Exit/handel er ikke brukt. Senere Q1 2025 er gjenbrukt utviklingsdata og ikke en forseglet blind test. Ingen handelsregel, kostnader eller økonomisk avkastning er evaluert.

@@ -1421,7 +1421,7 @@
       "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
       "report": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
-        "sha256": "feb8d5c14e4f1ca98f3fd53b0ec5c2893355559096172b2344c322d41346d8e8"
+        "sha256": "efa82dff644121939cbff8844c833893802cc104f095e8a37767f1f3e2ad7e0e"
       },
       "evidence": {
         "training_integrity": {
@@ -1479,6 +1479,10 @@
         "saved_event_implementation_check": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_EVENT_IMPLEMENTATION_CHECK_001/RESULT.json",
           "sha256": "a5e841288923c8f52403a55a809ff387d7c008dd8915a8d7045a5a0c06fe8270"
+        },
+        "current_state_diagnosis": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CURRENT_STATE_DIAGNOSIS_001/RESULT.json",
+          "sha256": "1bf732d8aaa6a28200858477388a5395981651b81b8f06393ca55a6005e7fbd8"
         }
       },
       "later_fixed_horizons": [
@@ -1563,6 +1567,12 @@
         "original_report_fields_unchanged": true,
         "unknown_gaps_bridged": false,
         "new_model_calls": 0
+      },
+      "current_flat_m5": {
+        "eligible_later_parents": 1028,
+        "still_flat_after_one_minute": 691,
+        "model_predicted_flat": 0,
+        "observed_current_state_explicitly_fed_to_model": false
       }
     }
   }
