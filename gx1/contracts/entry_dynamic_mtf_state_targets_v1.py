@@ -87,6 +87,28 @@ def default_trial_lead_minutes():
     return LEAD_MINUTES
 
 
+def extended_dense_lead_minutes(last_minute):
+    """A declared longer one-minute query grid, never a trade-duration rule.
+
+    Refuse a grid whose JSON array alone exceeds the existing 32 MiB private
+    publication ceiling before constructing it. Native memory, output storage,
+    source coverage and runtime still need separate source-bound qualification.
+    """
+    _require(type(last_minute) is int and last_minute > LEAD_MINUTES[-1], "EXTENDED_HORIZON")
+    _require(last_minute <= 33554432, "EXTENDED_GRID_METADATA_BUDGET")
+    # The existing report's accumulated FP32 coherence tolerance must remain
+    # below the maximum possible probability difference; otherwise it is vacuous.
+    _require(last_minute * len(STATE_NAMES) * np.finfo(np.float32).eps < 1.0, "EXTENDED_COHERENCE_BOUND")
+    digits, start = 0, 1
+    while start <= last_minute:
+        stop = min(last_minute, start * 10 - 1)
+        digits += (stop - start + 1) * len(str(start))
+        start *= 10
+    json_bytes = digits + last_minute + 1  # numbers, commas and two brackets
+    _require(json_bytes <= 33554432, "EXTENDED_GRID_METADATA_BUDGET")
+    return tuple(range(1, last_minute + 1))
+
+
 def dynamic_mtf_state_target_contract():
     return _seal({
         "schema_version": SCHEMA_VERSION,

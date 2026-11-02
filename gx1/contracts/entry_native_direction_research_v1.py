@@ -326,15 +326,17 @@ def native_direction_binary_loss(
 
 
 @lru_cache(maxsize=4, typed=True)
-def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state_loss_weight=None):
+def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state_loss_weight=None, extended_forecast_minutes=None):
     _require(type(current_state_input) is bool, "STATE_CURRENT_INPUT_MODE")
     _require((not current_state_input and first_state_loss_weight is None)
         or (current_state_input and type(first_state_loss_weight) is float
             and math.isfinite(first_state_loss_weight) and first_state_loss_weight > 0), "STATE_FIRST_LOSS_WEIGHT")
     from gx1.contracts import entry_dynamic_mtf_state_targets_v1 as targets
     target = targets.dynamic_mtf_state_target_contract()
-    leads = tuple(targets.default_trial_lead_minutes())
-    _require(leads == tuple(range(1, leads[-1] + 1)) and len(leads) > 1, "STATE_QUERY_GRID")
+    _require(extended_forecast_minutes is None or current_state_input, "STATE_EXTENDED_REQUIRES_CURRENT_INPUT")
+    leads = (tuple(targets.default_trial_lead_minutes()) if extended_forecast_minutes is None
+        else targets.extended_dense_lead_minutes(extended_forecast_minutes))
+    _require(len(leads) > 1 and leads[0] == 1 and leads[-1] == len(leads), "STATE_QUERY_GRID")
     value = {
         "schema_version": "gx1_native_dynamic_mtf_state_research_v1",
         "research_objective": "joint_ordered_causal_local_mtf_state_forecast",
@@ -383,13 +385,22 @@ def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state
             "first_state_loss_normalization": "mean_over_observed_mature_first_query_cells",
             "current_input_available_online": False,
         })
+    if extended_forecast_minutes is not None:
+        value.update({
+            "schema_version": "gx1_native_dynamic_mtf_extended_state_research_v3",
+            "extended_forecast_minutes": extended_forecast_minutes,
+            "target_trial_grid_role": "target_owner_original_grid_is_historical_default_not_query_limit",
+            "extended_grid": "all_wall_minutes_from_one_through_declared_end_no_skipped_queries",
+            "extended_runtime_and_storage_qualified": False,
+        })
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
-def dynamic_mtf_state_research_contract(*, current_state_input=False, first_state_loss_weight=None) -> dict[str, Any]:
+def dynamic_mtf_state_research_contract(*, current_state_input=False, first_state_loss_weight=None,
+                                        extended_forecast_minutes=None) -> dict[str, Any]:
     """Separate target/output/loss identity; legacy objective bytes are untouched."""
     raw = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
-        first_state_loss_weight=first_state_loss_weight)
+        first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes)
     return {**json.loads(raw), "contract_sha256": hashlib.sha256(raw).hexdigest()}
 
 
@@ -426,12 +437,13 @@ class NativeDynamicMTFStateResearch(nn.Module):
     decoder; scoring marginals integrate over the model's previous distribution.
     """
 
-    def __init__(self, backbone: EntryV10CtxHybridTransformer, *, current_state_input=False, first_state_loss_weight=None):
+    def __init__(self, backbone: EntryV10CtxHybridTransformer, *, current_state_input=False,
+                 first_state_loss_weight=None, extended_forecast_minutes=None):
         super().__init__()
         from gx1.features.entry_specialist_feature_groups_v1 import FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
         width = _backbone_width(backbone)
         contract = dynamic_mtf_state_research_contract(current_state_input=current_state_input,
-            first_state_loss_weight=first_state_loss_weight)
+            first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes)
         _require(isinstance(backbone.entry_execution_profile, dict)
             and backbone.entry_execution_profile.get("name") == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
             and backbone.gc_mtf_history is not None
@@ -440,8 +452,9 @@ class NativeDynamicMTFStateResearch(nn.Module):
         self._bound_hidden_width = width
         self._current_state_input = current_state_input
         self._first_state_loss_weight = first_state_loss_weight
+        self._extended_forecast_minutes = extended_forecast_minutes
         self._research_contract_json = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
-            first_state_loss_weight=first_state_loss_weight)
+            first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes)
         device = backbone.entry_q_joint_in.weight.device
         query_width = len(contract["timeframes"]) + 1
         classes = len(contract["class_names"])
@@ -460,7 +473,8 @@ class NativeDynamicMTFStateResearch(nn.Module):
 
     @property
     def research_objective(self):
-        kwargs = {"current_state_input": self._current_state_input, "first_state_loss_weight": self._first_state_loss_weight}
+        kwargs = {"current_state_input": self._current_state_input, "first_state_loss_weight": self._first_state_loss_weight,
+                  "extended_forecast_minutes": self._extended_forecast_minutes}
         _require(self._research_contract_json == _dynamic_mtf_state_objective_bytes(**kwargs), "STATE_OBJECTIVE_IDENTITY")
         return dynamic_mtf_state_research_contract(**kwargs)
 
@@ -471,6 +485,10 @@ class NativeDynamicMTFStateResearch(nn.Module):
     @property
     def first_state_loss_weight(self):
         return self._first_state_loss_weight
+
+    @property
+    def extended_forecast_minutes(self):
+        return self._extended_forecast_minutes
 
     @property
     def signed_bps(self):
@@ -663,10 +681,13 @@ def state_chain_negative_log_likelihood(initial_state_logits, state_transition_l
 
 
 def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits, *,
-        state, observed, issue_ns, validity_ns, maturity_ns, cutoff_ns, first_state_loss_weight=None):
+        state, observed, issue_ns, validity_ns, maturity_ns, cutoff_ns, first_state_loss_weight=None,
+        extended_forecast_minutes=None):
     """Strict declared-grid loss; labels and future clocks stay outside forward."""
+    _require(first_state_loss_weight is not None or extended_forecast_minutes is None, "STATE_EXTENDED_REQUIRES_CURRENT_INPUT")
     contract = (dynamic_mtf_state_research_contract() if first_state_loss_weight is None
-        else dynamic_mtf_state_research_contract(current_state_input=True, first_state_loss_weight=first_state_loss_weight))
+        else dynamic_mtf_state_research_contract(current_state_input=True, first_state_loss_weight=first_state_loss_weight,
+            extended_forecast_minutes=extended_forecast_minutes))
     shape = _validate_state_chain_logits(initial_state_logits, state_transition_logits)
     batch, tfs, leads = shape
     _require((tfs, leads) == (len(contract["timeframes"]), len(contract["lead_minutes"])), "STATE_NATIVE_GRID")

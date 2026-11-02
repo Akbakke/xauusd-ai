@@ -179,8 +179,7 @@ def _dynamic_state_metadata(launch, common):
 
 def _prepare_dynamic_state(context, launch, np):
     from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
-    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (
-        load_dynamic_mtf_state_series, default_trial_lead_minutes)
+    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import load_dynamic_mtf_state_series
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
     physical, ancestor, plan, info = (context[k] for k in ('physical','ancestor','ancestor_plan','info'))
@@ -210,11 +209,12 @@ def _prepare_dynamic_state(context, launch, np):
         prefix_normalization_ref=manifest['prefix_normalization'], constructor_metadata=context['constructor'],
         constructor_metadata_ref=manifest['constructor_metadata'], source_bindings=sources, max_batch_rows=BATCH_SIZE,
         full_feature_profile=True, dynamic_state_supervision=True,
-        current_state_first_loss_weight=launch['numerical_recipe'].get('current_state_first_loss_weight'))
+        current_state_first_loss_weight=launch['numerical_recipe'].get('current_state_first_loss_weight'),
+        extended_forecast_minutes=launch['numerical_recipe'].get('extended_forecast_minutes'))
     prepared['state_artifact_directory'] = context['state_artifact_directory']
     targets = {'dynamic_state_series':series, 'target_manifest':launch['target_manifest'],
         'target_sources':launch['target_sources'], 'prior':context['state_label_audit']['prior'],
-        'lead_minutes':np.asarray(default_trial_lead_minutes(), np.int64),
+        'lead_minutes':np.asarray(view['research_objective']['lead_minutes'], np.int64),
         'train_cutoff_ns':launch['fold']['train_cutoff_ns'], 'cutoff_ns':launch['fold']['oof_cutoff_ns']}
     order = _fixed_order(axes['parent_rows'], n, SEED, np)
     return prepared, targets, view, None, order
@@ -224,7 +224,7 @@ def _state_loss(model, outputs, target, *, cutoff):
     from gx1.contracts.entry_native_direction_research_v1 import native_dynamic_mtf_state_loss
     loss = native_dynamic_mtf_state_loss(outputs['initial_state_logits'], outputs['state_transition_logits'],
         **{key:target[key] for key in ('state','observed','issue_ns','validity_ns','maturity_ns')}, cutoff_ns=cutoff,
-        first_state_loss_weight=model.first_state_loss_weight)
+        first_state_loss_weight=model.first_state_loss_weight, extended_forecast_minutes=model.extended_forecast_minutes)
     _require(loss['research_objective_sha256'] == model.research_objective['contract_sha256'], 'STATE_LOSS_IDENTITY')
     return loss
 

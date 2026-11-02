@@ -261,7 +261,7 @@ def require_dynamic_state_input_manifest(binding, *, fold, source_owners, verify
 def require_dynamic_state_target_binding(recipe):
     """TRAIN audit is the rule lock; later cache bytes give no selection authority."""
     from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (
-        read_dynamic_mtf_state_series_metadata, default_trial_lead_minutes)
+        read_dynamic_mtf_state_series_metadata, default_trial_lead_minutes, extended_dense_lead_minutes)
     fold = _fold(recipe['fold'])
     sources = recipe['target_sources']
     _require(isinstance(sources, Mapping) and set(sources) == {'m1', 'm5_atr'}, 'STATE_TARGET_SOURCES')
@@ -272,6 +272,8 @@ def require_dynamic_state_target_binding(recipe):
         expected_cutoff_ns=fold['oof_cutoff_ns'])
     meta = manifest['metadata']
     _require(meta['parents'] == fold['oof_end_row'], 'STATE_TARGET_PARENT_POPULATION')
+    horizon = recipe['numerical_recipe'].get('extended_forecast_minutes')
+    leads = default_trial_lead_minutes() if horizon is None else extended_dense_lead_minutes(horizon)
     audit_ref = campaign.require_binding(recipe['label_audit'], label='TRAIN state audit', verify_file=True)
     audit = campaign.read_bound_json(Path(audit_ref['path']), audit_ref['sha256'])
     _require(audit.get('schema_version') == 'gx1_dynamic_mtf_state_label_audit_v1'
@@ -280,7 +282,7 @@ def require_dynamic_state_target_binding(recipe):
         and audit.get('fold') == fold
         and audit.get('target_contract_sha256') == meta['definition']['contract_sha256']
         and audit.get('objective_sha256') == recipe['numerical_recipe']['research_objective_sha256']
-        and audit.get('lead_minutes') == list(default_trial_lead_minutes())
+        and audit.get('lead_minutes') == list(leads)
         and audit.get('model_forwards') == audit.get('optimizer_steps') == 0
         and audit.get('test_data_used') is audit.get('later_metrics_inspected') is False,
         'STATE_TRAIN_LABEL_AUDIT')
@@ -350,6 +352,10 @@ def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, pr
     if 'current_state_first_loss_weight' in numerical:
         weight = numerical['current_state_first_loss_weight']
         _require(type(weight) is float and math.isfinite(weight) and weight > 0, 'STATE_CURRENT_FIRST_LOSS_WEIGHT')
+    if 'extended_forecast_minutes' in numerical:
+        _require('current_state_first_loss_weight' in numerical, 'STATE_EXTENDED_REQUIRES_CURRENT_INPUT')
+        from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import extended_dense_lead_minutes
+        extended_dense_lead_minutes(numerical['extended_forecast_minutes'])
     unsigned = {k:v for k,v in numerical.items() if k != 'contract_sha256'}
     # Numerical recipe seals use compact JSON without the campaign trailing newline.
     declared = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(',', ':'),
