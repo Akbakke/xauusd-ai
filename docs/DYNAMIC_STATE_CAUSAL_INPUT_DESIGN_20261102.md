@@ -52,6 +52,20 @@ Eksisterende sekvens-NLL gir et direkte første-tilstandsledd og betingede sener
 
 En kandidat er et eksplisitt, egnet sannsynlighetstap for første tilstand og forhåndsvalgte marginale ledetider sammen med sekvens-/overgangsleddet. Eventuell klasse- eller skiftevekt er en hypotese; eksakte vekter, ledetider og parameterisering er ikke valgt. Ikke optimaliser dem mot den allerede gjenbrukte senere utviklingsperioden. Uansett treningstap skal evalueringen rapportere uvektet log-loss, Brier, kalibrering, dekning, hver klasse og skifteretning, sammen med referanser som har samme tilgjengelige informasjon. Ukjente minutter gir ikke syntetiske skifter, og overlappende prognoser er ikke uavhengige markedshendelser. Stillstand, fortsettelse og begge skifteretninger må vurderes hver for seg.
 
+## Dokumentert måltilgang utover ett døgn
+
+En målgrunnlagskontroll uten modell brukte de lagrede 47 602 TRAIN- og 17 288 senere utviklingsforeldrene, med forhåndsvalgte endepunkter 1, 2, 3, 5, 7, 14 og 30 kalenderdager frem. Alle tre tilstandsklasser forekommer på hvert av de undersøkte endepunktene i begge datadeler og alle fem tidsrammer. Tabellen viser antall observerbare endepunkter som TRAIN / senere utvikling; foreldre og prognoser overlapper og er ikke uavhengige hendelser.
+
+| Tidsramme | 2 døgn | 7 døgn | 30 døgn |
+|---|---:|---:|---:|
+| M5 | 15 185 / 5 081 | 25 337 / 8 194 | 13 405 / 3 457 |
+| M15 | 23 746 / 8 308 | 39 773 / 13 500 | 21 055 / 5 460 |
+| H1 | 26 664 / 9 625 | 44 684 / 15 482 | 23 662 / 6 330 |
+| H4 | 26 738 / 9 785 | 44 657 / 15 687 | 23 741 / 6 414 |
+| D1 | 24 081 / 9 765 | 40 380 / 15 618 | 21 582 / 6 382 |
+
+Dette viser at det finnes et datagrunnlag for å undersøke lengre prognoser. En kjent tilstand på et fjernt endepunkt viser imidlertid ikke rekkefølgen eller alle reverseringene i mellomtiden. Manglende eller lukkede endepunkter forblir ukjente. Eksempelledetidene er verken en valgt prognosegrid eller en maksimal handelstid. Dagens modell og loss er fortsatt bundet til 1–1440 minutter; støtte for lengre prognoser og observerbare skifter underveis må implementeres og kvalifiseres særskilt.
+
 ## Minimumskrav før eventuell bruk eller ny treningsplan
 
 - Kontroller identitet, modenhet, kildespor og separate masker på alle faktiske parentrader; skill uttrykkelig historisk event-time fra dokumentert fysisk tilgjengelighet.
@@ -68,3 +82,4 @@ En kandidat er et eksplisitt, egnet sannsynlighetstap for første tilstand og fo
 - Lagret historisk inpututtak på 64 890 foreldre: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/HISTORICAL_CURRENT_INPUT_ACCESSOR_001/RESULT.json`, SHA-256 `b4321b1a57ed5e12f8ae01cb01c1e0e99cd76f769ec3365978c9ec6746bf1e1f`.
 - Testkvittering og eksplisitt utelatt modell-hook: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/HISTORICAL_CURRENT_INPUT_ACCESSOR_001/TEST_RECEIPT.json`, SHA-256 `b2ae8a296f0b0ec9941cb7e18c4cb4b6713b173bf851cd64e418d8db61ca5e24`.
 - Modellkobling, tapsvariant og 36 kilde-/metadata-/tensor-/guardrailkontroller uten modell: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CURRENT_MODEL_WIRING_SOURCE_001/SOURCE_REVIEW.json`, SHA-256 `0096ed929f2e25f8426991185c4ecec4058e59fa8cf61d6fc1a06c8b4030b1b7`.
+- Lagret støtte for målendepunkter utover ett døgn, uten modell: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_LONG_HORIZON_TARGET_SUPPORT_001/RESULT.json`, SHA-256 `b44043df9d6be4a35d666b32f68403d16fa5529c420a821cfb2d4cca26ead3f2`.

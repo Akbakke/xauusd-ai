@@ -80,6 +80,10 @@ En NumPy-beregning med de lagrede, positive TRAIN-overgangstellingene viser at e
 
 Et separat historisk nåinpututtak er implementert med uavhengige masker for kjent tilstand og kjent lokal sti. Det returnerer ingen fremtidsetiketter og merker datatiden uttrykkelig som historisk, ikke dokumentert ONLINE-levering. 34 syntetiske targettester bestod; et CPU-uttak mot alle 64 890 lagrede TRAIN-/utviklingsforeldre stemte eksakt med tidligere kilde-/klokkeanalyse. En ny opt-in kildevariant kobler nåtilstand og begge masker til modellrepresentasjonen og gir et separat vektet første-tilstandstap. Ingen tapsvekt er valgt for trening, og faktisk modellforward, gradienter og native ressurser er ikke testet. Den gamle treningskvitteringen kvalifiserer ikke den endrede kilden. Den normale commit-hookens modelltester ble utelatt fordi de kjører modell; de fokuserte kilde-/tensorkontrollene og separate guardrail-testene bestod. Ingen ny modell, scoring eller trening ble kjørt. Se [designforslaget](DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md).
 
+## Lengre tidshorisonter
+
+Lagrede target-endepunkter er nå undersøkt 1–30 kalenderdager frem uten modellkjøring. Alle tre klasser finnes på alle fem tidsrammer for de sju forhåndsvalgte eksempelledetidene i både TRAIN og senere utviklingsdata. Eksempelvis har senere utvikling ved sju døgn 8 194 observerbare M5-endepunkter og 15 618 D1-endepunkter av 17 288 foreldre. Dette er overlappende endepunkter, ikke fullstendig observerte ukesforløp eller dokumentert prediksjon. Modellens faktiske domene stopper fremdeles ved 1 440 minutter; en lengre fremtidig variant må kunne håndtere ukjente hull og skifter underveis. Se [hele oversikten](DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md).
+
 ## Gjenstående tiltak
 
 1. Fullfør en kausal ONLINE-representasjon og modellkobling for kjent nåtilstand per tidsramme med eksplisitt UNKNOWN/tilgjengelighetsmaske, tilgjengelig før beslutningstid. Gi modell og baseline samme informasjon; behold genuine indikatorer og alle vakter. Kontroller først at målet ikke lekker fremtidig threshold, ekstrempunkt eller observasjon.
@@ -129,3 +133,4 @@ TEST/Exit/handel er ikke brukt. Senere Q1 2025 er gjenbrukt utviklingsdata og ik
 - `historical_current_input_accessor`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/HISTORICAL_CURRENT_INPUT_ACCESSOR_001/RESULT.json` — SHA-256 `b4321b1a57ed5e12f8ae01cb01c1e0e99cd76f769ec3365978c9ec6746bf1e1f`
 - `historical_current_input_test_receipt`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/HISTORICAL_CURRENT_INPUT_ACCESSOR_001/TEST_RECEIPT.json` — SHA-256 `b2ae8a296f0b0ec9941cb7e18c4cb4b6713b173bf851cd64e418d8db61ca5e24`
 - `current_model_wiring_source_review`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CURRENT_MODEL_WIRING_SOURCE_001/SOURCE_REVIEW.json` — SHA-256 `0096ed929f2e25f8426991185c4ecec4058e59fa8cf61d6fc1a06c8b4030b1b7`
+- `saved_long_horizon_target_support`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_LONG_HORIZON_TARGET_SUPPORT_001/RESULT.json` — SHA-256 `b44043df9d6be4a35d666b32f68403d16fa5529c420a821cfb2d4cca26ead3f2`
