@@ -726,7 +726,7 @@
     "launch_status": "Necessary source/target preparation and genuine qualification, then safe reboot and ONE short training are user-authorized. Exact execution gates remain closed until the new function is qualified and admitted; TEST/trading remain closed."
   },
   "current_short_training_preparation": {
-    "status": "DYNAMIC_STATE_FIRST_SCORING_ADMITTED_ZERO_UPDATES",
+    "status": "DYNAMIC_STATE_ONEPASS_REVIEWED_NO_EDGE_NO_RELAUNCH",
     "name": "full_xau_gc_mtf_entry_research_v1",
     "pure_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
@@ -1388,7 +1388,7 @@
       "later_scoring_complete": false
     },
     "scoring_recovery": {
-      "status": "ADMITTED_EXACT_FIRST_SCORING_ZERO_UPDATES",
+      "status": "CONSUMED_SCORES_WRITTEN_TERMINAL_VALIDATOR_FAILED",
       "recipe": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RECIPE.json",
         "sha256": "b2eb3f21fd99218286a3381e84127a905a34522d47e144bb7d71629d3250dede"
@@ -1403,7 +1403,167 @@
         "sha256": "b48c7d6cc9f6e3c2f5875461dc119849f4c46ec76d041490ed86e14f987bb600"
       },
       "max_new_optimizer_updates": 0,
-      "max_forward_calls": 4057
+      "max_forward_calls": 4057,
+      "terminal_integrity": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/SCORING_TERMINAL_INTEGRITY.json",
+        "sha256": "a19c91b4278b1e6eec0e6038a2074d52db7fca961fbe5a4c42fb9386de0b3b3e"
+      },
+      "new_backward_calls": 0,
+      "new_optimizer_updates": 0,
+      "scores_written": true,
+      "ordinary_receipt_present": false,
+      "postterminal_readguard": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/POSTTERMINAL_READ_GUARD_CHECK_001/VALIDATION_RECEIPT.json",
+        "sha256": "150566c6ada6b731ad993c589e0d0ee030ce79b80d19103c24b2b5b7d51567d6"
+      }
+    },
+    "result_review": {
+      "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
+      "report": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
+        "sha256": "feb8d5c14e4f1ca98f3fd53b0ec5c2893355559096172b2344c322d41346d8e8"
+      },
+      "evidence": {
+        "training_integrity": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/TRAINING_INTEGRITY.json",
+          "sha256": "fab5f0d40e01d27e0d91ca0dd43a004e40f40d2cf4c9a711e56cc5be30843a34"
+        },
+        "scoring_integrity": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/SCORING_TERMINAL_INTEGRITY.json",
+          "sha256": "a19c91b4278b1e6eec0e6038a2074d52db7fca961fbe5a4c42fb9386de0b3b3e"
+        },
+        "array_verification": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_ARRAY_VERIFICATION_001/RESULT.json",
+          "sha256": "52a5d2dd5f8e5137922e2e8922ccfbf4a6252177306d4e1f710fbc6d42d9157b"
+        },
+        "paired_256": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PAIRED_INITIAL_FINAL_256_001/RESULT.json",
+          "sha256": "1a67033eca5e87f696c7e9114d712877b321132623f9b4c83bd144a82d1ef414"
+        },
+        "score_replay": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_SCORE_REPLAY_001/RESULT.json",
+          "sha256": "de0cd8b95d797740682af5dd6ccaf09dd01e09cdb3460c8378a485cf37da382f"
+        },
+        "observed_event_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_STATE_EVENTS_001/RESULT.json",
+          "sha256": "5c7565867480e38d36af98863592900da24bb11e88ffb9a76d52fce602547d45"
+        },
+        "observed_event_crosscheck": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_STATE_EVENTS_001/CROSSCHECK.json",
+          "sha256": "31062c5824a000d657fa49396c35e778bf6f01653f687ac3d21217a2fb423490"
+        },
+        "postterminal_readguard": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/POSTTERMINAL_READ_GUARD_CHECK_001/VALIDATION_RECEIPT.json",
+          "sha256": "150566c6ada6b731ad993c589e0d0ee030ce79b80d19103c24b2b5b7d51567d6"
+        },
+        "train_report": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json",
+          "sha256": "fd229e358db6a05561bfecfdd3e5c13b83b676b55c9bacd1ec8c17e145ab9d0c"
+        },
+        "later_report": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+          "sha256": "74b698a8067c220e1abed70684a19f7f77e54d71050e511d944bf569cbba82a7"
+        },
+        "target_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/LABEL_AUDIT_REVIEW.json",
+          "sha256": "f31112cee8e672a6d6b52dd2a83da4e71f50c2abf5c460e1dfeab171a507563f"
+        },
+        "calendar_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/VERIFIED_RESULT.json",
+          "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
+        },
+        "additive_report_tests": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_STATE_EVENTS_001/ADDITIVE_REPORT_TEST_RECEIPT_001.json",
+          "sha256": "8c1625a8bb2005c0444c53a6c08d4b184812675b74cc8415b632471e0edd07ab"
+        },
+        "saved_event_implementation_check": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_EVENT_IMPLEMENTATION_CHECK_001/RESULT.json",
+          "sha256": "a5e841288923c8f52403a55a809ff387d7c008dd8915a8d7045a5a0c06fe8270"
+        }
+      },
+      "later_fixed_horizons": [
+        {
+          "timeframe": "M5",
+          "lead_minutes": 5,
+          "later_observed": 8980,
+          "train_model_pct": 43.834315029450885,
+          "later_model_pct": 42.371937639198215,
+          "later_prior_pct": 44.98886414253897,
+          "later_markov_pct": 44.10913140311804,
+          "later_plus_one_model_pct": 51.062347614071754,
+          "later_plus_one_markov_pct": 70.55613607337746,
+          "later_flat_recall": 0.0,
+          "observed_forecast_change_opportunities": 2030830,
+          "strict_exact_minute_pair_hits": 914
+        },
+        {
+          "timeframe": "M15",
+          "lead_minutes": 15,
+          "later_observed": 14659,
+          "train_model_pct": 45.66067240031274,
+          "later_model_pct": 44.06166859949519,
+          "later_prior_pct": 46.906337403642816,
+          "later_markov_pct": 43.659185483320826,
+          "later_plus_one_model_pct": 60.058847680306556,
+          "later_plus_one_markov_pct": 87.51197481866703,
+          "later_flat_recall": 0.0,
+          "observed_forecast_change_opportunities": 1777499,
+          "strict_exact_minute_pair_hits": 971
+        },
+        {
+          "timeframe": "H1",
+          "lead_minutes": 60,
+          "later_observed": 16251,
+          "train_model_pct": 48.38383838383838,
+          "later_model_pct": 48.05858101039936,
+          "later_prior_pct": 50.96301766045166,
+          "later_markov_pct": 50.96301766045166,
+          "later_plus_one_model_pct": 66.36083816739671,
+          "later_plus_one_markov_pct": 96.19983426068427,
+          "later_flat_recall": 0.0,
+          "observed_forecast_change_opportunities": 699632,
+          "strict_exact_minute_pair_hits": 500
+        },
+        {
+          "timeframe": "H4",
+          "lead_minutes": 240,
+          "later_observed": 15917,
+          "train_model_pct": 52.9664161796085,
+          "later_model_pct": 56.51818810077276,
+          "later_prior_pct": 58.10140101777973,
+          "later_markov_pct": 58.10140101777973,
+          "later_plus_one_model_pct": 67.84297713485768,
+          "later_plus_one_markov_pct": 99.00256649556697,
+          "later_flat_recall": 0.0,
+          "observed_forecast_change_opportunities": 193979,
+          "strict_exact_minute_pair_hits": 155
+        },
+        {
+          "timeframe": "D1",
+          "lead_minutes": 1440,
+          "later_observed": 13256,
+          "train_model_pct": 58.97891162819674,
+          "later_model_pct": 62.205793602896804,
+          "later_prior_pct": 67.42607121303561,
+          "later_markov_pct": 67.42607121303561,
+          "later_plus_one_model_pct": 66.75693177135456,
+          "later_plus_one_markov_pct": 99.88814976158238,
+          "later_flat_recall": 0.0,
+          "observed_forecast_change_opportunities": 27191,
+          "strict_exact_minute_pair_hits": 19
+        }
+      ],
+      "test_data_used": false,
+      "economic_edge_qualified": false,
+      "additional_training_authorized": false,
+      "event_evaluation_update": {
+        "status": "ADDITIVE_METHOD_TESTED_NO_NEW_MODEL_CALLS",
+        "synthetic_tests": 15,
+        "saved_development_parents": 256,
+        "original_report_fields_unchanged": true,
+        "unknown_gaps_bridged": false,
+        "new_model_calls": 0
+      }
     }
   }
 }

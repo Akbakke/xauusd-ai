@@ -241,6 +241,9 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
         _require(launch['run_scope'] == DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE
             and launch['numerical_recipe']['dynamic_state_supervision'] is True
             and launch['full_feature_profile'] is True, 'STATE_READ_SCOPE')
+        worker = context['manifest']['physical_provider_worker']
+        _require(_hash_file(worker['path']) == worker, 'STATE_PHYSICAL_WORKER_BINDING')
+        extra_read_paths += (worker['path'],)
         expected = context['state_target_manifest']['arrays']
         refs = context['state_array_refs']
         _require(set(refs) == set(expected) and all(refs[k] == {f:expected[k][f] for f in ('path','sha256')}

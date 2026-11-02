@@ -123,6 +123,21 @@ class StateScoreAccumulator:
                        ('complete_windows', 'true_first_change', 'predicted_first_change', 'paired_first_changes')}
         self.timing_error_sum = np.zeros(len(TIMEFRAMES), np.float64)
         self.timing_absolute_error_sum = np.zeros(len(TIMEFRAMES), np.float64)
+        self.modal_events = {name: np.zeros((len(TIMEFRAMES), len(STATE_NAMES)), np.int64) for name in
+                             ('true_events_by_new_state', 'modal_forecasts_by_new_state',
+                              'strict_exact_time_and_pair_hits')}
+        self.modal_pair_support = {name: np.zeros(len(TIMEFRAMES), np.int64) for name in
+                                   ('observed_state_endpoint_pairs', 'observable_adjacent_pairs',
+                                    'tied_modal_pairs_with_observed_states')}
+        self.prefix_timing = {name: np.zeros(len(TIMEFRAMES), np.int64) for name in
+                              ('windows_with_observed_current_state', 'windows_with_initial_prefix',
+                               'windows_with_true_first_change', 'windows_with_predicted_first_change',
+                               'windows_with_both_first_changes', 'first_change_same_new_state',
+                               'first_change_same_new_state_and_minute',
+                               'windows_prefix_stopped_by_unknown_state', 'windows_prefix_stopped_by_modal_tie')}
+        self.prefix_length_histogram = np.zeros((len(TIMEFRAMES), len(self.leads) + 1), np.int64)
+        self.prefix_signed_error_sum = np.zeros(len(TIMEFRAMES), np.int64)
+        self.prefix_absolute_error_sum = np.zeros(len(TIMEFRAMES), np.int64)
 
     def update(self, probabilities, *, state, eligible, current_state, current_observed,
                sequence_nll, transition_probabilities):
@@ -236,6 +251,56 @@ class StateScoreAccumulator:
             self.timing[name] += mask.sum(axis=0)
         self.timing_error_sum += np.where(paired, delta, 0).sum(axis=0)
         self.timing_absolute_error_sum += np.where(paired, np.abs(delta), 0).sum(axis=0)
+        self._update_observable_modal_events(state, eligible, pred, unique, c, co)
+
+    def _update_observable_modal_events(self, state, observed, pred, unique, current, current_observed):
+        # Same observable endpoint/prefix rules as SAVED_STATE_EVENTS_001.
+        # These modal-marginal events do not replace joint-pair argmax metrics.
+        prev_true = np.concatenate((current[..., None], state[:, :, :-1]), axis=2)
+        prev_pred = np.concatenate((current[..., None], pred[:, :, :-1]), axis=2)
+        previous_observed = np.concatenate((current_observed[..., None], observed[:, :, :-1]), axis=2)
+        previous_unique = np.concatenate((np.ones_like(current_observed[..., None]), unique[:, :, :-1]), axis=2)
+        state_pairs = observed & previous_observed
+        eligible = state_pairs & unique & previous_unique
+        actual = eligible & (state != prev_true)
+        forecast = eligible & (pred != prev_pred)
+        hit = actual & forecast & (pred == state) & (prev_pred == prev_true)
+        self.modal_pair_support['observed_state_endpoint_pairs'] += state_pairs.sum(axis=(0, 2))
+        self.modal_pair_support['observable_adjacent_pairs'] += eligible.sum(axis=(0, 2))
+        self.modal_pair_support['tied_modal_pairs_with_observed_states'] += (state_pairs & ~eligible).sum(axis=(0, 2))
+        for k in range(len(STATE_NAMES)):
+            self.modal_events['true_events_by_new_state'][:, k] += (actual & (state == k)).sum(axis=(0, 2))
+            self.modal_events['modal_forecasts_by_new_state'][:, k] += (forecast & (pred == k)).sum(axis=(0, 2))
+            self.modal_events['strict_exact_time_and_pair_hits'][:, k] += (hit & (state == k)).sum(axis=(0, 2))
+
+        prefix = np.logical_and.accumulate(observed & unique, axis=2) & current_observed[..., None]
+        true_change, pred_change = prefix & (state != prev_true), prefix & (pred != prev_pred)
+        lengths = prefix.sum(axis=2)
+        true_any, pred_any = true_change.any(axis=2), pred_change.any(axis=2)
+        true_at, pred_at = true_change.argmax(axis=2), pred_change.argmax(axis=2)
+        bi, fi = np.arange(state.shape[0])[:, None], np.arange(state.shape[1])[None, :]
+        both = true_any & pred_any
+        same = both & (state[bi, fi, true_at] == pred[bi, fi, pred_at])
+        delta = self.leads[pred_at] - self.leads[true_at]
+        stopped = current_observed & (lengths < len(self.leads))
+        stop_at = np.minimum(lengths, len(self.leads) - 1)
+        stop_observed, stop_unique = observed[bi, fi, stop_at], unique[bi, fi, stop_at]
+        masks = {
+            'windows_with_observed_current_state': current_observed,
+            'windows_with_initial_prefix': lengths > 0,
+            'windows_with_true_first_change': true_any,
+            'windows_with_predicted_first_change': pred_any,
+            'windows_with_both_first_changes': both,
+            'first_change_same_new_state': same,
+            'first_change_same_new_state_and_minute': same & (delta == 0),
+            'windows_prefix_stopped_by_unknown_state': stopped & ~stop_observed,
+            'windows_prefix_stopped_by_modal_tie': stopped & stop_observed & ~stop_unique}
+        for name, mask in masks.items():
+            self.prefix_timing[name] += mask.sum(axis=0)
+        self.prefix_signed_error_sum += np.where(same, delta, 0).sum(axis=0)
+        self.prefix_absolute_error_sum += np.where(same, np.abs(delta), 0).sum(axis=0)
+        for tf in range(len(TIMEFRAMES)):
+            self.prefix_length_histogram[tf] += np.bincount(lengths[:, tf], minlength=len(self.leads) + 1)
 
     def finalize(self):
         counts = self.cells['observed']
@@ -269,10 +334,52 @@ class StateScoreAccumulator:
         timing = {name: value.tolist() for name, value in self.timing.items()}
         timing['signed_error_minutes'] = _ratio(self.timing_error_sum, self.timing['paired_first_changes'])
         timing['absolute_error_minutes'] = _ratio(self.timing_absolute_error_sum, self.timing['paired_first_changes'])
+        events = {name: values.tolist() for name, values in self.modal_events.items()}
+        events.update({name: values.tolist() for name, values in self.modal_pair_support.items()})
+        events['candidate_adjacent_pairs'] = [self.parents * len(self.leads)] * len(TIMEFRAMES)
+        events['unobservable_state_endpoint_pairs'] = (
+            self.parents * len(self.leads) - self.modal_pair_support['observed_state_endpoint_pairs']).tolist()
+        hits = self.modal_events['strict_exact_time_and_pair_hits']
+        events['missed_true_events_by_new_state'] = (self.modal_events['true_events_by_new_state'] - hits).tolist()
+        events['unmatched_modal_forecasts_by_new_state'] = (self.modal_events['modal_forecasts_by_new_state'] - hits).tolist()
+        events['definition'] = ('Adjacent observed endpoints, including causal current-to-lead1; both modal endpoints must be unique. '
+                                'Strict hits match original state, new state and exact minute. Counts are per TF and new DOWN/FLAT/UP state.')
+        events['limits'] = [
+            'Unknown state endpoints and tied modal endpoints are excluded; no interpolation through gaps.',
+            'True-event counts use the same observed-and-unique comparison opportunities as forecasts.',
+            'Modal marginal changes differ from joint-pair argmax decisions in adjacent_pair_forecast.',
+            'Overlapping parent/lead opportunities are dependent, not distinct market events or economic edge.']
+        prefix_timing = {name: value.tolist() for name, value in self.prefix_timing.items()}
+        pt = self.prefix_timing
+        prefix_timing.update({
+            'windows_without_observed_current_state': (self.parents - pt['windows_with_observed_current_state']).tolist(),
+            'windows_without_initial_prefix': (self.parents - pt['windows_with_initial_prefix']).tolist(),
+            'windows_with_full_initial_prefix': self.prefix_length_histogram[:, -1].tolist(),
+            'first_changes_different_new_state': (pt['windows_with_both_first_changes'] - pt['first_change_same_new_state']).tolist(),
+            'true_first_change_without_predicted_change': (pt['windows_with_true_first_change'] - pt['windows_with_both_first_changes']).tolist(),
+            'predicted_first_change_without_true_change': (pt['windows_with_predicted_first_change'] - pt['windows_with_both_first_changes']).tolist(),
+            'true_first_changes_without_same_new_state_forecast': (pt['windows_with_true_first_change'] - pt['first_change_same_new_state']).tolist(),
+            'predicted_first_changes_without_same_new_state_truth': (pt['windows_with_predicted_first_change'] - pt['first_change_same_new_state']).tolist(),
+            'windows_with_neither_first_change': (pt['windows_with_initial_prefix'] - pt['windows_with_true_first_change']
+                - pt['windows_with_predicted_first_change'] + pt['windows_with_both_first_changes']).tolist(),
+            'absolute_error_sum_minutes': self.prefix_absolute_error_sum.tolist(),
+            'signed_error_sum_minutes': self.prefix_signed_error_sum.tolist(),
+            'absolute_error_mean_minutes': _ratio(self.prefix_absolute_error_sum, pt['first_change_same_new_state']),
+            'signed_error_mean_minutes': _ratio(self.prefix_signed_error_sum, pt['first_change_same_new_state']),
+            'initial_prefix_median_minutes': [None if not self.parents else int(np.searchsorted(np.cumsum(row), (self.parents + 1) // 2))
+                                              for row in self.prefix_length_histogram],
+            'definition': 'First change inside the contiguous prefix from a known current state; stop at the first unknown state or modal tie.',
+            'limits': [
+                'Timing errors condition on both first changes having the same new state; positive signed error means forecast later.',
+                'No event inside a censored prefix does not establish absence later in the forecast window.',
+                'Prefix median is the lower empirical median over all parent windows, including zero-length prefixes.',
+                'Overlapping parent/lead opportunities are dependent, not distinct events, full trajectory matching or economic edge.']})
         return {'schema_version': SCHEMA_VERSION, 'parents': self.parents, 'timeframes': list(TIMEFRAMES),
                 'class_names': list(STATE_NAMES), 'lead_minutes': self.leads.tolist(),
                 'per_timeframe': per_tf, 'per_lead': per_lead, 'adjacent_pair_forecast': pairs,
                 'first_modal_change_timing_complete_windows_only': timing,
+                'observable_modal_state_events': events,
+                'first_modal_change_within_initial_observed_prefix': prefix_timing,
                 'limits': ['Probabilities are frozen at issue time; pair forecasts use model marginals, never future target conditioning.',
                            'Markov reference uses TRAIN-only adjacent transition frequencies and causal current state, or TRAIN class prior when current state is unknown.',
                            'Unknown/mature masks come from the target/loss owners; unknown is not FLAT.',

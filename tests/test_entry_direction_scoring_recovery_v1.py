@@ -12,7 +12,7 @@ import pytest
 from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as owner
 from gx1.contracts import local_random_access_campaign_v2 as campaign
 from tests.test_entry_native_direction_prefix_fit_campaign_v1 import (
-    fixture as base_fixture, write, reseal, sealed, cursor,
+    fixture as base_fixture, fixture, dynamic_cursor_fixture, write, reseal, sealed, cursor,
 )
 
 
@@ -407,3 +407,67 @@ def test_dynamic_recovery_rejects_expanded_or_foreign_origin_before_reads(tmp_pa
     else:origin['training_receipt']=dummy
     with pytest.raises(RuntimeError,match='STATE_RECOVERY_ORIGIN_ROLE'):
         owner.require_scoring_recovery_origin(recipe,source_repo=tmp_path,source_commit='b'*40)
+
+
+@pytest.mark.parametrize('fault',[None,'wrong_guard_hash','wrong_cursor_hash','unbound_cursor_worker'])
+def test_dynamic_postguard_cursor_checks_exact_worker_binding(dynamic_cursor_fixture,monkeypatch,fault):
+    import os
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    f=dynamic_cursor_fixture
+    worker_path=Path('/home/andre2/GX1_RUNS/synthetic-dynamic-postguard/bound_worker.py')
+    foreign_path=worker_path.with_name('unbound_worker.py')
+    backing=f['runtime']/'worker_bytes.py';backing.write_bytes(b'# synthetic immutable physical provider\n')
+    ref={'path':str(worker_path),'sha256':hashlib.sha256(backing.read_bytes()).hexdigest()}
+    manifest=json.loads(Path(f['dynamic_recipe']['input_manifest']['path']).read_text())
+    manifest['physical_provider_worker']=ref;reseal(manifest,'contract_sha256')
+    cursor_manifest=copy.deepcopy(manifest)
+    if fault=='wrong_cursor_hash':cursor_manifest['physical_provider_worker']['sha256']='0'*64
+    if fault=='unbound_cursor_worker':cursor_manifest['physical_provider_worker']['path']=str(foreign_path)
+    reseal(cursor_manifest,'contract_sha256')
+    recipe=copy.deepcopy(f['dynamic_recipe'])
+    recipe['input_manifest']=write(f['runtime']/'POSTGUARD_INPUT.json',cursor_manifest)
+    reseal(recipe,'recipe_sha256');recipe_ref=write(f['runtime']/'POSTGUARD_RECIPE.json',recipe)
+    saved=copy.deepcopy(f['dynamic_cursor']);saved['recipe']=recipe_ref;reseal(saved,'cursor_sha256')
+    hooks=[];opened=[];real_open=Path.open;real_stat=Path.stat;real_lstat=Path.lstat
+    virtual={worker_path,foreign_path}
+    def stat(path,*args,**kwargs):
+        return real_stat(backing if path in virtual else path,*args,**kwargs)
+    def lstat(path,*args,**kwargs):
+        return real_lstat(backing if path in virtual else path,*args,**kwargs)
+    def guarded_open(path,mode='r',*args,**kwargs):
+        # Real hashing reads the tiny backing bytes, while the installed audit
+        # callback sees the exact protected GX1_RUNS path used by the binding.
+        flags=os.O_WRONLY|os.O_TRUNC if 'w' in mode else os.O_RDONLY
+        for hook in hooks:hook('open',(str(path),mode,flags))
+        if hooks and path in virtual:opened.append(str(path))
+        return real_open(backing if path in virtual else path,mode,*args,**kwargs)
+    monkeypatch.setattr(Path,'stat',stat);monkeypatch.setattr(Path,'lstat',lstat)
+    monkeypatch.setattr(Path,'open',guarded_open);monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
+    context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache',
+            'gc_surfaces':{'path':'/synthetic/gc/surface.npy'}},
+        'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/never_open'}},
+        'manifest':manifest,'dynamic_state_launch':{
+            'run_scope':owner.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE,
+            'numerical_recipe':{'dynamic_state_supervision':True},'full_feature_profile':True,
+            'target_manifest':{'path':'/synthetic/series/SERIES.json','sha256':'a'*64}},
+        'state_target_manifest':{'arrays':{}},'state_array_refs':{}}
+    if fault=='wrong_guard_hash':
+        manifest['physical_provider_worker']={**ref,'sha256':'0'*64}
+        with pytest.raises(RuntimeError,match='STATE_PHYSICAL_WORKER_BINDING'):
+            common._install_read_guard(context,f['runtime']/'output',f['runtime'])
+        assert hooks==[]
+        return
+    common._install_read_guard(context,f['runtime']/'output',f['runtime'])
+    assert len(hooks)==1
+    def validate():
+        return owner.require_prefix_fit_cursor(saved,expected_recipe=recipe_ref,expected_fold=f['fold'],verify_files=True)
+    if fault=='wrong_cursor_hash':
+        with pytest.raises(RuntimeError,match='physical_provider_worker file SHA-256 mismatch'):validate()
+    elif fault=='unbound_cursor_worker':
+        with pytest.raises(RuntimeError,match='UNBOUND_OPEN'):validate()
+    else:
+        checked=validate()
+        assert checked['optimizer_updates']==2976 and checked['parent_cursor']==47602
+        assert str(worker_path) in opened
+        with pytest.raises(RuntimeError,match='ORIGINAL_WRITE'):worker_path.open('wb')
+        with pytest.raises(RuntimeError,match='UNBOUND_OPEN'):foreign_path.open('rb')
