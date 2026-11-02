@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_COVERAGE_GC_SOURCE_AND_D1_GAP_REVIEWED_NO_NATIVE_QUALIFICATION",
+  "status": "DYNAMIC_STATE_GC_CALENDAR_PARTIAL_NO_NATIVE_QUALIFICATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Assess whether qualified GC exchange-hours evidence and existing source metadata can distinguish scheduled closures from D1 data gaps without guessing; do not relax source masks without evidence. Retain all qualification gates and no automatic model, training, scoring, restart, TEST, Exit or trading.",
+  "next_action": "Locate or retrieve authoritative dated GC holiday exceptions and reconcile specific D1 gaps before any proposed mask change; preserve UNKNOWN when exact evidence is missing. No automatic model, training, scoring, restart, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Assess whether qualified GC exchange-hours evidence and existing source metadata can distinguish scheduled closures from D1 data gaps without guessing; do not relax source masks without evidence. Retain all qualification gates and no automatic model, training, scoring, restart, TEST, Exit or trading.",
+    "next_action": "Locate or retrieve authoritative dated GC holiday exceptions and reconcile specific D1 gaps before any proposed mask change; preserve UNKNOWN when exact evidence is missing. No automatic model, training, scoring, restart, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -52588,6 +52588,12 @@
     "d1_proxy_support_result": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/D1_PROXY_SUPPORT_REUSE_001/RESULT.json",
       "sha256": "678942de8a1f6ecfbcdd0d9983b5242799e41035ec0f0eab9db1f433fbfd9892"
-    }
+    },
+    "public_cme_historical_hours_source_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CME_HISTORICAL_HOURS_SOURCES_001/SOURCE_REVIEW.json",
+      "sha256": "6040f71801368d2d08e4fbf3951ea258a8d08b9586d90fa390f8f2754cd82821"
+    },
+    "historical_cme_pdf_downloaded": false,
+    "cme_individual_gap_classification_performed": false
   }
 }
