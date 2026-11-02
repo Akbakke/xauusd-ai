@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_FIRST_LOSS_HORIZON_EXPOSURE_REVIEWED_NO_NATIVE_QUALIFICATION",
+  "status": "DYNAMIC_STATE_M1_RESOLUTION_LIMIT_MEASURED_NO_FINE_SOURCE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Use TRAIN-only evidence to assess an explicit horizon, loss weight and resource reserve for any future plan; preserve unknown GC gaps and independently qualify changed native input and objectives. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+  "next_action": "Locate a provenance-qualified finer XAU source without broker access, and prepare source-clock and exact M1 aggregation checks before any target change; meanwhile assess TRAIN-only loss and resource choices. Retain UNKNOWN for unresolved paths and no automatic model, training, scoring, restart, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Assess TRAIN-only first-state loss normalization, long-horizon target support, and unresolved source masks; no horizon or loss weight selected and no automatic model, training, scoring, TEST, Exit or trading.",
+    "current_activity": "Assess same-source intraminute observability and existing TRAIN loss design; no broker, model, training, scoring, TEST, Exit or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Use TRAIN-only evidence to assess an explicit horizon, loss weight and resource reserve for any future plan; preserve unknown GC gaps and independently qualify changed native input and objectives. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+    "next_action": "Locate a provenance-qualified finer XAU source without broker access, and prepare source-clock and exact M1 aggregation checks before any target change; meanwhile assess TRAIN-only loss and resource choices. Retain UNKNOWN for unresolved paths and no automatic model, training, scoring, restart, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -52685,6 +52685,38 @@
     "scenario_horizon_selected": false,
     "loss_weight_selected": null,
     "plan_admitted": false,
+    "model_optimizer_or_test_used": false,
+    "training_enabled": false
+  },
+  "dynamic_state_first_target_resolution_diagnostic_20261102_001": {
+    "status": "TRAIN_FIRST_M1_AMBIGUITY_MEASURED_SOURCE_NOT_REPLACED",
+    "first_state_reason_diagnostic": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_STATE_OBSERVABILITY_DIAGNOSTIC_001/RESULT.json",
+      "sha256": "5bb3c391b3e366d5939856da6c995e2408fbb53051a7f90d60541459f37afc58"
+    },
+    "first_state_m1_ambiguity": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_STATE_M1_AMBIGUITY_TRAIN_001/RESULT.json",
+      "sha256": "7bcf2abd40fdce157f43271870c719286694c07f09c360b9f4132e54d18662af"
+    },
+    "synthetic_order_witness": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_STATE_M1_AMBIGUITY_TRAIN_001/SYNTHETIC_ORDER_WITNESS.json",
+      "sha256": "d820df94af06d72272252ff3111f51627fc0716ba030d9c270e1dfd3636c910f"
+    },
+    "ambiguity_metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_STATE_M1_AMBIGUITY_TRAIN_001/INDEPENDENT_REVIEW.json",
+      "sha256": "acefe74f32428863fabf35761c4a7d6ebe6e4cfef823fe1669569caffb8dc342"
+    },
+    "intraminute_source_scope": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/XAU_INTRAMINUTE_SOURCE_SCOPE_001/RESULT.json",
+      "sha256": "ae80bc3b4f13ea217ab5af348f3d0e60a63cb208bbb80eab1708182810354ec1"
+    },
+    "train_parents": 47602,
+    "m5_first_target_unknown": 22744,
+    "m5_unknown_current_wide_interior": 13767,
+    "m5_known_endpoint_unknown_path": 8262,
+    "finer_same_source_history_verified": false,
+    "broker_api_called": false,
+    "target_or_masks_changed": false,
     "model_optimizer_or_test_used": false,
     "training_enabled": false
   }
