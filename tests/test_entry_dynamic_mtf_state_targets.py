@@ -1,5 +1,6 @@
 """Pure candidate-target algebra/clock/artifact checks; no native model."""
 from itertools import product
+from types import MappingProxyType
 
 import numpy as np
 import pandas as pd
@@ -196,6 +197,33 @@ def test_query_exact_parent_clock_maturity_and_long_leads():
     with pytest.raises(RuntimeError, match="QUERY_PARENT_IDENTITY"):
         target.query_dynamic_mtf_states(series, parent_rows=parents, issue_ns=issues + target.MINUTE_NS,
             cutoff_ns=int(START + 90 * target.MINUTE_NS), lead_minutes=(1,))
+
+
+def test_immature_queries_hide_post_cutoff_source_reason_changes():
+    parents = np.array([0], np.int64)
+    issues = np.array([START + 5 * target.MINUTE_NS], np.int64)
+    series = target.bind_dynamic_mtf_state_parents(build(frame_from_closes([100.0] * 20)),
+        parent_rows=parents, issue_ns=issues)
+    cutoff = int(START + 10 * target.MINUTE_NS)
+    kwargs = dict(parent_rows=parents, issue_ns=issues, cutoff_ns=cutoff,
+                  lead_minutes=(1, 4, 5, 6, 15, 30))
+    before = target.query_dynamic_mtf_states(series, **kwargs)
+    future = series.arrays["validity_ns"] >= cutoff
+    for reason in (0, int(target.ATR_UNAVAILABLE | target.UNKNOWN_SOURCE_GAP
+                          | target.INTRAMINUTE_ORDER_UNKNOWN | target.DIRECTION_UNRESOLVED)):
+        changed_reason = series.arrays["reason"].copy()
+        changed_reason[future] = reason
+        changed_reason.setflags(write=False)
+        changed_arrays = dict(series.arrays, reason=changed_reason)
+        changed = target.DynamicMtfStateSeries(MappingProxyType(changed_arrays), series.metadata)
+        after = target.query_dynamic_mtf_states(changed, **kwargs)
+        for name in before:
+            assert np.array_equal(before[name], after[name]), name
+        # Includes cutoff equality, present future rows and absent future rows.
+        assert np.all(after["reason"][:, :, 2:] == target.IMMATURE)
+        assert np.all(after["state"][:, :, 2:] == target.UNKNOWN)
+        assert not after["observed"][:, :, 2:].any()
+        assert not after["path_observed"][:, :, 2:].any()
 
 
 def test_missing_source_validity_stays_unknown():

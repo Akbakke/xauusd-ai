@@ -226,7 +226,7 @@ def require_dynamic_state_input_manifest(binding, *, fold, source_owners, verify
     manifest = _identity(value, fields, 'gx1_dynamic_mtf_state_input_manifest_v1', 'contract_sha256')
     _require(_fold(manifest['fold']) == _fold(fold) and fold['fold_id'] == 1, 'DYNAMIC_INPUT_FOLD')
     for key in fields - {'schema_version', 'fold', 'view_source_bindings'}:
-        campaign.require_binding(manifest[key], label='dynamic input ' + key, verify_file=verify_files)
+        campaign.require_binding(manifest[key], label='dynamic input ' + key, verify_file=verify_files and key != 'axes')
     views = manifest['view_source_bindings']
     _require(isinstance(views, Mapping) and set(views) == VIEW_SOURCE_KEYS, 'DYNAMIC_VIEW_SOURCE_KEYS')
     for key, item in views.items():
@@ -373,6 +373,8 @@ def require_dynamic_state_qualification(recipe, *, source_repo, source_commit):
     result = campaign.read_bound_json(Path(refs['result']['path']), refs['result']['sha256'])
     receipt = campaign.read_bound_json(Path(refs['receipt']['path']), refs['receipt']['sha256'])
     initial = campaign.read_bound_json(Path(refs['initial_report']['path']), refs['initial_report']['sha256'])
+    power = campaign.read_bound_json(Path(refs['power_after']['path']), refs['power_after']['sha256'])
+    audit = campaign.read_bound_json(Path(recipe['label_audit']['path']), recipe['label_audit']['sha256'])
     _require(prior['run_scope'] == private.DYNAMIC_STATE_PRIVATE_SCOPE
         and all(prior[key] == recipe[key] for key in ('input_manifest', 'target_manifest', 'target_sources',
             'label_audit', 'fold', 'source_owners', 'full_feature_profile'))
@@ -383,14 +385,45 @@ def require_dynamic_state_qualification(recipe, *, source_repo, source_commit):
         and result.get('decision') == 'PASS_DYNAMIC_STATE_NATIVE_MECHANICS'
         and result.get('recipe') == plan['recipe'] and result.get('initial_report') == refs['initial_report']
         and result.get('initial_checked') is result.get('bit_exact_resume') is result.get('source_unchanged') is True
-        and result.get('test_data_used') is result.get('private_weights_for_main_fit') is False
+        and result.get('all_declared_gradient_groups_contacted') is True
+        and result.get('test_data_used') is result.get('private_weights_for_main_fit') is result.get('predictive_value_qualified') is False
+        and result.get('target_manifest') == recipe['target_manifest'] and result.get('target_sources') == recipe['target_sources']
+        and result.get('label_audit') == recipe['label_audit']
+        and result.get('planned_unique_parents') == 32 and result.get('planned_logical_optimizer_steps') == 2
+        and result.get('physical_optimizer_updates') == 4 and result.get('parent_cursor') == 32
+        and result.get('forbidden_open_paths') == [] and result.get('error') is None
+        and result.get('own_prefix_prior') == initial.get('own_prefix_prior') == audit['prior']
         and receipt.get('outcome') == 'COMPLETE' and receipt.get('plan_sha256') == plan['plan_sha256']
+        and receipt.get('guard_decision') == 'PASS'
+        and receipt.get('trainer_guard_exit_code') == receipt.get('progress_observer_exit_code') == 0
+        and receipt.get('test_data_used') is False
         and initial.get('schema_version') == 'gx1_dynamic_mtf_state_measurement_v1'
         and initial.get('role') == 'INITIAL_TRAIN' and initial.get('fold') == recipe['fold']
         and initial.get('target_manifest') == recipe['target_manifest']
         and initial.get('research_objective_sha256') == recipe['numerical_recipe']['research_objective_sha256']
         and initial.get('initial_grad_nograd_parity') is True and initial.get('test_data_used') is False,
         'STATE_NATIVE_ACTUAL_EVIDENCE')
+    private.require_dynamic_state_private_counts(result.get('counts'))
+    from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_dynamic_state_gradient_contact
+    require_dynamic_state_gradient_contact(result.get('steps'))
+    support = result.get('batch_input_support')
+    _require(isinstance(support,list) and len(support) == 2
+        and [row for item in support for row in item.get('parent_rows',[])] == prior['qualification_parent_rows'],
+        'STATE_QUALIFIED_PARENT_IDENTITY')
+    gpu = power.get('gpu')
+    _require(isinstance(gpu,list) and len(gpu) == 1 and isinstance(gpu[0],str), 'STATE_PRIVATE_POWER')
+    fields = [value.strip() for value in gpu[0].split(',')]
+    try:
+        actual_power = float(fields[1])
+    except (IndexError,TypeError,ValueError):
+        actual_power = None
+    keepers = power.get('keeper')
+    _require(power.get('task_state') == 'Disabled' and power.get('configured_power_limit_w') == actual_power == 250
+        and len(fields) == 6 and fields[0] == plan.get('gpu_uuid')
+        and isinstance(keepers,list) and len(keepers) == 2
+        and all(isinstance(item,Mapping) and type(item.get('State')) is int and item['State'] == 4 for item in keepers)
+        and {item.get('TaskName') for item in keepers} == {'GX1GpuPowerLimit','GX1HostTelemetryBridge'}
+        and power.get('test_data_used') is False, 'STATE_PRIVATE_POWER')
     return review
 
 def _require_decimal_source_equivalence(source_repo, qualified_commit, qualified_owners, owners):

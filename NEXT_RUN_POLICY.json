@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-01T22:28:15.690017+00:00",
-  "status": "DYNAMIC_STATE_CANDIDATE_SOURCE_CHECKED_TRAIN_LABEL_AUDIT_ADMITTED",
+  "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT002_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-  "next_action": "Run the single source-bound CPU target build/TRAIN label audit, independently review state/unknown/class/threshold evidence, then finish and qualify the closed native integration before safe reboot and one short fit. No model run admitted by the target audit.",
+  "next_action": "Freeze clean source and run exact target-only audit002 once. Verify reused thresholds, published-gap binding and genuine TRAIN state support before native qualification, safe restart and the single short fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Independent input preparation completed and verified; dynamic-state target definition awaits the requested minimum-movement/flatness criterion. No genuine model qualification, PC restart or training launched.",
+    "current_activity": "Historical calendar metadata verified. One corrected CPU target audit002 admitted, reusing original ATR and axes; model training/native launch remain closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Minimum relevant local movement versus FLAT remains unspecified. A non-arbitrary numerical/estimation criterion and local-state definition are needed before implementing matched labels, output/loss, metrics and genuine qualification. Input-source provenance failure is resolved.",
+    "current_blocker": "Revised genuine TRAIN target support with documented source-gap closures not yet measured; native qualification remains closed until label review passes.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run the single source-bound CPU target build/TRAIN label audit, independently review state/unknown/class/threshold evidence, then finish and qualify the closed native integration before safe reboot and one short fit. No model run admitted by the target audit.",
+    "next_action": "Complete and verify one exact calendar-bound target-audit002 plan, reusing original source tape/ATR and existing closure owner; then inspect genuine TRAIN state support before private native qualification, safe restart and one short fit.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17470,7 +17470,7 @@
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
     "current_native_launch_authorized": false,
-    "current_training_scope": "CLOSED_ALL_NEW_MODEL_RUNS_REJECTED_BY_USER",
+    "current_training_scope": "CLOSED_PENDING_DYNAMIC_STATE_LABEL_SUPPORT_AND_FRESH_NATIVE_QUALIFICATION",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17884,7 +17884,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "CLOSED_PENDING_DYNAMIC_STATE_TARGET_AND_FRESH_QUALIFICATION",
+    "current_native_launch_scope": "CLOSED_D1_FLAT_SUPPORT_BLOCKED_NO_GENUINE_MODEL_LAUNCH",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -18049,7 +18049,7 @@
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "dynamic_state_short_training_20261101": {
-      "status": "CANDIDATE_SOURCE_CHECKED_ONE_TRAIN_LABEL_AUDIT_ADMITTED",
+      "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT002_ADMITTED",
       "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
       "operator_authorized_source_target_preparation": true,
       "operator_authorized_required_genuine_qualification": true,
@@ -18270,10 +18270,10 @@
       },
       "state_class_order_role": "Exact target/output class-index order0,1,2; display language does not reorder tensor axes.",
       "source_checks": {
-        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED.json",
-        "sha256": "76121a66b50a7fa7cfd5ee0af56ac53775169ab4f4011f276fdf82fe62cef02e"
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_002.json",
+        "sha256": "6d8c2ff303133cfd74eb8be4fcd7d78d6c60b5cbf769a17b56e96cba9ce20cdc"
       },
-      "private_qualification_runner_complete": false,
+      "private_qualification_runner_complete": true,
       "forecast_query_domain": {
         "lead_minutes_first": 1,
         "lead_minutes_last": 1440,
@@ -18289,7 +18289,7 @@
         "unobserved_intraminute_order_predicted": false
       },
       "target_preparation": {
-        "status": "ADMITTED_NOT_LAUNCHED",
+        "status": "COMPLETE_WITH_D1_FLAT_SUPPORT_BLOCKER",
         "plan": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/PLAN.json",
           "sha256": "7dce8aac1f7076ea21d3d1793f9d75c360962ce8c786c9c50f7c3b7bd495392a"
@@ -18298,9 +18298,83 @@
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/build_and_audit_targets_guarded.py",
           "sha256": "596b24373d6e799e40b96574cb6742b40376a42eeb301d688e3cc670ac5b6a56"
         },
-        "target_builds": 0,
+        "target_builds": 1,
         "model_calls": 0,
         "later_materialization_only": true,
+        "later_metrics_inspected": false,
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/RESULT.json",
+          "sha256": "aead7f3b58999571eeb0d1cc4e267382df0bef5fa48cc1fc9f6277825b73dda8"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/TERMINAL.json",
+          "sha256": "b44aa86cbe331d883d8c1b879310377218ef14672d650f3c28ec175f64cf3c7b"
+        },
+        "train_audit": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/TRAIN_AUDIT.json",
+          "sha256": "534da8529b9bd62773b4ea48d6f46c5af8726bd210f068450b1a2930bdfa7c19"
+        },
+        "target_manifest": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/STATE_SERIES/SERIES.json",
+          "sha256": "0209c249f1e20ad2cd59ec225ad4e0d245f635b418e46558b5e579c9bc71cd50"
+        },
+        "target_rule_locked": false,
+        "blockers": [
+          {
+            "gate": "TRAIN_PRIOR_SUPPORT",
+            "reason": "[DYNAMIC_STATE_REPORT_TRAIN_TRANSITION_ROWS_REQUIRED]"
+          }
+        ],
+        "measured_limitation": "D1 has zero observed FLAT states and zero complete local paths; all excluded D1 states carry unknown-source-gap. Inspect saved TRAIN support and exact source closure provenance before any label-rule lock or model launch.",
+        "original_reason_diagnostic_limitation": "Original001 diagnostic_reason_query_counts and excluded_reason_query_counts included source-reason flags from immature post-TRAIN cells. State/class/transition/path masks and unique TRAIN support remained mature-only; no model used them. Thus001 later_aggregates_computed=false was too broad for diagnostic flags. Original files preserved; new query returns only IMMATURE after cutoff and the regression test passes."
+      },
+      "private_source_checks": {
+        "status": "PASS_FOCUSED_SYNTHETIC_SOURCE_CHECKS_NOT_GENUINE_NATIVE_QUALIFICATION",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_SOURCE_CHECK_001/RESULT.json",
+          "sha256": "f63336d2b6e11eb5e4116f0f0be8f1725bf9bafb9696e0660365f801d33dab19"
+        },
+        "tests": 309,
+        "failures": 0,
+        "source_and_head_bookends_unchanged": true,
+        "new_private_scope_expected_work": {
+          "forward_calls": 21,
+          "physical_optimizer_updates": 4,
+          "model_constructions": 3,
+          "initial_train_parents": 256,
+          "fixed_qualification_parents": 32
+        },
+        "genuine_native_qualification_completed": false
+      },
+      "published_calendar_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/VERIFIED_RESULT.json",
+        "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
+      },
+      "calendar_target_preparation": {
+        "status": "ADMITTED_NOT_STARTED",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/PLAN.json",
+          "sha256": "27d5a70eade62cacbd9ca72cb917e4d079fc993ee99a5c3c7d192447cc9e0b2b"
+        },
+        "worker": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/build_and_audit_targets_guarded.py",
+          "sha256": "adf0be3661b3fb1533c53e6c454709bdb346c5740a2bafad0f156f0c801aaac4"
+        },
+        "original_audit": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/RESULT.json",
+          "sha256": "aead7f3b58999571eeb0d1cc4e267382df0bef5fa48cc1fc9f6277825b73dda8"
+        },
+        "source_checks": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_002.json",
+          "sha256": "6d8c2ff303133cfd74eb8be4fcd7d78d6c60b5cbf769a17b56e96cba9ce20cdc"
+        },
+        "published_calendar_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/VERIFIED_RESULT.json",
+          "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
+        },
+        "target_builds_authorized": 1,
+        "atr_builds_authorized": 0,
+        "model_calls_authorized": 0,
         "later_metrics_inspected": false
       }
     }
@@ -20867,7 +20941,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-01T12:20:45.420790+00:00",
+  "updated_utc": "2026-11-02T10:16:06.191705+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -22686,7 +22760,7 @@
     "elapsed_seconds": 160.3991273530046
   },
   "entry_decision_timeframe": "M5",
-  "M1_role_this_wave": "Post-entry price-path observation and target resolution only. Not M1 Entry and not Exit.",
+  "M1_role_this_wave": "Closed M1 bars supply price-path observations and dynamic-state targets. Forecast inputs remain the declared M5/MTF profile; no M1 Entry or Exit.",
   "future_query_horizons_are_not_entry_timeframe_or_hold_rules": true,
   "exit_training_and_evaluation_this_wave": false,
   "dynamic_m5_train_rms_epoch_proposal_145": {
@@ -51396,7 +51470,7 @@
     }
   },
   "dynamic_mtf_state_target_audit_20261102_001": {
-    "status": "ADMITTED_ONE_TARGET_ONLY_CPU_AUDIT",
+    "status": "CONSUMED_COMPLETE_WITH_D1_FLAT_SUPPORT_BLOCKER",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/PLAN.json",
       "sha256": "7dce8aac1f7076ea21d3d1793f9d75c360962ce8c786c9c50f7c3b7bd495392a"
@@ -51406,11 +51480,57 @@
       "sha256": "596b24373d6e799e40b96574cb6742b40376a42eeb301d688e3cc670ac5b6a56"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "source_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED.json",
       "sha256": "76121a66b50a7fa7cfd5ee0af56ac53775169ab4f4011f276fdf82fe62cef02e"
+    },
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "target_build_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "exit_evaluation": false,
+    "later_rule_selection_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/TERMINAL.json",
+      "sha256": "b44aa86cbe331d883d8c1b879310377218ef14672d650f3c28ec175f64cf3c7b"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/RESULT.json",
+      "sha256": "aead7f3b58999571eeb0d1cc4e267382df0bef5fa48cc1fc9f6277825b73dda8"
+    },
+    "consumed_admission_policy": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/CONSUMED_ADMISSION_POLICY.json",
+      "sha256": "3cc8c0c7181996c67369e0b3a8c20b48cc66910ccd502b5b55f1fea979a85a02"
+    },
+    "diagnostic_limitation": "Original001 diagnostic_reason_query_counts and excluded_reason_query_counts included source-reason flags from immature post-TRAIN cells. State/class/transition/path masks and unique TRAIN support remained mature-only; no model used them. Thus001 later_aggregates_computed=false was too broad for diagnostic flags. Original files preserved; new query returns only IMMATURE after cutoff and the regression test passes."
+  },
+  "dynamic_mtf_state_target_audit_20261102_002": {
+    "status": "ADMITTED_ONE_CALENDAR_BOUND_TARGET_ONLY_AUDIT",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/PLAN.json",
+      "sha256": "27d5a70eade62cacbd9ca72cb917e4d079fc993ee99a5c3c7d192447cc9e0b2b"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/build_and_audit_targets_guarded.py",
+      "sha256": "adf0be3661b3fb1533c53e6c454709bdb346c5740a2bafad0f156f0c801aaac4"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "source_checks": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_002.json",
+      "sha256": "6d8c2ff303133cfd74eb8be4fcd7d78d6c60b5cbf769a17b56e96cba9ce20cdc"
+    },
+    "published_calendar_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/VERIFIED_RESULT.json",
+      "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
     },
     "execution_authorized": true,
     "data_reads_authorized": true,

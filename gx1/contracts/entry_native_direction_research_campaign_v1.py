@@ -507,6 +507,23 @@ def require_family_qualification(recipe, owners, *, source_repo, source_commit):
     return review
 
 
+
+def require_dynamic_state_private_counts(counts):
+    expected = {'model_constructions':3, 'model_construction_returns':3, 'optimizer_constructions':3,
+        'forward_calls':21, 'forward_returns':21, 'backward_calls':4, 'backward_returns':4,
+        'optimizer_step_calls':4, 'optimizer_step_returns':4, 'empty_batches':0,
+        'staged_state_load_calls':3, 'staged_state_load_returns':3,
+        'resume_state_load_calls':1, 'resume_state_load_returns':1, 'forbidden_legacy_calls':0}
+    _require(isinstance(counts,Mapping)
+        and set(counts) in (set(expected) | {'forward_kind_calls'}, set(expected) | {'forward_kind_calls','json_bytes'})
+        and all(type(counts.get(k)) is int and counts[k] == v for k,v in expected.items())
+        and counts['forward_kind_calls'] == {'INITIAL_TRAIN':16, 'INITIAL_PARITY_GRAD':1, 'TRAIN':4}
+        and all(type(v) is int for v in counts['forward_kind_calls'].values()),
+        'STATE_EXACT_PRIVATE_WORK')
+    if 'json_bytes' in counts:
+        _require(type(counts['json_bytes']) is int and 0 <= counts['json_bytes'] <= 33554432, 'STATE_JSON_BYTES')
+    return dict(counts)
+
 def guarded_research_power_limit(recipe):
     """Return the user-approved cap after the caller validates the bound recipe."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix

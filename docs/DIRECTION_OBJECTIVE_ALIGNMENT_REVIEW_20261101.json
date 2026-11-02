@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "DYNAMIC_STATE_CANDIDATE_SOURCE_CHECKED_TRAIN_LABEL_AUDIT_ADMITTED",
+  "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT002_ADMITTED",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
@@ -726,7 +726,7 @@
     "launch_status": "Necessary source/target preparation and genuine qualification, then safe reboot and ONE short training are user-authorized. Exact execution gates remain closed until the new function is qualified and admitted; TEST/trading remain closed."
   },
   "current_short_training_preparation": {
-    "status": "FULL_INPUT_PROFILE_AND_CURRENT_SOURCE_NORMALIZATION_BINDING_VERIFIED_NATIVE_TARGET_PENDING",
+    "status": "DYNAMIC_STATE_TRAIN_LABEL_AUDIT_COMPLETE_D1_FLAT_SUPPORT_BLOCKED",
     "name": "full_xau_gc_mtf_entry_research_v1",
     "pure_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
@@ -853,11 +853,355 @@
       "sha256": "5bd8d91a4d780cb486336e67f909e3d96593570fca6f2defd9dfc03958df837f"
     },
     "synthetic_native_contract_checks": "The unfiltered repository pre-commit native contract suite passed; synthetic CPU model checks do not qualify genuine full-profile consumption or the new dynamic-state objective.",
-    "dynamic_state_definition_status": "HALF_ATR14_CAUSAL_M1_CANDIDATE_SOURCE_CHECKED_NOT_DATA_QUALIFIED",
+    "dynamic_state_definition_status": "GENUINE_TRAIN_AUDIT_COMPLETE_D1_FLAT_SUPPORT_BLOCKED_RULE_UNLOCKED",
     "source_checks": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED.json",
-      "sha256": "76121a66b50a7fa7cfd5ee0af56ac53775169ab4f4011f276fdf82fe62cef02e"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_002.json",
+      "sha256": "6d8c2ff303133cfd74eb8be4fcd7d78d6c60b5cbf769a17b56e96cba9ce20cdc"
     },
-    "private_qualification_runner_complete": false
+    "private_qualification_runner_complete": true,
+    "target_audit": {
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/RESULT.json",
+        "sha256": "aead7f3b58999571eeb0d1cc4e267382df0bef5fa48cc1fc9f6277825b73dda8"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/TERMINAL.json",
+        "sha256": "b44aa86cbe331d883d8c1b879310377218ef14672d650f3c28ec175f64cf3c7b"
+      },
+      "train_audit": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/TRAIN_AUDIT.json",
+        "sha256": "534da8529b9bd62773b4ea48d6f46c5af8726bd210f068450b1a2930bdfa7c19"
+      },
+      "counts_scope": "Unique future-validity rows are distinct from overlapping issue/query exposures. No later aggregates or model results used.",
+      "unique_train_support": {
+        "D1": {
+          "excluded_reason_counts": {
+            "atr_unavailable": 0,
+            "direction_unresolved": 119167,
+            "immature": 0,
+            "intraminute_order_unknown": 2946,
+            "local_span_incomplete": 0,
+            "query_unavailable": 0,
+            "unknown_source_gap": 119167
+          },
+          "observed_states": 118975,
+          "path_observed_rows": 0,
+          "source_validity_rows": 238142,
+          "state_counts": [
+            51773,
+            0,
+            67202
+          ]
+        },
+        "H1": {
+          "excluded_reason_counts": {
+            "atr_unavailable": 0,
+            "direction_unresolved": 14609,
+            "immature": 0,
+            "intraminute_order_unknown": 4851,
+            "local_span_incomplete": 0,
+            "query_unavailable": 0,
+            "unknown_source_gap": 9920
+          },
+          "observed_states": 223533,
+          "path_observed_rows": 201064,
+          "source_validity_rows": 238142,
+          "state_counts": [
+            90442,
+            27170,
+            105921
+          ]
+        },
+        "H4": {
+          "excluded_reason_counts": {
+            "atr_unavailable": 0,
+            "direction_unresolved": 30704,
+            "immature": 0,
+            "intraminute_order_unknown": 924,
+            "local_span_incomplete": 0,
+            "query_unavailable": 0,
+            "unknown_source_gap": 29923
+          },
+          "observed_states": 207438,
+          "path_observed_rows": 180428,
+          "source_validity_rows": 238142,
+          "state_counts": [
+            84885,
+            10397,
+            112156
+          ]
+        },
+        "M15": {
+          "excluded_reason_counts": {
+            "atr_unavailable": 0,
+            "direction_unresolved": 35470,
+            "immature": 0,
+            "intraminute_order_unknown": 33278,
+            "local_span_incomplete": 0,
+            "query_unavailable": 0,
+            "unknown_source_gap": 2365
+          },
+          "observed_states": 202672,
+          "path_observed_rows": 158294,
+          "source_validity_rows": 238142,
+          "state_counts": [
+            82831,
+            27221,
+            92620
+          ]
+        },
+        "M5": {
+          "excluded_reason_counts": {
+            "atr_unavailable": 0,
+            "direction_unresolved": 112079,
+            "immature": 0,
+            "intraminute_order_unknown": 111544,
+            "local_span_incomplete": 0,
+            "query_unavailable": 0,
+            "unknown_source_gap": 659
+          },
+          "observed_states": 126063,
+          "path_observed_rows": 83757,
+          "source_validity_rows": 238142,
+          "state_counts": [
+            51783,
+            18691,
+            55589
+          ]
+        }
+      },
+      "threshold_size_at_original_train_issue": {
+        "D1": {
+          "bps_of_current_m1_close": {
+            "max": 88.58903771212385,
+            "median": 70.81796844658216,
+            "min": 53.82704438989792
+          },
+          "count": 47591,
+          "declared_train_issues": 47602,
+          "missing_atr_count_at_present_issue": 0,
+          "missing_close_count_at_present_issue": 0,
+          "missing_issue_count": 11,
+          "raw_xau_usd": {
+            "max": 21.72628594286166,
+            "median": 17.63900473544251,
+            "min": 14.600730841148152
+          },
+          "summary_available": true
+        },
+        "H1": {
+          "bps_of_current_m1_close": {
+            "max": 33.17096157937613,
+            "median": 12.169640697686452,
+            "min": 7.014901450091432
+          },
+          "count": 47591,
+          "declared_train_issues": 47602,
+          "missing_atr_count_at_present_issue": 0,
+          "missing_close_count_at_present_issue": 0,
+          "missing_issue_count": 11,
+          "raw_xau_usd": {
+            "max": 7.919832444768686,
+            "median": 3.0594354904869796,
+            "min": 1.6603710540250411
+          },
+          "summary_available": true
+        },
+        "H4": {
+          "bps_of_current_m1_close": {
+            "max": 49.856992438284614,
+            "median": 25.261805361145747,
+            "min": 16.585452713761992
+          },
+          "count": 47591,
+          "declared_train_issues": 47602,
+          "missing_atr_count_at_present_issue": 0,
+          "missing_close_count_at_present_issue": 0,
+          "missing_issue_count": 11,
+          "raw_xau_usd": {
+            "max": 11.955987529109962,
+            "median": 6.290991565506597,
+            "min": 3.9539387560554315
+          },
+          "summary_available": true
+        },
+        "M15": {
+          "bps_of_current_m1_close": {
+            "max": 20.840115286664133,
+            "median": 5.714271736345969,
+            "min": 2.6793570656969243
+          },
+          "count": 47591,
+          "declared_train_issues": 47602,
+          "missing_atr_count_at_present_issue": 0,
+          "missing_close_count_at_present_issue": 0,
+          "missing_issue_count": 11,
+          "raw_xau_usd": {
+            "max": 5.065731863421171,
+            "median": 1.4426562538179333,
+            "min": 0.6415324734213345
+          },
+          "summary_available": true
+        },
+        "M5": {
+          "bps_of_current_m1_close": {
+            "max": 16.058483909476383,
+            "median": 3.126160102837137,
+            "min": 0.7659717511294913
+          },
+          "count": 47591,
+          "declared_train_issues": 47602,
+          "missing_atr_count_at_present_issue": 0,
+          "missing_close_count_at_present_issue": 0,
+          "missing_issue_count": 11,
+          "raw_xau_usd": {
+            "max": 3.8861531060932846,
+            "median": 0.7882869523908157,
+            "min": 0.18175590488201473
+          },
+          "summary_available": true
+        }
+      },
+      "model_forwards": 0,
+      "optimizer_steps": 0,
+      "target_rule_locked": false,
+      "blockers": [
+        {
+          "gate": "TRAIN_PRIOR_SUPPORT",
+          "reason": "[DYNAMIC_STATE_REPORT_TRAIN_TRANSITION_ROWS_REQUIRED]"
+        }
+      ],
+      "next_action": "Resolve measured D1 FLAT support failure from saved TRAIN evidence and exact source closure provenance; finish the closed private runner in parallel. No repeat target build or native launch is admitted. Then qualify the exact completed objective before safe restart and one short fit.",
+      "saved_source_gap_review": {
+        "status": "NO_COMPATIBLE_HISTORICAL_CLOSURE_AUTHORITY_FOUND",
+        "source": "OANDA practice XAU_USD candles, MBA, complete=true; original producer applies a New_York weekend filter only. No authenticated broker/API call made.",
+        "canonical_provenance_owner": "gx1/contracts/xau_tape_provenance_v1.py",
+        "producer_approval_owner": "gx1/contracts/oanda_history_ingest_approval_v1.py",
+        "examples": [
+          {
+            "previous_closed_m1_utc": "2024-05-01T21:00:00Z",
+            "next_closed_m1_utc": "2024-05-01T22:05:00Z",
+            "missing_bar_starts_utc": [
+              "2024-05-01T21:00:00Z",
+              "2024-05-01T22:04:00Z"
+            ],
+            "missing_bar_count": 64,
+            "physical_source_rows_adjacent": true
+          },
+          {
+            "previous_closed_m1_utc": "2024-05-02T21:00:00Z",
+            "next_closed_m1_utc": "2024-05-02T22:05:00Z",
+            "missing_bar_starts_utc": [
+              "2024-05-02T21:00:00Z",
+              "2024-05-02T22:04:00Z"
+            ],
+            "missing_bar_count": 64,
+            "physical_source_rows_adjacent": true
+          }
+        ],
+        "interpretation": "Observed gaps are proven; market closure is not. Exact start/end semantics and historical effective dates must be evidenced before binding any gap as closed.",
+        "existing_authority": "Historical all_gaps_unknown authority uses another source hash and 4884638 rows; zero known closures. Not reusable.",
+        "public_references_inspected": [
+          {
+            "url": "https://www.oanda.com/uk-en/trading/hours-of-operation/",
+            "finding": "Current XAU/USD New_York18:05–16:59; no proof this schedule applied to the historical source interval. Not admitted as a historical closure authority."
+          },
+          {
+            "url": "https://www.oanda.com/assets/documents/471/Hours_of_operation_6.pdf",
+            "finding": "Older official PDF lists a different GMT schedule. Does not establish the historical2024 source closure intervals."
+          }
+        ],
+        "archive_lookup": "Wayback availability lookup returned HTTP429; no retry.",
+        "intraminute_limit": "M5 unknown-state exclusions include111544 intraminute-order flags versus659 source-gap flags; calendar evidence does not resolve this independent OHLC information limit.",
+        "external_schedule_qualified": false,
+        "expanded_local_search": {
+          "location": "C:\\Users\\Andre\\GX1ValJuneteenthEvidence_20260912",
+          "artifacts": [
+            "oanda_regular_hours.html",
+            "oanda_holiday_hours.html",
+            "SOURCE_REFERENCE.json",
+            "exact_schedule.json",
+            "market_closure_authority.json"
+          ],
+          "raw_snapshots_hash_verified_against_reference": true,
+          "qualified_closure_period_utc": [
+            "2026-05-29",
+            "2026-07-01"
+          ],
+          "intervals": 23,
+          "qualified_source_rows": 30506,
+          "same_as_current_source": false,
+          "holiday_page_years": [
+            2025,
+            2026
+          ],
+          "historical_2024_closure_support": false,
+          "scope": "GX1_DATA/RUNS and Windows standard folders/OneDrive plus50GX1 history directories searched by file name; concrete metadata references inspected only."
+        },
+        "historical_calendar_retrieval": {
+          "status": "AUTHENTICATED_2024_EARLY2025_OANDA_SNAPSHOTS_DOWNLOADED_AND_REVIEWED",
+          "calendar": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/PUBLISHED_CALENDAR.json",
+            "sha256": "381f1879f97c1cd8d0103ab137d23076c0da3729ae19ec10e737461229965eda"
+          },
+          "review": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/VERIFIED_RESULT.json",
+            "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
+          },
+          "replaces_prior_missing_external_calendar_blocker": true,
+          "genuine_source_gap_binding_qualified": false
+        }
+      },
+      "original_diagnostic_limitation": "Original001 diagnostic_reason_query_counts and excluded_reason_query_counts included source-reason flags from immature post-TRAIN cells. State/class/transition/path masks and unique TRAIN support remained mature-only; no model used them. Thus001 later_aggregates_computed=false was too broad for diagnostic flags. Original files preserved; new query returns only IMMATURE after cutoff and the regression test passes."
+    },
+    "private_source_checks": {
+      "status": "PASS_FOCUSED_SYNTHETIC_SOURCE_CHECKS_NOT_GENUINE_NATIVE_QUALIFICATION",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_SOURCE_CHECK_001/RESULT.json",
+        "sha256": "f63336d2b6e11eb5e4116f0f0be8f1725bf9bafb9696e0660365f801d33dab19"
+      },
+      "tests": 309,
+      "failures": 0,
+      "source_and_head_bookends_unchanged": true,
+      "new_private_scope_expected_work": {
+        "forward_calls": 21,
+        "physical_optimizer_updates": 4,
+        "model_constructions": 3,
+        "initial_train_parents": 256,
+        "fixed_qualification_parents": 32
+      },
+      "genuine_native_qualification_completed": false
+    },
+    "published_calendar_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/VERIFIED_RESULT.json",
+      "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
+    },
+    "calendar_target_audit": {
+      "status": "ADMITTED_NOT_STARTED",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/PLAN.json",
+        "sha256": "27d5a70eade62cacbd9ca72cb917e4d079fc993ee99a5c3c7d192447cc9e0b2b"
+      },
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/build_and_audit_targets_guarded.py",
+        "sha256": "adf0be3661b3fb1533c53e6c454709bdb346c5740a2bafad0f156f0c801aaac4"
+      },
+      "original_audit": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/RESULT.json",
+        "sha256": "aead7f3b58999571eeb0d1cc4e267382df0bef5fa48cc1fc9f6277825b73dda8"
+      },
+      "source_checks": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_002.json",
+        "sha256": "6d8c2ff303133cfd74eb8be4fcd7d78d6c60b5cbf769a17b56e96cba9ce20cdc"
+      },
+      "published_calendar_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/VERIFIED_RESULT.json",
+        "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
+      },
+      "target_builds_authorized": 1,
+      "atr_builds_authorized": 0,
+      "model_calls_authorized": 0,
+      "later_metrics_inspected": false
+    }
   }
 }

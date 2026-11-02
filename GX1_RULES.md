@@ -155,8 +155,8 @@ være entydige og samsvare i fasit, output, loss og måling.
 
 Den gjennomførte binære1..60minuttersforskningen er et snevrere mål:
 den har ingen lært STILLE-klasse og skiller ikke små fra store fortegn.
-Målbeskrivelsen er nå presisert; en samsvarende ny target-/loss-/outputkontrakt
-er fortsatt ikke implementert eller kvalifisert. Gjenbruk eksisterende
+En samsvarende ny target-/loss-/outputkontrakt er implementert som kandidat.
+Kildekontroller er bestått, men ekte mål-/modellkvalifikasjon gjenstår. Gjenbruk eksisterende
 utfallseiere, masker og prisbaner før ny mekanikk vurderes. Endrede mål må
 kontrolleres mot denne bestillingen før noen eventuell modellkjøring.
 

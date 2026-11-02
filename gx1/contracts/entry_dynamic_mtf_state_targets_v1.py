@@ -443,7 +443,8 @@ def query_dynamic_mtf_states(series, *, parent_rows, issue_ns, cutoff_ns, lead_m
     result["state"][~result["observed"]] = UNKNOWN
     result["maturity_ns"] = np.broadcast_to(wanted[:, None, :], result["state"].shape).copy()
     result["reason"] = np.where(exists[:, None, :], result["reason"], QUERY_UNAVAILABLE).astype(np.uint8)
-    result["reason"] |= np.where(in_scope[:, None, :], 0, IMMATURE).astype(np.uint8)
+    # Immature queries reveal no future source or intraminute diagnostics.
+    result["reason"] = np.where(in_scope[:, None, :], result["reason"], IMMATURE).astype(np.uint8)
     current = series.arrays["issue_source_index"][positions]
     current_safe = np.maximum(current, 0)
     result["current_state"] = series.arrays["state"][current_safe].copy()

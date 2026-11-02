@@ -43,6 +43,14 @@ for ro, vedvarende retning og vendinger kontrolleres før kontrakten låses.
 Ingen faktor velges etter modellscore eller VAL. ATR-skalaens tidsstempel,
 state-observasjon og prognosens informasjonstid må bindes hver for seg.
 
+Dokumenterte markedspauser kan dekke et observert kildegap helt uten at
+publisert åpningstid flyttes. Bevar både hele det eksternt dokumenterte
+lukkeintervallet og det sertifiserte kildegapet i en hashbundet dekningskvittering.
+Bare full inneslutning tillates; delvis dekning og udokumenterte helligdager
+forblir ukjente. Kalenderen lager ingen priser, manglende labels eller FLAT.
+Et umodent querypunkt ved/etter cutoff returnerer bare IMMATURE, aldri
+framtidige source-/intraminuttårsaker til TRAIN-diagnostikken.
+
 Hver av de fem TF trenger navngitt fasit, observasjonsmaske, output-/tapskobling
 og egne målinger. M5 NED og D1 OPP kan være samtidige gyldige tilstander.
 TF er ikke lik en enkelt framtidig barhorisont eller kildens oppløsning.
@@ -56,7 +64,7 @@ omdøpes til dynamisk tilstand. Fasit fra framtidige observasjoner modnes først
 når det deklarerte observasjonsbehovet er dekket; disse observasjonene og
 etterfølgende vendepunkter mates aldri inn som kjent informasjon ved t.
 Ukjent intrabarrekkefølge og manglende dekning beholdes som ukjent. En fasit
-på observerte M1-åpninger beviser ikke subminuttforløpet.
+fra lukkede M1-barer beviser ikke subminuttforløpet.
 
 Mål kvalitet på alle tre tilstander og alle fem TF, både fortsettelse og
 skifter: sannsynlighetskvalitet/kalibrering, feilvarsler, oversette bevegelser

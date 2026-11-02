@@ -1,4 +1,4 @@
-"""One source-bound private 60-minute native qualification; no fitted model.
+"""Source-bound private direction/state qualification; no fitted model.
 
 Four physical updates compare two uninterrupted steps with one plus exact
 serialized resume. All 32 parents are fixed before this qualification. Private
@@ -161,6 +161,258 @@ def require_family_input_intervention(raw, contract, *, arm, np):
         'all_masks_and_unrelated_values_bit_identical':True,'all_selected_values_equal_bound_reference':True}
 
 
+
+def require_dynamic_state_gradient_contact(steps):
+    """Both logical trajectories must reach every declared native/head group."""
+    expected = [('reference',1),('reference',2),('interrupted',1),('resumed',2)]
+    _require(isinstance(steps,list) and all(isinstance(x,dict) and type(x.get('logical_step')) is int for x in steps)
+        and [(x.get('trajectory'),x.get('logical_step')) for x in steps] == expected, 'STATE_GRADIENT_TRAJECTORIES')
+    counts = [step.get('gradient_nonzero_counts') for step in steps]
+    _require(all(isinstance(item,dict) and item for item in counts)
+        and all(set(item) == set(counts[0]) for item in counts), 'STATE_GRADIENT_INVENTORY')
+    required = {'state_query_projection','state_initial_head','state_transition_head','entry_q_joint','family_context_global'}
+    _require(required <= set(counts[0])
+        and all(any(key.startswith(prefix+'.') for key in counts[0]) for prefix in
+            ('specialist_proj','mtf_family_proj','mtf_feature_context_gate',
+             'gc_mtf_family_proj','gc_mtf_feature_context_gate','specialist_ctx_cont_proj')),
+        'STATE_GRADIENT_REQUIRED_GROUPS')
+    for key in counts[0]:
+        values = [item[key] for item in counts]
+        _require(all(type(v) is int and v >= 0 for v in values), 'STATE_GRADIENT_COUNTS:'+key)
+        _require(values[0]+values[1] > 0 and values[2]+values[3] > 0, 'STATE_GRADIENT_NOT_OBSERVED:'+key)
+
+
+def _dynamic_state_input_support(raw, profile, layout, *, common, np):
+    """Bounded raw input evidence on fixed parents; labels cannot select rows."""
+    from gx1.features.entry_specialist_feature_groups_v1 import FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+    _require(profile['name'] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+        and raw['witness']['raw_values_not_normalized'] is True, 'STATE_FULL_RAW_PROFILE')
+    gc_support = common._gc_support(raw,layout,np)
+    _require(all(sum(item['raw_nonzero_values_per_parent']) > 0
+        for families in gc_support.values() for item in families.values()), 'STATE_GC_VALUE_SUPPORT')
+    features = raw['features']
+    families = {}
+    for route, surface in (('local_signal_indices_by_specialist','seq_x'),
+            ('ctx_cont_indices_by_specialist','ctx_cont')):
+        for family, indices in profile[route].items():
+            if indices:
+                count = int(np.count_nonzero(features[surface][...,list(indices)]))
+                families[surface+'.'+family] = count
+                _require(count > 0, 'STATE_INPUT_FAMILY_SUPPORT:'+surface+'.'+family)
+    for tf in profile['timeframes']:
+        surface = 'seq_'+tf.lower()
+        for family, indices in profile['mtf_indices_by_specialist'].items():
+            count = int(np.count_nonzero(features[surface][...,list(indices)]))
+            families[surface+'.'+family] = count
+            _require(count > 0, 'STATE_INPUT_FAMILY_SUPPORT:'+surface+'.'+family)
+    fields = profile['physical_field_names']['ctx_cont']
+    macro = [fields.index(name) for name in profile['macro_context_fields']]
+    _require(macro and int(np.count_nonzero(features['ctx_cont'][:,macro])) > 0, 'STATE_D1_MACRO_INPUT_SUPPORT')
+    return {'parent_rows':raw['witness']['parent_rows'], 'gc':gc_support,
+        'profile_sha256':profile['contract_sha256'], 'family_raw_nonzero_counts':families,
+        'surface_raw_nonzero_counts_per_column':{key:np.count_nonzero(value,
+            axis=tuple(range(value.ndim-1))).astype(np.int64).tolist() for key,value in features.items()},
+        'd1_macro_raw_nonzero_counts_per_column':np.count_nonzero(features['ctx_cont'][:,macro],axis=0).astype(np.int64).tolist(),
+        'scope':'Raw support and all physical columns on fixed TRAIN rows; zero columns are retained and reported, never used to search labels.'}
+
+
+def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits,
+        policy_path, policy_file_sha256, progress_path):
+    from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
+    _require(launch['run_scope'] == authority.DYNAMIC_STATE_PRIVATE_SCOPE
+        and launch['full_feature_profile'] is True and invocation['batch_size'] == 16, 'STATE_EXACT_SCOPE')
+    sys.dont_write_bytecode = True
+    import numpy as np
+    import torch
+    from gx1.contracts.entry_model_native_train_recipe_v1 import require_native_direction_research_recipe
+    from gx1.contracts import entry_native_direction_research_state_v1 as state_owner
+    from gx1.features.entry_specialist_feature_groups_v1 import compile_full_gc_mtf_entry_execution_profile
+    from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as prefix
+    from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
+    recipe = require_native_direction_research_recipe(launch['numerical_recipe'])
+    _require(recipe.get('dynamic_state_supervision') is True and recipe['batch_size'] == 16
+        and recipe['max_updates'] == 2, 'STATE_PRIVATE_NUMERICS')
+    binding_ref = common._hash_file(launch['execution_binding_path'])
+    extra = {}
+    binding = common._read(binding_ref,extra)
+    actual_launch = {**launch,'run_scope':prefix_authority.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE}
+    context = prefix._launch_metadata(actual_launch,common)
+    context['info']['metadata'].update(extra)
+    for ref in (window['recipe'],binding['plan'],{'path':str(policy_path),'sha256':policy_file_sha256}):
+        common._read(ref,context['info']['metadata'])
+    common._freeze(launch,binding,context)
+    output = Path(window['output_directory'])
+    output.mkdir(parents=True)
+    context['state_artifact_directory'] = output
+    denied = common._install_read_guard(context,output,Path(launch['runtime_root']))
+    counters = {key:0 for key in ('model_constructions','model_construction_returns','optimizer_constructions',
+        'forward_calls','forward_returns','backward_calls','backward_returns','optimizer_step_calls',
+        'optimizer_step_returns','empty_batches','staged_state_load_calls','staged_state_load_returns',
+        'resume_state_load_calls','resume_state_load_returns','forbidden_legacy_calls','json_bytes')}
+    counters['forward_kind_calls'] = {}
+    before = common._io()
+    started = time.monotonic()
+    previous = sys.getprofile()
+    device = torch.device('cuda',0)
+    initial = initial_identity = initial_report = full_state = None
+    prepared = model = optimizer = None
+    initial_checked = parity = unchanged = gradient_contact = False
+    cursor = 0
+    steps = []
+    batch_support = []
+    order_sha = '0'*64
+    error = None
+    prior = None
+    common._json(output/'CLAIM.json',{'recipe':window['recipe'],'plan_sha256':plan['plan_sha256'],
+        'limits':limits,'additional_worker_ceiling_seconds':1200},counters,launch['max_published_json_bytes'])
+    def expired(*_args):
+        raise RuntimeError('NATIVE_DYNAMIC_STATE_QUALIFICATION_1200_SECOND_CEILING')
+    old_handler = signal.signal(signal.SIGALRM,expired)
+    signal.alarm(1200)
+    try:
+        sys.setprofile(common._deny_legacy_work(previous,counters))
+        prepared,targets,view,context_map,ordered = prefix._prepare(context,actual_launch,np)
+        prior = prefix._prefix_prior(prepared['arrays'],targets,launch['fold'],np)
+        diagnostic_ids = prefix._fixed_order(prepared['arrays']['parent_rows'],
+            launch['fold']['prefix_rows'],prefix.SEED,np)[:256]
+        selected = select_qualification_parents(ordered,diagnostic_ids,
+            {'parents_sorted':launch['qualification_parent_rows']},np=np)
+        order = torch.from_numpy(selected.copy())
+        order_sha = tree_sha(order)
+        profile = compile_full_gc_mtf_entry_execution_profile(context['fitted']['gc_mtf_history'])
+        _require(view['entry_execution_profile'] == {key:profile[key] for key in ('name','contract_sha256')},
+            'STATE_INPUT_PROFILE_BINDING')
+        batches = []
+        for left in (0,16):
+            raw,target = prefix._batch(prepared,targets,view,selected[left:left+16],np)
+            eligible = target['observed'] & (target['maturity_ns'] < launch['fold']['train_cutoff_ns'])
+            _require(np.all(np.count_nonzero(eligible,axis=(0,2)) > 0), 'STATE_FIXED_BATCH_ALL_TF_SUPPORT')
+            batch_support.append(_dynamic_state_input_support(raw,profile,prepared['gc']['layout'],common=common,np=np))
+            batches.append(prefix._device_batch(raw,target,torch,device))
+        batch_sha = tree_sha(batches)
+        def capture(m,opt,offset,updates):
+            return state_owner.capture_native_direction_research_state(m,opt,recipe=recipe,
+                feature_view_identity=m.feature_view_identity,parent_order=order,cursor=offset,
+                optimizer_updates=updates,device=device)
+        for trajectory in ('reference','interrupted','resumed'):
+            cursor = 0
+            model,optimizer,_ = common._fresh(context,view,recipe,device,counters,max_constructions=3)
+            fresh = capture(model,optimizer,0,0)
+            identity = tree_sha({key:fresh[key] for key in ('binding','model_state','buffer_state',
+                'optimizer_state','rng_state','module_training')})
+            if initial_identity is None:
+                initial_identity = identity
+                initial = common._save_state(output/'INITIAL_STATE.pt',fresh,torch=torch,
+                    maximum=launch['max_checkpoint_bytes'],counters=counters)
+                measured,count = prefix._evaluate(model,prepared,targets,view,context_map,diagnostic_ids,
+                    cutoff=launch['fold']['train_cutoff_ns'],kind='INITIAL_TRAIN',counters=counters,
+                    ceiling=launch['max_forwards'],device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
+                _require(count == 256 and measured['initial_parity_passed']
+                    and measured['state_artifact']['arrays']['probabilities']['shape'] == [256,5,1440,3],
+                    'STATE_FRESH_INITIAL')
+                initial_report = prefix._publish_measurement('INITIAL_TRAIN',measured,output=output,
+                    view=model.feature_view_identity,prior=prior,own_initial_state=initial,fresh_identity=identity,
+                    context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
+                del measured
+                initial_inactive = tree_sha({name:p for name,p in model.named_parameters() if not p.requires_grad})
+                initial_checked = True
+            else:
+                _require(identity == initial_identity and initial_checked, 'STATE_SAME_FRESH_IDENTITY')
+            del fresh
+            if trajectory == 'resumed':
+                loaded = common._load_state(interrupted_ref,torch=torch,maximum=launch['max_checkpoint_bytes'],counters=counters)
+                restored = state_owner.restore_native_direction_research_state(loaded,model,optimizer,recipe=recipe,
+                    feature_view_identity=model.feature_view_identity,parent_order=order,device=device)
+                _require(restored['cursor'] == 16 and restored['optimizer_updates'] == 1
+                    and capture(model,optimizer,16,1)['contract_sha256'] == loaded['contract_sha256'], 'STATE_SERIALIZED_RESTORE')
+                del loaded
+                cursor = 16
+            logical = (0,1) if trajectory == 'reference' else (0,) if trajectory == 'interrupted' else (1,)
+            for index in logical:
+                _require(initial_checked and time.monotonic()-started < 1200, 'STATE_INITIAL_AND_DEADLINE')
+                evidence,updated = prefix._train_batch(model,optimizer,*batches[index],
+                    cutoff=launch['fold']['train_cutoff_ns'],counters=counters,ceiling=launch['max_forwards'],
+                    torch=torch,diagnostics=True)
+                _require(updated and all(row['eligible_cells'] > 0 for row in evidence['per_timeframe_counts']),
+                    'STATE_ALL_TF_BATCH_SUPPORT')
+                cursor = 16*(index+1)
+                steps.append({'trajectory':trajectory,'logical_step':index+1,**evidence})
+                _require(tree_sha({name:p for name,p in model.named_parameters() if not p.requires_grad}) == initial_inactive,
+                    'STATE_INACTIVE_WEIGHTS_UNCHANGED')
+            saved = capture(model,optimizer,cursor,1 if trajectory == 'interrupted' else 2)
+            if trajectory == 'reference':
+                reference_sha = saved['contract_sha256']
+            elif trajectory == 'interrupted':
+                interrupted_ref = common._save_state(output/'INTERRUPTED_STEP1.pt',saved,torch=torch,
+                    maximum=launch['max_checkpoint_bytes'],counters=counters)
+            else:
+                _require(saved['contract_sha256'] == reference_sha, 'STATE_BIT_EXACT_COMPLETE_RESUME')
+                full_state = common._save_state(output/'RESUMED_STEP2.pt',saved,torch=torch,
+                    maximum=launch['max_checkpoint_bytes'],counters=counters)
+                parity = True
+            del saved,model,optimizer
+            model = optimizer = None
+            gc.collect()
+            torch.cuda.empty_cache()
+        require_dynamic_state_gradient_contact(steps)
+        gradient_contact = True
+        authority.require_dynamic_state_private_counts(counters)
+        _require(tree_sha(batches) == batch_sha, 'STATE_BATCH_PRESERVATION')
+        common._freeze(launch,binding,context)
+        unchanged = True
+    except BaseException as exc:
+        error = type(exc).__name__+':'+str(exc)
+        try:
+            common._freeze(launch,binding,context)
+            unchanged = True
+        except Exception:
+            unchanged = False
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM,old_handler)
+        sys.setprofile(previous)
+        if prepared is not None:
+            context['physical'].release_pages(context['ancestor'],prepared,discard_multi_tf_v4_cache_pages)
+    after = common._io()
+    if after['rchar'] > context['ancestor_plan']['budget']['max_rchar_bytes']:
+        error = 'STATE_INHERITED_RCHAR_CEILING'
+    passed = initial_checked and parity and gradient_contact and unchanged and len(batch_support) == 2 and error is None
+    outcome = 'COMPLETE' if passed else 'FAILED'
+    result = common._json(output/'RESULT.json',{
+        'schema_version':'gx1_dynamic_mtf_state_private_qualification_result_v1',
+        'decision':'PASS_DYNAMIC_STATE_NATIVE_MECHANICS' if passed else 'FAILED',
+        'recipe':window['recipe'],'execution_binding':binding_ref,'fold':launch['fold'],
+        'target_manifest':launch['target_manifest'],'target_sources':launch['target_sources'],'label_audit':launch['label_audit'],
+        'counts':{key:value for key,value in counters.items() if key != 'json_bytes'},
+        'initial_state':initial,'initial_identity_sha256':initial_identity,'initial_report':initial_report,
+        'own_prefix_prior':prior,'final_state':full_state,'initial_checked':initial_checked,
+        'bit_exact_resume':parity,'all_declared_gradient_groups_contacted':gradient_contact,
+        'steps':steps,'batch_input_support':batch_support,'parent_order_sha256':order_sha,'parent_cursor':cursor,
+        'planned_unique_parents':32,'planned_logical_optimizer_steps':2,
+        'physical_optimizer_updates':counters['optimizer_step_returns'],
+        'source_unchanged':unchanged,'metadata_bookends':context['info']['metadata'],
+        'payload_stat_bookends':context['ancestor_plan']['payloads'],'forbidden_open_paths':denied,
+        'limits':limits,'elapsed_seconds':time.monotonic()-started,'io_before':before,'io_after':after,
+        'private_weights_for_main_fit':False,'predictive_value_qualified':False,'test_data_used':False,
+        'learning_boundary':'Two fixed B16 technical steps and exact resume only; no fitted predictor or later-data selection.',
+        'error':error},counters,launch['max_published_json_bytes'])
+    checkpoint = common._json(Path(window['campaign_cursor_path']),authority.build_research_cursor(
+        recipe_ref=window['recipe'],outcome=outcome,optimizer_updates=counters['optimizer_step_returns'],parent_cursor=cursor,
+        parent_order_sha256=order_sha,full_state=full_state,result=result,batch_size=16),counters,launch['max_published_json_bytes'])
+    progress = authority.build_research_progress(window=window,plan=plan,invocation=invocation,
+        checkpoint_pointer=checkpoint,optimizer_updates=counters['optimizer_step_returns'],parent_cursor=cursor,
+        parent_order_sha256=order_sha,outcome=outcome)
+    common._json(progress_path,progress,counters,launch['max_published_json_bytes'])
+    authority.require_research_progress(progress,plan_sha256=plan['plan_sha256'],invocation=invocation,
+        expected_selection_receipt_sha256=None,verify_file=True)
+    common._freeze(launch,binding,context)
+    if not passed:
+        raise RuntimeError('NATIVE_DYNAMIC_STATE_QUALIFICATION_FAILED:'+str(error))
+    return progress
+
 def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progress_path:Path):
     from gx1.contracts.gx1_capped_execution_v1 import require_guarded_cuda_trainer_execution
     limits=require_guarded_cuda_trainer_execution()
@@ -168,6 +420,9 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(
         policy_path,policy_file_sha256,progress_path)
+    if launch['run_scope'] == authority.DYNAMIC_STATE_PRIVATE_SCOPE:
+        return _run_dynamic_state_qualification(window=window,plan=plan,invocation=invocation,launch=launch,limits=limits,
+            policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     dense_bps=launch['run_scope']==prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE
     family=launch['run_scope']==authority.FAMILY_PRIVATE_SCOPE
     candidate=launch['run_scope'] in (prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE,authority.FAMILY_PRIVATE_SCOPE)

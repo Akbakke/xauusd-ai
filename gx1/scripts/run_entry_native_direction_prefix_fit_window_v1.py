@@ -233,14 +233,21 @@ def _state_gradient_summary(model, torch):
     groups = {name:list(getattr(model,name).parameters())
         for name in ('state_query_projection','state_initial_head','state_transition_head')}
     groups['entry_q_joint'] = list(model.backbone.entry_q_joint_in.parameters()) + list(model.backbone.entry_q_joint_norm.parameters())
-    for owner in ('specialist_proj','mtf_family_proj','mtf_feature_context_gate',
-            'gc_mtf_family_proj','gc_mtf_feature_context_gate'):
+    groups['family_context_global'] = list(model.backbone.family_context_global.parameters())
+    for owner in ('specialist_proj','specialist_ctx_cont_proj','specialist_ctx_cat_proj',
+            'mtf_family_proj','mtf_feature_context_gate','gc_mtf_family_proj','gc_mtf_feature_context_gate'):
         for name, layer in getattr(model.backbone, owner).items():
             groups[owner+'.'+name] = list(layer.parameters())
     claimed = {id(p) for values in groups.values() for p in values}
     groups['remaining_native_backbone'] = [p for p in model.parameters() if p.requires_grad and id(p) not in claimed]
-    return {name:sum(int(torch.count_nonzero(p.grad)) for p in values if p.grad is not None)
+    result = {name:sum(int(torch.count_nonzero(p.grad)) for p in values if p.grad is not None)
         for name,values in groups.items()}
+    for name in ('state_initial_head','state_transition_head'):
+        layer = getattr(model,name)
+        for row in range(layer.out_features):
+            result[name+'.row_'+str(row)] = (int(torch.count_nonzero(layer.weight.grad[row]))
+                if layer.weight.grad is not None else 0) + (int(layer.bias.grad[row] != 0) if layer.bias.grad is not None else 0)
+    return result
 
 
 def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff, kind, counters,
@@ -1005,10 +1012,10 @@ def _gradient_summary(model, torch):
 
 
 def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceiling, torch, diagnostics):
-    from gx1.contracts.entry_native_direction_research_v1 import native_direction_binary_loss
+    from gx1.contracts.entry_native_direction_research_v1 import native_direction_binary_loss, NativeDynamicMTFStateResearch
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     _require(model.training and all(module.training for module in model.modules()),'TRAIN_MODE')
-    dynamic_state = type(model).__name__ == 'NativeDynamicMTFStateResearch'
+    dynamic_state = type(model) is NativeDynamicMTFStateResearch
     signed_bps=getattr(model,'signed_bps',False); magnitude_weighted=getattr(model,'magnitude_weighted',False)
     dense_bps=getattr(model,'dense_signed_bps',False)
     _require(sum((signed_bps,magnitude_weighted,dense_bps))<=1,'OBJECTIVE_MODE')
