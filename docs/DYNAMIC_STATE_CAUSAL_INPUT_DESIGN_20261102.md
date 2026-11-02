@@ -80,6 +80,12 @@ Lagringsvakten beregner eksakte logiske NPY-filstørrelser fra samme layout som 
 
 En tidligere privatkvalifisering hadde dessuten en fast formkontroll på 1 440 minutter. Kilden kontrollerer nå outputformen mot antall punkter i det bundne gridet; både gammel og utvidet form er testet med syntetiske metadata, uten modellkonstruksjon. Totalt 94 fokuserte kontroller bestod. Vanlig commit-hook inneholder modellkall og ble uttrykkelig overstyrt; guardrailtestene inngår separat.
 
+## Effektiv TRAIN-telling og lukket auditutkast
+
+En ny tellefunksjon gjenbruker målserien og teller hvor mange TRAIN-prognoser som treffer hvert faktisk observert minutt. Påfølgende kildepar vektes separat, og hull kobles ikke sammen. Dermed trengs ikke en materialisert matrise med alle foreldre ganger alle ledetider. Funksjonen avviser serier merket med TEST-bruk og aggregerer bare mål- og årsaksverdier strengt før TRAIN-grensen. Hele den allerede lagrede pre-TEST-serien blir hash-/strukturkontrollert ved lasting; senere etiketter inngår ikke i tellemetrikken eller utvalget.
+
+På de eksisterende 47 602 TRAIN-foreldrene og den gamle 1 440-minuttersgriden gjenskapte metoden syv lagrede tellefelt og hele den tidligere usmoothede prioren eksakt. Syntetisk sju-døgns kontroll ga også eksakt samsvar med direkte oppslag, inkludert to manglende minutter. En funksjon kan lage et **ikke-admittert utkast** for en eksplisitt bundet fremtidig horisont ved å gjenbruke den opprinnelige uavhengige målregelrevisjonen. Utkastet blir avvist av treningsporten og krever separat kontroll og en kilde-/databundet plan. Ingen virkelig utvidet audit eller horisont er valgt eller kjørt. 88 fokuserte tester bestod uten modell, backward eller optimizer.
+
 ## Minimumskrav før eventuell bruk eller ny treningsplan
 
 - Kontroller identitet, modenhet, kildespor og separate masker på alle faktiske parentrader; skill uttrykkelig historisk event-time fra dokumentert fysisk tilgjengelighet.
@@ -101,3 +107,4 @@ En tidligere privatkvalifisering hadde dessuten en fast formkontroll på 1 440 m
 - Engangskontroll av WSL- og Windows-vertslagring, ingen modell: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/WSL_HOST_STORAGE_OBSERVATION_001/RESULT.json`, SHA-256 `8784a98083ebebf241ddd34e04eeb6a6742593b07fa299f6c457648bddcdb2ec`.
 - Dual lagringsvakt, syntetiske tester og PC-kontroll under lesevakt: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/EXTENDED_DUAL_STORAGE_GUARD_002/SOURCE_REVIEW.json`, SHA-256 `0067a138830c356aa4ddc60249a06afcc672ae6f737010336ee342d0022d30c3`.
 - Lesevaktens kildeeier ved kontrollen: `gx1/scripts/run_entry_native_direction_research_window_v1.py`, SHA-256 `f83572e73594b0f06f459be956c7de86e0f2841f2781308b6dfcb5844ef8a6c5` (identisk med Git `1571c0ec`).
+- Effektiv TRAIN-telling, lukket utkast og eksakt gjenbrukskontroll: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TRAIN_COUNT_REUSE_CHECK_003/SOURCE_REVIEW.json`, SHA-256 `2149e88cd7281d36926f41d8ac792b6fb732c49e6f71001e9bdf88b4913cdb3b`.

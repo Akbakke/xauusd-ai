@@ -368,6 +368,49 @@ def require_dynamic_state_storage_headroom(recipe, directory, *, private_scope, 
             'scope': 'timestamped_capacity_check_not_reserved_space'}
 
 
+
+def build_extended_train_label_audit_draft(*, numerical_recipe, target_manifest, target_sources, fold, prior_rule_review):
+    """Data-only draft from a bound tape; never an admission or an independent review."""
+    from gx1.contracts.entry_model_native_train_recipe_v1 import require_native_direction_research_recipe
+    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import load_dynamic_mtf_state_series, extended_dense_lead_minutes
+    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import dense_train_query_counts, dense_train_prior_from_counts
+    numerical = require_native_direction_research_recipe(numerical_recipe)
+    _require(numerical.get('dynamic_state_supervision') is True
+        and 'extended_forecast_minutes' in numerical, 'STATE_TRAIN_DRAFT_EXTENDED_RECIPE')
+    fold = _fold(fold)
+    _require(fold == private.BPS_FOLD, 'STATE_TRAIN_DRAFT_FOLD')
+    _require(isinstance(target_sources, Mapping) and set(target_sources) == {'m1','m5_atr'}, 'STATE_TRAIN_DRAFT_SOURCES')
+    sources = {key: campaign.require_binding(ref, label='state target source', verify_file=False)
+               for key,ref in target_sources.items()}
+    target_ref = campaign.require_binding(target_manifest, label='state target manifest', verify_file=True)
+    rule_ref = campaign.require_binding(prior_rule_review, label='prior target rule review', verify_file=True)
+    rule = campaign.read_bound_json(Path(rule_ref['path']), rule_ref['sha256'])
+    _require(rule.get('schema_version') == 'gx1_dynamic_mtf_state_label_audit_v1'
+        and rule.get('support_status') == 'PASS' and rule.get('blockers') == []
+        and rule.get('target_rule_locked') is True and rule.get('test_data_used') is False
+        and rule.get('later_metrics_inspected') is False and rule.get('model_forwards') == rule.get('optimizer_steps') == 0
+        and rule.get('target_manifest') == target_ref and rule.get('target_sources') == sources
+        and rule.get('fold') == fold and rule.get('independent_rule_review', {}).get('decision') == 'PASS_SAVED_TRAIN_RULE_WITNESSES'
+        and all(rule.get('integrator_verification', {}).get(key) is True for key in
+            ('ATR_thresholds_and_axes_bitidentical','all_TRAIN_classes_and_transition_rows_present',
+             'all_output_refs_and_array_sha256_checked','terminal_and_launcher_exit_zero')), 'STATE_TRAIN_DRAFT_RULE_REVIEW')
+    series = load_dynamic_mtf_state_series(target_ref, expected_source_refs=sources, expected_cutoff_ns=fold['oof_cutoff_ns'])
+    _require(series.metadata['parents'] == fold['oof_end_row']
+        and series.metadata['definition']['contract_sha256'] == rule['target_contract_sha256'], 'STATE_TRAIN_DRAFT_TARGET_IDENTITY')
+    leads = extended_dense_lead_minutes(numerical['extended_forecast_minutes'])
+    counts = dense_train_query_counts(series, prefix_rows=fold['prefix_rows'], cutoff_ns=fold['train_cutoff_ns'], lead_minutes=leads)
+    prior = dense_train_prior_from_counts(counts, lead_minutes=leads)
+    return {'schema_version':'gx1_dynamic_mtf_state_label_audit_draft_v1', 'support_status':'DRAFT_NOT_ADMITTED',
+        'blockers':['independent_count_review_and_source_bound_plan_required'], 'target_rule_locked':True,
+        'target_manifest':target_ref, 'target_sources':sources, 'fold':fold,
+        'target_contract_sha256':series.metadata['definition']['contract_sha256'],
+        'objective_sha256':numerical['research_objective_sha256'], 'numerical_recipe_sha256':numerical['contract_sha256'],
+        'lead_minutes':list(leads), 'prior':prior, 'train_query_counts':counts, 'prior_rule_review':rule_ref,
+        'model_forwards':0, 'optimizer_steps':0, 'test_data_used':False, 'later_metrics_inspected':False,
+        'scope':'All pre-TEST cache bytes are SHA/structurally validated; only TRAIN prefix labels and reasons are aggregated.',
+        'native_launch_authorized':False, 'predictive_value_claimed':False}
+
+
 def require_dynamic_state_target_binding(recipe):
     """TRAIN audit is the rule lock; later cache bytes give no selection authority."""
     from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (

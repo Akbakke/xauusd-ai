@@ -65,6 +65,109 @@ def _ratio(numerator, denominator, infinite=None):
     return out.tolist()
 
 
+def dense_train_query_counts(series, *, prefix_rows, cutoff_ns, lead_minutes):
+    """Exact TRAIN-only dense query counts without materializing parent-by-lead arrays.
+
+    One source validity row is weighted by the number of TRAIN issues that can
+    query it. Consecutive source pairs are weighted separately; missing minutes
+    are never bridged. Only the prefix before cutoff contributes label/reason
+    values. Caller must load and source-bind the immutable series beforehand.
+    """
+    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (
+        DynamicMtfStateSeries, MINUTE_NS, TEST_BOUNDARY_NS, UNKNOWN, QUERY_UNAVAILABLE, IMMATURE,
+        dynamic_mtf_state_target_contract, require_dynamic_mtf_state_target_contract)
+    _require(isinstance(series, DynamicMtfStateSeries), 'TRAIN_SERIES')
+    _require(series.metadata.get('test_data_used') is False, 'TRAIN_TEST_CLOSED')
+    require_dynamic_mtf_state_target_contract(series.metadata['definition'])
+    _require(type(prefix_rows) is int and prefix_rows > 0 and type(cutoff_ns) is int
+             and 0 < cutoff_ns <= min(series.metadata['cutoff_ns'], TEST_BOUNDARY_NS)
+             and cutoff_ns % MINUTE_NS == 0, 'TRAIN_BOUNDARY')
+    leads = _grid(lead_minutes)
+    length = len(leads)
+    _require(np.array_equal(leads, np.arange(1, length + 1, dtype=np.int64))
+             and length * MINUTE_NS <= np.iinfo(np.int64).max
+             and prefix_rows * length <= np.iinfo(np.int64).max, 'TRAIN_DENSE_GRID')
+    a = series.arrays
+    issues = a['issue_ns']
+    parents = a['parent_rows']
+    _require(len(issues) == len(parents) == series.metadata['parents'] and prefix_rows <= len(issues)
+             and np.all(np.diff(issues) > 0) and np.all(np.diff(parents) > 0)
+             and np.all(issues >= 0) and np.all(issues % MINUTE_NS == 0)
+             and int(np.searchsorted(issues, cutoff_ns, side='left')) == prefix_rows, 'TRAIN_EXACT_PREFIX')
+    issues = issues[:prefix_rows]
+    axis = a['validity_ns']
+    end = int(np.searchsorted(axis, cutoff_ns, side='left'))
+    validity = axis[:end]
+    _require(end > 0 and np.all(validity >= 0) and np.all(np.diff(validity) > 0)
+             and np.all(validity % MINUTE_NS == 0), 'TRAIN_SOURCE_CLOCK')
+    state, observed = a['state'][:end], a['observed'][:end]
+    path, reason = a['path_observed'][:end], a['reason'][:end]
+    _require(state.shape == observed.shape == path.shape == reason.shape == (end, len(TIMEFRAMES))
+             and np.array_equal(a['maturity_ns'][:end], np.broadcast_to(validity[:, None], state.shape))
+             and np.all(state[~observed] == UNKNOWN) and np.isin(state[observed], range(len(STATE_NAMES))).all()
+             and not np.any(reason & (QUERY_UNAVAILABLE | IMMATURE)), 'TRAIN_STATE_TAPE')
+    # A source validity v can be queried only by issue t with v-H <= t <= v-1.
+    weights = (np.searchsorted(issues, validity - MINUTE_NS, side='right')
+               - np.searchsorted(issues, validity - length * MINUTE_NS, side='left')).astype(np.int64)
+    _require(np.all(weights >= 0), 'TRAIN_QUERY_MULTIPLICITY')
+    mature = int(np.clip((cutoff_ns - 1 - issues) // MINUTE_NS, 0, length).sum(dtype=np.int64))
+    total = prefix_rows * length
+    missing = mature - int(weights.sum(dtype=np.int64))
+    immature = total - mature
+    _require(missing >= 0 and immature >= 0, 'TRAIN_QUERY_PARTITION')
+    classes = len(STATE_NAMES)
+    counts = np.zeros((len(TIMEFRAMES), classes), np.int64)
+    transitions = np.zeros((len(TIMEFRAMES), classes, classes), np.int64)
+    path_counts = np.zeros(len(TIMEFRAMES), np.int64)
+    bits = dynamic_mtf_state_target_contract()['reason_bits']
+    reasons = {name: np.zeros(len(TIMEFRAMES), np.int64) for name in bits}
+    excluded = {name: np.zeros(len(TIMEFRAMES), np.int64) for name in bits}
+    if length > 1:
+        pair_weights = (np.searchsorted(issues, validity[:-1] - MINUTE_NS, side='right')
+            - np.searchsorted(issues, validity[:-1] - (length - 1) * MINUTE_NS, side='left')).astype(np.int64)
+        adjacent = np.diff(validity) == MINUTE_NS
+        _require(np.all(pair_weights >= 0), 'TRAIN_PAIR_MULTIPLICITY')
+    for tf in range(len(TIMEFRAMES)):
+        path_counts[tf] = weights[path[:, tf]].sum(dtype=np.int64)
+        for k in range(classes):
+            counts[tf, k] = weights[observed[:, tf] & (state[:, tf] == k)].sum(dtype=np.int64)
+        if length > 1:
+            pairs = adjacent & observed[:-1, tf] & observed[1:, tf]
+            for left in range(classes):
+                for right in range(classes):
+                    use = pairs & (state[:-1, tf] == left) & (state[1:, tf] == right)
+                    transitions[tf, left, right] = pair_weights[use].sum(dtype=np.int64)
+        for name, bit in bits.items():
+            hit = (reason[:, tf] & bit) != 0
+            reasons[name][tf] = weights[hit].sum(dtype=np.int64)
+            excluded[name][tf] = weights[hit & ~observed[:, tf]].sum(dtype=np.int64)
+    for name, bit in bits.items():
+        addition = missing if bit == int(QUERY_UNAVAILABLE) else immature if bit == int(IMMATURE) else 0
+        reasons[name] += addition
+        excluded[name] += addition
+    current = a['issue_source_index'][:prefix_rows]
+    _require(np.all((current >= -1) & (current < end)), 'TRAIN_CURRENT_INDEX')
+    present = current >= 0
+    _require(np.array_equal(validity[current[present]], issues[present]), 'TRAIN_CURRENT_CLOCK')
+    safe = np.maximum(current, 0)
+    current_known = observed[safe] & present[:, None]
+    current_paths = path[safe] & present[:, None]
+    current_states = state[safe]
+    current_counts = np.stack([np.count_nonzero(current_known & (current_states == k), axis=0)
+                               for k in range(classes)], axis=1)
+    return {'schema_version': 'gx1_dynamic_state_train_query_counts_v1', 'status': 'COUNTS_ONLY_NOT_ADMISSION',
+            'prefix_rows': prefix_rows, 'cutoff_ns': cutoff_ns, 'lead_count': length,
+            'class_counts': counts.tolist(), 'transition_counts': transitions.tolist(),
+            'eligible_query_cells_per_tf': counts.sum(axis=1).tolist(),
+            'path_observed_query_cells_per_tf': path_counts.tolist(),
+            'current_state_counts_per_tf': current_counts.tolist(),
+            'current_path_observed_per_tf': current_paths.sum(axis=0).tolist(),
+            'missing_source_query_cells_per_tf': missing, 'immature_query_cells_per_tf': immature,
+            'diagnostic_reason_query_counts': {k: v.tolist() for k, v in reasons.items()},
+            'excluded_reason_query_counts': {k: v.tolist() for k, v in excluded.items()},
+            'later_label_metrics_inspected': False, 'test_data_used': False}
+
+
 class StatePriorAccumulator:
     """Empirical class prior on the exact TRAIN target population; no smoothing."""
     def __init__(self, *, lead_minutes):
@@ -95,6 +198,36 @@ class StatePriorAccumulator:
                 'transition_counts': self.transition_counts.tolist(),
                 'transition_probabilities': (self.transition_counts / self.transition_counts.sum(axis=-1, keepdims=True)).tolist(),
                 'scope': 'All mature observed TRAIN query cells and adjacent observed pairs; empirical class and transition frequencies per TF; no VAL fit or smoothing.'}
+
+
+def dense_train_prior_from_counts(counts, *, lead_minutes):
+    """Turn exact TRAIN counts into the existing unsmoothed prior, never an admission."""
+    leads = _grid(lead_minutes)
+    _require(isinstance(counts, dict) and counts.get('schema_version') == 'gx1_dynamic_state_train_query_counts_v1'
+             and counts.get('status') == 'COUNTS_ONLY_NOT_ADMISSION'
+             and counts.get('later_label_metrics_inspected') is False and counts.get('test_data_used') is False
+             and type(counts.get('prefix_rows')) is int and counts['prefix_rows'] > 0
+             and type(counts.get('lead_count')) is int and counts['lead_count'] == len(leads)
+             and np.array_equal(leads, np.arange(1, len(leads) + 1, dtype=np.int64)), 'TRAIN_COUNT_IDENTITY')
+    parents = counts['prefix_rows']
+    _require(parents * len(leads) <= np.iinfo(np.int64).max, 'TRAIN_COUNT_OVERFLOW')
+    def integer_array(value, shape):
+        array = np.asarray(value, dtype=object)
+        _require(array.shape == shape and all(type(x) is int and 0 <= x <= np.iinfo(np.int64).max
+                                               for x in array.flat), 'TRAIN_COUNT_ARRAY')
+        return np.asarray(value, dtype=np.int64)
+    classes = integer_array(counts.get('class_counts'), (len(TIMEFRAMES), len(STATE_NAMES)))
+    transitions = integer_array(counts.get('transition_counts'), (len(TIMEFRAMES), len(STATE_NAMES), len(STATE_NAMES)))
+    eligible = integer_array(counts.get('eligible_query_cells_per_tf'), (len(TIMEFRAMES),))
+    _require(np.array_equal(classes.sum(axis=1, dtype=object), eligible.astype(object))
+             and np.all(eligible <= parents * len(leads))
+             and np.all(transitions.sum(axis=2, dtype=object) <= classes.astype(object))
+             and np.all(transitions.sum(axis=1, dtype=object) <= classes.astype(object)), 'TRAIN_COUNT_CONSISTENCY')
+    prior = StatePriorAccumulator(lead_minutes=leads)
+    prior.counts[:] = classes
+    prior.transition_counts[:] = transitions
+    prior.parents = parents
+    return prior.finalize()
 
 
 class StateScoreAccumulator:

@@ -86,6 +86,8 @@ Lagrede target-endepunkter er nå undersøkt 1–30 kalenderdager frem uten mode
 
 En engangsmåling fant 619,8 GB ledig i WSLs filsystem og 286,8 GB på Windows-disken som inneholder WSL-volumet. De kan ikke brukes om hverandre; begge må kontrolleres på nytt før en eventuell lagringskrevende plan. Dette er ingen plassreservasjon. En ny kildevakt kontrollerer begge volumene før modellstart og før utvidede outputfaser, med en eksplisitt oppskriftsbundet reserve; den er kontrollert under lesevakt, men ikke gjennom en faktisk modellkjøring.
 
+En effektiv TRAIN-telling er implementert og gjenskapte de tidligere 1 440-minutters klassene, overgangene, maskene og prioren eksakt. En eventuell utvidet TRAIN-audit kan forberedes som et uttrykkelig ikke-admittert utkast; ingen ny horisont er valgt. Hele pre-TEST-cachet hash-/strukturkontrolleres ved lasting, mens bare TRAIN-etiketter aggregeres. Se [kontrollgrunnlaget](DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md).
+
 ## Gjenstående tiltak
 
 1. Fullfør en kausal ONLINE-representasjon og modellkobling for kjent nåtilstand per tidsramme med eksplisitt UNKNOWN/tilgjengelighetsmaske, tilgjengelig før beslutningstid. Gi modell og baseline samme informasjon; behold genuine indikatorer og alle vakter. Kontroller først at målet ikke lekker fremtidig threshold, ekstrempunkt eller observasjon.
@@ -139,3 +141,4 @@ TEST/Exit/handel er ikke brukt. Senere Q1 2025 er gjenbrukt utviklingsdata og ik
 - `extended_dense_horizon_source_review`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/EXTENDED_DENSE_HORIZON_SOURCE_001/SOURCE_REVIEW.json` — SHA-256 `34e430bafc8b9006491bc3851886ae1874ab797c0d04e1e2969e682fec8bffab`
 - `wsl_host_storage_observation`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/WSL_HOST_STORAGE_OBSERVATION_001/RESULT.json` — SHA-256 `8784a98083ebebf241ddd34e04eeb6a6742593b07fa299f6c457648bddcdb2ec`
 - `extended_dual_storage_guard`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/EXTENDED_DUAL_STORAGE_GUARD_002/SOURCE_REVIEW.json` — SHA-256 `0067a138830c356aa4ddc60249a06afcc672ae6f737010336ee342d0022d30c3`
+- `train_count_and_draft_source_review`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TRAIN_COUNT_REUSE_CHECK_003/SOURCE_REVIEW.json` — SHA-256 `2149e88cd7281d36926f41d8ac792b6fb732c49e6f71001e9bdf88b4913cdb3b`
