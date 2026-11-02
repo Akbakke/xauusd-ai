@@ -420,6 +420,54 @@ def bind_dynamic_mtf_state_parents(series, *, parent_rows, issue_ns):
     return _series(arrays, {**series.metadata, "parents": len(parent_rows)})
 
 
+def _historical_current_at_bound_positions(series, *, positions, issue_ns):
+    """Gather current-only event-time evidence; no future-label arrays are returned."""
+    arrays = series.arrays
+    current = arrays["issue_source_index"][positions]
+    axis = arrays["validity_ns"]
+    _require(np.all((current >= -1) & (current < len(axis))), "CURRENT_SOURCE_INDEX")
+    present = current >= 0
+    _require(np.array_equal(axis[current[present]], issue_ns[present]), "CURRENT_SOURCE_VALIDITY")
+    if np.any(present):
+        selected = current[present]
+        clock = issue_ns[present, None]
+        _require(np.all(arrays["maturity_ns"][selected] <= clock), "CURRENT_MATURITY_CLOCK")
+        _require(np.all(arrays["atr_available_ns"][selected] <= clock), "CURRENT_ATR_CLOCK")
+    safe = np.maximum(current, 0)
+    observed = arrays["observed"][safe].copy() & present[:, None]
+    path_observed = arrays["path_observed"][safe].copy() & present[:, None]
+    state = arrays["state"][safe].copy()
+    state[~observed] = UNKNOWN
+    return {"current_state": state, "current_observed": observed,
+            "current_path_observed": path_observed}
+
+
+def query_historical_dynamic_mtf_current_state(series, *, parent_rows, issue_ns, cutoff_ns):
+    """Current-only input at bound historical event times, not ONLINE delivery proof.
+
+    The series was source-bound and validated at its build/load boundary. This
+    accessor returns no future targets, thresholds, prices or future masks. Its
+    masks express historical event-time observability only: physical receipt,
+    processing and restart parity must be established independently before use
+    in a real-time forecast. State and local-path masks are independent.
+    """
+    _require(isinstance(series, DynamicMtfStateSeries), "SERIES_TYPE")
+    cutoff_ns = _cutoff(cutoff_ns)
+    _require(cutoff_ns <= series.metadata["cutoff_ns"], "QUERY_CUTOFF")
+    _require(isinstance(parent_rows, np.ndarray) and parent_rows.dtype == np.int64
+             and isinstance(issue_ns, np.ndarray) and issue_ns.dtype == np.int64
+             and parent_rows.ndim == 1 and parent_rows.shape == issue_ns.shape and len(parent_rows) > 0
+             and np.all(issue_ns < cutoff_ns) and np.all(issue_ns >= 0), "QUERY_PARENTS")
+    stored = series.arrays["parent_rows"]
+    _require(len(stored) > 0, "PARENT_BINDING_REQUIRED")
+    positions = np.searchsorted(stored, parent_rows)
+    _require(np.all(positions < len(stored)) and np.array_equal(stored[positions], parent_rows)
+             and np.array_equal(series.arrays["issue_ns"][positions], issue_ns), "QUERY_PARENT_IDENTITY")
+    result = _historical_current_at_bound_positions(series, positions=positions, issue_ns=issue_ns)
+    return {"parent_rows": parent_rows.copy(), "issue_ns": issue_ns.copy(), **result,
+            "clock_basis": "historical_event_time_only_not_online_delivery"}
+
+
 def query_dynamic_mtf_states(series, *, parent_rows, issue_ns, cutoff_ns, lead_minutes):
     """Gather only the requested batch; all future prices/scales remain labels."""
     _require(isinstance(series, DynamicMtfStateSeries), "SERIES_TYPE")
@@ -456,11 +504,7 @@ def query_dynamic_mtf_states(series, *, parent_rows, issue_ns, cutoff_ns, lead_m
     result["reason"] = np.where(exists[:, None, :], result["reason"], QUERY_UNAVAILABLE).astype(np.uint8)
     # Immature queries reveal no future source or intraminute diagnostics.
     result["reason"] = np.where(in_scope[:, None, :], result["reason"], IMMATURE).astype(np.uint8)
-    current = series.arrays["issue_source_index"][positions]
-    current_safe = np.maximum(current, 0)
-    result["current_state"] = series.arrays["state"][current_safe].copy()
-    result["current_observed"] = series.arrays["observed"][current_safe].copy() & (current[:, None] >= 0)
-    result["current_state"][~result["current_observed"]] = UNKNOWN
+    result.update(_historical_current_at_bound_positions(series, positions=positions, issue_ns=issue_ns))
     return result
 
 

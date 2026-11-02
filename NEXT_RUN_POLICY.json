@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_DOCUMENTED_NO_EDGE",
+  "status": "DYNAMIC_STATE_HISTORICAL_CURRENT_ACCESSOR_TESTED_MODEL_INTEGRATION_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Review evidence for physical ONLINE event ordering and persistence only where available; follow the documented candidate design and qualification gates. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+  "next_action": "Complete evidence-bound causal model input and loss integration without automatic model calls; source/recipe must be rebound and ONLINE timing/persistence qualified before any future campaign. No automatic model, training, scoring, restart, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Same-time physical ONLINE data arrival and state persistence are unproven; candidate model/loss changes and native parity are not qualified. No additional training or automatic model work authorized.",
+    "current_blocker": "Historical current-only accessor is implemented and verified; model forwarding, objective/loss changes, same-time physical ONLINE arrival, persistence and native parity remain unqualified. No additional training or automatic model work authorized.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Review evidence for physical ONLINE event ordering and persistence only where available; follow the documented candidate design and qualification gates. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+    "next_action": "Complete evidence-bound causal model input and loss integration without automatic model calls; source/recipe must be rebound and ONLINE timing/persistence qualified before any future campaign. No automatic model, training, scoring, restart, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18598,7 +18598,7 @@
         "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
         "report": {
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
-          "sha256": "ec1f726236231a7c1a40eaae90ca8d0c2dc83cae35c1fa5ca56b05cd66f2e47a"
+          "sha256": "121a6969d7d0f78762ef2f83bf6b0d0d6f90e2d92a774e301875ac97f5e829a8"
         },
         "evidence": {
           "training_integrity": {
@@ -18692,6 +18692,14 @@
           "online_execution_source_audit": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/ONLINE_EXECUTION_SOURCE_AUDIT_001/RESULT.json",
             "sha256": "9ec6e0861b54d908e4222d226f3191ce992a813b563512c2723652b4fdb066c4"
+          },
+          "historical_current_input_accessor": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/HISTORICAL_CURRENT_INPUT_ACCESSOR_001/RESULT.json",
+            "sha256": "b4321b1a57ed5e12f8ae01cb01c1e0e99cd76f769ec3365978c9ec6746bf1e1f"
+          },
+          "historical_current_input_test_receipt": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/HISTORICAL_CURRENT_INPUT_ACCESSOR_001/TEST_RECEIPT.json",
+            "sha256": "b2ae8a296f0b0ec9941cb7e18c4cb4b6713b173bf851cd64e418d8db61ca5e24"
           }
         },
         "later_fixed_horizons": [
@@ -18825,7 +18833,7 @@
         "causal_input_design": {
           "status": "DOCUMENTED_CANDIDATE_NOT_IMPLEMENTED_OR_QUALIFIED",
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md",
-          "sha256": "e863e879e56628307db7ce0398035c00ca4fde353af3f9f8ffb10ad4e929a54f",
+          "sha256": "042fa752a432022368fa351c714f3ebcdcaf8f0c0b85002a6c9f3cfc1b7579b0",
           "actual_xau_m1_receive_or_processing_timestamp_found_in_inspected_schema": false,
           "other_logs_not_inspected": true,
           "online_delivery_order_proven": false,
@@ -18839,7 +18847,15 @@
           "test_data_used": false,
           "execution_replay_python_files_scanned": 14,
           "dynamic_state_exact_name_matches": 0,
-          "scope_limit": "Static exact-name source inspection only; other systems and logs not excluded."
+          "scope_limit": "Static exact-name source inspection only; other systems and logs not excluded.",
+          "historical_current_input_accessor_implemented": true,
+          "historical_accessor_tests_passed": 34,
+          "historical_accessor_actual_parents_verified": 64890,
+          "model_forward_receives_current_state": false,
+          "changed_source_requires_fresh_binding": true,
+          "guardrail_tests_passed": 10,
+          "standard_precommit_model_tests_run": false,
+          "standard_precommit_hook_overridden_due_to_user_model_restriction": true
         }
       }
     }
@@ -21406,7 +21422,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-02T19:23:24.313493+00:00",
+  "updated_utc": "2026-11-02T19:32:46.052483+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,

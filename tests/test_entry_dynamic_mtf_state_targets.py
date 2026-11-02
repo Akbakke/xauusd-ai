@@ -380,3 +380,77 @@ def test_immutable_artifact_roundtrip_and_source_cutoff_binding(tmp_path):
             expected_cutoff_ns=series.metadata["cutoff_ns"])
     with pytest.raises(RuntimeError, match="OUTPUT_DIRECTORY"):
         target.save_dynamic_mtf_state_series(series, tmp_path / "series")
+
+
+def test_historical_current_query_separates_state_path_and_missing_source():
+    frame = frame_from_closes([100.0] * 19, minutes=[*range(14), *range(15, 20)])
+    # The final OHLC extreme proves UP, while intraminute path remains unknown.
+    frame.loc[9, ["high", "low", "close"]] = [102.0, 98.0, 102.0]
+    parents = np.array([10, 20, 30], np.int64)
+    issues = START + np.array([5, 10, 15], np.int64) * target.MINUTE_NS
+    series = target.bind_dynamic_mtf_state_parents(build(frame), parent_rows=parents, issue_ns=issues)
+    cutoff = int(START + 100 * target.MINUTE_NS)
+    current = target.query_historical_dynamic_mtf_current_state(
+        series, parent_rows=parents, issue_ns=issues, cutoff_ns=cutoff)
+    assert set(current) == {"parent_rows", "issue_ns", "current_state", "current_observed",
+                            "current_path_observed", "clock_basis"}
+    assert current["clock_basis"] == "historical_event_time_only_not_online_delivery"
+    assert current["current_state"][:, 0].tolist() == [target.FLAT, target.UP, target.UNKNOWN]
+    assert current["current_observed"][:, 0].tolist() == [True, True, False]
+    assert current["current_path_observed"][:, 0].tolist() == [True, False, False]
+    assert not current["current_observed"][2].any()
+    assert not current["current_path_observed"][2].any()
+    full = target.query_dynamic_mtf_states(series, parent_rows=parents, issue_ns=issues,
+                                            cutoff_ns=cutoff, lead_minutes=(1, 5))
+    for key in ("current_state", "current_observed", "current_path_observed"):
+        assert np.array_equal(current[key], full[key])
+    # A consumer cannot mutate the source-bound tape by editing the result.
+    current["current_state"][0, 0] = target.DOWN
+    assert series.arrays["state"][series.arrays["issue_source_index"][0], 0] == target.FLAT
+
+
+def test_historical_current_query_is_invariant_to_future_prices_and_atr():
+    frame = frame_from_closes(np.linspace(100.0, 102.0, 20))
+    cutoff = int(START + 40 * target.MINUTE_NS)
+    issue = np.array([START + 10 * target.MINUTE_NS], np.int64)
+    parents = np.array([7], np.int64)
+    available = [START, START + 11 * target.MINUTE_NS]
+    before = target.bind_dynamic_mtf_state_parents(
+        build(frame, cutoff=cutoff, atr=atr_fixture(cutoff, values=[2.0, 4.0], available=available)),
+        parent_rows=parents, issue_ns=issue)
+    changed = frame.copy()
+    changed.loc[10:, ["open", "high", "low", "close"]] += 50.0
+    after = target.bind_dynamic_mtf_state_parents(
+        build(changed, cutoff=cutoff, atr=atr_fixture(cutoff, values=[2.0, 9.0], available=available)),
+        parent_rows=parents, issue_ns=issue)
+    kwargs = {"parent_rows": parents, "issue_ns": issue, "cutoff_ns": cutoff}
+    a = target.query_historical_dynamic_mtf_current_state(before, **kwargs)
+    b = target.query_historical_dynamic_mtf_current_state(after, **kwargs)
+    for key in a:
+        assert np.array_equal(a[key], b[key]), key
+    assert not np.array_equal(before.arrays["threshold"][10:], after.arrays["threshold"][10:])
+
+
+def test_historical_current_query_rejects_parent_and_future_clock_mismatch():
+    parents = np.array([7], np.int64)
+    issue = np.array([START + 5 * target.MINUTE_NS], np.int64)
+    cutoff = int(START + 100 * target.MINUTE_NS)
+    series = target.bind_dynamic_mtf_state_parents(build(frame_from_closes([100.0] * 12)),
+                                                     parent_rows=parents, issue_ns=issue)
+    kwargs = {"parent_rows": parents, "issue_ns": issue, "cutoff_ns": cutoff}
+    with pytest.raises(RuntimeError, match="QUERY_PARENT_IDENTITY"):
+        target.query_historical_dynamic_mtf_current_state(series, **{**kwargs, "issue_ns": issue + target.MINUTE_NS})
+    arrays = dict(series.arrays)
+    index = arrays["issue_source_index"].copy()
+    index[0] += 1
+    arrays["issue_source_index"] = index
+    bad = target.DynamicMtfStateSeries(MappingProxyType(arrays), series.metadata)
+    with pytest.raises(RuntimeError, match="CURRENT_SOURCE_VALIDITY"):
+        target.query_historical_dynamic_mtf_current_state(bad, **kwargs)
+    arrays = dict(series.arrays)
+    atr_clock = arrays["atr_available_ns"].copy()
+    atr_clock[series.arrays["issue_source_index"][0], 0] = issue[0] + target.MINUTE_NS
+    arrays["atr_available_ns"] = atr_clock
+    bad = target.DynamicMtfStateSeries(MappingProxyType(arrays), series.metadata)
+    with pytest.raises(RuntimeError, match="CURRENT_ATR_CLOCK"):
+        target.query_historical_dynamic_mtf_current_state(bad, **kwargs)
