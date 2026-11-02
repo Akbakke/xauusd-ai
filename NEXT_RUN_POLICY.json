@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_EXTENDED_DENSE_SOURCE_TESTED_NO_NATIVE_QUALIFICATION",
+  "status": "DYNAMIC_STATE_EXTENDED_SOURCE_TESTED_STORAGE_MAPPING_OBSERVED_NO_NATIVE_QUALIFICATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Prepare evidence-bound storage/runtime guard and matching TRAIN-only audit design for a future explicitly selected horizon; do not select a loss weight or horizon from reused later data. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+  "next_action": "Implement fail-closed dual-volume storage guard and matching TRAIN-only audit design for a future explicitly selected horizon; do not select a loss weight or horizon from reused later data. No automatic model, training, scoring, restart, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Extended dense source/grid, historical current inputs and first-state loss are implemented but unqualified. No extended horizon or loss weight is selected, no matching extended TRAIN audit/prior exists, and actual native forward/gradient/resume, compute/disk budgets, ONLINE arrival and persistence remain unproven. No additional training or automatic model work authorized.",
+    "current_blocker": "Extended dense source/grid, historical current inputs and first-state loss are implemented but unqualified. No extended horizon or loss weight is selected, no matching extended TRAIN audit/prior exists, and actual native forward/gradient/resume, compute/disk budgets, dual-volume storage guard, ONLINE arrival and persistence remain unproven. No additional training or automatic model work authorized.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare evidence-bound storage/runtime guard and matching TRAIN-only audit design for a future explicitly selected horizon; do not select a loss weight or horizon from reused later data. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+    "next_action": "Implement fail-closed dual-volume storage guard and matching TRAIN-only audit design for a future explicitly selected horizon; do not select a loss weight or horizon from reused later data. No automatic model, training, scoring, restart, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18598,7 +18598,7 @@
         "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
         "report": {
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
-          "sha256": "a275220fb50ece2cbeb3e4434b6d410c29b4f822b22db7152272b38c04d6cb4a"
+          "sha256": "925e728ba154924526dea3213d4dd15440e2163c689251f467c37cc9ee9d227f"
         },
         "evidence": {
           "training_integrity": {
@@ -18712,6 +18712,10 @@
           "extended_dense_horizon_source_review": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/EXTENDED_DENSE_HORIZON_SOURCE_001/SOURCE_REVIEW.json",
             "sha256": "34e430bafc8b9006491bc3851886ae1874ab797c0d04e1e2969e682fec8bffab"
+          },
+          "wsl_host_storage_observation": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/WSL_HOST_STORAGE_OBSERVATION_001/RESULT.json",
+            "sha256": "8784a98083ebebf241ddd34e04eeb6a6742593b07fa299f6c457648bddcdb2ec"
           }
         },
         "later_fixed_horizons": [
@@ -18845,7 +18849,7 @@
         "causal_input_design": {
           "status": "EXTENDED_DENSE_SOURCE_WIRING_TESTED_NO_NATIVE_QUALIFICATION",
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md",
-          "sha256": "7a8e3a107df1efdbee71ba7d95df352a3f0ed62bae3a7c0e6f3ec083eccb449a",
+          "sha256": "43745b8050c5fc8280323f612fedee18115a9ae1252db013a612796df1180f7f",
           "actual_xau_m1_receive_or_processing_timestamp_found_in_inspected_schema": false,
           "other_logs_not_inspected": true,
           "online_delivery_order_proven": false,
@@ -18903,7 +18907,15 @@
           "runtime_memory_disk_and_numerics_qualified": false,
           "prior_accessor_source_check_historical_commit": "0640aea901fcfb0c01984bb96575188e7051add3",
           "prior_model_wiring_source_check_historical_commit": "9bab227a6af3150158489b6e2722fcf3300fd275",
-          "prior_long_target_support_source_check_historical_commit": "14e1d6259a9d9aa619972a3c87e174160e413562"
+          "prior_long_target_support_source_check_historical_commit": "14e1d6259a9d9aa619972a3c87e174160e413562",
+          "storage_observation": {
+            "observed_utc": "2026-11-02T20:01:07.333688+00:00",
+            "wsl_free_bytes": 619824545792,
+            "host_drive": "C",
+            "host_free_bytes": 286810836992,
+            "fresh_capacity_required": true,
+            "runtime_dual_volume_storage_guard_implemented": false
+          }
         }
       }
     }
@@ -21470,7 +21482,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-02T19:58:10.087830+00:00",
+  "updated_utc": "2026-11-02T20:01:35.215221+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,

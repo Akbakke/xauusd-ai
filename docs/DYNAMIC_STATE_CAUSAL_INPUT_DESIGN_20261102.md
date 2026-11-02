@@ -74,6 +74,8 @@ En separat, eksplisitt research-variant kan bindes til et valgt siste minutt uto
 
 Full lagring av FP32-sannsynligheter for 256 initiale, 47 602 TRAIN- og 17 288 senere foreldre på fem TF og tre klasser ved sju døgn krever minst **39 400 300 800 bytes**. Dette utelater blant annet filheadere, øvrige arrays, checkpoints og arbeidsplass. Det er en beregnet nedre grense, ikke plass- eller kjøretidskvalifisering. Lengre grid, faktisk ledig plass, minnebruk, tidsbudsjett, fersk TRAIN-audit og initialbaseline må avklares før en konkret plan; verken et grid eller en tapsvekt er nå valgt.
 
+Ved en engangskontroll av PC-en var WSLs rapporterte ledige plass 619,8 GB, mens Windows-disken som inneholder Ubuntu-disken rapporterte 286,8 GB. Tallene gjelder bare kontrolltidspunktet og er ikke en reservasjon. Et fremtidig lagringsvern må verifisere både riktig vertsvolum og aktuell ledig plass; å stole bare på WSLs virtuelle kapasitet er utilstrekkelig. Lagringsvernet er ennå ikke implementert eller kvalifisert.
+
 ## Minimumskrav før eventuell bruk eller ny treningsplan
 
 - Kontroller identitet, modenhet, kildespor og separate masker på alle faktiske parentrader; skill uttrykkelig historisk event-time fra dokumentert fysisk tilgjengelighet.
@@ -92,3 +94,4 @@ Full lagring av FP32-sannsynligheter for 256 initiale, 47 602 TRAIN- og 17 288 s
 - Modellkobling, tapsvariant og 36 kilde-/metadata-/tensor-/guardrailkontroller uten modell: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CURRENT_MODEL_WIRING_SOURCE_001/SOURCE_REVIEW.json`, SHA-256 `0096ed929f2e25f8426991185c4ecec4058e59fa8cf61d6fc1a06c8b4030b1b7`.
 - Lagret støtte for målendepunkter utover ett døgn, uten modell: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_LONG_HORIZON_TARGET_SUPPORT_001/RESULT.json`, SHA-256 `b44043df9d6be4a35d666b32f68403d16fa5529c420a821cfb2d4cca26ead3f2`.
 - Utvidbar tett minuttgrid, syntetisk loss-/evalueringskontroll og lagringsnedre grense: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/EXTENDED_DENSE_HORIZON_SOURCE_001/SOURCE_REVIEW.json`, SHA-256 `34e430bafc8b9006491bc3851886ae1874ab797c0d04e1e2969e682fec8bffab`.
+- Engangskontroll av WSL- og Windows-vertslagring, ingen modell: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/WSL_HOST_STORAGE_OBSERVATION_001/RESULT.json`, SHA-256 `8784a98083ebebf241ddd34e04eeb6a6742593b07fa299f6c457648bddcdb2ec`.

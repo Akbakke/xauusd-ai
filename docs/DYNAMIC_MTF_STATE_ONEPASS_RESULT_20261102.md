@@ -84,6 +84,8 @@ Et separat historisk nåinpututtak er implementert med uavhengige masker for kje
 
 Lagrede target-endepunkter er nå undersøkt 1–30 kalenderdager frem uten modellkjøring. Alle tre klasser finnes på alle fem tidsrammer for de sju forhåndsvalgte eksempelledetidene i både TRAIN og senere utviklingsdata. Eksempelvis har senere utvikling ved sju døgn 8 194 observerbare M5-endepunkter og 15 618 D1-endepunkter av 17 288 foreldre. Dette er overlappende endepunkter, ikke fullstendig observerte ukesforløp eller dokumentert prediksjon. Den faktisk trente modellen stopper ved 1 440 minutter. En separat kildevariant kan bindes til en lengre tett minuttgrid, med ukjente hull maskert; den er ikke kjørt eller kvalifisert. Se [hele oversikten](DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md).
 
+En engangsmåling fant 619,8 GB ledig i WSLs filsystem og 286,8 GB på Windows-disken som inneholder WSL-volumet. De kan ikke brukes om hverandre; begge må kontrolleres på nytt før en eventuell lagringskrevende plan. Dette er ingen plassreservasjon eller implementert lagringsvakt.
+
 ## Gjenstående tiltak
 
 1. Fullfør en kausal ONLINE-representasjon og modellkobling for kjent nåtilstand per tidsramme med eksplisitt UNKNOWN/tilgjengelighetsmaske, tilgjengelig før beslutningstid. Gi modell og baseline samme informasjon; behold genuine indikatorer og alle vakter. Kontroller først at målet ikke lekker fremtidig threshold, ekstrempunkt eller observasjon.
@@ -135,3 +137,4 @@ TEST/Exit/handel er ikke brukt. Senere Q1 2025 er gjenbrukt utviklingsdata og ik
 - `current_model_wiring_source_review`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CURRENT_MODEL_WIRING_SOURCE_001/SOURCE_REVIEW.json` — SHA-256 `0096ed929f2e25f8426991185c4ecec4058e59fa8cf61d6fc1a06c8b4030b1b7`
 - `saved_long_horizon_target_support`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_LONG_HORIZON_TARGET_SUPPORT_001/RESULT.json` — SHA-256 `b44043df9d6be4a35d666b32f68403d16fa5529c420a821cfb2d4cca26ead3f2`
 - `extended_dense_horizon_source_review`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/EXTENDED_DENSE_HORIZON_SOURCE_001/SOURCE_REVIEW.json` — SHA-256 `34e430bafc8b9006491bc3851886ae1874ab797c0d04e1e2969e682fec8bffab`
+- `wsl_host_storage_observation`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/WSL_HOST_STORAGE_OBSERVATION_001/RESULT.json` — SHA-256 `8784a98083ebebf241ddd34e04eeb6a6742593b07fa299f6c457648bddcdb2ec`
