@@ -841,7 +841,7 @@
     "existing_normalization_content": "All physical surfaces are covered by the old statistics; no compact-only numerical statistics were substituted.",
     "actual_current_source_binding": "PASS with the newly fitted immutable fold1 normalization and current source SHAs; original267 statistics remain unchanged. The earlier provenance failure was repaired through the existing owner, not bypassed.",
     "normalization_repair": "Completed one fresh existing-owner fold1 normalization fit. All12numeric surfaces/support and categorical context exactly match original267; no new input scratch or target labels. New provenance passes actual full-profile metadata binding.",
-    "genuine_native_consumption_qualified": false,
+    "genuine_native_consumption_qualified": true,
     "new_state_target_loss_implemented": true,
     "learning_improvement_qualified": false,
     "normalization_verification": {
@@ -1306,7 +1306,7 @@
       }
     },
     "native_private_qualification": {
-      "status": "ADMITTED_EXACT_PRIVATE_002_AFTER_WINDOWS_POLICY_PASS",
+      "status": "PASS_CONSUMED_DYNAMIC_STATE_NATIVE_MECHANICS",
       "recipe": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RECIPE.json",
         "sha256": "510441259b3b650f44de7fc6cbc88e0185c43342396b350f61ddc9a3760b8c46"
@@ -1328,12 +1328,56 @@
         "fixed_parents": 32,
         "initial_TRAIN_measurement_parents": 256
       },
-      "genuine_native_qualification_completed": false,
+      "genuine_native_qualification_completed": true,
       "weights_for_main_fit": false,
       "previous_bootstrap_failure": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/BOOTSTRAP_TERMINAL.json",
         "sha256": "c2d949e061e28aee95100ce023cefc7a7fc42e514441530ed0be1ce782ffe1c7"
+      },
+      "root_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
+        "sha256": "90fcd1b31f44f76292046badf959974a634b8fd61d2cb1c55db5b3402d8d38d1"
+      },
+      "actual_counts": {
+        "backward_calls": 4,
+        "backward_returns": 4,
+        "empty_batches": 0,
+        "forbidden_legacy_calls": 0,
+        "forward_calls": 21,
+        "forward_kind_calls": {
+          "INITIAL_PARITY_GRAD": 1,
+          "INITIAL_TRAIN": 16,
+          "TRAIN": 4
+        },
+        "forward_returns": 21,
+        "model_construction_returns": 3,
+        "model_constructions": 3,
+        "optimizer_constructions": 3,
+        "optimizer_step_calls": 4,
+        "optimizer_step_returns": 4,
+        "resume_state_load_calls": 1,
+        "resume_state_load_returns": 1,
+        "staged_state_load_calls": 3,
+        "staged_state_load_returns": 3
       }
+    },
+    "onepass_fit": {
+      "status": "ADMITTED_EXACT_SINGLE_DYNAMIC_STATE_ONEPASS",
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RECIPE.json",
+        "sha256": "115fdaf8779409bae349f02923b681031d95c3d505489bf5065f389ed46c2527"
+      },
+      "metadata_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RECIPE_METADATA_REVIEW.json",
+        "sha256": "75f898b2ded6191bec80715ededf01e74d739840dd655adff6440bb8b38eb48c"
+      },
+      "private_mechanics": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
+        "sha256": "90fcd1b31f44f76292046badf959974a634b8fd61d2cb1c55db5b3402d8d38d1"
+      },
+      "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RUNTIME",
+      "training_rounds": 1,
+      "weights_from_private": false
     }
   }
 }

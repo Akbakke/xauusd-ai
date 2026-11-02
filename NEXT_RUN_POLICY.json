@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-02T11:51:24.293308+00:00",
-  "status": "DYNAMIC_STATE_PRIVATE_002_ADMITTED_REBOOT_PENDING",
+  "observed_utc": "2026-11-02T12:20:41.302117+00:00",
+  "status": "DYNAMIC_STATE_SINGLE_ONEPASS_ADMITTED_REBOOT_PENDING",
   "training_enabled": true,
-  "full_epoch_training_allowed": false,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-  "next_action": "Freeze exact source and metadata; materialize private002, install bound Windows task, verify whole-host idle then safe reboot. Only21forwards/4physicalupdates; main fit requires genuine qualification. Never relaunch private001.",
+  "next_action": "Freeze source and materialize exactly one dynamic-state TRAIN pass:47602parents,at most2976updates, fresh256initial, fullTRAIN and laterQ1development measurements. Safe freshboot before each bounded window; no repeat arms or full training.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Freeze exact source and metadata; materialize private002, install bound Windows task, verify whole-host idle then safe reboot. Only21forwards/4physicalupdates; main fit requires genuine qualification. Never relaunch private001.",
+    "current_activity": "Freeze source and materialize exactly one dynamic-state TRAIN pass:47602parents,at most2976updates, fresh256initial, fullTRAIN and laterQ1development measurements. Safe freshboot before each bounded window; no repeat arms or full training.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Genuine dynamic model/input/gradient/checkpoint qualification pending; target005 and Windows250Wpolicy checks PASS.",
+    "current_blocker": "Exact fit metadataPASS; campaign/task and safe boot pending.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -18049,7 +18049,7 @@
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "dynamic_state_short_training_20261101": {
-      "status": "DYNAMIC_STATE_PRIVATE_002_ADMITTED_REBOOT_PENDING",
+      "status": "DYNAMIC_STATE_SINGLE_ONEPASS_ADMITTED_REBOOT_PENDING",
       "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
       "operator_authorized_source_target_preparation": true,
       "operator_authorized_required_genuine_qualification": true,
@@ -18060,7 +18060,7 @@
       "automatic_full_training_authorized": false,
       "automatic_repetition_authorized": false,
       "training_enabled": true,
-      "native_launch_authorized": false,
+      "native_launch_authorized": true,
       "training_launched": false,
       "restart_executed": true,
       "test_data_used": false,
@@ -18085,7 +18085,7 @@
         "prior_interventions": "native model/loss/input/output integration audit",
         "saved_learning_source_audit": "campaign/qualification/host and preexisting-diff audit"
       },
-      "counts_scope": "Physical reboot591to592 completed; private001bootstrap failed before any genuine model call. Newprivate002 admitted only.",
+      "counts_scope": "Private002complete21forwards/4updates/3constructors; boot593. Mainfit not yet started.",
       "cancelled_capacity_source_cleanup": {
         "status": "SELECTIVELY_REMOVED_UNNEEDED_REJECTED_SCOPE",
         "tracked_files_restored_to_existing_head": 8,
@@ -18479,9 +18479,9 @@
           "sha256": "d2addf8fbb6f9ac9e9ed741bbbd2fe2bfdc07f59553ea28c021ea198d5fbfa8e"
         }
       },
-      "training_enabled_scope": "EXACT_DYNAMIC_STATE_PRIVATE_QUALIFICATION_ONLY_4_PHYSICAL_UPDATES",
+      "training_enabled_scope": "ONE_FIXED_DYNAMIC_STATE_TRAIN_PASS_ONLY",
       "native_private_qualification": {
-        "status": "ADMITTED_EXACT_PRIVATE_002_AFTER_WINDOWS_POLICY_PASS",
+        "status": "PASS_CONSUMED_DYNAMIC_STATE_NATIVE_MECHANICS",
         "recipe": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RECIPE.json",
           "sha256": "510441259b3b650f44de7fc6cbc88e0185c43342396b350f61ddc9a3760b8c46"
@@ -18503,12 +18503,56 @@
           "fixed_parents": 32,
           "initial_TRAIN_measurement_parents": 256
         },
-        "genuine_native_qualification_completed": false,
+        "genuine_native_qualification_completed": true,
         "weights_for_main_fit": false,
         "previous_bootstrap_failure": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/BOOTSTRAP_TERMINAL.json",
           "sha256": "c2d949e061e28aee95100ce023cefc7a7fc42e514441530ed0be1ce782ffe1c7"
+        },
+        "root_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
+          "sha256": "90fcd1b31f44f76292046badf959974a634b8fd61d2cb1c55db5b3402d8d38d1"
+        },
+        "actual_counts": {
+          "backward_calls": 4,
+          "backward_returns": 4,
+          "empty_batches": 0,
+          "forbidden_legacy_calls": 0,
+          "forward_calls": 21,
+          "forward_kind_calls": {
+            "INITIAL_PARITY_GRAD": 1,
+            "INITIAL_TRAIN": 16,
+            "TRAIN": 4
+          },
+          "forward_returns": 21,
+          "model_construction_returns": 3,
+          "model_constructions": 3,
+          "optimizer_constructions": 3,
+          "optimizer_step_calls": 4,
+          "optimizer_step_returns": 4,
+          "resume_state_load_calls": 1,
+          "resume_state_load_returns": 1,
+          "staged_state_load_calls": 3,
+          "staged_state_load_returns": 3
         }
+      },
+      "onepass_fit": {
+        "status": "ADMITTED_EXACT_SINGLE_DYNAMIC_STATE_ONEPASS",
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RECIPE.json",
+          "sha256": "115fdaf8779409bae349f02923b681031d95c3d505489bf5065f389ed46c2527"
+        },
+        "metadata_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RECIPE_METADATA_REVIEW.json",
+          "sha256": "75f898b2ded6191bec80715ededf01e74d739840dd655adff6440bb8b38eb48c"
+        },
+        "private_mechanics": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
+          "sha256": "90fcd1b31f44f76292046badf959974a634b8fd61d2cb1c55db5b3402d8d38d1"
+        },
+        "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RUNTIME",
+        "training_rounds": 1,
+        "weights_from_private": false
       }
     }
   },
@@ -51893,7 +51937,7 @@
     }
   },
   "dynamic_mtf_state_private_qualification_20261102_002": {
-    "status": "ADMITTED_EXACT_PRIVATE_002_AFTER_WINDOWS_POLICY_PASS",
+    "status": "PASS_CONSUMED_DYNAMIC_STATE_NATIVE_MECHANICS",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RECIPE.json",
       "sha256": "510441259b3b650f44de7fc6cbc88e0185c43342396b350f61ddc9a3760b8c46"
@@ -51901,8 +51945,8 @@
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RUNTIME",
     "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "source_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_005.json",
       "sha256": "4a34cef5837f7249f873660915d4d0d3d88f65f1e0db8fa9b5b342427fb6648c"
@@ -51930,15 +51974,15 @@
     "fresh_windows_boot_required": true,
     "private_weights_for_fit": false,
     "power_limit_w": 250,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "campaign_preparation_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
@@ -51950,6 +51994,92 @@
     "prepared_boot": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/PREPARED_WINDOWS_BOOT.json",
       "sha256": "5d40720c4535552aa7be9b6f924da240f36857c1118664a474efd49b11e68b28"
-    }
+    },
+    "root_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "90fcd1b31f44f76292046badf959974a634b8fd61d2cb1c55db5b3402d8d38d1"
+    },
+    "power_after": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/POWER_AFTER.json",
+      "sha256": "c85310f969d1502f5cd694f432265ae5f2f04586bb5c2a5def4c9eb51988b42b"
+    },
+    "actual_counts": {
+      "backward_calls": 4,
+      "backward_returns": 4,
+      "empty_batches": 0,
+      "forbidden_legacy_calls": 0,
+      "forward_calls": 21,
+      "forward_kind_calls": {
+        "INITIAL_PARITY_GRAD": 1,
+        "INITIAL_TRAIN": 16,
+        "TRAIN": 4
+      },
+      "forward_returns": 21,
+      "model_construction_returns": 3,
+      "model_constructions": 3,
+      "optimizer_constructions": 3,
+      "optimizer_step_calls": 4,
+      "optimizer_step_returns": 4,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "staged_state_load_calls": 3,
+      "staged_state_load_returns": 3
+    },
+    "elapsed_seconds": 206.605561337
+  },
+  "dynamic_mtf_state_onepass_fit_20261102_001": {
+    "status": "ADMITTED_EXACT_SINGLE_DYNAMIC_STATE_ONEPASS",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RECIPE.json",
+      "sha256": "115fdaf8779409bae349f02923b681031d95c3d505489bf5065f389ed46c2527"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RUNTIME",
+    "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001",
+    "metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RECIPE_METADATA_REVIEW.json",
+      "sha256": "75f898b2ded6191bec80715ededf01e74d739840dd655adff6440bb8b38eb48c"
+    },
+    "private_mechanics": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "90fcd1b31f44f76292046badf959974a634b8fd61d2cb1c55db5b3402d8d38d1"
+    },
+    "materializer": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/materialize_prefix_campaign_once.py",
+      "sha256": "698d74f4e7d0819d2832e34bc49d331f106f76ee6e7ef068aaa38a1b978ca1de"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "73596ce0671d681b15a9c6bc1249d9e77b8b35921fb6df168b58acbe7c2e9cd4"
+    },
+    "max_invocations": 4,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_rounds": 1,
+    "automatic_repetition_authorized": false,
+    "automatic_full_training_authorized": false,
+    "qualification_weights_for_main_fit": false,
+    "power_limit_w": 250,
+    "max_optimizer_updates": 2976,
+    "train_parent_rows": 47602,
+    "scope": "One fixed TRAIN pass; up to4 guarded windows share a single durable trajectory and scoring. Never4trainingarms. No TEST/trading.",
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false
   }
 }
