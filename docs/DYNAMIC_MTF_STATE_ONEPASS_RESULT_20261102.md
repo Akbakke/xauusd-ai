@@ -108,6 +108,8 @@ En engangsmåling fant 619,8 GB ledig i WSLs filsystem og 286,8 GB på Windows-d
 
 En effektiv TRAIN-telling er implementert og gjenskapte de tidligere 1 440-minutters klassene, overgangene, maskene og prioren eksakt. En eventuell utvidet TRAIN-audit kan forberedes som et uttrykkelig ikke-admittert utkast; ingen ny horisont er valgt. Hele pre-TEST-cachet hash-/strukturkontrolleres ved lasting, mens bare TRAIN-etiketter aggregeres. Se [kontrollgrunnlaget](DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md).
 
+En ny TRAIN-only opptelling av et uforpliktende sjudøgnseksempel viser betydelig klasse- og fortsettelsesskjevhet, særlig på D1. Dette er målfordeling, ikke en ny prognosemåling; se [kontrollgrunnlaget](DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md).
+
 ## Gjenstående tiltak
 
 1. Fullfør en kausal ONLINE-representasjon og modellkobling for kjent nåtilstand per tidsramme med eksplisitt UNKNOWN/tilgjengelighetsmaske, tilgjengelig før beslutningstid. Gi modell og baseline samme informasjon; behold genuine indikatorer og alle vakter. Kontroller først at målet ikke lekker fremtidig threshold, ekstrempunkt eller observasjon.
