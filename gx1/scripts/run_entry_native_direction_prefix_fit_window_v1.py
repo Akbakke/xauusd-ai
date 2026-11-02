@@ -264,6 +264,15 @@ def _state_gradient_summary(model, torch):
     return result
 
 
+
+def _state_report_current_input(model, view):
+    """The matched baseline may use only the state input actually bound to the model."""
+    bound = view.get('current_state_first_loss_weight') is not None
+    _require(type(model.current_state_input) is bool and model.current_state_input is bound,
+        'STATE_REPORT_CURRENT_INPUT_ALIGNMENT')
+    return bound
+
+
 def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff, kind, counters,
         ceiling, device, torch, np, tree_sha, deadline=None, parity=False):
     """Bounded NPY outputs and incremental scores; no N-by-query target copy."""
@@ -296,7 +305,8 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
     arrays = {key:np.lib.format.open_memmap(stage/(key+'.npy'), mode='w+', dtype=dtype, shape=shape)
         for key,(shape,dtype) in shapes.items()}
     semantic = {key:hashlib.sha256() for key in arrays}
-    scorer = StateScoreAccumulator(targets['prior'], lead_minutes=targets['lead_minutes'])
+    scorer = StateScoreAccumulator(targets['prior'], lead_minutes=targets['lead_minutes'],
+        model_receives_current_state=_state_report_current_input(model, view))
     activity_scorer = (FirstFlatActivityAccumulator(scorer.markov_grid[:, :, 0, :])
         if view.get('first_flat_activity_weight') is not None else None)
     path_support = np.zeros((5,len(targets['lead_minutes'])),np.int64)

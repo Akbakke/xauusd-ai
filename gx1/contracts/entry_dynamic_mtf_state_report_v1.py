@@ -230,8 +230,102 @@ def dense_train_prior_from_counts(counts, *, lead_minutes):
     return prior.finalize()
 
 
+class _MatchedTransitionEvidence:
+    """Compare strict modal transition forecasts on identical observed endpoints."""
+    def __init__(self, transition, markov_grid, *, model_receives_current_state):
+        self.model_receives_current_state = model_receives_current_state
+        f, k, leads = len(TIMEFRAMES), len(STATE_NAMES), markov_grid.shape[2]
+        # TRAIN Markov is frozen: compute its joint decisions once per TF/case,
+        # rather than allocating a second batch x TF x horizon x 3 x 3 tensor.
+        self.markov_pair_code = np.zeros((f, k + 1, max(leads - 1, 0)), np.uint8)
+        self.markov_pair_unique = np.zeros_like(self.markov_pair_code, dtype=bool)
+        for tf in range(f):
+            for case in range(k + 1):
+                joint = (markov_grid[tf, case, :-1, :, None] * transition[tf][None, :, :]).reshape(-1, k * k)
+                self.markov_pair_code[tf, case] = joint.argmax(axis=-1)
+                self.markov_pair_unique[tf, case] = (joint == joint.max(axis=-1, keepdims=True)).sum(axis=-1) == 1
+        shape = (f, k, k)
+        self.groups = {group: {name: np.zeros(shape, np.int64) for name in
+                       ('truth', 'model_forecasts', 'model_exact_hits', 'markov_forecasts', 'markov_exact_hits')}
+                       for group in ('current_to_first', 'future_adjacent')}
+        self.ties = {group: {name: np.zeros(len(TIMEFRAMES), np.int64) for name in ('model', 'markov')}
+                     for group in self.groups}
+
+    def _accumulate(self, group, eligible, truth_code, model_code, model_unique, markov_code, markov_unique):
+        for tf in range(len(TIMEFRAMES)):
+            mask = eligible[:, tf]
+            true = truth_code[:, tf]
+            model = model_code[:, tf]
+            markov = markov_code[:, tf]
+            mu, bu = model_unique[:, tf], markov_unique[:, tf]
+            for name, values, selection in (
+                ('truth', true, mask),
+                ('model_forecasts', model, mask & mu),
+                ('model_exact_hits', true, mask & mu & (model == true)),
+                ('markov_forecasts', markov, mask & bu),
+                ('markov_exact_hits', true, mask & bu & (markov == true))):
+                self.groups[group][name][tf] += np.bincount(values[selection], minlength=9).reshape(3, 3)
+            self.ties[group]['model'][tf] += int(np.count_nonzero(mask & ~mu))
+            self.ties[group]['markov'][tf] += int(np.count_nonzero(mask & ~bu))
+
+    def update(self, p, model_joint, markov_p, state, eligible, current, current_observed):
+        k = len(STATE_NAMES)
+        first_model, first_markov = p[:, :, 0], markov_p[:, :, 0]
+        true_code = k * current.astype(np.int64) + state[:, :, 0].astype(np.int64)
+        model_code = k * current.astype(np.int64) + first_model.argmax(axis=-1)
+        markov_code = k * current.astype(np.int64) + first_markov.argmax(axis=-1)
+        model_unique = (first_model == first_model.max(axis=-1, keepdims=True)).sum(axis=-1) == 1
+        markov_unique = (first_markov == first_markov.max(axis=-1, keepdims=True)).sum(axis=-1) == 1
+        self._accumulate('current_to_first', eligible[:, :, 0] & current_observed,
+                         true_code, model_code, model_unique, markov_code, markov_unique)
+        if state.shape[2] <= 1:
+            return
+        truth = k * state[:, :, :-1].astype(np.int64) + state[:, :, 1:].astype(np.int64)
+        mask = eligible[:, :, :-1] & eligible[:, :, 1:]
+        model_flat = model_joint.reshape(*model_joint.shape[:3], k * k)
+        case = (np.where(current_observed, current, k) if self.model_receives_current_state
+                else np.full(current.shape, k, dtype=np.int64))
+        markov_code = self.markov_pair_code[np.arange(len(TIMEFRAMES))[None, :], case]
+        markov_unique = self.markov_pair_unique[np.arange(len(TIMEFRAMES))[None, :], case]
+        self._accumulate('future_adjacent', mask, truth,
+            model_flat.argmax(axis=-1), (model_flat == model_flat.max(axis=-1, keepdims=True)).sum(axis=-1) == 1,
+            markov_code, markov_unique)
+
+    def finalize(self):
+        off_diagonal = ~np.eye(len(STATE_NAMES), dtype=bool)
+        groups = {}
+        for name, values in self.groups.items():
+            result = {key + '_by_from_to': value.tolist() for key, value in values.items()}
+            truth = values['truth'][:, off_diagonal].sum(axis=1)
+            result['observed_pairs'] = values['truth'].sum(axis=(1, 2)).tolist()
+            result['true_changes'] = truth.tolist()
+            for forecast in ('model', 'markov'):
+                hits = values[forecast + '_exact_hits'][:, off_diagonal].sum(axis=1)
+                predictions = values[forecast + '_forecasts'][:, off_diagonal].sum(axis=1)
+                result[forecast + '_tied_pairs'] = self.ties[name][forecast].tolist()
+                result[forecast + '_exact_change_hits'] = hits.tolist()
+                result[forecast + '_predicted_changes'] = predictions.tolist()
+                result[forecast + '_change_recall'] = _ratio(hits, truth)
+                result[forecast + '_change_precision'] = _ratio(hits, predictions)
+            groups[name] = result
+        return {'model_receives_current_state': self.model_receives_current_state,
+                'markov_uses_current_state_when_observed': self.model_receives_current_state,
+                'baseline': 'frozen_TRAIN_transition_and_prior; current_state_only_if_explicitly_supplied_to_model',
+                'current_to_first_scope': 'requires observed current state; both state forecasts are compared with that state',
+                'groups': groups,
+                'limits': ['Both use identical observed target endpoints; missing states are excluded.',
+                           'Tied forecasts make no modal prediction and count as misses in change recall.',
+                           'Strict hits require the same from-state and to-state at the same minute.',
+                           'Future pair decisions use the joint distribution, not differences between modal marginals.',
+                           'The baseline does not consume model indicators or the independent current-path mask.',
+                           'Parent/lead pairs overlap and are not independent market episodes or evidence of economic edge.',
+                           'Current state is historical event-time evidence, not proof of physical ONLINE receipt.']}
+
+
 class StateScoreAccumulator:
-    def __init__(self, prior, *, lead_minutes):
+    def __init__(self, prior, *, lead_minutes, model_receives_current_state=False):
+        _require(type(model_receives_current_state) is bool, 'MATCHED_CURRENT_INPUT_MODE')
+        self.model_receives_current_state = model_receives_current_state
         self.leads = _grid(lead_minutes)
         _require(prior['schema_version'] == SCHEMA_VERSION and prior['timeframes'] == list(TIMEFRAMES)
                  and prior['class_names'] == list(STATE_NAMES)
@@ -260,6 +354,10 @@ class StateScoreAccumulator:
             cases = np.einsum('fkc,fcd->fkd', cases, transition)
             self.markov_grid[:, :, lead] = cases
         shape = (len(TIMEFRAMES), len(self.leads))
+        self.matched_transitions = _MatchedTransitionEvidence(transition, self.markov_grid,
+            model_receives_current_state=model_receives_current_state)
+        self.matched_state_counts = {name: np.zeros(shape, np.int64) for name in ('correct', 'tied', 'logloss_infinite')}
+        self.matched_state_sums = {name: np.zeros(shape, np.float64) for name in ('logloss', 'brier')}
         self.parents = 0
         self.cells = {name: np.zeros(shape, np.int64) for name in
                       ('observed', 'correct', 'tied', 'prior_correct', 'prior_tied',
@@ -361,6 +459,20 @@ class StateScoreAccumulator:
         markov_unique = (markov_p == markov_p.max(axis=-1, keepdims=True)).sum(axis=-1) == 1
         self.cells['markov_correct'] += (eligible & markov_unique & (markov_p.argmax(axis=-1) == state)).sum(axis=0)
         self.cells['markov_tied'] += (eligible & ~markov_unique).sum(axis=0)
+        # For the legacy model the informed Markov above has extra state input.
+        # The matched reference uses only the TRAIN prior when the model did not receive that input.
+        matched_p = (markov_p if self.model_receives_current_state else
+            np.broadcast_to(self.markov_grid[None, :, len(STATE_NAMES), :, :], p.shape))
+        matched_y = np.take_along_axis(matched_p, y[..., None], axis=-1)[..., 0]
+        matched_positive = eligible & (matched_y > 0)
+        matched_log = np.zeros_like(matched_y)
+        np.log(matched_y, out=matched_log, where=matched_positive)
+        self.matched_state_sums['logloss'] -= np.where(matched_positive, matched_log, 0).sum(axis=0)
+        self.matched_state_counts['logloss_infinite'] += (eligible & ~matched_positive).sum(axis=0)
+        self.matched_state_sums['brier'] += np.where(eligible, np.square(matched_p).sum(axis=-1) - 2 * matched_y + 1, 0).sum(axis=0)
+        matched_unique = (matched_p == matched_p.max(axis=-1, keepdims=True)).sum(axis=-1) == 1
+        self.matched_state_counts['correct'] += (eligible & matched_unique & (matched_p.argmax(axis=-1) == state)).sum(axis=0)
+        self.matched_state_counts['tied'] += (eligible & ~matched_unique).sum(axis=0)
         for k in range(len(STATE_NAMES)):
             self.class_counts[:, k] += np.count_nonzero(eligible & (state == k), axis=(0, 2))
             self.probability_sums[:, k] += np.where(eligible, pf[..., k], 0).sum(axis=(0, 2))
@@ -395,6 +507,7 @@ class StateScoreAccumulator:
                      'missed_changes': pair_mask & true_change & ~(pair_unique & pred_change)}
             for name, mask in cases.items():
                 self.pairs[name] += mask.sum(axis=(0, 2))
+        self.matched_transitions.update(p, joint if q > 1 else None, matched_p, state, eligible, c, co)
         # Timing is a limited diagnostic of the first modal change, not a claim of full event matching.
         complete = co & eligible.all(axis=-1) & unique.all(axis=-1)
         true_change = np.concatenate(((state[:, :, :1] != c[..., None]), state[:, :, 1:] != state[:, :, :-1]), axis=-1)
@@ -484,6 +597,13 @@ class StateScoreAccumulator:
         recalls = _ratio(np.diagonal(self.confusion, axis1=1, axis2=2), recall_denominator)
         per_tf['class_recall'] = recalls
         per_tf['balanced_accuracy'] = [None if any(x is None for x in row) else float(sum(row) / len(row)) for row in recalls]
+        matched_state = {'observed': counts.tolist(),
+            **{name: value.tolist() for name, value in self.matched_state_counts.items()}}
+        matched_state.update({name: _ratio(values, counts,
+            self.matched_state_counts['logloss_infinite'] if name == 'logloss' else None)
+            for name, values in self.matched_state_sums.items()})
+        matched_state['information'] = ('causal_observed_current_state_else_TRAIN_prior' if self.model_receives_current_state
+                                        else 'TRAIN_prior_only_no_explicit_current_state')
         pairs = {name: value.tolist() for name, value in self.pairs.items()}
         for name, values in self.pair_sums.items():
             pairs[name] = _ratio(values, self.pairs['observed'], self.pairs['logloss_infinite'] if name == 'logloss' else None)
@@ -533,6 +653,8 @@ class StateScoreAccumulator:
         return {'schema_version': SCHEMA_VERSION, 'parents': self.parents, 'timeframes': list(TIMEFRAMES),
                 'class_names': list(STATE_NAMES), 'lead_minutes': self.leads.tolist(),
                 'per_timeframe': per_tf, 'per_lead': per_lead, 'adjacent_pair_forecast': pairs,
+                'matched_markov_state_baseline': matched_state,
+                'matched_markov_transition_comparison': self.matched_transitions.finalize(),
                 'first_modal_change_timing_complete_windows_only': timing,
                 'observable_modal_state_events': events,
                 'first_modal_change_within_initial_observed_prefix': prefix_timing,

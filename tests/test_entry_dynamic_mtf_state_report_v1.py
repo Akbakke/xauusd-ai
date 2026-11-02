@@ -63,6 +63,11 @@ def test_streaming_equals_one_batch_and_unknown_is_not_flat():
     assert a['adjacent_pair_forecast']['logloss'] == pytest.approx(b['adjacent_pair_forecast']['logloss'])
     assert a['observable_modal_state_events'] == b['observable_modal_state_events']
     assert a['first_modal_change_within_initial_observed_prefix'] == b['first_modal_change_within_initial_observed_prefix']
+    assert a['matched_markov_transition_comparison'] == b['matched_markov_transition_comparison']
+    for key in ('observed', 'correct', 'tied', 'logloss_infinite'):
+        assert a['matched_markov_state_baseline'][key] == b['matched_markov_state_baseline'][key]
+    for key in ('logloss', 'brier'):
+        assert np.asarray(a['matched_markov_state_baseline'][key]) == pytest.approx(np.asarray(b['matched_markov_state_baseline'][key]))
 
 
 def test_zero_probability_is_infinite_not_silently_clipped():
