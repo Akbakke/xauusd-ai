@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "DYNAMIC_STATE_ACTIVE_OBSERVATION_TARGET_AUDIT004_ADMITTED",
+  "status": "DYNAMIC_STATE_ACTIVE_OBSERVATION_TARGET_AUDIT005_ADMITTED",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
@@ -1260,18 +1260,34 @@
     "active_target_preparation": {
       "status": "ADMITTED_NOT_STARTED",
       "plan": {
-        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_004/PLAN.json",
-        "sha256": "b6e4046f955c6cd7c777d5648107813dd5e55044d1dcb3879094168a5b7e2bd5"
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/PLAN.json",
+        "sha256": "698cbcc5989df1882aca8122c469906c105912f6e819c2452c2f40f10a725ba7"
       },
       "worker": {
-        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_004/build_and_audit_targets_guarded.py",
-        "sha256": "96bb4a9f668d47ab388c02a500f2bda58f3a928307cd38320fea80f65292eff9"
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/build_and_audit_targets_guarded.py",
+        "sha256": "a718237facdedb57498cafa35bc9925c0519ea549d59359d6e867ee24dad599a"
       },
       "target_builds_authorized": 1,
       "atr_builds_authorized": 0,
       "model_calls_authorized": 0,
       "old_labels_relabelled": false,
-      "target_rule_locked": false
+      "target_rule_locked": false,
+      "previous_failed_audit": {
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_004/TERMINAL.json",
+          "sha256": "a6a4236e3ee46f974c0c6c2c69c655faf8c626ce07ba7fd41789bb3c6682f580"
+        },
+        "counts": {
+          "atr_builds": 0,
+          "fit_calls": 0,
+          "later_queries": 0,
+          "model_calls": 0,
+          "series_publications": 0,
+          "target_builds": 0,
+          "train_query_parents": 0
+        },
+        "correction": "One missing hexadecimal character in historical objective literal; replaced from verified original003 metadata. Exact join AST and old definition/calendar joins pass metadata-only preflight."
+      }
     }
   }
 }
