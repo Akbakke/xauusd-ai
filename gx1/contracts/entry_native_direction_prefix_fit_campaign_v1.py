@@ -45,6 +45,13 @@ M1_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m1_price_direction_fit'
 M5_PRICE_FIT_SCOPE = 'single_prefix_dense_decimal_m5_price_direction_fit'
 M5_FIVE_PRIORITY_FIT_SCOPE = 'single_prefix_dense_decimal_m5_five_priority_direction_fit'
 FAMILY_SIGN_SCOPE = 'single_prefix_m5_family_value_sign_one_pass'
+DYNAMIC_STATE_SCOPE = 'single_prefix_dynamic_mtf_state_one_pass'
+DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE = 'private_dynamic_mtf_state_input_adapter'
+DYNAMIC_STATE_EXTRA_SOURCE_PATHS = (
+    'gx1/contracts/entry_dynamic_mtf_state_targets_v1.py',
+    'gx1/contracts/entry_dynamic_mtf_state_report_v1.py',
+    'gx1/scripts/run_entry_native_direction_dense_qualification_v1.py',
+)
 # Input adapter only; not independently admitted for fit or private execution.
 FAMILY_PRIVATE_ADAPTER_SCOPE = 'private_dense_decimal_m5_family_value_input_adapter'
 FAMILY_INTERVENTION_SOURCE = 'gx1/contracts/entry_direction_family_intervention_v1.py'
@@ -208,6 +215,183 @@ def _input_manifest(recipe):
         campaign.require_binding(item, label='view source', verify_file=False)
     return value
 
+
+def require_dynamic_state_input_manifest(binding, *, fold, source_owners, verify_files=True):
+    """Current full inputs over the unchanged physical provider; no refit or labels."""
+    ref = campaign.require_binding(binding, label='dynamic state input manifest', verify_file=verify_files)
+    value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    fields = {'schema_version', 'fold', 'physical_provider_plan', 'physical_provider_worker',
+        'prefix_normalization', 'prefix_qualification', 'normalization_verification',
+        'constructor_metadata', 'view_source_bindings', 'axes'}
+    manifest = _identity(value, fields, 'gx1_dynamic_mtf_state_input_manifest_v1', 'contract_sha256')
+    _require(_fold(manifest['fold']) == _fold(fold) and fold['fold_id'] == 1, 'DYNAMIC_INPUT_FOLD')
+    for key in fields - {'schema_version', 'fold', 'view_source_bindings'}:
+        campaign.require_binding(manifest[key], label='dynamic input ' + key, verify_file=verify_files)
+    views = manifest['view_source_bindings']
+    _require(isinstance(views, Mapping) and set(views) == VIEW_SOURCE_KEYS, 'DYNAMIC_VIEW_SOURCE_KEYS')
+    for key, item in views.items():
+        campaign.require_binding(item, label='dynamic view ' + key, verify_file=verify_files)
+    owner_paths = {'direction_component_source':'gx1/contracts/entry_native_direction_research_v1.py',
+        'native_constructor_source':'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
+        'mtf_window_source':'gx1/features/htf_features.py',
+        'gc_gather_source':'gx1/contracts/entry_gc_mtf_history_v1.py',
+        'owner_profile_source':'gx1/features/entry_specialist_feature_groups_v1.py'}
+    _require(all(views[key] == source_owners[path] for key, path in owner_paths.items()), 'DYNAMIC_CURRENT_SOURCE_BINDINGS')
+    _require(views['input_qualification'] == manifest['prefix_qualification'], 'DYNAMIC_CURRENT_INPUT_QUALIFICATION')
+    if verify_files:
+        def read(item):
+            return campaign.read_bound_json(Path(item['path']), item['sha256'])
+        verified = read(manifest['normalization_verification'])
+        fitted = read(manifest['prefix_normalization'])
+        qualification = read(manifest['prefix_qualification'])
+        _require(verified.get('normalization') == manifest['prefix_normalization']
+            and verified.get('all12statistic_surfaces_and_support_exactly_equal') is True
+            and verified.get('source_and_payload_bookends_unchanged') is True
+            and verified.get('genuine_native_model_calls') == 0
+            and verified.get('test_data_used') is False, 'DYNAMIC_NORMALIZATION_VERIFICATION')
+        _require(fitted.get('prefix_qualification') == qualification
+            and qualification['proof']['prefix']['rows'] == fold['prefix_rows']
+            and qualification['proof']['prefix']['cutoff_ns'] == fold['train_cutoff_ns'],
+            'DYNAMIC_NORMALIZATION_POPULATION')
+    return manifest
+
+
+
+def require_dynamic_state_target_binding(recipe):
+    """TRAIN audit is the rule lock; later cache bytes give no selection authority."""
+    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (
+        read_dynamic_mtf_state_series_metadata, default_trial_lead_minutes)
+    fold = _fold(recipe['fold'])
+    sources = recipe['target_sources']
+    _require(isinstance(sources, Mapping) and set(sources) == {'m1', 'm5_atr'}, 'STATE_TARGET_SOURCES')
+    for ref in sources.values():
+        campaign.require_binding(ref, label='state raw target source', verify_file=False)
+    target_ref = campaign.require_binding(recipe['target_manifest'], label='state target manifest', verify_file=True)
+    manifest = read_dynamic_mtf_state_series_metadata(target_ref, expected_source_refs=sources,
+        expected_cutoff_ns=fold['oof_cutoff_ns'])
+    meta = manifest['metadata']
+    _require(meta['parents'] == fold['oof_end_row'], 'STATE_TARGET_PARENT_POPULATION')
+    audit_ref = campaign.require_binding(recipe['label_audit'], label='TRAIN state audit', verify_file=True)
+    audit = campaign.read_bound_json(Path(audit_ref['path']), audit_ref['sha256'])
+    _require(audit.get('schema_version') == 'gx1_dynamic_mtf_state_label_audit_v1'
+        and audit.get('support_status') == 'PASS' and audit.get('blockers') == []
+        and audit.get('target_manifest') == target_ref and audit.get('target_sources') == sources
+        and audit.get('fold') == fold
+        and audit.get('target_contract_sha256') == meta['definition']['contract_sha256']
+        and audit.get('objective_sha256') == recipe['numerical_recipe']['research_objective_sha256']
+        and audit.get('lead_minutes') == list(default_trial_lead_minutes())
+        and audit.get('model_forwards') == audit.get('optimizer_steps') == 0
+        and audit.get('test_data_used') is audit.get('later_metrics_inspected') is False,
+        'STATE_TRAIN_LABEL_AUDIT')
+    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import StateScoreAccumulator
+    # This validates exact empirical counts/probabilities; it never reads VAL.
+    StateScoreAccumulator(audit['prior'], lead_minutes=audit['lead_minutes'])
+    _require(audit['prior']['parents'] == fold['prefix_rows'], 'STATE_TRAIN_PRIOR_POPULATION')
+    return manifest, audit
+
+
+def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, private_scope):
+    """Explicit new objective over existing guarded recipe/state/cursor owners."""
+    fields = {'schema_version', 'source_repo', 'runtime_root', 'admission_stage', 'run_scope',
+        'numerical_recipe', 'input_manifest', 'source_owners', 'execution_binding_path', 'fold',
+        'max_checkpoint_bytes', 'max_published_json_bytes', 'training_enabled',
+        'full_epoch_training_allowed', 'test_data_used', 'predictive_value_claimed',
+        'qualification_weights_for_main_fit', 'target_manifest', 'target_sources', 'label_audit',
+        'full_feature_profile'}
+    if private_scope:
+        fields |= {'max_private_updates', 'max_model_constructions', 'max_forwards', 'max_backwards',
+            'qualification_parent_rows'}
+    else:
+        fields |= {'train_passes', 'max_windows', 'parent_order_algorithm', 'initial_measurement_rows',
+            'eval_batch_size', 'checkpoint_every_updates', 'max_checkpoint_total_bytes',
+            'native_dynamic_state_qualification', 'final_train_measurement_rows'}
+    recipe = _identity(value, fields, private.RECIPE_SCHEMA if private_scope else RECIPE_SCHEMA, 'recipe_sha256')
+    _require(Path(_path(recipe['source_repo'], 'source repo')) == source_repo == CANONICAL_REPO
+        and isinstance(source_commit, str) and campaign._COMMIT.fullmatch(source_commit) is not None, 'STATE_SOURCE')
+    runtime = Path(_path(recipe['runtime_root'], 'runtime root'))
+    _require(recipe['run_scope'] == (private.DYNAMIC_STATE_PRIVATE_SCOPE if private_scope else DYNAMIC_STATE_SCOPE)
+        and type(recipe['admission_stage']) is str and recipe['admission_stage'].startswith('dynamic_mtf_state_')
+        and recipe['execution_binding_path'] == str(runtime/'EXECUTION_BINDING.json'), 'STATE_SCOPE')
+    fold = _fold(recipe['fold'])
+    _require(fold == private.BPS_FOLD and recipe['full_feature_profile'] is True, 'STATE_FULL_PROFILE_FOLD1')
+    expected = {'max_checkpoint_bytes':1073741824,
+        'max_published_json_bytes':33554432 if private_scope else 67108864}
+    expected.update({'max_private_updates':4, 'max_model_constructions':3, 'max_forwards':21,
+        'max_backwards':4} if private_scope else {'train_passes':1, 'max_windows':4,
+        'initial_measurement_rows':256, 'final_train_measurement_rows':47602, 'eval_batch_size':16,
+        'checkpoint_every_updates':256, 'max_checkpoint_total_bytes':4294967296})
+    _require(all(type(recipe[k]) is int and recipe[k] == v for k, v in expected.items()), 'STATE_BUDGET')
+    for key, expected_value in {'training_enabled':True, 'full_epoch_training_allowed':not private_scope,
+            'test_data_used':False, 'predictive_value_claimed':False,
+            'qualification_weights_for_main_fit':False}.items():
+        _require(recipe[key] is expected_value, 'STATE_AUTHORITY:' + key)
+    if private_scope:
+        rows = recipe['qualification_parent_rows']
+        _require(isinstance(rows, list) and len(rows) == len(set(rows)) == 32
+            and all(type(v) is int and v >= 0 for v in rows), 'STATE_QUALIFICATION_PARENTS')
+    else:
+        _require(recipe['parent_order_algorithm'] == PARENT_ORDER_ALGORITHM, 'STATE_PARENT_ORDER')
+    numerical = recipe['numerical_recipe']
+    _require(isinstance(numerical, Mapping)
+        and numerical.get('schema_version') == 'gx1_native_direction_research_recipe_v1'
+        and numerical.get('dynamic_state_supervision') is True
+        and all(numerical.get(k, False) is False for k in ('signed_bps_supervision', 'magnitude_weighted_direction',
+            'dense_minute_supervision', 'dense_signed_bps_supervision', 'five_minute_priority'))
+        and type(numerical.get('batch_size')) is int and numerical['batch_size'] == 16
+        and type(numerical.get('max_updates')) is int
+        and numerical['max_updates'] == (2 if private_scope else (fold['prefix_rows'] + 15)//16)
+        and numerical.get('genuine_updates_authorized') is numerical.get('native_launch_authorized') is False,
+        'STATE_NUMERICAL_ROLE')
+    _require(campaign.canonical_sha256({k:v for k,v in numerical.items() if k != 'contract_sha256'})
+        == numerical.get('contract_sha256'), 'STATE_NUMERICAL_SEAL')
+    campaign._sha(numerical.get('research_objective_sha256'), 'state objective')
+    owners = recipe['source_owners']
+    _require(isinstance(owners, Mapping) and set(owners) == set(REQUIRED_SOURCE_PATHS) | set(DYNAMIC_STATE_EXTRA_SOURCE_PATHS),
+        'STATE_SOURCE_OWNER_SET')
+    for key, item in owners.items():
+        ref = campaign.require_binding(item, label='state source owner', verify_file=True)
+        _require(ref['path'] == str(source_repo/key), 'STATE_SOURCE_OWNER_PATH:' + key)
+    require_dynamic_state_input_manifest(recipe['input_manifest'], fold=fold, source_owners=owners)
+    require_dynamic_state_target_binding(recipe)
+    if not private_scope:
+        require_dynamic_state_qualification(recipe, source_repo=source_repo, source_commit=source_commit)
+    return recipe
+
+
+def require_dynamic_state_qualification(recipe, *, source_repo, source_commit):
+    ref = campaign.require_binding(recipe['native_dynamic_state_qualification'],
+        label='state native qualification', verify_file=True)
+    review = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    _require(review.get('schema_version') == 'gx1_dynamic_mtf_state_private_root_review_v1'
+        and review.get('status') == 'PASS_CONSUMED_DYNAMIC_STATE_NATIVE_MECHANICS'
+        and review.get('test_data_used') is False and review.get('qualification_weights_for_main_fit') is False,
+        'STATE_NATIVE_REVIEW')
+    refs = {key:campaign.require_binding(review[key], label='state qualification ' + key, verify_file=True)
+        for key in ('plan', 'result', 'receipt', 'initial_report', 'power_after')}
+    plan = campaign.read_bound_json(Path(refs['plan']['path']), refs['plan']['sha256'])
+    prior = private.require_research_launch_recipe(plan['recipe'], source_repo=source_repo, source_commit=plan['source_commit'])
+    result = campaign.read_bound_json(Path(refs['result']['path']), refs['result']['sha256'])
+    receipt = campaign.read_bound_json(Path(refs['receipt']['path']), refs['receipt']['sha256'])
+    initial = campaign.read_bound_json(Path(refs['initial_report']['path']), refs['initial_report']['sha256'])
+    _require(prior['run_scope'] == private.DYNAMIC_STATE_PRIVATE_SCOPE
+        and all(prior[key] == recipe[key] for key in ('input_manifest', 'target_manifest', 'target_sources',
+            'label_audit', 'fold', 'source_owners', 'full_feature_profile'))
+        and {k:v for k,v in prior['numerical_recipe'].items() if k not in ('max_updates', 'contract_sha256')}
+            == {k:v for k,v in recipe['numerical_recipe'].items() if k not in ('max_updates', 'contract_sha256')},
+        'STATE_NATIVE_SAME_SOURCES_AND_OBJECTIVE')
+    _require(result.get('schema_version') == 'gx1_dynamic_mtf_state_private_qualification_result_v1'
+        and result.get('decision') == 'PASS_DYNAMIC_STATE_NATIVE_MECHANICS'
+        and result.get('recipe') == plan['recipe'] and result.get('initial_report') == refs['initial_report']
+        and result.get('initial_checked') is result.get('bit_exact_resume') is result.get('source_unchanged') is True
+        and result.get('test_data_used') is result.get('private_weights_for_main_fit') is False
+        and receipt.get('outcome') == 'COMPLETE' and receipt.get('plan_sha256') == plan['plan_sha256']
+        and initial.get('schema_version') == 'gx1_dynamic_mtf_state_measurement_v1'
+        and initial.get('role') == 'INITIAL_TRAIN' and initial.get('fold') == recipe['fold']
+        and initial.get('target_manifest') == recipe['target_manifest']
+        and initial.get('research_objective_sha256') == recipe['numerical_recipe']['research_objective_sha256']
+        and initial.get('initial_grad_nograd_parity') is True and initial.get('test_data_used') is False,
+        'STATE_NATIVE_ACTUAL_EVIDENCE')
+    return review
 
 def _require_decimal_source_equivalence(source_repo, qualified_commit, qualified_owners, owners):
     """Prove qualified data/feature functions survived the full-fit scope addition."""
@@ -508,6 +692,8 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     ref = campaign.require_binding(binding, label='prefix fit recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    if value.get('run_scope') == DYNAMIC_STATE_SCOPE:
+        return require_dynamic_state_launch_recipe(value, source_repo=source_repo, source_commit=source_commit, private_scope=False)
     fields = {'schema_version', 'source_repo', 'runtime_root', 'admission_stage', 'run_scope',
         'numerical_recipe', 'input_manifest', 'source_owners', 'execution_binding_path', 'fold',
         'train_passes', 'max_windows', 'parent_order_algorithm', 'initial_measurement_rows',
@@ -871,6 +1057,10 @@ def guarded_prefix_power_limit(recipe):
     """Keep the user-selected 250 W limit for the matched factor routes."""
     _require(isinstance(recipe, Mapping), 'FACTOR_POWER_RECIPE')
     scope = recipe.get('run_scope')
+    if scope == DYNAMIC_STATE_SCOPE:
+        _require(recipe.get('full_feature_profile') is True
+            and recipe.get('numerical_recipe', {}).get('dynamic_state_supervision') is True, 'DYNAMIC_STATE_POWER_SCOPE')
+        return 250
     if scope in (M5_FACTOR_SIGN_SCOPE, M5_FACTOR_BPS_SCOPE, M5_FACTOR_CONTINUATION_SCOPE, FAMILY_SIGN_SCOPE):
         _require(recipe.get('candidate_mode') == 'price_only'
             and recipe.get('numerical_recipe', {}).get('dense_signed_bps_supervision', False) is (scope == M5_FACTOR_BPS_SCOPE), 'FACTOR_POWER_SCOPE')
@@ -936,7 +1126,14 @@ def require_prefix_fit_plan(value, *, verify_files=True):
     campaign._utc(result['created_utc'], 'prefix fit creation')
     runtime = Path(_path(result['runtime_root'], 'runtime root'))
     result['prepared_windows_boot'] = campaign.require_boot_identity(result['prepared_windows_boot'])
-    _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(campaign.family_campaign_policy(result))
+    expected_policy = campaign.family_campaign_policy(result)
+    if verify_files:
+        policy_recipe = require_prefix_fit_launch_recipe(result['recipe'],
+            source_repo=CANONICAL_REPO, source_commit=result['source_commit'])
+        if policy_recipe['run_scope'] == DYNAMIC_STATE_SCOPE:
+            _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
+            expected_policy['physical_power_limit_w'] = 250
+    _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
         and campaign.canonical_sha256(result['authority']) == campaign.canonical_sha256(
             {'test':False, 'promotion':False, 'paper':False, 'live':False, 'cloud_spend':False}), 'PLAN_AUTHORITY')
     for key, names in (('signed_guard_sources', {'runner','guard','query','certificate'}),

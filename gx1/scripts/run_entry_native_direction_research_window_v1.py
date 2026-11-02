@@ -114,6 +114,9 @@ def _freeze(recipe, binding, context):
     _require(_hash_file(binding['policy']['path'])==binding['policy'],'POLICY_FREEZE')
     for ref in recipe['source_owners'].values():_require(_hash_file(ref['path'])==ref,'CURRENT_SOURCE_OWNER')
     for path,item in context['ancestor_plan']['payloads'].items():_require(_stat(path)==item['stat'],'PAYLOAD_STAT:'+path)
+    if 'state_array_refs' in context:
+        for name,ref in context['state_array_refs'].items():
+            _require(_stat(ref['path']) == context['state_array_stats'][name], 'STATE_TARGET_STAT:'+name)
     if 'dense_target' in context:
         ref=context['dense_target']
         _require(_stat(ref['path'])==context['dense_target_stat'] and _hash_file(ref['path'])==ref,'DENSE_TARGET_FREEZE')
@@ -228,8 +231,28 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
             ref['path']!=str(root) and not ref['path'].startswith(str(root)+'/')
             for ref in refs.values() for root in (output,runtime)), 'CANDIDATE_M1_GUARD_BINDING')
         extra_read_paths += tuple(ref['path'] for ref in refs.values())
+    if 'dynamic_state_launch' in context:
+        from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE
+        launch = context['dynamic_state_launch']
+        _require(launch['run_scope'] == DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE
+            and launch['numerical_recipe']['dynamic_state_supervision'] is True
+            and launch['full_feature_profile'] is True, 'STATE_READ_SCOPE')
+        expected = context['state_target_manifest']['arrays']
+        refs = context['state_array_refs']
+        _require(set(refs) == set(expected) and all(refs[k] == {f:expected[k][f] for f in ('path','sha256')}
+            for k in refs), 'STATE_ARRAY_READ_BINDING')
+        extra_read_paths += tuple(ref['path'] for ref in refs.values())
+        initial = context.get('state_private_initial')
+        if initial is not None:
+            _require(context.get('state_qualification_review',{}).get('initial_report') == context.get('state_private_initial_ref')
+                and initial['target_manifest'] == launch['target_manifest']
+                and initial['research_objective_sha256'] == launch['numerical_recipe']['research_objective_sha256'],
+                'STATE_INITIAL_READ_BINDING')
+            extra_read_paths += tuple(item['path'] for item in context['state_private_initial_arrays']['arrays'].values())
     allowed={p for p,v in plan['payloads'].items() if v['verification'] not in ('inherited_stat_only_no_open','reused_original051_stat_only_no_open')}|set(info['metadata'])|set(extra_read_paths)
     directories={plan['native_cache_dir'],str(Path(plan['gc_surfaces']['path']).parent),str(output)}
+    if 'state_array_refs' in context:
+        directories.add(str(Path(context['dynamic_state_launch']['target_manifest']['path']).parent))
     relative={Path(p).name:p for p in allowed if p.endswith('.npy')};denied=[]
     def guard(event,args):
         if event!='open' or not args or not isinstance(args[0],(str,bytes)):return
@@ -554,7 +577,7 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
         return run_order_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     if launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
             prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE,
-            authority.FAMILY_PRIVATE_SCOPE):
+            authority.FAMILY_PRIVATE_SCOPE, authority.DYNAMIC_STATE_PRIVATE_SCOPE):
         from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import run_dense_qualification
         return run_dense_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     sys.dont_write_bytecode=True

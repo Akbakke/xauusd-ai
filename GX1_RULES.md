@@ -145,9 +145,13 @@ flere TF er ikke uavhengige bevis. Alle genuine indikatorer revideres helt
 fram til faktisk konsum; åtte spesialister og D1/makro beholdes.
 
 Kontrakten må binde dynamisk tilstandsfasit, observerbarhet, output, tap og
-måling til samme mål på hver TF. Presis definisjon av lokal bevegelse/flathet,
-størrelses- og tidsdomene samt behandling av ukjente utfall gjenstår; ingen
-gjettet terskel eller segmenteringsregel følger av målpresiseringen.
+måling til samme mål på hver TF. Brukeren godkjente02.11 forslaget om
+0,5 × ATR(14), beregnet fra kausalt lukkede barer på hver av de fem TF, som
+kandidat til minste relevante lokale bevegelse. Selve merkingen kontrolleres
+på eksisterende TRAIN-prisforløp før definisjonen låses; faktoren velges ikke
+ut fra modelltreff eller VAL. Dette er ingen pip-, handels- eller stopregel.
+Eksakt lokal segmentering, flathet, tidsdomene og ukjente utfall må fortsatt
+være entydige og samsvare i fasit, output, loss og måling.
 
 Den gjennomførte binære1..60minuttersforskningen er et snevrere mål:
 den har ingen lært STILLE-klasse og skiller ikke små fra store fortegn.

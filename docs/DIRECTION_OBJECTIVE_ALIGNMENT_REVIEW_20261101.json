@@ -1,13 +1,13 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "INPUT_PREPARATION_VERIFIED_AWAITING_EXPLICIT_DYNAMIC_STATE_TARGET_DEFINITION",
+  "status": "DYNAMIC_STATE_CANDIDATE_SOURCE_CHECKED_TRAIN_LABEL_AUDIT_ADMITTED",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
     "duration": "Scalping, intraday and swing are relevant according to movement; no hard60minute forecast ceiling or imposed holding period.",
     "unchanged": "Existing completed-M5 forecast observation cadence and causal closed M5/M15/H1/H4/D1 inputs, eight families and D1/macro; Entry later; no new model runs, training, restart, TEST or trading.",
     "ordered_movements": "Continuously evolving UP/DOWN/FLAT on all five timeframes; continuations and every transition count. No fixed reference price, return condition, required peak or two-leg template defines the objective.",
-    "verbatim_followup": "Da har vi i teorien 2 retninger. F\u00f8rst den ene veien, s\u00e5 den andre. Begge retningene skal telle. Og dette m\u00e5ler vi p\u00e5 alle 5 multi timeframe",
+    "verbatim_followup": "Da har vi i teorien 2 retninger. Først den ene veien, så den andre. Begge retningene skal telle. Og dette måler vi på alle 5 multi timeframe",
     "forecast_timeframes": [
       "M5",
       "M15",
@@ -15,7 +15,27 @@
       "H4",
       "D1"
     ],
-    "dynamic_state_followup": "Ja, stemmer. Men du skriver Oppgang \u2192 nedgang tilbake til start. Tilbake til hvilken start egentlig? For opp og ned beveger seg jo dynamisk, s\u00e5 vi har jo ingen \u00abstart\u00bb. Vi skal merke n\u00e5r markedet g\u00e5r opp, ned og holder seg flatt. Det er det vi er ute etter. Det finnes ingen \u00abstart\u00bb strek. Dekk m\u00e5lene fullt ut"
+    "dynamic_state_followup": "Ja, stemmer. Men du skriver Oppgang → nedgang tilbake til start. Tilbake til hvilken start egentlig? For opp og ned beveger seg jo dynamisk, så vi har jo ingen «start». Vi skal merke når markedet går opp, ned og holder seg flatt. Det er det vi er ute etter. Det finnes ingen «start» strek. Dekk målene fullt ut",
+    "movement_threshold_decision": {
+      "operator_reply": "Ja, vi kjører dette",
+      "approved_candidate": {
+        "atr_owner": "gx1.features.technical_indicators_v1.wilder_atr",
+        "period": 14,
+        "multiplier": 0.5,
+        "timeframes": [
+          "M5",
+          "M15",
+          "H1",
+          "H4",
+          "D1"
+        ]
+      },
+      "label_review_required_before_lock": true,
+      "selection_by_model_or_val_score": false,
+      "fixed_forecast_start_price": false,
+      "additional_numeric_thresholds_authorized": false,
+      "trained_edge_claim": false
+    }
   },
   "actual_objective_from_source": {
     "horizons_minutes": [
@@ -446,7 +466,7 @@
     "path_requirement": "Retain meaningful movements and flat periods throughout the evolving path. No return-to-start, first-crossing, predetermined peak, alternating-pair or fixed-length sequence requirement.",
     "time_requirement": "Forecast issue time specifies the available information; future validity times/intervals specify what is predicted. Neither is a fixed price baseline, trade entry or holding limit.",
     "unresolved_numeric_contract": [
-      "Definition/unit/source of meaningful movement and quiet range; no invented numerical cutoff.",
+      "0.5 × causal Wilder ATR(14) per TF is now explicitly approved as a candidate minimum movement. Exact local state extraction, flatness and temporal support must be specified and verified on TRAIN paths before locking.",
       "Which exact minute/hour/session-day queries or movement-event definition are supported by existing targets.",
       "Loss weighting and class balance must follow that target identity, not an opportunistic best-horizon search."
     ],
@@ -702,8 +722,8 @@
     "honest_uncertainty": "Flatness, model uncertainty and missing/ambiguous observations stay distinct; sampled observations never claim unobserved intrabar order.",
     "measurement": "Class/probability quality plus continuation/transition errors, lead/delay, magnitude/duration and full coverage, with chronological references and overlap accounted for.",
     "entry_and_trading": "Market forecast first; Entry, Exit, sizing and economic qualification later.",
-    "implementation_status": "Full XAU+GC input profile is implemented,26 pure metadata/gather checks passed, fresh fold1 input normalization is verified numerically identical to prior statistics, and current-source metadata binding passes. The dynamic UP/DOWN/FLAT target/output/loss, genuine model qualification, restart and requested short training remain incomplete.",
-    "launch_status": "No model construction, forward/backward, fit, target rebuild, restart, TEST or trading authorized."
+    "implementation_status": "Full XAU+GC input profile and fold1 normalization are verified. Candidate causal half-ATR14 MTF state target, joint state-chain model/loss and streaming reports are source-implemented and focused tests pass after correcting an OHLC ambiguity bug. Genuine TRAIN label review, private native qualification integration/qualification, restart and the single requested short fit remain incomplete.",
+    "launch_status": "Necessary source/target preparation and genuine qualification, then safe reboot and ONE short training are user-authorized. Exact execution gates remain closed until the new function is qualified and admitted; TEST/trading remain closed."
   },
   "current_short_training_preparation": {
     "status": "FULL_INPUT_PROFILE_AND_CURRENT_SOURCE_NORMALIZATION_BINDING_VERIFIED_NATIVE_TARGET_PENDING",
@@ -822,7 +842,7 @@
     "actual_current_source_binding": "PASS with the newly fitted immutable fold1 normalization and current source SHAs; original267 statistics remain unchanged. The earlier provenance failure was repaired through the existing owner, not bypassed.",
     "normalization_repair": "Completed one fresh existing-owner fold1 normalization fit. All12numeric surfaces/support and categorical context exactly match original267; no new input scratch or target labels. New provenance passes actual full-profile metadata binding.",
     "genuine_native_consumption_qualified": false,
-    "new_state_target_loss_implemented": false,
+    "new_state_target_loss_implemented": true,
     "learning_improvement_qualified": false,
     "normalization_verification": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/VERIFIED_RESULT.json",
@@ -832,6 +852,12 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/ACTUAL_FULL_PROFILE_BIND_REVIEW.json",
       "sha256": "5bd8d91a4d780cb486336e67f909e3d96593570fca6f2defd9dfc03958df837f"
     },
-    "synthetic_native_contract_checks": "The unfiltered repository pre-commit native contract suite passed; synthetic CPU model checks do not qualify genuine full-profile consumption or the new dynamic-state objective."
+    "synthetic_native_contract_checks": "The unfiltered repository pre-commit native contract suite passed; synthetic CPU model checks do not qualify genuine full-profile consumption or the new dynamic-state objective.",
+    "dynamic_state_definition_status": "HALF_ATR14_CAUSAL_M1_CANDIDATE_SOURCE_CHECKED_NOT_DATA_QUALIFIED",
+    "source_checks": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED.json",
+      "sha256": "76121a66b50a7fa7cfd5ee0af56ac53775169ab4f4011f276fdf82fe62cef02e"
+    },
+    "private_qualification_runner_complete": false
   }
 }

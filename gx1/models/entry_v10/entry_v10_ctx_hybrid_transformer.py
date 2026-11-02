@@ -4217,6 +4217,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         gc_seq_h4: Optional[torch.Tensor] = None,
         gc_seq_d1: Optional[torch.Tensor] = None,
         liquidation_relative_values: bool = False,
+        research_representation_only: bool = False,
     ) -> Dict[str, torch.Tensor]:
         expected_profile = (
             dict(zip(("name", "contract_sha256"), self._entry_execution_profile_identity))
@@ -4247,6 +4248,11 @@ class EntryV10CtxHybridTransformer(nn.Module):
             gc_tf_inputs = tuple(zip(TF_INPUT_SCALE_NAMES, gc_values))
         if type(liquidation_relative_values) is not bool:
             raise RuntimeError("ENTRY_LIQUIDATION_GRADIENT_MODE_INVALID")
+        if (type(research_representation_only) is not bool
+                or (research_representation_only and (
+                    self.entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
+                    or liquidation_relative_values))):
+            raise RuntimeError("ENTRY_RESEARCH_REPRESENTATION_MODE_INVALID")
         z_v3, specialist_gate, global_context_h = self._encode_shared_feature_base(
             seq_x=seq_x,
             snap_x=snap_x,
@@ -4284,6 +4290,12 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 self.entry_q_joint_norm(entry_q_joint_source)
             )
         )
+        if research_representation_only:
+            _assert_finite("entry_q_joint_hidden", entry_q_joint_hidden)
+            return {"entry_q_joint_hidden": entry_q_joint_hidden,
+                "specialist_gate": specialist_gate, "tf_gate": tf_gate,
+                "family_tf_cooperation_gate": family_tf_cooperation_gate,
+                "family_tf_feature_gate": family_tf_feature_gate}
         if self.entry_training_phase == ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
             # Candidate curve learning has no admitted native action-Q or Exit
             # token. Legacy serving cannot silently consume a unitless score.

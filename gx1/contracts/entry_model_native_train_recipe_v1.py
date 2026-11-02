@@ -395,7 +395,7 @@ NATIVE_DIRECTION_RESEARCH_RECIPE_ORIGINS = [{'path': '/home/andre2/GX1_RUNS/NATI
 NATIVE_DIRECTION_RESEARCH_ADAMW_OWNERS = {'torch/optim/adamw.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/adamw.py', 'sha256': 'e680a255db9c53c4248a55f414b7af9aab90bb672312ac960bb459903a161c1d'}, 'torch/optim/optimizer.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/optimizer.py', 'sha256': '354f41f784630a031195509d6b65bd5faaaa7a92402102c3b4c50423082e7ec9'}, 'torch/utils/_foreach_utils.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py', 'sha256': '723a4e8aea24cb778a260e36a7986f44807ea0fd728ec81bae98bc2dec88c901'}, 'torch/version.py': {'path': '/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/version.py', 'sha256': 'fb37823f3a4c3c29cd008fac7d3ce5aeb8e7da6f883b17aa9ea6d73ce6eecbfd'}}
 
 
-def native_direction_research_recipe(*, batch_size: int, max_updates: int, signed_bps: bool = False, magnitude_weighted: bool = False, dense_minutes: bool = False, five_minute_priority: bool = False, dense_bps: bool = False) -> dict[str, Any]:
+def native_direction_research_recipe(*, batch_size: int, max_updates: int, signed_bps: bool = False, magnitude_weighted: bool = False, dense_minutes: bool = False, five_minute_priority: bool = False, dense_bps: bool = False, dynamic_state: bool = False) -> dict[str, Any]:
     """Explicit ONLINE/BCE research controls; never a native launch recipe.
 
     LR/WD/clip/seed/precision are the bound229/231 controls. EMA and scheduler
@@ -410,7 +410,12 @@ def native_direction_research_recipe(*, batch_size: int, max_updates: int, signe
             or (dense_minutes and (signed_bps or magnitude_weighted)) or (five_minute_priority and not dense_minutes)
             or (dense_bps and (not dense_minutes or five_minute_priority))):
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_OBJECTIVE_MODE')
-    if dense_bps:
+    if type(dynamic_state) is not bool or (dynamic_state and any((signed_bps, magnitude_weighted, dense_minutes, five_minute_priority, dense_bps))):
+        raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_DYNAMIC_STATE_EXCLUSIVE')
+    if dynamic_state:
+        from gx1.contracts.entry_native_direction_research_v1 import dynamic_mtf_state_research_contract
+        objective = dynamic_mtf_state_research_contract()
+    elif dense_bps:
         from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_bps_research_contract
         objective = dense_direction_bps_research_contract()
     elif five_minute_priority:
@@ -435,6 +440,8 @@ def native_direction_research_recipe(*, batch_size: int, max_updates: int, signe
         'installed_adamw_runtime_owners': json.loads(json.dumps(NATIVE_DIRECTION_RESEARCH_ADAMW_OWNERS)),
         'predictions': 'ONLINE', 'genuine_updates_authorized': False, 'native_launch_authorized': False,
     }
+    if dynamic_state:
+        value['dynamic_state_supervision'] = True
     if signed_bps:
         value['signed_bps_supervision'] = True
     if magnitude_weighted:
@@ -456,7 +463,8 @@ def require_native_direction_research_recipe(value: Mapping[str, Any]) -> dict[s
     expected = native_direction_research_recipe(batch_size=value.get('batch_size'), max_updates=value.get('max_updates'),
         signed_bps=value.get('signed_bps_supervision', False), magnitude_weighted=value.get('magnitude_weighted_direction', False),
         dense_minutes=value.get('dense_minute_supervision', False), five_minute_priority=value.get('five_minute_priority', False),
-        dense_bps=value.get('dense_signed_bps_supervision', False))
+        dense_bps=value.get('dense_signed_bps_supervision', False),
+        dynamic_state=value.get('dynamic_state_supervision', False))
     if json.dumps(dict(value), sort_keys=True, separators=(',', ':'), allow_nan=False) != json.dumps(expected, sort_keys=True, separators=(',', ':'), allow_nan=False):
         raise RuntimeError('NATIVE_DIRECTION_RESEARCH_RECIPE_MISMATCH')
     return expected

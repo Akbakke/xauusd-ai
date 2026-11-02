@@ -142,8 +142,242 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
         'info':info,'fitted':fitted,'constructor':constructor}
 
 
+
+def _dynamic_state_metadata(launch, common):
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    metadata = {}
+    manifest = authority.require_dynamic_state_input_manifest(launch['input_manifest'],
+        fold=launch['fold'], source_owners=launch['source_owners'])
+    common._read(launch['input_manifest'], metadata)
+    target_manifest, audit = authority.require_dynamic_state_target_binding(launch)
+    for ref in (launch['target_manifest'], launch['label_audit']):
+        common._read(ref, metadata)
+    for key in ('prefix_normalization', 'prefix_qualification', 'normalization_verification',
+            'constructor_metadata', 'physical_provider_plan'):
+        common._read(manifest[key], metadata)
+    for ref in manifest['view_source_bindings'].values():
+        if ref['path'].endswith('.json'):
+            common._read(ref, metadata)
+        else:
+            _require(common._hash_file(ref['path']) == ref, 'STATE_CURRENT_VIEW_SOURCE')
+    physical = common._module(manifest['physical_provider_worker'])
+    ancestor = physical.provider_module()
+    old_plan = common._read(manifest['physical_provider_plan'], metadata)
+    _design, ancestor_plan, info = physical.validate_inputs(old_plan, ancestor)
+    _require(old_plan['worker'] == manifest['physical_provider_worker']
+        and ancestor_plan['axes']['source'] == manifest['axes'], 'STATE_PHYSICAL_INPUT_AXES')
+    fitted = common._read(manifest['prefix_normalization'], metadata)
+    constructor = common._read(manifest['constructor_metadata'], metadata)
+    info['metadata'].update(metadata)
+    refs = {name:{'path':item['path'], 'sha256':item['sha256']}
+        for name, item in target_manifest['arrays'].items()}
+    return {'manifest':manifest, 'physical':physical, 'ancestor':ancestor, 'ancestor_plan':ancestor_plan,
+        'info':info, 'fitted':fitted, 'constructor':constructor, 'dynamic_state_launch':launch,
+        'state_target_manifest':target_manifest, 'state_label_audit':audit,
+        'state_array_refs':refs, 'state_array_stats':{name:common._stat(ref['path']) for name,ref in refs.items()}}
+
+
+def _prepare_dynamic_state(context, launch, np):
+    from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
+    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (
+        load_dynamic_mtf_state_series, default_trial_lead_minutes)
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
+    physical, ancestor, plan, info = (context[k] for k in ('physical','ancestor','ancestor_plan','info'))
+    prepared = physical.prepare_inputs(ancestor, plan, info, np)
+    physical.release_pages(ancestor, prepared, discard_multi_tf_v4_cache_pages)
+    manifest = context['manifest']
+    _require(prepared['gc']['layout'] == common._read(manifest['view_source_bindings']['raw_gc_layout'], info['metadata'])
+        and prepared['gc']['transition'] == common._read(manifest['view_source_bindings']['raw_gc_transition'], info['metadata']),
+        'STATE_CURRENT_RAW_GC_DOMAIN')
+    series = load_dynamic_mtf_state_series(launch['target_manifest'],
+        expected_source_refs=launch['target_sources'], expected_cutoff_ns=launch['fold']['oof_cutoff_ns'])
+    end, n = launch['fold']['oof_end_row'], launch['fold']['prefix_rows']
+    axes = prepared['arrays']
+    _require(np.array_equal(series.arrays['parent_rows'], axes['parent_rows'][:end])
+        and np.array_equal(series.arrays['issue_ns'], axes['decision_ns'][:end])
+        and np.all(axes['decision_ns'][:n] < launch['fold']['train_cutoff_ns'])
+        and np.all(axes['decision_ns'][n:end] >= launch['fold']['train_cutoff_ns'])
+        and np.all(axes['decision_ns'][:end] < launch['fold']['oof_cutoff_ns']),
+        'STATE_EXACT_INPUT_TARGET_AXES')
+    for values in axes.values():
+        values.setflags(write=False)
+    for key in ('times_ns','sample_positions'):
+        prepared['entry_sequence_source'][key].setflags(write=False)
+    sources = {**manifest['view_source_bindings'],
+        'dynamic_state_target_source':launch['source_owners']['gx1/contracts/entry_dynamic_mtf_state_targets_v1.py']}
+    view = view_owner.bind_native_direction_feature_view(prefix_normalization=context['fitted'],
+        prefix_normalization_ref=manifest['prefix_normalization'], constructor_metadata=context['constructor'],
+        constructor_metadata_ref=manifest['constructor_metadata'], source_bindings=sources, max_batch_rows=BATCH_SIZE,
+        full_feature_profile=True, dynamic_state_supervision=True)
+    prepared['state_artifact_directory'] = context['state_artifact_directory']
+    targets = {'dynamic_state_series':series, 'target_manifest':launch['target_manifest'],
+        'target_sources':launch['target_sources'], 'prior':context['state_label_audit']['prior'],
+        'lead_minutes':np.asarray(default_trial_lead_minutes(), np.int64),
+        'train_cutoff_ns':launch['fold']['train_cutoff_ns'], 'cutoff_ns':launch['fold']['oof_cutoff_ns']}
+    order = _fixed_order(axes['parent_rows'], n, SEED, np)
+    return prepared, targets, view, None, order
+
+
+def _state_loss(model, outputs, target, *, cutoff):
+    from gx1.contracts.entry_native_direction_research_v1 import native_dynamic_mtf_state_loss
+    loss = native_dynamic_mtf_state_loss(outputs['initial_state_logits'], outputs['state_transition_logits'],
+        **{key:target[key] for key in ('state','observed','issue_ns','validity_ns','maturity_ns')}, cutoff_ns=cutoff)
+    _require(loss['research_objective_sha256'] == model.research_objective['contract_sha256'], 'STATE_LOSS_IDENTITY')
+    return loss
+
+
+def _state_gradient_summary(model, torch):
+    _require(all(p.grad is None for p in model.parameters() if not p.requires_grad), 'STATE_INACTIVE_GRADIENT')
+    _require(all(p.grad is None or bool(torch.isfinite(p.grad).all()) for p in model.parameters()), 'STATE_FINITE_GRADIENT')
+    groups = {name:list(getattr(model,name).parameters())
+        for name in ('state_query_projection','state_initial_head','state_transition_head')}
+    groups['entry_q_joint'] = list(model.backbone.entry_q_joint_in.parameters()) + list(model.backbone.entry_q_joint_norm.parameters())
+    for owner in ('specialist_proj','mtf_family_proj','mtf_feature_context_gate',
+            'gc_mtf_family_proj','gc_mtf_feature_context_gate'):
+        for name, layer in getattr(model.backbone, owner).items():
+            groups[owner+'.'+name] = list(layer.parameters())
+    claimed = {id(p) for values in groups.values() for p in values}
+    groups['remaining_native_backbone'] = [p for p in model.parameters() if p.requires_grad and id(p) not in claimed]
+    return {name:sum(int(torch.count_nonzero(p.grad)) for p in values if p.grad is not None)
+        for name,values in groups.items()}
+
+
+def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff, kind, counters,
+        ceiling, device, torch, np, tree_sha, deadline=None, parity=False):
+    """Bounded NPY outputs and incremental scores; no N-by-query target copy."""
+    from gx1.contracts.entry_native_direction_research_v1 import dynamic_mtf_state_marginal_probabilities
+    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import StateScoreAccumulator
+    from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
+    from gx1.contracts.immutable_event_authority_v1 import _publish_bytes, _publish_file_noreplace, _fsync_directory
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+    root = Path(prepared['state_artifact_directory'])
+    destination = root/(kind + '_PREDICTIONS')
+    _require(root.is_dir() and not destination.exists(), 'STATE_OUTPUT_DIRECTORY')
+    stage = Path(tempfile.mkdtemp(prefix='.'+destination.name+'.staging.', dir=root))
+    shapes = {'probabilities':((len(selected),5,len(targets['lead_minutes']),3),np.float32),
+        'sequence_nll':((len(selected),5),np.float32), 'parent_rows':((len(selected),),np.int64),
+        'issue_ns':((len(selected),),np.int64), 'bar_start_ns':((len(selected),),np.int64)}
+    arrays = {key:np.lib.format.open_memmap(stage/(key+'.npy'), mode='w+', dtype=dtype, shape=shape)
+        for key,(shape,dtype) in shapes.items()}
+    semantic = {key:hashlib.sha256() for key in arrays}
+    scorer = StateScoreAccumulator(targets['prior'], lead_minutes=targets['lead_minutes'])
+    path_support = np.zeros((5,len(targets['lead_minutes'])),np.int64)
+    reason_support = {str(bit):np.zeros(5,np.int64) for bit in (1,2,4,8,16,32,64,128)}
+    before = _online_identity(model,device,tree_sha,trainer)
+    modes = [(module,module.training) for module in model.modules()]
+    _require(all(p.grad is None for p in model.parameters()), 'STATE_EVAL_PARTIAL_GRADIENT')
+    completed = 0
+    parity_passed = not parity
+    try:
+        model.eval()
+        for left in range(0,len(selected),BATCH_SIZE):
+            if deadline is not None and time.monotonic() >= deadline:
+                break
+            ids = selected[left:left+BATCH_SIZE]
+            raw,target = _batch(prepared,targets,view,ids,np,cutoff=cutoff)
+            features,device_target = _device_batch(raw,target,torch,device)
+            outputs = _forward(model,features,kind=kind,counters=counters,ceiling=ceiling,torch=torch,return_outputs=True)
+            if parity and left == 0:
+                with_grad = _forward(model,features,kind='INITIAL_PARITY_GRAD',counters=counters,
+                    ceiling=ceiling,torch=torch,grad=True,return_outputs=True)
+                _require(set(outputs) == set(with_grad)
+                    and all(torch.equal(outputs[key],with_grad[key].detach()) for key in outputs)
+                    and all(p.grad is None for p in model.parameters()), 'STATE_INITIAL_GRAD_NOGRAD_PARITY')
+                del with_grad
+                parity_passed = True
+            with torch.no_grad():
+                loss = _state_loss(model,outputs,device_target,cutoff=cutoff)
+                probabilities = dynamic_mtf_state_marginal_probabilities(
+                    outputs['initial_state_logits'],outputs['state_transition_logits']).cpu().numpy()
+                transitions = torch.softmax(outputs['state_transition_logits'],dim=-1).cpu().numpy()
+                nll = loss['sequence_nll'].cpu().numpy()
+                eligible = loss['eligible_mask'].cpu().numpy()
+            _require(np.isfinite(probabilities).all() and np.isfinite(nll).all(), 'STATE_FINITE_PREDICTIONS')
+            batch = {'probabilities':probabilities, 'sequence_nll':nll, 'parent_rows':ids,
+                'issue_ns':target['issue_ns'], 'bar_start_ns':np.asarray(raw['witness']['bar_start_ns'],np.int64)}
+            for key,values in batch.items():
+                values = np.ascontiguousarray(values,dtype=arrays[key].dtype)
+                arrays[key][left:left+len(ids)] = values
+                semantic[key].update(values.tobytes())
+            path_support += np.count_nonzero(target['path_observed'] & eligible,axis=0)
+            for bit, counts in reason_support.items():
+                counts += np.count_nonzero((target['reason'] & int(bit)) != 0,axis=(0,2))
+            scorer.update(probabilities,state=target['state'],eligible=eligible,
+                current_state=target['current_state'],current_observed=target['current_observed'],
+                sequence_nll=nll,transition_probabilities=transitions)
+            completed += len(ids)
+            del raw,target,features,device_target,outputs,loss,probabilities,transitions,nll,eligible,batch
+    finally:
+        for module,training in modes:
+            module.training = training
+        _require(_online_identity(model,device,tree_sha,trainer) == before
+            and all(p.grad is None for p in model.parameters()), 'STATE_EVAL_ONLINE_PRESERVATION')
+        for values in arrays.values():
+            values.flush()
+    if completed != len(selected):
+        # The incomplete staging remains for the retention owner, never published.
+        return None,completed
+    descriptors = {}
+    for key,values in arrays.items():
+        path = stage/(key+'.npy')
+        with path.open('rb') as handle:
+            os.fsync(handle.fileno())
+        persisted = np.load(path,mmap_mode='r',allow_pickle=False)
+        digest = hashlib.sha256()
+        for left in range(0,len(selected),BATCH_SIZE):
+            digest.update(np.ascontiguousarray(persisted[left:left+BATCH_SIZE]).tobytes())
+        _require(persisted.shape == values.shape and persisted.dtype == values.dtype
+            and digest.hexdigest() == semantic[key].hexdigest(), 'STATE_PERSISTED_ARRAY:'+key)
+        descriptors[key] = {**common._hash_file(path), 'path':str(destination/path.name),
+            'shape':list(values.shape), 'dtype':values.dtype.name, 'size_bytes':path.stat().st_size,
+            'data_sha256':digest.hexdigest()}
+        path.chmod(0o444)
+        del persisted
+    artifact = {'schema_version':'gx1_dynamic_mtf_state_prediction_arrays_v1', 'arrays':descriptors,
+        'target_manifest':targets['target_manifest'], 'target_sources':targets['target_sources'],
+        'lead_minutes':targets['lead_minutes'].tolist(), 'timeframes':model.research_objective['timeframes'],
+        'class_names':model.research_objective['class_names'], 'cutoff_ns':cutoff,
+        'research_objective_sha256':model.research_objective['contract_sha256'],
+        'target_contract_sha256':targets['dynamic_state_series'].metadata['definition']['contract_sha256'],
+        'test_data_used':False, 'storage':'marginals_and_sequence_nll_only_shared_targets_no_transition_tensor'}
+    body = (json.dumps(artifact,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()
+    _publish_bytes(stage/'ARRAYS.json',body)
+    (stage/'ARRAYS.json').chmod(0o444)
+    _fsync_directory(stage)
+    # Close mappings before moving the exact staged directory.
+    arrays.clear()
+    _publish_file_noreplace(stage,destination)
+    _fsync_directory(root)
+    report = scorer.finalize()
+    report['local_path_observed_eligible_per_timeframe_lead'] = path_support.tolist()
+    report['target_reason_bit_counts_per_timeframe'] = {bit:counts.tolist() for bit,counts in reason_support.items()}
+    report['path_scope'] = 'States and adjacent closed-minute states scored; unobserved intraminute order is not a predicted target.'
+    return {'state_artifact':artifact,
+        'predictions':{'path':str(destination/'ARRAYS.json'),'sha256':hashlib.sha256(body).hexdigest()},
+        'report':report, 'state_preservation':before, 'initial_parity_passed':parity_passed},completed
+
+
+def _require_dynamic_initial_match(measured, previous, *, common):
+    _require(previous['schema_version'] == 'gx1_dynamic_mtf_state_measurement_v1'
+        and previous['role'] == 'INITIAL_TRAIN'
+        and measured['state_preservation'] == previous['preservation']
+        and measured['report'] == previous['model_metrics'], 'STATE_OWN_INITIAL_METADATA_PARITY')
+    ref = previous['predictions']
+    original = json.loads(Path(ref['path']).read_text())
+    _require(common._hash_file(ref['path']) == ref, 'STATE_OWN_INITIAL_MANIFEST_SHA')
+    current = measured['state_artifact']
+    _require({k:v for k,v in original.items() if k != 'arrays'} == {k:v for k,v in current.items() if k != 'arrays'}
+        and set(original['arrays']) == set(current['arrays']), 'STATE_OWN_INITIAL_IDENTITY')
+    for key, item in original['arrays'].items():
+        _require(common._hash_file(item['path']) == {k:item[k] for k in ('path','sha256')}
+            and {k:v for k,v in item.items() if k != 'path'}
+                == {k:v for k,v in current['arrays'][key].items() if k != 'path'}, 'STATE_OWN_INITIAL_ARRAY:'+key)
+
 def _launch_metadata(launch, common):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
+    if launch.get('run_scope') == authority.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE:
+        return _dynamic_state_metadata(launch, common)
     candidate=launch.get('run_scope') in (authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,authority.FAMILY_PRIVATE_ADAPTER_SCOPE)
     if launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE,
             authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE, authority.FAMILY_PRIVATE_ADAPTER_SCOPE):
@@ -389,6 +623,9 @@ def _candidate_view_inputs(context, launch, prepared, sources):
 
 
 def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False, dense_minutes=False, dense_bps=False):
+    if launch.get('numerical_recipe', {}).get('dynamic_state_supervision') is True:
+        _require(not any((signed_bps,magnitude_weighted,dense_minutes,dense_bps)), 'STATE_PREPARE_MODE')
+        return _prepare_dynamic_state(context,launch,np)
     from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
     from gx1.contracts import entry_native_direction_context_report_v1 as report_owner
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
@@ -511,7 +748,7 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
     return prepared,targets,view,context_map,order
 
 
-def _batch(prepared, targets, view, selected, np):
+def _batch(prepared, targets, view, selected, np, *, cutoff=None):
     from gx1.contracts.entry_native_direction_feature_view_v1 import gather_native_direction_feature_batch
     raw=gather_native_direction_feature_batch(view,parent_rows=prepared['arrays']['parent_rows'],
         bar_start_ns=prepared['arrays']['bar_start_ns'],decision_ns=prepared['arrays']['decision_ns'],
@@ -522,8 +759,16 @@ def _batch(prepared, targets, view, selected, np):
             if 'm1_ofi_normalization' in view else {}))
     at=np.searchsorted(prepared['arrays']['parent_rows'],selected)
     _require(np.array_equal(prepared['arrays']['parent_rows'][at],selected),'TARGET_EXACT_PARENT_JOIN')
-    target={key:np.ascontiguousarray(value[at]) for key,value in targets.items()}
-    target['decision_ns']=np.ascontiguousarray(prepared['arrays']['decision_ns'][at])
+    if 'dynamic_state_series' in targets:
+        from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import query_dynamic_mtf_states
+        query = query_dynamic_mtf_states(targets['dynamic_state_series'], parent_rows=np.asarray(selected,np.int64),
+            issue_ns=np.ascontiguousarray(prepared['arrays']['decision_ns'][at]),
+            cutoff_ns=targets['train_cutoff_ns'] if cutoff is None else cutoff, lead_minutes=targets['lead_minutes'])
+        target = {key:np.ascontiguousarray(query[key]) for key in
+            ('state','observed','issue_ns','validity_ns','maturity_ns','current_state','current_observed','path_observed','reason')}
+    else:
+        target={key:np.ascontiguousarray(value[at]) for key,value in targets.items()}
+        target['decision_ns']=np.ascontiguousarray(prepared['arrays']['decision_ns'][at])
     if 'family_intervention' in view:
         from gx1.contracts.entry_direction_family_intervention_v1 import apply_family_intervention_numpy
         reference=view['family_intervention']
@@ -540,7 +785,7 @@ def _batch(prepared, targets, view, selected, np):
 def _final_train_selection(prepared, diagnostic_ids, launch, updates_in_invocation):
     """Whole-prefix family scoring starts only in a fresh scoring invocation."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    if launch['run_scope'] != authority.FAMILY_SIGN_SCOPE:
+    if launch['run_scope'] not in (authority.FAMILY_SIGN_SCOPE, authority.DYNAMIC_STATE_SCOPE):
         return diagnostic_ids
     if updates_in_invocation > 0:
         return None
@@ -555,6 +800,10 @@ def _device_batch(raw, target, torch, device):
 
 
 def _prefix_prior(axes, targets, fold, np):
+    if 'dynamic_state_series' in targets:
+        _require(targets['train_cutoff_ns'] == fold['train_cutoff_ns']
+            and targets['prior']['parents'] == fold['prefix_rows'], 'STATE_FROZEN_TRAIN_PRIOR')
+        return targets['prior']
     n=fold['prefix_rows'];eligible=targets['observed'][:n]&(targets['sign'][:n]!=0)&(targets['terminal_time_ns'][:n]<fold['train_cutoff_ns'])
     up=np.count_nonzero(eligible&(targets['sign'][:n]==1),axis=0);down=np.count_nonzero(eligible&(targets['sign'][:n]==-1),axis=0)
     _require(np.all(up>0) and np.all(down>0),'OWN_PREFIX_BOTH_CLASSES')
@@ -583,6 +832,9 @@ def _online_identity(model, device, tree_sha, trainer):
 
 def _evaluate(model, prepared, targets, view, context_map, selected, *, cutoff, kind, counters, ceiling,
         device, torch, np, tree_sha, deadline=None, parity=False):
+    if view.get('dynamic_state_supervision') is True:
+        return _evaluate_dynamic_state(model,prepared,targets,view,selected,cutoff=cutoff,kind=kind,
+            counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,deadline=deadline,parity=parity)
     from gx1.contracts import entry_native_direction_context_report_v1 as reporter
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     before=_online_identity(model,device,tree_sha,trainer);modes=[(module,module.training) for module in model.modules()]
@@ -691,6 +943,20 @@ def _require_original_initial_match(measured, original_ref, *, common, np):
 
 def _publish_measurement(name, measured, *, output, view, prior, own_initial_state, fresh_identity,
         context_map, counters, launch, np, common, tree_sha):
+    if 'state_artifact' in measured:
+        artifact = measured['state_artifact']
+        return common._json(output/(name+'.json'), {
+            'schema_version':'gx1_dynamic_mtf_state_measurement_v1', 'role':name, 'fold':launch['fold'],
+            'feature_view_identity':view, 'predictions':measured['predictions'],
+            'model_metrics':measured['report'], 'own_prefix_prior':prior,
+            'target_manifest':artifact['target_manifest'], 'target_sources':artifact['target_sources'],
+            'target_contract_sha256':artifact['target_contract_sha256'],
+            'research_objective_sha256':artifact['research_objective_sha256'],
+            'lead_minutes':artifact['lead_minutes'], 'timeframes':artifact['timeframes'], 'class_names':artifact['class_names'],
+            'own_initial_state':own_initial_state, 'fresh_identity_sha256':fresh_identity,
+            'preservation':measured['state_preservation'], 'initial_grad_nograd_parity':measured['initial_parity_passed'],
+            'test_data_used':False, 'scope':'TRAIN fit or reused development later data; no trading or economic claim'},
+            counters,launch['max_published_json_bytes'])
     from gx1.contracts.entry_native_direction_context_report_v1 import score_native_direction_logits
     arrays=measured['arrays'];prediction=_save_predictions(output/(name+'.npz'),arrays,np=np,common=common,tree_sha=tree_sha)
     horizons=arrays['logit_up'].shape[1]
@@ -742,10 +1008,14 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
     from gx1.contracts.entry_native_direction_research_v1 import native_direction_binary_loss
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     _require(model.training and all(module.training for module in model.modules()),'TRAIN_MODE')
+    dynamic_state = type(model).__name__ == 'NativeDynamicMTFStateResearch'
     signed_bps=getattr(model,'signed_bps',False); magnitude_weighted=getattr(model,'magnitude_weighted',False)
     dense_bps=getattr(model,'dense_signed_bps',False)
     _require(sum((signed_bps,magnitude_weighted,dense_bps))<=1,'OBJECTIVE_MODE')
-    if dense_bps:
+    if dynamic_state:
+        outputs = _forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True,return_outputs=True)
+        loss = _state_loss(model,outputs,target,cutoff=cutoff)
+    elif dense_bps:
         outputs=_forward(model,features,kind='TRAIN',counters=counters,ceiling=ceiling,torch=torch,grad=True,return_outputs=True)
         from gx1.contracts.entry_native_direction_bps_v1 import dense_direction_bps_loss
         loss=dense_direction_bps_loss(outputs['logit_up'],outputs['mean_return_bps'],
@@ -774,7 +1044,8 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
             _require(loss['research_objective_sha256']==model.research_objective['contract_sha256'],'DENSE_LOSS_IDENTITY')
         else:
             loss=native_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
-    record={'eligible_cells':loss['counts']['eligible_cells'],'counts':loss['counts'],'per_horizon_counts':loss['per_horizon_counts']}
+    record={'eligible_cells':loss['counts']['eligible_cells'],'counts':loss['counts'],
+        **({'per_timeframe_counts':loss['per_timeframe_counts']} if dynamic_state else {'per_horizon_counts':loss['per_horizon_counts']})}
     if magnitude_weighted:
         for key in ('unweighted_direction_loss','magnitude_weighted_loss'):
             record[key]=None if loss[key] is None else float(loss[key].detach())
@@ -787,7 +1058,7 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
         _require(loss['loss'] is None and all(p.grad is None for p in model.parameters()),'EMPTY_BATCH_NO_UPDATE')
         counters['empty_batches']+=1;return record,False
     counters['backward_calls']+=1;loss['loss'].backward();counters['backward_returns']+=1
-    if diagnostics:record['gradient_nonzero_counts']=_gradient_summary(model,torch)
+    if diagnostics:record['gradient_nonzero_counts']=_state_gradient_summary(model,torch) if dynamic_state else _gradient_summary(model,torch)
     counters['optimizer_step_calls']+=1
     norm=trainer._optimizer_step_with_finite_gradients(model=model,optimizer=optimizer)
     counters['optimizer_step_returns']+=1
@@ -827,6 +1098,8 @@ def _latest_cursor(path, value, *, common, counters, limit):
 
 def _fit_input_launch(launch, authority):
     """Reuse the qualified private target adapter for the separate full-fit scope."""
+    if launch['run_scope'] == authority.DYNAMIC_STATE_SCOPE:
+        return {**launch,'run_scope':authority.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE}
     if launch['run_scope'] == authority.FAMILY_SIGN_SCOPE:
         return {**launch,'run_scope':authority.FAMILY_PRIVATE_ADAPTER_SCOPE}
     if launch['run_scope'] == authority.DENSE_DECIMAL_FIT_SCOPE:
@@ -853,6 +1126,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
+    dynamic_state = launch['run_scope'] == authority.DYNAMIC_STATE_SCOPE
     factor_bps=launch['run_scope']==authority.M5_FACTOR_BPS_SCOPE
     family_fit=launch['run_scope']==authority.FAMILY_SIGN_SCOPE
     recovery=authority.is_scoring_recovery(launch)
@@ -869,6 +1143,13 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     input_launch=_fit_input_launch(launch,authority)
     binding_ref=common._hash_file(launch['execution_binding_path']);extra={};binding=common._read(binding_ref,extra)
     context=_launch_metadata(input_launch,common);context['info']['metadata'].update(extra)
+    if dynamic_state:
+        metadata = context['info']['metadata']
+        review = common._read(launch['native_dynamic_state_qualification'],metadata)
+        initial = common._read(review['initial_report'],metadata)
+        arrays = common._read(initial['predictions'],metadata)
+        context.update(state_qualification_review=review, state_private_initial=initial,
+            state_private_initial_ref=review['initial_report'], state_private_initial_arrays=arrays)
     if decimal_fit:
         metadata=context['info']['metadata']
         review=common._read(launch['native_dense_qualification'],metadata)
@@ -914,6 +1195,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
+    if dynamic_state:context['state_artifact_directory'] = work
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
         extra_read_paths=((recovery_origin['cursor']['full_state']['path'],recovery_origin['cursor']['own_initial_state']['path'])
             if recovery else context['factor_continuation_reads'] if factor_continuation else
@@ -934,7 +1216,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     phase='TRAINING';outcome='FAILED';error=None;source_unchanged=False;checkpoint_refs=[];first_diagnostic=last_diagnostic=None
     prepared=model=optimizer=None;order_sha='0'*64;prior_cursor=None;fresh_identity=None;prior=None;initial_inactive=None
     ceiling=(((train_passes-1 if continuation else train_passes)*((fold['prefix_rows']+15)//16))
-        +17+((launch['final_train_measurement_rows']+15)//16 if family_fit else 16)
+        +17+((launch['final_train_measurement_rows']+15)//16 if family_fit or dynamic_state else 16)
         +(16 if factor_continuation else 0)+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
     if recovery:ceiling=4057
     durable=None;observed_progress=None;bps_scale_ref=None
@@ -1012,6 +1294,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 state_directory=state_directory,name='INITIAL_0U',launch=launch,counters=counters,torch=torch,device=device,common=common,state_owner=state_owner)
             measured,_=_evaluate(model,prepared,targets,view,context_map,diagnostic_ids,cutoff=fold['train_cutoff_ns'],kind='INITIAL_TRAIN',
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,parity=True)
+            if dynamic_state:
+                _require_dynamic_initial_match(measured,context['state_private_initial'],common=common)
             if order_variant:
                 _require_original_initial_match(measured,launch['order_origin']['initial_predictions'],common=common,np=np)
             if family_fit:
@@ -1081,9 +1365,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         if phase=='SCORING' and final_measurement is None and time.monotonic()<deadline and final_ids is not None:
             measured,completed=_evaluate(model,prepared,targets,view,context_map,final_ids,cutoff=fold['train_cutoff_ns'],kind='FINAL_TRAIN',
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,
-                **({'deadline':deadline} if family_fit else {}))
+                **({'deadline':deadline} if family_fit or dynamic_state else {}))
             if measured is not None:
-                _require(not family_fit or completed==launch['final_train_measurement_rows'], 'FAMILY_COMPLETE_TRAIN_MEASUREMENT')
+                _require(not (family_fit or dynamic_state) or completed==launch['final_train_measurement_rows'], 'COMPLETE_TRAIN_MEASUREMENT')
                 final_measurement=_publish_measurement('FINAL_TRAIN',measured,output=work,view=view_identity,prior=prior,
                     own_initial_state=initial_ref,fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
             del measured

@@ -15,7 +15,8 @@ import numpy as np
 import torch
 
 from gx1.contracts.entry_model_native_train_recipe_v1 import require_native_direction_research_recipe
-from gx1.contracts.entry_native_direction_research_v1 import NativeEntryDirectionResearch, native_direction_research_contract
+from gx1.contracts.entry_native_direction_research_v1 import (NativeEntryDirectionResearch,
+    NativeDynamicMTFStateResearch, native_direction_research_contract)
 from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch
 from gx1.contracts.model_state_digest_v1 import canonical_model_state_sha256
 from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
@@ -28,7 +29,8 @@ INACTIVE_PREFIXES = ('backbone.head_', 'backbone.dynamic_m5_query_projection.',
 IMMUTABLE_BUFFER_NAMES = frozenset(('backbone.gc_mtf_layout_sha256', 'backbone.gc_mtf_normalization_sha256',
     'backbone.entry_execution_profile_contract_sha256', 'direction_horizon_minutes', 'bps_rms', 'bps_scale_sha256',
     'magnitude_rms_bps', 'magnitude_raw_weight_mean', 'magnitude_weight_sha256',
-    'dense_horizon_minutes', 'dense_reorder', 'dense_bps_rms', 'dense_bps_scale_sha256', 'm1_ofi_center', 'm1_ofi_scale', 'm1_ofi_normalization_sha256', 'm1_ofi_coarsened'))
+    'dense_horizon_minutes', 'dense_reorder', 'dense_bps_rms', 'dense_bps_scale_sha256', 'm1_ofi_center', 'm1_ofi_scale', 'm1_ofi_normalization_sha256', 'm1_ofi_coarsened',
+    'state_timeframe_codes', 'state_lead_minutes', 'state_class_codes', 'state_query_coordinates', 'state_objective_sha256'))
 IMMUTABLE_BUFFER_PREFIXES = ('backbone.input_norm_', 'backbone.gc_mtf_specialist_idx_')
 STATE_KEYS = frozenset(('schema_version', 'binding', 'model_state', 'buffer_state', 'optimizer_state',
     'rng_state', 'module_training', 'parent_order', 'cursor', 'optimizer_updates', 'model_state_sha256',
@@ -64,14 +66,17 @@ def _view(model, expected):
 
 
 def _parameters(model):
-    _require(type(model) in (NativeEntryDirectionResearch, DenseNativeEntryDirectionResearch), 'EXACT_RESEARCH_TYPE')
+    _require(type(model) in (NativeEntryDirectionResearch, DenseNativeEntryDirectionResearch, NativeDynamicMTFStateResearch), 'EXACT_RESEARCH_TYPE')
     model._require_binding()
     model.backbone.require_input_normalization_state()
     pairs = list(model.named_parameters(remove_duplicate=False))
     _require(pairs and len({id(p) for _, p in pairs}) == len(pairs), 'PARAMETER_ALIASES')
     active = [(name, p) for name, p in pairs if not name.startswith(INACTIVE_PREFIXES)]
     inactive = [(name, p) for name, p in pairs if name.startswith(INACTIVE_PREFIXES)]
-    _require(active and inactive and any(name.startswith('direction_head.') for name, _ in active), 'PARAMETER_PARTITIONS')
+    head_prefixes = (('state_query_projection.', 'state_initial_head.', 'state_transition_head.')
+        if type(model) is NativeDynamicMTFStateResearch else ('direction_head.',))
+    _require(active and inactive and all(any(name.startswith(prefix) for name, _ in active)
+        for prefix in head_prefixes), 'PARAMETER_PARTITIONS')
     _require(all(p.dtype == torch.float32 and bool(torch.isfinite(p).all()) for _, p in pairs), 'FINITE_FP32_PARAMETERS')
     return pairs, active, inactive
 
@@ -98,9 +103,11 @@ def _binding(model, optimizer, recipe, feature_view_identity):
     return _sealed({'schema_version': 'gx1_native_direction_research_optimizer_binding_v1',
         'recipe': recipe, 'feature_view_identity': _view(model, feature_view_identity),
         'research_objective': model.research_objective,
-        **({'bps_scale_contract_sha256':model.bps_scale['contract_sha256']} if model.signed_bps else {}),
+        **({'bps_scale_contract_sha256':model.bps_scale['contract_sha256']}
+            if type(model) is not NativeDynamicMTFStateResearch and model.signed_bps else {}),
         **({'dense_bps_scale_contract_sha256':model.dense_bps_scale['contract_sha256']} if getattr(model, 'dense_signed_bps', False) else {}),
-        **({'magnitude_weight_contract_sha256':model.magnitude_weight_contract['contract_sha256']} if model.magnitude_weighted else {}),
+        **({'magnitude_weight_contract_sha256':model.magnitude_weight_contract['contract_sha256']}
+            if type(model) is not NativeDynamicMTFStateResearch and model.magnitude_weighted else {}),
         'active_parameter_names': [name for name, _ in active],
         'inactive_parameter_names': [name for name, _ in inactive],
         'parameter_inventory': [{'name': name, 'shape': list(p.shape), 'dtype': str(p.dtype)} for name, p in pairs],

@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-01T22:28:15.690017+00:00",
-  "status": "INPUT_PREPARATION_COMPLETE_TARGET_DEFINITION_REQUIRED_BEFORE_NATIVE_TRAINING",
+  "status": "DYNAMIC_STATE_CANDIDATE_SOURCE_CHECKED_TRAIN_LABEL_AUDIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-  "next_action": "Obtain the pending meaningful-movement/flatness criterion, finish the dynamic five-timeframe target/output/loss/evaluation contract and source integration, then perform fresh genuine qualification and safe restart before one bounded short training. No relaunch of completed input normalization or automatic full training.",
+  "next_action": "Run the single source-bound CPU target build/TRAIN label audit, independently review state/unknown/class/threshold evidence, then finish and qualify the closed native integration before safe reboot and one short fit. No model run admitted by the target audit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Obtain the pending meaningful-movement/flatness criterion, finish the dynamic five-timeframe target/output/loss/evaluation contract and source integration, then perform fresh genuine qualification and safe restart before one bounded short training. No relaunch of completed input normalization or automatic full training.",
+    "next_action": "Run the single source-bound CPU target build/TRAIN label audit, independently review state/unknown/class/threshold evidence, then finish and qualify the closed native integration before safe reboot and one short fit. No model run admitted by the target audit.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17992,7 +17992,7 @@
       "status": "OBJECTIVE_MISMATCH_PROVEN_BINARY_RANKING_CAUSE_UNKNOWN",
       "review": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "bfe132f92e8ffb4b15f66aedca1fcbeb21da07d588a3cdb13c8bd19b40292d2f"
+        "sha256": "180d0070a0ac7de55c44835d1195cedd132ef17f84fa79b5b78271996fa2dc44"
       },
       "saved_result": {
         "path": "/home/andre2/GX1_RUNS/DIRECTION_OBJECTIVE_SAVED_DIAGNOSTICS_20261101_001/RESULT.json",
@@ -18019,7 +18019,7 @@
       "test_data_used": false,
       "result": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "bfe132f92e8ffb4b15f66aedca1fcbeb21da07d588a3cdb13c8bd19b40292d2f"
+        "sha256": "180d0070a0ac7de55c44835d1195cedd132ef17f84fa79b5b78271996fa2dc44"
       },
       "inventory": {
         "path": "/home/andre2/GX1_RUNS/MOVEMENT_FORECAST_TARGET_REVIEW_20261101_001/EXISTING_TARGET_INVENTORY.json",
@@ -18049,7 +18049,7 @@
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "dynamic_state_short_training_20261101": {
-      "status": "INPUT_PREPARATION_VERIFIED_AWAITING_TARGET_DEFINITION",
+      "status": "CANDIDATE_SOURCE_CHECKED_ONE_TRAIN_LABEL_AUDIT_ADMITTED",
       "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
       "operator_authorized_source_target_preparation": true,
       "operator_authorized_required_genuine_qualification": true,
@@ -18073,11 +18073,11 @@
         "D1"
       ],
       "state_classes": [
-        "UP",
         "DOWN",
-        "FLAT"
+        "FLAT",
+        "UP"
       ],
-      "target_rule_question": "Minimum relevant local movement versus flatness: causal volatility-relative scale or explicit USD/percentage magnitude. No threshold found in existing owners is adopted by guessing.",
+      "target_rule_question": "ANSWERED: operator approved0.5×causal ATR(14) candidate per five TF and TRAIN label review before lock.",
       "preexisting_dirty_files": 0,
       "integrator": "root",
       "owner_tasks": {
@@ -18232,7 +18232,7 @@
       },
       "current_goal_report": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json",
-        "sha256": "bfe132f92e8ffb4b15f66aedca1fcbeb21da07d588a3cdb13c8bd19b40292d2f"
+        "sha256": "180d0070a0ac7de55c44835d1195cedd132ef17f84fa79b5b78271996fa2dc44"
       },
       "required_native_source_contract_checks": "Repository pre-commit native contract checks are permitted by the new preparation instruction; synthetic CPU model checks are not genuine target/gradient/resume qualification or training.",
       "input_normalization_preparation": {
@@ -18247,7 +18247,62 @@
         "target_builds": 0
       },
       "source_commit_with_full_profile": "63e4008699f49ae8265b5c9024de0b0863ca975b",
-      "synthetic_native_source_guards_passed": true
+      "synthetic_native_source_guards_passed": true,
+      "movement_threshold_decision": {
+        "operator_reply": "Ja, vi kjører dette",
+        "approved_candidate": {
+          "atr_owner": "gx1.features.technical_indicators_v1.wilder_atr",
+          "period": 14,
+          "multiplier": 0.5,
+          "timeframes": [
+            "M5",
+            "M15",
+            "H1",
+            "H4",
+            "D1"
+          ]
+        },
+        "label_review_required_before_lock": true,
+        "selection_by_model_or_val_score": false,
+        "fixed_forecast_start_price": false,
+        "additional_numeric_thresholds_authorized": false,
+        "trained_edge_claim": false
+      },
+      "state_class_order_role": "Exact target/output class-index order0,1,2; display language does not reorder tensor axes.",
+      "source_checks": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED.json",
+        "sha256": "76121a66b50a7fa7cfd5ee0af56ac53775169ab4f4011f276fdf82fe62cef02e"
+      },
+      "private_qualification_runner_complete": false,
+      "forecast_query_domain": {
+        "lead_minutes_first": 1,
+        "lead_minutes_last": 1440,
+        "stride_minutes": 1,
+        "timeframes": [
+          "M5",
+          "M15",
+          "H1",
+          "H4",
+          "D1"
+        ],
+        "origin": "canonical D1 duration; bounded short-trial forecast domain, not a state-duration or holding rule",
+        "unobserved_intraminute_order_predicted": false
+      },
+      "target_preparation": {
+        "status": "ADMITTED_NOT_LAUNCHED",
+        "plan": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/PLAN.json",
+          "sha256": "7dce8aac1f7076ea21d3d1793f9d75c360962ce8c786c9c50f7c3b7bd495392a"
+        },
+        "worker": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/build_and_audit_targets_guarded.py",
+          "sha256": "596b24373d6e799e40b96574cb6742b40376a42eeb301d688e3cc670ac5b6a56"
+        },
+        "target_builds": 0,
+        "model_calls": 0,
+        "later_materialization_only": true,
+        "later_metrics_inspected": false
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -51339,5 +51394,34 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/CONSUMED_ADMISSION_POLICY.json",
       "sha256": "cc9fd7cd87810c4764ab9f71e335564a7df4e016f8853ef289554108327d9644"
     }
+  },
+  "dynamic_mtf_state_target_audit_20261102_001": {
+    "status": "ADMITTED_ONE_TARGET_ONLY_CPU_AUDIT",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/PLAN.json",
+      "sha256": "7dce8aac1f7076ea21d3d1793f9d75c360962ce8c786c9c50f7c3b7bd495392a"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/build_and_audit_targets_guarded.py",
+      "sha256": "596b24373d6e799e40b96574cb6742b40376a42eeb301d688e3cc670ac5b6a56"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "source_checks": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED.json",
+      "sha256": "76121a66b50a7fa7cfd5ee0af56ac53775169ab4f4011f276fdf82fe62cef02e"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "target_build_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "exit_evaluation": false,
+    "later_rule_selection_authorized": false
   }
 }

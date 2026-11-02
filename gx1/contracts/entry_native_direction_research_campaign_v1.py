@@ -29,6 +29,7 @@ ORDER_SUPPORTED_SCOPE = 'private_sign_b16_chronological_supported_initial_resume
 DENSE_PRIVATE_SCOPE = 'private_dense_b16_initial_resume_qualification'
 DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_b16_initial_resume_qualification'
 FAMILY_PRIVATE_SCOPE = 'private_m5_family_sign_b16_initial_resume_qualification'
+DYNAMIC_STATE_PRIVATE_SCOPE = 'private_dynamic_mtf_state_b16_initial_resume_qualification'
 FAMILY_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_direction_family_intervention_v1.py',)
 FAMILY_PROTOCOL_PATH = '/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json'
 DECIMAL_INPUT_AUDIT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json',
@@ -170,6 +171,9 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     ref = campaign.require_binding(binding, label='direction research recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    if value.get('run_scope') == DYNAMIC_STATE_PRIVATE_SCOPE:
+        from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import require_dynamic_state_launch_recipe
+        return require_dynamic_state_launch_recipe(value, source_repo=source_repo, source_commit=source_commit, private_scope=True)
     fields = {'schema_version', 'source_repo', 'runtime_root', 'admission_stage', 'run_scope',
         'numerical_recipe', 'input_manifest', 'source_owners', 'execution_binding_path',
         'max_private_updates', 'max_model_constructions', 'max_forwards', 'max_backwards',
@@ -507,6 +511,10 @@ def guarded_research_power_limit(recipe):
     """Return the user-approved cap after the caller validates the bound recipe."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
     _require(isinstance(recipe, Mapping), 'POWER_RECIPE')
+    if recipe.get('run_scope') == DYNAMIC_STATE_PRIVATE_SCOPE:
+        _require(recipe.get('full_feature_profile') is True
+            and recipe.get('numerical_recipe', {}).get('dynamic_state_supervision') is True, 'STATE_POWER_SCOPE')
+        return 250
     if recipe.get('run_scope') == FAMILY_PRIVATE_SCOPE:
         _require(recipe.get('admission_stage','').startswith('dynamic_m5_direction_family_private_')
             and recipe.get('candidate_mode')=='price_only'
@@ -591,7 +599,14 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
     campaign._utc(result['created_utc'], 'research plan creation')
     runtime = Path(_path(result['runtime_root'], 'runtime root'))
     result['prepared_windows_boot'] = campaign.require_boot_identity(result['prepared_windows_boot'])
-    _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(campaign.family_campaign_policy(result))
+    expected_policy = campaign.family_campaign_policy(result)
+    if verify_files:
+        policy_recipe = require_research_launch_recipe(result['recipe'],
+            source_repo=CANONICAL_REPO, source_commit=result['source_commit'])
+        if policy_recipe['run_scope'] == DYNAMIC_STATE_PRIVATE_SCOPE:
+            _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
+            expected_policy['physical_power_limit_w'] = 250
+    _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
         and campaign.canonical_sha256(result['authority']) == campaign.canonical_sha256({'test':False,'promotion':False,'paper':False,'live':False,'cloud_spend':False}), 'PLAN_AUTHORITY')
     for key, keys in (('signed_guard_sources',{'runner','guard','query','certificate'}),
             ('controller_sources',{'controller','observer','campaign_cli'})):

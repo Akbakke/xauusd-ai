@@ -36,6 +36,13 @@ fra små svingninger uten å gjøre et helt volatilt forløp flatt ved kanseller
 Framtidig størrelse, varighet og tidspunkt brukes til å kontrollere at
 prognosen dekker bevegelsene brukeren etterspør; dette gir ingen handelsregel.
 
+Godkjent utgangspunkt02.11 er minste lokale bevegelsesstørrelse
+0,5 × Wilder ATR(14) fra kausalt lukkede barer på den aktuelle TF. Dette er
+en uttrykkelig kandidatdefinisjon, ikke en målt optimal terskel. TRAIN-merker
+for ro, vedvarende retning og vendinger kontrolleres før kontrakten låses.
+Ingen faktor velges etter modellscore eller VAL. ATR-skalaens tidsstempel,
+state-observasjon og prognosens informasjonstid må bindes hver for seg.
+
 Hver av de fem TF trenger navngitt fasit, observasjonsmaske, output-/tapskobling
 og egne målinger. M5 NED og D1 OPP kan være samtidige gyldige tilstander.
 TF er ikke lik en enkelt framtidig barhorisont eller kildens oppløsning.

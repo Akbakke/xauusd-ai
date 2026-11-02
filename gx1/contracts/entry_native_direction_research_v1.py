@@ -9,7 +9,9 @@ and synthetic forward spies confer none of those qualifications.
 """
 from __future__ import annotations
 
+from functools import lru_cache
 import hashlib
+import math
 import json
 from typing import Any
 
@@ -321,3 +323,325 @@ def native_direction_binary_loss(
     return {"loss": loss, "update_allowed": count > 0, "eligible_mask": eligible,
         "counts": counts, "per_horizon_counts": per_horizon,
         "research_objective_sha256": _OBJECTIVE_SHA256}
+
+
+@lru_cache(maxsize=1)
+def _dynamic_mtf_state_objective_bytes():
+    from gx1.contracts import entry_dynamic_mtf_state_targets_v1 as targets
+    target = targets.dynamic_mtf_state_target_contract()
+    leads = tuple(targets.default_trial_lead_minutes())
+    _require(leads == tuple(range(1, leads[-1] + 1)) and len(leads) > 1, "STATE_QUERY_GRID")
+    value = {
+        "schema_version": "gx1_native_dynamic_mtf_state_research_v1",
+        "research_objective": "joint_ordered_causal_local_mtf_state_forecast",
+        "research_role": "research_only_no_native_phase_or_action_authority",
+        "target_contract": target,
+        "timeframes": list(targets.TIMEFRAMES),
+        "class_names": list(targets.STATE_NAMES),
+        "lead_minutes": list(leads),
+        "forecast_domain": "all_declared_minutes_not_a_state_duration_or_holding_limit",
+        "representation": "native_entry_q_joint_hidden_without_legacy_head_execution_or_detach",
+        "query_coordinates": {
+            "timeframe_encoding": "canonical_timeframe_one_hot",
+            "lead_center_minutes": (leads[0] + leads[-1]) / 2.0,
+            "lead_scale_minutes": math.sqrt((len(leads) ** 2 - 1) / 12.0),
+            "statistics_source": "analytic_moments_of_declared_query_grid_no_data_fit"},
+        "decoder": "shared_Linear_hidden_plus_query_to_hidden_GELU",
+        "initial_head": "three_class_softmax_at_first_future_query",
+        "transition_head": "three_by_three_row_softmax_at_each_later_future_query",
+        "joint_distribution": "p_S1_times_product_P_Sj_given_Sjminus1_and_issue_features",
+        "dependence_assumption": "first_order_between_declared_queries_conditional_on_issue_representation",
+        "head_initialization": "torch_nn_Linear_default_reset_parameters_caller_seeded",
+        "loss": "negative_log_probability_of_observed_state_sequence_marginalizing_unknown_states",
+        "loss_normalization": "sum_row_timeframe_sequence_NLL_divided_by_all_eligible_observed_state_cells",
+        "eligible": "observed_and_maturity_strictly_before_cutoff_including_FLAT",
+        "empty_eligible": "loss_None_no_optimizer_EMA_or_scheduler_step",
+        "state_probabilities": "forward_recursion_marginals_not_teacher_forced",
+        "adjacent_pair_probabilities": "previous_marginal_times_conditional_transition",
+        "future_targets_or_clocks_as_forward_inputs": False,
+        "backbone_path_forecast_and_task_variance_supervised": False,
+        "query_sampling": False,
+        "query_evaluation": "all_timeframes_all_declared_leads",
+        "numerical_policy": "caller_applies_existing_FP32_and_MHA_policy_to_bound_backbone",
+        "native_export_authorized": False,
+        "native_launch_authorized": False,
+        "economic_edge_claimed": False,
+    }
+    return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+
+
+def dynamic_mtf_state_research_contract() -> dict[str, Any]:
+    """Separate target/output/loss identity; legacy objective bytes are untouched."""
+    raw = _dynamic_mtf_state_objective_bytes()
+    return {**json.loads(raw), "contract_sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def _state_query_coordinates(contract, *, device):
+    timeframes, leads = contract["timeframes"], contract["lead_minutes"]
+    coordinate = contract["query_coordinates"]
+    lead = torch.tensor(leads, dtype=torch.float32, device=device)
+    lead = (lead - coordinate["lead_center_minutes"]) / coordinate["lead_scale_minutes"]
+    tf = torch.eye(len(timeframes), dtype=torch.float32, device=device)
+    return torch.cat((tf[:, None, :].expand(-1, len(leads), -1),
+        lead[None, :, None].expand(len(timeframes), -1, -1)), dim=-1)
+
+
+class NativeDynamicMTFStateResearch(nn.Module):
+    """One shared native representation and a joint future-state chain.
+
+    True previous states select likelihood factors only. They never enter the
+    decoder; scoring marginals integrate over the model's previous distribution.
+    """
+
+    def __init__(self, backbone: EntryV10CtxHybridTransformer):
+        super().__init__()
+        from gx1.features.entry_specialist_feature_groups_v1 import FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+        width = _backbone_width(backbone)
+        contract = dynamic_mtf_state_research_contract()
+        _require(isinstance(backbone.entry_execution_profile, dict)
+            and backbone.entry_execution_profile.get("name") == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+            and backbone.gc_mtf_history is not None
+            and "relative_price" not in backbone.gc_mtf_history["normalization"], "STATE_FULL_RAW_GC_PROFILE")
+        self.backbone = backbone
+        self._bound_hidden_width = width
+        self._research_contract_json = _dynamic_mtf_state_objective_bytes()
+        device = backbone.entry_q_joint_in.weight.device
+        query_width = len(contract["timeframes"]) + 1
+        classes = len(contract["class_names"])
+        self.state_query_projection = nn.Sequential(
+            nn.Linear(width + query_width, width, device=device, dtype=torch.float32), nn.GELU())
+        self.state_initial_head = nn.Linear(width, classes, device=device, dtype=torch.float32)
+        self.state_transition_head = nn.Linear(width, classes * classes, device=device, dtype=torch.float32)
+        self.register_buffer("state_timeframe_codes", torch.arange(len(contract["timeframes"]), dtype=torch.int64, device=device))
+        self.register_buffer("state_lead_minutes", torch.tensor(contract["lead_minutes"], dtype=torch.int64, device=device))
+        self.register_buffer("state_class_codes", torch.arange(classes, dtype=torch.int64, device=device))
+        self.register_buffer("state_query_coordinates", _state_query_coordinates(contract, device=device))
+        self.register_buffer("state_objective_sha256", torch.tensor(
+            list(bytes.fromhex(contract["contract_sha256"])), dtype=torch.uint8, device=device))
+
+    @property
+    def research_objective(self):
+        _require(self._research_contract_json == _dynamic_mtf_state_objective_bytes(), "STATE_OBJECTIVE_IDENTITY")
+        return dynamic_mtf_state_research_contract()
+
+    @property
+    def signed_bps(self):
+        return False
+
+    @property
+    def magnitude_weighted(self):
+        return False
+
+    def _require_binding(self):
+        contract = self.research_objective
+        width = _backbone_width(self.backbone)
+        _require(width == self._bound_hidden_width, "STATE_HIDDEN_WIDTH")
+        from gx1.features.entry_specialist_feature_groups_v1 import FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+        _require(self.backbone.entry_execution_profile.get("name") == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+            and self.backbone.gc_mtf_history is not None
+            and "relative_price" not in self.backbone.gc_mtf_history["normalization"], "STATE_FULL_RAW_GC_PROFILE")
+        classes, tfs, leads = len(contract["class_names"]), len(contract["timeframes"]), len(contract["lead_minutes"])
+        device = self.backbone.entry_q_joint_in.weight.device
+        expected = {
+            "state_timeframe_codes": torch.arange(tfs, dtype=torch.int64, device=device),
+            "state_lead_minutes": torch.tensor(contract["lead_minutes"], dtype=torch.int64, device=device),
+            "state_class_codes": torch.arange(classes, dtype=torch.int64, device=device),
+            "state_query_coordinates": _state_query_coordinates(contract, device=device),
+            "state_objective_sha256": torch.tensor(list(bytes.fromhex(contract["contract_sha256"])), dtype=torch.uint8, device=device)}
+        for name, reference in expected.items():
+            value = getattr(self, name)
+            _require(value.dtype == reference.dtype and value.device == device
+                and value.shape == reference.shape and not value.requires_grad
+                and torch.equal(value, reference), "STATE_BUFFER_BINDING:" + name)
+        _require(type(self.state_query_projection) is nn.Sequential and len(self.state_query_projection) == 2
+            and type(self.state_query_projection[1]) is nn.GELU, "STATE_QUERY_PROJECTION")
+        for layer, inputs, outputs in (
+            (self.state_query_projection[0], width + tfs + 1, width),
+            (self.state_initial_head, width, classes),
+            (self.state_transition_head, width, classes * classes)):
+            _require(type(layer) is nn.Linear and layer.in_features == inputs and layer.out_features == outputs
+                and layer.weight.shape == (outputs, inputs) and layer.bias is not None and layer.bias.shape == (outputs,)
+                and layer.weight.dtype == layer.bias.dtype == torch.float32
+                and layer.weight.device == layer.bias.device == device
+                and bool(torch.isfinite(layer.weight).all()) and bool(torch.isfinite(layer.bias).all()), "STATE_HEAD_BINDING")
+
+    def forward(
+        self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,
+        ctx_cat: torch.Tensor, ctx_cont: torch.Tensor,
+        seq_m5: torch.Tensor, seq_m15: torch.Tensor, seq_h1: torch.Tensor,
+        seq_h4: torch.Tensor, seq_d1: torch.Tensor,
+        gc_seq_m5: torch.Tensor, gc_seq_m15: torch.Tensor,
+        gc_seq_h1: torch.Tensor, gc_seq_h4: torch.Tensor, gc_seq_d1: torch.Tensor,
+    ) -> dict[str, torch.Tensor]:
+        self._require_binding()
+        _require(isinstance(seq_x, torch.Tensor) and seq_x.ndim == 3 and seq_x.shape[0] > 0, "STATE_FEATURE_BATCH")
+        output = self.backbone(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
+            seq_m5=seq_m5, seq_m15=seq_m15, seq_h1=seq_h1, seq_h4=seq_h4, seq_d1=seq_d1,
+            gc_seq_m5=gc_seq_m5, gc_seq_m15=gc_seq_m15, gc_seq_h1=gc_seq_h1,
+            gc_seq_h4=gc_seq_h4, gc_seq_d1=gc_seq_d1, research_representation_only=True)
+        _require(isinstance(output, dict), "STATE_NATIVE_OUTPUT")
+        hidden = output.get("entry_q_joint_hidden")
+        _require(isinstance(hidden, torch.Tensor) and hidden.dtype == torch.float32
+            and hidden.shape == (seq_x.shape[0], self._bound_hidden_width)
+            and hidden.device == self.state_query_coordinates.device
+            and bool(torch.isfinite(hidden).all()), "STATE_NATIVE_HIDDEN")
+        batch, (tfs, leads, _) = hidden.shape[0], self.state_query_coordinates.shape
+        coordinates = self.state_query_coordinates[None].expand(batch, -1, -1, -1)
+        source = hidden[:, None, None, :].expand(-1, tfs, leads, -1)
+        decoded = self.state_query_projection(torch.cat((source, coordinates), dim=-1))
+        classes = self.state_class_codes.numel()
+        initial = self.state_initial_head(decoded[:, :, 0])
+        transitions = self.state_transition_head(decoded[:, :, 1:]).reshape(batch, tfs, leads - 1, classes, classes)
+        _validate_state_chain_logits(initial, transitions)
+        return {"initial_state_logits": initial, "state_transition_logits": transitions}
+
+
+def _validate_state_chain_logits(initial, transitions):
+    _require(isinstance(initial, torch.Tensor) and initial.dtype == torch.float32
+        and initial.ndim == 3 and initial.shape[0] > 0 and initial.shape[1] > 0 and initial.shape[-1] == 3,
+        "STATE_INITIAL_LOGITS")
+    _require(isinstance(transitions, torch.Tensor) and transitions.dtype == torch.float32
+        and transitions.ndim == 5 and transitions.shape[:2] == initial.shape[:2]
+        and transitions.shape[-2:] == (3, 3) and transitions.device == initial.device,
+        "STATE_TRANSITION_LOGITS")
+    _require(bool(torch.isfinite(initial).all()) and bool(torch.isfinite(transitions).all()), "STATE_FINITE_LOGITS")
+    return tuple(initial.shape[:2]) + (transitions.shape[2] + 1,)
+
+
+def _reachable_logsumexp(value, dim):
+    """Exact log-sum for reachable paths; impossible paths have zero derivative.
+
+    Feeding all -inf directly to logsumexp creates NaN derivatives. The finite
+    temporary branch below is discarded exactly, not a probability floor.
+    """
+    reachable = torch.isfinite(value).any(dim=dim, keepdim=True)
+    safe = torch.where(reachable, value, torch.zeros_like(value))
+    total = torch.logsumexp(safe, dim=dim)
+    return torch.where(reachable.squeeze(dim), total, torch.full_like(total, -torch.inf))
+
+
+def _state_log_matrix_product(left, right):
+    return _reachable_logsumexp(left.unsqueeze(-1) + right.unsqueeze(-3), dim=-2)
+
+
+def dynamic_mtf_state_marginal_probabilities(initial_state_logits, state_transition_logits):
+    """All future marginal probabilities by an associative log-forward scan.
+
+    No target, prior true class, future observation mask, device sync per query,
+    sampling, or state-duration cap enters this calculation.
+    """
+    _validate_state_chain_logits(initial_state_logits, state_transition_logits)
+    first = F.log_softmax(initial_state_logits, dim=-1)
+    matrices = F.log_softmax(state_transition_logits, dim=-1)
+    offset = 1
+    while offset < matrices.shape[2]:
+        matrices = torch.cat((matrices[:, :, :offset],
+            _state_log_matrix_product(matrices[:, :, :-offset], matrices[:, :, offset:])), dim=2)
+        offset *= 2
+    if matrices.shape[2]:
+        later = _reachable_logsumexp(first[:, :, None, :, None] + matrices, dim=-2)
+        log_marginals = torch.cat((first[:, :, None], later), dim=2)
+    else:
+        log_marginals = first[:, :, None]
+    # Algebraically the marginals already sum to one; softmax expresses the
+    # normalized distribution without a clipping floor or fabricated mass.
+    return F.softmax(log_marginals, dim=-1)
+
+
+def _partial_state_chain_nll(log_initial, log_transitions, state, observed):
+    classes = torch.arange(3, device=state.device)
+    allowed = (~observed[..., None]) | (state[..., None] == classes)
+    initial = log_initial.masked_fill(~allowed[:, 0], -torch.inf)
+    matrices = log_transitions.masked_fill(~allowed[:, 1:, None, :], -torch.inf)
+    # Balanced product is the same forward likelihood with unknown states summed
+    # out. It bounds graph depth and CUDA launch count for the full 1440 grid.
+    while matrices.shape[1] > 1:
+        pairs = matrices.shape[1] // 2
+        reduced = _state_log_matrix_product(matrices[:, :2 * pairs:2], matrices[:, 1:2 * pairs:2])
+        matrices = torch.cat((reduced, matrices[:, -1:]), dim=1) if matrices.shape[1] % 2 else reduced
+    if matrices.shape[1]:
+        initial = _reachable_logsumexp(initial[:, :, None] + matrices[:, 0], dim=-2)
+    return -_reachable_logsumexp(initial, dim=-1)
+
+
+def state_chain_negative_log_likelihood(initial_state_logits, state_transition_logits, *, state, observed):
+    """Per-row/timeframe NLL; arbitrary small lead grids support pure math tests."""
+    shape = _validate_state_chain_logits(initial_state_logits, state_transition_logits)
+    _require(isinstance(state, torch.Tensor) and state.dtype in (torch.int8, torch.int64)
+        and state.shape == shape and state.device == initial_state_logits.device, "STATE_LABEL_SHAPE")
+    _require(isinstance(observed, torch.Tensor) and observed.dtype == torch.bool
+        and observed.shape == shape and observed.device == state.device, "STATE_OBSERVED_SHAPE")
+    _require(bool(((state >= -1) & (state < 3)).all())
+        and bool((state[observed] >= 0).all()), "STATE_LABEL_DOMAIN")
+    first = F.log_softmax(initial_state_logits, dim=-1).reshape(-1, 3)
+    transitions = F.log_softmax(state_transition_logits, dim=-1).reshape(shape[0] * shape[1], shape[-1] - 1, 3, 3)
+    labels, mask = state.reshape(-1, shape[-1]), observed.reshape(-1, shape[-1])
+    # Select once per batch, never synchronize inside the query calculation.
+    complete, partial = mask.all(dim=1), mask.any(dim=1) & ~mask.all(dim=1)
+    terms = first.sum(dim=-1) * 0 + transitions.sum(dim=(1, 2, 3)) * 0
+    full_ids = torch.nonzero(complete, as_tuple=False).flatten()
+    partial_ids = torch.nonzero(partial, as_tuple=False).flatten()
+    if full_ids.numel():
+        y = labels.index_select(0, full_ids).long()
+        nll = -first.index_select(0, full_ids).gather(1, y[:, :1]).squeeze(1)
+        if shape[-1] > 1:
+            transition_rows = transitions.index_select(0, full_ids).flatten(-2)
+            pair_codes = y[:, :-1] * 3 + y[:, 1:]
+            nll = nll - transition_rows.gather(-1, pair_codes[..., None]).squeeze(-1).sum(dim=1)
+        terms = terms.index_copy(0, full_ids, nll)
+    if partial_ids.numel():
+        nll = _partial_state_chain_nll(first.index_select(0, partial_ids),
+            transitions.index_select(0, partial_ids), labels.index_select(0, partial_ids), mask.index_select(0, partial_ids))
+        terms = terms.index_copy(0, partial_ids, nll)
+    return terms.reshape(shape[:2])
+
+
+def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits, *,
+        state, observed, issue_ns, validity_ns, maturity_ns, cutoff_ns):
+    """Strict declared-grid loss; labels and future clocks stay outside forward."""
+    contract = dynamic_mtf_state_research_contract()
+    shape = _validate_state_chain_logits(initial_state_logits, state_transition_logits)
+    batch, tfs, leads = shape
+    _require((tfs, leads) == (len(contract["timeframes"]), len(contract["lead_minutes"])), "STATE_NATIVE_GRID")
+    _require(isinstance(state, torch.Tensor) and state.dtype == torch.int8 and tuple(state.shape) == shape, "STATE_NATIVE_LABELS")
+    _require(isinstance(observed, torch.Tensor) and observed.dtype == torch.bool and tuple(observed.shape) == shape, "STATE_NATIVE_OBSERVED")
+    _require(type(cutoff_ns) is int and 0 < cutoff_ns <= _MAX_NS, "STATE_CUTOFF")
+    _require(isinstance(issue_ns, torch.Tensor) and issue_ns.dtype == torch.int64 and issue_ns.shape == (batch,),
+        "STATE_ISSUE_CLOCK")
+    _require(isinstance(validity_ns, torch.Tensor) and validity_ns.dtype == torch.int64
+        and validity_ns.shape == (batch, leads), "STATE_VALIDITY_CLOCK")
+    _require(isinstance(maturity_ns, torch.Tensor) and maturity_ns.dtype == torch.int64
+        and tuple(maturity_ns.shape) == shape, "STATE_MATURITY_CLOCK")
+    _require(all(value.device == initial_state_logits.device for value in (state, observed, issue_ns, validity_ns, maturity_ns)),
+        "STATE_TARGET_DEVICE")
+    _require(bool((issue_ns > 0).all()) and bool((issue_ns < cutoff_ns).all())
+        and bool((issue_ns <= _MAX_NS - contract["lead_minutes"][-1] * _MINUTE_NS).all()), "STATE_ISSUE_CUTOFF_OR_OVERFLOW")
+    expected = issue_ns[:, None] + torch.tensor(contract["lead_minutes"], dtype=torch.int64, device=issue_ns.device)[None] * _MINUTE_NS
+    _require(torch.equal(validity_ns, expected), "STATE_EXACT_VALIDITY")
+    _require(torch.equal(maturity_ns, validity_ns[:, None, :].expand(shape)), "STATE_CAUSAL_MATURITY")
+    _require(bool(((state >= -1) & (state < len(contract["class_names"]))).all())
+        and bool((state[observed] >= 0).all()) and bool((state[~observed] == -1).all()), "STATE_NATIVE_LABEL_DOMAIN")
+    mature = maturity_ns < cutoff_ns
+    eligible = observed & mature
+    sequence_nll = state_chain_negative_log_likelihood(
+        initial_state_logits, state_transition_logits, state=state, observed=eligible)
+    masks = {"cells": torch.ones_like(observed), "observed_cells": observed, "missing_cells": ~observed,
+        "mature_cells": mature, "immature_cells": ~mature, "eligible_cells": eligible,
+        "eligible_down_cells": eligible & (state == contract["class_names"].index("DOWN")),
+        "eligible_flat_cells": eligible & (state == contract["class_names"].index("FLAT")),
+        "eligible_up_cells": eligible & (state == contract["class_names"].index("UP")),
+        "immature_observed_cells": observed & ~mature}
+    counted = torch.stack([value.sum(dim=(0, 2)) for value in masks.values()]).cpu().tolist()
+    per_tf = [{"timeframe": tf, **{key: int(counted[j][i]) for j, key in enumerate(masks)}}
+        for i, tf in enumerate(contract["timeframes"])]
+    counts = {key: sum(row[key] for row in per_tf) for key in masks}
+    counts["parent_rows"] = batch
+    _require(counts["eligible_cells"] + counts["immature_observed_cells"] + counts["missing_cells"] == counts["cells"]
+        and counts["eligible_down_cells"] + counts["eligible_flat_cells"] + counts["eligible_up_cells"] == counts["eligible_cells"],
+        "STATE_COUNT_PARTITION")
+    count = counts["eligible_cells"]
+    loss = sequence_nll.sum() / count if count else None
+    _require(bool(torch.isfinite(sequence_nll).all()) and (loss is None or bool(torch.isfinite(loss))), "STATE_FINITE_NLL")
+    return {"loss": loss, "update_allowed": count > 0, "eligible_mask": eligible,
+        "sequence_nll": sequence_nll, "counts": counts, "per_timeframe_counts": per_tf,
+        "research_objective_sha256": contract["contract_sha256"]}
