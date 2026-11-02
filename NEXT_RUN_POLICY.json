@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_FIRST_FLAT_ACTIVITY_SOURCE_TESTED_NOT_ADMITTED",
+  "status": "DYNAMIC_STATE_FIRST_FLAT_RAW_SOURCE_VERIFIED_OBJECTIVE_AUDIT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Keep training and launch closed. If work continues, independently admit an exact TRAIN first-flat activity label audit and source binding, qualify causal ONLINE delivery/restart and resource choices, and require a new exact run authority before any model, scoring, restart or training. Preserve UNKNOWN direction and sealed TEST/Exit/trading.",
+  "next_action": "Keep training, native launch and restart closed. Bind the verified first-flat source support into a complete objective-specific TRAIN audit after explicitly selecting and binding weight and forecast grid; separately qualify causal ONLINE delivery, runtime/resources and a new exact one-use run authority. No automatic model, scoring, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "First-query FLAT/non-FLAT source change and saved TRAIN accessor parity completed; no model, training, scoring, TEST, Exit or trading.",
+    "current_activity": "Independent TRAIN raw-price/ATR/calendar replay and source-bound gate verified; no model, training, scoring, TEST, Exit or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -18598,7 +18598,7 @@
         "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
         "report": {
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
-          "sha256": "848095588bcdda75ee364ee96a188a59615cb1d4ab8a171835c9fdb1fb8e4315"
+          "sha256": "b4b1e4608f77c3cf9f575c3cd25c14216363959bee225582f07ca4a9e500077e"
         },
         "evidence": {
           "training_integrity": {
@@ -18857,7 +18857,7 @@
         "causal_input_design": {
           "status": "TRAIN_COUNT_AND_UNADMITTED_DRAFT_SOURCE_TESTED_NO_NATIVE_QUALIFICATION",
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md",
-          "sha256": "914810278f4afa565776d83f72fe7a17684fbc68b9ac8b12950435e603081da5",
+          "sha256": "9e079a79f3c4d420005d79bbbeb8a06df185d13d7987f64626ec4b8ed1e9946d",
           "actual_xau_m1_receive_or_processing_timestamp_found_in_inspected_schema": false,
           "other_logs_not_inspected": true,
           "online_delivery_order_proven": false,
@@ -18968,7 +18968,6 @@
       },
       "complete_window_labels_only": true,
       "future_activity_sent_to_forward": false,
-      "launch_explicitly_blocked_until_independent_audit": true,
       "distinct_focused_synthetic_tests_passed_across_rounds": 120,
       "initial_invalid_synthetic_parent_clock_corrected": true,
       "ordinary_precommit_overridden_due_to_no_model_restriction": true,
@@ -18979,7 +18978,41 @@
       "model_calls": 0,
       "optimizer_steps": 0,
       "new_scoring_calls": 0,
-      "test_data_used": false
+      "test_data_used": false,
+      "source_review_scope": "HISTORICAL_PREVIOUS_SOURCE_COMMIT_613d8e4a",
+      "launch_requires_objective_specific_train_audit_and_raw_source_support": true,
+      "independent_raw_train_review": {
+        "status": "PASS_RAW_SOURCE_TRAIN_FIRST_LABEL_PARITY_NO_LAUNCH_AUTHORITY",
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_ACTIVITY_RAW_REVIEW_001/RESULT.json",
+          "sha256": "6ca8abf30e5a509ef05854fcabfbea72b9fcd40079e1e8d37be2a01d737780c6"
+        },
+        "source_support": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_ACTIVITY_RAW_REVIEW_001/SOURCE_SUPPORT_002.json",
+          "sha256": "f4a8e8439706b0b25458915c2259800fe738f8a20813d0cc5d4d64ea4177b367"
+        },
+        "source_gate_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_ACTIVITY_RAW_REVIEW_001/GATE_SOURCE_REVIEW.json",
+          "sha256": "188d70f634c77ee8e5963af92bd71e32f9ee2403f92011844a82e9a5ea6b8549"
+        },
+        "real_support_gate_check": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_ACTIVITY_RAW_REVIEW_001/REAL_SUPPORT_GATE_CHECK_003.json",
+          "sha256": "6d33ddee28d16ae849b9558ecf6393f1b452787cd9f70fb50ac3f10788e3e560"
+        },
+        "train_parents": 47602,
+        "m1_train_rows": 239554,
+        "m5_rows_before_train_cutoff": 1035125,
+        "certified_source_gaps": 167,
+        "unknown_source_gaps": 48,
+        "five_timeframes_exact_mask_and_labels": true,
+        "atr_threshold_bitwise_equal": true,
+        "distinct_focused_synthetic_tests_across_rounds": 67,
+        "complete_objective_specific_train_audit_exists": false,
+        "loss_weight_selected": false,
+        "model_calls": 0,
+        "optimizer_steps": 0,
+        "test_data_used": false
+      }
     }
   },
   "gc_order_flow_research_20261006": {

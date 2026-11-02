@@ -53,6 +53,7 @@ DYNAMIC_STATE_SCOPE = 'single_prefix_dynamic_mtf_state_one_pass'
 DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE = 'private_dynamic_mtf_state_input_adapter'
 DYNAMIC_STATE_EXTRA_SOURCE_PATHS = (
     'gx1/contracts/entry_dynamic_mtf_state_targets_v1.py',
+    'gx1/features/technical_indicators_v1.py', 'gx1/time/session_detector.py',
     'gx1/contracts/entry_dynamic_mtf_state_report_v1.py',
     'gx1/scripts/run_entry_native_direction_dense_qualification_v1.py',
 )
@@ -411,6 +412,98 @@ def build_extended_train_label_audit_draft(*, numerical_recipe, target_manifest,
         'native_launch_authorized':False, 'predictive_value_claimed':False}
 
 
+
+def _require_first_flat_activity_support(audit, recipe, *, target_ref, sources, fold, target_metadata):
+    """Bind independent raw TRAIN evidence; this is not launch authority."""
+    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import TIMEFRAMES
+    ref = audit.get('first_flat_activity_source_support')
+    _require(isinstance(ref, Mapping), 'STATE_FIRST_ACTIVITY_AUDIT_REQUIRED')
+    ref = campaign.require_binding(ref, label='first activity TRAIN support', verify_file=True)
+    proof = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    owner_key = 'gx1/contracts/entry_dynamic_mtf_state_targets_v1.py'
+    owners = recipe.get('source_owners')
+    _require(isinstance(owners, Mapping) and owner_key in owners, 'STATE_FIRST_ACTIVITY_SOURCE_OWNER')
+    owner = campaign.require_binding(owners[owner_key], label='first activity target owner', verify_file=True)
+    source_repo = Path(str(recipe.get('source_repo', '')))
+    _require(source_repo.is_absolute() and str(source_repo / owner_key) == owner['path'], 'STATE_FIRST_ACTIVITY_REPO')
+    dependencies = proof.get('target_dependencies')
+    required = ('gx1/features/htf_features.py', 'gx1/features/technical_indicators_v1.py', 'gx1/time/session_detector.py')
+    _require(isinstance(dependencies, Mapping) and set(dependencies) == set(required), 'STATE_FIRST_ACTIVITY_DEPENDENCIES')
+    for name in required:
+        dependency = campaign.require_binding(dependencies[name], label='first activity dependency ' + name, verify_file=True)
+        _require(dependency['path'] == str(source_repo / name) and owners.get(name) == dependency,
+            'STATE_FIRST_ACTIVITY_DEPENDENCY_PATH:' + name)
+    _require(proof.get('schema_version') == 'gx1_first_flat_activity_train_source_support_v1'
+        and proof.get('status') == 'PASS_INDEPENDENT_RAW_REVIEW_NO_LAUNCH_AUTHORITY'
+        and proof.get('target_manifest') == target_ref and proof.get('target_sources') == sources
+        and proof.get('target_contract_sha256') == target_metadata['definition']['contract_sha256'] and proof.get('fold') == fold
+        and proof.get('target_owner') == owner
+        and re.fullmatch(r'[0-9a-f]{40}', str(proof.get('reviewed_source_head', ''))) is not None
+        and proof.get('model_calls') == proof.get('optimizer_steps') == 0
+        and proof.get('test_data_used') is proof.get('native_launch_authorized') is False,
+        'STATE_FIRST_ACTIVITY_SUPPORT_IDENTITY')
+    raw_ref = campaign.require_binding(proof.get('raw_review'), label='first activity raw review', verify_file=True)
+    raw = campaign.read_bound_json(Path(raw_ref['path']), raw_ref['sha256'])
+    worker_ref = campaign.require_binding(proof.get('raw_worker'), label='first activity raw worker', verify_file=True)
+    _require(raw.get('schema_version') == 'gx1_first_flat_activity_raw_train_review_v1'
+        and raw.get('status') == 'PASS_RAW_SOURCE_TRAIN_FIRST_LABEL_PARITY_NO_LAUNCH_AUTHORITY'
+        and raw.get('worker') == worker_ref and raw.get('source_head') == proof['reviewed_source_head']
+        and raw.get('target_manifest') == target_ref and raw.get('target_sources') == sources and raw.get('fold') == fold
+        and raw.get('model_calls') == raw.get('optimizer_steps') == raw.get('backward_calls') == raw.get('new_scoring') == 0
+        and raw.get('test_data_used') is raw.get('native_launch_authorized') is False,
+        'STATE_FIRST_ACTIVITY_RAW_IDENTITY')
+    target_result_ref = campaign.require_binding(raw.get('target_result'), label='first activity target result', verify_file=True)
+    target_result = campaign.read_bound_json(Path(target_result_ref['path']), target_result_ref['sha256'])
+    calendar = target_result.get('calendar_binding')
+    _require(target_result.get('target_manifest') == target_ref and target_result.get('target_sources') == sources
+        and target_result.get('test_data_used') is False and raw.get('calendar_refs') == calendar
+        and isinstance(calendar, Mapping)
+        and set(calendar) == {'source_reference', 'exact_schedule', 'closure_authority', 'published_calendar'},
+        'STATE_FIRST_ACTIVITY_CALENDAR_BINDING')
+    for name, binding in calendar.items():
+        campaign.require_binding(binding, label='first activity calendar ' + name, verify_file=True)
+    schedule = campaign.read_bound_json(Path(calendar['exact_schedule']['path']), calendar['exact_schedule']['sha256'])
+    authority = campaign.read_bound_json(Path(calendar['closure_authority']['path']), calendar['closure_authority']['sha256'])
+    source = campaign.read_bound_json(Path(calendar['source_reference']['path']), calendar['source_reference']['sha256'])
+    _require(schedule.get('source_method') == 'externally_sourced_exact_xau_utc_closure_intervals_v1'
+        and schedule.get('instrument') == 'XAU_USD' and schedule.get('timeframe') == 'M1'
+        and schedule.get('test_data_used') is False
+        and schedule.get('source_reference_sha256') == calendar['source_reference']['sha256']
+        and schedule.get('schedule_sha256') == target_metadata.get('closure_binding', {}).get('schedule_sha256')
+        and authority.get('artifact_sha256') == target_metadata.get('closure_binding', {}).get('authority_sha256')
+        and source.get('m1_source') == sources['m1'] and source.get('calendar') == calendar['published_calendar']
+        and source.get('test_data_used') is False, 'STATE_FIRST_ACTIVITY_CALENDAR_IDENTITY')
+    previous_ref = campaign.require_binding(raw.get('original_train_facts'), label='first activity TRAIN facts', verify_file=True)
+    previous = campaign.read_bound_json(Path(previous_ref['path']), previous_ref['sha256'])
+    _require(previous.get('schema_version') == 'gx1_first_flat_activity_train_audit_v1'
+        and previous.get('status') == 'TRAIN_LABEL_FACTS_NOT_AN_ADMITTED_OBJECTIVE'
+        and previous.get('new_scoring_or_test_used') is False
+        and previous.get('references', {}).get('target_manifest') == target_ref
+        and previous.get('per_timeframe') == proof.get('per_timeframe'), 'STATE_FIRST_ACTIVITY_PRIOR_FACTS')
+    per_tf, reviewed = proof.get('per_timeframe'), raw.get('tf_results')
+    _require(isinstance(per_tf, Mapping) and isinstance(reviewed, Mapping)
+        and set(per_tf) == set(reviewed) == set(TIMEFRAMES), 'STATE_FIRST_ACTIVITY_TIMEFRAMES')
+    fields = ('parents', 'activity_label_eligible', 'activity_label_ineligible', 'flat_known',
+              'nonflat_direction_known', 'nonflat_direction_unknown')
+    for tf in TIMEFRAMES:
+        counts, item = per_tf[tf], reviewed[tf]
+        _require(isinstance(counts, Mapping) and set(counts) == set(fields)
+            and all(type(counts[k]) is int and counts[k] >= 0 for k in fields)
+            and counts['parents'] == fold['prefix_rows']
+            and counts['activity_label_eligible'] + counts['activity_label_ineligible'] == counts['parents']
+            and counts['flat_known'] + counts['nonflat_direction_known'] + counts['nonflat_direction_unknown']
+                == counts['activity_label_eligible']
+            and counts['flat_known'] > 0 and counts['nonflat_direction_known'] + counts['nonflat_direction_unknown'] > 0
+            and isinstance(item, Mapping) and item.get('counts') == counts
+            and item.get('mature_first_parent_rows_compared') == fold['prefix_rows']
+            and item.get('binary_mask_or_label_disagreements') == 0
+            and item.get('atr_threshold_bitwise_differences') == 0
+            and item.get('atr_threshold_max_abs_difference') == 0.0
+            and item.get('local_range_max_abs_difference_on_eligible') == 0.0,
+            'STATE_FIRST_ACTIVITY_SUPPORT_COUNTS:' + tf)
+    return proof
+
+
 def require_dynamic_state_target_binding(recipe):
     """TRAIN audit is the rule lock; later cache bytes give no selection authority."""
     from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (
@@ -443,6 +536,9 @@ def require_dynamic_state_target_binding(recipe):
     # This validates exact empirical counts/probabilities; it never reads VAL.
     StateScoreAccumulator(audit['prior'], lead_minutes=audit['lead_minutes'])
     _require(audit['prior']['parents'] == fold['prefix_rows'], 'STATE_TRAIN_PRIOR_POPULATION')
+    if recipe['numerical_recipe'].get('first_flat_activity_weight') is not None:
+        _require_first_flat_activity_support(audit, recipe, target_ref=target_ref, sources=sources,
+            fold=fold, target_metadata=meta)
     return manifest, audit
 
 
@@ -509,9 +605,6 @@ def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, pr
         weight = numerical['first_flat_activity_weight']
         _require('current_state_first_loss_weight' in numerical and type(weight) is float
             and math.isfinite(weight) and weight > 0, 'STATE_FIRST_ACTIVITY_WEIGHT')
-        # Exploratory aggregate is not an independently admitted TRAIN audit.
-        # No launch is allowed until a separately reviewed binding is implemented.
-        _require(False, 'STATE_FIRST_ACTIVITY_TRAIN_AUDIT_NOT_ADMITTED')
     if 'extended_forecast_minutes' in numerical:
         _require('current_state_first_loss_weight' in numerical, 'STATE_EXTENDED_REQUIRES_CURRENT_INPUT')
         from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import extended_dense_lead_minutes

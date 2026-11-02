@@ -126,6 +126,10 @@ def test_extended_train_audit_must_match_entire_grid(monkeypatch):
     monkeypatch.setattr(campaign.campaign, 'read_bound_json', lambda *args: audit)
     monkeypatch.setattr(targets, 'read_dynamic_mtf_state_series_metadata', lambda *args, **kwargs: manifest)
     assert campaign.require_dynamic_state_target_binding(recipe) == (manifest, audit)
+    recipe['numerical_recipe']['first_flat_activity_weight'] = 0.25
+    with pytest.raises(RuntimeError, match='STATE_FIRST_ACTIVITY_AUDIT_REQUIRED'):
+        campaign.require_dynamic_state_target_binding(recipe)
+    del recipe['numerical_recipe']['first_flat_activity_weight']
     audit['lead_minutes'] = list(range(1, 1441))
     with pytest.raises(RuntimeError, match='STATE_TRAIN_LABEL_AUDIT'):
         campaign.require_dynamic_state_target_binding(recipe)
