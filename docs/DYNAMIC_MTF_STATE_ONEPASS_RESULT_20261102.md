@@ -70,6 +70,12 @@ I senere data var M5-nåtilstanden kjent på 8 987 av 17 288 rader (52,0 %), og 
 
 På samtlige 8 987 rader med kjent M5-tilstand var M5-ATR deklarert tilgjengelig nøyaktig ved beslutningstid, og siste M1-bar hadde også lukketid nøyaktig der. Om meldingen faktisk er mottatt og beregnet før modellen beslutter, er ennå ikke dokumentert. En mulig ONLINE-implementasjon må dokumentere denne hendelsesrekkefølgen og videreføre tilstanden trygt gjennom reelle markedspauser og restarter; en historisk tidslikhet alene er ikke nok.
 
+## Tidskilde og mulig startpunkt for videre design
+
+En kontroll av skjema og Parquet-footer uten datarader viser at den brukte XAU M1-kilden har bartid, men ingen egen navngitt mottaks- eller behandlingstid. GC-relaterte mottaksfelter i M5-kildens skjema dokumenterer ikke levering av XAU M1. Andre logger er ikke undersøkt. En avgrenset statisk søkekontroll fant heller ingen kobling til dette dynamiske målet i de 14 Python-filene under execution/replay, og de undersøkte eldre live-adapterne beskriver egne begrensninger. Faktisk ONLINE-rekkefølge og integrasjon er derfor fortsatt uavklart.
+
+En NumPy-beregning med de lagrede, positive TRAIN-overgangstellingene viser at et mulig modellhode med null residual kan gjenskape Markov-referansen for kjent nåtilstand eller UNKNOWN-fallback. Største forskjell mellom FP32 og float64 var 0,00000895 på fem tidsrammer og 1 440 ledetider. Dette er ikke kontroll av faktisk native modellbane, ny scoring, bedre læring eller edge. Den konkrete kontrakten, maskene, mulige tap og uavklarte kvalifiseringskrav står i [designforslaget](DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md).
+
 ## Konkrete neste tiltak, ikke igangsatt
 
 1. Lag en kausal ONLINE-representasjon av kjent nåtilstand per tidsramme med eksplisitt UNKNOWN/tilgjengelighetsmaske, tilgjengelig før beslutningstid. Gi modell og baseline samme informasjon; behold genuine indikatorer og alle vakter. Kontroller først at målet ikke lekker fremtidig threshold, ekstrempunkt eller observasjon.
@@ -112,3 +118,7 @@ Originale artefakter og sjekksummer (ingen rådata eller vekter er lagt i Git):
 - `saved_loss_decomposition`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_LOSS_DECOMPOSITION_001/RESULT.json` — SHA-256 `d6b9f3ccc9ca5ef8a76e8018cd56376dfff68a2de0d2c569d2746d016033f535`
 
 TEST/Exit/handel er ikke brukt. Senere Q1 2025 er gjenbrukt utviklingsdata og ikke en forseglet blind test. Ingen handelsregel, kostnader eller økonomisk avkastning er evaluert.
+
+- `online_clock_source_schema_audit`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/ONLINE_CLOCK_SOURCE_SCHEMA_AUDIT_001/RESULT.json` — SHA-256 `cb662168d553d0e1a1109416bde5c802daa4f50544177505d1efea97150a3779`
+- `baseline_anchor_feasibility`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/BASELINE_ANCHOR_FEASIBILITY_001/RESULT.json` — SHA-256 `8fb74c6913f6018c0692274189c6054794e781ad8d2295a3b21a15c3f3b3344e`
+- `online_execution_source_audit`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/ONLINE_EXECUTION_SOURCE_AUDIT_001/RESULT.json` — SHA-256 `9ec6e0861b54d908e4222d226f3191ce992a813b563512c2723652b4fdb066c4`
