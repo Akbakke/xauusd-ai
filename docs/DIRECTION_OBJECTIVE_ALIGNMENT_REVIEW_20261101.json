@@ -726,7 +726,7 @@
     "launch_status": "Necessary source/target preparation and genuine qualification, then safe reboot and ONE short training are user-authorized. Exact execution gates remain closed until the new function is qualified and admitted; TEST/trading remain closed."
   },
   "current_short_training_preparation": {
-    "status": "DYNAMIC_STATE_ONEPASS_REVIEWED_NO_EDGE_NO_RELAUNCH",
+    "status": "DYNAMIC_STATE_CURRENT_STATE_CLOCK_AUDITED_ONLINE_PARITY_UNPROVEN",
     "name": "full_xau_gc_mtf_entry_research_v1",
     "pure_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
@@ -1421,7 +1421,7 @@
       "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
       "report": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
-        "sha256": "efa82dff644121939cbff8844c833893802cc104f095e8a37767f1f3e2ad7e0e"
+        "sha256": "aabcae6e355558f752d3b1db988f64b5b8e1b6c6df5cda7898da02f0d4261d8c"
       },
       "evidence": {
         "training_integrity": {
@@ -1483,6 +1483,14 @@
         "current_state_diagnosis": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CURRENT_STATE_DIAGNOSIS_001/RESULT.json",
           "sha256": "1bf732d8aaa6a28200858477388a5395981651b81b8f06393ca55a6005e7fbd8"
+        },
+        "causal_current_state_audit": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CAUSAL_CURRENT_STATE_AUDIT_002/RESULT.json",
+          "sha256": "645ea3517c5e34ee683327024e63a27c3dbf983ea0e62d8bfdaf2f2a8992cdf1"
+        },
+        "causal_audit_first_attempt_failure": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CAUSAL_CURRENT_STATE_AUDIT_001/FAILURE.json",
+          "sha256": "2288b5c51369e51cf27210ffa5639f0470c956b8dd0ee55f893bf3d69f36402e"
         }
       },
       "later_fixed_horizons": [
@@ -1573,6 +1581,19 @@
         "still_flat_after_one_minute": 691,
         "model_predicted_flat": 0,
         "observed_current_state_explicitly_fed_to_model": false
+      },
+      "causal_current_state_feasibility": {
+        "status": "PASS_HISTORICAL_ISSUE_CLOCK_AND_SAVED_GROUP_CROSSCHECK",
+        "later_parents": 17288,
+        "later_m5_known": 8987,
+        "later_all_five_known": 8284,
+        "later_m5_known_path_unobserved": 3202,
+        "later_m5_atr_equal_issue": 8987,
+        "m1_bar_matures_at_issue": true,
+        "future_clock_violations": 0,
+        "online_arrival_order_proven": false,
+        "online_state_persistence_proven": false,
+        "model_calls": 0
       }
     }
   }

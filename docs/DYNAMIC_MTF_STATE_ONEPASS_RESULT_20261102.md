@@ -58,6 +58,14 @@ Samlet over alle ledetider er 10 597 435 av 24 894 720 mulige M5-celler observer
 - Tapet er sekvensens negative log-sannsynlighet delt på antall observerte celler. For en fullt observert sekvens inngår starttilstanden én gang, deretter en mengde overganger betinget på forrige sanne tilstand. Dette kan gi mye læringssignal til vanlige fortsettelser og for lite til riktig starttilstand og nyttige sjeldne skifter. Det er en kodebasert hypotese, ikke en isolert årsak bevist av en ablasjon.
 - De åtte spesialistfamiliene, fem tidsrammene og D1/makro er bundet i inputprofilen, og private kontrollbatcher hadde målbar gradientkontakt. Det beviser verken at hver indikator har verdi eller at modellen benytter dem prediktivt. Datatilgjengelighet varierer mellom tidsrammer og perioder.
 
+## Kausal nåtilstand ved beslutningstid
+
+Den lagrede nåtilstanden er kontrollert på alle 47 602 TRAIN- og 17 288 senere rader. Når tilstanden er kjent, har både den ferdige M1-baren og ATR-verdien deklarert tilgjengelighet senest ved beslutningstid; ingen ligger etter denne. De tidligere beståtte fremtidsendringstestene for samme målkode er gjenbrukt. Dette er historisk klokke- og kildekontroll, ikke bevis for leveringstid i ONLINE-løpet.
+
+I senere data var M5-nåtilstanden kjent på 8 987 av 17 288 rader (52,0 %), og alle fem tilstander var kjent på 8 284 rader (47,9 %). Av de 8 987 M5-radene hadde 3 202 kjent tilstand, men uavklart lokal rekkefølge i forløpet. Tilstandstilgjengelighet og sti-tilgjengelighet må derfor ha separate masker; UNKNOWN må ikke bli FLAT.
+
+På samtlige 8 987 rader med kjent M5-tilstand var M5-ATR deklarert tilgjengelig nøyaktig ved beslutningstid, og siste M1-bar hadde også lukketid nøyaktig der. Om meldingen faktisk er mottatt og beregnet før modellen beslutter, er ennå ikke dokumentert. En mulig ONLINE-implementasjon må dokumentere denne hendelsesrekkefølgen og videreføre tilstanden trygt gjennom reelle markedspauser og restarter; en historisk tidslikhet alene er ikke nok.
+
 ## Konkrete neste tiltak, ikke igangsatt
 
 1. Lag en kausal ONLINE-representasjon av kjent nåtilstand per tidsramme med eksplisitt UNKNOWN/tilgjengelighetsmaske, tilgjengelig før beslutningstid. Gi modell og baseline samme informasjon; behold genuine indikatorer og alle vakter. Kontroller først at målet ikke lekker fremtidig threshold, ekstrempunkt eller observasjon.
@@ -90,5 +98,8 @@ Originale artefakter og sjekksummer (ingen rådata eller vekter er lagt i Git):
 - `saved_event_implementation_check`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_EVENT_IMPLEMENTATION_CHECK_001/RESULT.json` — SHA-256 `a5e841288923c8f52403a55a809ff387d7c008dd8915a8d7045a5a0c06fe8270`
 
 - `current_state_diagnosis`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CURRENT_STATE_DIAGNOSIS_001/RESULT.json` — SHA-256 `1bf732d8aaa6a28200858477388a5395981651b81b8f06393ca55a6005e7fbd8`
+
+- `causal_current_state_audit`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CAUSAL_CURRENT_STATE_AUDIT_002/RESULT.json` — SHA-256 `645ea3517c5e34ee683327024e63a27c3dbf983ea0e62d8bfdaf2f2a8992cdf1`
+- `causal_audit_first_attempt_failure`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CAUSAL_CURRENT_STATE_AUDIT_001/FAILURE.json` — SHA-256 `2288b5c51369e51cf27210ffa5639f0470c956b8dd0ee55f893bf3d69f36402e`
 
 TEST/Exit/handel er ikke brukt. Senere Q1 2025 er gjenbrukt utviklingsdata og ikke en forseglet blind test. Ingen handelsregel, kostnader eller økonomisk avkastning er evaluert.
