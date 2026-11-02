@@ -325,8 +325,12 @@ def native_direction_binary_loss(
         "research_objective_sha256": _OBJECTIVE_SHA256}
 
 
-@lru_cache(maxsize=1)
-def _dynamic_mtf_state_objective_bytes():
+@lru_cache(maxsize=4, typed=True)
+def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state_loss_weight=None):
+    _require(type(current_state_input) is bool, "STATE_CURRENT_INPUT_MODE")
+    _require((not current_state_input and first_state_loss_weight is None)
+        or (current_state_input and type(first_state_loss_weight) is float
+            and math.isfinite(first_state_loss_weight) and first_state_loss_weight > 0), "STATE_FIRST_LOSS_WEIGHT")
     from gx1.contracts import entry_dynamic_mtf_state_targets_v1 as targets
     target = targets.dynamic_mtf_state_target_contract()
     leads = tuple(targets.default_trial_lead_minutes())
@@ -367,13 +371,42 @@ def _dynamic_mtf_state_objective_bytes():
         "native_launch_authorized": False,
         "economic_edge_claimed": False,
     }
+    if current_state_input:
+        value.update({
+            "schema_version": "gx1_native_dynamic_mtf_current_state_research_v2",
+            "current_state_input": "per_tf_current_one_hot_plus_independent_state_and_path_observation_masks",
+            "current_input_clock": "historical_event_time_only_online_delivery_not_qualified",
+            "current_state_projection": "bias_free_FP32_Linear_5_to_hidden_added_per_timeframe",
+            "decoder": "shared_Linear_hidden_plus_current_projection_plus_query_to_hidden_GELU",
+            "loss": "normalized_observed_sequence_NLL_plus_weighted_first_observed_state_NLL",
+            "first_state_loss_weight": first_state_loss_weight,
+            "first_state_loss_normalization": "mean_over_observed_mature_first_query_cells",
+            "current_input_available_online": False,
+        })
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
-def dynamic_mtf_state_research_contract() -> dict[str, Any]:
+def dynamic_mtf_state_research_contract(*, current_state_input=False, first_state_loss_weight=None) -> dict[str, Any]:
     """Separate target/output/loss identity; legacy objective bytes are untouched."""
-    raw = _dynamic_mtf_state_objective_bytes()
+    raw = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
+        first_state_loss_weight=first_state_loss_weight)
     return {**json.loads(raw), "contract_sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def encode_historical_current_state(current_state, current_observed, current_path_observed, *, batch, tfs, device):
+    """Pure tensor encoding of already bound historical current-state evidence."""
+    _require(type(batch) is int and batch > 0 and type(tfs) is int and tfs > 0, "CURRENT_SHAPE")
+    _require(isinstance(current_state, torch.Tensor) and current_state.dtype == torch.int8
+        and current_state.shape == (batch, tfs) and current_state.device == device, "CURRENT_STATE")
+    for value in (current_observed, current_path_observed):
+        _require(isinstance(value, torch.Tensor) and value.dtype == torch.bool
+            and value.shape == (batch, tfs) and value.device == device, "CURRENT_MASK")
+    _require(bool((((current_state >= 0) & (current_state < 3) & current_observed)
+        | ((current_state == -1) & ~current_observed)).all()), "CURRENT_STATE_DOMAIN")
+    classes = torch.arange(3, device=device, dtype=current_state.dtype)
+    one_hot = (current_state[..., None] == classes).to(dtype=torch.float32)
+    return torch.cat((one_hot, current_observed[..., None].to(dtype=torch.float32),
+        current_path_observed[..., None].to(dtype=torch.float32)), dim=-1)
 
 
 def _state_query_coordinates(contract, *, device):
@@ -393,18 +426,22 @@ class NativeDynamicMTFStateResearch(nn.Module):
     decoder; scoring marginals integrate over the model's previous distribution.
     """
 
-    def __init__(self, backbone: EntryV10CtxHybridTransformer):
+    def __init__(self, backbone: EntryV10CtxHybridTransformer, *, current_state_input=False, first_state_loss_weight=None):
         super().__init__()
         from gx1.features.entry_specialist_feature_groups_v1 import FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
         width = _backbone_width(backbone)
-        contract = dynamic_mtf_state_research_contract()
+        contract = dynamic_mtf_state_research_contract(current_state_input=current_state_input,
+            first_state_loss_weight=first_state_loss_weight)
         _require(isinstance(backbone.entry_execution_profile, dict)
             and backbone.entry_execution_profile.get("name") == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
             and backbone.gc_mtf_history is not None
             and "relative_price" not in backbone.gc_mtf_history["normalization"], "STATE_FULL_RAW_GC_PROFILE")
         self.backbone = backbone
         self._bound_hidden_width = width
-        self._research_contract_json = _dynamic_mtf_state_objective_bytes()
+        self._current_state_input = current_state_input
+        self._first_state_loss_weight = first_state_loss_weight
+        self._research_contract_json = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
+            first_state_loss_weight=first_state_loss_weight)
         device = backbone.entry_q_joint_in.weight.device
         query_width = len(contract["timeframes"]) + 1
         classes = len(contract["class_names"])
@@ -412,6 +449,8 @@ class NativeDynamicMTFStateResearch(nn.Module):
             nn.Linear(width + query_width, width, device=device, dtype=torch.float32), nn.GELU())
         self.state_initial_head = nn.Linear(width, classes, device=device, dtype=torch.float32)
         self.state_transition_head = nn.Linear(width, classes * classes, device=device, dtype=torch.float32)
+        if current_state_input:
+            self.state_current_projection = nn.Linear(5, width, bias=False, device=device, dtype=torch.float32)
         self.register_buffer("state_timeframe_codes", torch.arange(len(contract["timeframes"]), dtype=torch.int64, device=device))
         self.register_buffer("state_lead_minutes", torch.tensor(contract["lead_minutes"], dtype=torch.int64, device=device))
         self.register_buffer("state_class_codes", torch.arange(classes, dtype=torch.int64, device=device))
@@ -421,8 +460,17 @@ class NativeDynamicMTFStateResearch(nn.Module):
 
     @property
     def research_objective(self):
-        _require(self._research_contract_json == _dynamic_mtf_state_objective_bytes(), "STATE_OBJECTIVE_IDENTITY")
-        return dynamic_mtf_state_research_contract()
+        kwargs = {"current_state_input": self._current_state_input, "first_state_loss_weight": self._first_state_loss_weight}
+        _require(self._research_contract_json == _dynamic_mtf_state_objective_bytes(**kwargs), "STATE_OBJECTIVE_IDENTITY")
+        return dynamic_mtf_state_research_contract(**kwargs)
+
+    @property
+    def current_state_input(self):
+        return self._current_state_input
+
+    @property
+    def first_state_loss_weight(self):
+        return self._first_state_loss_weight
 
     @property
     def signed_bps(self):
@@ -465,6 +513,15 @@ class NativeDynamicMTFStateResearch(nn.Module):
                 and layer.weight.device == layer.bias.device == device
                 and bool(torch.isfinite(layer.weight).all()) and bool(torch.isfinite(layer.bias).all()), "STATE_HEAD_BINDING")
 
+        if self.current_state_input:
+            layer = self.state_current_projection
+            _require(type(layer) is nn.Linear and layer.in_features == 5 and layer.out_features == width
+                and layer.bias is None and layer.weight.shape == (width, 5)
+                and layer.weight.dtype == torch.float32 and layer.weight.device == device
+                and bool(torch.isfinite(layer.weight).all()), "CURRENT_PROJECTION_BINDING")
+        else:
+            _require(not hasattr(self, "state_current_projection"), "CURRENT_PROJECTION_UNBOUND")
+
     def forward(
         self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,
         ctx_cat: torch.Tensor, ctx_cont: torch.Tensor,
@@ -472,9 +529,16 @@ class NativeDynamicMTFStateResearch(nn.Module):
         seq_h4: torch.Tensor, seq_d1: torch.Tensor,
         gc_seq_m5: torch.Tensor, gc_seq_m15: torch.Tensor,
         gc_seq_h1: torch.Tensor, gc_seq_h4: torch.Tensor, gc_seq_d1: torch.Tensor,
+        current_state=None, current_observed=None, current_path_observed=None,
     ) -> dict[str, torch.Tensor]:
         self._require_binding()
         _require(isinstance(seq_x, torch.Tensor) and seq_x.ndim == 3 and seq_x.shape[0] > 0, "STATE_FEATURE_BATCH")
+        if self.current_state_input:
+            current_features = encode_historical_current_state(current_state, current_observed, current_path_observed,
+                batch=seq_x.shape[0], tfs=self.state_timeframe_codes.numel(), device=self.state_query_coordinates.device)
+        else:
+            _require(current_state is current_observed is current_path_observed is None, "CURRENT_INPUT_NOT_BOUND")
+            current_features = None
         output = self.backbone(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
             seq_m5=seq_m5, seq_m15=seq_m15, seq_h1=seq_h1, seq_h4=seq_h4, seq_d1=seq_d1,
             gc_seq_m5=gc_seq_m5, gc_seq_m15=gc_seq_m15, gc_seq_h1=gc_seq_h1,
@@ -488,6 +552,8 @@ class NativeDynamicMTFStateResearch(nn.Module):
         batch, (tfs, leads, _) = hidden.shape[0], self.state_query_coordinates.shape
         coordinates = self.state_query_coordinates[None].expand(batch, -1, -1, -1)
         source = hidden[:, None, None, :].expand(-1, tfs, leads, -1)
+        if current_features is not None:
+            source = source + self.state_current_projection(current_features)[:, :, None, :]
         decoded = self.state_query_projection(torch.cat((source, coordinates), dim=-1))
         classes = self.state_class_codes.numel()
         initial = self.state_initial_head(decoded[:, :, 0])
@@ -597,9 +663,10 @@ def state_chain_negative_log_likelihood(initial_state_logits, state_transition_l
 
 
 def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits, *,
-        state, observed, issue_ns, validity_ns, maturity_ns, cutoff_ns):
+        state, observed, issue_ns, validity_ns, maturity_ns, cutoff_ns, first_state_loss_weight=None):
     """Strict declared-grid loss; labels and future clocks stay outside forward."""
-    contract = dynamic_mtf_state_research_contract()
+    contract = (dynamic_mtf_state_research_contract() if first_state_loss_weight is None
+        else dynamic_mtf_state_research_contract(current_state_input=True, first_state_loss_weight=first_state_loss_weight))
     shape = _validate_state_chain_logits(initial_state_logits, state_transition_logits)
     batch, tfs, leads = shape
     _require((tfs, leads) == (len(contract["timeframes"]), len(contract["lead_minutes"])), "STATE_NATIVE_GRID")
@@ -640,8 +707,22 @@ def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits,
         and counts["eligible_down_cells"] + counts["eligible_flat_cells"] + counts["eligible_up_cells"] == counts["eligible_cells"],
         "STATE_COUNT_PARTITION")
     count = counts["eligible_cells"]
-    loss = sequence_nll.sum() / count if count else None
+    sequence_loss = sequence_nll.sum() / count if count else None
+    loss = sequence_loss
+    first_loss, first_count = None, 0
+    if first_state_loss_weight is not None:
+        first_eligible = eligible[:, :, 0]
+        first_count = int(first_eligible.sum().item())
+        if first_count:
+            first_state = torch.where(first_eligible, state[:, :, 0], torch.zeros_like(state[:, :, 0])).long()
+            first_nll = -F.log_softmax(initial_state_logits, dim=-1).gather(-1, first_state[..., None]).squeeze(-1)
+            first_loss = torch.where(first_eligible, first_nll, torch.zeros_like(first_nll)).sum() / first_count
+            loss = sequence_loss + first_state_loss_weight * first_loss
     _require(bool(torch.isfinite(sequence_nll).all()) and (loss is None or bool(torch.isfinite(loss))), "STATE_FINITE_NLL")
-    return {"loss": loss, "update_allowed": count > 0, "eligible_mask": eligible,
+    result = {"loss": loss, "update_allowed": count > 0, "eligible_mask": eligible,
         "sequence_nll": sequence_nll, "counts": counts, "per_timeframe_counts": per_tf,
         "research_objective_sha256": contract["contract_sha256"]}
+    if first_state_loss_weight is not None:
+        result.update(sequence_loss=sequence_loss, first_state_loss=first_loss,
+            first_state_eligible_cells=first_count, first_state_loss_weight=first_state_loss_weight)
+    return result

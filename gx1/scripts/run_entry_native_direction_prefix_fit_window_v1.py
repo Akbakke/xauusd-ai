@@ -209,7 +209,8 @@ def _prepare_dynamic_state(context, launch, np):
     view = view_owner.bind_native_direction_feature_view(prefix_normalization=context['fitted'],
         prefix_normalization_ref=manifest['prefix_normalization'], constructor_metadata=context['constructor'],
         constructor_metadata_ref=manifest['constructor_metadata'], source_bindings=sources, max_batch_rows=BATCH_SIZE,
-        full_feature_profile=True, dynamic_state_supervision=True)
+        full_feature_profile=True, dynamic_state_supervision=True,
+        current_state_first_loss_weight=launch['numerical_recipe'].get('current_state_first_loss_weight'))
     prepared['state_artifact_directory'] = context['state_artifact_directory']
     targets = {'dynamic_state_series':series, 'target_manifest':launch['target_manifest'],
         'target_sources':launch['target_sources'], 'prior':context['state_label_audit']['prior'],
@@ -222,7 +223,8 @@ def _prepare_dynamic_state(context, launch, np):
 def _state_loss(model, outputs, target, *, cutoff):
     from gx1.contracts.entry_native_direction_research_v1 import native_dynamic_mtf_state_loss
     loss = native_dynamic_mtf_state_loss(outputs['initial_state_logits'], outputs['state_transition_logits'],
-        **{key:target[key] for key in ('state','observed','issue_ns','validity_ns','maturity_ns')}, cutoff_ns=cutoff)
+        **{key:target[key] for key in ('state','observed','issue_ns','validity_ns','maturity_ns')}, cutoff_ns=cutoff,
+        first_state_loss_weight=model.first_state_loss_weight)
     _require(loss['research_objective_sha256'] == model.research_objective['contract_sha256'], 'STATE_LOSS_IDENTITY')
     return loss
 
@@ -232,6 +234,8 @@ def _state_gradient_summary(model, torch):
     _require(all(p.grad is None or bool(torch.isfinite(p.grad).all()) for p in model.parameters()), 'STATE_FINITE_GRADIENT')
     groups = {name:list(getattr(model,name).parameters())
         for name in ('state_query_projection','state_initial_head','state_transition_head')}
+    if model.current_state_input:
+        groups['state_current_projection'] = list(model.state_current_projection.parameters())
     groups['entry_q_joint'] = list(model.backbone.entry_q_joint_in.parameters()) + list(model.backbone.entry_q_joint_norm.parameters())
     groups['family_context_global'] = list(model.backbone.family_context_global.parameters())
     for owner in ('specialist_proj','specialist_ctx_cont_proj','specialist_ctx_cat_proj',
@@ -786,6 +790,20 @@ def _batch(prepared, targets, view, selected, np, *, cutoff=None):
         raw={**raw,'features':intervened,'report_features':original}
     else:
         _require('family_intervention_contract' not in prepared,'FAMILY_VIEW_MISSING')
+    if view.get('current_state_first_loss_weight') is not None:
+        from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import query_historical_dynamic_mtf_current_state
+        _require('dynamic_state_series' in targets, 'CURRENT_INPUT_TARGET_SERIES_REQUIRED')
+        current = query_historical_dynamic_mtf_current_state(targets['dynamic_state_series'],
+            parent_rows=np.asarray(selected, np.int64), issue_ns=np.ascontiguousarray(prepared['arrays']['decision_ns'][at]),
+            cutoff_ns=targets['train_cutoff_ns'] if cutoff is None else cutoff)
+        _require(current['clock_basis'] == 'historical_event_time_only_not_online_delivery'
+            and np.array_equal(current['current_state'], target['current_state'])
+            and np.array_equal(current['current_observed'], target['current_observed'])
+            and np.array_equal(current['current_path_observed'], query['current_path_observed']),
+            'CURRENT_INPUT_TARGET_ALIGNMENT')
+        keys = ('current_state', 'current_observed', 'current_path_observed')
+        _require(not any(key in raw['features'] for key in keys), 'CURRENT_INPUT_FEATURE_COLLISION')
+        raw = {**raw, 'features': {**raw['features'], **{key:np.ascontiguousarray(current[key]) for key in keys}}}
     return raw,target
 
 
@@ -1053,6 +1071,10 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
             loss=native_direction_binary_loss(logits,**target,cutoff_ns=cutoff)
     record={'eligible_cells':loss['counts']['eligible_cells'],'counts':loss['counts'],
         **({'per_timeframe_counts':loss['per_timeframe_counts']} if dynamic_state else {'per_horizon_counts':loss['per_horizon_counts']})}
+    if dynamic_state and model.current_state_input:
+        record['first_state_eligible_cells'] = loss['first_state_eligible_cells']
+        record['first_state_loss'] = None if loss['first_state_loss'] is None else float(loss['first_state_loss'].detach())
+        record['sequence_loss'] = None if loss['sequence_loss'] is None else float(loss['sequence_loss'].detach())
     if magnitude_weighted:
         for key in ('unweighted_direction_loss','magnitude_weighted_loss'):
             record[key]=None if loss[key] is None else float(loss[key].detach())

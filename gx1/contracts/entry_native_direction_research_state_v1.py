@@ -74,6 +74,7 @@ def _parameters(model):
     active = [(name, p) for name, p in pairs if not name.startswith(INACTIVE_PREFIXES)]
     inactive = [(name, p) for name, p in pairs if name.startswith(INACTIVE_PREFIXES)]
     head_prefixes = (('state_query_projection.', 'state_initial_head.', 'state_transition_head.')
+        + (('state_current_projection.',) if model.current_state_input else ())
         if type(model) is NativeDynamicMTFStateResearch else ('direction_head.',))
     _require(active and inactive and all(any(name.startswith(prefix) for name, _ in active)
         for prefix in head_prefixes), 'PARAMETER_PARTITIONS')

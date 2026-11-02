@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any, Mapping
@@ -346,6 +347,9 @@ def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, pr
         and numerical['max_updates'] == (2 if private_scope else (fold['prefix_rows'] + 15)//16)
         and numerical.get('genuine_updates_authorized') is numerical.get('native_launch_authorized') is False,
         'STATE_NUMERICAL_ROLE')
+    if 'current_state_first_loss_weight' in numerical:
+        weight = numerical['current_state_first_loss_weight']
+        _require(type(weight) is float and math.isfinite(weight) and weight > 0, 'STATE_CURRENT_FIRST_LOSS_WEIGHT')
     unsigned = {k:v for k,v in numerical.items() if k != 'contract_sha256'}
     # Numerical recipe seals use compact JSON without the campaign trailing newline.
     declared = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(',', ':'),
