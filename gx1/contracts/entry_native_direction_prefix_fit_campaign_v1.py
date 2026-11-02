@@ -505,6 +505,13 @@ def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, pr
     if 'current_state_first_loss_weight' in numerical:
         weight = numerical['current_state_first_loss_weight']
         _require(type(weight) is float and math.isfinite(weight) and weight > 0, 'STATE_CURRENT_FIRST_LOSS_WEIGHT')
+    if 'first_flat_activity_weight' in numerical:
+        weight = numerical['first_flat_activity_weight']
+        _require('current_state_first_loss_weight' in numerical and type(weight) is float
+            and math.isfinite(weight) and weight > 0, 'STATE_FIRST_ACTIVITY_WEIGHT')
+        # Exploratory aggregate is not an independently admitted TRAIN audit.
+        # No launch is allowed until a separately reviewed binding is implemented.
+        _require(False, 'STATE_FIRST_ACTIVITY_TRAIN_AUDIT_NOT_ADMITTED')
     if 'extended_forecast_minutes' in numerical:
         _require('current_state_first_loss_weight' in numerical, 'STATE_EXTENDED_REQUIRES_CURRENT_INPUT')
         from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import extended_dense_lead_minutes

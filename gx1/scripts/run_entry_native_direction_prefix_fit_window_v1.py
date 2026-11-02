@@ -211,7 +211,8 @@ def _prepare_dynamic_state(context, launch, np):
         constructor_metadata_ref=manifest['constructor_metadata'], source_bindings=sources, max_batch_rows=BATCH_SIZE,
         full_feature_profile=True, dynamic_state_supervision=True,
         current_state_first_loss_weight=launch['numerical_recipe'].get('current_state_first_loss_weight'),
-        extended_forecast_minutes=launch['numerical_recipe'].get('extended_forecast_minutes'))
+        extended_forecast_minutes=launch['numerical_recipe'].get('extended_forecast_minutes'),
+        first_flat_activity_weight=launch['numerical_recipe'].get('first_flat_activity_weight'))
     prepared['state_artifact_directory'] = context['state_artifact_directory']
     if view.get('extended_forecast_minutes') is not None:
         guard = context.get('extended_storage_guard')
@@ -230,7 +231,10 @@ def _state_loss(model, outputs, target, *, cutoff):
     from gx1.contracts.entry_native_direction_research_v1 import native_dynamic_mtf_state_loss
     loss = native_dynamic_mtf_state_loss(outputs['initial_state_logits'], outputs['state_transition_logits'],
         **{key:target[key] for key in ('state','observed','issue_ns','validity_ns','maturity_ns')}, cutoff_ns=cutoff,
-        first_state_loss_weight=model.first_state_loss_weight, extended_forecast_minutes=model.extended_forecast_minutes)
+        first_state_loss_weight=model.first_state_loss_weight, extended_forecast_minutes=model.extended_forecast_minutes,
+        first_flat_activity_weight=getattr(model, 'first_flat_activity_weight', None),
+        **({key:target[key] for key in ('first_flat_activity_observed', 'first_flat_activity_is_flat')}
+            if getattr(model, 'first_flat_activity_weight', None) is not None else {}))
     _require(loss['research_objective_sha256'] == model.research_objective['contract_sha256'], 'STATE_LOSS_IDENTITY')
     return loss
 
@@ -264,7 +268,9 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
         ceiling, device, torch, np, tree_sha, deadline=None, parity=False):
     """Bounded NPY outputs and incremental scores; no N-by-query target copy."""
     from gx1.contracts.entry_native_direction_research_v1 import dynamic_mtf_state_marginal_probabilities
-    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import StateScoreAccumulator, dynamic_state_prediction_layout
+    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import FLAT
+    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import (
+        StateScoreAccumulator, FirstFlatActivityAccumulator, dynamic_state_prediction_layout)
     from gx1.models.entry_v10 import entry_v10_ctx_train_v3 as trainer
     from gx1.contracts.immutable_event_authority_v1 import _publish_bytes, _publish_file_noreplace, _fsync_directory
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
@@ -291,6 +297,8 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
         for key,(shape,dtype) in shapes.items()}
     semantic = {key:hashlib.sha256() for key in arrays}
     scorer = StateScoreAccumulator(targets['prior'], lead_minutes=targets['lead_minutes'])
+    activity_scorer = (FirstFlatActivityAccumulator(scorer.markov_grid[:, :, 0, :])
+        if view.get('first_flat_activity_weight') is not None else None)
     path_support = np.zeros((5,len(targets['lead_minutes'])),np.int64)
     reason_support = {str(bit):np.zeros(5,np.int64) for bit in (1,2,4,8,16,32,64,128)}
     before = _online_identity(model,device,tree_sha,trainer)
@@ -335,6 +343,12 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
             scorer.update(probabilities,state=target['state'],eligible=eligible,
                 current_state=target['current_state'],current_observed=target['current_observed'],
                 sequence_nll=nll,transition_probabilities=transitions)
+            if activity_scorer is not None:
+                activity_scorer.update(probabilities[:, :, 0, FLAT],
+                    activity_observed=target['first_flat_activity_observed'],
+                    is_flat=target['first_flat_activity_is_flat'],
+                    state=target['state'][:, :, 0], state_observed=target['observed'][:, :, 0],
+                    current_state=target['current_state'], current_observed=target['current_observed'])
             completed += len(ids)
             del raw,target,features,device_target,outputs,loss,probabilities,transitions,nll,eligible,batch
     finally:
@@ -379,6 +393,8 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
     _publish_file_noreplace(stage,destination)
     _fsync_directory(root)
     report = scorer.finalize()
+    if activity_scorer is not None:
+        report['first_flat_activity'] = activity_scorer.finalize()
     report['local_path_observed_eligible_per_timeframe_lead'] = path_support.tolist()
     report['target_reason_bit_counts_per_timeframe'] = {bit:counts.tolist() for bit,counts in reason_support.items()}
     report['path_scope'] = 'States and adjacent closed-minute states scored; unobserved intraminute order is not a predicted target.'
@@ -792,10 +808,16 @@ def _batch(prepared, targets, view, selected, np, *, cutoff=None):
         from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import query_dynamic_mtf_states
         query = query_dynamic_mtf_states(targets['dynamic_state_series'], parent_rows=np.asarray(selected,np.int64),
             issue_ns=np.ascontiguousarray(prepared['arrays']['decision_ns'][at]),
-            cutoff_ns=targets['train_cutoff_ns'] if cutoff is None else cutoff, lead_minutes=targets['lead_minutes'])
+            cutoff_ns=targets['train_cutoff_ns'] if cutoff is None else cutoff, lead_minutes=targets['lead_minutes'],
+            **({'include_first_flat_activity':True} if view.get('first_flat_activity_weight') is not None else {}))
         target = {key:np.ascontiguousarray(query[key]) for key in
             ('state','observed','issue_ns','validity_ns','maturity_ns','current_state','current_observed','path_observed','reason')}
+        if view.get('first_flat_activity_weight') is not None:
+            activity_keys = ('first_flat_activity_observed', 'first_flat_activity_is_flat')
+            _require(not any(key in raw['features'] for key in activity_keys), 'FIRST_ACTIVITY_FEATURE_COLLISION')
+            target.update({key:np.ascontiguousarray(query[key]) for key in activity_keys})
     else:
+        _require(view.get('first_flat_activity_weight') is None, 'FIRST_ACTIVITY_TARGET_SERIES_REQUIRED')
         target={key:np.ascontiguousarray(value[at]) for key,value in targets.items()}
         target['decision_ns']=np.ascontiguousarray(prepared['arrays']['decision_ns'][at])
     if 'family_intervention' in view:
@@ -1093,6 +1115,10 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
         record['first_state_eligible_cells'] = loss['first_state_eligible_cells']
         record['first_state_loss'] = None if loss['first_state_loss'] is None else float(loss['first_state_loss'].detach())
         record['sequence_loss'] = None if loss['sequence_loss'] is None else float(loss['sequence_loss'].detach())
+        if getattr(model, 'first_flat_activity_weight', None) is not None:
+            record['first_flat_activity_eligible_cells'] = loss['first_flat_activity_eligible_cells']
+            record['first_flat_activity_loss'] = (None if loss['first_flat_activity_loss'] is None
+                else float(loss['first_flat_activity_loss'].detach()))
     if magnitude_weighted:
         for key in ('unweighted_direction_loss','magnitude_weighted_loss'):
             record[key]=None if loss[key] is None else float(loss[key].detach())

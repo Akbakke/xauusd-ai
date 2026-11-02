@@ -544,3 +544,77 @@ class StateScoreAccumulator:
                            'Calibration reported here is calibration in the large only, not full conditional calibration.',
                            'Timing matches only the first modal change in fully observed windows; all observed adjacent pairs are scored separately.',
                            'Overlapping parents, future minutes and TF are dependent; these descriptive metrics are not independent-sample confidence intervals or trading edge.']}
+
+
+class FirstFlatActivityAccumulator:
+    """Score complete first-query FLAT/non-FLAT labels, including unknown direction.
+
+    The provided Markov grid is the same frozen TRAIN prior and causal-current
+    information used by StateScoreAccumulator. No selection, smoothing or trade.
+    """
+    def __init__(self, first_markov_grid):
+        grid = np.asarray(first_markov_grid, dtype=np.float64)
+        f, k = len(TIMEFRAMES), len(STATE_NAMES)
+        tolerance = k * np.finfo(np.float32).eps
+        _require(grid.shape == (f, k + 1, k) and np.isfinite(grid).all()
+                 and np.all((grid >= 0) & (grid <= 1))
+                 and np.all(np.abs(grid.sum(axis=-1) - 1) <= tolerance), 'ACTIVITY_MARKOV_GRID')
+        self.grid = grid.copy()
+        self.counts = {key: np.zeros(f, np.int64) for key in
+                       ('observed', 'flat', 'nonflat', 'direction_unknown')}
+        self.metrics = {name: {key: np.zeros(f, np.int64 if key in ('infinite', 'tied', 'correct', 'flat_hits', 'predicted_flat') else np.float64)
+                               for key in ('infinite', 'tied', 'correct', 'flat_hits', 'predicted_flat', 'logloss', 'brier')}
+                        for name in ('model', 'markov')}
+
+    def update(self, model_flat, *, activity_observed, is_flat, state, state_observed,
+               current_state, current_observed):
+        p, mask, truth, state, known, current, co = map(np.asarray, (
+            model_flat, activity_observed, is_flat, state, state_observed, current_state, current_observed))
+        f, k = len(TIMEFRAMES), len(STATE_NAMES)
+        _require(p.ndim == 2 and p.shape[1] == f and all(a.shape == p.shape for a in
+                 (mask, truth, state, known, current, co)) and mask.dtype == truth.dtype == known.dtype == co.dtype == np.bool_
+                 and np.issubdtype(state.dtype, np.integer) and np.issubdtype(current.dtype, np.integer)
+                 and np.issubdtype(p.dtype, np.floating) and np.isfinite(p).all()
+                 and np.all((p >= 0) & (p <= 1)), 'ACTIVITY_INPUT')
+        flat = STATE_NAMES.index('FLAT')
+        _require(np.all(~truth | mask) and np.all((state[known] >= 0) & (state[known] < k))
+                 and np.all(state[~known] == -1) and np.all((current[co] >= 0) & (current[co] < k))
+                 and np.all(current[~co] == -1)
+                 and np.all(~truth | (known & (state == flat)))
+                 and np.all(~(mask & known) | ((state == flat) == truth)), 'ACTIVITY_LABEL_CONSISTENCY')
+        case = np.where(co, current, k)
+        markov = self.grid[np.arange(f)[None, :], case, flat]
+        for name, event in (('observed', mask), ('flat', mask & truth),
+                            ('nonflat', mask & ~truth), ('direction_unknown', mask & ~known)):
+            self.counts[name] += event.sum(axis=0)
+        for name, prob in (('model', p.astype(np.float64)), ('markov', markov)):
+            metrics = self.metrics[name]
+            selected = np.where(truth, prob, 1.0 - prob)
+            positive = mask & (selected > 0)
+            logs = np.zeros_like(selected)
+            np.log(selected, out=logs, where=positive)
+            metrics['logloss'] -= np.where(positive, logs, 0).sum(axis=0)
+            metrics['infinite'] += (mask & ~positive).sum(axis=0)
+            metrics['brier'] += np.where(mask, (prob - truth.astype(np.float64)) ** 2, 0).sum(axis=0)
+            tied, predicted_flat = prob == 0.5, prob > 0.5
+            metrics['tied'] += (mask & tied).sum(axis=0)
+            metrics['correct'] += (mask & ~tied & (predicted_flat == truth)).sum(axis=0)
+            metrics['predicted_flat'] += (mask & predicted_flat).sum(axis=0)
+            metrics['flat_hits'] += (mask & truth & predicted_flat).sum(axis=0)
+
+    def finalize(self):
+        counts = {key: value.tolist() for key, value in self.counts.items()}
+        output = {'timeframes': list(TIMEFRAMES), 'counts': counts,
+                  'scope': 'complete_first_query_local_windows_only; unknown_direction_remains_unknown',
+                  'baseline': 'frozen_TRAIN_Markov_given_same_causal_current_state_or_TRAIN_prior_fallback',
+                  'mask_selection_bias_not_excluded': True}
+        for name, metrics in self.metrics.items():
+            output[name] = {'logloss': _ratio(metrics['logloss'], self.counts['observed'], metrics['infinite']),
+                            'logloss_infinite': metrics['infinite'].tolist(),
+                            'brier': _ratio(metrics['brier'], self.counts['observed']),
+                            'correct': metrics['correct'].tolist(), 'tied': metrics['tied'].tolist(),
+                            'predicted_flat': metrics['predicted_flat'].tolist(),
+                            'flat_hits': metrics['flat_hits'].tolist(),
+                            'flat_recall': _ratio(metrics['flat_hits'], self.counts['flat']),
+                            'flat_precision': _ratio(metrics['flat_hits'], metrics['predicted_flat'])}
+        return output

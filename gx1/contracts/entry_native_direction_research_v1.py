@@ -326,11 +326,13 @@ def native_direction_binary_loss(
 
 
 @lru_cache(maxsize=4, typed=True)
-def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state_loss_weight=None, extended_forecast_minutes=None):
+def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None):
     _require(type(current_state_input) is bool, "STATE_CURRENT_INPUT_MODE")
     _require((not current_state_input and first_state_loss_weight is None)
         or (current_state_input and type(first_state_loss_weight) is float
             and math.isfinite(first_state_loss_weight) and first_state_loss_weight > 0), "STATE_FIRST_LOSS_WEIGHT")
+    _require(first_flat_activity_weight is None or (current_state_input and type(first_flat_activity_weight) is float
+        and math.isfinite(first_flat_activity_weight) and first_flat_activity_weight > 0), "STATE_FIRST_ACTIVITY_WEIGHT")
     from gx1.contracts import entry_dynamic_mtf_state_targets_v1 as targets
     target = targets.dynamic_mtf_state_target_contract()
     _require(extended_forecast_minutes is None or current_state_input, "STATE_EXTENDED_REQUIRES_CURRENT_INPUT")
@@ -393,14 +395,25 @@ def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state
             "extended_grid": "all_wall_minutes_from_one_through_declared_end_no_skipped_queries",
             "extended_runtime_and_storage_qualified": False,
         })
+    if first_flat_activity_weight is not None:
+        value.update({
+            "schema_version": "gx1_native_dynamic_mtf_first_flat_activity_research_v4",
+            "loss": "normalized_observed_sequence_NLL_plus_weighted_first_state_NLL_plus_weighted_first_flat_activity_NLL",
+            "first_flat_activity_weight": first_flat_activity_weight,
+            "first_flat_activity_target": "complete_local_range_lt_threshold_FLAT_else_nonFLAT_direction_may_be_unknown",
+            "first_flat_activity_normalization": "mean_over_all_eligible_complete_first_query_local_windows",
+            "first_flat_activity_is_future_label_only": True,
+            "first_flat_activity_native_admission": False,
+        })
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
 def dynamic_mtf_state_research_contract(*, current_state_input=False, first_state_loss_weight=None,
-                                        extended_forecast_minutes=None) -> dict[str, Any]:
+                                        extended_forecast_minutes=None, first_flat_activity_weight=None) -> dict[str, Any]:
     """Separate target/output/loss identity; legacy objective bytes are untouched."""
     raw = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
-        first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes)
+        first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
+        first_flat_activity_weight=first_flat_activity_weight)
     return {**json.loads(raw), "contract_sha256": hashlib.sha256(raw).hexdigest()}
 
 
@@ -438,12 +451,13 @@ class NativeDynamicMTFStateResearch(nn.Module):
     """
 
     def __init__(self, backbone: EntryV10CtxHybridTransformer, *, current_state_input=False,
-                 first_state_loss_weight=None, extended_forecast_minutes=None):
+                 first_state_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None):
         super().__init__()
         from gx1.features.entry_specialist_feature_groups_v1 import FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
         width = _backbone_width(backbone)
         contract = dynamic_mtf_state_research_contract(current_state_input=current_state_input,
-            first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes)
+            first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
+            first_flat_activity_weight=first_flat_activity_weight)
         _require(isinstance(backbone.entry_execution_profile, dict)
             and backbone.entry_execution_profile.get("name") == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
             and backbone.gc_mtf_history is not None
@@ -453,8 +467,10 @@ class NativeDynamicMTFStateResearch(nn.Module):
         self._current_state_input = current_state_input
         self._first_state_loss_weight = first_state_loss_weight
         self._extended_forecast_minutes = extended_forecast_minutes
+        self._first_flat_activity_weight = first_flat_activity_weight
         self._research_contract_json = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
-            first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes)
+            first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
+            first_flat_activity_weight=first_flat_activity_weight)
         device = backbone.entry_q_joint_in.weight.device
         query_width = len(contract["timeframes"]) + 1
         classes = len(contract["class_names"])
@@ -474,7 +490,8 @@ class NativeDynamicMTFStateResearch(nn.Module):
     @property
     def research_objective(self):
         kwargs = {"current_state_input": self._current_state_input, "first_state_loss_weight": self._first_state_loss_weight,
-                  "extended_forecast_minutes": self._extended_forecast_minutes}
+                  "extended_forecast_minutes": self._extended_forecast_minutes,
+                  "first_flat_activity_weight": self._first_flat_activity_weight}
         _require(self._research_contract_json == _dynamic_mtf_state_objective_bytes(**kwargs), "STATE_OBJECTIVE_IDENTITY")
         return dynamic_mtf_state_research_contract(**kwargs)
 
@@ -489,6 +506,10 @@ class NativeDynamicMTFStateResearch(nn.Module):
     @property
     def extended_forecast_minutes(self):
         return self._extended_forecast_minutes
+
+    @property
+    def first_flat_activity_weight(self):
+        return self._first_flat_activity_weight
 
     @property
     def signed_bps(self):
@@ -682,12 +703,14 @@ def state_chain_negative_log_likelihood(initial_state_logits, state_transition_l
 
 def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits, *,
         state, observed, issue_ns, validity_ns, maturity_ns, cutoff_ns, first_state_loss_weight=None,
-        extended_forecast_minutes=None):
+        extended_forecast_minutes=None, first_flat_activity_weight=None,
+        first_flat_activity_observed=None, first_flat_activity_is_flat=None):
     """Strict declared-grid loss; labels and future clocks stay outside forward."""
     _require(first_state_loss_weight is not None or extended_forecast_minutes is None, "STATE_EXTENDED_REQUIRES_CURRENT_INPUT")
     contract = (dynamic_mtf_state_research_contract() if first_state_loss_weight is None
         else dynamic_mtf_state_research_contract(current_state_input=True, first_state_loss_weight=first_state_loss_weight,
-            extended_forecast_minutes=extended_forecast_minutes))
+            extended_forecast_minutes=extended_forecast_minutes, first_flat_activity_weight=first_flat_activity_weight))
+    _require(first_state_loss_weight is not None or first_flat_activity_weight is None, "STATE_FIRST_ACTIVITY_REQUIRES_CURRENT")
     shape = _validate_state_chain_logits(initial_state_logits, state_transition_logits)
     batch, tfs, leads = shape
     _require((tfs, leads) == (len(contract["timeframes"]), len(contract["lead_minutes"])), "STATE_NATIVE_GRID")
@@ -739,11 +762,39 @@ def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits,
             first_nll = -F.log_softmax(initial_state_logits, dim=-1).gather(-1, first_state[..., None]).squeeze(-1)
             first_loss = torch.where(first_eligible, first_nll, torch.zeros_like(first_nll)).sum() / first_count
             loss = sequence_loss + first_state_loss_weight * first_loss
+    activity_loss, activity_count = None, 0
+    if first_flat_activity_weight is None:
+        _require(first_flat_activity_observed is None and first_flat_activity_is_flat is None, "STATE_FIRST_ACTIVITY_UNBOUND")
+    else:
+        for value in (first_flat_activity_observed, first_flat_activity_is_flat):
+            _require(isinstance(value, torch.Tensor) and value.dtype == torch.bool
+                and value.shape == (batch, tfs) and value.device == initial_state_logits.device, "STATE_FIRST_ACTIVITY_LABEL")
+        activity_mask = first_flat_activity_observed
+        _require(bool((~first_flat_activity_is_flat | activity_mask).all())
+            and bool((~activity_mask | mature[:, :, 0]).all()), "STATE_FIRST_ACTIVITY_MASK")
+        known_first = activity_mask & observed[:, :, 0]
+        flat_index = contract["class_names"].index("FLAT")
+        _require(bool((~first_flat_activity_is_flat | (observed[:, :, 0] & (state[:, :, 0] == flat_index))).all())
+            and bool((~known_first | ((state[:, :, 0] == flat_index) == first_flat_activity_is_flat)).all()),
+            "STATE_FIRST_ACTIVITY_CONSISTENCY")
+        activity_count = int(activity_mask.sum().item())
+        if activity_count:
+            logp = F.log_softmax(initial_state_logits, dim=-1)
+            other_indices = [i for i in range(len(contract["class_names"])) if i != flat_index]
+            flat_logp = logp[:, :, flat_index]
+            nonflat_logp = torch.logsumexp(logp[:, :, other_indices], dim=-1)
+            nll = -torch.where(first_flat_activity_is_flat, flat_logp, nonflat_logp)
+            activity_loss = torch.where(activity_mask, nll, torch.zeros_like(nll)).sum() / activity_count
+            term = first_flat_activity_weight * activity_loss
+            loss = term if loss is None else loss + term
     _require(bool(torch.isfinite(sequence_nll).all()) and (loss is None or bool(torch.isfinite(loss))), "STATE_FINITE_NLL")
-    result = {"loss": loss, "update_allowed": count > 0, "eligible_mask": eligible,
+    result = {"loss": loss, "update_allowed": count > 0 or activity_count > 0, "eligible_mask": eligible,
         "sequence_nll": sequence_nll, "counts": counts, "per_timeframe_counts": per_tf,
         "research_objective_sha256": contract["contract_sha256"]}
     if first_state_loss_weight is not None:
         result.update(sequence_loss=sequence_loss, first_state_loss=first_loss,
             first_state_eligible_cells=first_count, first_state_loss_weight=first_state_loss_weight)
+    if first_flat_activity_weight is not None:
+        result.update(first_flat_activity_loss=activity_loss, first_flat_activity_eligible_cells=activity_count,
+            first_flat_activity_weight=first_flat_activity_weight)
     return result

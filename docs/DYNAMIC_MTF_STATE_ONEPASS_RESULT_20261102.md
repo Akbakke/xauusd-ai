@@ -6,6 +6,8 @@ Ingen nyttig prediktiv fordel er dokumentert. Modellen lærte noe på de samme 2
 
 Den gamle modellen lærte 60 fremtidige terminalretninger uten egen FLAT-klasse. Den nye bruker dynamiske tilstander DOWN/FLAT/UP på M5/M15/H1/H4/D1, terskel 0,5 ganger kausal Wilder ATR(14) per tidsramme, og 1–1 440 minutters prognoseledetid. Ledetid er ikke en handelsregel eller maksimal holdetid. Målene kan vise oppgang etterfulgt av nedgang uten en fast startstrek. Kandidatterskelen er ikke bevist økonomisk optimal, og prognoser utover 24 timer er ikke målt eller implementert her.
 
+Senere kildeundersøkelse viser at første M5-mål kan være ikke-FLAT selv når OPP/NED er uobserverbart: dette gjelder 22 710 av de 47 602 TRAIN-foreldrene. En separat avslått kildevariant kan bruke slike komplette lokale vinduer i et FLAT/ikke-FLAT-tap uten å dikte retning. Tilsvarende antall er 6 886 på M15, 1 027 på H1, 170 på H4 og 51 på D1. Ingen modell er kjørt med endringen, og den er sperret fra trening til en egen TRAIN-audit er innrømmet. Definisjon, tester og begrensninger står i [designnotatet](DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md).
+
 ## Senere utviklingsdata, ett fast horisontpunkt per tidsramme
 
 De tre treffratene for senere periode bruker samme observerbare klasseutvalg på vedkommende horisont; TRAIN-kolonnen viser en annen periode og et annet utvalg. Prior er TRAIN-klassens majoritet, UP; Markov bruker TRAIN-overganger og den kausalt observerte nåtilstanden når denne er tilgjengelig, ellers TRAIN-prioren. Modellen får ikke denne nåtilstanden eksplisitt. Samme prediksjonsrad kan inngå i andre horisonter, og observasjonene er ikke uavhengige.

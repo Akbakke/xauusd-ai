@@ -28,6 +28,24 @@ En TRAIN-only regnekontroll brukte lagrede sluttprediksjoner fra den tidligere m
 
 Første minutts kvalifiserte TRAIN-etiketter er kontrollert direkte mot den lagrede målserien: **199 865** celler på tvers av fem TF. Ved en tenkt global normalisering av hele TRAIN-populasjonen er koeffisienten til gjennomsnittlig første-NLL blant observerte førsteverdier **0,08149 %** for 1 440-minuttersgridet og **0,01484 %** for sjudøgnseksempelet. Uvektet direkte førsteledd blir dermed 5,49 ganger mindre relativt til samlet celletall når horisonten utvides. Tre syntetiske kjeder, inkludert manglende senere tilstander, bekreftet faktoriseringen mot den faktiske lossfunksjonen. Dette er ikke målt gradientandel: trening normaliseres per batch, og når første tilstand er ukjent kan senere observasjoner fremdeles påvirke starthodet gjennom marginalisering. Hverken horisont eller vekt er valgt. Opptelling: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_STATE_EXPOSURE_BY_HORIZON_001/RESULT.json` (SHA-256 `4a14e6b1b7d20bca13b1300d373a7af9d53cb8c4fe305eefcd9976f74b98b516`); tapsalgebra: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_STATE_EXPOSURE_BY_HORIZON_001/ALGEBRA_REVIEW.json` (SHA-256 `daf4eda169c0d8c351d43cdb33dcc47d44b02e5a0081015a3c35ec74f66404a2`). Ingen modell ble konstruert eller kjørt.
 
+## Første FLAT/ikke-FLAT-mål uten gjetning av retning
+
+En komplett lokal prisvidde kan fastslå om tilstanden oppfyller FLAT-regelen selv når rekkefølgen innenfor M1-lysene ikke viser om retningen er OPP eller NED. Dette er et binært mål etter den eksisterende terskelen 0,5 × kausal ATR, ikke en prislinje, en ny terskel eller et handelssignal. Ukjent retning forblir UNKNOWN i det opprinnelige treklassemålet. Modne førstemål på de samme 47 602 TRAIN-foreldrene gir:
+
+| Tidsramme | Komplett FLAT/ikke-FLAT-mål | Derav ikke-FLAT med ukjent retning | Utilgjengelig binært mål |
+|---|---:|---:|---:|
+| M5 | 47 561 | 22 710 | 41 |
+| M15 | 47 473 | 6 886 | 129 |
+| H1 | 47 115 | 1 027 | 487 |
+| H4 | 45 817 | 170 | 1 785 |
+| D1 | 37 390 | 51 | 10 212 |
+
+En separat, som standard avslått forskningsvariant beregner binær log-loss fra `P(FLAT)` over **alle** kvalifiserte komplette førstegangs-vinduer, både med kjent og ukjent retning. Den kommer i tillegg til eksisterende sekvens- og førsteklassetap med egen eksplisitt vekt; ingen vekt er valgt. Masken utelater manglende ATR, ufullstendig lokalhistorikk, ukjente kildehull, utilgjengelige og umodne oppslag, men ikke usikker intern prisrekkefølge. Fremtidige mål og masker sendes bare til taps-/rapportberegningen. Evaluering i kilde sammenligner modellens binære sannsynlighet med samme kausale nåtilstandsbaserte TRAIN-Markov eller prior ved ukjent nåtilstand. Begge bruker samme maske og usminket log-loss/Brier; utvalget kan være skjevt når data mangler.
+
+Ny accessor gjenskapte alle fem TRAIN-aggregatene eksakt mot tidligere opptelling. 120 ulike fokuserte syntetiske kontroller bestod på tvers av kontrollrunder, inkludert uavklart retning, ekstremverdier, historisk v1/v2-identitet, utvidet grid og guardrails. Første runde avdekket én ugyldig syntetisk parentklokke; testen ble rettet og bestod deretter. Ingen modellkonstruksjon, forward, backward, optimizer eller ny scoring ble kjørt. Ordinær commit-hook inneholder modelltester og ble derfor overstyrt; separate guardrailtester bestod. Dette er ikke native kvalifisering: ny selvstendig TRAIN-labelaudit og dens kildebinding mangler, så oppstartskontrakten avviser eksplisitt denne varianten. Fysisk ONLINE-mottak/restart, horisont, tapsvekt og ressurser er heller ikke kvalifisert. Original kampanje er brukt opp; ingen ny runde følger automatisk.
+
+TRAIN-tall: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_ACTIVITY_TRAIN_AUDIT_001/RESULT.json` (SHA-256 `b61304d650cc034adf57ebf6df5759a8e4c5362fd1a6db38c12c9140c5a7f5d5`). Ny accessorparitet: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_ACTIVITY_SOURCE_001/NEW_ACCESSOR_TRAIN_PARITY.json` (SHA-256 `4be85b73e657e95933e0c57ccd283cf9c0bb7fb0749edc422d3e0b1b7a764447`). Kilde- og testkontroll: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_ACTIVITY_SOURCE_001/SOURCE_REVIEW.json` (SHA-256 `a6f9d6329aa1f0b1bdf3ab74535ddb7518da2ab66eef9406c49a354e37d49be8`).
+
 ## Kontrakt for tilgjengelig informasjon
 
 1. Tilfør per tidsramme separat nåtilstand OPP/NED/FLATT eller UNKNOWN, en tilstandsobservasjonsmaske og en uavhengig maske for om den lokale stien er observerbar. UNKNOWN må ikke kodes som FLAT. En kjent slutt- eller nåtilstand beviser ikke kjent intraminutt-rekkefølge. Ved tvetydig OHLC kan bare tilstander med tilstrekkelig endepunktbevis brukes; uobserverte mellomliggende bevegelser skal ikke finnes på.

@@ -490,9 +490,11 @@ def query_historical_dynamic_mtf_current_state(series, *, parent_rows, issue_ns,
             "clock_basis": "historical_event_time_only_not_online_delivery"}
 
 
-def query_dynamic_mtf_states(series, *, parent_rows, issue_ns, cutoff_ns, lead_minutes):
+def query_dynamic_mtf_states(series, *, parent_rows, issue_ns, cutoff_ns, lead_minutes,
+                             include_first_flat_activity=False):
     """Gather only the requested batch; all future prices/scales remain labels."""
     _require(isinstance(series, DynamicMtfStateSeries), "SERIES_TYPE")
+    _require(type(include_first_flat_activity) is bool, "FIRST_ACTIVITY_MODE")
     cutoff_ns = _cutoff(cutoff_ns)
     _require(cutoff_ns <= series.metadata["cutoff_ns"], "QUERY_CUTOFF")
     leads = np.asarray(lead_minutes)
@@ -526,6 +528,22 @@ def query_dynamic_mtf_states(series, *, parent_rows, issue_ns, cutoff_ns, lead_m
     result["reason"] = np.where(exists[:, None, :], result["reason"], QUERY_UNAVAILABLE).astype(np.uint8)
     # Immature queries reveal no future source or intraminute diagnostics.
     result["reason"] = np.where(in_scope[:, None, :], result["reason"], IMMATURE).astype(np.uint8)
+    if include_first_flat_activity:
+        # A complete local range proves FLAT/non-FLAT without asserting the
+        # unknown intraminute ordering or supplying any future value to forward.
+        threshold = series.arrays["threshold"][safe[:, 0]]
+        local_range = series.arrays["local_range"][safe[:, 0]]
+        excluded = ATR_UNAVAILABLE | LOCAL_SPAN_INCOMPLETE | UNKNOWN_SOURCE_GAP | QUERY_UNAVAILABLE | IMMATURE
+        activity_observed = (available[:, :, 0] & ((result["reason"][:, :, 0] & excluded) == 0)
+                             & np.isfinite(threshold) & (threshold > 0) & np.isfinite(local_range))
+        is_flat = activity_observed & (local_range < threshold)
+        first_state = result["state"][:, :, 0]
+        known = result["observed"][:, :, 0]
+        _require(np.all(~is_flat | (known & (first_state == FLAT)))
+                 and np.all(~(activity_observed & known) | ((first_state == FLAT) == is_flat)),
+                 "FIRST_ACTIVITY_STATE_CONSISTENCY")
+        result["first_flat_activity_observed"] = activity_observed
+        result["first_flat_activity_is_flat"] = is_flat
     result.update(_historical_current_at_bound_positions(series, positions=positions, issue_ns=issue_ns))
     return result
 

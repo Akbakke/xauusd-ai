@@ -87,8 +87,8 @@ def test_batch_rejects_current_label_mismatch_and_feature_collision(monkeypatch)
         prefix._batch(prepared, targets, {'current_state_first_loss_weight': 1.0}, parents, np)
 
 
-@pytest.mark.parametrize('weight,accepted', [(1.0, True), (0.0, False), (1, False), (True, False)])
-def test_launch_metadata_requires_explicit_valid_current_weight(tmp_path, monkeypatch, weight, accepted):
+@pytest.mark.parametrize('weight,accepted,activity', [(1.0, True, False), (0.0, False, False), (1, False, False), (True, False, False), (1.0, False, True)])
+def test_launch_metadata_requires_explicit_valid_current_weight(tmp_path, monkeypatch, weight, accepted, activity):
     import hashlib
     import json
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
@@ -97,6 +97,8 @@ def test_launch_metadata_requires_explicit_valid_current_weight(tmp_path, monkey
     numerical = recipes.native_direction_research_recipe(batch_size=16, max_updates=2,
         dynamic_state=True, current_state_first_loss_weight=1.0)
     numerical['current_state_first_loss_weight'] = weight
+    if activity:
+        numerical['first_flat_activity_weight'] = 0.25
     unsigned = {k: v for k, v in numerical.items() if k != 'contract_sha256'}
     numerical['contract_sha256'] = hashlib.sha256(json.dumps(unsigned, sort_keys=True,
         separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode()).hexdigest()
@@ -125,6 +127,7 @@ def test_launch_metadata_requires_explicit_valid_current_weight(tmp_path, monkey
             launch, source_repo=repo, source_commit='b' * 40, private_scope=True)
         assert checked['numerical_recipe']['current_state_first_loss_weight'] == 1.0
     else:
-        with pytest.raises(RuntimeError, match='STATE_CURRENT_FIRST_LOSS_WEIGHT'):
+        expected = 'STATE_FIRST_ACTIVITY_TRAIN_AUDIT_NOT_ADMITTED' if activity else 'STATE_CURRENT_FIRST_LOSS_WEIGHT'
+        with pytest.raises(RuntimeError, match=expected):
             prefix_authority.require_dynamic_state_launch_recipe(
                 launch, source_repo=repo, source_commit='b' * 40, private_scope=True)
