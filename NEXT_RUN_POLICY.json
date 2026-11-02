@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_GC_CALENDAR_PARTIAL_NO_NATIVE_QUALIFICATION",
+  "status": "DYNAMIC_STATE_D1_GAP_OBSERVED_PARTIAL_CME_SOURCES_SAVED_NO_NATIVE_QUALIFICATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Locate or retrieve authoritative dated GC holiday exceptions and reconcile specific D1 gaps before any proposed mask change; preserve UNKNOWN when exact evidence is missing. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+  "next_action": "Locate authoritative dated GC holiday exceptions or equivalent qualified source evidence, reconcile Sunday-labelled D1 gaps, and retain UNKNOWN until actual closures are verified. No automatic model, training, scoring, restart, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Locate or retrieve authoritative dated GC holiday exceptions and reconcile specific D1 gaps before any proposed mask change; preserve UNKNOWN when exact evidence is missing. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+    "next_action": "Locate authoritative dated GC holiday exceptions or equivalent qualified source evidence, reconcile Sunday-labelled D1 gaps, and retain UNKNOWN until actual closures are verified. No automatic model, training, scoring, restart, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -52593,7 +52593,18 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CME_HISTORICAL_HOURS_SOURCES_001/SOURCE_REVIEW.json",
       "sha256": "6040f71801368d2d08e4fbf3951ea258a8d08b9586d90fa390f8f2754cd82821"
     },
-    "historical_cme_pdf_downloaded": false,
-    "cme_individual_gap_classification_performed": false
+    "historical_cme_pdf_downloaded": true,
+    "cme_individual_gap_classification_performed": false,
+    "d1_gap_source_observation": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/D1_GAP_SOURCE_OBSERVATION_001/RESULT.json",
+      "sha256": "916c874ba3c4f2e1ba0af186b7c133b079ac9305c3c991d687dad459401fcfcd"
+    },
+    "train_sunday_labelled_gap_rows": 35,
+    "later_sunday_labelled_gap_rows": 12,
+    "later_structure_ready_bear_state_unknown_source_rows": 37,
+    "archived_cme_sources": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CME_HISTORICAL_HOURS_SOURCES_001/ARCHIVE_DOWNLOAD_RESULT.json",
+      "sha256": "f437e0f2539789b9ca06118b6d95bbec9ce79d90d24cf9047c7f98b41b550c3e"
+    }
   }
 }
