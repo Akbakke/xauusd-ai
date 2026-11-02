@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT002_ADMITTED",
+  "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT003_ADMITTED",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
@@ -1179,12 +1179,12 @@
     "calendar_target_audit": {
       "status": "ADMITTED_NOT_STARTED",
       "plan": {
-        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/PLAN.json",
-        "sha256": "27d5a70eade62cacbd9ca72cb917e4d079fc993ee99a5c3c7d192447cc9e0b2b"
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/PLAN.json",
+        "sha256": "4985ab649d5156e6b0337f9d48dcec4d08d700c81256dfd247c0e457c6879029"
       },
       "worker": {
-        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/build_and_audit_targets_guarded.py",
-        "sha256": "adf0be3661b3fb1533c53e6c454709bdb346c5740a2bafad0f156f0c801aaac4"
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/build_and_audit_targets_guarded.py",
+        "sha256": "20f2720d91033ab9b5ea9735f9c0c43ee20e889cd0a5b81fd4059ed4f173e6a5"
       },
       "original_audit": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/RESULT.json",
@@ -1201,7 +1201,23 @@
       "target_builds_authorized": 1,
       "atr_builds_authorized": 0,
       "model_calls_authorized": 0,
-      "later_metrics_inspected": false
+      "later_metrics_inspected": false,
+      "previous_failed_audit": {
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/TERMINAL.json",
+          "sha256": "062ae54ffb6f71bf6dbc46406db817c3ebc59e04a4ac154f7f6777994d9e0d92"
+        },
+        "counts": {
+          "atr_builds": 0,
+          "fit_calls": 0,
+          "later_queries": 0,
+          "model_calls": 0,
+          "series_publications": 0,
+          "target_builds": 0,
+          "train_query_parents": 0
+        },
+        "correction": "Permit readonly open of the exact original series directory already bound through SERIES.json; no broader directory/payload/write authority."
+      }
     }
   }
 }

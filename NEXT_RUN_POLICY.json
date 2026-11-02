@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-01T22:28:15.690017+00:00",
-  "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT002_ADMITTED",
+  "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT003_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-  "next_action": "Freeze clean source and run exact target-only audit002 once. Verify reused thresholds, published-gap binding and genuine TRAIN state support before native qualification, safe restart and the single short fit.",
+  "next_action": "Freeze clean source and run exact target-only audit003 once. Verify reused thresholds, published-gap binding and genuine TRAIN state support before native qualification, safe restart and the single short fit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Historical calendar metadata verified. One corrected CPU target audit002 admitted, reusing original ATR and axes; model training/native launch remain closed.",
+    "current_activity": "Audit002 stopped after6.386s before target/ATR/model calls: pinned SERIES directory open was absent from read allowlist. Exact readonly directory binding repaired in new003;002 remains consumed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -18049,7 +18049,7 @@
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "dynamic_state_short_training_20261101": {
-      "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT002_ADMITTED",
+      "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT003_ADMITTED",
       "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
       "operator_authorized_source_target_preparation": true,
       "operator_authorized_required_genuine_qualification": true,
@@ -18353,12 +18353,12 @@
       "calendar_target_preparation": {
         "status": "ADMITTED_NOT_STARTED",
         "plan": {
-          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/PLAN.json",
-          "sha256": "27d5a70eade62cacbd9ca72cb917e4d079fc993ee99a5c3c7d192447cc9e0b2b"
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/PLAN.json",
+          "sha256": "4985ab649d5156e6b0337f9d48dcec4d08d700c81256dfd247c0e457c6879029"
         },
         "worker": {
-          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/build_and_audit_targets_guarded.py",
-          "sha256": "adf0be3661b3fb1533c53e6c454709bdb346c5740a2bafad0f156f0c801aaac4"
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/build_and_audit_targets_guarded.py",
+          "sha256": "20f2720d91033ab9b5ea9735f9c0c43ee20e889cd0a5b81fd4059ed4f173e6a5"
         },
         "original_audit": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_001/RESULT.json",
@@ -18375,7 +18375,23 @@
         "target_builds_authorized": 1,
         "atr_builds_authorized": 0,
         "model_calls_authorized": 0,
-        "later_metrics_inspected": false
+        "later_metrics_inspected": false,
+        "previous_failed_audit": {
+          "terminal": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/TERMINAL.json",
+            "sha256": "062ae54ffb6f71bf6dbc46406db817c3ebc59e04a4ac154f7f6777994d9e0d92"
+          },
+          "counts": {
+            "atr_builds": 0,
+            "fit_calls": 0,
+            "later_queries": 0,
+            "model_calls": 0,
+            "series_publications": 0,
+            "target_builds": 0,
+            "train_query_parents": 0
+          },
+          "correction": "Permit readonly open of the exact original series directory already bound through SERIES.json; no broader directory/payload/write authority."
+        }
       }
     }
   },
@@ -20941,7 +20957,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-02T10:16:06.191705+00:00",
+  "updated_utc": "2026-11-02T10:24:53.321736+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -51512,7 +51528,7 @@
     "diagnostic_limitation": "Original001 diagnostic_reason_query_counts and excluded_reason_query_counts included source-reason flags from immature post-TRAIN cells. State/class/transition/path masks and unique TRAIN support remained mature-only; no model used them. Thus001 later_aggregates_computed=false was too broad for diagnostic flags. Original files preserved; new query returns only IMMATURE after cutoff and the regression test passes."
   },
   "dynamic_mtf_state_target_audit_20261102_002": {
-    "status": "ADMITTED_ONE_CALENDAR_BOUND_TARGET_ONLY_AUDIT",
+    "status": "CONSUMED_FAILED_BEFORE_TARGET_BUILD",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/PLAN.json",
       "sha256": "27d5a70eade62cacbd9ca72cb917e4d079fc993ee99a5c3c7d192447cc9e0b2b"
@@ -51522,7 +51538,7 @@
       "sha256": "adf0be3661b3fb1533c53e6c454709bdb346c5740a2bafad0f156f0c801aaac4"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "source_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_002.json",
@@ -51532,9 +51548,9 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/VERIFIED_RESULT.json",
       "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "target_build_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "target_build_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "native_launch_authorized": false,
@@ -51542,6 +51558,51 @@
     "test_data_used": false,
     "broker_access_allowed": false,
     "exit_evaluation": false,
-    "later_rule_selection_authorized": false
+    "later_rule_selection_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/TERMINAL.json",
+      "sha256": "062ae54ffb6f71bf6dbc46406db817c3ebc59e04a4ac154f7f6777994d9e0d92"
+    },
+    "launch_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/LAUNCH_RESULT.json",
+      "sha256": "32ce39705c0d98089cc05aa4fd2b3cc7fc88468e0978f06ae84729270890d9b1"
+    },
+    "consumed_admission_policy": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_002/CONSUMED_ADMISSION_POLICY.json",
+      "sha256": "7038b56e18c8c5ddf14457ad87cca76d93c7b393ac4c813523d8d1683e30ab74"
+    }
+  },
+  "dynamic_mtf_state_target_audit_20261102_003": {
+    "max_invocations": 1,
+    "source_checks": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_002.json",
+      "sha256": "6d8c2ff303133cfd74eb8be4fcd7d78d6c60b5cbf769a17b56e96cba9ce20cdc"
+    },
+    "published_calendar_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/VERIFIED_RESULT.json",
+      "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
+    },
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "exit_evaluation": false,
+    "later_rule_selection_authorized": false,
+    "status": "ADMITTED_ONE_CALENDAR_BOUND_TARGET_ONLY_AUDIT",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/PLAN.json",
+      "sha256": "4985ab649d5156e6b0337f9d48dcec4d08d700c81256dfd247c0e457c6879029"
+    },
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/build_and_audit_targets_guarded.py",
+      "sha256": "20f2720d91033ab9b5ea9735f9c0c43ee20e889cd0a5b81fd4059ed4f173e6a5"
+    },
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "target_build_authorized": true
   }
 }
