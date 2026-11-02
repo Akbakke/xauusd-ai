@@ -24,6 +24,22 @@ På +1 minutt er senere modell/Markov-treffrate M5 51.06/70.56 %, M15 60.06/87.5
 
 En ekstra kontroll av lagrede +1-minuttsprognoser viser at modellen har noe sammenheng med kjent nåtilstand, men overser FLAT. I senere periode var M5-nåtilstanden FLAT i 1 028 observerbare tilfeller; i 691 av disse var neste tilstand også FLAT, mens modellen aldri valgte FLAT i denne gruppen. Når M5-nåtilstanden var NED, valgte modellen NED i 1 673 av 2 883 tilfeller; når nåtilstanden var OPP, valgte den OPP i 2 165 av 3 135. For disse 1 028 tilfellene var modellens gjennomsnittlige FLAT-sannsynlighet 14,3 %, mens 67,2 % av neste tilstander var FLAT. Gruppene er dannet i etterkontrollen; modellen fikk ikke nåtilstanden som eksplisitt input. Forskjellen er derfor en betinget observasjon, ikke en vanlig ubetinget kalibreringskurve. Dette viser både delvis informasjon i de øvrige inputene og et tydelig hull, men isolerer ikke årsaken.
 
+## Hvor ofte TRAIN-målet viser skifter
+
+Den lagrede målserien ble telt på nytt for å skille ulike observerte kilde-minuttpar fra eksponering i overlappende prognoser. De vektede overgangsmatrisene ble gjenskapt eksakt fra samme TRAIN-foreldre og 1–1 440-minuttersgrid; ingen modellprediksjon ble beregnet.
+
+| Tidsramme | Ulike observerte minuttskifter | Derav NED → OPP | Derav OPP → NED | Skifter blant observerte prognosepar |
+|---|---:|---:|---:|---:|
+| M5 | 24 527 | 6 771 | 6 910 | 23,15 % |
+| M15 | 20 643 | 7 293 | 7 364 | 10,38 % |
+| H1 | 7 701 | 2 969 | 2 992 | 3,37 % |
+| H4 | 2 166 | 836 | 837 | 0,96 % |
+| D1 | 246 | 109 | 105 | 0,118 % |
+
+Øvrige skifter involverer FLAT. Eksempelvis svarer de 246 D1-minuttskiftene til 60 087 observerte parent-/lead-par fordi prognosevinduene overlapper. De unike minuttene kan selv høre til samme markedsbevegelse og er ikke uavhengige hendelser. Ukjente tilstander og skjult intraminuttrekkefølge er utelatt. Det svært lave D1-skifteforholdet viser hvorfor videreføring er en sterk referanse, men er ikke et bevis for at tapet eller klassefordelingen alene forårsaket manglende edge. Overgangs- og FLAT-målinger må fortsatt rapporteres sammen med treffrate og baseline.
+
+Opptelling: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TRAIN_TRANSITION_EXPOSURE_001/RESULT.json` (SHA-256 `6434bc6033bb73ef79f9b152727a594cf15a92fee05bd31eeb8b8ab52dd8d63a`). Separat kontroll av aggregataritmetikk og kildeidentitet: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TRAIN_TRANSITION_EXPOSURE_001/SUMMARY_REVIEW.json` (SHA-256 `db12ff4d51a124d2ffb66f3c5c1f452c844375c80dea3229707933a034836269`).
+
 ## Samme 256 rader før og etter
 
 Radidentiteter, beslutningstider og merkingsmasker ble koblet eksakt. Tallene under aggregerer observerte celler over alle 1–1 440 ledetider på de samme TRAIN-radene; lavere log-loss er bedre. Den opprinnelige initialrapporten ble gjenskapt fra lagrede sannsynligheter og target-masker.

@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_FIRST_FLAT_RAW_SOURCE_VERIFIED_OBJECTIVE_AUDIT_PENDING",
+  "status": "DYNAMIC_STATE_TRAIN_TRANSITION_EXPOSURE_AND_SOURCE_CLOCK_REVIEWED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Keep training, native launch and restart closed. Bind the verified first-flat source support into a complete objective-specific TRAIN audit after explicitly selecting and binding weight and forecast grid; separately qualify causal ONLINE delivery, runtime/resources and a new exact one-use run authority. No automatic model, scoring, TEST, Exit or trading.",
+  "next_action": "Keep training, native launch, scoring and restart closed. Use distinct TRAIN transition support and same-information baselines when preparing the still-missing objective-specific TRAIN audit; select no unmeasured loss weight or horizon. Historical XAU event time is not evidence of physical ONLINE receipt. A new exact one-use authority and native/ONLINE/runtime qualification are required before any further model, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Independent TRAIN raw-price/ATR/calendar replay and source-bound gate verified; no model, training, scoring, TEST, Exit or trading.",
+    "current_activity": "TRAIN distinct state-transition exposure and original historical source clock checked; no model, scoring, training, TEST, Exit, broker or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -18598,7 +18598,7 @@
         "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
         "report": {
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
-          "sha256": "b4b1e4608f77c3cf9f575c3cd25c14216363959bee225582f07ca4a9e500077e"
+          "sha256": "b39df23cb084b7e0e7158c346d74e1b0c9b38f267bdb7e23b041c252d5fe74b1"
         },
         "evidence": {
           "training_integrity": {
@@ -18857,7 +18857,7 @@
         "causal_input_design": {
           "status": "TRAIN_COUNT_AND_UNADMITTED_DRAFT_SOURCE_TESTED_NO_NATIVE_QUALIFICATION",
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md",
-          "sha256": "9e079a79f3c4d420005d79bbbeb8a06df185d13d7987f64626ec4b8ed1e9946d",
+          "sha256": "22b20a7741c6e9aad14e910b2028f1779e9f208180608370b004d33b00a8e9ed",
           "actual_xau_m1_receive_or_processing_timestamp_found_in_inspected_schema": false,
           "other_logs_not_inspected": true,
           "online_delivery_order_proven": false,
@@ -19013,6 +19013,48 @@
         "optimizer_steps": 0,
         "test_data_used": false
       }
+    },
+    "train_transition_source_exposure": {
+      "status": "PASS_TRAIN_LABEL_EXPOSURE_ONLY_NO_MODEL",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TRAIN_TRANSITION_EXPOSURE_001/RESULT.json",
+        "sha256": "6434bc6033bb73ef79f9b152727a594cf15a92fee05bd31eeb8b8ab52dd8d63a"
+      },
+      "summary_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TRAIN_TRANSITION_EXPOSURE_001/SUMMARY_REVIEW.json",
+        "sha256": "db12ff4d51a124d2ffb66f3c5c1f452c844375c80dea3229707933a034836269"
+      },
+      "lead_minutes": [
+        1,
+        1440
+      ],
+      "distinct_observed_minute_changes": {
+        "M5": 24527,
+        "M15": 20643,
+        "H1": 7701,
+        "H4": 2166,
+        "D1": 246
+      },
+      "d1_overlapping_query_pair_changes": 60087,
+      "distinct_minutes_are_not_independent_market_episodes": true,
+      "unknown_states_and_intraminute_events_excluded": true,
+      "model_calls": 0,
+      "model_scoring": 0,
+      "test_data_used": false
+    },
+    "original_xau_delivery_clock_review": {
+      "status": "PHYSICAL_DELIVERY_UNPROVEN_HISTORICAL_ARCHIVE_ONLY",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/ORIGINAL_XAU_DELIVERY_CLOCK_AUDIT_001/RESULT.json",
+        "sha256": "abef71705bc07ac5e2a1b104475518ff5c5beae5d2740e3a6cba84a062a04ce9"
+      },
+      "source_chunk_metadata_rows_checked": 2080,
+      "raw_train_chunk_samples_checked": 1,
+      "separate_delivery_timestamp_found_in_checked_metadata": false,
+      "other_logs_not_excluded": true,
+      "actual_online_delivery_proven": false,
+      "broker_calls": 0,
+      "test_data_used": false
     }
   },
   "gc_order_flow_research_20261006": {
