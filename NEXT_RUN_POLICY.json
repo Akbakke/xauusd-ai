@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_CANDIDATE_TRAIN_AND_INPUT_METADATA_REVIEWED_TRAINING_CLOSED",
+  "status": "DYNAMIC_STATE_DIVERSE_PRIVATE_SAMPLE_AND_CLOSED_RECIPES_REVIEWED_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Preserve the single consumed fit and keep training, native launch, model scoring and restart closed. The provisional 1440-minute candidate and TRAIN/input metadata are reviewed; final current-HEAD campaign binding, fresh baseline and native/ONLINE/runtime qualification, and a new exact one-use authority remain required before any model work. Q1 development is reused; TEST, Exit, broker and trading remain closed.",
+  "next_action": "Keep model, training, scoring and restart closed: the single prior short fit is consumed. Qualification and fit recipes are non-runnable proposals; exact new one-use authority, final current-HEAD campaign binding, initial baseline and native/ONLINE/restart/resource qualification remain required. The prior 7980-second fit was followed by a separate 10616-second full scoring. TEST, Exit, broker and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Provisional first-state and first-FLAT draft plus independent TRAIN loss/label and input metadata reviews completed without model calls; no new execution admitted.",
+    "current_activity": "Verified a diverse 32-parent TRAIN-only mechanical qualification sample and closed private/fit metadata proposals; no model or execution authorized.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The candidate and input manifest are metadata drafts, not an admitted campaign. Actual new-model gradients, native forward/resume/runtime, physical ONLINE delivery and fresh baseline are unqualified; current-HEAD campaign binding and a new exact one-use authority are required. Old terminal receipts remain failed. Unknown intraminute order and unknown source gaps remain masked.",
+    "current_blocker": "Closed recipes have no genuine matching native qualification or fresh baseline. No source clock/ONLINE proof, new-model forward/gradient/resume/runtime, current-HEAD admitted campaign or new exact one-use authority exists. The prior separate scoring took almost three hours; new total runtime is unknown. First-minute TRAIN-selected examples are not predictive validation.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Preserve the single consumed fit and keep training, native launch, model scoring and restart closed. The provisional 1440-minute candidate and TRAIN/input metadata are reviewed; final current-HEAD campaign binding, fresh baseline and native/ONLINE/runtime qualification, and a new exact one-use authority remain required before any model work. Q1 development is reused; TEST, Exit, broker and trading remain closed.",
+    "next_action": "Keep model, training, scoring and restart closed: the single prior short fit is consumed. Qualification and fit recipes are non-runnable proposals; exact new one-use authority, final current-HEAD campaign binding, initial baseline and native/ONLINE/restart/resource qualification remain required. The prior 7980-second fit was followed by a separate 10616-second full scoring. TEST, Exit, broker and trading remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18855,9 +18855,9 @@
           0.05696982530531868
         ],
         "causal_input_design": {
-          "status": "PROVISIONAL_CANDIDATE_TRAIN_LABEL_AND_INPUT_METADATA_REVIEWED_NO_NATIVE_QUALIFICATION",
+          "status": "COVERED_TRAIN_PRIVATE_SAMPLE_AND_CLOSED_RECIPE_PROPOSALS_NO_NATIVE_QUALIFICATION",
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md",
-          "sha256": "e873e7af786a73a15b87f079897eb0b14be6e9326d0a38bb91477a11b59b4ccf",
+          "sha256": "b995744b267121478e7919e4ea25887b5b5786f8d2247196ffb07b4f9776aeca",
           "actual_xau_m1_receive_or_processing_timestamp_found_in_inspected_schema": false,
           "other_logs_not_inspected": true,
           "online_delivery_order_proven": false,
@@ -18946,7 +18946,10 @@
           "candidate_forecast_minutes": 1440,
           "candidate_weights_are_provisional_not_training_admission": true,
           "objective_specific_train_label_review_passed": true,
-          "input_manifest_draft_binding_review_passed": true
+          "input_manifest_draft_binding_review_passed": true,
+          "private_sample_covers_first_minute_all_classes_on_all_timeframes": true,
+          "private_sample_selected_with_train_labels_not_validation": true,
+          "closed_private_and_fit_recipe_metadata_reviewed": true
         }
       }
     },
@@ -19192,6 +19195,59 @@
         "FIRST_FLAT_INPUT_BINDING_DRAFT_001",
         "FIRST_FLAT_INPUT_BINDING_DRAFT_002"
       ]
+    },
+    "first_flat_qualification_sample_and_campaign_draft_20261102": {
+      "status": "PASS_TRAIN_SAMPLE_AND_CLOSED_METADATA_ONLY_NO_LAUNCH",
+      "evidence": {
+        "old_sample_support": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_QUALIFICATION_TRAIN_SUPPORT_001/RESULT.json",
+          "sha256": "e7c05c481649074598aa1029a02baaf44ede16c92be3687e3402058dc2968026"
+        },
+        "sample_draft": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_QUALIFICATION_SAMPLE_DRAFT_001/TRAIN_SAMPLE_DRAFT.json",
+          "sha256": "24f9fcf5860a15449d58aa574fe2679a0e9ffe33759ef338bcbbf47e326dbbb8"
+        },
+        "sample_independent_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_QUALIFICATION_SAMPLE_DRAFT_001/INDEPENDENT_REVIEW.json",
+          "sha256": "70ebca09c3f7ef93c7da70063f7f6f484d58ff775717844d0f680789315d7444"
+        },
+        "private_recipe_proposal": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_CAMPAIGN_REVIEW_001/PRIVATE_RECIPE_PROPOSAL.json",
+          "sha256": "7484ae72d0c9a06d0aeca6ec72d32634c292557926d430fac2e4dfa99dd099a1"
+        },
+        "fit_recipe_proposal": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_CAMPAIGN_REVIEW_001/FIT_RECIPE_PROPOSAL.json",
+          "sha256": "ad1990262da1218ca791f3f37032c92959d99c05a748a0d47afb1986c0b85aa8"
+        },
+        "campaign_metadata_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_CAMPAIGN_REVIEW_001/METADATA_REVIEW.json",
+          "sha256": "49a5bc0552a66c7aac89ad70d54b0f96ff47846a0fbfb3710ccf660b4cecf224"
+        }
+      },
+      "source_head_at_preparation": "f5d419f448660a7f8f26578106f886af122be3a8",
+      "sample_scope": "32 TRAIN parents selected on labels for private mechanical qualification only; never predictive evaluation",
+      "old_sample_had_first_minute_d1_flat": false,
+      "changed_parent_count": 3,
+      "per_timeframe_minimum_first_state_count_each": 2,
+      "per_timeframe_minimum_known_nonflat_unknown_direction": 1,
+      "d1_flat_distinct_utc_dates": 2,
+      "counts_independently_checked_from_target_series": true,
+      "hypothetical_private_metadata_validator_passed_in_memory_only": true,
+      "hypothetical_fit_metadata_stops_at_missing_native_qualification": true,
+      "persisted_proposals_training_enabled": false,
+      "new_one_use_authorization_required": true,
+      "new_native_qualification_and_baseline_required": true,
+      "final_current_head_campaign_rebinding_required": true,
+      "previous_train_seconds": 7980.0582324960005,
+      "previous_separate_scoring_seconds": 10616.322900595,
+      "previous_separate_scoring_forward_calls": 4057,
+      "new_model_total_runtime_known": false,
+      "new_model_calls": 0,
+      "new_predictions": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false,
+      "training_enabled": false,
+      "native_launch_authorized": false
     }
   },
   "gc_order_flow_research_20261006": {
