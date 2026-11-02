@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_D1_GAP_OBSERVED_PARTIAL_CME_SOURCES_SAVED_NO_NATIVE_QUALIFICATION",
+  "status": "DYNAMIC_STATE_D1_NOMINAL_CALENDAR_CANDIDATES_NOT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Locate authoritative dated GC holiday exceptions or equivalent qualified source evidence, reconcile Sunday-labelled D1 gaps, and retain UNKNOWN until actual closures are verified. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+  "next_action": "Find authoritative product-specific dated CME/GC historical schedules or equivalent qualified exchange-status evidence for the 41 nominal weekend candidates, six holiday overlaps and two other gaps. Preserve UNKNOWN until each actual closure is verified; no automatic model, training, scoring, restart, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Locate authoritative dated GC holiday exceptions or equivalent qualified source evidence, reconcile Sunday-labelled D1 gaps, and retain UNKNOWN until actual closures are verified. No automatic model, training, scoring, restart, TEST, Exit or trading.",
+    "next_action": "Find authoritative product-specific dated CME/GC historical schedules or equivalent qualified exchange-status evidence for the 41 nominal weekend candidates, six holiday overlaps and two other gaps. Preserve UNKNOWN until each actual closure is verified; no automatic model, training, scoring, restart, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -52605,6 +52605,22 @@
     "archived_cme_sources": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CME_HISTORICAL_HOURS_SOURCES_001/ARCHIVE_DOWNLOAD_RESULT.json",
       "sha256": "f437e0f2539789b9ca06118b6d95bbec9ce79d90d24cf9047c7f98b41b550c3e"
-    }
+    },
+    "archived_cme_holiday_filters": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CME_FILTERS_ARCHIVE_001/RESULT_PARTIAL.json",
+      "sha256": "68bd54e124a8779aecd4eeb0879f5ddc5bd64ee34b79f5a3362aba4cfb1b0fb5"
+    },
+    "d1_gap_calendar_candidates": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/D1_GAP_CALENDAR_CANDIDATES_001/RESULT.json",
+      "sha256": "69637742f451615c645da67783b70e8c4199b8048d72fab573714ea0c9f8ccc3"
+    },
+    "d1_gap_calendar_independent_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/D1_GAP_CALENDAR_CANDIDATES_001/INDEPENDENT_REVIEW.json",
+      "sha256": "cf16c7a0522d27074eaa6d2979d612d7152bdfada7c523c536b7e3f2ef5f5af8"
+    },
+    "d1_sunday_nominal_closure_candidates": 47,
+    "d1_sunday_candidates_overlapping_listed_holiday": 6,
+    "d1_sunday_candidates_without_listed_holiday": 41,
+    "d1_non_sunday_gap_rows": 2
   }
 }
