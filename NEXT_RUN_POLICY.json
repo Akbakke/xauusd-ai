@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_7DAY_TRAIN_COUNTS_NOT_ADMITTED_NO_NATIVE_QUALIFICATION",
+  "status": "DYNAMIC_STATE_FIRST_LOSS_HORIZON_EXPOSURE_REVIEWED_NO_NATIVE_QUALIFICATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Assess saved TRAIN target balance, loss scale and bounded long-horizon options; no selected horizon or automatic model, training, scoring, TEST, Exit or trading.",
+    "current_activity": "Assess TRAIN-only first-state loss normalization, long-horizon target support, and unresolved source masks; no horizon or loss weight selected and no automatic model, training, scoring, TEST, Exit or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -52648,7 +52648,18 @@
     "new_variant_model_qualified": false,
     "training_weight_selected": null,
     "training_enabled": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "first_state_exposure_by_horizon": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_STATE_EXPOSURE_BY_HORIZON_001/RESULT.json",
+      "sha256": "4a14e6b1b7d20bca13b1300d373a7af9d53cb8c4fe305eefcd9976f74b98b516"
+    },
+    "synthetic_loss_factorization_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_STATE_EXPOSURE_BY_HORIZON_001/ALGEBRA_REVIEW.json",
+      "sha256": "daf4eda169c0d8c351d43cdb33dcc47d44b02e5a0081015a3c35ec74f66404a2"
+    },
+    "global_first_nll_coefficient_one_day": 0.0008148780235051895,
+    "global_first_nll_coefficient_seven_days": 0.00014843771170723,
+    "actual_gradient_share_measured": false
   },
   "dynamic_state_dense_7day_train_counts_20261102_001": {
     "status": "TRAIN_ONLY_EXAMPLE_NOT_ADMITTED",
