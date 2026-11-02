@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_D1_NOMINAL_CALENDAR_CANDIDATES_NOT_ADMITTED",
+  "status": "DYNAMIC_STATE_D1_COUNTERFACTUAL_AND_TRAIN_LOSS_SCALE_REVIEWED_NO_NATIVE_QUALIFICATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Find authoritative product-specific dated CME/GC historical schedules or equivalent qualified exchange-status evidence for the 41 nominal weekend candidates, six holiday overlaps and two other gaps. Preserve UNKNOWN until each actual closure is verified; no automatic model, training, scoring, restart, TEST, Exit or trading.",
+  "next_action": "Use saved TRAIN evidence to assess target, first-state loss, horizon and resource choices for any future exact plan; separately seek qualified GC exchange-hours evidence and retain UNKNOWN for unverified gaps. No automatic model, training, scoring, restart, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Review saved full-profile coverage, genuine partial versus complete signed flow, and remaining source and native qualification gaps. No automatic model, training, scoring, TEST, Exit or trading.",
+    "current_activity": "Review retained D1 indicator behavior and saved TRAIN loss scale; current-state and extended variants remain unqualified. No automatic model, training, scoring, TEST, Exit or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Find authoritative product-specific dated CME/GC historical schedules or equivalent qualified exchange-status evidence for the 41 nominal weekend candidates, six holiday overlaps and two other gaps. Preserve UNKNOWN until each actual closure is verified; no automatic model, training, scoring, restart, TEST, Exit or trading.",
+    "next_action": "Use saved TRAIN evidence to assess target, first-state loss, horizon and resource choices for any future exact plan; separately seek qualified GC exchange-hours evidence and retain UNKNOWN for unverified gaps. No automatic model, training, scoring, restart, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -52621,6 +52621,33 @@
     "d1_sunday_nominal_closure_candidates": 47,
     "d1_sunday_candidates_overlapping_listed_holiday": 6,
     "d1_sunday_candidates_without_listed_holiday": 41,
-    "d1_non_sunday_gap_rows": 2
+    "d1_non_sunday_gap_rows": 2,
+    "d1_counterfactual_zone_audit": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/D1_COUNTERFACTUAL_ZONE_AUDIT_001/RESULT.json",
+      "sha256": "8875df1fad6ce78f3a2beee9903ca8d59ba40bd5f35310661ca52e3d438cc6d2"
+    },
+    "d1_counterfactual_structure_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/D1_COUNTERFACTUAL_ZONE_AUDIT_001/STRUCTURE_REVIEW.json",
+      "sha256": "16c0ab5f4f3e7ce943d581b4e328413e35296514ab1d9f1d283adcfeaa92050d"
+    },
+    "d1_counterfactual_training_authorized": false,
+    "d1_counterfactual_train_original_known": 3,
+    "d1_counterfactual_train_hypothetical_known": 77,
+    "d1_counterfactual_later_original_known": 0,
+    "d1_counterfactual_later_hypothetical_known": 0,
+    "d1_later_observed_downward_structure_breaks": 0
+  },
+  "dynamic_state_first_loss_saved_train_scale_20261102_001": {
+    "status": "SAVED_TRAIN_ARITHMETIC_ONLY_NO_WEIGHT_SELECTED",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_LOSS_SCALE_SAVED_TRAIN_001/RESULT.json",
+      "sha256": "c503d383c9c6d92829f57941ede5b906c79f44606fbbfb0fcac7b9fc2c3f9d6d"
+    },
+    "first_eligible_cells": 199865,
+    "eligible_cells": 245269837,
+    "new_variant_model_qualified": false,
+    "training_weight_selected": null,
+    "training_enabled": false,
+    "test_data_used": false
   }
 }
