@@ -1,7 +1,8 @@
 param(
     [string]$ControllerSourceWsl = '/home/andre2/src/GX1_CURRENT/scripts/windows/GX1-RandomAccessCampaignV2Controller.ps1',
     [string]$DistroName = 'Ubuntu-22.04',
-    [string]$LinuxUserName = 'andre2'
+    [string]$LinuxUserName = 'andre2',
+    [string]$PolicyPlanWsl = ''
 )
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
@@ -9,6 +10,50 @@ $lines = @(& wsl.exe -d $DistroName -u $LinuxUserName -- /bin/cat $ControllerSou
 if ($LASTEXITCODE -ne 0) { throw 'wsl cat failed' }
 $source = $lines -join [Environment]::NewLine
 [void][ScriptBlock]::Create($source)
+
+# Execute the production power/telemetry predicate without starting the controller.
+$powerStart = $source.IndexOf('$legacyPower = ')
+$powerEnd = $source.IndexOf("`$bootstrapStage = 'campaign_action'", $powerStart)
+if ($powerStart -lt 0 -or $powerEnd -le $powerStart) { throw 'power policy boundaries were not found' }
+$powerOnly = [ScriptBlock]::Create("param(`$status)`n" + $source.Substring($powerStart, $powerEnd - $powerStart))
+$nativePolicy = @{
+    physical_power_limit_w = 250; maximum_actual_power_draw_w = 310
+    maximum_core_temperature_c = 85; automatic_power_limit_change = $true
+    power_reduction_core_temperature_c = 80; reduced_power_limit_w = 200
+    signed_local_telemetry_seconds = 1; human_status_seconds = 900
+}
+$powerCases = @(
+    @{ patch = @{}; accepted = $true },
+    @{ patch = @{physical_power_limit_w = 300}; accepted = $true },
+    @{ patch = @{physical_power_limit_w = 160; maximum_actual_power_draw_w = 170; automatic_power_limit_change = $false}; accepted = $true },
+    @{ patch = @{physical_power_limit_w = 249}; accepted = $false },
+    @{ patch = @{physical_power_limit_w = 251}; accepted = $false },
+    @{ patch = @{physical_power_limit_w = 301}; accepted = $false },
+    @{ patch = @{maximum_actual_power_draw_w = 400}; accepted = $false },
+    @{ patch = @{maximum_core_temperature_c = 86}; accepted = $false },
+    @{ patch = @{automatic_power_limit_change = $false}; accepted = $false },
+    @{ patch = @{power_reduction_core_temperature_c = 81}; accepted = $false },
+    @{ patch = @{reduced_power_limit_w = 201}; accepted = $false },
+    @{ patch = @{signed_local_telemetry_seconds = 2}; accepted = $false },
+    @{ patch = @{human_status_seconds = 60}; accepted = $false }
+)
+foreach ($case in $powerCases) {
+    $policy = $nativePolicy.Clone()
+    foreach ($key in $case.patch.Keys) { $policy[$key] = $case.patch[$key] }
+    $accepted = $true
+    try { & $powerOnly -status @{policy = $policy} }
+    catch {
+        if ($_.Exception.Message -notin @('Campaign safety policy differs', 'Native thermal reduction policy differs')) { throw }
+        $accepted = $false
+    }
+    if ($accepted -ne $case.accepted) { throw ('power policy accepted/rejected the wrong case: ' + ($case | ConvertTo-Json -Compress)) }
+}
+if ($PolicyPlanWsl) {
+    $planLines = @(& wsl.exe -d $DistroName -u $LinuxUserName -- /bin/cat $PolicyPlanWsl)
+    if ($LASTEXITCODE -ne 0) { throw 'actual policy plan read failed' }
+    $actualPlan = ($planLines -join [Environment]::NewLine) | ConvertFrom-Json
+    & $powerOnly -status @{policy = $actualPlan.policy}
+}
 
 # Bind against the real parameter block, without executing its host writes.
 $parseTokens = $null
@@ -188,5 +233,5 @@ if ($boundary.decision -cne 'REBOOT_REQUIRES_MACHINE_WIDE_IDLE_REVIEW' -or
 Write-Output (
     'POWERSHELL_HARDENING_PASS ' +
     "large_stdout=$($large.StdOut.Length) large_stderr=$($large.StdErr.Length) " +
-    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS observer_checkpoint_isolation=PASS observer_local_atomic_replace=PASS retained_child_exit_codes=PASS whole_host_reboot_boundary=PASS metadata_deadline_parameter_binding=PASS"
+    "timeout_ms=$($timeoutClock.ElapsedMilliseconds) one_shot_initial_state=PASS boot_identity_parameter_binding=PASS bridge_configuration_comparison=PASS observer_checkpoint_isolation=PASS observer_local_atomic_replace=PASS retained_child_exit_codes=PASS whole_host_reboot_boundary=PASS metadata_deadline_parameter_binding=PASS native_power_policy_cases=$($powerCases.Count) actual_plan_policy=$([bool]$PolicyPlanWsl)"
 )

@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "DYNAMIC_STATE_PRIVATE_NATIVE_QUALIFICATION_ADMITTED",
+  "status": "DYNAMIC_STATE_WINDOWS_250W_POLICY_ALIGNMENT_REQUIRED",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
@@ -1306,20 +1306,20 @@
       }
     },
     "native_private_qualification": {
-      "status": "ADMITTED_NOT_STARTED",
+      "status": "ADMITTED_EXACT_PRIVATE_002_AFTER_WINDOWS_POLICY_PASS",
       "recipe": {
-        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RECIPE_002.json",
-        "sha256": "5ad9d3d083cde0e7398634336a696db6deae54ac6369096f4b0551e57b73fe71"
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RECIPE.json",
+        "sha256": "510441259b3b650f44de7fc6cbc88e0185c43342396b350f61ddc9a3760b8c46"
       },
       "metadata_review": {
-        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RECIPE_METADATA_REVIEW_002.json",
-        "sha256": "1782960e78cac6f5934c499bbc23a348df1dba40995f4529169364bdd13e253b"
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RECIPE_METADATA_REVIEW.json",
+        "sha256": "f064b567d81c543fe5f098b4f105c29a9b44f649eb1a393d9357409b34b2bc6c"
       },
       "source_checks": {
-        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_004.json",
-        "sha256": "730e064c87a3fb473a12f4536d892de75daf7f28ad5573f271ca9d02a5e3c8ef"
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_005.json",
+        "sha256": "4a34cef5837f7249f873660915d4d0d3d88f65f1e0db8fa9b5b342427fb6648c"
       },
-      "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RUNTIME",
+      "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RUNTIME",
       "expected_work": {
         "model_constructions": 3,
         "forward_calls": 21,
@@ -1329,7 +1329,11 @@
         "initial_TRAIN_measurement_parents": 256
       },
       "genuine_native_qualification_completed": false,
-      "weights_for_main_fit": false
+      "weights_for_main_fit": false,
+      "previous_bootstrap_failure": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/BOOTSTRAP_TERMINAL.json",
+        "sha256": "c2d949e061e28aee95100ce023cefc7a7fc42e514441530ed0be1ce782ffe1c7"
+      }
     }
   }
 }

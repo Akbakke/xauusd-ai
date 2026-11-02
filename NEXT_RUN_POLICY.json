@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-01T22:28:15.690017+00:00",
-  "status": "DYNAMIC_STATE_PRIVATE_NATIVE_QUALIFICATION_ADMITTED",
+  "observed_utc": "2026-11-02T11:51:24.293308+00:00",
+  "status": "DYNAMIC_STATE_PRIVATE_002_ADMITTED_REBOOT_PENDING",
   "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-  "next_action": "Materialize the exact private campaign, verify whole-machine idle and durable reboot receipts, restart safely, then allow the existing controller one21-forward/four-update qualification. Main one-pass fit remains pending actual native evidence.",
+  "next_action": "Freeze exact source and metadata; materialize private002, install bound Windows task, verify whole-host idle then safe reboot. Only21forwards/4physicalupdates; main fit requires genuine qualification. Never relaunch private001.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Target005rule review PASS with6946genuine D1FLAT observations and N-observation windows. Numerical-seal validator fixed;14focused checks and actual no-payload recipe metadata PASS. One private qualification admitted; no native model/reboot/main fit started.",
+    "current_activity": "Freeze exact source and metadata; materialize private002, install bound Windows task, verify whole-host idle then safe reboot. Only21forwards/4physicalupdates; main fit requires genuine qualification. Never relaunch private001.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Revised genuine TRAIN target support with documented source-gap closures not yet measured; native qualification remains closed until label review passes.",
+    "current_blocker": "Genuine dynamic model/input/gradient/checkpoint qualification pending; target005 and Windows250Wpolicy checks PASS.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -18049,7 +18049,7 @@
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "dynamic_state_short_training_20261101": {
-      "status": "DYNAMIC_STATE_PRIVATE_NATIVE_QUALIFICATION_ADMITTED",
+      "status": "DYNAMIC_STATE_PRIVATE_002_ADMITTED_REBOOT_PENDING",
       "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
       "operator_authorized_source_target_preparation": true,
       "operator_authorized_required_genuine_qualification": true,
@@ -18062,7 +18062,7 @@
       "training_enabled": true,
       "native_launch_authorized": false,
       "training_launched": false,
-      "restart_executed": false,
+      "restart_executed": true,
       "test_data_used": false,
       "trading_authorized": false,
       "forecast_timeframes": [
@@ -18085,7 +18085,7 @@
         "prior_interventions": "native model/loss/input/output integration audit",
         "saved_learning_source_audit": "campaign/qualification/host and preexisting-diff audit"
       },
-      "counts_scope": "No new training or restart has occurred in this preparation phase.",
+      "counts_scope": "Physical reboot591to592 completed; private001bootstrap failed before any genuine model call. Newprivate002 admitted only.",
       "cancelled_capacity_source_cleanup": {
         "status": "SELECTIVELY_REMOVED_UNNEEDED_REJECTED_SCOPE",
         "tracked_files_restored_to_existing_head": 8,
@@ -18270,8 +18270,8 @@
       },
       "state_class_order_role": "Exact target/output class-index order0,1,2; display language does not reorder tensor axes.",
       "source_checks": {
-        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_004.json",
-        "sha256": "730e064c87a3fb473a12f4536d892de75daf7f28ad5573f271ca9d02a5e3c8ef"
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_005.json",
+        "sha256": "4a34cef5837f7249f873660915d4d0d3d88f65f1e0db8fa9b5b342427fb6648c"
       },
       "private_qualification_runner_complete": true,
       "forecast_query_domain": {
@@ -18481,20 +18481,20 @@
       },
       "training_enabled_scope": "EXACT_DYNAMIC_STATE_PRIVATE_QUALIFICATION_ONLY_4_PHYSICAL_UPDATES",
       "native_private_qualification": {
-        "status": "ADMITTED_NOT_STARTED",
+        "status": "ADMITTED_EXACT_PRIVATE_002_AFTER_WINDOWS_POLICY_PASS",
         "recipe": {
-          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RECIPE_002.json",
-          "sha256": "5ad9d3d083cde0e7398634336a696db6deae54ac6369096f4b0551e57b73fe71"
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RECIPE.json",
+          "sha256": "510441259b3b650f44de7fc6cbc88e0185c43342396b350f61ddc9a3760b8c46"
         },
         "metadata_review": {
-          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RECIPE_METADATA_REVIEW_002.json",
-          "sha256": "1782960e78cac6f5934c499bbc23a348df1dba40995f4529169364bdd13e253b"
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RECIPE_METADATA_REVIEW.json",
+          "sha256": "f064b567d81c543fe5f098b4f105c29a9b44f649eb1a393d9357409b34b2bc6c"
         },
         "source_checks": {
-          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_004.json",
-          "sha256": "730e064c87a3fb473a12f4536d892de75daf7f28ad5573f271ca9d02a5e3c8ef"
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_005.json",
+          "sha256": "4a34cef5837f7249f873660915d4d0d3d88f65f1e0db8fa9b5b342427fb6648c"
         },
-        "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RUNTIME",
+        "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RUNTIME",
         "expected_work": {
           "model_constructions": 3,
           "forward_calls": 21,
@@ -18504,7 +18504,11 @@
           "initial_TRAIN_measurement_parents": 256
         },
         "genuine_native_qualification_completed": false,
-        "weights_for_main_fit": false
+        "weights_for_main_fit": false,
+        "previous_bootstrap_failure": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/BOOTSTRAP_TERMINAL.json",
+          "sha256": "c2d949e061e28aee95100ce023cefc7a7fc42e514441530ed0be1ce782ffe1c7"
+        }
       }
     }
   },
@@ -21070,7 +21074,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-02T11:09:07.283286+00:00",
+  "updated_utc": "2026-11-02T11:41:35.132928+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -36598,7 +36602,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "EXACT_DYNAMIC_STATE_PRIVATE_QUALIFICATION_ONLY_4_PHYSICAL_UPDATES",
+  "training_enabled_scope": "CLOSED_AFTER_PRIVATE_BOOTSTRAP_POLICY_MISMATCH",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
@@ -51818,7 +51822,7 @@
     }
   },
   "dynamic_mtf_state_private_qualification_20261102_001": {
-    "status": "ADMITTED_ONE_PRIVATE_DYNAMIC_STATE_NATIVE_QUALIFICATION",
+    "status": "CONSUMED_BOOTSTRAP_FAILED_BEFORE_NATIVE_CLAIM",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RECIPE_002.json",
       "sha256": "5ad9d3d083cde0e7398634336a696db6deae54ac6369096f4b0551e57b73fe71"
@@ -51855,6 +51859,77 @@
     "fresh_windows_boot_required": true,
     "private_weights_for_fit": false,
     "power_limit_w": 250,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "campaign_preparation_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "relaunch_allowed": false,
+    "bootstrap_attempts": 1,
+    "bootstrap_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/BOOTSTRAP_TERMINAL.json",
+      "sha256": "c2d949e061e28aee95100ce023cefc7a7fc42e514441530ed0be1ce782ffe1c7"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/TASK_DISABLED_AFTER_BOOTSTRAP.json",
+      "sha256": "3e2caf8148bbbb21bbf558a28d641db214cc9c1ecfb5b09e8240585522cf3deb"
+    },
+    "model_calls": 0,
+    "physical_optimizer_updates": 0,
+    "consumed_admission_policy": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/CONSUMED_ADMISSION_POLICY.json",
+      "sha256": "c92d2fb1265fdd7bfb7e19e22114d59a5b2578c82491556870d5f6aa85772c45"
+    }
+  },
+  "dynamic_mtf_state_private_qualification_20261102_002": {
+    "status": "ADMITTED_EXACT_PRIVATE_002_AFTER_WINDOWS_POLICY_PASS",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RECIPE.json",
+      "sha256": "510441259b3b650f44de7fc6cbc88e0185c43342396b350f61ddc9a3760b8c46"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RUNTIME",
+    "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "source_checks": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_005.json",
+      "sha256": "4a34cef5837f7249f873660915d4d0d3d88f65f1e0db8fa9b5b342427fb6648c"
+    },
+    "metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/RECIPE_METADATA_REVIEW.json",
+      "sha256": "f064b567d81c543fe5f098b4f105c29a9b44f649eb1a393d9357409b34b2bc6c"
+    },
+    "label_audit": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/LABEL_AUDIT_REVIEW.json",
+      "sha256": "f31112cee8e672a6d6b52dd2a83da4e71f50c2abf5c460e1dfeab171a507563f"
+    },
+    "materializer": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/materialize_research_campaign_once.py",
+      "sha256": "16c157673cb42099a08fbb8f84b3cd51dc6bc847b7fef18985aa1faeb75253b3"
+    },
+    "expected_work": {
+      "model_constructions": 3,
+      "forward_calls": 21,
+      "physical_optimizer_updates": 4,
+      "logical_steps": 2,
+      "fixed_parents": 32,
+      "initial_TRAIN_measurement_parents": 256
+    },
+    "fresh_windows_boot_required": true,
+    "private_weights_for_fit": false,
+    "power_limit_w": 250,
     "execution_authorized": true,
     "data_reads_authorized": true,
     "genuine_constructor_authorized": true,
@@ -51871,6 +51946,10 @@
     "test_data_used": false,
     "exit_evaluation": false,
     "broker_access_allowed": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_002/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "5d40720c4535552aa7be9b6f924da240f36857c1118664a474efd49b11e68b28"
+    }
   }
 }
