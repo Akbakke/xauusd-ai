@@ -48,6 +48,12 @@ publisert åpningstid flyttes. Bevar både hele det eksternt dokumenterte
 lukkeintervallet og det sertifiserte kildegapet i en hashbundet dekningskvittering.
 Bare full inneslutning tillates; delvis dekning og udokumenterte helligdager
 forblir ukjente. Kalenderen lager ingen priser, manglende labels eller FLAT.
+Lokal range, full dekning og alderen på intraminuttuklarhet måles over de siste
+5/15/60/240/1440 faktisk observerte M1-minuttene per TF. Dokumenterte pauser
+bevarer historikken; de teller ikke som observerbar ro og eldes ikke inn i FLAT.
+Et ukjent hull stenger FLAT/path til en hel lokal observasjonsperiode er dekket
+igjen; en ny bekreftet retning kan være kjent tidligere. Framtidige queryer
+bruker fortsatt veggklokketid, med egne masker for fraværende/umodne minutter.
 Et umodent querypunkt ved/etter cutoff returnerer bare IMMATURE, aldri
 framtidige source-/intraminuttårsaker til TRAIN-diagnostikken.
 

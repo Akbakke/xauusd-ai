@@ -152,6 +152,11 @@ på eksisterende TRAIN-prisforløp før definisjonen låses; faktoren velges ikk
 ut fra modelltreff eller VAL. Dette er ingen pip-, handels- eller stopregel.
 Eksakt lokal segmentering, flathet, tidsdomene og ukjente utfall må fortsatt
 være entydige og samsvare i fasit, output, loss og måling.
+Kontrollen02.11 viste at en helgestenging kunne gi D1-FLAT etter bare to
+observerte M1-barer. Lokal flathets-/path-historikk skal derfor dekke faktisk
+observerte markedsminutter; dokumenterte pauser bruker ikke opp vinduet.
+Ukjente hull forblir ukjente. ATR-faktoren og prognosens framtidige
+veggklokketidspunkter endres ikke av denne rettelsen.
 
 Den gjennomførte binære1..60minuttersforskningen er et snevrere mål:
 den har ingen lært STILLE-klasse og skiller ikke små fra store fortegn.

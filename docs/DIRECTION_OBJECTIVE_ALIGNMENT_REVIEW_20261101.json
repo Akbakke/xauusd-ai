@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "DYNAMIC_STATE_CALENDAR_BOUND_TARGET_AUDIT003_ADMITTED",
+  "status": "DYNAMIC_STATE_ACTIVE_OBSERVATION_TARGET_AUDIT004_ADMITTED",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
@@ -855,8 +855,8 @@
     "synthetic_native_contract_checks": "The unfiltered repository pre-commit native contract suite passed; synthetic CPU model checks do not qualify genuine full-profile consumption or the new dynamic-state objective.",
     "dynamic_state_definition_status": "GENUINE_TRAIN_AUDIT_COMPLETE_D1_FLAT_SUPPORT_BLOCKED_RULE_UNLOCKED",
     "source_checks": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_002.json",
-      "sha256": "6d8c2ff303133cfd74eb8be4fcd7d78d6c60b5cbf769a17b56e96cba9ce20cdc"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_003.json",
+      "sha256": "2e345738514ce4ef5a19449a80315d763d299d19bc16add8936f56c7252f9365"
     },
     "private_qualification_runner_complete": true,
     "target_audit": {
@@ -1177,7 +1177,7 @@
       "sha256": "83d40f02fbc06e1028ed3e1ed22ed76ec00d43b43914946302f704e131726af8"
     },
     "calendar_target_audit": {
-      "status": "ADMITTED_NOT_STARTED",
+      "status": "CONSUMED_COMPLETE_RULE_REVIEW_BLOCKED_CLOSED_TIME_FLAT",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/PLAN.json",
         "sha256": "4985ab649d5156e6b0337f9d48dcec4d08d700c81256dfd247c0e457c6879029"
@@ -1217,7 +1217,61 @@
           "train_query_parents": 0
         },
         "correction": "Permit readonly open of the exact original series directory already bound through SERIES.json; no broader directory/payload/write authority."
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/TERMINAL.json",
+        "sha256": "62d8fc1fbe0983deec02b6d85a39eecf3cbf71eb6aee4704cf721ef58ddf11a6"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/RESULT.json",
+        "sha256": "6f9c5ab0cd37861dcf1623ec78091587ecf201471958658388551a35b5062d28"
+      },
+      "target_manifest": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/STATE_SERIES/SERIES.json",
+        "sha256": "229d838651482c1df9ac687dc683c33ad95bcb6eb160bd25c1e989318b1f9b14"
+      },
+      "train_audit": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/TRAIN_AUDIT.json",
+        "sha256": "7d9da2096086a60a9961aade8a1358de37cf6d18841af2908306f7d9bab41ca1"
+      },
+      "flat_observation_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/TRAIN_FLAT_OBSERVATION_REVIEW.json",
+        "sha256": "5daee9c42d95edf98fbef1ca4f86e5f5218f4d681153fca9a80d3380ae2ab1d0"
+      },
+      "target_rule_locked": false
+    },
+    "active_observation_span_correction": {
+      "reason": "A documented closed market is no evidence of a flat trading period; the original wall window expired pre-closure history.",
+      "measured_counterexample": {
+        "D1_first_flat_actual_bars": 2,
+        "D1_flat_actual_bar_median": 538,
+        "D1_flat_with_less_than_360_actual_bars": 10018,
+        "total_D1_flat": 28343
+      },
+      "change": "Local state activity/coverage/path history uses N genuine observed M1 minutes for M5/M15/H1/H4/D1. Known closures preserve history; unknown gaps still exclude FLAT/path until complete observed coverage.",
+      "movement_threshold_unchanged": "0.5 causal ATR14 perTF",
+      "future_query_clock_unchanged": "1..1440 wall-clock minutes for this trial, no holding rule",
+      "new_model_calls": 0,
+      "source_checks": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_003.json",
+        "sha256": "2e345738514ce4ef5a19449a80315d763d299d19bc16add8936f56c7252f9365"
       }
+    },
+    "active_target_preparation": {
+      "status": "ADMITTED_NOT_STARTED",
+      "plan": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_004/PLAN.json",
+        "sha256": "b6e4046f955c6cd7c777d5648107813dd5e55044d1dcb3879094168a5b7e2bd5"
+      },
+      "worker": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_004/build_and_audit_targets_guarded.py",
+        "sha256": "96bb4a9f668d47ab388c02a500f2bda58f3a928307cd38320fea80f65292eff9"
+      },
+      "target_builds_authorized": 1,
+      "atr_builds_authorized": 0,
+      "model_calls_authorized": 0,
+      "old_labels_relabelled": false,
+      "target_rule_locked": false
     }
   }
 }

@@ -37,6 +37,9 @@ DOWN, FLAT, UP = range(len(STATE_NAMES))
 UNKNOWN = -1
 MINIMUM_MOVE_ATR = 0.5
 MINUTE_NS = EXIT_DECISION_BAR_SECONDS * 10**9
+LOCAL_WINDOW_M1_BARS = MappingProxyType({
+    tf: int(MULTI_TF_SHIFT[tf].value // MINUTE_NS) for tf in TIMEFRAMES
+})
 LEAD_MINUTES = tuple(range(1, int(MULTI_TF_SHIFT["D1"].value // MINUTE_NS) + 1))
 ATR_UNAVAILABLE = 1
 LOCAL_SPAN_INCOMPLETE = 2
@@ -91,6 +94,9 @@ def dynamic_mtf_state_target_contract():
         "minimum_move_atr": MINIMUM_MOVE_ATR, "atr_period": EMA50_200_ATR_PERIOD,
         "technical_indicator_owner": technical_indicator_contract_metadata(),
         "tf_span_ns": {tf: int(MULTI_TF_SHIFT[tf].value) for tf in TIMEFRAMES},
+        "local_window_m1_bars": dict(LOCAL_WINDOW_M1_BARS),
+        "local_window_clock": "observed_active_M1_bars; known_closures_do_not_advance_window",
+        "local_range": "last_N_observed_M1_high_low_and_previous_close; preserve_known_closure_reopen_jump",
         "tf_resample_origin": dict(MULTI_TF_RESAMPLE_ORIGIN_CONTRACT),
         "price_basis": "native_XAU_mid_OHLC_not_averaged_bid_ask_extrema",
         "source_resolution_seconds": EXIT_DECISION_BAR_SECONDS,
@@ -99,14 +105,15 @@ def dynamic_mtf_state_target_contract():
         "atr_gap_rule": "native_Wilder_series_over_observed_TF_bars_no_M1_gap_reset",
         "direction": "causal_extrema_directional_change_at_ge_threshold_no_issue_price",
         "uncertain_extrema": "wide_bar_interior_endpoint_resets_direction_unknown_no_guessed_extremum",
-        "flat": "complete_local_TF_wall_span_except_exact_declared_closures_and_full_OHLC_range_lt_threshold",
+        "flat": "N_observed_M1_bars_since_source_start_or_last_unknown_gap_and_full_local_range_lt_threshold",
         "opposing_moves": "never_net_to_flat; observed_M1_state_series_retains_every_supported_change",
         "intraminute": "range_ge_threshold_order_unknown; close_equals_high_proves_UP_exact_peak; close_equals_low_proves_DOWN_exact_trough; interior_unknown_even_if_near_extreme",
-        "unknown_reset": "unknown_gap_or_unresolved_extrema_resets_direction_seed_at_observed_close",
-        "post_gap": "new_confirmed_direction_can_be_known_before_full_span; flat_requires_complete_span",
+        "intraminute_window": "ambiguity_ages_out_only_after_N_subsequent_observed_M1_bars",
+        "unknown_reset": "unknown_gap_resets_direction_seed_at_observed_open; unresolved_extrema_at_observed_close",
+        "post_gap": "new_confirmed_direction_can_be_known_early; flat_and_path_require_N_observed_bars_including_first_post_gap_bar",
         "maturity": "validity_time_no_retrospective_pivot_timestamp",
         "closure": "only_exact_same_source_clock_external_schedule; otherwise_all_gaps_unknown",
-        "query": "exact_future_validity_lookup; missing_or_maturity_ge_cutoff_masked",
+        "query": "exact_future_wall_minute_validity_lookup; missing_or_maturity_ge_cutoff_masked",
         "inputs": "future_state_threshold_observability_and_maturity_are_labels_never_issue_inputs",
         "trial_lead_minutes": list(LEAD_MINUTES),
         "trial_horizon_role": "computational_query_domain_not_state_duration_or_holding_rule",
@@ -277,7 +284,8 @@ def build_dynamic_mtf_state_series(m1_ohlc, *, tf_atr, source_ref, atr_source_re
     unknown_gap = np.zeros(n, dtype=bool)
     for row in np.flatnonzero(np.diff(times.asi8) != MINUTE_NS) + 1:
         unknown_gap[row] = int(row) not in known
-    last_gap_end = np.maximum.accumulate(np.where(unknown_gap, times.asi8, -1))
+    observed_row = np.arange(n, dtype=np.int64)
+    last_unknown_gap_row = np.maximum.accumulate(np.where(unknown_gap, observed_row, -1))
     previous_close = np.r_[values["open"][0], values["close"][:-1]]
     previous_close[unknown_gap] = values["open"][unknown_gap]
     local_high, local_low = np.maximum(values["high"], previous_close), np.minimum(values["low"], previous_close)
@@ -290,7 +298,6 @@ def build_dynamic_mtf_state_series(m1_ohlc, *, tf_atr, source_ref, atr_source_re
         "parent_rows": np.empty(0, np.int64), "issue_ns": np.empty(0, np.int64), "issue_source_index": np.empty(0, np.int64),
     }
     atr_bindings = {}
-    index = pd.DatetimeIndex(validity, tz="UTC")
     for col, tf in enumerate(TIMEFRAMES):
         surface = tf_atr["surfaces"][tf]
         at, atr = surface["available_ns"], surface["atr"]
@@ -305,12 +312,16 @@ def build_dynamic_mtf_state_series(m1_ohlc, *, tf_atr, source_ref, atr_source_re
         theta = np.where(good, MINIMUM_MOVE_ATR * atr[safe], 0.0) if len(at) else np.zeros(n, dtype=np.float64)
         arrays["threshold"][:, col] = theta
         arrays["atr_available_ns"][:, col] = np.where(good, at[safe], 0) if len(at) else 0
-        span = int(MULTI_TF_SHIFT[tf].value)
-        activity = (pd.Series(local_high, index=index).rolling(MULTI_TF_SHIFT[tf], closed="right").max()
-                    - pd.Series(local_low, index=index).rolling(MULTI_TF_SHIFT[tf], closed="right").min()).to_numpy(np.float64)
+        window = LOCAL_WINDOW_M1_BARS[tf]
+        # A genuine closed M1 bar contributes one observation, irrespective of
+        # elapsed time. Known pauses preserve the preceding bars and reopen jump.
+        activity = (pd.Series(local_high).rolling(window, min_periods=1).max()
+                    - pd.Series(local_low).rolling(window, min_periods=1).min()).to_numpy(np.float64)
         arrays["local_range"][:, col] = activity
-        full_span = validity - span >= int(times.asi8[0])
-        gap_in_span = last_gap_end > validity - span
+        full_span = observed_row + 1 >= window
+        # The first post-gap bar is observation 1; N new bars restore support.
+        gap_in_span = ((last_unknown_gap_row >= 0)
+                       & (observed_row - last_unknown_gap_row + 1 < window))
         complete = full_span & ~gap_in_span
         reason = arrays["reason"][:, col]
         reason[~good] |= ATR_UNAVAILABLE
@@ -327,8 +338,8 @@ def build_dynamic_mtf_state_series(m1_ohlc, *, tf_atr, source_ref, atr_source_re
                 direction, lo, hi, float(values["high"][row]), float(values["low"][row]),
                 float(values["close"][row]), float(theta[row]))
             if ambiguous:
-                last_ambiguous = int(validity[row])
-            order_known = last_ambiguous <= int(validity[row]) - span
+                last_ambiguous = row
+            order_known = last_ambiguous < 0 or row - last_ambiguous >= window
             arrays["path_observed"][row, col] = bool(complete[row] and order_known)
             if not order_known:
                 reason[row] |= INTRAMINUTE_ORDER_UNKNOWN
