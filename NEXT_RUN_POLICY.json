@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_MATCHED_MARKOV_EVENT_EVALUATION_SOURCE_TESTED_NOT_NATIVE_QUALIFIED",
+  "status": "DYNAMIC_STATE_FIRST_FLAT_ACTIVITY_AUDIT_DRAFT_BUILDER_TESTED_NOT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Keep training, native launch, model scoring and restart closed. When a new exact one-use authority and objective-specific TRAIN audit exist, rebind all changed sources and qualify the matched Markov/state/transition report and native runtime; select no unmeasured weight or horizon. Physical ONLINE delivery remains unproven. TEST, Exit, broker and trading remain closed.",
+  "next_action": "Keep training, native launch, scoring and restart closed. The first-flat objective can now produce a source-bound TRAIN draft once a numerical recipe is chosen; a separately reviewed objective-specific audit, fresh source/native/ONLINE qualification and new exact one-use authority still must exist before any further model. Select no unmeasured weight or horizon. TEST, Exit, broker and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Matched explicit-current-state Markov baseline and strict direction/FLAT transition reporting source tested with synthetic data; no model, scoring, training, TEST, Exit, broker or trading.",
+    "current_activity": "Objective-specific TRAIN draft builder and saved TRAIN evidence reuse checked without publishing a candidate; no model, scoring, training, TEST, Exit, broker or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -18857,7 +18857,7 @@
         "causal_input_design": {
           "status": "TRAIN_COUNT_AND_UNADMITTED_DRAFT_SOURCE_TESTED_NO_NATIVE_QUALIFICATION",
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md",
-          "sha256": "f82415eecdf838ae64cb1adfb52af23a3bd565dcbb54d5d142df634ab68c4150",
+          "sha256": "04e7640f0799db11b90cd9dd7b7b6007c4af0c6c161eeb3ba03daad61315dba1",
           "actual_xau_m1_receive_or_processing_timestamp_found_in_inspected_schema": false,
           "other_logs_not_inspected": true,
           "online_delivery_order_proven": false,
@@ -19011,7 +19011,8 @@
         "loss_weight_selected": false,
         "model_calls": 0,
         "optimizer_steps": 0,
-        "test_data_used": false
+        "test_data_used": false,
+        "gate_source_review_scope": "HISTORICAL_GATE_SOURCE_COMMITTED_d1ca8bbe"
       }
     },
     "train_transition_source_exposure": {
@@ -19071,6 +19072,31 @@
       "parent_lead_overlap_not_independent": true,
       "legacy_report_fields_preserved": true,
       "distinct_synthetic_tests_across_rounds": 79,
+      "ordinary_precommit_overridden_due_to_no_model_restriction": true,
+      "separate_guardrail_tests_passed": true,
+      "model_calls": 0,
+      "optimizer_steps": 0,
+      "new_scoring_calls": 0,
+      "test_data_used": false,
+      "native_runtime_qualified": false
+    },
+    "first_flat_activity_audit_draft_builder": {
+      "status": "DRAFT_BUILDER_TESTED_NO_CANDIDATE_OR_LAUNCH",
+      "source_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_ACTIVITY_DRAFT_SOURCE_001/SOURCE_REVIEW.json",
+        "sha256": "f0f290d5739079612f30d500404284513c8bea956d3bdf69ecb8b218d7f6a023"
+      },
+      "real_train_evidence_check": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_ACTIVITY_DRAFT_SOURCE_001/REAL_EVIDENCE_CHECK.json",
+        "sha256": "82ded5c29c2994617a3962cd120f56bd7a7fdacc0bf9a96a839b6cc1e1814e0d"
+      },
+      "standard_grid_reuses_exact_reviewed_train_prior": true,
+      "extended_grid_uses_existing_train_counter": true,
+      "draft_is_not_accepted_by_launch_gate": true,
+      "illustrative_recipe_published": false,
+      "loss_weight_selected": false,
+      "horizon_selected": false,
+      "synthetic_tests_passed": 62,
       "ordinary_precommit_overridden_due_to_no_model_restriction": true,
       "separate_guardrail_tests_passed": true,
       "model_calls": 0,

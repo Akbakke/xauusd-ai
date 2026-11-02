@@ -504,6 +504,95 @@ def _require_first_flat_activity_support(audit, recipe, *, target_ref, sources, 
     return proof
 
 
+
+def build_first_flat_activity_train_audit_draft(*, numerical_recipe, target_manifest, target_sources,
+        fold, prior_rule_review, first_flat_activity_source_support, source_repo, source_owners):
+    """Bind TRAIN-only evidence to an explicit candidate; never grant admission.
+
+    The default grid reuses the separately reviewed frozen TRAIN prior. A
+    longer dense grid uses the existing TRAIN-only counter. Both outputs remain
+    drafts and must pass an independent objective-specific review and the usual
+    source, policy, hardware and one-use launch authorities.
+    """
+    from gx1.contracts.entry_model_native_train_recipe_v1 import require_native_direction_research_recipe
+    from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (
+        default_trial_lead_minutes, load_dynamic_mtf_state_series, read_dynamic_mtf_state_series_metadata)
+    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import StateScoreAccumulator
+    numerical = require_native_direction_research_recipe(numerical_recipe)
+    _require(numerical.get('dynamic_state_supervision') is True
+        and numerical.get('first_flat_activity_weight') is not None, 'STATE_ACTIVITY_DRAFT_RECIPE')
+    fold = _fold(fold)
+    _require(fold == private.BPS_FOLD, 'STATE_ACTIVITY_DRAFT_FOLD')
+    _require(isinstance(target_sources, Mapping) and set(target_sources) == {'m1', 'm5_atr'},
+        'STATE_ACTIVITY_DRAFT_SOURCES')
+    sources = {key:campaign.require_binding(value, label='activity target source', verify_file=False)
+               for key,value in target_sources.items()}
+    target_ref = campaign.require_binding(target_manifest, label='activity target manifest', verify_file=True)
+    manifest = read_dynamic_mtf_state_series_metadata(target_ref, expected_source_refs=sources,
+        expected_cutoff_ns=fold['oof_cutoff_ns'])
+    meta = manifest['metadata']
+    _require(meta['parents'] == fold['oof_end_row'], 'STATE_ACTIVITY_DRAFT_TARGET_POPULATION')
+    support_ref = campaign.require_binding(first_flat_activity_source_support,
+        label='activity TRAIN source support', verify_file=True)
+    _require_first_flat_activity_support({'first_flat_activity_source_support':support_ref},
+        {'source_repo':source_repo, 'source_owners':source_owners}, target_ref=target_ref,
+        sources=sources, fold=fold, target_metadata=meta)
+    rule_ref = campaign.require_binding(prior_rule_review, label='prior target rule review', verify_file=True)
+    rule = campaign.read_bound_json(Path(rule_ref['path']), rule_ref['sha256'])
+    _require(rule.get('schema_version') == 'gx1_dynamic_mtf_state_label_audit_v1'
+        and rule.get('support_status') == 'PASS' and rule.get('blockers') == []
+        and rule.get('target_rule_locked') is True and rule.get('test_data_used') is False
+        and rule.get('later_metrics_inspected') is False and rule.get('model_forwards') == rule.get('optimizer_steps') == 0
+        and rule.get('target_manifest') == target_ref and rule.get('target_sources') == sources and rule.get('fold') == fold
+        and rule.get('target_contract_sha256') == meta['definition']['contract_sha256']
+        and rule.get('independent_rule_review', {}).get('decision') == 'PASS_SAVED_TRAIN_RULE_WITNESSES'
+        and all(rule.get('integrator_verification', {}).get(key) is True for key in
+            ('ATR_thresholds_and_axes_bitidentical','all_TRAIN_classes_and_transition_rows_present',
+             'all_output_refs_and_array_sha256_checked','terminal_and_launcher_exit_zero')),
+        'STATE_ACTIVITY_DRAFT_RULE_REVIEW')
+    if numerical.get('extended_forecast_minutes') is not None:
+        draft = build_extended_train_label_audit_draft(numerical_recipe=numerical, target_manifest=target_ref,
+            target_sources=sources, fold=fold, prior_rule_review=rule_ref)
+        draft['blockers'].append('independent_first_flat_activity_objective_review_required')
+    else:
+        leads = list(default_trial_lead_minutes())
+        train_ref = campaign.require_binding(rule.get('train_audit'), label='saved TRAIN target audit', verify_file=True)
+        train = campaign.read_bound_json(Path(train_ref['path']), train_ref['sha256'])
+        prior_ref = campaign.require_binding(train.get('train_prior'), label='saved TRAIN prior', verify_file=True)
+        prior = campaign.read_bound_json(Path(prior_ref['path']), prior_ref['sha256'])
+        _require(rule.get('lead_minutes') == leads and rule.get('prior') == prior
+            and train.get('series') == target_ref and train.get('train_cutoff_ns') == fold['train_cutoff_ns']
+            and train.get('train_parents') == fold['prefix_rows'] and train.get('later_aggregates_computed') is False
+            and train.get('target_contract', {}).get('contract_sha256') == meta['definition']['contract_sha256']
+            and train.get('class_counts') == prior.get('counts')
+            and train.get('transition_counts') == prior.get('transition_counts'), 'STATE_ACTIVITY_DRAFT_PRIOR_BINDING')
+        StateScoreAccumulator(prior, lead_minutes=leads)
+        _require(prior.get('parents') == fold['prefix_rows'], 'STATE_ACTIVITY_DRAFT_PRIOR_POPULATION')
+        # Recheck immutable target array hashes; no later labels are aggregated.
+        series = load_dynamic_mtf_state_series(target_ref, expected_source_refs=sources,
+            expected_cutoff_ns=fold['oof_cutoff_ns'])
+        _require(series.metadata['parents'] == fold['oof_end_row']
+            and series.metadata['definition']['contract_sha256'] == meta['definition']['contract_sha256'],
+            'STATE_ACTIVITY_DRAFT_TARGET_IDENTITY')
+        draft = {'schema_version':'gx1_dynamic_mtf_state_label_audit_draft_v1',
+            'support_status':'DRAFT_NOT_ADMITTED',
+            'blockers':['independent_objective_specific_train_review_required',
+                        'fresh_source_binding_native_qualification_and_one_use_authority_required'],
+            'target_rule_locked':True, 'target_manifest':target_ref, 'target_sources':sources, 'fold':fold,
+            'target_contract_sha256':meta['definition']['contract_sha256'],
+            'objective_sha256':numerical['research_objective_sha256'], 'numerical_recipe_sha256':numerical['contract_sha256'],
+            'lead_minutes':leads, 'prior':prior, 'prior_rule_review':rule_ref, 'reused_train_audit':train_ref,
+            'reused_train_prior':prior_ref, 'model_forwards':0, 'optimizer_steps':0, 'test_data_used':False,
+            'later_metrics_inspected':False,
+            'scope':'Verify the entire pre-TEST target cache; reuse already independently reviewed TRAIN-only counts.',
+            'native_launch_authorized':False, 'predictive_value_claimed':False}
+    _require(draft.get('schema_version') == 'gx1_dynamic_mtf_state_label_audit_draft_v1'
+        and draft.get('support_status') == 'DRAFT_NOT_ADMITTED' and draft.get('native_launch_authorized') is False,
+        'STATE_ACTIVITY_DRAFT_NOT_ADMITTED')
+    draft['first_flat_activity_source_support'] = support_ref
+    return draft
+
+
 def require_dynamic_state_target_binding(recipe):
     """TRAIN audit is the rule lock; later cache bytes give no selection authority."""
     from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import (
