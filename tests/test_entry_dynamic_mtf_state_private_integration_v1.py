@@ -36,6 +36,49 @@ def _gradients():
     return dict.fromkeys(groups, 1)
 
 
+
+@pytest.mark.parametrize('seal_mode', ['native', 'campaign_newline', 'corrupt'])
+def test_dynamic_launch_accepts_actual_numerical_owner_seal_only(tmp_path, monkeypatch, seal_mode):
+    from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_research_recipe
+    numerical = native_direction_research_recipe(batch_size=16,max_updates=2,dynamic_state=True)
+    native_seal = numerical['contract_sha256']
+    if seal_mode == 'campaign_newline':
+        numerical['contract_sha256'] = campaign.canonical_sha256(
+            {k:v for k,v in numerical.items() if k != 'contract_sha256'})
+        assert numerical['contract_sha256'] != native_seal
+    elif seal_mode == 'corrupt':
+        numerical['contract_sha256'] = '0'*64
+    repo = tmp_path/'source'
+    repo.mkdir()
+    runtime = tmp_path/'runtime'
+    dummy = {'path':str(tmp_path/'unused.json'),'sha256':'a'*64}
+    monkeypatch.setattr(prefix_authority,'CANONICAL_REPO',repo)
+    monkeypatch.setattr(prefix_authority,'REQUIRED_SOURCE_PATHS',())
+    monkeypatch.setattr(prefix_authority,'DYNAMIC_STATE_EXTRA_SOURCE_PATHS',())
+    # Only unrelated input/source evidence is synthetic; use the real numerical owner.
+    monkeypatch.setattr(prefix_authority,'require_dynamic_state_input_manifest',lambda *args,**kwargs:None)
+    monkeypatch.setattr(prefix_authority,'require_dynamic_state_target_binding',lambda *args,**kwargs:None)
+    launch = {'schema_version':authority.RECIPE_SCHEMA,'source_repo':str(repo),'runtime_root':str(runtime),
+        'admission_stage':'dynamic_mtf_state_synthetic_private','run_scope':authority.DYNAMIC_STATE_PRIVATE_SCOPE,
+        'numerical_recipe':numerical,'input_manifest':dummy,'source_owners':{},
+        'execution_binding_path':str(runtime/'EXECUTION_BINDING.json'),'fold':authority.BPS_FOLD,
+        'max_checkpoint_bytes':1073741824,'max_published_json_bytes':33554432,
+        'training_enabled':True,'full_epoch_training_allowed':False,'test_data_used':False,
+        'predictive_value_claimed':False,'qualification_weights_for_main_fit':False,
+        'target_manifest':dummy,'target_sources':{'m1':dummy,'m5_atr':dummy},'label_audit':dummy,
+        'full_feature_profile':True,'max_private_updates':4,'max_model_constructions':3,
+        'max_forwards':21,'max_backwards':4,'qualification_parent_rows':list(range(32))}
+    launch['recipe_sha256'] = campaign.canonical_sha256(launch)
+    def validate():
+        return prefix_authority.require_dynamic_state_launch_recipe(
+            launch,source_repo=repo,source_commit='b'*40,private_scope=True)
+    if seal_mode == 'native':
+        checked = validate()
+        assert checked['numerical_recipe']['contract_sha256'] == native_seal
+    else:
+        with pytest.raises(RuntimeError,match='STATE_NUMERICAL_SEAL'):
+            validate()
+
 def test_private_counts_reject_extra_work_and_missing_resume():
     authority.require_dynamic_state_private_counts(_counts())
     for key, value in (('forward_calls',22), ('optimizer_step_returns',5),

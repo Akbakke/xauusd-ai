@@ -1,6 +1,6 @@
 {
   "schema_version": "gx1_direction_objective_alignment_review_v1",
-  "status": "DYNAMIC_STATE_ACTIVE_OBSERVATION_TARGET_AUDIT005_ADMITTED",
+  "status": "DYNAMIC_STATE_PRIVATE_NATIVE_QUALIFICATION_ADMITTED",
   "observed_utc": "2026-11-01T19:41:20.538150+00:00",
   "operator_clarification": {
     "forecast_first": "Anticipate future meaningful local upward/downward movement, flat intervals and changes of state from information available when each rolling forecast is issued; recognizing a completed movement alone is insufficient. Entry/trades later.",
@@ -855,8 +855,8 @@
     "synthetic_native_contract_checks": "The unfiltered repository pre-commit native contract suite passed; synthetic CPU model checks do not qualify genuine full-profile consumption or the new dynamic-state objective.",
     "dynamic_state_definition_status": "GENUINE_TRAIN_AUDIT_COMPLETE_D1_FLAT_SUPPORT_BLOCKED_RULE_UNLOCKED",
     "source_checks": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_003.json",
-      "sha256": "2e345738514ce4ef5a19449a80315d763d299d19bc16add8936f56c7252f9365"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_004.json",
+      "sha256": "730e064c87a3fb473a12f4536d892de75daf7f28ad5573f271ca9d02a5e3c8ef"
     },
     "private_qualification_runner_complete": true,
     "target_audit": {
@@ -1258,7 +1258,7 @@
       }
     },
     "active_target_preparation": {
-      "status": "ADMITTED_NOT_STARTED",
+      "status": "CONSUMED_COMPLETE_RULE_REVIEW_PASS",
       "plan": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/PLAN.json",
         "sha256": "698cbcc5989df1882aca8122c469906c105912f6e819c2452c2f40f10a725ba7"
@@ -1271,7 +1271,7 @@
       "atr_builds_authorized": 0,
       "model_calls_authorized": 0,
       "old_labels_relabelled": false,
-      "target_rule_locked": false,
+      "target_rule_locked": true,
       "previous_failed_audit": {
         "terminal": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_004/TERMINAL.json",
@@ -1287,7 +1287,49 @@
           "train_query_parents": 0
         },
         "correction": "One missing hexadecimal character in historical objective literal; replaced from verified original003 metadata. Exact join AST and old definition/calendar joins pass metadata-only preflight."
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/RESULT.json",
+        "sha256": "007b1518c9ed1bfdd3eb8024b60421511dd158dbb2c16d2532bba4328214aa6b"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/TERMINAL.json",
+        "sha256": "4303f67ce91fe89d5a9c641d0e4dec0f211167b5a7914890badc63f0df4e1404"
+      },
+      "label_audit": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/LABEL_AUDIT_REVIEW.json",
+        "sha256": "f31112cee8e672a6d6b52dd2a83da4e71f50c2abf5c460e1dfeab171a507563f"
+      },
+      "target_manifest": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/SERIES.json",
+        "sha256": "d2addf8fbb6f9ac9e9ed741bbbd2fe2bfdc07f59553ea28c021ea198d5fbfa8e"
       }
+    },
+    "native_private_qualification": {
+      "status": "ADMITTED_NOT_STARTED",
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RECIPE_002.json",
+        "sha256": "5ad9d3d083cde0e7398634336a696db6deae54ac6369096f4b0551e57b73fe71"
+      },
+      "metadata_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RECIPE_METADATA_REVIEW_002.json",
+        "sha256": "1782960e78cac6f5934c499bbc23a348df1dba40995f4529169364bdd13e253b"
+      },
+      "source_checks": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_VERIFIED_004.json",
+        "sha256": "730e064c87a3fb473a12f4536d892de75daf7f28ad5573f271ca9d02a5e3c8ef"
+      },
+      "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/PRIVATE_QUALIFICATION_001/RUNTIME",
+      "expected_work": {
+        "model_constructions": 3,
+        "forward_calls": 21,
+        "physical_optimizer_updates": 4,
+        "logical_steps": 2,
+        "fixed_parents": 32,
+        "initial_TRAIN_measurement_parents": 256
+      },
+      "genuine_native_qualification_completed": false,
+      "weights_for_main_fit": false
     }
   }
 }

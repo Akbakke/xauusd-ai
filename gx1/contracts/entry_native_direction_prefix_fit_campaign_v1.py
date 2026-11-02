@@ -342,8 +342,11 @@ def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, pr
         and numerical['max_updates'] == (2 if private_scope else (fold['prefix_rows'] + 15)//16)
         and numerical.get('genuine_updates_authorized') is numerical.get('native_launch_authorized') is False,
         'STATE_NUMERICAL_ROLE')
-    _require(campaign.canonical_sha256({k:v for k,v in numerical.items() if k != 'contract_sha256'})
-        == numerical.get('contract_sha256'), 'STATE_NUMERICAL_SEAL')
+    unsigned = {k:v for k,v in numerical.items() if k != 'contract_sha256'}
+    # Numerical recipe seals use compact JSON without the campaign trailing newline.
+    declared = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(',', ':'),
+        ensure_ascii=True, allow_nan=False).encode()).hexdigest()
+    _require(declared == numerical.get('contract_sha256'), 'STATE_NUMERICAL_SEAL')
     campaign._sha(numerical.get('research_objective_sha256'), 'state objective')
     owners = recipe['source_owners']
     _require(isinstance(owners, Mapping) and set(owners) == set(REQUIRED_SOURCE_PATHS) | set(DYNAMIC_STATE_EXTRA_SOURCE_PATHS),
