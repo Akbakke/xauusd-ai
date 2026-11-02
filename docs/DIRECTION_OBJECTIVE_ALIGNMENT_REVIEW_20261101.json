@@ -726,7 +726,7 @@
     "launch_status": "Necessary source/target preparation and genuine qualification, then safe reboot and ONE short training are user-authorized. Exact execution gates remain closed until the new function is qualified and admitted; TEST/trading remain closed."
   },
   "current_short_training_preparation": {
-    "status": "DYNAMIC_STATE_WEIGHTS_AND_THRESHOLD_AUDITED_NO_EDGE",
+    "status": "DYNAMIC_STATE_INPUT_AND_LOSS_EVIDENCE_REVIEWED_NO_EDGE",
     "name": "full_xau_gc_mtf_entry_research_v1",
     "pure_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
@@ -1421,7 +1421,7 @@
       "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
       "report": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
-        "sha256": "ee9c728b907649be477502b383c91d89e0dc187ea6dae925fd8564036284a628"
+        "sha256": "53c2a88ab28bc6d6226fd65771948c4d2fbd2bbb5c701a6878286b66033a2259"
       },
       "evidence": {
         "training_integrity": {
@@ -1499,6 +1499,10 @@
         "state_threshold_change_audit": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/STATE_THRESHOLD_CHANGE_AUDIT_001/RESULT.json",
           "sha256": "ea037190de124e71871caa05ca97fe647b7652da9d5e1f640309e195fd9cb49e"
+        },
+        "saved_loss_decomposition": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_LOSS_DECOMPOSITION_001/RESULT.json",
+          "sha256": "d6b9f3ccc9ca5ef8a76e8018cd56376dfff68a2de0d2c569d2746d016033f535"
         }
       },
       "later_fixed_horizons": [
@@ -1588,7 +1592,10 @@
         "eligible_later_parents": 1028,
         "still_flat_after_one_minute": 691,
         "model_predicted_flat": 0,
-        "observed_current_state_explicitly_fed_to_model": false
+        "observed_current_state_explicitly_fed_to_model": false,
+        "model_mean_flat_probability": 0.1426,
+        "actual_next_flat_fraction": 0.6721789883268483,
+        "conditioning": "known current FLAT; state was not explicit model input"
       },
       "causal_current_state_feasibility": {
         "status": "PASS_HISTORICAL_ISSUE_CLOCK_AND_SAVED_GROUP_CROSSCHECK",
@@ -1618,7 +1625,14 @@
         "later_m5_observed_consecutive_state_changes": 8298,
         "state_changes_with_unchanged_threshold": 6604,
         "causation_inferred": false
-      }
+      },
+      "saved_first_state_nll_share_train": [
+        0.0020736190312155753,
+        0.0020357177563259253,
+        0.003994950339910405,
+        0.010977289643610158,
+        0.05696982530531868
+      ]
     }
   }
 }

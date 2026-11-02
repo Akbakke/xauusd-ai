@@ -20,7 +20,7 @@ De tre treffratene for senere periode bruker samme observerbare klasseutvalg på
 
 På +1 minutt er senere modell/Markov-treffrate M5 51.06/70.56 %, M15 60.06/87.51 %, H1 66.36/96.20 %, H4 67.84/99.00 %, D1 66.76/99.89 %. At D1-tilstanden vanligvis fortsetter til neste minutt gjør en god slik referanse naturlig; det er ikke i seg selv en handelsfordel. Markov får et eksplisitt kausalt input som modellen ikke har, så dette er en informativ systemreferanse, ikke en ren arkitekturduell på identiske inputs.
 
-En ekstra kontroll av lagrede +1-minuttsprognoser viser at modellen har noe sammenheng med kjent nåtilstand, men overser FLAT. I senere periode var M5-nåtilstanden FLAT i 1 028 observerbare tilfeller; i 691 av disse var neste tilstand også FLAT, mens modellen aldri valgte FLAT i denne gruppen. Når M5-nåtilstanden var NED, valgte modellen NED i 1 673 av 2 883 tilfeller; når nåtilstanden var OPP, valgte den OPP i 2 165 av 3 135. Gruppene er dannet i etterkontrollen; modellen fikk ikke nåtilstanden som eksplisitt input. Dette viser både delvis informasjon i de øvrige inputene og et tydelig hull, men isolerer ikke årsaken.
+En ekstra kontroll av lagrede +1-minuttsprognoser viser at modellen har noe sammenheng med kjent nåtilstand, men overser FLAT. I senere periode var M5-nåtilstanden FLAT i 1 028 observerbare tilfeller; i 691 av disse var neste tilstand også FLAT, mens modellen aldri valgte FLAT i denne gruppen. Når M5-nåtilstanden var NED, valgte modellen NED i 1 673 av 2 883 tilfeller; når nåtilstanden var OPP, valgte den OPP i 2 165 av 3 135. For disse 1 028 tilfellene var modellens gjennomsnittlige FLAT-sannsynlighet 14,3 %, mens 67,2 % av neste tilstander var FLAT. Gruppene er dannet i etterkontrollen; modellen fikk ikke nåtilstanden som eksplisitt input. Forskjellen er derfor en betinget observasjon, ikke en vanlig ubetinget kalibreringskurve. Dette viser både delvis informasjon i de øvrige inputene og et tydelig hull, men isolerer ikke årsaken.
 
 ## Samme 256 rader før og etter
 
@@ -59,7 +59,7 @@ Samlet over alle ledetider er 10 597 435 av 24 894 720 mulige M5-celler observer
 ## Hva vi vet om årsaken
 
 - En konkret asymmetri er at Markov-referansen bruker nåværende dynamiske tilstand og en tilgjengelighetsmaske, mens modellens forward får genuine indikatorer og tidsrammekoordinater, men ikke denne tilstanden eksplisitt. Modellen kan muligens utlede deler fra historikk; resultatet viser ikke at den gjør det godt. Kausaliteten og ONLINE-tilgjengeligheten til et slikt ekstra input må bevises før det brukes.
-- Tapet er sekvensens negative log-sannsynlighet delt på antall observerte celler. For en fullt observert sekvens inngår starttilstanden én gang, deretter en mengde overganger betinget på forrige sanne tilstand. Dette kan gi mye læringssignal til vanlige fortsettelser og for lite til riktig starttilstand og nyttige sjeldne skifter. Det er en kodebasert hypotese, ikke en isolert årsak bevist av en ablasjon.
+- Tapet er sekvensens negative log-sannsynlighet delt på antall observerte celler. For en fullt observert sekvens inngår starttilstanden én gang, deretter en mengde overganger betinget på forrige sanne tilstand. Dette kan gi mye læringssignal til vanlige fortsettelser og for lite til riktig starttilstand og nyttige sjeldne skifter. På de lagrede sluttvektene utgjør første framtidstilstands negative log-sannsynlighet henholdsvis 0,21 %, 0,20 %, 0,40 %, 1,10 % og 5,70 % av summert sekvens-NLL for M5 til D1, målt på TRAIN-radene der første minutt var observert. Dette er en dekomponering av lagrede tapsverdier, ikke en måling av gradientandel eller treningsforløpet. Det er en kodebasert hypotese, ikke en isolert årsak bevist av en ablasjon.
 - De åtte spesialistfamiliene, fem tidsrammene og D1/makro er bundet i inputprofilen, og private kontrollbatcher hadde målbar gradientkontakt. Det beviser verken at hver indikator har verdi eller at modellen benytter dem prediktivt. Datatilgjengelighet varierer mellom tidsrammer og perioder.
 
 ## Kausal nåtilstand ved beslutningstid
@@ -108,5 +108,7 @@ Originale artefakter og sjekksummer (ingen rådata eller vekter er lagt i Git):
 
 - `saved_state_optimizer_audit`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_STATE_OPTIMIZER_AUDIT_001/RESULT.json` — SHA-256 `4262d3a64134992f5fe0c2fa14ba3df1328a2c71691591f5804362578d77c6f3`
 - `state_threshold_change_audit`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/STATE_THRESHOLD_CHANGE_AUDIT_001/RESULT.json` — SHA-256 `ea037190de124e71871caa05ca97fe647b7652da9d5e1f640309e195fd9cb49e`
+
+- `saved_loss_decomposition`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_LOSS_DECOMPOSITION_001/RESULT.json` — SHA-256 `d6b9f3ccc9ca5ef8a76e8018cd56376dfff68a2de0d2c569d2746d016033f535`
 
 TEST/Exit/handel er ikke brukt. Senere Q1 2025 er gjenbrukt utviklingsdata og ikke en forseglet blind test. Ingen handelsregel, kostnader eller økonomisk avkastning er evaluert.
