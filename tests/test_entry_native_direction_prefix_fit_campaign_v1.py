@@ -133,6 +133,62 @@ def cursor(f, **changes):
     return owner.build_prefix_fit_cursor(**args)
 
 
+@pytest.fixture
+def dynamic_cursor_fixture(fixture):
+    # Exact nested metadata shape used by the saved dynamic terminal cursor;
+    # payload references remain tiny synthetic files.
+    f=fixture; runtime=f['runtime']; dummy=f['dummy']
+    qualification={'contract_sha256':'5'*64,
+        'proof':{'prefix':{'rows':47602,'cutoff_ns':f['fold']['train_cutoff_ns']}}}
+    qualification_ref=write(runtime/'CURRENT_QUALIFICATION.json',qualification)
+    fitted={'contract_sha256':'1'*64,'base_normalization':{'contract_sha256':'2'*64},
+        'gc_mtf_history':{'layout':{'contract_sha256':'3'*64},'normalization':{'contract_sha256':'4'*64}},
+        'prefix_qualification':qualification}
+    normalization_ref=write(runtime/'CURRENT_NORMALIZATION.json',fitted)
+    verified_ref=write(runtime/'CURRENT_NORMALIZATION_VERIFIED.json',{'normalization':normalization_ref,
+        'all12statistic_surfaces_and_support_exactly_equal':True,'source_and_payload_bookends_unchanged':True,
+        'genuine_native_model_calls':0,'test_data_used':False})
+    owner_paths={'direction_component_source':'gx1/contracts/entry_native_direction_research_v1.py',
+        'native_constructor_source':'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
+        'mtf_window_source':'gx1/features/htf_features.py','gc_gather_source':'gx1/contracts/entry_gc_mtf_history_v1.py',
+        'owner_profile_source':'gx1/features/entry_specialist_feature_groups_v1.py'}
+    owners={path:write(f['repo']/path,{'metadata_owner':path}) for path in owner_paths.values()}
+    views=dict.fromkeys(owner.VIEW_SOURCE_KEYS,dummy)
+    views.update({key:owners[path] for key,path in owner_paths.items()})
+    views['input_qualification']=qualification_ref
+    manifest=sealed({'schema_version':'gx1_dynamic_mtf_state_input_manifest_v1','fold':f['fold'],
+        'physical_provider_plan':dummy,'physical_provider_worker':dummy,'prefix_normalization':normalization_ref,
+        'prefix_qualification':qualification_ref,'normalization_verification':verified_ref,
+        'constructor_metadata':dummy,'view_source_bindings':views,'axes':dummy},'contract_sha256')
+    input_ref=write(runtime/'DYNAMIC_INPUT.json',manifest)
+    recipe=copy.deepcopy(f['recipe']);recipe.update(run_scope=owner.DYNAMIC_STATE_SCOPE,
+        input_manifest=input_ref,source_owners=owners)
+    reseal(recipe,'recipe_sha256');recipe_ref=write(runtime/'DYNAMIC_RECIPE.json',recipe)
+    view=copy.deepcopy(f['view_identity']);view['prefix_normalization']['binding']=normalization_ref
+    saved=cursor(f,recipe_ref=recipe_ref,feature_view_identity=view,parent_cursor=47602,
+        optimizer_updates=2976,phase_state='SCORING')
+    return {**f,'dynamic_recipe':recipe,'dynamic_recipe_ref':recipe_ref,'dynamic_cursor':saved}
+
+
+@pytest.mark.parametrize('fault',[None,'binding','contract_sha256','base_sha256','gc_layout_sha256',
+    'gc_normalization_sha256','qualification_sha256','objective'])
+def test_dynamic_terminal_cursor_uses_current_normalization_metadata(dynamic_cursor_fixture,fault):
+    f=dynamic_cursor_fixture; saved=copy.deepcopy(f['dynamic_cursor'])
+    if fault=='objective':saved['feature_view_identity']['research_objective_sha256']='0'*64
+    elif fault=='binding':saved['feature_view_identity']['prefix_normalization']['binding']=f['dummy']
+    elif fault:saved['feature_view_identity']['prefix_normalization'][fault]='0'*64
+    reseal(saved,'cursor_sha256')
+    def validate():
+        return owner.require_prefix_fit_cursor(saved,expected_recipe=f['dynamic_recipe_ref'],
+            expected_fold=f['fold'],verify_files=True)
+    if fault:
+        with pytest.raises(RuntimeError,match='CURSOR_INPUT_VIEW_IDENTITY'):validate()
+    else:
+        checked=validate()
+        assert checked['phase_state']=='SCORING' and checked['parent_cursor']==47602
+        assert checked['optimizer_updates']==2976 and checked['oof_cursor']==0
+
+
 def test_four_window_chain_is_one_exact_prefix_and_one_pass(fixture):
     f=fixture;plan=campaign.require_plan(f['plan'])
     assert len(plan['checked_invocations'])==4 and plan['selection_artifact_sha256'] is None

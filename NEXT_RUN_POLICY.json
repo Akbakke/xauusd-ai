@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-02T12:20:41.302117+00:00",
-  "status": "DYNAMIC_STATE_SINGLE_ONEPASS_ADMITTED_REBOOT_PENDING",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "observed_utc": "2026-11-02T15:07:32.436161+00:00",
+  "status": "DYNAMIC_STATE_FIRST_SCORING_ADMITTED_ZERO_UPDATES",
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-  "next_action": "Freeze source and materialize exactly one dynamic-state TRAIN pass:47602parents,at most2976updates, fresh256initial, fullTRAIN and laterQ1development measurements. Safe freshboot before each bounded window; no repeat arms or full training.",
+  "next_action": "Freeze corrected controlsource; materialize and safely reboot for exactly4057forward firstscoring,0updates,original2976state andinitial reused. No retraining or repeatedselection.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Freeze source and materialize exactly one dynamic-state TRAIN pass:47602parents,at most2976updates, fresh256initial, fullTRAIN and laterQ1development measurements. Safe freshboot before each bounded window; no repeat arms or full training.",
+    "current_activity": "Freeze corrected controlsource; materialize and safely reboot for exactly4057forward firstscoring,0updates,original2976state andinitial reused. No retraining or repeatedselection.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Exact fit metadataPASS; campaign/task and safe boot pending.",
+    "current_blocker": "No remaining source/metadata blocker; scoringplan and safe freshboot pending.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -18049,7 +18049,7 @@
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "dynamic_state_short_training_20261101": {
-      "status": "DYNAMIC_STATE_SINGLE_ONEPASS_ADMITTED_REBOOT_PENDING",
+      "status": "DYNAMIC_STATE_FIRST_SCORING_ADMITTED_ZERO_UPDATES",
       "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
       "operator_authorized_source_target_preparation": true,
       "operator_authorized_required_genuine_qualification": true,
@@ -18059,9 +18059,9 @@
       "maximum_training_rounds": 1,
       "automatic_full_training_authorized": false,
       "automatic_repetition_authorized": false,
-      "training_enabled": true,
+      "training_enabled": false,
       "native_launch_authorized": true,
-      "training_launched": false,
+      "training_launched": true,
       "restart_executed": true,
       "test_data_used": false,
       "trading_authorized": false,
@@ -18085,7 +18085,7 @@
         "prior_interventions": "native model/loss/input/output integration audit",
         "saved_learning_source_audit": "campaign/qualification/host and preexisting-diff audit"
       },
-      "counts_scope": "Private002complete21forwards/4updates/3constructors; boot593. Mainfit not yet started.",
+      "counts_scope": "ExactlyoneTRAINpass complete2976updates/47602parents; terminalvalidatorfailed after durable state/result/cursor. Zero result scoring yet.",
       "cancelled_capacity_source_cleanup": {
         "status": "SELECTIVELY_REMOVED_UNNEEDED_REJECTED_SCOPE",
         "tracked_files_restored_to_existing_head": 8,
@@ -18537,7 +18537,7 @@
         }
       },
       "onepass_fit": {
-        "status": "ADMITTED_EXACT_SINGLE_DYNAMIC_STATE_ONEPASS",
+        "status": "CONSUMED_TRAINING_COMPLETE_TERMINAL_VALIDATOR_FAILED",
         "recipe": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RECIPE.json",
           "sha256": "115fdaf8779409bae349f02923b681031d95c3d505489bf5065f389ed46c2527"
@@ -18552,7 +18552,34 @@
         },
         "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RUNTIME",
         "training_rounds": 1,
-        "weights_from_private": false
+        "weights_from_private": false,
+        "training_integrity": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/TRAINING_INTEGRITY.json",
+          "sha256": "fab5f0d40e01d27e0d91ca0dd43a004e40f40d2cf4c9a711e56cc5be30843a34"
+        },
+        "training_pass_complete": true,
+        "elapsed_seconds": 7980.0582324960005,
+        "full_train_scoring_complete": false,
+        "later_scoring_complete": false
+      },
+      "training_pass_complete": true,
+      "scoring_recovery": {
+        "status": "ADMITTED_EXACT_FIRST_SCORING_ZERO_UPDATES",
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RECIPE.json",
+          "sha256": "b2eb3f21fd99218286a3381e84127a905a34522d47e144bb7d71629d3250dede"
+        },
+        "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RUNTIME",
+        "metadata_review": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RECIPE_METADATA_REVIEW.json",
+          "sha256": "4e689e3b2f2a9ed1139829e24763f99ce84a515afe9e0544a034a24a7c8ea92e"
+        },
+        "source_checks": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_008/RESULT.json",
+          "sha256": "b48c7d6cc9f6e3c2f5875461dc119849f4c46ec76d041490ed86e14f987bb600"
+        },
+        "max_new_optimizer_updates": 0,
+        "max_forward_calls": 4057
       }
     }
   },
@@ -31904,7 +31931,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -52028,7 +52055,7 @@
     "elapsed_seconds": 206.605561337
   },
   "dynamic_mtf_state_onepass_fit_20261102_001": {
-    "status": "ADMITTED_EXACT_SINGLE_DYNAMIC_STATE_ONEPASS",
+    "status": "CONSUMED_TRAINING_COMPLETE_TERMINAL_VALIDATOR_FAILED",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RECIPE.json",
       "sha256": "115fdaf8779409bae349f02923b681031d95c3d505489bf5065f389ed46c2527"
@@ -52052,7 +52079,7 @@
       "sha256": "73596ce0671d681b15a9c6bc1249d9e77b8b35921fb6df168b58acbe7c2e9cd4"
     },
     "max_invocations": 4,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
     "relaunch_allowed": false,
     "training_rounds": 1,
@@ -52063,18 +52090,90 @@
     "max_optimizer_updates": 2976,
     "train_parent_rows": 47602,
     "scope": "One fixed TRAIN pass; up to4 guarded windows share a single durable trajectory and scoring. Never4trainingarms. No TEST/trading.",
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "failed_invocations": 1,
+    "unclaimed_invocations_revoked": [
+      2,
+      3,
+      4
+    ],
+    "training_updates_complete": 2976,
+    "training_rows_complete": 47602,
+    "training_integrity": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/TRAINING_INTEGRITY.json",
+      "sha256": "fab5f0d40e01d27e0d91ca0dd43a004e40f40d2cf4c9a711e56cc5be30843a34"
+    },
+    "task_disabled": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/POWER_AFTER_TRAINING_FAILURE.json",
+      "sha256": "3dd75a13ca51a2358eba3d5c6fd056005bd151bd07422c718313ea939e909015"
+    }
+  },
+  "dynamic_mtf_state_scoring_recovery_20261102_001": {
+    "status": "ADMITTED_EXACT_FIRST_SCORING_ZERO_UPDATES",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RECIPE.json",
+      "sha256": "b2eb3f21fd99218286a3381e84127a905a34522d47e144bb7d71629d3250dede"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RUNTIME",
+    "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001",
+    "metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RECIPE_METADATA_REVIEW.json",
+      "sha256": "4e689e3b2f2a9ed1139829e24763f99ce84a515afe9e0544a034a24a7c8ea92e"
+    },
+    "source_checks": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_008/RESULT.json",
+      "sha256": "b48c7d6cc9f6e3c2f5875461dc119849f4c46ec76d041490ed86e14f987bb600"
+    },
+    "materializer": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/materialize_scoring_recovery_once.py",
+      "sha256": "edbc5cd53e168eec893444d8e3f4aab1b47ea1056f04d78bbe9581f756b00244"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "488a3c9617c82d51ce0803d352632e97354f7c60815d1fbbafa78bc643c60589"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "max_new_optimizer_updates": 0,
+    "max_new_backwards": 0,
+    "max_forward_calls": 4057,
+    "original_training_passes": 1,
+    "fresh_windows_boot_required": true,
+    "power_limit_w": 250,
+    "scope": "First complete fullTRAIN and laterQ1 measurements of preserved exact dynamiconepass state. No newtraining or initialbaseline calls. Original failedplan remainsclosed; receiptfailure notrewritten.",
     "campaign_preparation_authorized": true,
     "execution_authorized": true,
     "data_reads_authorized": true,
     "genuine_constructor_authorized": true,
     "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
     "native_launch_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "zero_update_scoring_recovery_authorized": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,

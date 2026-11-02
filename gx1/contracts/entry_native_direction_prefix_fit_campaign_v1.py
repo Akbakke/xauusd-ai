@@ -298,6 +298,10 @@ def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, pr
         'full_epoch_training_allowed', 'test_data_used', 'predictive_value_claimed',
         'qualification_weights_for_main_fit', 'target_manifest', 'target_sources', 'label_audit',
         'full_feature_profile'}
+    recovery = is_scoring_recovery(value)
+    _require(not (private_scope and recovery), 'STATE_PRIVATE_RECOVERY')
+    if recovery:
+        fields |= {'scoring_recovery_origin'}
     if private_scope:
         fields |= {'max_private_updates', 'max_model_constructions', 'max_forwards', 'max_backwards',
             'qualification_parent_rows'}
@@ -317,11 +321,11 @@ def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, pr
     expected = {'max_checkpoint_bytes':1073741824,
         'max_published_json_bytes':33554432 if private_scope else 67108864}
     expected.update({'max_private_updates':4, 'max_model_constructions':3, 'max_forwards':21,
-        'max_backwards':4} if private_scope else {'train_passes':1, 'max_windows':4,
+        'max_backwards':4} if private_scope else {'train_passes':1, 'max_windows':1 if recovery else 4,
         'initial_measurement_rows':256, 'final_train_measurement_rows':47602, 'eval_batch_size':16,
         'checkpoint_every_updates':256, 'max_checkpoint_total_bytes':4294967296})
     _require(all(type(recipe[k]) is int and recipe[k] == v for k, v in expected.items()), 'STATE_BUDGET')
-    for key, expected_value in {'training_enabled':True, 'full_epoch_training_allowed':not private_scope,
+    for key, expected_value in {'training_enabled':not recovery, 'full_epoch_training_allowed':not (private_scope or recovery),
             'test_data_used':False, 'predictive_value_claimed':False,
             'qualification_weights_for_main_fit':False}.items():
         _require(recipe[key] is expected_value, 'STATE_AUTHORITY:' + key)
@@ -372,14 +376,24 @@ def require_dynamic_state_qualification(recipe, *, source_repo, source_commit):
     refs = {key:campaign.require_binding(review[key], label='state qualification ' + key, verify_file=True)
         for key in ('plan', 'result', 'receipt', 'initial_report', 'power_after')}
     plan = campaign.read_bound_json(Path(refs['plan']['path']), refs['plan']['sha256'])
-    prior = private.require_research_launch_recipe(plan['recipe'], source_repo=source_repo, source_commit=plan['source_commit'])
+    qualified_recipe = recipe
+    if is_scoring_recovery(recipe):
+        recovered = require_scoring_recovery_origin(recipe, source_repo=source_repo, source_commit=source_commit)
+        qualified_recipe = recovered['original_recipe']
+        # The exact closed fit already admitted these private receipts. Recheck their
+        # bytes and evidence; only the proved control changes may differ now.
+        prior = campaign.read_bound_json(Path(plan['recipe']['path']), plan['recipe']['sha256'])
+        _require(prior.get('recipe_sha256') == campaign.canonical_sha256(
+            {k:v for k,v in prior.items() if k != 'recipe_sha256'}), 'STATE_NATIVE_HISTORICAL_RECIPE_SEAL')
+    else:
+        prior = private.require_research_launch_recipe(plan['recipe'], source_repo=source_repo, source_commit=plan['source_commit'])
     result = campaign.read_bound_json(Path(refs['result']['path']), refs['result']['sha256'])
     receipt = campaign.read_bound_json(Path(refs['receipt']['path']), refs['receipt']['sha256'])
     initial = campaign.read_bound_json(Path(refs['initial_report']['path']), refs['initial_report']['sha256'])
     power = campaign.read_bound_json(Path(refs['power_after']['path']), refs['power_after']['sha256'])
     audit = campaign.read_bound_json(Path(recipe['label_audit']['path']), recipe['label_audit']['sha256'])
     _require(prior['run_scope'] == private.DYNAMIC_STATE_PRIVATE_SCOPE
-        and all(prior[key] == recipe[key] for key in ('input_manifest', 'target_manifest', 'target_sources',
+        and all(prior[key] == qualified_recipe[key] for key in ('input_manifest', 'target_manifest', 'target_sources',
             'label_audit', 'fold', 'source_owners', 'full_feature_profile'))
         and {k:v for k,v in prior['numerical_recipe'].items() if k not in ('max_updates', 'contract_sha256')}
             == {k:v for k,v in recipe['numerical_recipe'].items() if k not in ('max_updates', 'contract_sha256')},
@@ -503,13 +517,33 @@ SCORING_RECOVERY_CONTROL_CHANGES = {
 }
 
 
+DYNAMIC_SCORING_RECOVERY_IDENTITY = {
+    'origin_schema':'gx1_dynamic_state_terminal_scoring_recovery_origin_v1',
+    'source_head':'6b7993ca4659f3f369b84bddec79d6ed987f0631',
+    'state_seal':'1d4aa534ded06d08c35c8f4e027c18751f6a365552c69a33b9ad22f8ee729643',
+    'closure_review':{
+        'path':'/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/TERMINAL_FAILURE_CLOSURE.json',
+        'sha256':'6bbda612b6eb65b5b15197fea1bba9158e5ff4e767c2e39abd9fc91c3e714108'},
+}
+DYNAMIC_SCORING_RECOVERY_CONTROL_CHANGES = {
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': (
+        ('require_dynamic_state_launch_recipe', 'require_dynamic_state_qualification', 'scoring_recovery_identity',
+         '_require_scoring_recovery_source_equivalence', 'require_scoring_recovery_origin', 'require_prefix_fit_cursor'),
+        ('_require_dynamic_state_scoring_recovery_origin',),
+        ('DYNAMIC_SCORING_RECOVERY_IDENTITY', 'DYNAMIC_SCORING_RECOVERY_CONTROL_CHANGES')),
+    'gx1/scripts/run_entry_native_direction_research_window_v1.py': (('_install_read_guard',), (), ()),
+}
+
+
 def is_scoring_recovery(recipe):
     """Presence selects the strict recovery validator, never grants authority."""
     return 'scoring_recovery_origin' in recipe
 
 
 def scoring_recovery_identity(family_arm):
-    """Only the two observed, closed interruptions have recovery identities."""
+    """Only exact observed, closed interruptions have recovery identities."""
+    if family_arm == DYNAMIC_STATE_SCOPE:
+        return dict(DYNAMIC_SCORING_RECOVERY_IDENTITY)
     if family_arm == 'chart_geometry_encoder':
         return dict(CHART_SCORING_RECOVERY_IDENTITY)
     _require(family_arm == 'session_regime_encoder', 'RECOVERY_ARM')
@@ -527,9 +561,10 @@ def _require_scoring_recovery_source_equivalence(source_repo, original, current)
     """Only named launch/control definitions may change; numerical source is byte-identical."""
     import ast
     import subprocess
-    identity = scoring_recovery_identity(original.get('family_arm'))
-    chart = original['family_arm'] == 'chart_geometry_encoder'
-    control_changes = ({
+    dynamic = original.get('run_scope') == DYNAMIC_STATE_SCOPE
+    identity = scoring_recovery_identity(DYNAMIC_STATE_SCOPE if dynamic else original.get('family_arm'))
+    chart = original.get('family_arm') == 'chart_geometry_encoder'
+    control_changes = DYNAMIC_SCORING_RECOVERY_CONTROL_CHANGES if dynamic else ({
         'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': (
             ('require_prefix_fit_launch_recipe', 'require_scoring_recovery_origin',
              '_require_scoring_recovery_source_equivalence'),
@@ -571,14 +606,105 @@ def _require_scoring_recovery_source_equivalence(source_repo, original, current)
                 and constants == (old_assignments if old else assignments), 'RECOVERY_CONTROL_NODE_SET:'+path)
             return kept
         _require(unchanged(before,True) == unchanged(after,False), 'RECOVERY_NONCONTROL_SOURCE_CHANGED:'+path)
-    if chart:
+    if chart or dynamic:
         _require({path for path in before_owners if before_owners[path] != after_owners[path]} == set(control_changes),
-            'RECOVERY_CHART_CHANGED_OWNER_SET')
+            'RECOVERY_CHANGED_OWNER_SET')
+
+
+def _require_dynamic_state_scoring_recovery_origin(recipe, *, source_repo, source_commit):
+    """One closed terminal-validator failure; no receipt or new training is invented."""
+    identity = scoring_recovery_identity(DYNAMIC_STATE_SCOPE)
+    origin = recipe.get('scoring_recovery_origin')
+    fields = {'schema_version', 'original_source_head', 'original_recipe', 'original_plan',
+        'training_cursor', 'state_integrity', 'closure_review'}
+    _require(isinstance(origin, Mapping) and set(origin) == fields
+        and origin['schema_version'] == identity['origin_schema']
+        and origin['original_source_head'] == identity['source_head']
+        and origin['closure_review'] == identity['closure_review']
+        and recipe['run_scope'] == DYNAMIC_STATE_SCOPE and recipe['max_windows'] == 1
+        and recipe['training_enabled'] is recipe['full_epoch_training_allowed'] is False,
+        'STATE_RECOVERY_ORIGIN_ROLE')
+    def read(ref, label):
+        bound = campaign.require_binding(ref, label=label, verify_file=True)
+        return campaign.read_bound_json(Path(bound['path']), bound['sha256'])
+    closure = read(origin['closure_review'], 'state recovery closure')
+    _require(closure['schema_version'] == 'gx1_dynamic_state_terminal_failure_closure_v1'
+        and closure['status'] == 'CLOSED_COMPLETED_TRAINING_TERMINAL_VALIDATOR_FAILED'
+        and closure['original_source_head'] == identity['source_head']
+        and closure['state_seal'] == identity['state_seal']
+        and closure['native_exit_code_known'] is True and closure['native_exit_code'] == 1
+        and closure['ordinary_receipt_present'] is closure['original_relaunch_allowed'] is False
+        and closure['originals_modified'] is closure['recovery_execution_authorized'] is closure['test_data_used'] is False
+        and closure['training_state_preserved'] is True and closure['active_native_pids'] == []
+        and closure['revoked_invocations'] == [2, 3, 4], 'STATE_RECOVERY_CLOSED_ORIGINAL')
+    refs = closure['references']
+    _require(origin['state_integrity'] == closure['training_integrity']
+        and all(origin[key] == refs[key] for key in ('original_recipe', 'original_plan', 'training_cursor')),
+        'STATE_RECOVERY_CLOSURE_REFS')
+    integrity = read(origin['state_integrity'], 'state training integrity')
+    _require(integrity['schema_version'] == 'gx1_dynamic_state_training_integrity_v1'
+        and integrity['status'] == 'TRAINING_STATE_BYTES_PRESERVED_TERMINAL_VALIDATOR_FAILED'
+        and integrity['references'] == refs and integrity['original_source_head'] == identity['source_head']
+        and integrity['state_seal'] == identity['state_seal']
+        and integrity['completed_training_updates'] == 2976 and integrity['training_parents'] == 47602
+        and integrity['training_passes'] == 1 and integrity['training_guard_exit_code'] == 1
+        and integrity['new_model_forwards'] == integrity['new_optimizer_updates'] == 0
+        and integrity['full_train_scoring_complete'] is integrity['later_scoring_complete'] is False
+        and integrity['ordinary_receipt_present'] is integrity['observer_exit_code_known'] is False
+        and integrity['observer_exit_code'] is None and integrity['test_data_used'] is False,
+        'STATE_RECOVERY_INTEGRITY')
+    policy = read(closure['closed_policy'], 'state recovery closed policy')
+    gate = policy[closure['closed_stage']]
+    _require(gate['status'] == 'CONSUMED_TRAINING_COMPLETE_TERMINAL_VALIDATOR_FAILED'
+        and gate['recipe'] == origin['original_recipe'] and gate['claimed_invocations'] == gate['failed_invocations'] == 1
+        and gate['completed_invocations'] == 0 and gate['unclaimed_invocations_revoked'] == [2, 3, 4]
+        and all(gate[key] is False for key in ('execution_authorized', 'training_enabled', 'native_training_enabled',
+            'full_epoch_training_allowed', 'native_launch_authorized', 'genuine_updates_authorized', 'relaunch_allowed'))
+        and all(policy[key] is False for key in ('training_enabled', 'native_training_enabled', 'full_epoch_training_allowed')),
+        'STATE_RECOVERY_CLOSED_POLICY')
+    original = read(origin['original_recipe'], 'state recovery original recipe')
+    _require(original['schema_version'] == RECIPE_SCHEMA and original['run_scope'] == DYNAMIC_STATE_SCOPE
+        and original['recipe_sha256'] == campaign.canonical_sha256({k:v for k,v in original.items() if k != 'recipe_sha256'})
+        and original['train_passes'] == 1 and original['max_windows'] == 4
+        and original['training_enabled'] is original['full_epoch_training_allowed'] is True,
+        'STATE_RECOVERY_ORIGINAL_RECIPE')
+    allowed = {'recipe_sha256', 'source_owners', 'runtime_root', 'admission_stage', 'execution_binding_path',
+        'max_windows', 'training_enabled', 'full_epoch_training_allowed', 'scoring_recovery_origin'}
+    _require({k:v for k,v in original.items() if k not in allowed} ==
+        {k:v for k,v in recipe.items() if k not in allowed}, 'RECOVERY_NUMERICAL_RECIPE_CHANGED')
+    old_runtime, new_runtime = Path(original['runtime_root']), Path(recipe['runtime_root'])
+    _require(new_runtime != old_runtime and old_runtime not in new_runtime.parents and new_runtime not in old_runtime.parents
+        and recipe['admission_stage'] != original['admission_stage'], 'RECOVERY_NEW_RUNTIME')
+    plan = read(origin['original_plan'], 'state recovery original plan')
+    execution = read(refs['execution_binding'], 'state recovery original execution')
+    _require(plan['source_commit'] == execution['source_head'] == identity['source_head']
+        and plan['recipe'] == origin['original_recipe'] and plan['runtime_root'] == str(old_runtime)
+        and plan['plan_sha256'] == campaign.canonical_sha256({k:v for k,v in plan.items() if k != 'plan_sha256'})
+        and execution['plan'] == origin['original_plan'], 'STATE_RECOVERY_ORIGINAL_PLAN')
+    cursor = require_prefix_fit_cursor(read(origin['training_cursor'], 'state recovery terminal cursor'),
+        expected_recipe=origin['original_recipe'], expected_fold=recipe['fold'], verify_files=True)
+    result = read(cursor['result'], 'state recovery terminal result')
+    _require(cursor['parent_cursor'] == result['parent_cursor'] == 47602
+        and cursor['optimizer_updates'] == result['optimizer_updates'] == 2976
+        and cursor['phase_state'] == result['phase_state'] == 'SCORING'
+        and cursor['outcome'] == result['outcome'] == 'RESUMABLE'
+        and cursor['oof_cursor'] == 0 and cursor['final_train_measurement'] is None
+        and cursor['full_state'] == refs['full_state'] == result['durable_checkpoint']['state']
+        and cursor['own_initial_state'] == refs['own_initial_state']
+        and cursor['initial_measurement'] == refs['initial_measurement']
+        and cursor['result'] == refs['training_result'] and result['recipe'] == origin['original_recipe']
+        and result['durable_checkpoint']['contract_sha256'] == identity['state_seal']
+        and result['counts'] == integrity['counts'] and result['source_unchanged'] is True
+        and result['test_data_used'] is False and result['error'] is None, 'STATE_RECOVERY_TRAINING_STATE')
+    _require_scoring_recovery_source_equivalence(source_repo, original, recipe)
+    return {'origin':dict(origin), 'original_recipe':original, 'cursor':cursor, 'identity':identity}
 
 
 def require_scoring_recovery_origin(recipe, *, source_repo, source_commit):
     """Validate either exact observed interruption; no generic checkpoint import."""
     import subprocess
+    if recipe.get('run_scope') == DYNAMIC_STATE_SCOPE:
+        return _require_dynamic_state_scoring_recovery_origin(recipe, source_repo=source_repo, source_commit=source_commit)
     identity = scoring_recovery_identity(recipe.get('family_arm'))
     origin = recipe.get('scoring_recovery_origin')
     fields = {'schema_version','family_arm','original_source_head','original_recipe','original_plan',
@@ -1346,12 +1472,25 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     if result['feature_view_identity'] is not None:
         result['feature_view_identity'] = _view_identity(result['feature_view_identity'], verify_files=verify_files)
         if launch is not None:
-            prefix = _input_manifest(launch)['prefix_normalization']; bound = result['feature_view_identity']['prefix_normalization']
-            _require(bound['binding'] == prefix['output'] and all(bound[target] == prefix[source] for target,source in (
-                ('contract_sha256','combined_contract_sha256'),('base_sha256','base_normalization_sha256'),
-                ('gc_layout_sha256','gc_layout_sha256'),('gc_normalization_sha256','gc_normalization_sha256')))
-                and result['feature_view_identity']['research_objective_sha256'] == launch['numerical_recipe']['research_objective_sha256'],
-                'CURSOR_INPUT_VIEW_IDENTITY')
+            bound = result['feature_view_identity']['prefix_normalization']
+            if launch.get('run_scope') == DYNAMIC_STATE_SCOPE:
+                manifest = require_dynamic_state_input_manifest(launch['input_manifest'],
+                    fold=fold, source_owners=launch['source_owners'])
+                ref = manifest['prefix_normalization']
+                fitted = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+                expected = {'binding':ref, 'contract_sha256':fitted['contract_sha256'],
+                    'base_sha256':fitted['base_normalization']['contract_sha256'],
+                    'gc_layout_sha256':fitted['gc_mtf_history']['layout']['contract_sha256'],
+                    'gc_normalization_sha256':fitted['gc_mtf_history']['normalization']['contract_sha256'],
+                    'qualification_sha256':fitted['prefix_qualification']['contract_sha256']}
+                matches = bound == expected
+            else:
+                prefix = _input_manifest(launch)['prefix_normalization']
+                matches = bound['binding'] == prefix['output'] and all(bound[target] == prefix[source] for target,source in (
+                    ('contract_sha256','combined_contract_sha256'),('base_sha256','base_normalization_sha256'),
+                    ('gc_layout_sha256','gc_layout_sha256'),('gc_normalization_sha256','gc_normalization_sha256')))
+            _require(matches and result['feature_view_identity']['research_objective_sha256'] ==
+                launch['numerical_recipe']['research_objective_sha256'], 'CURSOR_INPUT_VIEW_IDENTITY')
     else:
         _require(premodel_failure, 'CURSOR_MISSING_VIEW')
     for key in ('full_state','own_initial_state','initial_measurement'):

@@ -160,14 +160,17 @@ def test_semantic_evidence_mismatch_rejected(recovery_fixture,monkeypatch,nested
     with pytest.raises(campaign.RandomAccessCampaignError):require(f)
 
 
-def test_control_transition_preserves_numerical_bytes(tmp_path,monkeypatch):
+@pytest.mark.parametrize('dynamic',[False,True])
+def test_control_transition_preserves_numerical_bytes(tmp_path,monkeypatch,dynamic):
     repo=tmp_path; path='control.py'
     before=b'def control():\n    return 1\n\ndef numerical():\n    return 8\n'
     after=b'def control():\n    return 2\n\ndef numerical():\n    return 8\n'
     (repo/path).write_bytes(after)
     def ref(raw):return {'path':str(repo/path),'sha256':hashlib.sha256(raw).hexdigest()}
     original={'family_arm':'session_regime_encoder','source_owners':{path:ref(before)}};current={'source_owners':{path:ref(after)}}
-    monkeypatch.setattr(owner,'SCORING_RECOVERY_CONTROL_CHANGES',{path:(('control',),(),())})
+    if dynamic:original['run_scope']=owner.DYNAMIC_STATE_SCOPE
+    monkeypatch.setattr(owner,'DYNAMIC_SCORING_RECOVERY_CONTROL_CHANGES' if dynamic else 'SCORING_RECOVERY_CONTROL_CHANGES',
+        {path:(('control',),(),())})
     monkeypatch.setattr(subprocess,'check_output',lambda *a,**k:before)
     owner._require_scoring_recovery_source_equivalence(repo,original,current)
     changed=after.replace(b'return 8',b'return 9');(repo/path).write_bytes(changed)
@@ -277,21 +280,24 @@ def test_readiness_opens_scoring_only(base_fixture,monkeypatch,fault):
         assert scope['full_epoch_training_allowed'] is False
 
 
-@pytest.mark.parametrize('arm', ['session_regime_encoder','chart_geometry_encoder'])
+@pytest.mark.parametrize('arm', ['session_regime_encoder','chart_geometry_encoder',owner.DYNAMIC_STATE_SCOPE])
 def test_read_guard_accepts_only_original_state_pair_and_rejects_writes(tmp_path,monkeypatch,arm):
     import os
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
     identity=owner.scoring_recovery_identity(arm)
     root=str(Path(identity['closure_review']['path']).parent/'RUNTIME/prefix-fit/states')
     paths=(root+'/w0001_TERMINAL_u002976_p047602.pt',root+'/INITIAL_0U.pt')
-    origin={'family_arm':arm,'closure_review':identity['closure_review'],'original_recipe':{'path':'/synthetic','sha256':'a'*64}}
+    origin={'schema_version':identity['origin_schema'],'original_source_head':identity['source_head'],
+        'closure_review':identity['closure_review'],'original_recipe':{'path':'/synthetic','sha256':'a'*64}}
+    dynamic=arm==owner.DYNAMIC_STATE_SCOPE
+    if not dynamic:origin['family_arm']=arm
     saved={'recipe':origin['original_recipe'],'parent_cursor':47602,'optimizer_updates':2976,'phase_state':'SCORING',
         'full_state':{'path':paths[0],'sha256':'b'*64},'own_initial_state':{'path':paths[1],'sha256':'c'*64}}
     context={'ancestor_plan':{'payloads':{},'native_cache_dir':'/synthetic/cache',
         'gc_surfaces':{'path':'/synthetic/gc/surface.npy'}},
         'info':{'metadata':{},'audit':{'manifest_path':'/synthetic/forbidden'}},
-        'scoring_recovery_read_authority':{'launch':{'run_scope':owner.FAMILY_SIGN_SCOPE,
-            'family_arm':arm,'scoring_recovery_origin':origin},
+        'scoring_recovery_read_authority':{'launch':{'run_scope':owner.DYNAMIC_STATE_SCOPE if dynamic else owner.FAMILY_SIGN_SCOPE,
+            **({} if dynamic else {'family_arm':arm}),'scoring_recovery_origin':origin},
             'validated_origin':{'origin':origin,'cursor':saved}}}
     hooks=[];monkeypatch.setattr(common.sys,'addaudithook',hooks.append)
     common._install_read_guard(context,tmp_path/'output',tmp_path/'runtime',extra_read_paths=paths)
@@ -383,3 +389,21 @@ def test_chart_transition_has_exact_three_changed_owners(tmp_path,monkeypatch):
     after[runner]=saved
     after[prefix]=after[prefix].replace('def scoring_recovery_identity():','def foreign_selector():')
     with pytest.raises(campaign.RandomAccessCampaignError,match='CONTROL_NODE_SET'):check()
+
+
+@pytest.mark.parametrize('fault',['max_windows','training_enabled','full_epoch_training_allowed','source_head','closure','extra_receipt'])
+def test_dynamic_recovery_rejects_expanded_or_foreign_origin_before_reads(tmp_path,fault):
+    identity=owner.scoring_recovery_identity(owner.DYNAMIC_STATE_SCOPE)
+    dummy={'path':str(tmp_path/'never_opened.json'),'sha256':'a'*64}
+    origin={'schema_version':identity['origin_schema'],'original_source_head':identity['source_head'],
+        'original_recipe':dummy,'original_plan':dummy,'training_cursor':dummy,'state_integrity':dummy,
+        'closure_review':identity['closure_review']}
+    recipe={'run_scope':owner.DYNAMIC_STATE_SCOPE,'max_windows':1,'training_enabled':False,
+        'full_epoch_training_allowed':False,'scoring_recovery_origin':origin}
+    if fault=='max_windows':recipe[fault]=4
+    elif fault in ('training_enabled','full_epoch_training_allowed'):recipe[fault]=True
+    elif fault=='source_head':origin['original_source_head']='a'*40
+    elif fault=='closure':origin['closure_review']=dummy
+    else:origin['training_receipt']=dummy
+    with pytest.raises(RuntimeError,match='STATE_RECOVERY_ORIGIN_ROLE'):
+        owner.require_scoring_recovery_origin(recipe,source_repo=tmp_path,source_commit='b'*40)

@@ -726,7 +726,7 @@
     "launch_status": "Necessary source/target preparation and genuine qualification, then safe reboot and ONE short training are user-authorized. Exact execution gates remain closed until the new function is qualified and admitted; TEST/trading remain closed."
   },
   "current_short_training_preparation": {
-    "status": "DYNAMIC_STATE_TRAIN_LABEL_AUDIT_COMPLETE_D1_FLAT_SUPPORT_BLOCKED",
+    "status": "DYNAMIC_STATE_FIRST_SCORING_ADMITTED_ZERO_UPDATES",
     "name": "full_xau_gc_mtf_entry_research_v1",
     "pure_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
@@ -1362,7 +1362,7 @@
       }
     },
     "onepass_fit": {
-      "status": "ADMITTED_EXACT_SINGLE_DYNAMIC_STATE_ONEPASS",
+      "status": "CONSUMED_TRAINING_COMPLETE_TERMINAL_VALIDATOR_FAILED",
       "recipe": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RECIPE.json",
         "sha256": "115fdaf8779409bae349f02923b681031d95c3d505489bf5065f389ed46c2527"
@@ -1377,7 +1377,33 @@
       },
       "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/RUNTIME",
       "training_rounds": 1,
-      "weights_from_private": false
+      "weights_from_private": false,
+      "training_integrity": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIT_ONEPASS_001/TRAINING_INTEGRITY.json",
+        "sha256": "fab5f0d40e01d27e0d91ca0dd43a004e40f40d2cf4c9a711e56cc5be30843a34"
+      },
+      "training_pass_complete": true,
+      "elapsed_seconds": 7980.0582324960005,
+      "full_train_scoring_complete": false,
+      "later_scoring_complete": false
+    },
+    "scoring_recovery": {
+      "status": "ADMITTED_EXACT_FIRST_SCORING_ZERO_UPDATES",
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RECIPE.json",
+        "sha256": "b2eb3f21fd99218286a3381e84127a905a34522d47e144bb7d71629d3250dede"
+      },
+      "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RUNTIME",
+      "metadata_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SCORING_RECOVERY_001/RECIPE_METADATA_REVIEW.json",
+        "sha256": "4e689e3b2f2a9ed1139829e24763f99ce84a515afe9e0544a034a24a7c8ea92e"
+      },
+      "source_checks": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SOURCE_CHECK_008/RESULT.json",
+        "sha256": "b48c7d6cc9f6e3c2f5875461dc119849f4c46ec76d041490ed86e14f987bb600"
+      },
+      "max_new_optimizer_updates": 0,
+      "max_forward_calls": 4057
     }
   }
 }

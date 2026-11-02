@@ -147,15 +147,19 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
         matched=context.get('factor_continuation_reads')
         recovered=context.get('scoring_recovery_read_authority')
         if recovered is not None:
-            from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import scoring_recovery_identity, FAMILY_SIGN_SCOPE
+            from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import scoring_recovery_identity, FAMILY_SIGN_SCOPE, DYNAMIC_STATE_SCOPE
             _require(isinstance(recovered,dict) and set(recovered)=={'launch','validated_origin'},
                 'RECOVERY_READ_AUTHORITY')
             launch=recovered['launch']; validated=recovered['validated_origin']
             origin=validated['origin'];cursor=validated['cursor']
-            identity=scoring_recovery_identity(launch.get('family_arm'))
+            dynamic=launch.get('run_scope')==DYNAMIC_STATE_SCOPE
+            identity=scoring_recovery_identity(DYNAMIC_STATE_SCOPE if dynamic else launch.get('family_arm'))
             root=str(Path(identity['closure_review']['path']).parent/'RUNTIME'/'prefix-fit'/'states')
             expected=(root+'/w0001_TERMINAL_u002976_p047602.pt',root+'/INITIAL_0U.pt')
-            _require(launch.get('run_scope')==FAMILY_SIGN_SCOPE and origin.get('family_arm')==launch.get('family_arm')
+            _require((dynamic or (launch.get('run_scope')==FAMILY_SIGN_SCOPE
+                    and origin.get('family_arm')==launch.get('family_arm')))
+                and origin.get('schema_version')==identity['origin_schema']
+                and origin.get('original_source_head')==identity['source_head']
                 and origin==launch.get('scoring_recovery_origin') and origin['closure_review']==identity['closure_review']
                 and cursor['recipe']==origin['original_recipe']
                 and cursor['parent_cursor']==47602 and cursor['optimizer_updates']==2976 and cursor['phase_state']=='SCORING'
