@@ -36,6 +36,8 @@ Radidentiteter, beslutningstider og merkingsmasker ble koblet eksakt. Tallene un
 
 Dette viser målbar tilpasning på treningsutvalget, ikke generalisering eller at alle indikatorer gir nyttig informasjon. På samme 256 falt FLAT-recall fra om lag 70–78 % ved tilfeldig initialisering til omtrent null etter trening; den initielle modellens samlede presisjon og log-loss var samtidig mye svakere. På senere data er FLAT-recall nøyaktig 0 på alle fem tidsrammer. FLAT finnes likevel i målgrunnlaget: på tvers av observerte senere parent/lead-celler er andelen ca. 14,5 % for M5 og 0,78 % for D1.
 
+En separat sammenligning av de lagrede initial- og sluttvektene viser at alle 641 aktive parametertensorer ble endret, og at alle hadde AdamW-tilstand med 2 976 steg. De 179 inaktive tensorene og de uforanderlige bufferne var uendret. Alle 128 vektene i FLAT-raden i starthodet ble endret, og optimizer-momentene i starthodet og overgangshodet var ikke null. FLAT-hodet var altså ikke fryst eller utelatt fra optimizer. Parameterendringer og ikke-null optimizer-momenter beviser ikke at hver indikator bidrar prediktivt. Kontrollen leste lagrede tensorer på CPU uten å konstruere eller kjøre en modell.
+
 ## Skifter og tilgjengelighet
 
 Den opprinnelige metoden valgte aldri et skifte som det mest sannsynlige paret av to påfølgende tilstander, men det betyr ikke at skiftesannsynligheten er null eller at den mest sannsynlige marginale tilstandskurven aldri endrer seg. Den følgende ekstra analysen bruker de lagrede marginalene. Utvalget omfatter også kjent nåtilstand til første prognoseminutt, og utelater par der modellens mest sannsynlige tilstand er uavgjort ved et endepunkt. Faktiske skifter betyr faktiske skifter innen dette felles utvalget. Et treff krever at begge tilstandsendepunktene er observerbare og at både fra-/tilklasse og nøyaktig minutt stemmer. Ukjente minutter blir ikke interpolert. Tallene er overlappende prognosemuligheter, ikke antall unike markedshendelser.
@@ -49,6 +51,8 @@ Den opprinnelige metoden valgte aldri et skifte som det mest sannsynlige paret a
 | D1 | 13 000 / 1 325 / 12 866 | 4 742 / 0 / 7 735 | 11 / 0 / 8 |
 
 Den opprinnelige timingen krevde et helt observerbart vindu på 1 440 minutter og fikk null gyldige vinduer. Tilleggsanalysen stopper derfor første-skifte-timing ved første ukjente eller uavgjorte minutt og teller separate observerte endepunktpar også senere. Dette gir et begrenset, men faktisk målbart hendelsesbilde; det rekonstruerer ikke intraminutt-rekkefølge eller bevegelser gjennom hull. Tilsvarende additive felt er nå implementert i den ordinære rapportkoden for fremtidige evalueringer, uten å endre de opprinnelige feltene. De bestod 15 syntetiske tester og en sammenligning mot 256 lagrede utviklingsrader; de tidligere rapportene er ikke skrevet om. M5 hadde kjent nåtilstand og minst ett observerbart, entydig innledende prognoseminutt i 7 046 av 17 288 senere rader.
+
+En egen kontroll på unike, påfølgende observerbare M1-endepunkter undersøkte om M5-skiftene stort sett faller sammen med endringer i ATR-terskelen. I senere utviklingsdata skjedde 6 604 av 8 298 slike skifter mens terskelen var uendret. Terskelen endret seg samtidig med 1 694 skifter; samsvar i tid viser ikke at terskelen forårsaket dem, og ukjente endepunkter er utelatt. Dette gir ikke grunnlag for å endre den vedtatte 0,5-ATR-regelen.
 
 Samlet over alle ledetider er 10 597 435 av 24 894 720 mulige M5-celler observerbare i senere periode. Flere årsaksflagg kan overlappe: dokumenterte markedspauser, ukjente hull, intraminutt-tvetydighet og manglende modning må holdes atskilt. De 228 sertifiserte historiske OANDA-gapene er bare brukt som dokumenterte markedspauser; ingen manglende pris er fylt inn og ingen pause er automatisk FLAT.
 
@@ -101,5 +105,8 @@ Originale artefakter og sjekksummer (ingen rådata eller vekter er lagt i Git):
 
 - `causal_current_state_audit`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CAUSAL_CURRENT_STATE_AUDIT_002/RESULT.json` — SHA-256 `645ea3517c5e34ee683327024e63a27c3dbf983ea0e62d8bfdaf2f2a8992cdf1`
 - `causal_audit_first_attempt_failure`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CAUSAL_CURRENT_STATE_AUDIT_001/FAILURE.json` — SHA-256 `2288b5c51369e51cf27210ffa5639f0470c956b8dd0ee55f893bf3d69f36402e`
+
+- `saved_state_optimizer_audit`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_STATE_OPTIMIZER_AUDIT_001/RESULT.json` — SHA-256 `4262d3a64134992f5fe0c2fa14ba3df1328a2c71691591f5804362578d77c6f3`
+- `state_threshold_change_audit`: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/STATE_THRESHOLD_CHANGE_AUDIT_001/RESULT.json` — SHA-256 `ea037190de124e71871caa05ca97fe647b7652da9d5e1f640309e195fd9cb49e`
 
 TEST/Exit/handel er ikke brukt. Senere Q1 2025 er gjenbrukt utviklingsdata og ikke en forseglet blind test. Ingen handelsregel, kostnader eller økonomisk avkastning er evaluert.

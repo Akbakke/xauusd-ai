@@ -726,7 +726,7 @@
     "launch_status": "Necessary source/target preparation and genuine qualification, then safe reboot and ONE short training are user-authorized. Exact execution gates remain closed until the new function is qualified and admitted; TEST/trading remain closed."
   },
   "current_short_training_preparation": {
-    "status": "DYNAMIC_STATE_CURRENT_STATE_CLOCK_AUDITED_ONLINE_PARITY_UNPROVEN",
+    "status": "DYNAMIC_STATE_WEIGHTS_AND_THRESHOLD_AUDITED_NO_EDGE",
     "name": "full_xau_gc_mtf_entry_research_v1",
     "pure_checks": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/FULL_PROFILE_SOURCE_CHECK_001/VERIFIED_RESULT.json",
@@ -1421,7 +1421,7 @@
       "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
       "report": {
         "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
-        "sha256": "aabcae6e355558f752d3b1db988f64b5b8e1b6c6df5cda7898da02f0d4261d8c"
+        "sha256": "ee9c728b907649be477502b383c91d89e0dc187ea6dae925fd8564036284a628"
       },
       "evidence": {
         "training_integrity": {
@@ -1491,6 +1491,14 @@
         "causal_audit_first_attempt_failure": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CAUSAL_CURRENT_STATE_AUDIT_001/FAILURE.json",
           "sha256": "2288b5c51369e51cf27210ffa5639f0470c956b8dd0ee55f893bf3d69f36402e"
+        },
+        "saved_state_optimizer_audit": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_STATE_OPTIMIZER_AUDIT_001/RESULT.json",
+          "sha256": "4262d3a64134992f5fe0c2fa14ba3df1328a2c71691591f5804362578d77c6f3"
+        },
+        "state_threshold_change_audit": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/STATE_THRESHOLD_CHANGE_AUDIT_001/RESULT.json",
+          "sha256": "ea037190de124e71871caa05ca97fe647b7652da9d5e1f640309e195fd9cb49e"
         }
       },
       "later_fixed_horizons": [
@@ -1594,6 +1602,22 @@
         "online_arrival_order_proven": false,
         "online_state_persistence_proven": false,
         "model_calls": 0
+      },
+      "saved_parameter_diagnosis": {
+        "active_parameter_tensors": 641,
+        "active_tensors_changed": 641,
+        "inactive_parameter_tensors": 179,
+        "inactive_unchanged": true,
+        "optimizer_steps": 2976,
+        "initial_flat_weight_scalars_changed": 128,
+        "initial_flat_weight_scalars_total": 128,
+        "head_optimizer_moments_nonzero": true,
+        "model_calls": 0
+      },
+      "threshold_coincidence": {
+        "later_m5_observed_consecutive_state_changes": 8298,
+        "state_changes_with_unchanged_threshold": 6604,
+        "causation_inferred": false
       }
     }
   }

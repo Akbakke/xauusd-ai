@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-02T19:05:59.308791+00:00",
-  "status": "DYNAMIC_STATE_CURRENT_STATE_CLOCK_AUDITED_ONLINE_PARITY_UNPROVEN",
+  "observed_utc": "2026-11-02T19:09:24.266932+00:00",
+  "status": "DYNAMIC_STATE_WEIGHTS_AND_THRESHOLD_AUDITED_NO_EDGE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-  "next_action": "Investigate causal ONLINE event ordering and state/unknown/path-mask parity from existing code/evidence; retain saved training results. No new model, training, scoring, TEST, Exit or trading.",
+  "next_action": "Review causal ONLINE event ordering and observed state/path masks before choosing a model-input or loss design. No automatic model, training, scoring, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Latest user instruction authorizes completing dynamic five-timeframe UP/DOWN/FLAT target/source alignment and required genuine qualification, then a safe PC restart and ONE new short training round comparable to prior family one-pass runs. About2–3hours is an estimate, not a7200s hard stop. Fresh exact source/data/recipe/campaign admission is required; consumed/aborted plans remain closed. No automatic repeat/full training, TEST, broker or trading.",
-    "current_activity": "Investigate causal ONLINE event ordering and state/unknown/path-mask parity from existing code/evidence; retain saved training results. No new model, training, scoring, TEST, Exit or trading.",
+    "current_activity": "Review causal ONLINE event ordering and observed state/path masks before choosing a model-input or loss design. No automatic model, training, scoring, TEST, Exit or trading.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Historical current-state clocks pass; same-time bar/ATR delivery order and real ONLINE state persistence are not proven. No further training authorized.",
+    "current_blocker": "Current-state delivery ordering and ONLINE persistence remain unproven; model/loss changes are not qualified, and no further training is authorized.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -18049,7 +18049,7 @@
     },
     "completed_movement_forecast_review_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
     "dynamic_state_short_training_20261101": {
-      "status": "DYNAMIC_STATE_CURRENT_STATE_CLOCK_AUDITED_ONLINE_PARITY_UNPROVEN",
+      "status": "DYNAMIC_STATE_WEIGHTS_AND_THRESHOLD_AUDITED_NO_EDGE",
       "goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
       "operator_authorized_source_target_preparation": true,
       "operator_authorized_required_genuine_qualification": true,
@@ -18598,7 +18598,7 @@
         "status": "NO_DOCUMENTED_PREDICTIVE_EDGE_FLAT_RECALL_ZERO",
         "report": {
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261102.md",
-          "sha256": "aabcae6e355558f752d3b1db988f64b5b8e1b6c6df5cda7898da02f0d4261d8c"
+          "sha256": "ee9c728b907649be477502b383c91d89e0dc187ea6dae925fd8564036284a628"
         },
         "evidence": {
           "training_integrity": {
@@ -18668,6 +18668,14 @@
           "causal_audit_first_attempt_failure": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/CAUSAL_CURRENT_STATE_AUDIT_001/FAILURE.json",
             "sha256": "2288b5c51369e51cf27210ffa5639f0470c956b8dd0ee55f893bf3d69f36402e"
+          },
+          "saved_state_optimizer_audit": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/SAVED_STATE_OPTIMIZER_AUDIT_001/RESULT.json",
+            "sha256": "4262d3a64134992f5fe0c2fa14ba3df1328a2c71691591f5804362578d77c6f3"
+          },
+          "state_threshold_change_audit": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/STATE_THRESHOLD_CHANGE_AUDIT_001/RESULT.json",
+            "sha256": "ea037190de124e71871caa05ca97fe647b7652da9d5e1f640309e195fd9cb49e"
           }
         },
         "later_fixed_horizons": [
@@ -18771,6 +18779,22 @@
           "online_arrival_order_proven": false,
           "online_state_persistence_proven": false,
           "model_calls": 0
+        },
+        "saved_parameter_diagnosis": {
+          "active_parameter_tensors": 641,
+          "active_tensors_changed": 641,
+          "inactive_parameter_tensors": 179,
+          "inactive_unchanged": true,
+          "optimizer_steps": 2976,
+          "initial_flat_weight_scalars_changed": 128,
+          "initial_flat_weight_scalars_total": 128,
+          "head_optimizer_moments_nonzero": true,
+          "model_calls": 0
+        },
+        "threshold_coincidence": {
+          "later_m5_observed_consecutive_state_changes": 8298,
+          "state_changes_with_unchanged_threshold": 6604,
+          "causation_inferred": false
         }
       }
     }
