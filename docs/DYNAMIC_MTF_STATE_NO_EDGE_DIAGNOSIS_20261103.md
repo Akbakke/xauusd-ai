@@ -72,6 +72,8 @@ Kalibratoren passer én logitforskyvning for skifte ved +1 minutt per tidsramme 
 | H4 | 17 144 / 17 288 | 0,026345 / 0,019385 / 0,019559 | 0,088540 / 0,053383 / 0,058679 |
 | D1 | 16 987 / 17 288 | 0,010440 / 0,002237 / 0,002257 | 0,058513 / 0,008635 / 0,009160 |
 
+Ved +1 er **tilstandsskifte** sjeldent på lange tidsrammer. Blant senere rader med kjent nåtilstand og observert +1-fasit skiftet M5 i 1 713 / 7 046 (24,3 %), M15 i 1 577 / 14 096 (11,2 %), H1 i 618 / 16 839 (3,7 %), H4 i 168 / 17 140 (1,0 %) og D1 i bare 19 / 16 986 (0,11 %). Uendret tilstand betyr ikke at prisen sto stille; det betyr at det lokale tilstandsmerket ikke skiftet. D1s svært lave +1-Brier må derfor ikke leses som evne til å varsle en ny svingbevegelse.
+
 Den største absolutte Brier-gevinsten mot Markov er ved M5 (+1): 0,011493. Ved D1 er den bare 0,000020. Kalibreringen gjenfinner særlig nivået på skiftesannsynligheten; for eksempel steg M5 NED fra gjennomsnittlig 0,100 til observert 0,230 på TRAIN, mens D1 NED falt fra 0,104 til 0,002. Dette peker mot en konkret sannsynlighetsskala-/base-rate-svikt i råoutput, ikke mot at indikatorene nødvendigvis er ubrukelige.
 
 **Begrensning:** Kalibratoren ble tilpasset prediksjoner fra en modell som selv var trent på hele TRAIN. Utviklingsperioden er tidligere brukt til design. Det finnes ingen kronologisk OOF-kalibrering eller urørt bekreftelse. Resultatet gjelder bare første minutt, og M5s retningsklasse er observert i omtrent halvparten av foreldrerekkene. UP/NED-rangering ved +5/+15/+60/+240/+1 440 minutter forblir rundt 0,5, og FLAT-dekning/selektivitet er ikke løst. Denne kontrollen kvalifiserer verken løpende markedsprognose, Entry eller økonomisk edge.
