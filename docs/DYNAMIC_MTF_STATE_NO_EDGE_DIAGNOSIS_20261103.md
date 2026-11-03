@@ -6,6 +6,18 @@ Ingen ny native modellrunde er begrunnet av de lagrede resultatene. Det ene pass
 
 Den første revisjonen var lesning av bevarte prediksjoner, mål, checkpoints, inputbindinger og kilde. Den senere CPU-kontrollen tilpasset 15 énparameter skifteoffsets på lagret TRAIN-output og scoret disse én gang på TRAIN og gjenbrukt utvikling. Den konstruerte eller kjørte ingen native modell og gjorde ingen optimizeroppdateringer, TEST, Exit, broker eller handel. Fryst treningskilde: `13c6bb8f2f33c50806908673fa33accb5edaba63`; råmodellens ettpass-resultat og den separate kalibreringskontrollen holdes atskilt.
 
+## Bevisstatus per mulig forklaring
+
+| Forklaring | Hva eksisterende bevis viser | Status |
+|---|---|---|
+| Frakoblet data-/modellbane | Fem tidsrammer og full featureprofil er bundet; 642 aktive tensorer endret seg. Dette måler ikke indikatorenes prediktive verdi. | Ingen frakobling påvist; verdi ukjent |
+| Historisk klokke/lekkasje | TRAIN-normalisering og målcutoff er bundet før senere data. XAU-M1 og ATR har bare event-time, uten faktisk mottaksklokke. | Historisk sjekk bestått; ONLINE ukjent |
+| Feil mål | 0,5 ATR er kandidat. M5 +1-retning er bare 49,8 % observert; D1-FLATT er sjelden; terskelstørrelsen varierer 3,13–70,82 bps mellom tidsrammer. | Konkret mål-/databegrensning; ønsket grense ikke kvalifisert |
+| Feil sannsynlighetsnivå | Råmodellen holder M5-tilstand for lenge og skifter D1 for ofte allerede på TRAIN. Én TRAIN-kalibrering forbedret +1-Brier/logloss på gjenbrukt utvikling. | Målt svakhet; årsak i treningen ikke isolert |
+| Taps-/modellutforming | Sekvens-NLL vekter alle observerte minutter; første-steg-tillegg er 0,03 hver, og ingen Markov-forankring finnes. | Plausibel mekanisme, ikke kausal test |
+| Manglende framtidig retningssignal | UP/NED-AUC er rundt 0,5 ved én full native tidsramme på alle fem. Første-minutts skifter kan rangeres innen kjent nåtilstand. | Kort signal, ingen dokumentert helhorisont-edge |
+| Generalisering/økonomi | Kalibratoren bruker in-sample slutt-TRAIN og tidligere brukt utvikling; ingen streng TRAIN-OOF eller urørt bekreftelse. | Ingen uavhengig eller økonomisk edge kvalifisert |
+
 ## Matchet resultat og hvor svikten oppstår
 
 Modell og Markov ble vurdert på identiske modne, observerte målceller. Begge fikk samme historisk observerte nåtilstand; ved ukjent nåtilstand brukte referansen bare fryst TRAIN-prior. I 17 288 senere utviklingsforeldre var modellens Brier minus referansens Brier positiv på alle tidsrammer (lavere er bedre):
