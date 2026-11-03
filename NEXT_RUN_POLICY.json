@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T20:59:25.429315+00:00",
-  "status": "SAVED_FIRST_CHANGE_CALIBRATION_ATTEMPT_001_FAILED_CLOSED_20261103",
+  "observed_utc": "2026-11-03T21:03:34.194835+00:00",
+  "status": "SAVED_FIRST_CHANGE_CALIBRATION_REPLACEMENT_PREPARED_CLOSED_20261103",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring are consumed with signed terminal PASS. The newly authorized short quality check is limited to the separately bound saved-prediction CPU calibration plan after a safe PC reboot; no native model call or automatic repeat. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Attempt 001 consumed one TRAIN-only calibration fit and failed before scoring because the saved FP32 rows differ from unit sum by about 1.4e-7. Gate closed. Preserve the failure, repair only row normalization, and prepare a separate replacement plan before any further test; no native model, TEST, Exit, broker or trading.",
+  "next_action": "Replacement 002 is prepared but closed. After fresh whole-host idle and same-boot/source checks, admit exactly one CPU-only saved TRAIN calibration fit and one saved TRAIN/reused-development score. Attempt 001 remains consumed; no native model, TEST, Exit, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -19566,6 +19566,39 @@
       "trading_authorized": false,
       "observed_utc": "2026-11-03T20:40:08.706963+00:00"
     },
+    "saved_first_change_calibration_replacement_20261103": {
+      "status": "PREPARED_CLOSED_AFTER_REBOOT",
+      "authorization_source": "User updated active goal: short quality tests and training may run without asking, with PC restart before test",
+      "purpose": "One replacement of failed saved first-change calibration attempt; normalize saved FP32 rows in float64 before fit and score",
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/RECIPE.json",
+        "sha256": "caee1390d748013519f4dbf7c9189ace7a2361f26bd2755938e380315ff6bfee"
+      },
+      "script_sha256": "83cbbd63ef2784259970a5d64e0501d938d42efe3f391bcf2dbcc851a2efa21d",
+      "replaces_failure_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_001/ATTEMPT_001_FAILURE.json",
+        "sha256": "3412f68ef1312abee5bf5870f5c3e5bae252b8ebde8b9f59e36c983938ab8b17"
+      },
+      "max_calibration_fits": 1,
+      "max_scoring_passes": 1,
+      "max_native_model_calls": 0,
+      "max_optimizer_updates": 0,
+      "train_parents": 47602,
+      "reused_development_parents": 17288,
+      "reboot_pre_boot_id": 599,
+      "reboot_post_boot_id": 600,
+      "same_boot_replacement_boundary_required": true,
+      "calibration_fit_authorized": false,
+      "fit_invocations_consumed": 0,
+      "scoring_passes_completed": 0,
+      "native_model_calls_authorized": false,
+      "test_authorized": false,
+      "exit_authorized": false,
+      "broker_authorized": false,
+      "trading_authorized": false,
+      "test_data_used": false,
+      "observed_utc": "2026-11-03T21:03:34.194835+00:00"
+    },
     "saved_first_change_calibration_20261103": {
       "status": "FAILED_AFTER_TRAIN_FIT_BEFORE_SCORE_CONSUMED",
       "authorization_source": "User updated active goal: short quality tests and training may run without asking, with PC restart before test",
@@ -22164,7 +22197,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-03T20:59:25.429315+00:00",
+  "updated_utc": "2026-11-03T21:03:34.194835+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
