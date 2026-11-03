@@ -46,11 +46,11 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
   "status": "DYNAMIC_STATE_HISTORICAL_ONEPASS_20261103_001_ADMITTED_MATERIALIZATION_PENDING",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Freeze exact source and policy; materialize only this historical single-trajectory fit, verify whole-host idle/write state and fresh boot before launch. One TRAIN pass and at most one scoring; no automatic retry. Actual online delivery remains unknown. TEST, Exit, broker and trading closed.",
+  "next_action": "Historical one-pass result reviewed: TRAIN fit improved, but reused-development Brier/logloss lose to the matched Markov baseline on all five timeframes, FLAT and modal changes remain weak. Keep training closed; investigate physical ONLINE arrival and an explicitly predeclared state-change objective before any separate authorization. TEST, Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -287,8 +287,8 @@
     "latest_terminal_role": "Completed seventh matched variant through separate original training and recovered scoring chains.",
     "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/RUNTIME",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_SCORING_RECOVERY_001/VERIFIED_TERMINAL.json",
-      "sha256": "45b14620ffaa411fba4f2fd2bdf9c82ce896267a704c9afbae5cdf0287ae3adb"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/ACTUAL_TERMINAL_REVIEW_001.json",
+      "sha256": "56ff45cfb995c195bfacc8d83ebadd65ba844f344716b1aa8715842828e699ec"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -19448,7 +19448,7 @@
       "optimizer_steps": 0
     },
     "historical_event_time_onepass_authorization_20261103": {
-      "status": "EXACT_HISTORICAL_ONEPASS_ADMITTED_PREPARATION_NOT_STARTED",
+      "status": "TERMINAL_ONEPASS_REVIEWED_NO_EDGE_QUALIFIED",
       "user_answer": "Ja, ett historisk pass",
       "run_scope": "Retrospective historical event-time learning study only; actual online arrival, computation latency and persistence are unknown.",
       "train_parents": 47602,
@@ -19462,10 +19462,10 @@
       },
       "private_weights_used_for_fit": false,
       "fresh_own_initial_baseline_required": true,
-      "training_enabled": true,
-      "campaign_claimed": false,
-      "fit_started": false,
-      "scoring_started": false,
+      "training_enabled": false,
+      "campaign_claimed": true,
+      "fit_started": true,
+      "scoring_started": true,
       "safe_restart_only_after_host_checks": true,
       "automatic_repetition_authorized": false,
       "live_readiness_or_edge_claim_authorized": false,
@@ -19477,7 +19477,58 @@
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RECIPE.json",
         "sha256": "9ddf77864ff0550cfd3160fa3242e56c1de9df7afcd5acab37ca6e38b648a884"
       },
-      "campaign_preparation_authorized": true
+      "campaign_preparation_authorized": true,
+      "fit_completed": true,
+      "scoring_completed": true,
+      "train_passes_consumed": 1,
+      "completed_scorings": 1,
+      "task_state": "Disabled",
+      "source_commit": "13c6bb8f2f33c50806908673fa33accb5edaba63",
+      "terminal_artifacts": {
+        "fit_receipt": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME/receipts/invocation-0001.json",
+          "sha256": "d94769d8d20ea0f149128b60417c01887ffb96e91e4c1976b54860941860b6c7"
+        },
+        "scoring_receipt": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME/receipts/invocation-0002.json",
+          "sha256": "aa0a429d2f42aa4e042b243c77f02b58df0b087767def9d67d5657863aa07adb"
+        },
+        "cursor": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME/prefix-cursor/RESUME_CURSOR.json",
+          "sha256": "99e7b9574e9041c8d78a677a81811c9347df46554bcecaf3c33bf0e983173a30"
+        },
+        "initial_train": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME/prefix-fit/window-0001/INITIAL_TRAIN.json",
+          "sha256": "7f0f1a15aa2f03f78a82c9712a66032b91744ea847c78877702ce38c555b7147"
+        },
+        "final_train": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME/prefix-fit/window-0002/FINAL_TRAIN.json",
+          "sha256": "2125c968452502c7d072e2315e054337bb00bc202a216703d8d79be8f510c2fd"
+        },
+        "development_score": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME/prefix-fit/window-0002/OOF.json",
+          "sha256": "6c03081f9058674681ecb827d1b8235c6e3ac197d9675e5871dcd757d348c63c"
+        },
+        "result": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME/prefix-fit/window-0002/RESULT.json",
+          "sha256": "e0caff70da9c11aac2ffc29f9d376e0f7a0d7434c8528a6d8bc6137cac70d669"
+        }
+      },
+      "result_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_ONEPASS_REVIEW.json",
+        "sha256": "91f980dac2ac1c14af17bea1a5ffcef717c97b6833f881b42a2e7ece36d306de"
+      },
+      "flat_by_lead_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_OOF_FLAT_BY_LEAD.json",
+        "sha256": "b3f8dfa7b779e8ffcb685542110d46f51cb7e6ebaa06e47b1166d153b6ef138b"
+      },
+      "result_document": "docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261103.md",
+      "predictive_value_qualified": false,
+      "real_time_readiness_qualified": false,
+      "terminal_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/ACTUAL_TERMINAL_REVIEW_001.json",
+        "sha256": "56ff45cfb995c195bfacc8d83ebadd65ba844f344716b1aa8715842828e699ec"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -32828,7 +32879,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -37570,7 +37621,7 @@
     },
     "reference_identity": "S_PRICE66_247_NOT_B_R1"
   },
-  "training_enabled_scope": "CLOSED_AFTER_PRIVATE_BOOTSTRAP_POLICY_MISMATCH",
+  "training_enabled_scope": "CLOSED_AFTER_DYNAMIC_MTF_STATE_ONEPASS_20261103",
   "direction_1_60_reference_attempt001": {
     "status": "FAILED_BEFORE_DATA_CONSUMED",
     "plan": {
