@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T20:55:29.518650+00:00",
-  "status": "DYNAMIC_STATE_NO_EDGE_DIAGNOSIS_ACTIVE_READ_ONLY_20261103",
-  "training_enabled": false,
+  "observed_utc": "2026-11-03T20:56:32.022123+00:00",
+  "status": "SAVED_FIRST_CHANGE_CALIBRATION_ONEUSE_ADMITTED_POST_REBOOT_20261103",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring are consumed with signed terminal PASS. The newly authorized short quality check is limited to the separately bound saved-prediction CPU calibration plan after a safe PC reboot; no native model call or automatic repeat. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "PC reboot 599 to 600 is verified. Finish exact post-reboot admission for the one saved-prediction calibration fit and single reused-development score, then close the training gate. No native model calls, repeat, TEST, Exit, broker or trading.",
+  "next_action": "Run the single bound saved-prediction CPU calibration fit and reused-development first-minute score under gx1_capped_run, then immediately close training_enabled and review the result. No native model call, repeat, TEST, Exit, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -19567,7 +19567,7 @@
       "observed_utc": "2026-11-03T20:40:08.706963+00:00"
     },
     "saved_first_change_calibration_20261103": {
-      "status": "REBOOT_VERIFIED_ADMISSION_PENDING",
+      "status": "ADMITTED_ONEUSE_AFTER_REBOOT",
       "authorization_source": "User updated active goal: short quality tests and training may run without asking, with PC restart before test",
       "operator_short_test_authorized": true,
       "recipe": {
@@ -19583,7 +19583,8 @@
       "reused_development_parents": 17288,
       "reboot_required_before_test": true,
       "safe_reboot_authorized_only_after_whole_host_idle_check": true,
-      "calibration_fit_authorized": false,
+      "calibration_fit_authorized": true,
+      "admitted_utc": "2026-11-03T20:56:32.022123+00:00",
       "pre_boot_id": 599,
       "post_boot_id": 600,
       "windows_pre_reboot_sha256": "cb2a50cd1f8ac5dc2963cbf0e0ff639a51cf5470f35b67a1814edb9e3bf082cb",
@@ -19595,7 +19596,7 @@
       "broker_authorized": false,
       "trading_authorized": false,
       "test_data_used": false,
-      "observed_utc": "2026-11-03T20:55:29.518650+00:00"
+      "observed_utc": "2026-11-03T20:56:32.022123+00:00"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -22160,7 +22161,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-03T20:55:29.518650+00:00",
+  "updated_utc": "2026-11-03T20:56:32.022123+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
