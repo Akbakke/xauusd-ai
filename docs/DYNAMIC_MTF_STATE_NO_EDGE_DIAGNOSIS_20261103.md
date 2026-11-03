@@ -138,6 +138,18 @@ Loss er normalisert sekvens-NLL over alle observerte minutter og fem tidsrammer.
 
 Den faktiske TRAIN-kvitteringen bekrefter tapsdispatch på to lagrede grensebatcher: rapportert total er `sekvens-NLL + 0,03 × første-tilstand-NLL + 0,03 × første-FLATT-aktivitet-NLL` med avvik under 6×10⁻⁹, og gradientnormen er endelig og positiv. Første batch hadde 81 686 observerte framtidsceller; siste hadde bare 12 151. Tapene 1,0405 og 0,2248 er derfor **ikke** en matchet læringskurve. Den riktige TRAIN-læringssjekken er samme 256 foreldre før/etter fit. Denne kontrollen finner ingen aritmetisk tapsdispatchfeil, men beviser ikke at lossvektene eller designet er gode for framtidig retningspresisjon.
 
+Den signerte senere rapporten viser hvor forskjellig den observerte **sekvens-NLL per celle** er fra logloss for modellens **marginale framtidsprognose** på de samme observerte cellene:
+
+| Tidsramme | Sekvens-NLL/celle | Modellens marginale logloss | Markovs marginale logloss |
+|---|---:|---:|---:|
+| M5 | 0,728311 | 1,015613 | 1,007498 |
+| M15 | 0,398291 | 0,992113 | 0,986921 |
+| H1 | 0,166258 | 0,965562 | 0,962454 |
+| H4 | 0,056917 | 0,868079 | 0,863076 |
+| D1 | 0,011399 | 0,678129 | 0,640929 |
+
+Sekvens-NLL bruker observert tidligere tilstand der hele banen er kjent og marginaliserer ukjente mellomsteg; prognosen må derimot føre **modellens egne** sannsynligheter fremover. Betinget banetap og marginal logloss måler derfor ulike ting, og den lavere sekvens-NLL-en kan ikke brukes som bevis for framtidig presisjon. Særlig D1s 0,0114 mot 0,6781 illustrerer dette. Modellen taper mot Markov i marginal logloss på alle fem; tallforskjellen alene beviser verken feil i rekursjonen eller at en annen lossvekt ville løse problemet.
+
 ## Samsvar med brukerens prognosemål
 
 Modellen får historisk nåtilstand og genuine MTF-indikatorer og trenes mot framtidige lokale OPP/NED/FLATT-klasser på alle fem tidsrammer. Den bruker ingen fast prislinje ved prognosestart, og reverseringer kan gi flere framtidige retningsskifter. På dette punktet samsvarer målkontrakten med den løpende markedsbeskrivelsen.
@@ -176,6 +188,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/RESULT.json` | `dadafc3cc5b27b39960a73b4378bf1c89b1b069e5d479d0fec17762fcebf4d41` | Én 15-offset TRAIN-fit og én TRAIN-/gjenbrukt utviklingsscoring av lagrede +1-prediksjoner. |
 | `SAVED_SAME_MODEL_OOF_AVAILABILITY.json` | `1250cfa5f27f01e5210b09d027dff97180a9649ff4e3e89bfe51d832037def72` | Tre lagrede prediksjonssett og elleve checkpoints; ingen TRAIN-OOF-prediksjoner i denne kampanjen. |
 | `SAVED_LOSS_COMPOSITION_REVIEW.json` | `5d8ab38213a1c78c5ea439c9cf89ae92cbf54c40e1fea052f07de4a8d038a55f` | Faktisk 0,03/0,03-tapsaritmetikk på første/siste TRAIN-batch; ulike batcher er ingen læringskurve. |
+| `RUNTIME/prefix-fit/window-0002/OOF.json` | `6c03081f9058674681ecb827d1b8235c6e3ac197d9675e5871dcd757d348c63c` | Signert sekvens-NLL og marginal logloss/Brier på de samme senere observerte cellene. |
 | `TARGET_AUDIT_005/TRAIN_AUDIT.json` | `5eb6be66a7cc887efcdf891ac5af2a9a2aac61cf7a4661e8021a64a963213771` | TRAIN-only klassefordeling og faktisk 0,5 ATR-størrelse på fem tidsrammer; overlappende celler. |
 | `DYNAMIC_MTF_SAVED_CALIBRATION_20261103_001/ATTEMPT_001_FAILURE.json` | `3412f68ef1312abee5bf5870f5c3e5bae252b8ebde8b9f59e36c983938ab8b17` | Første forsøk konsumert etter FP32-summeringsvakt, før scoring. |
 | `XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json` | `138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39` | Kildekontrakt for historiske OANDA-M1-lys; barstempel og 60 s event-time-regel, ingen fysisk ankomstklokke. |
