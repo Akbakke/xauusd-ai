@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T21:09:04.284702+00:00",
+  "observed_utc": "2026-11-03T21:13:57.449512+00:00",
   "status": "SAVED_FIRST_CHANGE_CALIBRATION_REPLACEMENT_COMPLETE_CLOSED_20261103",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring are consumed with signed terminal PASS. The newly authorized short quality check is limited to the separately bound saved-prediction CPU calibration plan after a safe PC reboot; no native model call or automatic repeat. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Review the single saved calibration result and source/target limitations. It beats matched Markov Brier on reused development at first minute, but is in-sample TRAIN calibrated and development reused; no independent edge, native rerun, TEST, Exit, broker or trading.",
+  "next_action": "Continue read-only source-clock and target-semantic investigation; define chronological same-model OOF calibration and longer-lead movement evaluation before any new native pass. One saved calibration replacement is consumed; no automatic repeat, TEST, Exit, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -19531,7 +19531,7 @@
       }
     },
     "dynamic_state_no_edge_diagnosis_20261103": {
-      "status": "ACTIVE_READ_ONLY_DIAGNOSIS_DOCUMENTED",
+      "status": "ACTIVE_DIAGNOSIS_SAVED_CALIBRATION_DOCUMENTED_NO_INDEPENDENT_EDGE",
       "user_request": "Long-term overnight investigation of no added directional-state edge",
       "source_baseline_commit": "7d4b80a8ca1c0903f6ac187b0bdb7c6b1e7e4261",
       "starting_result_document": "docs/DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261103.md",
@@ -19554,8 +19554,12 @@
         "scoped_local_tick_inventory": "a7c5d2b61a0a0a909e4930d100d59b6906bde6ac6a934b5050fe40e0498437d0",
         "first_change_reliability": "8f60b213b2a0a36299e7eb6f4fd59167c53c7c8c87d3351d9d0eec67575aa514"
       },
-      "findings": "No matched Markov Brier/logloss improvement; first-step M5 overpersistence and D1 overvolatility already on TRAIN; TRAIN-defined first-change reliability bins show stable M5 probability compression into reused development; within-current-state first-minute change ranking exists, but UP/DOWN AUC is near 0.5 at one full native timeframe; on future-selected FLAT exits a simple last-M1 candle exceeds M5 model direction rank; M5 labels censored by unresolved M1 intrabar order; FLAT target highly threshold sensitive; no isolated causal code defect proven.",
-      "remaining_open": ["physical_XAU_M1_ATR_arrival_and_restart_parity", "TRAIN_only_target_semantics_and_finer_XAU_order_source", "separately_authorized_predeclared_model_design"],
+      "findings": "No matched Markov Brier/logloss improvement; first-step M5 overpersistence and D1 overvolatility already on TRAIN; TRAIN-defined first-change reliability bins show stable M5 probability compression into reused development; within-current-state first-minute change ranking exists, but UP/DOWN AUC is near 0.5 at one full native timeframe; on future-selected FLAT exits a simple last-M1 candle exceeds M5 model direction rank; M5 labels censored by unresolved M1 intrabar order; FLAT target highly threshold sensitive; no isolated causal code defect proven. A separate one-use saved TRAIN-only 15-offset calibration improved first-minute Brier/logloss versus matched Markov on all five reused-development timeframes; in-sample final TRAIN predictions and reused development preclude independent edge. The bound historical XAU M1 parquet lacks receive/calculate timestamps.",
+      "remaining_open": [
+        "physical_XAU_M1_ATR_arrival_and_restart_parity",
+        "TRAIN_only_target_semantics_and_finer_XAU_order_source",
+        "chronological_same_model_OOF_calibration_and_predeclared_longer_lead_design"
+      ],
       "new_model_calls": 0,
       "new_optimizer_updates": 0,
       "model_calls_authorized": false,
@@ -19564,7 +19568,11 @@
       "exit_authorized": false,
       "broker_authorized": false,
       "trading_authorized": false,
-      "observed_utc": "2026-11-03T20:40:08.706963+00:00"
+      "observed_utc": "2026-11-03T21:13:57.449512+00:00",
+      "saved_first_change_calibration_result": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/RESULT.json",
+        "sha256": "dadafc3cc5b27b39960a73b4378bf1c89b1b069e5d479d0fec17762fcebf4d41"
+      }
     },
     "saved_first_change_calibration_replacement_20261103": {
       "status": "COMPLETED_ONEUSE_SAVED_CALIBRATION_CLOSED",
@@ -22211,7 +22219,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-03T21:09:04.284702+00:00",
+  "updated_utc": "2026-11-03T21:13:57.449512+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,

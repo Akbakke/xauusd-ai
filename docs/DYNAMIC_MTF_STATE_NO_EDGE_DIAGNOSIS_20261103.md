@@ -2,9 +2,9 @@
 
 ## Beslutning
 
-Ingen ny modellrunde er begrunnet av de lagrede resultatene. Det ene passet lærte på TRAIN, men modellen slo ikke den likt informerte, fryste TRAIN-Markov-referansen på senere gjenbrukte utviklingsdata for M5, M15, H1, H4 eller D1. Feilen er synlig allerede ved første fremtidige minutt på TRAIN: modellen lærer ikke de observerte, tidsrammespesifikke skiftratene like godt som en enkel referanse med samme historiske nåtilstand. Ingen enkelt kodefeil eller sikker årsak til dette er påvist. Økonomisk edge er ikke evaluert.
+Ingen ny native modellrunde er begrunnet av de lagrede resultatene. Det ene passet lærte på TRAIN, men råmodellen slo ikke den likt informerte, fryste TRAIN-Markov-referansen samlet på senere gjenbrukte utviklingsdata for noen av de fem tidsrammene. Første-minutts skiftesannsynlighet er systematisk feilkalibrert allerede på TRAIN. Én etterfølgende, avgrenset kalibrering på lagrede TRAIN-prediksjoner ga bedre første-minutts Brier og logloss enn Markov også på gjenbrukt utvikling, men dette er ingen uavhengig edge-test og sier ikke at retningsbevegelsen ved lengre ledetider er lært. Årsaken til råmodellens feilkalibrering er ikke kausalt isolert. Økonomisk edge er ikke evaluert.
 
-Arbeidet her er bare lesning av bevarte prediksjoner, mål, checkpoints, inputbindinger og kilde. Ingen modell ble konstruert eller kjørt, og ingen trening, scoringkampanje, TEST, Exit, broker eller handel ble startet. Fryst treningskilde: `13c6bb8f2f33c50806908673fa33accb5edaba63`; dette dokumentet vurderer resultatene fra ett pass, ikke et nytt eksperiment.
+Den første revisjonen var lesning av bevarte prediksjoner, mål, checkpoints, inputbindinger og kilde. Den senere CPU-kontrollen tilpasset 15 énparameter skifteoffsets på lagret TRAIN-output og scoret disse én gang på TRAIN og gjenbrukt utvikling. Den konstruerte eller kjørte ingen native modell og gjorde ingen optimizeroppdateringer, TEST, Exit, broker eller handel. Fryst treningskilde: `13c6bb8f2f33c50806908673fa33accb5edaba63`; råmodellens ettpass-resultat og den separate kalibreringskontrollen holdes atskilt.
 
 ## Matchet resultat og hvor svikten oppstår
 
@@ -36,7 +36,7 @@ Modellen er altså for treg til å skifte på M5 og for rask på D1 allerede på
 
 Feilkalibreringen betyr ikke at alle lagrede skårer mangler informasjon. Innen **samme kjente nåtilstand** rangerte modellens første-minutts skiftesannsynlighet senere skifter over ikke-skifter: M5 NED AUC 0,678 (684 skifter / 2 883 par), M5 OPP 0,649 (692 / 3 135), M15 NED 0,731 og M15 OPP 0,709. En Markov-sannsynlighet er konstant innen hver slik gruppe og gir AUC 0,5. En selvstendig `sklearn`-beregning gjenskapte tallene; M5/M15-rangeringen var positiv i hver av januar, februar og mars 2025. D1 har bare 7 NED- og 12 OPP-skifter på senere første-minuttspar, så høy D1-AUC er usikker.
 
-TRAIN-definerte desiler viser at nivåfeilen ikke bare kommer fra regimeskiftet i senere data. For M5 med kjent NED ga laveste desil gjennomsnittlig skiftesannsynlighet 0,046 mot 0,090 faktisk på TRAIN og 0,045 mot 0,106 senere. Høyeste desil ga 0,186 mot 0,479 på TRAIN og 0,179 mot 0,524 senere. M5 OPP viser samme kompresjon: høyeste desil 0,080 mot 0,451 på TRAIN og 0,078 mot 0,450 senere. M15 NED har en annen form: laveste desil overpredikerer svakt, mens høyeste underpredikerer. Dette støtter en konkret kalibreringshypotese, men ingen kalibrator er tilpasset eller scoret.
+TRAIN-definerte desiler viser at nivåfeilen ikke bare kommer fra regimeskiftet i senere data. For M5 med kjent NED ga laveste desil gjennomsnittlig skiftesannsynlighet 0,046 mot 0,090 faktisk på TRAIN og 0,045 mot 0,106 senere. Høyeste desil ga 0,186 mot 0,479 på TRAIN og 0,179 mot 0,524 senere. M5 OPP viser samme kompresjon: høyeste desil 0,080 mot 0,451 på TRAIN og 0,078 mot 0,450 senere. M15 NED har en annen form: laveste desil overpredikerer svakt, mens høyeste underpredikerer. Dette motiverte den senere, separat bundne kalibreringskontrollen nedenfor; på dette tidspunktet var ingen kalibrator tilpasset eller scoret.
 
 Dette er et **historisk, kortvarig rangeringssignal**, ikke en kalibrert sannsynlighet eller handelsedge. På samme mål har modellens første-minutts binære skifte-Brier 0,211172 mot Markovs 0,182923 på M5, og 0,005828 mot 0,001117 på D1. De store rå AUC-tallene for faktisk tilstand ved +1 skyldes i stor grad at nåtilstanden ofte fortsetter; modellen slår Markov litt i slik rangering, men svikten ved lengre ledetider gjenstår.
 
@@ -58,6 +58,24 @@ Den fryste Markov-referansen slo også modellens **binære skiftesannsynlighet**
 
 På senere data er modellens FLAT-Brier klart svakere enn referansens på M5/M15/H1/H4, mens DOWN-celler er bedre og UP-celler svakere. Modellens modal FLAT-recall er nær null over hele banen. Ved +5 minutter er M5-recall null, ved +15 M15 null, ved +60 H1 null, og ved +240 er den null på alle fem. M5s gjennomsnittlige FLAT-sannsynlighet ved +15 er omtrent 0,104 både når fasit er FLAT og ellers. Det viser dårlig separasjon av rolig tilstand utover første steg. M5-gapet mot Markov er positivt både når nåtilstanden er kjent (+0,003742 Brier) og ukjent (+0,002957); uobserverbar M5-retning er derfor ikke en tilstrekkelig forklaring alene.
 
+## Én lagret første-minutts kalibreringskontroll
+
+Etter trygg PC-omstart 599→600 ble én CPU-kontroll gjennomført på de **allerede lagrede** sluttprediksjonene. Det første forsøket ble lukket før scoring: lagret FP32 avrunding av sannsynlighetsrader var inntil 1,44×10⁻⁷, mens kontrollen krevde 10⁻⁸. Den separate erstatningen normaliserte radene i float64 og bestod. Ingen native modellforward eller optimizeroppdatering fant sted. Begge engangsplaner er konsumert og trening er stengt.
+
+Kalibratoren passer én logitforskyvning for skifte ved +1 minutt per tidsramme og kjent nåtilstand (15 tall) på 47 602 TRAIN-foreldre. Den bevarer råmodellens betingede fordeling mellom de to andre klassene ved et skifte. Ved ukjent nåtilstand lar den råprediksjonen stå. Én scoring på 17 288 **gjenbrukte** utviklingsforeldre ga følgende matchede treklasse-Brier og logloss; alle sammenligninger bruker identiske observerte målceller og samme historiske nåtilstand:
+
+| Tidsramme | Observerte +1 / foreldre | Brier rå / kalibrert / Markov | Logloss rå / kalibrert / Markov |
+|---|---:|---:|---:|
+| M5 | 8 613 / 17 288 | 0,460854 / 0,413951 / 0,425444 | 0,853668 / 0,710064 / 0,744901 |
+| M15 | 14 614 / 17 288 | 0,210824 / 0,204065 / 0,214564 | 0,406527 / 0,381453 / 0,421248 |
+| H1 | 16 894 / 17 288 | 0,072037 / 0,070374 / 0,072472 | 0,166359 / 0,157088 / 0,173128 |
+| H4 | 17 144 / 17 288 | 0,026345 / 0,019385 / 0,019559 | 0,088540 / 0,053383 / 0,058679 |
+| D1 | 16 987 / 17 288 | 0,010440 / 0,002237 / 0,002257 | 0,058513 / 0,008635 / 0,009160 |
+
+Den største absolutte Brier-gevinsten mot Markov er ved M5 (+1): 0,011493. Ved D1 er den bare 0,000020. Kalibreringen gjenfinner særlig nivået på skiftesannsynligheten; for eksempel steg M5 NED fra gjennomsnittlig 0,100 til observert 0,230 på TRAIN, mens D1 NED falt fra 0,104 til 0,002. Dette peker mot en konkret sannsynlighetsskala-/base-rate-svikt i råoutput, ikke mot at indikatorene nødvendigvis er ubrukelige.
+
+**Begrensning:** Kalibratoren ble tilpasset prediksjoner fra en modell som selv var trent på hele TRAIN. Utviklingsperioden er tidligere brukt til design. Det finnes ingen kronologisk OOF-kalibrering eller urørt bekreftelse. Resultatet gjelder bare første minutt, og M5s retningsklasse er observert i omtrent halvparten av foreldrerekkene. UP/NED-rangering ved +5/+15/+60/+240/+1 440 minutter forblir rundt 0,5, og FLAT-dekning/selektivitet er ikke løst. Denne kontrollen kvalifiserer verken løpende markedsprognose, Entry eller økonomisk edge.
+
 ## Mål, datatilgang og klokke
 
 Målet følger kausale lokale opp- og nedbevegelser per M5/M15/H1/H4/D1, inkludert reverseringer og FLAT; det bruker ingen fast startpris, og 1–1 440 minutter er målt spørregrid, ikke en handelsgrense. Den vedtatte terskelen er 0,5 ATR(14) per tidsramme. Kildeinspeksjon fant ingen byttet tidsrammerekkefølge: target, historisk nåtilstand, modellkoordinater og rapport bruker samme M5–D1-orden. Nåtilstand bindes til eksakt foreldrerad og issue-tid, og fremtidige mål sendes til loss, ikke til forward. Dette er kode- og lagringsbevis, ikke bevis for faktisk ONLINE-tilgjengelighet.
@@ -68,7 +86,7 @@ En ren TRAIN-kontroll av komplette lokale vinduer viser at definisjonen av FLAT 
 
 Den bundne normaliseringskvalifiseringen bruker 47 602 TRAIN-foreldre med siste beslutning 31.12.2024 kl. 21:55 UTC, før TRAIN-grensen 01.01.2025 kl. 00:00 UTC; den utførte null nye statistikkfit. Dette viser ingen innblanding av senere utviklingsrader i den kvalifiserte normaliseringen (kvalifisering SHA-256 `51ac757b4c1709d1104a750937ebb07bded36fe890089d436e298e801139d1fc`).
 
-Historisk event-time-sjekk av siste M1-lys og ATR er bestått. Faktisk fysisk mottaks-, prosesserings- og restarttid for disse verdiene er fremdeles ukjent; dette stenger ONLINE-bruk, men er ikke påvist som årsak til det historiske Brier-gapet.
+Historisk event-time-sjekk av siste M1-lys og ATR er bestått. Faktisk fysisk mottaks-, prosesserings- og restarttid for disse verdiene er fremdeles ukjent; dette stenger ONLINE-bruk, men er ikke påvist som årsak til det historiske Brier-gapet. Den bundne XAU-M1-filen har 5 959 045 rader og bare `time`, OHLC, bid/ask OHLC og `volume`; ingen mottaks- eller ferdigberegningstid. `M5_ENRICHED.parquet` har tids-/ATR-felt og mange GC-klokkefelter, men disse dokumenterer ikke mottakstid for XAU-M1 eller XAU-ATR. Historiske filer alene kan derfor ikke bevise hva ONLINE-modellen faktisk ville ha mottatt ved issue-tid.
 
 ## Modellkonsum og loss
 
@@ -81,12 +99,12 @@ Loss er normalisert sekvens-NLL over alle observerte minutter og fem tidsrammer.
 1. Behold nåværende modell som forskningsartefakt og fryst TRAIN-Markov som minste prognosereferanse. Ikke start en serie nye runder for å justere mot den gjenbrukte utviklingsperioden.
 2. Dokumenter faktisk mottaks- og beregningstid for XAU M1 og ATR samt restartparitet før ONLINE-adgang. Hvis kilden ikke har slike klokker, behold ONLINE-status ukjent.
 3. Avklar målsemantikken med en forhåndsdefinert **TRAIN-only målundersøkelse**: hvor ofte hvert MTF-nivå skal være FLAT for ønsket bevegelse, og om finere, faktisk tidsstemplet XAU-data kan avklare M5s ukjente intraminutt-rekkefølge. En ny terskel må gi full kausal rematerialisering; den kan ikke avledes av denne hypotetiske ro-andelen alene.
-4. Undersøk først TRAIN-only kalibrering av de allerede lagrede første-minutts skifteskårene som en separat, forhåndsdefinert metodebeslutning; ingen slik tilpasning er utført her. De lagrede sluttprognosene på TRAIN kommer fra en modell trent på hele TRAIN, så en kalibrator fit på dem ville være in-sample og kreve egen kronologisk kontroll før den kunne kvalifiseres. Dersom ny modellutforming vedtas, gjør senere skiftehazard og neste retning eksplisitt tidsrammespesifikk og sammenlign en TRAIN-fryst Markov-forankret residual med dagens frie hode. Definer loss og aksept for FLAT, UP/DOWN, skiftesannsynlighet, kalibrering og total Brier/logloss før ny fit. Bevar begge retninger ved reversering og ingen maksimal holdetid. Dette er et forslag, ikke endret modellkode eller dokumentert forbedring.
-5. En eventuell ny engangskontroll, ett pass og én scoring trenger særskilt autorisasjon, fersk initialbaseline ved endret ONLINE-funksjon og samme ressursvakter. Gjenbrukt utviklingsdata kan bare styre design; forseglet TEST er ikke et tuningsett. Uavhengig evidens kommer fra den vedtatte månedlige forward-journalen, før økonomisk Entry-evaluering kan vurderes. Entry, Exit, handel og økonomisk edge er fortsatt utestet.
+4. Før en kalibrator kan kvalifiseres, trengs kronologiske TRAIN-OOF-prediksjoner fra samme modellidentitet, en forhåndslåst kalibreringsregel og et senere ubenyttet målevindu. Den lagrede sluttmodellen gir ikke dette alene. En ny native modellutforming bør først begrunnes mot den målte feilen: eksplisitt tidsrammespesifikk skiftehazard og retning, eventuelt en TRAIN-fryst Markov-forankret residual. Fastsett aksept for FLAT, UP/NED, skiftesannsynlighet, samlet Brier/logloss og lengre ledetider før eventuell fit. Bevar reverseringer og ingen maksimal holdetid. Dette er designforslag, ikke påvist forbedring.
+5. Brukerens stående tillatelse til korte kvalitetstester åpner ingen automatisk serie nye native runder. En eventuell ny modellkontroll må ha separat eksakt plan, fersk initialbaseline ved endret ONLINE-funksjon, samme ressursvakter og forhåndsdefinert stoppkriterium. Gjenbrukt utviklingsdata kan bare styre design; forseglet TEST er ikke et tuningsett. Uavhengig evidens kommer fra den vedtatte månedlige forward-journalen, før økonomisk Entry-evaluering kan vurderes. Entry, Exit, handel og økonomisk edge er fortsatt utestet.
 
 ## Etterprøvbare bevis
 
-Alle nye revisjoner ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001` og er kun lesende analyser av bevarte filer. Ingen rådata eller vekter ligger i Git.
+De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001` og er lesende analyser av bevarte filer. Den separate kalibreringskontrollen ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002`. Ingen rådata eller vekter ligger i Git.
 
 | Fil | SHA-256 | Formål |
 |---|---|---|
@@ -104,6 +122,8 @@ Alle nye revisjoner ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPAR
 | `SAVED_FLAT_EXIT_DIRECTION.json` | `82819fa540fc17a2db6b1a64e5748d97946946d0766b8e1e87a5d83cd420021c` | Retningsrangering betinget på observert første FLAT-skifte. |
 | `SAVED_LAST_M1_SIMPLE_BASELINE.json` | `1a621570da8c58451b82f06216bc342dc225063f118d2ff7b78fea511c085878` | Enkel kausal historisk M1-skår på samme rader; eksakt kildehash og join. |
 | `SCOPED_LOCAL_XAU_TICK_INVENTORY.json` | `a7c5d2b61a0a0a909e4930d100d59b6906bde6ac6a934b5050fe40e0498437d0` | Avgrenset lokal inventering av XAU-tickcache; ingen full eller kildeidentisk dekning påvist. |
-| `SAVED_FIRST_CHANGE_RELIABILITY.json` | `8f60b213b2a0a36299e7eb6f4fd59167c53c7c8c87d3351d9d0eec67575aa514` | TRAIN-definerte skårdesiler og skiftefrekvenser på TRAIN og senere data; ingen kalibrator fit. |
+| `SAVED_FIRST_CHANGE_RELIABILITY.json` | `8f60b213b2a0a36299e7eb6f4fd59167c53c7c8c87d3351d9d0eec67575aa514` | TRAIN-definerte skårdesiler og skiftefrekvenser før den separate kalibreringskontrollen. |
+| `DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/RESULT.json` | `dadafc3cc5b27b39960a73b4378bf1c89b1b069e5d479d0fec17762fcebf4d41` | Én 15-offset TRAIN-fit og én TRAIN-/gjenbrukt utviklingsscoring av lagrede +1-prediksjoner. |
+| `DYNAMIC_MTF_SAVED_CALIBRATION_20261103_001/ATTEMPT_001_FAILURE.json` | `3412f68ef1312abee5bf5870f5c3e5bae252b8ebde8b9f59e36c983938ab8b17` | Første forsøk konsumert etter FP32-summeringsvakt, før scoring. |
 
 Tidligere signert kampanjeresultat og første FLAT-per-lead-replay står i [engangspassrapporten](DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261103.md). Kildeeiere: `gx1/contracts/entry_dynamic_mtf_state_targets_v1.py`, `gx1/contracts/entry_native_direction_research_v1.py`, `gx1/contracts/entry_dynamic_mtf_state_report_v1.py` og `gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py`.
