@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_PRIVATE_REPLACEMENT_CLOSED_PROPOSAL_READY_FOR_USER_DECISION",
+  "status": "DYNAMIC_STATE_CORRECTED_REPLACEMENT_ONEUSE_AUTHORIZED_PREPARATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "The failed private001 is consumed and may never be relaunched. A corrected, source-bound private recipe exists only as a closed proposal. Obtain fresh exact one-use user authority before making a new campaign; then rebind to current HEAD and pass safe reboot/native/ONLINE/runtime gates. Main fit and scoring remain closed; TEST, Exit, broker and trading stay closed.",
+  "next_action": "Prepare one separately bound corrected private qualification; after all applicable gates, at most one fit and one scoring. Keep training disabled until exact admission, require safe restart, never relaunch prior or new consumed plans. TEST, Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -254,8 +254,8 @@
     }
   },
   "current_work": {
-    "operator_request": "On 2026-11-03 user answered the explicit proposal: Ja, én kontroll og ett pass. This authorizes one 32-TRAIN-parent private mechanical qualification with at most 3 model constructions, 21 forwards, 4 physical optimizer updates and discarded private weights; if all gates pass, at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. Restart only after safe machine-wide checks. No automatic repeat, TEST, Exit, broker or trading.",
-    "current_activity": "Corrected dynamic private selector and closed replacement proposal reviewed; previous private attempt failed before any model call, and no new campaign has been created.",
+    "operator_request": "User approved one corrected replacement 32-parent private control (at most 3 constructions, 21 forwards, 4 physical optimizer updates, discarded weights), and if all gates pass at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
+    "current_activity": "Fresh authorization recorded; preparing exact corrected replacement private recipe. No model process started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "New exact one-use user authorization and final current-HEAD admitted private campaign are required. The original claimed plan is consumed. New model/gradient/resume and physical ONLINE evidence remain absent.",
+    "current_blocker": "Corrected current-source/data/recipe admission, safe whole-host restart and private qualification remain. Main fit also needs all applicable native, causal/ONLINE, baseline and resource gates.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "The failed private001 is consumed and may never be relaunched. A corrected, source-bound private recipe exists only as a closed proposal. Obtain fresh exact one-use user authority before making a new campaign; then rebind to current HEAD and pass safe reboot/native/ONLINE/runtime gates. Main fit and scoring remain closed; TEST, Exit, broker and trading stay closed.",
+    "next_action": "Prepare one separately bound corrected private qualification; after all applicable gates, at most one fit and one scoring. Keep training disabled until exact admission, require safe restart, never relaunch prior or new consumed plans. TEST, Exit, broker and trading closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19375,6 +19375,43 @@
       },
       "source_head_at_replacement_preparation": "e16b6c8be18757bbdbaecab1fec672cf46e1f9ee",
       "replacement_is_not_campaign": true
+    },
+    "fresh_dynamic_state_replacement_oneuse_authorization_20261103": {
+      "status": "USER_APPROVED_ONE_REPLACEMENT_PRIVATE_CONTROL_AND_CONDITIONAL_ONEPASS_PREPARING",
+      "user_answer": "Ja, én kontroll og ett pass",
+      "prior_failed_private_attempt_relaunch_authorized": false,
+      "replacement_private_control": {
+        "train_parents": 32,
+        "max_model_constructions": 3,
+        "max_forwards": 21,
+        "max_physical_optimizer_updates": 4,
+        "max_logical_optimizer_steps": 2,
+        "weights_for_main_fit": false,
+        "max_runs": 1
+      },
+      "main_fit_if_all_gates_pass": {
+        "train_parents": 47602,
+        "max_optimizer_updates": 2976,
+        "train_passes": 1,
+        "max_runs": 1
+      },
+      "scoring_if_admitted": {
+        "max_complete_train_and_reused_development_scorings": 1,
+        "train_parents": 47602,
+        "reused_development_parents": 17288
+      },
+      "safe_restart_authorized_only_after_gates": true,
+      "automatic_repetition_authorized": false,
+      "test_authorized": false,
+      "exit_authorized": false,
+      "broker_authorized": false,
+      "trading_authorized": false,
+      "training_enabled": false,
+      "private_control_started": false,
+      "main_fit_started": false,
+      "scoring_started": false,
+      "campaign_preparation_claimed": false,
+      "authorization_source": "User explicitly approved the corrected replacement private control and conditional one pass and one scoring after the previous failed plan was consumed."
     }
   },
   "gc_order_flow_research_20261006": {
