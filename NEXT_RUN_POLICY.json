@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T20:40:08.706963+00:00",
+  "observed_utc": "2026-11-03T20:49:21.538864+00:00",
   "status": "DYNAMIC_STATE_NO_EDGE_DIAGNOSIS_ACTIVE_READ_ONLY_20261103",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "The authorized single dynamic five-timeframe fit and scoring are consumed and their signed terminal receipts PASS. Original artifacts and earlier failed private receipts remain preserved. Do not relaunch consumed plans or automatically start model work, training, scoring, reboot, TEST, Exit, broker or trading. A changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Use the saved first-minute ranking and full-timeframe collapse diagnosis to prioritize TRAIN-only target semantics, physical XAU M1/ATR clocks and a predeclared calibration/design decision. Keep matched Markov and all model, training, TEST, Exit, broker and trading gates closed.",
+  "rule": "The prior dynamic five-timeframe fit and scoring are consumed with signed terminal PASS. The newly authorized short quality check is limited to the separately bound saved-prediction CPU calibration plan after a safe PC reboot; no native model call or automatic repeat. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
+  "next_action": "Prepare one source-bound TRAIN-only saved first-change calibration fit and one reused-development score, then perform a safe PC reboot before its test. Training remains disabled until exact post-reboot admission. No native model calls, repeated runs, TEST, Exit, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -19565,6 +19565,32 @@
       "broker_authorized": false,
       "trading_authorized": false,
       "observed_utc": "2026-11-03T20:40:08.706963+00:00"
+    },
+    "saved_first_change_calibration_20261103": {
+      "status": "PREPARED_REBOOT_AND_ADMISSION_PENDING",
+      "authorization_source": "User updated active goal: short quality tests and training may run without asking, with PC restart before test",
+      "operator_short_test_authorized": true,
+      "recipe": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_001/RECIPE.json",
+        "sha256": "8a7b1ede15ca0d5617cf7548802bb228e8e0f850fecb5e3afc7c9aa3d80f87d2"
+      },
+      "script_sha256": "549f88956ab7918ebbf31685c1a9c1aaa51a987a286dbb0100855e59bcfda5b7",
+      "max_calibration_fits": 1,
+      "max_scoring_passes": 1,
+      "max_native_model_calls": 0,
+      "max_optimizer_updates": 0,
+      "train_parents": 47602,
+      "reused_development_parents": 17288,
+      "reboot_required_before_test": true,
+      "safe_reboot_authorized_only_after_whole_host_idle_check": true,
+      "calibration_fit_authorized": false,
+      "native_model_calls_authorized": false,
+      "test_authorized": false,
+      "exit_authorized": false,
+      "broker_authorized": false,
+      "trading_authorized": false,
+      "test_data_used": false,
+      "observed_utc": "2026-11-03T20:49:21.538864+00:00"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -22129,7 +22155,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-03T20:40:08.706963+00:00",
+  "updated_utc": "2026-11-03T20:49:21.538864+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
