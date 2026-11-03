@@ -16,21 +16,21 @@ Den første revisjonen var lesning av bevarte prediksjoner, mål, checkpoints, i
 | Feil sannsynlighetsnivå | Råmodellen holder M5-tilstand for lenge og skifter D1 for ofte allerede på TRAIN. Én TRAIN-kalibrering forbedret +1-Brier/logloss på gjenbrukt utvikling. | Målt svakhet; årsak i treningen ikke isolert |
 | Taps-/modellutforming | Sekvens-NLL vekter alle observerte minutter; første-steg-tillegg er 0,03 hver, og ingen Markov-forankring finnes. | Plausibel mekanisme, ikke kausal test |
 | Manglende framtidig retningssignal | UP/NED-AUC er rundt 0,5 ved én full native tidsramme på alle fem. Første-minutts skifter kan rangeres innen kjent nåtilstand. | Kort signal, ingen dokumentert helhorisont-edge |
-| Generalisering/økonomi | Kalibratoren bruker in-sample slutt-TRAIN og tidligere brukt utvikling; ingen streng TRAIN-OOF eller urørt bekreftelse. | Ingen uavhengig eller økonomisk edge kvalifisert |
+| Generalisering/økonomi | Råmodellen slår Markov på TRAIN for M5–H4, men taper senere; D1 taper allerede på TRAIN. Kalibratoren bruker in-sample slutt-TRAIN og tidligere brukt utvikling. | Generaliseringsreversering og D1 TRAIN-gap målt; ingen uavhengig eller økonomisk edge |
 
 ## Matchet resultat og hvor svikten oppstår
 
-Modell og Markov ble vurdert på identiske modne, observerte målceller. Begge fikk samme historisk observerte nåtilstand; ved ukjent nåtilstand brukte referansen bare fryst TRAIN-prior. I 17 288 senere utviklingsforeldre var modellens Brier minus referansens Brier positiv på alle tidsrammer (lavere er bedre):
+Modell og Markov ble vurdert på identiske modne, observerte målceller innen hver periode. Begge fikk samme historisk observerte nåtilstand; ved ukjent nåtilstand brukte referansen bare fryst TRAIN-prior. Modellens Brier minus Markovs Brier (lavere er bedre) viser **TRAIN-merverdi som snur på senere data** for M5–H4, mens D1 er svak allerede på TRAIN:
 
-| Tidsramme | Modell − Markov Brier | Beskrivende 95 % intervall over 14 UTC-ukeblokker |
-|---|---:|---:|
-| M5 | +0,003365 | +0,001397 til +0,005417 |
-| M15 | +0,002943 | +0,001258 til +0,004853 |
-| H1 | +0,003984 | +0,001611 til +0,006771 |
-| H4 | +0,006860 | +0,004104 til +0,009835 |
-| D1 | +0,023559 | +0,005726 til +0,041588 |
+| Tidsramme | TRAIN, sluttmodell in-sample | Senere gjenbrukt utvikling | Beskrivende 95 % intervall for senere gap, 14 UTC-uker |
+|---|---:|---:|---:|
+| M5 | −0,001457 | +0,003365 | +0,001397 til +0,005417 |
+| M15 | −0,002361 | +0,002943 | +0,001258 til +0,004853 |
+| H1 | −0,003361 | +0,003984 | +0,001611 til +0,006771 |
+| H4 | −0,004914 | +0,006860 | +0,004104 til +0,009835 |
+| D1 | +0,007528 | +0,023559 | +0,005726 til +0,041588 |
 
-Logloss var også dårligere på alle fem. Brier-gapet var positivt i hver av januar, februar og mars 2025 for hver tidsramme. Ukeblokkintervallene er beskrivende: minuttsmål og foreldre overlapper, og perioden er brukt til utvikling før. De er ikke ny, uavhengig validering.
+TRAIN er in-sample for sluttmodellen og derfor optimistisk. Reverseringen på M5–H4 er en dokumentert generaliseringssvikt relativt til samme referanse, ikke bevis for én bestemt årsak som regimebytte eller overtilpasning. D1s gap er også en TRAIN-fit-/kalibreringssvikt. Logloss har samme fortegnsmønster: M5–H4 bedre enn Markov på TRAIN, alle fem svakere senere. Brier-gapet var positivt i hver av januar, februar og mars 2025 for hver tidsramme. Ukeblokkintervallene er beskrivende: minuttsmål og foreldre overlapper, og perioden er brukt til utvikling før. De er ikke ny, uavhengig validering.
 
 Første-minutt-prognosen avslører en mer presis feil enn samlet skår. Tabellen viser sannsynlighet for **skifte bort fra den kjente nåtilstanden**, aggregert over dennes tre klasser. Tallene i parentes er faktisk skiftrate. Her brukes lagret TRAIN- og utviklingsprediksjon, ingen ny forward.
 
