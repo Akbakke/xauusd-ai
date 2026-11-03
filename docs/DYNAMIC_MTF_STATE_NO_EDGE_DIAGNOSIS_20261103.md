@@ -32,6 +32,24 @@ Første-minutt-prognosen avslører en mer presis feil enn samlet skår. Tabellen
 
 Modellen er altså for treg til å skifte på M5 og for rask på D1 allerede på TRAIN. Det er ikke bare et sjokk i senere data. På de identiske 256 TRAIN-foreldrene gikk første-minutt-Brier fra 0,65861 til 0,52451 på M5, men referansen fikk 0,46718. D1 gikk fra 0,66433 til 0,01368; referansen var nær null i dette lille utvalget uten observerte D1-skifter. Dette viser reell tilpasning som fortsatt bommer på enkel korttidskalibrering; 256-utvalget er ikke en egen generaliseringstest.
 
+### Kort rangeringssignal, men ingen rangering ved én hel tidsramme
+
+Feilkalibreringen betyr ikke at alle lagrede skårer mangler informasjon. Innen **samme kjente nåtilstand** rangerte modellens første-minutts skiftesannsynlighet senere skifter over ikke-skifter: M5 NED AUC 0,678 (684 skifter / 2 883 par), M5 OPP 0,649 (692 / 3 135), M15 NED 0,731 og M15 OPP 0,709. En Markov-sannsynlighet er konstant innen hver slik gruppe og gir AUC 0,5. En selvstendig `sklearn`-beregning gjenskapte tallene; M5/M15-rangeringen var positiv i hver av januar, februar og mars 2025. D1 har bare 7 NED- og 12 OPP-skifter på senere første-minuttspar, så høy D1-AUC er usikker.
+
+Dette er et **historisk, kortvarig rangeringssignal**, ikke en kalibrert sannsynlighet eller handelsedge. På samme mål har modellens første-minutts binære skifte-Brier 0,211172 mot Markovs 0,182923 på M5, og 0,005828 mot 0,001117 på D1. De store rå AUC-tallene for faktisk tilstand ved +1 skyldes i stor grad at nåtilstanden ofte fortsetter; modellen slår Markov litt i slik rangering, men svikten ved lengre ledetider gjenstår.
+
+På de nøyaktig samme observerte, ikke-FLATE senere målene forsvinner UP-mot-DOWN-rangeringen når ledetiden når omtrent én hel native tidsramme. AUC er en rangmåling; den erstatter ikke Brier eller logloss.
+
+| Tidsramme / ledetid | Modell UP/NED AUC | Markov UP/NED AUC | Modell / Markov Brier, tre klasser |
+|---|---:|---:|---:|
+| M5 / +5 min | 0,498 | 0,500 | 0,6122 / 0,6073 |
+| M15 / +15 min | 0,490 | 0,484 | 0,5961 / 0,5922 |
+| H1 / +60 min | 0,487 | 0,489 | 0,5781 / 0,5745 |
+| H4 / +240 min | 0,487 | 0,497 | 0,5453 / 0,5389 |
+| D1 / +1 440 min | 0,484 | 0,451 | 0,4903 / 0,4689 |
+
+FLAT-sannsynligheten kan fortsatt rangere noe ved enkelte korte ledetider selv når FLAT aldri er modal klasse, for eksempel M15 +15 AUC 0,644 mot Markov 0,589. Den er dårlig kalibrert i samlet skår. Ingen av disse tallene viser at modellen forutser retningsbevegelsen gjennom hele tidsrammen.
+
 Den fryste Markov-referansen slo også modellens **binære skiftesannsynlighet** på matchede fremtidige nabopar: M5 0,177985 mot modell 0,178109 i Brier, D1 0,001306 mot 0,001313, og tilsvarende små negative gap på M15/H1/H4. Modellen hadde null eksakte *modale* skiftevarsler, men også en optimal sannsynlighetsmodell kan velge «ingen skifte» når ett-minutts skifter er sjeldne. Null modal treff er derfor ikke alene forklaringen; skår mot samme-informasjonsreferansen er avgjørende.
 
 På senere data er modellens FLAT-Brier klart svakere enn referansens på M5/M15/H1/H4, mens DOWN-celler er bedre og UP-celler svakere. Modellens modal FLAT-recall er nær null over hele banen. Ved +5 minutter er M5-recall null, ved +15 M15 null, ved +60 H1 null, og ved +240 er den null på alle fem. M5s gjennomsnittlige FLAT-sannsynlighet ved +15 er omtrent 0,104 både når fasit er FLAT og ellers. Det viser dårlig separasjon av rolig tilstand utover første steg. M5-gapet mot Markov er positivt både når nåtilstanden er kjent (+0,003742 Brier) og ukjent (+0,002957); uobserverbar M5-retning er derfor ikke en tilstrekkelig forklaring alene.
@@ -57,7 +75,7 @@ Loss er normalisert sekvens-NLL over alle observerte minutter og fem tidsrammer.
 1. Behold nåværende modell som forskningsartefakt og fryst TRAIN-Markov som minste prognosereferanse. Ikke start en serie nye runder for å justere mot den gjenbrukte utviklingsperioden.
 2. Dokumenter faktisk mottaks- og beregningstid for XAU M1 og ATR samt restartparitet før ONLINE-adgang. Hvis kilden ikke har slike klokker, behold ONLINE-status ukjent.
 3. Avklar målsemantikken med en forhåndsdefinert **TRAIN-only målundersøkelse**: hvor ofte hvert MTF-nivå skal være FLAT for ønsket bevegelse, og om finere, faktisk tidsstemplet XAU-data kan avklare M5s ukjente intraminutt-rekkefølge. En ny terskel må gi full kausal rematerialisering; den kan ikke avledes av denne hypotetiske ro-andelen alene.
-4. Dersom ny design vedtas, gjør første steg og senere skiftehazard eksplisitt tidsrammespesifikk og sammenlign en TRAIN-fryst Markov-forankret residual med dagens frie hode. Definer loss og aksept for FLAT, UP/DOWN, skiftesannsynlighet, kalibrering og total Brier/logloss før ny fit. Bevar begge retninger ved reversering og ingen maksimal holdetid. Dette er et forslag, ikke endret modellkode eller dokumentert forbedring.
+4. Undersøk først TRAIN-only kalibrering av de allerede lagrede første-minutts skifteskårene som en separat, forhåndsdefinert metodebeslutning; ingen slik tilpasning er utført her. Dersom ny modellutforming vedtas, gjør senere skiftehazard og neste retning eksplisitt tidsrammespesifikk og sammenlign en TRAIN-fryst Markov-forankret residual med dagens frie hode. Definer loss og aksept for FLAT, UP/DOWN, skiftesannsynlighet, kalibrering og total Brier/logloss før ny fit. Bevar begge retninger ved reversering og ingen maksimal holdetid. Dette er et forslag, ikke endret modellkode eller dokumentert forbedring.
 5. En eventuell ny engangskontroll, ett pass og én scoring trenger særskilt autorisasjon, fersk initialbaseline ved endret ONLINE-funksjon og samme ressursvakter. Gjenbrukt utviklingsdata kan bare styre design; forseglet TEST er ikke et tuningsett. Uavhengig evidens kommer fra den vedtatte månedlige forward-journalen, før økonomisk Entry-evaluering kan vurderes. Entry, Exit, handel og økonomisk edge er fortsatt utestet.
 
 ## Etterprøvbare bevis
@@ -73,5 +91,9 @@ Alle nye revisjoner ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPAR
 | `SAVED_256_FIRST_STEP_REVIEW.json` | `e31c0a4ea1fe1629f38b8284ce02b9f7431989b89aae244892c3bdd0dd22c911` | Samme 256 før/etter ved +1 minutt. |
 | `SAVED_OOF_FIRST_TARGET_COVERAGE.json` | `e646e12b7d1a4f75ccc31bc63873e25023ab08063bb993b7a83235daa43c39c7` | Første måldekning og ukjent-årsaker. |
 | `SAVED_TRAIN_QUIETNESS_FEASIBILITY.json` | `3db113d2b02bbd57fab83dda81f21ff4a8ab9a132cf6dd41cb7420c31daf1f1f` | TRAIN-only lokal ro ved gjeldende og hypotetiske terskler. |
+| `SAVED_FIRST_CHANGE_RANK.json` | `4fe8128f99137127a8aac971ccbb4962a588ac8986c4e413be16c6e5203b100d` | Første skifte-AUC innen kjent nåtilstand, TRAIN og senere data. |
+| `SAVED_FIRST_CHANGE_RANK_VERIFY.json` | `664f4e4018a82aa67e9ef3bc31778380389573106234d38587d6a71e54ab25be` | Uavhengig AUC-replay og månedssnitt. |
+| `SAVED_OOF_STATE_RANK_BY_LEAD.json` | `5f9e2ccd77668728a2acec7b2fa3add417acdac76f157225d44a4767b311adab` | FLAT- og UP/NED-rangering ved seks ledetider. |
+| `SAVED_OOF_RANK_VS_MARKOV.json` | `a6dc26ec989deabfb6826d542d8fd7ccb920c4eb4be3bfc04e631719e08d1c09` | Samme Markov-informasjon, AUC og replay av rapportert Brier. |
 
 Tidligere signert kampanjeresultat og første FLAT-per-lead-replay står i [engangspassrapporten](DYNAMIC_MTF_STATE_ONEPASS_RESULT_20261103.md). Kildeeiere: `gx1/contracts/entry_dynamic_mtf_state_targets_v1.py`, `gx1/contracts/entry_native_direction_research_v1.py`, `gx1/contracts/entry_dynamic_mtf_state_report_v1.py` og `gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py`.

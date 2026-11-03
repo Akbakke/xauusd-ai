@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T20:24:51.850627+00:00",
+  "observed_utc": "2026-11-03T20:30:18.335543+00:00",
   "status": "DYNAMIC_STATE_NO_EDGE_DIAGNOSIS_ACTIVE_READ_ONLY_20261103",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe fit and scoring are consumed and their signed terminal receipts PASS. Original artifacts and earlier failed private receipts remain preserved. Do not relaunch consumed plans or automatically start model work, training, scoring, reboot, TEST, Exit, broker or trading. A changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Use the documented read-only no-edge diagnosis to resolve physical XAU M1/ATR arrival and TRAIN-only target semantics before any separately authorized design. Keep the matched Markov reference and all model, training, TEST, Exit, broker and trading gates closed.",
+  "next_action": "Use the saved first-minute ranking and full-timeframe collapse diagnosis to prioritize TRAIN-only target semantics, physical XAU M1/ATR clocks and a predeclared calibration/design decision. Keep matched Markov and all model, training, TEST, Exit, broker and trading gates closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -19544,9 +19544,13 @@
         "first_transition_train_vs_development": "0fd6f693f9fdd1b2badd72eb68559512fa8134a2cbfb560ce07c3a4f3af960a9",
         "same_256_first_step": "e31c0a4ea1fe1629f38b8284ce02b9f7431989b89aae244892c3bdd0dd22c911",
         "first_target_coverage": "e646e12b7d1a4f75ccc31bc63873e25023ab08063bb993b7a83235daa43c39c7",
-        "train_quietness": "3db113d2b02bbd57fab83dda81f21ff4a8ab9a132cf6dd41cb7420c31daf1f1f"
+        "train_quietness": "3db113d2b02bbd57fab83dda81f21ff4a8ab9a132cf6dd41cb7420c31daf1f1f",
+        "first_change_rank": "4fe8128f99137127a8aac971ccbb4962a588ac8986c4e413be16c6e5203b100d",
+        "first_change_rank_verify": "664f4e4018a82aa67e9ef3bc31778380389573106234d38587d6a71e54ab25be",
+        "state_rank_by_lead": "5f9e2ccd77668728a2acec7b2fa3add417acdac76f157225d44a4767b311adab",
+        "rank_vs_markov": "a6dc26ec989deabfb6826d542d8fd7ccb920c4eb4be3bfc04e631719e08d1c09"
       },
-      "findings": "No matched Markov improvement; first-step M5 overpersistence and D1 overvolatility already on TRAIN; M5 labels censored by unresolved M1 intrabar order; FLAT target highly threshold sensitive; no isolated causal code defect proven.",
+      "findings": "No matched Markov Brier/logloss improvement; first-step M5 overpersistence and D1 overvolatility already on TRAIN; within-current-state first-minute change ranking exists, but UP/DOWN AUC is near 0.5 at one full native timeframe; M5 labels censored by unresolved M1 intrabar order; FLAT target highly threshold sensitive; no isolated causal code defect proven.",
       "remaining_open": ["physical_XAU_M1_ATR_arrival_and_restart_parity", "TRAIN_only_target_semantics_and_finer_XAU_order_source", "separately_authorized_predeclared_model_design"],
       "new_model_calls": 0,
       "new_optimizer_updates": 0,
@@ -19556,7 +19560,7 @@
       "exit_authorized": false,
       "broker_authorized": false,
       "trading_authorized": false,
-      "observed_utc": "2026-11-03T20:24:51.850627+00:00"
+      "observed_utc": "2026-11-03T20:30:18.335543+00:00"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -22121,7 +22125,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-03T20:24:51.850627+00:00",
+  "updated_utc": "2026-11-03T20:30:18.335543+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
