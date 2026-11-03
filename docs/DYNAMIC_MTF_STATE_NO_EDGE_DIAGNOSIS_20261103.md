@@ -82,7 +82,17 @@ Målet følger kausale lokale opp- og nedbevegelser per M5/M15/H1/H4/D1, inklude
 
 M5s mål er selektivt uobserverbart: av 17 288 senere første-minuttsrader var 8 613 retningsklasser observerte (49,8 %). Av de 8 675 ukjente hadde 8 669 flagg for ukjent intraminutt-rekkefølge; flaggene overlapper. Den binære FLAT/ikke-FLAT-aktiviteten kunne likevel avgjøres i 17 284 komplette lokale vinduer. D1 hadde 16 987 observerte første tilstander (98,3 %), men bare 125 FLAT blant 16 136 komplette lokale vinduer (0,8 %). Derfor er M5-retningslæring sterkt sensurert nettopp ved tvetydige M1-barer, mens D1s FLAT-klasse nesten forsvinner i senere data. Ingen rekkefølge inne i et M1-lys skal gjettes for å fylle hullene. En avgrenset lokal filinventering fant bare én time XAU-ticks i utviklingsåret 2025 i Dukascopy-cachen og fire løse testfiler. Dette er ikke de OANDA-tickene som skapte de brukte M1-lysene, og kan ikke reparere TRAIN-/utviklingsmålene uten kildeparitet og full dekning. Inventeringen utelukker ikke andre, ennå uundersøkte kilder.
 
-En ren TRAIN-kontroll av komplette lokale vinduer viser at definisjonen av FLAT er svært terskelfølsom: ved dagens 0,5 ATR var lokal ro 7,7 % på M5 og 3,7 % på D1; en **hypotetisk** 0,75 ATR-grense ville gitt 32,6 % og 23,8 %. Dette er bare lokal rekkevidde i første minutt; opp-/nedtilstandene og hele tilstandsbanen må rematerialiseres kausalt for en annen terskel. Tallene godkjenner ingen terskelendring og bruker ikke senere data til å velge en.
+En ren TRAIN-kontroll av komplette lokale første-minuttsvinduer viser at definisjonen av FLAT er svært terskelfølsom på **alle fem** tidsrammer:
+
+| Tidsramme | Komplette TRAIN-vinduer | Lokal ro ved 0,5 ATR | Hypotetisk ved 0,75 ATR |
+|---|---:|---:|---:|
+| M5 | 47 561 | 7,7 % | 32,6 % |
+| M15 | 47 473 | 11,6 % | 36,0 % |
+| H1 | 47 115 | 13,7 % | 38,9 % |
+| H4 | 45 817 | 9,3 % | 34,9 % |
+| D1 | 37 390 | 3,7 % | 23,8 % |
+
+Dette er bare lokal rekkevidde i første minutt; opp-/nedtilstandene og hele tilstandsbanen må rematerialiseres kausalt for en annen terskel. Tallene godkjenner ingen terskelendring og bruker ikke senere data til å velge en.
 
 Den bundne normaliseringskvalifiseringen bruker 47 602 TRAIN-foreldre med siste beslutning 31.12.2024 kl. 21:55 UTC, før TRAIN-grensen 01.01.2025 kl. 00:00 UTC; den utførte null nye statistikkfit. Dette viser ingen innblanding av senere utviklingsrader i den kvalifiserte normaliseringen (kvalifisering SHA-256 `51ac757b4c1709d1104a750937ebb07bded36fe890089d436e298e801139d1fc`).
 
