@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_EXACT_NEW_USER_AUTHORIZATION_PRIVATE_PREPARATION_NOT_YET_LAUNCHED",
-  "training_enabled": false,
+  "status": "DYNAMIC_STATE_PRIVATE_20261103_001_ADMITTED_MATERIALIZATION_PENDING",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "User approved one new private control and, only after all gates pass, at most one fit and one scoring. Prepare a new exact current-source/data/recipe/plan, review causal/ONLINE and hardware gates, and perform a safe restart only after the exact admission. Keep training_enabled false until that admission. Never relaunch consumed plans; TEST, Exit, broker and trading remain closed.",
+  "next_action": "Freeze this exact source/policy; materialize only private qualification 20261103_001, install one-use guarded task, verify whole-host idle/write state and fresh boot before its sole invocation. Historical event-time only; actual ONLINE arrival remains unproven and the main fit is not admitted. Never relaunch; TEST, Exit, broker and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "On 2026-11-03 user answered the explicit proposal: Ja, én kontroll og ett pass. This authorizes one 32-TRAIN-parent private mechanical qualification with at most 3 model constructions, 21 forwards, 4 physical optimizer updates and discarded private weights; if all gates pass, at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. Restart only after safe machine-wide checks. No automatic repeat, TEST, Exit, broker or trading.",
-    "current_activity": "New one-use operator authorization received; preparing exact source/data/recipe/private campaign. No model process started.",
+    "current_activity": "Exact one-use 32-parent historical-event-time private recipe admitted for guarded preparation; no model process or restart yet.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Exact new admission, source/data/recipe binding, safe machine-wide restart, new private baseline and native/ONLINE/runtime gates remain to be established. No training flag may be opened before the applicable exact campaign is admitted.",
+    "current_blocker": "Private campaign must be materialized and pass safe fresh-boot/host guards. Main fit is not admitted: new private baseline/native receipt, final exact campaign, ONLINE availability and runtime evidence remain open.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "User approved one new private control and, only after all gates pass, at most one fit and one scoring. Prepare a new exact current-source/data/recipe/plan, review causal/ONLINE and hardware gates, and perform a safe restart only after the exact admission. Keep training_enabled false until that admission. Never relaunch consumed plans; TEST, Exit, broker and trading remain closed.",
+    "next_action": "Freeze this exact source/policy; materialize only private qualification 20261103_001, install one-use guarded task, verify whole-host idle/write state and fresh boot before its sole invocation. Historical event-time only; actual ONLINE arrival remains unproven and the main fit is not admitted. Never relaunch; TEST, Exit, broker and trading remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19286,7 +19286,7 @@
       }
     },
     "fresh_dynamic_state_oneuse_authorization_20261103": {
-      "status": "USER_APPROVED_ONE_PRIVATE_CONTROL_AND_CONDITIONAL_ONEPASS_PREPARING",
+      "status": "EXACT_ONE_PRIVATE_QUALIFICATION_ADMITTED_PREPARATION_NOT_STARTED",
       "user_answer": "Ja, én kontroll og ett pass",
       "approved_utc_date": "2026-11-03",
       "private_control": {
@@ -19322,12 +19322,17 @@
       "exit_authorized": false,
       "broker_authorized": false,
       "trading_authorized": false,
-      "training_enabled": false,
+      "training_enabled": true,
       "private_control_started": false,
       "main_fit_started": false,
       "scoring_started": false,
       "campaign_preparation_claimed": false,
-      "authorization_source": "User response to the explicit bounded 32-parent private qualification, one fit and scoring proposal."
+      "authorization_source": "User response to the explicit bounded 32-parent private qualification, one fit and scoring proposal.",
+      "exact_private_recipe": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_001/RECIPE.json",
+        "sha256": "6146cec75aa5c28b178433ab2daaee411e223474c8c90f4e31d42c64d473e050"
+      },
+      "private_campaign_preparation_authorized": true
     }
   },
   "gc_order_flow_research_20261006": {
@@ -32678,7 +32683,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -53104,5 +53109,63 @@
     "target_or_masks_changed": false,
     "model_optimizer_or_test_used": false,
     "training_enabled": false
+  },
+  "dynamic_mtf_state_private_qualification_20261103_001": {
+    "status": "EXACT_PRIVATE_RECIPE_ADMITTED_METADATA_PREPARATION_ONLY_REBOOT_NOT_YET_APPROVED",
+    "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_001",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_001/RUNTIME",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_001/RECIPE.json",
+      "sha256": "6146cec75aa5c28b178433ab2daaee411e223474c8c90f4e31d42c64d473e050"
+    },
+    "metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_001/RECIPE_METADATA_REVIEW.json",
+      "sha256": "d8063a42cd97b1984408045c812f024b3a76aeda1d639c813ba4cc99b2275a99"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "0217451a34431dcc59198b2e04c325ccbb2b11cec57ec31f354e277e1f671b54"
+    },
+    "materializer": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_001/materialize_research_campaign_once.py",
+      "sha256": "5d7e80e04a64904c25f9271c087e6ca0b83b5fe31ee8d2e46ef348a6f5f34eaf"
+    },
+    "label_audit": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/FIRST_FLAT_EXPLICIT_TRAIN_REVIEW_002/TRAIN_LABEL_AUDIT_REVIEWED.json",
+      "sha256": "3fa3eee7bbf559522c8fb975c2f87c08b8b2d5f612f67a47e4f9385b88c308e5"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "private_weights_for_fit": false,
+    "relaunch_allowed": false,
+    "fresh_windows_boot_required": true,
+    "power_limit_w": 250,
+    "expected_work": {
+      "fixed_parents": 32,
+      "initial_TRAIN_measurement_parents": 256,
+      "model_constructions": 3,
+      "forward_calls": 21,
+      "physical_optimizer_updates": 4,
+      "logical_steps": 2
+    },
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "online_physical_arrival_proven": false,
+    "scope": "Historical event-time private mechanics only. This is not a production ONLINE or predictive qualification. Main fit remains closed until separately bound and all applicable gates pass."
   }
 }
