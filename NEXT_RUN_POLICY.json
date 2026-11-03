@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T20:34:11.633245+00:00",
+  "observed_utc": "2026-11-03T20:37:02.061483+00:00",
   "status": "DYNAMIC_STATE_NO_EDGE_DIAGNOSIS_ACTIVE_READ_ONLY_20261103",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -19550,7 +19550,8 @@
         "state_rank_by_lead": "5f9e2ccd77668728a2acec7b2fa3add417acdac76f157225d44a4767b311adab",
         "rank_vs_markov": "a6dc26ec989deabfb6826d542d8fd7ccb920c4eb4be3bfc04e631719e08d1c09",
         "flat_exit_direction": "82819fa540fc17a2db6b1a64e5748d97946946d0766b8e1e87a5d83cd420021c",
-        "last_m1_simple_baseline": "1a621570da8c58451b82f06216bc342dc225063f118d2ff7b78fea511c085878"
+        "last_m1_simple_baseline": "1a621570da8c58451b82f06216bc342dc225063f118d2ff7b78fea511c085878",
+        "scoped_local_tick_inventory": "a7c5d2b61a0a0a909e4930d100d59b6906bde6ac6a934b5050fe40e0498437d0"
       },
       "findings": "No matched Markov Brier/logloss improvement; first-step M5 overpersistence and D1 overvolatility already on TRAIN; within-current-state first-minute change ranking exists, but UP/DOWN AUC is near 0.5 at one full native timeframe; on future-selected FLAT exits a simple last-M1 candle matches or exceeds M5 model direction rank; M5 labels censored by unresolved M1 intrabar order; FLAT target highly threshold sensitive; no isolated causal code defect proven.",
       "remaining_open": ["physical_XAU_M1_ATR_arrival_and_restart_parity", "TRAIN_only_target_semantics_and_finer_XAU_order_source", "separately_authorized_predeclared_model_design"],
@@ -19562,7 +19563,7 @@
       "exit_authorized": false,
       "broker_authorized": false,
       "trading_authorized": false,
-      "observed_utc": "2026-11-03T20:34:11.633245+00:00"
+      "observed_utc": "2026-11-03T20:37:02.061483+00:00"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -22127,7 +22128,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-03T20:34:11.633245+00:00",
+  "updated_utc": "2026-11-03T20:37:02.061483+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
