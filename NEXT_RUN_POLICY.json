@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T21:03:34.194835+00:00",
-  "status": "SAVED_FIRST_CHANGE_CALIBRATION_REPLACEMENT_PREPARED_CLOSED_20261103",
-  "training_enabled": false,
+  "observed_utc": "2026-11-03T21:07:21.480583+00:00",
+  "status": "SAVED_FIRST_CHANGE_CALIBRATION_REPLACEMENT_ADMITTED_ONEUSE_20261103",
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring are consumed with signed terminal PASS. The newly authorized short quality check is limited to the separately bound saved-prediction CPU calibration plan after a safe PC reboot; no native model call or automatic repeat. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Replacement 002 is prepared but closed. After fresh whole-host idle and same-boot/source checks, admit exactly one CPU-only saved TRAIN calibration fit and one saved TRAIN/reused-development score. Attempt 001 remains consumed; no native model, TEST, Exit, broker or trading.",
+  "next_action": "Run replacement 002 exactly once through capped audit using saved TRAIN predictions and one reused-development score after safe same-boot boundary. No native model calls, optimizer, TEST, Exit, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -19567,7 +19567,7 @@
       "observed_utc": "2026-11-03T20:40:08.706963+00:00"
     },
     "saved_first_change_calibration_replacement_20261103": {
-      "status": "PREPARED_CLOSED_AFTER_REBOOT",
+      "status": "ADMITTED_REPLACEMENT_ONEUSE_AFTER_REBOOT",
       "authorization_source": "User updated active goal: short quality tests and training may run without asking, with PC restart before test",
       "purpose": "One replacement of failed saved first-change calibration attempt; normalize saved FP32 rows in float64 before fit and score",
       "recipe": {
@@ -19588,7 +19588,7 @@
       "reboot_pre_boot_id": 599,
       "reboot_post_boot_id": 600,
       "same_boot_replacement_boundary_required": true,
-      "calibration_fit_authorized": false,
+      "calibration_fit_authorized": true,
       "fit_invocations_consumed": 0,
       "scoring_passes_completed": 0,
       "native_model_calls_authorized": false,
@@ -19597,7 +19597,9 @@
       "broker_authorized": false,
       "trading_authorized": false,
       "test_data_used": false,
-      "observed_utc": "2026-11-03T21:03:34.194835+00:00"
+      "admitted_utc": "2026-11-03T21:07:21.480583+00:00",
+      "windows_idle_snapshot": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/WINDOWS_IDLE_002.json", "sha256": "ad21397406eada54db5f7f129b83c86aae0a2c29a786772a91cc52fe9dc0cc86"},
+      "observed_utc": "2026-11-03T21:07:21.480583+00:00"
     },
     "saved_first_change_calibration_20261103": {
       "status": "FAILED_AFTER_TRAIN_FIT_BEFORE_SCORE_CONSUMED",
@@ -22197,7 +22199,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-03T21:03:34.194835+00:00",
+  "updated_utc": "2026-11-03T21:07:21.480583+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
