@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_PRIVATE_COMPLETE_FIT_CLOSED_ONLINE_DECISION_PENDING",
+  "status": "DYNAMIC_STATE_HISTORICAL_ONEPASS_USER_AUTHORIZED_PREPARATION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "User decision pending between keeping fit closed while resolving actual ONLINE data availability, or explicitly approving the already authorized single pass as historical event-time research only. No fit campaign or runtime exists; training remains disabled. No automatic repeat, TEST, Exit, broker or trading.",
+  "next_action": "Prepare one exact source/data/recipe-bound historical event-time fit and at most one bounded TRAIN/reused-development scoring. After exact admission, require safe machine-wide checks and fresh boot. Actual online delivery remains unknown. Never retry failed/consumed plans, TEST, Exit, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -254,8 +254,8 @@
     }
   },
   "current_work": {
-    "operator_request": "User approved one corrected replacement 32-parent private control (at most 3 constructions, 21 forwards, 4 physical optimizer updates, discarded weights), and if all gates pass at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Corrected private passed; closed single-fit proposal passes source/private metadata in memory, but physical ONLINE availability and persistence remain unproven.",
+    "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
+    "current_activity": "Explicit historical-only scope approved; preparing exact single-pass campaign. No main model process started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "At recorded issue time the latest M1 close and ATR are exactly contemporaneous, without local arrival or processing timestamps. Cannot claim live availability; pending user decision on historical-only scope.",
+    "current_blocker": "Exact fit recipe and single-trajectory admission, current-source binding, native fresh baseline, whole-host checks and fresh boot remain. Physical ONLINE arrival/persistence remain unknown and are not claimed by this offline research.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "User decision pending between keeping fit closed while resolving actual ONLINE data availability, or explicitly approving the already authorized single pass as historical event-time research only. No fit campaign or runtime exists; training remains disabled. No automatic repeat, TEST, Exit, broker or trading.",
+    "next_action": "Prepare one exact source/data/recipe-bound historical event-time fit and at most one bounded TRAIN/reused-development scoring. After exact admission, require safe machine-wide checks and fresh boot. Actual online delivery remains unknown. Never retry failed/consumed plans, TEST, Exit, broker or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19446,6 +19446,33 @@
       "native_launch_authorized": false,
       "model_calls": 0,
       "optimizer_steps": 0
+    },
+    "historical_event_time_onepass_authorization_20261103": {
+      "status": "USER_APPROVED_ONE_HISTORICAL_EVENT_TIME_PASS_AND_PREVIOUSLY_BOUNDED_SCORING_PREPARING",
+      "user_answer": "Ja, ett historisk pass",
+      "run_scope": "Retrospective historical event-time learning study only; actual online arrival, computation latency and persistence are unknown.",
+      "train_parents": 47602,
+      "max_optimizer_updates": 2976,
+      "train_passes": 1,
+      "max_completed_scorings": 1,
+      "reused_development_parents": 17288,
+      "private_qualification": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
+        "sha256": "5947c868da0381675bb12d808b5a1b3235275681c1294c46baaaa51e63b8f219"
+      },
+      "private_weights_used_for_fit": false,
+      "fresh_own_initial_baseline_required": true,
+      "training_enabled": false,
+      "campaign_claimed": false,
+      "fit_started": false,
+      "scoring_started": false,
+      "safe_restart_only_after_host_checks": true,
+      "automatic_repetition_authorized": false,
+      "live_readiness_or_edge_claim_authorized": false,
+      "test_authorized": false,
+      "exit_authorized": false,
+      "broker_authorized": false,
+      "trading_authorized": false
     }
   },
   "gc_order_flow_research_20261006": {
