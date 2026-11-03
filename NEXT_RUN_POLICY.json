@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_HISTORICAL_ONEPASS_USER_AUTHORIZED_PREPARATION",
-  "training_enabled": false,
-  "full_epoch_training_allowed": false,
+  "status": "DYNAMIC_STATE_HISTORICAL_ONEPASS_20261103_001_ADMITTED_MATERIALIZATION_PENDING",
+  "training_enabled": true,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Prepare one exact source/data/recipe-bound historical event-time fit and at most one bounded TRAIN/reused-development scoring. After exact admission, require safe machine-wide checks and fresh boot. Actual online delivery remains unknown. Never retry failed/consumed plans, TEST, Exit, broker or trading.",
+  "next_action": "Freeze exact source and policy; materialize only this historical single-trajectory fit, verify whole-host idle/write state and fresh boot before launch. One TRAIN pass and at most one scoring; no automatic retry. Actual online delivery remains unknown. TEST, Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Explicit historical-only scope approved; preparing exact single-pass campaign. No main model process started.",
+    "current_activity": "Exact one-pass historical event-time recipe admitted for guarded preparation; no main model process or restart yet.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Exact fit recipe and single-trajectory admission, current-source binding, native fresh baseline, whole-host checks and fresh boot remain. Physical ONLINE arrival/persistence remain unknown and are not claimed by this offline research.",
+    "current_blocker": "One-use campaign must be materialized and pass whole-host fresh-boot, storage and resource guards. Physical ONLINE arrival/persistence remain unknown and no live readiness is claimed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare one exact source/data/recipe-bound historical event-time fit and at most one bounded TRAIN/reused-development scoring. After exact admission, require safe machine-wide checks and fresh boot. Actual online delivery remains unknown. Never retry failed/consumed plans, TEST, Exit, broker or trading.",
+    "next_action": "Freeze exact source and policy; materialize only this historical single-trajectory fit, verify whole-host idle/write state and fresh boot before launch. One TRAIN pass and at most one scoring; no automatic retry. Actual online delivery remains unknown. TEST, Exit, broker and trading closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17469,7 +17469,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": false,
+    "current_native_launch_authorized": true,
     "current_training_scope": "ONE_DYNAMIC_STATE_SHORT_FIT_CONSUMED_TERMINAL_VALIDATOR_FAILED_NO_ADDITIONAL_FIT_AUTHORIZED",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
@@ -19448,7 +19448,7 @@
       "optimizer_steps": 0
     },
     "historical_event_time_onepass_authorization_20261103": {
-      "status": "USER_APPROVED_ONE_HISTORICAL_EVENT_TIME_PASS_AND_PREVIOUSLY_BOUNDED_SCORING_PREPARING",
+      "status": "EXACT_HISTORICAL_ONEPASS_ADMITTED_PREPARATION_NOT_STARTED",
       "user_answer": "Ja, ett historisk pass",
       "run_scope": "Retrospective historical event-time learning study only; actual online arrival, computation latency and persistence are unknown.",
       "train_parents": 47602,
@@ -19462,7 +19462,7 @@
       },
       "private_weights_used_for_fit": false,
       "fresh_own_initial_baseline_required": true,
-      "training_enabled": false,
+      "training_enabled": true,
       "campaign_claimed": false,
       "fit_started": false,
       "scoring_started": false,
@@ -19472,7 +19472,12 @@
       "test_authorized": false,
       "exit_authorized": false,
       "broker_authorized": false,
-      "trading_authorized": false
+      "trading_authorized": false,
+      "exact_fit_recipe": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RECIPE.json",
+        "sha256": "9ddf77864ff0550cfd3160fa3242e56c1de9df7afcd5acab37ca6e38b648a884"
+      },
+      "campaign_preparation_authorized": true
     }
   },
   "gc_order_flow_research_20261006": {
@@ -32823,7 +32828,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -53425,5 +53430,64 @@
     },
     "task_state": "Disabled",
     "actual_boot_id": 597
+  },
+  "dynamic_mtf_state_onepass_fit_20261103_001": {
+    "status": "EXACT_HISTORICAL_ONEPASS_RECIPE_ADMITTED_METADATA_PREPARATION_ONLY_REBOOT_NOT_YET_APPROVED",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RECIPE.json",
+      "sha256": "9ddf77864ff0550cfd3160fa3242e56c1de9df7afcd5acab37ca6e38b648a884"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME",
+    "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001",
+    "metadata_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RECIPE_METADATA_REVIEW.json",
+      "sha256": "c62b694e8573b0d7dd8af4542600ff0a43216ee303ca2d606c4b618e739db114"
+    },
+    "private_mechanics": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "5947c868da0381675bb12d808b5a1b3235275681c1294c46baaaa51e63b8f219"
+    },
+    "materializer": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/materialize_prefix_campaign_once.py",
+      "sha256": "ceb4ff57a0cd78089ea3383f71abfd099917f5cd86d859cd2d73d6ede5f14237"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "3efd62feb6f8c4cfc1004627847c4828883bc918c6f8be0167045697456a6b80"
+    },
+    "max_invocations": 4,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_rounds": 1,
+    "automatic_repetition_authorized": false,
+    "automatic_full_training_authorized": false,
+    "qualification_weights_for_main_fit": false,
+    "power_limit_w": 250,
+    "max_optimizer_updates": 2976,
+    "train_parent_rows": 47602,
+    "scope": "One historical event-time TRAIN pass; up to four guarded windows form one durable trajectory and one TRAIN/reused-development scoring. No second training pass or automatic repetition. Actual ONLINE arrival and persistence unproven. No TEST/Exit/broker/trading.",
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "physical_online_arrival_proven": false,
+    "physical_online_persistence_proven": false,
+    "live_readiness_or_economic_edge_qualified": false,
+    "partial_scoring_retry_automatically_authorized": false
   }
 }
