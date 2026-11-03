@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+03.11 — KLASSEFORDELING/KALIBRERING SKILT: På full framtidsgrid er M5 faktisk OPP-andel nesten lik TRAIN→senere (43,96→44,34 %), mens modellens middel P(NED) øker 42,43→45,48 %; enkel priorendring forklarer ikke M5-gapet. D1-fasit går mot OPP (55,31→66,62 %) og nesten uten FLATT (3,54→0,78 %), mens senere modellmiddel er P(OPP)=52,94 % og P(FLATT)=4,92 %. Dette er målt, ikke kausalt forklart. Se docs/DYNAMIC_MTF_STATE_NO_EDGE_DIAGNOSIS_20261103.md. Ingen nye modellkall; porter stengt.
+
 03.11 — TRAIN VS SENERE SVIKT SKILT: Signerte fullbane-skårer viser modell−Markov Brier negativ på TRAIN for M5/M15/H1/H4 (−0,001457/−0,002361/−0,003361/−0,004914), men positiv på senere gjenbrukt utvikling (+0,003365/+0,002943/+0,003984/+0,006860). D1 er svak allerede på TRAIN (+0,007528) og dårligere senere (+0,023559). TRAIN er in-sample; årsak til reversering er ikke isolert. Se docs/DYNAMIC_MTF_STATE_NO_EDGE_DIAGNOSIS_20261103.md. Ingen nye modellkall, training_enabled=false.
 
 03.11 — FAKTISK TAPSSAMMENSETNING KONTROLLERT: Bevarte første/siste TRAIN-batchkvitteringer gjenskaper `sekvens-NLL + 0,03 første-tilstand + 0,03 første-FLATT` med avvik <6e-9 og positive endelige gradientnormer. Batchene har ulikt antall observerte celler (81 686 mot 12 151), så nivåforskjellen er ikke en læringskurve. Ingen aritmetisk lossdispatchfeil påvist; valg av lossvekter er fortsatt ikke validert. Bevis `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_LOSS_COMPOSITION_REVIEW.json` SHA-256 `5d8ab38213a1c78c5ea439c9cf89ae92cbf54c40e1fea052f07de4a8d038a55f`. Ingen nye modellkall eller oppdateringer; training_enabled=false.

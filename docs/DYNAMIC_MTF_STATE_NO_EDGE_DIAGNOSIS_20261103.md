@@ -32,6 +32,18 @@ Modell og Markov ble vurdert på identiske modne, observerte målceller innen hv
 
 TRAIN er in-sample for sluttmodellen og derfor optimistisk. Reverseringen på M5–H4 er en dokumentert generaliseringssvikt relativt til samme referanse, ikke bevis for én bestemt årsak som regimebytte eller overtilpasning. D1s gap er også en TRAIN-fit-/kalibreringssvikt. Logloss har samme fortegnsmønster: M5–H4 bedre enn Markov på TRAIN, alle fem svakere senere. Brier-gapet var positivt i hver av januar, februar og mars 2025 for hver tidsramme. Ukeblokkintervallene er beskrivende: minuttsmål og foreldre overlapper, og perioden er brukt til utvikling før. De er ikke ny, uavhengig validering.
 
+På hele framtidsgriden er deler av generaliseringsgapet synlig som skift i **kalibrering per klasse**. Tallene nedenfor er aggregerte, sterkt overlappende observerte celler fra de signerte rapportene:
+
+| Tidsramme | TRAIN faktisk OPP | Senere faktisk / modellens middel P(OPP) | Senere faktisk / modellens middel P(FLATT) |
+|---|---:|---:|---:|
+| M5 | 43,96 % | 44,34 / 43,95 % | 14,50 / 10,57 % |
+| M15 | 45,40 % | 46,49 / 45,16 % | 12,97 / 10,41 % |
+| H1 | 46,58 % | 50,13 / 45,62 % | 11,66 / 12,14 % |
+| H4 | 51,67 % | 57,76 / 51,01 % | 7,03 / 7,11 % |
+| D1 | 55,31 % | 66,62 / 52,94 % | 0,78 / 4,92 % |
+
+M5s faktiske klasseandel er nesten uendret mellom periodene, mens modellens middel P(NED) stiger fra 42,43 til 45,48 % og P(FLATT) faller fra 12,65 til 10,57 %. M5-gapet kan altså ikke forklares av et stort skift i **bare** klassepriorene. På D1 endres fasiten tydelig mot OPP og nesten uten FLATT, mens modellens middelprognose følger ikke med. Dette viser en fordeling-/kalibreringssvikt, men skiller ikke årsaken mellom inputregime, delt modellhode, loss og utilstrekkelig fit.
+
 Første-minutt-prognosen avslører en mer presis feil enn samlet skår. Tabellen viser sannsynlighet for **skifte bort fra den kjente nåtilstanden**, aggregert over dennes tre klasser. Tallene i parentes er faktisk skiftrate. Her brukes lagret TRAIN- og utviklingsprediksjon, ingen ny forward.
 
 | Tidsramme / nåtilstand | TRAIN: modell / faktisk | Senere: modell / faktisk | Fryst Markov |
