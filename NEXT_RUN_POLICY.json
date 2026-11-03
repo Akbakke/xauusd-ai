@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T21:07:21.480583+00:00",
-  "status": "SAVED_FIRST_CHANGE_CALIBRATION_REPLACEMENT_ADMITTED_ONEUSE_20261103",
-  "training_enabled": true,
+  "observed_utc": "2026-11-03T21:09:04.284702+00:00",
+  "status": "SAVED_FIRST_CHANGE_CALIBRATION_REPLACEMENT_COMPLETE_CLOSED_20261103",
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring are consumed with signed terminal PASS. The newly authorized short quality check is limited to the separately bound saved-prediction CPU calibration plan after a safe PC reboot; no native model call or automatic repeat. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run replacement 002 exactly once through capped audit using saved TRAIN predictions and one reused-development score after safe same-boot boundary. No native model calls, optimizer, TEST, Exit, broker or trading.",
+  "next_action": "Review the single saved calibration result and source/target limitations. It beats matched Markov Brier on reused development at first minute, but is in-sample TRAIN calibrated and development reused; no independent edge, native rerun, TEST, Exit, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -19567,7 +19567,7 @@
       "observed_utc": "2026-11-03T20:40:08.706963+00:00"
     },
     "saved_first_change_calibration_replacement_20261103": {
-      "status": "ADMITTED_REPLACEMENT_ONEUSE_AFTER_REBOOT",
+      "status": "COMPLETED_ONEUSE_SAVED_CALIBRATION_CLOSED",
       "authorization_source": "User updated active goal: short quality tests and training may run without asking, with PC restart before test",
       "purpose": "One replacement of failed saved first-change calibration attempt; normalize saved FP32 rows in float64 before fit and score",
       "recipe": {
@@ -19588,9 +19588,9 @@
       "reboot_pre_boot_id": 599,
       "reboot_post_boot_id": 600,
       "same_boot_replacement_boundary_required": true,
-      "calibration_fit_authorized": true,
-      "fit_invocations_consumed": 0,
-      "scoring_passes_completed": 0,
+      "calibration_fit_authorized": false,
+      "fit_invocations_consumed": 1,
+      "scoring_passes_completed": 1,
       "native_model_calls_authorized": false,
       "test_authorized": false,
       "exit_authorized": false,
@@ -19598,8 +19598,20 @@
       "trading_authorized": false,
       "test_data_used": false,
       "admitted_utc": "2026-11-03T21:07:21.480583+00:00",
-      "windows_idle_snapshot": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/WINDOWS_IDLE_002.json", "sha256": "ad21397406eada54db5f7f129b83c86aae0a2c29a786772a91cc52fe9dc0cc86"},
-      "observed_utc": "2026-11-03T21:07:21.480583+00:00"
+      "windows_idle_snapshot": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/WINDOWS_IDLE_002.json",
+        "sha256": "ad21397406eada54db5f7f129b83c86aae0a2c29a786772a91cc52fe9dc0cc86"
+      },
+      "observed_utc": "2026-11-03T21:09:04.284702+00:00",
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/RESULT.json",
+        "sha256": "dadafc3cc5b27b39960a73b4378bf1c89b1b069e5d479d0fec17762fcebf4d41"
+      },
+      "run_log": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/RUN_002.log",
+        "sha256": "660288760cfb2dce129a18d8539a5b03a685f49df03b23b75f158a5b6c1b2fe1"
+      },
+      "completed_utc": "2026-11-03T21:09:04.284702+00:00"
     },
     "saved_first_change_calibration_20261103": {
       "status": "FAILED_AFTER_TRAIN_FIT_BEFORE_SCORE_CONSUMED",
@@ -22199,7 +22211,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-03T21:07:21.480583+00:00",
+  "updated_utc": "2026-11-03T21:09:04.284702+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
