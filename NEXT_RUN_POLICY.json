@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_PRIVATE_SELECTOR_FIX_TESTED_NEW_PLAN_NOT_AUTHORIZED",
+  "status": "DYNAMIC_STATE_PRIVATE_REPLACEMENT_CLOSED_PROPOSAL_READY_FOR_USER_DECISION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Keep all training and launch closed. Bind the changed dynamic private selector and existing TRAIN-only coverage sample into a fresh non-runnable proposal; the failed claimed private001 may never be relaunched and a new exact campaign requires fresh user authorization. Native qualification, physical ONLINE availability and main fit remain unproven; TEST, Exit, broker and trading stay closed.",
+  "next_action": "The failed private001 is consumed and may never be relaunched. A corrected, source-bound private recipe exists only as a closed proposal. Obtain fresh exact one-use user authority before making a new campaign; then rebind to current HEAD and pass safe reboot/native/ONLINE/runtime gates. Main fit and scoring remain closed; TEST, Exit, broker and trading stay closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "On 2026-11-03 user answered the explicit proposal: Ja, én kontroll og ett pass. This authorizes one 32-TRAIN-parent private mechanical qualification with at most 3 model constructions, 21 forwards, 4 physical optimizer updates and discarded private weights; if all gates pass, at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. Restart only after safe machine-wide checks. No automatic repeat, TEST, Exit, broker or trading.",
-    "current_activity": "Fixed dynamic private selector to accept the already bound sorted TRAIN-only mechanical coverage sample; focused mocked tests and real TRAIN-axis preflight passed without model calls.",
+    "current_activity": "Corrected dynamic private selector and closed replacement proposal reviewed; previous private attempt failed before any model call, and no new campaign has been created.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The prior private001 is consumed after failing before model construction. Changed source needs fresh exact source/recipe/campaign binding and new one-use user authorization. Actual model, gradients, restart parity and physical ONLINE remain unqualified.",
+    "current_blocker": "New exact one-use user authorization and final current-HEAD admitted private campaign are required. The original claimed plan is consumed. New model/gradient/resume and physical ONLINE evidence remain absent.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Keep all training and launch closed. Bind the changed dynamic private selector and existing TRAIN-only coverage sample into a fresh non-runnable proposal; the failed claimed private001 may never be relaunched and a new exact campaign requires fresh user authorization. Native qualification, physical ONLINE availability and main fit remain unproven; TEST, Exit, broker and trading stay closed.",
+    "next_action": "The failed private001 is consumed and may never be relaunched. A corrected, source-bound private recipe exists only as a closed proposal. Obtain fresh exact one-use user authority before making a new campaign; then rebind to current HEAD and pass safe reboot/native/ONLINE/runtime gates. Main fit and scoring remain closed; TEST, Exit, broker and trading stay closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18855,9 +18855,9 @@
           0.05696982530531868
         ],
         "causal_input_design": {
-          "status": "PRIVATE_IDENTITY_FAILURE_FIXED_SOURCE_TESTED_NEW_PLAN_NOT_AUTHORIZED",
+          "status": "PRIVATE_IDENTITY_FAILURE_FIXED_REPLACEMENT_PROPOSAL_NOT_AUTHORIZED",
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md",
-          "sha256": "159929dfe29bc5f2e623a7cdd80ea2359e40c2f473650e0b4bb8850bb69e4852",
+          "sha256": "b9586b6946f6f6b40803cbb9e0dfb84b5eed71c6ea3604297a4f8d7598e10844",
           "actual_xau_m1_receive_or_processing_timestamp_found_in_inspected_schema": false,
           "other_logs_not_inspected": true,
           "online_delivery_order_proven": false,
@@ -19340,7 +19340,7 @@
       "new_campaign_requires_fresh_authorization": true
     },
     "dynamic_state_private_parent_selection_fix_20261103": {
-      "status": "PASS_FOCUSED_TESTS_AND_REAL_TRAIN_AXIS_PREFLIGHT_NO_MODEL",
+      "status": "PASS_FOCUSED_TESTS_REAL_TRAIN_SELECTOR_AND_CLOSED_REPLACEMENT_PROPOSAL_NO_MODEL",
       "worker": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
         "sha256": "1eabee7cc0bd69c59c94ded152ac6f11e344051a242c4c14ae7d70a809c8699a"
@@ -19364,7 +19364,17 @@
       "new_campaign_authorized": false,
       "new_model_calls": 0,
       "new_optimizer_steps": 0,
-      "test_data_used": false
+      "test_data_used": false,
+      "replacement_proposal": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_REPLACEMENT_REVIEW_001/PRIVATE_RECIPE_PROPOSAL.json",
+        "sha256": "0eca4f05ef4a575752e6b3d68a5e27ae3caeb885d82de35af0633308ea1b5b8f"
+      },
+      "replacement_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_REPLACEMENT_REVIEW_001/PROPOSAL_REVIEW.json",
+        "sha256": "0a2093f12de65842a4357f7965c9981a523dd4d702dc576b98528a60a044202c"
+      },
+      "source_head_at_replacement_preparation": "e16b6c8be18757bbdbaecab1fec672cf46e1f9ee",
+      "replacement_is_not_campaign": true
     }
   },
   "gc_order_flow_research_20261006": {
