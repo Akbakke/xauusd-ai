@@ -12,11 +12,11 @@ Den første revisjonen var lesning av bevarte prediksjoner, mål, checkpoints, i
 |---|---|---|
 | Frakoblet data-/modellbane | Fem tidsrammer og full featureprofil er bundet; 642 aktive tensorer endret seg. GC-D1-historikkstøtten er uten overlapp mellom TRAIN og senere data. Dette måler ikke indikatorenes prediktive verdi. | Ingen frakobling påvist; konkret inputskift, kausal verdi ukjent |
 | Historisk klokke/lekkasje | TRAIN-normalisering og målcutoff er bundet før senere data. XAU-M1 og ATR har bare event-time, uten faktisk mottaksklokke. | Historisk sjekk bestått; ONLINE ukjent |
-| Feil mål | 0,5 ATR er kandidat. M5 +1-retning er bare 49,8 % observert; D1-FLATT er sjelden; terskelstørrelsen varierer 3,13–70,82 bps mellom tidsrammer. | Konkret mål-/databegrensning; ønsket grense ikke kvalifisert |
-| Feil sannsynlighetsnivå | Råmodellen holder M5-tilstand for lenge og skifter D1 for ofte allerede på TRAIN. Én TRAIN-kalibrering forbedret +1-Brier/logloss på gjenbrukt utvikling. | Målt svakhet; årsak i treningen ikke isolert |
-| Taps-/modellutforming | Sekvens-NLL vekter alle observerte minutter; første-steg-tillegg er 0,03 hver, og ingen Markov-forankring finnes. | Plausibel mekanisme, ikke kausal test |
-| Manglende framtidig retningssignal | UP/NED-AUC er rundt 0,5 ved én full native tidsramme på alle fem. Første-minutts skifter kan rangeres innen kjent nåtilstand. | Kort signal, ingen dokumentert helhorisont-edge |
-| Generalisering/økonomi | Råmodellen slår Markov på TRAIN for M5–H4, men taper senere; D1 taper allerede på TRAIN. Kalibratoren bruker in-sample slutt-TRAIN og tidligere brukt utvikling. | Generaliseringsreversering og D1 TRAIN-gap målt; ingen uavhengig eller økonomisk edge |
+| Feil mål | 0,5 ATR er kandidat. M5 +1-retning er 49,8 % observert; D1-FLATT er sjelden. M5-grensen er median 1,97 historisk siterte spreads på TRAIN, men lokal range er ikke fangbar Entry-bevegelse. | Målskala og intraminutt-retning uavklart; ingen terskelendring |
+| Feil sannsynlighetsnivå | Råmodellen holder M5-tilstand for lenge ved +1, men gir for lav FLATT-andel ved +5. M15 har samme fortegnsskifte; én TRAIN-kalibrering forbedret bare +1. | Marginal kurvefeil målt også på TRAIN; én offset løser den ikke |
+| Taps-/modellutforming | Sekvens-NLL trener betingede baner mens prognosen scores marginalt. Faktorbytte av lagret output viser at modellens betingede OPP/NED-del forverrer senere Brier/logloss mot Markov på alle fem TF. | Outputsvikt lokalisert; ingen konkret parameter-/kodeårsak bevist |
+| Manglende framtidig retningssignal | Senere UP/NED-AUC er rundt 0,5 ved én native ledetid på alle fem. M5s binære FLATT/ikke-FLATT-skår slår Markov på gjenbrukt utvikling i hver måned. | Betinget aktivitetsinformasjon finnes; retningsmerverdi er ikke dokumentert |
+| Generalisering/økonomi | M5–H4 fullgrid-Brier snur fra TRAIN in-sample til senere tap; H1/H4/D1s betingede retningsrangering faller særlig. GC-D1-inputstøtte skifter, men årsaken er ikke isolert. | Gjenbrukt utvikling, ingen uavhengig eller økonomisk edge |
 
 ## Matchet resultat og hvor svikten oppstår
 
@@ -278,6 +278,16 @@ Modellen får historisk nåtilstand og genuine MTF-indikatorer og trenes mot fra
 Den godkjente 0,5 ATR-grensen er fortsatt en **forskningskandidat**, ikke en dokumentert grense for «bevegelse verdt å fange». M5-retning er ukjent på omtrent halvparten av +1-radene fordi M1-OHLC mangler hendelsesrekkefølge. D1-FLATT er svært sjelden. Loss teller observerte framtidsminutter, men har ingen eksplisitt målverdi for framtidig bevegelsesstørrelse, nytte eller tidspunktet for første relevante skifte. Dermed vet modellen hvilken **proxy** den skal lære, mens full samsvar med den praktiske OPP/NED/FLATT-bestillingen fortsatt er uavklart. Dette er et mål- og datagap; det er ikke bevis for at indikatorene er uten verdi.
 
 ## Neste avgrensede beslutningsgrunnlag
+
+De neste portene er **beslutninger før eventuell kodeendring og én ny historisk modellkandidat**. Ingen er en autorisert kjøring nå.
+
+| Port | Konkrete krav | Status |
+|---|---|---|
+| Mål | Behold 0,5 ATR som kandidat inntil TRAIN-only vurdering av «verdt å fange», M5s retningssensur og D1s sjeldne FLATT; enhver endring krever ny kausal målmaterialisering på alle fem TF. | Åpen |
+| Retningskandidat | Én forhåndsdefinert endring som direkte trener/scorer marginal treklasse og betinget retning ved fastsatte ledetider, bevarer dynamisk FLATT/OPP/NED og all fysisk input. Ingen ekstra binær-loss-runde som første tiltak. | Ikke vedtatt eller kodet |
+| Måling | Strengt kronologisk TRAIN-OOF med prefixnormalisering og samme modellidentitet; full treklasse-Brier/logloss, betinget retningsrangering, binær aktivitet og første utgang/retur separat per TF mot fryst Markov og TRAIN-prior. Gjenbrukt utvikling er bare diagnostikk. | Mangler |
+| Kjøring | Høyst én eksakt capped kontroll og ett pass, med trygg omstart før modellsjekk, frosset kilde, forhåndslåst stoppregel og ingen automatisk omprøving. | `training_enabled=false`; ingen plan innrømmet |
+| Uavhengig bruk | Faktisk XAU-M1/ATR-mottak og restartparitet før ONLINE. Forseglet TEST forblir stengt; bare vedtatt månedlig forward-journal kan gi ny uavhengig prognoseevidens. | ONLINE/edge ukjent |
 
 1. Behold nåværende modell som forskningsartefakt og fryst TRAIN-Markov som minste prognosereferanse. Ikke start en serie nye runder for å justere mot den gjenbrukte utviklingsperioden.
 2. Dokumenter faktisk mottaks- og beregningstid for XAU M1 og ATR samt restartparitet før ONLINE-adgang. Hvis kilden ikke har slike klokker, behold ONLINE-status ukjent.
