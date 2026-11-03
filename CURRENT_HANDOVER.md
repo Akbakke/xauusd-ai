@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+03.11 — FYSISK INPUTSTØTTE SKIFTER: Aktuell inputmanifest deler akser, fold, fysisk provider, konstruktør og prefixnormalisering med tidligere fullprofilrevisjon; kun retningskomponent-kilde/kontrakt avviker. Gjenbrukt GC-D1-volumhistorikkdekning har TRAIN 0–168 rader (snitt 82,89) mot senere 169–230 (snitt 199,39), uten overlapp. Dette er et målt inputskift, ikke bevis for årsak eller indikatorverdi. Paritetskvittering `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_CURRENT_INPUT_LINEAGE_PARITY_REVIEW.json` SHA-256 `0dbc16a860829f34d260ddf1187b83ea1ba1d23cd4ab1749335258379a77d589`; se diagnosen. Ingen nye modellkall; training_enabled=false.
+
 03.11 — KLASSEFORDELING/KALIBRERING SKILT: På full framtidsgrid er M5 faktisk OPP-andel nesten lik TRAIN→senere (43,96→44,34 %), mens modellens middel P(NED) øker 42,43→45,48 %; enkel priorendring forklarer ikke M5-gapet. D1-fasit går mot OPP (55,31→66,62 %) og nesten uten FLATT (3,54→0,78 %), mens senere modellmiddel er P(OPP)=52,94 % og P(FLATT)=4,92 %. Dette er målt, ikke kausalt forklart. Se docs/DYNAMIC_MTF_STATE_NO_EDGE_DIAGNOSIS_20261103.md. Ingen nye modellkall; porter stengt.
 
 03.11 — TRAIN VS SENERE SVIKT SKILT: Signerte fullbane-skårer viser modell−Markov Brier negativ på TRAIN for M5/M15/H1/H4 (−0,001457/−0,002361/−0,003361/−0,004914), men positiv på senere gjenbrukt utvikling (+0,003365/+0,002943/+0,003984/+0,006860). D1 er svak allerede på TRAIN (+0,007528) og dårligere senere (+0,023559). TRAIN er in-sample; årsak til reversering er ikke isolert. Se docs/DYNAMIC_MTF_STATE_NO_EDGE_DIAGNOSIS_20261103.md. Ingen nye modellkall, training_enabled=false.
