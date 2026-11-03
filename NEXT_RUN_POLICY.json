@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T21:16:01.005641+00:00",
+  "observed_utc": "2026-11-03T21:26:16.666325+00:00",
   "status": "SAVED_FIRST_CHANGE_CALIBRATION_REPLACEMENT_COMPLETE_CLOSED_20261103",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Continue read-only source-clock and target-semantic investigation; define chronological same-model OOF calibration and longer-lead movement evaluation before any new native pass. One saved calibration replacement is consumed; no automatic repeat, TEST, Exit, broker or trading.",
+  "next_action": "Continue read-only XAU clock/target assessment; strict same-model OOF calibration needs a separately predeclared prefix-normalized plan because existing checkpoints have no OOF predictions and use full-TRAIN normalization. No automatic native run, TEST, Exit, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -19552,9 +19552,10 @@
         "flat_exit_direction": "82819fa540fc17a2db6b1a64e5748d97946946d0766b8e1e87a5d83cd420021c",
         "last_m1_simple_baseline": "1a621570da8c58451b82f06216bc342dc225063f118d2ff7b78fea511c085878",
         "scoped_local_tick_inventory": "a7c5d2b61a0a0a909e4930d100d59b6906bde6ac6a934b5050fe40e0498437d0",
-        "first_change_reliability": "8f60b213b2a0a36299e7eb6f4fd59167c53c7c8c87d3351d9d0eec67575aa514"
+        "first_change_reliability": "8f60b213b2a0a36299e7eb6f4fd59167c53c7c8c87d3351d9d0eec67575aa514",
+        "same_model_oof_availability": "1250cfa5f27f01e5210b09d027dff97180a9649ff4e3e89bfe51d832037def72"
       },
-      "findings": "No matched Markov Brier/logloss improvement; first-step M5 overpersistence and D1 overvolatility already on TRAIN; TRAIN-defined first-change reliability bins show stable M5 probability compression into reused development; within-current-state first-minute change ranking exists, but UP/DOWN AUC is near 0.5 at one full native timeframe; on future-selected FLAT exits a simple last-M1 candle exceeds M5 model direction rank; M5 labels censored by unresolved M1 intrabar order; FLAT target highly threshold sensitive; no isolated causal code defect proven. A separate one-use saved TRAIN-only 15-offset calibration improved first-minute Brier/logloss versus matched Markov on all five reused-development timeframes; in-sample final TRAIN predictions and reused development preclude independent edge. The bound historical XAU M1 parquet lacks receive/calculate timestamps. Target manifest explicitly leaves 0.5 ATR rule unlocked; trained trial grid is +1..1440 minutes, with no measurement beyond one day or explicit movement-magnitude/utility target.",
+      "findings": "No matched Markov Brier/logloss improvement; first-step M5 overpersistence and D1 overvolatility already on TRAIN; TRAIN-defined first-change reliability bins show stable M5 probability compression into reused development; within-current-state first-minute change ranking exists, but UP/DOWN AUC is near 0.5 at one full native timeframe; on future-selected FLAT exits a simple last-M1 candle exceeds M5 model direction rank; M5 labels censored by unresolved M1 intrabar order; FLAT target highly threshold sensitive; no isolated causal code defect proven. A separate one-use saved TRAIN-only 15-offset calibration improved first-minute Brier/logloss versus matched Markov on all five reused-development timeframes; in-sample final TRAIN predictions and reused development preclude independent edge. The bound historical XAU M1 parquet lacks receive/calculate timestamps. Target manifest explicitly leaves 0.5 ATR rule unlocked; trained trial grid is +1..1440 minutes, with no measurement beyond one day or explicit movement-magnitude/utility target. Campaign inventory: only initial256, final TRAIN47602 and reused-development17288 prediction sets; 11 intermediate checkpoints have no predictions. All checkpoint inputs bind normalization qualified on full TRAIN47602, so replay cannot by itself establish strict chronological OOF.",
       "remaining_open": [
         "physical_XAU_M1_ATR_arrival_and_restart_parity",
         "TRAIN_only_target_semantics_and_finer_XAU_order_source",
@@ -19568,7 +19569,7 @@
       "exit_authorized": false,
       "broker_authorized": false,
       "trading_authorized": false,
-      "observed_utc": "2026-11-03T21:16:01.005641+00:00",
+      "observed_utc": "2026-11-03T21:26:16.666325+00:00",
       "saved_first_change_calibration_result": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/RESULT.json",
         "sha256": "dadafc3cc5b27b39960a73b4378bf1c89b1b069e5d479d0fec17762fcebf4d41"
@@ -22219,7 +22220,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-03T21:16:01.005641+00:00",
+  "updated_utc": "2026-11-03T21:26:16.666325+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
