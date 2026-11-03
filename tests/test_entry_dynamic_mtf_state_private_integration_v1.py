@@ -166,7 +166,8 @@ def test_dynamic_private_bounded_control_flow_and_fail_closed_evidence(tmp_path,
     monkeypatch.setattr(recipes,'require_native_direction_research_recipe',lambda value:value)
     parents = np.arange(47602,dtype=np.int64)
     ordered = prefix._fixed_order(parents,47602,prefix.SEED,np)
-    selected = np.sort(ordered[:32]).tolist()
+    selected = list(range(32))
+    assert selected != np.sort(ordered[:32]).tolist()
     launch = {'run_scope':authority.DYNAMIC_STATE_PRIVATE_SCOPE, 'full_feature_profile':True,
         'numerical_recipe':numerical, 'execution_binding_path':str(tmp_path/'binding'),
         'runtime_root':str(tmp_path/'runtime'), 'fold':authority.BPS_FOLD,
@@ -191,7 +192,7 @@ def test_dynamic_private_bounded_control_flow_and_fail_closed_evidence(tmp_path,
     def prepare(*args):
         if failure == 'prepare':
             raise RuntimeError('synthetic prepare block')
-        return {'arrays':{'parent_rows':parents}, 'gc':{'layout':{}}},{},view,None,ordered
+        return {'arrays':{'parent_rows':parents}, 'gc':{'layout':{}}}, {'lead_minutes': np.arange(1, 1441, dtype=np.int64)}, view, None, ordered
     monkeypatch.setattr(prefix,'_prepare',prepare)
     monkeypatch.setattr(groups,'compile_full_gc_mtf_entry_execution_profile',lambda *args:profile)
     monkeypatch.setattr(prefix,'_prefix_prior',lambda *args:{'synthetic':True})
@@ -236,6 +237,7 @@ def test_dynamic_private_bounded_control_flow_and_fail_closed_evidence(tmp_path,
         return {key:state[key] for key in ('cursor','optimizer_updates')}
     monkeypatch.setattr(state_owner,'restore_native_direction_research_state',restore)
     def evaluate(*args,**kwargs):
+        assert np.array_equal(args[5], ordered[:256])
         counters = kwargs['counters']
         counters['forward_calls'] += 17
         counters['forward_returns'] += 17

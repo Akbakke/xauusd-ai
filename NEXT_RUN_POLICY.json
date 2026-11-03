@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_PRIVATE_20261103_001_FAILED_PARENT_IDENTITY_CONSUMED_TRAINING_CLOSED",
+  "status": "DYNAMIC_STATE_PRIVATE_SELECTOR_FIX_TESTED_NEW_PLAN_NOT_AUTHORIZED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Never relaunch consumed private001. Diagnose and verify exact fixed diagnostic parent order using existing TRAIN axes, prepare the smallest source/metadata correction without model execution, and bind a new exact one-use proposal. A new campaign requires fresh authorization. Main fit, scoring, restart, TEST, Exit, broker and trading remain closed.",
+  "next_action": "Keep all training and launch closed. Bind the changed dynamic private selector and existing TRAIN-only coverage sample into a fresh non-runnable proposal; the failed claimed private001 may never be relaunched and a new exact campaign requires fresh user authorization. Native qualification, physical ONLINE availability and main fit remain unproven; TEST, Exit, broker and trading stay closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "On 2026-11-03 user answered the explicit proposal: Ja, én kontroll og ett pass. This authorizes one 32-TRAIN-parent private mechanical qualification with at most 3 model constructions, 21 forwards, 4 physical optimizer updates and discarded private weights; if all gates pass, at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. Restart only after safe machine-wide checks. No automatic repeat, TEST, Exit, broker or trading.",
-    "current_activity": "Private qualification001 failed its fixed parent identity check before any model construction or optimizer update; original receipt preserved and task disabled.",
+    "current_activity": "Fixed dynamic private selector to accept the already bound sorted TRAIN-only mechanical coverage sample; focused mocked tests and real TRAIN-axis preflight passed without model calls.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Preparation selected three label-covered TRAIN parents that do not match the existing fixed diagnostic order. Private001 is consumed and cannot be relaunched. A corrected exact proposal and fresh authorization are required; new private/native/ONLINE qualification remains absent.",
+    "current_blocker": "The prior private001 is consumed after failing before model construction. Changed source needs fresh exact source/recipe/campaign binding and new one-use user authorization. Actual model, gradients, restart parity and physical ONLINE remain unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Never relaunch consumed private001. Diagnose and verify exact fixed diagnostic parent order using existing TRAIN axes, prepare the smallest source/metadata correction without model execution, and bind a new exact one-use proposal. A new campaign requires fresh authorization. Main fit, scoring, restart, TEST, Exit, broker and trading remain closed.",
+    "next_action": "Keep all training and launch closed. Bind the changed dynamic private selector and existing TRAIN-only coverage sample into a fresh non-runnable proposal; the failed claimed private001 may never be relaunched and a new exact campaign requires fresh user authorization. Native qualification, physical ONLINE availability and main fit remain unproven; TEST, Exit, broker and trading stay closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -18855,9 +18855,9 @@
           0.05696982530531868
         ],
         "causal_input_design": {
-          "status": "TRAIN_SAMPLE_TRANSITIONS_AND_PATH_MASKS_REVIEWED_NO_NATIVE_QUALIFICATION",
+          "status": "PRIVATE_IDENTITY_FAILURE_FIXED_SOURCE_TESTED_NEW_PLAN_NOT_AUTHORIZED",
           "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_STATE_CAUSAL_INPUT_DESIGN_20261102.md",
-          "sha256": "d993fb3f97f5b9d2781f31030fa7667f60fce3b70bfe9c77161844495f0f85e3",
+          "sha256": "159929dfe29bc5f2e623a7cdd80ea2359e40c2f473650e0b4bb8850bb69e4852",
           "actual_xau_m1_receive_or_processing_timestamp_found_in_inspected_schema": false,
           "other_logs_not_inspected": true,
           "online_delivery_order_proven": false,
@@ -19338,6 +19338,33 @@
         "sha256": "4cc79f4430216796af6021fb0f0e3c847a69815293f43f4b4b920a7cabaca7f1"
       },
       "new_campaign_requires_fresh_authorization": true
+    },
+    "dynamic_state_private_parent_selection_fix_20261103": {
+      "status": "PASS_FOCUSED_TESTS_AND_REAL_TRAIN_AXIS_PREFLIGHT_NO_MODEL",
+      "worker": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
+        "sha256": "1eabee7cc0bd69c59c94ded152ac6f11e344051a242c4c14ae7d70a809c8699a"
+      },
+      "real_train_selector_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/REAL_DYNAMIC_SELECTOR_PREFLIGHT_001/RESULT.json",
+        "sha256": "763012cfdba5ca5fcf5407f8be90a01305f7bc2e239e883be01d66f1dca558f5"
+      },
+      "old_fixed_sample_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIXED_PARENT_PREFLIGHT_001/RESULT.json",
+        "sha256": "e18099e0bdb205e80225773a52537399326427b596a95b7724e788b75a0a8fff"
+      },
+      "private_train_selected_sample_is_not_evaluation": true,
+      "selected_parent_count": 32,
+      "sorted_unique_and_train_membership_required": true,
+      "initial_256_fixed_order_unchanged": true,
+      "other_private_routes_fixed_rule_unchanged": true,
+      "focused_mock_tests_passed": 7,
+      "fixture_missing_lead_minutes_corrected": true,
+      "new_source_owner_rebinding_required": true,
+      "new_campaign_authorized": false,
+      "new_model_calls": 0,
+      "new_optimizer_steps": 0,
+      "test_data_used": false
     }
   },
   "gc_order_flow_research_20261006": {

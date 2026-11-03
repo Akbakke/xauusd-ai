@@ -27,6 +27,29 @@ def test_fixed_supported_parents_are_not_reselected():
             worker.select_qualification_parents(ordered,diagnostics,wrong,np=np)
 
 
+def test_dynamic_state_selection_accepts_bound_train_coverage_not_baseline_subset():
+    ordered = np.arange(100, 200, dtype=np.int64)[::-1].copy()
+    selected = list(range(100, 132))
+    assert worker.select_dynamic_state_qualification_parents(
+        ordered, {'parents_sorted': selected}, np=np).tolist() == selected
+    # The older dense route still requires the diagnostic baseline subset.
+    with pytest.raises(RuntimeError, match='PARENT_IDENTITY'):
+        worker.select_qualification_parents(ordered, ordered[:256], {'parents_sorted': selected}, np=np)
+
+
+def test_dynamic_state_selection_rejects_unsorted_duplicate_or_non_train_parents():
+    ordered = np.arange(100, 200, dtype=np.int64)[::-1].copy()
+    valid = list(range(100, 132))
+    for bad in (valid[:-1], valid[:-1] + [999], valid[:-1] + [130],
+                valid[::-1], [True] + valid[1:], valid[:-1] + [2**63]):
+        with pytest.raises(RuntimeError, match='STATE_PARENT'):
+            worker.select_dynamic_state_qualification_parents(ordered, {'parents_sorted': bad}, np=np)
+    with pytest.raises(RuntimeError, match='STATE_PARENT_ORDER'):
+        worker.select_dynamic_state_qualification_parents(ordered.astype(np.int32), {'parents_sorted': valid}, np=np)
+    with pytest.raises(RuntimeError, match='STATE_PARENT_ORDER'):
+        worker.select_dynamic_state_qualification_parents(np.r_[ordered, ordered[0]], {'parents_sorted': valid}, np=np)
+
+
 @pytest.mark.parametrize('scope',['dense','decimal','candidate'])
 def test_guarded_dispatcher_selects_only_explicit_dense_scope(monkeypatch,tmp_path,scope):
     from gx1.scripts import run_entry_native_direction_research_window_v1 as dispatcher

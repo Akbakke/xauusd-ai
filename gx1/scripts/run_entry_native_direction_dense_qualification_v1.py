@@ -58,6 +58,20 @@ def select_qualification_parents(ordered, diagnostic_ids, design, *, np):
     return selected
 
 
+def select_dynamic_state_qualification_parents(ordered, design, *, np):
+    """Use fixed, TRAIN-bound parents for mechanical state coverage only."""
+    parents = design.get('parents_sorted') if isinstance(design, dict) else None
+    _require(isinstance(ordered, np.ndarray) and ordered.dtype == np.int64 and ordered.ndim == 1
+        and len(ordered) >= 32 and np.unique(ordered).size == len(ordered), 'STATE_PARENT_ORDER')
+    _require(isinstance(parents, list) and len(parents) == 32
+        and all(type(value) is int and 0 <= value <= np.iinfo(np.int64).max for value in parents),
+        'STATE_PARENT_TYPES')
+    selected = np.ascontiguousarray(parents, dtype=np.int64)
+    _require(np.all(selected[1:] > selected[:-1]) and np.isin(selected, ordered).all(),
+        'STATE_PARENT_IDENTITY')
+    return selected
+
+
 def require_decimal_prefix_prior(prior, audit):
     """Match all 60 corrected TRAIN counts to the independent decimal audit."""
     _require(isinstance(prior,dict) and isinstance(audit,dict)
@@ -196,7 +210,7 @@ def require_dynamic_state_gradient_contact(steps):
 
 
 def _dynamic_state_input_support(raw, profile, layout, *, common, np):
-    """Bounded raw input evidence on fixed parents; labels cannot select rows."""
+    """Bounded raw input evidence on fixed TRAIN parents, not an evaluation."""
     from gx1.features.entry_specialist_feature_groups_v1 import FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
     _require(profile['name'] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
         and raw['witness']['raw_values_not_normalized'] is True, 'STATE_FULL_RAW_PROFILE')
@@ -226,7 +240,7 @@ def _dynamic_state_input_support(raw, profile, layout, *, common, np):
         'surface_raw_nonzero_counts_per_column':{key:np.count_nonzero(value,
             axis=tuple(range(value.ndim-1))).astype(np.int64).tolist() for key,value in features.items()},
         'd1_macro_raw_nonzero_counts_per_column':np.count_nonzero(features['ctx_cont'][:,macro],axis=0).astype(np.int64).tolist(),
-        'scope':'Raw support and all physical columns on fixed TRAIN rows; zero columns are retained and reported, never used to search labels.'}
+        'scope':'Raw support on fixed TRAIN rows; TRAIN labels may select mechanical coverage, not predictive evaluation. Zero columns are retained and reported.'}
 
 
 def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits,
@@ -298,7 +312,7 @@ def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits
         prior = prefix._prefix_prior(prepared['arrays'],targets,launch['fold'],np)
         diagnostic_ids = prefix._fixed_order(prepared['arrays']['parent_rows'],
             launch['fold']['prefix_rows'],prefix.SEED,np)[:256]
-        selected = select_qualification_parents(ordered,diagnostic_ids,
+        selected = select_dynamic_state_qualification_parents(ordered,
             {'parents_sorted':launch['qualification_parent_rows']},np=np)
         order = torch.from_numpy(selected.copy())
         order_sha = tree_sha(order)
