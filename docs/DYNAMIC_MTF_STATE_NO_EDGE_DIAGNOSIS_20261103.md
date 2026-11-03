@@ -112,6 +112,17 @@ Den **tidsavhengige FLATT-kurven** viser mer enn nivåfeil. Tabellen gjelder bar
 
 M5 og M15 går fra for høy modellert FLATT-persistens ved +1 til for lav ved én native ledetid, **allerede på TRAIN**. På senere M5 er samme fortegnsskifte 67,8/91,4 % ved +1 og 27,4/17,9 % ved +5 når **nøyaktig de samme 751 issue-radene** må være observerbare ved begge ledetider; M15 har samme mønster på 1 620 rader. H1 og H4 ligger gjennomgående for lavt ved de kontrollerte ledetidene. Dette er et målt misforhold mellom modellens marginale FLATT-varighetskurve og fasit, ikke en påvist kodefeil eller bestemt parameterårsak. En kalibrator som bare justerer +1 kan ikke alene rette fortegnsskiftet. D1s sjeldne FLATT-utfall gir ikke tilsvarende sikker varighetsdiagnose. [Kurvekvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_CURRENT_FLAT_PERSISTENCE_CURVE_TRAIN_LATER.json) SHA-256 `efeadf38f2822b5701d0b70a97343a7bb82380cc793108f4a26a8ea053888c48`; ingen nye modellkall eller fit.
 
+FLATT nå kan altså hjelpe **ro-prognosen** uten å fortelle hvilken retning som kommer etterpå. En separat rangkontroll på observerte framtidige OPP/NED-mål med FLATT nå gir følgende betinget OPP-AUC ved én native ledetid. Dette er et etterpåvalgt utvalg for diagnose, **ikke** en inngangsregel: framtidig ikke-FLATT er ukjent ved issue.
+
+| TF / ledetid | Slutt-TRAIN AUC, in-sample | Senere AUC, antall rader / kalenderdager |
+|---|---:|---:|
+| M5 +5 | 0,530 | 0,520; 610 / 69 |
+| M15 +15 | 0,532 | 0,511; 1 059 / 68 |
+| H1 +60 | 0,527 | 0,399; 1 155 / 67 |
+| H4 +240 | 0,600 | 0,390; 900 / 45 |
+
+H1s senere måneds-AUC er 0,350/0,471/0,370 for januar/februar/mars; H4 er 0,248/0,271/0,590. H4 varierer derfor kraftig. Beregningen er kontrollert både med `sklearn` og eksakt rangsumformel. D1 har 119 senere ikke-FLATT-rader etter FLATT nå, alle OPP og fordelt på bare fire dager; AUC er udefinert. Tallene viser ingen stabil, senere retningsrangering fra FLATT nå, særlig ikke på H1/H4. Radene har sterkt overlappende fasit, utviklingen er gjenbrukt og dette er ikke en uavhengig invers handelshypotese. [Retningskvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_CURRENT_FLAT_NATIVE_DIRECTION_RANK_TRAIN_LATER.json) SHA-256 `d20f06db650329f34e36cbd553ae685072959059bb1652d0acfb8372d84bd174`; ingen nye modellkall eller fit.
+
 Minuttspørringene overlapper sterkt. «Slår begge» er en beskrivende snittmengde, **ikke** en operativ referanse som velger beste kurve etter å ha sett utviklingsperioden. [Horisontkvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_MARKOV_PRIOR_HORIZON_CROSSOVER.json) SHA-256 `edd8d81b1dfe32c9cba22193937751975b23d969e53a97a94ca391ad0bf5ebeb`.
 
 | Tidsramme / ledetid | Modell UP/NED AUC | Markov UP/NED AUC | Modell / Markov Brier, tre klasser |
@@ -266,6 +277,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_MARKOV_PRIOR_HORIZON_CROSSOVER.json` | `edd8d81b1dfe32c9cba22193937751975b23d969e53a97a94ca391ad0bf5ebeb` | Tre fryste Brier-kurver ved alle ledeminutter; M5 +1–15 bekreftet mot lagrede rader per senere måned. |
 | `SAVED_NATIVE_FLAT_CONDITION_AND_BRIER_COMPONENTS.json` | `211f51239fb3504e1e1ef5db55c23c06385f8b72d2842eef4ecdb1a993bac676` | Eksakt native-ledetid Brier-paritet, FLATT etter historisk nåtilstand og klassevis skårgap; månedsdeling på gjenbrukt utvikling. |
 | `SAVED_CURRENT_FLAT_PERSISTENCE_CURVE_TRAIN_LATER.json` | `efeadf38f2822b5701d0b70a97343a7bb82380cc793108f4a26a8ea053888c48` | FLATT-persistens fra +1 til én native ledetid, slutt-TRAIN in-sample mot senere gjenbrukt utvikling; samme-rad-kontroll. |
+| `SAVED_CURRENT_FLAT_NATIVE_DIRECTION_RANK_TRAIN_LATER.json` | `d20f06db650329f34e36cbd553ae685072959059bb1652d0acfb8372d84bd174` | Betinget OPP/NED-AUC etter historisk FLATT nå ved én native ledetid, TRAIN og senere gjenbrukt utvikling. |
 | `DYNAMIC_FULL_FEATURE_COVERAGE_REUSE_002/RESULT.json` | `fa99d1358575e7c9882a698a392dcb4343f7c77ef9ce369ab7ea82c5b2416008` | Gjenbrukt fysisk featurestøtte på 47 602 TRAIN/17 288 senere foreldre; ingen individuell indikatorverdi kvalifisert. |
 | `RUNTIME/prefix-fit/window-0002/OOF.json` | `6c03081f9058674681ecb827d1b8235c6e3ac197d9675e5871dcd757d348c63c` | Signert sekvens-NLL og marginal logloss/Brier på de samme senere observerte cellene. |
 | `TARGET_AUDIT_005/TRAIN_AUDIT.json` | `5eb6be66a7cc887efcdf891ac5af2a9a2aac61cf7a4661e8021a64a963213771` | TRAIN-only klassefordeling og faktisk 0,5 ATR-størrelse på fem tidsrammer; overlappende celler. |
