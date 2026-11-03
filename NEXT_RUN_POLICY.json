@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-02T19:12:01.460129+00:00",
-  "status": "DYNAMIC_STATE_CORRECTED_PRIVATE_COMPLETE_MAIN_GATE_REVIEW_PENDING",
+  "status": "DYNAMIC_STATE_PRIVATE_COMPLETE_FIT_CLOSED_ONLINE_DECISION_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The authorized single dynamic five-timeframe short training and its first scoring have been consumed. Both published results but exited 1 in terminal validation; original artifacts and failures are preserved. Do not relaunch consumed plans or automatically start any additional model work, training, scoring, reboot, TEST, broker or trading. Any future changed ONLINE function requires its own evidence and fresh initial baseline.",
-  "next_action": "Keep consumed private002 and previous private001 closed. Review actual causal/ONLINE and remaining gates for the one conditionally authorized main pass; prepare only a fresh exact fit if all applicable gates pass. No automatic repetition, TEST, Exit, broker or trading.",
+  "next_action": "User decision pending between keeping fit closed while resolving actual ONLINE data availability, or explicitly approving the already authorized single pass as historical event-time research only. No fit campaign or runtime exists; training remains disabled. No automatic repeat, TEST, Exit, broker or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User approved one corrected replacement 32-parent private control (at most 3 constructions, 21 forwards, 4 physical optimizer updates, discarded weights), and if all gates pass at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Corrected private qualification passed, consumed and disabled; reviewing remaining gates for conditional one-pass fit.",
+    "current_activity": "Corrected private passed; closed single-fit proposal passes source/private metadata in memory, but physical ONLINE availability and persistence remain unproven.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Physical ONLINE data arrival is not established; causal/ONLINE and exact main-fit gates must be reviewed before admitting the single fit. No predictive value or edge established.",
+    "current_blocker": "At recorded issue time the latest M1 close and ATR are exactly contemporaneous, without local arrival or processing timestamps. Cannot claim live availability; pending user decision on historical-only scope.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Keep consumed private002 and previous private001 closed. Review actual causal/ONLINE and remaining gates for the one conditionally authorized main pass; prepare only a fresh exact fit if all applicable gates pass. No automatic repetition, TEST, Exit, broker or trading.",
+    "next_action": "User decision pending between keeping fit closed while resolving actual ONLINE data availability, or explicitly approving the already authorized single pass as historical event-time research only. No fit campaign or runtime exists; training remains disabled. No automatic repeat, TEST, Exit, broker or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19422,6 +19422,30 @@
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
         "sha256": "5947c868da0381675bb12d808b5a1b3235275681c1294c46baaaa51e63b8f219"
       }
+    },
+    "dynamic_state_fit_closed_qualification_20261103": {
+      "status": "PRIVATE_BOUND_FIT_PROPOSAL_CLOSED_PHYSICAL_ONLINE_UNPROVEN",
+      "closed_fit_recipe": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/FIT_RECIPE_CLOSED.json",
+        "sha256": "8db5f91a1e5b1025e812988781e2d14f143f0c283e8fc6c9bef48fb56b289cf7"
+      },
+      "metadata_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/FIT_METADATA_REVIEW.json",
+        "sha256": "5fafcf802c8ec8fad57829cdd40b7d421d5db4a5e0aa64bd1f3e2f6c2ed8df98"
+      },
+      "private_root_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
+        "sha256": "5947c868da0381675bb12d808b5a1b3235275681c1294c46baaaa51e63b8f219"
+      },
+      "metadata_only_hypothetical_gate_pass": true,
+      "physical_online_arrival_proven": false,
+      "physical_online_state_persistence_proven": false,
+      "event_time_scope_only_if_explicitly_approved": true,
+      "test_data_used": false,
+      "training_enabled": false,
+      "native_launch_authorized": false,
+      "model_calls": 0,
+      "optimizer_steps": 0
     }
   },
   "gc_order_flow_research_20261006": {
