@@ -100,6 +100,18 @@ En ren TRAIN-kontroll av komplette lokale første-minuttsvinduer viser at defini
 
 Dette er bare lokal rekkevidde i første minutt; opp-/nedtilstandene og hele tilstandsbanen må rematerialiseres kausalt for en annen terskel. Tallene godkjenner ingen terskelendring og bruker ikke senere data til å velge en.
 
+Den tidligere, hashbundne TRAIN-målrevisjonen måler også faktisk kandidatterskel ved prognosetid og klassefordelingen over **alle observerte framtidsminutter** i forsøksgriden:
+
+| Tidsramme | Median 0,5 ATR ved TRAIN-issue | NED / FLATT / OPP blant observerte framtidsceller |
+|---|---:|---:|
+| M5 | 3,13 bps | 41,0 / 15,0 / 44,0 % |
+| M15 | 5,71 bps | 40,5 / 14,1 / 45,4 % |
+| H1 | 12,17 bps | 39,2 / 14,2 / 46,6 % |
+| H4 | 25,26 bps | 39,0 / 9,3 / 51,7 % |
+| D1 | 70,82 bps | 41,2 / 3,5 / 55,3 % |
+
+Disse cellene overlapper sterkt og er ikke uavhengige utfall. Tabellen viser at «0,5 ATR» representerer svært ulike absolutte bevegelsesstørrelser per tidsramme. Særlig M5s 3,13 bps er et konkret mål å vurdere mot brukerens ønskede betydning av bevegelse; den er ikke i seg selv bevis på en handelsmulighet eller en feil terskel. Målrevisjonen låste ikke kandidatregelen (`target_rule_locked=false`).
+
 Den bundne normaliseringskvalifiseringen bruker 47 602 TRAIN-foreldre med siste beslutning 31.12.2024 kl. 21:55 UTC, før TRAIN-grensen 01.01.2025 kl. 00:00 UTC; den utførte null nye statistikkfit. Dette viser ingen innblanding av senere utviklingsrader i den kvalifiserte normaliseringen (kvalifisering SHA-256 `51ac757b4c1709d1104a750937ebb07bded36fe890089d436e298e801139d1fc`).
 
 Historisk event-time-sjekk av siste M1-lys og ATR er bestått. Faktisk fysisk mottaks-, prosesserings- og restarttid for disse verdiene er fremdeles ukjent; dette stenger ONLINE-bruk, men er ikke påvist som årsak til det historiske Brier-gapet. Den bundne XAU-M1-filen har 5 959 045 rader og bare `time`, OHLC, bid/ask OHLC og `volume`; ingen mottaks- eller ferdigberegningstid. Kildemanifestet sporer OANDAs historiske `/instruments/XAU_USD/candles` med `complete=true`, M1 barstart og `decision_available_offset_seconds=60`: det er en event-time-regel om når lyset er lukket, ikke en målt ankomstklokke. `M5_ENRICHED.parquet` har tids-/ATR-felt og mange GC-klokkefelter, men disse dokumenterer ikke mottakstid for XAU-M1 eller XAU-ATR. Historiske filer alene kan derfor ikke bevise hva ONLINE-modellen faktisk ville ha mottatt ved issue-tid.
@@ -147,6 +159,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_FIRST_CHANGE_RELIABILITY.json` | `8f60b213b2a0a36299e7eb6f4fd59167c53c7c8c87d3351d9d0eec67575aa514` | TRAIN-definerte skårdesiler og skiftefrekvenser før den separate kalibreringskontrollen. |
 | `DYNAMIC_MTF_SAVED_CALIBRATION_20261103_002/RESULT.json` | `dadafc3cc5b27b39960a73b4378bf1c89b1b069e5d479d0fec17762fcebf4d41` | Én 15-offset TRAIN-fit og én TRAIN-/gjenbrukt utviklingsscoring av lagrede +1-prediksjoner. |
 | `SAVED_SAME_MODEL_OOF_AVAILABILITY.json` | `1250cfa5f27f01e5210b09d027dff97180a9649ff4e3e89bfe51d832037def72` | Tre lagrede prediksjonssett og elleve checkpoints; ingen TRAIN-OOF-prediksjoner i denne kampanjen. |
+| `TARGET_AUDIT_005/TRAIN_AUDIT.json` | `5eb6be66a7cc887efcdf891ac5af2a9a2aac61cf7a4661e8021a64a963213771` | TRAIN-only klassefordeling og faktisk 0,5 ATR-størrelse på fem tidsrammer; overlappende celler. |
 | `DYNAMIC_MTF_SAVED_CALIBRATION_20261103_001/ATTEMPT_001_FAILURE.json` | `3412f68ef1312abee5bf5870f5c3e5bae252b8ebde8b9f59e36c983938ab8b17` | Første forsøk konsumert etter FP32-summeringsvakt, før scoring. |
 | `XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json` | `138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39` | Kildekontrakt for historiske OANDA-M1-lys; barstempel og 60 s event-time-regel, ingen fysisk ankomstklokke. |
 
