@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T11:21:06.416249+00:00",
-  "status": "GCZ4_TWO_WEEKEND_PUBLIC_ARCHIVE_REVIEW_ADMITTED_TRAINING_CLOSED_20261104",
+  "observed_utc": "2026-11-04T11:39:18.788304+00:00",
+  "status": "GCZ4_TWO_WEEKEND_PUBLIC_ARCHIVE_REVIEW_CONSUMED_BOTH_UNKNOWN_TRAINING_CLOSED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run the single read-only, source-bound review for GCZ4. Determine October and November separately against the registered historical evidence standard. No feature change or scoring admitted.",
+  "next_action": "Keep both GCZ4 gaps UNKNOWN and preserve the seven mandatory bearish GC D1 fields and their masks. The public review is consumed. Reconsider only on new GC-specific historical production states or an effective schedule with a complete applicable exception history, then decide reset semantics separately. Physical XAU-M1 arrival/ATR publication remains a separate evidence gate; no normalization or model run is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "One authorized public CME source review for GCZ4 in the two exact 2024 weekend intervals.",
+    "current_activity": "Two-window public CME/COMEX review is complete and consumed. Both GCZ4 matching states remain UNKNOWN; the ordinary schedule alone does not qualify carry across either gap.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -284,11 +284,11 @@
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "One consumed source-only trace of all 214 pre-December GC D1 donor dates. No normalization, training or held-out scoring.",
+    "latest_terminal_role": "One consumed documentary review of public CME sources for two GCZ4 weekend intervals. No field or rule change, normalization, model or held-out scoring.",
     "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/TERMINAL.json",
-      "sha256": "e02be63aaeae6f84ffd10e106c619e9b1e9ca32c0fa952e4bd3f89636f33d904"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/TERMINAL.json",
+      "sha256": "2d329570652a4f9b0f0791b873197b9814d6cca5e422d3e1122c17d4c18641d9"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "All seven mandatory GC D1 bear coordinates lack support under the current observed-zone contract. The ordinary exchange schedule covers the two gaps but their actual historical market status is unverified. No normalization or strict TRAIN-OOF exists for the reserved December fold. Physical XAU-M1 arrival and ATR publication, independent edge and economics remain unknown.",
+    "current_blocker": "Neither historical GCZ4 gap has verified matching-state coverage or complete applicable exceptions. Seven mandatory bearish GC D1 fields remain unsupported under the observed-zone contract. Prefix normalization and strict TRAIN-OOF for the reserved December fold are blocked; physical XAU-M1 arrival/ATR publication, independent edge and economics are unproven.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run the single read-only, source-bound review for GCZ4. Determine October and November separately against the registered historical evidence standard. No feature change or scoring admitted.",
+    "next_action": "Keep both GCZ4 gaps UNKNOWN and preserve the seven mandatory bearish GC D1 fields and their masks. The public review is consumed. Reconsider only on new GC-specific historical production states or an effective schedule with a complete applicable exception history, then decide reset semantics separately. Physical XAU-M1 arrival/ATR publication remains a separate evidence gate; no normalization or model run is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17469,7 +17469,7 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": true,
+    "current_native_launch_authorized": false,
     "current_training_scope": "ONE_DYNAMIC_STATE_SHORT_FIT_CONSUMED_TERMINAL_VALIDATOR_FAILED_NO_ADDITIONAL_FIT_AUTHORIZED",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
@@ -20175,7 +20175,7 @@
       }
     },
     "gc_d1_bear_closure_evidence_scope_20261104": {
-      "status": "EXTERNAL_LOOKUP_ADMITTED_ONLY_BY_BOUND_SUCCESSOR",
+      "status": "EXTERNAL_REVIEW_CONSUMED_BOTH_WINDOWS_UNKNOWN",
       "instrument": {
         "venue": "COMEX",
         "product": "Gold futures",
@@ -20223,12 +20223,16 @@
         }
       ],
       "evidence_required": "A dated CME/COMEX record applicable to GCZ4 covering the entire half-open period: actual matching/session state, or effective historical GC trading hours with complete applicable exceptions. Preserve publication/version and exact UTC boundaries. A regular-week rule, absence from a generic holiday list or absence of accepted trades leaves the interval unknown.",
-      "acquisition_boundary": "Proposed only. Primary, public, free historical CME/COMEX sources for these two intervals. No source retrieval until scoped operator authorization and an immutable source/method manifest. Keep the two findings separate. A verified opening contradicts full closure; partial coverage is inconclusive. No change to reset semantics without a separate contract decision.",
+      "acquisition_boundary": "One public, free CME/COMEX review for these two registered intervals was authorized by the operator and consumed under the frozen successor manifest. Neither closed nor open was verified in either interval. No further external retrieval is admitted by this scope. Reset semantics require a separate decision.",
       "execution_authorized": false,
       "external_retrieval_authorized": false,
       "model_calls_authorized": false,
       "test_authorized": false,
-      "current_stage": "gc_d1_gcz4_historical_closure_review_20261104_001"
+      "current_stage": "gc_d1_gcz4_historical_closure_review_20261104_001",
+      "current_terminal": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/TERMINAL.json",
+        "sha256": "2d329570652a4f9b0f0791b873197b9814d6cca5e422d3e1122c17d4c18641d9"
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -22793,7 +22797,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T11:21:06.416249+00:00",
+  "updated_utc": "2026-11-04T11:39:18.788304+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -54633,7 +54637,7 @@
     "decision_needed": "Source path unchanged. To assess carrying the prior bullish origin over the two specific gaps, bind historical GC-specific exchange status, exact session and exception times for all four missing buckets, plus contract and source continuity. A qualified calendar and a separately approved feature contract are required before changing resets. Genuinely qualifying observations on the fixed prefix are another route. No cutoff search or general zero-fill."
   },
   "gc_d1_gcz4_historical_closure_review_20261104_001": {
-    "status": "ADMITTED_ONE_PUBLIC_CME_SOURCE_REVIEW",
+    "status": "CONSUMED_COMPLETE_BOTH_GCZ4_WEEKENDS_UNKNOWN",
     "scope": "One read-only, free review of public CME Group / COMEX historical market-status and trading-schedule archives. No operator, vendor or venue contact. Restored donor and stored conventional-hours review are used as metadata only.",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001",
     "manifest": {
@@ -54645,14 +54649,54 @@
       "sha256": "e02be63aaeae6f84ffd10e106c619e9b1e9ca32c0fa952e4bd3f89636f33d904"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "external_retrieval_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "external_retrieval_authorized": false,
     "reset_change_authorized": false,
     "model_calls_authorized": false,
     "training_enabled": false,
     "test_authorized": false,
     "broker_authorized": false,
-    "trading_authorized": false
+    "trading_authorized": false,
+    "relaunch_authorized": false,
+    "source_head": "e7df7baf43a9ebadaf041ebaf9aca5d5666edc52",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/CLAIM.json",
+      "sha256": "6edf7b8e7a4893cd1fe00cdc00007652a0d17ca91fd52cbf54de5f77a8d8536a"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/RESULT.json",
+      "sha256": "77be4352b412209f92330d322fb81a3c70651b8636a98d253a534b9191a1693f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/TERMINAL.json",
+      "sha256": "2d329570652a4f9b0f0791b873197b9814d6cca5e422d3e1122c17d4c18641d9"
+    },
+    "source_renderings": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/READER_SOURCES.json",
+      "sha256": "0854f9c440b2e45e48551be2c90bb43ae2f975f77fbb87234b40444d62ead061"
+    },
+    "source_counts": {
+      "official_urls_bound": 28,
+      "discovery_queries": 16,
+      "whole_dated_weekly_notices": 4,
+      "original_clearing_pdf": 1
+    },
+    "verified_closed_windows": 0,
+    "verified_open_windows": 0,
+    "unknown_windows": 2,
+    "actual_market_status": [
+      {
+        "start_utc_inclusive": "2024-10-04T22:00:00Z",
+        "end_utc_exclusive": "2024-10-06T22:00:00Z",
+        "actual_matching_status": "UNKNOWN"
+      },
+      {
+        "start_utc_inclusive": "2024-11-08T22:00:00Z",
+        "end_utc_exclusive": "2024-11-10T22:00:00Z",
+        "actual_matching_status": "UNKNOWN"
+      }
+    ],
+    "next_evidence": "For each registered window separately obtain an authoritative dated GCZ4 or documented GC-group mapping plus bracketing production matching-state history, or the effective historical product schedule and a complete record of applicable exceptions/corrections. Bind time zone, inclusive/exclusive boundaries, version, publication/as-of time before the forecast and source identity. One confirmed interior matching-open event would refute full closure; missing rows do not prove closure."
   }
 }
