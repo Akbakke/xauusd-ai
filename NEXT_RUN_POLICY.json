@@ -19666,6 +19666,10 @@
       "saved_h4_closure_class_calibration": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_H4_CLOSURE_CLASS_CALIBRATION.json",
         "sha256": "125288e4a688a0a82ef30ca47493b027ed2086256a7248006f0dbcccc938495b"
+      },
+      "saved_h4_closure_target_rule_crosscheck": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_H4_CLOSURE_TARGET_RULE_CROSSCHECK.json",
+        "sha256": "0931d5cad655fd898d05b95dd911cfe4a872ede8dbd2f59393c82a76a55a6b01"
       }
     },
     "saved_first_change_calibration_replacement_20261103": {
