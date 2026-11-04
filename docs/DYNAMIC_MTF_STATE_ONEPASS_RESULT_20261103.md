@@ -4,7 +4,7 @@
 
 Modellen lærer på TRAIN, men gir ingen dokumentert merverdi på senere, gjenbrukte utviklingsdata. På identiske observerbare celler er Brier-skåren dårligere enn en fryst TRAIN-Markov-referanse som får samme eksplisitte historiske nåtilstand. Dette gjelder M5, M15, H1, H4 og D1. Ingen økonomisk edge eller sanntidsklarhet er påvist.
 
-Det er en konkret prognosesvikt: FLAT gjenkjennes ofte ved første fremtidige minutt, men blir raskt nesten aldri modellens mest sannsynlige klasse. På senere data varslet modellen null eksakte fremtidige tilstandsskifter, selv om fasiten inneholder observerte skifter. Skiftetallene nedenfor er overlappende prognosepar, ikke uavhengige markedshendelser. Et slikt modalt resultat alene utelukker ikke probabilistisk informasjon; Brier og logloss mot likt informert referanse gir den bredere kontrollen.
+Det er en konkret prognosesvikt: FLAT gjenkjennes ofte ved første fremtidige minutt, men blir raskt nesten aldri modellens mest sannsynlige klasse. På senere data varslet modellen null eksakte fremtidige tilstandsskifter, selv om fasiten inneholder observerte skifter. Den matchede Markov-referansen varslet også null modale skifter på de samme parene. Skiftetallene nedenfor er overlappende prognosepar, ikke uavhengige markedshendelser. Et slikt modalt resultat alene utelukker ikke probabilistisk informasjon; Brier og logloss mot likt informert referanse gir den bredere kontrollen.
 
 ## Eksakt omfang og kjørebevis
 
