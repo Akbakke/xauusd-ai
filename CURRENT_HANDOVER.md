@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+**04.11 – To statusuttrekk er godkjent med et samlet tak på 0,0001 USD.** Dette nye vedtaket gjelder GCZ4 for de to registrerte helgene. [Avgrenset bestilling](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/MANIFEST.json)
+
 **04.11 – Desemberdelingen er bundet til den forhåndsvalgte kandidaten.** Den opprinnelige kandidatspesifikasjonen bruker 1. oktober som fitgrense. Desemberkontrollen målte data ved 1. desember. Den nye bindingen knytter samme direkte treklasse-logtap ved +5/+15/+60/+240/+1 440 minutter til 41 866 tidligere TRAIN-foreldre, deres fryste klasseprior og Markov-overganger og én reservert desemberfold på 5 736 foreldre. Den opprinnelige spesifikasjonen og den konsumerte native oppskriften er bevart med sine egne datoer. [Kandidatbinding og målfrister](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDIDATE_GEOMETRY_001.json)
 
 For alle 41 866 tidligere foreldre faller de fem målfristene før 1. desember. I desember rekker 5 736 målfrister på hver av M5, M15 og H1, 5 712 på H4 og 5 472 på D1 å modne før 1. januar. Ett H4-mål og ett D1-mål faller nøyaktig på den eksklusive grensen og inngår blant de utelatte. Dette er opptelling fra forelder- og tidsaksene. Desemberutfallene ble ikke åpnet i denne vurderingen. Perioden har inngått i tidligere TRAIN. D1-sluttklassen ved +1 440 og hendelser fram til første hull har egne målinger.

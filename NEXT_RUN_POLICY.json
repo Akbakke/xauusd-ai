@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T15:09:46.480901+00:00",
-  "status": "OPERATOR_ZERO_BUDGET_CONFIRMED_TWO_PRICED_GC_STATUS_REQUESTS_DECLINED_20261104",
+  "observed_utc": "2026-11-04T15:35:58.322353+00:00",
+  "status": "GCZ4_STATUS_TWO_WINDOWS_ADMITTED_CAP_USD_00001_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "The operator retained the zero budget for the two quoted GCZ4 status extracts. Do not re-quote, request payment, or retrieve those priced payloads. Only a new already-owned or genuinely free GC-specific production-status history / complete historical exception record, or a same-feed contemporaneous XAU receipt and ATR publication journal, can move these evidence gates. Preserve both UNKNOWN GC intervals, the seven required inputs and masks, and the reserved December fold. No normalization or model run is admitted. For any future review of this candidate use current_work.dynamic_mtf_train_gates_20261104.december_candidate_geometry; the October and old native folds may not substitute for it.",
+  "next_action": "Obtain the two exact GCZ4 status windows through the bound successor, after current pricing and existing-credit checks, up to USD 0.0001 total. Review each separately under the existing evidence and D1 zone gates.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "The December design of the registered candidate is now bound to the approved 41866/5736 split and its prefix-only prior/Markov, after the completed zero-spend evidence review. Conditional source specification only; input gate remains blocked.",
+    "current_activity": "Obtain the two exact GCZ4 status windows through the bound successor, after current pricing and existing-credit checks, up to USD 0.0001 total. Review each separately under the existing evidence and D1 zone gates.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -277,7 +277,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "gc_status_and_xau_clock_evidence_20261104_001",
+    "current_research_id": "gcz4_two_status_windows_credit_20261104_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "The operator retained the zero budget for the two quoted GCZ4 status extracts. Do not re-quote, request payment, or retrieve those priced payloads. Only a new already-owned or genuinely free GC-specific production-status history / complete historical exception record, or a same-feed contemporaneous XAU receipt and ATR publication journal, can move these evidence gates. Preserve both UNKNOWN GC intervals, the seven required inputs and masks, and the reserved December fold. No normalization or model run is admitted. For any future review of this candidate use current_work.dynamic_mtf_train_gates_20261104.december_candidate_geometry; the October and old native folds may not substitute for it.",
+    "next_action": "Obtain the two exact GCZ4 status windows through the bound successor, after current pricing and existing-credit checks, up to USD 0.0001 total. Review each separately under the existing evidence and D1 zone gates.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22836,7 +22836,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T15:09:46.480901+00:00",
+  "updated_utc": "2026-11-04T15:35:58.322353+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -54818,5 +54818,28 @@
     "paid_status_requests_authorized": 0,
     "reestimate_or_retry_priced_requests_authorized": false,
     "authorized_spend_usd": "0"
+  },
+  "gcz4_two_status_windows_credit_20261104_001": {
+    "status": "ADMITTED_TWO_STATUS_EXTRACTS_AFTER_BOUNDED_PREFLIGHT",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001",
+    "manifest": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/MANIFEST.json",
+      "sha256": "7b71da6bca967a6d7021df2f142950b07e7f323996a25bc8e2d3e5a239cd40a1"
+    },
+    "predecessor_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/TERMINAL.json",
+      "sha256": "e650e0626ddb9cb5f89f34471faeee72981e67a33cb8b14df273addb0cba618e"
+    },
+    "operator_grant": "Jo, bruk de 0.0001 usd for å få dette på plass",
+    "operator_cap_total_usd": "0.0001",
+    "historical_prepaid_credit_only": true,
+    "max_data_requests": 2,
+    "fresh_metadata_authorized": true,
+    "status_fetch_conditional": true,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "reset_change_authorized": false,
+    "broker_trading_authorized": false,
+    "test_authorized": false
   }
 }
