@@ -329,6 +329,20 @@ D1 kan altså ha en kjent tilstand ett døgn senere uten at hele mellomliggende 
 
 En separat kontroll av **unike, sammenhengende M1-minuttpar** finner ikke at M5-/M15-skifter samler seg ved ATR-oppdatering: på senere data er M5 20,84 % ATR-oppdateringspar mot 20,41 % av de observerte skiftene, M15 6,90 % mot 6,64 %. H1 er 1,69 % mot 1,82 %. H4/D1 har få slike oppdateringsskifter, så deres høyere relative andel er ustabil. Sammenfall kan uansett ikke bevise at grenseendringen *forårsaket* et skifte. Denne lesende kontrollen nedprioriterer en enkel ATR-grenseoppdateringsforklaring for M5/M15, men låser ikke 0,5 ATR som riktig nytteverdi. [ATR-grensekvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_ATR_BOUNDARY_TARGET_CHANGE_REVIEW.json) SHA-256 `dcadb4d747ee98724fc0b0a0947a12d5b9f1ae1f725863f7b7e40bc028b9590f`.
 
+### Hvor målcellene blir uobserverbare
+
+Den signerte fullgrid-rapporten deler hvert forelder×ledeminutt i **gjensidig utelukkende** observert klasse, manglende M1-spørring, umodent mål eller uavklart retning. Senere har alle TF 14,59 % manglende M1-spørringer og 0,76 % umodne celler; forskjellen ligger særlig i retningen:
+
+| TF | TRAIN observert / uavklart retning | Senere observert / uavklart retning |
+|---|---:|---:|
+| M5 | 45,36 / 39,72 % | 42,57 / 42,08 % |
+| M15 | 72,99 / 12,09 % | 71,77 / 12,88 % |
+| H1 | 82,48 / 2,60 % | 82,76 / 1,89 % |
+| H4 | 82,55 / 2,53 % | 84,05 / 0,60 % |
+| D1 | 74,44 / 10,64 % | 83,57 / 1,08 % |
+
+M5s retningsobservasjon er dermed hovedsakelig begrenset av M1-OHLCs ukjente rekkefølge og uavklart lokal retning, ikke bare av lukkede markedstimer. D1 har derimot et stort **observasjons-/utvalgsskifte**. Den bundne kalenderkvitteringen klassifiserer 280 kildehull: 228 dokumenterte markedspauser og 52 ukjente kildefravær som må sensureres på høyre side; 48 av de ukjente hullene er i TRAIN og fire i senere periode. På den **unike** D1-kildeserien har 27 742 av 28 438 uavklarte TRAIN-minutter også ukjent-kildegap-flagg, mot 1 498 av 1 498 senere. Bare 924 uavklarte TRAIN-minutter har intraminutt-rekkefølgeflagget; flaggene kan overlappe. Dette forklarer i stor grad hvorfor D1-måldekningen er lavere på TRAIN. Det beviser ikke at kildehullene forårsaker modellens senere rangtap: D1-AUC faller også i måneder med langt færre hull, og uobserverte klasser inngår ikke i skåren. Fyll aldri slike hull med gjetninger; ny kilde må ha egen klokke- og eierskapskontroll. [Deknings-/gapkvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_TARGET_COVERAGE_GAP_ORIGIN_REVIEW.json) SHA-256 `d9d846dfd7ef1c052347eaae092fe8b7eae928d81b94234434a61c99e384f0ca`.
+
 ## Modellkonsum og loss
 
 Inputmanifester binder full featureprofil, åtte spesialistfamilier, M5/M15/H1/H4/D1 for XAU og GC samt D1/makro-kontekst. TRAIN-normaliseringskvalifiseringen har ingen blokkeringer og minst én observasjon per felt i alle 12 kontrollerte flater. Den viser også sparsomhet: GC-D1 har median observert feltdekning 40,7 %, og 15 av 399 felt er konstante på TRAIN; 72 av 2 542 `ctx_cont`-felt er konstante. Fullprofilens syntetiske kontrakttest krever at hvert fysisk felt er rutet til nøyaktig én familie. Alle 642 aktive parametertensorer endret seg under passet, også spesialist-/MTF-projeksjoner, nåtilstandsprojeksjon og tilstandshoder. Dette viser tilkoblet modellbane, ikke at hver indikator gir prediktiv verdi eller at OOF-featurefordelingen er stabil.
@@ -440,6 +454,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_SPARSE_LEAD_ACTIVITY_DIRECTION_SWAP.json` | `a1c1018b62889340c9e7f0ab965caeec17c68e615d5f77f65311f3e04f52b040` | Seks faste ledetider på fem TF: modell/Markov treklasse og faktorbytter; native-kvittering og signert ledetidsrapport gjenskapt. |
 | `SAVED_DYNAMIC_STATE_PREFIX_OBSERVABILITY.json` | `21a685f1367b075f8754ea1e8c7ed5bf529808e0a3d38241e1444d6c1b05c264` | Null komplette 1 440-minutters kilde-/målbaner, sammenhengende prefiks og native endepunkt på fem TF; eksakt rapportparitet. |
 | `SAVED_ATR_BOUNDARY_TARGET_CHANGE_REVIEW.json` | `dcadb4d747ee98724fc0b0a0947a12d5b9f1ae1f725863f7b7e40bc028b9590f` | Unike observerte minuttpar: tilstandsskifter med/uten ny ATR-grense; ingen M5/M15-konsentrasjon ved oppdatering. |
+| `SAVED_TARGET_COVERAGE_GAP_ORIGIN_REVIEW.json` | `d9d846dfd7ef1c052347eaae092fe8b7eae928d81b94234434a61c99e384f0ca` | Fullgrid-partisjon av målobservasjon på fem TF og D1s unike kildegapoverlapp; bundet publisert kalender. |
 | `SAVED_MTF_LAST_CLOSED_CANDLE_NATIVE_DIRECTION_AUDIT.json` | `d5e4e26e4fb3307f2317cc75bf364458520d2ac6bfe7b56724d49ecb1a11ef26` | TRAIN-valgt candlefortegn mot modell og matchet Markov ved én native ledetid på alle fem TF, med beskrivende ukeblokker. |
 | `SAVED_M5_CANDLE_CURRENT_STATE_STRATIFICATION.json` | `1e09c2087d19d66383eaa96abb3aa0a76136f6026577f7fd71ca5e4bc8fd3757` | M5 +5 candlefortegn og modellskår innen kjent/ukjent nåtilstand, med ukeblokkintervall for ukjentgruppen. |
 | `SAVED_ROUTED_M5_CANDLE_REVERSAL_AUDIT.json` | `081969b226d06f05c551629a09ac2210bcd62d8bff282cca3a9f9f7f93e0c501` | Lesende +5 retningsrangering fra allerede rutet M5-candleverdi mot lagret modell/Markov, kildefortegn og ukeblokker. |
