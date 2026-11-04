@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+04.11 – Den nye engangsporten for 29 849 TRAIN-foreldre skal publisere en fysisk målvisning, prefiksprior og en verifisert støttevurdering. Eksisterende kvalifikasjon på denne tidsaksen har 51 unike GC-D1-felt uten observerte verdier på tre inputflater. Null komplette døgnvinduer i hele opprinnelig TRAIN stenger den registrerte D1-hendelsesporten. Ingen modelladmisjon.
+
 **04.11 – TRAIN-mål, XAU-klokke og stengt kandidat.** 29 849 M5-prognosetidspunkter fra mai–september 2024 er revidert med 150 714 M1-barer inklusive kausalt forløp. Metoden ble låst i Git ved `0369fcf5` før måling. Tabellen viser komplette lokale vinduer ved én ledetid lik hver tidsramme. Alle foreldre, umodne endepunkter, kildefravær og ufullstendige vinduer er med i [kvitteringen](docs/DYNAMIC_MTF_TRAIN_TARGET_RESULT_20261104.json).
 
 | TF | Komplette vinduer | FLATT | Aktiv, ukjent sluttretning | Av disse med begge bevegelser bevist |
