@@ -261,6 +261,18 @@ En faktorvis **outputkontroll på de samme observerte treklasse-radene** skiller
 
 På senere data **forverrer modellens betingede retningsfordeling Brier og logloss mot Markov på alle fem** når FLATT-sannsynligheten holdes lik Markov. FLATT-faktoren hjelper M5/H1/H4 i Brier på de samme radene, men ikke M15/D1; i logloss hjelper den M5/M15/H1/H4. På TRAIN in-sample hjalp retningsfaktoren H1/H4/D1, men ikke M5/M15. Dette lokaliserer skårsvikten til **outputfaktoren for retning**, særlig generaliseringsfallet på lengre TF; det identifiserer ikke hvilken indikator, tapsvekt eller modellparameter som forårsaker den. Hybridene er regnestykker av lagret output, ikke trenbare kandidater eller tillatte handelsregler, og byttevirkninger gjør at kolonnene ikke summerer eksakt. [Faktorkvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_NATIVE_ACTIVITY_DIRECTION_PROBABILITY_SWAP.json) SHA-256 `1e33e1b359d254a3533f48869be884bfb9873f43c46ac83aa4071ecc6a24fbc9`; original modell/Markov Brier og logloss gjenskapes fra signert rapport, null nye modellkall eller fit.
 
+Samme lesende faktorbytte er nå kontrollert på **seks faste ledetider** (+1, +5, +15, +60, +240 og +1 440 min) for alle fem TF på gjenbrukt senere utvikling. Eksakte observerte radantall og original modell-/Markov-Brier stemmer med de signerte ledetidsrapportene; de fem native panelene gjenskaper forrige faktorkvittering innen `1,5×10⁻¹⁴` også for logloss.
+
+| TF | Ledetider der modellretning gir svakere Brier enn Markovretning | Ledetider der modellens FLATT-andel gir bedre Brier |
+|---|---:|---:|
+| M5 | 6/6 | 5/6 |
+| M15 | 5/6 | 5/6 |
+| H1 | 3/6 | 5/6 |
+| H4 | 5/6 | 2/6 |
+| D1 | 6/6 | 0/6 |
+
+Betinget modellretning forverrer 25/30 paneler. På H1 hjelper den ved +1/+5/+15, men forverrer ved +60/+240/+1 440; en ensartet retningskorreksjon over hele horisonten er derfor ikke begrunnet. Full modell er svakere enn Markov i 24/30 paneler. Dette er seks utvalgte, sterkt overlappende ledetider og **ikke** en fullgrid- eller uavhengig test; faktorbytter er ingen kausale parameterinngrep. Funnene prioriterer forhåndslåst, tidsramme- og ledetidsavhengig retningsmåling i en eventuell streng TRAIN-OOF-kandidat, mens M5/H1s nyttige FLATT-informasjon må bevares. [Seks-ledetidskvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_SPARSE_LEAD_ACTIVITY_DIRECTION_SWAP.json) SHA-256 `a1c1018b62889340c9e7f0ab965caeec17c68e615d5f77f65311f3e04f52b040`.
+
 En ren TRAIN-kontroll av komplette lokale første-minuttsvinduer viser at definisjonen av FLAT er svært terskelfølsom på **alle fem** tidsrammer:
 
 | Tidsramme | Komplette TRAIN-vinduer | Lokal ro ved 0,5 ATR | Hypotetisk ved 0,75 ATR |
@@ -409,6 +421,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_IDENTICAL_256_INITIAL_FINAL_DIRECTION_REVIEW.json` | `305b149cfc3a27fe11f05c223dbff12cd15946129ff3e1e7e3dbc133cfa1c87d` | Eksakt samme 256 TRAIN-foreldre før og etter passet: native retnings-AUC, candle-korrelasjon og treklasse-Brier på fem TF; M5 parvis ukeblokkintervall. |
 | `SAVED_ADJACENT_CHANGE_EXPOSURE_REVIEW.json` | `15ce8a5163901617eaabbc94da4029e5fd44d8a8b04740991f5800a578234045` | Signerte tilstøtende prognosepar: skifteandel, direkte retningsreversering og modale varsler for modell og matchet Markov. |
 | `SAVED_MARKOV_CHANGE_BRIER_VS_MODEL.json` | `c0c0ced9f1f3e2359f0352b6bccdfdcd28dd444f5c6b3781244d46182dae0a09` | Fryst TRAIN-Markov regnet fram mot identiske skiftepar; eksakt målparitet og treklasse-Brier-paritet mot signert rapport. |
+| `SAVED_SPARSE_LEAD_ACTIVITY_DIRECTION_SWAP.json` | `a1c1018b62889340c9e7f0ab965caeec17c68e615d5f77f65311f3e04f52b040` | Seks faste ledetider på fem TF: modell/Markov treklasse og faktorbytter; native-kvittering og signert ledetidsrapport gjenskapt. |
 | `SAVED_MTF_LAST_CLOSED_CANDLE_NATIVE_DIRECTION_AUDIT.json` | `d5e4e26e4fb3307f2317cc75bf364458520d2ac6bfe7b56724d49ecb1a11ef26` | TRAIN-valgt candlefortegn mot modell og matchet Markov ved én native ledetid på alle fem TF, med beskrivende ukeblokker. |
 | `SAVED_M5_CANDLE_CURRENT_STATE_STRATIFICATION.json` | `1e09c2087d19d66383eaa96abb3aa0a76136f6026577f7fd71ca5e4bc8fd3757` | M5 +5 candlefortegn og modellskår innen kjent/ukjent nåtilstand, med ukeblokkintervall for ukjentgruppen. |
 | `SAVED_ROUTED_M5_CANDLE_REVERSAL_AUDIT.json` | `081969b226d06f05c551629a09ac2210bcd62d8bff282cca3a9f9f7f93e0c501` | Lesende +5 retningsrangering fra allerede rutet M5-candleverdi mot lagret modell/Markov, kildefortegn og ukeblokker. |
