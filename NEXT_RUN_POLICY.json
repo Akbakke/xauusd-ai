@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T15:01:30.105146+00:00",
+  "observed_utc": "2026-11-04T15:09:46.480901+00:00",
   "status": "OPERATOR_ZERO_BUDGET_CONFIRMED_TWO_PRICED_GC_STATUS_REQUESTS_DECLINED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "The operator retained the zero budget for the two quoted GCZ4 status extracts. Do not re-quote, request payment, or retrieve those priced payloads. Only a new already-owned or genuinely free GC-specific production-status history / complete historical exception record, or a same-feed contemporaneous XAU receipt and ATR publication journal, can move these evidence gates. Preserve both UNKNOWN GC intervals, the seven required inputs and masks, and the reserved December fold. No normalization or model run is admitted.",
+  "next_action": "The operator retained the zero budget for the two quoted GCZ4 status extracts. Do not re-quote, request payment, or retrieve those priced payloads. Only a new already-owned or genuinely free GC-specific production-status history / complete historical exception record, or a same-feed contemporaneous XAU receipt and ATR publication journal, can move these evidence gates. Preserve both UNKNOWN GC intervals, the seven required inputs and masks, and the reserved December fold. No normalization or model run is admitted. For any future review of this candidate use current_work.dynamic_mtf_train_gates_20261104.december_candidate_geometry; the October and old native folds may not substitute for it.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "The zero-spend review is complete; the operator declined both priced GCZ4 extracts and retained the zero budget.",
+    "current_activity": "The December design of the registered candidate is now bound to the approved 41866/5736 split and its prefix-only prior/Markov, after the completed zero-spend evidence review. Conditional source specification only; input gate remains blocked.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "The operator retained the zero budget for the two quoted GCZ4 status extracts. Do not re-quote, request payment, or retrieve those priced payloads. Only a new already-owned or genuinely free GC-specific production-status history / complete historical exception record, or a same-feed contemporaneous XAU receipt and ATR publication journal, can move these evidence gates. Preserve both UNKNOWN GC intervals, the seven required inputs and masks, and the reserved December fold. No normalization or model run is admitted.",
+    "next_action": "The operator retained the zero budget for the two quoted GCZ4 status extracts. Do not re-quote, request payment, or retrieve those priced payloads. Only a new already-owned or genuinely free GC-specific production-status history / complete historical exception record, or a same-feed contemporaneous XAU receipt and ATR publication journal, can move these evidence gates. Preserve both UNKNOWN GC intervals, the seven required inputs and masks, and the reserved December fold. No normalization or model run is admitted. For any future review of this candidate use current_work.dynamic_mtf_train_gates_20261104.december_candidate_geometry; the October and old native folds may not substitute for it.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20172,6 +20172,45 @@
           "sha256": "e7750200b201bffa7e9e7a14b607fd49025bac22ff2014e41d2dda2f05640087"
         },
         "december_held_out_evaluated": false
+      },
+      "december_candidate_geometry": {
+        "role": "Current conditional December geometry of the same registered endpoint-loss candidate. The October specification and its counts above remain the original data review and hypothesis lineage. No recipe or fit admission.",
+        "binding": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDIDATE_GEOMETRY_001.json",
+          "sha256": "7acb5596032fa868b180dd872c1581b1af4e1cf7bcb8b568a63b44b88797fe28"
+        },
+        "fit_parent_range": [
+          0,
+          41866
+        ],
+        "reserved_parent_range": [
+          41866,
+          47602
+        ],
+        "fit_cutoff_ns_exclusive": 1733011200000000000,
+        "reserved_cutoff_ns_exclusive": 1735689600000000000,
+        "prefix_prior_and_markov": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/FIT_PRIOR.json",
+          "sha256": "dd529bb100e12688428f5c249c2472ab9d3ca65e8400be305ef8cd65a6ab12bd"
+        },
+        "prefix_counts": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/FIT_COUNTS.json",
+          "sha256": "0b03773dc19fc0ab8e1808e38013cbd5c8c0dee6a9659c300f90f06618f0ad19"
+        },
+        "reserved_calendar_mature_by_native_lead": {
+          "D1": 5472,
+          "H1": 5736,
+          "H4": 5712,
+          "M15": 5736,
+          "M5": 5736
+        },
+        "qualified_prefix_normalizer": null,
+        "qualified_prefix_candle_reference": null,
+        "qualified_native_recipe": null,
+        "model_calls_authorized": false,
+        "normalization_fit_authorized": false,
+        "held_out_outcomes_read": false,
+        "run_admission": false
       }
     },
     "gc_d1_bear_closure_evidence_scope_20261104": {
@@ -22797,7 +22836,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T15:01:30.105146+00:00",
+  "updated_utc": "2026-11-04T15:09:46.480901+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
