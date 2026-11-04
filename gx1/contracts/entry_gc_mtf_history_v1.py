@@ -278,7 +278,7 @@ def require_gc_mtf_history_normalization(value, *, layout):
 
 
 def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train_start_ns, train_end_ns, layout,
-        relative_price_coordinates=None):
+        relative_price_coordinates=None, zero_support_profile=None):
     """Fit only the explicit unique TRAIN union chosen by the existing selector.
 
     Warmup history before TRAIN start is legal. CONTROL rows are never read by
@@ -292,6 +292,11 @@ def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train
     _require(isinstance(train_row_indices_by_tf, Mapping)
         and set(train_row_indices_by_tf) == set(TIMEFRAMES), 'FIT_TRAIN_UNION_KEYS')
     coordinates = None
+    if zero_support_profile is not None:
+        from gx1.contracts.entry_native_direction_prefix_normalization_v1 import require_december_zero_support_profile
+        spec = require_december_zero_support_profile(zero_support_profile)
+        _require(relative_price_coordinates is None and train_end_ns == spec['fit_prefix']['cutoff_ns'],
+            'DECEMBER_ZERO_SUPPORT_RAW_TRAIN_PREFIX')
     if relative_price_coordinates is not None:
         from gx1.contracts.gc_relative_price_coordinates_v1 import require_gc_native_relative_price_layout
         coordinates = require_gc_native_relative_price_layout(relative_price_coordinates, history_layout=layout)
@@ -329,7 +334,8 @@ def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train
         name = 'gc_mtf_' + tf.lower()
         fitted[name] = fit_surface_normalization(selected, surface=name,
             field_names=layout['field_names'][tf], row_count=len(rows),
-            semantic_categorical_domains=layout['categorical_domains'][tf])
+            semantic_categorical_domains=layout['categorical_domains'][tf],
+            **({'zero_support_profile': spec} if zero_support_profile is not None and tf == 'D1' else {}))
         unions[tf] = {'rows': len(rows), 'native_row_indices_sha256': _array_sha(rows),
             'available_ns_sha256': _array_sha(closes)}
     value = {'schema_version': NORMALIZATION_SCHEMA_VERSION, 'layout_sha256': layout['contract_sha256'],

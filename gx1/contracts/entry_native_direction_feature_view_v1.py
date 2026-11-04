@@ -12,6 +12,7 @@ and the existing FP32/MHA context on the returned wrapper.backbone.
 from __future__ import annotations
 
 from collections.abc import Mapping
+from dataclasses import dataclass
 from functools import lru_cache
 import hashlib
 import json
@@ -23,6 +24,7 @@ import pandas as pd
 
 from gx1.contracts import entry_gc_mtf_history_v1 as history
 from gx1.contracts import entry_model_native_input_normalization_v1 as norm
+from gx1.contracts import entry_native_direction_prefix_normalization_v1 as prefix_owner
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SEQ_LEN
 from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
 from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
@@ -139,6 +141,63 @@ def _configuration(metadata):
     return values
 
 
+_OBSERVER_AXIS_KEYS = ('parent_rows', 'bar_start_ns', 'decision_ns')
+
+
+def _require_observer_scope(scope, fit):
+    hashes = {key + '_sha256' for key in _OBSERVER_AXIS_KEYS}
+    _require(isinstance(scope, Mapping) and set(scope) == {'source', 'rows', 'fit', 'held_out'} | hashes,
+             'OBSERVER_SCOPE')
+    _ref(scope['source'])
+    for part in (scope['fit'], scope['held_out']):
+        _require(isinstance(part, Mapping) and set(part) == hashes | {'rows', 'cutoff_ns'}
+                 and type(part['rows']) is int and part['rows'] > 0 and type(part['cutoff_ns']) is int,
+                 'OBSERVER_PART')
+    for block in (scope, scope['fit'], scope['held_out']):
+        _require(all(isinstance(block[k], str) and len(block[k]) == 64
+                     and all(c in '0123456789abcdef' for c in block[k]) for k in hashes), 'OBSERVER_DIGEST')
+    _require(all(fit.get(k) == v for k, v in scope['fit'].items())
+             and type(scope['rows']) is int and scope['rows'] == scope['fit']['rows'] + scope['held_out']['rows']
+             and 0 < scope['fit']['cutoff_ns'] < scope['held_out']['cutoff_ns'] <= history.TEST_BOUNDARY_NS,
+             'OBSERVER_PREFIX')
+    return {k: _copy(v) for k, v in scope.items() if k not in ('fit', 'held_out')}
+
+
+@dataclass(frozen=True, eq=False, init=False)
+class NativeDirectionObserverAxes:
+    """One verification per use of the immutable fit or fit+held-out axes. Contains no features."""
+    view_sha256: str
+    parent_rows: np.ndarray
+    bar_start_ns: np.ndarray
+    decision_ns: np.ndarray
+
+    def __init__(self, view, *, source, parent_rows, bar_start_ns, decision_ns):
+        _require_view(view)
+        scope = view.get('reserved_observer_axes')
+        _require(isinstance(scope, Mapping) and _ref(source) == scope['source'], 'OBSERVER_SOURCE')
+        fit_rows = scope['fit']['rows']
+        n = len(parent_rows)
+        _require(n in (fit_rows, scope['rows']), 'OBSERVER_ROW_COUNT')
+        for key, supplied in zip(_OBSERVER_AXIS_KEYS, (parent_rows, bar_start_ns, decision_ns)):
+            _require(isinstance(supplied, np.ndarray) and supplied.dtype == np.int64 and supplied.shape == (n,),
+                     'OBSERVER_ARRAY:' + key)
+            # A caller-owned read-only flag can be reversed. These small, privately
+            # copied axes have immutable bytes backing for every later gather.
+            axis = np.frombuffer(supplied.astype('<i8', copy=False).tobytes(), dtype='<i8')
+            digest_key = key + '_sha256'
+            _require(hashlib.sha256(axis[:fit_rows]).hexdigest() == scope['fit'][digest_key]
+                     and np.all(axis >= 0) and np.all(axis[1:] > axis[:-1]), 'OBSERVER_FIT_AXIS:' + key)
+            if n > fit_rows:
+                _require(hashlib.sha256(axis[fit_rows:]).hexdigest() == scope['held_out'][digest_key]
+                         and hashlib.sha256(axis).hexdigest() == scope[digest_key], 'OBSERVER_HELD_OUT_AXIS:' + key)
+            object.__setattr__(self, key, axis)
+        _require(np.all(self.bar_start_ns <= MAX_NS - BAR_NS) and np.all(self.bar_start_ns % BAR_NS == 0)
+                 and np.array_equal(self.bar_start_ns + BAR_NS, self.decision_ns)
+                 and np.searchsorted(self.decision_ns, scope['fit']['cutoff_ns']) == fit_rows
+                 and self.decision_ns[-1] < scope['held_out']['cutoff_ns'], 'OBSERVER_CLOCK')
+        object.__setattr__(self, 'view_sha256', view['contract_sha256'])
+
+
 def _require_view(view):
     _require(isinstance(view, Mapping), 'VIEW_KEYS')
     dense = 'dense_minute_supervision' in view
@@ -148,6 +207,7 @@ def _require_view(view):
     current_state = 'current_state_first_loss_weight' in view
     first_activity = 'first_flat_activity_weight' in view
     endpoint = 'native_endpoint_loss' in view
+    masked_profile = 'zero_support_profile' in view
     extended_state = 'extended_forecast_minutes' in view
     five_priority = 'five_minute_priority' in view
     dense_bps = 'dense_bps_scale' in view
@@ -157,7 +217,8 @@ def _require_view(view):
     initialization = view.get('price_momentum_initialization', 'zero_residual')
     relative = 'gc_relative_coordinates_sha256' in view
     _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
-        | ({'native_endpoint_loss'} if endpoint else set())
+        | ({'native_endpoint_loss'} if endpoint else set()) | ({'zero_support_profile', 'reserved_observer_axes'} if masked_profile else set())
+        and (not masked_profile or endpoint)
         and (not endpoint or (view['native_endpoint_loss'] is True and first_activity and not extended_state))
         and (not first_activity or current_state)
         and (not extended_state or current_state)
@@ -206,6 +267,17 @@ def _require_view(view):
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
     _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state else set()), 'SOURCE_REF_KEYS')
     for item in view['source_bindings'].values(): _ref(item)
+    _require(masked_profile == ('zero_support_profile_sha256' in view['prefix_normalization'])
+             == ('reserved_observer_axes_sha256' in view['prefix_normalization']), 'ZERO_SUPPORT_VIEW_BINDING')
+    if masked_profile:
+        profile = view['zero_support_profile']
+        prefix_owner.require_december_zero_support_profile(profile)
+        _require(view['prefix_normalization']['zero_support_profile_sha256'] == profile['contract_sha256'],
+                 'ZERO_SUPPORT_VIEW_BINDING')
+        scope = view['reserved_observer_axes']
+        _require(view['full_axes'] == _require_observer_scope(scope, view['prefix'])
+                 and view['prefix_normalization']['reserved_observer_axes_sha256'] == _sha(scope),
+                 'OBSERVER_VIEW_BINDING')
     if relative:
         digest = view['gc_relative_coordinates_sha256']
         _require(type(digest) is str and len(digest) == 64 and all(c in '0123456789abcdef' for c in digest), 'GC_COORDINATE_IDENTITY')
@@ -267,7 +339,7 @@ def family_reference_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False, zero_support_profile=None):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -278,10 +350,17 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     _sealed(prefix_normalization, 'PREFIX_NORMALIZATION_SEAL')
     _require(set(prefix_normalization) == {'schema_version', 'base_normalization', 'gc_mtf_history',
         'prefix_qualification', 'old055_or223_normalization_identity_reused', 'native_launch_authorized', 'genuine_model_fit_authorized'}
-        | {'contract_sha256'} and prefix_normalization['schema_version'] == 'gx1_native_direction_prefix_normalization_v1'
+        | {'contract_sha256'} | ({'zero_support_profile'} if zero_support_profile is not None else set())
+        and prefix_normalization['schema_version'] == 'gx1_native_direction_prefix_normalization_v1'
         and prefix_normalization['old055_or223_normalization_identity_reused'] is False
         and prefix_normalization['native_launch_authorized'] is prefix_normalization['genuine_model_fit_authorized'] is False, 'PREFIX_NORMALIZATION_SCOPE')
     report = prefix_normalization['prefix_qualification']; _sealed(report, 'PREFIX_QUALIFICATION_SEAL')
+    if zero_support_profile is not None:
+        _require(native_endpoint_loss is True and prefix_normalization['zero_support_profile'] == zero_support_profile
+                 and report.get('zero_support_profile') == zero_support_profile, 'ZERO_SUPPORT_FIT_BINDING')
+        prefix_owner.require_december_normalization_bindings(prefix_normalization, zero_support_profile)
+    else:
+        _require('zero_support_profile' not in report, 'UNBOUND_ZERO_SUPPORT_PROFILE')
     _require(report.get('fit_allowed') is True and report.get('blockers') == [] and report.get('statistics_fits') == 0, 'SUPPORTED_PREFIX')
     proof = report['proof']; fields, routes, widths = _canonical()
     base = norm.require_input_normalization_contract(prefix_normalization['base_normalization'],
@@ -289,6 +368,9 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
             for name in norm.EXPECTED_SURFACES}, expected_ctx_cat_names=fields['ctx_cat'],
         expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     gc_history = history.require_gc_mtf_history(prefix_normalization['gc_mtf_history'])
+    if zero_support_profile is None:
+        surfaces = (*base['surfaces'].values(), *gc_history['normalization']['surfaces'].values())
+        _require(all('zero_support_profile_sha256' not in surface for surface in surfaces), 'UNBOUND_ZERO_SUPPORT_PROFILE')
     relative = gc_history['normalization'].get('relative_price')
     _require(price_momentum_initialization in ('zero_residual', 'linear_default')
         and (price_momentum_initialization == 'zero_residual' or (price_momentum and family_intervention is None))
@@ -389,6 +471,18 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['first_flat_activity_weight'] = first_flat_activity_weight
     if native_endpoint_loss:
         value['native_endpoint_loss'] = True
+    if zero_support_profile is not None:
+        value['zero_support_profile'] = _copy(zero_support_profile)
+        value['prefix_normalization']['zero_support_profile_sha256'] = zero_support_profile['contract_sha256']
+        scope = provenance.get('reserved_observer_axes')
+        full = _require_observer_scope(scope, proof['prefix'])
+        _require(full['source'] == provenance.get('physical_axes')
+                 and proof['full_axes'].get('source') == provenance.get('fit_target_view')
+                 and all(proof['full_axes'].get(k) == v for k, v in scope['fit'].items() if k != 'cutoff_ns'),
+                 'OBSERVER_FIT_LINEAGE')
+        value['full_axes'] = full
+        value['reserved_observer_axes'] = _copy(scope)
+        value['prefix_normalization']['reserved_observer_axes_sha256'] = _sha(scope)
     if extended_forecast_minutes is not None:
         value['extended_forecast_minutes'] = extended_forecast_minutes
     if price_momentum_initialization != 'zero_residual':
@@ -411,7 +505,7 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
 
 def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, decision_ns,
     entry_sequence_source, snap_x, ctx_cont, ctx_cat, multi_tf_sources, gc_surfaces, gc_layout, batch_parent_rows,
-    m1_ofi_source=None, m1_ofi_clock=None):
+    m1_ofi_source=None, m1_ofi_clock=None, observer_axes=None):
     """Gather one bounded raw batch from caller-verified immutable full backings.
 
     The normalization cutoff describes fitted statistics; later OOF feature rows
@@ -420,6 +514,13 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
     """
     _require_view(view)
     fields, routes, widths = _canonical(); rows = view['full_axes']['rows']
+    if 'zero_support_profile' in view:
+        _require(type(observer_axes) is NativeDirectionObserverAxes and observer_axes.view_sha256 == view['contract_sha256']
+                 and parent_rows is observer_axes.parent_rows and bar_start_ns is observer_axes.bar_start_ns
+                 and decision_ns is observer_axes.decision_ns, 'BOUND_OBSERVER_AXES_REQUIRED')
+        rows = len(parent_rows)
+    else:
+        _require(observer_axes is None, 'UNBOUND_OBSERVER_AXES')
     for axis in (parent_rows, bar_start_ns, decision_ns):
         _require(isinstance(axis, np.ndarray) and axis.dtype == np.int64 and axis.shape == (rows,)
             and not axis.flags.writeable, 'FULL_AXIS_HEADER')
@@ -487,6 +588,13 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
     else:
         _require(m1_ofi_source is None and m1_ofi_clock is None, 'UNBOUND_M1_OFI_INPUT')
     _require(all(array.flags.c_contiguous and np.isfinite(array).all() for array in features.values()), 'FINITE_CONTIGUOUS_RAW_BATCH')
+    if 'zero_support_profile' in view:
+        # Raw alias, source and finite checks run before projecting selected copies.
+        # One sealed field inventory applies on both sides of the fit cutoff.
+        for key, surface in (('seq_x', 'signal'), ('snap_x', 'signal'), ('ctx_cont', 'ctx_cont'),
+                             ('gc_seq_d1', 'gc_mtf_d1')):
+            features[key] = prefix_owner.project_december_zero_support(
+                features[key], surface=surface, profile=view['zero_support_profile'])
     return {'features': features, 'witness': {'view_sha256': view['contract_sha256'], 'parent_rows': selected.tolist(),
         'bar_start_ns': starts.tolist(), 'decision_ns': decisions.tolist(), 'source_positions': take.tolist(),
         'local_sequence_clock_sha256': hashlib.sha256(np.stack(clock_rows).astype('<i8', copy=False).tobytes()).hexdigest(),
@@ -514,7 +622,7 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         current_state_first_loss_weight=view.get('current_state_first_loss_weight'),
         extended_forecast_minutes=view.get('extended_forecast_minutes'),
         first_flat_activity_weight=view.get('first_flat_activity_weight'),
-        native_endpoint_loss=view.get('native_endpoint_loss', False))
+        native_endpoint_loss=view.get('native_endpoint_loss', False), zero_support_profile=view.get('zero_support_profile'))
     _, routes, widths = _canonical()
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])
@@ -525,6 +633,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         dynamic_m5_query_minutes=tuple(DYNAMIC_M1_PREFIX_HORIZON_MINUTES), entry_execution_profile=view['entry_execution_profile'])
     for tf, length in history.WINDOW_ROWS.items():
         kwargs[tf.lower() + '_seq_dim'] = widths['mtf']; kwargs[tf.lower() + '_seq_len'] = length
+    if 'zero_support_profile' in view:
+        kwargs['zero_support_profile'] = view['zero_support_profile']
     backbone = EntryV10CtxHybridTransformer(**kwargs).to(device)
     _require(type(backbone) is EntryV10CtxHybridTransformer and backbone.entry_execution_profile == view['entry_execution_profile']
         and backbone.gc_mtf_history == prefix_normalization['gc_mtf_history'], 'CONSTRUCTED_NATIVE_BINDING')

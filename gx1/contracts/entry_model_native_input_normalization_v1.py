@@ -398,6 +398,7 @@ def _stats_sha256(
     categorical_domains: Mapping[str, Sequence[int]],
     train_transformed_min: np.ndarray,
     train_transformed_max: np.ndarray,
+    zero_support_profile_sha256: str | None = None,
 ) -> str:
     digest = hashlib.sha256()
     digest.update(b"entry_model_native_input_normalization_surface_v3_asinh\0")
@@ -431,6 +432,8 @@ def _stats_sha256(
             separators=(",", ":"),
         ).encode("utf-8")
     )
+    if zero_support_profile_sha256 is not None:
+        digest.update(b"research_structural_zero\0" + bytes.fromhex(zero_support_profile_sha256))
     return digest.hexdigest()
 
 
@@ -770,6 +773,7 @@ def fit_surface_normalization(
     semantic_binary_fields: Sequence[str] | None = None,
     allow_constant_train_fields: bool = False,
     allow_unobserved_train_fields: bool = False,
+    zero_support_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Fit an invertible robust transform without materializing the matrix.
 
@@ -796,6 +800,16 @@ def fit_surface_normalization(
             f"[ENTRY_INPUT_NORMALIZATION_FIELDS_INVALID] "
             f"surface={surface} fields={len(names)} width={int(width)}"
         )
+    structural = {}
+    profile_sha = None
+    if zero_support_profile is not None:
+        from gx1.contracts import entry_native_direction_prefix_normalization_v1 as prefix
+        spec = prefix.require_december_zero_support_profile(zero_support_profile)
+        profile_sha = spec["contract_sha256"]
+        if (allow_unobserved_train_fields or surface not in spec["surfaces"]
+                or _field_names_sha256(names) != spec["field_names_sha256"][surface]):
+            raise RuntimeError("ENTRY_INPUT_RESEARCH_ZERO_SUPPORT_SURFACE")
+        structural = {e["value_index"]: e["field"] for e in spec["surfaces"][surface]}
     if row_count is not None and int(row_count) != int(population_rows):
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_ROW_COUNT_MISMATCH] "
@@ -883,7 +897,15 @@ def fit_surface_normalization(
                 f"surface={surface} row={int(bad[0])} "
                 f"field={names[start + int(bad[1])]}"
             )
-        q25, median, q75 = np.quantile(block, [0.25, 0.5, 0.75], axis=0)
+        if structural and any(start <= i < stop for i in structural):
+            # Structurally excluded source values have no empirical quantiles, even on their zero storage.
+            active = [i - start for i in range(start, stop) if i not in structural]
+            quantiles = np.empty((3, stop - start), dtype=np.float64)
+            if active:
+                quantiles[:, active] = np.quantile(block[:, active], [0.25, 0.5, 0.75], axis=0)
+            q25, median, q75 = quantiles
+        else:
+            q25, median, q75 = np.quantile(block, [0.25, 0.5, 0.75], axis=0)
         for local in range(stop - start):
             index = start + local
             column = block[:, local]
@@ -897,6 +919,14 @@ def fit_surface_normalization(
                 column = column[observed == 1.0]
                 if observed_fit_counts is not None:
                     observed_fit_counts[index] = int(len(column))
+                if index in structural:
+                    if len(column):
+                        raise RuntimeError("ENTRY_INPUT_RESEARCH_FIELD_OBSERVED:" + names[index])
+                    # The coordinate is masked on every use. These are fixed operator constants, never fitted estimates.
+                    center[index], scale[index] = 0., 1.
+                    binary_mask[index] = int(names[index] in binary_fields)
+                    scale_source[index] = prefix.DECEMBER_ZERO_SCALE_SOURCE
+                    continue
                 if len(column) == 0:
                     if not allow_unobserved_train_fields:
                         raise RuntimeError('ENTRY_INPUT_NO_PHYSICAL_TRAIN_OBSERVATIONS:' + names[index])
@@ -1043,6 +1073,7 @@ def fit_surface_normalization(
         categorical_domains=categorical_domains,
         train_transformed_min=transformed_min,
         train_transformed_max=transformed_max,
+        zero_support_profile_sha256=profile_sha,
     )
     result = {
         "surface": str(surface),
@@ -1065,6 +1096,9 @@ def fit_surface_normalization(
         "train_transformed_max": [float(value) for value in transformed_max],
         "stats_sha256": stats_hash,
     }
+    if profile_sha is not None:
+        result["zero_support_profile_sha256"] = profile_sha
+        result["unfitted_estimates"] = {name: None for name in structural.values()}
     if allow_unobserved_train_fields:
         result["allow_unobserved_train_fields"] = True
         result["observed_fit_counts"] = observed_fit_counts
@@ -1101,6 +1135,18 @@ def require_surface_normalization(
         "train_transformed_max",
         "stats_sha256",
     }
+    structural = {}
+    profile_sha = data.get("zero_support_profile_sha256")
+    if profile_sha is not None:
+        from gx1.contracts import entry_native_direction_prefix_normalization_v1 as prefix
+        spec = prefix.december_zero_support_profile()
+        if (profile_sha != spec["contract_sha256"] or surface not in spec["surfaces"]
+                or _field_names_sha256(field_names) != spec["field_names_sha256"][surface]):
+            raise RuntimeError("ENTRY_INPUT_RESEARCH_ZERO_SUPPORT_BINDING")
+        structural = {e["value_index"]: e for e in spec["surfaces"][surface]}
+        if data.get("unfitted_estimates") != {e["field"]: None for e in structural.values()}:
+            raise RuntimeError("ENTRY_INPUT_RESEARCH_ZERO_SUPPORT_ESTIMATES")
+        expected_keys.update(("zero_support_profile_sha256", "unfitted_estimates"))
     if set(data) != expected_keys:
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_SURFACE_SCHEMA_INVALID] "
@@ -1177,6 +1223,13 @@ def require_surface_normalization(
     for index in range(len(names)):
         is_binary = bool(binary_mask[index])
         is_categorical = bool(categorical_mask[index])
+        if index in structural:
+            mask = structural[index]["mask_index"]
+            if (is_categorical or scale_source[index] != prefix.DECEMBER_ZERO_SCALE_SOURCE
+                    or center[index] != 0. or scale[index] != 1.
+                    or any(transformed_min[j] != 0. or transformed_max[j] != 0. for j in (index, mask))):
+                raise RuntimeError("ENTRY_INPUT_RESEARCH_ZERO_SUPPORT_CONSTANTS")
+            continue
         if is_binary:
             if (
                 center[index] != np.float32(0.0)
@@ -1254,6 +1307,7 @@ def require_surface_normalization(
         categorical_domains=categorical_domains,
         train_transformed_min=transformed_min,
         train_transformed_max=transformed_max,
+        zero_support_profile_sha256=profile_sha,
     )
     if data["stats_sha256"] != expected_hash:
         raise RuntimeError(
@@ -1376,6 +1430,7 @@ def share_temporal_alias_stats_from_signal(
         categorical_domains=categorical_domains,
         train_transformed_min=transformed_min,
         train_transformed_max=transformed_max,
+        zero_support_profile_sha256=ctx_cont.get("zero_support_profile_sha256"),
     )
     return ctx_cont
 
@@ -1654,7 +1709,11 @@ def apply_surface_normalization(
     if not np.isfinite(normalized).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_OUTPUT_NONFINITE]")
     result = _gc_context.mask_normalized_numpy(matrix, np.asarray(normalized, dtype=np.float32), field_names)
-    return _micro_context.mask_normalized_range_numpy(matrix, result, field_names)
+    result = _micro_context.mask_normalized_range_numpy(matrix, result, field_names)
+    if "zero_support_profile_sha256" in surface_contract:
+        from gx1.contracts import entry_native_direction_prefix_normalization_v1 as prefix
+        result[..., list(prefix.december_surface_columns(surface_contract))] = 0.
+    return result
 
 
 def invert_surface_normalization(
@@ -1676,6 +1735,10 @@ def invert_surface_normalization(
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_INVERSE_WIDTH_MISMATCH]")
     if not np.isfinite(normalized).all():
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_INVERSE_NONFINITE]")
+    if "zero_support_profile_sha256" in surface_contract:
+        from gx1.contracts import entry_native_direction_prefix_normalization_v1 as prefix
+        if normalized[..., list(prefix.december_surface_columns(surface_contract))].any():
+            raise RuntimeError("ENTRY_INPUT_MASKED_COORDINATE_NOT_INVERTIBLE")
     identity = binary | categorical
     continuous = ~identity
     # ``sinh(z) * scale`` is evaluated in float64 for the inverse reason: the

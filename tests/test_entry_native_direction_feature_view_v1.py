@@ -285,3 +285,98 @@ def test_five_priority_price_only_view_binds_distinct_objective_and_same_routes(
     with pytest.raises(RuntimeError):owner.bind_native_direction_feature_view(**args,dense_minutes=True,price_momentum=True,m1_ofi_normalization={},five_minute_priority=True)
     broken=deepcopy(args);broken['source_bindings'].pop('five_priority_source')
     with pytest.raises(RuntimeError):owner.bind_native_direction_feature_view(**broken,dense_minutes=True,price_momentum=True,five_minute_priority=True)
+
+
+def test_december_profile_masks_fit_and_hypothetical_observed_later_batch(bound_case, monkeypatch):
+    from tests.test_dynamic_mtf_december_zero_support import masked_prefix_case
+    from tests.test_entry_native_dynamic_state_chain_v1 import _state_view_arguments
+
+    case, profile = masked_prefix_case(monkeypatch)
+    nfit = profile["fit_prefix"]["rows"]
+    data_source = case["expected_axes"]["source"]
+    fit_source = _ref("physical-fit-target/SERIES.json")
+
+    def axis_hashes(sl):
+        return {k + "_sha256": prefix._hash_axis(case[k][sl]) for k in ("parent_rows", "bar_start_ns", "decision_ns")}
+
+    scope = {"source": data_source, "rows": len(case["parent_rows"]), **axis_hashes(slice(None)),
+             "fit": {"rows": nfit, "cutoff_ns": case["cutoff_ns"], **axis_hashes(slice(nfit))},
+             "held_out": {"rows": len(case["parent_rows"]) - nfit,
+                          "cutoff_ns": int(case["decision_ns"][-1] + owner.BAR_NS), **axis_hashes(slice(nfit, None))}}
+    fit_case = deepcopy(case)
+    for key in ("parent_rows", "bar_start_ns", "decision_ns", "snap_x", "ctx_cont", "ctx_cat"):
+        fit_case[key] = fit_case[key][:nfit]
+    sequence = fit_case["entry_sequence_source"]
+    stop = sequence["sample_positions"][nfit-1] + 1
+    for key in ("signal", "times_ns"):
+        sequence[key] = sequence[key][:stop]
+    sequence["sample_positions"] = sequence["sample_positions"][:nfit]
+    fit_case["expected_axes"] = {"source": fit_source, "rows": nfit, **axis_hashes(slice(nfit))}
+    fit_case["source_bindings"] = {**deepcopy(bound_case["case"]["source_bindings"]), "physical_axes": data_source,
+                                   "fit_target_view": fit_source, "reserved_observer_axes": scope}
+    qualification = prefix.qualify_native_direction_prefix_population(**fit_case, zero_support_profile=profile)
+    fitted = prefix.fit_native_direction_prefix_normalization(qualification)
+    args = _state_view_arguments(bound_case)
+    args.update(prefix_normalization=fitted, zero_support_profile=profile, native_endpoint_loss=True,
+                current_state_first_loss_weight=0.03, first_flat_activity_weight=0.03)
+    view = owner.bind_native_direction_feature_view(**args)
+    assert view["full_axes"]["rows"] == len(case["parent_rows"]) > fitted["prefix_qualification"]["proof"]["full_axes"]["rows"] == nfit
+    assert view["reserved_observer_axes"] == scope
+    assert view["zero_support_profile"] == profile
+    assert view["prefix_normalization"]["zero_support_profile_sha256"] == profile["contract_sha256"]
+    with pytest.raises(RuntimeError):
+        owner.bind_native_direction_feature_view(**{**args, "zero_support_profile": None})
+    with pytest.raises(RuntimeError):
+        owner.bind_native_direction_feature_view(**{**args, "prefix_normalization": bound_case["arguments"]["prefix_normalization"]})
+    with pytest.raises(RuntimeError):
+        owner.bind_native_direction_feature_view(**{**args, "native_endpoint_loss": False})
+    stripped = deepcopy(view)
+    del stripped["zero_support_profile"], stripped["reserved_observer_axes"]
+    with pytest.raises(RuntimeError, match="ZERO_SUPPORT_VIEW_BINDING"):
+        owner._require_view(_seal(stripped))
+
+    # Keep the fitted history separate from a later hypothetical feed in which
+    # the donor supplies values. Both go through the same frozen view and gather.
+    later = deepcopy(case)
+    channels = {"seq_x": "signal", "snap_x": "signal", "ctx_cont": "ctx_cont", "gc_seq_d1": "gc_mtf_d1"}
+    donors = {"seq_x": later["entry_sequence_source"]["signal"], "snap_x": later["snap_x"],
+              "ctx_cont": later["ctx_cont"], "gc_seq_d1": later["gc_surfaces"]["D1"]["features"]}
+    for key, donor in donors.items():
+        for record in profile["surfaces"][channels[key]]:
+            # One observed inactive value tests the distinction between a known
+            # zero and the same zero storage paired with an unavailable mask.
+            donor[:, record["value_index"]] = 0.0 if record["field"].endswith("_active") else 1.0
+            donor[:, record["mask_index"]] = 1.0
+
+    for sources, parent in ((case, case["expected_prefix_parent_rows"][0]), (later, later["parent_rows"][-1])):
+        inputs = _inputs({"case": sources})
+        inputs["batch_parent_rows"] = np.array([parent], np.int64)
+        raw = owner.gather_native_direction_feature_batch(bound_case["view"], **inputs)["features"]
+        if sources is case:
+            inputs = _inputs({"case": fit_case})
+            inputs["batch_parent_rows"] = np.array([parent], np.int64)
+        axes = {k: inputs[k] for k in ("parent_rows", "bar_start_ns", "decision_ns")}
+        if sources is later:
+            changed = axes["decision_ns"].copy()
+            changed[-1] += owner.BAR_NS
+            with pytest.raises(RuntimeError, match="OBSERVER_HELD_OUT_AXIS"):
+                owner.NativeDirectionObserverAxes(view, source=data_source, **{**axes, "decision_ns": changed})
+        bound_axes = owner.NativeDirectionObserverAxes(view, source=data_source, **axes)
+        with pytest.raises(ValueError):
+            bound_axes.decision_ns.setflags(write=True)
+        inputs.update(observer_axes=bound_axes, **{k: getattr(bound_axes, k) for k in axes})
+        batch = owner.gather_native_direction_feature_batch(view, **inputs)["features"]
+        assert raw.keys() == batch.keys()
+        for key, expected in raw.items():
+            preserved = np.ones(expected.shape[-1], dtype=bool)
+            if key in channels:
+                records = profile["surfaces"][channels[key]]
+                assert len(records) == 7
+                for item in records:
+                    vi, mi = item["value_index"], item["mask_index"]
+                    preserved[[vi, mi]] = False
+                    assert np.all(batch[key][..., vi] == 0) and np.all(batch[key][..., mi] == 0)
+                    if sources is later:
+                        assert np.all(expected[..., mi] == 1) and np.all(donors[key][:, mi] == 1)
+            np.testing.assert_array_equal(expected[..., preserved], batch[key][..., preserved])
+        np.testing.assert_array_equal(batch["seq_x"][:, -1], batch["snap_x"])

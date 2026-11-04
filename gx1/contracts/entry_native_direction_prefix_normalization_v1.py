@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from functools import lru_cache
 from collections.abc import Mapping
 from pathlib import PurePosixPath
 
@@ -52,6 +53,138 @@ def _copy(value):
 
 def _seal(value):
     return {**value, "contract_sha256": _sha(value)}
+
+
+DECEMBER_ZERO_SUPPORT_NAME = "dynamic_mtf_december_gc_d1_bear_unobserved_v1"
+DECEMBER_FIT_PREFIX = {
+    "rows": 41866, "cutoff_ns": 1733011200000000000,
+    "parent_rows_sha256": "4a344f16766979a7743e17d3d9a85dee9695d7f37b2abda9c0919802877b54c4",
+    "bar_start_ns_sha256": "0f95bc0494d5c0060c7490d82146bbe982b2f23b8749b1347abc7acd6d722f03",
+    "decision_ns_sha256": "5d1f2d13189650518a7bfe03cbedc423dc775d022112abb5e601a38f1859bd9a",
+}
+DECEMBER_ZERO_SCALE_SOURCE = "structurally_masked_no_train_statistics"
+
+
+@lru_cache(maxsize=1)
+def _december_surface_bytes():
+    full = compile_compact_entry_execution_profile()["physical_field_names"]
+    layout = history.gc_mtf_history_layout()
+    values = ["gc_d1_observed_proxy_ob_bear_" + k for k in
+              ("active", "created", "first_retouch", "low", "high", "age_bars", "origin_volume_contracts")]
+    surfaces, widths, field_hashes = {}, {}, {}
+    for key, names in (("signal", full["signal"]), ("ctx_cont", full["ctx_cont"]), ("gc_mtf_d1", layout["field_names"]["D1"])):
+        fields = [("ctx_cont." if key == "signal" else "") + name for name in values]
+        pairs = dict(gc.masking_pairs(names))
+        entries = []
+        for field in fields:
+            loc = names.index(field)
+            mask = pairs[loc]
+            _require(names[mask] == field + "_observed", "DECEMBER_OBSERVATION_OWNER")
+            entries.append({"field": field, "mask": names[mask], "value_index": loc, "mask_index": mask})
+        surfaces[key] = entries
+        widths[key] = len(names)
+        field_hashes[key] = norm._field_names_sha256(names)
+    return json.dumps({"surfaces": surfaces, "widths": widths, "field_names_sha256": field_hashes}, sort_keys=True)
+
+
+def december_zero_support_profile():
+    """Only these genuinely unsupported physical pairs stay unknown on this one historical fit and held-out use."""
+    return _seal({"name": DECEMBER_ZERO_SUPPORT_NAME, "fit_prefix": _copy(DECEMBER_FIT_PREFIX),
+                  "fit_statistics": None, "fixed_transform_inputs": {"center": 0.0, "scale": 1.0},
+                  "model_storage": "zero_value_and_zero_observation_mask_on_all_batches_raw_unchanged",
+                  **json.loads(_december_surface_bytes())})
+
+
+def require_december_zero_support_profile(profile):
+    expected = december_zero_support_profile()
+    _require(isinstance(profile, Mapping) and dict(profile) == expected
+             and profile["contract_sha256"] == _sha({k: v for k, v in profile.items() if k != "contract_sha256"}),
+             "DECEMBER_PROFILE")
+    return expected
+
+
+def december_surface_columns(stats):
+    spec = december_zero_support_profile()
+    surface = stats["surface"]
+    _require(stats.get("zero_support_profile_sha256") == spec["contract_sha256"] and surface in spec["surfaces"]
+             and norm._field_names_sha256(stats["field_names"]) == spec["field_names_sha256"][surface],
+             "DECEMBER_SURFACE_IDENTITY")
+    return tuple(i for entry in spec["surfaces"][surface] for i in (entry["value_index"], entry["mask_index"]))
+
+
+def project_december_zero_support(values, *, surface, profile):
+    """Return a model-facing copy with both components of each excluded pair masked."""
+    spec = require_december_zero_support_profile(profile)
+    _require(surface in spec["surfaces"] and isinstance(values, np.ndarray) and values.dtype == np.float32
+             and values.ndim > 0 and values.shape[-1] == spec["widths"][surface], "DECEMBER_PROJECT_SURFACE")
+    entries = spec["surfaces"][surface]
+    vi, mi = [e["value_index"] for e in entries], [e["mask_index"] for e in entries]
+    val, mask = values[..., vi], values[..., mi]
+    _require(np.isfinite(val).all() and np.isin(mask, (0., 1.)).all()
+             and np.all(val[mask == 0.] == 0.), "DECEMBER_MASKED_STORAGE")
+    binary = [k for k, e in enumerate(entries)
+              if e["field"].endswith(("_bear_active", "_bear_created", "_bear_first_retouch"))]
+    _require(np.isin(val[..., binary], (0., 1.)).all(), "DECEMBER_RAW_BINARY_DOMAIN")
+    result = values.copy()
+    result[..., vi + mi] = 0.
+    return result
+
+
+def december_runtime_columns(base, gc_history, profile):
+    """Bind all structural zero buffers to one research prefix; an ordinary native constructor rejects them."""
+    surfaces = dict(base["surfaces"])
+    if gc_history is not None:
+        surfaces.update(gc_history["normalization"]["surfaces"])
+    marked = {k: v["zero_support_profile_sha256"] for k, v in surfaces.items() if "zero_support_profile_sha256" in v}
+    if profile is None and not marked:
+        return {}
+    spec = require_december_zero_support_profile(profile)
+    _require(marked == {k: spec["contract_sha256"] for k in spec["surfaces"]} and gc_history is not None
+             and "relative_price" not in gc_history["normalization"]
+             and base["lineage"]["train_row_count"] == base["lineage"]["entry_train_decision_row_count"] == spec["fit_prefix"]["rows"]
+             and base["lineage"]["exit_train_decision_row_count"] == 0
+             and gc_history["normalization"]["provenance"]["train_end_ns"] == spec["fit_prefix"]["cutoff_ns"],
+             "DECEMBER_RUNTIME_SCOPE")
+    return {k: december_surface_columns(surfaces[k]) for k in spec["surfaces"]}
+
+
+def require_december_normalization_bindings(fitted, profile):
+    spec = require_december_zero_support_profile(profile)
+    report = fitted["prefix_qualification"]
+    _require(fitted.get("zero_support_profile") == report.get("zero_support_profile") == spec
+             and report["fit_allowed"] is True and report["blockers"] == []
+             and all(report["proof"]["prefix"].get(k) == v for k, v in spec["fit_prefix"].items()),
+             "DECEMBER_FIT_BINDING")
+    december_runtime_columns(fitted["base_normalization"], fitted["gc_mtf_history"], spec)
+    all_stats = {**fitted["base_normalization"]["surfaces"], **fitted["gc_mtf_history"]["normalization"]["surfaces"]}
+    _require(set(all_stats) == set(report["support"]) == set(norm.EXPECTED_SURFACES) | {"gc_mtf_" + tf.lower() for tf in WINDOWS},
+             "DECEMBER_FULL_SURFACES")
+    unions = fitted["gc_mtf_history"]["normalization"]["provenance"]["row_union"]
+    for tf in WINDOWS:
+        measured = report["proof"]["gc"][tf]
+        _require(unions[tf] == {k: measured[k] for k in ("rows", "native_row_indices_sha256", "available_ns_sha256")},
+                 "DECEMBER_GC_ROW_UNION:" + tf)
+    expected_missing = []
+    for key, stat in all_stats.items():
+        _require(stat["fit_row_count"] == report["support"][key]["population_rows"], "DECEMBER_SURFACE_FIT_ROWS:" + key)
+        if key not in spec["surfaces"]:
+            _require("zero_support_profile_sha256" not in stat, "DECEMBER_EXTRA_SURFACE")
+            continue
+        entries = spec["surfaces"][key]
+        _require(stat.get("zero_support_profile_sha256") == spec["contract_sha256"]
+                 and stat.get("unfitted_estimates") == {e["field"]: None for e in entries}, "DECEMBER_SURFACE_BINDING:" + key)
+        for e in entries:
+            i = e["value_index"]
+            _require(stat["field_names"][i] == e["field"] and stat["scale_source"][i] == DECEMBER_ZERO_SCALE_SOURCE
+                     and stat["center"][i] == 0. and stat["scale"][i] == 1.
+                     and report["support"][key]["observed_counts"][i] == 0
+                     and report["support"][key]["observed_min"][i] is None
+                     and report["support"][key]["observed_max"][i] is None, "DECEMBER_FIT_EVIDENCE")
+            expected_missing.append((key, e["field"]))
+    recorded = report["excluded_zero_support"]
+    _require(set(spec["surfaces"]) <= set(all_stats)
+             and sorted(expected_missing) == sorted((r["surface"], r["field"]) for r in recorded)
+             and all(r["reason"] == "no_observed_prefix_values" for r in recorded), "DECEMBER_EXCLUSION_BINDING")
 
 
 def _hash_axis(value):
@@ -130,7 +263,7 @@ def qualify_native_direction_prefix_population(
     *, parent_rows, bar_start_ns, decision_ns, expected_axes, cutoff_ns,
     expected_prefix_parent_rows, entry_sequence_source, snap_x, ctx_cont, ctx_cat,
     ordered_signal_names, multi_tf_sources, gc_surfaces, gc_layout,
-    base_lineage, source_bindings,
+    base_lineage, source_bindings, zero_support_profile=None,
 ):
     """Bind the full source axis; audit every prefix input before any stats fit.
 
@@ -153,6 +286,11 @@ def qualify_native_direction_prefix_population(
     stop = int(np.searchsorted(decisions, cutoff_ns, side="left"))
     supplied = _axis(expected_prefix_parent_rows, "PREFIX_PARENT_AXIS")
     _require(stop >= 2 and np.array_equal(supplied, parents[:stop]), "EXACT_PREFIX_MEMBERSHIP")
+    if zero_support_profile is not None:
+        spec = require_december_zero_support_profile(zero_support_profile)
+        prefix = {"rows": stop, "cutoff_ns": cutoff_ns, "parent_rows_sha256": _hash_axis(parents[:stop]),
+                  "bar_start_ns_sha256": _hash_axis(starts[:stop]), "decision_ns_sha256": _hash_axis(decisions[:stop])}
+        _require(prefix == spec["fit_prefix"], "DECEMBER_FIT_PREFIX")
     physical = compile_compact_entry_execution_profile()["physical_field_names"]
     names = list(ordered_signal_names)
     _require(names == list(physical["signal"]), "COMPLETE_SIGNAL_FIELDS")
@@ -250,13 +388,23 @@ def qualify_native_direction_prefix_population(
         "base_lineage": _copy(base_lineage), "source_bindings": _copy(source_bindings),
         "window_rows": dict(WINDOWS), "all_physical_fields_preserved": True,
     }
+    extra = {}
+    if zero_support_profile is not None:
+        allowed = {(key, e["field"]) for key, entries in spec["surfaces"].items() for e in entries}
+        excluded = [b for b in blockers if b["reason"] == "no_observed_prefix_values" and (b["surface"], b["field"]) in allowed]
+        blockers = [b for b in blockers if b not in excluded]
+        for key, field in sorted(allowed - {(b["surface"], b["field"]) for b in excluded}):
+            blockers.append({"surface": key, "field": field, "reason": "expected_zero_support_but_observed"})
+        extra = {"zero_support_profile": spec, "excluded_zero_support": excluded}
     report = _seal({"schema_version": QUALIFICATION_SCHEMA, "proof": proof, "support": support,
-        "fit_allowed": not blockers, "blockers": blockers, "statistics_fits": 0})
+        "fit_allowed": not blockers, "blockers": blockers, "statistics_fits": 0, **extra})
     inputs = dict(parent_rows=parent_rows, bar_start_ns=bar_start_ns, decision_ns=decision_ns,
         expected_axes=_copy(expected_axes), cutoff_ns=cutoff_ns, expected_prefix_parent_rows=expected_prefix_parent_rows,
         entry_sequence_source=entry_sequence_source, snap_x=snap_x, ctx_cont=ctx_cont, ctx_cat=ctx_cat,
         ordered_signal_names=names, multi_tf_sources=multi_tf_sources, gc_surfaces=gc_surfaces,
         gc_layout=gc_layout, base_lineage=_copy(base_lineage), source_bindings=_copy(source_bindings))
+    if zero_support_profile is not None:
+        inputs["zero_support_profile"] = spec
     population = None if blockers else {"inputs": inputs, "local_parts": local_parts,
         "ctx_parts": ctx_parts, "cat_parts": cat_parts, "tf_parts": tf_parts,
         "tf_ids": tf_ids, "windows": windows, "gc_surfaces": gc_surfaces_valid}
@@ -273,13 +421,19 @@ def fit_native_direction_prefix_normalization(qualification, *, gc_relative_coor
     fresh = qualify_native_direction_prefix_population(**held["inputs"])
     _require(fresh["report"] == report and fresh["population"] is not None, "QUALIFICATION_INPUTS_CHANGED")
     pop, inputs = fresh["population"], fresh["population"]["inputs"]
+    profile = report.get("zero_support_profile")
+    profile_args = {}
+    if profile is not None:
+        require_december_zero_support_profile(profile)
+        _require(gc_relative_coordinates is None, "DECEMBER_RAW_GC_REQUIRED")
+        profile_args["zero_support_profile"] = profile
     physical = compile_compact_entry_execution_profile()["physical_field_names"]
     proof = report["proof"]
     surfaces = {
         "signal": norm.fit_surface_normalization(pop["local_parts"], surface="signal", field_names=physical["signal"],
-            semantic_categorical_domains=norm.SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=True),
+            semantic_categorical_domains=norm.SIGNAL_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=True, **profile_args),
         "ctx_cont": norm.fit_surface_normalization(pop["ctx_parts"], surface="ctx_cont", field_names=physical["ctx_cont"],
-            semantic_categorical_domains=norm.CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=True),
+            semantic_categorical_domains=norm.CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=True, **profile_args),
     }
     surfaces["ctx_cont"] = norm.share_temporal_alias_stats_from_signal(surfaces["ctx_cont"], surfaces["signal"],
         temporal_aliases=proof["temporal_aliases"], ctx_cont_values=pop["ctx_parts"])
@@ -303,11 +457,14 @@ def fit_native_direction_prefix_normalization(qualification, *, gc_relative_coor
         entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     gc_norm = history.fit_gc_mtf_history_normalization(pop["gc_surfaces"], pop["tf_ids"],
         train_start_ns=int(inputs["decision_ns"][0]), train_end_ns=inputs["cutoff_ns"], layout=inputs["gc_layout"],
-        relative_price_coordinates=gc_relative_coordinates)
+        relative_price_coordinates=gc_relative_coordinates, **profile_args)
     norm.require_input_normalization_contract(base, expected_field_names={name: surfaces[name]["field_names"] for name in norm.EXPECTED_SURFACES},
         expected_ctx_cat_names=physical["ctx_cat"], expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
     gc_history = history.require_gc_mtf_history({"layout": inputs["gc_layout"], "normalization": gc_norm})
-    return _seal({"schema_version": SCHEMA_VERSION, "base_normalization": base,
+    fitted = _seal({"schema_version": SCHEMA_VERSION, "base_normalization": base,
         "gc_mtf_history": gc_history, "prefix_qualification": _copy(report),
         "old055_or223_normalization_identity_reused": False,
-        "native_launch_authorized": False, "genuine_model_fit_authorized": False})
+        "native_launch_authorized": False, "genuine_model_fit_authorized": False, **profile_args})
+    if profile is not None:
+        require_december_normalization_bindings(fitted, profile)
+    return fitted

@@ -812,6 +812,7 @@ def _batch(prepared, targets, view, selected, np, *, cutoff=None):
         entry_sequence_source=prepared['entry_sequence_source'],snap_x=prepared['current']['snap'],
         ctx_cont=prepared['current']['ctx_cont'],ctx_cat=prepared['current']['ctx_cat'],multi_tf_sources=prepared['cache'],
         gc_surfaces=prepared['gc']['surfaces'],gc_layout=prepared['gc']['layout'],batch_parent_rows=selected,
+        **({'observer_axes':prepared['observer_axes']} if 'zero_support_profile' in view else {}),
         **({'m1_ofi_source':prepared['m1_ofi_source'], 'm1_ofi_clock':prepared['m1_ofi_clock']}
             if 'm1_ofi_normalization' in view else {}))
     at=np.searchsorted(prepared['arrays']['parent_rows'],selected)

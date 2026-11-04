@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T16:19:42.255515+00:00",
-  "status": "DYNAMIC_MTF_NATIVE_ENDPOINT_LOSS_STEP1_VERIFIED_FULL_PROFILE_MODEL_GATES_CLOSED",
+  "observed_utc": "2026-11-04T17:54:25.523807+00:00",
+  "status": "DYNAMIC_MTF_DECEMBER_MASKED_PROFILE_ONE_INPUT_AUDIT_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Step 1 is complete. Preserve the December split and seven genuine GC D1 fields. A separate input-contract decision or genuine support is needed before normalization and any native qualification for the candidate. The masked counterfactual discussed as step 2 has no admission. No further model/optimizer, December scoring, external data or trading action is authorized.",
+  "next_action": "Run exactly the admitted target-free normalization on 41,866 earlier TRAIN parents using the separate seven-field mask. Preserve the 5,736 December issues for later. Model calls and December feature/outcome reads are closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Step 1 is complete. Preserve the December split and seven genuine GC D1 fields. A separate input-contract decision or genuine support is needed before normalization and any native qualification for the candidate. The masked counterfactual discussed as step 2 has no admission. No further model/optimizer, December scoring, external data or trading action is authorized.",
+    "next_action": "Run exactly the admitted target-free normalization on 41,866 earlier TRAIN parents using the separate seven-field mask. Preserve the 5,736 December issues for later. Model calls and December feature/outcome reads are closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20220,6 +20220,17 @@
             "sha256": "d07b456809aa56eacdf73e01f59a18c3d54189410e010dc64f9828fc599e92e8"
           },
           "scope": "Additional loss only, no transferable normalization, native recipe, model prediction, or launch authority."
+        },
+        "masked_research_profile": {
+          "stage": "dynamic_mtf_masked_december_input_normalization_20261104_001",
+          "profile": {
+            "name": "dynamic_mtf_december_gc_d1_bear_unobserved_v1",
+            "contract_sha256": "cc25dff53f78e6217dc8a0af0007fc0e9073a87f0cec856ee090c30c4134ffc2"
+          },
+          "qualified_prefix_normalizer": null,
+          "qualified_feature_view": null,
+          "run_admission": false,
+          "model_calls_authorized": false
         }
       }
     },
@@ -54980,5 +54991,162 @@
       "canonical_and_independent_group_counts_identical": true
     },
     "qualification_scope": "Verified the component on known, mature labels under fixed reference probabilities through the same _state_loss adapter as training. Synthetic autograd checks cover label masks, numerical underflow and causal gradients; real native model gradients, resume, throughput, model OOF, independent edge and economics remain unqualified."
+  },
+  "dynamic_mtf_masked_december_input_normalization_20261104_001": {
+    "status": "ADMITTED_ONE_MASKED_TRAIN_PREFIX_NORMALIZATION_NO_MODEL",
+    "operator_decision": "One separate historical research profile. Keep all seven unobserved GC daily bearish zone coordinates in storage, physically mask each value and its observation flag on both fit and any future evaluation of this variant. Other coordinates and the five dynamic horizons are mandatory.",
+    "scope": "One capped target-free CPU operation under the December TRAIN geometry. Check every retained input, all twelve physical numeric surfaces plus categorical context. Fit fresh prefix statistics only after qualification. Publish the bound feature view using metadata only and report any other blocker. Later parent clocks only. No modeling or December outcome.",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001",
+    "runner": "gx1.audit.run_dynamic_mtf_train_prefix_data",
+    "specification": {
+      "path": "docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
+      "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
+    },
+    "candidate_geometry": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDIDATE_GEOMETRY_001.json",
+      "sha256": "7acb5596032fa868b180dd872c1581b1af4e1cf7bcb8b568a63b44b88797fe28"
+    },
+    "endpoint_loss_arithmetic": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/RESULT.json",
+      "sha256": "d07b456809aa56eacdf73e01f59a18c3d54189410e010dc64f9828fc599e92e8"
+    },
+    "historical_recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RECIPE.json",
+      "sha256": "9ddf77864ff0550cfd3160fa3242e56c1de9df7afcd5acab37ca6e38b648a884"
+    },
+    "fit_target_view": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/FIT_TARGETS/SERIES.json",
+      "sha256": "b5b44b6da510a09c9b1ee6e913c4eb5d2bbf1bc9979ac85d62e09f8b63b5d576"
+    },
+    "prior_input_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/ACTUAL_DATA_GATE_REVIEW.json",
+      "sha256": "e7750200b201bffa7e9e7a14b607fd49025bac22ff2014e41d2dda2f05640087"
+    },
+    "prior_input_support": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/PREFIX_INPUT_SUPPORT.json",
+      "sha256": "240142ecae931bf52cabb9a94f86f39c4d0145c94dee2192beee9212a7283d31"
+    },
+    "previous_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/TERMINAL.json",
+      "sha256": "fe0d7af30e96c80fc364feeaef6862720629ca29461377826028d7b66c196185"
+    },
+    "physical_provider_plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PLAN.json",
+      "sha256": "e20ce91dd5569b7f1ab15ce2c8463497d2425b5c307855348150166191d23ab1"
+    },
+    "physical_provider_worker": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/qualify_and_fit_boolean_prefixes_guarded.py",
+      "sha256": "ee7421610e9926faf2d988fbed419e896e0bd5968cb9145e1986cb95fbef6798"
+    },
+    "profile": {
+      "name": "dynamic_mtf_december_gc_d1_bear_unobserved_v1",
+      "contract_sha256": "cc25dff53f78e6217dc8a0af0007fc0e9073a87f0cec856ee090c30c4134ffc2"
+    },
+    "masked_fields": [
+      "gc_d1_observed_proxy_ob_bear_active",
+      "gc_d1_observed_proxy_ob_bear_created",
+      "gc_d1_observed_proxy_ob_bear_first_retouch",
+      "gc_d1_observed_proxy_ob_bear_low",
+      "gc_d1_observed_proxy_ob_bear_high",
+      "gc_d1_observed_proxy_ob_bear_age_bars",
+      "gc_d1_observed_proxy_ob_bear_origin_volume_contracts"
+    ],
+    "source_owners": {
+      "gx1/audit/dynamic_mtf_december_normalization.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_december_normalization.py",
+        "sha256": "4b86642c1225c5f88e220c3aa0befabc19f874622ef73eddd323fa3d66521380"
+      },
+      "gx1/audit/dynamic_mtf_train_prefix_inputs.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_train_prefix_inputs.py",
+        "sha256": "cb29b4a696119b341bc1f1eae0a1bbb281ea4c101498dd34544abfcf46bd7185"
+      },
+      "gx1/audit/run_dynamic_mtf_train_prefix_data.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_dynamic_mtf_train_prefix_data.py",
+        "sha256": "1fbdab3a5975e19372ed8167b5375447cee05bac023abd0636415120cbb4c9f1"
+      },
+      "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+        "sha256": "3cc70bea24514329481d0ffd40e4a79ffb9849b2e32232421d3a6650398c689b"
+      },
+      "gx1/contracts/entry_gc_mtf_history_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_gc_mtf_history_v1.py",
+        "sha256": "6ccad6eb12c35ad87283a2b2d659e9040de5d35c766b359ff5db17b34d3365fd"
+      },
+      "gx1/contracts/entry_model_native_input_normalization_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+        "sha256": "3c92cb09db0b9bd2806f829f0c84f246e1799a7f41387cd730bc556150da5584"
+      },
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+        "sha256": "ae166486b35638b04ab1c567b76975c813bfeac1bd6c85edc40771f96ce93fc4"
+      },
+      "gx1/contracts/entry_native_direction_prefix_normalization_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_normalization_v1.py",
+        "sha256": "eade6e81a760590bf0fcf3530955f37c50c5b652c5025005b9cfe5bdeb1d8a07"
+      },
+      "gx1/contracts/entry_native_direction_research_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "e499ccb98bc9008f725eb42c4176d8bb37c68d81bed41f7cfe256d10b840a84b"
+      },
+      "gx1/features/entry_specialist_feature_groups_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+        "sha256": "eb6b2b8238fa8e9348b7473f9720c1537b4bfba8e42b1a5b35e2400bb4df5b4b"
+      },
+      "gx1/features/gc_native_context_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_context_v1.py",
+        "sha256": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf"
+      },
+      "gx1/features/htf_features.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+        "sha256": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520"
+      },
+      "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "8f3d9a9ca40123b2ee4a10916efb881ba663054aeb3208188d1ab5170e0d2e89"
+      },
+      "gx1/models/entry_v10/entry_v10_input_normalization.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_input_normalization.py",
+        "sha256": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148"
+      },
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "3d5ceb118d06dce3734124972bf3c0e209cb60c8bded91fa534091d6a163e779"
+      }
+    },
+    "focused_tests": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/FOCUSED_TESTS.json",
+      "sha256": "bd67ffc10d25ba8926d9a0cafde9e8fc02c31027c17e8e9fa257d3000bccb0b8"
+    },
+    "prefix_rows": 41866,
+    "held_out_rows": 5736,
+    "fit_cutoff_ns": 1733011200000000000,
+    "held_out_cutoff_ns": 1735689600000000000,
+    "limits": {
+      "max_wall_seconds": 1800,
+      "max_json_bytes": 67108864,
+      "memory_max": 4294967296,
+      "swap": 536870912,
+      "pids": 64,
+      "numerical_threads": 1,
+      "max_rchar_bytes": 137438953472
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "normalization_fit_authorized": true,
+    "fit_target_view_authorized": false,
+    "held_out_features_authorized": false,
+    "held_out_outcomes_authorized": false,
+    "model_calls_authorized": false,
+    "optimizer_updates_authorized": false,
+    "native_model_authorized": false,
+    "training_enabled": false,
+    "test_authorized": false,
+    "broker_authorized": false,
+    "trading_authorized": false,
+    "external_data_authorized": false,
+    "relaunch_allowed": false
   }
 }

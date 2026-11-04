@@ -517,6 +517,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
         dynamic_m5_query_minutes: Optional[Sequence[int]] = None,
         entry_execution_profile: Optional[Mapping[str, str]] = None,
         gc_mtf_history: Optional[Mapping[str, object]] = None,
+        zero_support_profile: Optional[Mapping[str, object]] = None,
     ) -> None:
         if gc_mtf_history is not None:
             from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history
@@ -838,6 +839,16 @@ class EntryV10CtxHybridTransformer(nn.Module):
             )
         ):
             raise RuntimeError("ENTRY_INPUT_NORMALIZATION_ALIAS_MISMATCH")
+        self._research_zero_columns = {}
+        marked_stats = list(normalized_input_contract["surfaces"].values())
+        if gc_mtf_history is not None:
+            marked_stats.extend(gc_mtf_history["normalization"]["surfaces"].values())
+        if zero_support_profile is not None or any("zero_support_profile_sha256" in stats for stats in marked_stats):
+            from gx1.contracts.entry_native_direction_prefix_normalization_v1 import december_runtime_columns
+            self._research_zero_columns = december_runtime_columns(normalized_input_contract, gc_mtf_history, zero_support_profile)
+            if (profile_reference is None or profile_reference["name"] != FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+                    or entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+                raise RuntimeError("NATIVE_RESEARCH_ZERO_SUPPORT_SCOPE")
         self._input_normalization_contract = normalized_input_contract
         self._input_normalization_field_names = normalization_field_names
         self._input_norm_categorical_domains = {
@@ -1843,6 +1854,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if not torch.equal(self.entry_execution_profile_contract_sha256.detach().cpu(), expected_profile_hash):
                 raise RuntimeError("ENTRY_MODEL_EXECUTION_PROFILE_STATE_BINDING_INVALID")
         contract = self._input_normalization_contract
+        marked = any("zero_support_profile_sha256" in v for v in contract["surfaces"].values())
+        if marked or getattr(self, "_research_zero_columns", {}):
+            from gx1.contracts.entry_native_direction_prefix_normalization_v1 import (
+                december_runtime_columns, december_zero_support_profile,
+            )
+            if self._research_zero_columns != december_runtime_columns(contract, self.gc_mtf_history, december_zero_support_profile()):
+                raise RuntimeError("NATIVE_RESEARCH_ZERO_SUPPORT_STATE")
         expected_contract_hash = torch.tensor(
             list(bytes.fromhex(str(contract["contract_sha256"]))),
             dtype=torch.uint8,
@@ -2074,7 +2092,13 @@ class EntryV10CtxHybridTransformer(nn.Module):
         ).to(dtype=raw_float.dtype)
         _assert_finite(f"normalized.{surface}", normalized)
         result = _gc_context.mask_normalized_torch(raw_float, normalized, field_names)
-        return mask_normalized_range_torch(raw_float, result, field_names)
+        result = mask_normalized_range_torch(raw_float, result, field_names)
+        # Physical storage and domains were checked above, before any research-only projection.
+        cols = getattr(self, "_research_zero_columns", {}).get(surface)
+        if cols:
+            result = result.clone()
+            result[..., list(cols)] = 0.
+        return result
 
     def _normalize_gc_history_surface(self, raw: torch.Tensor, *, timeframe: str) -> torch.Tensor:
         """Coordinate conversion precedes its own TRAIN stats; raw callers stay unchanged."""
