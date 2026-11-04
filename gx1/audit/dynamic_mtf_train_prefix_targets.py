@@ -89,7 +89,7 @@ def _calendar_bytes(value):
     return (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode()
 
 
-def _prefix_closures(source, metadata, starts, directory):
+def _prefix_closures(source, metadata, starts, directory, *, first_source_row=0):
     """Build an independently valid closure authority, preserving every prefix classification."""
     original = source["calendar_binding"]
     authority = closures.require_market_closure_authority(read_bound_json(original["closure_authority"]),
@@ -107,8 +107,11 @@ def _prefix_closures(source, metadata, starts, directory):
              and evidence["calendar"] == original["published_calendar"] and evidence["test_data_used"] is False,
              "SOURCE_CLOSURE_BINDING")
     clock = pd.to_datetime(starts, utc=True)
-    retained = [r for r in authority["intervals"] if r["gap_after_m1_row"] < len(clock) - 1]
-    certified = [r for r in evidence["certified_gaps"] if r["gap_after_slice_row"] < len(clock) - 1]
+    def local_records(records, key):
+        return [{**r, key: r[key] - first_source_row} for r in records
+                if first_source_row <= r[key] < first_source_row + len(clock) - 1]
+    retained = local_records(authority["intervals"], "gap_after_m1_row")
+    certified = local_records(evidence["certified_gaps"], "gap_after_slice_row")
     known = [r for r in retained if r["successor_across_gap_allowed"]]
     _require([(r["gap_after_slice_row"], r["source_event_id"]) for r in certified] ==
              [(r["gap_after_m1_row"], r["source_event_id"]) for r in known], "CERTIFIED_GAPS")
@@ -126,7 +129,8 @@ def _prefix_closures(source, metadata, starts, directory):
     narrow.update(coverage_start_utc=clock[0].isoformat(),
                   coverage_end_utc_exclusive=(clock[-1] + pd.Timedelta(minutes=1)).isoformat(),
                   source_reference_sha256=source_ref["sha256"],
-                  intervals=[r for r in schedule["intervals"] if pd.Timestamp(r["end_utc_exclusive"]) <= clock[-1]])
+                  intervals=[r for r in schedule["intervals"] if (first_source_row == 0 or pd.Timestamp(r["start_utc"]) >= clock[0])
+                             and pd.Timestamp(r["end_utc_exclusive"]) <= clock[-1]])
     narrow = closures.seal_exact_market_schedule(narrow)
     schedule_ref = bind("EXACT_SCHEDULE.json", narrow)
     scoped = closures.build_market_closure_authority(m1_times=clock,

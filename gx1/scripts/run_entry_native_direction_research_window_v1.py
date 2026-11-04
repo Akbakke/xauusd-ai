@@ -117,6 +117,8 @@ def _freeze(recipe, binding, context):
     if 'state_array_refs' in context:
         for name,ref in context['state_array_refs'].items():
             _require(_stat(ref['path']) == context['state_array_stats'][name], 'STATE_TARGET_STAT:'+name)
+    for path, item in context.get('december_read_files', {}).items():
+        _require(_stat(path) == item['stat'], 'DECEMBER_READ_FREEZE:' + path)
     if 'dense_target' in context:
         ref=context['dense_target']
         _require(_stat(ref['path'])==context['dense_target_stat'] and _hash_file(ref['path'])==ref,'DENSE_TARGET_FREEZE')
@@ -146,7 +148,16 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
     if extra_read_paths:
         matched=context.get('factor_continuation_reads')
         recovered=context.get('scoring_recovery_read_authority')
-        if recovered is not None:
+        december_origin = context.get('december_score_read_authority')
+        if december_origin is not None:
+            from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+            launch = context['dynamic_state_launch']
+            expected = december_origin['fit_checkpoint']['path']
+            _require(launch['run_scope'] == december.SCORE_SCOPE and launch['score_origin'] == december_origin
+                and launch['candidate_plan'] == december.PLAN_REF and launch['input_role'] == 'score'
+                and Path(expected).parent == december.ROOTS['fit']/'prefix-fit/states'
+                and extra_read_paths == (expected,), 'DECEMBER_READ_ONLY_FIT_CHECKPOINT')
+        elif recovered is not None:
             from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import scoring_recovery_identity, FAMILY_SIGN_SCOPE, DYNAMIC_STATE_SCOPE
             _require(isinstance(recovered,dict) and set(recovered)=={'launch','validated_origin'},
                 'RECOVERY_READ_AUTHORITY')
@@ -238,12 +249,29 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
     if 'dynamic_state_launch' in context:
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE
         launch = context['dynamic_state_launch']
-        _require(launch['run_scope'] == DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE
+        from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+        dec_scope = launch['run_scope'] in december.SCOPES.values()
+        _require((launch['run_scope'] == DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE or dec_scope)
             and launch['numerical_recipe']['dynamic_state_supervision'] is True
             and launch['full_feature_profile'] is True, 'STATE_READ_SCOPE')
-        worker = context['manifest']['physical_provider_worker']
-        _require(_hash_file(worker['path']) == worker, 'STATE_PHYSICAL_WORKER_BINDING')
-        extra_read_paths += (worker['path'],)
+        if dec_scope:
+            required_role = 'score' if launch['run_scope'] == december.SCORE_SCOPE else 'fit'
+            _require(launch.get('candidate_plan') == december.PLAN_REF and launch.get('input_role') == required_role
+                and launch['target_manifest'] == context.get('december_target_ref')
+                and isinstance(context.get('december_read_files'),dict) and bool(context['december_read_files']),
+                'DECEMBER_ROLE_READ_BINDING')
+            for p, item in context['december_read_files'].items():
+                _require(Path(p).is_absolute() and Path(p).resolve(strict=True) == Path(p)
+                    and 'TEST' not in (s.upper() for s in Path(p).parts)
+                    and not p.endswith('/PRICE_TARGETS.npz') and _stat(p) == item['stat'], 'DECEMBER_READ_FILE')
+            _require(set(plan['payloads']) <= set(context['december_read_files'])
+                and all(plan['payloads'][k]['stat'] == context['december_read_files'][k]['stat'] for k in plan['payloads']),
+                'DECEMBER_CLOSED_PHYSICAL_FILE_INVENTORY')
+            extra_read_paths += tuple(context['december_read_files'])
+        else:
+            worker = context['manifest']['physical_provider_worker']
+            _require(_hash_file(worker['path']) == worker, 'STATE_PHYSICAL_WORKER_BINDING')
+            extra_read_paths += (worker['path'],)
         expected = context['state_target_manifest']['arrays']
         refs = context['state_array_refs']
         _require(set(refs) == set(expected) and all(refs[k] == {f:expected[k][f] for f in ('path','sha256')}
@@ -582,7 +610,8 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
     if launch['run_scope'] in (authority.ORDER_PRIVATE_SCOPE, authority.ORDER_SUPPORTED_SCOPE):
         from gx1.scripts.run_entry_native_direction_order_qualification_v1 import run_order_qualification
         return run_order_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
-    if launch['run_scope'] in (authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    if launch['run_scope'] in (december.PRIVATE_SCOPE,authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
             prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE,
             authority.FAMILY_PRIVATE_SCOPE, authority.DYNAMIC_STATE_PRIVATE_SCOPE):
         from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import run_dense_qualification

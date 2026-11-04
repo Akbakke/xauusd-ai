@@ -18,8 +18,21 @@ def _axis_digest(values):
     return hashlib.sha256(values.astype('<i8', copy=False).tobytes()).hexdigest()
 
 
-def _raw_array(ref, *, shape, dtype):
+def _raw_array(ref, *, shape, dtype, stop=None):
     campaign.require_binding({'path': ref['path'], 'sha256': ref['sha256']}, label='December raw input')
+    if stop is not None:
+        _require(0 < stop <= shape[0], 'CAUSAL_NPY_STOP')
+        # Native role isolation: map only the requested contiguous prefix, even at the backing
+        # level. The old SHA is checked as opaque bytes, without interpreting later coordinates.
+        with Path(ref['path']).open('rb') as handle:
+            version = np.lib.format.read_magic(handle)
+            _require(version in ((1, 0), (2, 0)), 'CAUSAL_NPY_VERSION')
+            parser = np.lib.format.read_array_header_1_0 if version == (1, 0) else np.lib.format.read_array_header_2_0
+            dims, fortran, dt = parser(handle)
+            offset = handle.tell()
+        _require(tuple(shape) == dims and not fortran and dt == np.dtype(dtype) and not dt.hasobject
+                 and Path(ref['path']).stat().st_size == offset + int(np.prod(dims)) * dt.itemsize, 'CAUSAL_NPY_LAYOUT')
+        return np.memmap(ref['path'], dtype=dt, mode='r', offset=offset, shape=(stop, *dims[1:]))
     a = np.load(ref['path'], mmap_mode='r', allow_pickle=False)
     _require(a.shape == tuple(shape) and a.dtype == np.dtype(dtype) and not a.flags.writeable,
              'ARRAY_HEADER:' + ref['path'])
@@ -75,7 +88,7 @@ def _fit_axes(source_ref, target_ref, geometry, cutoff, reserved_geometry, reser
     return result, expected, observer
 
 
-def _history_views(plan, transition_ref, layout_ref, last_issue):
+def _history_views(plan, transition_ref, layout_ref, last_issue, *, native_data_role=False, fit_row_limits=None):
     # The bound historical qualification already checked these exact bytes, including the full
     # V4 cache contract. Rehash the files we map, then expose only closed prefix rows to the fitter.
     lineage = plan['base_lineage']
@@ -104,10 +117,12 @@ def _history_views(plan, transition_ref, layout_ref, last_issue):
         feat_ref = {'path': str(root / info['feats_npy']), 'sha256': info['feats_npy_sha256']}
         _require(all(plan['payloads'][r['path']]['sha256'] == r['sha256'] for r in (time_ref, feat_ref)),
                  'XAU_INVENTORY:' + tf)
-        times = _raw_array(time_ref, shape=(info['n_bars'],), dtype='int64')
+        time_stop = fit_row_limits['xau_raw_rows_through_last_issue'][tf] if fit_row_limits is not None else None
+        times = _raw_array(time_ref, shape=(info['n_bars'],), dtype='int64', stop=time_stop)
         shift = int(htf.MULTI_TF_SHIFT[tf].value)
         stop = _closed_rows(times, shift, last_issue)
-        feat = _raw_array(feat_ref, shape=(len(times), len(names)), dtype='float32')[:stop]
+        feat = _raw_array(feat_ref, shape=(info['n_bars'], len(names)), dtype='float32',
+                          stop=stop if native_data_role else None)[:stop]
         frame = pd.DataFrame(feat, index=pd.DatetimeIndex(times[:stop].astype('datetime64[ns]'), tz='UTC'),
                              columns=names, copy=False)
         _require(np.shares_memory(frame.to_numpy(copy=False), feat), 'XAU_VIEW:' + tf)
@@ -116,9 +131,15 @@ def _history_views(plan, transition_ref, layout_ref, last_issue):
         mtf[tf] = frame
         descs = gc_source['surfaces'][tf]
         _require(all(plan['payloads'][r['path']]['sha256'] == r['sha256'] for r in descs.values()), 'GC_INVENTORY:' + tf)
-        raw = {k: _raw_array(d, shape=d['shape'], dtype=d['dtype']) for k, d in descs.items()}
-        size = _closed_rows(raw['available_ns'], 0, last_issue)
-        view = {k: a[:size] for k, a in raw.items()}
+        clock_desc = descs['available_ns']
+        gc_stop = fit_row_limits['gc_raw_rows_through_last_issue'][tf] if fit_row_limits is not None else None
+        gc_axis = _raw_array(clock_desc, shape=clock_desc['shape'], dtype=clock_desc['dtype'], stop=gc_stop)
+        size = _closed_rows(gc_axis, 0, last_issue)
+        view = {'available_ns': gc_axis[:size]}
+        for name in ('native_row_indices', 'features'):
+            d = descs[name]
+            view[name] = _raw_array(d, shape=d['shape'], dtype=d['dtype'],
+                                    stop=size if native_data_role else None)[:size]
         ids = view['native_row_indices']
         _require(np.all((ids >= 0) & (ids < stop)) and np.array_equal(times[ids] + shift, view['available_ns']),
                  'GC_XAU_EXACT_CLOCK:' + tf)

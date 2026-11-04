@@ -247,7 +247,8 @@ def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits
         policy_path, policy_file_sha256, progress_path):
     from gx1.contracts import entry_native_direction_research_campaign_v1 as authority
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
-    _require(launch['run_scope'] == authority.DYNAMIC_STATE_PRIVATE_SCOPE
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    _require(launch['run_scope'] in (authority.DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE)
         and launch['full_feature_profile'] is True and invocation['batch_size'] == 16, 'STATE_EXACT_SCOPE')
     sys.dont_write_bytecode = True
     import numpy as np
@@ -265,7 +266,8 @@ def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits
     binding_ref = common._hash_file(launch['execution_binding_path'])
     extra = {}
     binding = common._read(binding_ref,extra)
-    actual_launch = {**launch,'run_scope':prefix_authority.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE}
+    actual_launch = (launch if launch['run_scope'] == december.PRIVATE_SCOPE else
+                     {**launch,'run_scope':prefix_authority.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE})
     context = prefix._launch_metadata(actual_launch,common)
     context['info']['metadata'].update(extra)
     for ref in (window['recipe'],binding['plan'],{'path':str(policy_path),'sha256':policy_file_sha256}):
@@ -314,6 +316,10 @@ def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits
             launch['fold']['prefix_rows'],prefix.SEED,np)[:256]
         selected = select_dynamic_state_qualification_parents(ordered,
             {'parents_sorted':launch['qualification_parent_rows']},np=np)
+        december_phase = launch['run_scope'] == december.PRIVATE_SCOPE
+        if december_phase:
+            _require(diagnostic_ids.tolist() == launch['initial_parent_rows'] and selected.tolist() == launch['qualification_parent_rows'],
+                'DECEMBER_REGISTERED_PARENT_IDS')
         order = torch.from_numpy(selected.copy())
         order_sha = tree_sha(order)
         profile = compile_full_gc_mtf_entry_execution_profile(context['fitted']['gc_mtf_history'])
@@ -370,6 +376,9 @@ def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits
                     torch=torch,diagnostics=True)
                 _require(updated and all(row['eligible_cells'] > 0 for row in evidence['per_timeframe_counts']),
                     'STATE_ALL_TF_BATCH_SUPPORT')
+                if december_phase:
+                    wanted = launch['endpoint_support_per_batch'][index]
+                    december.require_endpoint_step(evidence, wanted)
                 cursor = 16*(index+1)
                 steps.append({'trajectory':trajectory,'logical_step':index+1,**evidence})
                 _require(tree_sha({name:p for name,p in model.named_parameters() if not p.requires_grad}) == initial_inactive,
@@ -416,6 +425,8 @@ def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits
     result = common._json(output/'RESULT.json',{
         'schema_version':'gx1_dynamic_mtf_state_private_qualification_result_v1',
         'decision':'PASS_DYNAMIC_STATE_NATIVE_MECHANICS' if passed else 'FAILED',
+        **({'candidate_plan':launch['candidate_plan'], 'initial_parent_rows':launch['initial_parent_rows'],
+            'held_out_features_read':False,'held_out_outcomes_read':False} if launch['run_scope'] == december.PRIVATE_SCOPE else {}),
         'recipe':window['recipe'],'execution_binding':binding_ref,'fold':launch['fold'],
         'target_manifest':launch['target_manifest'],'target_sources':launch['target_sources'],'label_audit':launch['label_audit'],
         'counts':{key:value for key,value in counters.items() if key != 'json_bytes'},
@@ -452,7 +463,8 @@ def run_dense_qualification(*, policy_path:Path, policy_file_sha256:str, progres
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
     window,plan,invocation,marker,launch=authority.require_native_direction_research_context(
         policy_path,policy_file_sha256,progress_path)
-    if launch['run_scope'] == authority.DYNAMIC_STATE_PRIVATE_SCOPE:
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    if launch['run_scope'] in (authority.DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE):
         return _run_dynamic_state_qualification(window=window,plan=plan,invocation=invocation,launch=launch,limits=limits,
             policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     dense_bps=launch['run_scope']==prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE

@@ -53,8 +53,13 @@ def _view(model, expected):
         'research_objective_sha256'} and value == expected, 'VIEW_IDENTITY')
     _require(value['research_objective_sha256'] == model.research_objective['contract_sha256'], 'OBJECTIVE_IDENTITY')
     prefix = value['prefix_normalization']
-    _require(isinstance(prefix, Mapping) and set(prefix) == {'binding', 'contract_sha256', 'base_sha256',
-        'gc_layout_sha256', 'gc_normalization_sha256', 'qualification_sha256'}, 'PREFIX_IDENTITY')
+    if isinstance(prefix, Mapping) and 'zero_support_profile_sha256' in prefix:
+        from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+        december.require_checkpoint_view(value)
+        _require(getattr(model, 'native_endpoint_loss', False) is True, 'DECEMBER_CHECKPOINT_OBJECTIVE')
+    else:
+        _require(isinstance(prefix, Mapping) and set(prefix) == {'binding', 'contract_sha256', 'base_sha256',
+            'gc_layout_sha256', 'gc_normalization_sha256', 'qualification_sha256'}, 'PREFIX_IDENTITY')
     for item in (value['contract_sha256'], value['research_objective_sha256'],
             *(prefix[key] for key in prefix if key != 'binding')):
         _require(type(item) is str and len(item) == 64 and all(c in '0123456789abcdef' for c in item), 'IDENTITY_SHA256')

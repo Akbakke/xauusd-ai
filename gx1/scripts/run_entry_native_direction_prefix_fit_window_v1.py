@@ -145,6 +145,10 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
 
 
 def _dynamic_state_metadata(launch, common):
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    if launch.get('run_scope') in (december.PRIVATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE) or 'input_role' in launch:
+        from gx1.audit.dynamic_mtf_december_native_inputs import december_native_metadata
+        return december_native_metadata(launch, common)
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     metadata = {}
     manifest = authority.require_dynamic_state_input_manifest(launch['input_manifest'],
@@ -179,6 +183,10 @@ def _dynamic_state_metadata(launch, common):
 
 
 def _prepare_dynamic_state(context, launch, np):
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    if launch.get('run_scope') in (december.PRIVATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE) or 'input_role' in launch:
+        from gx1.audit.dynamic_mtf_december_native_inputs import prepare_december_native
+        return prepare_december_native(context, launch, np)
     from gx1.contracts import entry_native_direction_feature_view_v1 as view_owner
     from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import load_dynamic_mtf_state_series
     from gx1.scripts import run_entry_native_direction_research_window_v1 as common
@@ -302,13 +310,22 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
         print('[dynamic_state_storage] at=' + check['observed_utc'] + ' stage=' + kind + ' required_bytes=' + str(check['plan']['required_free_bytes'])
             + ' guest_free=' + str(check['observation']['guest_available_bytes'])
             + ' host_free=' + str(min(check['observation']['host_available_bytes'], check['observation']['mounted_host_available_bytes'])), flush=True)
+    scorer = StateScoreAccumulator(targets['prior'], lead_minutes=targets['lead_minutes'],
+        model_receives_current_state=_state_report_current_input(model, view))
+    december = None
+    masked_oof = kind == 'OOF' and 'zero_support_profile' in view
+    _require(masked_oof == ('december_score_inputs' in prepared), 'DECEMBER_ONE_SCORE_ROLE')
+    if masked_oof:
+        from gx1.contracts.entry_dynamic_mtf_december_score_v1 import DecemberScorePass, december_event_layout
+        december = DecemberScorePass(prepared=prepared, targets=targets, view=view, selected=selected,
+                                     cutoff=cutoff, directory=root, markov=scorer.markov_grid)
     stage = Path(tempfile.mkdtemp(prefix='.'+destination.name+'.staging.', dir=root))
     shapes = dynamic_state_prediction_layout(len(selected), len(targets['lead_minutes']))
+    if december is not None:
+        shapes.update(december_event_layout(len(selected)))
     arrays = {key:np.lib.format.open_memmap(stage/(key+'.npy'), mode='w+', dtype=dtype, shape=shape)
         for key,(shape,dtype) in shapes.items()}
     semantic = {key:hashlib.sha256() for key in arrays}
-    scorer = StateScoreAccumulator(targets['prior'], lead_minutes=targets['lead_minutes'],
-        model_receives_current_state=_state_report_current_input(model, view))
     activity_scorer = (FirstFlatActivityAccumulator(scorer.markov_grid[:, :, 0, :])
         if view.get('first_flat_activity_weight') is not None else None)
     path_support = np.zeros((5,len(targets['lead_minutes'])),np.int64)
@@ -345,6 +362,8 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
             _require(np.isfinite(probabilities).all() and np.isfinite(nll).all(), 'STATE_FINITE_PREDICTIONS')
             batch = {'probabilities':probabilities, 'sequence_nll':nll, 'parent_rows':ids,
                 'issue_ns':target['issue_ns'], 'bar_start_ns':np.asarray(raw['witness']['bar_start_ns'],np.int64)}
+            if december is not None:
+                batch.update(december.batch(ids, raw, target, probabilities, transitions))
             for key,values in batch.items():
                 values = np.ascontiguousarray(values,dtype=arrays[key].dtype)
                 arrays[key][left:left+len(ids)] = values
@@ -396,7 +415,27 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
         'research_objective_sha256':model.research_objective['contract_sha256'],
         'target_contract_sha256':targets['dynamic_state_series'].metadata['definition']['contract_sha256'],
         'test_data_used':False, 'storage':'marginals_and_sequence_nll_only_shared_targets_no_transition_tensor'}
+    registered_ref = None
+    base_report = None
+    if december is not None:
+        base_report = scorer.finalize()
+        if activity_scorer is not None:
+            base_report['first_flat_activity'] = activity_scorer.finalize()
+        # Finish every new score on this one issued trajectory before exposing its immutable directory.
+        registered = december.finalize(arrays, before)
+        encoded = (json.dumps(registered, sort_keys=True, separators=(',', ':'), allow_nan=False)+'\n').encode()
+        reserved = december.storage['plan']
+        expected_sizes = {**reserved['base_npy'], **reserved['event_npy']}
+        _require(expected_sizes == {k:v['size_bytes'] for k,v in descriptors.items()}, 'DECEMBER_NPY_STORAGE_PARITY')
+        _require(len(encoded) <= reserved['staged_sidecar_and_manifest_cap'], 'DECEMBER_SCORE_JSON_CAP')
+        _publish_bytes(stage/'DECEMBER_SCORE.json', encoded)
+        (stage/'DECEMBER_SCORE.json').chmod(0o444)
+        registered_ref = {'path':str(destination/'DECEMBER_SCORE.json'), 'sha256':hashlib.sha256(encoded).hexdigest()}
+        artifact.update(storage='issued_marginals_and_paired_native_events_D1_interval_sufficient_statistics',
+            december_registered_score=registered_ref, december_score_decision=registered['decision'])
     body = (json.dumps(artifact,sort_keys=True,indent=2,allow_nan=False)+'\n').encode()
+    if december is not None:
+        _require(len(body) + len(encoded) <= reserved['staged_sidecar_and_manifest_cap'], 'DECEMBER_COMBINED_JSON_CAP')
     _publish_bytes(stage/'ARRAYS.json',body)
     (stage/'ARRAYS.json').chmod(0o444)
     _fsync_directory(stage)
@@ -404,9 +443,11 @@ def _evaluate_dynamic_state(model, prepared, targets, view, selected, *, cutoff,
     arrays.clear()
     _publish_file_noreplace(stage,destination)
     _fsync_directory(root)
-    report = scorer.finalize()
-    if activity_scorer is not None:
+    report = scorer.finalize() if base_report is None else base_report
+    if base_report is None and activity_scorer is not None:
         report['first_flat_activity'] = activity_scorer.finalize()
+    if registered_ref is not None:
+        report['december_registered_score'] = registered_ref
     report['local_path_observed_eligible_per_timeframe_lead'] = path_support.tolist()
     report['target_reason_bit_counts_per_timeframe'] = {bit:counts.tolist() for bit,counts in reason_support.items()}
     report['path_scope'] = 'States and adjacent closed-minute states scored; unobserved intraminute order is not a predicted target.'
@@ -433,7 +474,8 @@ def _require_dynamic_initial_match(measured, previous, *, common):
 
 def _launch_metadata(launch, common):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    if launch.get('run_scope') == authority.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE:
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    if launch.get('run_scope') in (authority.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE, *december.SCOPES.values()):
         return _dynamic_state_metadata(launch, common)
     candidate=launch.get('run_scope') in (authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,authority.FAMILY_PRIVATE_ADAPTER_SCOPE)
     if launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE,
@@ -806,6 +848,14 @@ def _prepare(context, launch, np, *, signed_bps=False, magnitude_weighted=False,
 
 
 def _batch(prepared, targets, view, selected, np, *, cutoff=None):
+    if 'december_role' in prepared:
+        role = prepared['december_role']
+        scope = view['reserved_observer_axes']
+        _require(role in ('fit', 'score'), 'DECEMBER_BATCH_ROLE')
+        bound = scope['fit'] if role == 'fit' else scope['held_out']
+        _require((cutoff is None or cutoff == bound['cutoff_ns']) and targets['cutoff_ns'] == bound['cutoff_ns']
+                 and len(prepared['arrays']['parent_rows']) == bound['rows'], 'DECEMBER_BATCH_CUTOFF')
+        cutoff = bound['cutoff_ns']
     from gx1.contracts.entry_native_direction_feature_view_v1 import gather_native_direction_feature_batch
     raw=gather_native_direction_feature_batch(view,parent_rows=prepared['arrays']['parent_rows'],
         bar_start_ns=prepared['arrays']['bar_start_ns'],decision_ns=prepared['arrays']['decision_ns'],
@@ -863,12 +913,16 @@ def _batch(prepared, targets, view, selected, np, *, cutoff=None):
 def _final_train_selection(prepared, diagnostic_ids, launch, updates_in_invocation):
     """Whole-prefix family scoring starts only in a fresh scoring invocation."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
-    if launch['run_scope'] not in (authority.FAMILY_SIGN_SCOPE, authority.DYNAMIC_STATE_SCOPE):
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    if launch['run_scope'] == december.SCORE_SCOPE:
+        return None
+    if launch['run_scope'] not in (authority.FAMILY_SIGN_SCOPE, authority.DYNAMIC_STATE_SCOPE, december.FIT_SCOPE):
         return diagnostic_ids
     if updates_in_invocation > 0:
         return None
     selected=prepared['arrays']['parent_rows'][:launch['fold']['prefix_rows']]
-    _require(len(selected)==launch['final_train_measurement_rows']==47602, 'FAMILY_FULL_TRAIN_SELECTION')
+    size = december.FOLD['prefix_rows'] if launch['run_scope'] == december.FIT_SCOPE else 47602
+    _require(len(selected) == launch['final_train_measurement_rows'] == size, 'FAMILY_FULL_TRAIN_SELECTION')
     return selected
 
 
@@ -1217,7 +1271,10 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.features.htf_features import discard_multi_tf_v4_cache_pages
     from gx1.scripts.run_unified_exit_random_access_full_train_v1 import _dynamic_m5_technical_tree_sha256 as tree_sha
     recipe=require_native_direction_research_recipe(launch['numerical_recipe']);fold=launch['fold'];number=window['invocation_number']
-    dynamic_state = launch['run_scope'] == authority.DYNAMIC_STATE_SCOPE
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    december_fit = launch['run_scope'] == december.FIT_SCOPE
+    december_score = launch['run_scope'] == december.SCORE_SCOPE
+    dynamic_state = launch['run_scope'] == authority.DYNAMIC_STATE_SCOPE or december_fit or december_score
     factor_bps=launch['run_scope']==authority.M5_FACTOR_BPS_SCOPE
     family_fit=launch['run_scope']==authority.FAMILY_SIGN_SCOPE
     recovery=authority.is_scoring_recovery(launch)
@@ -1234,7 +1291,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     input_launch=_fit_input_launch(launch,authority)
     binding_ref=common._hash_file(launch['execution_binding_path']);extra={};binding=common._read(binding_ref,extra)
     context=_launch_metadata(input_launch,common);context['info']['metadata'].update(extra)
-    if dynamic_state:
+    if dynamic_state and not december_score:
         metadata = context['info']['metadata']
         review = common._read(launch['native_dynamic_state_qualification'],metadata)
         initial = common._read(review['initial_report'],metadata)
@@ -1283,11 +1340,27 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         for key in ('initial_measurement','result'):
             common._read(recovery_origin['cursor'][key],context['info']['metadata'])
         context['scoring_recovery_read_authority']={'launch':launch,'validated_origin':recovery_origin}
+    if december_score:
+        score_origin = launch['score_origin']
+        for ref in (launch['candle_reference'], score_origin['fit_terminal_review']):
+            common._read(ref, context['info']['metadata'])
+        score_cursor = common._read(score_origin['fit_cursor'],context['info']['metadata'])
+        common._read(score_origin['initial_measurement'],context['info']['metadata'])
+        common._read(score_origin['final_train_measurement'],context['info']['metadata'])
+        _require(score_cursor['outcome'] == score_cursor['phase_state'] == 'COMPLETE'
+            and score_cursor['parent_cursor'] == december.FOLD['prefix_rows'] and score_cursor['oof_cursor'] == 0
+            and score_cursor['recipe'] == score_origin['fit_recipe'] and score_cursor['full_state'] == score_origin['fit_checkpoint'],
+            'DECEMBER_SCORE_RESTORE')
+        context['december_score_read_authority'] = score_origin
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
     if dynamic_state:
         context['state_artifact_directory'] = work
+        if december_score:
+            from gx1.contracts.entry_dynamic_mtf_december_score_v1 import require_december_score_storage
+            check = require_december_score_storage(work, launch['score_storage_plan'])
+            context['december_score_host_identity'] = check['host_identity']
         if launch['numerical_recipe'].get('extended_forecast_minutes') is not None:
             storage = authority.require_dynamic_state_storage_headroom(launch, work, private_scope=False, recovery=recovery)
             context['extended_storage_guard'] = {'recipe':copy.deepcopy(launch), 'private_scope':False, 'recovery':recovery,
@@ -1297,7 +1370,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 + ' host_free=' + str(min(storage['observation']['host_available_bytes'], storage['observation']['mounted_host_available_bytes'])), flush=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
         extra_read_paths=((recovery_origin['cursor']['full_state']['path'],recovery_origin['cursor']['own_initial_state']['path'])
-            if recovery else context['factor_continuation_reads'] if factor_continuation else
+            if recovery else (score_origin['fit_checkpoint']['path'],) if december_score else context['factor_continuation_reads'] if factor_continuation else
             (origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else ()),
         original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None,
         dense_target=context.get('dense_target'),
@@ -1318,6 +1391,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         +17+((launch['final_train_measurement_rows']+15)//16 if family_fit or dynamic_state else 16)
         +(16 if factor_continuation else 0)+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
     if recovery:ceiling=4057
+    if december_score:ceiling=359
     durable=None;observed_progress=None;bps_scale_ref=None
     common._json(work/'CLAIM.json',{'recipe':window['recipe'],'fold':fold,'invocation_number':number,
         'source_head':binding['source_head'],'plan_sha256':plan['plan_sha256'],'limits':limits},counters,launch['max_published_json_bytes'])
@@ -1332,10 +1406,12 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 optimizer_step=name=='step' and isinstance(frame.f_locals.get('self'),torch.optim.Optimizer)
                 _require(not forbidden and not optimizer_step,'RECOVERY_FORBIDDEN_REVERSE_OR_UPDATE:'+name)
             legacy_profile(frame,event,arg)
-        sys.setprofile(scoring_only_profile if recovery else legacy_profile)
+        sys.setprofile(scoring_only_profile if recovery or december_score else legacy_profile)
         prepared,targets,view,context_map,ordered=_prepare(context,input_launch,np,signed_bps=recipe.get('signed_bps_supervision',False),
             magnitude_weighted=recipe.get('magnitude_weighted_direction',False),dense_minutes=recipe.get('dense_minute_supervision',False),
             dense_bps=recipe.get('dense_signed_bps_supervision',False))
+        if december_score:
+            prepared['december_score_inputs']['expected_host'] = context['december_score_host_identity']
         bps_scale_ref=_qualified_bps_scale(context,view)
         order=torch.from_numpy(ordered.copy());order_sha=tree_sha(order)
         prior=_prefix_prior(prepared['arrays'],targets,fold,np)
@@ -1345,6 +1421,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         if recovery:
             prior_cursor=recovery_origin['cursor']
             _require(prior_cursor['parent_order_sha256']==order_sha,'RECOVERY_SAME_FIXED_PERMUTATION')
+        if december_score:
+            prior_cursor=score_cursor
+            _require(prior_cursor['parent_order_sha256'] == order_sha, 'DECEMBER_FIT_CHECKPOINT_ORDER')
         if number>1:
             cursor_ref={'path':window['campaign_cursor_path'],'sha256':marker['pointer_before_sha256']}
             saved_cursor=json.loads(Path(cursor_ref['path']).read_text())
@@ -1433,11 +1512,13 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             if recovery:
                 _require(restored_state['contract_sha256']==recovery_origin['identity']['state_seal'],
                     'RECOVERY_ORIGINAL_FULL_STATE_SEAL')
+            if december_score:
+                _require(restored_state['contract_sha256'] == score_origin['state_seal'], 'DECEMBER_FIT_STATE_SEAL')
             del restored_state
             del loaded;parent_cursor=restored['cursor'];updates=restored['optimizer_updates'];phase=prior_cursor['phase_state']
             final_measurement=prior_cursor['final_train_measurement'];full_state=prior_cursor['full_state']
         durable={'state':full_state or initial_ref,'parent_cursor':parent_cursor,'optimizer_updates':updates}
-        while not recovery and parent_cursor<train_passes*len(ordered) and time.monotonic()<deadline:
+        while not recovery and not december_score and parent_cursor<train_passes*len(ordered) and time.monotonic()<deadline:
             within,right,next_cursor=_next_training_parent_range(parent_cursor,len(ordered),train_passes)
             raw,target=_batch(prepared,targets,view,ordered[within:right],np)
             features,device_target=_device_batch(raw,target,torch,device)
@@ -1471,8 +1552,14 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                     own_initial_state=initial_ref,fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
             del measured
         oof_ref=None
+        if december_fit and phase=='SCORING' and final_measurement is not None:
+            _require(oof_cursor == 0 and prepared['december_role'] == 'fit', 'DECEMBER_FIT_ONLY')
+            phase='COMPLETE'
         if phase=='SCORING' and final_measurement is not None:
-            selected=prepared['arrays']['parent_rows'][fold['oof_start_row']:fold['oof_end_row']]
+            selected=(prepared['december_score_parent_rows'] if december_score else
+                prepared['arrays']['parent_rows'][fold['oof_start_row']:fold['oof_end_row']])
+            if december_score:
+                _require(prepared['december_role'] == 'score' and len(selected) == 5736, 'DECEMBER_RESERVED_ONLY')
             measured,oof_cursor=_evaluate(model,prepared,targets,view,context_map,selected,cutoff=fold['oof_cutoff_ns'],kind='OOF',
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,deadline=deadline)
             if measured is not None:
@@ -1480,9 +1567,18 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                     fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
                 del measured;phase='COMPLETE'
         _require(tree_sha({name:p for name,p in model.named_parameters() if not p.requires_grad})==initial_inactive,'INACTIVE_WEIGHTS_UNCHANGED')
-        full_state,seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=parent_cursor,updates=updates,
-            state_directory=state_directory,name=f'w{number:04d}_TERMINAL_u{updates:06d}_p{parent_cursor:06d}',launch=launch,
-            counters=counters,torch=torch,device=device,common=common,state_owner=state_owner,train_passes=train_passes)
+        if december_score:
+            current = state_owner.capture_native_direction_research_state(model,optimizer,recipe=recipe,feature_view_identity=view_identity,
+                parent_order=order,cursor=parent_cursor,optimizer_updates=updates,device=device,train_passes=train_passes)
+            seal = current['contract_sha256']
+            del current
+            _require(seal == score_origin['state_seal'] and full_state == score_origin['fit_checkpoint']
+                and phase == 'COMPLETE' and oof_cursor == 5736 and counters['forward_kind_calls'] == {'OOF':359}
+                and counters['backward_calls'] == counters['optimizer_step_calls'] == 0, 'DECEMBER_EXACT_READONLY_SCORE')
+        else:
+            full_state,seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=parent_cursor,updates=updates,
+                state_directory=state_directory,name=f'w{number:04d}_TERMINAL_u{updates:06d}_p{parent_cursor:06d}',launch=launch,
+                counters=counters,torch=torch,device=device,common=common,state_owner=state_owner,train_passes=train_passes)
         if recovery:
             _require(seal==recovery_origin['identity']['state_seal'],'RECOVERY_SCORING_FULL_STATE_UNCHANGED')
             _require(phase=='COMPLETE' and parent_cursor==47602 and updates==2976 and oof_cursor==17288
@@ -1524,6 +1620,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         'forbidden_open_paths':denied,'limits':limits,'elapsed_seconds':time.monotonic()-started,'io_before':before,'io_after':after,
         'rchar_delta':after['rchar']-before['rchar'],'rchar_scope':'process reads; mmap fault bytes excluded','error':error,
         'test_data_used':False,'qualification_weights_reused':False,'predictive_value_qualified':False,
+        **({'candidate_plan':launch['candidate_plan'], 'held_out_features_read':december_score,
+            'held_out_outcomes_read':december_score, 'input_role':launch['input_role'],
+            'physical_optimizer_updates':counters['optimizer_step_returns']} if december_fit or december_score else {}),
         **({'scoring_recovery_origin':launch['scoring_recovery_origin']} if recovery else {}),
         **({'own_prefix_bps_scale':bps_scale_ref} if bps_scale_ref is not None else {})},counters,launch['max_published_json_bytes'])
     cursor=authority.build_prefix_fit_cursor(recipe_ref=window['recipe'],fold=fold,feature_view_identity=view_identity,phase_state=phase,outcome=outcome,

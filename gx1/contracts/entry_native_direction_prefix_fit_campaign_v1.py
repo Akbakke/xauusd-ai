@@ -734,6 +734,8 @@ def require_dynamic_state_qualification(recipe, *, source_repo, source_commit):
     refs = {key:campaign.require_binding(review[key], label='state qualification ' + key, verify_file=True)
         for key in ('plan', 'result', 'receipt', 'initial_report', 'power_after')}
     plan = campaign.read_bound_json(Path(refs['plan']['path']), refs['plan']['sha256'])
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    dec = recipe.get('run_scope') in (december.FIT_SCOPE, december.SCORE_SCOPE)
     qualified_recipe = recipe
     if is_scoring_recovery(recipe):
         recovered = require_scoring_recovery_origin(recipe, source_repo=source_repo, source_commit=source_commit)
@@ -750,9 +752,19 @@ def require_dynamic_state_qualification(recipe, *, source_repo, source_commit):
     initial = campaign.read_bound_json(Path(refs['initial_report']['path']), refs['initial_report']['sha256'])
     power = campaign.read_bound_json(Path(refs['power_after']['path']), refs['power_after']['sha256'])
     audit = campaign.read_bound_json(Path(recipe['label_audit']['path']), recipe['label_audit']['sha256'])
-    _require(prior['run_scope'] == private.DYNAMIC_STATE_PRIVATE_SCOPE
+    if dec:
+        _require(prior['candidate_plan'] == qualified_recipe['candidate_plan'] == december.PLAN_REF
+            and all(prior[key] == qualified_recipe[key] for key in ('feature_view', 'prefix_normalization', 'prefix_prior'))
+            and all(qualified_recipe['source_owners'].get(k) == v for k,v in prior['source_owners'].items())
+            and set(qualified_recipe['source_owners']) - set(prior['source_owners']) <= {december.SCORE_OWNER},
+            'DECEMBER_PRIVATE_FIT_IDENTITY')
+        fitted_prior = campaign.read_bound_json(Path(prior['prefix_prior']['path']),prior['prefix_prior']['sha256'])
+    else:
+        fitted_prior = audit['prior']
+    _require(prior['run_scope'] == (december.PRIVATE_SCOPE if dec else private.DYNAMIC_STATE_PRIVATE_SCOPE)
         and all(prior[key] == qualified_recipe[key] for key in ('input_manifest', 'target_manifest', 'target_sources',
-            'label_audit', 'fold', 'source_owners', 'full_feature_profile'))
+            'label_audit', 'fold', 'full_feature_profile'))
+        and (dec or prior['source_owners'] == qualified_recipe['source_owners'])
         and {k:v for k,v in prior['numerical_recipe'].items() if k not in ('max_updates', 'contract_sha256')}
             == {k:v for k,v in recipe['numerical_recipe'].items() if k not in ('max_updates', 'contract_sha256')},
         'STATE_NATIVE_SAME_SOURCES_AND_OBJECTIVE')
@@ -767,7 +779,7 @@ def require_dynamic_state_qualification(recipe, *, source_repo, source_commit):
         and result.get('planned_unique_parents') == 32 and result.get('planned_logical_optimizer_steps') == 2
         and result.get('physical_optimizer_updates') == 4 and result.get('parent_cursor') == 32
         and result.get('forbidden_open_paths') == [] and result.get('error') is None
-        and result.get('own_prefix_prior') == initial.get('own_prefix_prior') == audit['prior']
+        and result.get('own_prefix_prior') == initial.get('own_prefix_prior') == fitted_prior
         and receipt.get('outcome') == 'COMPLETE' and receipt.get('plan_sha256') == plan['plan_sha256']
         and receipt.get('guard_decision') == 'PASS'
         and receipt.get('trainer_guard_exit_code') == receipt.get('progress_observer_exit_code') == 0
@@ -778,6 +790,13 @@ def require_dynamic_state_qualification(recipe, *, source_repo, source_commit):
         and initial.get('research_objective_sha256') == recipe['numerical_recipe']['research_objective_sha256']
         and initial.get('initial_grad_nograd_parity') is True and initial.get('test_data_used') is False,
         'STATE_NATIVE_ACTUAL_EVIDENCE')
+    if dec:
+        _require(result.get('candidate_plan') == december.PLAN_REF and result.get('initial_parent_rows') == prior['initial_parent_rows']
+            and result.get('held_out_outcomes_read') is False and result.get('held_out_features_read') is False,
+            'DECEMBER_PRIVATE_COHORT')
+        for step in result['steps']:
+            native = prior['endpoint_support_per_batch'][step['logical_step'] - 1]
+            december.require_endpoint_step(step, native)
     private.require_dynamic_state_private_counts(result.get('counts'))
     from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import require_dynamic_state_gradient_contact
     require_dynamic_state_gradient_contact(result.get('steps'))
@@ -1212,6 +1231,11 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     ref = campaign.require_binding(binding, label='prefix fit recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    if value.get('run_scope') in (december.FIT_SCOPE, december.SCORE_SCOPE):
+        phase = 'fit' if value['run_scope'] == december.FIT_SCOPE else 'score'
+        _require(ref['path'] == str(december.ROOTS[phase].parent/'RECIPE.json'), 'DECEMBER_RECIPE_PATH')
+        return december.require_december_native_recipe(value, source_repo=source_repo, source_commit=source_commit, phase=phase)
     if value.get('run_scope') == DYNAMIC_STATE_SCOPE:
         return require_dynamic_state_launch_recipe(value, source_repo=source_repo, source_commit=source_commit, private_scope=False)
     fields = {'schema_version', 'source_repo', 'runtime_root', 'admission_stage', 'run_scope',
@@ -1577,7 +1601,8 @@ def guarded_prefix_power_limit(recipe):
     """Keep the user-selected 250 W limit for the matched factor routes."""
     _require(isinstance(recipe, Mapping), 'FACTOR_POWER_RECIPE')
     scope = recipe.get('run_scope')
-    if scope == DYNAMIC_STATE_SCOPE:
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    if scope in (DYNAMIC_STATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE):
         _require(recipe.get('full_feature_profile') is True
             and recipe.get('numerical_recipe', {}).get('dynamic_state_supervision') is True, 'DYNAMIC_STATE_POWER_SCOPE')
         return 250
@@ -1606,19 +1631,22 @@ def require_prefix_fit_invocation_execution(result, execution, *, source_repo, s
     policy_ref = campaign.require_binding(execution['train_session_manifest'], label='prefix fit window')
     window = require_prefix_fit_window_policy(campaign.read_bound_json(Path(policy_ref['path']), policy_ref['sha256']))
     number = result['invocation_number']
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     recovery = is_scoring_recovery(recipe)
+    read_only = recovery or recipe['run_scope'] == december.SCORE_SCOPE
+    windows = 1 if read_only else recipe['max_windows']
     _require(result['requires_fresh_windows_boot'] is True or recipe['run_scope'] == FAMILY_SIGN_SCOPE, 'FAMILY_ONLY_BOOT_MODE')
     separator = result['launcher_argv'].index('--')
     _require(result['launcher_argv'][separator+1:] == [str(source_repo/'.venv/bin/python'), '-m', MODULE,
         '--window-policy', policy_ref['path'], '--window-policy-file-sha256', policy_ref['sha256'],
         '--progress-path', window['progress_path']], 'INVOCATION_ARGV')
     _require(result['kind'] == KIND and type(result['batch_size']) is int and result['batch_size'] == BATCH_SIZE
-        and result['epoch_index'] is None and type(number) is int and 1 <= number <= MAX_WINDOWS
-        and result['window_index'] == number-1 and result['window_count'] == (1 if recovery else MAX_WINDOWS)
-        and (not recovery or number == 1)
-        and result['optimizer_step_budget'] == (0 if recovery else recipe['numerical_recipe']['max_updates'])
+        and result['epoch_index'] is None and type(number) is int and 1 <= number <= windows
+        and result['window_index'] == number-1 and result['window_count'] == windows
+        and (not read_only or number == 1)
+        and result['optimizer_step_budget'] == (0 if read_only else recipe['numerical_recipe']['max_updates'])
         and type(result['optimizer_step_budget']) is int
-        and result['expected_success_outcome'] == ('COMPLETE' if recovery else 'RESUMABLE_OR_COMPLETE')
+        and result['expected_success_outcome'] == ('COMPLETE' if read_only else 'RESUMABLE_OR_COMPLETE')
         and result['maximum_wall_seconds'] == 13800 and window['invocation_number'] == number
         and result['checkpoint'] == {'pointer_path':window['campaign_cursor_path'],
             'before_mode':'GENESIS' if number == 1 else 'PREVIOUS_RECEIPT_AFTER',
@@ -1647,10 +1675,11 @@ def require_prefix_fit_plan(value, *, verify_files=True):
     runtime = Path(_path(result['runtime_root'], 'runtime root'))
     result['prepared_windows_boot'] = campaign.require_boot_identity(result['prepared_windows_boot'])
     expected_policy = campaign.family_campaign_policy(result)
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     if verify_files:
         policy_recipe = require_prefix_fit_launch_recipe(result['recipe'],
             source_repo=CANONICAL_REPO, source_commit=result['source_commit'])
-        if policy_recipe['run_scope'] == DYNAMIC_STATE_SCOPE:
+        if policy_recipe['run_scope'] in (DYNAMIC_STATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -1661,14 +1690,14 @@ def require_prefix_fit_plan(value, *, verify_files=True):
         _require(isinstance(result[key], Mapping) and set(result[key]) == names, 'PLAN_SOURCES:' + key)
         result[key] = {name:campaign.require_binding(ref, label=key, verify_file=verify_files) for name,ref in result[key].items()}
     result['recipe'] = campaign.require_binding(result['recipe'], label='prefix fit recipe', verify_file=verify_files)
-    _require(isinstance(result['invocations'], list) and len(result['invocations']) in (1, MAX_WINDOWS), 'PLAN_WINDOW_COUNT')
+    _require(isinstance(result['invocations'], list) and (len(result['invocations']) in (1, MAX_WINDOWS) or (result['recipe']['path'] == str(december.ROOTS['fit'].parent/'RECIPE.json') and len(result['invocations']) == 3)), 'PLAN_WINDOW_COUNT')
     result['invocations'] = [campaign.require_binding(ref, label='prefix invocation', verify_file=verify_files) for ref in result['invocations']]
     _require(len({ref['path'] for ref in result['invocations']}) == len(result['invocations']), 'PLAN_DISTINCT_INVOCATIONS')
     result['selection_artifact_sha256'] = None
     if verify_files:
         recipe = require_prefix_fit_launch_recipe(result['recipe'], source_repo=CANONICAL_REPO, source_commit=result['source_commit'])
         _require(recipe['runtime_root'] == str(runtime), 'PLAN_RECIPE_RUNTIME')
-        _require(len(result['invocations']) == (1 if is_scoring_recovery(recipe) else MAX_WINDOWS), 'PLAN_RECIPE_WINDOW_COUNT')
+        _require(len(result['invocations']) == recipe['max_windows'], 'PLAN_RECIPE_WINDOW_COUNT')
         checked = []
         for number, ref in enumerate(result['invocations'], 1):
             item = campaign.require_invocation(campaign.read_bound_json(Path(ref['path']), ref['sha256']),
@@ -1696,24 +1725,28 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
     dirty = subprocess.check_output(['git','-C',str(repo),'status','--porcelain=v1','--untracked-files=all'], text=True)
     recipe = require_prefix_fit_launch_recipe(window['recipe'], source_repo=repo, source_commit=head)
     gate = policy.get(recipe['admission_stage'])
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     recovery = is_scoring_recovery(recipe)
+    read_only = recovery or recipe['run_scope'] == december.SCORE_SCOPE
     _require(repo == CANONICAL_REPO and branch == 'work/gx1-current' and not dirty
         and policy.get('schema_version') == 'gx1_next_native_run_policy_v1'
         and policy.get('canonical_source_repo') == str(repo) and policy.get('canonical_branch') == branch
-        and policy.get('training_module') == MODULE and all(policy.get(key) is (not recovery) for key in
+        and policy.get('training_module') == MODULE and all(policy.get(key) is (not read_only) for key in
             ('training_enabled','native_training_enabled','full_epoch_training_allowed'))
         and policy.get('full_val_allowed') is False, 'READINESS_GLOBAL')
     _require(isinstance(gate, Mapping) and gate.get('recipe') == window['recipe']
-        and gate.get('run_root') == recipe['runtime_root'] and type(gate.get('max_invocations')) is int and gate['max_invocations'] == (1 if recovery else MAX_WINDOWS)
+        and gate.get('run_root') == recipe['runtime_root'] and type(gate.get('max_invocations')) is int and gate['max_invocations'] == recipe['max_windows']
         and type(gate.get('claimed_invocations')) is int and gate['claimed_invocations'] == 0
         and type(gate.get('completed_invocations')) is int and gate['completed_invocations'] == 0
         and gate.get('relaunch_allowed') is False, 'READINESS_ONCE')
     for key in ('execution_authorized','data_reads_authorized','genuine_constructor_authorized','genuine_forward_authorized',
             'genuine_backward_authorized','genuine_updates_authorized','genuine_predictor_fit_authorized',
             'training_enabled','native_training_enabled','full_epoch_training_allowed','native_launch_authorized'):
-        expected = not recovery or key in ('execution_authorized','data_reads_authorized',
+        expected = not read_only or key in ('execution_authorized','data_reads_authorized',
             'genuine_constructor_authorized','genuine_forward_authorized','native_launch_authorized')
         _require(gate.get(key) is expected, 'READINESS_GATE:' + key)
+    if recipe['run_scope'] in (december.FIT_SCOPE, december.SCORE_SCOPE):
+        december.require_phase_gate(gate, recipe)
     if recovery:
         _require(gate.get('checkpoint_reads_authorized') is True
             and gate.get('zero_update_scoring_recovery_authorized') is True, 'READINESS_RECOVERY_GATE')
@@ -1727,8 +1760,8 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
         'canonical_source_repo':str(repo), 'source_commit':head, 'policy_sha256':campaign.file_sha256(policy_path),
         'training_started':False, 'native_invocation_seconds':12000, 'outer_guard_seconds':13800,
         'native_window_scope':{'prefix_fit_only':True, 'invocation_number':window['invocation_number'],
-            'fold':recipe['fold'], 'max_windows':1 if recovery else MAX_WINDOWS, 'full_epoch_training_allowed':not recovery,
-            'optimizer_step_ceiling':0 if recovery else recipe['numerical_recipe']['max_updates'], 'window_policy_file_sha256':window_file_sha256}}
+            'fold':recipe['fold'], 'max_windows':recipe['max_windows'], 'full_epoch_training_allowed':not read_only,
+            'optimizer_step_ceiling':0 if read_only else recipe['numerical_recipe']['max_updates'], 'window_policy_file_sha256':window_file_sha256}}
 
 
 def require_native_direction_prefix_fit_context(policy_path, policy_file_sha256, progress_path):
@@ -1807,8 +1840,17 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     result = _identity(value, fields, MULTIPASS_CURSOR_SCHEMA if multipass else CURSOR_SCHEMA, 'cursor_sha256')
     passes = result['train_passes'] if multipass else 1
     _require(type(passes) is int and ((multipass and passes in (2, 3)) or (not multipass and passes == 1)), 'CURSOR_PASSES')
-    fold = _fold(result['fold']); n = fold['prefix_rows']; quarter = fold['oof_end_row']-n
-    _require(result['recipe'] == expected_recipe and (expected_fold is None or fold == _fold(expected_fold))
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    phases = {str(december.ROOTS[p].parent/'RECIPE.json'):p for p in ('fit','score')}
+    phase = phases.get(expected_recipe['path'])
+    if phase:
+        _require(passes == 1 and result['fold'] == december.FOLD, 'DECEMBER_CURSOR_FOLD')
+        fold = dict(december.FOLD)
+    else:
+        fold = _fold(result['fold'])
+    n = fold['prefix_rows']
+    quarter = 0 if phase == 'fit' else fold['oof_end_row']-n
+    _require(result['recipe'] == expected_recipe and (expected_fold is None or fold == expected_fold)
         and result['test_data_used'] is False and result['outcome'] in {'RESUMABLE','COMPLETE','FAILED'}
         and result['phase_state'] in {'TRAINING','SCORING','COMPLETE'}, 'CURSOR_ROLE')
     campaign.require_binding(result['recipe'], label='cursor recipe', verify_file=verify_files)
@@ -1828,10 +1870,16 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     premodel_failure = (result['outcome'] == 'FAILED' and result['phase_state'] == 'TRAINING'
         and result['parent_cursor'] == result['optimizer_updates'] == result['oof_cursor'] == 0)
     if result['feature_view_identity'] is not None:
-        result['feature_view_identity'] = _view_identity(result['feature_view_identity'], verify_files=verify_files)
+        if phase:
+            december.require_checkpoint_view(result['feature_view_identity'])
+        else:
+            result['feature_view_identity'] = _view_identity(result['feature_view_identity'], verify_files=verify_files)
         if launch is not None:
             bound = result['feature_view_identity']['prefix_normalization']
-            if launch.get('run_scope') == DYNAMIC_STATE_SCOPE:
+            if phase:
+                matches = (launch.get('run_scope') == december.SCOPES[phase] and launch['candidate_plan'] == december.PLAN_REF
+                    and bound['binding'] == launch['prefix_normalization'])
+            elif launch.get('run_scope') == DYNAMIC_STATE_SCOPE:
                 manifest = require_dynamic_state_input_manifest(launch['input_manifest'],
                     fold=fold, source_owners=launch['source_owners'])
                 ref = manifest['prefix_normalization']
@@ -1855,7 +1903,11 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
         if result[key] is None:
             _require(premodel_failure, 'CURSOR_MISSING:' + key)
         else:
-            campaign.require_binding(result[key], label=key, verify_file=verify_files)
+            # SCORE loads only the trained checkpoint. Its referenced zero-update state was verified in the FIT terminal gate.
+            linked_initial = phase == 'score' and key == 'own_initial_state' and launch is not None
+            if linked_initial:
+                _require(result[key] == launch['score_origin']['own_initial_state'], 'DECEMBER_READONLY_INITIAL_LINEAGE')
+            campaign.require_binding(result[key], label=key, verify_file=verify_files and not linked_initial)
     if result['final_train_measurement'] is not None:
         campaign.require_binding(result['final_train_measurement'], label='final TRAIN measurement', verify_file=verify_files)
     if result['phase_state'] == 'TRAINING':
@@ -1894,10 +1946,19 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     result = _identity(value, fields, campaign.PROGRESS_SCHEMA, 'progress_sha256')
     passes = result.get('train_passes', 1)
     _require(type(passes) is int and ((multipass and passes in (2, 3)) or (not multipass and passes == 1)), 'PROGRESS_PASSES')
-    fold = _fold(result['fold']); n = fold['prefix_rows']; quarter = fold['oof_end_row']-n
-    recovery = invocation.get('direction_prefix_fit_scoring_recovery') is True
-    _require(invocation['optimizer_step_budget'] == (0 if recovery else passes*((n+15)//16)), 'PROGRESS_PASS_BUDGET')
-    if recovery:
+    from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    dec_phase = next((p for p in ('fit','score') if invocation['direction_prefix_fit_recipe']['path'] ==
+        str(december.ROOTS[p].parent/'RECIPE.json')), None)
+    if dec_phase:
+        _require(passes == 1 and result['fold'] == december.FOLD, 'DECEMBER_PROGRESS_FOLD')
+        fold = dict(december.FOLD)
+    else:
+        fold = _fold(result['fold'])
+    n = fold['prefix_rows']
+    quarter = 0 if dec_phase == 'fit' else fold['oof_end_row']-n
+    readonly = invocation.get('direction_prefix_fit_scoring_recovery') is True or dec_phase == 'score'
+    _require(invocation['optimizer_step_budget'] == (0 if readonly else passes*((n+15)//16)), 'PROGRESS_PASS_BUDGET')
+    if readonly:
         _require(passes==1 and invocation['invocation_number']==invocation['window_count']==1
             and invocation['expected_success_outcome']=='COMPLETE' and result['outcome'] in ('COMPLETE','FAILED'),
             'RECOVERY_PROGRESS_SCOPE')

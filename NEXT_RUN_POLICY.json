@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T18:31:50.763561+00:00",
-  "status": "DYNAMIC_MTF_DECEMBER_CANDLE_FROZEN_AND_SINGLE_PLAN_VERIFIED_NATIVE_ADMISSION_CLOSED",
+  "observed_utc": "2026-11-04T19:26:57.467844+00:00",
+  "status": "DECEMBER_NATIVE_PRIVATE_REAL_INPUT_PREFLIGHT_ONLY",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Use the verified December plan as the design for a separately scoped private qualification. The native dispatcher still requires the old fold and an OOF-ended target tape: implement and verify physically isolated pre-December inputs/targets and the masked observer binding first. A separate exact admission, whole-host idle and safe physical reboot are required before any genuine model call. Keep all 5,736 December outcomes reserved.",
+  "next_action": "Execute one guarded CPU preflight through the registered private input and two B16s only. No native construction/optimizer and no December features/outcomes. Exact native admission and the physical restart follow only after verification.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Use the verified December plan as the design for a separately scoped private qualification. The native dispatcher still requires the old fold and an OOF-ended target tape: implement and verify physically isolated pre-December inputs/targets and the masked observer binding first. A separate exact admission, whole-host idle and safe physical reboot are required before any genuine model call. Keep all 5,736 December outcomes reserved.",
+    "next_action": "Execute one guarded CPU preflight through the registered private input and two B16s only. No native construction/optimizer and no December features/outcomes. Exact native admission and the physical restart follow only after verification.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -55563,5 +55563,361 @@
       "bind the versioned event-output representation and its size ceiling, including temporary storage, then check physical disk",
       "future admission must pin the published plan file SHA and validate all referenced files, source, campaign, resources and host"
     ]
+  },
+  "dynamic_mtf_december_direction_execution_goal_20261104": {
+    "objective": "Før den ene forhåndsregistrerte GX1-desemberkandidaten gjennom faktisk, isolert TRAIN-only modellkvalifisering og, kun etter at hver eksakte port består, ett pass og én fryst kronologisk måling på de 5 736 reserverte desemberforeldrene. Behold 41 866 tidligere TRAIN-foreldre, samme maskerte profil og fem dynamiske tidsrammer, alle genuine forente inputs/kausale vakter, korrekt hendelsesskåring, trygg fysisk omstart og eksisterende capped rute. Dokumenter målte resultater eller det første virkelige stoppkriteriet uten omgåelse, skille modellæring, retningsverdi og uavhengig edge. Ingen TEST, handel, broker eller spending.",
+    "operator_request": "All next stages for the single frozen December candidate, gated in sequence by actual evidence. No additional candidates, retuning, TEST or trading.",
+    "status": "ACTIVE_ONE_REAL_DATA_ONLY_PRIVATE_INPUT_PREFLIGHT",
+    "parent_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
+    "candidate_plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
+      "sha256": "a5bc7eb8fe55ee4cdfef79bd0cd3b42661ab73cc43a350a11baa87db3f7f63c7"
+    },
+    "previous_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/VERIFIED_REVIEW.json",
+      "sha256": "e60876f7b9fa0fcd4c6a499de6e40537c6755b6a2cde6df96f47545470e4dd4d"
+    },
+    "phase_stages": [
+      "dynamic_mtf_state_december_native_private_20261104_001",
+      "dynamic_mtf_state_december_native_fit_20261104_001",
+      "dynamic_mtf_state_december_native_score_20261104_001"
+    ],
+    "single_registered_candidate": true,
+    "fit_parents": 41866,
+    "reserved_december_parents": 5736,
+    "max_main_updates": 2617,
+    "max_complete_december_scores": 1,
+    "phase_order": [
+      "Source qualification and target-free private preflight",
+      "Fresh per-invocation host idle, physical restart and exact private admission",
+      "Actual isolated 32-parent mechanical qualification with 256-row fresh own baseline and resume parity",
+      "Subject to private terminal PASS, separate capped one-pass main fit, fresh own weights and early targets only",
+      "Subject to terminal fit and storage/evaluator qualification, one separately admitted frozen December score on the reserved slice",
+      "Apply the registered multidimensional score gate, publish all relevant weaknesses. No automatic follow-on."
+    ],
+    "stage_admissions_are_not_implied_by_goal": true,
+    "no_test_broker_orders_trading_spending": true,
+    "native_launch_authorized_now": false,
+    "actual_december_scores": 0,
+    "milestone_complete": false,
+    "private_input_preflight": "dynamic_mtf_december_private_inputs_preflight_20261104_001"
+  },
+  "dynamic_mtf_december_private_inputs_preflight_20261104_001": {
+    "status": "ADMITTED_ONCE_PRIVATE_INPUTS_NO_MODEL",
+    "operator_request": "All next stages of the frozen candidate under separate exact admissions; first exercise two private TRAIN batches through the actual guarded data route.",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_PREFLIGHT_001",
+    "worker": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_PREFLIGHT_001/check_private_inputs.py",
+      "sha256": "ce576a494a78db679688fac7546de55ff67804e70fc7b6e582303f94cde54070"
+    },
+    "candidate_plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
+      "sha256": "a5bc7eb8fe55ee4cdfef79bd0cd3b42661ab73cc43a350a11baa87db3f7f63c7"
+    },
+    "private_recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/RECIPE.json",
+      "sha256": "9e178ac3ee5ccb0213f596482078b37dca34dd0fac8e0bd44d94c0321eb43cd8"
+    },
+    "fit_target_view": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/FIT_TARGETS/SERIES.json",
+      "sha256": "b5b44b6da510a09c9b1ee6e913c4eb5d2bbf1bc9979ac85d62e09f8b63b5d576"
+    },
+    "feature_view": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/FEATURE_VIEW.json",
+      "sha256": "b2203f564aaa55ef273db13380beada17a5913c43405f654e8881fe97e28824f"
+    },
+    "normalization": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/PREFIX_NORMALIZATION.json",
+      "sha256": "01d9e08615b886e0e5fbb7cc37e83fc51d19cbd71ef59d7fbf11883dc2f532db"
+    },
+    "source_owners": {
+      ".venv/lib/python3.10/site-packages/numpy/lib/_npyio_impl.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/numpy/lib/_npyio_impl.py",
+        "sha256": "500f386e9385f717c42c1b1a8004a31dfd44e4680b5afb3f63f1a6b69964a2fc"
+      },
+      ".venv/lib/python3.10/site-packages/torch/_tensor.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/_tensor.py",
+        "sha256": "86b69bb087da1b0080b6e9f3e8b927d39aa2409513f2762127d233b3b63e80fa"
+      },
+      ".venv/lib/python3.10/site-packages/torch/autograd/__init__.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/autograd/__init__.py",
+        "sha256": "98f86d295e386f647ad234ec63e36cb4b5d6acc3df696546c03bd62bf67a7503"
+      },
+      ".venv/lib/python3.10/site-packages/torch/optim/adamw.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/adamw.py",
+        "sha256": "e680a255db9c53c4248a55f414b7af9aab90bb672312ac960bb459903a161c1d"
+      },
+      ".venv/lib/python3.10/site-packages/torch/optim/optimizer.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/optim/optimizer.py",
+        "sha256": "354f41f784630a031195509d6b65bd5faaaa7a92402102c3b4c50423082e7ec9"
+      },
+      ".venv/lib/python3.10/site-packages/torch/serialization.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/serialization.py",
+        "sha256": "db42dbd71fcd9ca4fb83283350bacde067659b5a53dd647588236a0693bb0d38"
+      },
+      ".venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/utils/_foreach_utils.py",
+        "sha256": "723a4e8aea24cb778a260e36a7986f44807ea0fd728ec81bae98bc2dec88c901"
+      },
+      ".venv/lib/python3.10/site-packages/torch/version.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/.venv/lib/python3.10/site-packages/torch/version.py",
+        "sha256": "fb37823f3a4c3c29cd008fac7d3ce5aeb8e7da6f883b17aa9ea6d73ce6eecbfd"
+      },
+      "gx1/audit/dynamic_mtf_december_candle.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_december_candle.py",
+        "sha256": "66cfbb918d8bb78a57ddfb1f98d7e1d9ac47aaf990d52eef24d4c5de85e95d34"
+      },
+      "gx1/audit/dynamic_mtf_december_native_inputs.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_december_native_inputs.py",
+        "sha256": "b190833fdd7382dd5a715a86cc3c518316d8f06fa95f1cd78d430f45f193acb9"
+      },
+      "gx1/audit/dynamic_mtf_december_normalization.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_december_normalization.py",
+        "sha256": "a9d4a4445380b4220987d883b467875b89a25dde6f72d15c6a41012cf7bef315"
+      },
+      "gx1/audit/dynamic_mtf_december_score_targets.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_december_score_targets.py",
+        "sha256": "9693feacbe28643cc150718692a7948952796a23c80ae942f260e950fe044a21"
+      },
+      "gx1/audit/dynamic_mtf_train_prefix_inputs.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_train_prefix_inputs.py",
+        "sha256": "cb29b4a696119b341bc1f1eae0a1bbb281ea4c101498dd34544abfcf46bd7185"
+      },
+      "gx1/audit/dynamic_mtf_train_prefix_targets.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_train_prefix_targets.py",
+        "sha256": "6a4fb825beebf258a8c6cdba46d19e4f5165520d4ad73c1f521fc39b3d1c60a6"
+      },
+      "gx1/audit/run_dynamic_mtf_train_prefix_data.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_dynamic_mtf_train_prefix_data.py",
+        "sha256": "61e6d71508224591d41ebf10b394b86a087825315770ddd87c5143610d44018a"
+      },
+      "gx1/contracts/entry_causal_m1_outcomes_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_causal_m1_outcomes_v1.py",
+        "sha256": "4cba6a5fb49c518eedd67bd8264af51bb319a3af604aeda483c415d4ea864ac7"
+      },
+      "gx1/contracts/entry_direction_block_rank_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_block_rank_v1.py",
+        "sha256": "6e5a7184914463e0fefee22cdd509c01c029bd4fa7a4dcc9a33e326dbeb6eb5c"
+      },
+      "gx1/contracts/entry_dynamic_mtf_december_candidate_plan_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_december_candidate_plan_v1.py",
+        "sha256": "42a5c97a6252b3a2202d85bf8b66317a894866a48a648d150614225c2df25a43"
+      },
+      "gx1/contracts/entry_dynamic_mtf_december_native_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_december_native_v1.py",
+        "sha256": "b202cd6109176da184e9959773fc25cff35169ee42e34816eaaed01ac44fdcad"
+      },
+      "gx1/contracts/entry_dynamic_mtf_december_score_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_december_score_v1.py",
+        "sha256": "01c34f0dadcf7ea4c132e1470ba87306acc4caf85fbe4d6e200aeb4b4a97475a"
+      },
+      "gx1/contracts/entry_dynamic_mtf_state_report_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_report_v1.py",
+        "sha256": "4f8c48b54bbacfa4574206bd043cc671dec7b84f22e2c57973615e076bf96d3f"
+      },
+      "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+        "sha256": "3cc70bea24514329481d0ffd40e4a79ffb9849b2e32232421d3a6650398c689b"
+      },
+      "gx1/contracts/entry_exit_feature_base_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_exit_feature_base_v1.py",
+        "sha256": "4596f4399c000ca4dae3ba11061bef20430decc74f91118649d968111ad89d1c"
+      },
+      "gx1/contracts/entry_exit_feature_surface_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_exit_feature_surface_v1.py",
+        "sha256": "64bef1d239f7ef4cc347e08243c13f2e2cb7b9b2e799ac5a114cb76176b49d31"
+      },
+      "gx1/contracts/entry_exit_production_architecture_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_exit_production_architecture_v1.py",
+        "sha256": "3f7a9bd0a6990f03098da43c5bdc5d532fc92595601a2a8c7264a642025840dd"
+      },
+      "gx1/contracts/entry_gc_mtf_history_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_gc_mtf_history_v1.py",
+        "sha256": "6ccad6eb12c35ad87283a2b2d659e9040de5d35c766b359ff5db17b34d3365fd"
+      },
+      "gx1/contracts/entry_model_native_input_normalization_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+        "sha256": "3c92cb09db0b9bd2806f829f0c84f246e1799a7f41387cd730bc556150da5584"
+      },
+      "gx1/contracts/entry_model_native_signal_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_signal_v1.py",
+        "sha256": "521f089a9b6d98121939610ff7cc37e1093e5f651fdb2f5b94b2aab7ab2c0f83"
+      },
+      "gx1/contracts/entry_model_native_train_recipe_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_train_recipe_v1.py",
+        "sha256": "330e3893dfb84b97af6889ff57210c0e1efbb713ed1938887a57fb3d0a202c5f"
+      },
+      "gx1/contracts/entry_model_native_training_objective_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_training_objective_v1.py",
+        "sha256": "076366e793368bdd079455151cbd6592e4f96432baffaa2239d869c1147cf07b"
+      },
+      "gx1/contracts/entry_native_direction_context_report_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_context_report_v1.py",
+        "sha256": "2b6e5cf4bc32cec17091d964a8dd3c64fd91698fa5fce6d3d4fc7216bf1fcf49"
+      },
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+        "sha256": "703737bf4f346d8a64b5a27f24c6478912c5c7a46291ab2f4f36c84ff77ecb39"
+      },
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+        "sha256": "fa1e86d584ff5ba98b1fa2dfc1478a4aee569429cd134f69554ebeca7a8c7c6f"
+      },
+      "gx1/contracts/entry_native_direction_prefix_normalization_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_normalization_v1.py",
+        "sha256": "eade6e81a760590bf0fcf3530955f37c50c5b652c5025005b9cfe5bdeb1d8a07"
+      },
+      "gx1/contracts/entry_native_direction_research_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_campaign_v1.py",
+        "sha256": "0fa5eeff7f37f4c04419d8cc058cd196a8f7dea45890784ec5fc1f22044e3fa5"
+      },
+      "gx1/contracts/entry_native_direction_research_state_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_state_v1.py",
+        "sha256": "43511bc41328616ceff48e8556c30aa850e5b449533e346462a40f7799e4a9e2"
+      },
+      "gx1/contracts/entry_native_direction_research_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "e499ccb98bc9008f725eb42c4176d8bb37c68d81bed41f7cfe256d10b840a84b"
+      },
+      "gx1/contracts/entry_training_precision_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_training_precision_v1.py",
+        "sha256": "e6cb312ca004848cfe9533e6882ea7014fa82ab966d5c84d18268de559e5a6b6"
+      },
+      "gx1/contracts/gx1_capped_execution_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+        "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+      },
+      "gx1/contracts/immutable_event_authority_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+        "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+      },
+      "gx1/contracts/local_random_access_campaign_v2.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/local_random_access_campaign_v2.py",
+        "sha256": "00759c4ae37f0894ff42a673ad4b7d91e6e1a8bf9945386ac202cfaa6b992143"
+      },
+      "gx1/contracts/model_state_digest_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/model_state_digest_v1.py",
+        "sha256": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4"
+      },
+      "gx1/contracts/registry_hyperparameter_fit_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/registry_hyperparameter_fit_v1.py",
+        "sha256": "3673c598dfaaa8c0ae2d7c8b5b2393c88f382fefd337382ce72539b570eb2794"
+      },
+      "gx1/contracts/unified_exit_random_access_state_view_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_random_access_state_view_v1.py",
+        "sha256": "4315ac48e860cba4c83e246e5688564342e97da4a89376f015a5b1c552104436"
+      },
+      "gx1/features/basic_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/basic_v1.py",
+        "sha256": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220"
+      },
+      "gx1/features/entry_model_native_feature_layers_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_model_native_feature_layers_v1.py",
+        "sha256": "97f29b0ccc13a2fb98bcec2fc661a71b5e0ec3a3579afa220ad61972c6dd6ec4"
+      },
+      "gx1/features/entry_specialist_feature_groups_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/entry_specialist_feature_groups_v1.py",
+        "sha256": "eb6b2b8238fa8e9348b7473f9720c1537b4bfba8e42b1a5b35e2400bb4df5b4b"
+      },
+      "gx1/features/gc_native_context_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_context_v1.py",
+        "sha256": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf"
+      },
+      "gx1/features/htf_features.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+        "sha256": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520"
+      },
+      "gx1/features/micro_structure_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/micro_structure_v1.py",
+        "sha256": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd"
+      },
+      "gx1/features/technical_indicators_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/technical_indicators_v1.py",
+        "sha256": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad"
+      },
+      "gx1/features/volatility_squeeze_state_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/volatility_squeeze_state_v1.py",
+        "sha256": "0ad2121c620008909d290b24686a095cec05e52f60e41527a4498e7ac663936f"
+      },
+      "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+        "sha256": "8f3d9a9ca40123b2ee4a10916efb881ba663054aeb3208188d1ab5170e0d2e89"
+      },
+      "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_train_v3.py",
+        "sha256": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e"
+      },
+      "gx1/models/entry_v10/entry_v10_input_normalization.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_input_normalization.py",
+        "sha256": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148"
+      },
+      "gx1/scripts/local_random_access_campaign_v2.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/local_random_access_campaign_v2.py",
+        "sha256": "7430f06eefe1780c0ceadbc2aeaac1dbff7a0481d76d22aa8552b1dab6c505ce"
+      },
+      "gx1/scripts/run_entry_native_direction_dense_qualification_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
+        "sha256": "f969178efac8b1639dfa5d4e7c36465b287e0e44e88c7b4baf212b8a622511a7"
+      },
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "92b2cd866d74e3800e64a3016112d96926ad7611770ab8517141c59aa18b6870"
+      },
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+        "sha256": "a4cbc18bdd59e43063d59dffc9d2437dc682aa016079a978bea90a350f89a925"
+      },
+      "gx1/scripts/run_unified_exit_native_candidate_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_native_candidate_window_v1.py",
+        "sha256": "13f02b222d83befabcb62ee833dbccbdcb270925c2394c04ea1e9a4604bde8a7"
+      },
+      "gx1/scripts/run_unified_exit_random_access_full_train_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_unified_exit_random_access_full_train_v1.py",
+        "sha256": "78b3a253f13643794d5fa4a92a3359a4acc72114e9f0cc7f32f7794f60db7032"
+      },
+      "gx1/time/session_detector.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/time/session_detector.py",
+        "sha256": "ed0189b74ec72a80c9667c470e59c37719e59e549d683cc4b50759855c8e03d8"
+      },
+      "gx1/utils/artifact_primitives_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/utils/artifact_primitives_v1.py",
+        "sha256": "94a85b804a10c28ff82ef83be5bd67d114ef686ec3e7d4cd36362a308af68932"
+      },
+      "scripts/collect_gx1_handover_readonly.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/scripts/collect_gx1_handover_readonly.py",
+        "sha256": "dc3bae9705f72163a2db0fa0b2554effb28830fb21e096e7e0e6d839b3c40d14"
+      },
+      "scripts/gx1_capped_run.sh": {
+        "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+        "sha256": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+      },
+      "scripts/gx1_guarded_trainer_exec.sh": {
+        "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_guarded_trainer_exec.sh",
+        "sha256": "6c4a4bfe704828aeb1c5ad2d89160e4cbb8fadb210be5fc33d26f12b96db0c45"
+      }
+    },
+    "focused_tests": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_PREFLIGHT_001/FOCUSED_TESTS.json",
+      "sha256": "7b39d7ca9fd9e54342caf1515f071c780f56795f1879d7dcdbb20d7758ae232a"
+    },
+    "limits": {
+      "max_wall_seconds": 1800,
+      "max_json_bytes": 67108864,
+      "memory_max": 4294967296,
+      "swap": 536870912,
+      "pids": 64,
+      "numerical_threads": 1,
+      "max_rchar_bytes": 137438953472
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "native_launch_authorized": false,
+    "optimizer_updates_authorized": false,
+    "held_out_outcomes_authorized": false,
+    "test_authorized": false,
+    "relaunch_allowed": false
   }
 }

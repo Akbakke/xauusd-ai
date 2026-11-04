@@ -171,13 +171,16 @@ class NativeDirectionObserverAxes:
     bar_start_ns: np.ndarray
     decision_ns: np.ndarray
 
-    def __init__(self, view, *, source, parent_rows, bar_start_ns, decision_ns):
+    def __init__(self, view, *, source, parent_rows, bar_start_ns, decision_ns, role=None):
         _require_view(view)
         scope = view.get('reserved_observer_axes')
         _require(isinstance(scope, Mapping) and _ref(source) == scope['source'], 'OBSERVER_SOURCE')
         fit_rows = scope['fit']['rows']
         n = len(parent_rows)
-        _require(n in (fit_rows, scope['rows']), 'OBSERVER_ROW_COUNT')
+        _require(role in (None, 'fit', 'score'), 'OBSERVER_ROLE')
+        suffix_only = role == 'score'
+        _require((n == scope['held_out']['rows'] if suffix_only else
+                  n == fit_rows if role == 'fit' else n in (fit_rows, scope['rows'])), 'OBSERVER_ROW_COUNT')
         for key, supplied in zip(_OBSERVER_AXIS_KEYS, (parent_rows, bar_start_ns, decision_ns)):
             _require(isinstance(supplied, np.ndarray) and supplied.dtype == np.int64 and supplied.shape == (n,),
                      'OBSERVER_ARRAY:' + key)
@@ -185,15 +188,16 @@ class NativeDirectionObserverAxes:
             # copied axes have immutable bytes backing for every later gather.
             axis = np.frombuffer(supplied.astype('<i8', copy=False).tobytes(), dtype='<i8')
             digest_key = key + '_sha256'
-            _require(hashlib.sha256(axis[:fit_rows]).hexdigest() == scope['fit'][digest_key]
+            bound, portion = (scope['held_out'], axis) if suffix_only else (scope['fit'], axis[:fit_rows])
+            _require(hashlib.sha256(portion).hexdigest() == bound[digest_key]
                      and np.all(axis >= 0) and np.all(axis[1:] > axis[:-1]), 'OBSERVER_FIT_AXIS:' + key)
-            if n > fit_rows:
+            if not suffix_only and n > fit_rows:
                 _require(hashlib.sha256(axis[fit_rows:]).hexdigest() == scope['held_out'][digest_key]
                          and hashlib.sha256(axis).hexdigest() == scope[digest_key], 'OBSERVER_HELD_OUT_AXIS:' + key)
             object.__setattr__(self, key, axis)
         _require(np.all(self.bar_start_ns <= MAX_NS - BAR_NS) and np.all(self.bar_start_ns % BAR_NS == 0)
                  and np.array_equal(self.bar_start_ns + BAR_NS, self.decision_ns)
-                 and np.searchsorted(self.decision_ns, scope['fit']['cutoff_ns']) == fit_rows
+                 and np.searchsorted(self.decision_ns, scope['fit']['cutoff_ns']) == (0 if suffix_only else fit_rows)
                  and self.decision_ns[-1] < scope['held_out']['cutoff_ns'], 'OBSERVER_CLOCK')
         object.__setattr__(self, 'view_sha256', view['contract_sha256'])
 
