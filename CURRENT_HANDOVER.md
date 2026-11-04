@@ -11,7 +11,23 @@ Programrot:
 
 ## Aktuell status
 
-04.11 — Den lagrede diagnosen er avsluttet. Den konsumerte 03.11-planens aktive flagg og tellere er avstemt mot to signerte vinduer, det siste COMPLETE. Vindu 3 og 4 er tilbakekalt. Planen for TRAIN-målundersøkelsen og én foreslått kandidat er forhåndslåst i [TRAIN-portene](docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md). Ingen ny modellsjekk er innrømmet.
+**04.11 – TRAIN-mål, XAU-klokke og stengt kandidat.** 29 849 M5-prognosetidspunkter fra mai–september 2024 er revidert med 150 714 M1-barer inklusive kausalt forløp. Metoden ble låst i Git ved `0369fcf5` før måling. Tabellen viser komplette lokale vinduer ved én ledetid lik hver tidsramme. Alle foreldre, umodne endepunkter, kildefravær og ufullstendige vinduer er med i [kvitteringen](docs/DYNAMIC_MTF_TRAIN_TARGET_RESULT_20261104.json).
+
+| TF | Komplette vinduer | FLATT | Aktiv, ukjent sluttretning | Av disse med begge bevegelser bevist |
+|---|---:|---:|---:|---:|
+| M5 | 29 814 | 2 313 (7,76 %) | 13 017 | 8 720 |
+| M15 | 29 530 | 3 575 (12,11 %) | 3 857 | 3 286 |
+| H1 | 28 373 | 3 720 (13,11 %) | 620 | 571 |
+| H4 | 26 661 | 2 257 (8,47 %) | 85 | 79 |
+| D1 | 15 734 | 647 (4,11 %) | 40 | 37 |
+
+På M5 +5 har 6 008 av de 13 017 sensurerte vinduene en bred siste M1-bar med indre sluttkurs. I de øvrige 7 009 er heller ikke sluttretningen fastslått. Uten antakelser om sensurerte rader kan faktisk OPP-andel blant de 27 501 aktive vinduene ligge mellom 27,45 og 74,78 %. På +1 viser 9 434 av 13 941 sensurerte vinduer begge bevegelser. Vitnene er tidsordnede observerte priser innen vinduet på minst én endepunktsterskel i hver retning. Den konkrete anbefalingen er å beholde 0,5 ATR(14) som ulåst arbeidsmål. Målingen gir ikke grunnlag for en bestemt FLATT-andel eller praktisk handelsverdi.
+
+**Klokke.** De to kildekjedene for XAU-M1 og M5-grunnlaget for ATR har 2 080 og 416 chunkoppføringer uten mottaksklokke. To hashkontrollerte råarkiv fra juli 2024 inneholder henholdsvis 4 127 og 3 012 ferdige lys med barstempel. Den frosne ATR-eieren setter tilgjengelighet til barstart pluss tidsrammen. Fysisk mottak, ATR-publisering og restartparitet er fortsatt ukjent. Ingen kvalifisert finere XAU-kilde fra samme feed er påvist. Manifest-, chunk- og eierhashene står i `current_work.dynamic_mtf_train_gates_20261104.source_clock`.
+
+**Rettet kode og arbeidsstatus.** På forelder 29 848, 30.09 kl. 23.55 UTC, forsøkte gammel målkode å lese rad 150 714 ved eksklusiv 01.10-grense før maskering. En lesevakt stoppet før verdiuthenting. Nå hentes bare eksakte, modne mål, og ukjent nåtilstand leser ingen reserverad. Alle 1 440 ledeminutter × fem TF hadde identiske returverdier, typer og minnelayout på 24 ekte TRAIN-foreldre med og uten aktivitetsmål. 47 fokuserte tester besto. 03.11-planens tolv aktive tillatelser er lukket mot originalterminalene. To av fire vinduer ble brukt, og vindu 3–4 er tilbakekalt.
+
+**Neste port.** [Den låste spesifikasjonen](docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md) binder én endring i tapet, én tidligere treningsperiode med 29 849 foreldre og 17 753 senere foreldre i én holdt-ute TRAIN-fold. Begge tidsaksene er avstemt mot den fysiske inputaksen. Før et eventuelt modellforsøk kreves egne fysisk avgrensede målvisninger, inputstøtte og normalisering for det tidligere prefikset, samt implementert og kvalifisert tap, fersk initialmåling, eksakt engangsadmisjon og trygg omstart. Den gamle normaliseringen omfatter alle 47 602 foreldre. Én fit kan prøve kandidatens merverdi mot referansene. Den kan ikke isolere bidraget fra det nye tapsleddet mot en separat, matchet modellfit. OOF-prediksjoner for kandidaten og uavhengig edge mangler. `training_enabled=false`.
 
 04.11 — LAGRET NO-EDGE-DIAGNOSE FERDIG, NY KANDIDAT FORTSATT STENGT: Kilde, mål, 256-raders før-/etterkontroll, lagrede prediksjoner, checkpoints, markovreferanse, fem TF, kalibrering, mål-/lossdesign, klokke og inputkonsum er revidert med fokuserte kvitteringer; dokumentet `docs/DYNAMIC_MTF_STATE_NO_EDGE_DIAGNOSIS_20261103.md` samler bevis og neste port. Råmodellens senere treklasse- og retningssvikt er målt, men ingen enkelt kausal indikator-/loss-/parameterfeil er bevist. Eksakt kampanje har ett 47 602-raders TRAIN-prefiks, 17 288 senere utviklingsforeldre og lagrer marginaler/sekvens-NLL uten overgangstensor; strenge TRAIN-OOF-prediksjoner fra samme identitet mangler. En ny modellkandidat eller kjøring krever egen forhåndsdefinert kilde-, mål-, måle- og admisjonsbeslutning; `training_enabled=false`, TEST, broker og handel forblir stengt. Avslutningen gjelder evidensrevisjonen, ikke prosjektmål eller dokumentert edge.
 

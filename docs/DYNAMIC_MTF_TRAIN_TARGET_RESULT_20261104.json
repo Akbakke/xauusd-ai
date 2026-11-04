@@ -1,0 +1,220 @@
+{
+  "schema": "dynamic_mtf_train_target_review_20261104",
+  "observed_utc": "2026-11-04T05:49:26.243292+00:00",
+  "specification": {
+    "path": "docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
+    "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
+  },
+  "audit_source_sha256": "cc2b04706cc1c18ef6ce86143b78a2d791a76652bf98bde86b241ba2ab3b8daf",
+  "guard": {
+    "class": "audit",
+    "execution_mode": "cpu_audit",
+    "cgroup_path": "/sys/fs/cgroup/user.slice/user-1000.slice/user@1000.service/app.slice/run-rcb8e23f3f6e64058b35f227a03f89c9e.scope",
+    "memory_max": 4294967296,
+    "memory_high": 4294967296,
+    "swap": 536870912,
+    "pids": 64,
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "numerical_threads": 1
+  },
+  "source_receipt": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/RESULT.json",
+    "sha256": "007b1518c9ed1bfdd3eb8024b60421511dd158dbb2c16d2532bba4328214aa6b"
+  },
+  "m1_sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c",
+  "series_sha256": "d2addf8fbb6f9ac9e9ed741bbbd2fe2bfdc07f59553ea28c021ea198d5fbfa8e",
+  "target_contract_sha256": "d44cf218b0f07c477e3ac52cc2374933c2754b40511492cdcf037811afc23ddd",
+  "target_rule_locked": false,
+  "train_fit_cutoff_exclusive": "2024-10-01T00:00:00+00:00",
+  "parents": 29849,
+  "first_issue_utc": "2024-05-01T00:05:00+00:00",
+  "last_issue_utc": "2024-09-30T23:55:00+00:00",
+  "m1_prefix_rows_including_context": 150714,
+  "native_leads": [
+    {
+      "timeframe": "M5",
+      "lead_minutes": 5,
+      "parents": 29849,
+      "immature": 1,
+      "missing_mature_m1_endpoint": 14,
+      "exact_mature_m1_endpoint": 29834,
+      "all_known_endpoint_classes": 16798,
+      "incomplete_local_window_or_atr": 20,
+      "complete_local_windows": 29814,
+      "complete_window_endpoint_counts": {
+        "UNKNOWN": 13017,
+        "DOWN": 6936,
+        "FLAT": 2313,
+        "UP": 7548
+      },
+      "both_moves_proven_by_endpoint_class": {
+        "UNKNOWN": 8720,
+        "DOWN": 2951,
+        "FLAT": 0,
+        "UP": 3070
+      },
+      "nonflat_complete": 27501,
+      "up_share_identification_bounds_among_nonflat": [
+        0.27446274680920696,
+        0.7477909894185666
+      ],
+      "unknown_with_wide_interior_end_bar": 6008,
+      "other_unknown": 7009,
+      "unknown_with_intraminute_order_flag": 12994
+    },
+    {
+      "timeframe": "M15",
+      "lead_minutes": 15,
+      "parents": 29849,
+      "immature": 3,
+      "missing_mature_m1_endpoint": 232,
+      "exact_mature_m1_endpoint": 29614,
+      "all_known_endpoint_classes": 25679,
+      "incomplete_local_window_or_atr": 84,
+      "complete_local_windows": 29530,
+      "complete_window_endpoint_counts": {
+        "UNKNOWN": 3857,
+        "DOWN": 10349,
+        "FLAT": 3575,
+        "UP": 11749
+      },
+      "both_moves_proven_by_endpoint_class": {
+        "UNKNOWN": 3286,
+        "DOWN": 5936,
+        "FLAT": 0,
+        "UP": 6457
+      },
+      "nonflat_complete": 25955,
+      "up_share_identification_bounds_among_nonflat": [
+        0.45266807936813713,
+        0.6012714313234444
+      ]
+    },
+    {
+      "timeframe": "H1",
+      "lead_minutes": 60,
+      "parents": 29849,
+      "immature": 12,
+      "missing_mature_m1_endpoint": 1208,
+      "exact_mature_m1_endpoint": 28629,
+      "all_known_endpoint_classes": 27770,
+      "incomplete_local_window_or_atr": 256,
+      "complete_local_windows": 28373,
+      "complete_window_endpoint_counts": {
+        "UNKNOWN": 620,
+        "DOWN": 11007,
+        "FLAT": 3720,
+        "UP": 13026
+      },
+      "both_moves_proven_by_endpoint_class": {
+        "UNKNOWN": 571,
+        "DOWN": 6833,
+        "FLAT": 0,
+        "UP": 7723
+      },
+      "nonflat_complete": 24653,
+      "up_share_identification_bounds_among_nonflat": [
+        0.5283738287429521,
+        0.5535228978217661
+      ]
+    },
+    {
+      "timeframe": "H4",
+      "lead_minutes": 240,
+      "parents": 29849,
+      "immature": 35,
+      "missing_mature_m1_endpoint": 2210,
+      "exact_mature_m1_endpoint": 27604,
+      "all_known_endpoint_classes": 26829,
+      "incomplete_local_window_or_atr": 943,
+      "complete_local_windows": 26661,
+      "complete_window_endpoint_counts": {
+        "UNKNOWN": 85,
+        "DOWN": 10390,
+        "FLAT": 2257,
+        "UP": 13929
+      },
+      "both_moves_proven_by_endpoint_class": {
+        "UNKNOWN": 79,
+        "DOWN": 6808,
+        "FLAT": 0,
+        "UP": 8337
+      },
+      "nonflat_complete": 24404,
+      "up_share_identification_bounds_among_nonflat": [
+        0.5707670873627274,
+        0.5742501229306671
+      ]
+    },
+    {
+      "timeframe": "D1",
+      "lead_minutes": 1440,
+      "parents": 29849,
+      "immature": 275,
+      "missing_mature_m1_endpoint": 6117,
+      "exact_mature_m1_endpoint": 23457,
+      "all_known_endpoint_classes": 18799,
+      "incomplete_local_window_or_atr": 7723,
+      "complete_local_windows": 15734,
+      "complete_window_endpoint_counts": {
+        "UNKNOWN": 40,
+        "DOWN": 6430,
+        "FLAT": 647,
+        "UP": 8617
+      },
+      "both_moves_proven_by_endpoint_class": {
+        "UNKNOWN": 37,
+        "DOWN": 3970,
+        "FLAT": 0,
+        "UP": 5203
+      },
+      "nonflat_complete": 15087,
+      "up_share_identification_bounds_among_nonflat": [
+        0.5711539736196726,
+        0.5738052628090409
+      ]
+    }
+  ],
+  "m5_first_minute": {
+    "timeframe": "M5",
+    "lead_minutes": 1,
+    "parents": 29849,
+    "immature": 0,
+    "missing_mature_m1_endpoint": 0,
+    "exact_mature_m1_endpoint": 29849,
+    "all_known_endpoint_classes": 15878,
+    "incomplete_local_window_or_atr": 36,
+    "complete_local_windows": 29813,
+    "complete_window_endpoint_counts": {
+      "UNKNOWN": 13941,
+      "DOWN": 6564,
+      "FLAT": 2414,
+      "UP": 6894
+    },
+    "both_moves_proven_by_endpoint_class": {
+      "UNKNOWN": 9434,
+      "DOWN": 2674,
+      "FLAT": 0,
+      "UP": 2652
+    },
+    "nonflat_complete": 27399,
+    "up_share_identification_bounds_among_nonflat": [
+      0.2516150224460747,
+      0.7604292127449906
+    ],
+    "unknown_with_wide_interior_end_bar": 8521,
+    "other_unknown": 5420,
+    "unknown_with_intraminute_order_flag": 13932
+  },
+  "model_calls": 0,
+  "optimizer_updates": 0
+}

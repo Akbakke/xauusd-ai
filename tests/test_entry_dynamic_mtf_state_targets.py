@@ -454,3 +454,32 @@ def test_historical_current_query_rejects_parent_and_future_clock_mismatch():
     bad = target.DynamicMtfStateSeries(MappingProxyType(arrays), series.metadata)
     with pytest.raises(RuntimeError, match="CURRENT_ATR_CLOCK"):
         target.query_historical_dynamic_mtf_current_state(bad, **kwargs)
+
+
+@pytest.mark.parametrize("cutoff_minutes", (1, 8))
+def test_train_queries_never_fetch_missing_or_post_cutoff_label_rows(cutoff_minutes):
+    frame = frame_from_closes([100., 101., 102., 103.], minutes=[4, 5, 8, 9])
+    issues = START + np.array([0] if cutoff_minutes == 1 else [5], np.int64) * target.MINUTE_NS
+    parents = np.arange(len(issues), dtype=np.int64)
+    bound = target.bind_dynamic_mtf_state_parents(build(frame), parent_rows=parents, issue_ns=issues)
+    cutoff = START + cutoff_minutes * target.MINUTE_NS
+    stop = np.searchsorted(bound.arrays["validity_ns"], cutoff)
+    # Include the full clock for exact lookup, but give each label channel only
+    # its physically permitted prefix. Any post-cutoff gather raises IndexError.
+    guarded = {key: (value[:stop] if value.ndim == 2 else value)
+               for key, value in bound.arrays.items()}
+    prefix = target.DynamicMtfStateSeries(guarded, bound.metadata)
+    leads = np.array([1, 2, 3, 4], dtype=np.int64)
+    kwargs = dict(parent_rows=parents, issue_ns=issues, cutoff_ns=cutoff)
+    data = target.query_dynamic_mtf_states(prefix, **kwargs, lead_minutes=leads, include_first_flat_activity=True)
+    current = target.query_historical_dynamic_mtf_current_state(prefix, **kwargs)
+    assert np.array_equal(data["current_state"], current["current_state"])
+    immature = data["validity_ns"] >= cutoff
+    assert np.all(data["reason"].transpose(0, 2, 1)[immature] == target.IMMATURE)
+    assert np.all(data["state"].transpose(0, 2, 1)[immature] == target.UNKNOWN)
+    if cutoff_minutes == 1:
+        assert not current["current_observed"].any()
+        assert not data["first_flat_activity_observed"].any()
+    else:
+        assert np.all(data["reason"][0, :, 1] == target.QUERY_UNAVAILABLE)
+        assert np.all(data["reason"][0, :, 0] != target.QUERY_UNAVAILABLE)

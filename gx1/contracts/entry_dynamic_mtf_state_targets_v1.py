@@ -450,15 +450,18 @@ def _historical_current_at_bound_positions(series, *, positions, issue_ns):
     _require(np.all((current >= -1) & (current < len(axis))), "CURRENT_SOURCE_INDEX")
     present = current >= 0
     _require(np.array_equal(axis[current[present]], issue_ns[present]), "CURRENT_SOURCE_VALIDITY")
+    shape = (len(current), len(TIMEFRAMES))
+    observed = np.zeros(shape, dtype=bool)
+    path_observed = np.zeros(shape, dtype=bool)
+    state = np.full(shape, UNKNOWN, dtype=np.int8)
     if np.any(present):
         selected = current[present]
         clock = issue_ns[present, None]
         _require(np.all(arrays["maturity_ns"][selected] <= clock), "CURRENT_MATURITY_CLOCK")
         _require(np.all(arrays["atr_available_ns"][selected] <= clock), "CURRENT_ATR_CLOCK")
-    safe = np.maximum(current, 0)
-    observed = arrays["observed"][safe].copy() & present[:, None]
-    path_observed = arrays["path_observed"][safe].copy() & present[:, None]
-    state = arrays["state"][safe].copy()
+        observed[present] = arrays["observed"][selected]
+        path_observed[present] = arrays["path_observed"][selected]
+        state[present] = arrays["state"][selected]
     state[~observed] = UNKNOWN
     return {"current_state": state, "current_observed": observed,
             "current_path_observed": path_observed}
@@ -518,25 +521,33 @@ def query_dynamic_mtf_states(series, *, parent_rows, issue_ns, cutoff_ns, lead_m
     in_scope = wanted < cutoff_ns
     result = {"parent_rows": parent_rows.copy(), "issue_ns": issue_ns.copy(),
               "validity_ns": wanted, "lead_minutes": leads.astype(np.int64)}
-    for key in ("state", "observed", "path_observed", "maturity_ns", "reason"):
-        result[key] = np.transpose(series.arrays[key][safe], (0, 2, 1)).copy()
-    available = exists[:, None, :] & in_scope[:, None, :]
-    result["observed"] &= available
-    result["path_observed"] &= available
+    # Only gather exact, mature label rows. Masking after an eager gather can
+    # touch the next fold at the cutoff or when a missing minute precedes it.
+    available = exists & in_scope
+    selected = rows[available]
+    shape = (len(issue_ns), len(TIMEFRAMES), len(leads))
+    for key, missing in (("state", UNKNOWN), ("observed", False),
+                         ("path_observed", False), ("reason", QUERY_UNAVAILABLE)):
+        values = np.full(shape, missing, dtype=SERIES_ARRAY_DTYPES[key])
+        values.transpose(0, 2, 1)[available] = series.arrays[key][selected]
+        result[key] = values
     result["state"][~result["observed"]] = UNKNOWN
-    result["maturity_ns"] = np.broadcast_to(wanted[:, None, :], result["state"].shape).copy()
-    result["reason"] = np.where(exists[:, None, :], result["reason"], QUERY_UNAVAILABLE).astype(np.uint8)
-    # Immature queries reveal no future source or intraminute diagnostics.
-    result["reason"] = np.where(in_scope[:, None, :], result["reason"], IMMATURE).astype(np.uint8)
+    result["maturity_ns"] = np.broadcast_to(wanted[:, None, :], shape).copy()
+    np.copyto(result["reason"], np.uint8(IMMATURE), where=~in_scope[:, None, :])
     if include_first_flat_activity:
         # A complete local range proves FLAT/non-FLAT without asserting the
         # unknown intraminute ordering or supplying any future value to forward.
-        threshold = series.arrays["threshold"][safe[:, 0]]
-        local_range = series.arrays["local_range"][safe[:, 0]]
+        first_present = available[:, 0]
+        first_rows = rows[first_present, 0]
+        threshold = series.arrays["threshold"][first_rows]
+        local_range = series.arrays["local_range"][first_rows]
         excluded = ATR_UNAVAILABLE | LOCAL_SPAN_INCOMPLETE | UNKNOWN_SOURCE_GAP | QUERY_UNAVAILABLE | IMMATURE
-        activity_observed = (available[:, :, 0] & ((result["reason"][:, :, 0] & excluded) == 0)
-                             & np.isfinite(threshold) & (threshold > 0) & np.isfinite(local_range))
-        is_flat = activity_observed & (local_range < threshold)
+        eligible = (((result["reason"][first_present, :, 0] & excluded) == 0)
+                    & np.isfinite(threshold) & (threshold > 0) & np.isfinite(local_range))
+        activity_observed = np.zeros(shape[:2], dtype=bool)
+        is_flat = np.zeros(shape[:2], dtype=bool)
+        activity_observed[first_present] = eligible
+        is_flat[first_present] = eligible & (local_range < threshold)
         first_state = result["state"][:, :, 0]
         known = result["observed"][:, :, 0]
         _require(np.all(~is_flat | (known & (first_state == FLAT)))

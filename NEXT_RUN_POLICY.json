@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T05:46:50.014810+00:00",
-  "status": "DYNAMIC_MTF_TRAIN_REVIEW_PREDECLARED_NATIVE_CLOSED_20261104",
+  "observed_utc": "2026-11-04T06:00:24.753164+00:00",
+  "status": "DYNAMIC_MTF_TRAIN_TARGET_REVIEW_COMPLETE_OOF_SPEC_ONLY_NATIVE_CLOSED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Review TRAIN target semantics and XAU receipt-clock evidence. Only the closed research specification defines a prospective prefix-normalized native endpoint candidate. No model execution admitted.",
+  "next_action": "Use 0.5 ATR as the unlocked working candidate. Next data-only gate is to bind genuinely fit-prefix-only TRAIN inputs/targets and qualify support and normalization for 29849 parents. Later model work requires a separately qualified recipe, explicit admission and safe physical restart. Actual XAU receipt, ATR readiness and restart parity remain an independent ONLINE gate.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Saved no-edge diagnosis closed. Read-only TRAIN target semantics and source-clock review under a predeclared candidate design.",
+    "current_activity": "TRAIN-prefix target review, archived XAU clock review and target lookup cutoff repair completed. One prospective endpoint-loss candidate is specified. No native model started.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Meaningful movement criterion and actual XAU receipt/ATR readiness remain unresolved. A separately qualified prefix-only candidate and fresh one-use admission are missing.",
+    "current_blocker": "The 29849-parent target view and physical input support/normalization, endpoint-loss implementation and qualification, and fresh one-use model admission are missing. Physical XAU/ATR timing and restart parity are unknown for ONLINE.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Review TRAIN target semantics and XAU receipt-clock evidence. Only the closed research specification defines a prospective prefix-normalized native endpoint candidate. No model execution admitted.",
+    "next_action": "Use 0.5 ATR as the unlocked working candidate. Next data-only gate is to bind genuinely fit-prefix-only TRAIN inputs/targets and qualify support and normalization for 29849 parents. Later model work requires a separately qualified recipe, explicit admission and safe physical restart. Actual XAU receipt, ATR readiness and restart parity remain an independent ONLINE gate.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19815,7 +19815,7 @@
       "observed_utc": "2026-11-03T20:59:25.429315+00:00"
     },
     "dynamic_mtf_train_gates_20261104": {
-      "status": "SPECIFICATION_FROZEN_NO_NATIVE_ADMISSION",
+      "status": "TRAIN_PREFIX_TARGET_REVIEW_COMPLETE_SINGLE_OOF_CANDIDATE_SPECIFIED_NOT_ADMITTED",
       "specification": {
         "path": "docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
         "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
@@ -19827,7 +19827,247 @@
       "model_calls_authorized": false,
       "optimizer_updates_authorized": false,
       "training_authorized": false,
-      "test_authorized": false
+      "test_authorized": false,
+      "predeclared_commit": "0369fcf5",
+      "audit_commit": "bba709f5",
+      "target_review": {
+        "path": "docs/DYNAMIC_MTF_TRAIN_TARGET_RESULT_20261104.json",
+        "sha256": "e16892153cdabf8278a4783c66f5d741e69acb32f4b4ae4bc7a1dcc3a9b916e1"
+      },
+      "target_rule_locked": false,
+      "threshold_decision": "Recommended working target is the registered 0.5 ATR(14) candidate on all five scales. The operator asked for a recommendation. Target rule remains unlocked.",
+      "m5_plus5_complete_windows": 29814,
+      "m5_plus5_active_unknown_direction": 13017,
+      "m5_plus5_unknown_with_proven_both_moves": 8720,
+      "source_clock": {
+        "measured_archive_scope": {
+          "M1": {
+            "derived_manifest": {
+              "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+              "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+            },
+            "native_manifest": {
+              "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+              "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"
+            },
+            "chunk_manifest_entries": 2080,
+            "chunk_metadata_keys": [
+              "canonical_complete_rows_sha256",
+              "complete_candles",
+              "first_complete_utc",
+              "incomplete_candles",
+              "last_complete_utc",
+              "relative_path",
+              "request_from_utc",
+              "request_to_utc_exclusive",
+              "response_candles",
+              "sequence",
+              "sha256",
+              "size_bytes"
+            ],
+            "timestamp_semantics": "bar_start_utc",
+            "event_time_close_offset_seconds": 60,
+            "inspected_train_chunk": {
+              "relative_path": "source_chunks/chunk-001841.json.gz",
+              "sha256": "904c525c249fce09271df17e8ccea6f7f2b71e13ca1c79818f1f9c10723f9f40",
+              "candles": 4127,
+              "request_from_utc": "2024-07-15T00:00:00+00:00",
+              "request_to_utc_exclusive": "2024-07-18T00:00:00+00:00",
+              "envelope_keys": [
+                "request",
+                "response",
+                "schema_version"
+              ],
+              "request_keys": [
+                "from",
+                "granularity",
+                "instrument",
+                "price",
+                "to"
+              ],
+              "response_keys": [
+                "candles",
+                "granularity",
+                "instrument"
+              ],
+              "candle_keys": [
+                "ask",
+                "bid",
+                "complete",
+                "mid",
+                "time",
+                "volume"
+              ]
+            }
+          },
+          "M5": {
+            "derived_manifest": {
+              "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet.manifest.json",
+              "sha256": "d1c0f94bcfa7c837143b287fc8a4355e3ea564cffcbae2d96c53c64e7bb62de6"
+            },
+            "native_manifest": {
+              "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+              "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+            },
+            "chunk_manifest_entries": 416,
+            "chunk_metadata_keys": [
+              "canonical_complete_rows_sha256",
+              "complete_candles",
+              "first_complete_utc",
+              "incomplete_candles",
+              "last_complete_utc",
+              "relative_path",
+              "request_from_utc",
+              "request_to_utc_exclusive",
+              "response_candles",
+              "sequence",
+              "sha256",
+              "size_bytes"
+            ],
+            "timestamp_semantics": "bar_start_utc",
+            "event_time_close_offset_seconds": 300,
+            "inspected_train_chunk": {
+              "relative_path": "source_chunks/chunk-000368.json.gz",
+              "sha256": "7cd04a98dd09c7d75eb8017e972ebc9f066ed5940373be39dedf2042e66bd233",
+              "candles": 3012,
+              "request_from_utc": "2024-07-12T00:00:00+00:00",
+              "request_to_utc_exclusive": "2024-07-27T00:00:00+00:00",
+              "envelope_keys": [
+                "request",
+                "response",
+                "schema_version"
+              ],
+              "request_keys": [
+                "from",
+                "granularity",
+                "instrument",
+                "price",
+                "to"
+              ],
+              "response_keys": [
+                "candles",
+                "granularity",
+                "instrument"
+              ],
+              "candle_keys": [
+                "ask",
+                "bid",
+                "complete",
+                "mid",
+                "time",
+                "volume"
+              ]
+            }
+          }
+        },
+        "archived_atr_source_commit": "2a8da359",
+        "archived_atr_owner_sha256": "e1687581422f52161e0d4c1e9f975969e228ba1bdf1d809a4e7189541c678e48",
+        "last_target_audit_source_commit": "b4185309",
+        "last_target_owner_sha256": "b18c2be45e6f18829c78cb1590316d9a986a5a8d5d289293d6a84630b1b52ce4",
+        "xau_physical_m1_received_utc": null,
+        "atr_computation_available_utc": null,
+        "physical_restart_parity": "UNKNOWN",
+        "finer_same_source_clock_evidence": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/XAU_INTRAMINUTE_SOURCE_SCOPE_001/RESULT.json",
+          "sha256": "ae80bc3b4f13ea217ab5af348f3d0e60a63cb208bbb80eab1708182810354ec1"
+        }
+      },
+      "oof_geometry": {
+        "source": {
+          "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+          "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+        },
+        "cross_checked_series": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/SERIES.json",
+          "sha256": "d2addf8fbb6f9ac9e9ed741bbbd2fe2bfdc07f59553ea28c021ea198d5fbfa8e"
+        },
+        "axes_only": true,
+        "blocks": [
+          {
+            "role": "fit",
+            "parent_range": [
+              0,
+              29849
+            ],
+            "parents": 29849,
+            "issue_ns_sha256_le_i64": "230f38de532e9d1b8b310c81d3d3cc0c021ad05e0be0cd985ae55a72f1fd8067",
+            "bar_start_ns_sha256_le_i64": "88653d60d5d2196982e88be2393855203df38a59e192594119ac7efc032aa974",
+            "parent_rows_sha256_le_i64": "178e758fb705799a7f5557e680a764dfeb3c5cd7958f0562e84f693e418fcd43",
+            "parents_with_full_1440min_before_cutoff_calendar_only": 29574
+          },
+          {
+            "role": "oof",
+            "parent_range": [
+              29849,
+              47602
+            ],
+            "parents": 17753,
+            "issue_ns_sha256_le_i64": "22a1b7282f908836380755186c919ec01a5061cd681e9723e5655078c7d6fe6c",
+            "bar_start_ns_sha256_le_i64": "0f0c15c0d97cf3968ebb1034f92a257958e0e41613f2143f63c5ea68989f2140",
+            "parent_rows_sha256_le_i64": "afa02322eca78c7c1161f969d94d1693bba99cb9565626dcfe2efa81992eabf7",
+            "parents_with_full_1440min_before_cutoff_calendar_only": 17489
+          }
+        ],
+        "refit_origins": 1,
+        "oof_predictions_created": 0,
+        "latest_native_geometry": {
+          "fold_id": 1,
+          "oof_cutoff_ns": 1743465600000000000,
+          "oof_end_row": 64890,
+          "oof_start_row": 47602,
+          "prefix_rows": 47602,
+          "train_cutoff_ns": 1735689600000000000
+        },
+        "prior_normalization": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/PREFIX_NORMALIZATION_1.json",
+          "sha256": "44c59f4af116ef5d9b6287a89d09ca8ff782a53e216b8cac55f65dd897b326b2"
+        },
+        "prior_prefix_qualification": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261101_001/PREFIX_NORMALIZATION_001/QUALIFICATION_1.json",
+          "sha256": "51ac757b4c1709d1104a750937ebb07bded36fe890089d436e298e801139d1fc"
+        },
+        "new_prefix_normalization_fitted": false
+      },
+      "normalization_fit_authorized": false,
+      "qualified_native_recipe": null,
+      "independent_edge": "UNKNOWN",
+      "query_cutoff_repair": {
+        "scope": "Gather exact mature target rows only; missing historical current state must not dereference a dummy row. Fit still needs physically bounded target loading.",
+        "target_owner": "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+        "previous_owner_sha256": "30438eec60673ff8b9898141572fc49ec673a92dc620a637620b255c7288558d",
+        "repaired_owner_sha256": "3cc70bea24514329481d0ffd40e4a79ffb9849b2e32232421d3a6650398c689b",
+        "before_read_trap": {
+          "parent": 29848,
+          "issue_utc": "2024-09-30T23:55:00Z",
+          "lead_minutes": 5,
+          "cutoff_exclusive_utc": "2024-10-01T00:00:00Z",
+          "first_excluded_row": 150714,
+          "channel": "state",
+          "prevented_before_value_read": true
+        },
+        "after_all_five_reason": "IMMATURE",
+        "target_contract_sha256": "d44cf218b0f07c477e3ac52cc2374933c2754b40511492cdcf037811afc23ddd",
+        "parity": {
+          "source_baseline": "bba709f5",
+          "old_numeric_inputs_cropped_before_cutoff": true,
+          "exact_parent_count": 24,
+          "selection": "16 evenly spaced issue indices including endpoints, plus first 8 issue indices on/after genuine gap predecessors, deduplicated",
+          "timeframes": 5,
+          "lead_minutes": [
+            1,
+            1440
+          ],
+          "checked_all_leads": true,
+          "first_activity_modes": [
+            false,
+            true
+          ],
+          "value_dtype_contiguity_equal": true
+        },
+        "focused_target_witness_and_admission_tests_passed": 47,
+        "new_model_calls": 0,
+        "new_optimizer_steps": 0
+      }
     }
   },
   "gc_order_flow_research_20261006": {
