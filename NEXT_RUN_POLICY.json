@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T18:25:52.913778+00:00",
-  "status": "DYNAMIC_MTF_ONE_PREFIX_CANDLE_CHECK_AND_METADATA_PLAN_ADMITTED",
+  "observed_utc": "2026-11-04T18:31:50.763561+00:00",
+  "status": "DYNAMIC_MTF_DECEMBER_CANDLE_FROZEN_AND_SINGLE_PLAN_VERIFIED_NATIVE_ADMISSION_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Perform the single source-frozen capped CPU measurement of five prefix candle references and fixed early cohort support, then bind one closed future candidate plan. No model calls or heldout features/outcomes.",
+  "next_action": "Use the verified December plan as the design for a separately scoped private qualification. The native dispatcher still requires the old fold and an OOF-ended target tape: implement and verify physically isolated pre-December inputs/targets and the masked observer binding first. A separate exact admission, whole-host idle and safe physical reboot are required before any genuine model call. Keep all 5,736 December outcomes reserved.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Perform the single source-frozen capped CPU measurement of five prefix candle references and fixed early cohort support, then bind one closed future candidate plan. No model calls or heldout features/outcomes.",
+    "next_action": "Use the verified December plan as the design for a separately scoped private qualification. The native dispatcher still requires the old fold and an OOF-ended target tape: implement and verify physically isolated pre-December inputs/targets and the masked observer binding first. A separate exact admission, whole-host idle and safe physical reboot are required before any genuine model call. Keep all 5,736 December outcomes reserved.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20205,7 +20205,10 @@
           "M5": 5736
         },
         "qualified_prefix_normalizer": null,
-        "qualified_prefix_candle_reference": null,
+        "qualified_prefix_candle_reference": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDLE_REFERENCE.json",
+          "sha256": "77d849f219c2124177ba524fbf56131f2e678a26bf9addda62d9118f00073490"
+        },
         "qualified_native_recipe": null,
         "model_calls_authorized": false,
         "normalization_fit_authorized": false,
@@ -20245,14 +20248,29 @@
           "fit_parents": 41866,
           "reserved_parents": 5736,
           "qualified_native_recipe": null,
-          "qualified_prefix_candle_reference": null,
+          "qualified_prefix_candle_reference": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDLE_REFERENCE.json",
+            "sha256": "77d849f219c2124177ba524fbf56131f2e678a26bf9addda62d9118f00073490"
+          },
           "production_clock_parity": "UNKNOWN",
           "independent_edge": "UNKNOWN",
           "candidate_plan_milestone": {
             "stage": "dynamic_mtf_december_candle_and_plan_20261104_001",
-            "candle_reference": null,
-            "candidate_plan": null,
-            "run_admission": false
+            "candle_reference": {
+              "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDLE_REFERENCE.json",
+              "sha256": "77d849f219c2124177ba524fbf56131f2e678a26bf9addda62d9118f00073490"
+            },
+            "candidate_plan": {
+              "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
+              "sha256": "a5bc7eb8fe55ee4cdfef79bd0cd3b42661ab73cc43a350a11baa87db3f7f63c7"
+            },
+            "run_admission": false,
+            "verified_review": {
+              "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/VERIFIED_REVIEW.json",
+              "sha256": "e60876f7b9fa0fcd4c6a499de6e40537c6755b6a2cde6df96f47545470e4dd4d"
+            },
+            "registered_numerical_recipe_sha256": "d4f98d977b041bb43bdadbc6f6fb5c05833277ac5c375e66a5d7542cd01e4547",
+            "native_recipe_executable": false
           }
         }
       }
@@ -55249,11 +55267,11 @@
     }
   },
   "dynamic_mtf_december_candle_and_plan_20261104_001": {
-    "status": "ADMITTED_ONE_PREFIX_CANDLE_AND_METADATA_PLAN_ONLY",
+    "status": "COMPLETE_EARLY_CANDLE_FROZEN_ONE_CLOSED_DECEMBER_CANDIDATE_PLAN",
     "goal": "Kvalifiser candle-referansen fra siste kausalt lukkede prisbar på det eksakte TRAIN-prefikset med 41 866 tidligere prognosetidspunkter. Bind én eksakt, etterprøvbar plan for desemberkandidaten med den godkjente inputprofilen og det nye endepunktstapet. Bevar 5 736 desemberutfall for senere måling og alle native admisjons- og sikkerhetsvakter. Skill data- og plankvalifisering fra modellæring og uavhengig edge.",
     "operator_request": "Prepare and measure the single prefix candle reference and lock one December research candidate plan as the next milestone of the direction goal.",
     "parent_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
-    "milestone_complete": false,
+    "milestone_complete": true,
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001",
     "runner": "gx1.audit.run_dynamic_mtf_train_prefix_data",
     "specification": {
@@ -55321,12 +55339,12 @@
       "max_rchar_bytes": 137438953472
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "candle_reference_authorized": true,
-    "plan_publication_authorized": true,
-    "fit_target_view_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "candle_reference_authorized": false,
+    "plan_publication_authorized": false,
+    "fit_target_view_authorized": false,
     "normalization_fit_authorized": false,
     "model_calls_authorized": false,
     "optimizer_updates_authorized": false,
@@ -55339,8 +55357,8 @@
     "native_launch_authorized": false,
     "broker_authorized": false,
     "trading_authorized": false,
-    "fixed_fit_cohort_support_authorized": true,
-    "data_reads_authorized": true,
+    "fixed_fit_cohort_support_authorized": false,
+    "data_reads_authorized": false,
     "cohort_rule": "From the 41,866 bound pre-December parent IDs only, seed 20260911 and the canonical MT19937 native presentation order. Sort its first 32 IDs into two private groups of 16 and retain its first 256 for the initial measurement. Inspect their early masks at +1/native only. Record sparse support before any model call, do not replace cases after measurement. Private weights never enter the single main pass.",
     "source_owners": {
       "gx1/audit/dynamic_mtf_december_candle.py": {
@@ -55420,6 +55438,130 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/FOCUSED_TESTS.json",
       "sha256": "0e1630dbe7da5f8cae17163a216b78be5526118ee2ad727e18d1bd70f2195934"
     },
-    "preregistered_score_contract_sha256": "c5121188fe860be1ffabeb1a0462e3fa04b946eaced38744a2086a44e80a8b1a"
+    "preregistered_score_contract_sha256": "c5121188fe860be1ffabeb1a0462e3fa04b946eaced38744a2086a44e80a8b1a",
+    "verified_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/VERIFIED_REVIEW.json",
+      "sha256": "e60876f7b9fa0fcd4c6a499de6e40537c6755b6a2cde6df96f47545470e4dd4d"
+    },
+    "source_head": "e22c334111576e9bba9c55035e425a25fe506b4f",
+    "execution_binding": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/EXECUTION_BINDING.json",
+      "sha256": "ca832096ad55cbfecedacfe581354ad212b25d852caf87297667889589add3b8"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CLAIM.json",
+      "sha256": "9eb94a5f3badc8d33b70b5cdf5e9490c3a5b2f56528a857b9423e2b24ba69e55"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/TERMINAL.json",
+      "sha256": "06ac62876844548b7f59424b9e13344b5753b7d5a8faa12f427ed7b8cb8fa8fc"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/RESULT.json",
+      "sha256": "a82359f125cf34f22845797027127f673c9e7d81cc9bbbf56fe162bcfd0ec95e"
+    },
+    "candle_reference": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDLE_REFERENCE.json",
+      "sha256": "77d849f219c2124177ba524fbf56131f2e678a26bf9addda62d9118f00073490"
+    },
+    "candidate_plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
+      "sha256": "a5bc7eb8fe55ee4cdfef79bd0cd3b42661ab73cc43a350a11baa87db3f7f63c7"
+    },
+    "measured": {
+      "fit_parents": 41866,
+      "reserved_parents": 5736,
+      "fit_reference_results": {
+        "D1": {
+          "down": 10921,
+          "eligible_rows": 27401,
+          "flat": 647,
+          "missing_candle_scores": 0,
+          "observed_native": 28048,
+          "orientation": 1,
+          "oriented_auc": 0.5200507556253517,
+          "raw_auc": 0.5200507556253517,
+          "unknown_or_ineligible": 13818,
+          "up": 16480
+        },
+        "H1": {
+          "down": 15427,
+          "eligible_rows": 34071,
+          "flat": 5051,
+          "missing_candle_scores": 0,
+          "observed_native": 39122,
+          "orientation": -1,
+          "oriented_auc": 0.5131617133586928,
+          "raw_auc": 0.4868382866413073,
+          "unknown_or_ineligible": 2744,
+          "up": 18644
+        },
+        "H4": {
+          "down": 14702,
+          "eligible_rows": 34705,
+          "flat": 3181,
+          "missing_candle_scores": 0,
+          "observed_native": 37886,
+          "orientation": 1,
+          "oriented_auc": 0.5036891742119515,
+          "raw_auc": 0.5036891742119515,
+          "unknown_or_ineligible": 3980,
+          "up": 20003
+        },
+        "M15": {
+          "down": 14574,
+          "eligible_rows": 31037,
+          "flat": 4947,
+          "missing_candle_scores": 0,
+          "observed_native": 35984,
+          "orientation": -1,
+          "oriented_auc": 0.5235211584867201,
+          "raw_auc": 0.4764788415132799,
+          "unknown_or_ineligible": 5882,
+          "up": 16463
+        },
+        "M5": {
+          "down": 9652,
+          "eligible_rows": 20095,
+          "flat": 3188,
+          "missing_candle_scores": 0,
+          "observed_native": 23283,
+          "orientation": -1,
+          "oriented_auc": 0.5208454246066276,
+          "raw_auc": 0.4791545753933724,
+          "unknown_or_ineligible": 18583,
+          "up": 10443
+        }
+      },
+      "five_tf_ranking_cells": 147309,
+      "five_tf_observed_native_cells": 164323,
+      "candidate_contract_sha256": "5dd3621bd01aeab6fd7b7bf2a3944d1dd9308ba805f9e6992c28e1dd4ac870ff",
+      "candidate_numeric_recipe_sha256": "d4f98d977b041bb43bdadbc6f6fb5c05833277ac5c375e66a5d7542cd01e4547",
+      "private_numeric_recipe_sha256": "0e6299855249b55756715843967bbc4576afeff8a3afdc382f60a48ee825ed6d",
+      "scoring_contract_sha256": "c5121188fe860be1ffabeb1a0462e3fa04b946eaced38744a2086a44e80a8b1a",
+      "max_main_updates": 2617,
+      "private_controls": 32,
+      "initial_controls": 256,
+      "reserved_rows_in_old_private_scope": 4,
+      "private_sparse_support_blockers": [],
+      "private_timeframes_without_confirmed_first_minute_change": [
+        "H1",
+        "H4",
+        "D1"
+      ],
+      "reserved_base_npy_bytes": 495843424,
+      "model_calls": 0,
+      "optimizer_updates": 0,
+      "reserved_predictions": 0,
+      "independent_edge": "UNKNOWN"
+    },
+    "remaining_model_gates": [
+      "separate hash-bound qualification admission after guarded whole-host idle and safe physical reboot",
+      "prefix-only feature and target preparation plus a separate immutable scoring view",
+      "actual masked input and all-head gradient contact, own fresh baseline, checkpoint and bit-exact resume",
+      "single-pass integrated per-issue event probabilities, matching references and score artifacts",
+      "bind the versioned event-output representation and its size ceiling, including temporary storage, then check physical disk",
+      "future admission must pin the published plan file SHA and validate all referenced files, source, campaign, resources and host"
+    ]
   }
 }
