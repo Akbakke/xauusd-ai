@@ -159,6 +159,22 @@ Ved **kjent FLATT nå** er faktisk +5-FLATT-andel 25,25 % senere, mot modellens 
 
 Dette er en **issue-tilgjengelig historisk event-time-oppdeling**, men faktisk fysisk mottakstid for M1/ATR er fortsatt ukjent. Gruppene er ikke uavhengige tester, og den senere perioden er gjenbrukt. Faktorbytter samvirker, så tabellkolonnene summerer ikke til full modell. Tallene gjenskaper signert +5-rapport og tidligere faktorkvittering innen `1,3×10⁻¹⁵`; de peker ikke ut en årsak i input, loss eller parametre, og kvalifiserer ingen handelsregel. [Nåtilstands-/Brier-kvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_M5_NATIVE_BRIER_BY_HISTORICAL_CURRENT_STATE.json) SHA-256 `c298986a5dc67af98902cc94721fe64fe404d319c9965044c06d7df98df588e5`; ingen nye modellkall, fit eller TEST.
 
+### M5 kjent FLATT: aldersmiks forklarer ikke +5-kalibreringsfallet
+
+For radene med **historisk kjent FLATT ved issue** kan lengden på et sammenhengende, fullt observert FLATT-forløp bekreftes fra tidligere M1-minutter. Metoden nullstiller alder ved hull eller ukjent bane og starter alder 1 først etter et observert tilstandsskifte; samme metode gjenskaper alle aldersgruppetellingene i den eldre +1-kvitteringen eksakt. Tabellen bruker deretter bare rader med observert +5-treklassefasit, **uten å filtrere på framtidig +1**. «Ubekreftet» betyr at nåtilstanden er kjent FLATT, men forløpsstarten ikke kan bekreftes fra strengt observert historikk.
+
+| Bekreftet FLATT-alder ved issue | +5-rader TRAIN / senere | Faktisk +5-FLATT TRAIN / senere | Modellens P(FLATT) TRAIN / senere | Modell−Markov-Brier TRAIN / senere |
+|---|---:|---:|---:|---:|
+| Ubekreftet | 537 / 179 | 26,26 / 25,70 % | 24,50 / 17,87 % | +0,000698 / +0,009915 |
+| 1 min | 648 / 221 | 21,76 / 21,27 % | 24,24 / 17,85 % | +0,000376 / +0,001619 |
+| 2–4 min | 939 / 285 | 25,35 / 24,91 % | 24,65 / 17,96 % | −0,003580 / +0,014279 |
+| 5–9 min | 353 / 106 | 39,09 / 25,47 % | 25,52 / 18,01 % | −0,006064 / +0,018007 |
+| ≥10 min | 120 / 25 | 49,17 / 60,00 % | 26,73 / 17,70 % | −0,021525 / +0,084556 |
+
+Modellens gjennomsnittlige +5-FLATT-sannsynlighet ved kjent FLATT nå faller 6,820 prosentpoeng fra TRAIN in-sample til senere data. Med **senere gruppeprognoser vektet som TRAINs aldersfordeling** er fallet fortsatt 6,820 prosentpoeng; endringen i selve aldersmiksen bidrar bare +0,00015 prosentpoeng. Faktisk +5-FLATT-andel faller 2,364 prosentpoeng, hvorav omtrent 0,617 prosentpoeng følger aldersmiks i samme beskrivende regnestykke. Modellens nivåfall er derfor **innen aldersgruppene**, ikke forklart av at senere rader har en annen fordeling av bekreftet FLATT-alder. Gruppen ≥10 min har bare 25 senere rader og gir ikke et stabilt eget estimat.
+
+Hele kjente-FLATT-utvalgets 2 597/816 rader, klasseandel, modell-/Markov-Brier og modellens middelprognose gjenskaper forrige nåtilstandskvittering innen `3×10⁻¹⁷`. Alderskontrollen identifiserer fortsatt ikke hvilket input, tap eller parameter som flyttet prognosen; den begrunner ikke en aldersoffset eller ny modellrunde. Historisk event-time er kontrollert, men fysisk M1/ATR-mottak er ukjent, og utviklingsperioden er gjenbrukt. [FLATT-alder-/kalibreringskvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_M5_CURRENT_FLAT_AGE_FIVE_MINUTE_CALIBRATION.json) SHA-256 `66cbcb0d7e63525fede7953a0e36cfc7ac06610686062ba71b25963d22ff77ed`; ingen fit, modellkall, TEST eller handel.
+
 ### Samme enkle candlekontroll på alle fem tidsrammer
 
 For hver tidsramme brukte vi `close_open_atr` fra siste **fullførte native candle** ved issue. Fortegnet (med/mot candle) ble valgt bare fra slutt-TRAIN, så ble den samme regelen målt på gjenbrukt senere utvikling. Alle fem cache-featurefilene er hashkontrollert mot inputmanifestet. Dette er en lesende, betinget NED/OPP-rangering ved én full native ledetid per TF, ikke en ny modell eller et nytt mål.
@@ -655,6 +671,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_M5_CANDLE_LEAD_AND_FIRST_MASK_REVIEW.json` | `ea2e1b4d31c04c0fd06eaaa5a4e9ee71de1d993c9f842287888139f18470bbf6` | M5 candle og lagret modell ved sju faste ledetider; identiske +1/+5-foreldre og +5-sensurgrupper, med signert rad- og eldre AUC-paritet. |
 | `SAVED_M5_NATIVE_BRIER_BY_FIRST_TARGET_STATUS.json` | `2914b6570809aa36c3aface3e2ae60298973f408436681f89c8bc529d2f3dada` | M5 +5 treklasse-Brier og faktorbytter på identiske rader delt etter framtidig +1-observerbarhet, med signert totalparitet. |
 | `SAVED_M5_NATIVE_BRIER_BY_HISTORICAL_CURRENT_STATE.json` | `c298986a5dc67af98902cc94721fe64fe404d319c9965044c06d7df98df588e5` | M5 +5 treklasse-Brier og faktorbytter etter historisk kjent/ukjent nåtilstand ved issue, med signert totalparitet. |
+| `SAVED_M5_CURRENT_FLAT_AGE_FIVE_MINUTE_CALIBRATION.json` | `66cbcb0d7e63525fede7953a0e36cfc7ac06610686062ba71b25963d22ff77ed` | Kjent M5-FLATT ved issue delt etter strengt bekreftet historisk forløpsalder; +5-skår og aldersstandardisert prognosenivå med paritet. |
 | `SAVED_NATIVE_LEAD_MONTHLY_DIRECTION_AUC.json` | `479a506e958ac75ccbdef905748953d1c3b5f127d0ee632400739c734f42c413` | Samme native-ledetid og betinget UP/NED-skår delt på issue-måned; overlappende, beskrivende rader. |
 | `SAVED_CURRENT_STATE_CONDITIONAL_NATIVE_RANK_REVIEW.json` | `13aa797e6b606217d10d3f86baa16b3dc48a6b034089a40b3febeccbf0a248db` | UP/NED-AUC innen historisk nåtilstand på fem TF, D1 per måned og enkle monotone tid-/GC-dekningskontroller. |
 | `SAVED_STATE_GROUP_HORIZON_SCORE_DECOMPOSITION.json` | `62e16783993c640b14b4c0b0f1df271af6837976d90f591caf1b9c472fd9efb2` | Signert Brier-gap per ledeminutt og M5/D1 native-ledetid gruppert etter historisk nåtilstand, med eksakt rapportparitet. |
