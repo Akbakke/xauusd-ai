@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T10:47:45.635345+00:00",
+  "observed_utc": "2026-11-04T10:54:37.476529+00:00",
   "status": "DYNAMIC_MTF_GC_D1_BEAR_SOURCE_TRACE_COMPLETE_TWO_BREAKS_NO_ORIGIN_TRAINING_CLOSED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Keep December reserved. The single source trace is consumed. A separately scoped source decision may qualify actual GC market status for the 04–06 October and 08–10 November 2024 gaps. Any change to zone/origin carry requires its own feature-contract decision and requalification. No native run admitted.",
+  "next_action": "The 214-date trace is consumed. Await a separate source-scope decision for the two verified GCZ4 windows before any external retrieval. Actual GC market status, a change to the reset contract and model fit are not admitted by this scope. December remains reserved.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Keep December reserved. The single source trace is consumed. A separately scoped source decision may qualify actual GC market status for the 04–06 October and 08–10 November 2024 gaps. Any change to zone/origin carry requires its own feature-contract decision and requalification. No native run admitted.",
+    "next_action": "The 214-date trace is consumed. Await a separate source-scope decision for the two verified GCZ4 windows before any external retrieval. Actual GC market status, a change to the reset contract and model fit are not admitted by this scope. December remains reserved.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20173,6 +20173,61 @@
         },
         "december_held_out_evaluated": false
       }
+    },
+    "gc_d1_bear_closure_evidence_scope_20261104": {
+      "status": "SCOPE_ONLY_HISTORICAL_EXCHANGE_STATUS_UNVERIFIED",
+      "instrument": {
+        "venue": "COMEX",
+        "product": "Gold futures",
+        "outright": "GCZ4",
+        "delivery_year": 2024,
+        "delivery_month": 12,
+        "source_contract_index": 12
+      },
+      "source_contract_catalog": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/RESULTS/ROLL_SCHEDULE.json",
+        "sha256": "71262543da79a79ca0c6a0fa2c2d0f78494fa001d3f2409188d3ad80d4f7dc69"
+      },
+      "source_donor_terminal": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_GC_TRUSTED_RECORD_RESTORATION_20261018_024/RESULTS/TERMINAL.json",
+        "sha256": "19a534ab227556ccb9f105aa3ccb419c9885d4d2233b83a591d421807859a6af"
+      },
+      "source_trace_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/ACTUAL_SOURCE_TRACE_REVIEW.json",
+        "sha256": "b333f27b45eadda0e0b0fe22d32cb86dca3aa2598a00c1823762584889535ce9"
+      },
+      "source_trace_by_date": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/SOURCE_DATES.json",
+        "sha256": "9aa002b09587de7879ba9e3a7b9b712eb85d7e66c2109d17fd3db6998dc4b054"
+      },
+      "previous_nominal_schedule_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/D1_GAP_CALENDAR_CANDIDATES_001/RESULT.json",
+        "sha256": "69637742f451615c645da67783b70e8c4199b8048d72fab573714ea0c9f8ccc3"
+      },
+      "utc_intervals": [
+        {
+          "from_utc_inclusive": "2024-10-04T22:00:00+00:00",
+          "to_utc_exclusive": "2024-10-06T22:00:00+00:00",
+          "whole_d1_buckets": 2,
+          "earlier_bull_close_utc": "2024-10-01T22:00:00+00:00",
+          "break_close_utc": "2024-10-08T22:00:00+00:00",
+          "same_contract_rows_from_bull_through_break": 8
+        },
+        {
+          "from_utc_inclusive": "2024-11-08T22:00:00+00:00",
+          "to_utc_exclusive": "2024-11-10T22:00:00+00:00",
+          "whole_d1_buckets": 2,
+          "earlier_bull_close_utc": "2024-11-07T22:00:00+00:00",
+          "break_close_utc": "2024-11-12T22:00:00+00:00",
+          "same_contract_rows_from_bull_through_break": 6
+        }
+      ],
+      "evidence_required": "A dated CME/COMEX record applicable to GCZ4 covering the entire half-open period: actual matching/session state, or effective historical GC trading hours with complete applicable exceptions. Preserve publication/version and exact UTC boundaries. A regular-week rule, absence from a generic holiday list or absence of accepted trades leaves the interval unknown.",
+      "acquisition_boundary": "Proposed only. Primary, public, free historical CME/COMEX sources for these two intervals. No source retrieval until scoped operator authorization and an immutable source/method manifest. Keep the two findings separate. A verified opening contradicts full closure; partial coverage is inconclusive. No change to reset semantics without a separate contract decision.",
+      "execution_authorized": false,
+      "external_retrieval_authorized": false,
+      "model_calls_authorized": false,
+      "test_authorized": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -22737,7 +22792,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T10:47:45.635345+00:00",
+  "updated_utc": "2026-11-04T10:54:37.476529+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
