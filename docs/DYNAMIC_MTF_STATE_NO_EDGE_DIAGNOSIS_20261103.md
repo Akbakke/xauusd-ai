@@ -81,6 +81,20 @@ En egen lesning av de lagrede **slutt-TRAIN**- og senere prognosene på én full
 
 Månedsdeling bekrefter at kontrasten ikke bare skyldes én pooled beregning: D1s in-sample TRAIN-AUC ved +1 440 min var 0,577–0,705 i hver av de åtte TRAIN-månedene; senere januar/februar/mars var 0,522/0,497/0,414. Den tydelige marsinversjonen finnes **innen** måneden. M5 ved +5 min lå 0,485–0,507 i alle åtte TRAIN-måneder og 0,499/0,501/0,490 senere. Dette er fortsatt overlappende, gjenbrukt historikk, og månedsmønsteret skiller ikke tidsdrift, markedsregime, inputskift eller målskift. [Månedskvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_NATIVE_LEAD_MONTHLY_DIRECTION_AUC.json) SHA-256 `479a506e958ac75ccbdef905748953d1c3b5f127d0ee632400739c734f42c413`.
 
+### Før og etter på de samme 256 TRAIN-foreldrene
+
+Den lagrede initialmålingen omfatter 256 TRAIN-foreldre. Alle foreldre og issue-tider er eksakt funnet igjen i sluttmålingens 47 602 rader; tallene under bruker derfor **identiske** rader ved én native ledetid per tidsramme. AUC gjelder bare observerte NED/OPP-mål; treklasse-Brier gjelder alle observerte mål. Candle-korrelasjonen er Spearman mellom siste fullførte native `close_open_atr` og modellens betingede OPP-skår.
+
+| TF | NED/OPP-rader | AUC initial → slutt | Candle–OPP-korrelasjon initial → slutt | Treklasse-Brier initial → slutt |
+|---|---:|---:|---:|---:|
+| M5 +5 | 135 | 0,603 → 0,509 | 0,018 → 0,456 | 0,677 → 0,611 |
+| M15 +15 | 201 | 0,487 → 0,493 | 0,054 → 0,187 | 0,679 → 0,588 |
+| H1 +60 | 210 | 0,453 → 0,606 | −0,202 → −0,070 | 0,687 → 0,573 |
+| H4 +240 | 211 | 0,528 → 0,619 | −0,137 → 0,174 | 0,688 → 0,561 |
+| D1 +1 440 | 179 | 0,515 → 0,653 | −0,074 → 0,479 | 0,679 → 0,508 |
+
+For M5 gir en parvis resampling av 36 issue-uker et **beskrivende** 95 %-intervall for slutt minus initial på −0,234 til +0,043 AUC, +0,177 til +0,673 i candle-korrelasjon og −0,115 til −0,022 i Brier. AUC-fallet er dermed usikkert i dette lille, spredte utvalget. Treningen endret outputen og forbedret in-sample treklasseskåren, samtidig som M5-OPP-skåren ble mer knyttet til candlefortegnet. Ingen enkeltparameter eller kausal tapsårsak er identifisert. Utvalget er TRAIN, ikke OOF eller uavhengig generalisering. [Matchet kvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_IDENTICAL_256_INITIAL_FINAL_DIRECTION_REVIEW.json) SHA-256 `305b149cfc3a27fe11f05c223dbff12cd15946129ff3e1e7e3dbc133cfa1c87d`; ingen nye modellkall eller optimizeroppdateringer.
+
 ### M5: enkel rangering fra allerede rutet candleinput
 
 Som en lesende kontroll valgte vi på TRAIN fortegnet **motsatt** av `close_open_atr` for siste komplette M5-lys og scoret samme regel på lagrede prognoser. Dette feltet er allerede rutet til `price_action_candle_encoder`; cachet M5-bar har start `issue−5 min` og er lukket ved issue etter event-time. Mot den hashbundne M1-kilden stemte fortegnet i `close_open_atr` og den andre rutede candlekroppen med femminuttersbevegelsen på alle 47 284 sammenlignbare TRAIN- og 17 185 senere issue-rader. Den fysiske mottakstiden er fortsatt ukjent.
@@ -368,6 +382,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_NATIVE_LEAD_DIRECTION_SCORE_DISTRIBUTION.json` | `5e502219f354d69f76e25435bde8947b502ba52cfdb95870899a57f0fd60b179` | Lagret UP/NED-skårspredning og AUC på én full native tidsramme, TRAIN in-sample mot gjenbrukt utvikling og fryst Markov. |
 | `SAVED_NATIVE_TARGET_CLUSTERING_SENSITIVITY.json` | `c6fa51b69c3830536b4d08208b90c12a9d957a8d1d5791edc3593c68cbecc306` | D1s utfallsdager/klasseforløp, AUC ved rad-/dag-/forløpsvekting og native treklasse-Brier med rapportparitet. |
 | `SAVED_CANDLE_NORMALIZATION_RANK_PARITY.json` | `e208c7c7b8cf1d16c562ecc0846edfc5ad3a175a1785a3206c2c8d13090924e7` | Eksakt issue-klokke og rå/normalisert candle-AUC på alle fem TF, med kildebundet positiv asinh-skala og uten ranginversjon. |
+| `SAVED_IDENTICAL_256_INITIAL_FINAL_DIRECTION_REVIEW.json` | `305b149cfc3a27fe11f05c223dbff12cd15946129ff3e1e7e3dbc133cfa1c87d` | Eksakt samme 256 TRAIN-foreldre før og etter passet: native retnings-AUC, candle-korrelasjon og treklasse-Brier på fem TF; M5 parvis ukeblokkintervall. |
 | `SAVED_MTF_LAST_CLOSED_CANDLE_NATIVE_DIRECTION_AUDIT.json` | `d5e4e26e4fb3307f2317cc75bf364458520d2ac6bfe7b56724d49ecb1a11ef26` | TRAIN-valgt candlefortegn mot modell og matchet Markov ved én native ledetid på alle fem TF, med beskrivende ukeblokker. |
 | `SAVED_M5_CANDLE_CURRENT_STATE_STRATIFICATION.json` | `1e09c2087d19d66383eaa96abb3aa0a76136f6026577f7fd71ca5e4bc8fd3757` | M5 +5 candlefortegn og modellskår innen kjent/ukjent nåtilstand, med ukeblokkintervall for ukjentgruppen. |
 | `SAVED_ROUTED_M5_CANDLE_REVERSAL_AUDIT.json` | `081969b226d06f05c551629a09ac2210bcd62d8bff282cca3a9f9f7f93e0c501` | Lesende +5 retningsrangering fra allerede rutet M5-candleverdi mot lagret modell/Markov, kildefortegn og ukeblokker. |
