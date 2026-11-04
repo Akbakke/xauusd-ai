@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+04.11 — Den lagrede diagnosen er avsluttet. Den konsumerte 03.11-planens aktive flagg og tellere er avstemt mot to signerte vinduer, det siste COMPLETE. Vindu 3 og 4 er tilbakekalt. Planen for TRAIN-målundersøkelsen og én foreslått kandidat er forhåndslåst i [TRAIN-portene](docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md). Ingen ny modellsjekk er innrømmet.
+
 04.11 — LAGRET NO-EDGE-DIAGNOSE FERDIG, NY KANDIDAT FORTSATT STENGT: Kilde, mål, 256-raders før-/etterkontroll, lagrede prediksjoner, checkpoints, markovreferanse, fem TF, kalibrering, mål-/lossdesign, klokke og inputkonsum er revidert med fokuserte kvitteringer; dokumentet `docs/DYNAMIC_MTF_STATE_NO_EDGE_DIAGNOSIS_20261103.md` samler bevis og neste port. Råmodellens senere treklasse- og retningssvikt er målt, men ingen enkelt kausal indikator-/loss-/parameterfeil er bevist. Eksakt kampanje har ett 47 602-raders TRAIN-prefiks, 17 288 senere utviklingsforeldre og lagrer marginaler/sekvens-NLL uten overgangstensor; strenge TRAIN-OOF-prediksjoner fra samme identitet mangler. En ny modellkandidat eller kjøring krever egen forhåndsdefinert kilde-, mål-, måle- og admisjonsbeslutning; `training_enabled=false`, TEST, broker og handel forblir stengt. Avslutningen gjelder evidensrevisjonen, ikke prosjektmål eller dokumentert edge.
 
 04.11 — NÅTILSTANDSGAP PÅ FEM TF: Ved én native ledetid taper kjent FLATT nå mot fryst Markov på senere M5/M15/H1/H4 med Brier-gap +0,012530/+0,035377/+0,020135/+0,019195; faktisk/modell/Markov FLATT-andel er 25,25/17,91/24,73 %, 34,87/17,63/26,94 %, 27,77/17,74/27,50 % og 14,20/7,49/14,69 %. D1s kjente-FLATT-gruppe (119 rader) har gap −0,017033 og ingen FLATT-fasit. Modellen hjelper ved ukjent nå på M5/M15/H1, men ikke H4/D1; en felles Markov-gate er derfor ikke begrunnet. Signerte native totalskårer og M5/D1-grupper har paritet. Kvittering `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_NATIVE_BRIER_BY_HISTORICAL_CURRENT_STATE_FIVE_TF.json` SHA `1224b31122c2de65e666cf5c13237c36165baf74c0305da291c56e0a4f8b54f6`; se diagnosen. Ingen fit, modellkall, TEST eller handel.
@@ -847,12 +849,7 @@ Ingen normalisering ble refittet, og CONTROL/TEST var lukket.
 
 ## Neste minste steg
 
-Begge vedtatte kildeendringer er implementert og syntetisk kontrollert.
-Ingen automatisk kjøring følger av dette. Genuine input-/normaliseringsbevis,
-fersk native baseline, konstruksjon/gradient/resume og effekt på senere
-retningspresisjon er uutført. Brukerens modellforbud gjelder fortsatt;
-ingen tidligere engangstillatelse kan brukes til de nye funksjonene.
-TEST, broker og handel forblir stengt.
+Følg TRAIN-portene øverst og arbeidsstatus i NEXT_RUN_POLICY.json. De eldre bølgene nedenfor er historiske.
 
 ## Hva som er endret og fortsatt åpent
 

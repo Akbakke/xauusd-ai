@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-03T22:29:19.398861+00:00",
-  "status": "SAVED_FIRST_CHANGE_CALIBRATION_REPLACEMENT_COMPLETE_CLOSED_20261103",
+  "observed_utc": "2026-11-04T05:46:50.014810+00:00",
+  "status": "DYNAMIC_MTF_TRAIN_REVIEW_PREDECLARED_NATIVE_CLOSED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Continue read-only XAU clock/target assessment; strict same-model OOF calibration needs a separately predeclared prefix-normalized plan because existing checkpoints have no OOF predictions and use full-TRAIN normalization. No automatic native run, TEST, Exit, broker or trading.",
+  "next_action": "Review TRAIN target semantics and XAU receipt-clock evidence. Only the closed research specification defines a prospective prefix-normalized native endpoint candidate. No model execution admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Historical one-pass dynamic-state fit and scoring are complete and consumed. Read-only saved-output diagnosis is active; no native model process, new training admission or restart.",
+    "current_activity": "Saved no-edge diagnosis closed. Read-only TRAIN target semantics and source-clock review under a predeclared candidate design.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -277,15 +277,15 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "direction_family_added_value_20261030_001",
+    "current_research_id": "dynamic_mtf_train_gates_20261104",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Completed seventh matched variant through separate original training and recovered scoring chains.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/RUNTIME",
+    "latest_terminal_role": "Completed the 03 November historical dynamic-state fit and scoring; two windows consumed.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/ACTUAL_TERMINAL_REVIEW_001.json",
       "sha256": "56ff45cfb995c195bfacc8d83ebadd65ba844f344716b1aa8715842828e699ec"
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "One-use campaign must be materialized and pass whole-host fresh-boot, storage and resource guards. Physical ONLINE arrival/persistence remain unknown and no live readiness is claimed.",
+    "current_blocker": "Meaningful movement criterion and actual XAU receipt/ATR readiness remain unresolved. A separately qualified prefix-only candidate and fresh one-use admission are missing.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Continue read-only target and XAU arrival-clock assessment using saved artifacts. Define movement utility on TRAIN before any target or loss change; strict same-model OOF requires a separate prefix-normalized plan. The historical one-pass fit and scoring are consumed; training_enabled=false. No automatic native rerun, TEST, Exit, broker or trading.",
+    "next_action": "Review TRAIN target semantics and XAU receipt-clock evidence. Only the closed research specification defines a prospective prefix-normalized native endpoint candidate. No model execution admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19377,7 +19377,7 @@
       "replacement_is_not_campaign": true
     },
     "fresh_dynamic_state_replacement_oneuse_authorization_20261103": {
-      "status": "PRIVATE_REPLACEMENT_COMPLETE_CONSUMED_CONDITIONAL_ONEPASS_GATE_REVIEW_PENDING",
+      "status": "PRIVATE_REPLACEMENT_COMPLETE_CONSUMED_SUBSEQUENT_HISTORICAL_ONEPASS_CLOSED",
       "user_answer": "Ja, én kontroll og ett pass",
       "prior_failed_private_attempt_relaunch_authorized": false,
       "replacement_private_control": {
@@ -19416,7 +19416,7 @@
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_002/RECIPE.json",
         "sha256": "8eee375dc9efc7710629817afe5dc66a3db8c3fdfcf2b855f9462a682bea14e4"
       },
-      "private_campaign_preparation_authorized": true,
+      "private_campaign_preparation_authorized": false,
       "private_control_completed": true,
       "private_root_review": {
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/PRIVATE_QUALIFICATION_002/ACTUAL_ROOT_REVIEW.json",
@@ -19477,7 +19477,7 @@
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RECIPE.json",
         "sha256": "9ddf77864ff0550cfd3160fa3242e56c1de9df7afcd5acab37ca6e38b648a884"
       },
-      "campaign_preparation_authorized": true,
+      "campaign_preparation_authorized": false,
       "fit_completed": true,
       "scoring_completed": true,
       "train_passes_consumed": 1,
@@ -19813,6 +19813,21 @@
       "trading_authorized": false,
       "test_data_used": false,
       "observed_utc": "2026-11-03T20:59:25.429315+00:00"
+    },
+    "dynamic_mtf_train_gates_20261104": {
+      "status": "SPECIFICATION_FROZEN_NO_NATIVE_ADMISSION",
+      "specification": {
+        "path": "docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
+        "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
+      },
+      "fit_cutoff_utc_exclusive": "2024-10-01T00:00:00Z",
+      "train_oof_cutoff_utc_exclusive": "2025-01-01T00:00:00Z",
+      "fit_parents": 29849,
+      "oof_parents": 17753,
+      "model_calls_authorized": false,
+      "optimizer_updates_authorized": false,
+      "training_authorized": false,
+      "test_authorized": false
     }
   },
   "gc_order_flow_research_20261006": {
@@ -53767,7 +53782,7 @@
     "actual_boot_id": 597
   },
   "dynamic_mtf_state_onepass_fit_20261103_001": {
-    "status": "EXACT_HISTORICAL_ONEPASS_RECIPE_ADMITTED_METADATA_PREPARATION_ONLY_REBOOT_NOT_YET_APPROVED",
+    "status": "CONSUMED_FIT_AND_SCORING_COMPLETE_CLOSED_NO_RELAUNCH",
     "recipe": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RECIPE.json",
       "sha256": "9ddf77864ff0550cfd3160fa3242e56c1de9df7afcd5acab37ca6e38b648a884"
@@ -53791,8 +53806,8 @@
       "sha256": "3efd62feb6f8c4cfc1004627847c4828883bc918c6f8be0167045697456a6b80"
     },
     "max_invocations": 4,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 2,
+    "completed_invocations": 2,
     "relaunch_allowed": false,
     "training_rounds": 1,
     "automatic_repetition_authorized": false,
@@ -53802,18 +53817,18 @@
     "max_optimizer_updates": 2976,
     "train_parent_rows": 47602,
     "scope": "One historical event-time TRAIN pass; up to four guarded windows form one durable trajectory and one TRAIN/reused-development scoring. No second training pass or automatic repetition. Actual ONLINE arrival and persistence unproven. No TEST/Exit/broker/trading.",
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -53823,6 +53838,14 @@
     "physical_online_arrival_proven": false,
     "physical_online_persistence_proven": false,
     "live_readiness_or_economic_edge_qualified": false,
-    "partial_scoring_retry_automatically_authorized": false
+    "partial_scoring_retry_automatically_authorized": false,
+    "unclaimed_invocations_revoked": [
+      3,
+      4
+    ],
+    "terminal_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/ACTUAL_TERMINAL_REVIEW_001.json",
+      "sha256": "56ff45cfb995c195bfacc8d83ebadd65ba844f344716b1aa8715842828e699ec"
+    }
   }
 }
