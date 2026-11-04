@@ -128,6 +128,21 @@ Ved +10/+15 er senere modell-AUC 0,501/0,503 og rå candle-AUC 0,483/0,487; cand
 
 Den svake motsatte candle-rangeringen ved +5 ligger særlig på **etterpå valgte** rader der +1-klassen er uobserverbar: 3 282 av de 7 812 senere +5-retningsradene, hvorav 3 281 har flagg for ukjent intraminutt-rekkefølge. I denne gruppen er rå candle-AUC 0,459 (motsatt 0,541) og modell-AUC 0,482; blant 2 539 med også ukjent nåtilstand er de 0,454 og 0,483. På samme +5-mål med kjent +1-retning er rå candle-AUC 0,496 og modell-AUC 0,504. +1-observasjon og +5-NED/OPP er framtidig fasit, **ikke** operative filter; verken denne oppdelingen eller AUC gir dokumentert edge. Signert treklasse-radantall stemmer ved alle sju ledetider, og +5 candle-/modell-AUC har eksakt FP32-paritet med forrige kvittering. [Horisont-/sensurkvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_M5_CANDLE_LEAD_AND_FIRST_MASK_REVIEW.json) SHA-256 `ea2e1b4d31c04c0fd06eaaa5a4e9ee71de1d993c9f842287888139f18470bbf6`; ingen fit, native modellkall, TEST eller handel.
 
+### M5 +5: treklasseskåren peker ikke på sensurgruppen ved +1
+
+Den svake motsatte candle-AUC-en over gjelder bare senere NED/OPP-fasit. På **alle 8 980 observerte +5-treklassefasiter**, også FLATT, er modellens Brier 0,612158 mot matchet fryst Markov 0,607321. Nedenfor deles nøyaktig de samme radene etter om **framtidig +1-tilstand** er kjent NED/OPP, kjent FLATT eller uobserverbar. Positive Brier-forskjeller betyr svakere skår enn Markov. «FLATT-faktor» bytter bare modellens `P(FLATT)` inn i Markov; «retning» bytter bare modellens betingede NED/OPP-fordeling.
+
+| Framtidig +1-status | +5-rader | Full modell − Markov | Bare FLATT-faktor | Bare retning | Bidrag til samlet gap |
+|---|---:|---:|---:|---:|---:|
+| Kjent NED/OPP | 4 580 | +0,008915 | +0,002000 | +0,006057 | +0,004547 |
+| Kjent FLATT | 875 | +0,032086 | +0,029400 | +0,002226 | +0,003126 |
+| Uobserverbar | 3 525 | −0,007224 | −0,011808 | +0,004064 | −0,002836 |
+| **Alle** | **8 980** | **+0,004838** | **−0,000751** | **+0,004901** | **+0,004838** |
+
+Gruppen med uobserverbar +1 hjelper altså **samlet +5-Brier**, selv om dens betingede retningsrangering var svak. Hele samlede tapet kommer fra de to kjente +1-gruppene. Når +1 er kjent FLATT, er faktisk +5-FLATT-andel 32,11 %, mot modellens gjennomsnittlige 14,51 % og Markovs 20,80 %; her er FLATT-faktoren den største skårsvikten. Når +1 er uobserverbar, er faktisk +5-FLATT 6,89 %, modellens 10,08 % og Markovs 16,38 %; lavere modellandel hjelper. Full-gapets fortegn innen hver gruppe gjentas i januar, februar og mars. På TRAIN in-sample er +5-gapet ved kjent +1-FLATT bare +0,006387 mot +0,032086 senere, men dette lokaliserer ikke en treningsårsak.
+
+Oppdelingen bruker framtidig fasit og er **bare en diagnose**, aldri et tilgjengelig prognosefilter. Faktorbyttene virker sammen og summerer ikke til full modell. Radantall og samlet modell-/Markov-/faktor-Brier gjenskaper signerte rapporter og forrige faktorkvittering innen `1,3×10⁻¹⁵`. Dataene er gjenbrukt utvikling med overlappende utfall; ingen uavhengig retningsedge, tapsvektfeil eller handelsregel er påvist. [Treklasse-/sensurkvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_M5_NATIVE_BRIER_BY_FIRST_TARGET_STATUS.json) SHA-256 `2914b6570809aa36c3aface3e2ae60298973f408436681f89c8bc529d2f3dada`; null nye modellkall, fit eller TEST.
+
 ### Samme enkle candlekontroll på alle fem tidsrammer
 
 For hver tidsramme brukte vi `close_open_atr` fra siste **fullførte native candle** ved issue. Fortegnet (med/mot candle) ble valgt bare fra slutt-TRAIN, så ble den samme regelen målt på gjenbrukt senere utvikling. Alle fem cache-featurefilene er hashkontrollert mot inputmanifestet. Dette er en lesende, betinget NED/OPP-rangering ved én full native ledetid per TF, ikke en ny modell eller et nytt mål.
@@ -622,6 +637,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_M5_CANDLE_CURRENT_STATE_STRATIFICATION.json` | `1e09c2087d19d66383eaa96abb3aa0a76136f6026577f7fd71ca5e4bc8fd3757` | M5 +5 candlefortegn og modellskår innen kjent/ukjent nåtilstand, med ukeblokkintervall for ukjentgruppen. |
 | `SAVED_ROUTED_M5_CANDLE_REVERSAL_AUDIT.json` | `081969b226d06f05c551629a09ac2210bcd62d8bff282cca3a9f9f7f93e0c501` | Lesende +5 retningsrangering fra allerede rutet M5-candleverdi mot lagret modell/Markov, kildefortegn og ukeblokker. |
 | `SAVED_M5_CANDLE_LEAD_AND_FIRST_MASK_REVIEW.json` | `ea2e1b4d31c04c0fd06eaaa5a4e9ee71de1d993c9f842287888139f18470bbf6` | M5 candle og lagret modell ved sju faste ledetider; identiske +1/+5-foreldre og +5-sensurgrupper, med signert rad- og eldre AUC-paritet. |
+| `SAVED_M5_NATIVE_BRIER_BY_FIRST_TARGET_STATUS.json` | `2914b6570809aa36c3aface3e2ae60298973f408436681f89c8bc529d2f3dada` | M5 +5 treklasse-Brier og faktorbytter på identiske rader delt etter framtidig +1-observerbarhet, med signert totalparitet. |
 | `SAVED_NATIVE_LEAD_MONTHLY_DIRECTION_AUC.json` | `479a506e958ac75ccbdef905748953d1c3b5f127d0ee632400739c734f42c413` | Samme native-ledetid og betinget UP/NED-skår delt på issue-måned; overlappende, beskrivende rader. |
 | `SAVED_CURRENT_STATE_CONDITIONAL_NATIVE_RANK_REVIEW.json` | `13aa797e6b606217d10d3f86baa16b3dc48a6b034089a40b3febeccbf0a248db` | UP/NED-AUC innen historisk nåtilstand på fem TF, D1 per måned og enkle monotone tid-/GC-dekningskontroller. |
 | `SAVED_STATE_GROUP_HORIZON_SCORE_DECOMPOSITION.json` | `62e16783993c640b14b4c0b0f1df271af6837976d90f591caf1b9c472fd9efb2` | Signert Brier-gap per ledeminutt og M5/D1 native-ledetid gruppert etter historisk nåtilstand, med eksakt rapportparitet. |
