@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T10:54:37.476529+00:00",
-  "status": "DYNAMIC_MTF_GC_D1_BEAR_SOURCE_TRACE_COMPLETE_TWO_BREAKS_NO_ORIGIN_TRAINING_CLOSED_20261104",
+  "observed_utc": "2026-11-04T11:21:06.416249+00:00",
+  "status": "GCZ4_TWO_WEEKEND_PUBLIC_ARCHIVE_REVIEW_ADMITTED_TRAINING_CLOSED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "The 214-date trace is consumed. Await a separate source-scope decision for the two verified GCZ4 windows before any external retrieval. Actual GC market status, a change to the reset contract and model fit are not admitted by this scope. December remains reserved.",
+  "next_action": "Run the single read-only, source-bound review for GCZ4. Determine October and November separately against the registered historical evidence standard. No feature change or scoring admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Single capped TRAIN source trace completed; every date reconciled and all eleven fields including missingness reproduced. Both eligible-price breaks followed whole-bucket gaps and lack a strictly earlier post-gap bullish origin.",
+    "current_activity": "One authorized public CME source review for GCZ4 in the two exact 2024 weekend intervals.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -277,7 +277,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "dynamic_mtf_gc_d1_bear_source_trace_20261104_001",
+    "current_research_id": "gc_d1_gcz4_historical_closure_review_20261104_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -285,7 +285,7 @@
     "existing_indicator_surface_changed": false,
     "training_started": true,
     "latest_terminal_role": "One consumed source-only trace of all 214 pre-December GC D1 donor dates. No normalization, training or held-out scoring.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001",
+    "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/TERMINAL.json",
       "sha256": "e02be63aaeae6f84ffd10e106c619e9b1e9ca32c0fa952e4bd3f89636f33d904"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "The 214-date trace is consumed. Await a separate source-scope decision for the two verified GCZ4 windows before any external retrieval. Actual GC market status, a change to the reset contract and model fit are not admitted by this scope. December remains reserved.",
+    "next_action": "Run the single read-only, source-bound review for GCZ4. Determine October and November separately against the registered historical evidence standard. No feature change or scoring admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20175,7 +20175,7 @@
       }
     },
     "gc_d1_bear_closure_evidence_scope_20261104": {
-      "status": "SCOPE_ONLY_HISTORICAL_EXCHANGE_STATUS_UNVERIFIED",
+      "status": "EXTERNAL_LOOKUP_ADMITTED_ONLY_BY_BOUND_SUCCESSOR",
       "instrument": {
         "venue": "COMEX",
         "product": "Gold futures",
@@ -20227,7 +20227,8 @@
       "execution_authorized": false,
       "external_retrieval_authorized": false,
       "model_calls_authorized": false,
-      "test_authorized": false
+      "test_authorized": false,
+      "current_stage": "gc_d1_gcz4_historical_closure_review_20261104_001"
     }
   },
   "gc_order_flow_research_20261006": {
@@ -22792,7 +22793,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T10:54:37.476529+00:00",
+  "updated_utc": "2026-11-04T11:21:06.416249+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -54630,5 +54631,28 @@
     },
     "conclusion": "The signed donor and current deterministic feature owner agree on all 214 dates. Of 115 observed candles with a confirmed low, 113 had no new downward break; the only two breaks had no strictly earlier bullish origin since the last whole-bucket gap on the same contract. None of the seven values, including inactive state, is observable under the existing contract. A separate creation-event mask could describe observed no-break rows but cannot supply zone geometry.",
     "decision_needed": "Source path unchanged. To assess carrying the prior bullish origin over the two specific gaps, bind historical GC-specific exchange status, exact session and exception times for all four missing buckets, plus contract and source continuity. A qualified calendar and a separately approved feature contract are required before changing resets. Genuinely qualifying observations on the fixed prefix are another route. No cutoff search or general zero-fill."
+  },
+  "gc_d1_gcz4_historical_closure_review_20261104_001": {
+    "status": "ADMITTED_ONE_PUBLIC_CME_SOURCE_REVIEW",
+    "scope": "One read-only, free review of public CME Group / COMEX historical market-status and trading-schedule archives. No operator, vendor or venue contact. Restored donor and stored conventional-hours review are used as metadata only.",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001",
+    "manifest": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/MANIFEST.json",
+      "sha256": "53a7cda75711390f1794275706563afa5f3291ec7477ef25507bec9ddc8db87a"
+    },
+    "previous_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/TERMINAL.json",
+      "sha256": "e02be63aaeae6f84ffd10e106c619e9b1e9ca32c0fa952e4bd3f89636f33d904"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "external_retrieval_authorized": true,
+    "reset_change_authorized": false,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_authorized": false,
+    "broker_authorized": false,
+    "trading_authorized": false
   }
 }
