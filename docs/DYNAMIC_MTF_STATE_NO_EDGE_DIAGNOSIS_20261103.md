@@ -440,6 +440,22 @@ Den signerte senere rapporten viser hvor forskjellig den observerte **sekvens-NL
 
 Sekvens-NLL bruker observert tidligere tilstand der hele banen er kjent og marginaliserer ukjente mellomsteg; prognosen må derimot føre **modellens egne** sannsynligheter fremover. Betinget banetap og marginal logloss måler derfor ulike ting, og den lavere sekvens-NLL-en kan ikke brukes som bevis for framtidig presisjon. Særlig D1s 0,0114 mot 0,6781 illustrerer dette. Modellen taper mot Markov i marginal logloss på alle fem; tallforskjellen alene beviser verken feil i rekursjonen eller at en annen lossvekt ville løse problemet.
 
+### Tilstandsvarighet er ikke i den treklassede prognosekjeden
+
+Den fryste målbyggeren bærer løpende lave/høye prisekstremer når retningen oppdateres; den fryste prognosekontrakten faktoriserer derimot framtidsbanen som førsteordens overgang fra **bare forrige framtidige klasse**, issue-representasjon og ledeminutt. To mulige framtidsbaner med samme issue, ledeminutt og siste klasse, men ulik tid siden siste skifte, får dermed samme overgangsrad. Det er en konkret uttrykksbegrensning for mål med baneavhengige ekstremer, ikke en påvist kodefeil.
+
+På den **unike M1-målserien** er følgende andel av neste observerte minutt et nytt klasseskifte. Hver trippel har tre sammenhengende M1-gyldighetstider og fullt observerbar lokal bane; «fortsatt» betyr at klassen også var lik for to minutter siden, «ny» at den nettopp var byttet inn. Dette er overlappende tripler, ikke uavhengige hendelser.
+
+| Retningstilstand | TRAIN fortsatt / ny | Senere fortsatt / ny | Senere tripler ny |
+|---|---:|---:|---:|
+| M5 NED/OPP | 27,27 / 12,73 % | 27,11 / 13,76 % | 3 851 |
+| M15 NED/OPP | 10,44 / 3,50 % | 10,42 / 3,67 % | 4 412 |
+| H1 NED/OPP | 3,12 / 0,78 % | 3,14 / 0,64 % | 2 046 |
+
+M5-FLATT har motsatt mønster på senere strengt observerbare baner: 29,07 % neste-minutts utgang etter fortsatt FLATT, 36,74 % rett etter inntreden. I den bredere masken med observerte klasser, men uten krav om fullt kjent lokal bane, har M5 og M15 høyere retningsskifterate etter fortsatt tilstand i **alle 24 UTC-timer** med minst 20 tripler av hver type. H4/D1 har få nye tilstander og særlig få umiddelbare neste skifter, så de gir ikke samme presisjon.
+
+Dette viser varighets-/historieavhengighet i de **observerte etikettene**. Det beviser ikke at den betingede prosessen etter alle issue-features er ikke-Markov, eller at dette alene forklarer modellens tap mot en også førsteordens Markov-referanse. En framtidig kandidat bør først måle marginal retning, FLATT og første skifte strengt kronologisk; dersom den målte skiftefeilen krever det, kan en liten varighets- eller latent-ekstremtilstand vurderes med samme fryste referanser. Ingen ny arkitektur eller trening følger automatisk av denne diagnosen. [Tilstandsrekkefølge](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_TARGET_SECOND_ORDER_STATE_HAZARD_REVIEW.json) SHA-256 `7550897c63b7aa4b48c47375d79a1c0fb8bae0bb22ab6e0c01d695af545bd2cc`; [streng banesensitivitet](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_TARGET_SECOND_ORDER_PATH_SENSITIVITY.json) SHA-256 `a6707f3ae5557091dddce36f7d9aa2f18dde791b81fc1246ff689f008b7210e1`; ingen fit/modellkall.
+
 ## Samsvar med brukerens prognosemål
 
 Modellen får historisk nåtilstand og genuine MTF-indikatorer og trenes mot framtidige lokale OPP/NED/FLATT-klasser på alle fem tidsrammer. Den bruker ingen fast prislinje ved prognosestart, og reverseringer kan gi flere framtidige retningsskifter. På dette punktet samsvarer målkontrakten med den løpende markedsbeskrivelsen.
@@ -508,6 +524,8 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_H4_ACTIVE_MINUTE_MARKOV_COUNTERFACTUAL.json` | `4976853286ec74386ec1e585c0c5d9b7e28f3e996f092e501518cc013be5daa3` | Samme fryste Markov og H4-endepunkter med 176 planlagte aktive mot 240 veggklokkesteg; opprinnelig skårparitet. |
 | `SAVED_NATIVE_ACTIVE_CLOCK_MARKOV_FIVE_TF_REVIEW.json` | `d112c18eeb52291c4af5c3c200f3e9b6bc2f83ca6f59eb58c7dbce28470285b1` | Native ledetid på fem TF med planlagt aktivtids-Markov; signert modell/Markov-paritet, fortsatt ugunstig senere gap. |
 | `SAVED_H4_CLOSURE_CURRENT_STATE_FLAT_REVIEW.json` | `efe8a2049b6a8f13046ea48f517d47a6d62a8ea63b99948a14a0da6ca8290ec7` | H4-FLATT-feilen ved kjent pause består innen NED/FLATT/OPP nåtilstand; eksakt pooled skårparitet. |
+| `SAVED_TARGET_SECOND_ORDER_STATE_HAZARD_REVIEW.json` | `7550897c63b7aa4b48c47375d79a1c0fb8bae0bb22ab6e0c01d695af545bd2cc` | Unike observerte M1-tripler: neste klasseskifte etter fortsatt kontra nylig inntrådt tilstand, TRAIN og senere. |
+| `SAVED_TARGET_SECOND_ORDER_PATH_SENSITIVITY.json` | `a6707f3ae5557091dddce36f7d9aa2f18dde791b81fc1246ff689f008b7210e1` | Samme varighetskontroll med streng `path_observed`-maske; originalt trippelutvalg har eksakt paritet. |
 | `SAVED_MTF_LAST_CLOSED_CANDLE_NATIVE_DIRECTION_AUDIT.json` | `d5e4e26e4fb3307f2317cc75bf364458520d2ac6bfe7b56724d49ecb1a11ef26` | TRAIN-valgt candlefortegn mot modell og matchet Markov ved én native ledetid på alle fem TF, med beskrivende ukeblokker. |
 | `SAVED_M5_CANDLE_CURRENT_STATE_STRATIFICATION.json` | `1e09c2087d19d66383eaa96abb3aa0a76136f6026577f7fd71ca5e4bc8fd3757` | M5 +5 candlefortegn og modellskår innen kjent/ukjent nåtilstand, med ukeblokkintervall for ukjentgruppen. |
 | `SAVED_ROUTED_M5_CANDLE_REVERSAL_AUDIT.json` | `081969b226d06f05c551629a09ac2210bcd62d8bff282cca3a9f9f7f93e0c501` | Lesende +5 retningsrangering fra allerede rutet M5-candleverdi mot lagret modell/Markov, kildefortegn og ukeblokker. |
