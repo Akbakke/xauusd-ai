@@ -32,6 +32,17 @@ Modell og Markov ble vurdert på identiske modne, observerte målceller innen hv
 
 TRAIN er in-sample for sluttmodellen og derfor optimistisk. Reverseringen på M5–H4 er en dokumentert generaliseringssvikt relativt til samme referanse, ikke bevis for én bestemt årsak som regimebytte eller overtilpasning. D1s gap er også en TRAIN-fit-/kalibreringssvikt. Logloss har samme fortegnsmønster: M5–H4 bedre enn Markov på TRAIN, alle fem svakere senere. Brier-gapet var positivt i hver av januar, februar og mars 2025 for hver tidsramme. Ukeblokkintervallene er beskrivende: minuttsmål og foreldre overlapper, og perioden er brukt til utvikling før. De er ikke ny, uavhengig validering.
 
+### D1: sterkt overlappende utfallsrader
+
+Ved D1s native +1 440 minutt er 30 976 observerte ikke-FLATT TRAIN-rader fordelt på bare 164 UTC-utfallsdager; senere er 13 180 rader fordelt på 61 dager. Blant etterfølgende observerte issue-tider med fem minutters mellomrom beholder D1-fasiten samme NED/OPP-klasse i 99,47 % på TRAIN og 99,40 % senere. Den deterministiske inndelingen i sammenhengende like klasseforløp gir 340/134 forløp. Dette er **ikke** 340/134 uavhengige markedsforsøk, men viser hvor sterkt radene er knyttet sammen. Til sammenligning er M5s nabofasit lik i omtrent 49 % av slike par.
+
+| D1, betinget OPP/NED | Radvektet modell-AUC | Lik vekt per UTC-utfallsdag | Én gjennomsnittsskår per klasseforløp |
+|---|---:|---:|---:|
+| Slutt-TRAIN, in-sample | 0,6633 | 0,6425 | 0,5909 |
+| Gjenbrukt senere utvikling | 0,4841 | 0,4684 | 0,4806 |
+
+Dette er ulike vektinger og derfor ulike estimander; forløpene defineres dessuten fra framtidig fasit og brukes bare som følsomhetskontroll. Den høye TRAIN-rangeringen er følsom for analyseenhet, men overlever dagvekting. Den senere svikten består. På alle fem TF er modellens senere treklasse-Brier-gap mot matchet Markov fortsatt positivt når hver utfallsdag får lik vekt. For D1 ved +1 440 min er gapet −0,013175 på TRAIN og +0,021423 senere med ordinær radvekt, mot −0,012426 og +0,023081 med lik dagvekt. De ordinære tallene ble gjenskapt mot den signerte rapporten. Overlappende mål kan dermed overdrive opplevd bevismengde, men dagvekting fjerner ikke den observerte senere tapsforskjellen. [Klyngekontroll](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_NATIVE_TARGET_CLUSTERING_SENSITIVITY.json) SHA-256 `c6fa51b69c3830536b4d08208b90c12a9d957a8d1d5791edc3593c68cbecc306`.
+
 På hele framtidsgriden er deler av generaliseringsgapet synlig som skift i **kalibrering per klasse**. Tallene nedenfor er aggregerte, sterkt overlappende observerte celler fra de signerte rapportene:
 
 | Tidsramme | TRAIN faktisk OPP | Senere faktisk / modellens middel P(OPP) | Senere faktisk / modellens middel P(FLATT) |
@@ -318,7 +329,7 @@ De neste portene er **beslutninger før eventuell kodeendring og én ny historis
 |---|---|---|
 | Mål | Behold 0,5 ATR som kandidat inntil TRAIN-only vurdering av «verdt å fange», M5s retningssensur og D1s sjeldne FLATT; enhver endring krever ny kausal målmaterialisering på alle fem TF. | Åpen |
 | Retningskandidat | Én forhåndsdefinert endring som direkte trener/scorer marginal treklasse og betinget retning ved fastsatte ledetider, bevarer dynamisk FLATT/OPP/NED og all fysisk input. Ingen ekstra binær-loss-runde som første tiltak. | Ikke vedtatt eller kodet |
-| Måling | Strengt kronologisk TRAIN-OOF med prefixnormalisering og samme modellidentitet; full treklasse-Brier/logloss, betinget retningsrangering, binær aktivitet og første utgang/retur separat per TF. Markov, klasseprior og candlefortegn må også bestemmes fra bare hvert tidligere TRAIN-prefiks før OOF-radene scores. Gjenbrukt utvikling er bare diagnostikk. | Mangler |
+| Måling | Strengt kronologisk TRAIN-OOF med prefixnormalisering og samme modellidentitet; full treklasse-Brier/logloss, betinget retningsrangering, binær aktivitet og første utgang/retur separat per TF, med utfallsdagblokker og forløpsfølsomhet på lange TF. Markov, klasseprior og candlefortegn må også bestemmes fra bare hvert tidligere TRAIN-prefiks før OOF-radene scores. Gjenbrukt utvikling er bare diagnostikk. | Mangler |
 | Kjøring | Høyst én eksakt capped kontroll og ett pass, med trygg omstart før modellsjekk, frosset kilde, forhåndslåst stoppregel og ingen automatisk omprøving. | `training_enabled=false`; ingen plan innrømmet |
 | Uavhengig bruk | Faktisk XAU-M1/ATR-mottak og restartparitet før ONLINE. Forseglet TEST forblir stengt; bare vedtatt månedlig forward-journal kan gi ny uavhengig prognoseevidens. | ONLINE/edge ukjent |
 
@@ -355,6 +366,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_CURRENT_INPUT_LINEAGE_PARITY_REVIEW.json` | `0dbc16a860829f34d260ddf1187b83ea1ba1d23cd4ab1749335258379a77d589` | Aktuell inputmanifestparitet mot tidligere fysisk fullprofilrevisjon og GC-D1-historikkstøtte uten overlapp. |
 | `SAVED_GC_D1_SUPPORT_SCORE_REVIEW.json` | `b52859791a9ab84509958c612d4a260694728458394965d3361eb1911e36a2b8` | Lesende D1-Brier per GC-historikkstøtte, med eksakt pooled paritet mot signert TRAIN-/utviklingsrapport; ingen kausal attribusjon. |
 | `SAVED_NATIVE_LEAD_DIRECTION_SCORE_DISTRIBUTION.json` | `5e502219f354d69f76e25435bde8947b502ba52cfdb95870899a57f0fd60b179` | Lagret UP/NED-skårspredning og AUC på én full native tidsramme, TRAIN in-sample mot gjenbrukt utvikling og fryst Markov. |
+| `SAVED_NATIVE_TARGET_CLUSTERING_SENSITIVITY.json` | `c6fa51b69c3830536b4d08208b90c12a9d957a8d1d5791edc3593c68cbecc306` | D1s utfallsdager/klasseforløp, AUC ved rad-/dag-/forløpsvekting og native treklasse-Brier med rapportparitet. |
 | `SAVED_CANDLE_NORMALIZATION_RANK_PARITY.json` | `e208c7c7b8cf1d16c562ecc0846edfc5ad3a175a1785a3206c2c8d13090924e7` | Eksakt issue-klokke og rå/normalisert candle-AUC på alle fem TF, med kildebundet positiv asinh-skala og uten ranginversjon. |
 | `SAVED_MTF_LAST_CLOSED_CANDLE_NATIVE_DIRECTION_AUDIT.json` | `d5e4e26e4fb3307f2317cc75bf364458520d2ac6bfe7b56724d49ecb1a11ef26` | TRAIN-valgt candlefortegn mot modell og matchet Markov ved én native ledetid på alle fem TF, med beskrivende ukeblokker. |
 | `SAVED_M5_CANDLE_CURRENT_STATE_STRATIFICATION.json` | `1e09c2087d19d66383eaa96abb3aa0a76136f6026577f7fd71ca5e4bc8fd3757` | M5 +5 candlefortegn og modellskår innen kjent/ukjent nåtilstand, med ukeblokkintervall for ukjentgruppen. |
