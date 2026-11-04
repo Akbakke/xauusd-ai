@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T11:39:18.788304+00:00",
-  "status": "GCZ4_TWO_WEEKEND_PUBLIC_ARCHIVE_REVIEW_CONSUMED_BOTH_UNKNOWN_TRAINING_CLOSED_20261104",
+  "observed_utc": "2026-11-04T14:51:53.442969+00:00",
+  "status": "GC_STATUS_AND_XAU_CLOCK_SOURCE_CHECK_ADMITTED_TRAINING_CLOSED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Keep both GCZ4 gaps UNKNOWN and preserve the seven mandatory bearish GC D1 fields and their masks. The public review is consumed. Reconsider only on new GC-specific historical production states or an effective schedule with a complete applicable exception history, then decide reset semantics separately. Physical XAU-M1 arrival/ATR publication remains a separate evidence gate; no normalization or model run is admitted.",
+  "next_action": "One separate, zero-spend evidence check of the CME production-status distribution for GCZ4 and existing same-feed XAU receipt/ATR publication journals, limited to the bound source manifest.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Two-window public CME/COMEX review is complete and consumed. Both GCZ4 matching states remain UNKNOWN; the ordinary schedule alone does not qualify carry across either gap.",
+    "current_activity": "One separate, zero-spend evidence check of the CME production-status distribution for GCZ4 and existing same-feed XAU receipt/ATR publication journals, limited to the bound source manifest.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -277,7 +277,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "gc_d1_gcz4_historical_closure_review_20261104_001",
+    "current_research_id": "gc_status_and_xau_clock_evidence_20261104_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Keep both GCZ4 gaps UNKNOWN and preserve the seven mandatory bearish GC D1 fields and their masks. The public review is consumed. Reconsider only on new GC-specific historical production states or an effective schedule with a complete applicable exception history, then decide reset semantics separately. Physical XAU-M1 arrival/ATR publication remains a separate evidence gate; no normalization or model run is admitted.",
+    "next_action": "One separate, zero-spend evidence check of the CME production-status distribution for GCZ4 and existing same-feed XAU receipt/ATR publication journals, limited to the bound source manifest.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22797,7 +22797,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T11:39:18.788304+00:00",
+  "updated_utc": "2026-11-04T14:51:53.442969+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -54698,5 +54698,29 @@
       }
     ],
     "next_evidence": "For each registered window separately obtain an authoritative dated GCZ4 or documented GC-group mapping plus bracketing production matching-state history, or the effective historical product schedule and a complete record of applicable exceptions/corrections. Bind time zone, inclusive/exclusive boundaries, version, publication/as-of time before the forecast and source identity. One confirmed interior matching-open event would refute full closure; missing rows do not prove closure."
+  },
+  "gc_status_and_xau_clock_evidence_20261104_001": {
+    "status": "ADMITTED_ONE_ZERO_SPEND_SOURCE_REVIEW",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001",
+    "manifest": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/MANIFEST.json",
+      "sha256": "6f664576b0f979e14e5c69734c92e7a21339c3545b98e70d79f69a6b94351637"
+    },
+    "prior_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/TERMINAL.json",
+      "sha256": "2d329570652a4f9b0f0791b873197b9814d6cca5e422d3e1122c17d4c18641d9"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "read_only_metadata_authorized": true,
+    "zero_quoted_status_only_conditional": true,
+    "spending_authorized": false,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "reset_change_authorized": false,
+    "test_authorized": false,
+    "broker_authorized": false,
+    "trading_authorized": false
   }
 }

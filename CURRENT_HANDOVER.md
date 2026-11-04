@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+**04.11 – Ny kildekontroll.** Den eksisterende Databento-distribusjonen av CME-status og lokale XAU-kildejournaler undersøkes én gang. Kildene, de to GCZ4-intervallene, kostnadstaket på 0 USD og beviskravene er bundet i [manifestet](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/MANIFEST.json).
+
 **04.11 – Faktisk stenging i GCZ4 er ukjent for begge helgene.** Én offentlig, gratis arkivkontroll er fullført. Begge 48-timersintervallene ligger innenfor ordinær helgestenging for gull, men ingen av de gjennomgåtte CME-kildene dokumenterte hele det faktiske tidsrommet eller en historisk plan med alle gjeldende unntak. Vi fant heller ingen bekreftet åpning for matching i noen av hullene. Alle tider nedenfor er UTC; sluttidspunktet er ikke med. [Kilder og resultat](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/RESULT.json) · [Terminal](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/TERMINAL.json)
 
 - **4. okt. kl. 22–6. okt. kl. 22: UKJENT.** Ordinær plan tilsier stengt fra fredag kl. 21 til søndag kl. 22. [CME-varselet for 5. oktober](https://www.cmegroup.com/notices/brokertec/2024/10/20241003.html) annonserte en lørdagstest for BrokerTec. «GC Baskets» i samme varsel gjelder spanske repoer. Ingen av delene dokumenterer handel i gullkontrakten.
