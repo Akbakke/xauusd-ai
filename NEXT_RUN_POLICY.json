@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T09:30:29.227740+00:00",
-  "status": "DYNAMIC_MTF_TRAIN_PREFIX_DATA_ONLY_ADMITTED_MODEL_CLOSED_20261104",
+  "observed_utc": "2026-11-04T09:40:08.160377+00:00",
+  "status": "DYNAMIC_MTF_TRAIN_PREFIX_DATA_COMPLETE_CANDIDATE_BLOCKED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Execute the new one-use capped CPU data gate only. Preserve both measured blockers and physically bounded TRAIN target/reference evidence.",
+  "next_action": "Keep the registered 01 October candidate closed. Await a decision on one finitely scoped data-only feasibility proposal for 01 December and censored D1 event-minute scoring. No model, TEST or trading admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Prepare a separately bound data-only publication for 29849 fit parents and revalidate existing exact physical support. Model admission closed.",
+    "current_activity": "One capped TRAIN-only data gate completed. Physical targets and Markov/prior are available; all mandatory input support does not exist in the 29849 fit prefix. No normalization or model fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -277,18 +277,18 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "dynamic_mtf_train_gates_20261104",
+    "current_research_id": "dynamic_mtf_train_prefix_data_20261104_001",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Completed the 03 November historical dynamic-state fit and scoring; two windows consumed.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RUNTIME",
+    "latest_terminal_role": "Verified one data publication, no fitted model; original process exit 0. The October-geometry candidate is blocked.",
+    "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/ACTUAL_TERMINAL_REVIEW_001.json",
-      "sha256": "56ff45cfb995c195bfacc8d83ebadd65ba844f344716b1aa8715842828e699ec"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/ACTUAL_DATA_GATE_REVIEW.json",
+      "sha256": "ad8bbf6e106806a7db6b3dc6dde415b6684c2e557847f89140bc51703cfda623"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The 29849-parent target view and physical input support/normalization, endpoint-loss implementation and qualification, and fresh one-use model admission are missing. Physical XAU/ATR timing and restart parity are unknown for ONLINE.",
+    "current_blocker": "Exact physical prefix lacks 51 genuine GC-D1 field observations in each of three input paths; all 47602 historical TRAIN origins also lack continuous 1440-minute coverage required to confirm a negative day event. Separate design decision is needed. Physical XAU arrival / ATR-ready / restart remain unknown.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute the new one-use capped CPU data gate only. Preserve both measured blockers and physically bounded TRAIN target/reference evidence.",
+    "next_action": "Keep the registered 01 October candidate closed. Await a decision on one finitely scoped data-only feasibility proposal for 01 December and censored D1 event-minute scoring. No model, TEST or trading admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19815,7 +19815,7 @@
       "observed_utc": "2026-11-03T20:59:25.429315+00:00"
     },
     "dynamic_mtf_train_gates_20261104": {
-      "status": "TRAIN_PREFIX_TARGET_REVIEW_COMPLETE_SINGLE_OOF_CANDIDATE_SPECIFIED_NOT_ADMITTED",
+      "status": "REGISTERED_CANDIDATE_BLOCKED_EXACT_PREFIX_SUPPORT_AND_DAY_EVENT_OBSERVABILITY",
       "specification": {
         "path": "docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
         "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
@@ -20068,7 +20068,103 @@
         "new_model_calls": 0,
         "new_optimizer_steps": 0
       },
-      "long_term_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289"
+      "long_term_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
+      "fit_target_view": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_TARGETS/SERIES.json",
+        "sha256": "288d9e04c56337e0413cf29f0235e810ae896d3bc6be3f482eaa84b25ff4d1cb"
+      },
+      "fit_target_calendar": {
+        "closure_authority": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_CALENDAR/CLOSURE_AUTHORITY.json",
+          "sha256": "51080e3e6ba82dd85d25dc37d481d822a7a14f00169a5d73ad91abf6e8766bc2"
+        },
+        "exact_schedule": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_CALENDAR/EXACT_SCHEDULE.json",
+          "sha256": "1a09c0096c31327f870286ff340a342dc5fca59e1e746ba9ebcf7994baea4b4a"
+        },
+        "published_calendar": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/PUBLISHED_CALENDAR.json",
+          "sha256": "381f1879f97c1cd8d0103ab137d23076c0da3729ae19ec10e737461229965eda"
+        },
+        "source_reference": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_CALENDAR/SOURCE_REFERENCE.json",
+          "sha256": "9e035125d3d170b3645948cc24c9351c316826bf997b2b4a0e73e6e882029989"
+        }
+      },
+      "fit_counts": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_COUNTS.json",
+        "sha256": "2c6162c05c091d40da7d6124f1ed46a46d1703571d5f7dc041e87fe70668414a"
+      },
+      "fit_prior_markov": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_PRIOR.json",
+        "sha256": "22380d9c0cd153b52829136d1f4bf9f6c49dbc99b9a3339bf15d9b124fef79ae"
+      },
+      "data_port_terminal": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/TERMINAL.json",
+        "sha256": "89fad3ba8406151b34e5bda7840441d5425cb873fcd750f7f95c51db3271278e"
+      },
+      "data_port_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/ACTUAL_DATA_GATE_REVIEW.json",
+        "sha256": "ad8bbf6e106806a7db6b3dc6dde415b6684c2e557847f89140bc51703cfda623"
+      },
+      "fit_input_support": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/PREFIX_INPUT_SUPPORT.json",
+        "sha256": "9a9ab44f6edebdd04dfe030626d9a9f9a95c178ca89d7fddc98fd31ab5337bba"
+      },
+      "new_normalization_fits": 0,
+      "registered_native_candidate_eligible": false,
+      "fit_input_zero_support_fields": 51,
+      "input_blocked_coordinates_per_surface": {
+        "ctx_cont": 51,
+        "gc_mtf_d1": 51,
+        "signal": 51
+      },
+      "d1_native_event_gate": {
+        "status": "BOTH_OUTCOMES_CANNOT_BE_OBSERVED_UNDER_REGISTERED_RULE",
+        "basis": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_DYNAMIC_STATE_PREFIX_OBSERVABILITY.json",
+          "sha256": "21a685f1367b075f8754ea1e8c7ed5bf529808e0a3d38241e1444d6c1b05c264"
+        },
+        "original_train_parents": 47602,
+        "whole_1440m_clock_complete": 0,
+        "fit_prefix_clock": {
+          "complete_wall_minute_source_prefixes": 0,
+          "exact_m1_endpoints": 23457,
+          "lead_minutes": 1440,
+          "mature_calendar_endpoints": 29574,
+          "observed_D1_endpoints": 18799,
+          "parents": 29849
+        },
+        "fit_only_interval_event_support": {
+          "first_exit": {
+            "at_risk_issue_minutes": 7199987,
+            "distinct_event_minutes": 107,
+            "distinct_event_utc_days": 65,
+            "event_parent_issues": 10900,
+            "observed_nonevent_issue_minutes": 7189087
+          },
+          "first_exit_then_return": {
+            "at_risk_issue_minutes": 11156619,
+            "distinct_event_minutes": 39,
+            "distinct_event_utc_days": 30,
+            "event_parent_issues": 3925,
+            "observed_nonevent_issue_minutes": 11152694
+          }
+        },
+        "full_horizon_no_exit_or_no_return_confirmations": 0,
+        "estimated_full_horizon_risk": null
+      },
+      "proposed_data_only_revision": {
+        "status": "PROPOSED_AWAITING_SPECIFIC_OPERATOR_DECISION",
+        "admitted": false,
+        "single_calendar_choice": "2024-12-01T00:00:00Z",
+        "fit_parents_geometry_only": 41866,
+        "later_parents_geometry_only": 5736,
+        "selection_basis": "Last full UTC calendar month inside original TRAIN held out; input clock counts only. No December outcomes or new normalizer/checkpoint/model inspected by this gate.",
+        "candidate": "Same endpoint-loss hypothesis, dynamic classes and five full input timeframes. Keep the registered 01 October verdict.",
+        "proposed_D1_event_estimand": "First-exit and first-exit-then-return hazards scored on paired, fully observed consecutive M1 closes while still at risk; stop at first censor/occurrence, report distinct event days and observed support. D1 +1440 marginal endpoint remains a separate primary gate. No full-day cumulative event claim from censored data.",
+        "stop": "One data check at this cutoff. Missing genuine support or unmeasurable risk sets stop the proposal. No search of dates, no predictive fit and no model admission."
+      }
     }
   },
   "gc_order_flow_research_20261006": {
@@ -54090,7 +54186,7 @@
     }
   },
   "dynamic_mtf_train_prefix_data_20261104_001": {
-    "status": "ADMITTED_ONE_DATA_PUBLICATION_NO_FIT",
+    "status": "CONSUMED_DATA_PUBLICATION_COMPLETE_INPUT_SUPPORT_BLOCK_NATIVE_CLOSED",
     "operator_request": "04.11.2026: Ja, kjør neste steg, lag deg et langsiktig mål og følg dette.",
     "scope": "Physical fit-only target/calendar and fixed TRAIN prior. Verify measured support on identical input prefix against original live file identities. No statistical or model fit.",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001",
@@ -54118,10 +54214,10 @@
       "numerical_threads": 1
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "fit_target_view_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "fit_target_view_authorized": false,
     "normalization_fit_authorized": false,
     "model_calls_authorized": false,
     "optimizer_updates_authorized": false,
@@ -54129,6 +54225,22 @@
     "relaunch_allowed": false,
     "test_authorized": false,
     "broker_authorized": false,
-    "trading_authorized": false
+    "trading_authorized": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/CLAIM.json",
+      "sha256": "c04738684935377df2488d1477ed8ac2f0f751963f5a3b2392df466714b178fb"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/TERMINAL.json",
+      "sha256": "89fad3ba8406151b34e5bda7840441d5425cb873fcd750f7f95c51db3271278e"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/RESULT.json",
+      "sha256": "970d642f9e5204e2a3067614776a50984bba2603f13c748a08b39a8ce7ebacd6"
+    },
+    "verified_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/ACTUAL_DATA_GATE_REVIEW.json",
+      "sha256": "ad8bbf6e106806a7db6b3dc6dde415b6684c2e557847f89140bc51703cfda623"
+    }
   }
 }
