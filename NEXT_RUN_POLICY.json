@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T19:37:03.898290+00:00",
-  "status": "DECEMBER_PRIVATE_NATIVE_32_PARENTS_ADMITTED_HOST_GATES_REQUIRED",
+  "observed_utc": "2026-11-04T19:56:37.125275+00:00",
+  "status": "DECEMBER_ONE_MASKED_NATIVE_FIT_ADMITTED_PREFIX_ONLY",
   "training_enabled": true,
-  "full_epoch_training_allowed": false,
+  "full_epoch_training_allowed": true,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Materialize the single approved private native window on clean source, verify all host/boot guards, safely restart and obtain original terminal proof. No candidate main fit or reserved score has been admitted.",
+  "next_action": "Run one exact fresh-seed native TRAIN pass on 41,866 earlier parents after safe physical restart under the existing signed 250W capped route. Report actual fit and final TRAIN metrics. No December outcome or scoring before the separate terminal gate.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Materialize the single approved private native window on clean source, verify all host/boot guards, safely restart and obtain original terminal proof. No candidate main fit or reserved score has been admitted.",
+    "next_action": "Run one exact fresh-seed native TRAIN pass on 41,866 earlier parents after safe physical restart under the existing signed 250W capped route. Report actual fit and final TRAIN metrics. No December outcome or scoring before the separate terminal gate.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17469,8 +17469,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": false,
-    "current_training_scope": "ONE_DYNAMIC_STATE_SHORT_FIT_CONSUMED_TERMINAL_VALIDATOR_FAILED_NO_ADDITIONAL_FIT_AUTHORIZED",
+    "current_native_launch_authorized": true,
+    "current_training_scope": "ONE_PASS_41866_PRE_DECEMBER_PARENTS_NO_RESERVED_FEATURES_OR_OUTCOMES",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -20238,8 +20238,8 @@
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/FEATURE_VIEW.json",
             "sha256": "b2203f564aaa55ef273db13380beada17a5913c43405f654e8881fe97e28824f"
           },
-          "run_admission": false,
-          "model_calls_authorized": false,
+          "run_admission": true,
+          "model_calls_authorized": true,
           "verified_review": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/VERIFIED_REVIEW.json",
             "sha256": "d6fc39f198a859fe88deb0857375d97a4fb5b0b55fc1f8fdbf695a6062687c96"
@@ -20247,7 +20247,10 @@
           "endpoint_objective_sha256": "cb5b67353652d74c2d1ad26e0cb2d68fa898521956a96a9d98fbc4542f0a8a43",
           "fit_parents": 41866,
           "reserved_parents": 5736,
-          "qualified_native_recipe": null,
+          "qualified_native_recipe": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/RECIPE.json",
+            "sha256": "dc15eaeb2a4d6caf49b1b4cf1a669fa21a10051a708c25a8b3ed6f8b90605df9"
+          },
           "qualified_prefix_candle_reference": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDLE_REFERENCE.json",
             "sha256": "77d849f219c2124177ba524fbf56131f2e678a26bf9addda62d9118f00073490"
@@ -20271,7 +20274,13 @@
             },
             "registered_numerical_recipe_sha256": "d4f98d977b041bb43bdadbc6f6fb5c05833277ac5c375e66a5d7542cd01e4547",
             "native_recipe_executable": false
-          }
+          },
+          "qualified_private_mechanics": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/ACTUAL_ROOT_REVIEW.json",
+            "sha256": "a6777fd79ddff2d081f52bed07c5e3c2581c324fc61559b9541d7ecdef2ce9b5"
+          },
+          "active_phase": "fit",
+          "reserved_scoring_authorized": false
         }
       }
     },
@@ -55567,7 +55576,7 @@
   "dynamic_mtf_december_direction_execution_goal_20261104": {
     "objective": "Før den ene forhåndsregistrerte GX1-desemberkandidaten gjennom faktisk, isolert TRAIN-only modellkvalifisering og, kun etter at hver eksakte port består, ett pass og én fryst kronologisk måling på de 5 736 reserverte desemberforeldrene. Behold 41 866 tidligere TRAIN-foreldre, samme maskerte profil og fem dynamiske tidsrammer, alle genuine forente inputs/kausale vakter, korrekt hendelsesskåring, trygg fysisk omstart og eksisterende capped rute. Dokumenter målte resultater eller det første virkelige stoppkriteriet uten omgåelse, skille modellæring, retningsverdi og uavhengig edge. Ingen TEST, handel, broker eller spending.",
     "operator_request": "All next stages for the single frozen December candidate, gated in sequence by actual evidence. No additional candidates, retuning, TEST or trading.",
-    "status": "PRIVATE_NATIVE_MECHANICS_ONLY_EXACTLY_ADMITTED",
+    "status": "ACTIVE_EXACT_MAIN_FIT_NO_OOF",
     "parent_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "candidate_plan": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
@@ -55597,7 +55606,7 @@
     ],
     "stage_admissions_are_not_implied_by_goal": true,
     "no_test_broker_orders_trading_spending": true,
-    "native_launch_authorized_now": false,
+    "native_launch_authorized_now": true,
     "actual_december_scores": 0,
     "milestone_complete": false,
     "private_input_preflight": "dynamic_mtf_december_private_inputs_preflight_20261104_002",
@@ -55605,11 +55614,16 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_PREFLIGHT_001/TERMINAL.json",
       "sha256": "730c7e06317bdd84c5f903c358e6a647cfe68a58beeefdf5b2906f47a24082d0"
     },
-    "active_native_phase": "private",
+    "active_native_phase": "fit",
     "private_input_evidence": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_PREFLIGHT_002/VERIFIED_REVIEW.json",
       "sha256": "a544b549ea7685c60d3c8657e4d30aff3fa4be4e8e62a00778f8a1d905d7f6dd"
-    }
+    },
+    "private_qualification": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "a6777fd79ddff2d081f52bed07c5e3c2581c324fc61559b9541d7ecdef2ce9b5"
+    },
+    "long_term_goal_tool_status_last_observed": "active"
   },
   "dynamic_mtf_december_private_inputs_preflight_20261104_001": {
     "status": "FAILED_CONSUMED_XAU_MANIFEST_WRONG_READER_NO_MODEL",
@@ -56288,7 +56302,7 @@
     }
   },
   "dynamic_mtf_state_december_native_private_20261104_001": {
-    "status": "EXACT_PRIVATE_NATIVE_MECHANICS_ADMITTED_FRESH_PHYSICAL_BOOT_REQUIRED",
+    "status": "CONSUMED_COMPLETE_PRIVATE_BIT_EXACT_RESUME_AND_GRADIENT_NO_MAIN_WEIGHTS",
     "scope": "Only the two fixed earlier B16s and 256-row fresh baseline for gradient/checkpoint/resume. New exact native research phase. No reserved data, main fit, or transfer of private weights.",
     "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/RUNTIME",
@@ -56318,18 +56332,18 @@
     },
     "input_role": "fit",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "user_reboot_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "user_reboot_authorized": false,
     "fresh_windows_boot_required": true,
     "genuine_predictor_fit_authorized": false,
     "native_launch_authorized": false,
@@ -56354,6 +56368,143 @@
       "max_private_update_calls": 4,
       "genuine_main_updates": 0,
       "reserved_scores": 0
-    }
+    },
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "a6777fd79ddff2d081f52bed07c5e3c2581c324fc61559b9541d7ecdef2ce9b5"
+    },
+    "actual_native_boot": 601,
+    "prepared_previous_boot": 600,
+    "actual_counts": {
+      "backward_calls": 4,
+      "backward_returns": 4,
+      "empty_batches": 0,
+      "forbidden_legacy_calls": 0,
+      "forward_calls": 21,
+      "forward_kind_calls": {
+        "INITIAL_PARITY_GRAD": 1,
+        "INITIAL_TRAIN": 16,
+        "TRAIN": 4
+      },
+      "forward_returns": 21,
+      "model_construction_returns": 3,
+      "model_constructions": 3,
+      "optimizer_constructions": 3,
+      "optimizer_step_calls": 4,
+      "optimizer_step_returns": 4,
+      "resume_state_load_calls": 1,
+      "resume_state_load_returns": 1,
+      "staged_state_load_calls": 3,
+      "staged_state_load_returns": 3
+    },
+    "actual_native_endpoint_counts": [
+      9,
+      14,
+      14,
+      16,
+      9
+    ],
+    "task_state": "Disabled",
+    "historical_physical_reboot_verified": true,
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "28a0bd8d659a7636a5b399d5b3785c5ead1e64e780a7ca9c068a23cc9975173e"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/RUNTIME/private-research/RESULT.json",
+      "sha256": "7c3e2ced8ad5298a8653c5723b5042a928bcd3cf6aecafdb8753483f6df0ead7"
+    },
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "cc05f25bfc47bc6d8ff7ca7d6cf4631ce8917e205359293c8ec94ff1e7020319"
+    },
+    "power_after": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/POWER_AFTER.json",
+      "sha256": "a99bbe38bf4f2fb921a0474787090c9573274378ffc049298ae151218461c475"
+    },
+    "initial_report": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/RUNTIME/private-research/INITIAL_TRAIN.json",
+      "sha256": "bfab1507a2fc9c3be7b5cc9fe239c905933ba97786bbec93cecb6d0f60799ac7"
+    },
+    "actual_native_endpoint_counts_each_unique_batch": [
+      [
+        9,
+        14,
+        14,
+        16,
+        9
+      ],
+      [
+        11,
+        14,
+        16,
+        14,
+        9
+      ]
+    ]
+  },
+  "dynamic_mtf_state_december_native_fit_20261104_001": {
+    "status": "ADMITTED_REGISTERED_DECEMBER_ONE_PASS_PRE_DECEMBER_TRAIN_ONLY",
+    "candidate_plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
+      "sha256": "a5bc7eb8fe55ee4cdfef79bd0cd3b42661ab73cc43a350a11baa87db3f7f63c7"
+    },
+    "scope": "One fresh seeded fit on 41,866 TRAIN parents only and its own 256 initial / 41,866 final TRAIN measures. No December payload or OOF evaluation. Up to three strictly guarded windows; no private-weight reuse, no refit or automatic candidate.",
+    "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/RUNTIME",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/RECIPE.json",
+      "sha256": "dc15eaeb2a4d6caf49b1b4cf1a669fa21a10051a708c25a8b3ed6f8b90605df9"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "90a6f1e1f5d0eeff93bf6fd7bd2b60048bb12d46524edf76800b0c650dfe8a25"
+    },
+    "materializer": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/materialize_bound_fit_campaign.py",
+      "sha256": "db792f04499bab91e5725f8dcd526fac139f2a0cd65fb2e7061d545880933957"
+    },
+    "metadata_precheck": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/CHECK_BOUND_PREFIX_READINESS.py",
+      "sha256": "244749109ae00d40d062adb4c202a787a0feeec188150560df1e857c082284d1"
+    },
+    "private_mechanics": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "a6777fd79ddff2d081f52bed07c5e3c2581c324fc61559b9541d7ecdef2ce9b5"
+    },
+    "input_role": "fit",
+    "max_invocations": 3,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "relaunch_allowed": false,
+    "training_rounds": 1,
+    "automatic_repetition_authorized": false,
+    "automatic_full_training_authorized": false,
+    "qualification_weights_for_main_fit": false,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": true,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "full_epoch_training_allowed": true,
+    "native_launch_authorized": true,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "held_out_features_authorized": false,
+    "held_out_outcomes_authorized": false,
+    "fresh_windows_boot_required": true,
+    "user_reboot_authorized": true,
+    "power_limit_w": 250,
+    "train_parent_rows": 41866,
+    "max_optimizer_updates": 2617
   }
 }
