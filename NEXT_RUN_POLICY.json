@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T14:57:22.717549+00:00",
-  "status": "GC_STATUS_SOURCE_LOCATED_POSITIVE_QUOTES_XAU_PHYSICAL_CLOCK_UNKNOWN_TRAINING_CLOSED_20261104",
+  "observed_utc": "2026-11-04T15:01:30.105146+00:00",
+  "status": "OPERATOR_ZERO_BUDGET_CONFIRMED_TWO_PRICED_GC_STATUS_REQUESTS_DECLINED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "For actual GCZ4 status on the two registered weekends, accept an already-owned equivalent status export or a separately authorized pair of GLBX.MDP3/status requests (instrument 393; current exact quotes total USD 0.000007003545). The proposal caps total existing credit at USD 0.00001. For physical XAU, a contemporaneous same-feed receipt / ATR-ready / actual issue journal is still required. Keep the zone reset and all seven fields. Prefix normalization and TRAIN-OOF remain closed.",
+  "next_action": "The operator retained the zero budget for the two quoted GCZ4 status extracts. Do not re-quote, request payment, or retrieve those priced payloads. Only a new already-owned or genuinely free GC-specific production-status history / complete historical exception record, or a same-feed contemporaneous XAU receipt and ATR publication journal, can move these evidence gates. Preserve both UNKNOWN GC intervals, the seven required inputs and masks, and the reserved December fold. No normalization or model run is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Completed zero-spend local and provider-source review. Exact production status schema identified, no historical status records obtained. Checked named XAU receipt and ATR journals.",
+    "current_activity": "The zero-spend review is complete; the operator declined both priced GCZ4 extracts and retained the zero budget.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "For actual GCZ4 status on the two registered weekends, accept an already-owned equivalent status export or a separately authorized pair of GLBX.MDP3/status requests (instrument 393; current exact quotes total USD 0.000007003545). The proposal caps total existing credit at USD 0.00001. For physical XAU, a contemporaneous same-feed receipt / ATR-ready / actual issue journal is still required. Keep the zone reset and all seven fields. Prefix normalization and TRAIN-OOF remain closed.",
+    "next_action": "The operator retained the zero budget for the two quoted GCZ4 status extracts. Do not re-quote, request payment, or retrieve those priced payloads. Only a new already-owned or genuinely free GC-specific production-status history / complete historical exception record, or a same-feed contemporaneous XAU receipt and ATR publication journal, can move these evidence gates. Preserve both UNKNOWN GC intervals, the seven required inputs and masks, and the reserved December fold. No normalization or model run is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22797,7 +22797,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T14:57:22.717549+00:00",
+  "updated_utc": "2026-11-04T15:01:30.105146+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -54770,6 +54770,14 @@
     ],
     "physical_xau_m1_receive": "UNKNOWN",
     "physical_atr_publish": "UNKNOWN",
-    "physical_restart_parity": "UNKNOWN"
+    "physical_restart_parity": "UNKNOWN",
+    "operator_cost_decision": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/OPERATOR_ZERO_BUDGET_DECISION.json",
+      "sha256": "d65a0accf3d39f0b5d3f2bd431655bf86fc33b4cf4ea9687100fd83e906efbf9"
+    },
+    "paid_status_request_disposition": "DECLINED_KEEP_ZERO_BUDGET",
+    "paid_status_requests_authorized": 0,
+    "reestimate_or_retry_priced_requests_authorized": false,
+    "authorized_spend_usd": "0"
   }
 }
