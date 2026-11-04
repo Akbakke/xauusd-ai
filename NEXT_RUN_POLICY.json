@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T14:51:53.442969+00:00",
-  "status": "GC_STATUS_AND_XAU_CLOCK_SOURCE_CHECK_ADMITTED_TRAINING_CLOSED_20261104",
+  "observed_utc": "2026-11-04T14:57:22.717549+00:00",
+  "status": "GC_STATUS_SOURCE_LOCATED_POSITIVE_QUOTES_XAU_PHYSICAL_CLOCK_UNKNOWN_TRAINING_CLOSED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "One separate, zero-spend evidence check of the CME production-status distribution for GCZ4 and existing same-feed XAU receipt/ATR publication journals, limited to the bound source manifest.",
+  "next_action": "For actual GCZ4 status on the two registered weekends, accept an already-owned equivalent status export or a separately authorized pair of GLBX.MDP3/status requests (instrument 393; current exact quotes total USD 0.000007003545). The proposal caps total existing credit at USD 0.00001. For physical XAU, a contemporaneous same-feed receipt / ATR-ready / actual issue journal is still required. Keep the zone reset and all seven fields. Prefix normalization and TRAIN-OOF remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "One separate, zero-spend evidence check of the CME production-status distribution for GCZ4 and existing same-feed XAU receipt/ATR publication journals, limited to the bound source manifest.",
+    "current_activity": "Completed zero-spend local and provider-source review. Exact production status schema identified, no historical status records obtained. Checked named XAU receipt and ATR journals.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -284,11 +284,11 @@
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "One consumed documentary review of public CME sources for two GCZ4 weekend intervals. No field or rule change, normalization, model or held-out scoring.",
+    "latest_terminal_role": "One closed zero-spend GC production-status metadata and physical XAU clock review. No status payload, model or held-out scoring.",
     "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001/TERMINAL.json",
-      "sha256": "2d329570652a4f9b0f0791b873197b9814d6cca5e422d3e1122c17d4c18641d9"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/TERMINAL.json",
+      "sha256": "e650e0626ddb9cb5f89f34471faeee72981e67a33cb8b14df273addb0cba618e"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Neither historical GCZ4 gap has verified matching-state coverage or complete applicable exceptions. Seven mandatory bearish GC D1 fields remain unsupported under the observed-zone contract. Prefix normalization and strict TRAIN-OOF for the reserved December fold are blocked; physical XAU-M1 arrival/ATR publication, independent edge and economics are unproven.",
+    "current_blocker": "Both GCZ4 weekend intervals still lack historical status evidence. All 79 local Databento deliveries contain other schemas. The exact GLBX.MDP3/status queries are both priced above zero. No same-feed historical local XAU receipt or ATR publication records were found in the named artifacts. Seven mandatory GC D1 inputs still have no support under the current zone rules.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "One separate, zero-spend evidence check of the CME production-status distribution for GCZ4 and existing same-feed XAU receipt/ATR publication journals, limited to the bound source manifest.",
+    "next_action": "For actual GCZ4 status on the two registered weekends, accept an already-owned equivalent status export or a separately authorized pair of GLBX.MDP3/status requests (instrument 393; current exact quotes total USD 0.000007003545). The proposal caps total existing credit at USD 0.00001. For physical XAU, a contemporaneous same-feed receipt / ATR-ready / actual issue journal is still required. Keep the zone reset and all seven fields. Prefix normalization and TRAIN-OOF remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22797,7 +22797,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T14:51:53.442969+00:00",
+  "updated_utc": "2026-11-04T14:57:22.717549+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -54700,7 +54700,7 @@
     "next_evidence": "For each registered window separately obtain an authoritative dated GCZ4 or documented GC-group mapping plus bracketing production matching-state history, or the effective historical product schedule and a complete record of applicable exceptions/corrections. Bind time zone, inclusive/exclusive boundaries, version, publication/as-of time before the forecast and source identity. One confirmed interior matching-open event would refute full closure; missing rows do not prove closure."
   },
   "gc_status_and_xau_clock_evidence_20261104_001": {
-    "status": "ADMITTED_ONE_ZERO_SPEND_SOURCE_REVIEW",
+    "status": "CONSUMED_ZERO_SPEND_SOURCE_CHECK_TWO_POSITIVE_QUOTES_XAU_JOURNAL_UNAVAILABLE",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001",
     "manifest": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/MANIFEST.json",
@@ -54711,16 +54711,65 @@
       "sha256": "2d329570652a4f9b0f0791b873197b9814d6cca5e422d3e1122c17d4c18641d9"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "read_only_metadata_authorized": true,
-    "zero_quoted_status_only_conditional": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "read_only_metadata_authorized": false,
+    "zero_quoted_status_only_conditional": false,
     "spending_authorized": false,
     "training_enabled": false,
     "model_calls_authorized": false,
     "reset_change_authorized": false,
     "test_authorized": false,
     "broker_authorized": false,
-    "trading_authorized": false
+    "trading_authorized": false,
+    "relaunch_authorized": false,
+    "source_head": "49b6be78f0449d88bf391fdfc0007a3c6fcb8051",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/CLAIM.json",
+      "sha256": "c243df3d50a9246cc7405006c25c7e2636291babed7c01a7305ed46221ea2b6a"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/RESULT.json",
+      "sha256": "c8d27efb5fc9f03d4b4186ad7949bd8f028ae5d2b57bddf058cf99a22851ae34"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/TERMINAL.json",
+      "sha256": "e650e0626ddb9cb5f89f34471faeee72981e67a33cb8b14df273addb0cba618e"
+    },
+    "gc_source_inventory": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/LOCAL_GC.json",
+      "sha256": "387fbdfb254f5b9ee1603968d52004be774d4ac571c140956d2b37db5302f2bb"
+    },
+    "xau_receipt_chain": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/LOCAL_XAU.json",
+      "sha256": "de88bc26592881504e92bfd239ca95c7f4f19f6ccc6812097049ca1714d6f128"
+    },
+    "proposed_status_request": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/PROPOSED_STATUS_REQUEST.json",
+      "sha256": "b5ada2f58cd558ca5e50cd4be9257f596230f3b586f8ac6f47dced081d4b7ff4"
+    },
+    "vendor_metadata_calls": 5,
+    "status_rows_received": 0,
+    "quoted_cost_by_window_usd": [
+      "0.000003725290",
+      "0.000003278255"
+    ],
+    "combined_quote_usd": "0.000007003545",
+    "new_data_fees_usd": "0",
+    "gc_matching_status_by_interval": [
+      {
+        "end_utc_exclusive": "2024-10-06T22:00:00Z",
+        "start_utc_inclusive": "2024-10-04T22:00:00Z",
+        "actual_status": "UNKNOWN"
+      },
+      {
+        "end_utc_exclusive": "2024-11-10T22:00:00Z",
+        "start_utc_inclusive": "2024-11-08T22:00:00Z",
+        "actual_status": "UNKNOWN"
+      }
+    ],
+    "physical_xau_m1_receive": "UNKNOWN",
+    "physical_atr_publish": "UNKNOWN",
+    "physical_restart_parity": "UNKNOWN"
   }
 }
