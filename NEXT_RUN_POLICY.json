@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T16:16:46.871359+00:00",
-  "status": "DYNAMIC_MTF_ENDPOINT_LOSS_STEP1_SOURCE_AND_CPU_MATH_ONLY",
+  "observed_utc": "2026-11-04T16:19:42.255515+00:00",
+  "status": "DYNAMIC_MTF_NATIVE_ENDPOINT_LOSS_STEP1_VERIFIED_FULL_PROFILE_MODEL_GATES_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Complete the source-only step 1 check of the native endpoint loss on the earlier TRAIN labels and frozen reference probabilities. The full-profile, December OOF, model-launch and economic gates remain closed.",
+  "next_action": "Step 1 is complete. Preserve the December split and seven genuine GC D1 fields. A separate input-contract decision or genuine support is needed before normalization and any native qualification for the candidate. The masked counterfactual discussed as step 2 has no admission. No further model/optimizer, December scoring, external data or trading action is authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Complete the source-only step 1 check of the native endpoint loss on the earlier TRAIN labels and frozen reference probabilities. The full-profile, December OOF, model-launch and economic gates remain closed.",
+    "current_activity": "Step 1 completed. The candidate endpoint-loss arithmetic at five native horizons matches independent earlier-TRAIN oracles.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -284,11 +284,11 @@
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Closed metadata-only Databento preflight. No status rows, charge, input changes, model or held-out score.",
+    "latest_terminal_role": "Capped CPU verification of native endpoint-loss arithmetic on the physically isolated TRAIN prefix. Zero native model constructions, native forwards or optimizer steps.",
     "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/TERMINAL.json",
-      "sha256": "cfea2846d5437e5681e2e9e1961bc8371b29935a48a5748598acf038e5063d1c"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/TERMINAL.json",
+      "sha256": "93fbd95662bedcb7fd5c5d473dd8acba5e84cb769d39c4294f0aadd8f9d54629"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No verified GCZ4 matching state across either gap or approved change to the D1 field contract. Seven required fields are unobserved before December. Confirmed same-feed XAU arrival/ATR readiness and independent OOF model value also remain unavailable.",
+    "current_blocker": "Full profile remains blocked by seven unobserved GC D1 zone coordinates. Prefix normalization, candle reference, new native qualification/recipe and matched December OOF forecasts are missing. Historical XAU physical arrival/ATR readiness and independent edge remain unknown.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Complete the source-only step 1 check of the native endpoint loss on the earlier TRAIN labels and frozen reference probabilities. The full-profile, December OOF, model-launch and economic gates remain closed.",
+    "next_action": "Step 1 is complete. Preserve the December split and seven genuine GC D1 fields. A separate input-contract decision or genuine support is needed before normalization and any native qualification for the candidate. The masked counterfactual discussed as step 2 has no admission. No further model/optimizer, December scoring, external data or trading action is authorized.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20210,7 +20210,17 @@
         "model_calls_authorized": false,
         "normalization_fit_authorized": false,
         "held_out_outcomes_read": false,
-        "run_admission": false
+        "run_admission": false,
+        "qualified_endpoint_loss_arithmetic": {
+          "objective_sha256": "cb5b67353652d74c2d1ad26e0cb2d68fa898521956a96a9d98fbc4542f0a8a43",
+          "historical_objective_sha256": "035c842592dc98fab8604e705e4209e7a62510e78e1c66d4dc31916949533dad",
+          "stage": "dynamic_mtf_native_endpoint_loss_step1_20261104_001",
+          "result": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/RESULT.json",
+            "sha256": "d07b456809aa56eacdf73e01f59a18c3d54189410e010dc64f9828fc599e92e8"
+          },
+          "scope": "Additional loss only, no transferable normalization, native recipe, model prediction, or launch authority."
+        }
       }
     },
     "gc_d1_bear_closure_evidence_scope_20261104": {
@@ -22836,7 +22846,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T16:16:46.871359+00:00",
+  "updated_utc": "2026-11-04T16:19:42.255515+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -54868,7 +54878,7 @@
     "historical_status_rows_received": 0
   },
   "dynamic_mtf_native_endpoint_loss_step1_20261104_001": {
-    "status": "ADMITTED_ONE_CPU_LOSS_ARITHMETIC_CHECK",
+    "status": "COMPLETE_QUALIFIED_ENDPOINT_LOSS_COMPONENT_NO_MODEL_FIT",
     "goal": "Step 1: implement the registered additive marginal log loss at the five native leads and qualify its arithmetic. No model run.",
     "operator_request": "Ja så klart, dette skal du konsentrere deg om. Gjør steg 1 som et mål og jobb kontinuerlig mot dette",
     "goal_scope": "Project milestone under the unfinished direction goal. Completing this milestone is not completion of the predictive research goal.",
@@ -54920,8 +54930,8 @@
       "sha256": "ad7acd2ada12820a2744704fe5441c4bf1fab40e76fe373ffbdfe9617900be0d"
     },
     "max_invocations": 1,
-    "completed_invocations": 0,
-    "only_arithmetic_check_authorized": true,
+    "completed_invocations": 1,
+    "only_arithmetic_check_authorized": false,
     "native_model_authorized": false,
     "optimizer_authorized": false,
     "training_enabled": false,
@@ -54932,6 +54942,43 @@
     "expected_eligible_native_cells": 164323,
     "independent_group_counts_sha256": "6b173dbc8a73594e6759a5df840ae8eab475410fdaaf3d249389c89b2f8dda03",
     "absolute_nll_tolerance": 2e-05,
-    "acceptance": "Stable float32, observed and strictly mature native labels pooled across all batch/TF cells. Without eligible native labels preserve base loss or no-update. Source tests compare nonstationary chains to independent float64 recursion; the capped test compares the training loss dispatcher on frozen prior and Markov probabilities to a float64 matrix-power oracle, frequency-weighted by earlier TRAIN counts. Tolerance is a numerical tolerance in nats, never a model quality gate. Zero native model constructions or forwards, optimizer steps, December or TEST scores."
+    "acceptance": "Stable float32, observed and strictly mature native labels pooled across all batch/TF cells. Without eligible native labels preserve base loss or no-update. Source tests compare nonstationary chains to independent float64 recursion; the capped test compares the training loss dispatcher on frozen prior and Markov probabilities to a float64 matrix-power oracle, frequency-weighted by earlier TRAIN counts. Tolerance is a numerical tolerance in nats, never a model quality gate. Zero native model constructions or forwards, optimizer steps, December or TEST scores.",
+    "source_head": "6c202f7484959e92d532b353f6673e95169f06a5",
+    "claimed_invocations": 1,
+    "relaunch_allowed": false,
+    "milestone_complete": true,
+    "execution_binding": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/EXECUTION_BINDING.json",
+      "sha256": "ab3b2d8796c906cfc286d5985b84d7bece0c5c3d2c45eb6f43bdc8d5442e631b"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/CLAIM.json",
+      "sha256": "b7cc49e9e7e56a5b39219492adfb41305c048cb18b9ebfe8c5b8e45f758358f9"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/RESULT.json",
+      "sha256": "d07b456809aa56eacdf73e01f59a18c3d54189410e010dc64f9828fc599e92e8"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/TERMINAL.json",
+      "sha256": "93fbd95662bedcb7fd5c5d473dd8acba5e84cb769d39c4294f0aadd8f9d54629"
+    },
+    "new_objective_sha256": "cb5b67353652d74c2d1ad26e0cb2d68fa898521956a96a9d98fbc4542f0a8a43",
+    "earlier_train_known_native_cells": {
+      "D1": 28048,
+      "H1": 39122,
+      "H4": 37886,
+      "M15": 35984,
+      "M5": 23283
+    },
+    "checked_native_cells": 164323,
+    "checked_fit_parents": 41866,
+    "largest_absolute_fp32_nll_error": 4.764943473123395e-08,
+    "independent_fp64_oracle": {
+      "prior_mean_native_nll": 0.9359516192169139,
+      "matched_markov_mean_native_nll": 0.926378435143339,
+      "canonical_and_independent_group_counts_identical": true
+    },
+    "qualification_scope": "Verified the component on known, mature labels under fixed reference probabilities through the same _state_loss adapter as training. Synthetic autograd checks cover label masks, numerical underflow and causal gradients; real native model gradients, resume, throughput, model OOF, independent edge and economics remain unqualified."
   }
 }
