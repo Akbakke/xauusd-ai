@@ -348,3 +348,56 @@ def verify_december_prefix_input_support(policy):
             'raw_source_mask_parity': donor,
             'full_twelve_surface_qualification_performed': False, 'fit_allowed': False, 'statistics_fits': 0,
             'normalization': None, 'decoded_holdout_prices_or_labels': 0, 'model_calls': 0}
+
+
+def review_december_bear_source(previous, stage):
+    """Read exactly the 214 pre-December donor dates identified by the consumed input gate."""
+    import numpy as np
+    import pyarrow.parquet as pq
+
+    from gx1.audit.dynamic_mtf_gc_d1_bear_trace import BEAR_FIELDS, PARITY_FIELDS, diagnostic_trace
+
+    support = _read(previous['input_support'])
+    proof = support['raw_source_mask_parity']
+    terminal = _read(previous['gc_donor_terminal'])
+    name = 'TRADE_FEATURES_D1.parquet'
+    item = terminal['artifacts'][name]
+    path = Path(previous['gc_donor_terminal']['path']).parent / name
+    source = proof['source']
+    fields = [f.removeprefix('gc_d1_') for f in support['exact_missing_fields']]
+    _require(terminal['status'] == 'COMPLETE' and terminal['exit_code'] == 0
+             and terminal['source_unchanged'] is True and terminal['test_data_used'] is False
+             and source == {'path': str(path), 'sha256': item['sha256']}
+             and proof['source_rows'] == stage['source_dates'] and support['fit_cutoff_ns'] == stage['fit_cutoff_ns']
+             and support['exact_missing_fields'] == previous['measured']['missing_fields']
+             and fields == ['observed_proxy_ob_bear_' + f for f in BEAR_FIELDS],
+             'D1_BEAR_SOURCE_IDENTITY')
+    identity = path.stat()
+    campaign.require_binding(source, label='GC D1 trace source')
+    _require(identity.st_size == item['bytes'], 'D1_BEAR_SOURCE_SIZE')
+    # Range filtering only on the clock establishes how many physical rows may be handed to the replay.
+    cutoff = stage['fit_cutoff_ns']
+    clock = pq.read_table(path, columns=['available_ns'], filters=[('available_ns', '<', cutoff)],
+                          use_threads=False).column(0).to_numpy()
+    _require(len(clock) == stage['source_dates'] and np.all(np.diff(clock) == 86_400_000_000_000)
+             and clock[-1] < cutoff, 'D1_BEAR_PREFIX_CLOCK')
+    columns = ['available_ns', 'bar_start_ns', 'contract_index', 'observed_contract_valid', 'observed_valid',
+               *['observed_' + f for f in ('open_usd', 'high_usd', 'low_usd', 'close_usd', 'volume',
+                                            'first_minute_ns', 'last_minute_ns', 'clock_minutes', 'accepted_minutes')],
+               *['observed_proxy_' + f for f in PARITY_FIELDS]]
+    batch = next(pq.ParquetFile(path).iter_batches(batch_size=len(clock), columns=columns, use_threads=False))
+    surface = {key: batch.column(key).to_numpy(zero_copy_only=False) for key in columns}
+    _require(np.array_equal(surface['available_ns'], clock)
+             and surface['observed_proxy_ob_bear_state_valid'].dtype == np.dtype(bool)
+             and int(surface['observed_proxy_ob_bear_state_valid'].sum()) == proof['source_true_rows'][
+                 'observed_proxy_ob_bear_state_valid'], 'D1_BEAR_PREFIX_BINDING')
+    summary, rows = diagnostic_trace(surface)
+    after = path.stat()
+    _require(all(getattr(identity, k) == getattr(after, k) for k in
+                 ('st_dev', 'st_ino', 'st_mode', 'st_size', 'st_mtime_ns', 'st_ctime_ns'))
+             and len(rows) == len(clock), 'D1_BEAR_TRACE_BOOKEND')
+    return {'status': 'COMPLETE_TRAIN_ONLY_SOURCE_TRACE', 'diagnosis': summary, 'source': source,
+            'previous_input_support': previous['input_support'], 'previous_terminal': previous['terminal'],
+            'fit_cutoff_ns': cutoff, 'source_dates': len(clock), 'last_available_ns': int(clock[-1]),
+            'columns_read': columns, 'normalization_fits': 0, 'model_calls': 0, 'optimizer_updates': 0,
+            'held_out_predictions': 0, 'held_out_outcomes_used': False, 'test_data_used': False}, rows

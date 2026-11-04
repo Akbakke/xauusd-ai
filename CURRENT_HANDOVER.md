@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+**04.11 – Én kildeanalyse er innrømmet for de sju bearish GC-D1-feltene.** Den gjelder de 214 D1-kildedatoene før 1. desember 2024. Analysen følger bekreftede bunnpunkter, nedbrudd, tidligere opp-barer og nullstilling etter hele manglende døgnlys. De 5 736 desembertidspunktene er reservert. Kjøringsbindingen står i `dynamic_mtf_gc_d1_bear_source_trace_20261104_001`.
+
 **04.11 – Datakontrollen ved 1. desember er fullført én gang. Normalisering er blokkert.** De 41 866 tidligere prognosetidspunktene fikk en fysisk målvisning med 210 854 M1-rader inklusive historikk. Alle 13 arrayene er kontrollert mot originalprefikset. De 5 736 desemberforeldrene er reservert for senere måling. Kun tids- og forelderaksene deres ble brukt til å identifisere delingen.
 
 - **GC-D1.** Av 51 tidligere ustøttede felt har 44 nå observasjoner i den fysiske D1-inngangen. 13 rullerende 60-felt har 17 observerte rader hver, og de øvrige 31 profilfeltene har 18. Alle sju bearish order-block-felt mangler fortsatt observerte verdier. Det gjelder aktiv, opprettet, første retest, lav, høy, alder og opprinnelig volum. Kildens gyldighetsflagg for bearish tilstand var usant på alle 214 kildedatoer. De 405 tilgjengelige native D1-radene, inklusive historikk, ga eksakt samsvar i 20 655 maskeceller. Denne nødvendige kontrollen stanser fullprofilen før statistikkfit. Øvrige inputflater fikk ingen ny fullkvalifisering.
