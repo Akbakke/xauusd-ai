@@ -14,6 +14,7 @@ SCORE_SCOPE = "score_december_masked_dynamic_mtf_state_once_v1"
 SCOPES = {"private": PRIVATE_SCOPE, "fit": FIT_SCOPE, "score": SCORE_SCOPE}
 STAGES = {p: "dynamic_mtf_state_december_native_" + p + "_20261104_001" for p in SCOPES}
 ROOTS = {p: BASE / ("DECEMBER_NATIVE_" + p.upper() + "_001") / "RUNTIME" for p in SCOPES}
+PRIVATE_RECIPE_PATH = ROOTS["private"].parent / "NATIVE_RECIPE.json"
 FOLD = {"fold_id": "registered_december_2024", "prefix_rows": 41866, "oof_start_row": 41866, "oof_end_row": 47602,
         "train_cutoff_ns": 1733011200000000000, "oof_cutoff_ns": 1735689600000000000}
 RECIPE_SCHEMAS = {"private": "gx1_native_direction_research_launch_recipe_v1",
@@ -192,7 +193,7 @@ def _require_private_terminal(ref, recipe):
              "power_after":root.parent/"POWER_AFTER.json"}
     _require(all(review[key]["path"] == str(path) for key, path in paths.items()), "PRIVATE_REVIEW_PATHS")
     plan = _read(review["plan"])
-    _require(plan["recipe"]["path"] == str(root.parent/"RECIPE.json") and plan["runtime_root"] == str(root),
+    _require(plan["recipe"]["path"] == str(PRIVATE_RECIPE_PATH) and plan["runtime_root"] == str(root),
              "PRIVATE_RECIPE_LOCATION")
     from gx1.contracts import entry_native_direction_research_campaign_v1 as private
     receipt = _read(review["receipt"])

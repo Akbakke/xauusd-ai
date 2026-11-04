@@ -36,6 +36,23 @@ def _role(launch):
     return mode
 
 
+def _read_xau_cache_manifest(raw, metadata):
+    """Read only the V4 manifest whose exact file identity was pinned by the physical input plan."""
+    lineage = raw['base_lineage']
+    path = Path(lineage['mtf_cache_manifest_path'])
+    _require(path == Path(raw['native_cache_dir']) / 'manifest.json', 'XAU_CACHE_MANIFEST_PATH')
+    ref = {'path': str(path), 'sha256': lineage['mtf_cache_manifest_sha256']}
+    item = raw['payloads'][str(path)]
+    _require(item['sha256'] == ref['sha256'] and item['verification'] == 'canonical_fresh_hash',
+             'XAU_CACHE_MANIFEST_ROLE')
+    inventory = {str(path): item}
+    _check_payload_stats(inventory)
+    value = campaign.read_bound_json(path, ref['sha256'])
+    _check_payload_stats(inventory)
+    metadata[str(path)] = {'ref': ref, 'stat': dict(item['stat'])}
+    return value
+
+
 def december_native_metadata(launch, common):
     """Verify small, recursively bound metadata and derive the exact role-specific data-open set."""
     role = _role(launch)
@@ -95,8 +112,7 @@ def december_native_metadata(launch, common):
     transition = read(physical['current_gc_raw_transition'])
     gc = read(raw['gc_surfaces'])
     line = raw['base_lineage']
-    xau_ref = {'path': line['mtf_cache_manifest_path'], 'sha256': line['mtf_cache_manifest_sha256']}
-    xau = read(xau_ref)
+    xau = _read_xau_cache_manifest(raw, metadata)
     _require(line == view['base_lineage'] and transition['binding'] == raw['gc_surfaces']
              and transition['current_layout_sha256'] == layout['contract_sha256']
              and transition['array_descriptors'] == gc['surfaces'] and not transition['normalization_applied'],

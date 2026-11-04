@@ -11,7 +11,7 @@ Programrot:
 
 ## Aktuell status
 
-**04.11 – Aktiv gjennomføring av desemberplanen.** Operatøren har bestilt alle neste steg for den ene låste kandidaten. Først kvalifiseres den isolerte private TRAIN-ruten. Hovedfit og én desembermåling kan bare innrømmes etter beståtte, separate porter. Arbeidsmålet ligger i `dynamic_mtf_december_direction_execution_goal_20261104`. Én CPU-kontroll av de to faste TRAIN-batchene er innrømmet. Modellen er fortsatt stengt.
+**04.11 – Aktiv gjennomføring av desemberplanen.** Operatøren har bestilt alle neste steg for den ene låste kandidaten. Først kvalifiseres den isolerte private TRAIN-ruten. Hovedfit og én desembermåling kan bare innrømmes etter beståtte, separate porter. Arbeidsmålet ligger i `dynamic_mtf_december_direction_execution_goal_20261104`. Datakontroll 002 er separat innrømmet på reparert kilde. Native kjøring er fortsatt stengt. Første datakontroll stoppet før batch og modell. XAU-cachemanifestet på 40 426 556 byte ble sendt gjennom en generell 16 MiB-leser. Originalkvitteringen er bevart. Den avgrensede metadataleseren korrigeres før en ny datakontroll.
 
 **04.11 – Candle-referansen og kandidatplanen er låst.** Én avgrenset TRAIN-kontroll målte siste lukkede prisbar på de 41 866 prognosetidspunktene før desember. Hver score er den kontinuerlige candlekroppen delt på ATR (`close_open_atr`). For hver tidsramme ble fortegnet valgt etter AUC på observerte, modne NED/OPP-utfall ved dens egen ledetid. To beregninger ga identiske klokkevalg og AUC-par. Referansen hadde gyldig score på alle prognosetidspunktene. De fem tidsrammene ga til sammen 164 323 kjente sluttklasser, hvorav 147 309 var NED eller OPP. Fortegnet ble valgt og målt på samme TRAIN-prefiks.
 

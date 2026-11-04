@@ -106,3 +106,18 @@ def test_checkpoint_masked_schema_is_exact_and_legacy_unchanged(monkeypatch):
     model.feature_view_identity = tampered
     with pytest.raises(RuntimeError, match="MASKED_CHECKPOINT_VIEW"):
         state._view(model, tampered)
+
+def test_private_native_dispatch_rejects_archived_preflight_recipe(monkeypatch):
+    root = dec.ROOTS["private"].parent
+    recipe = {"run_scope":dec.PRIVATE_SCOPE}
+    monkeypatch.setattr(dec.campaign, "require_binding", lambda r, **kwargs: r)
+    monkeypatch.setattr(dec.campaign, "read_bound_json", lambda path, sha: recipe)
+    monkeypatch.setattr(dec, "require_december_native_recipe", lambda value, **kwargs: value)
+    args = {"source_repo":dec.REPO, "source_commit":"a"*40}
+    for filename in ("RECIPE.json", "NATIVE_RECIPE.json"):
+        binding = {"path":str(root/filename), "sha256":"1"*64}
+        if filename == "RECIPE.json":
+            with pytest.raises(private.campaign.RandomAccessCampaignError, match="DECEMBER_RECIPE_PATH"):
+                private.require_research_launch_recipe(binding, **args)
+        else:
+            assert private.require_research_launch_recipe(binding, **args) is recipe

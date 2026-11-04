@@ -103,3 +103,27 @@ def test_source_clock_projection_excludes_future_prices(tmp_path):
     f=tmp_path/'source.parquet'; ts=pa.array([100,200,300,400],type=pa.timestamp('ns',tz='UTC'))
     pq.write_table(pa.table({'time':ts,'not_used':np.array([77.,88.,99.,111.])}),f)
     assert route._role_clock(f,first=100,last=300).tolist()==[100,200,300]
+
+
+def test_only_the_bound_xau_cache_manifest_can_exceed_generic_metadata_limit(tmp_path):
+    from gx1.scripts import run_entry_native_direction_research_window_v1 as common
+
+    path = tmp_path / 'manifest.json'
+    path.write_bytes(b'{"role":"test"}' + b' ' * (16 * 1024**2))
+    ref = _ref(path)
+    item = {'sha256': ref['sha256'], 'stat': common._stat(path), 'verification': 'canonical_fresh_hash'}
+    raw = {'native_cache_dir': str(tmp_path),
+           'base_lineage': {'mtf_cache_manifest_path': str(path), 'mtf_cache_manifest_sha256': ref['sha256']},
+           'payloads': {str(path): item}}
+    with pytest.raises(RuntimeError, match='SMALL_PLAINREF'):
+        common._read(ref, {})
+    metadata = {}
+    assert route._read_xau_cache_manifest(raw, metadata) == {'role':'test'}
+    assert metadata == {str(path): {'ref':ref, 'stat':item['stat']}}
+    with pytest.raises(RuntimeError, match='XAU_CACHE_MANIFEST_PATH'):
+        route._read_xau_cache_manifest({**raw, 'native_cache_dir': str(tmp_path/'other')}, {})
+    with pytest.raises(RuntimeError, match='XAU_CACHE_MANIFEST_ROLE'):
+        route._read_xau_cache_manifest({**raw, 'payloads': {str(path): {**item,'verification':'other'}}}, {})
+    bad_size = {**item, 'stat': {**item['stat'], 'st_size': item['stat']['st_size'] + 1}}
+    with pytest.raises(ValueError, match='PAYLOAD_IDENTITY'):
+        route._read_xau_cache_manifest({**raw,'payloads':{str(path):bad_size}}, {})

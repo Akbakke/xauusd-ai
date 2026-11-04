@@ -173,7 +173,7 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     if value.get('run_scope') == december.PRIVATE_SCOPE:
-        _require(ref['path'] == str(december.ROOTS['private'].parent/'RECIPE.json'), 'DECEMBER_RECIPE_PATH')
+        _require(ref['path'] == str(december.PRIVATE_RECIPE_PATH), 'DECEMBER_RECIPE_PATH')
         return december.require_december_native_recipe(value, source_repo=source_repo, source_commit=source_commit, phase='private')
     if value.get('run_scope') == DYNAMIC_STATE_PRIVATE_SCOPE:
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import require_dynamic_state_launch_recipe
