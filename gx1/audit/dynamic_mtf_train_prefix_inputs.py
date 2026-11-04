@@ -200,3 +200,151 @@ def review_train_gc_d1_donor(terminal_ref, cutoff_ns):
             'bear_bos_down': int((daily['observed_proxy_bos_down'] == 1).sum()),
             'bear_state_observed': int(daily['observed_proxy_ob_bear_state_valid'].sum()),
             'historical_exchange_calendar_claimed': False}
+
+
+def _d1_prefix_masks(available_ns, features, mask_indices, cutoff_ns):
+    """Select physical mask columns only. No feature value or post-cutoff mask enters the result."""
+    import numpy as np
+
+    _require(available_ns.ndim == 1 and features.ndim == 2 and features.shape[0] == len(available_ns)
+             and np.all(np.diff(available_ns) > 0), 'D1_AVAILABLE_AXIS')
+    end = int(np.searchsorted(available_ns, cutoff_ns, side='left'))
+    _require(0 < end < len(available_ns) and available_ns[end - 1] < cutoff_ns <= available_ns[end],
+             'D1_AVAILABLE_CUTOFF')
+    prefix_masks = features[:end, mask_indices]
+    _require(np.isin(prefix_masks, (0., 1.)).all(), 'D1_MASK_DOMAIN')
+    return np.ascontiguousarray(prefix_masks, dtype=np.uint8)
+
+
+def _check_prefix_d1_donor(terminal_ref, registry_ref, cutoff, native_clock, fields, masks):
+    """Match the D1 native mask bits to the five source validity flags on exact closes."""
+    import numpy as np
+    import pyarrow.parquet as pq
+
+    terminal = _read(terminal_ref)
+    name = 'TRADE_FEATURES_D1.parquet'
+    source = _read(registry_ref)['tables'][name]
+    item = terminal['artifacts'][name]
+    _require(terminal['status'] == 'COMPLETE' and terminal['exit_code'] == 0 and terminal['test_data_used'] is False
+             and source == {'path': str(Path(terminal_ref['path']).parent / name), 'sha256': item['sha256']},
+             'D1_DONOR_SOURCE')
+    campaign.require_binding(source, label='D1 mask donor')
+    source_path = Path(source['path'])
+    _require(source_path.stat().st_size == item['bytes'], 'D1_DONOR_SIZE')
+    columns = ['observed_proxy_ob_bear_state_valid'] + ['observed_profile_' + group + '_valid'
+               for group in ('rolling15', 'rolling60', 'anchored_segment', 'session_observed')]
+    # Read only clocks to establish the complete prefix count. Restrict the five flags to that prefix.
+    source_clock = pq.read_table(source_path, columns=['available_ns'], filters=[('available_ns', '<', cutoff)],
+                                 use_threads=False).column(0).to_numpy()
+    _require(len(source_clock) == 214 and np.all(np.diff(source_clock) == 86_400_000_000_000)
+             and source_clock[-1] < cutoff, 'D1_DONOR_PREFIX')
+    batch = next(pq.ParquetFile(source_path).iter_batches(batch_size=len(source_clock),
+                 columns=['available_ns', *columns], use_threads=False))
+    _require(np.array_equal(batch.column(0).to_numpy(), source_clock)
+             and all(batch.column(i).null_count == 0 for i in range(1, 6)), 'D1_DONOR_BATCH')
+    flags = np.column_stack([batch.column(i).to_numpy(zero_copy_only=False) for i in range(1, 6)])
+    _require(flags.dtype == np.dtype(bool), 'D1_DONOR_BOOL')
+    flag_sha = hashlib.sha256(np.ascontiguousarray(flags, dtype=np.uint8).tobytes()).hexdigest()
+    prefixes = ['gc_d1_' + c.removesuffix('_state_valid' if i == 0 else '_valid') + '_' for i, c in enumerate(columns)]
+    selectors = [[i for i, pre in enumerate(prefixes) if f.startswith(pre)] for f in fields]
+    _require(all(len(s) == 1 for s in selectors), 'D1_DONOR_FIELD_GROUP')
+    positions = np.searchsorted(source_clock, native_clock)
+    present = native_clock >= source_clock[0]
+    _require(np.all(positions[present] < len(source_clock))
+             and np.array_equal(source_clock[positions[present]], native_clock[present]), 'D1_DONOR_EXACT_CLOSE')
+    expected = np.zeros_like(masks)
+    expected[present] = flags[positions[present]][:, [s[0] for s in selectors]]
+    _require(np.array_equal(expected, masks), 'D1_DONOR_MASK_MISMATCH')
+    return {'source': source, 'source_registry': registry_ref, 'source_rows': len(source_clock),
+            'source_flags_in_digest_order': columns, 'source_flags_sha256_c_order_uint8': flag_sha,
+            'source_true_rows': {c: int(n) for c, n in zip(columns, flags.sum(axis=0))},
+            'native_rows_at_exact_donor_close': int(present.sum()), 'native_rows_before_first_donor': int((~present).sum()),
+            'compared_mask_cells': masks.size, 'mismatches': 0}
+
+
+def verify_december_prefix_input_support(policy):
+    """One necessary full-profile gate on physical GC D1 input before the December holdout."""
+    import numpy as np
+
+    stage = policy['dynamic_mtf_train_prefix_dec01_20261104_001']
+    fit, later = stage['geometry']['fit'], stage['geometry']['held_out']
+    cutoff = stage['fit_cutoff_ns']
+    _require(policy['training_enabled'] is False and cutoff == 1733011200000000000
+             and fit['parent_range'] == [0, 41866] and fit['parents'] == 41866
+             and later['parent_range'] == [41866, 47602] and later['parents'] == 5736, 'DECEMBER_SCOPE')
+    gates = policy['current_work']['dynamic_mtf_train_gates_20261104']
+    with campaign.file_verification_scope():
+        old = _read(gates['fit_input_support'])
+        qual = _read(old['qualifier'])
+        layout = _read(old['gc_layout'])
+        transition = _read(old['gc_raw_transition'])
+        archive = _read(transition['binding'])
+        native_recipe = _read(policy['dynamic_mtf_state_onepass_fit_20261103_001']['recipe'])
+        inputs = _read(native_recipe['input_manifest'])
+        actual_provider = _read(inputs['physical_provider_plan'])
+        source = _read(actual_provider['input_provider_plan'])
+        _require(old['status'] == 'BLOCK' and native_recipe['full_feature_profile'] is True
+                 and native_recipe['input_manifest'] == old['input_manifest']
+                 and inputs['physical_provider_plan'] == old['physical_plan']
+                 and source['gc_surfaces'] == transition['binding']
+                 and transition['raw_value_validation']['performed'] is True and not transition['normalization_applied']
+                 and transition['current_layout_sha256'] == layout['contract_sha256']
+                 and transition['array_descriptors']['D1'] == archive['surfaces']['D1'], 'DECEMBER_INPUT_LINEAGE')
+        # Both the closed full-profile receipt and the current raw layout specify the exact value/mask pairs.
+        support = qual['support']['gc_mtf_d1']
+        fields = [b['field'] for b in qual['blockers'] if b['surface'] == 'gc_mtf_d1']
+        names = layout['field_names']['D1']
+        _require(fields == old['unique_gc_d1_fields'] and len(set(fields)) == len(fields) == 51
+                 and names == support['field_names'] and layout['value_mask_pairs']['D1'] == support['masking_pairs'],
+                 'DECEMBER_FIELDS')
+        pairs = dict(support['masking_pairs'])
+        masks = [pairs[names.index(name)] for name in fields]
+        _require([names[i] for i in masks] == [f + '_observed' for f in fields], 'DECEMBER_MASK_MAP')
+        descriptors = archive['surfaces']['D1']
+        inventory = {r['path']: actual_provider['payloads'][r['path']] for r in descriptors.values()}
+        _check_payload_stats(inventory)
+        arrays = {}
+        for key, desc in descriptors.items():
+            ref = {k: desc[k] for k in ('path', 'sha256')}
+            _require(inventory[desc['path']]['sha256'] == desc['sha256']
+                     and inventory[desc['path']]['stat']['st_size'] == desc['size_bytes'], 'D1_BYTE_BINDING')
+            campaign.require_binding(ref, label='GC D1 ' + key)
+            array = np.load(desc['path'], mmap_mode='r', allow_pickle=False)
+            _require(array.dtype.name == desc['dtype'] and list(array.shape) == desc['shape'] and not array.flags.writeable,
+                     'D1_ARRAY_HEADER:' + key)
+            arrays[key] = array
+        axis, ids = arrays['available_ns'], arrays['native_row_indices']
+        _require(axis.dtype == ids.dtype == np.int64 and ids.shape == axis.shape
+                 and np.all(np.diff(ids) > 0) and arrays['features'].dtype == np.float32
+                 and arrays['features'].shape == (len(axis), len(names)), 'D1_PHYSICAL_AXES')
+        bits = _d1_prefix_masks(axis, arrays['features'], masks, cutoff)
+        end = len(bits)
+        clock_sha = hashlib.sha256(axis[:end].astype('<i8', copy=False).tobytes()).hexdigest()
+        ids_sha = hashlib.sha256(ids[:end].astype('<i8', copy=False).tobytes()).hexdigest()
+        mask_sha = hashlib.sha256(bits.tobytes()).hexdigest()
+        _require(clock_sha == '057d21d28de14aa85f4fc71c04e63dd2dafec584fe7b65d71f28b13ac09462c4'
+                 and ids_sha == '8aed4f4394d63cc9f58594292d76a4367f0bd6893b84c7dd11a45f10b69e2743'
+                 and end == 405, 'D1_INDEPENDENT_PREFIX_PARITY')
+        totals = {name: int(n) for name, n in zip(fields, bits.sum(axis=0))}
+        missing = [f for f, n in totals.items() if n == 0]
+        donor = _check_prefix_d1_donor(stage['gc_donor_terminal'], archive['source_registry'], cutoff,
+                                      axis[:end], fields, bits)
+        _check_payload_stats(inventory)
+        campaign.capture_verified_file_snapshot()
+    return {'status': 'BLOCK' if missing else 'FULL_QUALIFICATION_REQUIRED',
+            'reason': ('mandatory_gc_d1_coordinates_have_no_observed_value_before_fit_cutoff' if missing
+                       else 'D1_mask_screen_complete_twelve_surface_prefix_qualification_pending'),
+            'scope': '51 previously empty physical GC D1 coordinates on all donor rows before cutoff including warmup; '
+                     'a superset of every eligible native D1 history window',
+            'fit_prefix_rows': fit['parents'], 'held_out_parents': later['parents'], 'fit_cutoff_ns': cutoff,
+            'prior_field_inventory_receipt': gates['fit_input_support'], 'raw_surface_manifest': transition['binding'],
+            'gc_layout': old['gc_layout'], 'input_manifest': old['input_manifest'], 'physical_plan': old['physical_plan'],
+            'physical_sources': descriptors, 'native_source_rows_before_cutoff': end,
+            'first_available_ns': int(axis[0]), 'last_available_ns': int(axis[end - 1]),
+            'next_available_ns_clock_only': int(axis[end]), 'native_indices_sha256_le_i64': ids_sha,
+            'available_ns_sha256_le_i64': clock_sha, 'mask_matrix_sha256_c_order_uint8': mask_sha,
+            'zero_support_fields': len(missing), 'exact_missing_fields': missing, 'mask_columns_in_digest_order': fields,
+            'observed_counts_in_superset': totals, 'nonzero_mask_fields_in_superset': len(fields) - len(missing),
+            'raw_source_mask_parity': donor,
+            'full_twelve_surface_qualification_performed': False, 'fit_allowed': False, 'statistics_fits': 0,
+            'normalization': None, 'decoded_holdout_prices_or_labels': 0, 'model_calls': 0}

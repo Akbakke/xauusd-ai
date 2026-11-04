@@ -33,6 +33,10 @@ def test_copy_fences_labels_and_excludes_later_atr_before_publication(tmp_path, 
         def __len__(self):
             return len(self.array)
 
+        def searchsorted(self, timestamp, *, side):
+            assert self.name == "validity_ns" and timestamp == cutoff and side == "left"
+            return self.array.searchsorted(timestamp, side=side)
+
         def __getitem__(self, key):
             limit = 2 if self.name in ("parent_rows", "issue_ns", "issue_source_index") else end
             if isinstance(key, slice):
@@ -54,6 +58,9 @@ def test_copy_fences_labels_and_excludes_later_atr_before_publication(tmp_path, 
     assert set(arrays) == set(target.SERIES_ARRAY_DTYPES)
     assert all(not isinstance(a, np.memmap) for a in arrays.values())
     assert all(len(arrays[k]) == (2 if k in ("parent_rows", "issue_ns", "issue_source_index") else end) for k in arrays)
+    measured = view._copy_fit_arrays(manifest, tmp_path / "ORIGINAL", prefix_rows=2, source_rows=None, cutoff_ns=cutoff)
+    for key in arrays:
+        np.testing.assert_array_equal(measured[key], arrays[key])
     surface = view._prefix_atr_surfaces(arrays)
     prefix_atr = atr_fixture(cutoff, values=[2.0], available=times[:1])
     direct = build(frame.loc[frame.time.astype("int64") + minute < cutoff], cutoff=cutoff, atr=prefix_atr)
@@ -123,3 +130,54 @@ def test_prefix_calendar_opens_with_canonical_hashes_and_drops_later_gaps(tmp_pa
     assert [r["gap_after_m1_row"] for r in proof["intervals"]] == [1]
     assert [r["source_event_id"] for r in view.read_bound_json(references["source_reference"])["certified_gaps"]] == ["1"]
     assert proof["schedule_file_sha256"] == references["exact_schedule"]["sha256"]
+
+
+def test_d1_interval_risk_matches_sequential_first_event_without_crossing_censoring():
+    minute = target.MINUTE_NS
+    # Begin near a UTC day boundary. A market gap, a class mask and a local-path-only
+    # mask separately terminate follow-up. The quiet tail allows a complete horizon.
+    axis = START - 8 * minute + np.delete(np.arange(1500, dtype=np.int64), 10) * minute
+    state = np.full((len(axis), 5), target.FLAT, np.int8)
+    state[[2, 3, 5, 7, 8, 10, 11, 17], -1] = target.UP
+    state[4, -1] = target.DOWN
+    observed = np.ones_like(state, bool)
+    path = np.ones_like(state, bool)
+    observed[6, -1] = False
+    state[6, -1] = target.UNKNOWN
+    path[15, -1] = False
+    positions = np.array([-1, 0, 1, 2, 5, 6, 7, 8, 9, 11, 14, 15, 16, 17, 20, 1498])
+    arrays = {"validity_ns": axis, "state": state, "observed": observed,
+              "path_observed": path, "issue_source_index": positions}
+    support = view._d1_interval_event_support(target.DynamicMtfStateSeries(arrays, {}))
+    known = observed[:, -1] & path[:, -1]
+    good_starts = [i for i in positions if i >= 0 and known[i]]
+    assert support["known_state_and_path_at_issue"] == len(good_starts)
+    assert support["unknown_start"] == 3
+    for name in ("first_exit", "first_exit_then_return"):
+        events, nonevents = [], []
+        censored = full_no = zero = 0
+        for start in good_starts:
+            exited = occurred = False
+            completed = 0
+            for i in range(start + 1, min(start + 1441, len(axis))):
+                if axis[i] != axis[i - 1] + minute or not known[i]:
+                    break
+                completed += 1
+                exited |= state[i, -1] != state[start, -1]
+                if exited and (name == "first_exit" or state[i, -1] == state[start, -1]):
+                    events.append(axis[i])
+                    occurred = True
+                    break
+                nonevents.append(axis[i])
+            if not occurred:
+                full_no += completed == 1440
+                censored += completed < 1440
+                zero += completed == 0
+        assert support["known_start_no_observed_next_interval"] == zero
+        assert support[name] == {
+            "at_risk_issue_minutes": len(events) + len(nonevents), "event_parent_issues": len(events),
+            "observed_nonevent_issue_minutes": len(nonevents), "distinct_exposed_nonevent_minutes": len(set(nonevents)),
+            "distinct_event_minutes": len(set(events)), "distinct_event_utc_days": len(set(t // (1440 * minute) for t in events)),
+            "censored_before_horizon_without_event": censored, "confirmed_full_horizon_without_event": full_no}
+    assert support["first_exit"]["distinct_event_minutes"] < support["first_exit"]["event_parent_issues"]
+    assert support["first_exit_then_return"]["confirmed_full_horizon_without_event"] > 0
