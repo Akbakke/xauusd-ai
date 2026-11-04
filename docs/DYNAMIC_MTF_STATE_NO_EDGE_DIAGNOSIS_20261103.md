@@ -112,6 +112,22 @@ Innen samme **ukjente** nåtilstandsgruppe var senere OPP-andel 54,51 % etter NE
 
 Den enkle beslutningen «motsatt candlefortegn» traff 51,59 % av de 7 785 senere ikke-null-radene, mens alltid-OPP traff 51,77 % på de samme radene. AUC gjelder bare framtidig observerte ikke-FLATT-mål, og den senere perioden er gjenbrukt. Dette er derfor ingen full treklasseprognose, uavhengig edge eller handelsregel. Den gir en ekstra forhåndslåst M5-referanse for en eventuell streng TRAIN-OOF-kandidat. Ingen native modellkall eller oppdateringer ble gjort. [Lagret kontroll](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_ROUTED_M5_CANDLE_REVERSAL_AUDIT.json) SHA-256 `081969b226d06f05c551629a09ac2210bcd62d8bff282cca3a9f9f7f93e0c501`.
 
+### M5: det korte retningssignalet varer ikke til +5
+
+På de **samme lagrede issue-radene** er siste lukkede M5-candle og modellens betingede OPP-skår sammenlignet ved faste +1/+2/+3/+4/+5/+10/+15 minutter. AUC gjelder bare framtidig observerte NED/OPP-mål ved hver ledetid, så radmengdene er ikke automatisk like:
+
+| M5-ledetid | Senere NED/OPP-rader | Rå candle-AUC TRAIN / senere | Modell-AUC TRAIN / senere | Senere candle–modell Spearman |
+|---|---:|---:|---:|---:|
+| +1 | 7 409 | 0,734 / 0,734 | 0,849 / 0,845 | +0,628 |
+| +2 | 7 193 | 0,608 / 0,611 | 0,671 / 0,671 | +0,565 |
+| +3 | 7 291 | 0,531 / 0,537 | 0,559 / 0,559 | +0,531 |
+| +4 | 7 387 | 0,494 / 0,497 | 0,507 / 0,505 | +0,513 |
+| +5 | 7 812 | 0,479 / 0,481 | 0,499 / 0,498 | +0,478 |
+
+Ved +10/+15 er senere modell-AUC 0,501/0,503 og rå candle-AUC 0,483/0,487; candle–modell-korrelasjonen har da falt til +0,176/+0,073. På de **identiske 3 936 senere foreldrene** med observert NED/OPP ved både +1 og +5 er modell-AUC 0,842→0,504 og rå candle-AUC 0,726→0,496; 48,09 % har motsatt retning ved de to endepunktene. Mønsteret er synlig separat i januar, februar og mars. Det er et målt bortfall av kort retningsrangering når ledetiden øker, ikke et bevis for at modellens tapsvekt er årsaken eller at et fortegn kan reverseres som handelsregel.
+
+Den svake motsatte candle-rangeringen ved +5 ligger særlig på **etterpå valgte** rader der +1-klassen er uobserverbar: 3 282 av de 7 812 senere +5-retningsradene, hvorav 3 281 har flagg for ukjent intraminutt-rekkefølge. I denne gruppen er rå candle-AUC 0,459 (motsatt 0,541) og modell-AUC 0,482; blant 2 539 med også ukjent nåtilstand er de 0,454 og 0,483. På samme +5-mål med kjent +1-retning er rå candle-AUC 0,496 og modell-AUC 0,504. +1-observasjon og +5-NED/OPP er framtidig fasit, **ikke** operative filter; verken denne oppdelingen eller AUC gir dokumentert edge. Signert treklasse-radantall stemmer ved alle sju ledetider, og +5 candle-/modell-AUC har eksakt FP32-paritet med forrige kvittering. [Horisont-/sensurkvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_M5_CANDLE_LEAD_AND_FIRST_MASK_REVIEW.json) SHA-256 `ea2e1b4d31c04c0fd06eaaa5a4e9ee71de1d993c9f842287888139f18470bbf6`; ingen fit, native modellkall, TEST eller handel.
+
 ### Samme enkle candlekontroll på alle fem tidsrammer
 
 For hver tidsramme brukte vi `close_open_atr` fra siste **fullførte native candle** ved issue. Fortegnet (med/mot candle) ble valgt bare fra slutt-TRAIN, så ble den samme regelen målt på gjenbrukt senere utvikling. Alle fem cache-featurefilene er hashkontrollert mot inputmanifestet. Dette er en lesende, betinget NED/OPP-rangering ved én full native ledetid per TF, ikke en ny modell eller et nytt mål.
@@ -605,6 +621,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_MTF_LAST_CLOSED_CANDLE_NATIVE_DIRECTION_AUDIT.json` | `d5e4e26e4fb3307f2317cc75bf364458520d2ac6bfe7b56724d49ecb1a11ef26` | TRAIN-valgt candlefortegn mot modell og matchet Markov ved én native ledetid på alle fem TF, med beskrivende ukeblokker. |
 | `SAVED_M5_CANDLE_CURRENT_STATE_STRATIFICATION.json` | `1e09c2087d19d66383eaa96abb3aa0a76136f6026577f7fd71ca5e4bc8fd3757` | M5 +5 candlefortegn og modellskår innen kjent/ukjent nåtilstand, med ukeblokkintervall for ukjentgruppen. |
 | `SAVED_ROUTED_M5_CANDLE_REVERSAL_AUDIT.json` | `081969b226d06f05c551629a09ac2210bcd62d8bff282cca3a9f9f7f93e0c501` | Lesende +5 retningsrangering fra allerede rutet M5-candleverdi mot lagret modell/Markov, kildefortegn og ukeblokker. |
+| `SAVED_M5_CANDLE_LEAD_AND_FIRST_MASK_REVIEW.json` | `ea2e1b4d31c04c0fd06eaaa5a4e9ee71de1d993c9f842287888139f18470bbf6` | M5 candle og lagret modell ved sju faste ledetider; identiske +1/+5-foreldre og +5-sensurgrupper, med signert rad- og eldre AUC-paritet. |
 | `SAVED_NATIVE_LEAD_MONTHLY_DIRECTION_AUC.json` | `479a506e958ac75ccbdef905748953d1c3b5f127d0ee632400739c734f42c413` | Samme native-ledetid og betinget UP/NED-skår delt på issue-måned; overlappende, beskrivende rader. |
 | `SAVED_CURRENT_STATE_CONDITIONAL_NATIVE_RANK_REVIEW.json` | `13aa797e6b606217d10d3f86baa16b3dc48a6b034089a40b3febeccbf0a248db` | UP/NED-AUC innen historisk nåtilstand på fem TF, D1 per måned og enkle monotone tid-/GC-dekningskontroller. |
 | `SAVED_STATE_GROUP_HORIZON_SCORE_DECOMPOSITION.json` | `62e16783993c640b14b4c0b0f1df271af6837976d90f591caf1b9c472fd9efb2` | Signert Brier-gap per ledeminutt og M5/D1 native-ledetid gruppert etter historisk nåtilstand, med eksakt rapportparitet. |
