@@ -325,6 +325,18 @@ En uavhengig lesning av lagret targetserie og de nøyaktige 47 602 TRAIN-/17 288
 | H4 +240 | 15 917 | 13 477 | 580 |
 | D1 +1 440 | 13 256 | 0 | 660 |
 
+Null komplette døgnbaner betyr **ikke** null direkte nabopar i sekvensloss. Den samme, mot signert rapport paritetskontrollerte kvitteringen teller observerte tilstøtende målpar. Andelen under er antall slike par delt på antall observerte målceller; dette er celler med en observert forgjenger, **ikke** andel av faktisk gradient eller uavhengige hendelser:
+
+| TF | TRAIN nabopar / observerte celler | Senere nabopar / observerte celler |
+|---|---:|---:|
+| M5 | 26 106 948 / 31 090 770 = 83,97 % | 8 759 719 / 10 597 435 = 82,66 % |
+| M15 | 48 473 313 / 50 035 520 = 96,88 % | 17 281 452 / 17 865 797 = 96,73 % |
+| H1 | 56 264 718 / 56 535 402 = 99,52 % | 20 511 276 / 20 602 532 = 99,56 % |
+| H4 | 56 470 482 / 56 582 604 = 99,80 % | 20 889 073 / 20 924 619 = 99,83 % |
+| D1 | 50 938 295 / 51 025 541 = 99,83 % | 20 774 289 / 20 805 360 = 99,85 % |
+
+Den partielle log-likelihooden marginaliserer ukjente tilstander, men observerte sammenhengende segmenter inneholder fortsatt betingede overgangsledd (fryst modellkilde `state_chain_negative_log_likelihood`). Dermed kan «ingen komplett 1 440-minutters bane» ikke alene forklare svak læring på native ledetid. Parene sier ikke hvor stor gradient hvert TF, skifte eller langt ledeminutt faktisk fikk, og de etablerer ikke marginal prognosepresisjon.
+
 D1 kan altså ha en kjent tilstand ett døgn senere uten at hele mellomliggende banen er kjent. For M5 er første framtidsminutt uobserverbart på omtrent halvparten av senere rader, hovedsakelig på grunn av ukjent rekkefølge i M1-lyset; bare 4 706/17 288 har et komplett observert prefiks til +5 selv om 8 980 har kjent endepunkt ved +5. Dette gjør et krav om «full 1 440-minutters første-skifte-/reverseringsbane» umulig på denne kilden. En framtidig hendelsesskår må rapportere observert sammenhengende prefiks og sensur ved kildegap, mens endepunktstilstand og senere gyldighet scoret separat. Det innfører ingen maksimal holdetid og beviser ikke at partiell-bane-NLL er årsaken til svak retning. [Prefiks-/klokkekvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_DYNAMIC_STATE_PREFIX_OBSERVABILITY.json) SHA-256 `21a685f1367b075f8754ea1e8c7ed5bf529808e0a3d38241e1444d6c1b05c264`.
 
 En separat kontroll av **unike, sammenhengende M1-minuttpar** finner ikke at M5-/M15-skifter samler seg ved ATR-oppdatering: på senere data er M5 20,84 % ATR-oppdateringspar mot 20,41 % av de observerte skiftene, M15 6,90 % mot 6,64 %. H1 er 1,69 % mot 1,82 %. H4/D1 har få slike oppdateringsskifter, så deres høyere relative andel er ustabil. Sammenfall kan uansett ikke bevise at grenseendringen *forårsaket* et skifte. Denne lesende kontrollen nedprioriterer en enkel ATR-grenseoppdateringsforklaring for M5/M15, men låser ikke 0,5 ATR som riktig nytteverdi. [ATR-grensekvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_ATR_BOUNDARY_TARGET_CHANGE_REVIEW.json) SHA-256 `dcadb4d747ee98724fc0b0a0947a12d5b9f1ae1f725863f7b7e40bc028b9590f`.
