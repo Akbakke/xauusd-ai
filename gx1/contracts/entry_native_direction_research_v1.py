@@ -326,13 +326,17 @@ def native_direction_binary_loss(
 
 
 @lru_cache(maxsize=4, typed=True)
-def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None):
+def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state_loss_weight=None,
+        extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False):
     _require(type(current_state_input) is bool, "STATE_CURRENT_INPUT_MODE")
     _require((not current_state_input and first_state_loss_weight is None)
         or (current_state_input and type(first_state_loss_weight) is float
             and math.isfinite(first_state_loss_weight) and first_state_loss_weight > 0), "STATE_FIRST_LOSS_WEIGHT")
     _require(first_flat_activity_weight is None or (current_state_input and type(first_flat_activity_weight) is float
         and math.isfinite(first_flat_activity_weight) and first_flat_activity_weight > 0), "STATE_FIRST_ACTIVITY_WEIGHT")
+    _require(type(native_endpoint_loss) is bool and (not native_endpoint_loss or
+        (first_flat_activity_weight is not None and extended_forecast_minutes is None)),
+        "STATE_NATIVE_ENDPOINT_MODE")
     from gx1.contracts import entry_dynamic_mtf_state_targets_v1 as targets
     target = targets.dynamic_mtf_state_target_contract()
     _require(extended_forecast_minutes is None or current_state_input, "STATE_EXTENDED_REQUIRES_CURRENT_INPUT")
@@ -405,15 +409,24 @@ def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state
             "first_flat_activity_is_future_label_only": True,
             "first_flat_activity_native_admission": False,
         })
+    if native_endpoint_loss:
+        value.update({
+            "schema_version": "gx1_native_dynamic_mtf_endpoint_research_v5",
+            "loss": value["loss"] + "_plus_native_endpoint_marginal_NLL",
+            "native_endpoint_lead_minutes": [target["tf_span_ns"][tf] // targets.MINUTE_NS for tf in targets.TIMEFRAMES],
+            "native_endpoint_weight": 1.0,
+            "native_endpoint_normalization": "mean_over_observed_mature_native_cells_in_minibatch_omit_when_empty",
+        })
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
 def dynamic_mtf_state_research_contract(*, current_state_input=False, first_state_loss_weight=None,
-                                        extended_forecast_minutes=None, first_flat_activity_weight=None) -> dict[str, Any]:
+                                        extended_forecast_minutes=None, first_flat_activity_weight=None,
+                                        native_endpoint_loss=False) -> dict[str, Any]:
     """Separate target/output/loss identity; legacy objective bytes are untouched."""
     raw = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
         first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
-        first_flat_activity_weight=first_flat_activity_weight)
+        first_flat_activity_weight=first_flat_activity_weight, native_endpoint_loss=native_endpoint_loss)
     return {**json.loads(raw), "contract_sha256": hashlib.sha256(raw).hexdigest()}
 
 
@@ -451,13 +464,14 @@ class NativeDynamicMTFStateResearch(nn.Module):
     """
 
     def __init__(self, backbone: EntryV10CtxHybridTransformer, *, current_state_input=False,
-                 first_state_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None):
+                 first_state_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None,
+                 native_endpoint_loss=False):
         super().__init__()
         from gx1.features.entry_specialist_feature_groups_v1 import FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
         width = _backbone_width(backbone)
         contract = dynamic_mtf_state_research_contract(current_state_input=current_state_input,
             first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
-            first_flat_activity_weight=first_flat_activity_weight)
+            first_flat_activity_weight=first_flat_activity_weight, native_endpoint_loss=native_endpoint_loss)
         _require(isinstance(backbone.entry_execution_profile, dict)
             and backbone.entry_execution_profile.get("name") == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
             and backbone.gc_mtf_history is not None
@@ -468,9 +482,10 @@ class NativeDynamicMTFStateResearch(nn.Module):
         self._first_state_loss_weight = first_state_loss_weight
         self._extended_forecast_minutes = extended_forecast_minutes
         self._first_flat_activity_weight = first_flat_activity_weight
+        self._native_endpoint_loss = native_endpoint_loss
         self._research_contract_json = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
             first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
-            first_flat_activity_weight=first_flat_activity_weight)
+            first_flat_activity_weight=first_flat_activity_weight, native_endpoint_loss=native_endpoint_loss)
         device = backbone.entry_q_joint_in.weight.device
         query_width = len(contract["timeframes"]) + 1
         classes = len(contract["class_names"])
@@ -491,9 +506,14 @@ class NativeDynamicMTFStateResearch(nn.Module):
     def research_objective(self):
         kwargs = {"current_state_input": self._current_state_input, "first_state_loss_weight": self._first_state_loss_weight,
                   "extended_forecast_minutes": self._extended_forecast_minutes,
-                  "first_flat_activity_weight": self._first_flat_activity_weight}
+                  "first_flat_activity_weight": self._first_flat_activity_weight,
+                  "native_endpoint_loss": self.native_endpoint_loss}
         _require(self._research_contract_json == _dynamic_mtf_state_objective_bytes(**kwargs), "STATE_OBJECTIVE_IDENTITY")
         return dynamic_mtf_state_research_contract(**kwargs)
+
+    @property
+    def native_endpoint_loss(self):
+        return getattr(self, "_native_endpoint_loss", False)
 
     @property
     def current_state_input(self):
@@ -653,20 +673,34 @@ def dynamic_mtf_state_marginal_probabilities(initial_state_logits, state_transit
     return F.softmax(log_marginals, dim=-1)
 
 
-def _partial_state_chain_nll(log_initial, log_transitions, state, observed):
-    classes = torch.arange(3, device=state.device)
-    allowed = (~observed[..., None]) | (state[..., None] == classes)
-    initial = log_initial.masked_fill(~allowed[:, 0], -torch.inf)
-    matrices = log_transitions.masked_fill(~allowed[:, 1:, None, :], -torch.inf)
-    # Balanced product is the same forward likelihood with unknown states summed
-    # out. It bounds graph depth and CUDA launch count for the full 1440 grid.
+def _last_state_log_mass(initial, matrices):
+    """Balanced ordered transition product. Inputs may already be restricted by observed states."""
     while matrices.shape[1] > 1:
         pairs = matrices.shape[1] // 2
         reduced = _state_log_matrix_product(matrices[:, :2 * pairs:2], matrices[:, 1:2 * pairs:2])
         matrices = torch.cat((reduced, matrices[:, -1:]), dim=1) if matrices.shape[1] % 2 else reduced
     if matrices.shape[1]:
         initial = _reachable_logsumexp(initial[:, :, None] + matrices[:, 0], dim=-2)
-    return -_reachable_logsumexp(initial, dim=-1)
+    return initial
+
+
+def _partial_state_chain_nll(log_initial, log_transitions, state, observed):
+    classes = torch.arange(3, device=state.device)
+    allowed = (~observed[..., None]) | (state[..., None] == classes)
+    initial = log_initial.masked_fill(~allowed[:, 0], -torch.inf)
+    matrices = log_transitions.masked_fill(~allowed[:, 1:, None, :], -torch.inf)
+    return -_reachable_logsumexp(_last_state_log_mass(initial, matrices), dim=-1)
+
+
+def _native_endpoint_log_probabilities(initial_logits, transition_logits, lead_minutes):
+    """Forecast one distribution per TF from issue time, without conditioning on future labels."""
+    first = F.log_softmax(initial_logits, dim=-1)
+    endpoints = []
+    for tf, lead in enumerate(lead_minutes):
+        transitions = F.log_softmax(transition_logits[:, tf, :lead - 1], dim=-1)
+        endpoints.append(_last_state_log_mass(first[:, tf], transitions))
+    # Normalize in log space; taking log after a float32 softmax loses rare classes.
+    return F.log_softmax(torch.stack(endpoints, dim=1), dim=-1)
 
 
 def state_chain_negative_log_likelihood(initial_state_logits, state_transition_logits, *, state, observed):
@@ -704,12 +738,15 @@ def state_chain_negative_log_likelihood(initial_state_logits, state_transition_l
 def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits, *,
         state, observed, issue_ns, validity_ns, maturity_ns, cutoff_ns, first_state_loss_weight=None,
         extended_forecast_minutes=None, first_flat_activity_weight=None,
-        first_flat_activity_observed=None, first_flat_activity_is_flat=None):
+        first_flat_activity_observed=None, first_flat_activity_is_flat=None, native_endpoint_loss=False):
     """Strict declared-grid loss; labels and future clocks stay outside forward."""
     _require(first_state_loss_weight is not None or extended_forecast_minutes is None, "STATE_EXTENDED_REQUIRES_CURRENT_INPUT")
+    _require(type(native_endpoint_loss) is bool and (not native_endpoint_loss or first_state_loss_weight is not None),
+        "STATE_NATIVE_ENDPOINT_MODE")
     contract = (dynamic_mtf_state_research_contract() if first_state_loss_weight is None
         else dynamic_mtf_state_research_contract(current_state_input=True, first_state_loss_weight=first_state_loss_weight,
-            extended_forecast_minutes=extended_forecast_minutes, first_flat_activity_weight=first_flat_activity_weight))
+            extended_forecast_minutes=extended_forecast_minutes, first_flat_activity_weight=first_flat_activity_weight,
+            native_endpoint_loss=native_endpoint_loss))
     _require(first_state_loss_weight is not None or first_flat_activity_weight is None, "STATE_FIRST_ACTIVITY_REQUIRES_CURRENT")
     shape = _validate_state_chain_logits(initial_state_logits, state_transition_logits)
     batch, tfs, leads = shape
@@ -787,6 +824,20 @@ def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits,
             activity_loss = torch.where(activity_mask, nll, torch.zeros_like(nll)).sum() / activity_count
             term = first_flat_activity_weight * activity_loss
             loss = term if loss is None else loss + term
+    if native_endpoint_loss:
+        native_leads = contract["native_endpoint_lead_minutes"]
+        tf_cols = torch.arange(tfs, device=state.device)
+        endpoints = torch.tensor(native_leads, device=state.device) - 1  # Dense lead 1 is at column 0.
+        native_mask = eligible[:, tf_cols, endpoints]
+        native_counts = native_mask.sum(dim=0).tolist()
+        native_count = sum(native_counts)
+        native_nll = None
+        if native_count:
+            logp = _native_endpoint_log_probabilities(initial_state_logits, state_transition_logits, native_leads)
+            labels = state[:, tf_cols, endpoints][native_mask].long()
+            native_nll = -logp[native_mask].gather(-1, labels[:, None]).mean()
+            # A native cell is also eligible for the base sequence loss.
+            loss = loss + contract["native_endpoint_weight"] * native_nll
     _require(bool(torch.isfinite(sequence_nll).all()) and (loss is None or bool(torch.isfinite(loss))), "STATE_FINITE_NLL")
     result = {"loss": loss, "update_allowed": count > 0 or activity_count > 0, "eligible_mask": eligible,
         "sequence_nll": sequence_nll, "counts": counts, "per_timeframe_counts": per_tf,
@@ -797,4 +848,7 @@ def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits,
     if first_flat_activity_weight is not None:
         result.update(first_flat_activity_loss=activity_loss, first_flat_activity_eligible_cells=activity_count,
             first_flat_activity_weight=first_flat_activity_weight)
+    if native_endpoint_loss:
+        result.update(native_endpoint_loss=native_nll, native_endpoint_eligible_cells=native_count,
+            native_endpoint_eligible_per_tf=native_counts)
     return result

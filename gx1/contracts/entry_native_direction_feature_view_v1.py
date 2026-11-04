@@ -147,6 +147,7 @@ def _require_view(view):
     dynamic_state = 'dynamic_state_supervision' in view
     current_state = 'current_state_first_loss_weight' in view
     first_activity = 'first_flat_activity_weight' in view
+    endpoint = 'native_endpoint_loss' in view
     extended_state = 'extended_forecast_minutes' in view
     five_priority = 'five_minute_priority' in view
     dense_bps = 'dense_bps_scale' in view
@@ -156,6 +157,8 @@ def _require_view(view):
     initialization = view.get('price_momentum_initialization', 'zero_residual')
     relative = 'gc_relative_coordinates_sha256' in view
     _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
+        | ({'native_endpoint_loss'} if endpoint else set())
+        and (not endpoint or (view['native_endpoint_loss'] is True and first_activity and not extended_state))
         and (not first_activity or current_state)
         and (not extended_state or current_state)
         and (not current_state or dynamic_state)
@@ -179,7 +182,8 @@ def _require_view(view):
             else dynamic_mtf_state_research_contract(current_state_input=True,
                 first_state_loss_weight=view['current_state_first_loss_weight'],
                 extended_forecast_minutes=view.get('extended_forecast_minutes'),
-                first_flat_activity_weight=view.get('first_flat_activity_weight')))
+                first_flat_activity_weight=view.get('first_flat_activity_weight'),
+                native_endpoint_loss=view.get('native_endpoint_loss', False)))
     elif dense_bps:
         from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_bps_research_contract
         objective = dense_direction_bps_research_contract()
@@ -263,7 +267,7 @@ def family_reference_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -298,7 +302,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         _require(all(item[key] == proof['gc'][tf][key] for key in ('rows', 'native_row_indices_sha256', 'available_ns_sha256')), 'GC_PREFIX_ROW_UNION:' + tf)
     _require(type(dense_minutes) is bool and type(price_momentum) is bool and type(m1_ofi_coarsened) is bool and type(five_minute_priority) is bool
         and type(full_feature_profile) is bool and (not full_feature_profile or (not price_momentum and family_intervention is None))
-        and type(dynamic_state_supervision) is bool
+        and type(dynamic_state_supervision) is bool and type(native_endpoint_loss) is bool
+        and (not native_endpoint_loss or (first_flat_activity_weight is not None and extended_forecast_minutes is None))
         and (current_state_first_loss_weight is None or dynamic_state_supervision)
         and (first_flat_activity_weight is None or current_state_first_loss_weight is not None)
         and (extended_forecast_minutes is None or current_state_first_loss_weight is not None)
@@ -339,7 +344,7 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         objective = (dynamic_mtf_state_research_contract() if current_state_first_loss_weight is None
             else dynamic_mtf_state_research_contract(current_state_input=True,
                 first_state_loss_weight=current_state_first_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
-                first_flat_activity_weight=first_flat_activity_weight))
+                first_flat_activity_weight=first_flat_activity_weight, native_endpoint_loss=native_endpoint_loss))
     elif dense_bps_scale is not None:
         from gx1.contracts.entry_native_direction_dense_v1 import dense_direction_bps_research_contract
         objective = dense_direction_bps_research_contract()
@@ -382,6 +387,8 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['current_state_first_loss_weight'] = current_state_first_loss_weight
     if first_flat_activity_weight is not None:
         value['first_flat_activity_weight'] = first_flat_activity_weight
+    if native_endpoint_loss:
+        value['native_endpoint_loss'] = True
     if extended_forecast_minutes is not None:
         value['extended_forecast_minutes'] = extended_forecast_minutes
     if price_momentum_initialization != 'zero_residual':
@@ -506,7 +513,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         dynamic_state_supervision=view.get('dynamic_state_supervision', False),
         current_state_first_loss_weight=view.get('current_state_first_loss_weight'),
         extended_forecast_minutes=view.get('extended_forecast_minutes'),
-        first_flat_activity_weight=view.get('first_flat_activity_weight'))
+        first_flat_activity_weight=view.get('first_flat_activity_weight'),
+        native_endpoint_loss=view.get('native_endpoint_loss', False))
     _, routes, widths = _canonical()
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])
@@ -526,7 +534,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         wrapper = (NativeDynamicMTFStateResearch(backbone) if first_weight is None
             else NativeDynamicMTFStateResearch(backbone, current_state_input=True, first_state_loss_weight=first_weight,
                 extended_forecast_minutes=view.get('extended_forecast_minutes'),
-                first_flat_activity_weight=view.get('first_flat_activity_weight')))
+                first_flat_activity_weight=view.get('first_flat_activity_weight'),
+                native_endpoint_loss=view.get('native_endpoint_loss', False)))
     elif view.get('dense_minute_supervision', False):
         from gx1.contracts.entry_native_direction_dense_v1 import DenseNativeEntryDirectionResearch
         wrapper = DenseNativeEntryDirectionResearch(backbone, m1_ofi_normalization=view.get('m1_ofi_normalization'),

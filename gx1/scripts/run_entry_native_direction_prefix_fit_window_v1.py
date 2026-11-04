@@ -212,7 +212,8 @@ def _prepare_dynamic_state(context, launch, np):
         full_feature_profile=True, dynamic_state_supervision=True,
         current_state_first_loss_weight=launch['numerical_recipe'].get('current_state_first_loss_weight'),
         extended_forecast_minutes=launch['numerical_recipe'].get('extended_forecast_minutes'),
-        first_flat_activity_weight=launch['numerical_recipe'].get('first_flat_activity_weight'))
+        first_flat_activity_weight=launch['numerical_recipe'].get('first_flat_activity_weight'),
+        native_endpoint_loss=launch['numerical_recipe'].get('native_endpoint_loss', False))
     prepared['state_artifact_directory'] = context['state_artifact_directory']
     if view.get('extended_forecast_minutes') is not None:
         guard = context.get('extended_storage_guard')
@@ -233,6 +234,7 @@ def _state_loss(model, outputs, target, *, cutoff):
         **{key:target[key] for key in ('state','observed','issue_ns','validity_ns','maturity_ns')}, cutoff_ns=cutoff,
         first_state_loss_weight=model.first_state_loss_weight, extended_forecast_minutes=model.extended_forecast_minutes,
         first_flat_activity_weight=getattr(model, 'first_flat_activity_weight', None),
+        native_endpoint_loss=getattr(model, 'native_endpoint_loss', False),
         **({key:target[key] for key in ('first_flat_activity_observed', 'first_flat_activity_is_flat')}
             if getattr(model, 'first_flat_activity_weight', None) is not None else {}))
     _require(loss['research_objective_sha256'] == model.research_objective['contract_sha256'], 'STATE_LOSS_IDENTITY')
@@ -1129,6 +1131,11 @@ def _train_batch(model, optimizer, features, target, *, cutoff, counters, ceilin
             record['first_flat_activity_eligible_cells'] = loss['first_flat_activity_eligible_cells']
             record['first_flat_activity_loss'] = (None if loss['first_flat_activity_loss'] is None
                 else float(loss['first_flat_activity_loss'].detach()))
+        if getattr(model, 'native_endpoint_loss', False):
+            term = loss['native_endpoint_loss']
+            record['native_endpoint_loss'] = None if term is None else float(term.detach())
+            record['native_endpoint_eligible_cells'] = loss['native_endpoint_eligible_cells']
+            record['native_endpoint_eligible_per_tf'] = loss['native_endpoint_eligible_per_tf']
     if magnitude_weighted:
         for key in ('unweighted_direction_loss','magnitude_weighted_loss'):
             record[key]=None if loss[key] is None else float(loss[key].detach())

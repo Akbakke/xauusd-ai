@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+**04.11 – Arbeidsmål steg 1.** Kvalifiser det direkte treklassetapet ved +5, +15, +60, +240 og +1 440 minutter. Bare regnekontrollen på det tidligere TRAIN-prefikset er innrømmet. Identitet, ferdigkriterier og kildebindinger ligger i `dynamic_mtf_native_endpoint_loss_step1_20261104_001`.
+
 **04.11 – Begge GCZ4-helgene står som UKJENT.** En gratis priskontroll for instrument 393 viste 25 og 22 estimerte statusrader og 0,000007003545 USD samlet. Operatøren godkjente inntil 0,0001 USD fra eksisterende kreditt, men kunne ikke bekrefte saldoen. Fakturasiden krever separat innlogging. Kontrollen endte med null betalte forespørsler, null statusrader og 0 USD i kostnad. En historisk statuslogg kan belyse om sonetilstand kan videreføres over de to hullene. En eventuell endring av soneregelen krever en separat beslutning. [Resultat](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/RESULT.json) · [Terminal](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/TERMINAL.json)
 
 **04.11 – Desemberdelingen er bundet til den forhåndsvalgte kandidaten.** Den opprinnelige kandidatspesifikasjonen bruker 1. oktober som fitgrense. Desemberkontrollen målte data ved 1. desember. Den nye bindingen knytter samme direkte treklasse-logtap ved +5/+15/+60/+240/+1 440 minutter til 41 866 tidligere TRAIN-foreldre, deres fryste klasseprior og Markov-overganger og én reservert desemberfold på 5 736 foreldre. Den opprinnelige spesifikasjonen og den konsumerte native oppskriften er bevart med sine egne datoer. [Kandidatbinding og målfrister](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDIDATE_GEOMETRY_001.json)

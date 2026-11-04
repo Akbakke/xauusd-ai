@@ -37,10 +37,13 @@ def _gradients():
 
 
 
-@pytest.mark.parametrize('seal_mode', ['native', 'campaign_newline', 'corrupt'])
+@pytest.mark.parametrize('seal_mode', ['native', 'campaign_newline', 'corrupt', 'endpoint'])
 def test_dynamic_launch_accepts_actual_numerical_owner_seal_only(tmp_path, monkeypatch, seal_mode):
     from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_research_recipe
     numerical = native_direction_research_recipe(batch_size=16,max_updates=2,dynamic_state=True)
+    if seal_mode == 'endpoint':
+        numerical = native_direction_research_recipe(batch_size=16, max_updates=2, dynamic_state=True,
+            current_state_first_loss_weight=.03, first_flat_activity_weight=.03, native_endpoint_loss=True)
     native_seal = numerical['contract_sha256']
     if seal_mode == 'campaign_newline':
         numerical['contract_sha256'] = campaign.canonical_sha256(
@@ -76,7 +79,8 @@ def test_dynamic_launch_accepts_actual_numerical_owner_seal_only(tmp_path, monke
         checked = validate()
         assert checked['numerical_recipe']['contract_sha256'] == native_seal
     else:
-        with pytest.raises(RuntimeError,match='STATE_NUMERICAL_SEAL'):
+        error = 'STATE_ENDPOINT_NOT_ADMITTED_IN_HISTORICAL_CAMPAIGN' if seal_mode == 'endpoint' else 'STATE_NUMERICAL_SEAL'
+        with pytest.raises(RuntimeError, match=error):
             validate()
 
 def test_private_counts_reject_extra_work_and_missing_resume():

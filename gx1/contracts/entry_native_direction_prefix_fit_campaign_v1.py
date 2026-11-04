@@ -521,6 +521,7 @@ def build_first_flat_activity_train_audit_draft(*, numerical_recipe, target_mani
     numerical = require_native_direction_research_recipe(numerical_recipe)
     _require(numerical.get('dynamic_state_supervision') is True
         and numerical.get('first_flat_activity_weight') is not None, 'STATE_ACTIVITY_DRAFT_RECIPE')
+    _require('native_endpoint_loss' not in numerical, 'STATE_ENDPOINT_NOT_ADMITTED_IN_HISTORICAL_DRAFT')
     fold = _fold(fold)
     _require(fold == private.BPS_FOLD, 'STATE_ACTIVITY_DRAFT_FOLD')
     _require(isinstance(target_sources, Mapping) and set(target_sources) == {'m1', 'm5_atr'},
@@ -687,6 +688,8 @@ def require_dynamic_state_launch_recipe(value, *, source_repo, source_commit, pr
         and numerical['max_updates'] == (2 if private_scope else (fold['prefix_rows'] + 15)//16)
         and numerical.get('genuine_updates_authorized') is numerical.get('native_launch_authorized') is False,
         'STATE_NUMERICAL_ROLE')
+    # These historical campaigns have no admission for the December endpoint objective.
+    _require('native_endpoint_loss' not in numerical, 'STATE_ENDPOINT_NOT_ADMITTED_IN_HISTORICAL_CAMPAIGN')
     if 'current_state_first_loss_weight' in numerical:
         weight = numerical['current_state_first_loss_weight']
         _require(type(weight) is float and math.isfinite(weight) and weight > 0, 'STATE_CURRENT_FIRST_LOSS_WEIGHT')
