@@ -472,6 +472,18 @@ H4/D1s ny-tilstand-grupper er små. M5s modellskår beveger seg svakt **motsatt*
 
 Den eksplisitte nåtilstandskodingen i fryst modell er **tre klasseindikatorer + observert-flagg + sti-observert-flagg**. Den får ikke målseriens eksakte alder eller avstand til løpende ekstrem direkte; den øvrige historiske featureprofilen kan gi tilnærminger. En eventuell liten, kausal alder-/ekstremavstandskandidat må først bindes til faktisk tilgjengelig historikk, sammenlignes mot allerede lagret +1-kalibrering og måles på strengt kronologisk TRAIN-OOF samt lengre ledetider. Flere pass eller bare et +1-offset kan ikke antas å rette den betingede retningen. [Første-minuttskvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_FIRST_MINUTE_STATE_AGE_MODEL_CALIBRATION.json) SHA-256 `03da846483e75b4682c00e6b980a0edcb8150721d0c0e028af3e4358df8007f6`; ingen modellkall eller fit.
 
+### Bekreftet varighet ved prognosestart
+
+For å skille «nettopp inntrådt» fra lengre løp telles alder bare fra et **observert klasseskifte** i en sammenhengende M1-bane. Telling nullstilles ved ukjent klasse, ukjent lokal bane eller hull i M1-gyldighetstid. Tabellen bruker lagrede +1-prognoser ved issue og viser faktisk skifte / modellens gjennomsnittlige skiftesannsynlighet på senere gjenbrukt utvikling:
+
+| Nåtilstand | Alder 1 min | Alder 2–4 min | Alder 5–9 min |
+|---|---:|---:|---:|
+| M5 NED/OPP | 15,77 / 6,85 % (799) | 26,79 / 6,65 % (1 243) | 32,56 / 6,54 % (344) |
+| M15 NED/OPP | 4,89 / 5,71 % (879) | 7,99 / 6,23 % (2 229) | 10,25 / 7,38 % (2 440) |
+| M5 FLATT, utgang | 36,12 / 9,26 % (263) | 31,52 / 8,87 % (349) | 25,38 / 7,80 % (130) |
+
+M15 NED/OPP ved alder 10–19 min har 14,97 % faktisk skifte mot 7,11 % fra modellen (1 870 rader). TRAIN viser samme hovedmønster: M5 NED/OPP 15,08/25,41/35,41 % faktisk ved alder 1/2–4/5–9, mens modellen gir 7,61/7,71/7,48 %. Aldersgruppe 1 har **eksakt** rad- og sannsynlighetsparitet med den tidligere «nettopp inntrådt»-kvitteringen på begge perioder og alle fem TF. Dette avgrenser en målt første-stegs kalibreringssvikt; gruppene overlapper i tid, er diagnostisk valgt og dekker bare løp som starter innen kjent bane. M1-pauser forlenger ikke den bekreftede alderen. Funnene viser verken at alder er kausalt manglende input etter alle øvrige indikatorer, eller at en alderkandidat vil forbedre marginal treklasse-skår. [Bekreftet-varighet-kvittering](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_CONFIRMED_RUN_AGE_FIRST_MINUTE_REVIEW.json) SHA-256 `1e579b17826db25b3e953e6b11b18c8386d575b4d637c4a31293cc7b1f083b5b`; ingen fit, native modellkall, optimizer, TEST eller handel.
+
 ## Samsvar med brukerens prognosemål
 
 Modellen får historisk nåtilstand og genuine MTF-indikatorer og trenes mot framtidige lokale OPP/NED/FLATT-klasser på alle fem tidsrammer. Den bruker ingen fast prislinje ved prognosestart, og reverseringer kan gi flere framtidige retningsskifter. På dette punktet samsvarer målkontrakten med den løpende markedsbeskrivelsen.
@@ -543,6 +555,7 @@ De første revisjonene ligger under `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PRE
 | `SAVED_TARGET_SECOND_ORDER_STATE_HAZARD_REVIEW.json` | `7550897c63b7aa4b48c47375d79a1c0fb8bae0bb22ab6e0c01d695af545bd2cc` | Unike observerte M1-tripler: neste klasseskifte etter fortsatt kontra nylig inntrådt tilstand, TRAIN og senere. |
 | `SAVED_TARGET_SECOND_ORDER_PATH_SENSITIVITY.json` | `a6707f3ae5557091dddce36f7d9aa2f18dde791b81fc1246ff689f008b7210e1` | Samme varighetskontroll med streng `path_observed`-maske; originalt trippelutvalg har eksakt paritet. |
 | `SAVED_FIRST_MINUTE_STATE_AGE_MODEL_CALIBRATION.json` | `03da846483e75b4682c00e6b980a0edcb8150721d0c0e028af3e4358df8007f6` | Faktisk +1 skifte mot lagret modell/Markov ved ny og fortsatt historisk tilstand; signert treklasse-skårparitet. |
+| `SAVED_CONFIRMED_RUN_AGE_FIRST_MINUTE_REVIEW.json` | `1e579b17826db25b3e953e6b11b18c8386d575b4d637c4a31293cc7b1f083b5b` | Bekreftet sammenhengende tilstandsalder ved issue mot faktisk +1-skifte og lagret modell/Markov, TRAIN og senere; alder 1 har eksakt paritet. |
 | `SAVED_MTF_LAST_CLOSED_CANDLE_NATIVE_DIRECTION_AUDIT.json` | `d5e4e26e4fb3307f2317cc75bf364458520d2ac6bfe7b56724d49ecb1a11ef26` | TRAIN-valgt candlefortegn mot modell og matchet Markov ved én native ledetid på alle fem TF, med beskrivende ukeblokker. |
 | `SAVED_M5_CANDLE_CURRENT_STATE_STRATIFICATION.json` | `1e09c2087d19d66383eaa96abb3aa0a76136f6026577f7fd71ca5e4bc8fd3757` | M5 +5 candlefortegn og modellskår innen kjent/ukjent nåtilstand, med ukeblokkintervall for ukjentgruppen. |
 | `SAVED_ROUTED_M5_CANDLE_REVERSAL_AUDIT.json` | `081969b226d06f05c551629a09ac2210bcd62d8bff282cca3a9f9f7f93e0c501` | Lesende +5 retningsrangering fra allerede rutet M5-candleverdi mot lagret modell/Markov, kildefortegn og ukeblokker. |
