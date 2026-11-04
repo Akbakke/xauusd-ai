@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T15:35:58.322353+00:00",
-  "status": "GCZ4_STATUS_TWO_WINDOWS_ADMITTED_CAP_USD_00001_TRAINING_CLOSED",
+  "observed_utc": "2026-11-04T15:41:21.612310+00:00",
+  "status": "GCZ4_TWO_WINDOW_PREFLIGHT_CLOSED_NO_STATUS_PAYLOAD_TRAINING_CLOSED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Obtain the two exact GCZ4 status windows through the bound successor, after current pricing and existing-credit checks, up to USD 0.0001 total. Review each separately under the existing evidence and D1 zone gates.",
+  "next_action": "Leave both GCZ4 gaps UNKNOWN under the current observation rule. The micro-budget successor performed metadata checks only and is closed. An existing/free authoritative status record or a separate deliberate decision about the D1 observation contract would be needed to revisit the input gate. Historical XAU receipt/ATR publication remains separate. Use current_work.dynamic_mtf_train_gates_20261104.december_candidate_geometry only if full genuine prefix support is qualified; no model or normalization admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Obtain the two exact GCZ4 status windows through the bound successor, after current pricing and existing-credit checks, up to USD 0.0001 total. Review each separately under the existing evidence and D1 zone gates.",
+    "current_activity": "Two-window data preflight complete. The operator authorized USD 0.0001 but could not confirm remaining prepaid credit. No chargeable historical request was issued.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -284,11 +284,11 @@
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "One closed zero-spend GC production-status metadata and physical XAU clock review. No status payload, model or held-out scoring.",
+    "latest_terminal_role": "Closed metadata-only Databento preflight. No status rows, charge, input changes, model or held-out score.",
     "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_STATUS_AND_XAU_CLOCK_001/TERMINAL.json",
-      "sha256": "e650e0626ddb9cb5f89f34471faeee72981e67a33cb8b14df273addb0cba618e"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/TERMINAL.json",
+      "sha256": "cfea2846d5437e5681e2e9e1961bc8371b29935a48a5748598acf038e5063d1c"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Both GCZ4 weekend intervals still lack historical status evidence. All 79 local Databento deliveries contain other schemas. The exact GLBX.MDP3/status queries are both priced above zero. No same-feed historical local XAU receipt or ATR publication records were found in the named artifacts. Seven mandatory GC D1 inputs still have no support under the current zone rules.",
+    "current_blocker": "No verified GCZ4 matching state across either gap or approved change to the D1 field contract. Seven required fields are unobserved before December. Confirmed same-feed XAU arrival/ATR readiness and independent OOF model value also remain unavailable.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Obtain the two exact GCZ4 status windows through the bound successor, after current pricing and existing-credit checks, up to USD 0.0001 total. Review each separately under the existing evidence and D1 zone gates.",
+    "next_action": "Leave both GCZ4 gaps UNKNOWN under the current observation rule. The micro-budget successor performed metadata checks only and is closed. An existing/free authoritative status record or a separate deliberate decision about the D1 observation contract would be needed to revisit the input gate. Historical XAU receipt/ATR publication remains separate. Use current_work.dynamic_mtf_train_gates_20261104.december_candidate_geometry only if full genuine prefix support is qualified; no model or normalization admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22836,7 +22836,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T15:35:58.322353+00:00",
+  "updated_utc": "2026-11-04T15:41:21.612310+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -54820,7 +54820,7 @@
     "authorized_spend_usd": "0"
   },
   "gcz4_two_status_windows_credit_20261104_001": {
-    "status": "ADMITTED_TWO_STATUS_EXTRACTS_AFTER_BOUNDED_PREFLIGHT",
+    "status": "CLOSED_METADATA_ONLY_EXISTING_CREDIT_NOT_CONFIRMED_NO_PAID_REQUEST",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001",
     "manifest": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/MANIFEST.json",
@@ -54834,12 +54834,37 @@
     "operator_cap_total_usd": "0.0001",
     "historical_prepaid_credit_only": true,
     "max_data_requests": 2,
-    "fresh_metadata_authorized": true,
-    "status_fetch_conditional": true,
+    "fresh_metadata_authorized": false,
+    "status_fetch_conditional": false,
     "training_enabled": false,
     "model_calls_authorized": false,
     "reset_change_authorized": false,
     "broker_trading_authorized": false,
-    "test_authorized": false
+    "test_authorized": false,
+    "relaunch_allowed": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/CLAIM.json",
+      "sha256": "1e75830bd00aad9a6a9b6f651d8d28d59f250b31bbcd0f303304fa73fc4e5ed3"
+    },
+    "preflight": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/PREFLIGHT.json",
+      "sha256": "1e4493786416a875a4918539e68939ba27d9d72ee0b6b26cf1d0a0e33b321833"
+    },
+    "credit_evidence": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/CREDIT_EVIDENCE.json",
+      "sha256": "92acd86fc9ce814f912b65b40b355fcf475f777470f565e045f73486f80ca35a"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/RESULT.json",
+      "sha256": "cc0b3265b5fef1cfe91755396c59193f6d933373034ced1feb8e79273e526276"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_STATUS_TWO_WINDOWS_001/TERMINAL.json",
+      "sha256": "cfea2846d5437e5681e2e9e1961bc8371b29935a48a5748598acf038e5063d1c"
+    },
+    "quoted_total_usd": "0.000007003545",
+    "data_requests": 0,
+    "paid_data_fees_usd": "0",
+    "historical_status_rows_received": 0
   }
 }
