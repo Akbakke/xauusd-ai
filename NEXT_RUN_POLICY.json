@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T10:40:55.747086+00:00",
-  "status": "DYNAMIC_MTF_GC_D1_BEAR_TRAIN_SOURCE_TRACE_ADMITTED_TRAINING_CLOSED_20261104",
+  "observed_utc": "2026-11-04T10:47:45.635345+00:00",
+  "status": "DYNAMIC_MTF_GC_D1_BEAR_SOURCE_TRACE_COMPLETE_TWO_BREAKS_NO_ORIGIN_TRAINING_CLOSED_20261104",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Execute only the capped source trace, preserving the consumed December data gate, seven mandatory fields and all 5,736 held-out parents. No native model or normalization fit is admitted.",
+  "next_action": "Keep December reserved. The single source trace is consumed. A separately scoped source decision may qualify actual GC market status for the 04–06 October and 08–10 November 2024 gaps. Any change to zone/origin carry requires its own feature-contract decision and requalification. No native run admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "One TRAIN source trace admitted for the 214 GC-D1 donor dates before 01 December 2024. The most recent completed data gate remains the December prefix qualification.",
+    "current_activity": "Single capped TRAIN source trace completed; every date reconciled and all eleven fields including missingness reproduced. Both eligible-price breaks followed whole-bucket gaps and lack a strictly earlier post-gap bullish origin.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -284,11 +284,11 @@
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
     "training_started": true,
-    "latest_terminal_role": "Consumed single 01 December data gate with fit-only physical targets and censored D1 event support; there is no native fit or scored holdout.",
+    "latest_terminal_role": "One consumed source-only trace of all 214 pre-December GC D1 donor dates. No normalization, training or held-out scoring.",
     "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001",
     "latest_terminal": {
-      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/TERMINAL.json",
-      "sha256": "fe0d7af30e96c80fc364feeaef6862720629ca29461377826028d7b66c196185"
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/TERMINAL.json",
+      "sha256": "e02be63aaeae6f84ffd10e106c619e9b1e9ca32c0fa952e4bd3f89636f33d904"
     },
     "terminal_exit_code": 0,
     "source_unchanged_at_terminal": true,
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Seven full-profile GC-D1 bearish order-block fields are entirely unobserved before the 01 December cutoff. No prefix normalization or native predictor was fit. Actual physical XAU M1 reception, ATR availability, restart parity, and independent forecast edge remain unknown.",
+    "current_blocker": "All seven mandatory GC D1 bear coordinates lack support under the current observed-zone contract. The ordinary exchange schedule covers the two gaps but their actual historical market status is unverified. No normalization or strict TRAIN-OOF exists for the reserved December fold. Physical XAU-M1 arrival and ATR publication, independent edge and economics remain unknown.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute only the capped source trace, preserving the consumed December data gate, seven mandatory fields and all 5,736 held-out parents. No native model or normalization fit is admitted.",
+    "next_action": "Keep December reserved. The single source trace is consumed. A separately scoped source decision may qualify actual GC market status for the 04–06 October and 08–10 November 2024 gaps. Any change to zone/origin carry requires its own feature-contract decision and requalification. No native run admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22737,7 +22737,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T10:40:55.747086+00:00",
+  "updated_utc": "2026-11-04T10:47:45.635345+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -54451,7 +54451,7 @@
     }
   },
   "dynamic_mtf_gc_d1_bear_source_trace_20261104_001": {
-    "status": "ADMITTED_ONE_TRAIN_GC_D1_SOURCE_TRACE_ONLY",
+    "status": "CONSUMED_TRAIN_BEAR_SOURCE_TRACE_COMPLETE_NO_ELIGIBLE_ZONE_MODEL_BLOCK",
     "operator_request": "Lag nytt mål med dette. First milestone of the requested goal is one source analysis of the seven mandatory bearish GC-D1 fields on the 214 pre-December donor dates.",
     "scope": "Read only the pre-cutoff clock and projected source fields from the signed 024 GC D1 table. Reconcile each date with the canonical feature owner, including observation, contract segmentation, pivot, break, prior bullish origin and gap censorship. Publish causes and parity only. The consumed prefix gate and all model authorities stay closed.",
     "runner": "gx1.audit.run_dynamic_mtf_train_prefix_data",
@@ -54477,9 +54477,9 @@
       "numerical_threads": 1
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "fit_target_view_authorized": false,
     "normalization_fit_authorized": false,
     "model_calls_authorized": false,
@@ -54488,6 +54488,92 @@
     "relaunch_allowed": false,
     "test_authorized": false,
     "broker_authorized": false,
-    "trading_authorized": false
+    "trading_authorized": false,
+    "execution_binding": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/EXECUTION_BINDING.json",
+      "sha256": "4e5a9214c4d7df74b91bb03a82dba711066f7481b179ae8449751f4516e5af03"
+    },
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/CLAIM.json",
+      "sha256": "a210ac1b7bd3ae4335ba1cb76c47704c74daef0e8e1a0a3ae1dddf3d9ef72219"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/TERMINAL.json",
+      "sha256": "e02be63aaeae6f84ffd10e106c619e9b1e9ca32c0fa952e4bd3f89636f33d904"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/RESULT.json",
+      "sha256": "5f40c76aa1998a519935e6b2ec701c88204966fa3fd25fe1641f19fa9157acd6"
+    },
+    "trace_by_date": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/SOURCE_DATES.json",
+      "sha256": "9aa002b09587de7879ba9e3a7b9b712eb85d7e66c2109d17fd3db6998dc4b054"
+    },
+    "verified_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GC_D1_BEAR_SOURCE_TRACE_001/ACTUAL_SOURCE_TRACE_REVIEW.json",
+      "sha256": "b333f27b45eadda0e0b0fe22d32cb86dca3aa2598a00c1823762584889535ce9"
+    },
+    "measured": {
+      "source_dates_verified": 214,
+      "observed_candles": 148,
+      "classification_counts": {
+        "CENSORED_BOS_WITHOUT_PRIOR_BULL": 2,
+        "CENSORED_NO_BOS_WITHOUT_PRIOR_BULL": 39,
+        "CENSORED_NO_BOS_WITH_PRIOR_BULL": 74,
+        "NO_CANDLE_INVALID_CONTRACT": 5,
+        "NO_CANDLE_ZERO_ACCEPTED_MINUTES": 61,
+        "NO_CONFIRMED_LOW": 33
+      },
+      "confirmed_low_observed_rows": 115,
+      "known_no_bos_rows": 113,
+      "close_below_confirmed_low": 7,
+      "bos_down_rows": 2,
+      "bos_down_with_eligible_prior_bull": 0,
+      "known_zone_states": 0,
+      "censored_whole_day_gaps": 30,
+      "resets_with_observed_prior_bull": 27,
+      "breaks": [
+        {
+          "available_utc": "2024-10-08T22:00:00+00:00",
+          "confirmed_low_row": 152,
+          "gap_dates_have_valid_contract_full_clock_and_zero_accepted": true,
+          "most_recent_gap_end_times_utc": [
+            "2024-10-05T22:00:00+00:00",
+            "2024-10-06T22:00:00+00:00"
+          ],
+          "previous_observed_bull_utc_same_contract": "2024-10-01T22:00:00+00:00",
+          "prior_bull_row_without_crossing_gap": null,
+          "row": 160
+        },
+        {
+          "available_utc": "2024-11-12T22:00:00+00:00",
+          "confirmed_low_row": 162,
+          "gap_dates_have_valid_contract_full_clock_and_zero_accepted": true,
+          "most_recent_gap_end_times_utc": [
+            "2024-11-09T22:00:00+00:00",
+            "2024-11-10T22:00:00+00:00"
+          ],
+          "previous_observed_bull_utc_same_contract": "2024-11-07T22:00:00+00:00",
+          "prior_bull_row_without_crossing_gap": null,
+          "row": 195
+        }
+      ],
+      "field_value_or_missingness_comparisons": 2354,
+      "comparisons_with_mismatch": 0
+    },
+    "prior_gc_calendar_evidence": {
+      "candidates": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/D1_GAP_CALENDAR_CANDIDATES_001/RESULT.json",
+        "sha256": "69637742f451615c645da67783b70e8c4199b8048d72fab573714ea0c9f8ccc3"
+      },
+      "matched_train_next_bar_utc": [
+        "2024-10-06T22:00:00+00:00",
+        "2024-11-10T22:00:00+00:00"
+      ],
+      "nominal_weekly_rule_covers_both": true,
+      "actual_closures_verified": false
+    },
+    "conclusion": "The signed donor and current deterministic feature owner agree on all 214 dates. Of 115 observed candles with a confirmed low, 113 had no new downward break; the only two breaks had no strictly earlier bullish origin since the last whole-bucket gap on the same contract. None of the seven values, including inactive state, is observable under the existing contract. A separate creation-event mask could describe observed no-break rows but cannot supply zone geometry.",
+    "decision_needed": "Source path unchanged. To assess carrying the prior bullish origin over the two specific gaps, bind historical GC-specific exchange status, exact session and exception times for all four missing buckets, plus contract and source continuity. A qualified calendar and a separately approved feature contract are required before changing resets. Genuinely qualifying observations on the fixed prefix are another route. No cutoff search or general zero-fill."
   }
 }
