@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-04T18:01:17.675740+00:00",
-  "status": "DYNAMIC_MTF_DECEMBER_MASKED_PREFIX_NORM_AND_INPUT_VIEW_VERIFIED_MODEL_GATES_CLOSED",
+  "observed_utc": "2026-11-04T18:25:52.913778+00:00",
+  "status": "DYNAMIC_MTF_ONE_PREFIX_CANDLE_CHECK_AND_METADATA_PLAN_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "The masked research input profile is qualified on the 41,866 pre-December TRAIN parents. Before a model check, bind the prefix candle reference and one exact no-refit recipe/campaign to this normalizer, objective and 5,736 reserved issues. Fresh own baseline, real gradient/resume qualification, safe PC restart and separate exact admission remain required. No model run is admitted.",
+  "next_action": "Perform the single source-frozen capped CPU measurement of five prefix candle references and fixed early cohort support, then bind one closed future candidate plan. No model calls or heldout features/outcomes.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "The masked research input profile is qualified on the 41,866 pre-December TRAIN parents. Before a model check, bind the prefix candle reference and one exact no-refit recipe/campaign to this normalizer, objective and 5,736 reserved issues. Fresh own baseline, real gradient/resume qualification, safe PC restart and separate exact admission remain required. No model run is admitted.",
+    "next_action": "Perform the single source-frozen capped CPU measurement of five prefix candle references and fixed early cohort support, then bind one closed future candidate plan. No model calls or heldout features/outcomes.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -20247,7 +20247,13 @@
           "qualified_native_recipe": null,
           "qualified_prefix_candle_reference": null,
           "production_clock_parity": "UNKNOWN",
-          "independent_edge": "UNKNOWN"
+          "independent_edge": "UNKNOWN",
+          "candidate_plan_milestone": {
+            "stage": "dynamic_mtf_december_candle_and_plan_20261104_001",
+            "candle_reference": null,
+            "candidate_plan": null,
+            "run_admission": false
+          }
         }
       }
     },
@@ -55241,5 +55247,179 @@
       "elapsed_data_seconds": 79.92517903199769,
       "native_predictive_value": "UNMEASURED"
     }
+  },
+  "dynamic_mtf_december_candle_and_plan_20261104_001": {
+    "status": "ADMITTED_ONE_PREFIX_CANDLE_AND_METADATA_PLAN_ONLY",
+    "goal": "Kvalifiser candle-referansen fra siste kausalt lukkede prisbar på det eksakte TRAIN-prefikset med 41 866 tidligere prognosetidspunkter. Bind én eksakt, etterprøvbar plan for desemberkandidaten med den godkjente inputprofilen og det nye endepunktstapet. Bevar 5 736 desemberutfall for senere måling og alle native admisjons- og sikkerhetsvakter. Skill data- og plankvalifisering fra modellæring og uavhengig edge.",
+    "operator_request": "Prepare and measure the single prefix candle reference and lock one December research candidate plan as the next milestone of the direction goal.",
+    "parent_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
+    "milestone_complete": false,
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001",
+    "runner": "gx1.audit.run_dynamic_mtf_train_prefix_data",
+    "specification": {
+      "path": "docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
+      "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
+    },
+    "candidate_geometry": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDIDATE_GEOMETRY_001.json",
+      "sha256": "7acb5596032fa868b180dd872c1581b1af4e1cf7bcb8b568a63b44b88797fe28"
+    },
+    "verified_input_profile": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/VERIFIED_REVIEW.json",
+      "sha256": "d6fc39f198a859fe88deb0857375d97a4fb5b0b55fc1f8fdbf695a6062687c96"
+    },
+    "normalization_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/RESULT.json",
+      "sha256": "bb75485efa6a6075bdf2d144495c859be9141efc0d30d747e89213889752cc53"
+    },
+    "masked_profile_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/TERMINAL.json",
+      "sha256": "44ad153e5f18148504cce2578c12513ae0219e4d1af103f00732b332bd81c0bc"
+    },
+    "prefix_normalization": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/PREFIX_NORMALIZATION.json",
+      "sha256": "01d9e08615b886e0e5fbb7cc37e83fc51d19cbd71ef59d7fbf11883dc2f532db"
+    },
+    "feature_view": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/FEATURE_VIEW.json",
+      "sha256": "b2203f564aaa55ef273db13380beada17a5913c43405f654e8881fe97e28824f"
+    },
+    "fit_target_view": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/FIT_TARGETS/SERIES.json",
+      "sha256": "b5b44b6da510a09c9b1ee6e913c4eb5d2bbf1bc9979ac85d62e09f8b63b5d576"
+    },
+    "prefix_counts": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/FIT_COUNTS.json",
+      "sha256": "0b03773dc19fc0ab8e1808e38013cbd5c8c0dee6a9659c300f90f06618f0ad19"
+    },
+    "prefix_prior": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/FIT_PRIOR.json",
+      "sha256": "dd529bb100e12688428f5c249c2472ab9d3ca65e8400be305ef8cd65a6ab12bd"
+    },
+    "endpoint_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/RESULT.json",
+      "sha256": "d07b456809aa56eacdf73e01f59a18c3d54189410e010dc64f9828fc599e92e8"
+    },
+    "historical_recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/RECIPE.json",
+      "sha256": "9ddf77864ff0550cfd3160fa3242e56c1de9df7afcd5acab37ca6e38b648a884"
+    },
+    "fit_cutoff_ns": 1733011200000000000,
+    "held_out_cutoff_ns": 1735689600000000000,
+    "prefix_rows": 41866,
+    "held_out_rows": 5736,
+    "scope": "One capped fit-prefix candle ranking and fixed early cohort support check, followed by one metadata-only candidate plan. December features and outcomes, model construction/forward, optimizer, network and parameter tuning are outside the operation.",
+    "candle_precommitment": "Use the continuous routed close_open_atr from the latest physically available completed native bar at issue by historical bar time. Per TF choose the orientation with larger tie-aware AUROC on observed and strictly mature native DOWN/UP endpoints before 1 December 2024. Use positive on exact tie. Missing class yields undetermined. Same frozen orientation on the reserved fold. Keep flat, censored and unknown counts separate.",
+    "evidence_scope": "Internal chronological TRAIN split. Physical XAU-M1/ATR availability, independent predictive edge and economics are unknown.",
+    "limits": {
+      "max_wall_seconds": 1800,
+      "max_json_bytes": 67108864,
+      "memory_max": 4294967296,
+      "swap": 536870912,
+      "pids": 64,
+      "numerical_threads": 1,
+      "max_rchar_bytes": 137438953472
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "candle_reference_authorized": true,
+    "plan_publication_authorized": true,
+    "fit_target_view_authorized": true,
+    "normalization_fit_authorized": false,
+    "model_calls_authorized": false,
+    "optimizer_updates_authorized": false,
+    "training_enabled": false,
+    "relaunch_allowed": false,
+    "test_authorized": false,
+    "held_out_features_authorized": false,
+    "held_out_outcomes_authorized": false,
+    "external_data_authorized": false,
+    "native_launch_authorized": false,
+    "broker_authorized": false,
+    "trading_authorized": false,
+    "fixed_fit_cohort_support_authorized": true,
+    "data_reads_authorized": true,
+    "cohort_rule": "From the 41,866 bound pre-December parent IDs only, seed 20260911 and the canonical MT19937 native presentation order. Sort its first 32 IDs into two private groups of 16 and retain its first 256 for the initial measurement. Inspect their early masks at +1/native only. Record sparse support before any model call, do not replace cases after measurement. Private weights never enter the single main pass.",
+    "source_owners": {
+      "gx1/audit/dynamic_mtf_december_candle.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_december_candle.py",
+        "sha256": "66cfbb918d8bb78a57ddfb1f98d7e1d9ac47aaf990d52eef24d4c5de85e95d34"
+      },
+      "gx1/audit/dynamic_mtf_december_normalization.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_december_normalization.py",
+        "sha256": "4b86642c1225c5f88e220c3aa0befabc19f874622ef73eddd323fa3d66521380"
+      },
+      "gx1/audit/dynamic_mtf_train_prefix_inputs.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/dynamic_mtf_train_prefix_inputs.py",
+        "sha256": "cb29b4a696119b341bc1f1eae0a1bbb281ea4c101498dd34544abfcf46bd7185"
+      },
+      "gx1/audit/run_dynamic_mtf_train_prefix_data.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/run_dynamic_mtf_train_prefix_data.py",
+        "sha256": "61e6d71508224591d41ebf10b394b86a087825315770ddd87c5143610d44018a"
+      },
+      "gx1/contracts/entry_direction_block_rank_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_direction_block_rank_v1.py",
+        "sha256": "6e5a7184914463e0fefee22cdd509c01c029bd4fa7a4dcc9a33e326dbeb6eb5c"
+      },
+      "gx1/contracts/entry_dynamic_mtf_december_candidate_plan_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_december_candidate_plan_v1.py",
+        "sha256": "42a5c97a6252b3a2202d85bf8b66317a894866a48a648d150614225c2df25a43"
+      },
+      "gx1/contracts/entry_dynamic_mtf_state_report_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_report_v1.py",
+        "sha256": "4f8c48b54bbacfa4574206bd043cc671dec7b84f22e2c57973615e076bf96d3f"
+      },
+      "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+        "sha256": "3cc70bea24514329481d0ffd40e4a79ffb9849b2e32232421d3a6650398c689b"
+      },
+      "gx1/contracts/entry_model_native_train_recipe_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_train_recipe_v1.py",
+        "sha256": "330e3893dfb84b97af6889ff57210c0e1efbb713ed1938887a57fb3d0a202c5f"
+      },
+      "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+        "sha256": "ae166486b35638b04ab1c567b76975c813bfeac1bd6c85edc40771f96ce93fc4"
+      },
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+        "sha256": "f810a30e51639789cddd76195d956e7642025e72d89cea56b0fce465f477cdd2"
+      },
+      "gx1/contracts/entry_native_direction_prefix_normalization_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_normalization_v1.py",
+        "sha256": "eade6e81a760590bf0fcf3530955f37c50c5b652c5025005b9cfe5bdeb1d8a07"
+      },
+      "gx1/contracts/entry_native_direction_research_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_campaign_v1.py",
+        "sha256": "d707c00d4039705fa594b38e7301f916672a03df1efb1fe122b8632c3f62f893"
+      },
+      "gx1/contracts/entry_native_direction_research_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+        "sha256": "e499ccb98bc9008f725eb42c4176d8bb37c68d81bed41f7cfe256d10b840a84b"
+      },
+      "gx1/features/htf_features.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+        "sha256": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520"
+      },
+      "gx1/scripts/run_entry_native_direction_dense_qualification_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_dense_qualification_v1.py",
+        "sha256": "1eabee7cc0bd69c59c94ded152ac6f11e344051a242c4c14ae7d70a809c8699a"
+      },
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "3d5ceb118d06dce3734124972bf3c0e209cb60c8bded91fa534091d6a163e779"
+      },
+      "scripts/gx1_capped_run.sh": {
+        "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+        "sha256": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+      }
+    },
+    "focused_tests": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/FOCUSED_TESTS.json",
+      "sha256": "0e1630dbe7da5f8cae17163a216b78be5526118ee2ad727e18d1bd70f2195934"
+    },
+    "preregistered_score_contract_sha256": "c5121188fe860be1ffabeb1a0462e3fa04b946eaced38744a2086a44e80a8b1a"
   }
 }

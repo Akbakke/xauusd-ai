@@ -5,12 +5,14 @@ The caller supplies the exact mature-observed mask from the objective owner.
 """
 from __future__ import annotations
 
+import hashlib
 import io
+import json
 import math
 
 import numpy as np
 
-from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import STATE_NAMES, TIMEFRAMES
+from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import LOCAL_WINDOW_M1_BARS, MINUTE_NS, STATE_NAMES, TIMEFRAMES
 
 SCHEMA_VERSION = 'gx1_dynamic_mtf_state_report_v1'
 
@@ -18,6 +20,110 @@ SCHEMA_VERSION = 'gx1_dynamic_mtf_state_report_v1'
 def _require(condition, code):
     if not condition:
         raise RuntimeError('[DYNAMIC_STATE_REPORT_' + code + ']')
+
+
+def december_oof_scoring_contract():
+    """Frozen measurement specification. This constructs no model, predictions or evaluation result."""
+    spec = {
+        'schema_version': 'gx1_dynamic_mtf_december_oof_scoring_v1',
+        'authority': {
+            'original_spec_sha256': 'b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c',
+            'december_geometry_sha256': '7acb5596032fa868b180dd872c1581b1af4e1cf7bcb8b568a63b44b88797fe28',
+            'original_candle_method_sha256': 'd5e4e26e4fb3307f2317cc75bf364458520d2ac6bfe7b56724d49ecb1a11ef26',
+            'episode_and_day_method_sha256': 'c6fa51b69c3830536b4d08208b90c12a9d957a8d1d5791edc3593c68cbecc306'},
+        'fit_parents_half_open': [0, 41866], 'fit_cutoff_ns_exclusive': 1733011200000000000,
+        'oof_parents_half_open': [41866, 47602], 'oof_cutoff_ns_exclusive': 1735689600000000000,
+        'prediction_sets': 1, 'origins': 1, 'refits_in_oof': 0, 'calibration': 'none_raw_candidate',
+        'classes': list(STATE_NAMES), 'native_lead_minutes': {tf: LOCAL_WINDOW_M1_BARS[tf] for tf in TIMEFRAMES},
+        'endpoints': 'Exact parent and issue identity; exact observed M1 endpoint at issue+lead=maturity strictly before role cutoff. Shared rows for all comparisons.',
+        'references': {
+            'class_prior': 'Static per-TF class frequencies frozen on the fit prefix.',
+            'markov': 'Prefix adjacent transitions P; at lead L use one_hot(known_current_state) @ P**L, else prefix_prior @ P**L. Matrix power; no refit.',
+            'candle': 'Continuous raw close_open_atr from last physical native window row with opening+TF_duration <= issue (M5 parent opening+5min).',
+            'orientation': 'One sign per TF from row AUC on matched fit-only observed UP/DOWN at native lead. Raw if twice_wins >= UP_count*DOWN_count, else reverse; absent class unknown.'},
+        'three_class_gate': {'scores': ['sum over three classes of squared probability residual', '-log(p_true); zero true mass gives infinity, no floor'],
+            'estimands': ['mean across eligible parents', 'mean of per-UTC-outcome-day means'],
+            'comparators': ['class_prior', 'markov'], 'pass': 'lower for both scores, comparators and estimands on each TF'},
+        'direction': {'support': 'Only the same observed UP/DOWN rows; model and Markov score p(UP)/(p(UP)+p(DOWN)); zero denominator unestimable, never trim to rescue a method.',
+            'auc': 'UP positive; ordered UP/DOWN pairs, ties count one half.',
+            'row_gate': 'strictly greater than 0.5, Markov and oriented candle at every native lead',
+            'day_report': 'Weighted pair AUC on all eligible rows, each row weighted 1 / eligible rows on its UTC outcome date.',
+            'H4_D1_episode_gate': 'Model episode AUC >0.5 on both TF. One truth and mean conditional score per maximal same-class run of consecutive eligible 5min-spaced outcome times; gap or class change splits.'},
+        'paired_uncertainty': {'unit': 'whole UTC date of outcome validity', 'contrasts': 'report paired outcome-day intervals; decision CI is equal-day candidate-minus-Markov Brier on each TF',
+            'draws': 10000, 'seed': 20260911, 'resample': 'Per TF initialize the stated RNG. Each draw samples D whole days with replacement from the D eligible UTC days and averages their paired daily differences on the same model/reference rows.',
+            'implementation_choice': 'central two-sided percentile interval; numpy Generator(PCG64(seed)), chronological UTC days, linear quantiles',
+            'quantiles': [0.025, 0.975], 'gate': 'upper bound strictly below zero on each TF; fewer than two days unestimable'},
+        'auxiliary_gates': {
+            'binary_activity': 'Per TF at native lead, FLAT vs active on every mature complete-range/ATR-supported cell including unknown direction; never impute UP/DOWN.',
+            'first_minute_switch': 'Per TF known current and observed mature +1 state. Score event new class differs from start, include no-change.',
+            'shorter_tf_exit_and_return': 'M5/M15/H1/H4 by native lead: first exit from known start, and joint first exit followed by return. Confirm event before first gap; absent only with a complete observed prefix; otherwise right-censored.',
+            'D1_exit_and_return': 'At each exact consecutive observed M1 close still at risk from known start state and path: separate first-exit and first-exit-then-return interval hazards forecast at issue. Require observed class and path throughout, include event interval, stop at first event/gap/cutoff/+1440. Return risk starts at issue, includes no-exit intervals.',
+            'comparison': 'For each event/TF, candidate Brier <= matched prefix Markov on the identical risk set, including confirmed negatives; no adjacent-change or full-day substitution for censored D1 hazards.'},
+        'event_forecasts_at_issue': {
+            'phase_order': ['not_left', 'outside_no_return', 'returned_absorbing'],
+            'next_phase_if_next_state_is_start': [0, 2, 2], 'next_phase_if_next_state_differs': [1, 1, 2],
+            'initial': 'Known historical state s at issue. A0=1 not left; B0[j]=0 outside in j for each j!=s; R0=0 returned. Keep the outside market state j to propagate unequal transitions.',
+            'kernels': 'Candidate K1[s,:]=issued first-state probabilities; for t>=2 Kt[i,j]=issued row-softmax transitions at t. Matched Markov Kt=P for all t. No later observations update either forecast.',
+            'increment_exit_t': 'Aprev*sum(Kt[s,j] for j!=s)',
+            'increment_return_t': 'sum(Bprev[i]*Kt[i,s] for i!=s)',
+            'update': ['At=Aprev*Kt[s,s]', 'Bt[j]=Aprev*Kt[s,j]+sum(Bprev[i]*Kt[i,j] for i!=s), j!=s',
+                       'Rt=Rprev+increment_return_t; At+sum(Bt)+Rt=1'],
+            'cumulative': 'By t: probability of exit = 1-At, probability of exit followed by return = Rt. These are the native-horizon event predictions for M5/M15/H1/H4.',
+            'D1_interval_hazards': 'At t: first-exit hazard = increment_exit_t/Aprev; first-return hazard = increment_return_t/(Aprev+sum(Bprev)). Both are conditional on no earlier event of their own kind. The separate D1 three-class endpoint stays at +1440.',
+            'undefined': 'If survival mass is zero or numerically undefined for either method on an observed at-risk interval, count it and mark that paired event gate unestimable. Never drop it asymmetrically, clip it, or replace its forecast with zero.'},
+        'one_score_pass_evidence': {
+            'before_truth_join': 'Freeze model identity, issue and parent IDs, issued first distribution and transition identity. Compute event predictions while transitions are available; singleton marginals or modal paths cannot reconstruct the event law.',
+            'endpoints': 'Bind exact target identity, maturity, masks, current-state group, outcome UTC timestamp, H4 pause group and paired model/prior/Markov probabilities and signed candle rank at the native leads. Retain rows or sufficient statistics for day weights, rank ties and long-TF episodes.',
+            'events': 'For both model and Markov preserve native exit/return cumulative probabilities for M5/M15/H1/H4, plus next-minute switch and native activity probabilities. For D1 generate both first-event mass increments and both pre-interval survival denominators from the issued kernels before joining the observed risk masks.',
+            'persistence': 'Save bounded issue/TF/lead predictions, matched observation/risk masks and outcomes, or immutable paired sufficient sums computed in this pass. For each event, TF, outcome day and required group, retain same-risk count, event/non-event/censor/undefined counts, and sum(p^2), sum(p*y), sum(y) per method. Brier = (sum(p^2)-2*sum(p*y)+sum(y))/same-risk count. Preserve distinct event times/days and source/axis/prediction bindings.',
+            'role': 'One historical reserved December TRAIN fold for research review. No calibration, refit, independent confirmation or trading authority.'},
+        'report': ['parents, eligible, immature, missing, classes, UTC days, episode and month counts',
+                   'native endpoint scores per TF and historical current DOWN/FLAT/UP/UNKNOWN with small-group support',
+                   'separate H4 scores for documented closure in path vs no closure; distinguish unknown gap',
+                   'event/nonevent, censored and distinct event timestamps/days; issue-available event probabilities or bounded paired sums in same scoring pass'],
+        'decision': 'Every registered gate must pass for research review. Missing/undefined support or interval, empty risk set or fewer than two outcomes for event/direction is inconclusive. Report per-TF findings. No automatic promotion or economic/independent edge claim.',
+    }
+    digest = hashlib.sha256(json.dumps(spec, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+    return {**spec, 'contract_sha256': digest}
+
+
+def verify_prefix_candle_rank_and_clock(open_ns, issue_ns, chosen_rows, raw_scores, binary_labels, eligible,
+                                        *, timeframe, warmup_rows):
+    """Independent closed-time join and rank-pair oracle on supplied fit arrays. No data access."""
+    from gx1.contracts.entry_gc_mtf_history_v1 import WINDOW_ROWS
+
+    opens, issues, selected, scores, labels, keep = map(np.asarray, (open_ns, issue_ns, chosen_rows, raw_scores, binary_labels, eligible))
+    _require(timeframe in TIMEFRAMES and type(warmup_rows) is int and warmup_rows >= 0, 'CANDLE_ORACLE_GEOMETRY')
+    _require(opens.dtype == issues.dtype == selected.dtype == np.int64 and opens.ndim == issues.ndim == 1
+             and 0 < len(issues) <= 41866 and len(opens) and issues[0] > 0 and opens[0] >= 0
+             and np.all(issues[1:] > issues[:-1]) and np.all(opens[1:] > opens[:-1])
+             and scores.dtype == np.float64 and labels.dtype == np.int8 and keep.dtype == np.bool_
+             and selected.shape == scores.shape == labels.shape == keep.shape == issues.shape
+             and np.isfinite(scores).all() and np.isin(labels, (-1, 0, 1)).all() and np.array_equal(keep, labels != -1),
+             'CANDLE_ORACLE_DOMAIN')
+    minutes = LOCAL_WINDOW_M1_BARS[timeframe]
+    duration = minutes * MINUTE_NS
+    cutoff = 1733011200000000000
+    _require(issues[-1] < cutoff and opens[-1] <= issues[-1] - duration
+             and np.all(issues[keep] < cutoff - duration), 'CANDLE_ORACLE_STRICT_FIT')
+    closes = opens + duration
+    # Independent of the gather's opening-time subtraction: search the physical closing axis inclusively.
+    expected = np.searchsorted(closes, issues, side='right') - 1
+    _require(np.array_equal(selected, expected) and np.all(expected - WINDOW_ROWS[timeframe] + 1 >= warmup_rows),
+             'CANDLE_ORACLE_WINDOW_CLOCK')
+    positives, negatives = scores[labels == 1], np.sort(scores[labels == 0])
+    # Compare each positive directly to the sorted negatives. Exact integers retain ties and avoid float sign decisions.
+    less = np.searchsorted(negatives, positives, side='left')
+    less_or_equal = np.searchsorted(negatives, positives, side='right')
+    twice_wins = int((less + less_or_equal).sum(dtype=np.int64))
+    pairs = len(positives) * len(negatives)
+    orientation = (1 if twice_wins >= pairs else -1) if pairs else None
+    oriented_wins = twice_wins if orientation == 1 else 2 * pairs - twice_wins
+    return {'eligible_rows': int(keep.sum()), 'up': len(positives), 'down': len(negatives),
+            'pairs': pairs, 'twice_wins': twice_wins, 'raw_auc': twice_wins / (2 * pairs) if pairs else None,
+            'orientation': orientation, 'oriented_auc': oriented_wins / (2 * pairs) if pairs else None,
+            'selected_rows_sha256_le_i64': hashlib.sha256(expected.astype('<i8', copy=False).tobytes()).hexdigest(),
+            'latest_closes_sha256_le_i64': hashlib.sha256(closes[expected].astype('<i8', copy=False).tobytes()).hexdigest()}
 
 
 def dynamic_state_prediction_layout(rows, lead_count):

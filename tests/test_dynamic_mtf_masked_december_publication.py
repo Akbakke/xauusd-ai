@@ -73,3 +73,33 @@ def test_window_batch_forwards_bound_observer_only_for_masked_profile(monkeypatc
     assert ('observer_axes' in received[0]) is masked
     if masked:
         assert received[0]['observer_axes'] is tag
+
+
+@pytest.mark.parametrize('scenario', ['registered', 'single_class', 'population_changed'])
+def test_candle_publication_requires_actual_same_prefix_and_estimable_reference(tmp_path, monkeypatch, scenario):
+    from gx1.audit import dynamic_mtf_december_candle as source
+    from gx1.contracts import entry_dynamic_mtf_december_candidate_plan_v1 as plan_owner
+
+    population = {'M5': 3, 'M15': 5, 'H1': 5, 'H4': 4, 'D1': 2}
+    endpoint = runner.publish(tmp_path / 'earlier.json', {'native_cells_by_tf': population}, 2**20)
+    stage = {'prefix_rows': 7, 'held_out_rows': 2, 'fit_cutoff_ns': 200, 'endpoint_result': endpoint,
+             'fit_target_view': {'path': 'fit'}, 'feature_view': {'path': 'input'}, 'limits': {'max_rchar_bytes': 2**24}}
+    candle = {'fit_target_view': stage['fit_target_view'], 'feature_view': stage['feature_view'],
+              'fit_parents': 7, 'fit_cutoff_ns': 200, 'panels': {tf: {'observed_native': n} for tf, n in population.items()},
+              'status': 'UNDETERMINED_PREFIX_CANDLE_REFERENCE' if scenario == 'single_class' else 'FROZEN_PREFIX_CANDLE_REFERENCE'}
+    calls = []
+    def build(policy, scope, *, candle_reference_ref, candle_reference):
+        calls.append(candle_reference)
+        assert candle_reference is candle and runner.file_sha256(tmp_path / 'CANDLE_REFERENCE.json') == candle_reference_ref['sha256']
+        return {'test_plan': True}
+    monkeypatch.setattr(source, 'calculate_prefix_candle', lambda *_: candle)
+    monkeypatch.setattr(plan_owner, 'build_december_candidate_plan', build)
+    if scenario == 'population_changed':
+        candle['panels']['M5']['observed_native'] += 1
+        with pytest.raises(RuntimeError, match='CANDLE_INDEPENDENT_POPULATION'):
+            runner._candle_and_plan_result({}, stage, tmp_path, 2**20)
+        assert not calls and not (tmp_path / 'CANDLE_REFERENCE.json').exists()
+        return
+    result = runner._candle_and_plan_result({}, stage, tmp_path, 2**20)
+    assert (result['candidate_plan'] is not None) == bool(calls) == (scenario == 'registered')
+    assert result['model_calls'] == result['held_out_predictions'] == result['optimizer_updates'] == 0

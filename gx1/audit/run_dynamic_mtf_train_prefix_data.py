@@ -9,7 +9,8 @@ from pathlib import Path
 
 from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execution, require_capped_lock_ancestry
 from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
-from gx1.contracts.local_random_access_campaign_v2 import file_sha256, read_bound_json
+from gx1.contracts.local_random_access_campaign_v2 import (capture_verified_file_snapshot, file_sha256,
+                                                         file_verification_scope, read_bound_json)
 
 
 REPO = Path("/home/andre2/src/GX1_CURRENT")
@@ -18,9 +19,11 @@ STAGE = "dynamic_mtf_train_prefix_data_20261104_001"
 DECEMBER_STAGE = "dynamic_mtf_train_prefix_dec01_20261104_001"
 BEAR_STAGE = "dynamic_mtf_gc_d1_bear_source_trace_20261104_001"
 MASKED_STAGE = "dynamic_mtf_masked_december_input_normalization_20261104_001"
+CANDLE_STAGE = "dynamic_mtf_december_candle_and_plan_20261104_001"
 ROOTS = {STAGE: ROOT, DECEMBER_STAGE: ROOT.parent / "DATA_PREFIX_DEC01_001",
          BEAR_STAGE: ROOT.parent / "GC_D1_BEAR_SOURCE_TRACE_001",
-         MASKED_STAGE: ROOT.parent / "MASKED_DECEMBER_INPUT_NORMALIZATION_001"}
+         MASKED_STAGE: ROOT.parent / "MASKED_DECEMBER_INPUT_NORMALIZATION_001",
+         CANDLE_STAGE: ROOT.parent / "DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001"}
 
 
 def require(condition, reason):
@@ -133,11 +136,15 @@ def _require_masked_december_stage(policy, stage):
                        "gx1/contracts/entry_native_direction_prefix_normalization_v1.py",
                        "gx1/contracts/entry_native_direction_feature_view_v1.py",
                        "gx1/contracts/entry_model_native_input_normalization_v1.py"}
-    require(required_owners <= set(stage["source_owners"]), "MASKED_SOURCE_OWNERS")
+    _require_tested_sources(stage, ROOTS[MASKED_STAGE], required_owners)
+
+
+def _require_tested_sources(stage, root, required_owners):
+    require(required_owners <= set(stage["source_owners"]), "STAGE_SOURCE_OWNERS")
     for name, ref in stage["source_owners"].items():
         require(Path(ref["path"]) == REPO / name and file_sha256(REPO / name) == ref["sha256"], "OWNER:" + name)
     tests = stage["focused_tests"]
-    require(Path(tests["path"]) == ROOTS[MASKED_STAGE] / "FOCUSED_TESTS.json", "TEST_RECEIPT_PATH")
+    require(Path(tests["path"]) == root / "FOCUSED_TESTS.json", "TEST_RECEIPT_PATH")
     tested = read_bound_json(Path(tests["path"]), tests["sha256"])
     require(tested["exit_code"] == 0 and tested["source_owners"] == stage["source_owners"], "TESTED_SOURCE")
 
@@ -179,16 +186,17 @@ def _bind_masked_feature_view(policy, stage, fitted, normalization_ref, qualific
     return view
 
 
+def _process_io():
+    return {k: int(v) for k, v in (line.split() for line in Path("/proc/self/io").read_text().splitlines())}
+
+
 def _masked_prefix_result(policy, stage, root, budget):
     from gx1.audit.dynamic_mtf_december_normalization import fit_masked_december_prefix
     from gx1.contracts.entry_native_direction_prefix_normalization_v1 import WINDOWS, december_zero_support_profile
 
-    def io_counts():
-        return {k: int(v) for k, v in (line.split() for line in Path("/proc/self/io").read_text().splitlines())}
-
-    start, before = monotonic(), io_counts()
+    start, before = monotonic(), _process_io()
     report, fitted, sources = fit_masked_december_prefix(policy, stage)
-    after = io_counts()
+    after = _process_io()
     rchar = after["rchar:"] - before["rchar:"]
     require(rchar <= stage["limits"]["max_rchar_bytes"], "RCHAR_LIMIT")
     geometry = policy[DECEMBER_STAGE]["geometry"]["fit"]
@@ -235,6 +243,65 @@ def _masked_prefix_result(policy, stage, root, budget):
             "held_out_outcomes_used": False, "test_data_used": False}
 
 
+def _require_candle_stage(policy, stage):
+    prior = policy[MASKED_STAGE]
+    data = policy[DECEMBER_STAGE]
+    geometry = policy["current_work"]["dynamic_mtf_train_gates_20261104"]["december_candidate_geometry"]
+    ref_map = {"candidate_geometry": geometry["binding"], "fit_target_view": data["fit_target_view"],
+               "prefix_counts": geometry["prefix_counts"], "prefix_prior": geometry["prefix_prior_and_markov"],
+               "verified_input_profile": prior["verified_review"], "normalization_result": prior["result"],
+               "masked_profile_terminal": prior["terminal"], "prefix_normalization": prior["normalization"],
+               "feature_view": prior["feature_view"], "historical_recipe": prior["historical_recipe"],
+               "endpoint_result": geometry["qualified_endpoint_loss_arithmetic"]["result"]}
+    require(stage["status"] == "ADMITTED_ONE_PREFIX_CANDLE_AND_METADATA_PLAN_ONLY"
+            and stage["candle_reference_authorized"] is stage["plan_publication_authorized"] is True
+            and stage["fixed_fit_cohort_support_authorized"] is stage["data_reads_authorized"] is True
+            and prior["claimed_invocations"] == prior["completed_invocations"] == 1
+            and prior["execution_authorized"] is prior["relaunch_allowed"] is False
+            and stage["prefix_rows"] == data["prefix_rows"] == 41866 and stage["held_out_rows"] == data["held_out_rows"] == 5736
+            and stage["fit_cutoff_ns"] == data["fit_cutoff_ns"] == 1733011200000000000
+            and stage["held_out_cutoff_ns"] == data["held_out_cutoff_ns"] == 1735689600000000000
+            and geometry["masked_research_profile"]["run_admission"] is False
+            and geometry["held_out_outcomes_read"] is False and all(stage[k] is False for k in (
+                "held_out_features_authorized", "held_out_outcomes_authorized", "external_data_authorized",
+                "native_launch_authorized")), "CANDLE_SCOPE")
+    for k, ref in ref_map.items():
+        require(stage[k] == ref and file_sha256(Path(ref["path"])) == ref["sha256"], "CANDLE_BINDING:" + k)
+    _require_tested_sources(stage, ROOTS[CANDLE_STAGE], {"gx1/audit/run_dynamic_mtf_train_prefix_data.py",
+        "gx1/audit/dynamic_mtf_december_candle.py","gx1/contracts/entry_dynamic_mtf_december_candidate_plan_v1.py",
+        "gx1/contracts/entry_dynamic_mtf_state_report_v1.py","gx1/contracts/entry_dynamic_mtf_state_targets_v1.py"})
+
+
+def _candle_and_plan_result(policy, stage, root, budget):
+    from gx1.audit.dynamic_mtf_december_candle import calculate_prefix_candle
+    from gx1.contracts.entry_dynamic_mtf_december_candidate_plan_v1 import build_december_candidate_plan
+
+    start, before = monotonic(), _process_io()
+    candle = calculate_prefix_candle(policy, stage)
+    endpoint = read_bound_json(Path(stage["endpoint_result"]["path"]), stage["endpoint_result"]["sha256"])
+    require(candle["fit_target_view"] == stage["fit_target_view"] and candle["feature_view"] == stage["feature_view"]
+            and candle["fit_parents"] == stage["prefix_rows"] and candle["fit_cutoff_ns"] == stage["fit_cutoff_ns"]
+            and {tf: panel["observed_native"] for tf, panel in candle["panels"].items()} == endpoint["native_cells_by_tf"],
+            "CANDLE_INDEPENDENT_POPULATION")
+    candle_ref = publish(root / "CANDLE_REFERENCE.json", candle, budget)
+    plan_ref = None
+    if candle["status"] == "FROZEN_PREFIX_CANDLE_REFERENCE":
+        plan = build_december_candidate_plan(policy, stage, candle_reference_ref=candle_ref, candle_reference=candle)
+        plan_ref = publish(root / "CANDIDATE_PLAN.json", plan, budget)
+    else:
+        require(candle["status"] == "UNDETERMINED_PREFIX_CANDLE_REFERENCE", "CANDLE_STATUS")
+    after = _process_io()
+    rchar = after["rchar:"] - before["rchar:"]
+    require(rchar <= stage["limits"]["max_rchar_bytes"], "CANDLE_RCHAR_LIMIT")
+    return {"status": ("COMPLETE_PREFIX_CANDLE_AND_REGISTERED_PLAN_NO_MODEL" if plan_ref else
+                       "UNDETERMINED_PREFIX_CANDLE_NO_CANDIDATE_PLAN"),
+            "candle_reference": candle_ref, "candidate_plan": plan_ref, "fit_parents": stage["prefix_rows"],
+            "process_rchar_delta": rchar, "process_read_bytes_delta": after["read_bytes:"] - before["read_bytes:"],
+            "reserved_december_parents": stage["held_out_rows"], "elapsed_seconds": monotonic() - start,
+            "held_out_predictions": 0, "held_out_outcomes_used": False, "model_calls": 0,
+            "optimizer_updates": 0, "normalization_fits": 0, "native_launch_authorized": False, "test_data_used": False}
+
+
 def run(binding_sha256, stage_name=STAGE):
     require(stage_name in ROOTS, "STAGE")
     root = ROOTS[stage_name]
@@ -251,7 +318,9 @@ def run(binding_sha256, stage_name=STAGE):
     if stage_name in (STAGE, DECEMBER_STAGE):
         require(stage["target_result"] == policy["dynamic_mtf_state_target_audit_20261102_005"]["result"],
                 "TARGET_AUTHORITY")
-    if stage_name == MASKED_STAGE:
+    if stage_name == CANDLE_STAGE:
+        _require_candle_stage(policy, stage)
+    elif stage_name == MASKED_STAGE:
         _require_masked_december_stage(policy, stage)
     elif stage_name == BEAR_STAGE:
         previous = policy[DECEMBER_STAGE]
@@ -280,14 +349,14 @@ def run(binding_sha256, stage_name=STAGE):
                 and stage["fit_cutoff_ns"] == 1727740800000000000
                 and stage["status"] == "ADMITTED_ONE_DATA_PUBLICATION_NO_FIT", "OCTOBER_SCOPE")
     require(stage["max_invocations"] == 1 and stage["claimed_invocations"] == stage["completed_invocations"] == 0
-            and stage["execution_authorized"] is True and stage["fit_target_view_authorized"] is (stage_name in (STAGE, DECEMBER_STAGE))
+            and stage["execution_authorized"] is True and stage["fit_target_view_authorized"] is (stage_name in (STAGE, DECEMBER_STAGE, CANDLE_STAGE))
             and stage["normalization_fit_authorized"] is (stage_name == MASKED_STAGE)
             and all(stage[k] is False for k in ("model_calls_authorized",
                     "optimizer_updates_authorized", "training_enabled", "relaunch_allowed", "test_authorized",
                     "broker_authorized", "trading_authorized"))
             and all(policy[k] is False for k in ("training_enabled", "native_training_enabled",
                     "full_epoch_training_allowed", "full_val_allowed")), "ADMISSION")
-    inventory = {"EXECUTION_BINDING.json", "FOCUSED_TESTS.json"} if stage_name == MASKED_STAGE else {"EXECUTION_BINDING.json"}
+    inventory = {"EXECUTION_BINDING.json", "FOCUSED_TESTS.json"} if stage_name in (MASKED_STAGE, CANDLE_STAGE) else {"EXECUTION_BINDING.json"}
     require({p.name for p in root.iterdir()} == inventory, "CONSUMED")
     guard = require_capped_cpu_audit_execution()
     lock = require_capped_lock_ancestry()
@@ -302,7 +371,11 @@ def run(binding_sha256, stage_name=STAGE):
     signal.signal(signal.SIGTERM, deadline)
     signal.alarm(stage["limits"]["max_wall_seconds"])
     try:
-        if stage_name == MASKED_STAGE:
+        if stage_name == CANDLE_STAGE:
+            with file_verification_scope():
+                payload = _candle_and_plan_result(policy, stage, root, budget)
+                capture_verified_file_snapshot()
+        elif stage_name == MASKED_STAGE:
             payload = _masked_prefix_result(policy, stage, root, budget)
         elif stage_name == BEAR_STAGE:
             from gx1.audit.dynamic_mtf_train_prefix_inputs import review_december_bear_source
