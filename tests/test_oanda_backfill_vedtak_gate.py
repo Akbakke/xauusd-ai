@@ -1704,3 +1704,50 @@ def test_weekly_closure_decision_publishes_v2_rows_that_the_validator_rederives(
     assert descriptor["canonical_rows_sha256"] == manifest["canonical_rows_sha256"]
     rows = pd.read_parquet(output / "year=2024" / "part-000.parquet")
     assert not tape_contract.scheduled_weekly_closure_mask(rows["time"]).any()
+
+
+def _isolate_oanda_factory_environment(monkeypatch, tmp_path):
+    import os
+    monkeypatch.setattr(os, "environ", os.environ.copy())
+    monkeypatch.chdir(tmp_path)
+    for key in ("OANDA_ENV", "OANDA_API_TOKEN", "OANDA_API_KEY", "OANDA_ACCOUNT_ID", "GX1_DISABLE_DOTENV"):
+        monkeypatch.delenv(key, raising=False)
+    import requests
+    monkeypatch.setattr(requests.sessions.Session, "request",
+                        lambda *a, **k: pytest.fail("offline credential setup must never send HTTP"))
+
+
+@pytest.mark.parametrize("ambient_token", [False, True])
+def test_client_factory_loads_dotenv_before_building_authenticated_session(tmp_path, monkeypatch, ambient_token):
+    _isolate_oanda_factory_environment(monkeypatch, tmp_path)
+    (tmp_path / ".env").write_text(
+        "OANDA_ENV=practice\nOANDA_API_TOKEN=synthetic-dotenv-token\n"
+        "OANDA_ACCOUNT_ID=synthetic-account\n")
+    if ambient_token:
+        monkeypatch.setenv("OANDA_API_TOKEN", "synthetic-ambient-token")
+    client = canonical_backfill._load_oanda_client()
+    try:
+        expected = "synthetic-ambient-token" if ambient_token else "synthetic-dotenv-token"
+        assert client.session.headers["Authorization"] == "Bearer " + expected
+        assert client.account_id == "synthetic-account" and client.env == "practice"
+        assert client.session.headers["Accept-Datetime-Format"] == "RFC3339"
+    finally:
+        client.session.close()
+
+
+@pytest.mark.parametrize("case", ["missing_token", "missing_account", "missing_file", "dotenv_disabled", "invalid_environment"])
+def test_client_factory_rejects_missing_credentials_before_client_or_http(tmp_path, monkeypatch, case):
+    _isolate_oanda_factory_environment(monkeypatch, tmp_path)
+    lines = {"OANDA_ENV": "practice", "OANDA_API_TOKEN": "synthetic-token",
+             "OANDA_ACCOUNT_ID": "synthetic-account"}
+    if case == "missing_token": lines["OANDA_API_TOKEN"] = "   "
+    if case == "missing_account": lines["OANDA_ACCOUNT_ID"] = ""
+    if case == "invalid_environment": lines["OANDA_ENV"] = "unsupported"
+    if case != "missing_file":
+        (tmp_path / ".env").write_text("".join(f"{key}={value}\n" for key, value in lines.items()))
+    if case == "dotenv_disabled": monkeypatch.setenv("GX1_DISABLE_DOTENV", "1")
+    monkeypatch.setattr(canonical_backfill, "OandaClient",
+                        lambda *a, **k: pytest.fail("invalid credentials must fail before client construction"))
+    expected = "Invalid OANDA_ENV" if case == "invalid_environment" else "Missing OANDA credentials"
+    with pytest.raises(ValueError, match=expected):
+        canonical_backfill._load_oanda_client()

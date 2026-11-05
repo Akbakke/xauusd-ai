@@ -1517,7 +1517,9 @@ def materialize_native_xau_successor(
 
 
 def _load_oanda_client() -> OandaClient:
-    credentials = load_oanda_credentials(prod_baseline=False)
+    # Every admitted caller uses the same setup, including input-clock probes.
+    load_dotenv_if_present()
+    credentials = load_oanda_credentials(prod_baseline=True)
     return OandaClient(
         OandaClientConfig(
             api_key=credentials.api_token,
@@ -1619,7 +1621,6 @@ def main() -> int:
         start_utc=args.start_utc,
         end_utc=args.end_utc,
     )
-    load_dotenv_if_present()
     client = _load_oanda_client()
     if args.publication_mode == "bootstrap":
         report = materialize_native_xau_snapshot(

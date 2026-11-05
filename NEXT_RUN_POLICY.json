@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-05T11:18:22.483459+00:00",
-  "status": "M5_DIRECTION_SINGLE_GET_DIAGNOSTIC_ADMITTED",
+  "status": "M5_DIRECTION_CREDENTIAL_LOADING_FIXED_NO_COLLECTION_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "One exact newly approved XAU HTTP400 diagnostic is admitted; old four-read clock attempt remains consumed. Native training remains disabled.",
+    "current_activity": "The single approved diagnostic is consumed: invalid Authorization and missing credentials were measured. Shared canonical setup is fixed and 16 offline cases passed. No new collection or native model is admitted; actual M1/ATR readiness and edge remain unknown.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "EXACT_SINGLE_REQUEST_DIAGNOSTIC_ADMITTED",
+    "status": "LOCAL_CREDENTIAL_LOADING_DEFECT_FIXED_PHYSICAL_CLOCK_STILL_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57159,7 +57159,7 @@
     "source_base_commit": "cb1332cb9da482c783471011bffc008edf8c3133",
     "run_root": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001",
     "scope": "One exact admitted input-only timing measurement using the frozen plan and canonical source producer. M5 Entry only; no model or Exit.",
-    "goal_tool_state": "The app goal was blocked. The user has now explicitly admitted only the separate one-GET diagnostic; full directional objective remains incomplete.",
+    "goal_tool_state": "The app goal was last observed blocked. This approved diagnostic and offline source repair are complete; the full directional goal remains incomplete and there is no remaining admitted source or model invocation.",
     "prior_completed_discovery": "whole_pc_xau_source_search_20261105_001",
     "measured_gaps": [
       "Current consumption uses historical event time, without physical receipts.",
@@ -57233,7 +57233,7 @@
     },
     "original_HTTP400_cause": "UNKNOWN",
     "http400_diagnostic": {
-      "status": "ADMITTED_EXACT_SINGLE_GET_NOT_STARTED",
+      "status": "CONSUMED_HTTP400_INVALID_AUTHORIZATION_DIAGNOSED",
       "plan": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/XAU_HTTP400_DIAGNOSTIC_20261105_002.json",
         "sha256": "4b1142d498713dc0f0c8db2fe4af18f426ea89ae3da8ccc9f8917c6c64572742"
@@ -57243,13 +57243,13 @@
         "sha256": "4c96ee42567a2cd1cc318f6a6ab46c8dfad6087e47c26780a7636f39f2624b9a"
       },
       "scope": "One exact separately admitted GET matching the old failed request; preserve provider response and stop. No old admission reuse, automatic clock measurement, model, labels, TEST, account/order calls or spending.",
-      "execution_authorized": true,
-      "collection_authorized": true,
-      "broker_network_authorized": true,
-      "completed_invocations": 0,
+      "execution_authorized": false,
+      "collection_authorized": false,
+      "broker_network_authorized": false,
+      "completed_invocations": 1,
       "max_get_attempts": 1,
       "relaunch_authorized": false,
-      "actual_provider_cause": "UNKNOWN",
+      "actual_provider_cause": "INVALID_AUTHORIZATION_HEADER; actual launch log reports missing token and account; shared factory skipped the canonical main-only dotenv load.",
       "original_clock_attempt_remains_consumed": true,
       "preparation": {
         "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_PREPARATION.json",
@@ -57265,7 +57265,22 @@
         "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_OPERATOR_ADMISSION.json",
         "sha256": "46d15a6230aca2dbf9214f0cda3f503169bbb266235a357bf76b3f4b0b790859"
       },
-      "admission_recorded_utc": "2026-11-05T11:37:35.813593+00:00"
+      "admission_recorded_utc": "2026-11-05T11:37:35.813593+00:00",
+      "actual_result": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_ACTUAL_RESULT.json",
+        "sha256": "3649ba41dddec4c93340809c24ea03029eb88073ea35ac7e6d59ac03150d2ff8"
+      },
+      "http_get_attempts": 1,
+      "http_status_codes": [
+        400
+      ],
+      "remaining_requests_authorized": 0,
+      "credential_loading_repair": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/CREDENTIAL_LOADING_REPAIR_REVIEW.json",
+        "sha256": "c82e68d4c5dcaadde976a157f8b3f98da91b383cab32a88c4aa3fb7d778b35cd"
+      },
+      "actual_credential_validity": "UNKNOWN_NOT_TESTED_AGAINST_PROVIDER",
+      "new_requests_after_diagnostic": 0
     }
   },
   "m5_entry_priority_20261105": {
