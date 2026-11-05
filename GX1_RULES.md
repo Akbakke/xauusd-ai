@@ -463,6 +463,8 @@ Før implementasjon og fokuserte kontroller består, er den nye ruten stengt.
 
 ## Brukte engangstillatelser
 
+Operatørunntak05.11.2026: «Ja, tillat disse fire lesekallene» åpner kun planen `configs/research/XAU_INPUT_PHYSICAL_CLOCK_20261105_001.json`, SHA256 `6fa21f44183032137c70330bd7af50c5e5abb68340c39efabbcd1500990f2d9e`: høyst tre M5-candle-GET for 35 dagers oppvarming og ett M1-candle-GET for fem minutter fra OANDA practice XAU_USD. Én M5-observasjon gjennom eksisterende capped audit-rute, 2 GiB minne/512 MiB swap og 900 sekunder pluss 10 sekunders kill-frist. Ingen retry, redirect, konto-/transaksjons-/ordreoppslag, modell, target-/TEST-tilgang, handel, spending eller klokkeendring. M1-beregningen beholdes; Entry bare på M5. Dette unntaket åpner ingen øvrig broker-adgang. Faktisk konsum og status står bare i NEXT_RUN_POLICY og immutable kvitteringer.
+
 COST_TERMS_REVALIDATION_001 brukte det særskilte lesekall-unntaket 02.10.2026:
 maksimalt ett GET for practice-kontovilkår og ett for XAUUSD-vilkår, ingen retry,
 redirect, transaksjonsoppslag, ordre eller spending. Det er konsumert og kan
