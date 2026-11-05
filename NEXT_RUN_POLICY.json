@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T05:47:12.164149+00:00",
-  "status": "WHOLE_PC_SOURCE_DISCOVERY_TRAINING_DISABLED",
+  "observed_utc": "2026-11-05T06:23:44.768791+00:00",
+  "status": "WHOLE_PC_SOURCE_DISCOVERY_COMPLETE_PARTIAL_CLOCK_EVIDENCE_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Search all accessible local filesystems for original ordered XAU quotes and actual input receipt/ATR publication logs under the explicit expanded read-only user scope. Preserve sealed outcomes and model gates.",
+  "next_action": "Read the retained result bound in whole_pc_xau_source_search_20261105_001.result. Whole-PC discovery is complete with partial historical timing evidence and no qualified original ordered 2024 source. Any new physical capture or model work needs exact separate scope and admission; no repeat model round or December reuse.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Missing original OANDA practice XAU_USD ordered quote sequence or proof for the 18506 known-active unresolved cases, plus contemporaneous M1 receipt and ATR-ready telemetry. 11139 of 41866 historical M5 inputs change class or observability under the strict previous-minute comparison. Native M5 independent issue-first publication and admission remain unavailable.",
+    "current_blocker": "Whole-PC discovery found historical completed-write and feature-publication logs, but no qualified original OANDA practice XAU_USD ordered 2024 sequence. The 18506 unresolved known-active endpoints remain unresolved. Historical process/source identity, clock synchronization and exact current M1 receipt/ATR-ready-to-issue linkage remain UNKNOWN; old log margins cannot set production latency. New native launch remains closed.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Search all accessible local filesystems for original ordered XAU quotes and actual input receipt/ATR publication logs under the explicit expanded read-only user scope. Preserve sealed outcomes and model gates.",
+    "next_action": "Read the retained result bound in whole_pc_xau_source_search_20261105_001.result. Whole-PC discovery is complete with partial historical timing evidence and no qualified original ordered 2024 source. Any new physical capture or model work needs exact separate scope and admission; no repeat model round or December reuse.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "ACTIVE_WHOLE_PC_SOURCE_DISCOVERY",
+    "status": "BLOCKED_ORIGINAL_SEQUENCE_AND_CURRENT_PIPELINE_PHYSICAL_CLOCKS",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56871,7 +56871,12 @@
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/RESULT.json",
         "sha256": "6ea41ae912f4d26d24d9c04c6b7b93e9631c12ca8179c2957e4649767dd66f90"
       },
-      "additional_catalog_scope": "Both 2024 OANDA canonical year-partition schemas have bar time and OHLC/volume only. The separately indicated deprecated cache directory was absent at inspection. No claim outside inspected sources."
+      "additional_catalog_scope": "Both 2024 OANDA canonical year-partition schemas have bar time and OHLC/volume only. The separately indicated deprecated cache directory was absent at inspection. No claim outside inspected sources.",
+      "whole_pc_discovery": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/SOURCE_SEARCH_RESULT.json",
+        "sha256": "15455a43bba4641a9b80397caac285a0d057d14185c8e9f7f3ef55cc3d8dc76f"
+      },
+      "historical_collector_persistence_evidence": "July-August 2026 completed-write logs found; conditional timestamp semantics qualified. Original 2024 intraminute order and exact current-pipeline physical receipt/ATR clocks remain unknown."
     },
     "independent_confirmation": "All 26 sampled GC months have development history. The existing monthly forward journal is specific to the named D1 swing_ridge h20/h5 protocol and does not admit native M5. Any prospective M5 confirmation requires a distinct frozen admission and untouched outcomes.",
     "bounded_clock_study": "dynamic_mtf_train_issue_clock_boundary_20261105_001",
@@ -56942,9 +56947,13 @@
       },
       "historical_labels": "An identified original ordered OANDA practice XAU_USD quote archive plus source reconciliation could resolve part of the 18,506 bound active but censored M5 endpoints. A historical price archive alone cannot prove local GX1 receipt times.",
       "physical_availability": "A genuine receipt and ATR publication log from the period when the measured pipeline actually operated can establish its observed availability then. The 2026 backfill and source-version date cannot supply physical 2024 timestamps. A future separately admitted timed observation would qualify only its own running pipeline and period.",
-      "separate_next_steps": "Either admissible artifact can be reviewed on its own. New collection and an independent M5 forecast require separate scope, an untouched period and a qualified candidate. No such launch or source is currently bound."
+      "separate_next_steps": "Whole-PC discovery is complete. Historical collector/canonical publication logs were found and qualified separately, but no original ordered 2024 source or exact current MTF receipt/ATR clock chain was established. New collection and independent M5 forecast still require exact separate scope and admission; the completed December trial stays consumed."
     },
-    "whole_pc_source_search": "whole_pc_xau_source_search_20261105_001"
+    "whole_pc_source_search": "whole_pc_xau_source_search_20261105_001",
+    "whole_pc_source_search_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/SOURCE_SEARCH_RESULT.json",
+      "sha256": "15455a43bba4641a9b80397caac285a0d057d14185c8e9f7f3ef55cc3d8dc76f"
+    }
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
     "status": "COMPLETE_CONSUMED_BOTH_REGISTERED_TRAIN_CONTRASTS_NOT_QUALIFIED",
@@ -57068,7 +57077,7 @@
     "future_outcome_queries": 0
   },
   "whole_pc_xau_source_search_20261105_001": {
-    "status": "AUTHORIZED_READONLY_WHOLE_PC_SEARCH",
+    "status": "COMPLETE_NO_QUALIFIED_ORDERED_SOURCE_PARTIAL_HISTORICAL_TIMING",
     "operator_request": "Du må bare lete igjennom hele pc’en",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001",
     "source_workspace": "/home/andre2/src/GX1_CURRENT",
@@ -57080,6 +57089,47 @@
     "training_enabled": false,
     "model_calls_authorized": false,
     "broker_network_authorized": false,
-    "spending_authorized": false
+    "spending_authorized": false,
+    "completed_utc": "2026-11-05T06:22:06.454932+00:00",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/SOURCE_SEARCH_RESULT.json",
+      "sha256": "15455a43bba4641a9b80397caac285a0d057d14185c8e9f7f3ef55cc3d8dc76f"
+    },
+    "coverage_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/COVERAGE_REVIEW.json",
+      "sha256": "b26c69109ce04e9619f9a77accfb6272f0999c1361c372ef5d3cd01c1d3b1dc8"
+    },
+    "backup_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/BACKUP_ARCHIVE_REVIEW.json",
+      "sha256": "fb1397817666b56f247046d4ce231e26992f594a2c7e48276e473c12da5b0b09"
+    },
+    "backup_schema_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/BACKUP_SOURCE_SCHEMA_REVIEW.json",
+      "sha256": "68e2bf13787e8832c2273d4c8f2f8d55a0738c0a289fc0cd4d9c5880e59b0d87"
+    },
+    "collector_clock_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/CLOCK_SOURCE_QUALIFICATION.json",
+      "sha256": "2b7c983abda4c3d41c5dc1ee3c3674c32da4591fff980508cc8369ebfb1b436e"
+    },
+    "atr_log_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/ATR_LOG_QUALIFICATION_002.json",
+      "sha256": "464819fd162e1b26115bed0b021f597952be368121b59228ca2e30e6189dd1d2"
+    },
+    "measured_summary": {
+      "filesystem_entries": 771683,
+      "additional_privileged_filenames": 17,
+      "backup_members": 1917838,
+      "strict_completed_log_records": 151709,
+      "distinct_strict_latest": 28545,
+      "strict_margin_median_seconds_conditional": 8,
+      "strict_margin_p95_seconds_conditional": 23,
+      "file_order_timestamp_regressions": 5440,
+      "canonical_publication_markers": 4004,
+      "atr_warning_echoes_not_readiness": 4006
+    },
+    "qualified_original_ordered_source": "NOT_IDENTIFIED_IN_REVIEWED_SCOPE",
+    "actual_current_m1_receive_and_atr_ready": "UNKNOWN",
+    "independent_edge": "UNKNOWN",
+    "next_action": "Retain these completed source-discovery receipts. No identified admissible source remains pending within the reviewed candidates. New physical capture or model work requires a separately specified plan and admission."
   }
 }
