@@ -58249,5 +58249,26 @@
     "native_model_calls": 0,
     "measured_blocker": "The native _batch omitted unobserved_units_profile for October view gather; view contract rejected before native feature batch, no model.",
     "new_claim_required": true
+  },
+  "dynamic_m5_october_native_batch_binding_20261106_002": {
+    "status": "ADMITTED_ONCE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002.json",
+      "sha256": "8287e4b16dcd7a1e6e82162b756b32a17c6030f2b9c9e86d865ac8cc5db8d750"
+    },
+    "operator_approved": true,
+    "operator_approval": "Standing zero-cost local GX1 authorization given 2026-11-05; exact successor 002 admitted once after measured source-unit-profile argument correction. No paid API/model tokens.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "admitted_utc": "2026-11-05T23:37:01.962652+00:00",
+    "source_head_at_admission": "851b97a48060a25e2bb2b939583fc6406fcaff1f",
+    "remaining_invocations": 1,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002",
+    "scope": "One genuine 4 fit plus 4 October parent control/candidate native feature/target batch join, source unit profile corrected; no model, training or TEST.",
+    "predecessor_failed_consumed": "dynamic_m5_october_native_batch_binding_20261106_001",
+    "training_enabled": false,
+    "native_model_calls_authorized": 0,
+    "test_split_access_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "independent_edge": "UNKNOWN"
   }
 }
