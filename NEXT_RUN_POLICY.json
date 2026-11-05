@@ -57712,6 +57712,10 @@
     "test_access_authorized": false,
     "broker_orders_or_trading_authorized": false,
     "scope": "One exact 29,849-parent October TRAIN input qualification, at most one genuine prefix-only normalization fit if all 153 declared-unit and remaining-support gates pass, and outcome-free hash of the 6,323-parent October development axis. 264/267 workers are reused only as read-only input adapters; consumed plans are not launched.",
-    "remaining_unknown": "Confirmed-state age coverage, M5 +5 target maturity/censoring, physical online timing, strict TRAIN-OOF, independent edge and economics remain unqualified."
+    "remaining_unknown": "Confirmed-state age coverage, M5 +5 target maturity/censoring, physical online timing, strict TRAIN-OOF, independent edge and economics remain unqualified.",
+    "closed_admission_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_PREP_20261105_001/ADMISSION_GATE.json",
+      "sha256": "8f16ad8cbd43c5eec5087e1e16fc981304cd68f925202a9fe90832c559116ce6"
+    }
   }
 }
