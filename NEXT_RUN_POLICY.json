@@ -17444,7 +17444,7 @@
     },
     "current_training_started": true,
     "private_optimizer_qualification_admitted": false,
-    "active_continuous_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
+    "active_continuous_goal_thread_id": null,
     "current_generation_initial_baseline_is_current_function": false,
     "current_function_initial_baseline_required_after184": false,
     "current_generation_saved_state_audit_pending": false,
