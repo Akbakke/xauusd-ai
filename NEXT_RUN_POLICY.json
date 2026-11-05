@@ -58028,18 +58028,30 @@
   }
 ,
   "dynamic_m5_confirmed_age_view_source_20261105_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_VIEW_SOURCE_20261105_001.json",
       "sha256": "5911e6a5c12e81e587819aa0e0598487d8702486df5b9abca4fd50a1a72389f4"
     },
     "operator_approved": true,
     "operator_approval": "Standing zero-cost local authorization; source-only contract/view tests.",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_CONFIRMED_AGE_VIEW_SOURCE_20261105_001",
     "training_enabled": false,
     "native_model_calls_authorized": 0,
     "test_split_access_authorized": false,
-    "scope": "Optional confirmed-age v6 source/view binding only; native forward, actual data route and OOF remain unqualified."
+    "scope": "Optional v6 age contract and October feature view bind correctly in source-only synthetic checks; actual native forward, worker delivery and OOF remain unqualified.",
+    "claim_exit_code": 0,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_CONFIRMED_AGE_VIEW_SOURCE_20261105_001/TERMINAL.json",
+      "sha256": "cfffdb23c23292fdac99cea176cb9a5ee4fd87d469bfde6e65fe56148a1ab774"
+    },
+    "post_run_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_CONFIRMED_AGE_VIEW_SOURCE_20261105_001/POST_RUN_REVIEW.json",
+      "sha256": "b19c44c811f630eeb18c673d6b32ef7cccf8c5b9812ca0fd21281190e88c2aed"
+    },
+    "focused_synthetic_tests_passed": 2,
+    "genuine_data_reads": 0,
+    "native_model_calls": 0
   }
 }
