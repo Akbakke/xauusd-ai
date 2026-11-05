@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T21:50:29.630533+00:00",
-  "status": "M5_ENTRY_OCTOBER_INPUT_ONLY_003_ADMITTED_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T21:54:31.993480+00:00",
+  "status": "M5_ENTRY_OCTOBER_PREFIX_INPUT_FIT_COMPLETE_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run the explicitly admitted October input-only plan 003 exactly once through its fixed capped audit command. Plan 002 remains consumed. Record support, fit or failure from the original terminal. No model, outcome, TEST, broker or trading authority follows.",
+  "next_action": "Plan 003 completed its one input-only claim: 12 genuine TRAIN surfaces qualified and one exact prefix-normalization bundle passed post-run review. Next qualify confirmed-state age input coverage and M5 +5 first-gap censor with separate zero-cost, source-bound TRAIN-only controls under the standing authorization. Then lock one age candidate and strict chronological TRAIN-OOF; no model, TEST, broker or trading authority follows automatically.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run the explicitly admitted October input-only plan 003 exactly once through its fixed capped audit command. Plan 002 remains consumed. Record support, fit or failure from the original terminal. No model, outcome, TEST, broker or trading authority follows.",
+    "next_action": "Plan 003 completed its one input-only claim: 12 genuine TRAIN surfaces qualified and one exact prefix-normalization bundle passed post-run review. Next qualify confirmed-state age input coverage and M5 +5 first-gap censor with separate zero-cost, source-bound TRAIN-only controls under the standing authorization. Then lock one age candidate and strict chronological TRAIN-OOF; no model, TEST, broker or trading authority follows automatically.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_INPUT_ONLY_003_ADMITTED_EDGE_UNKNOWN",
+    "status": "OCTOBER_PREFIX_INPUT_FIT_COMPLETE_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57826,7 +57826,7 @@
     "remaining_unknown": "Confirmed-state age coverage, M5 +5 first-gap event censor and target usefulness, physical online timing, strict TRAIN-OOF, independent edge and economics remain unqualified. TRAIN endpoint coverage is already measured in the preserved target receipt."
   },
   "dynamic_m5_october_input_only_20261105_003": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003.json",
       "sha256": "4a80b5d15f16e6a790de3a80155043e9fc2177a329256d67f4985597384f8fa5"
@@ -57834,7 +57834,7 @@
     "operator_approved": true,
     "operator_approval": "User answered Ja to exact plan 003 and gave standing authorization for future no-cost, no paid-token/API-token local GX1 work without repeated questions in this chat on 2026-11-05.",
     "admitted_utc": "2026-11-05T21:50:29.630533+00:00",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003",
     "prior_consumed_plan": "dynamic_m5_october_input_only_20261105_002",
     "predecessor_qualification": {
@@ -57855,8 +57855,17 @@
       "sha256": "d4b0ab8d8385394568ccc57693908217a303f4d03cd43f170b289714c9e05009"
     },
     "earlier_fixture_test_failure_preserved": true,
-    "new_genuine_data_audit_started": false,
-    "genuine_statistics_fits": 0,
+    "new_genuine_data_audit_started": true,
+    "genuine_statistics_fits": 1,
+    "claim_exit_code": 0,
+    "input_support_qualification_passed": true,
+    "prefix_normalization_fit_complete": true,
+    "axis_receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/OCTOBER_AXIS.json", "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"},
+    "qualification_receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/QUALIFICATION.json", "sha256": "cfe9524e05b127d09a4dd45f81612dbcf1a227f718143d459a206d0aad8b1363"},
+    "prefix_normalization_receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/PREFIX_NORMALIZATION.json", "sha256": "9cbde23587e2296365b799d9f288c27ce3cd9b4023baa19cc77aad3476076109"},
+    "result_receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/RESULT.json", "sha256": "3177fee2339bfc81354088cae50f22ac31d191fd4ad7c64c2d047bd68c682b71"},
+    "terminal_receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/TERMINAL.json", "sha256": "0ac8a8926a08f0044c30e38df0d257720edcbb5740f2439bbb730d12fbb81300"},
+    "post_run_review": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_PREP_20261105_003/POST_RUN_REVIEW.json", "sha256": "c6192348119c6cf147653c08895255ee76abe2902e7371304190035b47321d6d"},
     "native_model_calls": 0,
     "training_enabled": false,
     "test_access_authorized": false,
