@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-05T11:18:22.483459+00:00",
-  "status": "M5_DIRECTION_FOLLOWUP_CLOCK_003_ADMITTED",
+  "status": "M5_DIRECTION_COLD_CLOCK_MEASURED_ABSOLUTE_UTC_AND_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "The exact 003 cold source/ATR observation is admitted once by the user. Four maximum candle GETs, capped 2G/512M, hard timeout900+10. Both predecessors remain consumed; native training disabled.",
+    "current_activity": "003 completed and independently verified: four HTTP200 responses, 6888 native M5 bars, five M1 minutes, five-TF ATR and 31 bound journal events. Monotonic first request to source/ATR-ready is 6.30147 seconds for this cold run. All acquisition gates closed; no native training, TEST or trading. Absolute UTC, full model-input readiness and edge remain unknown.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "PHYSICAL_CLOCK_FOLLOWUP_003_ADMITTED_ONCE",
+    "status": "ONE_COLD_PHYSICAL_CLOCK_OBSERVATION_COMPLETE_INDEPENDENT_EDGE_UNPROVED",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56834,7 +56834,7 @@
     "native_launch_authorized": false,
     "training_enabled": false,
     "independent_edge": "UNKNOWN",
-    "production_xau_m1_arrival_and_atr_readiness": "UNKNOWN",
+    "production_xau_m1_arrival_and_atr_readiness": "UNKNOWN_FOR_ONGOING_OPERATION; one separate cold observation physically measured and bound in cold_source_atr_physical_clock_result",
     "test_access_authorized": false,
     "broker_orders_or_trading_authorized": false,
     "indicator_data_stage": "dynamic_m5_book_smc_within_candle_train_20261105_001",
@@ -56972,6 +56972,10 @@
         "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_OPERATOR_ADMISSION.json",
         "sha256": "46d15a6230aca2dbf9214f0cda3f503169bbb266235a357bf76b3f4b0b790859"
       }
+    },
+    "cold_source_atr_physical_clock_result": {
+      "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/ACTUAL_RESULT.json",
+      "sha256": "9539bd03872b6cd814d6d62921b60532617481d8e0aadca22f015df7002a98a2"
     }
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
@@ -57159,7 +57163,7 @@
     "source_base_commit": "cb1332cb9da482c783471011bffc008edf8c3133",
     "run_root": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001",
     "scope": "One exact admitted input-only timing measurement using the frozen plan and canonical source producer. M5 Entry only; no model or Exit.",
-    "goal_tool_state": "Full long-term directional goal remains incomplete. The user has explicitly admitted independent followup measurement 003 once; both predecessors remain consumed. App goal last observed blocked.",
+    "goal_tool_state": "The admitted 003 observation and its post-run verification are complete. All acquisition gates are closed. The full long-term directional objective remains incomplete; app goal last observed blocked.",
     "prior_completed_discovery": "whole_pc_xau_source_search_20261105_001",
     "measured_gaps": [
       "Current consumption uses historical event time, without physical receipts.",
@@ -57196,7 +57200,7 @@
       "sha256": "6fa21f44183032137c70330bd7af50c5e5abb68340c39efabbcd1500990f2d9e"
     },
     "explicit_acquisition_requirement": "Original operator prohibition on broker access and GX1_RULES Omfang/Brukte engangstillatelser require a new exact exception for four practice XAU_USD candle GETs. No automatic collection admission follows from preparation or the M1-input decision.",
-    "physical_measurement_performed": false,
+    "physical_measurement_performed": true,
     "complete_model_input_readiness": "UNKNOWN",
     "absolute_utc_uncertainty": "UNKNOWN",
     "preparation_terminal": {
@@ -57283,16 +57287,16 @@
       "new_requests_after_diagnostic": 0
     },
     "followup_measurement": {
-      "status": "ADMITTED_EXACT_FOUR_CALL_OBSERVATION_NOT_STARTED",
+      "status": "CONSUMED_COMPLETE_COLD_SOURCE_ATR_CHAIN_ABSOLUTE_UTC_UNKNOWN",
       "measurement_plan": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/XAU_INPUT_PHYSICAL_CLOCK_20261105_003.json",
         "sha256": "197f1cf0bf330109989b471af8b60e4a5937a3b0ce3339da39053cb0c1c68de4"
       },
       "source_commit_before_preparation": "9eff536af729316ebb32fb226a9c6edcf1d32da7",
-      "execution_authorized": true,
-      "collection_authorized": true,
-      "broker_network_authorized": true,
-      "completed_invocations": 0,
+      "execution_authorized": false,
+      "collection_authorized": false,
+      "broker_network_authorized": false,
+      "completed_invocations": 1,
       "relaunch_authorized": false,
       "local_configuration_preflight": {
         "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/LOCAL_CONFIGURATION_PREFLIGHT.json",
@@ -57305,9 +57309,9 @@
       "focused_test_cases_passed": 11,
       "prior_scope_tests_reused": 16,
       "scope": "One new cold source/ATR observation for M5 Entry; max three M5 candle GETs and one M1 candle GET, unchanged 35d warmup and five-TF numerical owner. All previous claims remain consumed.",
-      "provider_credential_validity": "UNKNOWN",
+      "provider_credential_validity": "ACCEPTED_FOR_FOUR_CANDLE_REQUESTS_IN_THIS_INVOCATION_ONLY",
       "cold_chain_not_production_latency": true,
-      "physical_measurement_performed": false,
+      "physical_measurement_performed": true,
       "model_calls_authorized": false,
       "test_access_authorized": false,
       "orders_or_trading_authorized": false,
@@ -57327,8 +57331,62 @@
         "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/OPERATOR_ADMISSION.json",
         "sha256": "67e54ca8349fe7096f874fa5deb597430e188bbf3798488cd88cede14ec59b98"
       },
-      "admission_recorded_utc": "2026-11-05T13:21:06.752347+00:00"
-    }
+      "admission_recorded_utc": "2026-11-05T13:21:06.752347+00:00",
+      "http_get_attempts": 4,
+      "http_status_codes": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "remaining_requests_authorized": 0,
+      "launch_terminal": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/LAUNCH_TERMINAL.json",
+        "sha256": "036550a9c18fc990c0b7478df59145fc7203a701c7d7fe389bf04f095403446f"
+      },
+      "absolute_utc_readiness": "UNKNOWN_NO_QUALIFIED_CLOCK_ERROR_BOUND",
+      "actual_result": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/ACTUAL_RESULT.json",
+        "sha256": "9539bd03872b6cd814d6d62921b60532617481d8e0aadca22f015df7002a98a2"
+      },
+      "post_run_review": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/POST_RUN_REVIEW_TERMINAL.json",
+        "sha256": "373c84ed8badf095711bb7ad1689b750764ed9782831213c0878206271294857"
+      },
+      "native_source_rows": {
+        "M1": 5,
+        "M5": 6888
+      },
+      "atr_surface_rows": {
+        "D1": 25,
+        "H1": 574,
+        "H4": 150,
+        "M15": 2296,
+        "M5": 6888
+      },
+      "journal_events_verified": 31,
+      "monotonic_first_request_to_source_atr_ready_seconds": {
+        "lower": 6.301470842,
+        "upper": 6.301472241
+      },
+      "conditional_local_utc_seconds_after_m5_event_close": {
+        "atr_ready": 6.337200506,
+        "m1_published": 4.576893415,
+        "m1_received": 4.452830063,
+        "m5_published": 4.018171495,
+        "m5_received": 3.539871933,
+        "source_atr_input_ready": 6.353039091
+      },
+      "complete_model_input_readiness": "UNKNOWN",
+      "cold_source_atr_chain_complete": true,
+      "independent_edge": "UNKNOWN",
+      "next_scope": "Use the frozen receipts as one cold-run source/ATR observation. Absolute UTC bounds, ongoing per-input readiness, original TRAIN/serve parity and independent forecasts remain unqualified. No automatic new collection or model run."
+    },
+    "latest_physical_measurement": {
+      "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/ACTUAL_RESULT.json",
+      "sha256": "9539bd03872b6cd814d6d62921b60532617481d8e0aadca22f015df7002a98a2"
+    },
+    "physical_measurement_scope": "Only the separate 003 cold source/ATR observation. Original 001 remains failed and consumed; full production-input readiness and absolute UTC remain UNKNOWN."
   },
   "m5_entry_priority_20261105": {
     "operator_request": "Entry skal vi ha på m5 timeframe for m1 er for mye støy; mer eyes on m1 i en pågående trade; først entry på plass.",
