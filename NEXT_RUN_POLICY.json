@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Prepare one separate exact input-only qualification plan for genuine 29,849-parent October-prefix coverage, source clocks, current-state age and independent October evaluation-axis identity. No genuine audit or statistics fit is admitted by source-level PASS. Native/model training, TEST, broker, orders and trading remain closed.",
+  "next_action": "Request one explicit admission for the fully prepared October input-only plan. It has no model, outcome, TEST, broker or trading role. Do not start the data check before that approval; then assess genuine support and prefix-only statistics once. Continue age/target/OOF preparation locally under existing gates.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Exact October prefix units are routed through population, base/GC, execution/view and native runtime at source level. Final 127 synthetic/legacy checks passed under the capped audit. Genuine source population, prefix statistics, age input and directional value remain unqualified; app goal status last observed blocked. A quiet 30-minute thread heartbeat is now active because the native goal tool returned blocked.",
+    "current_activity": "October prefix units remain source-wired and synthetic-qualified. A separate one-claim genuine input-only plan and guarded reader are prepared; six scoped source tests pass. The actual 29,849-parent data check has not run and no new statistics or model fit is admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Prepare one separate exact input-only qualification plan for genuine 29,849-parent October-prefix coverage, source clocks, current-state age and independent October evaluation-axis identity. No genuine audit or statistics fit is admitted by source-level PASS. Native/model training, TEST, broker, orders and trading remain closed.",
+    "next_action": "Request one explicit admission for the fully prepared October input-only plan. It has no model, outcome, TEST, broker or trading role. Do not start the data check before that approval; then assess genuine support and prefix-only statistics once. Continue age/target/OOF preparation locally under existing gates.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "EXACT_PREFIX_UNITS_SOURCE_WIRING_QUALIFIED_GENUINE_PREFIX_AND_EDGE_UNKNOWN",
+    "status": "OCTOBER_INPUT_ONLY_PLAN_PREPARED_NOT_ADMITTED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56935,7 +56935,7 @@
         "independent untapped forward period, quantitative coverage/support and separate exact admission"
       ]
     },
-    "goal_tool_status_last_observed": "blocked",
+    "goal_tool_status_last_observed": "active",
     "external_evidence_gates": {
       "reviewed_utc": "2026-11-05T01:16:36.238473+00:00",
       "native_archive_manifest": {
@@ -56993,7 +56993,7 @@
     "persistent_followup": {
       "mechanism": "active_thread_heartbeat_after_native_goal_blocked",
       "target_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
-      "status_last_observed": "blocked",
+      "status_last_observed": "active",
       "goal_created_unix": 1793897675,
       "prior_blocked_goal_cleared_by_user": true,
       "previous_create_rejection": "The user cleared the predecessor and explicitly requested continued long-term work; a new goal was created active at 1793897675, but the tool later returned blocked without a stated reason.",
@@ -57003,7 +57003,7 @@
         "reason": "Native long-term goal is active; the temporary recurring follow-up is redundant."
       },
       "policy_status_authority": "NEXT_RUN_POLICY.json",
-      "authority_change": "None for source/data/model/network/trading admissions. Heartbeat wakeups do not override NEXT_RUN_POLICY or training_enabled=false.",
+      "authority_change": "None. Native goal was resumed by the user; the quiet heartbeat remains as continuity fallback. Neither opens data, fit, model, TEST, broker or trading gates.",
       "reporting": "Meaningful progress, failure, completion or required user action; no repeated unchanged-status messages.",
       "active_heartbeat": {
         "automation_id": "gx1-m5-entry-videre-arbeid",
@@ -57020,7 +57020,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Finish an exact input-only plan for genuine October-prefix source and support qualification, causal age input, target maturity/censoring and a separate October evaluation-axis hash. Source wiring is synthetic-qualified only. Keep genuine fit/native/model/TEST/broker/trade gates closed until separate admission.",
+    "next_milestone": "One explicit admission decision for the bound 29,849-parent input-only check. If admitted and source/support gates pass, record genuine prefix-only normalization and October axis. Then independently qualify confirmed-state age, M5 +5 target maturity/censoring and strict chronological TRAIN-OOF; no native model execution follows automatically.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "SOURCE_AND_SYNTHETIC_QUALIFIED_NOT_MODEL_INTEGRATED",
@@ -57095,7 +57095,7 @@
         "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
         "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
       },
-      "next_design_constraint": "The exact declared-unit design is bound in prefix_unobserved_units_preparation. It preserves genuine later values and masks and leaves the default support guard closed. Full native integration and genuine qualification still remain; no December exception is transplanted.",
+      "next_design_constraint": "Exact units are source-wired through the M5 Entry contracts. The genuine prefix and October axis check is prepared but not admitted; December remains consumed. Age, target maturity, OOF and independent edge remain unknown.",
       "new_data_audit_started": false,
       "new_model_admission": false
     },
@@ -57185,7 +57185,7 @@
         "genuine_statistics_fits": 0,
         "native_model_instantiations_or_forecasts": 0
       },
-      "next_design_constraint": "Exact declared units are source-wired with explicit opt-in and 153 zero-support bindings. The genuine 29,849-parent input population, source arrival, age input, target maturity and separate October axis are not qualified. December remains consumed; no genuine fit, model or trading admission.",
+      "next_design_constraint": "Exact units are source-wired; a separate genuine prefix-only input plan is prepared and requires explicit admission. No December projection/statistics, model, TEST or trading role.",
       "source_wiring": {
         "status": "SYNTHETIC_AND_LEGACY_REGRESSION_PASS_NO_GENUINE_FIT",
         "source_files": {
@@ -57242,9 +57242,17 @@
         "new_input_audit_authorized": false,
         "training_enabled": false,
         "independent_directional_edge": "UNKNOWN"
+      },
+      "genuine_input_only_plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001.json",
+        "sha256": "806c9b5335809a197debc7edfd805da4d261657421372f62ea33eb21b5a08385"
+      },
+      "genuine_input_only_source_test_terminal": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_PREP_20261105_001/TEST_002_TERMINAL.json",
+        "sha256": "bc0ad4a5e4ee4ac5ed0a9eb571477fe2761f07959b6b4ff4efd8fb1694530ee7"
       }
     },
-    "goal_tool_status_observed_utc": "2026-11-05T17:11:50.081659+00:00"
+    "goal_tool_status_observed_utc": "2026-11-05T17:39:35.430446+00:00"
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
     "status": "COMPLETE_CONSUMED_BOTH_REGISTERED_TRAIN_CONTRASTS_NOT_QUALIFIED",
@@ -57682,5 +57690,28 @@
       "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/EMA_INPUT_SCOPE_REVIEW.json",
       "sha256": "fa599b4893082808bae2ce54b700bd8319cd3d407f5c84bb9b1397d6fdea90f1"
     }
+  },
+  "dynamic_m5_october_input_only_20261105_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001.json",
+      "sha256": "806c9b5335809a197debc7edfd805da4d261657421372f62ea33eb21b5a08385"
+    },
+    "operator_approved": false,
+    "remaining_invocations": 0,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001",
+    "source_test_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_PREP_20261105_001/TEST_002_TERMINAL.json",
+      "sha256": "bc0ad4a5e4ee4ac5ed0a9eb571477fe2761f07959b6b4ff4efd8fb1694530ee7"
+    },
+    "synthetic_checks_passed": 6,
+    "new_genuine_data_audit_started": false,
+    "genuine_statistics_fits": 0,
+    "native_model_calls": 0,
+    "training_enabled": false,
+    "test_access_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "scope": "One exact 29,849-parent October TRAIN input qualification, at most one genuine prefix-only normalization fit if all 153 declared-unit and remaining-support gates pass, and outcome-free hash of the 6,323-parent October development axis. 264/267 workers are reused only as read-only input adapters; consumed plans are not launched.",
+    "remaining_unknown": "Confirmed-state age coverage, M5 +5 target maturity/censoring, physical online timing, strict TRAIN-OOF, independent edge and economics remain unqualified."
   }
 }
