@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Exact October prefix units are routed through population, base/GC, execution/view and native runtime at source level. Final 127 synthetic/legacy checks passed under the capped audit. Genuine source population, prefix statistics, age input and directional value remain unqualified; app goal status last observed blocked.",
+    "current_activity": "Exact October prefix units are routed through population, base/GC, execution/view and native runtime at source level. Final 127 synthetic/legacy checks passed under the capped audit. Genuine source population, prefix statistics, age input and directional value remain unqualified; app goal status last observed blocked. A quiet 30-minute thread heartbeat is now active because the native goal tool returned blocked.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56991,7 +56991,7 @@
       "limits": "All existing model/fit/native, TEST, broker, order, spending and trade gates remain closed; any new model check needs its exact separate admission, safe physical reboot and capped route."
     },
     "persistent_followup": {
-      "mechanism": "native_Codex_goal",
+      "mechanism": "active_thread_heartbeat_after_native_goal_blocked",
       "target_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
       "status_last_observed": "blocked",
       "goal_created_unix": 1793897675,
@@ -57003,8 +57003,15 @@
         "reason": "Native long-term goal is active; the temporary recurring follow-up is redundant."
       },
       "policy_status_authority": "NEXT_RUN_POLICY.json",
-      "authority_change": "None for source/data/model/network/trading admissions. Existing guards and training_enabled=false remain in force.",
-      "reporting": "Meaningful progress, failure, completion or required user action; no repeated unchanged-status messages."
+      "authority_change": "None for source/data/model/network/trading admissions. Heartbeat wakeups do not override NEXT_RUN_POLICY or training_enabled=false.",
+      "reporting": "Meaningful progress, failure, completion or required user action; no repeated unchanged-status messages.",
+      "active_heartbeat": {
+        "automation_id": "gx1-m5-entry-videre-arbeid",
+        "status": "ACTIVE",
+        "cadence_minutes": 30,
+        "target_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
+        "notification_rule": "silent_when_unchanged_or_not_actionable; report meaningful progress, failure, completion or required user action"
+      }
     },
     "completion_evidence_required": [
       "A source-qualified candidate with causal genuine inputs and verified actual consumption; technical PASS alone is insufficient.",
