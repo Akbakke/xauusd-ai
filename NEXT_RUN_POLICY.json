@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Exact low-level declared-unit profile, fitting/validation and alias handling passed 142 synthetic/legacy checks; full prefix/base/GC/view/native wiring and genuine qualification remain pending and execution closed.",
+    "current_activity": "Requested long-term native goal is active after user cleared the old blocked goal; temporary heartbeat deleted. Exact low-level units passed 142 checks; full contract binding remains next, with actual execution gates closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56823,7 +56823,7 @@
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
     "status": "LOW_LEVEL_EXACT_PREFIX_UNITS_QUALIFIED_FULL_NATIVE_WIRING_PENDING_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
-    "goal_created_unix": 1793839707,
+    "goal_created_unix": 1793893096,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
     "previous_terminal": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/ACTUAL_ROOT_REVIEW.json",
@@ -56932,7 +56932,7 @@
         "independent untapped forward period, quantitative coverage/support and separate exact admission"
       ]
     },
-    "goal_tool_status_last_observed": "blocked",
+    "goal_tool_status_last_observed": "active",
     "external_evidence_gates": {
       "reviewed_utc": "2026-11-05T01:16:36.238473+00:00",
       "native_archive_manifest": {
@@ -56988,14 +56988,19 @@
       "limits": "All existing model/fit/native, TEST, broker, order, spending and trade gates remain closed; any new model check needs its exact separate admission, safe physical reboot and capped route."
     },
     "persistent_followup": {
-      "mechanism": "supported_Codex_thread_heartbeat",
-      "automation_id": "gx1-arbeid-videre-mot-m5-entry-edge",
+      "mechanism": "native_Codex_goal",
       "target_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
-      "status_last_observed": "ACTIVE",
-      "cadence_minutes": 30,
+      "status_last_observed": "active",
+      "goal_created_unix": 1793893096,
+      "prior_blocked_goal_cleared_by_user": true,
+      "previous_create_rejection": "Resolved when the user cleared the old unfinished goal; create_goal then returned active for the requested long-term objective.",
+      "retired_heartbeat": {
+        "automation_id": "gx1-arbeid-videre-mot-m5-entry-edge",
+        "delete_status": "deleted",
+        "reason": "Native long-term goal is active; the temporary recurring follow-up is redundant."
+      },
       "policy_status_authority": "NEXT_RUN_POLICY.json",
-      "goal_tool_status_last_observed": "blocked",
-      "goal_tool_limitation": "create_goal rejected replacement because the existing long-term goal is unfinished; no false completion or successful native-goal activation is claimed.",
+      "authority_change": "None for source/data/model/network/trading admissions. Existing guards and training_enabled=false remain in force.",
       "reporting": "Meaningful progress, failure, completion or required user action; no repeated unchanged-status messages."
     },
     "completion_evidence_required": [
