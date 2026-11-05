@@ -1,0 +1,119 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_target_series_plan_v1",
+  "plan_id": "DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "prepared_from_head": "c4fb2fc15f752efce91fc77a1bcf8552c8a33a2a",
+  "prepared_utc": "2026-11-05T22:44:36.688414+00:00",
+  "purpose": "Publish one exact, pre-November dynamic state target tape for chronological October TRAIN-development OOF; no new labels, model or score.",
+  "original_series": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/SERIES.json",
+    "sha256": "d2addf8fbb6f9ac9e9ed741bbbd2fe2bfdc07f59553ea28c021ea198d5fbfa8e"
+  },
+  "fit_series": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_TARGETS/SERIES.json",
+    "sha256": "288d9e04c56337e0413cf29f0235e810ae896d3bc6be3f482eaa84b25ff4d1cb"
+  },
+  "source_refs": {
+    "m1": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    },
+    "m5_atr": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+      "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+    }
+  },
+  "axis_receipt": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/OCTOBER_AXIS.json",
+    "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"
+  },
+  "candidate_design": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_CANDIDATE_20261105_001.json",
+    "sha256": "b40123a364a65bb337699cc82215707049596b8ab0940c98ec64efc06fe17c8e"
+  },
+  "fit_prefix": {
+    "bar_start_ns_sha256": "88653d60d5d2196982e88be2393855203df38a59e192594119ac7efc032aa974",
+    "cutoff_ns": 1727740800000000000,
+    "decision_ns_sha256": "230f38de532e9d1b8b310c81d3d3cc0c021ad05e0be0cd985ae55a72f1fd8067",
+    "parent_rows_sha256": "178e758fb705799a7f5557e680a764dfeb3c5cd7958f0562e84f693e418fcd43",
+    "rows": 29849
+  },
+  "evaluation_axis": {
+    "bar_start_ns_sha256": "871ab89f9fa5d73ba28a7664f27f0ac870efdf5c1478fb326d6fe0de611d82d9",
+    "cutoff_ns_exclusive": 1730419200000000000,
+    "decision_ns_sha256": "caf2e6b380de1d1aab800bc3cee75d6b749e093d24546a6f58ce840c428e4f2e",
+    "first_decision_ns": 1727740800000000000,
+    "last_decision_ns": 1730418900000000000,
+    "parent_row_range": [
+      29849,
+      36172
+    ],
+    "parent_rows_sha256": "2fdb34d3233a7fa1626e75c8cd0184a49ec59b9ba8f685a730080e3422643069",
+    "rows": 6323
+  },
+  "prior_target_result": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001/RESULT.json",
+    "sha256": "5fec2656e09899cc79c6dc416641154751675e9d3759f287a6137e970c5eff2d"
+  },
+  "prior_target_terminal": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001/TERMINAL.json",
+    "sha256": "e27a305228d08aa1f04f563aadae552798f386a6d778d63b73bb10a8d30d4a64"
+  },
+  "target_contract_sha256": "d44cf218b0f07c477e3ac52cc2374933c2754b40511492cdcf037811afc23ddd",
+  "source_files_sha256": {
+    "gx1/audit/dynamic_mtf_m5_train_age_censor.py": "b08ceae1e5430ad33d361c28c2cc0c84ae4cd971633c91eab06c09918067c9fd",
+    "gx1/audit/dynamic_mtf_october_target_only.py": "1ebae943317bbaca955a1bc2dd07be76cd9de9bd2be3ec4c3ec10d5214703d41",
+    "gx1/audit/dynamic_mtf_october_target_series.py": "f015888abed1377f67cb7dba7f3fbf2aef335f3616d946278c75c1b0c862d35c",
+    "gx1/audit/dynamic_mtf_train_prefix_targets.py": "6a4fb825beebf258a8c6cdba46d19e4f5165520d4ad73c1f521fc39b3d1c60a6",
+    "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212",
+    "gx1/contracts/entry_exit_feature_base_v1.py": "4596f4399c000ca4dae3ba11061bef20430decc74f91118649d968111ad89d1c",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "ef64a40a7ac24fc931acc267fae298adde26f20ed91ed587fd28ffcaae71c565",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "gx1/features/technical_indicators_v1.py": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad",
+    "gx1/utils/artifact_primitives_v1.py": "94a85b804a10c28ff82ef83be5bd67d114ef686ec3e7d4cd36362a308af68932",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "execution": {
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 2G --swap 512M -- timeout --signal=TERM --kill-after=10s 600s .venv/bin/python -m gx1.audit.dynamic_mtf_october_target_series",
+    "resource_class": "audit",
+    "memory_max_bytes": 2147483648,
+    "swap_max_bytes": 536870912,
+    "max_wall_seconds": 600,
+    "kill_grace_seconds": 10,
+    "retries": 0,
+    "models": 0,
+    "network_calls": 0
+  },
+  "restrictions": {
+    "model_construction": false,
+    "optimizer_updates": false,
+    "test_split": false,
+    "broker_or_network": false,
+    "spending_usd": 0,
+    "post_october_outcomes": false,
+    "raw_market_source_reads": false
+  },
+  "read_scope": {
+    "original_target_npy": "whole-file SHA as opaque bytes; decode prefix values before 2024-11-01 only",
+    "fit_parent_rows": 29849,
+    "development_parent_rows": [
+      29849,
+      36172
+    ],
+    "post_october_outcomes": false,
+    "raw_market_source_reads": false
+  },
+  "write_scope": [
+    "STATE_SERIES/SERIES.json",
+    "STATE_SERIES/*.npy",
+    "RESULT.json",
+    "TERMINAL.json",
+    "FAILED.json"
+  ],
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001",
+  "standing_authorization": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+  "stop_rule": "One immutable output-root claim; failure consumes it. No retry, model, score or edge claim."
+}

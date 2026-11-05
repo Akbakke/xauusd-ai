@@ -58054,4 +58054,20 @@
     "genuine_data_reads": 0,
     "native_model_calls": 0
   }
+,
+  "dynamic_m5_october_target_series_20261105_001": {
+    "status": "ADMITTED_ONCE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001.json",
+      "sha256": "02ead5e604a343f6bb829331ba95c599bbd0f0eebf90549161195452c455786b"
+    },
+    "operator_approved": true,
+    "operator_approval": "Standing zero-cost local authorization for one bounded target artifact producer.",
+    "remaining_invocations": 1,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001",
+    "training_enabled": false,
+    "native_model_calls_authorized": 0,
+    "test_split_access_authorized": false,
+    "scope": "Strictly pre-November target artifact for October historical development OOF; no model or independent edge."
+  }
 }
