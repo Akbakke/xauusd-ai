@@ -222,7 +222,6 @@ class BoundCandleClient:
                                            self.limits["http_read_timeout_seconds"])) as response:
             self.journal.write("http_response_status", {"attempt": self.attempts,
                                                         "status_code": response.status_code})
-            require(response.status_code == 200 and not response.history, "HTTP_STATUS_OR_REDIRECT")
             chunks, count = [], 0
             for part in response.iter_content(chunk_size=65536):
                 require(time.monotonic() < self.deadline, "DEADLINE")
@@ -234,6 +233,14 @@ class BoundCandleClient:
             self.journal.write("response_body_buffered",
                                {"attempt": self.attempts, "bytes": count,
                                 "body_sha256": hashlib.sha256(raw).hexdigest()}, stamp)
+            if response.status_code != 200 or response.history:
+                # Preserve the bounded provider error privately, outside Git and
+                # terminal messages. Status alone cannot identify a bad request.
+                error_path = self.journal.root / f"http-error-{self.attempts:04d}.body"
+                _publish_bytes(error_path, raw)
+                self.journal.write("http_error_body_preserved",
+                                   {"attempt": self.attempts, "ref": file_ref(error_path)})
+                require(False, "HTTP_STATUS_OR_REDIRECT")
         value = json.loads(raw)
         require(isinstance(value, dict), "RESPONSE_OBJECT")
         return value

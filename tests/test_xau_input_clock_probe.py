@@ -116,14 +116,14 @@ def test_disabled_policy_fails_before_credentials_claim_or_network(tmp_path, mon
     assert not (tmp_path / "CAPTURE").exists()
 
 
-@pytest.mark.parametrize("bad", ["endpoint", "params", "repeat", "redirect", "byte_cap"])
+@pytest.mark.parametrize("bad", ["endpoint", "params", "repeat", "redirect", "byte_cap", "http_400", "http_400_byte_cap"])
 def test_transport_budget_and_fail_closed_route(tmp_path, bad):
     params = {"from": "2024-11-01T11:59:00Z", "to": "2024-11-01T12:00:00Z",
               "granularity": "M1", "price": "MBA"}
     journal = probe.Journal(tmp_path)
-    session = Session(status=302 if bad == "redirect" else 200)
+    session = Session(status=302 if bad == "redirect" else 400 if bad.startswith("http_400") else 200)
     limits = dict(probe.LIMITS)
-    if bad == "byte_cap": limits["max_response_bytes"] = 8
+    if bad in {"byte_cap", "http_400_byte_cap"}: limits["max_response_bytes"] = 8
     bound = client(session, [params], journal, limits=limits)
     path = "/accounts/forbidden" if bad == "endpoint" else "/instruments/XAU_USD/candles"
     actual = dict(params)
@@ -134,9 +134,17 @@ def test_transport_budget_and_fail_closed_route(tmp_path, bad):
         bound._request("GET", path, params=actual)
     expected = 0 if bad in {"endpoint", "params"} else 1
     assert len(session.calls) == bound.attempts == expected
-    if bad == "redirect":
+    if bad in {"redirect", "http_400", "http_400_byte_cap"}:
         statuses = [e["payload"]["status_code"] for e in journal.events if e["event"] == "http_response_status"]
-        assert statuses == [302]
+        assert statuses == [302 if bad == "redirect" else 400]
+        saved = [e for e in journal.events if e["event"] == "http_error_body_preserved"]
+        error_path = tmp_path / "http-error-0001.body"
+        if bad == "http_400_byte_cap":
+            assert not saved and not error_path.exists()
+        else:
+            assert len(saved) == 1 and saved[0]["payload"]["ref"] == probe.file_ref(error_path)
+            assert error_path.read_bytes() == json.dumps(native_response(params)).encode()
+            assert all("response" not in e["payload"] for e in journal.events)
 
 
 @pytest.mark.parametrize("missing", [None, "last_m5", "middle_m1"])

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T09:40:08.680161+00:00",
-  "status": "M5_ENTRY_FIRST_ONE_CLOCK_OBSERVATION_ADMITTED_TRAINING_DISABLED",
+  "observed_utc": "2026-11-05T09:54:28.050582+00:00",
+  "status": "M5_ENTRY_FIRST_CLOCK_ATTEMPT_CONSUMED_HTTP_400_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Execute the exact source-bound four-GET XAU input-clock plan once under existing cap and hard timeout; retain every outcome, verify artifacts and close acquisition admission afterward. No retry, model, TEST, Exit or trading.",
+  "next_action": "Retain the consumed HTTP-400 clock attempt; bounded provider-error retention is repaired and tested offline, but its original cause is UNKNOWN. Any new request needs a new exact source-bound plan/admission. EMA20/50/100/200 are native inputs; price EMA9/21 are absent and no indicator change is admitted. No native training, TEST, Exit or trading.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Explicitly admitted one source/ATR clock observation supporting M5-only Entry.",
+    "current_activity": "Clock attempt consumed and acquisition closed; focused HTTP error-evidence repair passed. EMA feature presence and native routing verified read-only.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Physical source/ATR measurement is pending under the one exact exception. Absolute UTC uncertainty, complete model-input readiness and independent directional edge remain UNKNOWN.",
+    "current_blocker": "Provider rejected the first candle request with HTTP 400; response error body was not retained, so cause is UNKNOWN. No source/ATR readiness measurement was obtained. A new request requires a new exact admission.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Execute the exact source-bound four-GET XAU input-clock plan once under existing cap and hard timeout; retain every outcome, verify artifacts and close acquisition admission afterward. No retry, model, TEST, Exit or trading.",
+    "next_action": "Retain the consumed HTTP-400 clock attempt; bounded provider-error retention is repaired and tested offline, but its original cause is UNKNOWN. Any new request needs a new exact source-bound plan/admission. EMA20/50/100/200 are native inputs; price EMA9/21 are absent and no indicator change is admitted. No native training, TEST, Exit or trading.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "ACTIVE_M5_ENTRY_ONE_CLOCK_OBSERVATION_ADMITTED",
+    "status": "ACTIVE_M5_ENTRY_CLOCK_ATTEMPT_CONSUMED_NO_TIMING_MEASUREMENT",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57134,7 +57134,7 @@
     "next_action": "Retain these completed source-discovery receipts. No identified admissible source remains pending within the reviewed candidates. New physical capture or model work requires a separately specified plan and admission."
   },
   "xau_input_physical_clock_goal_20261105": {
-    "status": "ADMITTED_ONE_SOURCE_ATR_OBSERVATION_ONLY",
+    "status": "CONSUMED_FAILED_HTTP_400_NO_SOURCE_ATR_MEASUREMENT",
     "operator_request": "Lag nytt mål og få dette fullstendig på plass",
     "objective": "Bind actual parsed native XAU M1/M5 receipt, immutable source publication, five-TF ATR-ready and input-ready to a declared issue with source/boot/process identity, monotonic order and explicit UTC uncertainty. Close only physically supported gates.",
     "created_utc": "2026-11-05T07:34:37.481381+00:00",
@@ -57164,8 +57164,8 @@
     "synthetic_tests_authorized": true,
     "native_model_calls_authorized": false,
     "training_enabled": false,
-    "collection_authorized": true,
-    "broker_network_authorized": true,
+    "collection_authorized": false,
+    "broker_network_authorized": false,
     "clock_configuration_changes_authorized": false,
     "spending_authorized": false,
     "test_access_authorized": false,
@@ -57193,9 +57193,27 @@
       "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/OPERATOR_ADMISSION.json",
       "sha256": "551ba0bd0a17e01959eb85ad28cbc1259a466848453d76d202faea165ac9823a"
     },
-    "execution_authorized": true,
+    "execution_authorized": false,
     "relaunch_authorized": false,
-    "completed_invocations": 0
+    "completed_invocations": 1,
+    "actual_result": {
+      "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/ACTUAL_RESULT.json",
+      "sha256": "7d65ae6ce4ef30b62ad3b8f5210b7ae15893bd0b679b5d004a4b25c4bf947184"
+    },
+    "http_get_attempts": 1,
+    "http_status_codes": [
+      400
+    ],
+    "remaining_requests_authorized": 0,
+    "readonly_http_diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/HTTP_400_READONLY_DIAGNOSIS.json",
+      "sha256": "483784fddb95fb09728e10da77da69f4f34a7419ede26958b44191e6ec7834b7"
+    },
+    "post_terminal_diagnostic_repair": {
+      "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/HTTP_ERROR_REPAIR_TESTS.json",
+      "sha256": "f31a6582cf727cc097674a6de5bc6841838e230892b035a2c887ef8f7f9949f6"
+    },
+    "original_HTTP400_cause": "UNKNOWN"
   },
   "m5_entry_priority_20261105": {
     "operator_request": "Entry skal vi ha på m5 timeframe for m1 er for mye støy; mer eyes on m1 i en pågående trade; først entry på plass.",
@@ -57218,6 +57236,10 @@
     },
     "training_enabled": false,
     "operator_input_role_answer": "Behold beregningen; Entry bare på M5",
-    "input_role_decision": "Retain existing M1-derived five-TF current-state computation. Consume it only on the existing closed-M5 Entry cadence; no M1 Entry and no feature removal."
+    "input_role_decision": "Retain existing M1-derived five-TF current-state computation. Consume it only on the existing closed-M5 Entry cadence; no M1 Entry and no feature removal.",
+    "ema_input_scope_review": {
+      "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/EMA_INPUT_SCOPE_REVIEW.json",
+      "sha256": "fa599b4893082808bae2ce54b700bd8319cd3d407f5c84bb9b1397d6fdea90f1"
+    }
   }
 }
