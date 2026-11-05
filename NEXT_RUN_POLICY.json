@@ -57933,7 +57933,7 @@
     "native_model_calls": 0
   },
   "dynamic_m5_confirmed_age_candidate_20261105_001": {
-    "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NO_MODEL_ADMISSION",
+    "status": "SOURCE_VIEW_QUALIFIED_OCTOBER_SERIES_READY_NO_MODEL_ADMISSION",
     "design": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_CANDIDATE_20261105_001.json",
       "sha256": "b40123a364a65bb337699cc82215707049596b8ab0940c98ec64efc06fe17c8e"
@@ -57944,7 +57944,7 @@
     "training_enabled": false,
     "test_access_authorized": false,
     "independent_edge": "UNKNOWN",
-    "next_gate": "Qualify October target series and target availability strictly before 2024-11-01, then exact matched model/OOF recipe and native consumption; no model run yet."
+    "next_gate": "Qualify actual worker delivery and native forward, then one exact matched chronological TRAIN-OOF recipe with prefix-frozen references; no model run yet."
   },
   "dynamic_m5_october_target_only_20261105_001": {
     "status": "COMPLETE_CONSUMED",
@@ -58056,18 +58056,40 @@
   }
 ,
   "dynamic_m5_october_target_series_20261105_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001.json",
       "sha256": "02ead5e604a343f6bb829331ba95c599bbd0f0eebf90549161195452c455786b"
     },
     "operator_approved": true,
     "operator_approval": "Standing zero-cost local authorization for one bounded target artifact producer.",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001",
     "training_enabled": false,
     "native_model_calls_authorized": 0,
     "test_split_access_authorized": false,
-    "scope": "Strictly pre-November target artifact for October historical development OOF; no model or independent edge."
+    "scope": "Strictly pre-November target series published for 36,172 historical TRAIN parents; October is development only. Worker, model and OOF remain unqualified.",
+    "claim_exit_code": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001/RESULT.json",
+      "sha256": "7dff3c4866f85fb4aa56cbef2971f6f05773195069b0e4dc0cf580e591a02929"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001/TERMINAL.json",
+      "sha256": "fadde21cdd5f2fc290a3e6e01aea468cf741f175d29e0d85e188c6b7f9453f1f"
+    },
+    "post_run_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001/POST_RUN_REVIEW.json",
+      "sha256": "e46954bac2e992be22ed03ad0b7720dff82047dc52c92b85e396e717015c8904"
+    },
+    "series": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001/STATE_SERIES/SERIES.json",
+      "sha256": "302ca457b81b8ff59347d25d29dcace0aed7bbaa75a0236298fb216547b7a7ac"
+    },
+    "fit_parent_rows": 29849,
+    "development_parent_rows": 6323,
+    "source_rows": 182360,
+    "post_october_outcomes_decoded": 0,
+    "native_model_calls": 0
   }
 }
