@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T00:49:54.137608+00:00",
-  "status": "DECEMBER_SINGLE_CANDIDATE_CONSUMED_FAILED_REGISTERED_GATE_TRAINING_DISABLED",
+  "observed_utc": "2026-11-05T00:59:05.657998+00:00",
+  "status": "TRAIN_M5_TWO_INDICATOR_STUDY_COMPLETE_SOURCE_GATE_OPEN_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Freeze the one December result. Use early TRAIN only to prebind and check whether genuine GC book imbalance and XAU SMC structure add M5 direction ranking within the frozen candle reference. Do not tune on December or open a new native run. Physical XAU receipt and ATR availability remain unverified.",
+  "next_action": "Source gate for the 18,506 known-active TRAIN M5 +5 endpoints with unknown intraminute ordering. Validate a separately identified original XAU_USD ordered-quote archive for the registered issue/endpoint cohort and causal warmup, and offline reconcile quote construction/OHLC and sequence gaps before changing any labels. Physical M1 receive and ATR-ready telemetry require their own evidence. Existing scoped archive has not supplied either proof. No repeated indicator/December score or native launch. Independent native M5 confirmation needs its own separately authorized prospective, untouched period.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Terminal December result independently reproduced from 12 saved arrays. Research is now focused on conditional M5 direction beyond candle on earlier TRAIN.",
+    "current_activity": "One frozen December candidate failed. The prespecified early TRAIN comparison of GC book imbalance and XAU M5 SMC structure is complete. Neither of the two fixed-direction scores cleared both registered within-candle contrasts.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The single December candidate failed its registered gate. Physical XAU receipt/ATR readiness, independent edge and the incremental direction information in particular indicator families are unproved. The seven canonical GC-D1 bearish zone coordinates have no prefix support and remained explicitly masked in this research profile.",
+    "current_blocker": "Historical TRAIN contained 18,506 complete active M5 +5 windows with unknown direction and an intraminute order flag. Source-identical ordered quotes for the affected cohort and independent physical arrival/ATR publication evidence have not been demonstrated. The completed indicator study does not establish incremental directional edge. No native or prospective run is admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Freeze the one December result. Use early TRAIN only to prebind and check whether genuine GC book imbalance and XAU SMC structure add M5 direction ranking within the frozen candle reference. Do not tune on December or open a new native run. Physical XAU receipt and ATR availability remain unverified.",
+    "next_action": "Source gate for the 18,506 known-active TRAIN M5 +5 endpoints with unknown intraminute ordering. Validate a separately identified original XAU_USD ordered-quote archive for the registered issue/endpoint cohort and causal warmup, and offline reconcile quote construction/OHLC and sequence gaps before changing any labels. Physical M1 receive and ATR-ready telemetry require their own evidence. Existing scoped archive has not supplied either proof. No repeated indicator/December score or native launch. Independent native M5 confirmation needs its own separately authorized prospective, untouched period.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17444,7 +17444,7 @@
     },
     "current_training_started": true,
     "private_optimizer_qualification_admitted": false,
-    "active_continuous_goal_thread_id": "01a197d3-3f22-7cb2-9005-47ef786b5653",
+    "active_continuous_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "current_generation_initial_baseline_is_current_function": false,
     "current_function_initial_baseline_required_after184": false,
     "current_generation_saved_state_audit_pending": false,
@@ -19815,7 +19815,7 @@
       "observed_utc": "2026-11-03T20:59:25.429315+00:00"
     },
     "dynamic_mtf_train_gates_20261104": {
-      "status": "REGISTERED_CANDIDATE_BLOCKED_EXACT_PREFIX_SUPPORT_AND_DAY_EVENT_OBSERVABILITY",
+      "status": "HISTORICAL_OCTOBER_FULL_PROFILE_GATE_FAILED_DECEMBER_MASKED_TRIAL_SEPARATELY_CONSUMED",
       "specification": {
         "path": "docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
         "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
@@ -22925,7 +22925,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-05T00:49:54.137633+00:00",
+  "updated_utc": "2026-11-05T00:59:05.657973+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "ACTIVE_TRAIN_ONLY_RESEARCH",
+    "status": "ACTIVE_SOURCE_QUALIFICATION_AFTER_TWO_COMPLETED_RESEARCH_CHECKS",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56837,10 +56837,41 @@
     "production_xau_m1_arrival_and_atr_readiness": "UNKNOWN",
     "test_access_authorized": false,
     "broker_orders_or_trading_authorized": false,
-    "indicator_data_stage": "dynamic_m5_book_smc_within_candle_train_20261105_001"
+    "indicator_data_stage": "dynamic_m5_book_smc_within_candle_train_20261105_001",
+    "first_milestone_complete": true,
+    "indicator_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001/TERMINAL.json",
+      "sha256": "9c3065cf971861684d7964a20087ab3026efdb2be3458746321dee1b513d36da"
+    },
+    "indicator_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001/RESULT.json",
+      "sha256": "6b108b9658dd83d34d7e52ea795199facc8ded62344af5fe1bd1fdbae8f494e6"
+    },
+    "source_evidence": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001/SOURCE_REQUIREMENTS.json",
+      "sha256": "05c7ee420fe6de1ee81640c4dc3db7684aec2430835eb6b615b1a053303bad8d"
+    },
+    "source_milestone": "Qualify an existing, source-identical XAU_USD quote sequence and reconcile M1 OHLC, missing quotes and causal state anchors before replaying the affected TRAIN cohort. Keep receipt/ATR publication telemetry separate from event time. A prospective M5 confirmation needs a separately authorized period and frozen protocol with previously unseen outcomes.",
+    "existing_scoped_source_inventory": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SCOPED_LOCAL_XAU_TICK_INVENTORY.json",
+      "sha256": "a7c5d2b61a0a0a909e4930d100d59b6906bde6ac6a934b5050fe40e0498437d0"
+    },
+    "original_clock_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/ORIGINAL_XAU_DELIVERY_CLOCK_AUDIT_001/RESULT.json",
+      "sha256": "abef71705bc07ac5e2a1b104475518ff5c5beae5d2740e3a6cba84a062a04ce9"
+    },
+    "historical_source_support": {
+      "early_parents": 41866,
+      "known_active_without_direction": 18549,
+      "known_active_unordered": 18506,
+      "original_quote_sequence_available": "NOT_ESTABLISHED",
+      "m1_receive_at_issue": "UNKNOWN",
+      "atr_ready_at_issue": "UNKNOWN"
+    },
+    "independent_confirmation": "All 26 sampled GC months have development history. The existing monthly forward journal is specific to the named D1 swing_ridge h20/h5 protocol and does not admit native M5. Any prospective M5 confirmation requires a distinct frozen admission and untouched outcomes."
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
-    "status": "ADMITTED_SINGLE_TRAIN_INDICATOR_DATA_AUDIT",
+    "status": "COMPLETE_CONSUMED_BOTH_REGISTERED_TRAIN_CONTRASTS_NOT_QUALIFIED",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001/PLAN.json",
@@ -56849,11 +56880,74 @@
     "fit_parents": 41866,
     "reserved_december_parents_accessed": 0,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "data_audit_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "data_audit_authorized": false,
     "training_enabled": false,
     "model_calls_authorized": false,
-    "test_data_used": false
+    "test_data_used": false,
+    "relaunch_allowed": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001/CLAIM.json",
+      "sha256": "bf4badaf665088fcfad7b5406d5bac5caffe72645a75bc7762ac0dd92a4ac823"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001/TERMINAL.json",
+      "sha256": "9c3065cf971861684d7964a20087ab3026efdb2be3458746321dee1b513d36da"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001/RESULT.json",
+      "sha256": "6b108b9658dd83d34d7e52ea795199facc8ded62344af5fe1bd1fdbae8f494e6"
+    },
+    "source_requirements": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001/SOURCE_REQUIREMENTS.json",
+      "sha256": "05c7ee420fe6de1ee81640c4dc3db7684aec2430835eb6b615b1a053303bad8d"
+    },
+    "known_direction": 20095,
+    "joint_indicator_direction": 19854,
+    "usable_days": 168,
+    "weeks": 31,
+    "pairs": 30890,
+    "fixed_contrasts": {
+      "gc_book": false,
+      "xau_smc": false
+    },
+    "day_weighted_rank": {
+      "candle": {
+        "equal_day": 0.5075981188003633,
+        "weekly_interval_98_75": [
+          0.4789042972649665,
+          0.5353422942666306
+        ]
+      },
+      "gc_book": {
+        "equal_day": 0.5094875099154732,
+        "weekly_interval_98_75": [
+          0.47845999916416876,
+          0.5401967570608881
+        ]
+      },
+      "gc_minus_candle": {
+        "equal_day": 0.0018893911151097026,
+        "weekly_interval_98_75": [
+          -0.03783580784448382,
+          0.040658504447566635
+        ]
+      },
+      "smc_minus_candle": {
+        "equal_day": -0.019035259419104573,
+        "weekly_interval_98_75": [
+          -0.057338983532329676,
+          0.019118110475839327
+        ]
+      },
+      "xau_smc": {
+        "equal_day": 0.48856285938125893,
+        "weekly_interval_98_75": [
+          0.47040102714030874,
+          0.506010124733251
+        ]
+      }
+    }
   }
 }
