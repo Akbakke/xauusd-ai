@@ -399,6 +399,8 @@ def _stats_sha256(
     train_transformed_min: np.ndarray,
     train_transformed_max: np.ndarray,
     zero_support_profile_sha256: str | None = None,
+    unobserved_units_profile_sha256: str | None = None,
+    observed_fit_counts: Sequence[int] | None = None,
 ) -> str:
     digest = hashlib.sha256()
     digest.update(b"entry_model_native_input_normalization_surface_v3_asinh\0")
@@ -434,6 +436,11 @@ def _stats_sha256(
     )
     if zero_support_profile_sha256 is not None:
         digest.update(b"research_structural_zero\0" + bytes.fromhex(zero_support_profile_sha256))
+    if unobserved_units_profile_sha256 is not None:
+        if observed_fit_counts is None or len(observed_fit_counts) != len(field_names):
+            raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_COUNTS")
+        digest.update(b"research_unobserved_units\0" + bytes.fromhex(unobserved_units_profile_sha256))
+        digest.update(np.ascontiguousarray(observed_fit_counts, dtype="<i8").tobytes())
     return digest.hexdigest()
 
 
@@ -774,6 +781,7 @@ def fit_surface_normalization(
     allow_constant_train_fields: bool = False,
     allow_unobserved_train_fields: bool = False,
     zero_support_profile: Mapping[str, Any] | None = None,
+    unobserved_units_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Fit an invertible robust transform without materializing the matrix.
 
@@ -810,6 +818,15 @@ def fit_surface_normalization(
                 or _field_names_sha256(names) != spec["field_names_sha256"][surface]):
             raise RuntimeError("ENTRY_INPUT_RESEARCH_ZERO_SUPPORT_SURFACE")
         structural = {e["value_index"]: e["field"] for e in spec["surfaces"][surface]}
+    unit_columns, units_profile_sha = {}, None
+    if unobserved_units_profile is not None:
+        from gx1.contracts import entry_native_direction_prefix_units_v1 as units
+        if zero_support_profile is not None or allow_unobserved_train_fields is not False:
+            raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_PROFILE_CONFLICT")
+        spec = units.require_october_prefix_units_profile(unobserved_units_profile)
+        unit_columns = units.prefix_units_surface_columns(spec, surface=surface, field_names=names)
+        if unit_columns:
+            units_profile_sha = spec["contract_sha256"]
     if row_count is not None and int(row_count) != int(population_rows):
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_ROW_COUNT_MISMATCH] "
@@ -836,7 +853,7 @@ def fit_surface_normalization(
     if type(allow_unobserved_train_fields) is not bool:
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_UNOBSERVED_POLICY_INVALID]")
     observed_fit_counts = ([int(population_rows)] * width
-                           if allow_unobserved_train_fields else None)
+                           if allow_unobserved_train_fields or units_profile_sha is not None else None)
     categorical_domains = {
         str(name): tuple(int(value) for value in domain)
         for name, domain in (semantic_categorical_domains or {}).items()
@@ -882,6 +899,11 @@ def fit_surface_normalization(
         )
 
     observation_pairs = dict((*_gc_context.masking_pairs(names), *_micro_context.range_observation_masking_pairs(names)))
+    for index, entry in unit_columns.items():
+        if (observation_pairs.get(index) != entry["mask_index"]
+                or (names[index] in binary_fields) != entry["binary"]
+                or names[index] in categorical_domains):
+            raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_COLUMN_DOMAIN:" + names[index])
     for start in range(0, width, effective_column_chunk):
         stop = min(width, start + effective_column_chunk)
         block = _materialize_population_columns(
@@ -926,6 +948,16 @@ def fit_surface_normalization(
                     center[index], scale[index] = 0., 1.
                     binary_mask[index] = int(names[index] in binary_fields)
                     scale_source[index] = prefix.DECEMBER_ZERO_SCALE_SOURCE
+                    continue
+                if index in unit_columns:
+                    if len(column):
+                        raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_FIELD_OBSERVED:" + names[index])
+                    # These exact source units are not estimates. Preserve the
+                    # original mask and later values; no structural projection.
+                    center[index], scale[index] = 0., 1.
+                    binary_mask[index] = int(unit_columns[index]["binary"])
+                    scale_source[index] = ("semantic_binary_identity" if unit_columns[index]["binary"]
+                                           else units.UNIT_SCALE_SOURCE)
                     continue
                 if len(column) == 0:
                     if not allow_unobserved_train_fields:
@@ -1074,6 +1106,8 @@ def fit_surface_normalization(
         train_transformed_min=transformed_min,
         train_transformed_max=transformed_max,
         zero_support_profile_sha256=profile_sha,
+        unobserved_units_profile_sha256=units_profile_sha,
+        observed_fit_counts=observed_fit_counts if units_profile_sha is not None else None,
     )
     result = {
         "surface": str(surface),
@@ -1102,6 +1136,10 @@ def fit_surface_normalization(
     if allow_unobserved_train_fields:
         result["allow_unobserved_train_fields"] = True
         result["observed_fit_counts"] = observed_fit_counts
+    if units_profile_sha is not None:
+        result["unobserved_units_profile_sha256"] = units_profile_sha
+        result["unfitted_estimates"] = {entry["field"]: None for entry in unit_columns.values()}
+        result["observed_fit_counts"] = observed_fit_counts
     return result
 
 
@@ -1110,6 +1148,7 @@ def require_surface_normalization(
     *,
     surface: str,
     field_names: Sequence[str],
+    unobserved_units_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError(
@@ -1147,6 +1186,38 @@ def require_surface_normalization(
         if data.get("unfitted_estimates") != {e["field"]: None for e in structural.values()}:
             raise RuntimeError("ENTRY_INPUT_RESEARCH_ZERO_SUPPORT_ESTIMATES")
         expected_keys.update(("zero_support_profile_sha256", "unfitted_estimates"))
+    unit_columns = {}
+    units_profile_sha = data.get("unobserved_units_profile_sha256")
+    observed_fit_counts = None
+    if units_profile_sha is not None and unobserved_units_profile is None:
+        raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_OPT_IN_REQUIRED")
+    if unobserved_units_profile is not None:
+        from gx1.contracts import entry_native_direction_prefix_units_v1 as units
+        if profile_sha is not None:
+            raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_PROFILE_CONFLICT")
+        spec = units.require_october_prefix_units_profile(unobserved_units_profile)
+        unit_columns = units.prefix_units_surface_columns(spec, surface=surface, field_names=field_names)
+        if (units_profile_sha != (spec["contract_sha256"] if unit_columns else None)):
+            raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_BINDING")
+        if unit_columns:
+            if data.get("unfitted_estimates") != {e["field"]: None for e in unit_columns.values()}:
+                raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_ESTIMATES")
+            observed_fit_counts = data.get("observed_fit_counts")
+            rows = data.get("fit_row_count")
+            if (type(rows) is not int or not isinstance(observed_fit_counts, list)
+                    or len(observed_fit_counts) != len(field_names)
+                    or any(type(n) is not int or n < 0 or n > rows for n in observed_fit_counts)):
+                raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_COUNTS")
+            pairs = dict((*_gc_context.masking_pairs(field_names),
+                          *_micro_context.range_observation_masking_pairs(field_names)))
+            for index, count in enumerate(observed_fit_counts):
+                if ((index in unit_columns and count != 0)
+                        or (index not in unit_columns and count == 0)
+                        or (index not in pairs and count != rows)):
+                    raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_COUNTS")
+            if any(pairs.get(i) != e["mask_index"] for i, e in unit_columns.items()):
+                raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_COLUMN_DOMAIN")
+            expected_keys.update(("unobserved_units_profile_sha256", "unfitted_estimates", "observed_fit_counts"))
     if set(data) != expected_keys:
         raise RuntimeError(
             f"[ENTRY_INPUT_NORMALIZATION_SURFACE_SCHEMA_INVALID] "
@@ -1223,6 +1294,15 @@ def require_surface_normalization(
     for index in range(len(names)):
         is_binary = bool(binary_mask[index])
         is_categorical = bool(categorical_mask[index])
+        if index in unit_columns:
+            entry = unit_columns[index]
+            mask = entry["mask_index"]
+            expected_source = "semantic_binary_identity" if entry["binary"] else units.UNIT_SCALE_SOURCE
+            if (is_categorical or is_binary != entry["binary"] or scale_source[index] != expected_source
+                    or center[index] != 0. or scale[index] != 1.
+                    or any(transformed_min[j] != 0. or transformed_max[j] != 0. for j in (index, mask))):
+                raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_CONSTANTS")
+            continue
         if index in structural:
             mask = structural[index]["mask_index"]
             if (is_categorical or scale_source[index] != prefix.DECEMBER_ZERO_SCALE_SOURCE
@@ -1308,6 +1388,8 @@ def require_surface_normalization(
         train_transformed_min=transformed_min,
         train_transformed_max=transformed_max,
         zero_support_profile_sha256=profile_sha,
+        unobserved_units_profile_sha256=units_profile_sha,
+        observed_fit_counts=observed_fit_counts if units_profile_sha is not None else None,
     )
     if data["stats_sha256"] != expected_hash:
         raise RuntimeError(
@@ -1322,6 +1404,7 @@ def share_temporal_alias_stats_from_signal(
     *,
     temporal_aliases: Sequence[Mapping[str, Any]],
     ctx_cont_values: Any,
+    unobserved_units_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Make the shared local signal population own temporal-alias statistics.
 
@@ -1335,6 +1418,14 @@ def share_temporal_alias_stats_from_signal(
     signal = dict(signal_surface)
     ctx_names = [str(name) for name in ctx_cont["field_names"]]
     signal_names = [str(name) for name in signal["field_names"]]
+    units_marked = any("unobserved_units_profile_sha256" in x for x in (ctx_cont, signal))
+    if units_marked or unobserved_units_profile is not None:
+        if unobserved_units_profile is None:
+            raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_OPT_IN_REQUIRED")
+        require_surface_normalization(ctx_cont, surface="ctx_cont", field_names=ctx_names,
+                                      unobserved_units_profile=unobserved_units_profile)
+        require_surface_normalization(signal, surface="signal", field_names=signal_names,
+                                      unobserved_units_profile=unobserved_units_profile)
     center = np.asarray(ctx_cont["center"], dtype=np.float32).copy()
     scale = np.asarray(ctx_cont["scale"], dtype=np.float32).copy()
     binary = np.asarray(ctx_cont["binary_mask"], dtype=np.uint8).copy()
@@ -1431,7 +1522,12 @@ def share_temporal_alias_stats_from_signal(
         train_transformed_min=transformed_min,
         train_transformed_max=transformed_max,
         zero_support_profile_sha256=ctx_cont.get("zero_support_profile_sha256"),
+        unobserved_units_profile_sha256=ctx_cont.get("unobserved_units_profile_sha256"),
+        observed_fit_counts=ctx_cont.get("observed_fit_counts") if units_marked else None,
     )
+    if units_marked:
+        require_surface_normalization(ctx_cont, surface="ctx_cont", field_names=ctx_names,
+                                      unobserved_units_profile=unobserved_units_profile)
     return ctx_cont
 
 

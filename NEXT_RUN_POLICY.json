@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Exact pre-October declared-unit normalization design reviewed; 37 existing synthetic checks passed; native profile wiring and genuine input qualification remain closed/pending.",
+    "current_activity": "Exact low-level declared-unit profile, fitting/validation and alias handling passed 142 synthetic/legacy checks; full prefix/base/GC/view/native wiring and genuine qualification remain pending and execution closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "PREFIX_UNITS_DESIGN_REVIEWED_EXACT_RESEARCH_INTEGRATION_PENDING_EDGE_UNKNOWN",
+    "status": "LOW_LEVEL_EXACT_PREFIX_UNITS_QUALIFIED_FULL_NATIVE_WIRING_PENDING_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57005,7 +57005,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Implement the smallest exact research-only validator and admission-closed wiring for the bound 29849-parent declared-unit profile, reusing existing normalization owners and tests. Preserve default native rejection, the consumed December contract and every genuine later value/mask. Then bind a new input-only qualification and the October axis; no genuine fit or model launch is currently admitted.",
+    "next_milestone": "Bind the exact prefix identity in population qualification and route the explicit units profile through base and GC normalization contracts, then the feature-view/execution-profile/native constructor chain. Keep default calls closed and all actual data/model execution gates false. Reuse the 142 passed low-level/legacy checks; no repeated unchanged suites.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "SOURCE_AND_SYNTHETIC_QUALIFIED_NOT_MODEL_INTEGRATED",
@@ -57085,7 +57085,7 @@
       "new_model_admission": false
     },
     "prefix_unobserved_units_preparation": {
-      "status": "SOURCE_METADATA_REVIEW_AND_EXISTING_SYNTHETIC_CHECKS_COMPLETE_NATIVE_PROFILE_NOT_IMPLEMENTED",
+      "status": "LOW_LEVEL_PROFILE_FIT_REQUIRE_ALIAS_QUALIFIED_FULL_NATIVE_WIRING_PENDING",
       "plan": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OOF_PREFIX_UNITS_20261105_001.json",
         "sha256": "83b70d1b610eef9a3de9c8cf4d0eaf45435bed88d112442e7e315032b3f8c8b2"
@@ -57118,8 +57118,8 @@
       "genuine_masks_and_later_values": "Retained unchanged through the invertible transform; never use the consumed December all-batch zero projection.",
       "source_semantics": "Mask0 means unknown/undefined under the current source contract. Known no-zone 0 with mask1 already exists. No generic false-to-zero correction is justified.",
       "synthetic_checks_passed": 37,
-      "source_files_changed": false,
-      "production_normalizer_changed": false,
+      "source_files_changed": true,
+      "production_normalizer_changed": true,
       "genuine_data_arrays_read": 0,
       "genuine_statistics_fits": 0,
       "native_model_calls": 0,
@@ -57128,14 +57128,48 @@
       "training_enabled": false,
       "new_input_audit_authorized": false,
       "remaining_integration": [
-        "Bind exact prefix hashes and every field/mask index in a separate research validator. Reject extra unobserved fields and reject use by the unchanged default native route.",
-        "Carry the specific profile identity through normalization, alias sharing, feature-view bindings, recipe, model construction and runtime before any genuine use. Do not remove opt-in/count metadata to bypass the validator.",
-        "Qualify all physical surfaces, causal prefix normalization and age coverage, and publish the separate October evaluation axis without consuming outcomes.",
-        "Bind nullable estimates, genuine later input support and the full scheduled evaluation denominator. No outcome-based row selection, refit, or attribution of an untrained field to learned edge."
+        "Use require_prefix_units_fit_identity at the genuine population boundary; qualify every source axis and every additional support/domain condition before fitting.",
+        "Carry the explicit profile through base and GC normalization builders/validators, prefix fit, execution-profile compilers/reference validators, feature view, native constructor and runtime checks. Default callers stay closed.",
+        "Only after source qualification: bind a new input-only plan for actual coverage, prefix statistics and age input, plus a separate October evaluation-axis hash. No genuine audit/fit is admitted yet.",
+        "Only after genuine input and measurement qualification: prepare the exact separate native candidate admission, fresh initialization/gradient/resume checks, safe reboot and capped route."
       ],
       "existing_age_hypothesis": "Retained as the single proposed modeling hypothesis. Any later result belongs to its full declared normalization/input identity and is not an isolated causal proof for age.",
       "default_native_status": "STILL_REJECTS_ALLOW_UNOBSERVED_TRAIN_FIELDS_METADATA",
-      "independent_edge": "UNKNOWN"
+      "independent_edge": "UNKNOWN",
+      "default_normalization_schema_fingerprint_and_gate_changed": false,
+      "low_level_implementation": {
+        "status": "SOURCE_AND_SYNTHETIC_CHECKS_COMPLETE",
+        "owner": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_units_v1.py",
+          "sha256": "37627f5321e476b00b2b5ed6c9d96b4c59f3b04124b3eb64cbedb6b3cf9a021d"
+        },
+        "normalizer": {
+          "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+          "sha256": "ff1484d38dbba41b8b5d1a55678e98dce4d5d0433fb6ec79b1a52a14b3ee8177"
+        },
+        "profile_name": "dynamic_m5_october_prefix_units_v1",
+        "profile_sha256": "40d2c04dd57623cf90ab51ece742b4c94a9b156457e0dd65ea52c2ea0b7786c7",
+        "test_plan": {
+          "path": "/home/andre2/GX1_RUNS/M5_OOF_PREFIX_UNITS_INTEGRATION_20261105_001/PLAN.json",
+          "sha256": "073eb1364ba7dbce7e2611014f2a897500156a0bb42db4723ccd6fdf25932945"
+        },
+        "terminal": {
+          "path": "/home/andre2/GX1_RUNS/M5_OOF_PREFIX_UNITS_INTEGRATION_20261105_001/TEST_001_TERMINAL.json",
+          "sha256": "99d59cce6d87747a6c4cdb4048cec575bcfb901fd725b8dd5682134762433096"
+        },
+        "review": {
+          "path": "/home/andre2/GX1_RUNS/M5_OOF_PREFIX_UNITS_INTEGRATION_20261105_001/SOURCE_REVIEW.json",
+          "sha256": "2d589a36939048c15f4e7b226e0a9012f9e61598448e9f45e20e0847d58d25dc"
+        },
+        "synthetic_tests_passed": 142,
+        "genuine_prefix_qualified": false,
+        "boundaries": "Exact optional unobserved_units_profile in surface fit, require and alias sharing. New marker/counts are fingerprinted; all unrelated missing support remains rejected. No production/native constructor or genuine fit is enabled.",
+        "default_gate": "require_surface and alias calls reject marked surfaces without explicit profile; unchanged base/GC/view/native calls cannot consume the profile.",
+        "arithmetic_helper_limit": "Existing apply/invert helpers remain admission-free arithmetic, not execution guards.",
+        "genuine_data_arrays_read": 0,
+        "genuine_statistics_fits": 0,
+        "native_model_instantiations_or_forecasts": 0
+      }
     }
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
