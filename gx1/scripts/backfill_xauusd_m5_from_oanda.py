@@ -26,7 +26,7 @@ import sys
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -631,8 +631,13 @@ def _source_chunk(
     start: pd.Timestamp,
     end: pd.Timestamp,
     closure_contract: str,
+    event_observer: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> tuple[pd.DataFrame, dict[str, Any]]:
-    """One stored source response; its stats describe the response, the frame is the tape rows."""
+    """Persist one source response; optional synchronous observations fail closed.
+
+    The observer owns clock capture and must treat the response as read-only.
+    Observation payloads are never added to the canonical source artifact.
+    """
     normalized, _policy = native_timeframe_policy(timeframe)
     request = {
         "instrument": INSTRUMENT,
@@ -641,6 +646,10 @@ def _source_chunk(
         "granularity": normalized,
         "price": "MBA",
     }
+    if event_observer is not None:
+        event_observer("request_begin", {
+            "timeframe": normalized, "sequence": sequence, "request": dict(request),
+        })
     response = client._request(
         "GET",
         SOURCE_ENDPOINT,
@@ -651,6 +660,11 @@ def _source_chunk(
             "price": request["price"],
         },
     )
+    if event_observer is not None:
+        event_observer("source_response_received", {
+            "timeframe": normalized, "sequence": sequence, "request": dict(request),
+            "response": response,
+        })
     if not isinstance(response, Mapping):
         raise RuntimeError(
             f"[NATIVE_{normalized}_OANDA_RESPONSE_OBJECT_REQUIRED]"
@@ -683,6 +697,14 @@ def _source_chunk(
         "size_bytes": len(encoded),
         **stats,
     }
+    if event_observer is not None:
+        # The file fsync above is complete; make its directory entry durable too.
+        _fsync_directory(destination.parent)
+        event_observer("source_chunk_durable", {
+            "timeframe": normalized, "sequence": sequence, "request": dict(request),
+            "relative_path": metadata["relative_path"], "sha256": metadata["sha256"],
+            "size_bytes": metadata["size_bytes"],
+        })
     return apply_native_market_closure_contract(frame, contract=closure_contract), metadata
 
 
@@ -695,8 +717,9 @@ def materialize_native_xau_snapshot(
     end_utc: Any,
     out_root: Path | str,
     repo_root: Path | None = None,
+    event_observer: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
-    """Materialize and atomically publish one complete requested interval."""
+    """Publish one interval; optional observer errors propagate, including after publication."""
 
     normalized, policy = native_timeframe_policy(timeframe)
     chunk_days = policy["request_chunk_days"]
@@ -813,6 +836,7 @@ def materialize_native_xau_snapshot(
                     start=cursor,
                     end=chunk_end,
                     closure_contract=closure_contract,
+                    event_observer=event_observer,
                 )
                 if not frame.empty:
                     first = pd.Timestamp(frame["time"].iloc[0])
@@ -956,11 +980,21 @@ def materialize_native_xau_snapshot(
             repo_root=repository,
             inventory=producer_sources,
         )
+        if event_observer is not None:
+            publication = {
+                "timeframe": normalized, "bundle_root": str(output_arg),
+                "manifest_sha256": sha256_file(stage / "MANIFEST.json"),
+            }
         publish_bundle_directory_noreplace(stage, output_arg)
+        if event_observer is not None:
+            # A failing observer cannot roll back the already published bundle.
+            event_observer("bundle_published", publication)
         return manifest
     except Exception:
+        # Observed partial evidence is retained for the explicit retention owner.
         if (
-            stage.exists()
+            event_observer is None
+            and stage.exists()
             and stage.parent == output_arg.parent
             and stage.name.startswith(f".{output_arg.name}.staging.")
         ):
@@ -979,8 +1013,9 @@ def materialize_native_xau_successor(
     expected_parent_manifest_sha256: str,
     start_utc: Any | None = None,
     repo_root: Path | None = None,
+    event_observer: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
-    """Publish one strict child while fetching only the bounded overlap and tail."""
+    """Publish one strict child; observers receive only new/refetched request events."""
 
     normalized, policy = native_timeframe_policy(timeframe)
     chunk_days = policy["request_chunk_days"]
@@ -1195,6 +1230,7 @@ def materialize_native_xau_successor(
                 start=cursor,
                 end=chunk_end,
                 closure_contract=closure_contract,
+                event_observer=event_observer,
             )
             source_chunks.append(metadata)
             if not frame.empty:
@@ -1458,11 +1494,21 @@ def materialize_native_xau_successor(
             raise RuntimeError(
                 f"[NATIVE_{normalized}_SUCCESSOR_PARENT_CHANGED_BEFORE_PUBLISH]"
             )
+        if event_observer is not None:
+            publication = {
+                "timeframe": normalized, "bundle_root": str(output_arg),
+                "manifest_sha256": sha256_file(stage / "MANIFEST.json"),
+            }
         publish_bundle_directory_noreplace(stage, output_arg)
+        if event_observer is not None:
+            # A failing observer cannot roll back the already published bundle.
+            event_observer("bundle_published", publication)
         return manifest
     except Exception:
+        # Observed partial evidence is retained for the explicit retention owner.
         if (
-            stage.exists()
+            event_observer is None
+            and stage.exists()
             and stage.parent == output_arg.parent
             and stage.name.startswith(f".{output_arg.name}.staging.")
         ):

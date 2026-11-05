@@ -363,6 +363,36 @@ def test_canonical_wilder_and_session_clock_are_reused_without_gap_reset():
         offset = int(pd.Timedelta(target.MULTI_TF_RESAMPLE_ORIGIN_CONTRACT[tf]).value)
         span = int(target.MULTI_TF_SHIFT[tf].value)
         assert np.all((values["available_ns"] - offset) % span == 0)
+    # The same supplied bars are closed under both cutoffs. Input-only math
+    # stays identical beyond TEST without extending historical target access.
+    for input_cutoff in (int(cutoff), int(target.TEST_BOUNDARY_NS) + target.MINUTE_NS):
+        input_atr = target._build_input_tf_atr(frame, cutoff_ns=input_cutoff)
+        assert set(input_atr) == set(result)
+        assert input_atr["cutoff_ns"] == input_cutoff
+        for name in ("schema_version", "definition_sha256"):
+            assert input_atr[name] == result[name]
+        assert tuple(input_atr["surfaces"]) == target.TIMEFRAMES
+        for tf in target.TIMEFRAMES:
+            for name in ("available_ns", "atr"):
+                np.testing.assert_array_equal(input_atr["surfaces"][tf][name], result["surfaces"][tf][name])
+
+
+def test_historical_atr_cutoff_rejects_test_before_input_math(monkeypatch):
+    def forbidden(*args, **kwargs):
+        pytest.fail("historical TEST cutoff reached input ATR math")
+
+    monkeypatch.setattr(target, "_build_input_tf_atr", forbidden)
+    with pytest.raises(RuntimeError, match="DYNAMIC_MTF_STATE_CUTOFF"):
+        target.build_causal_tf_atr(None, cutoff_ns=int(target.TEST_BOUNDARY_NS) + target.MINUTE_NS)
+
+
+@pytest.mark.parametrize("cutoff", [
+    None, True, False, 0, -target.MINUTE_NS, target.MINUTE_NS - 1,
+    float(target.MINUTE_NS), np.int64(target.MINUTE_NS), str(target.MINUTE_NS),
+])
+def test_input_atr_cutoff_is_strict_before_frame_access(cutoff):
+    with pytest.raises(RuntimeError, match="DYNAMIC_MTF_STATE_CUTOFF"):
+        target._build_input_tf_atr(None, cutoff_ns=cutoff)
 
 
 def test_immutable_artifact_roundtrip_and_source_cutoff_binding(tmp_path):

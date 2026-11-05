@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T06:23:44.768791+00:00",
-  "status": "WHOLE_PC_SOURCE_DISCOVERY_COMPLETE_PARTIAL_CLOCK_EVIDENCE_TRAINING_DISABLED",
+  "observed_utc": "2026-11-05T08:50:28.402726+00:00",
+  "status": "M5_ENTRY_FIRST_CLOCK_PREPARED_NOT_ADMITTED_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Read the retained result bound in whole_pc_xau_source_search_20261105_001.result. Whole-PC discovery is complete with partial historical timing evidence and no qualified original ordered 2024 source. Any new physical capture or model work needs exact separate scope and admission; no repeat model round or December reuse.",
+  "next_action": "Keep M1-derived five-TF context sampled only on closed M5 Entry rows. Review the exact four-GET input-clock plan; external collection remains disabled until its explicit new admission. No model, TEST, Exit or trading; independent M5 directional edge remains unqualified.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -254,8 +254,8 @@
     }
   },
   "current_work": {
-    "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Whole-PC read-only source discovery authorized by the operator.",
+    "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
+    "current_activity": "M5 Entry clock-support preparation complete; exact source/ATR measurement plan is disabled pending explicit four-candle-GET exception.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -283,9 +283,9 @@
     "obsolete_generated_cleanup_complete": false,
     "gc_goal_status": "ACTIVE_GC_SENSITIVITY_COMPLETE_NO_EDGE_QUALIFIED",
     "existing_indicator_surface_changed": false,
-    "training_started": true,
-    "latest_terminal_role": "Capped CPU verification of native endpoint-loss arithmetic on the physically isolated TRAIN prefix. Zero native model constructions, native forwards or optimizer steps.",
-    "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/GCZ4_CLOSURE_ARCHIVE_001",
+    "training_started": false,
+    "latest_terminal_role": "Preserved prior process terminal: capped CPU native endpoint-loss arithmetic on isolated TRAIN, zero native model constructions/forwards/updates. Current source-clock preparation is separately bound by xau_input_physical_clock_goal_20261105.preparation_terminal; it is not a process terminal.",
+    "runtime_root": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001",
     "latest_terminal": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/NATIVE_ENDPOINT_LOSS_STEP1_001/TERMINAL.json",
       "sha256": "93fbd95662bedcb7fd5c5d473dd8acba5e84cb769d39c4294f0aadd8f9d54629"
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Whole-PC discovery found historical completed-write and feature-publication logs, but no qualified original OANDA practice XAU_USD ordered 2024 sequence. The 18506 unresolved known-active endpoints remain unresolved. Historical process/source identity, clock synchronization and exact current M1 receipt/ATR-ready-to-issue linkage remain UNKNOWN; old log margins cannot set production latency. New native launch remains closed.",
+    "current_blocker": "M5 cadence and retained M1-derived context are settled. Actual physical source/ATR timing, qualified UTC bounds, full model-input readiness and independent directional edge remain unmeasured. Exact external candle acquisition is not admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Read the retained result bound in whole_pc_xau_source_search_20261105_001.result. Whole-PC discovery is complete with partial historical timing evidence and no qualified original ordered 2024 source. Any new physical capture or model work needs exact separate scope and admission; no repeat model round or December reuse.",
+    "next_action": "Keep M1-derived five-TF context sampled only on closed M5 Entry rows. Review the exact four-GET input-clock plan; external collection remains disabled until its explicit new admission. No model, TEST, Exit or trading; independent M5 directional edge remains unqualified.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "BLOCKED_ORIGINAL_SEQUENCE_AND_CURRENT_PIPELINE_PHYSICAL_CLOCKS",
+    "status": "ACTIVE_M5_ENTRY_FIRST_CLOCK_PREPARED_NOT_ADMITTED",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56953,7 +56953,8 @@
     "whole_pc_source_search_result": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/SOURCE_SEARCH_RESULT.json",
       "sha256": "15455a43bba4641a9b80397caac285a0d057d14185c8e9f7f3ef55cc3d8dc76f"
-    }
+    },
+    "physical_clock_subgoal": "xau_input_physical_clock_goal_20261105"
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
     "status": "COMPLETE_CONSUMED_BOTH_REGISTERED_TRAIN_CONTRASTS_NOT_QUALIFIED",
@@ -57131,5 +57132,83 @@
     "actual_current_m1_receive_and_atr_ready": "UNKNOWN",
     "independent_edge": "UNKNOWN",
     "next_action": "Retain these completed source-discovery receipts. No identified admissible source remains pending within the reviewed candidates. New physical capture or model work requires a separately specified plan and admission."
+  },
+  "xau_input_physical_clock_goal_20261105": {
+    "status": "SUPPORTING_M5_ENTRY_PREPARED_NOT_ADMITTED",
+    "operator_request": "Lag nytt mål og få dette fullstendig på plass",
+    "objective": "Bind actual parsed native XAU M1/M5 receipt, immutable source publication, five-TF ATR-ready and input-ready to a declared issue with source/boot/process identity, monotonic order and explicit UTC uncertainty. Close only physically supported gates.",
+    "created_utc": "2026-11-05T07:34:37.481381+00:00",
+    "source_base_commit": "cb1332cb9da482c783471011bffc008edf8c3133",
+    "run_root": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001",
+    "scope": "Minimal opt-in observer in existing canonical source producer, one input-only timing authority, focused tests and exact disabled measurement plan.",
+    "goal_tool_state": "New goal creation rejected: previous long-term goal remains unfinished/blocked. Explicit new subgoal is recorded in canonical repository policy.",
+    "prior_completed_discovery": "whole_pc_xau_source_search_20261105_001",
+    "measured_gaps": [
+      "Current consumption uses historical event time, without physical receipts.",
+      "ATR uses separate native M5 source; M1 receipt alone is insufficient.",
+      "Native bundle schemas forbid embedded telemetry additions.",
+      "Historical target API retains sealed TEST cutoff; prospective input-only access must be separate.",
+      "Host status does not establish an absolute UTC uncertainty bound."
+    ],
+    "phases": [
+      "Implement minimal observer and timing authority with focused tests.",
+      "Freeze exact single-use, source-bound and resource-bounded measurement plan.",
+      "Obtain any required explicit acquisition or clock scope before external action.",
+      "Measure admitted facts; retain missing, late, unknown and failed observations."
+    ],
+    "host_clock_preflight": {
+      "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/HOST_CLOCK_PREFLIGHT.json",
+      "sha256": "621367b0f2643fdd21c4b9e6f474b96db353fe87d11c5844166f7877eeb9daf5"
+    },
+    "code_changes_authorized": true,
+    "synthetic_tests_authorized": true,
+    "native_model_calls_authorized": false,
+    "training_enabled": false,
+    "collection_authorized": false,
+    "broker_network_authorized": false,
+    "clock_configuration_changes_authorized": false,
+    "spending_authorized": false,
+    "test_access_authorized": false,
+    "independent_edge": "UNKNOWN",
+    "priority": "M5 Entry first. Physical input clocks support this goal; new M1 collection is not the principal workstream. M1 trade supervision and Exit remain a later phase.",
+    "m1_input_role": "CONFIRMED_RETAIN_M1_DERIVED_FIVE_TF_CURRENT_STATE_SAMPLED_ONLY_ON_M5_ENTRY",
+    "operator_input_role_answer": "Behold beregningen; Entry bare på M5",
+    "measurement_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/XAU_INPUT_PHYSICAL_CLOCK_20261105_001.json",
+      "sha256": "6fa21f44183032137c70330bd7af50c5e5abb68340c39efabbcd1500990f2d9e"
+    },
+    "explicit_acquisition_requirement": "Original operator prohibition on broker access and GX1_RULES Omfang/Brukte engangstillatelser require a new exact exception for four practice XAU_USD candle GETs. No automatic collection admission follows from preparation or the M1-input decision.",
+    "physical_measurement_performed": false,
+    "complete_model_input_readiness": "UNKNOWN",
+    "absolute_utc_uncertainty": "UNKNOWN",
+    "preparation_terminal": {
+      "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/PREPARATION_TERMINAL.json",
+      "sha256": "54c717f1515fd65a5bf9decf6540ad3c62519369dd043dd36728c250158db94e"
+    },
+    "preparation_complete": true,
+    "technical_test_cases_with_passing_execution": 217
+  },
+  "m5_entry_priority_20261105": {
+    "operator_request": "Entry skal vi ha på m5 timeframe for m1 er for mye støy; mer eyes on m1 i en pågående trade; først entry på plass.",
+    "entry_timeframe": "M5",
+    "entry_decision_cadence_seconds": 300,
+    "required_closed_context": [
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "m1_entry_authorized": false,
+    "m1_trade_supervision_this_wave": false,
+    "exit_training_or_evaluation_this_wave": false,
+    "measured_cadence": "Existing entry and feature-view owners enforce M5 grid and decision=barstart+300 seconds. No cadence defect identified.",
+    "current_m1_roles": {
+      "future": "Outcome/observability/activity labels only, excluded from forward features.",
+      "current": "Five-TF current_state/current_observed/current_path_observed are derived from historical M1 and consumed on M5 issue rows.",
+      "m1_ofi": "Inactive in the bound dynamic December view."
+    },
+    "training_enabled": false,
+    "operator_input_role_answer": "Behold beregningen; Entry bare på M5",
+    "input_role_decision": "Retain existing M1-derived five-TF current-state computation. Consume it only on the existing closed-M5 Entry cadence; no M1 Entry and no feature removal."
   }
 }

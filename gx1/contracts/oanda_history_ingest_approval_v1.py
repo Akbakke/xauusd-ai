@@ -52,8 +52,11 @@ OANDA_HISTORY_INGEST_APPROVALS = {
 # Decisions that bind the scheduled-weekly-closure-excluded tape contract (v2).
 # Every other decision publishes under the original v1 contract, as every tape
 # before 2026-09-27 did.
+# Closure semantics only: this ID is NOT an old history-ingest approval.
+INPUT_CLOCK_PROBE_DECISION_ID = "XAU_INPUT_PHYSICAL_CLOCK_20261105_001"
+
 OANDA_HISTORY_INGEST_WEEKLY_CLOSURE_EXCLUDED = frozenset(
-    {"OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927"}
+    {"OANDA_PAIR_PRETEST_2009_WEEKCLOSED_20260927", INPUT_CLOCK_PROBE_DECISION_ID}
 )
 _SUCCESSOR_MODE = CANONICAL_NATIVE_SUCCESSOR_MODE
 

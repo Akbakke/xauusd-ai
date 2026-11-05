@@ -568,7 +568,57 @@ def test_native_materialization_is_source_bound_and_atomic(
     output = tmp_path / f"native_{timeframe.lower()}"
     client = _FakeOandaClient(timeframe=timeframe)
     bar_minutes = 1 if timeframe == "M1" else 5
+    trace: list[str] = []
+    observations: dict[str, dict[str, Any]] = {}
+    parse = canonical_backfill.canonical_native_frame_from_oanda_response
+    fsync_directory = canonical_backfill._fsync_directory
+    publish = canonical_backfill.publish_bundle_directory_noreplace
 
+    def parsed(*args: Any, **kwargs: Any) -> Any:
+        result = parse(*args, **kwargs)
+        trace.append("source_parsed")
+        return result
+
+    def synced(path: Path) -> None:
+        fsync_directory(path)
+        if path.name == "source_chunks":
+            trace.append("chunk_directory_fsynced")
+
+    def published(source: Path, destination: Path) -> None:
+        publish(source, destination)
+        trace.append("publication_returned")
+
+    def observe(event: str, data: dict[str, Any]) -> None:
+        assert data["timeframe"] == timeframe
+        if event == "bundle_published":
+            assert trace[-1] == "publication_returned"
+            assert output.is_dir()
+            assert data["bundle_root"] == str(output)
+            assert data["manifest_sha256"] == tape_contract.sha256_file(output / "MANIFEST.json")
+        else:
+            assert not output.exists()
+            assert data["sequence"] == 0
+            assert data["request"]["instrument"] == "XAU_USD"
+            assert data["request"]["granularity"] == timeframe
+            assert data["request"]["price"] == "MBA"
+            if event == "request_begin":
+                assert client.requests == []
+            elif event == "source_response_received":
+                assert len(client.requests) == 1
+                assert trace[-1] == "request_begin"
+                assert data["response"]["granularity"] == timeframe
+            elif event == "source_chunk_durable":
+                assert trace[-2:] == ["source_parsed", "chunk_directory_fsynced"]
+                staging, = tmp_path.glob(f".{output.name}.staging.*")
+                chunk = staging / data["relative_path"]
+                assert chunk.stat().st_size == data["size_bytes"]
+                assert tape_contract.sha256_file(chunk) == data["sha256"]
+        trace.append(event)
+        observations[event] = data
+
+    monkeypatch.setattr(canonical_backfill, "canonical_native_frame_from_oanda_response", parsed)
+    monkeypatch.setattr(canonical_backfill, "_fsync_directory", synced)
+    monkeypatch.setattr(canonical_backfill, "publish_bundle_directory_noreplace", published)
     manifest = canonical_backfill.materialize_native_xau_snapshot(
         client=client,
         timeframe=timeframe,
@@ -580,6 +630,7 @@ def test_native_materialization_is_source_bound_and_atomic(
         if timeframe == "M1"
         else "2025-01-01T00:10:00Z",
         out_root=output,
+        event_observer=observe,
     )
 
     assert output.is_dir()
@@ -605,6 +656,14 @@ def test_native_materialization_is_source_bound_and_atomic(
     payload = json.loads(gzip.decompress(chunk_path.read_bytes()).decode("utf-8"))
     assert payload["request"]["instrument"] == "XAU_USD"
     assert payload["response"]["candles"][0]["complete"] is True
+    assert list(observations) == [
+        "request_begin", "source_response_received", "source_chunk_durable", "bundle_published",
+    ]
+    assert observations["source_response_received"]["response"] == payload["response"]
+    for name in ("request_begin", "source_response_received", "source_chunk_durable"):
+        assert observations[name]["request"] == payload["request"]
+    for name in ("relative_path", "sha256", "size_bytes"):
+        assert observations["source_chunk_durable"][name] == manifest["source_chunks"][0][name]
 
 
 def test_native_successor_reuses_history_and_refetches_only_exact_overlap(
@@ -629,6 +688,7 @@ def test_native_successor_reuses_history_and_refetches_only_exact_overlap(
         timeframe="M1",
     )
     successor_client = _FakeOandaClient(timeframe="M1")
+    observations: list[tuple[str, dict[str, Any]]] = []
 
     child_manifest = canonical_backfill.materialize_native_xau_successor(
         client=successor_client,
@@ -638,6 +698,7 @@ def test_native_successor_reuses_history_and_refetches_only_exact_overlap(
         out_root=child,
         parent_root=parent,
         expected_parent_manifest_sha256=parent_descriptor["manifest_sha256"],
+        event_observer=lambda event, data: observations.append((event, data)),
     )
     child_descriptor = canonical_xau_source_descriptor_v1(
         child,
@@ -680,6 +741,86 @@ def test_native_successor_reuses_history_and_refetches_only_exact_overlap(
     assert child_descriptor["requested_end_utc_exclusive"] == (
         "2025-01-03T00:03:00+00:00"
     )
+
+    assert [event for event, _ in observations] == [
+        "request_begin", "source_response_received", "source_chunk_durable", "bundle_published",
+    ]
+    assert [data["sequence"] for event, data in observations if event != "bundle_published"] == [1, 1, 1]
+    assert all(data["timeframe"] == "M1" for _, data in observations)
+    assert observations[-1][1] == {
+        "timeframe": "M1", "bundle_root": str(child),
+        "manifest_sha256": child_descriptor["manifest_sha256"],
+    }
+
+
+@pytest.mark.parametrize("publication_mode", ["snapshot", "successor"])
+@pytest.mark.parametrize("failure_event", [
+    "request_begin", "source_response_received", "source_chunk_durable", "bundle_published",
+])
+def test_native_observer_failure_is_closed_and_preserves_published_bundle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    publication_mode: str,
+    failure_event: str,
+) -> None:
+    _allow_clean_repo(monkeypatch)
+    output = tmp_path / "observed_native_m5"
+    client = _FakeOandaClient(timeframe="M5")
+    args: dict[str, Any] = {
+        "client": client, "timeframe": "M5", "vedtak_id": "XAU_NATIVE_M5_FIXTURE_V3",
+        "end_utc": "2026-01-01T00:10:00Z", "out_root": output,
+    }
+    if publication_mode == "successor":
+        parent = tmp_path / "native_m5_parent"
+        materialize_native_xau_test_bundle(parent)
+        args.update(parent_root=parent, expected_parent_manifest_sha256=
+                    canonical_xau_source_descriptor_v1(parent, timeframe="M5")["manifest_sha256"])
+        materialize = canonical_backfill.materialize_native_xau_successor
+    else:
+        args["start_utc"] = "2026-01-01T00:00:00Z"
+        materialize = canonical_backfill.materialize_native_xau_snapshot
+    events: list[str] = []
+    published_evidence: dict[str, Any] = {}
+    retained_stage: Path | None = None
+    failure_inventory: dict[str, str | None] = {}
+
+    def stage_inventory(stage: Path) -> dict[str, str | None]:
+        return {str(path.relative_to(stage)):
+                tape_contract.sha256_file(path) if path.is_file() else None
+                for path in stage.rglob("*")}
+
+    def fail_observer(event: str, data: dict[str, Any]) -> None:
+        nonlocal retained_stage
+        events.append(event)
+        if event == "bundle_published":
+            assert output.is_dir()
+            published_evidence.update(data)
+        if event == failure_event:
+            if event != "bundle_published":
+                retained_stage, = tmp_path.glob(f".{output.name}.staging.*")
+                failure_inventory.update(stage_inventory(retained_stage))
+            raise RuntimeError("observer failure: " + event)
+
+    with pytest.raises(RuntimeError, match="observer failure: " + failure_event):
+        materialize(**args, event_observer=fail_observer)
+
+    expected = ["request_begin", "source_response_received", "source_chunk_durable", "bundle_published"]
+    assert events == expected[:expected.index(failure_event) + 1]
+    assert len(client.requests) == (0 if failure_event == "request_begin" else 1)
+    assert output.exists() == (failure_event == "bundle_published")
+    staging = list(tmp_path.glob(f".{output.name}.staging.*"))
+    if output.exists():
+        assert not staging
+        descriptor = canonical_xau_source_descriptor_v1(output, timeframe="M5")
+        assert descriptor["manifest_sha256"] == published_evidence["manifest_sha256"]
+        assert descriptor["row_count"] == 2
+    else:
+        assert retained_stage is not None and staging == [retained_stage]
+        assert (retained_stage / "producer_source").is_dir()
+        assert stage_inventory(retained_stage) == failure_inventory
+        assert not (retained_stage / "MANIFEST.json").exists()
+        with pytest.raises(RuntimeError):
+            canonical_xau_source_descriptor_v1(retained_stage, timeframe="M5")
 
 
 def test_native_successor_rejects_wrong_parent_cas_before_request(

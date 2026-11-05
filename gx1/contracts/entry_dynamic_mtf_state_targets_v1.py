@@ -180,6 +180,12 @@ def build_causal_tf_atr(m5_ohlc, *, cutoff_ns):
     state path's stricter gap mask.
     """
     cutoff_ns = _cutoff(cutoff_ns)
+    return _build_input_tf_atr(m5_ohlc, cutoff_ns=cutoff_ns)
+
+
+def _build_input_tf_atr(m5_ohlc, *, cutoff_ns):
+    """Pure input ATR math; callers own admission, with no target queries or I/O."""
+    _require(type(cutoff_ns) is int and cutoff_ns > 0 and cutoff_ns % MINUTE_NS == 0, "CUTOFF")
     times = _clock(m5_ohlc, int(MULTI_TF_SHIFT["M5"].total_seconds()))
     keep = times.asi8 + int(MULTI_TF_SHIFT["M5"].value) < cutoff_ns
     frame = m5_ohlc.loc[keep, ["open", "high", "low", "close"]].copy()
