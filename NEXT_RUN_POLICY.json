@@ -58167,7 +58167,7 @@
     "native_model_calls": 0
   },
   "dynamic_m5_october_feature_delivery_20261106_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001.json",
       "sha256": "664e50554978d256d76a71d2a60c39495394a0a9422b998cd3da858d0338b531"
@@ -58177,13 +58177,34 @@
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "admitted_utc": "2026-11-05T23:13:02.883100+00:00",
     "source_head_at_admission": "3594da8a2f8d5aa742c6ab53a103bd6410976b71",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001",
     "scope": "One capped zero-cost read of 36,172 historical causal input parents through October 2024, one pre-Nov target-series read for current state/confirmed age, raw native feature delivery on four fit sample rows and all 6,323 October development rows; publish causal input arrays only.",
     "training_enabled": false,
     "native_model_calls_authorized": 0,
     "test_split_access_authorized": false,
     "broker_orders_or_trading_authorized": false,
-    "independent_edge": "UNKNOWN"
+    "independent_edge": "UNKNOWN",
+    "claim_exit_code": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001/RESULT.json",
+      "sha256": "331428a0772070c2390b2db7a56d18a848b1773b748247b4cb6acb50598b4d94"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001/TERMINAL.json",
+      "sha256": "9f71f4bf2845199da9d0094997efcd6f9ef9f4972d5b28fdb685ef1e3e83d3af"
+    },
+    "causal_inputs": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001/CAUSAL_INPUTS/CAUSAL_INPUTS.json",
+      "sha256": "2fdea20ebeb90ec8a027f067726f1dd488139e4a1662ee61a75920b1ab764ae6"
+    },
+    "fit_sample_rows_gathered": 4,
+    "development_rows_gathered": 6323,
+    "genuine_feature_surfaces_delivered": 14,
+    "current_age_counts_match_prior": true,
+    "control_candidate_first_raw_batch_equal": true,
+    "native_model_calls": 0,
+    "post_run_review": "Result, terminal, manifest and all six causal NPY file SHA/size descriptors rechecked; no source or target arrays reread. The model/OOF/online physical clock remain unqualified.",
+    "remaining_unknown": "Native forward/gradient/resume, strict chronological TRAIN OOF, directional learning, independent edge, physically timely online input and economics."
   }
 }
