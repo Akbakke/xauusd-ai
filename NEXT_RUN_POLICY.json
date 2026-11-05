@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T23:38:18.269847+00:00",
-  "status": "M5_ENTRY_OCTOBER_GENUINE_BATCH_002_COMPLETE_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T23:50:33.528888+00:00",
+  "status": "M5_ENTRY_OCTOBER_FIT_REFERENCES_001_COMPLETE_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "The corrected October native batch binding claim 002 passed on fixed genuine fit/development samples; predecessor 001 remains failed and consumed. The exact control/candidate feature and target batches now join causally, with age only in candidate. Next prepare an October-bound native worker and one matched chronological TRAIN-OOF plan; model, TEST and trading remain closed, training_enabled=false.",
+  "next_action": "Fit-only October OOF references 001 passed and are consumed: the frozen 29,849-parent class prior replayed exactly and last-closed candle orientation was fixed from pre-October TRAIN on M5/M15/H1/H4/D1. October outcomes and native model remain unread/unrun. Next qualify one October-bound native control/age worker and matched chronological TRAIN-OOF with fresh baseline, gradient/resume proof, safe boot and separate exact model admission. training_enabled=false; independent edge and economics UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_GENUINE_BATCH_BINDING_MEASURED_EDGE_UNKNOWN",
+    "status": "OCTOBER_FIT_REFERENCES_MEASURED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57082,7 +57082,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Candidate 001, October target series, matched views, causal feature delivery and fixed genuine control/age native batch joins are complete. Next qualify one October-bound worker and matched prefix-owned OOF with mature targets, fresh baseline, gradient/resume proof, safe boot and separate capped model admission. No native forward has run; independent edge remains UNKNOWN.",
+    "next_milestone": "Candidate 001, October target series, matched views, full causal feature delivery, fixed genuine native batch joins and frozen fit-only prior/candle references are complete. Next qualify one October-bound native worker and matched chronological TRAIN-OOF with mature targets, fresh baseline, gradient/resume proof, safe boot and separate capped model admission. No native forward has run; independent edge remains UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",
@@ -58289,7 +58289,7 @@
     "remaining_unknown": "Native model forward/gradient/resume, chronological TRAIN OOF, directional learning, independent edge, physical ONLINE availability and economics."
   },
   "dynamic_m5_october_fit_references_20261106_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_FIT_REFERENCES_20261106_001.json",
       "sha256": "7b8f6664bed2bceabde805c09dc4d5a54d7600999847f173fbe72c48beb973d0"
@@ -58299,13 +58299,22 @@
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "admitted_utc": "2026-11-05T23:46:48.558663+00:00",
     "source_head_at_admission": "2f093895ec3fa517802818c814ff326ffd2a3215",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FIT_REFERENCES_20261106_001",
     "scope": "Replay already frozen 29,849-parent 1 October class prior/Markov from saved counts and orient last closed XAU candle on fit outcomes only; no October outcome, model or refit.",
     "training_enabled": false,
     "native_model_calls_authorized": 0,
     "test_split_access_authorized": false,
     "broker_orders_or_trading_authorized": false,
-    "independent_edge": "UNKNOWN"
+    "independent_edge": "UNKNOWN",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FIT_REFERENCES_20261106_001/RESULT.json",
+      "sha256": "9f9d35a20a5e3761b6713abf5d786847697018b44a272db5852237e95a069317"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FIT_REFERENCES_20261106_001/TERMINAL.json",
+      "sha256": "ba0d3d37673aeb1151890068ecf25407e718e9bffdc50e03ef4fddd4dc393fcb"
+    },
+    "post_run_review": "Exit 0; terminal/result rehashed; exact prior replay, zero new prior fits/model calls/October outcomes/TEST; five fit-only candle panels and orientation algebra checked. Fit-oriented AUC is in-sample reference preparation, not OOF or edge."
   }
 }
