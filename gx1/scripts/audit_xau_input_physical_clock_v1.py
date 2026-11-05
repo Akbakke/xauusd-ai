@@ -30,7 +30,9 @@ from gx1.contracts.gx1_capped_execution_v1 import (
     require_capped_cpu_audit_execution, require_capped_lock_ancestry,
 )
 from gx1.contracts.immutable_event_authority_v1 import _publish_bytes
-from gx1.contracts.oanda_history_ingest_approval_v1 import INPUT_CLOCK_PROBE_DECISION_ID
+from gx1.contracts.oanda_history_ingest_approval_v1 import (
+    INPUT_CLOCK_PROBE_DECISION_ID, INPUT_CLOCK_FOLLOWUP_DECISION_ID,
+)
 from gx1.contracts.xau_input_clock_v1 import (
     RECEIPT_SCHEMA, TIMEFRAMES, assess_input_timing, capture_clock_sample,
     input_binding_sha256,
@@ -48,6 +50,13 @@ M5_NS = 300_000_000_000
 MINUTE_NS = 60_000_000_000
 PLAN_RELATIVE = "configs/research/XAU_INPUT_PHYSICAL_CLOCK_20261105_001.json"
 CAPTURE_ROOT = Path("/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/CAPTURE")
+FOLLOWUP_PLAN_RELATIVE = "configs/research/XAU_INPUT_PHYSICAL_CLOCK_20261105_003.json"
+FOLLOWUP_CAPTURE_ROOT = Path("/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/CAPTURE")
+# Independent immutable plans and claims; old approval never admits the followup.
+PLAN_SCOPES = {
+    INPUT_CLOCK_PROBE_DECISION_ID: (PLAN_RELATIVE, CAPTURE_ROOT, None),
+    INPUT_CLOCK_FOLLOWUP_DECISION_ID: (FOLLOWUP_PLAN_RELATIVE, FOLLOWUP_CAPTURE_ROOT, "followup_measurement"),
+}
 LIMITS = {"warmup_calendar_days": 35, "m1_context_minutes": 5,
           "max_get_attempts": 4, "max_response_bytes": 16 * 1024 * 1024,
           "http_connect_timeout_seconds": 10, "http_read_timeout_seconds": 30,
@@ -105,11 +114,11 @@ def file_ref(path):
 
 def validate_plan(plan):
     require(plan["schema_version"] == PLAN_SCHEMA and
-            plan["decision_id"] == INPUT_CLOCK_PROBE_DECISION_ID, "PLAN_ID")
+            plan["decision_id"] in PLAN_SCOPES, "PLAN_ID")
     require(plan["source"] == {"environment": "practice", "instrument": "XAU_USD",
             "endpoint": "/instruments/XAU_USD/candles", "prices": "MBA"}, "SOURCE")
     require(plan["limits"] == LIMITS, "LIMITS")
-    require(plan["capture_root"] == str(CAPTURE_ROOT), "OUTPUT_SCOPE")
+    require(plan["capture_root"] == str(PLAN_SCOPES[plan["decision_id"]][1]), "OUTPUT_SCOPE")
     require(plan["slot_rule"] == "first_M5_close_strictly_after_claim_clock", "SLOT_RULE")
     require(plan["source_order"] == ["M5", "M1"], "SOURCE_ORDER")
     require(plan["training_enabled"] is False and plan["native_test_access"] is False
@@ -133,15 +142,20 @@ def verify_source_files(plan):
 
 def load_admitted_plan(path, expected_sha256):
     """Reject before credential access, network, claim or data writes."""
-    require(path == REPO / PLAN_RELATIVE and not path.is_symlink(), "PLAN_PATH")
+    require(path in {REPO / scope[0] for scope in PLAN_SCOPES.values()}
+            and not path.is_symlink(), "PLAN_PATH")
     require(sha256_file(path) == expected_sha256, "PLAN_SHA")
     plan = validate_plan(json.loads(path.read_text()))
     policy = json.loads((REPO / "NEXT_RUN_POLICY.json").read_text())
-    goal = policy[GOAL_KEY]
-    require(goal.get("collection_authorized") is True and
-            goal.get("broker_network_authorized") is True, "ACQUISITION_NOT_ADMITTED")
+    relative, _, gate_key = PLAN_SCOPES[plan["decision_id"]]
+    require(path == REPO / relative, "PLAN_PATH_ID")
+    goal = policy[GOAL_KEY] if gate_key is None else policy[GOAL_KEY].get(gate_key, {})
+    require(all(goal.get(key) is True for key in
+                ("execution_authorized", "collection_authorized", "broker_network_authorized")),
+            "ACQUISITION_NOT_ADMITTED")
+    require(goal.get("completed_invocations") == 0, "PLAN_CONSUMED")
     require(goal.get("measurement_plan") == file_ref(path), "POLICY_PLAN")
-    require(goal.get("operator_measurement_approval") == INPUT_CLOCK_PROBE_DECISION_ID,
+    require(goal.get("operator_measurement_approval") == plan["decision_id"],
             "OPERATOR_APPROVAL")
     require(policy["training_enabled"] is False and policy["native_launch_authorized"] is False,
             "MODEL_GATE")
@@ -341,12 +355,13 @@ def main():
     require(pd.Timestamp(plan["issue_window_start_utc"]).value <= issue_ns <
             pd.Timestamp(plan["issue_window_end_utc"]).value, "ISSUE_OUTSIDE_ADMITTED_WINDOW")
     spans, requests = requests_for_slot(plan, issue_ns)
-    require(CAPTURE_ROOT.parent.is_dir() and CAPTURE_ROOT.parent.resolve() == CAPTURE_ROOT.parent
-            and not CAPTURE_ROOT.exists()
-            and not CAPTURE_ROOT.is_symlink(), "CLAIM_ALREADY_EXISTS")
-    CAPTURE_ROOT.mkdir()
-    source._fsync_directory(CAPTURE_ROOT.parent)
-    journal = Journal(CAPTURE_ROOT)
+    capture_root = PLAN_SCOPES[plan["decision_id"]][1]
+    require(capture_root.parent.is_dir() and capture_root.parent.resolve() == capture_root.parent
+            and not capture_root.exists()
+            and not capture_root.is_symlink(), "CLAIM_ALREADY_EXISTS")
+    capture_root.mkdir()
+    source._fsync_directory(capture_root.parent)
+    journal = Journal(capture_root)
     deadline = time.monotonic() + plan["limits"]["wall_seconds"]
     journal.write("claim", {"plan": file_ref(args.plan), "source_sha256": plan["source_sha256"],
                            "issue_ns": issue_ns, "requests": requests,

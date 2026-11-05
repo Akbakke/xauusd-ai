@@ -14,12 +14,12 @@ from gx1_guards.gates import GateError
 from gx1.scripts import audit_xau_input_physical_clock_v1 as probe
 
 
-def plan():
+def plan(decision_id=probe.INPUT_CLOCK_PROBE_DECISION_ID):
     return {"schema_version": probe.PLAN_SCHEMA,
-            "decision_id": probe.INPUT_CLOCK_PROBE_DECISION_ID,
+            "decision_id": decision_id,
             "source": {"environment": "practice", "instrument": "XAU_USD",
                        "endpoint": "/instruments/XAU_USD/candles", "prices": "MBA"},
-            "limits": dict(probe.LIMITS), "capture_root": str(probe.CAPTURE_ROOT),
+            "limits": dict(probe.LIMITS), "capture_root": str(probe.PLAN_SCOPES[decision_id][1]),
             "slot_rule": "first_M5_close_strictly_after_claim_clock",
             "source_order": ["M5", "M1"], "training_enabled": False,
             "native_test_access": False, "model_calls": 0, "orders": False,
@@ -147,12 +147,13 @@ def test_transport_budget_and_fail_closed_route(tmp_path, bad):
             assert all("response" not in e["payload"] for e in journal.events)
 
 
+@pytest.mark.parametrize("decision_id", [probe.INPUT_CLOCK_PROBE_DECISION_ID, probe.INPUT_CLOCK_FOLLOWUP_DECISION_ID])
 @pytest.mark.parametrize("missing", [None, "last_m5", "middle_m1"])
-def test_synthetic_canonical_pair_to_actual_atr_ready_chain(tmp_path, monkeypatch, missing):
+def test_synthetic_canonical_pair_to_actual_atr_ready_chain(tmp_path, monkeypatch, missing, decision_id):
     # Only source cleanliness is simulated: all real canonical validation,
     # source snapshots, publication, numerical ATR and clock binding still run.
     monkeypatch.setattr(probe.source, "_require_clean_repository", lambda *a, **k: "1" * 40)
-    value = plan()
+    value = plan(decision_id)
     issue = pd.Timestamp("2024-11-01T12:00:00Z").value
     _, requests = probe.requests_for_slot(value, issue)
     journal = probe.Journal(tmp_path)
@@ -191,3 +192,45 @@ def test_exact_timeout_parent_is_verified_in_a_real_child_process():
                "from gx1.scripts.audit_xau_input_physical_clock_v1 import require_timeout_parent; require_timeout_parent()"]
     result = subprocess.run(command, cwd=probe.REPO, capture_output=True, text=True, timeout=20)
     assert result.returncode == 0, result.stderr
+
+
+def test_followup_keeps_four_requests_and_owns_a_new_claim_only():
+    from gx1.contracts.oanda_history_ingest_approval_v1 import market_closure_contract_for_decision
+    value = probe.validate_plan(plan(probe.INPUT_CLOCK_FOLLOWUP_DECISION_ID))
+    _, requests = probe.requests_for_slot(value, pd.Timestamp("2026-11-05T12:00:00Z").value)
+    assert [r["granularity"] for r in requests] == ["M5", "M5", "M5", "M1"]
+    assert value["capture_root"] != str(probe.CAPTURE_ROOT)
+    assert market_closure_contract_for_decision(value["decision_id"]) == market_closure_contract_for_decision(probe.INPUT_CLOCK_PROBE_DECISION_ID)
+    with pytest.raises(GateError, match="FORBIDDEN"):
+        require_approved_oanda_history_ingest(vedtak_id=value["decision_id"], timeframe="M5",
+            publication_mode="bootstrap", start_utc="2009-06-01T00:00:00Z", end_utc="2026-07-01T00:00:00Z")
+    value["capture_root"] = str(probe.CAPTURE_ROOT)
+    with pytest.raises(RuntimeError, match="OUTPUT_SCOPE"):
+        probe.validate_plan(value)
+
+
+@pytest.mark.parametrize("bad", ["old_gate_only", "execution_disabled", "old_approval", "consumed", "wrong_plan_binding", "wrong_plan_path"])
+def test_followup_cannot_inherit_or_reuse_an_old_admission(tmp_path, monkeypatch, bad):
+    monkeypatch.setattr(probe, "REPO", tmp_path)
+    value = plan(probe.INPUT_CLOCK_FOLLOWUP_DECISION_ID)
+    path = tmp_path / (probe.PLAN_RELATIVE if bad == "wrong_plan_path" else probe.FOLLOWUP_PLAN_RELATIVE)
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(value))
+    gate = {"execution_authorized": True, "collection_authorized": True, "broker_network_authorized": True,
+            "completed_invocations": 0, "measurement_plan": probe.file_ref(path),
+            "operator_measurement_approval": value["decision_id"]}
+    old_gate = dict(gate, operator_measurement_approval=probe.INPUT_CLOCK_PROBE_DECISION_ID)
+    expected = "ACQUISITION_NOT_ADMITTED"
+    if bad != "old_gate_only": old_gate["followup_measurement"] = gate
+    if bad == "execution_disabled": gate["execution_authorized"] = False
+    if bad == "old_approval":
+        gate["operator_measurement_approval"] = probe.INPUT_CLOCK_PROBE_DECISION_ID
+        expected = "OPERATOR_APPROVAL"
+    if bad == "consumed": gate["completed_invocations"], expected = 1, "PLAN_CONSUMED"
+    if bad == "wrong_plan_binding": gate["measurement_plan"], expected = {}, "POLICY_PLAN"
+    if bad == "wrong_plan_path": expected = "PLAN_PATH_ID"
+    (tmp_path / "NEXT_RUN_POLICY.json").write_text(json.dumps({probe.GOAL_KEY: old_gate}))
+    monkeypatch.setattr(probe.source, "_load_oanda_client", lambda: pytest.fail("admission failure accessed credentials"))
+    with pytest.raises(RuntimeError, match=expected):
+        probe.load_admitted_plan(path, probe.sha256_file(path))
+    assert not (tmp_path / "CAPTURE").exists()
