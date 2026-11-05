@@ -57844,6 +57844,10 @@
       "sha256": "5560cc880e410ac891d9afeead23da8cb0c865dbeee100608b6a1520f7530371"
     },
     "synthetic_checks_passed": 139,
+    "closed_admission_preflight": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_PREP_20261105_003/ADMISSION_GATE.json",
+      "sha256": "d4b0ab8d8385394568ccc57693908217a303f4d03cd43f170b289714c9e05009"
+    },
     "earlier_fixture_test_failure_preserved": true,
     "new_genuine_data_audit_started": false,
     "genuine_statistics_fits": 0,
