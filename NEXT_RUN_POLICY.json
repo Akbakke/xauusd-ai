@@ -44,7 +44,7 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T18:03:23.576868+00:00",
+  "observed_utc": "2026-11-05T18:07:27.293987+00:00",
   "status": "M5_ENTRY_OCTOBER_INPUT_ONLY_002_PREPARED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
@@ -56838,23 +56838,44 @@
     "training_enabled": false,
     "independent_edge": "UNKNOWN",
     "m5_plus_5_target_maturity_source_review": {
-      "boundary_count_scope": "One parent excluded by time boundary among the 29,849 sorted M5 TRAIN parents; does not count missing, unknown, or path-censored labels.",
-      "boundary_only_immature_parent_count": 1,
+      "count_scope": "May-September 2024 TRAIN-only candidate target, not a final semantic choice, model score, independent edge or first-exit/return censor estimate.",
       "cutoff_boundary_rule": "wanted < cutoff_ns; equality is IMMATURE and never gathers target values",
-      "endpoint_masks": "Exact future M1 validity, state observed, and local path observed are separate; no first-gap event/return censor estimate from this source review.",
-      "evidence_class": "source_and_preserved_receipt_only_no_new_target_arrays",
+      "endpoint_coverage": {
+        "complete_local_windows": 29814,
+        "complete_window_endpoint_counts": {
+          "DOWN": 6936,
+          "FLAT": 2313,
+          "UNKNOWN": 13017,
+          "UP": 7548
+        },
+        "exact_mature_m1_endpoint": 29834,
+        "immature": 1,
+        "incomplete_local_window_or_atr": 20,
+        "missing_mature_m1_endpoint": 14,
+        "unknown_with_intraminute_order_flag": 12994
+      },
+      "evidence_class": "verified_preserved_TRAIN_target_receipt_plus_source_no_new_arrays",
+      "first_gap_event_censor": "UNKNOWN_FOR_M5_PLUS_5_EVENT_QUERY; endpoint class and local path masks do not establish a complete first-exit/return follow-up.",
       "fit_cutoff_ns_exclusive": 1727740800000000000,
       "fit_prefix_receipt": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_0.json",
         "sha256": "885b3dce180cef245cd73ffe2975f87d41bf985b25aed425a8074967e0df5c96"
       },
       "last_fit_issue_ns": 1727740500000000000,
+      "lead_minutes": 5,
       "m5_plus_5_validity_ns": 1727740800000000000,
-      "remaining_unknown": "Genuine M5 +5 observed/unknown reasons and first-exit/return first-gap censor on October TRAIN; independent direction and economics UNKNOWN.",
+      "parents": 29849,
+      "remaining_unknown": "First-gap event/return censor for M5 +5, usefulness of 0.5 ATR, confirmed-age coverage, strict TRAIN-OOF, independent direction and economics.",
+      "target_contract_sha256": "d44cf218b0f07c477e3ac52cc2374933c2754b40511492cdcf037811afc23ddd",
       "target_owner": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
         "sha256": "e56365dd9084481bdec23b17458ca8b1f0dc676ef16989152ffec0e36a64bdbf"
-      }
+      },
+      "target_result": {
+        "path": "docs/DYNAMIC_MTF_TRAIN_TARGET_RESULT_20261104.json",
+        "sha256": "e16892153cdabf8278a4783c66f5d741e69acb32f4b4ae4bc7a1dcc3a9b916e1"
+      },
+      "target_rule_locked": false
     },
     "production_xau_m1_arrival_and_atr_readiness": "UNKNOWN_FOR_ONGOING_OPERATION; one separate cold observation physically measured and bound in cold_source_atr_physical_clock_result",
     "test_access_authorized": false,
@@ -57771,6 +57792,6 @@
     "test_access_authorized": false,
     "broker_orders_or_trading_authorized": false,
     "scope": "One exact 29,849-parent October TRAIN input qualification with full 118,249-parent axis hash, explicit prefix-only feature/current arrays, 153 declared GC-D1 zero-support cells, at most one genuine prefix-only normalization fit, and outcome-free hash of the 6,323-parent October development axis. No model or outcome arrays.",
-    "remaining_unknown": "Confirmed-state age coverage, M5 +5 target maturity/censoring, physical online timing, strict TRAIN-OOF, independent edge and economics remain unqualified."
+    "remaining_unknown": "Confirmed-state age coverage, M5 +5 first-gap event censor and target usefulness, physical online timing, strict TRAIN-OOF, independent edge and economics remain unqualified. TRAIN endpoint coverage is already measured in the preserved target receipt."
   }
 }
