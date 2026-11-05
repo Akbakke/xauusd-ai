@@ -58118,18 +58118,52 @@
   }
 ,
   "dynamic_m5_october_view_binding_20261106_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001.json",
       "sha256": "65da580bed67e3a92e50344c44a67f7dd4a8169780f739c7ed70aaf720db66fe"
     },
     "operator_approved": true,
     "operator_approval": "Standing zero-cost local authorization for one bounded metadata/axis binding claim.",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001",
     "training_enabled": false,
     "native_model_calls_authorized": 0,
     "test_split_access_authorized": false,
-    "scope": "Matched native control and age metadata views on one October development fold; no model or feature/outcome arrays."
+    "scope": "Matched metadata-only control and age views bound to October development axes and prefix statistics; actual feature delivery, native forward and OOF remain unqualified.",
+    "claim_exit_code": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/RESULT.json",
+      "sha256": "3a15dd7310102ee3a21f554dbfbfecc0f8ceee439a6d5fa46792b85839343565"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/TERMINAL.json",
+      "sha256": "ca41aee2b2b92b106bb790db47305ace95fd3aebc46007e0452926be93b8832f"
+    },
+    "post_run_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/POST_RUN_REVIEW.json",
+      "sha256": "41c07a43466ea79ba6ce8f278c5658eb4274b73cad74f5dcd688870277054dab"
+    },
+    "observer_axes": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/OCTOBER_OBSERVER_AXES.json",
+      "sha256": "3693ca3c259b7093148c78069cf1e868837441000a12d5db750f3bef8e495a83"
+    },
+    "control_view": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/CONTROL_VIEW.json",
+      "sha256": "c0d64f1e0f16ffb8a85942567858b5e2a6e6b04482c901472bdc2789d6aec9db"
+    },
+    "candidate_view": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/CANDIDATE_VIEW.json",
+      "sha256": "20a503b812d0b0af9dcadbd8f07570aa912f46d6e6dd4dee0a84cf1ab8220867"
+    },
+    "fit_parent_rows": 29849,
+    "development_parent_rows": 6323,
+    "target_axis_arrays_read": [
+      "parent_rows",
+      "issue_ns"
+    ],
+    "feature_arrays_read": 0,
+    "outcome_arrays_read": 0,
+    "native_model_calls": 0
   }
 }
