@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "One October development-only target check completed once on 6,323 parents after candidate lock. M5 +5 known endpoint 3,359; 2,963 complete windows unknown; M5 age observed 1,513. No model score or independent edge.",
+    "current_activity": "Candidate 001 source-unit age encoding passed two capped synthetic tests on unchanged source. October coverage and prefix normalization are measured; actual native age consumption and OOF remain open.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -58004,17 +58004,26 @@
     "remaining_unknown": "No target-series artifact was published; native age consumption, exact OOF recipe, model learning, independent edge, online punctuality and economics remain unqualified."
   },
   "dynamic_m5_confirmed_age_encoding_source_20261105_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_ENCODING_SOURCE_20261105_001.json",
       "sha256": "5042b4b7e40570ef15f28b36774535ad83e2d8ede031481b17b72f36781f150e"
     },
     "operator_approved": true,
     "operator_approval": "Standing zero-cost local authorization for one source-only synthetic test; no model or genuine data.",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_CONFIRMED_AGE_ENCODING_SOURCE_20261105_001",
     "training_enabled": false,
     "native_model_calls_authorized": 0,
-    "test_split_access_authorized": false
+    "test_split_access_authorized": false,
+    "claim_exit_code": 0,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_CONFIRMED_AGE_ENCODING_SOURCE_20261105_001/TERMINAL.json",
+      "sha256": "edf152bb412bc68e9921a200b580ddd91688a274e8b5d59d91b79a80665c2662"
+    },
+    "focused_synthetic_tests_passed": 2,
+    "genuine_data_reads": 0,
+    "native_model_calls": 0,
+    "scope": "Source-unit age encoding on five TF, exact false masks and fail-closed invalid inputs; native model consumption and OOF still unqualified."
   }
 }
