@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T23:19:32.319820+00:00",
-  "status": "M5_ENTRY_OCTOBER_CAUSAL_FEATURE_DELIVERY_COMPLETE_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T23:28:04.152437+00:00",
+  "status": "M5_ENTRY_OCTOBER_BATCH_ROUTING_SOURCE_CHECKED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "October causal feature delivery claim is complete and consumed: all 6,323 development parents, 14 raw feature groups, five-TF current state and age. Next source-qualify actual native age consumption and one exact matched chronological TRAIN-OOF recipe with mature targets, fresh baseline, gradient/resume, safe reboot and separate model admission. training_enabled=false; no model, TEST or trading admission.",
+  "next_action": "October causal feature delivery is complete. A source-only October batch join now routes the locked age candidate to the native model input key while preserving a matched control. Next qualify a source-bound October launch/worker, genuine loader and native forward, then one exact chronological TRAIN-OOF recipe with mature targets, fresh baseline, gradient/resume, safe reboot and separate model admission. training_enabled=false; no model, TEST or trading admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_CAUSAL_FEATURE_DELIVERY_MEASURED_EDGE_UNKNOWN",
+    "status": "OCTOBER_BATCH_ROUTING_SOURCE_CHECKED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57082,7 +57082,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Candidate 001, October target series, matched views and causal feature delivery are complete. Qualify actual native age consumption and one exact matched prefix-owned October OOF with mature targets, a fresh baseline, gradient/resume proof, safe boot and separate capped model admission. October is development; independent edge remains UNKNOWN.",
+    "next_milestone": "Candidate 001, October target series, matched views and causal feature delivery are complete; the age batch join passed source-only synthetic checks. Qualify an October-bound worker and genuine native consumption, then one exact matched prefix-owned October OOF with mature targets, a fresh baseline, gradient/resume proof, safe boot and separate capped model admission. Independent edge remains UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",
@@ -58206,5 +58206,20 @@
     "native_model_calls": 0,
     "post_run_review": "Result, terminal, manifest and all six causal NPY file SHA/size descriptors rechecked; no source or target arrays reread. The model/OOF/online physical clock remain unqualified.",
     "remaining_unknown": "Native forward/gradient/resume, strict chronological TRAIN OOF, directional learning, independent edge, physically timely online input and economics."
+  },
+  "dynamic_m5_october_causal_native_source_20261106_001": {
+    "status": "SOURCE_ONLY_CHECKED_NO_NATIVE_MODEL_ADMISSION",
+    "scope": "Verified immutable causal input tape loader and October fit/score batch join; candidate receives five confirmed-age values and masks, matched control does not. No genuine array or model invocation in source tests.",
+    "source_files_sha256": {
+      "gx1/contracts/entry_dynamic_m5_october_causal_inputs_v1.py": "fea6b76ee4b6bb4b182408acf6d48f7b0e1a5eba65e0bbe7222aefb8cc4863d7",
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "3256e21dce6bd41e2f8c90a49912a915a79f1a9a6b7d92a306b7e8aaf7d2aa23",
+      "tests/test_dynamic_m5_october_causal_native_routing_v1.py": "37860053b818f418c4a5c0a3899813ef5e2309d32f9bc6d69db1d8f76dc226dd"
+    },
+    "source_tests": "Ten focused synthetic tests passed under capped 4 GiB audit after initial code change; after final manifest/role-hash tightening, all three new tests passed again. No genuine data read.",
+    "model_calls": 0,
+    "training_enabled": false,
+    "test_data_used": false,
+    "independent_edge": "UNKNOWN",
+    "remaining_unknown": "Actual genuine artifact loader use, native forward/gradient/resume, an October-compatible source-bound launch manifest, strict chronological TRAIN OOF and independent edge."
   }
 }

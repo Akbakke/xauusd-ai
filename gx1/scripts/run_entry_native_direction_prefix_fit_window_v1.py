@@ -856,13 +856,22 @@ def _batch(prepared, targets, view, selected, np, *, cutoff=None):
         _require((cutoff is None or cutoff == bound['cutoff_ns']) and targets['cutoff_ns'] == bound['cutoff_ns']
                  and len(prepared['arrays']['parent_rows']) == bound['rows'], 'DECEMBER_BATCH_CUTOFF')
         cutoff = bound['cutoff_ns']
+    if 'october_observer_axes' in view:
+        _require('december_role' not in prepared and prepared.get('october_role') in ('fit', 'score')
+                 and 'observer_axes' in prepared and 'october_causal_inputs' in prepared,
+                 'OCTOBER_BATCH_SCOPE')
+        scope = view['october_observer_axes']
+        bound = scope['fit'] if prepared['october_role'] == 'fit' else scope['held_out']
+        _require((targets['train_cutoff_ns'] if cutoff is None else cutoff) == bound['cutoff_ns']
+                 and len(prepared['arrays']['parent_rows']) == bound['rows'], 'OCTOBER_BATCH_CUTOFF')
     from gx1.contracts.entry_native_direction_feature_view_v1 import gather_native_direction_feature_batch
     raw=gather_native_direction_feature_batch(view,parent_rows=prepared['arrays']['parent_rows'],
         bar_start_ns=prepared['arrays']['bar_start_ns'],decision_ns=prepared['arrays']['decision_ns'],
         entry_sequence_source=prepared['entry_sequence_source'],snap_x=prepared['current']['snap'],
         ctx_cont=prepared['current']['ctx_cont'],ctx_cat=prepared['current']['ctx_cat'],multi_tf_sources=prepared['cache'],
         gc_surfaces=prepared['gc']['surfaces'],gc_layout=prepared['gc']['layout'],batch_parent_rows=selected,
-        **({'observer_axes':prepared['observer_axes']} if 'zero_support_profile' in view else {}),
+        **({'observer_axes':prepared['observer_axes']}
+            if 'zero_support_profile' in view or 'october_observer_axes' in view else {}),
         **({'m1_ofi_source':prepared['m1_ofi_source'], 'm1_ofi_clock':prepared['m1_ofi_clock']}
             if 'm1_ofi_normalization' in view else {}))
     at=np.searchsorted(prepared['arrays']['parent_rows'],selected)
@@ -896,15 +905,27 @@ def _batch(prepared, targets, view, selected, np, *, cutoff=None):
     if view.get('current_state_first_loss_weight') is not None:
         from gx1.contracts.entry_dynamic_mtf_state_targets_v1 import query_historical_dynamic_mtf_current_state
         _require('dynamic_state_series' in targets, 'CURRENT_INPUT_TARGET_SERIES_REQUIRED')
-        current = query_historical_dynamic_mtf_current_state(targets['dynamic_state_series'],
-            parent_rows=np.asarray(selected, np.int64), issue_ns=np.ascontiguousarray(prepared['arrays']['decision_ns'][at]),
-            cutoff_ns=targets['train_cutoff_ns'] if cutoff is None else cutoff)
-        _require(current['clock_basis'] == 'historical_event_time_only_not_online_delivery'
-            and np.array_equal(current['current_state'], target['current_state'])
+        if 'october_observer_axes' in view:
+            from gx1.contracts.entry_dynamic_m5_october_causal_inputs_v1 import OctoberCausalInputs
+            tape = prepared['october_causal_inputs']
+            _require(type(tape) is OctoberCausalInputs, 'OCTOBER_CAUSAL_TAPE')
+            current = tape.gather(parent_rows=np.asarray(selected, np.int64),
+                issue_ns=np.ascontiguousarray(prepared['arrays']['decision_ns'][at]),
+                role=prepared['october_role'], include_age=view.get('confirmed_run_age_input', False))
+        else:
+            _require(not view.get('confirmed_run_age_input', False), 'AGE_REQUIRES_OCTOBER_CAUSAL_TAPE')
+            current = query_historical_dynamic_mtf_current_state(targets['dynamic_state_series'],
+                parent_rows=np.asarray(selected, np.int64), issue_ns=np.ascontiguousarray(prepared['arrays']['decision_ns'][at]),
+                cutoff_ns=targets['train_cutoff_ns'] if cutoff is None else cutoff)
+            _require(current['clock_basis'] == 'historical_event_time_only_not_online_delivery',
+                'CURRENT_INPUT_CLOCK')
+        _require(np.array_equal(current['current_state'], target['current_state'])
             and np.array_equal(current['current_observed'], target['current_observed'])
             and np.array_equal(current['current_path_observed'], query['current_path_observed']),
             'CURRENT_INPUT_TARGET_ALIGNMENT')
         keys = ('current_state', 'current_observed', 'current_path_observed')
+        if view.get('confirmed_run_age_input', False):
+            keys += ('current_confirmed_run_age_features',)
         _require(not any(key in raw['features'] for key in keys), 'CURRENT_INPUT_FEATURE_COLLISION')
         raw = {**raw, 'features': {**raw['features'], **{key:np.ascontiguousarray(current[key]) for key in keys}}}
     return raw,target
