@@ -58094,18 +58094,26 @@
   }
 ,
   "dynamic_m5_october_scoped_axes_source_20261105_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_SCOPED_AXES_SOURCE_20261105_001.json",
       "sha256": "35fd294533ba0002b40e87bf01ca8f1aca21100c53fe888066819c676c991495"
     },
     "operator_approved": true,
     "operator_approval": "Standing zero-cost local authorization; source-only exact axis/gather tests.",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_SCOPED_AXES_SOURCE_20261105_001",
     "training_enabled": false,
     "native_model_calls_authorized": 0,
     "test_split_access_authorized": false,
-    "scope": "Prefix-scoped October axis binding and selected raw gather; no actual October feature read or model."
+    "scope": "Synthetic exact fit/October axis binding and selected raw gather passed for control and age views. Genuine October feature rows, native forward and OOF remain unqualified.",
+    "claim_exit_code": 0,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_SCOPED_AXES_SOURCE_20261105_001/TERMINAL.json",
+      "sha256": "4d7eeb750fd1788450582243f7c6c4f73e86a6f8c95329742ba21b4f329709cf"
+    },
+    "focused_synthetic_tests_passed": 2,
+    "genuine_data_reads": 0,
+    "native_model_calls": 0
   }
 }
