@@ -344,6 +344,7 @@ def qualify_native_direction_prefix_population(
     expected_prefix_parent_rows, entry_sequence_source, snap_x, ctx_cont, ctx_cat,
     ordered_signal_names, multi_tf_sources, gc_surfaces, gc_layout,
     base_lineage, source_bindings, zero_support_profile=None, unobserved_units_profile=None,
+    prefix_only_input_arrays=False,
 ):
     """Bind the full source axis; audit every prefix input before any stats fit.
 
@@ -367,6 +368,8 @@ def qualify_native_direction_prefix_population(
     supplied = _axis(expected_prefix_parent_rows, "PREFIX_PARENT_AXIS")
     _require(stop >= 2 and np.array_equal(supplied, parents[:stop]), "EXACT_PREFIX_MEMBERSHIP")
     _require(zero_support_profile is None or unobserved_units_profile is None, "PROFILE_MUTUAL_EXCLUSION")
+    _require(type(prefix_only_input_arrays) is bool and (not prefix_only_input_arrays or
+        unobserved_units_profile is not None), "PREFIX_ONLY_ARRAY_SCOPE")
     spec = None
     if zero_support_profile is not None or unobserved_units_profile is not None:
         prefix = {"rows": stop, "cutoff_ns": cutoff_ns, "parent_rows_sha256": _hash_axis(parents[:stop]),
@@ -386,15 +389,17 @@ def qualify_native_direction_prefix_population(
         "signal", "times_ns", "sample_positions", "audit"}, "SEQUENCE_SOURCE_KEYS")
     source_times = _axis(entry_sequence_source["times_ns"], "SOURCE_CLOCK")
     positions = entry_sequence_source["sample_positions"]
+    mapped_rows = stop if prefix_only_input_arrays else len(parents)
+    mapped_starts = starts[:stop] if prefix_only_input_arrays else starts
     _require(isinstance(positions, np.ndarray) and positions.dtype == np.int64
-        and positions.shape == parents.shape and np.all(positions >= native.MODEL_NATIVE_SEQ_LEN - 1)
+        and positions.shape == (mapped_rows,) and np.all(positions >= native.MODEL_NATIVE_SEQ_LEN - 1)
         and np.all(positions < len(source_times)) and np.all(positions[1:] > positions[:-1])
         and np.all(source_times % BAR_NS == 0)
-        and np.array_equal(source_times[positions], starts), "GLOBAL_SOURCE_POINTERS")
+        and np.array_equal(source_times[positions], mapped_starts), "GLOBAL_SOURCE_POINTERS")
     for array, width, dtype in ((snap_x, len(names), np.float32),
             (ctx_cont, len(physical["ctx_cont"]), np.float32), (ctx_cat, len(physical["ctx_cat"]), np.int64)):
         _require(isinstance(array, np.ndarray) and array.dtype == dtype
-            and array.shape == (len(parents), width), "FULL_CURRENT_SHAPE_DTYPE")
+            and array.shape == (mapped_rows, width), "CURRENT_SHAPE_DTYPE")
     aliases = native._derive_temporal_aliases(names)
     sequence = dict(entry_sequence_source, sample_positions=positions[:stop])
     signal, times, selected_positions, snap, ctx, cat, _audit = native._validate_source_backed_train_inputs(
@@ -493,6 +498,8 @@ def qualify_native_direction_prefix_population(
         for key, field in sorted(allowed - {(b["surface"], b["field"]) for b in declared}):
             blockers.append({"surface": key, "field": field, "reason": "expected_zero_support_but_observed"})
         extra = {"unobserved_units_profile": spec, "declared_unit_support": declared}
+    if prefix_only_input_arrays:
+        proof["input_array_scope"] = "prefix_only_full_axis_hash_bound"
     report = _seal({"schema_version": QUALIFICATION_SCHEMA, "proof": proof, "support": support,
         "fit_allowed": not blockers, "blockers": blockers, "statistics_fits": 0, **extra})
     inputs = dict(parent_rows=parent_rows, bar_start_ns=bar_start_ns, decision_ns=decision_ns,
@@ -504,6 +511,8 @@ def qualify_native_direction_prefix_population(
         inputs["zero_support_profile"] = spec
     elif unobserved_units_profile is not None:
         inputs["unobserved_units_profile"] = spec
+    if prefix_only_input_arrays:
+        inputs["prefix_only_input_arrays"] = True
     population = None if blockers else {"inputs": inputs, "local_parts": local_parts,
         "ctx_parts": ctx_parts, "cat_parts": cat_parts, "tf_parts": tf_parts,
         "tf_ids": tf_ids, "windows": windows, "gc_surfaces": gc_surfaces_valid}

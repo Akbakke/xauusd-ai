@@ -16,9 +16,9 @@ from collections.abc import Mapping
 
 
 REPO = Path(__file__).resolve().parents[2]
-PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001.json'
+PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002.json'
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-POLICY_KEY = 'dynamic_m5_october_input_only_20261105_001'
+POLICY_KEY = 'dynamic_m5_october_input_only_20261105_002'
 
 
 def _require(ok, reason):
@@ -57,9 +57,9 @@ def _load_module(ref, name):
 def _admission(plan, policy, plan_ref):
     _require(plan.get('schema_version') == 'gx1_dynamic_m5_october_input_only_plan_v1'
              and plan.get('status') == 'PREPARED_NOT_ADMITTED'
-             and plan.get('plan_id') == 'DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001'
+             and plan.get('plan_id') == 'DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002'
              and plan.get('max_invocations') == 1
-             and plan.get('output_root') == '/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001',
+             and plan.get('output_root') == '/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002',
              'PLAN_SCOPE')
     _require(policy.get('training_enabled') is False and policy.get('full_val_allowed') is False
              and policy.get('full_epoch_training_allowed') is False, 'POLICY_TRAINING_GATE')
@@ -219,7 +219,8 @@ def run():
             ctx_cat=prepared['current']['ctx_cat'], ordered_signal_names=info['source']['feature_field_order'],
             multi_tf_sources=prepared['mtf'], gc_surfaces=prepared['gc'],
             gc_layout=prepared['gc_layout'], base_lineage=provider_plan['base_lineage'],
-            source_bindings=report_source, unobserved_units_profile=spec)
+            source_bindings=report_source, unobserved_units_profile=spec,
+            prefix_only_input_arrays=True)
         report = q['report']
         _require(report['support'] == old_support['support'], 'SAME_GENUINE_SUPPORT')
         q_ref = _publish(root, 'QUALIFICATION.json', report,

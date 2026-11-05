@@ -1,0 +1,164 @@
+{
+  "admission": {
+    "authorized_now": false,
+    "old_264_267_plans_relaunched": false,
+    "operator_approval_required": true,
+    "policy_key": "dynamic_m5_october_input_only_20261105_001",
+    "required_status": "ADMITTED_ONCE"
+  },
+  "ancestral_264_plan": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
+    "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"
+  },
+  "ancestral_264_worker": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/qualify_physical_prefix_support_guarded.py",
+    "sha256": "a007b01d5fb41785ffae3de11be71b50b7b3959875a69966c830e5a0c7b2d5e9"
+  },
+  "ancestral_267_plan": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/PLAN.json",
+    "sha256": "e20ce91dd5569b7f1ab15ce2c8463497d2425b5c307855348150166191d23ab1"
+  },
+  "ancestral_267_worker": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/qualify_and_fit_boolean_prefixes_guarded.py",
+    "sha256": "ee7421610e9926faf2d988fbed419e896e0bd5968cb9145e1986cb95fbef6798"
+  },
+  "branch": "work/gx1-current",
+  "current_gc_layout": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/CURRENT_GC_LAYOUT.json",
+    "sha256": "c0cdc60447ceb303ebdcdc790716789585fb32c0c30918f5d58d030ad6baffde"
+  },
+  "current_gc_transition": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/RAW_DOMAIN_TRANSITION.json",
+    "sha256": "98bc67279431199725ff64630dcce0687e6b0908bef0595724b8e861a7306a00"
+  },
+  "evaluation_axis": {
+    "cutoff_ns": 1730419200000000000,
+    "parent_row_range": [
+      29849,
+      36172
+    ],
+    "role": "development_geometry_only_not_independent_confirmation",
+    "rows": 6323
+  },
+  "execution": {
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- timeout --signal=TERM --kill-after=10s 1800s .venv/bin/python -m gx1.audit.dynamic_mtf_october_input_only",
+    "kill_grace_seconds": 10,
+    "max_json_output_bytes_per_file": 50331648,
+    "max_wall_seconds": 1800,
+    "memory_max_bytes": 4294967296,
+    "models": 0,
+    "network_calls": 0,
+    "resource_class": "audit",
+    "retries": 0,
+    "swap_max_bytes": 536870912
+  },
+  "fit_prefix": {
+    "bar_start_ns_sha256": "88653d60d5d2196982e88be2393855203df38a59e192594119ac7efc032aa974",
+    "cutoff_ns": 1727740800000000000,
+    "decision_ns_sha256": "230f38de532e9d1b8b310c81d3d3cc0c021ad05e0be0cd985ae55a72f1fd8067",
+    "parent_rows_sha256": "178e758fb705799a7f5557e680a764dfeb3c5cd7958f0562e84f693e418fcd43",
+    "rows": 29849
+  },
+  "full_axes": {
+    "bar_start_ns_sha256": "e5d528ff8fcec2b23f0099834b1c5b42a12489dadfada0a6fc4aeab3b6ff4c5d",
+    "decision_ns_sha256": "6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca",
+    "parent_rows_sha256": "f39321ccddb1f6c044ebd375afc92de4347260bc0bc42d276fcc2bebcfd50b84",
+    "rows": 118249,
+    "source": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    }
+  },
+  "max_invocations": 1,
+  "max_json_output_bytes": 50331648,
+  "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002",
+  "plan_id": "DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002",
+  "predecessor_claim": {
+    "axis": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001/OCTOBER_AXIS.json",
+      "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"
+    },
+    "failure": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001/FAILED.json",
+      "sha256": "6629ad8c1b88f7899d9fd1b9d8de2e9e5f2c879d1cefe320b01b37c7c78fcfd3"
+    },
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001.json",
+      "sha256": "806c9b5335809a197debc7edfd805da4d261657421372f62ea33eb21b5a08385"
+    }
+  },
+  "prepared_from_head": "12a36d7e10d76e1ae138db8f2975a2a5552dc1f7",
+  "prepared_utc": "2026-11-05T17:54:01.834725+00:00",
+  "prior_october_support": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_0.json",
+    "sha256": "885b3dce180cef245cd73ffe2975f87d41bf985b25aed425a8074967e0df5c96"
+  },
+  "profile": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OOF_PREFIX_UNITS_20261105_001.json",
+    "sha256": "83b70d1b610eef9a3de9c8cf4d0eaf45435bed88d112442e7e315032b3f8c8b2"
+  },
+  "purpose": "One source-bound, target-free qualification of the exact 29,849-parent October TRAIN prefix, one prefix-only normalization fit if support passes, and an outcome-free hash of the 6,323-parent October development axis.",
+  "read_scope": {
+    "axes_only_npz_members": [
+      "parent_rows",
+      "bar_start_ns",
+      "decision_ns"
+    ],
+    "evaluation": "hash only the three physical axes for rows [29849,36172); no feature/outcome scoring",
+    "feature_limit": "No feature value at or after the 2024-10-01 cutoff is decoded; source050 warmup and all five TF/GC donors stop at the last fit issue. Full source clocks may be read to verify the predeclared October axis.",
+    "normalization": "one fresh statistics fit on D<2024-10-01 only, with exact declared units for 51 unobserved fields; no December stats or all-batch projection",
+    "qualification": "all 12 genuine physical surfaces from explicit prefix-only input arrays, with the full 118,249-parent physical axis hash-bound; compare support exactly to original October QUALIFICATION_0; 153 declared zero-support entries only; other missing or observed whitelist field blocks fit",
+    "reused_inputs": "264 read-only source050/current051 mmap, sliced to the 29,849 fit parents and last fit issue; generic causal cache/GC prefix mapper with 267 raw-domain layout and transition; later October rows contribute only three clock-axis hashes. No December plan, projection, statistics or feature values are read."
+  },
+  "reason_for_successor": "Plan 001 claimed once and failed on GLOBAL_SOURCE_POINTERS before qualification or statistics fit. This plan alone binds the explicit prefix-only input-array repair while preserving full physical-axis hash verification.",
+  "restrictions": {
+    "broker_or_network": false,
+    "model_construction": false,
+    "model_forward": false,
+    "optimizer_updates": false,
+    "orders_or_trading": false,
+    "spending_usd": 0,
+    "target_arrays": false,
+    "test": false
+  },
+  "schema_version": "gx1_dynamic_m5_october_input_only_plan_v1",
+  "separate_unresolved_gates": [
+    "confirmed-state age source/coverage and model integration",
+    "M5 +5 target maturity and first-gap censoring",
+    "physical online M1/ATR receipt and issue time",
+    "strict chronological TRAIN-OOF and frozen prefix references",
+    "independent prospective M5 direction and economics"
+  ],
+  "source_files_sha256": {
+    "gx1/audit/dynamic_mtf_december_normalization.py": "a9d4a4445380b4220987d883b467875b89a25dde6f72d15c6a41012cf7bef315",
+    "gx1/audit/dynamic_mtf_october_input_only.py": "167504d76aa9618c0352d3535d6677c0d017777fe9c02a9702dd40515556c247",
+    "gx1/audit/dynamic_mtf_train_prefix_inputs.py": "cb29b4a696119b341bc1f1eae0a1bbb281ea4c101498dd34544abfcf46bd7185",
+    "gx1/contracts/entry_exit_feature_surface_v1.py": "64bef1d239f7ef4cc347e08243c13f2e2cb7b9b2e799ac5a114cb76176b49d31",
+    "gx1/contracts/entry_exit_production_architecture_v1.py": "8d18cfceb6fb0823f3f568011da2a0a93d2e0684a0e2217cb5b10dd3a7abd399",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "ef64a40a7ac24fc931acc267fae298adde26f20ed91ed587fd28ffcaae71c565",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "112c32c59b82947c43808233ce0d0cddcfd25270bb4ffda8020965df594da067",
+    "gx1/contracts/entry_native_direction_prefix_normalization_v1.py": "07164df124562174c867d491e78f25e192e8a2d062056e07ab9463444fae72ac",
+    "gx1/contracts/entry_native_direction_prefix_units_v1.py": "37627f5321e476b00b2b5ed6c9d96b4c59f3b04124b3eb64cbedb6b3cf9a021d",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/contracts/local_random_access_campaign_v2.py": "00759c4ae37f0894ff42a673ad4b7d91e6e1a8bf9945386ac202cfaa6b992143",
+    "gx1/contracts/registry_hyperparameter_fit_v1.py": "3673c598dfaaa8c0ae2d7c8b5b2393c88f382fefd337382ce72539b570eb2794",
+    "gx1/features/basic_v1.py": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220",
+    "gx1/features/entry_model_native_feature_layers_v1.py": "97f29b0ccc13a2fb98bcec2fc661a71b5e0ec3a3579afa220ad61972c6dd6ec4",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "6070f033f3046f30c01666b02226155eb032fd66bf1364621697e43cfebdbef3",
+    "gx1/features/gc_native_context_v1.py": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf",
+    "gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "gx1/features/micro_structure_v1.py": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd",
+    "gx1/features/volatility_squeeze_state_v1.py": "0ad2121c620008909d290b24686a095cec05e52f60e41527a4498e7ac663936f",
+    "gx1/models/entry_v10/entry_v10_input_normalization.py": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148",
+    "gx1/utils/artifact_primitives_v1.py": "94a85b804a10c28ff82ef83be5bd67d114ef686ec3e7d4cd36362a308af68932",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "status": "PREPARED_NOT_ADMITTED",
+  "stop_rule": "Claim the fixed output root once. Any error, timeout, mismatch or interrupted claim consumes this plan; no retry or continuation. A missing terminal after forced termination is itself a failed claim.",
+  "write_scope": [
+    "OCTOBER_AXIS.json",
+    "QUALIFICATION.json",
+    "PREFIX_NORMALIZATION.json only if fit_allowed",
+    "RESULT.json and TERMINAL.json on success; FAILED.json on caught error"
+  ]
+}

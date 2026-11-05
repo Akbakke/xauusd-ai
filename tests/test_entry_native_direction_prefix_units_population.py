@@ -86,3 +86,41 @@ def test_declared_units_reject_observed_field_and_unlisted_missing_field(monkeyp
     assert not report["fit_allowed"]
     assert {"surface": "signal", "field": names[spare_index],
             "reason": "no_observed_prefix_values"} in report["blockers"]
+
+
+def test_explicit_prefix_only_arrays_keep_full_axis_binding_and_fit(monkeypatch):
+    case = _case_without_declared_observations()
+    profile = _synthetic_profile(monkeypatch, case)
+    full = owner.qualify_native_direction_prefix_population(
+        **case, unobserved_units_profile=profile)
+    short = deepcopy(case)
+    fit_rows = len(short["expected_prefix_parent_rows"])
+    source_stop = int(short["entry_sequence_source"]["sample_positions"][fit_rows - 1]) + 1
+    for name in ("signal", "times_ns"):
+        short["entry_sequence_source"][name] = short["entry_sequence_source"][name][:source_stop].copy()
+    short["entry_sequence_source"]["sample_positions"] = (
+        short["entry_sequence_source"]["sample_positions"][:fit_rows].copy())
+    for name in ("snap_x", "ctx_cont", "ctx_cat"):
+        short[name] = short[name][:fit_rows].copy()
+    with pytest.raises(RuntimeError, match="GLOBAL_SOURCE_POINTERS"):
+        owner.qualify_native_direction_prefix_population(
+            **short, unobserved_units_profile=profile)
+    with pytest.raises(RuntimeError, match="PREFIX_ONLY_ARRAY_SCOPE"):
+        owner.qualify_native_direction_prefix_population(
+            **short, prefix_only_input_arrays=True)
+    qualified = owner.qualify_native_direction_prefix_population(
+        **short, unobserved_units_profile=profile, prefix_only_input_arrays=True)
+    assert qualified["report"]["fit_allowed"]
+    assert qualified["report"]["support"] == full["report"]["support"]
+    assert qualified["report"]["proof"]["full_axes"] == full["report"]["proof"]["full_axes"]
+    assert qualified["report"]["proof"]["input_array_scope"] == "prefix_only_full_axis_hash_bound"
+    assert qualified["population"]["inputs"]["prefix_only_input_arrays"] is True
+    fitted = owner.fit_native_direction_prefix_normalization(qualified)
+    full_fitted = owner.fit_native_direction_prefix_normalization(full)
+    assert fitted["base_normalization"] == full_fitted["base_normalization"]
+    assert fitted["gc_mtf_history"] == full_fitted["gc_mtf_history"]
+    bad = deepcopy(short)
+    bad["ctx_cat"] = case["ctx_cat"].copy()
+    with pytest.raises(RuntimeError, match="CURRENT_SHAPE_DTYPE"):
+        owner.qualify_native_direction_prefix_population(
+            **bad, unobserved_units_profile=profile, prefix_only_input_arrays=True)

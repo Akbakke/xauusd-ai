@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T11:18:22.483459+00:00",
-  "status": "M5_ENTRY_DIRECTION_ACTIVE_LOCAL_PREPARATION_INDEPENDENT_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T17:56:47.049666+00:00",
+  "status": "M5_ENTRY_OCTOBER_INPUT_ONLY_002_PREPARED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run the explicitly admitted October input-only plan exactly once through its fixed capped audit command, then record the terminal and assess genuine prefix support and normalization. Continue age/target/OOF preparation locally; no model, outcome, TEST, broker or trading authority follows.",
+  "next_action": "Request separate explicit admission for the fully prepared October input-only plan 002. The one-claim plan 001 failed and is consumed. Plan 002 fixes only the observed prefix/full-axis shape mismatch and stays target-, model-, TEST- and broker-free. No new genuine data run before approval; continue age/target/OOF source work.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run the explicitly admitted October input-only plan exactly once through its fixed capped audit command, then record the terminal and assess genuine prefix support and normalization. Continue age/target/OOF preparation locally; no model, outcome, TEST, broker or trading authority follows.",
+    "next_action": "Request separate explicit admission for the fully prepared October input-only plan 002. The one-claim plan 001 failed and is consumed. Plan 002 fixes only the observed prefix/full-axis shape mismatch and stays target-, model-, TEST- and broker-free. No new genuine data run before approval; continue age/target/OOF source work.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_INPUT_ONLY_ADMITTED_ONCE_EDGE_UNKNOWN",
+    "status": "OCTOBER_INPUT_ONLY_002_PREPARED_NOT_ADMITTED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57692,7 +57692,7 @@
     }
   },
   "dynamic_m5_october_input_only_20261105_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "FAILED_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001.json",
       "sha256": "806c9b5335809a197debc7edfd805da4d261657421372f62ea33eb21b5a08385"
@@ -57700,15 +57700,25 @@
     "operator_approved": true,
     "operator_approval": "User answered Ja to the one prepared October input-only control in this chat on 2026-11-05; exact plan SHA remains bound above.",
     "admitted_utc": "2026-11-05T17:47:56.218633+00:00",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001",
     "source_test_terminal": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_PREP_20261105_001/TEST_002_TERMINAL.json",
       "sha256": "bc0ad4a5e4ee4ac5ed0a9eb571477fe2761f07959b6b4ff4efd8fb1694530ee7"
     },
     "synthetic_checks_passed": 6,
-    "new_genuine_data_audit_started": false,
+    "new_genuine_data_audit_started": true,
     "genuine_statistics_fits": 0,
+    "claim_exit_code": 1,
+    "observed_failure": "NATIVE_DIRECTION_PREFIX_GLOBAL_SOURCE_POINTERS: caller supplied only 29,849 prefix sample positions and current rows while qualification owner required positions/current arrays for all 118,249 source-axis parents.",
+    "axis_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001/OCTOBER_AXIS.json",
+      "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"
+    },
+    "failure_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001/FAILED.json",
+      "sha256": "6629ad8c1b88f7899d9fd1b9d8de2e9e5f2c879d1cefe320b01b37c7c78fcfd3"
+    },
     "native_model_calls": 0,
     "training_enabled": false,
     "test_access_authorized": false,
@@ -57719,5 +57729,29 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_PREP_20261105_001/ADMISSION_GATE.json",
       "sha256": "8f16ad8cbd43c5eec5087e1e16fc981304cd68f925202a9fe90832c559116ce6"
     }
+  },
+  "dynamic_m5_october_input_only_20261105_002": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002.json",
+      "sha256": "afb8115d2364060e81e32a288df01820cf7f9c142a847dc8f2549c31d593b436"
+    },
+    "operator_approved": false,
+    "remaining_invocations": 0,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002",
+    "prior_consumed_plan": "dynamic_m5_october_input_only_20261105_001",
+    "source_test_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_PREP_20261105_002/TEST_TERMINAL.json",
+      "sha256": "9e633e7be81f1693e7a382dbc79e4a69ac0fa2f5b45161de4044f1124bffa9b8"
+    },
+    "synthetic_checks_passed": 40,
+    "new_genuine_data_audit_started": false,
+    "genuine_statistics_fits": 0,
+    "native_model_calls": 0,
+    "training_enabled": false,
+    "test_access_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "scope": "One exact 29,849-parent October TRAIN input qualification with full 118,249-parent axis hash, explicit prefix-only feature/current arrays, 153 declared GC-D1 zero-support cells, at most one genuine prefix-only normalization fit, and outcome-free hash of the 6,323-parent October development axis. No model or outcome arrays.",
+    "remaining_unknown": "Confirmed-state age coverage, M5 +5 target maturity/censoring, physical online timing, strict TRAIN-OOF, independent edge and economics remain unqualified."
   }
 }
