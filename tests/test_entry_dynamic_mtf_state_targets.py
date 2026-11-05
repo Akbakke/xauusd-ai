@@ -486,6 +486,99 @@ def test_historical_current_query_rejects_parent_and_future_clock_mismatch():
         target.query_historical_dynamic_mtf_current_state(bad, **kwargs)
 
 
+def _confirmed_age_fixture(states, *, minutes=None, path_observed=None):
+    states = np.asarray(states, np.int8)
+    if states.ndim == 1:
+        states = np.repeat(states[:, None], len(target.TIMEFRAMES), axis=1)
+    minute = np.arange(len(states)) if minutes is None else np.asarray(minutes)
+    cutoff = int(START + (int(minute[-1]) + 2) * target.MINUTE_NS)
+    series = build(frame_from_closes([100.] * len(states), minutes=minute), cutoff=cutoff)
+    arrays = dict(series.arrays)
+    arrays["state"] = states.copy()
+    arrays["observed"] = states != target.UNKNOWN
+    arrays["reason"] = np.where(arrays["observed"], 0, target.DIRECTION_UNRESOLVED).astype(np.uint8)
+    arrays["path_observed"] = (arrays["observed"].copy() if path_observed is None
+                               else np.asarray(path_observed, bool).copy())
+    # Synthetic class/path evidence isolates the age contract from price algebra.
+    return target.DynamicMtfStateSeries(MappingProxyType(arrays), series.metadata)
+
+
+def _query_age(series, issue_minutes):
+    parents = np.arange(len(issue_minutes), dtype=np.int64)
+    issues = START + np.asarray(issue_minutes, np.int64) * target.MINUTE_NS
+    bound = target.bind_dynamic_mtf_state_parents(series, parent_rows=parents, issue_ns=issues)
+    return target.query_historical_dynamic_mtf_confirmed_run_age(bound,
+        parent_rows=parents, issue_ns=issues, cutoff_ns=series.metadata["cutoff_ns"])
+
+
+def test_confirmed_age_requires_observed_change_and_separate_tf_path_masks():
+    states = np.repeat(np.array([1, 1, 2, 2, 2, 2, -1, 2, 2, 2,
+                                 0, 0, 0, 0, 0, 1, 1, 1, 1, 1], np.int8)[:, None], 5, axis=1)
+    states[:, 2] = target.UP  # A left-truncated run has no confirmed beginning.
+    states[:14, 3] = target.UP
+    path = states != target.UNKNOWN
+    path[12, 1] = False
+    path[:13, 4] = False
+    result = _query_age(_confirmed_age_fixture(states, path_observed=path), [5, 10, 15, 20])
+    expected = np.array([[3, 3, 0, 0, 0], [0, 0, 0, 0, 0],
+                         [5, 0, 0, 1, 0], [5, 5, 0, 5, 5]], np.int64)
+    np.testing.assert_array_equal(result["current_confirmed_run_age_minutes"], expected)
+    np.testing.assert_array_equal(result["current_confirmed_run_age_observed"], expected > 0)
+    assert result["current_observed"][1].all()  # Known class need not mean known age.
+    assert result["clock_basis"] == "historical_event_time_only_not_online_delivery"
+
+
+@pytest.mark.parametrize("class_change_over_gap", (False, True))
+def test_confirmed_age_resets_at_missing_m1_and_missing_m5_issue(class_change_over_gap):
+    minutes = [*range(9), *range(10, 20)]
+    states = [target.FLAT] * 2 + [target.UP] * (len(minutes) - 4) + [target.DOWN] * 2
+    if class_change_over_gap:
+        states[9:-2] = [target.FLAT] * len(states[9:-2])
+    result = _query_age(_confirmed_age_fixture(states, minutes=minutes), [5, 10, 15, 20])
+    np.testing.assert_array_equal(result["current_confirmed_run_age_minutes"][:, 0], [3, 0, 0, 2])
+    assert not result["current_observed"][1].any()
+    assert result["current_observed"][2].all()
+    assert not result["current_confirmed_run_age_observed"][2].any()
+
+
+def test_confirmed_age_reads_no_post_issue_state_or_clock_channels():
+    states = [target.FLAT, target.UP] + [target.UP] * 18
+    series = _confirmed_age_fixture(states)
+    parents = np.array([7], np.int64)
+    issue = START + np.array([10], np.int64) * target.MINUTE_NS
+    bound = target.bind_dynamic_mtf_state_parents(series, parent_rows=parents, issue_ns=issue)
+    kwargs = dict(parent_rows=parents, issue_ns=issue, cutoff_ns=series.metadata["cutoff_ns"])
+    expected = target.query_historical_dynamic_mtf_confirmed_run_age(bound, **kwargs)
+    # Any access to a later state/path/ATR/maturity row now raises or mis-shapes.
+    limited = {key: (value[:10] if value.ndim == 2 else value) for key, value in bound.arrays.items()}
+    limited = target.DynamicMtfStateSeries(MappingProxyType(limited), bound.metadata)
+    actual = target.query_historical_dynamic_mtf_confirmed_run_age(limited, **kwargs)
+    for key in expected:
+        assert np.array_equal(actual[key], expected[key]), key
+    assert actual["current_confirmed_run_age_minutes"][0, 0] == 9
+    # Adding later issues to one vectorized query cannot change an earlier age.
+    together = _query_age(series, [10, 20])
+    np.testing.assert_array_equal(together["current_confirmed_run_age_minutes"][0],
+                                  actual["current_confirmed_run_age_minutes"][0])
+
+
+def test_confirmed_age_has_no_d1_duration_cap_and_rejects_early_atr_lookahead():
+    series = _confirmed_age_fixture([target.FLAT] + [target.UP] * 1504)
+    result = _query_age(series, [1505])
+    assert (result["current_confirmed_run_age_minutes"] == 1504).all()
+    parents = np.array([7], np.int64)
+    issues = START + np.array([1505], np.int64) * target.MINUTE_NS
+    bound = target.bind_dynamic_mtf_state_parents(series, parent_rows=parents, issue_ns=issues)
+    arrays = dict(bound.arrays)
+    atr_clock = arrays["atr_available_ns"].copy()
+    atr_clock[1, 0] = arrays["validity_ns"][1] + target.MINUTE_NS
+    arrays["atr_available_ns"] = atr_clock
+    bad = target.DynamicMtfStateSeries(MappingProxyType(arrays), bound.metadata)
+    with pytest.raises(RuntimeError, match="AGE_ATR_CLOCK"):
+        target.query_historical_dynamic_mtf_confirmed_run_age(bad,
+            parent_rows=parents, issue_ns=issues, cutoff_ns=series.metadata["cutoff_ns"])
+
+
 @pytest.mark.parametrize("cutoff_minutes", (1, 8))
 def test_train_queries_never_fetch_missing_or_post_cutoff_label_rows(cutoff_minutes):
     frame = frame_from_closes([100., 101., 102., 103.], minutes=[4, 5, 8, 9])

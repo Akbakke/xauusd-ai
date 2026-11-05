@@ -37,6 +37,19 @@ historiske kildekvitteringer.
 
 Presisering05.11.2026: M5-Entry skal på plass først. Entry tas på lukkede M5-barer med kausal M15/H1/H4/D1-kontekst. Brukeren har eksplisitt valgt å beholde den M1-avledede beregningen av M5/M15/H1/H4/D1-nåtilstand; denne konteksten leses bare ved M5-Entry-tidspunktene. M1 er ingen egen Entry-klokke. Tettere M1-overvåking av en allerede åpen handel hører til en senere fase; Exit vurderes eller trenes ikke i denne bølgen. Klokke-/kildearbeid skal støtte M5-Entry og ikke overta som hovedmål.
 
+Stående arbeidsbestilling05.11.2026: Brukeren ber om langsiktig, aktivt arbeid
+for god retningsedge ved M5-Entry uten gjentatte «fortsett». Gå videre mellom
+konkrete, allerede autoriserte lokale milepæler; avdekk og rett målte mangler,
+gjenbruk kvitteringer og klargjør én begrunnet kandidat om gangen. Ikke fyll
+ventetid med nye modellrunder eller gjentatte uendrede kontroller. Fullfør
+lokalt beslutningsgrunnlag før en nødvendig ny eksakt admisjon legges fram.
+Arbeidsbestillingen åpner ikke trening, konsumerte planer, desembergjenbruk,
+TEST, broker, handel, spending eller Exit. Uavklart fysisk UTC stenger
+påstander om ONLINE-punktlighet, ikke kilde-/syntetisk forberedelse av
+historisk TRAIN-OOF. Status og neste milepæl eies fortsatt av NEXT_RUN_POLICY;
+teknisk kvalifikasjon, TRAIN-læring, uavhengig retningsverdi og økonomi er
+separate beviskrav.
+
 Presisering21.10: Entry tar beslutninger på lukkede M5-barer. M1 brukes i
 denne bølgen til etterfølgende prisfasit og MAE/MFE-oppløsning, ikke M1-Entry.
 En prognose-/observasjonshorisont på ett minutt er ikke Entry-tidsrammen,

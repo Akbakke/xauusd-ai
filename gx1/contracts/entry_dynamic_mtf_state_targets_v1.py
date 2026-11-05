@@ -499,6 +499,51 @@ def query_historical_dynamic_mtf_current_state(series, *, parent_rows, issue_ns,
             "clock_basis": "historical_event_time_only_not_online_delivery"}
 
 
+def query_historical_dynamic_mtf_confirmed_run_age(series, *, parent_rows, issue_ns, cutoff_ns):
+    """Preparation-only input: confirmed M1 state-run length at bound M5 issues.
+
+    A run starts at two consecutive observed, path-observed M1 states whose
+    classes differ. Its first row has count 1; this is an inclusive row count,
+    not an exact intraminute transition time or the unknowable true duration.
+    Unknown state/path, a missing M1 minute (including a documented closure),
+    or a left-truncated run makes age unknown until another observed change.
+    No future target is read and no native model consumes this candidate yet.
+    Call once for a declared prefix, not once per model minibatch.
+    """
+    current = query_historical_dynamic_mtf_current_state(
+        series, parent_rows=parent_rows, issue_ns=issue_ns, cutoff_ns=cutoff_ns)
+    arrays = series.arrays
+    axis = arrays["validity_ns"]
+    # Slice every state/clock channel before access: later target rows cannot
+    # affect a current feature even when the source-bound tape contains them.
+    stop = int(np.searchsorted(axis, int(issue_ns.max()), side="right"))
+    age = np.zeros((len(parent_rows), len(TIMEFRAMES)), dtype=np.int64)
+    age_observed = np.zeros_like(age, dtype=bool)
+    if stop:
+        clock = axis[:stop]
+        _require(np.all(arrays["maturity_ns"][:stop] <= clock[:, None]), "AGE_MATURITY_CLOCK")
+        _require(np.all(arrays["atr_available_ns"][:stop] <= clock[:, None]), "AGE_ATR_CLOCK")
+        positions = np.searchsorted(clock, issue_ns)
+        present = positions < stop
+        present[present] &= clock[positions[present]] == issue_ns[present]
+        rows = np.arange(stop, dtype=np.int64)
+        consecutive = np.r_[False, np.diff(clock) == MINUTE_NS]
+        for tf in range(len(TIMEFRAMES)):
+            state = arrays["state"][:stop, tf]
+            eligible = arrays["observed"][:stop, tf] & arrays["path_observed"][:stop, tf]
+            linked = consecutive & eligible & np.r_[False, eligible[:-1]]
+            change = linked & np.r_[False, state[1:] != state[:-1]]
+            last_change = np.maximum.accumulate(np.where(change, rows, -1))
+            last_break = np.maximum.accumulate(np.where(~linked, rows, -1))
+            known = eligible & (last_change > last_break)
+            selected = positions[present]
+            age_observed[present, tf] = known[selected]
+            age[present, tf] = np.where(known[selected], rows[selected] - last_change[selected] + 1, 0)
+    return {**current, "current_confirmed_run_age_minutes": age,
+            "current_confirmed_run_age_observed": age_observed,
+            "age_definition": "consecutive_observed_path_M1_rows_including_confirmed_change_row_v1"}
+
+
 def query_dynamic_mtf_states(series, *, parent_rows, issue_ns, cutoff_ns, lead_minutes,
                              include_first_flat_activity=False):
     """Gather only the requested batch; all future prices/scales remain labels."""

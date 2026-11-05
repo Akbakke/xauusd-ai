@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-05T11:18:22.483459+00:00",
-  "status": "M5_DIRECTION_COLD_CLOCK_MEASURED_ABSOLUTE_UTC_AND_EDGE_UNKNOWN",
+  "status": "M5_ENTRY_DIRECTION_ACTIVE_LOCAL_PREPARATION_INDEPENDENT_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "003 completed and independently verified: four HTTP200 responses, 6888 native M5 bars, five M1 minutes, five-TF ATR and 31 bound journal events. Monotonic first request to source/ATR-ready is 6.30147 seconds for this cold run. All acquisition gates closed; no native training, TEST or trading. Absolute UTC, full model-input readiness and edge remain unknown.",
+    "current_activity": "Standing M5 Entry direction work order and active thread follow-up; confirmed-age source qualified by 51 synthetic/regression checks; genuine normalization support unresolved, no native/model launch.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56819,9 +56819,9 @@
     "independent_edge_demonstrated": false
   },
   "direction_edge_research_goal_20261105": {
-    "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
-    "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "ONE_COLD_PHYSICAL_CLOCK_OBSERVATION_COMPLETE_INDEPENDENT_EDGE_UNPROVED",
+    "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
+    "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
+    "status": "ACTIVE_LOCAL_PREPARATION_CONFIRMED_AGE_SOURCE_QUALIFIED_PREFIX_SUPPORT_UNRESOLVED_EDGE_UNPROVED",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56976,6 +56976,113 @@
     "cold_source_atr_physical_clock_result": {
       "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_003/ACTUAL_RESULT.json",
       "sha256": "9539bd03872b6cd814d6d62921b60532617481d8e0aadca22f015df7002a98a2"
+    },
+    "standing_work_order": {
+      "recorded_utc": "2026-11-05T14:21:59.158258+00:00",
+      "continue_authorized_local_milestones_without_new_continue_request": true,
+      "prepare_concrete_reviewable_admission_before_requesting_permission": true,
+      "no_automatic_series_of_model_trials": true,
+      "do_not_repeat_completed_or_consumed_studies": true,
+      "do_not_manufacture_work_when_unchanged_or_blocked": true,
+      "scope": "M5 Entry direction only; M1-derived current state retained; no Exit",
+      "limits": "All existing model/fit/native, TEST, broker, order, spending and trade gates remain closed; any new model check needs its exact separate admission, safe physical reboot and capped route."
+    },
+    "persistent_followup": {
+      "mechanism": "supported_Codex_thread_heartbeat",
+      "automation_id": "gx1-arbeid-videre-mot-m5-entry-edge",
+      "target_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
+      "status_last_observed": "ACTIVE",
+      "cadence_minutes": 30,
+      "policy_status_authority": "NEXT_RUN_POLICY.json",
+      "goal_tool_status_last_observed": "blocked",
+      "goal_tool_limitation": "create_goal rejected replacement because the existing long-term goal is unfinished; no false completion or successful native-goal activation is claimed.",
+      "reporting": "Meaningful progress, failure, completion or required user action; no repeated unchanged-status messages."
+    },
+    "completion_evidence_required": [
+      "A source-qualified candidate with causal genuine inputs and verified actual consumption; technical PASS alone is insufficient.",
+      "Strict chronological TRAIN-OOF with each prefix owning normalization, references and mature targets; no December reuse, outcome-selected variants, or previously consumed plans.",
+      "Preregistered M5 conditional directional and three-class metrics, coverage/censoring and time-dependence-aware uncertainty against frozen candle/Markov/prior references; preserve separate results on all five timeframes.",
+      "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
+      "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
+    ],
+    "next_milestone": "Resolve a prefix-safe, explicitly scoped normalization design for genuine never-observed GC-D1 fields before binding any new input-only qualification. The confirmed-age source helper is synthetically qualified but not consumed by a model. Do not repeat the already proven zero-support audit.",
+    "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
+    "confirmed_age_candidate_preparation": {
+      "status": "SOURCE_AND_SYNTHETIC_QUALIFIED_NOT_MODEL_INTEGRATED",
+      "hypothesis": "Explicit confirmed current-state run age may help the measured first-step duration-calibration failure. Existing history features may already carry indirect age; directional benefit and causality of the failure remain unproved.",
+      "owner": "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+      "function": "query_historical_dynamic_mtf_confirmed_run_age",
+      "output": "Five inclusive M1 run counts and five independent observation masks at exactly bound M5 issues; first observed change row has count 1. Unknown state/path, missing M1 (including closure), or left truncation stays unknown until a new observed transition. Not exact physical/intraminute age.",
+      "unchanged": "Targets, 0.5 ATR, native leads/grid, v5 endpoint loss, native model, genuine inputs and guards.",
+      "not_part_of_this_candidate": "New endpoint-loss round, semi-Markov architecture, calibration offsets, EMA additions, new thresholds or loss-weight search.",
+      "source_qualification_plan": {
+        "path": "/home/andre2/GX1_RUNS/M5_CONFIRMED_AGE_SOURCE_20261105_001/PLAN.json",
+        "sha256": "84d426813fb2cb253d535b26548da23b65a2d10ef890eada2a026d6f4b497237"
+      },
+      "source_qualification_terminal": {
+        "path": "/home/andre2/GX1_RUNS/M5_CONFIRMED_AGE_SOURCE_20261105_001/TERMINAL.json",
+        "sha256": "a7392effc2ef3cb9407ae6034ff1482af0fa5f780f5a6700443605ca55d99fea"
+      },
+      "focused_tests_passed": 51,
+      "native_model_integration": false,
+      "genuine_age_input_coverage": "NOT_MEASURED",
+      "genuine_data_reads_this_preparation": 0,
+      "native_model_calls": 0,
+      "training_enabled": false,
+      "next_requirements": [
+        "A qualified prefix normalization design and exact non-December axes.",
+        "A new separately bound input-only coverage/causality qualification, including age normalization only on its fit prefix.",
+        "Only after source/input/measurement qualification: exact candidate recipe, fresh initialization, gradient/resume proof, admission and safe reboot before one capped model check."
+      ]
+    },
+    "train_oof_prefix_support_review": {
+      "status": "NO_QUALIFIED_PRE_DECEMBER_FOLD_UNDER_CURRENT_FULL_SUPPORT_CONTRACT",
+      "scope": "Same existing 245/223 parent/donor population; no new raw-data scan or fit.",
+      "october_prefix": {
+        "rows": [
+          0,
+          29849
+        ],
+        "cutoff_utc_exclusive": "2024-10-01T00:00:00Z",
+        "missing_unique_gc_d1_fields": 51,
+        "surface_blockers": 153,
+        "statistics_fits": 0
+      },
+      "october_geometry_only": {
+        "rows": [
+          29849,
+          36172
+        ],
+        "cutoff_utc_exclusive": "2024-11-01T00:00:00Z",
+        "parents": 6323,
+        "separate_axis_sha": "NOT_PUBLISHED",
+        "authorized_for_scoring": false
+      },
+      "december_boundary_superset": {
+        "fit_rows": 41866,
+        "cutoff_utc_exclusive": "2024-12-01T00:00:00Z",
+        "relevant_d1_donor_rows_including_warmup": 405,
+        "zero_support_fields": 7,
+        "compared_mask_cells": 20655,
+        "mask_mismatches": 0,
+        "implication": "The same seven fields cannot have support in an earlier subset of this population."
+      },
+      "existing_267_fits": "48 means 12 physical surfaces across four later prefixes, whose first cutoff is 2025-01-01 with 47602 fit parents. All include December and cannot be substituted here.",
+      "october_support_ref": {
+        "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_0.json",
+        "sha256": "885b3dce180cef245cd73ffe2975f87d41bf985b25aed425a8074967e0df5c96"
+      },
+      "december_boundary_support_ref": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_DEC01_001/PREFIX_INPUT_SUPPORT.json",
+        "sha256": "240142ecae931bf52cabb9a94f86f39c4d0145c94dee2192beee9212a7283d31"
+      },
+      "geometry_document": {
+        "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
+        "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
+      },
+      "next_design_constraint": "Do not transplant the exact December seven-field exception, fabricate moments, remove genuine fields or weaken the existing default support guard. Prepare a separate reviewed prefix-availability design and its limits before any genuine candidate use.",
+      "new_data_audit_started": false,
+      "new_model_admission": false
     }
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
