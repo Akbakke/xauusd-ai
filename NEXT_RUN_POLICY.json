@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T01:08:18.786920+00:00",
-  "status": "TRAIN_M5_TWO_INDICATOR_STUDY_COMPLETE_SOURCE_GATE_OPEN_TRAINING_DISABLED",
+  "observed_utc": "2026-11-05T01:10:53.374801+00:00",
+  "status": "TRAIN_CLOCK_BOUNDARY_COMPLETE_ACTUAL_DELIVERY_UNKNOWN_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Measure the fixed historical current-state clock boundary once on the bound 41,866 TRAIN parents and five timeframes. Then qualify source or prospective evidence separately. No native admission.",
+  "next_action": "Qualify an identified original OANDA practice XAU_USD ordered-quote archive for the 18506 bound active/unknown TRAIN cases before label changes, and genuine physical M1-receive and ATR-ready logs for historical/prospective issue clocks. Original and additional 2024 bar partitions do not provide those fields. The single M5 candidate and December score are consumed. If considering independent evidence, first review the disabled prospectively timed issue/resolution design. No native or collection authority.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "One frozen December candidate failed. The prespecified early TRAIN comparison of GC book imbalance and XAU M5 SMC structure is complete. Neither of the two fixed-direction scores cleared both registered within-candle contrasts.",
+    "current_activity": "Completed one current-state event-clock audit for all five TF and recorded the physically separate prospective issue/resolution design. The two-scalar M5 study and the December candidate are closed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Historical TRAIN contained 18,506 complete active M5 +5 windows with unknown direction and an intraminute order flag. Source-identical ordered quotes for the affected cohort and independent physical arrival/ATR publication evidence have not been demonstrated. The completed indicator study does not establish incremental directional edge. No native or prospective run is admitted.",
+    "current_blocker": "Missing original OANDA practice XAU_USD ordered quote sequence or proof for the 18506 known-active unresolved cases, plus contemporaneous M1 receipt and ATR-ready telemetry. 11139 of 41866 historical M5 inputs change class or observability under the strict previous-minute comparison. Native M5 independent issue-first publication and admission remain unavailable.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Measure the fixed historical current-state clock boundary once on the bound 41,866 TRAIN parents and five timeframes. Then qualify source or prospective evidence separately. No native admission.",
+    "next_action": "Qualify an identified original OANDA practice XAU_USD ordered-quote archive for the 18506 bound active/unknown TRAIN cases before label changes, and genuine physical M1-receive and ATR-ready logs for historical/prospective issue clocks. Original and additional 2024 bar partitions do not provide those fields. The single M5 candidate and December score are consumed. If considering independent evidence, first review the disabled prospectively timed issue/resolution design. No native or collection authority.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22925,7 +22925,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-05T01:08:18.786920+00:00",
+  "updated_utc": "2026-11-05T01:10:53.374825+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "ACTIVE_HISTORICAL_CURRENT_INPUT_CLOCK_AUDIT_ONLY",
+    "status": "ACTIVE_SOURCE_QUALIFICATION_REQUIRED",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56866,10 +56866,67 @@
       "known_active_unordered": 18506,
       "original_quote_sequence_available": "NOT_ESTABLISHED",
       "m1_receive_at_issue": "UNKNOWN",
-      "atr_ready_at_issue": "UNKNOWN"
+      "atr_ready_at_issue": "UNKNOWN",
+      "additional_2024_canonical_bar_catalog": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/RESULT.json",
+        "sha256": "6ea41ae912f4d26d24d9c04c6b7b93e9631c12ca8179c2957e4649767dd66f90"
+      },
+      "additional_catalog_scope": "Both 2024 OANDA canonical year-partition schemas have bar time and OHLC/volume only. The separately indicated deprecated cache directory was absent at inspection. No claim outside inspected sources."
     },
     "independent_confirmation": "All 26 sampled GC months have development history. The existing monthly forward journal is specific to the named D1 swing_ridge h20/h5 protocol and does not admit native M5. Any prospective M5 confirmation requires a distinct frozen admission and untouched outcomes.",
-    "bounded_clock_study": "dynamic_mtf_train_issue_clock_boundary_20261105_001"
+    "bounded_clock_study": "dynamic_mtf_train_issue_clock_boundary_20261105_001",
+    "historical_clock_boundary_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/TERMINAL.json",
+      "sha256": "047d47cf826cd2d676b9f36178aef6c1e8649d0dfe66a3b8357cd03b9a2918e4"
+    },
+    "historical_clock_boundary_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/RESULT.json",
+      "sha256": "6ea41ae912f4d26d24d9c04c6b7b93e9631c12ca8179c2957e4649767dd66f90"
+    },
+    "historical_clock_boundary_scope": "Historical last closed M1 vs exactly the preceding observed M1 for all 41866 TRAIN issues; this is not measured delivery latency, prediction impact or a new input transform.",
+    "prospective_confirmation_design": {
+      "status": "REVIEWABLE_DESIGN_ONLY_NO_ADMISSION",
+      "native_m5_prospective_authorized": false,
+      "collection_authorized": false,
+      "training_authorized": false,
+      "existing_sealed_test_access": false,
+      "observed_gap": "The frozen December score path requires a completed target manifest before it can issue model outputs. Its forward takes only features but its forecast manifest is signed after scoring. Existing D1 journal supports a later SHA-bound resolution, but the issue entry can itself include mature target_h values. Neither existing publication alone proves that this native M5 forecast was issued before outcomes.",
+      "historical_scorer_sources": [
+        {
+          "path": "gx1/contracts/entry_dynamic_mtf_december_native_v1.py",
+          "file_sha256": "b9c56a6e16363603ebd6e5baca59b897b0690f7a9b2470989d696a8dbfc0ba28",
+          "lines": "274-299"
+        },
+        {
+          "path": "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+          "file_sha256": "92b2cd866d74e3800e64a3016112d96926ad7611770ab8517141c59aa18b6870",
+          "lines": "340-375,420-445"
+        }
+      ],
+      "reuse_after_separation": [
+        {
+          "path": "gx1/contracts/immutable_event_authority_v1.py",
+          "file_sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+          "lines": "713-736"
+        },
+        {
+          "path": "gx1/scripts/research_ta_campaign_v1.py",
+          "file_sha256": "7861739d24676b753b9370529769b92b78a58871ce09a4f176a9bed61e04de45",
+          "lines": "4093-4102,4124-4140,4207-4236"
+        }
+      ],
+      "preregister_before_first_observation": "First qualify a specific candidate on TRAIN and freeze SHA for model, feature/clock policy, prefix normalization, five native targets/distributions, reference signs and coefficients, declared dates, fixed evaluation end, predeclared minimum support and operational coverage. Never reopen this December or repurpose the D1 forward journal.",
+      "issue": "Separate input-only role, no future tape, no retrospective fills. Bind a time-synchronised physical receipt for every required input including M1 and ATR-ready times. For a literal forecast at t, input availability and durable forecast issuance must be demonstrably at or before t accounting for clock error. Otherwise record the non-issued or late slot with its reason. Preserve every scheduled issue including gaps and restarts.",
+      "issue_record": "Append without replacement. Record issue id/UTC, physical publication witness, source environment, paired receive/ready clocks and uncertainty, input/checkpoint identities, probabilities and event forecasts at the five frozen scales, all frozen reference forecasts, masks and previous record digest. A digest alone does not establish time of issue.",
+      "resolve": "A disjoint outcome-only role checks the exact issue SHA and mature native outcome at t+h using the hash-bound original XAU source, ordered quote semantics and first-gap censoring as specified. Append a separate result with complete coverage denominators, no refit or forecast recomputation.",
+      "evaluate": "Score the fixed prospective period once. Preserve paired three-class Brier/logloss versus frozen Markov and prior, direction rank versus frozen candle/Markov and 0.5, time-block uncertainty, H4/D1 episodes and registered path gates. All missed issues, unknown/immature labels and too-small support remain countable. A failed gate or insufficient support cannot qualify edge.",
+      "requires_before_any_launch": [
+        "source-identical ordered XAU data and source parity proof",
+        "M1-arrival and ATR-ready physical timing evidence, clock quality and restart parity",
+        "one separately qualified frozen candidate",
+        "independent untapped forward period, quantitative coverage/support and separate exact admission"
+      ]
+    }
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
     "status": "COMPLETE_CONSUMED_BOTH_REGISTERED_TRAIN_CONTRASTS_NOT_QUALIFIED",
@@ -56952,20 +57009,44 @@
     }
   },
   "dynamic_mtf_train_issue_clock_boundary_20261105_001": {
-    "status": "ADMITTED_ONE_CURRENT_INPUT_CLOCK_AUDIT_ONLY",
+    "status": "COMPLETE_CONSUMED_HISTORICAL_INPUT_CLOCK_SENSITIVITY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/PLAN.json",
       "sha256": "4a3b41f7be7466b1154aa7a5a442bf07aa7f2f42e8d916d4f9681b49a5f6a294"
     },
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "data_audit_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "data_audit_authorized": false,
     "model_calls_authorized": false,
     "training_enabled": false,
     "test_authorized": false,
     "new_native_launch_authorized": false,
-    "relaunch_allowed": false
+    "relaunch_allowed": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/CLAIM.json",
+      "sha256": "3abd7a44cba7770e633c0a04f70f4b96e6759b9a6c9dc707f5e9df88d2da4fab"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/TERMINAL.json",
+      "sha256": "047d47cf826cd2d676b9f36178aef6c1e8649d0dfe66a3b8357cd03b9a2918e4"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/RESULT.json",
+      "sha256": "6ea41ae912f4d26d24d9c04c6b7b93e9631c12ca8179c2957e4649767dd66f90"
+    },
+    "cohort": {
+      "both_exact": 41693,
+      "exact_m1_close_at_issue": 41855,
+      "exact_preceding_m1_available": 41704,
+      "issue_sha256": "5d1f2d13189650518a7bfe03cbedc423dc775d022112abb5e601a38f1859bd9a",
+      "parent_sha256": "4a344f16766979a7743e17d3d9a85dee9695d7f37b2abda9c0919802877b54c4",
+      "parents": 41866
+    },
+    "m5_state_or_mask_different": 11139,
+    "m5_direct_up_down_changes": 2403,
+    "physical_receive_or_atr_ready": "UNKNOWN",
+    "future_outcome_queries": 0
   }
 }
