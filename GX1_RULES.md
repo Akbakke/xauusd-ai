@@ -463,6 +463,8 @@ Før implementasjon og fokuserte kontroller består, er den nye ruten stengt.
 
 ## Brukte engangstillatelser
 
+Operatørunntak05.11.2026: «Ja, tillat ett diagnosekall» åpner bare `configs/research/XAU_HTTP400_DIAGNOSTIC_20261105_002.json`, SHA256 `4b1142d498713dc0f0c8db2fe4af18f426ea89ae3da8ccc9f8917c6c64572742`: ett identisk OANDA practice XAU_USD/M5/MBA-GET for 1.–16. oktober 2026 kl. 09:45 UTC. Det begrensede svaret bevares privat. Eksisterende capped audit-rute, 2 GiB minne/512 MiB swap og 900 sekunder pluss 10 sekunders kill-frist. Ingen retry, redirect, endret forespørsel, automatisk videreføring, ATR, modell, target/TEST, konto-/ordreoppslag, handel eller spending. Den gamle firekallsplanen forblir konsumert. Faktisk konsum og status står bare i NEXT_RUN_POLICY og immutable kvitteringer.
+
 Operatørunntak05.11.2026: «Ja, tillat disse fire lesekallene» åpner kun planen `configs/research/XAU_INPUT_PHYSICAL_CLOCK_20261105_001.json`, SHA256 `6fa21f44183032137c70330bd7af50c5e5abb68340c39efabbcd1500990f2d9e`: høyst tre M5-candle-GET for 35 dagers oppvarming og ett M1-candle-GET for fem minutter fra OANDA practice XAU_USD. Én M5-observasjon gjennom eksisterende capped audit-rute, 2 GiB minne/512 MiB swap og 900 sekunder pluss 10 sekunders kill-frist. Ingen retry, redirect, konto-/transaksjons-/ordreoppslag, modell, target-/TEST-tilgang, handel, spending eller klokkeendring. M1-beregningen beholdes; Entry bare på M5. Dette unntaket åpner ingen øvrig broker-adgang. Faktisk konsum og status står bare i NEXT_RUN_POLICY og immutable kvitteringer.
 
 COST_TERMS_REVALIDATION_001 brukte det særskilte lesekall-unntaket 02.10.2026:

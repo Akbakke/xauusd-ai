@@ -45,7 +45,7 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-05T11:18:22.483459+00:00",
-  "status": "M5_DIRECTION_GOAL_BLOCKED_PENDING_SINGLE_GET_ADMISSION",
+  "status": "M5_DIRECTION_SINGLE_GET_DIAGNOSTIC_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Long-term M5 directional goal blocked pending the already requested exact one-GET diagnostic exception; no live job observed.",
+    "current_activity": "One exact newly approved XAU HTTP400 diagnostic is admitted; old four-read clock attempt remains consumed. Native training remains disabled.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "BLOCKED_PENDING_EXACT_SINGLE_REQUEST_ADMISSION",
+    "status": "EXACT_SINGLE_REQUEST_DIAGNOSTIC_ADMITTED",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56965,7 +56965,13 @@
       "diagnostic_claim_exists": false,
       "all_diagnostic_execution_network_gates": false,
       "full_goal_completed": false,
-      "remaining_limits": "TRAIN comparison and December/clock plans are consumed; original ordered quote source, physical readiness and independent edge remain unqualified. No further admitted experiment or qualified unused source is available."
+      "remaining_limits": "TRAIN comparison and December/clock plans are consumed; original ordered quote source, physical readiness and independent edge remain unqualified. No further admitted experiment or qualified unused source is available.",
+      "resolved_utc": "2026-11-05T11:37:35.813593+00:00",
+      "resolution": "User explicitly approved XAU_HTTP400_DIAGNOSTIC_20261105_002 only.",
+      "operator_admission": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_OPERATOR_ADMISSION.json",
+        "sha256": "46d15a6230aca2dbf9214f0cda3f503169bbb266235a357bf76b3f4b0b790859"
+      }
     }
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
@@ -57153,7 +57159,7 @@
     "source_base_commit": "cb1332cb9da482c783471011bffc008edf8c3133",
     "run_root": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001",
     "scope": "One exact admitted input-only timing measurement using the frozen plan and canonical source producer. M5 Entry only; no model or Exit.",
-    "goal_tool_state": "Original long-term goal is blocked after three resumed goal turns with the same missing diagnostic admission. This is not completion; the full objective is preserved.",
+    "goal_tool_state": "The app goal was blocked. The user has now explicitly admitted only the separate one-GET diagnostic; full directional objective remains incomplete.",
     "prior_completed_discovery": "whole_pc_xau_source_search_20261105_001",
     "measured_gaps": [
       "Current consumption uses historical event time, without physical receipts.",
@@ -57227,7 +57233,7 @@
     },
     "original_HTTP400_cause": "UNKNOWN",
     "http400_diagnostic": {
-      "status": "PREPARED_NOT_ADMITTED",
+      "status": "ADMITTED_EXACT_SINGLE_GET_NOT_STARTED",
       "plan": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/XAU_HTTP400_DIAGNOSTIC_20261105_002.json",
         "sha256": "4b1142d498713dc0f0c8db2fe4af18f426ea89ae3da8ccc9f8917c6c64572742"
@@ -57237,9 +57243,9 @@
         "sha256": "4c96ee42567a2cd1cc318f6a6ab46c8dfad6087e47c26780a7636f39f2624b9a"
       },
       "scope": "One exact separately admitted GET matching the old failed request; preserve provider response and stop. No old admission reuse, automatic clock measurement, model, labels, TEST, account/order calls or spending.",
-      "execution_authorized": false,
-      "collection_authorized": false,
-      "broker_network_authorized": false,
+      "execution_authorized": true,
+      "collection_authorized": true,
+      "broker_network_authorized": true,
       "completed_invocations": 0,
       "max_get_attempts": 1,
       "relaunch_authorized": false,
@@ -57252,7 +57258,14 @@
       "closed_admission_cli": {
         "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_CLOSED_CLI.json",
         "sha256": "cde2ece80210308f6e4f255c530e56463abd643fff3c9bc233d756092d9803f9"
-      }
+      },
+      "operator_approval": "XAU_HTTP400_DIAGNOSTIC_20261105_002",
+      "operator_answer": "Ja, tillat ett diagnosekall",
+      "operator_admission": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_OPERATOR_ADMISSION.json",
+        "sha256": "46d15a6230aca2dbf9214f0cda3f503169bbb266235a357bf76b3f4b0b790859"
+      },
+      "admission_recorded_utc": "2026-11-05T11:37:35.813593+00:00"
     }
   },
   "m5_entry_priority_20261105": {
