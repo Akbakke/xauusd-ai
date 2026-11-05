@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T01:10:53.374801+00:00",
-  "status": "TRAIN_CLOCK_BOUNDARY_COMPLETE_ACTUAL_DELIVERY_UNKNOWN_TRAINING_DISABLED",
+  "observed_utc": "2026-11-05T01:16:36.238473+00:00",
+  "status": "DIRECTION_EDGE_BLOCKED_WAITING_FOR_EXTERNAL_EVIDENCE_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Qualify an identified original OANDA practice XAU_USD ordered-quote archive for the 18506 bound active/unknown TRAIN cases before label changes, and genuine physical M1-receive and ATR-ready logs for historical/prospective issue clocks. Original and additional 2024 bar partitions do not provide those fields. The single M5 candidate and December score are consumed. If considering independent evidence, first review the disabled prospectively timed issue/resolution design. No native or collection authority.",
+  "next_action": "Await an identified original XAU_USD ordered-quote archive for the historical labels, or an actual receipt/ATR publication log for the pipeline during its period of operation. Review either independently. If a new prospective source is proposed, use the existing design for a separate scoped decision before collection; no current native run or collection is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Completed one current-state event-clock audit for all five TF and recorded the physically separate prospective issue/resolution design. The two-scalar M5 study and the December candidate are closed.",
+    "current_activity": "Research goal blocked on external evidence. The December model, early TRAIN indicator audit and historical clock audit all have terminal receipts.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Qualify an identified original OANDA practice XAU_USD ordered-quote archive for the 18506 bound active/unknown TRAIN cases before label changes, and genuine physical M1-receive and ATR-ready logs for historical/prospective issue clocks. Original and additional 2024 bar partitions do not provide those fields. The single M5 candidate and December score are consumed. If considering independent evidence, first review the disabled prospectively timed issue/resolution design. No native or collection authority.",
+    "next_action": "Await an identified original XAU_USD ordered-quote archive for the historical labels, or an actual receipt/ATR publication log for the pipeline during its period of operation. Review either independently. If a new prospective source is proposed, use the existing design for a separate scoped decision before collection; no current native run or collection is admitted.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22925,7 +22925,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-05T01:10:53.374825+00:00",
+  "updated_utc": "2026-11-05T01:16:36.238473+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "ACTIVE_SOURCE_QUALIFICATION_REQUIRED",
+    "status": "BLOCKED_WAITING_FOR_EXTERNAL_SOURCE_OR_PROSPECTIVE_ADMISSION",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56926,6 +56926,23 @@
         "one separately qualified frozen candidate",
         "independent untapped forward period, quantitative coverage/support and separate exact admission"
       ]
+    },
+    "goal_tool_status_last_observed": "blocked",
+    "external_evidence_gates": {
+      "reviewed_utc": "2026-11-05T01:16:36.238473+00:00",
+      "native_archive_manifest": {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+        "sha256": "138d2f0819d08086d05c3de2a510279b563e7a269e4600b87332926a35017e39"
+      },
+      "native_archive_created_utc": "2026-09-27T16:27:46.101866+00:00",
+      "current_target_owner": {
+        "path": "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+        "first_commit": "2a8da35955ff2fd85c6dbd6a46c38bdb06bd2296",
+        "committed_utc": "2026-11-02T06:46:07Z"
+      },
+      "historical_labels": "An identified original ordered OANDA practice XAU_USD quote archive plus source reconciliation could resolve part of the 18,506 bound active but censored M5 endpoints. A historical price archive alone cannot prove local GX1 receipt times.",
+      "physical_availability": "A genuine receipt and ATR publication log from the period when the measured pipeline actually operated can establish its observed availability then. The 2026 backfill and source-version date cannot supply physical 2024 timestamps. A future separately admitted timed observation would qualify only its own running pipeline and period.",
+      "separate_next_steps": "Either admissible artifact can be reviewed on its own. New collection and an independent M5 forecast require separate scope, an untouched period and a qualified candidate. No such launch or source is currently bound."
     }
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
