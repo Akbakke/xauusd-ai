@@ -1,0 +1,158 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_native_batch_binding_plan_v1",
+  "plan_id": "DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002",
+  "status": "PREPARED_NOT_ADMITTED",
+  "prepared_from_head": "da9277976f74989b57c9a210657ca33172f1787b",
+  "prepared_utc": "2026-11-05T23:36:33.994480+00:00",
+  "purpose": "One genuine, model-free source-bound audit of matched October control/confirmed-age feature and mature-target batches for four fixed fit and four fixed development parents.",
+  "standing_authorization": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+  "candidate_design": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_CANDIDATE_20261105_001.json",
+    "sha256": "b40123a364a65bb337699cc82215707049596b8ab0940c98ec64efc06fe17c8e"
+  },
+  "control_view": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/CONTROL_VIEW.json",
+    "sha256": "c0d64f1e0f16ffb8a85942567858b5e2a6e6b04482c901472bdc2789d6aec9db"
+  },
+  "candidate_view": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/CANDIDATE_VIEW.json",
+    "sha256": "20a503b812d0b0af9dcadbd8f07570aa912f46d6e6dd4dee0a84cf1ab8220867"
+  },
+  "observer_axes": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/OCTOBER_OBSERVER_AXES.json",
+    "sha256": "3693ca3c259b7093148c78069cf1e868837441000a12d5db750f3bef8e495a83"
+  },
+  "causal_inputs": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001/CAUSAL_INPUTS/CAUSAL_INPUTS.json",
+    "sha256": "2fdea20ebeb90ec8a027f067726f1dd488139e4a1662ee61a75920b1ab764ae6"
+  },
+  "prior_input_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003.json",
+    "sha256": "4a80b5d15f16e6a790de3a80155043e9fc2177a329256d67f4985597384f8fa5"
+  },
+  "october_series": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001/STATE_SERIES/SERIES.json",
+    "sha256": "302ca457b81b8ff59347d25d29dcace0aed7bbaa75a0236298fb216547b7a7ac"
+  },
+  "target_source_refs": {
+    "m1": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    },
+    "m5_atr": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+      "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+    }
+  },
+  "ancestral_264_plan": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/PLAN_SUPPORT.json",
+    "sha256": "96ff82533042ab069292505b3a44315c13223a9b9d9e9ee669cd757e3f84c086"
+  },
+  "ancestral_264_worker": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_PREFIX_INPUT_BINDING_REPAIR_20261024_264/qualify_physical_prefix_support_guarded.py",
+    "sha256": "a007b01d5fb41785ffae3de11be71b50b7b3959875a69966c830e5a0c7b2d5e9"
+  },
+  "current_gc_transition": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/RAW_DOMAIN_TRANSITION.json",
+    "sha256": "98bc67279431199725ff64630dcce0687e6b0908bef0595724b8e861a7306a00"
+  },
+  "current_gc_layout": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/CURRENT_GC_LAYOUT.json",
+    "sha256": "c0cdc60447ceb303ebdcdc790716789585fb32c0c30918f5d58d030ad6baffde"
+  },
+  "full_axes": {
+    "bar_start_ns_sha256": "e5d528ff8fcec2b23f0099834b1c5b42a12489dadfada0a6fc4aeab3b6ff4c5d",
+    "decision_ns_sha256": "6430991e6af9acf67228afaf85bda5a92a20965c0359c8624777da6c79a062ca",
+    "parent_rows_sha256": "f39321ccddb1f6c044ebd375afc92de4347260bc0bc42d276fcc2bebcfd50b84",
+    "rows": 118249,
+    "source": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_BASELINE_DATA_20261024_245/OUTPUT/PRICE_TARGETS.npz",
+      "sha256": "9d4a5fb3c473b088aff5a5d5a176c199a64053b679229c14f125697b93af577d"
+    }
+  },
+  "fit_prefix": {
+    "bar_start_ns_sha256": "88653d60d5d2196982e88be2393855203df38a59e192594119ac7efc032aa974",
+    "cutoff_ns": 1727740800000000000,
+    "decision_ns_sha256": "230f38de532e9d1b8b310c81d3d3cc0c021ad05e0be0cd985ae55a72f1fd8067",
+    "parent_rows_sha256": "178e758fb705799a7f5557e680a764dfeb3c5cd7958f0562e84f693e418fcd43",
+    "rows": 29849
+  },
+  "evaluation_axis": {
+    "cutoff_ns": 1730419200000000000,
+    "parent_row_range": [
+      29849,
+      36172
+    ],
+    "role": "development_geometry_only_not_independent_confirmation",
+    "rows": 6323
+  },
+  "sample_parent_positions": {
+    "fit": [
+      0,
+      1,
+      29847,
+      29848
+    ],
+    "development": [
+      29849,
+      29850,
+      36170,
+      36171
+    ]
+  },
+  "read_scope": {
+    "genuine_raw_features": "same exact source/provider and 36,172-parent pre-November historical feature prefix used in completed delivery 001; gather only eight fixed parents here",
+    "genuine_targets": "same immutable pre-November series; four fit and four October batches, 1-1440 minute query domain with exact maturity mask",
+    "causal_input_artifact": "read and verify six previously published issue-time arrays; only selected rows enter native feature batches",
+    "development_role": "October reused development, never independent edge"
+  },
+  "write_scope": {
+    "aggregate_result_only": true,
+    "raw_values": false,
+    "model_predictions": false
+  },
+  "restrictions": {
+    "model_construction": false,
+    "model_forward": false,
+    "optimizer_updates": false,
+    "test_split": false,
+    "broker_or_network": false,
+    "spending_usd": 0,
+    "post_october_outcomes": false
+  },
+  "execution": {
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- timeout --signal=TERM --kill-after=10s 1800s .venv/bin/python -m gx1.audit.dynamic_m5_october_native_batch_binding",
+    "class": "audit",
+    "memory": "4G",
+    "swap": "512M",
+    "timeout_seconds": 1800,
+    "kill_after_seconds": 10,
+    "cost_usd": 0
+  },
+  "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002",
+  "max_invocations": 1,
+  "stop_rule": "Any failure or timeout consumes claim and preserves receipts; no retry, model, TEST, broker or trading.",
+  "source_files_sha256": {
+    "gx1/audit/dynamic_m5_october_native_batch_binding.py": "9a21e8df7512332529ba4d00c1ffe3f0904a4dcedf336f5db70fd623beaa4a09",
+    "gx1/audit/dynamic_mtf_october_feature_delivery.py": "6ffb8d566c8709e88441b02e59dae81f7171c046b9c8b46181869fb1f5f3491e",
+    "gx1/audit/dynamic_mtf_october_input_only.py": "174c46d0bec2dc7a9ae46f893bcfbd7ef5945f79c39d95cefa9595918251f680",
+    "gx1/audit/dynamic_mtf_december_normalization.py": "a9d4a4445380b4220987d883b467875b89a25dde6f72d15c6a41012cf7bef315",
+    "gx1/contracts/entry_dynamic_m5_october_causal_inputs_v1.py": "fea6b76ee4b6bb4b182408acf6d48f7b0e1a5eba65e0bbe7222aefb8cc4863d7",
+    "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "e3fe8f45690e99f5aac769d7f921b4676cfe562400689acbb3c4efc1fa686697",
+    "gx1/contracts/entry_native_direction_prefix_units_v1.py": "37627f5321e476b00b2b5ed6c9d96b4c59f3b04124b3eb64cbedb6b3cf9a021d",
+    "gx1/contracts/entry_native_direction_research_v1.py": "627e063c51524d1bd9bfcf4f70b4c29451ddbb0e63d4ecda0906f1c327c3d497",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "ef64a40a7ac24fc931acc267fae298adde26f20ed91ed587fd28ffcaae71c565",
+    "gx1/contracts/entry_exit_feature_surface_v1.py": "64bef1d239f7ef4cc347e08243c13f2e2cb7b9b2e799ac5a114cb76176b49d31",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/contracts/local_random_access_campaign_v2.py": "00759c4ae37f0894ff42a673ad4b7d91e6e1a8bf9945386ac202cfaa6b992143",
+    "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "114afb430c11c77ac5a0bb9dc1f62c705b4bfed10f48fc67de1fe8effa0b1df1",
+    "gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "reason_for_successor": "Bind the existing October source-unit profile into the native feature gather call; predecessor 001 is consumed.",
+  "predecessor_failure": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_001/FAILED.json",
+    "sha256": "45d364e68cbb183384129c840f36a131bf55d700be9f94e2096843cf9abf08ba"
+  }
+}

@@ -91,13 +91,17 @@ def test_native_batch_uses_causal_tape_only_for_october_and_matches_target(monke
     decision = arrays['issue_ns'][:29849]
     prepared = {'arrays': {'parent_rows': parent, 'decision_ns': decision,
                             'bar_start_ns': decision - 300_000_000_000},
-                'october_role': 'fit', 'observer_axes': object(), 'october_causal_inputs': source,
+                'october_role': 'fit', 'observer_axes': object(), 'october_units_profile': {'profile': 'bound'},
+                'october_causal_inputs': source,
                 'entry_sequence_source': None, 'current': {'snap': None, 'ctx_cont': None, 'ctx_cat': None},
                 'cache': None, 'gc': {'surfaces': None, 'layout': None}}
     targets = {'dynamic_state_series': object(), 'train_cutoff_ns': scope['fit']['cutoff_ns'],
                'lead_minutes': np.array([5], np.int64)}
-    monkeypatch.setattr(views, 'gather_native_direction_feature_batch',
-        lambda *args, **kwargs: {'features': {'seq_x': np.zeros((2, 1, 1), np.float32)}, 'witness': {}})
+    def gather(*args, **kwargs):
+        assert kwargs['unobserved_units_profile'] is prepared['october_units_profile']
+        assert kwargs['observer_axes'] is prepared['observer_axes']
+        return {'features': {'seq_x': np.zeros((2, 1, 1), np.float32)}, 'witness': {}}
+    monkeypatch.setattr(views, 'gather_native_direction_feature_batch', gather)
     def historical_query(*args, **kwargs):
         take = np.searchsorted(arrays['parent_rows'], kwargs['parent_rows'])
         n = len(take)

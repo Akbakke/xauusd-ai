@@ -872,6 +872,8 @@ def _batch(prepared, targets, view, selected, np, *, cutoff=None):
         gc_surfaces=prepared['gc']['surfaces'],gc_layout=prepared['gc']['layout'],batch_parent_rows=selected,
         **({'observer_axes':prepared['observer_axes']}
             if 'zero_support_profile' in view or 'october_observer_axes' in view else {}),
+        **({'unobserved_units_profile':prepared['october_units_profile']}
+            if 'october_observer_axes' in view else {}),
         **({'m1_ofi_source':prepared['m1_ofi_source'], 'm1_ofi_clock':prepared['m1_ofi_clock']}
             if 'm1_ofi_normalization' in view else {}))
     at=np.searchsorted(prepared['arrays']['parent_rows'],selected)

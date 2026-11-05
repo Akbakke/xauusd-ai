@@ -20,9 +20,9 @@ from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as worke
 
 
 REPO = Path(__file__).resolve().parents[2]
-PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_001.json'
+PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002.json'
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-POLICY_KEY = 'dynamic_m5_october_native_batch_binding_20261106_001'
+POLICY_KEY = 'dynamic_m5_october_native_batch_binding_20261106_002'
 
 
 def _require(ok, reason):
@@ -61,7 +61,7 @@ def _role_prepared(raw, axes, view, scope, tape, role, part, profile):
                 'current': current, 'cache': raw['mtf'],
                 'gc': {'surfaces': raw['gc'], 'layout': raw['gc_layout']},
                 'observer_axes': observer, 'october_role': role,
-                'october_causal_inputs': tape}
+                'october_units_profile': profile, 'october_causal_inputs': tape}
     return prepared
 
 
@@ -81,7 +81,7 @@ def run():
              and plan['status'] == 'PREPARED_NOT_ADMITTED' and plan['max_invocations'] == 1
              and plan['sample_parent_positions'] == {'fit': [0, 1, 29847, 29848],
                  'development': [29849, 29850, 36170, 36171]}
-             and plan['output_root'] == '/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_001'
+             and plan['output_root'] == '/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002'
              and plan['execution']['command'] ==
                 'bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- timeout --signal=TERM --kill-after=10s 1800s .venv/bin/python -m gx1.audit.dynamic_m5_october_native_batch_binding'
              and plan['restrictions'] == {'model_construction': False, 'model_forward': False,
@@ -101,6 +101,11 @@ def run():
     candidate = _read(plan['candidate_view'])
     scope = _read(plan['observer_axes'])
     previous = _read(plan['prior_input_plan'])
+    failed = _read(plan['predecessor_failure'])
+    _require(failed['error'] == 'NATIVE_DIRECTION_FEATURE_VIEW_EXPLICIT_UNOBSERVED_UNITS_PROFILE'
+             and failed['no_relaunch_under_this_plan'] is True
+             and plan['reason_for_successor'] == 'Bind the existing October source-unit profile into the native feature gather call; predecessor 001 is consumed.',
+             'PREDECESSOR_FAILURE')
     _require(control['october_observer_axes'] == candidate['october_observer_axes'] == scope
              and control['prefix_normalization'] == candidate['prefix_normalization']
              and previous['full_axes'] == plan['full_axes']

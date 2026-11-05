@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T23:28:04.152437+00:00",
-  "status": "M5_ENTRY_OCTOBER_BATCH_ROUTING_SOURCE_CHECKED_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T23:36:34.033116+00:00",
+  "status": "M5_ENTRY_OCTOBER_BATCH_001_FAILED_CONSUMED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "October causal feature delivery is complete. A source-only October batch join now routes the locked age candidate to the native model input key while preserving a matched control. Next qualify a source-bound October launch/worker, genuine loader and native forward, then one exact chronological TRAIN-OOF recipe with mature targets, fresh baseline, gradient/resume, safe reboot and separate model admission. training_enabled=false; no model, TEST or trading admission.",
+  "next_action": "The first genuine October batch binding claim failed on the missing source-unit profile argument and is consumed. The one-argument source correction and exact successor plan 002 are prepared; admit and run 002 once under standing zero-cost authorization. Native model/OOF and TEST/trading remain closed; training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -58223,7 +58223,7 @@
     "remaining_unknown": "Actual genuine artifact loader use, native forward/gradient/resume, an October-compatible source-bound launch manifest, strict chronological TRAIN OOF and independent edge."
   },
   "dynamic_m5_october_native_batch_binding_20261106_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "FAILED_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_001.json",
       "sha256": "d7ca8b2552e6d43ae3f11e766ecbe296dfbe241bc753909f41fb204956b01963"
@@ -58233,13 +58233,21 @@
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "admitted_utc": "2026-11-05T23:34:29.107830+00:00",
     "source_head_at_admission": "d793fef6461b35b39a531525e6286c76c544746d",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_001",
     "scope": "One source-bound 4 fit plus 4 October parent native feature/target batch comparison, matched control and age candidate, reused genuine artifacts and full 1-1440 minute target domain; no native model.",
     "training_enabled": false,
     "native_model_calls_authorized": 0,
     "test_split_access_authorized": false,
     "broker_orders_or_trading_authorized": false,
-    "independent_edge": "UNKNOWN"
+    "independent_edge": "UNKNOWN",
+    "claim_exit_code": 1,
+    "failed": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_001/FAILED.json",
+      "sha256": "45d364e68cbb183384129c840f36a131bf55d700be9f94e2096843cf9abf08ba"
+    },
+    "native_model_calls": 0,
+    "measured_blocker": "The native _batch omitted unobserved_units_profile for October view gather; view contract rejected before native feature batch, no model.",
+    "new_claim_required": true
   }
 }
