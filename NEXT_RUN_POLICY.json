@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T11:07:39.889727+00:00",
-  "status": "M5_ENTRY_FIRST_SINGLE_REQUEST_DIAGNOSTIC_PREPARED_TRAINING_DISABLED",
+  "observed_utc": "2026-11-05T11:18:22.483459+00:00",
+  "status": "M5_DIRECTION_GOAL_BLOCKED_PENDING_SINGLE_GET_ADMISSION",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Review the separately prepared one-GET HTTP400 diagnostic and obtain its exact new operator exception before any network call. The old clock claim and TRAIN/December studies remain consumed. This source step cannot establish directional edge; training, TEST, Exit and trading remain closed.",
+  "next_action": "Await the already requested exact operator exception for the prepared one-GET HTTP400 diagnostic. No live job is running, no new request is admitted, and the old claim remains consumed. Full directional objective is unachieved; training, TEST, Exit and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Long-term M5 directional goal resumed. One exact HTTP400 diagnostic is prepared and tested offline, with its own closed admission.",
+    "current_activity": "Long-term M5 directional goal blocked pending the already requested exact one-GET diagnostic exception; no live job observed.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Review the separately prepared one-GET HTTP400 diagnostic and obtain its exact new operator exception before any network call. The old clock claim and TRAIN/December studies remain consumed. This source step cannot establish directional edge; training, TEST, Exit and trading remain closed.",
+    "next_action": "Await the already requested exact operator exception for the prepared one-GET HTTP400 diagnostic. No live job is running, no new request is admitted, and the old claim remains consumed. Full directional objective is unachieved; training, TEST, Exit and trading remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "ACTIVE_M5_ENTRY_SINGLE_REQUEST_DIAGNOSTIC_PREPARED",
+    "status": "BLOCKED_PENDING_EXACT_SINGLE_REQUEST_ADMISSION",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56932,7 +56932,7 @@
         "independent untapped forward period, quantitative coverage/support and separate exact admission"
       ]
     },
-    "goal_tool_status_last_observed": "active",
+    "goal_tool_status_last_observed": "blocked",
     "external_evidence_gates": {
       "reviewed_utc": "2026-11-05T01:16:36.238473+00:00",
       "native_archive_manifest": {
@@ -56954,7 +56954,19 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/WHOLE_PC_SOURCE_SEARCH_001/SOURCE_SEARCH_RESULT.json",
       "sha256": "15455a43bba4641a9b80397caac285a0d057d14185c8e9f7f3ef55cc3d8dc76f"
     },
-    "physical_clock_subgoal": "xau_input_physical_clock_goal_20261105"
+    "physical_clock_subgoal": "xau_input_physical_clock_goal_20261105",
+    "blocked_audit": {
+      "observed_utc": "2026-11-05T11:18:22.483459+00:00",
+      "resumed_goal_turns_with_same_blocker": 3,
+      "previous_goal_turn_classification": "NO_PROGRESS: only existing admission/process state was revalidated.",
+      "blocker": "The separately prepared one-GET diagnostic has no exact operator exception; original HTTP400 response body is unavailable.",
+      "live_evidence_head": "ec28d31776ab00f46402a07dfaf508749fdcdb97",
+      "live_process_observation": "NO_CURRENT_PYTHON_WORKLOAD_OBSERVED",
+      "diagnostic_claim_exists": false,
+      "all_diagnostic_execution_network_gates": false,
+      "full_goal_completed": false,
+      "remaining_limits": "TRAIN comparison and December/clock plans are consumed; original ordered quote source, physical readiness and independent edge remain unqualified. No further admitted experiment or qualified unused source is available."
+    }
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
     "status": "COMPLETE_CONSUMED_BOTH_REGISTERED_TRAIN_CONTRASTS_NOT_QUALIFIED",
@@ -57141,7 +57153,7 @@
     "source_base_commit": "cb1332cb9da482c783471011bffc008edf8c3133",
     "run_root": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001",
     "scope": "One exact admitted input-only timing measurement using the frozen plan and canonical source producer. M5 Entry only; no model or Exit.",
-    "goal_tool_state": "The original long-term goal was explicitly resumed active by the user. This source-clock subgoal remains in repository policy; no replacement goal was created.",
+    "goal_tool_state": "Original long-term goal is blocked after three resumed goal turns with the same missing diagnostic admission. This is not completion; the full objective is preserved.",
     "prior_completed_discovery": "whole_pc_xau_source_search_20261105_001",
     "measured_gaps": [
       "Current consumption uses historical event time, without physical receipts.",
