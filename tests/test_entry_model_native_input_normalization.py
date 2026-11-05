@@ -668,6 +668,55 @@ def test_explicit_constant_prefix_preserves_unseen_values(surface, field, observ
         fit_surface_normalization(values, surface=surface, field_names=[field])
 
 
+@pytest.mark.parametrize("event", [0.5902255773544312, 1.0])
+def test_october_m5_single_apex_event_uses_source_bounded_unit(event):
+    from gx1.contracts import entry_native_direction_prefix_units_v1 as units
+
+    profile = units.october_prefix_units_profile()
+    values = np.zeros((12, 1), dtype=np.float32)
+    values[7, 0] = np.float32(event)
+    args = dict(surface="mtf_m5", field_names=["geomchan_apex_proximity"],
+                allow_constant_train_fields=True)
+    with pytest.raises(RuntimeError, match="UNSCALEABLE"):
+        fit_surface_normalization(values, **args)
+    fitted = fit_surface_normalization(values, **args, unobserved_units_profile=profile)
+    assert fitted["center"] == [0.] and fitted["scale"] == [1.]
+    assert fitted["scale_source"] == ["source_bounded_unit_scale"]
+    normalization_contract.require_surface_normalization(
+        fitted, surface="mtf_m5", field_names=args["field_names"],
+        unobserved_units_profile=profile)
+    transformed = apply_surface_normalization(values, fitted)
+    assert transformed[7, 0] > 0 and np.count_nonzero(transformed) == 1
+    np.testing.assert_allclose(invert_surface_normalization(transformed, fitted), values, atol=1e-7)
+    with pytest.raises(RuntimeError, match="SOURCE_BOUNDED_UNIT_CONTRACT_INVALID"):
+        normalization_contract.require_surface_normalization(
+            fitted, surface="mtf_m5", field_names=args["field_names"])
+    stale = copy.deepcopy(fitted)
+    stale["scale_source"] = ["raw_iqr"]
+    with pytest.raises(RuntimeError, match="STATS_HASH_MISMATCH"):
+        normalization_contract.require_surface_normalization(
+            stale, surface="mtf_m5", field_names=args["field_names"],
+            unobserved_units_profile=profile)
+
+
+def test_october_m5_source_unit_rejects_out_of_domain_and_other_fields():
+    from gx1.contracts import entry_native_direction_prefix_units_v1 as units
+
+    profile = units.october_prefix_units_profile()
+    values = np.zeros((12, 1), dtype=np.float32)
+    values[7, 0] = 1.25
+    with pytest.raises(RuntimeError, match="SOURCE_BOUNDED_UNIT_DOMAIN_INVALID"):
+        fit_surface_normalization(values, surface="mtf_m5",
+            field_names=["geomchan_apex_proximity"],
+            allow_constant_train_fields=True, unobserved_units_profile=profile)
+    values[7, 0] = 0.5
+    for surface, field in (("mtf_m15", "geomchan_apex_proximity"),
+                           ("mtf_m5", "unrelated_feature")):
+        with pytest.raises(RuntimeError, match="UNSCALEABLE"):
+            fit_surface_normalization(values, surface=surface, field_names=[field],
+                allow_constant_train_fields=True, unobserved_units_profile=profile)
+
+
 def test_constant_opt_in_does_not_change_nonconstant_statistics():
     values = np.array([[0., 1.], [0., 2.], [0., 3.], [4., 4.]], dtype=np.float32)
     args = dict(surface="signal", field_names=["rare", "continuous"])

@@ -13,9 +13,10 @@ def _stub():
     ref = {'path': '/synthetic/plan.json', 'sha256': '1' * 64}
     plan = {'schema_version': 'gx1_dynamic_m5_october_input_only_plan_v1',
             'status': 'PREPARED_NOT_ADMITTED',
-            'plan_id': 'DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002',
+            'plan_id': 'DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003',
             'max_invocations': 1,
-            'output_root': '/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002',
+            'output_root': '/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003',
+            'admission': {'policy_key': owner.POLICY_KEY},
             'restrictions': {'target_arrays': False, 'model_construction': False,
                 'model_forward': False, 'optimizer_updates': False, 'test': False,
                 'broker_or_network': False, 'orders_or_trading': False, 'spending_usd': 0}}

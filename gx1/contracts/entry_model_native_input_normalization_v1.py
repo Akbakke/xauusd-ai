@@ -401,6 +401,7 @@ def _stats_sha256(
     zero_support_profile_sha256: str | None = None,
     unobserved_units_profile_sha256: str | None = None,
     observed_fit_counts: Sequence[int] | None = None,
+    scale_source: Sequence[str] | None = None,
 ) -> str:
     digest = hashlib.sha256()
     digest.update(b"entry_model_native_input_normalization_surface_v3_asinh\0")
@@ -434,6 +435,11 @@ def _stats_sha256(
             separators=(",", ":"),
         ).encode("utf-8")
     )
+    if scale_source is not None:
+        bounded = [i for i, source in enumerate(scale_source) if source == "source_bounded_unit_scale"]
+        if bounded:
+            digest.update(b"source_bounded_unit_scale\0")
+            digest.update(np.ascontiguousarray(bounded, dtype="<i4").tobytes())
     if zero_support_profile_sha256 is not None:
         digest.update(b"research_structural_zero\0" + bytes.fromhex(zero_support_profile_sha256))
     if unobserved_units_profile_sha256 is not None:
@@ -1044,12 +1050,9 @@ def fit_surface_normalization(
             #   * it is injective on two points (a positive affine map followed
             #     by the strictly increasing asinh), so no evidence is lost and
             #     the first Linear layer absorbs the change of units; and
-            #   * it cannot newly raise UNSCALEABLE on a two-valued column. If
-            #     at least 75% of the rows share one value the IQR is 0 and the
-            #     median positive absolute deviation is the gap to the other
-            #     value; otherwise the IQR is that same gap. Either way the
-            #     scale is the gap, which is strictly positive whenever the
-            #     column holds two distinct values.
+            #   * a two-valued column with at least two minority observations
+            #     has a positive empirical scale. A single minority event is
+            #     intentionally UNSCALEABLE unless its source declares a unit.
             # Removing this exception is what rule 2b permits; inferring a
             # domain from a sample is what it forbids.
             field_center = np.float32(median[local])
@@ -1067,6 +1070,18 @@ def fit_surface_normalization(
                 if positive.size >= 2:
                     field_scale = np.float32(np.median(positive))
                     source = "median_positive_abs_deviation"
+            if (not np.isfinite(field_scale) or field_scale <= np.float32(0.0)) and (
+                allow_constant_train_fields and unobserved_units_profile is not None
+                and surface == "mtf_m5" and names[index] == "geomchan_apex_proximity"
+                and positive.size == 1 and field_center == 0.0
+            ):
+                # trendline_registry_v1._channel_block clamps this exact field
+                # to [0,1]. One observed TRAIN event cannot set an empirical
+                # denominator; one full source unit is fixed and invertible.
+                if np.any(column < 0.0) or np.any(column > 1.0):
+                    raise RuntimeError("ENTRY_INPUT_SOURCE_BOUNDED_UNIT_DOMAIN_INVALID")
+                field_center, field_scale = np.float32(0.0), np.float32(1.0)
+                source = "source_bounded_unit_scale"
             if not np.isfinite(field_scale) or field_scale <= np.float32(0.0):
                 raise RuntimeError(
                     "[ENTRY_INPUT_NORMALIZATION_UNSCALEABLE] "
@@ -1108,6 +1123,7 @@ def fit_surface_normalization(
         zero_support_profile_sha256=profile_sha,
         unobserved_units_profile_sha256=units_profile_sha,
         observed_fit_counts=observed_fit_counts if units_profile_sha is not None else None,
+        scale_source=scale_source,
     )
     result = {
         "surface": str(surface),
@@ -1350,6 +1366,15 @@ def require_surface_normalization(
                     "[ENTRY_INPUT_NORMALIZATION_CATEGORICAL_TRAIN_SUPPORT_INVALID] "
                     f"surface={surface} field={names[index]}"
                 )
+        bounded_unit = scale_source[index] == "source_bounded_unit_scale"
+        if bounded_unit and (
+            surface != "mtf_m5" or names[index] != "geomchan_apex_proximity"
+            or unobserved_units_profile is None or is_binary or is_categorical
+            or center[index] != 0. or scale[index] != 1.
+            or transformed_min[index] != 0.
+            or not 0. < transformed_max[index] <= float(np.arcsinh(1.0))
+        ):
+            raise RuntimeError("ENTRY_INPUT_SOURCE_BOUNDED_UNIT_CONTRACT_INVALID")
         constant_unit = scale_source[index] == "constant_train_unit_scale"
         if constant_unit and (
             is_binary or is_categorical or scale[index] != np.float32(1.0)
@@ -1363,6 +1388,7 @@ def require_surface_normalization(
             "raw_iqr",
             "median_positive_abs_deviation",
             "constant_train_unit_scale",
+            "source_bounded_unit_scale",
         }:
             raise RuntimeError(
                 f"[ENTRY_INPUT_NORMALIZATION_SCALE_SOURCE_INVALID] "
@@ -1390,6 +1416,7 @@ def require_surface_normalization(
         zero_support_profile_sha256=profile_sha,
         unobserved_units_profile_sha256=units_profile_sha,
         observed_fit_counts=observed_fit_counts if units_profile_sha is not None else None,
+        scale_source=scale_source,
     )
     if data["stats_sha256"] != expected_hash:
         raise RuntimeError(

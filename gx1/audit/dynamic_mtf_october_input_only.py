@@ -16,9 +16,9 @@ from collections.abc import Mapping
 
 
 REPO = Path(__file__).resolve().parents[2]
-PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002.json'
+PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003.json'
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-POLICY_KEY = 'dynamic_m5_october_input_only_20261105_002'
+POLICY_KEY = 'dynamic_m5_october_input_only_20261105_003'
 
 
 def _require(ok, reason):
@@ -57,9 +57,10 @@ def _load_module(ref, name):
 def _admission(plan, policy, plan_ref):
     _require(plan.get('schema_version') == 'gx1_dynamic_m5_october_input_only_plan_v1'
              and plan.get('status') == 'PREPARED_NOT_ADMITTED'
-             and plan.get('plan_id') == 'DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002'
+             and plan.get('plan_id') == 'DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003'
              and plan.get('max_invocations') == 1
-             and plan.get('output_root') == '/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002',
+             and plan.get('output_root') == '/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003'
+             and plan.get('admission', {}).get('policy_key') == POLICY_KEY,
              'PLAN_SCOPE')
     _require(policy.get('training_enabled') is False and policy.get('full_val_allowed') is False
              and policy.get('full_epoch_training_allowed') is False, 'POLICY_TRAINING_GATE')
@@ -183,6 +184,9 @@ def run():
              and ancestral_267['payloads'] == provider_plan['payloads'],
              'ANCESTRAL_READER_JOIN')
     old_support = _read_ref(plan['prior_october_support'])
+    predecessor = _read_ref(plan['predecessor_claim']['qualification'])
+    _require(predecessor['fit_allowed'] is True and predecessor['statistics_fits'] == 0
+             and predecessor['support'] == old_support['support'], 'PREDECESSOR_SUPPORT')
     _require(old_support['statistics_fits'] == 0 and old_support['fit_allowed'] is False
              and len(old_support['blockers']) == 153, 'PRIOR_SUPPORT_SCOPE')
     root = Path(plan['output_root'])
@@ -222,13 +226,30 @@ def run():
             source_bindings=report_source, unobserved_units_profile=spec,
             prefix_only_input_arrays=True)
         report = q['report']
-        _require(report['support'] == old_support['support'], 'SAME_GENUINE_SUPPORT')
+        _require(report['support'] == old_support['support'] == predecessor['support'],
+                 'SAME_GENUINE_SUPPORT')
+        sparse = report['support']['mtf_m5']
+        i = sparse['field_names'].index('geomchan_apex_proximity')
+        _require(sparse['observed_counts'][i] == 29978
+                 and sparse['nonzero_observed_counts'][i] == 1
+                 and sparse['observed_min'][i] == 0.0
+                 and sparse['observed_max'][i] == 0.5902255773544312
+                 and plan['sparse_source_unit'] == {
+                     'surface': 'mtf_m5', 'field': 'geomchan_apex_proximity',
+                     'generator': 'gx1/features/trendline_registry_v1.py:_channel_block',
+                     'source_range': [0.0, 1.0], 'fixed_center': 0.0,
+                     'fixed_scale': 1.0, 'scale_source': 'source_bounded_unit_scale'},
+                 'EXACT_SPARSE_SOURCE_UNIT')
         q_ref = _publish(root, 'QUALIFICATION.json', report,
                          max_bytes=plan['max_json_output_bytes'])
         fitted_ref = None
         if report['fit_allowed']:
             fitted = prefix.fit_native_direction_prefix_normalization(q)
             prefix.require_october_units_normalization_bindings(fitted, spec)
+            apex = fitted['base_normalization']['surfaces']['mtf_m5']
+            _require(apex['center'][i] == 0.0 and apex['scale'][i] == 1.0
+                     and apex['scale_source'][i] == 'source_bounded_unit_scale',
+                     'SPARSE_SOURCE_UNIT_NOT_APPLIED')
             fitted_ref = _publish(root, 'PREFIX_NORMALIZATION.json', fitted,
                                   max_bytes=plan['max_json_output_bytes'])
         _check_payload_stats(provider_plan['payloads'])
