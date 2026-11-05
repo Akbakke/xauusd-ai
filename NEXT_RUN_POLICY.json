@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Request one explicit admission for the fully prepared October input-only plan. It has no model, outcome, TEST, broker or trading role. Do not start the data check before that approval; then assess genuine support and prefix-only statistics once. Continue age/target/OOF preparation locally under existing gates.",
+  "next_action": "Run the explicitly admitted October input-only plan exactly once through its fixed capped audit command, then record the terminal and assess genuine prefix support and normalization. Continue age/target/OOF preparation locally; no model, outcome, TEST, broker or trading authority follows.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Request one explicit admission for the fully prepared October input-only plan. It has no model, outcome, TEST, broker or trading role. Do not start the data check before that approval; then assess genuine support and prefix-only statistics once. Continue age/target/OOF preparation locally under existing gates.",
+    "next_action": "Run the explicitly admitted October input-only plan exactly once through its fixed capped audit command, then record the terminal and assess genuine prefix support and normalization. Continue age/target/OOF preparation locally; no model, outcome, TEST, broker or trading authority follows.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_INPUT_ONLY_PLAN_PREPARED_NOT_ADMITTED_EDGE_UNKNOWN",
+    "status": "OCTOBER_INPUT_ONLY_ADMITTED_ONCE_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57692,13 +57692,15 @@
     }
   },
   "dynamic_m5_october_input_only_20261105_001": {
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED_ONCE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001.json",
       "sha256": "806c9b5335809a197debc7edfd805da4d261657421372f62ea33eb21b5a08385"
     },
-    "operator_approved": false,
-    "remaining_invocations": 0,
+    "operator_approved": true,
+    "operator_approval": "User answered Ja to the one prepared October input-only control in this chat on 2026-11-05; exact plan SHA remains bound above.",
+    "admitted_utc": "2026-11-05T17:47:56.218633+00:00",
+    "remaining_invocations": 1,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_001",
     "source_test_terminal": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_PREP_20261105_001/TEST_002_TERMINAL.json",
