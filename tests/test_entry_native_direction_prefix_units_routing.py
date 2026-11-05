@@ -234,6 +234,60 @@ def test_raw_gather_requires_opt_in_and_preserves_later_values_and_masks(binding
     assert result['witness']['raw_values_not_normalized'] is True
 
 
+def test_scoped_october_axes_allow_only_bound_fit_or_development_rows(binding_case):
+    case, profile = binding_case['case'], binding_case['profile']
+    n = binding_case['view']['prefix']['rows']
+    names = ('parent_rows', 'bar_start_ns', 'decision_ns')
+    hashes = lambda left, right: {name + '_sha256': _hash(case[name][left:right]) for name in names}
+    scope = {'source': _ref('synthetic-october-axis.json'), 'rows': len(case['parent_rows']),
+             **hashes(0, len(case['parent_rows'])),
+             'fit': {'rows': n, 'cutoff_ns': int(case['cutoff_ns']), **hashes(0, n)},
+             'held_out': {'rows': len(case['parent_rows']) - n,
+                          'cutoff_ns': int(case['decision_ns'][-1] + view.BAR_NS),
+                          **hashes(n, len(case['parent_rows']))}}
+    control_args = deepcopy(binding_case['arguments'])
+    control_args['october_observer_axes'] = scope
+    control = view.bind_native_direction_feature_view(**control_args)
+    candidate_args = deepcopy(control_args)
+    candidate_args['source_bindings']['confirmed_age_candidate_design'] = _ref('age-design.json')
+    candidate_args['confirmed_run_age_input'] = True
+    candidate = view.bind_native_direction_feature_view(**candidate_args)
+    assert candidate['full_axes']['rows'] == control['full_axes']['rows'] == len(case['parent_rows'])
+    assert candidate['october_observer_axes'] == control['october_observer_axes'] == scope
+    assert candidate['prefix_normalization']['contract_sha256'] == control['prefix_normalization']['contract_sha256']
+    inputs = _inputs(binding_case)
+    for name in names:
+        inputs[name] = case[name][n:]
+    for name in ('snap_x', 'ctx_cont', 'ctx_cat'):
+        inputs[name] = case[name][n:]
+    source = inputs['entry_sequence_source']
+    stop = int(source['sample_positions'][-1]) + 1
+    inputs['entry_sequence_source'] = {'signal': source['signal'][:stop],
+        'times_ns': source['times_ns'][:stop], 'sample_positions': source['sample_positions'][n:],
+        'audit': source['audit']}
+    inputs['batch_parent_rows'] = case['parent_rows'][n:].copy()
+    with pytest.raises(RuntimeError, match='BOUND_OBSERVER_AXES_REQUIRED'):
+        view.gather_native_direction_feature_batch(candidate, **inputs,
+            unobserved_units_profile=profile)
+    for bound in (control, candidate):
+        observer = view.NativeDirectionObserverAxes(bound, source=scope['source'],
+            parent_rows=inputs['parent_rows'], bar_start_ns=inputs['bar_start_ns'],
+            decision_ns=inputs['decision_ns'], role='score',
+            unobserved_units_profile=profile)
+        gathered = view.gather_native_direction_feature_batch(bound, **{
+            **inputs, 'parent_rows': observer.parent_rows,
+            'bar_start_ns': observer.bar_start_ns, 'decision_ns': observer.decision_ns,
+            'observer_axes': observer}, unobserved_units_profile=profile)
+        assert gathered['witness']['parent_rows'] == inputs['batch_parent_rows'].tolist()
+        assert len(gathered['features']) == 14
+    bad = inputs['decision_ns'].copy()
+    bad[-1] += view.BAR_NS
+    with pytest.raises(RuntimeError, match='OBSERVER_FIT_AXIS'):
+        view.NativeDirectionObserverAxes(candidate, source=scope['source'],
+            parent_rows=inputs['parent_rows'], bar_start_ns=inputs['bar_start_ns'],
+            decision_ns=bad, role='score', unobserved_units_profile=profile)
+
+
 def test_factory_rebinds_explicit_profile_before_forwarding_to_python_shell(binding_case, monkeypatch):
     calls = []
 

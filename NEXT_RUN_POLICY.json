@@ -58092,4 +58092,20 @@
     "post_october_outcomes_decoded": 0,
     "native_model_calls": 0
   }
+,
+  "dynamic_m5_october_scoped_axes_source_20261105_001": {
+    "status": "ADMITTED_ONCE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_SCOPED_AXES_SOURCE_20261105_001.json",
+      "sha256": "35fd294533ba0002b40e87bf01ca8f1aca21100c53fe888066819c676c991495"
+    },
+    "operator_approved": true,
+    "operator_approval": "Standing zero-cost local authorization; source-only exact axis/gather tests.",
+    "remaining_invocations": 1,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_SCOPED_AXES_SOURCE_20261105_001",
+    "training_enabled": false,
+    "native_model_calls_authorized": 0,
+    "test_split_access_authorized": false,
+    "scope": "Prefix-scoped October axis binding and selected raw gather; no actual October feature read or model."
+  }
 }

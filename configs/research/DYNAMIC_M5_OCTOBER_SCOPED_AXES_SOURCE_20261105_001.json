@@ -1,0 +1,44 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_scoped_axes_source_plan_v1",
+  "plan_id": "DYNAMIC_M5_OCTOBER_SCOPED_AXES_SOURCE_20261105_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "prepared_from_head": "0da2b71372e62e677345747211a019c66da0517a",
+  "prepared_utc": "2026-11-05T22:49:59.183709+00:00",
+  "purpose": "Qualify explicit fit/October observer axes on an exact prefix-scoped view and selected raw row gather without decoding later population feature values.",
+  "candidate_design": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_CANDIDATE_20261105_001.json",
+    "sha256": "b40123a364a65bb337699cc82215707049596b8ab0940c98ec64efc06fe17c8e"
+  },
+  "october_series": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001/STATE_SERIES/SERIES.json",
+    "sha256": "302ca457b81b8ff59347d25d29dcace0aed7bbaa75a0236298fb216547b7a7ac"
+  },
+  "source_files_sha256": {
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "40f2342e3e76ddfd88326c0a11e2e2a3ec2b7e6c6dcdc221ca2eaac99cb0d3a6",
+    "tests/test_entry_native_direction_prefix_units_routing.py": "670f1b84e24453e5d6ac396c4e7e803fcef821c3da247cfb5092528e0d4c214e",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "execution": {
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 2G --swap 512M -- timeout --signal=TERM --kill-after=10s 300s .venv/bin/python -m pytest -q tests/test_entry_native_direction_prefix_units_routing.py::test_scoped_october_axes_allow_only_bound_fit_or_development_rows tests/test_entry_native_direction_prefix_units_routing.py::test_confirmed_age_view_binds_exact_october_profile_and_candidate_source",
+    "resource_class": "audit",
+    "memory_max_bytes": 2147483648,
+    "swap_max_bytes": 536870912,
+    "max_wall_seconds": 300,
+    "kill_grace_seconds": 10,
+    "retries": 0,
+    "models": 0,
+    "network_calls": 0
+  },
+  "restrictions": {
+    "genuine_data_reads": false,
+    "model_construction": false,
+    "optimizer_updates": false,
+    "test_split": false,
+    "broker_or_network": false,
+    "spending_usd": 0
+  },
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_SCOPED_AXES_SOURCE_20261105_001",
+  "standing_authorization": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+  "stop_rule": "One capped source-only synthetic claim. No model, genuine data or relaunch."
+}
