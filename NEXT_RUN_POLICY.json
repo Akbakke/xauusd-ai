@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T09:54:28.050582+00:00",
-  "status": "M5_ENTRY_FIRST_CLOCK_ATTEMPT_CONSUMED_HTTP_400_TRAINING_DISABLED",
+  "observed_utc": "2026-11-05T11:07:39.889727+00:00",
+  "status": "M5_ENTRY_FIRST_SINGLE_REQUEST_DIAGNOSTIC_PREPARED_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Retain the consumed HTTP-400 clock attempt; bounded provider-error retention is repaired and tested offline, but its original cause is UNKNOWN. Any new request needs a new exact source-bound plan/admission. EMA20/50/100/200 are native inputs; price EMA9/21 are absent and no indicator change is admitted. No native training, TEST, Exit or trading.",
+  "next_action": "Review the separately prepared one-GET HTTP400 diagnostic and obtain its exact new operator exception before any network call. The old clock claim and TRAIN/December studies remain consumed. This source step cannot establish directional edge; training, TEST, Exit and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Clock attempt consumed and acquisition closed; focused HTTP error-evidence repair passed. EMA feature presence and native routing verified read-only.",
+    "current_activity": "Long-term M5 directional goal resumed. One exact HTTP400 diagnostic is prepared and tested offline, with its own closed admission.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Provider rejected the first candle request with HTTP 400; response error body was not retained, so cause is UNKNOWN. No source/ATR readiness measurement was obtained. A new request requires a new exact admission.",
+    "current_blocker": "Original provider error body is unavailable; cause and source/ATR readiness remain UNKNOWN. A separate one-GET diagnostic needs new explicit acquisition admission. Independent directional evidence and original ordered 2024 quote support remain unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Retain the consumed HTTP-400 clock attempt; bounded provider-error retention is repaired and tested offline, but its original cause is UNKNOWN. Any new request needs a new exact source-bound plan/admission. EMA20/50/100/200 are native inputs; price EMA9/21 are absent and no indicator change is admitted. No native training, TEST, Exit or trading.",
+    "next_action": "Review the separately prepared one-GET HTTP400 diagnostic and obtain its exact new operator exception before any network call. The old clock claim and TRAIN/December studies remain consumed. This source step cannot establish directional edge; training, TEST, Exit and trading remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "ACTIVE_M5_ENTRY_CLOCK_ATTEMPT_CONSUMED_NO_TIMING_MEASUREMENT",
+    "status": "ACTIVE_M5_ENTRY_SINGLE_REQUEST_DIAGNOSTIC_PREPARED",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56932,7 +56932,7 @@
         "independent untapped forward period, quantitative coverage/support and separate exact admission"
       ]
     },
-    "goal_tool_status_last_observed": "blocked",
+    "goal_tool_status_last_observed": "active",
     "external_evidence_gates": {
       "reviewed_utc": "2026-11-05T01:16:36.238473+00:00",
       "native_archive_manifest": {
@@ -57141,7 +57141,7 @@
     "source_base_commit": "cb1332cb9da482c783471011bffc008edf8c3133",
     "run_root": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001",
     "scope": "One exact admitted input-only timing measurement using the frozen plan and canonical source producer. M5 Entry only; no model or Exit.",
-    "goal_tool_state": "New goal creation rejected: previous long-term goal remains unfinished/blocked. Explicit new subgoal is recorded in canonical repository policy.",
+    "goal_tool_state": "The original long-term goal was explicitly resumed active by the user. This source-clock subgoal remains in repository policy; no replacement goal was created.",
     "prior_completed_discovery": "whole_pc_xau_source_search_20261105_001",
     "measured_gaps": [
       "Current consumption uses historical event time, without physical receipts.",
@@ -57213,7 +57213,35 @@
       "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/HTTP_ERROR_REPAIR_TESTS.json",
       "sha256": "f31a6582cf727cc097674a6de5bc6841838e230892b035a2c887ef8f7f9949f6"
     },
-    "original_HTTP400_cause": "UNKNOWN"
+    "original_HTTP400_cause": "UNKNOWN",
+    "http400_diagnostic": {
+      "status": "PREPARED_NOT_ADMITTED",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/XAU_HTTP400_DIAGNOSTIC_20261105_002.json",
+        "sha256": "4b1142d498713dc0f0c8db2fe4af18f426ea89ae3da8ccc9f8917c6c64572742"
+      },
+      "tests": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_TESTS.json",
+        "sha256": "4c96ee42567a2cd1cc318f6a6ab46c8dfad6087e47c26780a7636f39f2624b9a"
+      },
+      "scope": "One exact separately admitted GET matching the old failed request; preserve provider response and stop. No old admission reuse, automatic clock measurement, model, labels, TEST, account/order calls or spending.",
+      "execution_authorized": false,
+      "collection_authorized": false,
+      "broker_network_authorized": false,
+      "completed_invocations": 0,
+      "max_get_attempts": 1,
+      "relaunch_authorized": false,
+      "actual_provider_cause": "UNKNOWN",
+      "original_clock_attempt_remains_consumed": true,
+      "preparation": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_PREPARATION.json",
+        "sha256": "6915875c13a34da3b1c772e9d2d0098a96402c8ac679eadfb0134e676d1ab5a9"
+      },
+      "closed_admission_cli": {
+        "path": "/home/andre2/GX1_RUNS/XAU_INPUT_PHYSICAL_CLOCK_20261105_001/DIAGNOSTIC_002_CLOSED_CLI.json",
+        "sha256": "cde2ece80210308f6e4f255c530e56463abd643fff3c9bc233d756092d9803f9"
+      }
+    }
   },
   "m5_entry_priority_20261105": {
     "operator_request": "Entry skal vi ha på m5 timeframe for m1 er for mye støy; mer eyes on m1 i en pågående trade; først entry på plass.",
