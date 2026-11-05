@@ -58026,4 +58026,20 @@
     "native_model_calls": 0,
     "scope": "Source-unit age encoding on five TF, exact false masks and fail-closed invalid inputs; native model consumption and OOF still unqualified."
   }
+,
+  "dynamic_m5_confirmed_age_view_source_20261105_001": {
+    "status": "ADMITTED_ONCE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_VIEW_SOURCE_20261105_001.json",
+      "sha256": "5911e6a5c12e81e587819aa0e0598487d8702486df5b9abca4fd50a1a72389f4"
+    },
+    "operator_approved": true,
+    "operator_approval": "Standing zero-cost local authorization; source-only contract/view tests.",
+    "remaining_invocations": 1,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_CONFIRMED_AGE_VIEW_SOURCE_20261105_001",
+    "training_enabled": false,
+    "native_model_calls_authorized": 0,
+    "test_split_access_authorized": false,
+    "scope": "Optional confirmed-age v6 source/view binding only; native forward, actual data route and OOF remain unqualified."
+  }
 }

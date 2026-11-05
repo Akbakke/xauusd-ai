@@ -326,9 +326,11 @@ def native_direction_binary_loss(
 
 
 @lru_cache(maxsize=4, typed=True)
-def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state_loss_weight=None,
+def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, confirmed_run_age_input=False, first_state_loss_weight=None,
         extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False):
     _require(type(current_state_input) is bool, "STATE_CURRENT_INPUT_MODE")
+    _require(type(confirmed_run_age_input) is bool and (not confirmed_run_age_input or
+        (current_state_input and native_endpoint_loss)), "STATE_CONFIRMED_AGE_MODE")
     _require((not current_state_input and first_state_loss_weight is None)
         or (current_state_input and type(first_state_loss_weight) is float
             and math.isfinite(first_state_loss_weight) and first_state_loss_weight > 0), "STATE_FIRST_LOSS_WEIGHT")
@@ -417,14 +419,23 @@ def _dynamic_mtf_state_objective_bytes(*, current_state_input=False, first_state
             "native_endpoint_weight": 1.0,
             "native_endpoint_normalization": "mean_over_observed_mature_native_cells_in_minibatch_omit_when_empty",
         })
+    if confirmed_run_age_input:
+        value.update({
+            "schema_version": "gx1_native_dynamic_mtf_confirmed_age_research_v6",
+            "confirmed_run_age_input": "five_asinh_source_unit_values_plus_five_independent_observation_masks",
+            "confirmed_run_age_projection": "zero_initialized_bias_free_FP32_weight_2_to_hidden_added_per_timeframe",
+            "confirmed_run_age_clock": "historical_event_time_only_online_delivery_not_qualified",
+            "confirmed_run_age_future_labels_as_inputs": False,
+        })
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
-def dynamic_mtf_state_research_contract(*, current_state_input=False, first_state_loss_weight=None,
+def dynamic_mtf_state_research_contract(*, current_state_input=False, confirmed_run_age_input=False, first_state_loss_weight=None,
                                         extended_forecast_minutes=None, first_flat_activity_weight=None,
                                         native_endpoint_loss=False) -> dict[str, Any]:
     """Separate target/output/loss identity; legacy objective bytes are untouched."""
     raw = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
+        confirmed_run_age_input=confirmed_run_age_input,
         first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
         first_flat_activity_weight=first_flat_activity_weight, native_endpoint_loss=native_endpoint_loss)
     return {**json.loads(raw), "contract_sha256": hashlib.sha256(raw).hexdigest()}
@@ -464,12 +475,14 @@ class NativeDynamicMTFStateResearch(nn.Module):
     """
 
     def __init__(self, backbone: EntryV10CtxHybridTransformer, *, current_state_input=False,
+                 confirmed_run_age_input=False,
                  first_state_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None,
                  native_endpoint_loss=False):
         super().__init__()
         from gx1.features.entry_specialist_feature_groups_v1 import FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
         width = _backbone_width(backbone)
         contract = dynamic_mtf_state_research_contract(current_state_input=current_state_input,
+            confirmed_run_age_input=confirmed_run_age_input,
             first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
             first_flat_activity_weight=first_flat_activity_weight, native_endpoint_loss=native_endpoint_loss)
         _require(isinstance(backbone.entry_execution_profile, dict)
@@ -479,11 +492,13 @@ class NativeDynamicMTFStateResearch(nn.Module):
         self.backbone = backbone
         self._bound_hidden_width = width
         self._current_state_input = current_state_input
+        self._confirmed_run_age_input = confirmed_run_age_input
         self._first_state_loss_weight = first_state_loss_weight
         self._extended_forecast_minutes = extended_forecast_minutes
         self._first_flat_activity_weight = first_flat_activity_weight
         self._native_endpoint_loss = native_endpoint_loss
         self._research_contract_json = _dynamic_mtf_state_objective_bytes(current_state_input=current_state_input,
+            confirmed_run_age_input=confirmed_run_age_input,
             first_state_loss_weight=first_state_loss_weight, extended_forecast_minutes=extended_forecast_minutes,
             first_flat_activity_weight=first_flat_activity_weight, native_endpoint_loss=native_endpoint_loss)
         device = backbone.entry_q_joint_in.weight.device
@@ -495,6 +510,8 @@ class NativeDynamicMTFStateResearch(nn.Module):
         self.state_transition_head = nn.Linear(width, classes * classes, device=device, dtype=torch.float32)
         if current_state_input:
             self.state_current_projection = nn.Linear(5, width, bias=False, device=device, dtype=torch.float32)
+        if confirmed_run_age_input:
+            self.state_confirmed_age_weight = nn.Parameter(torch.zeros((width, 2), device=device, dtype=torch.float32))
         self.register_buffer("state_timeframe_codes", torch.arange(len(contract["timeframes"]), dtype=torch.int64, device=device))
         self.register_buffer("state_lead_minutes", torch.tensor(contract["lead_minutes"], dtype=torch.int64, device=device))
         self.register_buffer("state_class_codes", torch.arange(classes, dtype=torch.int64, device=device))
@@ -504,7 +521,8 @@ class NativeDynamicMTFStateResearch(nn.Module):
 
     @property
     def research_objective(self):
-        kwargs = {"current_state_input": self._current_state_input, "first_state_loss_weight": self._first_state_loss_weight,
+        kwargs = {"current_state_input": self._current_state_input, "confirmed_run_age_input": self._confirmed_run_age_input,
+                  "first_state_loss_weight": self._first_state_loss_weight,
                   "extended_forecast_minutes": self._extended_forecast_minutes,
                   "first_flat_activity_weight": self._first_flat_activity_weight,
                   "native_endpoint_loss": self.native_endpoint_loss}
@@ -522,6 +540,10 @@ class NativeDynamicMTFStateResearch(nn.Module):
     @property
     def first_state_loss_weight(self):
         return self._first_state_loss_weight
+
+    @property
+    def confirmed_run_age_input(self):
+        return self._confirmed_run_age_input
 
     @property
     def extended_forecast_minutes(self):
@@ -580,6 +602,13 @@ class NativeDynamicMTFStateResearch(nn.Module):
                 and bool(torch.isfinite(layer.weight).all()), "CURRENT_PROJECTION_BINDING")
         else:
             _require(not hasattr(self, "state_current_projection"), "CURRENT_PROJECTION_UNBOUND")
+        if self.confirmed_run_age_input:
+            weight = self.state_confirmed_age_weight
+            _require(type(weight) is nn.Parameter and weight.shape == (width, 2)
+                and weight.dtype == torch.float32 and weight.device == device and weight.requires_grad
+                and bool(torch.isfinite(weight).all()), "CONFIRMED_AGE_WEIGHT_BINDING")
+        else:
+            _require(not hasattr(self, "state_confirmed_age_weight"), "CONFIRMED_AGE_WEIGHT_UNBOUND")
 
     def forward(
         self, seq_x: torch.Tensor, snap_x: torch.Tensor, *,
@@ -589,6 +618,7 @@ class NativeDynamicMTFStateResearch(nn.Module):
         gc_seq_m5: torch.Tensor, gc_seq_m15: torch.Tensor,
         gc_seq_h1: torch.Tensor, gc_seq_h4: torch.Tensor, gc_seq_d1: torch.Tensor,
         current_state=None, current_observed=None, current_path_observed=None,
+        current_confirmed_run_age_features=None,
     ) -> dict[str, torch.Tensor]:
         self._require_binding()
         _require(isinstance(seq_x, torch.Tensor) and seq_x.ndim == 3 and seq_x.shape[0] > 0, "STATE_FEATURE_BATCH")
@@ -598,6 +628,20 @@ class NativeDynamicMTFStateResearch(nn.Module):
         else:
             _require(current_state is current_observed is current_path_observed is None, "CURRENT_INPUT_NOT_BOUND")
             current_features = None
+        if self.confirmed_run_age_input:
+            age = current_confirmed_run_age_features
+            _require(isinstance(age, torch.Tensor) and age.dtype == torch.float32
+                and age.shape == (seq_x.shape[0], self.state_timeframe_codes.numel(), 2)
+                and age.device == self.state_query_coordinates.device
+                and bool(torch.isfinite(age).all()), "CONFIRMED_AGE_INPUT")
+            value, mask = age[..., 0], age[..., 1]
+            _require(bool(((mask == 0) | (mask == 1)).all())
+                and bool(((value == 0) & (mask == 0) | (value > 0) & (mask == 1)).all())
+                and bool((mask <= current_observed.to(torch.float32)).all())
+                and bool((mask <= current_path_observed.to(torch.float32)).all()),
+                "CONFIRMED_AGE_MASK")
+        else:
+            _require(current_confirmed_run_age_features is None, "CONFIRMED_AGE_INPUT_UNBOUND")
         output = self.backbone(seq_x, snap_x, ctx_cat=ctx_cat, ctx_cont=ctx_cont,
             seq_m5=seq_m5, seq_m15=seq_m15, seq_h1=seq_h1, seq_h4=seq_h4, seq_d1=seq_d1,
             gc_seq_m5=gc_seq_m5, gc_seq_m15=gc_seq_m15, gc_seq_h1=gc_seq_h1,
@@ -613,6 +657,8 @@ class NativeDynamicMTFStateResearch(nn.Module):
         source = hidden[:, None, None, :].expand(-1, tfs, leads, -1)
         if current_features is not None:
             source = source + self.state_current_projection(current_features)[:, :, None, :]
+        if self.confirmed_run_age_input:
+            source = source + F.linear(age, self.state_confirmed_age_weight)[:, :, None, :]
         decoded = self.state_query_projection(torch.cat((source, coordinates), dim=-1))
         classes = self.state_class_codes.numel()
         initial = self.state_initial_head(decoded[:, :, 0])

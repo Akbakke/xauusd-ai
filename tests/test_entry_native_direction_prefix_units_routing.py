@@ -192,6 +192,27 @@ def test_resealed_markers_and_real_profile_on_small_population_fail(binding_case
         view._require_view(_seal(bound), unobserved_units_profile=immutable)
 
 
+def test_confirmed_age_view_binds_exact_october_profile_and_candidate_source(binding_case):
+    args = deepcopy(binding_case['arguments'])
+    control = binding_case['view']
+    args['source_bindings']['confirmed_age_candidate_design'] = _ref('confirmed-age-candidate.json')
+    args['confirmed_run_age_input'] = True
+    candidate = view.bind_native_direction_feature_view(**args)
+    assert candidate['confirmed_run_age_input'] is True
+    assert candidate['prefix_normalization'] == control['prefix_normalization']
+    assert candidate['physical_field_names_sha256'] == control['physical_field_names_sha256']
+    assert candidate['entry_execution_profile'] == control['entry_execution_profile']
+    assert candidate['research_objective']['contract_sha256'] != control['research_objective']['contract_sha256']
+    assert view._require_view(candidate, unobserved_units_profile=binding_case['profile']) == candidate
+    with pytest.raises(RuntimeError, match='SOURCE_REF_KEYS'):
+        view.bind_native_direction_feature_view(**{**args,
+            'source_bindings': binding_case['arguments']['source_bindings']})
+    with pytest.raises(RuntimeError, match='UNOBSERVED_UNITS_FIT_BINDING'):
+        view.bind_native_direction_feature_view(**{**args, 'native_endpoint_loss': False})
+    with pytest.raises(RuntimeError, match='SOURCE_REF_KEYS'):
+        view.bind_native_direction_feature_view(**{**args, 'confirmed_run_age_input': False})
+
+
 def test_raw_gather_requires_opt_in_and_preserves_later_values_and_masks(binding_case):
     bound, profile = binding_case['view'], binding_case['profile']
     arguments = _inputs(binding_case)

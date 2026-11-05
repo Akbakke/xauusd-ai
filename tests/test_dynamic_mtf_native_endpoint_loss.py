@@ -168,6 +168,23 @@ def test_numerical_recipe_binds_only_the_opted_in_loss_and_rejects_a_forged_mode
         native_direction_research_recipe(**controls, native_endpoint_loss=1)
 
 
+def test_confirmed_age_objective_is_opt_in_and_retains_v5_identity():
+    historical = research.dynamic_mtf_state_research_contract(
+        current_state_input=True, **HISTORICAL, native_endpoint_loss=True)
+    candidate = research.dynamic_mtf_state_research_contract(
+        current_state_input=True, **HISTORICAL, native_endpoint_loss=True,
+        confirmed_run_age_input=True)
+    assert historical["schema_version"] == "gx1_native_dynamic_mtf_endpoint_research_v5"
+    assert candidate["schema_version"] == "gx1_native_dynamic_mtf_confirmed_age_research_v6"
+    assert candidate["contract_sha256"] != historical["contract_sha256"]
+    assert candidate["confirmed_run_age_future_labels_as_inputs"] is False
+    assert research.dynamic_mtf_state_research_contract(
+        current_state_input=True, **HISTORICAL, native_endpoint_loss=True) == historical
+    with pytest.raises(RuntimeError, match="STATE_CONFIRMED_AGE_MODE"):
+        research.dynamic_mtf_state_research_contract(
+            current_state_input=True, **HISTORICAL, confirmed_run_age_input=True)
+
+
 def test_feature_view_seals_the_new_loss_without_changing_the_input_profile(bound_case):
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
     from tests.test_entry_native_dynamic_current_routing_v1 import _arguments

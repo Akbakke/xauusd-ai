@@ -1,0 +1,42 @@
+{
+  "schema_version": "gx1_dynamic_m5_confirmed_age_view_source_plan_v1",
+  "plan_id": "DYNAMIC_M5_CONFIRMED_AGE_VIEW_SOURCE_20261105_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "prepared_from_head": "7e0489b39544c25be222f61b9cd625839cabefce",
+  "prepared_utc": "2026-11-05T22:37:38.743489+00:00",
+  "purpose": "Qualify optional age contract and exact October view binding, preserving prior v5 identity and all native input routes; source-only synthetic checks.",
+  "candidate_design": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_CANDIDATE_20261105_001.json",
+    "sha256": "b40123a364a65bb337699cc82215707049596b8ab0940c98ec64efc06fe17c8e"
+  },
+  "source_files_sha256": {
+    "gx1/contracts/entry_native_direction_research_v1.py": "627e063c51524d1bd9bfcf4f70b4c29451ddbb0e63d4ecda0906f1c327c3d497",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "7e37d8facdc8e1853ff61ad9d27e0373ffa0623764c2ea9b1c29bfc372979c39",
+    "tests/test_dynamic_mtf_native_endpoint_loss.py": "98c9e41853a426df444c2eb74019dd4f4216e88ae406e2c476a5314f9c2a60ac",
+    "tests/test_entry_native_direction_prefix_units_routing.py": "78d475525701e2c81e735f5a81248459ef42e4471027e19f8784013ea87c5824",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "execution": {
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 2G --swap 512M -- timeout --signal=TERM --kill-after=10s 300s .venv/bin/python -m pytest -q tests/test_dynamic_mtf_native_endpoint_loss.py::test_confirmed_age_objective_is_opt_in_and_retains_v5_identity tests/test_entry_native_direction_prefix_units_routing.py::test_confirmed_age_view_binds_exact_october_profile_and_candidate_source",
+    "resource_class": "audit",
+    "memory_max_bytes": 2147483648,
+    "swap_max_bytes": 536870912,
+    "max_wall_seconds": 300,
+    "kill_grace_seconds": 10,
+    "retries": 0,
+    "models": 0,
+    "network_calls": 0
+  },
+  "restrictions": {
+    "genuine_data_reads": false,
+    "model_construction": false,
+    "optimizer_updates": false,
+    "test_split": false,
+    "broker_or_network": false,
+    "spending_usd": 0
+  },
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_CONFIRMED_AGE_VIEW_SOURCE_20261105_001",
+  "standing_authorization": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+  "stop_rule": "One capped source-only synthetic claim, no relaunch or model/fit admission."
+}
