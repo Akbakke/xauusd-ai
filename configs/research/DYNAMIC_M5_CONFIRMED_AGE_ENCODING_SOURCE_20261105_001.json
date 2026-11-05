@@ -1,0 +1,40 @@
+{
+  "candidate_design": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_CANDIDATE_20261105_001.json",
+    "sha256": "b40123a364a65bb337699cc82215707049596b8ab0940c98ec64efc06fe17c8e"
+  },
+  "execution": {
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 2G --swap 512M -- timeout --signal=TERM --kill-after=10s 300s .venv/bin/python -m pytest -q tests/test_entry_dynamic_mtf_state_targets.py -k confirmed_age_source_unit_encoding",
+    "kill_grace_seconds": 10,
+    "max_wall_seconds": 300,
+    "memory_max_bytes": 2147483648,
+    "models": 0,
+    "network_calls": 0,
+    "resource_class": "audit",
+    "retries": 0,
+    "swap_max_bytes": 536870912
+  },
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_CONFIRMED_AGE_ENCODING_SOURCE_20261105_001",
+  "plan_id": "DYNAMIC_M5_CONFIRMED_AGE_ENCODING_SOURCE_20261105_001",
+  "prepared_from_head": "251ceb6e2ee9e2de9960d0473e609fb8389ae986",
+  "prepared_utc": "2026-11-05T22:27:20.119834+00:00",
+  "purpose": "One capped, source-only synthetic test of the locked five-TF asinh age source-unit and mask encoding in the existing target owner; no model or genuine data.",
+  "restrictions": {
+    "broker_or_network": false,
+    "genuine_data_reads": false,
+    "model_construction": false,
+    "optimizer_updates": false,
+    "spending_usd": 0,
+    "test_split": false
+  },
+  "schema_version": "gx1_dynamic_m5_confirmed_age_encoding_source_plan_v1",
+  "source_files_sha256": {
+    "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681",
+    "tests/test_entry_dynamic_mtf_state_targets.py": "effa788d8713f826a45eb5272ccc4b23b3431b20a7a40bfaba2347750357905f"
+  },
+  "standing_authorization": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+  "status": "PREPARED_NOT_ADMITTED",
+  "stop_rule": "One focused source-test claim; no relaunch. The result does not admit model construction or training."
+}

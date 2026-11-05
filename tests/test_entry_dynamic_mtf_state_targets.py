@@ -606,3 +606,31 @@ def test_train_queries_never_fetch_missing_or_post_cutoff_label_rows(cutoff_minu
     else:
         assert np.all(data["reason"][0, :, 1] == target.QUERY_UNAVAILABLE)
         assert np.all(data["reason"][0, :, 0] != target.QUERY_UNAVAILABLE)
+
+
+def test_confirmed_age_source_unit_encoding_preserves_all_five_masks():
+    age = np.asarray([[1, 15, 60, 240, 1440], [0, 0, 0, 0, 0]], dtype=np.int64)
+    mask = np.asarray([[True] * 5, [False] * 5], dtype=bool)
+    current = {"current_confirmed_run_age_minutes": age,
+               "current_confirmed_run_age_observed": mask,
+               "current_observed": mask.copy(), "current_path_observed": mask.copy()}
+    encoded = target.encode_historical_dynamic_mtf_confirmed_run_age(current)
+    assert encoded.dtype == np.float32 and encoded.shape == (2, 5, 2)
+    np.testing.assert_allclose(encoded[0, :, 0], np.arcsinh(np.asarray([1 / 5, 1, 1, 1, 1])), rtol=1e-7)
+    np.testing.assert_array_equal(encoded[0, :, 1], 1.0)
+    np.testing.assert_array_equal(encoded[1], 0.0)
+    assert encoded.flags.c_contiguous
+
+
+def test_confirmed_age_source_unit_encoding_rejects_false_mask_storage_and_unknown_path():
+    age = np.asarray([[0, 1, 1, 1, 1]], dtype=np.int64)
+    mask = np.ones((1, 5), dtype=bool)
+    current = {"current_confirmed_run_age_minutes": age,
+               "current_confirmed_run_age_observed": mask,
+               "current_observed": mask.copy(), "current_path_observed": mask.copy()}
+    with pytest.raises(RuntimeError, match="AGE_INPUT_MASK"):
+        target.encode_historical_dynamic_mtf_confirmed_run_age(current)
+    age[0, 0] = 1
+    current["current_path_observed"][0, 0] = False
+    with pytest.raises(RuntimeError, match="AGE_INPUT_MASK"):
+        target.encode_historical_dynamic_mtf_confirmed_run_age(current)

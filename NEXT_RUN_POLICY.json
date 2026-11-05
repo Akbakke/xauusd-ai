@@ -58002,5 +58002,19 @@
     "native_model_calls": 0,
     "post_run_output_review": "All published refs rehashed; class and censor partitions, M5 input/start equality, strict cutoff and zero model/post-October/TEST checked from outputs only. No second genuine target read.",
     "remaining_unknown": "No target-series artifact was published; native age consumption, exact OOF recipe, model learning, independent edge, online punctuality and economics remain unqualified."
+  },
+  "dynamic_m5_confirmed_age_encoding_source_20261105_001": {
+    "status": "ADMITTED_ONCE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_ENCODING_SOURCE_20261105_001.json",
+      "sha256": "5042b4b7e40570ef15f28b36774535ad83e2d8ede031481b17b72f36781f150e"
+    },
+    "operator_approved": true,
+    "operator_approval": "Standing zero-cost local authorization for one source-only synthetic test; no model or genuine data.",
+    "remaining_invocations": 1,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_CONFIRMED_AGE_ENCODING_SOURCE_20261105_001",
+    "training_enabled": false,
+    "native_model_calls_authorized": 0,
+    "test_split_access_authorized": false
   }
 }

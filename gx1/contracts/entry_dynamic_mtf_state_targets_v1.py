@@ -544,6 +544,35 @@ def query_historical_dynamic_mtf_confirmed_run_age(series, *, parent_rows, issue
             "age_definition": "consecutive_observed_path_M1_rows_including_confirmed_change_row_v1"}
 
 
+
+def encode_historical_dynamic_mtf_confirmed_run_age(current):
+    """Source-unit, mask-preserving five-TF age input for the locked candidate.
+
+    The denominator is each TF's declared local M1 window, never fitted from
+    October or a later fold. False masks carry numeric zero and remain separate.
+    The caller owns the historical as-of query and any native-model admission.
+    """
+    _require(isinstance(current, Mapping), "AGE_INPUT_MAPPING")
+    keys = ("current_confirmed_run_age_minutes", "current_confirmed_run_age_observed",
+            "current_observed", "current_path_observed")
+    _require(all(key in current for key in keys), "AGE_INPUT_KEYS")
+    age, mask, observed, path = (current[key] for key in keys)
+    n = len(age) if isinstance(age, np.ndarray) and age.ndim == 2 else 0
+    shape = (n, len(TIMEFRAMES))
+    _require(n > 0 and isinstance(age, np.ndarray) and age.dtype == np.int64
+             and age.shape == shape and all(isinstance(x, np.ndarray) and x.dtype == np.bool_
+             and x.shape == shape for x in (mask, observed, path)), "AGE_INPUT_SHAPE")
+    _require(np.all(mask <= (observed & path)) and np.all(age[mask] >= 1)
+             and np.all(age[~mask] == 0), "AGE_INPUT_MASK")
+    units = np.asarray([LOCAL_WINDOW_M1_BARS[tf] for tf in TIMEFRAMES], dtype=np.float64)
+    value = np.arcsinh(age.astype(np.float64) / units[None, :]).astype(np.float32)
+    value[~mask] = 0.0
+    encoded = np.stack((value, mask.astype(np.float32)), axis=-1)
+    _require(encoded.shape == (n, len(TIMEFRAMES), 2)
+             and np.isfinite(encoded).all() and np.all(encoded[~mask] == 0.0), "AGE_INPUT_FINITE")
+    return np.ascontiguousarray(encoded)
+
+
 def query_dynamic_mtf_states(series, *, parent_rows, issue_ns, cutoff_ns, lead_minutes,
                              include_first_flat_activity=False):
     """Gather only the requested batch; all future prices/scales remain labels."""
