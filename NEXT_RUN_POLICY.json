@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T21:54:31.993480+00:00",
-  "status": "M5_ENTRY_OCTOBER_PREFIX_INPUT_FIT_COMPLETE_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T23:19:32.319820+00:00",
+  "status": "M5_ENTRY_OCTOBER_CAUSAL_FEATURE_DELIVERY_COMPLETE_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "October development target coverage claim is complete and consumed. Next bind candidate 001 age channels into actual native consumption and qualify one exact prefix-owned October OOF recipe with mature targets, matched control and capped model gates. training_enabled=false; no model, TEST or trading admission.",
+  "next_action": "October causal feature delivery claim is complete and consumed: all 6,323 development parents, 14 raw feature groups, five-TF current state and age. Next source-qualify actual native age consumption and one exact matched chronological TRAIN-OOF recipe with mature targets, fresh baseline, gradient/resume, safe reboot and separate model admission. training_enabled=false; no model, TEST or trading admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_DEVELOPMENT_TARGET_COVERAGE_MEASURED_EDGE_UNKNOWN",
+    "status": "OCTOBER_CAUSAL_FEATURE_DELIVERY_MEASURED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57082,7 +57082,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "One candidate and its October development target coverage are locked. Bind confirmed-age channels to actual native consumption and prepare exact matched prefix-owned October OOF with a fresh baseline, gradient/resume proof, safe boot and separate capped model admission. Independent edge remains UNKNOWN.",
+    "next_milestone": "Candidate 001, October target series, matched views and causal feature delivery are complete. Qualify actual native age consumption and one exact matched prefix-owned October OOF with mature targets, a fresh baseline, gradient/resume proof, safe boot and separate capped model admission. October is development; independent edge remains UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",
