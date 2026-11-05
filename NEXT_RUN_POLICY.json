@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T23:50:33.528888+00:00",
-  "status": "M5_ENTRY_OCTOBER_FIT_REFERENCES_001_COMPLETE_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T23:58:39.112756+00:00",
+  "status": "M5_ENTRY_OCTOBER_RECIPE_AGE_OPT_IN_SOURCE_CHECKED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Fit-only October OOF references 001 passed and are consumed: the frozen 29,849-parent class prior replayed exactly and last-closed candle orientation was fixed from pre-October TRAIN on M5/M15/H1/H4/D1. October outcomes and native model remain unread/unrun. Next qualify one October-bound native control/age worker and matched chronological TRAIN-OOF with fresh baseline, gradient/resume proof, safe boot and separate exact model admission. training_enabled=false; independent edge and economics UNKNOWN.",
+  "next_action": "The native numerical recipe owner now encodes the locked confirmed-age objective as an explicit opt-in; the prior recipe remains the default. Two focused source-only capped tests passed. The old campaign still rejects October input/endpoint scopes, so next add an October-specific guarded worker binding before any model admission. No native forward, TRAIN-OOF or independent edge; training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "October candidate 001 has genuine 36,172-parent causal inputs, 29,849-parent prefix normalization, matched eight-row native batch joins and frozen fit-only prior/candle references. No native model forward, gradient, TRAIN-OOF or independent edge is measured.",
+    "current_activity": "October candidate 001 has genuine matched input/target batches and frozen fit-only references. The native numerical recipe can now encode confirmed age without changing the default objective; source-only tests passed. No actual native forward, gradient, TRAIN-OOF or independent edge is measured.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The old native launch worker still binds the historical input qualification and December-specific role path; October has no admitted campaign/worker route. Fresh baseline, age-gradient/resume proof and one exact chronological control/candidate TRAIN-OOF remain. Physical ONLINE input arrival/ATR readiness and source-identical historical ordered XAU quotes remain UNKNOWN; no broker acquisition is open.",
+    "current_blocker": "The existing native campaign still binds historical/December input and endpoint scopes, not October candidate 001. A distinct guarded October worker binding, fresh baseline, age-gradient/resume proof, matched chronological TRAIN-OOF and exact model admission/safe boot remain. Physical ONLINE readiness and source-identical historical ordered XAU quotes remain UNKNOWN.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_FIT_REFERENCES_MEASURED_EDGE_UNKNOWN",
+    "status": "OCTOBER_RECIPE_AGE_OPT_IN_SOURCE_CHECKED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56852,7 +56852,7 @@
         4
       ],
       "model_calls": 0,
-      "source_binding": "_metadata requires historical manifest prefix_normalization in fixed INPUT_QUALIFICATION; _launch_metadata routes input_role through the December-only adapter, while the campaign and dynamic_state dispatch admit no October scope. The genuine October batch join is separate and cannot be treated as a native worker qualification.",
+      "source_binding": "The age opt-in is now encoded in entry_model_native_train_recipe_v1.py while the old default is retained. _metadata still requires historical manifest/INPUT_QUALIFICATION; _launch_metadata routes input_role to the December-only adapter, and campaign/dynamic-state dispatch admit no October scope or endpoint objective. The genuine October batch join is separate and cannot qualify the native worker.",
       "training_enabled": false,
       "worker": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
@@ -57082,7 +57082,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Candidate 001, October target series, matched views, full causal feature delivery, fixed genuine native batch joins and frozen fit-only prior/candle references are complete. Next qualify one October-bound native worker and matched chronological TRAIN-OOF with mature targets, fresh baseline, gradient/resume proof, safe boot and separate capped model admission. No native forward has run; independent edge remains UNKNOWN.",
+    "next_milestone": "October data, matched batches, fit-only references and age-opt-in numerical recipe source are qualified. Next bind the guarded native worker to October inputs/targets and control/candidate views; then fresh baseline, age-gradient/resume proof and one chronological TRAIN-OOF under separate exact model admission and safe boot. No native forward has run; independent edge remains UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",

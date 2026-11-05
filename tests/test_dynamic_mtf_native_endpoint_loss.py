@@ -185,6 +185,33 @@ def test_confirmed_age_objective_is_opt_in_and_retains_v5_identity():
             current_state_input=True, **HISTORICAL, confirmed_run_age_input=True)
 
 
+def test_confirmed_age_recipe_opt_in_preserves_old_identity_and_rejects_unbound_modes():
+    from gx1.contracts.entry_model_native_train_recipe_v1 import (
+        native_direction_research_recipe, require_native_direction_research_recipe)
+
+    controls = dict(batch_size=16, max_updates=1866, dynamic_state=True,
+                    current_state_first_loss_weight=.03, first_flat_activity_weight=.03,
+                    native_endpoint_loss=True)
+    baseline = native_direction_research_recipe(**controls)
+    candidate = native_direction_research_recipe(**controls, confirmed_run_age_input=True)
+    assert 'confirmed_run_age_input' not in baseline
+    assert baseline['research_objective_sha256'] == research.dynamic_mtf_state_research_contract(
+        current_state_input=True, **HISTORICAL, native_endpoint_loss=True)['contract_sha256']
+    assert candidate['confirmed_run_age_input'] is True
+    assert candidate['research_objective_sha256'] == research.dynamic_mtf_state_research_contract(
+        current_state_input=True, **HISTORICAL, native_endpoint_loss=True,
+        confirmed_run_age_input=True)['contract_sha256']
+    assert baseline['contract_sha256'] != candidate['contract_sha256']
+    assert require_native_direction_research_recipe(candidate) == candidate
+    with pytest.raises(RuntimeError, match='CONFIRMED_AGE_MODE'):
+        native_direction_research_recipe(batch_size=16, max_updates=1,
+            dynamic_state=True, confirmed_run_age_input=True)
+    with pytest.raises(RuntimeError, match='CONFIRMED_AGE_MODE'):
+        native_direction_research_recipe(**controls, confirmed_run_age_input=1)
+    with pytest.raises(RuntimeError, match='RECIPE_MISMATCH'):
+        require_native_direction_research_recipe({**baseline, 'confirmed_run_age_input': True})
+
+
 def test_feature_view_seals_the_new_loss_without_changing_the_input_profile(bound_case):
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
     from tests.test_entry_native_dynamic_current_routing_v1 import _arguments
