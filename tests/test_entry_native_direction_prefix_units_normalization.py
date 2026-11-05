@@ -17,9 +17,10 @@ from gx1.features.entry_specialist_feature_groups_v1 import compile_compact_entr
 
 def _case(surface="gc_mtf_d1", *, rows=8):
     profile = units.october_prefix_units_profile()
+    physical = compile_compact_entry_execution_profile()["physical_field_names"]
     names = list(history.gc_mtf_history_layout()["field_names"]["D1"]
                  if surface == "gc_mtf_d1" else
-                 compile_compact_entry_execution_profile()["physical_field_names"][surface])
+                 physical["mtf"] if surface.startswith("mtf_") else physical[surface])
     columns = units.prefix_units_surface_columns(profile, surface=surface, field_names=names)
     # Other observations are known constants, including genuine binary masks.
     raw = np.ones((rows, len(names)), dtype=np.float32)
@@ -28,6 +29,22 @@ def _case(surface="gc_mtf_d1", *, rows=8):
     kwargs = dict(surface=surface, field_names=names, allow_constant_train_fields=True,
                   unobserved_units_profile=profile)
     return raw, kwargs, columns
+
+
+def test_full_physical_m5_layout_keeps_single_apex_event():
+    raw, kwargs, columns = _case("mtf_m5", rows=12)
+    assert columns == {}
+    index = kwargs["field_names"].index("geomchan_apex_proximity")
+    raw[:, index] = 0.
+    raw[7, index] = np.float32(0.5902255773544312)
+    stats = norm.fit_surface_normalization(raw, **kwargs)
+    _require(stats, kwargs)
+    assert stats["field_names"][index] == "geomchan_apex_proximity"
+    assert stats["scale_source"][index] == "source_bounded_unit_scale"
+    assert stats["center"][index] == 0. and stats["scale"][index] == 1.
+    transformed = norm.apply_surface_normalization(raw, stats)
+    assert transformed[7, index] > 0.
+    np.testing.assert_allclose(norm.invert_surface_normalization(transformed, stats), raw, atol=1e-6)
 
 
 def _require(stats, kwargs):
