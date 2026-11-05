@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Prepare and admit exactly one zero-cost, source-bound TRAIN-only age/censor claim under the standing local authorization; then inspect the resulting coverage and lock one chronological OOF candidate. No model, TEST, broker or trading authority follows.",
+  "next_action": "Run exactly one admitted, capped pre-October TRAIN age/censor claim, inspect immutable aggregate receipts, then choose one chronological OOF candidate. No model, TEST, broker or trading authority follows.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "October input claim 003 is complete and consumed. The next distinct pre-October TRAIN age/censor audit is source-prepared with seven focused synthetic tests; its policy admission and genuine read have not occurred.",
+    "current_activity": "Pre-October age/censor plan 001 is admitted once under standing zero-cost local authorization after a closed-gate preflight. Genuine target audit has not yet run.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -57882,19 +57882,23 @@
   },
   "dynamic_m5_train_age_censor_20261105_001": {
     "model_calls_authorized": 0,
-    "operator_approved": false,
+    "operator_approved": true,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001.json",
       "sha256": "e68fd126b2c6445916481cbe2fc309a83e085d7d9fd0cd2d8320a7d5c19771fb"
     },
-    "remaining_invocations": 0,
+    "remaining_invocations": 1,
     "remaining_unknown": "TRAIN age coverage, M5 first-gap counts, prediction value, later generalization, independent edge and economics.",
     "scope": "One read-only audit of preserved pre-October TRAIN target arrays for five-TF confirmed current-state age coverage and M5 +5 first-gap event/return censor. October outcomes, raw quotes, models, TEST, network and trades are excluded.",
     "source_tests": "7 focused synthetic tests passed under capped audit 2 GiB/512 MiB; no genuine target arrays read during preparation.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED_ONCE",
     "test_access_authorized": false,
-    "training_enabled": false
+    "training_enabled": false,
+    "operator_approval": "Standing no-cost local authorization given by user on 2026-11-05; exact source-bound audit plan 001 admitted once. No new paid API or model tokens.",
+    "admitted_utc": "2026-11-05T22:08:32.095096+00:00",
+    "source_head_at_admission": "853172a55aa116b334860ac7e7db8cfdd31d63c9",
+    "closed_gate_preflight": "Capped invocation returned EXPLICIT_ADMISSION_REQUIRED before genuine reads; output root absent."
   }
 }
