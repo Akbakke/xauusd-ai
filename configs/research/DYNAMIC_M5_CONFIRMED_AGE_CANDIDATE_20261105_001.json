@@ -1,0 +1,121 @@
+{
+  "age_train_coverage": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001/AGE_COVERAGE.json",
+    "sha256": "902e17d09a1bec36243dd951de8aef985bad239ac3d68adfdfd7b609a9e67174"
+  },
+  "candidate_input": {
+    "age_definition": "consecutive_observed_path_M1_rows_including_confirmed_change_row_v1",
+    "existing_genuine_inputs_retained": true,
+    "fit_statistics_from_development": false,
+    "function": "query_historical_dynamic_mtf_confirmed_run_age",
+    "future_labels_as_inputs": false,
+    "name": "confirmed_current_state_run_age_five_tf_v1",
+    "native_model_consumption_qualified": false,
+    "observation_masks": 5,
+    "online_input_availability": "UNKNOWN; historical event-time M1 state age does not establish physical receipt or ATR readiness at M5 issue.",
+    "source_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+      "sha256": "e56365dd9084481bdec23b17458ca8b1f0dc676ef16989152ffec0e36a64bdbf"
+    },
+    "source_units_m1_rows": {
+      "D1": 1440,
+      "H1": 60,
+      "H4": 240,
+      "M15": 15,
+      "M5": 5
+    },
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "transform": "asinh(age_observed_M1_rows / LOCAL_WINDOW_M1_BARS[timeframe]) only where age mask true; numeric zero with false mask otherwise",
+    "values": 5
+  },
+  "comparison": {
+    "arms": [
+      "same native research function and all genuine inputs without new age channels",
+      "same function and inputs plus five age values and five masks"
+    ],
+    "matching": "identical prefix, chronological evaluation rows, seed, recipe, optimizer updates, target masks and scoring rows; no age-based cohort selection",
+    "metrics": [
+      "M5 +5 three-class log loss",
+      "M5 +5 Brier score",
+      "observed UP/DOWN directional discrimination",
+      "coverage and censor counts by class and UTC day",
+      "separate five-timeframe diagnostics"
+    ],
+    "references": [
+      "prefix-only three-class prior",
+      "prefix-only Markov state transition",
+      "frozen last-candle reference where source-qualified"
+    ],
+    "selection": "one candidate, no HPO, no threshold search, no December selection",
+    "uncertainty": "UTC-day dependence-aware paired intervals, rule and implementation bound before model scoring"
+  },
+  "existing_input_prefix_normalization": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/PREFIX_NORMALIZATION.json",
+    "sha256": "9cbde23587e2296365b799d9f288c27ce3cd9b4023baa19cc77aad3476076109"
+  },
+  "m5_first_gap_support": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001/M5_FIRST_GAP.json",
+    "sha256": "242aac4524aade2cb3aa3091c4148c90a13f55f43bb2c982908d0bf703466bbe"
+  },
+  "objective": "Test whether causal confirmed current-state run age improves dynamic three-class M5 +5 direction forecasting on a strict chronological October 2024 development fold, preserving all existing genuine signals and five-timeframe targets.",
+  "population": {
+    "axis_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/OCTOBER_AXIS.json",
+      "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"
+    },
+    "development_fold": {
+      "bar_start_ns_sha256": "871ab89f9fa5d73ba28a7664f27f0ac870efdf5c1478fb326d6fe0de611d82d9",
+      "cutoff_ns_exclusive": 1730419200000000000,
+      "decision_ns_sha256": "caf2e6b380de1d1aab800bc3cee75d6b749e093d24546a6f58ce840c428e4f2e",
+      "first_decision_ns": 1727740800000000000,
+      "last_decision_ns": 1730418900000000000,
+      "parent_row_range": [
+        29849,
+        36172
+      ],
+      "parent_rows_sha256": "2fdb34d3233a7fa1626e75c8cd0184a49ec59b9ba8f685a730080e3422643069",
+      "rows": 6323
+    },
+    "fit": {
+      "bar_start_ns_sha256": "88653d60d5d2196982e88be2393855203df38a59e192594119ac7efc032aa974",
+      "cutoff_ns": 1727740800000000000,
+      "decision_ns_sha256": "230f38de532e9d1b8b310c81d3d3cc0c021ad05e0be0cd985ae55a72f1fd8067",
+      "parent_rows_sha256": "178e758fb705799a7f5557e680a764dfeb3c5cd7958f0562e84f693e418fcd43",
+      "rows": 29849
+    },
+    "role": "October is previously examined TRAIN development, not independent confirmation"
+  },
+  "prepared_utc": "2026-11-05T22:15:30.791438+00:00",
+  "prohibited": [
+    "TEST",
+    "broker",
+    "orders",
+    "trading",
+    "Exit",
+    "paid API/model tokens",
+    "relaunch consumed plans",
+    "independent edge claim from October"
+  ],
+  "required_before_model": [
+    "Qualify October target/maturity/censor without reading beyond November cutoff and bind a prefix-valid series.",
+    "Bind age transform and masks into actual native feature view/model consumption; preserve all existing features and controls.",
+    "Write exact matched candidate/control recipe, source/campaign hashes, finite capped resource plan, fresh baseline and gradient/resume qualification.",
+    "Safe PC restart when required, separate policy admission and training_enabled gate."
+  ],
+  "schema_version": "gx1_dynamic_m5_confirmed_age_candidate_v1",
+  "status": "ONE_CANDIDATE_LOCKED_SOURCE_DESIGN_ONLY_NO_MODEL_ADMISSION",
+  "target": {
+    "atr_factor": 0.5,
+    "contract_sha256": "d44cf218b0f07c477e3ac52cc2374933c2754b40511492cdcf037811afc23ddd",
+    "first_gap_events": "support and censor diagnostics only, not alternate target or training label",
+    "primary": "M5 class at exact +5 wall minutes with observed and strictly mature mask",
+    "secondary": "M15 +15, H1 +60, H4 +240, D1 +1440 separately; all dynamic DOWN/FLAT/UP preserved",
+    "status": "provisional locked for this one candidate comparison; no search using October labels"
+  }
+}
