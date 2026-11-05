@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T00:12:12.413658+00:00",
-  "status": "DECEMBER_SINGLE_NATIVE_PASS_CLOSED_RESERVED_TARGETS_ONLY",
+  "observed_utc": "2026-11-05T00:14:47.947873+00:00",
+  "status": "DECEMBER_FROZEN_ONE_SCORE_ADMITTED_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Publish the single reserved December-only target slice against the final fit checkpoint. Admit no native model until target identity, event storage and a separate zero-update score campaign are bound.",
+  "next_action": "After the next safe physical boot, perform exactly one frozen-checkpoint December score on the 5,736 reserved parents. Keep training/optimizer off, verify all guards and the registered score, and report even a negative result.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Publish the single reserved December-only target slice against the final fit checkpoint. Admit no native model until target identity, event storage and a separate zero-update score campaign are bound.",
+    "next_action": "After the next safe physical boot, perform exactly one frozen-checkpoint December score on the 5,736 reserved parents. Keep training/optimizer off, verify all guards and the registered score, and report even a negative result.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17469,8 +17469,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": false,
-    "current_training_scope": "DECEMBER_MASKED_SINGLE_PASS_COMPLETE_NO_MORE_TRAINING",
+    "current_native_launch_authorized": true,
+    "current_training_scope": "NO_TRAINING_ONE_ZERO_UPDATE_RESERVED_DECEMBER_SCORE",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -20238,8 +20238,8 @@
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/FEATURE_VIEW.json",
             "sha256": "b2203f564aaa55ef273db13380beada17a5913c43405f654e8881fe97e28824f"
           },
-          "run_admission": false,
-          "model_calls_authorized": false,
+          "run_admission": true,
+          "model_calls_authorized": true,
           "verified_review": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/VERIFIED_REVIEW.json",
             "sha256": "d6fc39f198a859fe88deb0857375d97a4fb5b0b55fc1f8fdbf695a6062687c96"
@@ -20279,13 +20279,17 @@
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/ACTUAL_ROOT_REVIEW.json",
             "sha256": "a6777fd79ddff2d081f52bed07c5e3c2581c324fc61559b9541d7ecdef2ce9b5"
           },
-          "active_phase": null,
-          "reserved_scoring_authorized": false,
+          "active_phase": "score",
+          "reserved_scoring_authorized": true,
           "actual_fit_terminal": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/ACTUAL_ROOT_REVIEW.json",
             "sha256": "3b6aa70365ac2d8219098353832e3966a2a6706d87c8081326d58ce6d724cfed"
           },
-          "actual_optimizer_updates": 2617
+          "actual_optimizer_updates": 2617,
+          "registered_score_recipe": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RECIPE.json",
+            "sha256": "357fe7b8b5814244123aaa40f2ea055bd9037a701205ce92d154265b7ac45476"
+          }
         }
       }
     },
@@ -55581,7 +55585,7 @@
   "dynamic_mtf_december_direction_execution_goal_20261104": {
     "objective": "Før den ene forhåndsregistrerte GX1-desemberkandidaten gjennom faktisk, isolert TRAIN-only modellkvalifisering og, kun etter at hver eksakte port består, ett pass og én fryst kronologisk måling på de 5 736 reserverte desemberforeldrene. Behold 41 866 tidligere TRAIN-foreldre, samme maskerte profil og fem dynamiske tidsrammer, alle genuine forente inputs/kausale vakter, korrekt hendelsesskåring, trygg fysisk omstart og eksisterende capped rute. Dokumenter målte resultater eller det første virkelige stoppkriteriet uten omgåelse, skille modellæring, retningsverdi og uavhengig edge. Ingen TEST, handel, broker eller spending.",
     "operator_request": "All next stages for the single frozen December candidate, gated in sequence by actual evidence. No additional candidates, retuning, TEST or trading.",
-    "status": "FROZEN_MAIN_FIT_COMPLETE_READY_RESERVED_TARGETS",
+    "status": "ACTIVE_FROZEN_DECEMBER_SCORE_ONLY",
     "parent_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "candidate_plan": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
@@ -55611,7 +55615,7 @@
     ],
     "stage_admissions_are_not_implied_by_goal": true,
     "no_test_broker_orders_trading_spending": true,
-    "native_launch_authorized_now": false,
+    "native_launch_authorized_now": true,
     "actual_december_scores": 0,
     "milestone_complete": false,
     "private_input_preflight": "dynamic_mtf_december_private_inputs_preflight_20261104_002",
@@ -55619,7 +55623,7 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_PREFLIGHT_001/TERMINAL.json",
       "sha256": "730c7e06317bdd84c5f903c358e6a647cfe68a58beeefdf5b2906f47a24082d0"
     },
-    "active_native_phase": null,
+    "active_native_phase": "score",
     "private_input_evidence": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_PREFLIGHT_002/VERIFIED_REVIEW.json",
       "sha256": "a544b549ea7685c60d3c8657e4d30aff3fa4be4e8e62a00778f8a1d905d7f6dd"
@@ -55641,7 +55645,11 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/TRAIN_NATIVE_ENDPOINT_LEARNING.json",
       "sha256": "8df5edd7d9aba4de16753da65437e12553926ddfc1eb79e3ac889eccf397a2d3"
     },
-    "reserved_target_stage": "dynamic_mtf_december_score_targets_20261104_001"
+    "reserved_target_stage": "dynamic_mtf_december_score_targets_20261104_001",
+    "reserved_target_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001/TERMINAL.json",
+      "sha256": "174cf541a2e07b06ce6e15c2ec60945c33fca30e1ecf14f63b92397656c86f03"
+    }
   },
   "dynamic_mtf_december_private_inputs_preflight_20261104_001": {
     "status": "FAILED_CONSUMED_XAU_MANIFEST_WRONG_READER_NO_MODEL",
@@ -56573,7 +56581,7 @@
     }
   },
   "dynamic_mtf_december_score_targets_20261104_001": {
-    "status": "ADMITTED_ONCE_RESERVED_TARGET_PUBLICATION_TERMINAL_FIT_ONLY",
+    "status": "CONSUMED_RESERVED_TARGETS_5736_NO_PREDICTIONS",
     "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001",
     "worker": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001/build_reserved_targets.py",
@@ -56608,10 +56616,10 @@
       "max_rchar_bytes": 137438953472
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "score_target_view_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "score_target_view_authorized": false,
     "model_calls_authorized": false,
     "training_enabled": false,
     "optimizer_updates_authorized": false,
@@ -56619,6 +56627,133 @@
     "test_authorized": false,
     "broker_authorized": false,
     "trading_authorized": false,
-    "reserved_model_predictions_authorized": false
+    "reserved_model_predictions_authorized": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001/CLAIM.json",
+      "sha256": "b4e7ba8d01b574d82699889dc8cd3e5eedc8c988f757651fccca9a87a660744f"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001/TERMINAL.json",
+      "sha256": "174cf541a2e07b06ce6e15c2ec60945c33fca30e1ecf14f63b92397656c86f03"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001/RESULT.json",
+      "sha256": "c4ba706fed168613b87937b1cb6fc7e987321114e882c93be569a9eba353c664"
+    },
+    "target_manifest": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001/SCORE_TARGETS/SERIES.json",
+      "sha256": "92ba74ce0541c9b26d4b1931da1114c673d219beb7e9c7b64c79765f11733c62"
+    },
+    "calendar_authority": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001/SCORE_CLOCK_CLASSIFICATION.json",
+      "sha256": "4537b3c90ce4458b09a18cc11d3fad851f639b7069c45a2b1e4eccc208671b5b"
+    },
+    "target_m1_rows": 28700,
+    "published_npy_bytes": 5764528
+  },
+  "dynamic_mtf_state_december_native_score_20261104_001": {
+    "status": "ADMITTED_ONCE_FROZEN_RESERVED_DECEMBER_SCORE_ZERO_UPDATES",
+    "candidate_plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
+      "sha256": "a5bc7eb8fe55ee4cdfef79bd0cd3b42661ab73cc43a350a11baa87db3f7f63c7"
+    },
+    "input_role": "score",
+    "scope": "Restore the exact terminal fit, score all 5,736 fixed December IDs once with no tuning, and publish the validated paired report. No optimizer updates, training, TEST or economic exposure.",
+    "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RECIPE.json",
+      "sha256": "357fe7b8b5814244123aaa40f2ea055bd9037a701205ce92d154265b7ac45476"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "99859d71549a4c48b00a369cf13c60d5a681150b13e5e28bf4f13833490a0846"
+    },
+    "materializer": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/materialize_bound_score_campaign.py",
+      "sha256": "0a46c2868fbd936f116c884d197bb501a7762671b38bf8e58d09b9a40156ddda"
+    },
+    "metadata_precheck": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/CHECK_BOUND_PREFIX_READINESS.py",
+      "sha256": "106596bafe4e6d24a06d029a8647fb8968ac828caae06a7d470ee71684653b2c"
+    },
+    "fit_terminal_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "3b6aa70365ac2d8219098353832e3966a2a6706d87c8081326d58ce6d724cfed"
+    },
+    "fit_checkpoint": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/RUNTIME/prefix-fit/states/w0002_TERMINAL_u002617_p041866.pt",
+      "sha256": "9c5759ffc966034edeb9ba24df0efca24f909b4d707623999ccb58f2fa5b2ca9"
+    },
+    "scoring_binding": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/SCORING_BINDING.json",
+      "sha256": "6efe8252cda3fe479e6de24777b08ce41856be85784ddcc89b867d94b8f0a651"
+    },
+    "score_target_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001/TERMINAL.json",
+      "sha256": "174cf541a2e07b06ce6e15c2ec60945c33fca30e1ecf14f63b92397656c86f03"
+    },
+    "storage_plan": {
+      "base_npy": {
+        "bar_start_ns": 46016,
+        "issue_ns": 46016,
+        "parent_rows": 46016,
+        "probabilities": 495590528,
+        "sequence_nll": 114848
+      },
+      "campaign_json_reserve": 67108864,
+      "checkpoint_reserve": 4294967296,
+      "contract_sha256": "ea6588c86ebf2c0f8e82f0e7d3fe4faa3a73680fb2cb364d8f2802262ea55a1e",
+      "event_npy": {
+        "candle": 229568,
+        "d1_hazard_counts": 183680,
+        "d1_hazard_sums": 734336,
+        "event_p": 1835648,
+        "h4_gap": 5864,
+        "path_evidence": 172208,
+        "state_evidence": 114848
+      },
+      "event_npy_total_bytes": 3276152,
+      "parents": 5736,
+      "required_free_bytes": 4928304600,
+      "schema_version": "gx1_december_score_storage_v1",
+      "second_npy_copy_bytes": 0,
+      "staged_sidecar_and_manifest_cap": 67108864,
+      "total_npy_bytes": 499119576
+    },
+    "power_limit_w": 250,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "training_rounds": 0,
+    "max_optimizer_updates": 0,
+    "max_reserved_scores": 1,
+    "max_reserved_parents": 5736,
+    "max_genuine_batch_forwards": 359,
+    "relaunch_allowed": false,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "native_launch_authorized": true,
+    "zero_update_reserved_scoring_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "held_out_features_authorized": true,
+    "held_out_outcomes_authorized": true,
+    "user_reboot_authorized": true,
+    "fresh_windows_boot_required": true,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "full_val_allowed": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false
   }
 }
