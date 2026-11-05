@@ -1,0 +1,1299 @@
+{
+  "schema_version": "gx1_exact_prefix_declared_units_preparation_v1",
+  "plan_id": "DYNAMIC_M5_OOF_PREFIX_UNITS_20261105_001",
+  "status": "PREPARATION_ONLY_NOT_NATIVE_ADMISSION",
+  "prepared_from_head": "784d14c048680c36c4c25daed8c19d520ebe8a0d",
+  "operator_scope": "Standing M5 Entry local source preparation from 2026-11-05; no previous consumed experiment is relaunched.",
+  "scope": "Bind an exact source-only normalization design and reuse existing synthetic tests. No genuine input arrays, targets, learned model or optimization.",
+  "authority": {
+    "genuine_data_audit": false,
+    "genuine_statistics_fit": false,
+    "native_model_launch": false,
+    "training_enabled": false,
+    "test_access": false,
+    "broker_or_network_collection": false,
+    "spending": false
+  },
+  "support_evidence": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_0.json",
+    "sha256": "885b3dce180cef245cd73ffe2975f87d41bf985b25aed425a8074967e0df5c96"
+  },
+  "fit_prefix": {
+    "rows": 29849,
+    "cutoff_ns": 1727740800000000000,
+    "parent_rows_sha256": "178e758fb705799a7f5557e680a764dfeb3c5cd7958f0562e84f693e418fcd43",
+    "bar_start_ns_sha256": "88653d60d5d2196982e88be2393855203df38a59e192594119ac7efc032aa974",
+    "decision_ns_sha256": "230f38de532e9d1b8b310c81d3d3cc0c021ad05e0be0cd985ae55a72f1fd8067"
+  },
+  "proposed_oof_geometry_only": {
+    "parent_rows": [
+      29849,
+      36172
+    ],
+    "evaluation_end_utc_exclusive": "2024-11-01T00:00:00Z",
+    "parents": 6323,
+    "separate_axis_hash": "NOT_PUBLISHED",
+    "admitted": false,
+    "december_reuse": false
+  },
+  "fields": [
+    {
+      "field": "gc_d1_observed_proxy_ob_bear_active",
+      "source_unit": "boolean_0_or_1",
+      "transform": "identity",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_proxy_ob_bear_created",
+      "source_unit": "boolean_0_or_1",
+      "transform": "identity",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_proxy_ob_bear_first_retouch",
+      "source_unit": "boolean_0_or_1",
+      "transform": "identity",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_proxy_ob_bear_low",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_proxy_ob_bear_high",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_proxy_ob_bear_age_bars",
+      "source_unit": "one_observed_native_D1_row_zero_at_creation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_proxy_ob_bear_origin_volume_contracts",
+      "source_unit": "one_contract",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_vwap_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_poc_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_val_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_vah_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_volume_contracts",
+      "source_unit": "one_contract",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_vwap_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_poc_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_val_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_vah_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_volume_contracts",
+      "source_unit": "one_contract",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_vwap_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_poc_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_val_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_vah_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_volume_contracts",
+      "source_unit": "one_contract",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_session_observed_vwap_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_session_observed_poc_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_session_observed_val_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_session_observed_vah_usd",
+      "source_unit": "one_USD_in_source_price_quotation",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_session_observed_volume_contracts",
+      "source_unit": "one_contract",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_vwap_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_vwap_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_poc_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_poc_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_val_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_val_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_vah_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling15_vah_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_vwap_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_vwap_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_poc_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_poc_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_val_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_val_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_vah_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_rolling60_vah_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_vwap_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_vwap_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_poc_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_poc_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_val_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_val_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_vah_distance_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    },
+    {
+      "field": "gc_d1_observed_profile_anchored_segment_vah_prior_level_response_ticks",
+      "source_unit": "one_source_GC_price_tick",
+      "transform": "asinh(x / one_declared_source_unit)",
+      "fixed_center": 0.0,
+      "fixed_scale": 1.0,
+      "unfitted_estimates": null
+    }
+  ],
+  "units_count": {
+    "boolean_0_or_1": 3,
+    "one_USD_in_source_price_quotation": 18,
+    "one_observed_native_D1_row_zero_at_creation": 1,
+    "one_contract": 5,
+    "one_source_GC_price_tick": 24
+  },
+  "surfaces": {
+    "signal": {
+      "width": 2725,
+      "value_name_prefix": "ctx_cont.",
+      "field_names_sha256": "3cf08211d246769c7199642b170b9d16d89846aa7fd0e7c8f3441b9954eff548",
+      "columns": [
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_active",
+          "value_index": 2453,
+          "mask_index": 2454
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_created",
+          "value_index": 2455,
+          "mask_index": 2456
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_first_retouch",
+          "value_index": 2457,
+          "mask_index": 2458
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_low",
+          "value_index": 2459,
+          "mask_index": 2460
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_high",
+          "value_index": 2461,
+          "mask_index": 2462
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_age_bars",
+          "value_index": 2463,
+          "mask_index": 2464
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_origin_volume_contracts",
+          "value_index": 2465,
+          "mask_index": 2466
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vwap_usd",
+          "value_index": 2467,
+          "mask_index": 2468
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_poc_usd",
+          "value_index": 2469,
+          "mask_index": 2470
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_val_usd",
+          "value_index": 2471,
+          "mask_index": 2472
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vah_usd",
+          "value_index": 2473,
+          "mask_index": 2474
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_volume_contracts",
+          "value_index": 2475,
+          "mask_index": 2476
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vwap_usd",
+          "value_index": 2479,
+          "mask_index": 2480
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_poc_usd",
+          "value_index": 2481,
+          "mask_index": 2482
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_val_usd",
+          "value_index": 2483,
+          "mask_index": 2484
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vah_usd",
+          "value_index": 2485,
+          "mask_index": 2486
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_volume_contracts",
+          "value_index": 2487,
+          "mask_index": 2488
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vwap_usd",
+          "value_index": 2491,
+          "mask_index": 2492
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_poc_usd",
+          "value_index": 2493,
+          "mask_index": 2494
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_val_usd",
+          "value_index": 2495,
+          "mask_index": 2496
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vah_usd",
+          "value_index": 2497,
+          "mask_index": 2498
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_volume_contracts",
+          "value_index": 2499,
+          "mask_index": 2500
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_vwap_usd",
+          "value_index": 2503,
+          "mask_index": 2504
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_poc_usd",
+          "value_index": 2505,
+          "mask_index": 2506
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_val_usd",
+          "value_index": 2507,
+          "mask_index": 2508
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_vah_usd",
+          "value_index": 2509,
+          "mask_index": 2510
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_volume_contracts",
+          "value_index": 2511,
+          "mask_index": 2512
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vwap_distance_ticks",
+          "value_index": 2521,
+          "mask_index": 2522
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vwap_prior_level_response_ticks",
+          "value_index": 2523,
+          "mask_index": 2524
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_poc_distance_ticks",
+          "value_index": 2525,
+          "mask_index": 2526
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_poc_prior_level_response_ticks",
+          "value_index": 2527,
+          "mask_index": 2528
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_val_distance_ticks",
+          "value_index": 2529,
+          "mask_index": 2530
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_val_prior_level_response_ticks",
+          "value_index": 2531,
+          "mask_index": 2532
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vah_distance_ticks",
+          "value_index": 2533,
+          "mask_index": 2534
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vah_prior_level_response_ticks",
+          "value_index": 2535,
+          "mask_index": 2536
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vwap_distance_ticks",
+          "value_index": 2537,
+          "mask_index": 2538
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vwap_prior_level_response_ticks",
+          "value_index": 2539,
+          "mask_index": 2540
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_poc_distance_ticks",
+          "value_index": 2541,
+          "mask_index": 2542
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_poc_prior_level_response_ticks",
+          "value_index": 2543,
+          "mask_index": 2544
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_val_distance_ticks",
+          "value_index": 2545,
+          "mask_index": 2546
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_val_prior_level_response_ticks",
+          "value_index": 2547,
+          "mask_index": 2548
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vah_distance_ticks",
+          "value_index": 2549,
+          "mask_index": 2550
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vah_prior_level_response_ticks",
+          "value_index": 2551,
+          "mask_index": 2552
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vwap_distance_ticks",
+          "value_index": 2553,
+          "mask_index": 2554
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vwap_prior_level_response_ticks",
+          "value_index": 2555,
+          "mask_index": 2556
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_poc_distance_ticks",
+          "value_index": 2557,
+          "mask_index": 2558
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_poc_prior_level_response_ticks",
+          "value_index": 2559,
+          "mask_index": 2560
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_val_distance_ticks",
+          "value_index": 2561,
+          "mask_index": 2562
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_val_prior_level_response_ticks",
+          "value_index": 2563,
+          "mask_index": 2564
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vah_distance_ticks",
+          "value_index": 2565,
+          "mask_index": 2566
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vah_prior_level_response_ticks",
+          "value_index": 2567,
+          "mask_index": 2568
+        }
+      ]
+    },
+    "ctx_cont": {
+      "width": 2542,
+      "value_name_prefix": "",
+      "field_names_sha256": "b1e0e5f688221e9d0da05bd8fd4dcab724f5022fe6cb988ea55971959229f5cf",
+      "columns": [
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_active",
+          "value_index": 2270,
+          "mask_index": 2271
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_created",
+          "value_index": 2272,
+          "mask_index": 2273
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_first_retouch",
+          "value_index": 2274,
+          "mask_index": 2275
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_low",
+          "value_index": 2276,
+          "mask_index": 2277
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_high",
+          "value_index": 2278,
+          "mask_index": 2279
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_age_bars",
+          "value_index": 2280,
+          "mask_index": 2281
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_origin_volume_contracts",
+          "value_index": 2282,
+          "mask_index": 2283
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vwap_usd",
+          "value_index": 2284,
+          "mask_index": 2285
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_poc_usd",
+          "value_index": 2286,
+          "mask_index": 2287
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_val_usd",
+          "value_index": 2288,
+          "mask_index": 2289
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vah_usd",
+          "value_index": 2290,
+          "mask_index": 2291
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_volume_contracts",
+          "value_index": 2292,
+          "mask_index": 2293
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vwap_usd",
+          "value_index": 2296,
+          "mask_index": 2297
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_poc_usd",
+          "value_index": 2298,
+          "mask_index": 2299
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_val_usd",
+          "value_index": 2300,
+          "mask_index": 2301
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vah_usd",
+          "value_index": 2302,
+          "mask_index": 2303
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_volume_contracts",
+          "value_index": 2304,
+          "mask_index": 2305
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vwap_usd",
+          "value_index": 2308,
+          "mask_index": 2309
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_poc_usd",
+          "value_index": 2310,
+          "mask_index": 2311
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_val_usd",
+          "value_index": 2312,
+          "mask_index": 2313
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vah_usd",
+          "value_index": 2314,
+          "mask_index": 2315
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_volume_contracts",
+          "value_index": 2316,
+          "mask_index": 2317
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_vwap_usd",
+          "value_index": 2320,
+          "mask_index": 2321
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_poc_usd",
+          "value_index": 2322,
+          "mask_index": 2323
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_val_usd",
+          "value_index": 2324,
+          "mask_index": 2325
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_vah_usd",
+          "value_index": 2326,
+          "mask_index": 2327
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_volume_contracts",
+          "value_index": 2328,
+          "mask_index": 2329
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vwap_distance_ticks",
+          "value_index": 2338,
+          "mask_index": 2339
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vwap_prior_level_response_ticks",
+          "value_index": 2340,
+          "mask_index": 2341
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_poc_distance_ticks",
+          "value_index": 2342,
+          "mask_index": 2343
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_poc_prior_level_response_ticks",
+          "value_index": 2344,
+          "mask_index": 2345
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_val_distance_ticks",
+          "value_index": 2346,
+          "mask_index": 2347
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_val_prior_level_response_ticks",
+          "value_index": 2348,
+          "mask_index": 2349
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vah_distance_ticks",
+          "value_index": 2350,
+          "mask_index": 2351
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vah_prior_level_response_ticks",
+          "value_index": 2352,
+          "mask_index": 2353
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vwap_distance_ticks",
+          "value_index": 2354,
+          "mask_index": 2355
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vwap_prior_level_response_ticks",
+          "value_index": 2356,
+          "mask_index": 2357
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_poc_distance_ticks",
+          "value_index": 2358,
+          "mask_index": 2359
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_poc_prior_level_response_ticks",
+          "value_index": 2360,
+          "mask_index": 2361
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_val_distance_ticks",
+          "value_index": 2362,
+          "mask_index": 2363
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_val_prior_level_response_ticks",
+          "value_index": 2364,
+          "mask_index": 2365
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vah_distance_ticks",
+          "value_index": 2366,
+          "mask_index": 2367
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vah_prior_level_response_ticks",
+          "value_index": 2368,
+          "mask_index": 2369
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vwap_distance_ticks",
+          "value_index": 2370,
+          "mask_index": 2371
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vwap_prior_level_response_ticks",
+          "value_index": 2372,
+          "mask_index": 2373
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_poc_distance_ticks",
+          "value_index": 2374,
+          "mask_index": 2375
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_poc_prior_level_response_ticks",
+          "value_index": 2376,
+          "mask_index": 2377
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_val_distance_ticks",
+          "value_index": 2378,
+          "mask_index": 2379
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_val_prior_level_response_ticks",
+          "value_index": 2380,
+          "mask_index": 2381
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vah_distance_ticks",
+          "value_index": 2382,
+          "mask_index": 2383
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vah_prior_level_response_ticks",
+          "value_index": 2384,
+          "mask_index": 2385
+        }
+      ]
+    },
+    "gc_mtf_d1": {
+      "width": 399,
+      "value_name_prefix": "",
+      "field_names_sha256": "15e961d57a5c2371b1aefe349026292d349e5bfb7b43372766da7893499e42fc",
+      "columns": [
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_active",
+          "value_index": 126,
+          "mask_index": 127
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_created",
+          "value_index": 128,
+          "mask_index": 129
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_first_retouch",
+          "value_index": 130,
+          "mask_index": 131
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_low",
+          "value_index": 132,
+          "mask_index": 133
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_high",
+          "value_index": 134,
+          "mask_index": 135
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_age_bars",
+          "value_index": 136,
+          "mask_index": 137
+        },
+        {
+          "field": "gc_d1_observed_proxy_ob_bear_origin_volume_contracts",
+          "value_index": 138,
+          "mask_index": 139
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vwap_usd",
+          "value_index": 140,
+          "mask_index": 141
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_poc_usd",
+          "value_index": 142,
+          "mask_index": 143
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_val_usd",
+          "value_index": 144,
+          "mask_index": 145
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vah_usd",
+          "value_index": 146,
+          "mask_index": 147
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_volume_contracts",
+          "value_index": 148,
+          "mask_index": 149
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vwap_usd",
+          "value_index": 152,
+          "mask_index": 153
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_poc_usd",
+          "value_index": 154,
+          "mask_index": 155
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_val_usd",
+          "value_index": 156,
+          "mask_index": 157
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vah_usd",
+          "value_index": 158,
+          "mask_index": 159
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_volume_contracts",
+          "value_index": 160,
+          "mask_index": 161
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vwap_usd",
+          "value_index": 164,
+          "mask_index": 165
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_poc_usd",
+          "value_index": 166,
+          "mask_index": 167
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_val_usd",
+          "value_index": 168,
+          "mask_index": 169
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vah_usd",
+          "value_index": 170,
+          "mask_index": 171
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_volume_contracts",
+          "value_index": 172,
+          "mask_index": 173
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_vwap_usd",
+          "value_index": 176,
+          "mask_index": 177
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_poc_usd",
+          "value_index": 178,
+          "mask_index": 179
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_val_usd",
+          "value_index": 180,
+          "mask_index": 181
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_vah_usd",
+          "value_index": 182,
+          "mask_index": 183
+        },
+        {
+          "field": "gc_d1_observed_profile_session_observed_volume_contracts",
+          "value_index": 184,
+          "mask_index": 185
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vwap_distance_ticks",
+          "value_index": 194,
+          "mask_index": 195
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vwap_prior_level_response_ticks",
+          "value_index": 196,
+          "mask_index": 197
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_poc_distance_ticks",
+          "value_index": 198,
+          "mask_index": 199
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_poc_prior_level_response_ticks",
+          "value_index": 200,
+          "mask_index": 201
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_val_distance_ticks",
+          "value_index": 202,
+          "mask_index": 203
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_val_prior_level_response_ticks",
+          "value_index": 204,
+          "mask_index": 205
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vah_distance_ticks",
+          "value_index": 206,
+          "mask_index": 207
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling15_vah_prior_level_response_ticks",
+          "value_index": 208,
+          "mask_index": 209
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vwap_distance_ticks",
+          "value_index": 210,
+          "mask_index": 211
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vwap_prior_level_response_ticks",
+          "value_index": 212,
+          "mask_index": 213
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_poc_distance_ticks",
+          "value_index": 214,
+          "mask_index": 215
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_poc_prior_level_response_ticks",
+          "value_index": 216,
+          "mask_index": 217
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_val_distance_ticks",
+          "value_index": 218,
+          "mask_index": 219
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_val_prior_level_response_ticks",
+          "value_index": 220,
+          "mask_index": 221
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vah_distance_ticks",
+          "value_index": 222,
+          "mask_index": 223
+        },
+        {
+          "field": "gc_d1_observed_profile_rolling60_vah_prior_level_response_ticks",
+          "value_index": 224,
+          "mask_index": 225
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vwap_distance_ticks",
+          "value_index": 226,
+          "mask_index": 227
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vwap_prior_level_response_ticks",
+          "value_index": 228,
+          "mask_index": 229
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_poc_distance_ticks",
+          "value_index": 230,
+          "mask_index": 231
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_poc_prior_level_response_ticks",
+          "value_index": 232,
+          "mask_index": 233
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_val_distance_ticks",
+          "value_index": 234,
+          "mask_index": 235
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_val_prior_level_response_ticks",
+          "value_index": 236,
+          "mask_index": 237
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vah_distance_ticks",
+          "value_index": 238,
+          "mask_index": 239
+        },
+        {
+          "field": "gc_d1_observed_profile_anchored_segment_vah_prior_level_response_ticks",
+          "value_index": 240,
+          "mask_index": 241
+        }
+      ]
+    }
+  },
+  "observed_prefix_fields": "Existing prefix-only fit, source causal windows, alias sharing and domains remain required on every physical surface. No all-TRAIN or December statistics.",
+  "unobserved_semantics": {
+    "count": 0,
+    "observed_min": null,
+    "observed_max": null,
+    "center_and_scale": "Declared units only, never estimated from masked zeros or later rows.",
+    "internal_transformed_min_max_zero": "Storage placeholders only; no empirical support is implied.",
+    "raw_masks": "Preserve each genuine source mask; unknown zero and observed zero remain distinct.",
+    "later_observed_values": "Preserve every genuine value and mask through the invertible unit transform; no December-style zero projection.",
+    "interpretation": "A field absent throughout fit has no demonstrated learned contribution. Report its later observed support separately, without outcome-based row selection or refit."
+  },
+  "reuse": {
+    "fitter": "entry_model_native_input_normalization_v1.fit_surface_normalization(... allow_unobserved_train_fields=True)",
+    "apply_inverse": "Existing apply_surface_normalization and invert_surface_normalization",
+    "validator_reference": "entry_relative_price_snapshot_v1._validate_surface_stats is a research precedent, not a native admission.",
+    "synthetic_checks": "Existing test_unobserved_prefix_* tests; no duplicate framework or new data fit."
+  },
+  "required_before_genuine_use": [
+    "An exact separate research validator must bind this prefix, all 153 value/mask identities and the source support proof, rejecting every additional missing-support field.",
+    "Keep the default native validator rejecting the new profile; any future opt-in must be explicitly bound end-to-end to source, recipe, feature view, normalization, model construction and runtime.",
+    "Qualify actual prefix input coverage, normalization, domains and confirmed-age coverage without future outcomes; separately bind the October evaluation axis.",
+    "Report nullable estimates and later input support honestly. Retain all genuine fields and masks.",
+    "A native candidate remains a separate exact plan/admission with fresh initialization, gradient/resume proof, safe reboot and capped execution."
+  ],
+  "source_bindings": {
+    "gx1/contracts/entry_native_direction_prefix_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_normalization_v1.py",
+      "sha256": "eade6e81a760590bf0fcf3530955f37c50c5b652c5025005b9cfe5bdeb1d8a07"
+    },
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+      "sha256": "3c92cb09db0b9bd2806f829f0c84f246e1799a7f41387cd730bc556150da5584"
+    },
+    "gx1/contracts/entry_relative_price_snapshot_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_relative_price_snapshot_v1.py",
+      "sha256": "7b073d3f619f44c23219a201f75d43ffaae2a708a56e8fae3684ebaabd2461e6"
+    },
+    "gx1/features/gc_order_flow_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_order_flow_v1.py",
+      "sha256": "a1a40ed3516b22a7142ac9125f15d6bed1b4ce5c82cedd60f78a98ec5097d66d"
+    },
+    "gx1/features/gc_native_context_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_context_v1.py",
+      "sha256": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf"
+    },
+    "gx1/features/smc_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/smc_v1.py",
+      "sha256": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a"
+    },
+    "tests/test_entry_model_native_input_normalization.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_entry_model_native_input_normalization.py",
+      "sha256": "f363a6ec204bc7cde38396008b8ec12193a2e41dbc69fe07b8ab9064549c7c0d"
+    }
+  },
+  "model_change": "None in this preparation. Confirmed current-state age remains the sole proposed modeling hypothesis; targets, v5 loss, five timeframes and genuine fields remain unchanged."
+}

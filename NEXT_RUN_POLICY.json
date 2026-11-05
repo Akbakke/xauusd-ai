@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Standing M5 Entry direction work order and active thread follow-up; confirmed-age source qualified by 51 synthetic/regression checks; genuine normalization support unresolved, no native/model launch.",
+    "current_activity": "Exact pre-October declared-unit normalization design reviewed; 37 existing synthetic checks passed; native profile wiring and genuine input qualification remain closed/pending.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "ACTIVE_LOCAL_PREPARATION_CONFIRMED_AGE_SOURCE_QUALIFIED_PREFIX_SUPPORT_UNRESOLVED_EDGE_UNPROVED",
+    "status": "PREFIX_UNITS_DESIGN_REVIEWED_EXACT_RESEARCH_INTEGRATION_PENDING_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57005,7 +57005,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Resolve a prefix-safe, explicitly scoped normalization design for genuine never-observed GC-D1 fields before binding any new input-only qualification. The confirmed-age source helper is synthetically qualified but not consumed by a model. Do not repeat the already proven zero-support audit.",
+    "next_milestone": "Implement the smallest exact research-only validator and admission-closed wiring for the bound 29849-parent declared-unit profile, reusing existing normalization owners and tests. Preserve default native rejection, the consumed December contract and every genuine later value/mask. Then bind a new input-only qualification and the October axis; no genuine fit or model launch is currently admitted.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "SOURCE_AND_SYNTHETIC_QUALIFIED_NOT_MODEL_INTEGRATED",
@@ -57080,9 +57080,62 @@
         "path": "/home/andre2/src/GX1_CURRENT/docs/DYNAMIC_MTF_TRAIN_GATES_20261104.md",
         "sha256": "b83996b37da20aef49c1c0e44c27e067906c799ef75f441a164f1c8fcf3fa15c"
       },
-      "next_design_constraint": "Do not transplant the exact December seven-field exception, fabricate moments, remove genuine fields or weaken the existing default support guard. Prepare a separate reviewed prefix-availability design and its limits before any genuine candidate use.",
+      "next_design_constraint": "The exact declared-unit design is bound in prefix_unobserved_units_preparation. It preserves genuine later values and masks and leaves the default support guard closed. Full native integration and genuine qualification still remain; no December exception is transplanted.",
       "new_data_audit_started": false,
       "new_model_admission": false
+    },
+    "prefix_unobserved_units_preparation": {
+      "status": "SOURCE_METADATA_REVIEW_AND_EXISTING_SYNTHETIC_CHECKS_COMPLETE_NATIVE_PROFILE_NOT_IMPLEMENTED",
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OOF_PREFIX_UNITS_20261105_001.json",
+        "sha256": "83b70d1b610eef9a3de9c8cf4d0eaf45435bed88d112442e7e315032b3f8c8b2"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/M5_OOF_PREFIX_UNITS_PREPARATION_20261105_001/TERMINAL.json",
+        "sha256": "34552def4c88dbfe96fb91099a51b1bc62398a1c4d1e215f9d3ee1c066460e0f"
+      },
+      "source_semantics_review": {
+        "path": "/home/andre2/GX1_RUNS/M5_OOF_PREFIX_UNITS_PREPARATION_20261105_001/SOURCE_SEMANTICS_REVIEW.json",
+        "sha256": "6ee0c59830bce50a9ba70ee964bb50432dd2a1780542cd32ca154eae63047e5e"
+      },
+      "fit_prefix": {
+        "rows": 29849,
+        "cutoff_ns": 1727740800000000000,
+        "parent_rows_sha256": "178e758fb705799a7f5557e680a764dfeb3c5cd7958f0562e84f693e418fcd43",
+        "bar_start_ns_sha256": "88653d60d5d2196982e88be2393855203df38a59e192594119ac7efc032aa974",
+        "decision_ns_sha256": "230f38de532e9d1b8b310c81d3d3cc0c021ad05e0be0cd985ae55a72f1fd8067"
+      },
+      "exact_missing_value_fields": 51,
+      "exact_surface_pairs": 153,
+      "unit_groups": {
+        "boolean_0_or_1": 3,
+        "one_USD_in_source_price_quotation": 18,
+        "one_observed_native_D1_row_zero_at_creation": 1,
+        "one_contract": 5,
+        "one_source_GC_price_tick": 24
+      },
+      "fixed_units": "Three binary identity domains; 48 continuous asinh values in one declared existing source unit. Center0/scale1 are fixed units, not measured statistics; zero-support estimates remain null.",
+      "genuine_masks_and_later_values": "Retained unchanged through the invertible transform; never use the consumed December all-batch zero projection.",
+      "source_semantics": "Mask0 means unknown/undefined under the current source contract. Known no-zone 0 with mask1 already exists. No generic false-to-zero correction is justified.",
+      "synthetic_checks_passed": 37,
+      "source_files_changed": false,
+      "production_normalizer_changed": false,
+      "genuine_data_arrays_read": 0,
+      "genuine_statistics_fits": 0,
+      "native_model_calls": 0,
+      "full_native_profile_qualified": false,
+      "native_launch_authorized": false,
+      "training_enabled": false,
+      "new_input_audit_authorized": false,
+      "remaining_integration": [
+        "Bind exact prefix hashes and every field/mask index in a separate research validator. Reject extra unobserved fields and reject use by the unchanged default native route.",
+        "Carry the specific profile identity through normalization, alias sharing, feature-view bindings, recipe, model construction and runtime before any genuine use. Do not remove opt-in/count metadata to bypass the validator.",
+        "Qualify all physical surfaces, causal prefix normalization and age coverage, and publish the separate October evaluation axis without consuming outcomes.",
+        "Bind nullable estimates, genuine later input support and the full scheduled evaluation denominator. No outcome-based row selection, refit, or attribution of an untrained field to learned edge."
+      ],
+      "existing_age_hypothesis": "Retained as the single proposed modeling hypothesis. Any later result belongs to its full declared normalization/input identity and is not an isolated causal proof for age.",
+      "default_native_status": "STILL_REJECTS_ALLOW_UNOBSERVED_TRAIN_FIELDS_METADATA",
+      "independent_edge": "UNKNOWN"
     }
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
