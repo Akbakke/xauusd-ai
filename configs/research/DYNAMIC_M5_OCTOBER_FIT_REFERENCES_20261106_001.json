@@ -1,0 +1,114 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_fit_references_plan_v1",
+  "plan_id": "DYNAMIC_M5_OCTOBER_FIT_REFERENCES_20261106_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "prepared_from_head": "49129bc0236bcadfcee48c4220601a1bc748bc16",
+  "prepared_utc": "2026-11-05T23:45:46.009079+00:00",
+  "purpose": "Bind the already published exact pre-October three-class prior/Markov to the October development geometry, and freeze one last-closed-candle orientation per timeframe from fit outcomes only.",
+  "standing_authorization": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+  "prior_result": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/RESULT.json",
+    "sha256": "970d642f9e5204e2a3067614776a50984bba2603f13c748a08b39a8ce7ebacd6"
+  },
+  "fit_counts": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_COUNTS.json",
+    "sha256": "2c6162c05c091d40da7d6124f1ed46a46d1703571d5f7dc041e87fe70668414a"
+  },
+  "fit_prior": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_PRIOR.json",
+    "sha256": "22380d9c0cd153b52829136d1f4bf9f6c49dbc99b9a3339bf15d9b124fef79ae"
+  },
+  "fit_series": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_TARGETS/SERIES.json",
+    "sha256": "288d9e04c56337e0413cf29f0235e810ae896d3bc6be3f482eaa84b25ff4d1cb"
+  },
+  "october_target_only_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001.json",
+    "sha256": "7f0b86ab1083f045a08f71cdbe18431e1f247b217619d922cee9011987e35644"
+  },
+  "october_target_only_result": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001/RESULT.json",
+    "sha256": "5fec2656e09899cc79c6dc416641154751675e9d3759f287a6137e970c5eff2d"
+  },
+  "october_series_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001.json",
+    "sha256": "02ead5e604a343f6bb829331ba95c599bbd0f0eebf90549161195452c455786b"
+  },
+  "october_series_result": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001/RESULT.json",
+    "sha256": "7dff3c4866f85fb4aa56cbef2971f6f05773195069b0e4dc0cf580e591a02929"
+  },
+  "october_series": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001/STATE_SERIES/SERIES.json",
+    "sha256": "302ca457b81b8ff59347d25d29dcace0aed7bbaa75a0236298fb216547b7a7ac"
+  },
+  "control_view": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/CONTROL_VIEW.json",
+    "sha256": "c0d64f1e0f16ffb8a85942567858b5e2a6e6b04482c901472bdc2789d6aec9db"
+  },
+  "input_qualification": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/QUALIFICATION.json",
+    "sha256": "cfe9524e05b127d09a4dd45f81612dbcf1a227f718143d459a206d0aad8b1363"
+  },
+  "fit_parent_rows_sha256": "178e758fb705799a7f5557e680a764dfeb3c5cd7958f0562e84f693e418fcd43",
+  "fit_issue_ns_sha256": "230f38de532e9d1b8b310c81d3d3cc0c021ad05e0be0cd985ae55a72f1fd8067",
+  "fit_cutoff_ns": 1727740800000000000,
+  "development_cutoff_ns": 1730419200000000000,
+  "target_source_refs": {
+    "m1": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    },
+    "m5_atr": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+      "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+    }
+  },
+  "read_scope": {
+    "historical_target_values": "only already published fit series ending strictly before 2024-10-01 UTC; no October outcomes",
+    "historical_candle_values": "last physically closed XAU multi-TF close_open_atr row at each of 29,849 fit issues, five TF, causal prefix only",
+    "reused_prior": "replay saved 1,440-lead counts to exactly the old frozen prior; no new data fit or scoring-period fit"
+  },
+  "write_scope": {
+    "aggregate_fit_candle_orientation_only": true,
+    "raw_values": false,
+    "october_predictions": false
+  },
+  "restrictions": {
+    "new_prior_fit": false,
+    "october_outcomes": false,
+    "model_construction": false,
+    "model_forward": false,
+    "optimizer_updates": false,
+    "test_split": false,
+    "broker_or_network": false,
+    "spending_usd": 0
+  },
+  "execution": {
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- timeout --signal=TERM --kill-after=10s 1800s .venv/bin/python -m gx1.audit.dynamic_m5_october_fit_references",
+    "class": "audit",
+    "memory": "4G",
+    "swap": "512M",
+    "timeout_seconds": 1800,
+    "kill_after_seconds": 10,
+    "cost_usd": 0
+  },
+  "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FIT_REFERENCES_20261106_001",
+  "max_invocations": 1,
+  "stop_rule": "Any failure or timeout consumes the claim. No restart, model, October outcome read, TEST, broker or trading.",
+  "source_files_sha256": {
+    "gx1/audit/dynamic_m5_october_fit_references.py": "ce09b3f0dfb925b10d85892d607e311ce247b73a2d62c83a780fa62faafaf7a4",
+    "gx1/audit/dynamic_mtf_december_candle.py": "66cfbb918d8bb78a57ddfb1f98d7e1d9ac47aaf990d52eef24d4c5de85e95d34",
+    "gx1/audit/dynamic_mtf_december_normalization.py": "a9d4a4445380b4220987d883b467875b89a25dde6f72d15c6a41012cf7bef315",
+    "gx1/audit/dynamic_mtf_october_feature_delivery.py": "6ffb8d566c8709e88441b02e59dae81f7171c046b9c8b46181869fb1f5f3491e",
+    "gx1/audit/dynamic_mtf_train_prefix_targets.py": "6a4fb825beebf258a8c6cdba46d19e4f5165520d4ad73c1f521fc39b3d1c60a6",
+    "gx1/contracts/entry_dynamic_mtf_state_report_v1.py": "4f8c48b54bbacfa4574206bd043cc671dec7b84f22e2c57973615e076bf96d3f",
+    "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212",
+    "gx1/contracts/entry_direction_block_rank_v1.py": "6e5a7184914463e0fefee22cdd509c01c029bd4fa7a4dcc9a33e326dbeb6eb5c",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/contracts/local_random_access_campaign_v2.py": "00759c4ae37f0894ff42a673ad4b7d91e6e1a8bf9945386ac202cfaa6b992143",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  }
+}
