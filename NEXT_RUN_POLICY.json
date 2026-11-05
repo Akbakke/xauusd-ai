@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run exactly one admitted, capped pre-October TRAIN age/censor claim, inspect immutable aggregate receipts, then choose one chronological OOF candidate. No model, TEST, broker or trading authority follows.",
+  "next_action": "Use the measured TRAIN age and M5 first-gap coverage to lock one age-input candidate, then source-qualify October development targets and strict chronological prefix-owned TRAIN-OOF. No model is admitted; training_enabled=false, TEST and trading stay closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Pre-October age/censor plan 001 is admitted once under standing zero-cost local authorization after a closed-gate preflight. Genuine target audit has not yet run.",
+    "current_activity": "TRAIN age/censor claim 001 completed once on 29,849 pre-October parents and is consumed. Five-TF age coverage and M5 +5 first-gap support measured; target usefulness and model edge remain unknown.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_PREFIX_INPUT_FIT_COMPLETE_EDGE_UNKNOWN",
+    "status": "TRAIN_AGE_AND_M5_FIRST_GAP_MEASURED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56860,7 +56860,7 @@
       }
     },
     "m5_plus_5_target_maturity_source_review": {
-      "count_scope": "May-September 2024 TRAIN-only candidate target, not a final semantic choice, model score, independent edge or first-exit/return censor estimate.",
+      "count_scope": "May-September 2024 TRAIN-only candidate target and first-gap censor measurement; no model score, semantic optimization, independent edge or economics.",
       "cutoff_boundary_rule": "wanted < cutoff_ns; equality is IMMATURE and never gathers target values",
       "endpoint_coverage": {
         "complete_local_windows": 29814,
@@ -56876,8 +56876,8 @@
         "missing_mature_m1_endpoint": 14,
         "unknown_with_intraminute_order_flag": 12994
       },
-      "evidence_class": "verified_preserved_TRAIN_target_receipt_plus_source_no_new_arrays",
-      "first_gap_event_censor": "UNKNOWN_FOR_M5_PLUS_5_EVENT_QUERY; endpoint class and local path masks do not establish a complete first-exit/return follow-up.",
+      "evidence_class": "One capped audit decoded the preserved pre-October TRAIN target arrays, reconciled the published M5 +5 endpoint counts and measured first-gap event/censor support.",
+      "first_gap_event_censor": {"receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001/M5_FIRST_GAP.json", "sha256": "242aac4524aade2cb3aa3091c4148c90a13f55f43bb2c982908d0bf703466bbe"}, "known_starts": 10855, "full_five_minute_followup": 5768, "first_exit": 6181, "first_exit_then_return": 1398},
       "fit_cutoff_ns_exclusive": 1727740800000000000,
       "fit_prefix_receipt": {
         "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_GC_BOOLEAN_PHYSICAL_PREFIX_NORMALIZATION_20261024_267/QUALIFICATION_0.json",
@@ -56887,7 +56887,7 @@
       "lead_minutes": 5,
       "m5_plus_5_validity_ns": 1727740800000000000,
       "parents": 29849,
-      "remaining_unknown": "First-gap event/return censor for M5 +5, usefulness of 0.5 ATR, confirmed-age coverage, strict TRAIN-OOF, independent direction and economics.",
+      "remaining_unknown": "Usefulness of 0.5 ATR, candidate prediction value, strict TRAIN-OOF, independent direction and economics.",
       "target_contract_sha256": "d44cf218b0f07c477e3ac52cc2374933c2754b40511492cdcf037811afc23ddd",
       "target_owner": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
@@ -57082,10 +57082,10 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "One explicit admission decision for the bound 29,849-parent input-only check. If admitted and source/support gates pass, record genuine prefix-only normalization and October axis. Then independently qualify confirmed-state age, M5 +5 target maturity/censoring and strict chronological TRAIN-OOF; no native model execution follows automatically.",
+    "next_milestone": "Lock one confirmed-age input candidate using measured support; qualify October targets as development only and prepare strict chronological TRAIN-OOF with prefix-owned normalizations. Native/model admission requires exact recipe, fresh baseline, gradient/resume and safe reboot; no independent edge follows from TRAIN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
-      "status": "SOURCE_AND_SYNTHETIC_QUALIFIED_NOT_MODEL_INTEGRATED",
+      "status": "GENUINE_TRAIN_COVERAGE_MEASURED_NOT_MODEL_INTEGRATED",
       "hypothesis": "Explicit confirmed current-state run age may help the measured first-step duration-calibration failure. Existing history features may already carry indirect age; directional benefit and causality of the failure remain unproved.",
       "owner": "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
       "function": "query_historical_dynamic_mtf_confirmed_run_age",
@@ -57102,14 +57102,14 @@
       },
       "focused_tests_passed": 51,
       "native_model_integration": false,
-      "genuine_age_input_coverage": "NOT_MEASURED",
+      "genuine_age_input_coverage": {"receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001/AGE_COVERAGE.json", "sha256": "902e17d09a1bec36243dd951de8aef985bad239ac3d68adfdfd7b609a9e67174"}, "observed_parents_by_tf": {"M5": 7447, "M15": 17775, "H1": 23752, "H4": 22688, "D1": 8243}, "parents": 29849, "clock_basis": "historical_event_time_only"},
       "genuine_data_reads_this_preparation": 0,
       "native_model_calls": 0,
       "training_enabled": false,
       "next_requirements": [
-        "A qualified prefix normalization design and exact non-December axes.",
-        "A new separately bound input-only coverage/causality qualification, including age normalization only on its fit prefix.",
-        "Only after source/input/measurement qualification: exact candidate recipe, fresh initialization, gradient/resume proof, admission and safe reboot before one capped model check."
+        "Bind age transform and observation masks to exact October prefix normalization and candidate view without dropping genuine inputs.",
+        "Qualify October development targets and strict chronological TRAIN-OOF geometry before model admission.",
+        "Exact candidate recipe, fresh initialization, gradient/resume proof, safe reboot and separate capped model admission; independent edge remains unknown."
       ]
     },
     "train_oof_prefix_support_review": {
@@ -57888,17 +57888,48 @@
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001.json",
       "sha256": "e68fd126b2c6445916481cbe2fc309a83e085d7d9fd0cd2d8320a7d5c19771fb"
     },
-    "remaining_invocations": 1,
-    "remaining_unknown": "TRAIN age coverage, M5 first-gap counts, prediction value, later generalization, independent edge and economics.",
+    "remaining_invocations": 0,
+    "remaining_unknown": "Predictive value of confirmed age and 0.5 ATR target, strict chronological TRAIN-OOF, later generalization, independent edge, online punctuality and economics.",
     "scope": "One read-only audit of preserved pre-October TRAIN target arrays for five-TF confirmed current-state age coverage and M5 +5 first-gap event/return censor. October outcomes, raw quotes, models, TEST, network and trades are excluded.",
     "source_tests": "7 focused synthetic tests passed under capped audit 2 GiB/512 MiB; no genuine target arrays read during preparation.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "test_access_authorized": false,
     "training_enabled": false,
     "operator_approval": "Standing no-cost local authorization given by user on 2026-11-05; exact source-bound audit plan 001 admitted once. No new paid API or model tokens.",
     "admitted_utc": "2026-11-05T22:08:32.095096+00:00",
     "source_head_at_admission": "853172a55aa116b334860ac7e7db8cfdd31d63c9",
-    "closed_gate_preflight": "Capped invocation returned EXPLICIT_ADMISSION_REQUIRED before genuine reads; output root absent."
+    "closed_gate_preflight": "Capped invocation returned EXPLICIT_ADMISSION_REQUIRED before genuine reads; output root absent.",
+    "claim_exit_code": 0,
+    "age_coverage_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001/AGE_COVERAGE.json",
+      "sha256": "902e17d09a1bec36243dd951de8aef985bad239ac3d68adfdfd7b609a9e67174"
+    },
+    "m5_first_gap_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001/M5_FIRST_GAP.json",
+      "sha256": "242aac4524aade2cb3aa3091c4148c90a13f55f43bb2c982908d0bf703466bbe"
+    },
+    "result_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001/RESULT.json",
+      "sha256": "8bc7203b5710523ff5bb3fedb55eb15682e1481fd8cc86eebb01374f3546d98e"
+    },
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_TRAIN_AGE_CENSOR_20261105_001/TERMINAL.json",
+      "sha256": "397adecc1eb3330c862f1ccfabe75c3634dce160b68c365e03bb4ada7b0faebd"
+    },
+    "post_run_output_review": "All result references rehashed; aggregate partitions, preserved endpoint subset, zero model/October/TEST and source-unchanged terminal independently checked from published JSON; no second target-array read.",
+    "genuine_target_arrays_read": true,
+    "genuine_age_counts": {
+      "M5": 7447,
+      "M15": 17775,
+      "H1": 23752,
+      "H4": 22688,
+      "D1": 8243
+    },
+    "m5_known_starts": 10855,
+    "m5_full_five_minute_followup": 5768,
+    "m5_first_exit_parent_issues": 6181,
+    "m5_first_exit_then_return_parent_issues": 1398,
+    "native_model_calls": 0
   }
 }
