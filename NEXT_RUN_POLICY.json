@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T00:59:05.657998+00:00",
+  "observed_utc": "2026-11-05T01:08:18.786920+00:00",
   "status": "TRAIN_M5_TWO_INDICATOR_STUDY_COMPLETE_SOURCE_GATE_OPEN_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Source gate for the 18,506 known-active TRAIN M5 +5 endpoints with unknown intraminute ordering. Validate a separately identified original XAU_USD ordered-quote archive for the registered issue/endpoint cohort and causal warmup, and offline reconcile quote construction/OHLC and sequence gaps before changing any labels. Physical M1 receive and ATR-ready telemetry require their own evidence. Existing scoped archive has not supplied either proof. No repeated indicator/December score or native launch. Independent native M5 confirmation needs its own separately authorized prospective, untouched period.",
+  "next_action": "Measure the fixed historical current-state clock boundary once on the bound 41,866 TRAIN parents and five timeframes. Then qualify source or prospective evidence separately. No native admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Source gate for the 18,506 known-active TRAIN M5 +5 endpoints with unknown intraminute ordering. Validate a separately identified original XAU_USD ordered-quote archive for the registered issue/endpoint cohort and causal warmup, and offline reconcile quote construction/OHLC and sequence gaps before changing any labels. Physical M1 receive and ATR-ready telemetry require their own evidence. Existing scoped archive has not supplied either proof. No repeated indicator/December score or native launch. Independent native M5 confirmation needs its own separately authorized prospective, untouched period.",
+    "next_action": "Measure the fixed historical current-state clock boundary once on the bound 41,866 TRAIN parents and five timeframes. Then qualify source or prospective evidence separately. No native admission.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -22925,7 +22925,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-05T00:59:05.657973+00:00",
+  "updated_utc": "2026-11-05T01:08:18.786920+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -56821,7 +56821,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
     "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
-    "status": "ACTIVE_SOURCE_QUALIFICATION_AFTER_TWO_COMPLETED_RESEARCH_CHECKS",
+    "status": "ACTIVE_HISTORICAL_CURRENT_INPUT_CLOCK_AUDIT_ONLY",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793839707,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56868,7 +56868,8 @@
       "m1_receive_at_issue": "UNKNOWN",
       "atr_ready_at_issue": "UNKNOWN"
     },
-    "independent_confirmation": "All 26 sampled GC months have development history. The existing monthly forward journal is specific to the named D1 swing_ridge h20/h5 protocol and does not admit native M5. Any prospective M5 confirmation requires a distinct frozen admission and untouched outcomes."
+    "independent_confirmation": "All 26 sampled GC months have development history. The existing monthly forward journal is specific to the named D1 swing_ridge h20/h5 protocol and does not admit native M5. Any prospective M5 confirmation requires a distinct frozen admission and untouched outcomes.",
+    "bounded_clock_study": "dynamic_mtf_train_issue_clock_boundary_20261105_001"
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
     "status": "COMPLETE_CONSUMED_BOTH_REGISTERED_TRAIN_CONTRASTS_NOT_QUALIFIED",
@@ -56949,5 +56950,22 @@
         ]
       }
     }
+  },
+  "dynamic_mtf_train_issue_clock_boundary_20261105_001": {
+    "status": "ADMITTED_ONE_CURRENT_INPUT_CLOCK_AUDIT_ONLY",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/PLAN.json",
+      "sha256": "4a3b41f7be7466b1154aa7a5a442bf07aa7f2f42e8d916d4f9681b49a5f6a294"
+    },
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "data_audit_authorized": true,
+    "model_calls_authorized": false,
+    "training_enabled": false,
+    "test_authorized": false,
+    "new_native_launch_authorized": false,
+    "relaunch_allowed": false
   }
 }

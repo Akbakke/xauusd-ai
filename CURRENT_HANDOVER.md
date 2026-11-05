@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+**05.11 – Avgrenset klokkemåling.** Én CPU-kontroll er registrert på de 41 866 tidlige TRAIN-tidspunktene. Den sammenlikner den historiske nåtilstanden ved prognosetidspunktet med den fra nøyaktig forrige M1 da dette minuttet finnes. Kontrollen bruker alle fem tidsrammer og skiller ATRs historiske lukketid fra faktisk publisering. [Forhåndsregistrert kontroll](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/ISSUE_CLOCK_BOUNDARY_TRAIN_001/PLAN.json)
+
 **05.11 – Den ene desemberkandidaten er ferdig. Den feilet den forhåndsregistrerte porten.** Etter 2 617 oppdateringer på 41 866 tidligere TRAIN-tidspunkter ble sluttcheckpointet brukt én gang på de 5 736 reserverte tidspunktene i desember 2024. Oppstart 604, 359 fryste modellbatcher, null oppdateringer og bestått maskinvarevakt. Engangsoppgaven er deaktivert. En separat beregning fra de tolv lagrede prognosefilene gjenskapte radveid Brier, logloss og betinget retnings-AUC ved alle fem ledetider. Desember er konsumert. [Signert terminal og etterkontroll](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/ACTUAL_ROOT_REVIEW.json) · [Registrert skår](/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME/prefix-fit/window-0001/OOF_PREDICTIONS/DECEMBER_SCORE.json)
 
 | Tidsramme | Observerte sluttklasser | OPP/NED med kjent retning | Modell-AUC på fit | Modell-AUC desember | Candle-AUC desember | Markov-AUC desember |
