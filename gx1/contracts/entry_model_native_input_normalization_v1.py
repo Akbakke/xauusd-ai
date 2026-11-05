@@ -1531,6 +1531,23 @@ def share_temporal_alias_stats_from_signal(
     return ctx_cont
 
 
+def _require_unobserved_units_base_lineage(lineage, *, fit_population, profile):
+    """Check available prefix metadata; the prefix owner binds exact axis hashes."""
+    from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
+    spec = require_october_prefix_units_profile(profile)
+    prefix = spec["fit_prefix"]
+    if (fit_population != DYNAMIC_M5_FIT_POPULATION
+            or lineage["train_row_count"] != prefix["rows"]
+            or lineage["entry_train_decision_row_count"] != prefix["rows"]
+            or lineage["exit_train_decision_row_count"] != 0):
+        raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_PREFIX_LINEAGE")
+    last_bar = _parse_utc(lineage["train_time_max_utc"], field="train_time_max_utc")
+    elapsed = last_bar - datetime(1970, 1, 1, tzinfo=timezone.utc)
+    last_bar_ns = (elapsed.days * 86400 + elapsed.seconds) * 1_000_000_000 + elapsed.microseconds * 1000
+    if last_bar_ns + 300_000_000_000 >= prefix["cutoff_ns"]:
+        raise RuntimeError("ENTRY_INPUT_RESEARCH_UNITS_PREFIX_CUTOFF")
+
+
 def build_input_normalization_contract(
     *,
     fit_start_utc: str,
@@ -1540,6 +1557,7 @@ def build_input_normalization_contract(
     lineage: Mapping[str, Any],
     temporal_aliases: Sequence[Mapping[str, Any]],
     entry_training_phase: str = JOINT_FITTED_Q_TRAINING_PHASE,
+    unobserved_units_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     fit_population = normalization_fit_population_for_phase(entry_training_phase)
     if tuple(surfaces) != EXPECTED_SURFACES:
@@ -1552,6 +1570,7 @@ def build_input_normalization_contract(
             surfaces[name],
             surface=name,
             field_names=list(surfaces[name].get("field_names") or []),
+            unobserved_units_profile=unobserved_units_profile,
         )
         for name in EXPECTED_SURFACES
     }
@@ -1560,6 +1579,9 @@ def build_input_normalization_contract(
         for name in EXPECTED_SURFACES
     }
     normalized_lineage = _require_lineage(lineage, fit_population=fit_population)
+    if unobserved_units_profile is not None:
+        _require_unobserved_units_base_lineage(normalized_lineage, fit_population=fit_population,
+                                             profile=unobserved_units_profile)
     normalized_ctx_cat = require_ctx_cat_contract(
         ctx_cat,
         field_names=list(CTX_CAT_DOMAINS),
@@ -1637,6 +1659,7 @@ def require_input_normalization_contract(
     expected_field_names: Mapping[str, Sequence[str]],
     expected_ctx_cat_names: Sequence[str],
     expected_entry_training_phase: str | None = None,
+    unobserved_units_profile: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     if not isinstance(value, Mapping):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_MISSING]")
@@ -1677,6 +1700,9 @@ def require_input_normalization_contract(
     if any(data.get(key) != expected for key, expected in exact.items()):
         raise RuntimeError("[ENTRY_INPUT_NORMALIZATION_CONTRACT_IDENTITY_INVALID]")
     lineage = _require_lineage(data["lineage"], fit_population=fit_population)
+    if unobserved_units_profile is not None:
+        _require_unobserved_units_base_lineage(lineage, fit_population=fit_population,
+                                             profile=unobserved_units_profile)
     ctx_cat = require_ctx_cat_contract(
         data["ctx_cat"],
         field_names=expected_ctx_cat_names,
@@ -1703,6 +1729,7 @@ def require_input_normalization_contract(
             data["surfaces"][name],
             surface=name,
             field_names=expected_field_names[name],
+            unobserved_units_profile=unobserved_units_profile,
         )
     expected_shared_rows = {
         "signal": int(lineage["local_fit_row_count"]),

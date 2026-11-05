@@ -81,12 +81,15 @@ PRODUCTION_SPECIALISTS = (
 def entry_exit_production_architecture_contract(
     *, entry_execution_profile: Mapping[str, str] | None = None,
     gc_mtf_history: Mapping[str, Any] | None = None,
+    unobserved_units_profile=None,
 ) -> dict[str, Any]:
     """Return a fresh copy of the only production-selectable architecture."""
 
+    units_kwargs = ({} if unobserved_units_profile is None
+                    else {"unobserved_units_profile": unobserved_units_profile})
     profile = require_compact_entry_execution_profile_reference(
         entry_execution_profile, context="PRODUCTION_ARCHITECTURE",
-        gc_mtf_history=gc_mtf_history,
+        gc_mtf_history=gc_mtf_history, **units_kwargs,
     )
     result = {
         "schema_version": ENTRY_EXIT_PRODUCTION_ARCHITECTURE_SCHEMA_VERSION,
@@ -140,11 +143,11 @@ def entry_exit_production_architecture_contract(
     if profile is not None:
         result["entry_execution_profile"] = profile
     if gc_mtf_history is not None:
-        compiled = (compile_full_gc_mtf_entry_execution_profile(gc_mtf_history)
+        compiled = (compile_full_gc_mtf_entry_execution_profile(gc_mtf_history, **units_kwargs)
             if profile is not None and profile["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME else
-            compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
+            compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history, **units_kwargs)
             if profile is not None and profile["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME
-            else compile_gc_mtf_entry_execution_profile(gc_mtf_history))
+            else compile_gc_mtf_entry_execution_profile(gc_mtf_history, **units_kwargs))
         if dict(compiled["gc_mtf_window_rows"]) != dict(PRODUCTION_MTF_PER_TF_WINDOW_BARS):
             raise RuntimeError("GC_MTF_PRODUCTION_WINDOW_BINDING_INVALID")
         result["gc_mtf_history"] = {
@@ -159,12 +162,14 @@ def entry_exit_production_architecture_contract(
 def current_entry_exit_architecture_observation(
     *, entry_execution_profile: Mapping[str, str] | None = None,
     gc_mtf_history: Mapping[str, Any] | None = None,
+    unobserved_units_profile=None,
 ) -> dict[str, Any]:
     """Project current code constants into the frozen production contract."""
 
     observed = entry_exit_production_architecture_contract(
         entry_execution_profile=entry_execution_profile,
         gc_mtf_history=gc_mtf_history,
+        **({} if unobserved_units_profile is None else {"unobserved_units_profile": unobserved_units_profile}),
     )
     observed["schemas"] = {
         "signal": MODEL_NATIVE_SIGNAL_SCHEMA_VERSION,
@@ -258,6 +263,7 @@ def require_entry_exit_production_architecture(
     *,
     context: str,
     gc_mtf_history: Mapping[str, Any] | None = None,
+    unobserved_units_profile=None,
 ) -> dict[str, Any]:
     """Reject any shape, route, schema, encoder, or specialist drift."""
 
@@ -266,6 +272,7 @@ def require_entry_exit_production_architecture(
     profile = value.get("entry_execution_profile") if isinstance(value, Mapping) else None
     expected = entry_exit_production_architecture_contract(
         entry_execution_profile=profile, gc_mtf_history=gc_mtf_history,
+        **({} if unobserved_units_profile is None else {"unobserved_units_profile": unobserved_units_profile}),
     )
     mismatch = _first_mismatch(expected, value, path="architecture")
     if mismatch is not None:

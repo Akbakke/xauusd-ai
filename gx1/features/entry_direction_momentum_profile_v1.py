@@ -20,11 +20,13 @@ def price_momentum_initialization(profile_name: str) -> str:
 
 def compile_price_momentum_profile(
     gc_mtf_history: Mapping[str, object], *, initialization: str = 'zero_residual',
+    unobserved_units_profile=None,
 ) -> dict[str, object]:
     """Add the genuine price route with a separately identified initializer."""
     if type(initialization) is not str or initialization not in ('zero_residual', 'linear_default'):
         raise RuntimeError('PRICE_MOMENTUM_INITIALIZATION_INVALID')
-    parent = owners.compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
+    parent = owners.compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history,
+        **({} if unobserved_units_profile is None else {"unobserved_units_profile": unobserved_units_profile}))
     fields = parent['physical_field_names']
     mtf = fields['mtf']
     all_routes = owners.require_multi_tf_specialist_routing_v4(mtf)
@@ -58,16 +60,20 @@ def compile_price_momentum_profile(
     return {**payload,'contract_sha256':owners._canonical_sha256(payload)}
 
 
-def require_entry_execution_profile_reference(value, *, context='ENTRY_EXECUTION_PROFILE', gc_mtf_history=None):
+def require_entry_execution_profile_reference(
+    value, *, context='ENTRY_EXECUTION_PROFILE', gc_mtf_history=None, unobserved_units_profile=None,
+):
     """Delegate old references unchanged; require the separate new hash exactly."""
+    units_kwargs = ({} if unobserved_units_profile is None
+                    else {"unobserved_units_profile": unobserved_units_profile})
     if isinstance(value, Mapping) and value.get('name') in PRICE_MOMENTUM_PROFILE_NAMES:
         if set(value) != {'name','contract_sha256'} or gc_mtf_history is None:
             raise RuntimeError(f'{context}_PRICE_MOMENTUM_PROFILE_REFERENCE_INVALID')
         profile = compile_price_momentum_profile(gc_mtf_history,
-            initialization=price_momentum_initialization(value['name']))
+            initialization=price_momentum_initialization(value['name']), **units_kwargs)
         expected = {'name':profile['name'],'contract_sha256':profile['contract_sha256']}
         if any(type(value[k]) is not str or value[k] != expected[k] for k in expected):
             raise RuntimeError(f'{context}_PRICE_MOMENTUM_PROFILE_REFERENCE_MISMATCH')
         return expected
     return owners.require_compact_entry_execution_profile_reference(
-        value, context=context, gc_mtf_history=gc_mtf_history)
+        value, context=context, gc_mtf_history=gc_mtf_history, **units_kwargs)

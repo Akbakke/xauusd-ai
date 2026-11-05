@@ -17,6 +17,7 @@ import numpy as np
 
 from gx1.contracts import entry_gc_mtf_history_v1 as history
 from gx1.contracts import entry_model_native_input_normalization_v1 as norm
+from gx1.contracts import entry_native_direction_prefix_units_v1 as units
 from gx1.contracts.entry_exit_production_architecture_v1 import PRODUCTION_MTF_PER_TF_WINDOW_BARS
 from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
 from gx1.features import gc_native_context_v1 as gc
@@ -187,6 +188,85 @@ def require_december_normalization_bindings(fitted, profile):
              and all(r["reason"] == "no_observed_prefix_values" for r in recorded), "DECEMBER_EXCLUSION_BINDING")
 
 
+
+def require_october_units_normalization_bindings(fitted, profile):
+    """Validate an exact physical prefix fit without granting model-run authority."""
+    spec = units.require_october_prefix_units_profile(profile)
+    _require(isinstance(fitted, Mapping)
+             and fitted.get("contract_sha256") == _sha({k: v for k, v in fitted.items() if k != "contract_sha256"})
+             and fitted.get("schema_version") == SCHEMA_VERSION
+             and fitted.get("native_launch_authorized") is False
+             and fitted.get("genuine_model_fit_authorized") is False
+             and fitted.get("old055_or223_normalization_identity_reused") is False,
+             "UNOBSERVED_UNITS_FITTED_SEAL")
+    report = fitted.get("prefix_qualification")
+    _require(isinstance(report, Mapping)
+             and report.get("contract_sha256") == _sha({k: v for k, v in report.items() if k != "contract_sha256"})
+             and report.get("schema_version") == QUALIFICATION_SCHEMA
+             and fitted.get("unobserved_units_profile") == report.get("unobserved_units_profile") == spec
+             and fitted.get("zero_support_profile") is None and report.get("zero_support_profile") is None
+             and report.get("fit_allowed") is True and report.get("blockers") == []
+             and report.get("statistics_fits") == 0,
+             "UNOBSERVED_UNITS_REPORT_BINDING")
+    proof = report["proof"]
+    units.require_prefix_units_fit_identity(proof["prefix"], spec)
+    physical = compile_compact_entry_execution_profile()["physical_field_names"]
+    base, gc_history = fitted["base_normalization"], fitted["gc_mtf_history"]
+    _require(isinstance(base, Mapping) and isinstance(gc_history, Mapping)
+             and "relative_price" not in gc_history["normalization"],
+             "UNOBSERVED_UNITS_RAW_GC")
+    expected_names = {"signal": physical["signal"], "ctx_cont": physical["ctx_cont"]}
+    expected_names.update({"mtf_" + tf.lower(): physical["mtf"] for tf in WINDOWS})
+    norm.require_input_normalization_contract(base, expected_field_names=expected_names,
+        expected_ctx_cat_names=physical["ctx_cat"],
+        expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        unobserved_units_profile=spec)
+    history.require_gc_mtf_history(gc_history, unobserved_units_profile=spec)
+    _require(base["lineage"]["train_row_count"] == base["lineage"]["entry_train_decision_row_count"] == spec["fit_prefix"]["rows"]
+             and base["lineage"]["exit_train_decision_row_count"] == 0
+             and gc_history["normalization"]["provenance"]["train_end_ns"] == spec["fit_prefix"]["cutoff_ns"],
+             "UNOBSERVED_UNITS_PREFIX_LINEAGE")
+    all_stats = {**base["surfaces"], **gc_history["normalization"]["surfaces"]}
+    _require(set(all_stats) == set(report["support"]) == set(units.STANDARD_SURFACES),
+             "UNOBSERVED_UNITS_FULL_SURFACES")
+    unions = gc_history["normalization"]["provenance"]["row_union"]
+    for tf in WINDOWS:
+        measured = proof["gc"][tf]
+        _require(unions[tf] == {k: measured[k] for k in ("rows", "native_row_indices_sha256", "available_ns_sha256")},
+                 "UNOBSERVED_UNITS_GC_ROW_UNION:" + tf)
+    declared = []
+    for key, stat in all_stats.items():
+        measured = report["support"][key]
+        _require(stat["field_names"] == measured["field_names"]
+                 and stat["fit_row_count"] == measured["population_rows"]
+                 and "zero_support_profile_sha256" not in stat,
+                 "UNOBSERVED_UNITS_SURFACE_IDENTITY:" + key)
+        columns = units.prefix_units_surface_columns(spec, surface=key, field_names=stat["field_names"])
+        if not columns:
+            _require("unobserved_units_profile_sha256" not in stat, "UNOBSERVED_UNITS_EXTRA_SURFACE:" + key)
+            continue
+        _require(stat.get("unobserved_units_profile_sha256") == spec["contract_sha256"]
+                 and stat.get("unfitted_estimates") == {entry["field"]: None for entry in columns.values()}
+                 and stat.get("observed_fit_counts") == measured["observed_counts"],
+                 "UNOBSERVED_UNITS_STATS_BINDING:" + key)
+        for index, entry in columns.items():
+            mask = entry["mask_index"]
+            _require(stat["scale_source"][index] == ("semantic_binary_identity" if entry["binary"] else units.UNIT_SCALE_SOURCE)
+                     and stat["center"][index] == 0. and stat["scale"][index] == 1.
+                     and measured["observed_counts"][index] == 0
+                     and measured["observed_min"][index] is None and measured["observed_max"][index] is None
+                     and measured["observed_counts"][mask] == measured["population_rows"]
+                     and measured["observed_min"][mask] == measured["observed_max"][mask] == 0.,
+                     "UNOBSERVED_UNITS_FIT_EVIDENCE:" + key + ":" + entry["field"])
+            declared.append((key, entry["field"]))
+    recorded = report.get("declared_unit_support")
+    _require(len(declared) == 153 and isinstance(recorded, list)
+             and sorted(declared) == sorted((item["surface"], item["field"]) for item in recorded)
+             and all(item.get("reason") == "no_observed_prefix_values" for item in recorded),
+             "UNOBSERVED_UNITS_DECLARATION_BINDING")
+    return fitted
+
+
 def _hash_axis(value):
     return hashlib.sha256(np.ascontiguousarray(value, dtype="<i8").tobytes()).hexdigest()
 
@@ -263,7 +343,7 @@ def qualify_native_direction_prefix_population(
     *, parent_rows, bar_start_ns, decision_ns, expected_axes, cutoff_ns,
     expected_prefix_parent_rows, entry_sequence_source, snap_x, ctx_cont, ctx_cat,
     ordered_signal_names, multi_tf_sources, gc_surfaces, gc_layout,
-    base_lineage, source_bindings, zero_support_profile=None,
+    base_lineage, source_bindings, zero_support_profile=None, unobserved_units_profile=None,
 ):
     """Bind the full source axis; audit every prefix input before any stats fit.
 
@@ -286,11 +366,17 @@ def qualify_native_direction_prefix_population(
     stop = int(np.searchsorted(decisions, cutoff_ns, side="left"))
     supplied = _axis(expected_prefix_parent_rows, "PREFIX_PARENT_AXIS")
     _require(stop >= 2 and np.array_equal(supplied, parents[:stop]), "EXACT_PREFIX_MEMBERSHIP")
-    if zero_support_profile is not None:
-        spec = require_december_zero_support_profile(zero_support_profile)
+    _require(zero_support_profile is None or unobserved_units_profile is None, "PROFILE_MUTUAL_EXCLUSION")
+    spec = None
+    if zero_support_profile is not None or unobserved_units_profile is not None:
         prefix = {"rows": stop, "cutoff_ns": cutoff_ns, "parent_rows_sha256": _hash_axis(parents[:stop]),
                   "bar_start_ns_sha256": _hash_axis(starts[:stop]), "decision_ns_sha256": _hash_axis(decisions[:stop])}
-        _require(prefix == spec["fit_prefix"], "DECEMBER_FIT_PREFIX")
+        if zero_support_profile is not None:
+            spec = require_december_zero_support_profile(zero_support_profile)
+            _require(prefix == spec["fit_prefix"], "DECEMBER_FIT_PREFIX")
+        else:
+            spec = units.require_october_prefix_units_profile(unobserved_units_profile)
+            units.require_prefix_units_fit_identity(prefix, spec)
     physical = compile_compact_entry_execution_profile()["physical_field_names"]
     names = list(ordered_signal_names)
     _require(names == list(physical["signal"]), "COMPLETE_SIGNAL_FIELDS")
@@ -396,6 +482,17 @@ def qualify_native_direction_prefix_population(
         for key, field in sorted(allowed - {(b["surface"], b["field"]) for b in excluded}):
             blockers.append({"surface": key, "field": field, "reason": "expected_zero_support_but_observed"})
         extra = {"zero_support_profile": spec, "excluded_zero_support": excluded}
+    elif unobserved_units_profile is not None:
+        allowed = {(key, entry["field"]) for key in spec["surfaces"]
+                   for entry in units.prefix_units_surface_columns(
+                       spec, surface=key, field_names=support[key]["field_names"]).values()}
+        _require(len(allowed) == 153, "UNOBSERVED_UNITS_EXPECTED_FIELDS")
+        declared = [b for b in blockers if b["reason"] == "no_observed_prefix_values"
+                    and (b["surface"], b["field"]) in allowed]
+        blockers = [b for b in blockers if b not in declared]
+        for key, field in sorted(allowed - {(b["surface"], b["field"]) for b in declared}):
+            blockers.append({"surface": key, "field": field, "reason": "expected_zero_support_but_observed"})
+        extra = {"unobserved_units_profile": spec, "declared_unit_support": declared}
     report = _seal({"schema_version": QUALIFICATION_SCHEMA, "proof": proof, "support": support,
         "fit_allowed": not blockers, "blockers": blockers, "statistics_fits": 0, **extra})
     inputs = dict(parent_rows=parent_rows, bar_start_ns=bar_start_ns, decision_ns=decision_ns,
@@ -405,6 +502,8 @@ def qualify_native_direction_prefix_population(
         gc_layout=gc_layout, base_lineage=_copy(base_lineage), source_bindings=_copy(source_bindings))
     if zero_support_profile is not None:
         inputs["zero_support_profile"] = spec
+    elif unobserved_units_profile is not None:
+        inputs["unobserved_units_profile"] = spec
     population = None if blockers else {"inputs": inputs, "local_parts": local_parts,
         "ctx_parts": ctx_parts, "cat_parts": cat_parts, "tf_parts": tf_parts,
         "tf_ids": tf_ids, "windows": windows, "gc_surfaces": gc_surfaces_valid}
@@ -422,11 +521,18 @@ def fit_native_direction_prefix_normalization(qualification, *, gc_relative_coor
     _require(fresh["report"] == report and fresh["population"] is not None, "QUALIFICATION_INPUTS_CHANGED")
     pop, inputs = fresh["population"], fresh["population"]["inputs"]
     profile = report.get("zero_support_profile")
+    units_profile = report.get("unobserved_units_profile")
+    _require(profile is None or units_profile is None, "PROFILE_MUTUAL_EXCLUSION")
     profile_args = {}
     if profile is not None:
         require_december_zero_support_profile(profile)
         _require(gc_relative_coordinates is None, "DECEMBER_RAW_GC_REQUIRED")
         profile_args["zero_support_profile"] = profile
+    elif units_profile is not None:
+        units.require_october_prefix_units_profile(units_profile)
+        units.require_prefix_units_fit_identity(report["proof"]["prefix"], units_profile)
+        _require(gc_relative_coordinates is None, "UNOBSERVED_UNITS_RAW_GC_REQUIRED")
+        profile_args["unobserved_units_profile"] = units_profile
     physical = compile_compact_entry_execution_profile()["physical_field_names"]
     proof = report["proof"]
     surfaces = {
@@ -436,12 +542,13 @@ def fit_native_direction_prefix_normalization(qualification, *, gc_relative_coor
             semantic_categorical_domains=norm.CTX_CONT_SEMANTIC_CATEGORICAL_DOMAINS, allow_constant_train_fields=True, **profile_args),
     }
     surfaces["ctx_cont"] = norm.share_temporal_alias_stats_from_signal(surfaces["ctx_cont"], surfaces["signal"],
-        temporal_aliases=proof["temporal_aliases"], ctx_cont_values=pop["ctx_parts"])
+        temporal_aliases=proof["temporal_aliases"], ctx_cont_values=pop["ctx_parts"],
+        unobserved_units_profile=units_profile)
     for tf in WINDOWS:
         name = "mtf_" + tf.lower()
         surfaces[name] = norm.fit_surface_normalization(pop["tf_parts"][tf], surface=name,
             field_names=physical["mtf"], semantic_categorical_domains=norm.MTF_SEMANTIC_CATEGORICAL_DOMAINS,
-            allow_constant_train_fields=True)
+            allow_constant_train_fields=True, unobserved_units_profile=units_profile)
     prefix = proof["prefix"]
     starts = inputs["bar_start_ns"][:prefix["rows"]]
     first, last = native._timestamp_iso_utc(starts[0]), native._timestamp_iso_utc(starts[-1])
@@ -454,17 +561,21 @@ def fit_native_direction_prefix_normalization(qualification, *, gc_relative_coor
     base = norm.build_input_normalization_contract(fit_start_utc=first, fit_end_utc=last, surfaces=surfaces,
         ctx_cat=norm.fit_ctx_cat_contract(pop["cat_parts"], field_names=physical["ctx_cat"]),
         lineage=lineage, temporal_aliases=proof["temporal_aliases"],
-        entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
+        entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, unobserved_units_profile=units_profile)
     gc_norm = history.fit_gc_mtf_history_normalization(pop["gc_surfaces"], pop["tf_ids"],
         train_start_ns=int(inputs["decision_ns"][0]), train_end_ns=inputs["cutoff_ns"], layout=inputs["gc_layout"],
         relative_price_coordinates=gc_relative_coordinates, **profile_args)
     norm.require_input_normalization_contract(base, expected_field_names={name: surfaces[name]["field_names"] for name in norm.EXPECTED_SURFACES},
-        expected_ctx_cat_names=physical["ctx_cat"], expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
-    gc_history = history.require_gc_mtf_history({"layout": inputs["gc_layout"], "normalization": gc_norm})
+        expected_ctx_cat_names=physical["ctx_cat"], expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE,
+        unobserved_units_profile=units_profile)
+    gc_history = history.require_gc_mtf_history({"layout": inputs["gc_layout"], "normalization": gc_norm},
+        unobserved_units_profile=units_profile)
     fitted = _seal({"schema_version": SCHEMA_VERSION, "base_normalization": base,
         "gc_mtf_history": gc_history, "prefix_qualification": _copy(report),
         "old055_or223_normalization_identity_reused": False,
         "native_launch_authorized": False, "genuine_model_fit_authorized": False, **profile_args})
     if profile is not None:
         require_december_normalization_bindings(fitted, profile)
+    elif units_profile is not None:
+        require_october_units_normalization_bindings(fitted, units_profile)
     return fitted

@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Await the already requested exact operator exception for the prepared one-GET HTTP400 diagnostic. No live job is running, no new request is admitted, and the old claim remains consumed. Full directional objective is unachieved; training, TEST, Exit and trading remain closed.",
+  "next_action": "Prepare one separate exact input-only qualification plan for genuine 29,849-parent October-prefix coverage, source clocks, current-state age and independent October evaluation-axis identity. No genuine audit or statistics fit is admitted by source-level PASS. Native/model training, TEST, broker, orders and trading remain closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Requested long-term native goal is active after user cleared the old blocked goal; temporary heartbeat deleted. Exact low-level units passed 142 checks; full contract binding remains next, with actual execution gates closed.",
+    "current_activity": "Exact October prefix units are routed through population, base/GC, execution/view and native runtime at source level. Final 127 synthetic/legacy checks passed under the capped audit. Genuine source population, prefix statistics, age input and directional value remain unqualified; app goal status last observed blocked.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Await the already requested exact operator exception for the prepared one-GET HTTP400 diagnostic. No live job is running, no new request is admitted, and the old claim remains consumed. Full directional objective is unachieved; training, TEST, Exit and trading remain closed.",
+    "next_action": "Prepare one separate exact input-only qualification plan for genuine 29,849-parent October-prefix coverage, source clocks, current-state age and independent October evaluation-axis identity. No genuine audit or statistics fit is admitted by source-level PASS. Native/model training, TEST, broker, orders and trading remain closed.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -19799,7 +19799,10 @@
       "calibration_fit_authorized": false,
       "fit_invocations_consumed": 1,
       "scoring_passes_completed": 0,
-      "failure_review": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_001/ATTEMPT_001_FAILURE.json", "sha256": "3412f68ef1312abee5bf5870f5c3e5bae252b8ebde8b9f59e36c983938ab8b17"},
+      "failure_review": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_SAVED_CALIBRATION_20261103_001/ATTEMPT_001_FAILURE.json",
+        "sha256": "3412f68ef1312abee5bf5870f5c3e5bae252b8ebde8b9f59e36c983938ab8b17"
+      },
       "admitted_utc": "2026-11-03T20:56:32.022123+00:00",
       "pre_boot_id": 599,
       "post_boot_id": 600,
@@ -56821,9 +56824,9 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "LOW_LEVEL_EXACT_PREFIX_UNITS_QUALIFIED_FULL_NATIVE_WIRING_PENDING_EDGE_UNKNOWN",
+    "status": "EXACT_PREFIX_UNITS_SOURCE_WIRING_QUALIFIED_GENUINE_PREFIX_AND_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
-    "goal_created_unix": 1793893096,
+    "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
     "previous_terminal": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/ACTUAL_ROOT_REVIEW.json",
@@ -56932,7 +56935,7 @@
         "independent untapped forward period, quantitative coverage/support and separate exact admission"
       ]
     },
-    "goal_tool_status_last_observed": "active",
+    "goal_tool_status_last_observed": "blocked",
     "external_evidence_gates": {
       "reviewed_utc": "2026-11-05T01:16:36.238473+00:00",
       "native_archive_manifest": {
@@ -56990,10 +56993,10 @@
     "persistent_followup": {
       "mechanism": "native_Codex_goal",
       "target_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
-      "status_last_observed": "active",
-      "goal_created_unix": 1793893096,
+      "status_last_observed": "blocked",
+      "goal_created_unix": 1793897675,
       "prior_blocked_goal_cleared_by_user": true,
-      "previous_create_rejection": "Resolved when the user cleared the old unfinished goal; create_goal then returned active for the requested long-term objective.",
+      "previous_create_rejection": "The user cleared the predecessor and explicitly requested continued long-term work; a new goal was created active at 1793897675, but the tool later returned blocked without a stated reason.",
       "retired_heartbeat": {
         "automation_id": "gx1-arbeid-videre-mot-m5-entry-edge",
         "delete_status": "deleted",
@@ -57010,7 +57013,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Bind the exact prefix identity in population qualification and route the explicit units profile through base and GC normalization contracts, then the feature-view/execution-profile/native constructor chain. Keep default calls closed and all actual data/model execution gates false. Reuse the 142 passed low-level/legacy checks; no repeated unchanged suites.",
+    "next_milestone": "Finish an exact input-only plan for genuine October-prefix source and support qualification, causal age input, target maturity/censoring and a separate October evaluation-axis hash. Source wiring is synthetic-qualified only. Keep genuine fit/native/model/TEST/broker/trade gates closed until separate admission.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "SOURCE_AND_SYNTHETIC_QUALIFIED_NOT_MODEL_INTEGRATED",
@@ -57090,7 +57093,7 @@
       "new_model_admission": false
     },
     "prefix_unobserved_units_preparation": {
-      "status": "LOW_LEVEL_PROFILE_FIT_REQUIRE_ALIAS_QUALIFIED_FULL_NATIVE_WIRING_PENDING",
+      "status": "FULL_SOURCE_ROUTE_SYNTHETIC_QUALIFIED_GENUINE_PREFIX_PENDING",
       "plan": {
         "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OOF_PREFIX_UNITS_20261105_001.json",
         "sha256": "83b70d1b610eef9a3de9c8cf4d0eaf45435bed88d112442e7e315032b3f8c8b2"
@@ -57133,10 +57136,10 @@
       "training_enabled": false,
       "new_input_audit_authorized": false,
       "remaining_integration": [
-        "Use require_prefix_units_fit_identity at the genuine population boundary; qualify every source axis and every additional support/domain condition before fitting.",
-        "Carry the explicit profile through base and GC normalization builders/validators, prefix fit, execution-profile compilers/reference validators, feature view, native constructor and runtime checks. Default callers stay closed.",
-        "Only after source qualification: bind a new input-only plan for actual coverage, prefix statistics and age input, plus a separate October evaluation-axis hash. No genuine audit/fit is admitted yet.",
-        "Only after genuine input and measurement qualification: prepare the exact separate native candidate admission, fresh initialization/gradient/resume checks, safe reboot and capped route."
+        "Completed at source level: exact prefix membership/clock hash binding, 51-field whitelist on signal/ctx_cont/gc_mtf_d1 with all other support blockers retained.",
+        "Completed at source level: explicit units profile routed through base/GC normalization, prefix fit, execution/profile/view and native constructor/runtime; default and December remain distinct.",
+        "Next: freeze one input-only plan for genuine 29,849-parent source/support checks, prefix statistics, confirmed-state age and a separate October evaluation-axis identity; no plan is yet admitted for actual arrays.",
+        "Only after genuine source and measurement qualification: exact separate native candidate admission, fresh initialization/gradient/resume checks, safe physical reboot and capped route."
       ],
       "existing_age_hypothesis": "Retained as the single proposed modeling hypothesis. Any later result belongs to its full declared normalization/input identity and is not an isolated causal proof for age.",
       "default_native_status": "STILL_REJECTS_ALLOW_UNOBSERVED_TRAIN_FIELDS_METADATA",
@@ -57174,8 +57177,67 @@
         "genuine_data_arrays_read": 0,
         "genuine_statistics_fits": 0,
         "native_model_instantiations_or_forecasts": 0
+      },
+      "next_design_constraint": "Exact declared units are source-wired with explicit opt-in and 153 zero-support bindings. The genuine 29,849-parent input population, source arrival, age input, target maturity and separate October axis are not qualified. December remains consumed; no genuine fit, model or trading admission.",
+      "source_wiring": {
+        "status": "SYNTHETIC_AND_LEGACY_REGRESSION_PASS_NO_GENUINE_FIT",
+        "source_files": {
+          "gx1/contracts/entry_native_direction_prefix_normalization_v1.py": {
+            "path": "gx1/contracts/entry_native_direction_prefix_normalization_v1.py",
+            "sha256": "896a8fc3a3b7064e37c92f3088db5171779af6913d7fb3dadda800941832e1e3"
+          },
+          "gx1/contracts/entry_model_native_input_normalization_v1.py": {
+            "path": "gx1/contracts/entry_model_native_input_normalization_v1.py",
+            "sha256": "112c32c59b82947c43808233ce0d0cddcfd25270bb4ffda8020965df594da067"
+          },
+          "gx1/contracts/entry_gc_mtf_history_v1.py": {
+            "path": "gx1/contracts/entry_gc_mtf_history_v1.py",
+            "sha256": "ef64a40a7ac24fc931acc267fae298adde26f20ed91ed587fd28ffcaae71c565"
+          },
+          "gx1/contracts/entry_exit_production_architecture_v1.py": {
+            "path": "gx1/contracts/entry_exit_production_architecture_v1.py",
+            "sha256": "8d18cfceb6fb0823f3f568011da2a0a93d2e0684a0e2217cb5b10dd3a7abd399"
+          },
+          "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+            "path": "gx1/contracts/entry_native_direction_feature_view_v1.py",
+            "sha256": "3b12628ab76a77f4c73d5c405b665b3241ac5b884c172b94a60970a7553dfe70"
+          },
+          "gx1/features/entry_specialist_feature_groups_v1.py": {
+            "path": "gx1/features/entry_specialist_feature_groups_v1.py",
+            "sha256": "6070f033f3046f30c01666b02226155eb032fd66bf1364621697e43cfebdbef3"
+          },
+          "gx1/features/entry_direction_momentum_profile_v1.py": {
+            "path": "gx1/features/entry_direction_momentum_profile_v1.py",
+            "sha256": "708aa74eedbff83b8c104ae64a8d97c2c243c2f761c1caac1c7cca575f91185c"
+          },
+          "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+            "path": "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+            "sha256": "43526ebda18d32a98e29da100e845f1643d0b558da9b950ffa9d1c54b4df2c6e"
+          }
+        },
+        "test_plan": {
+          "path": "/home/andre2/GX1_RUNS/M5_OOF_PREFIX_UNITS_NATIVE_WIRING_20261105_001/TEST_PLAN.json",
+          "sha256": "f2c17c59efeac7a0e05840c50674b147223c8aea7e6060aed357930c1439a45c"
+        },
+        "test_terminal": {
+          "path": "/home/andre2/GX1_RUNS/M5_OOF_PREFIX_UNITS_NATIVE_WIRING_20261105_001/TEST_002_TERMINAL.json",
+          "sha256": "db33e58654d6f3454d0418c7ca9dc44298e727a8d29977f8bb060428e21d7959"
+        },
+        "first_attempt": "122 passed, five failures from invalid alias coverage in a new synthetic base fixture; fixture repaired before final run.",
+        "final_passed": 127,
+        "final_failed": 0,
+        "default_opt_in_required": true,
+        "december_projection_reused": false,
+        "genuine_data_arrays_read": 0,
+        "genuine_statistics_fits": 0,
+        "native_model_instantiations_or_forecasts": 0,
+        "genuine_prefix_qualified": false,
+        "new_input_audit_authorized": false,
+        "training_enabled": false,
+        "independent_directional_edge": "UNKNOWN"
       }
-    }
+    },
+    "goal_tool_status_observed_utc": "2026-11-05T17:11:50.081659+00:00"
   },
   "dynamic_m5_book_smc_within_candle_train_20261105_001": {
     "status": "COMPLETE_CONSUMED_BOTH_REGISTERED_TRAIN_CONTRASTS_NOT_QUALIFIED",

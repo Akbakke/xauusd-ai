@@ -1612,13 +1612,15 @@ GC_MTF_ENTRY_EXECUTION_PROFILE_NAME = "compact_mbp_gc_mtf_support_entry_v1"
 
 
 def compile_gc_mtf_entry_execution_profile(
-    gc_mtf_history: Mapping[str, object],
+    gc_mtf_history: Mapping[str, object], *, unobserved_units_profile=None,
 ) -> dict[str, object]:
     """Bind one additive GC view to the unchanged compact base and TRAIN stats."""
     from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history, gc_mtf_model_layout
 
-    history = require_gc_mtf_history(gc_mtf_history)
-    layout = gc_mtf_model_layout(history)
+    units_kwargs = ({} if unobserved_units_profile is None
+                    else {"unobserved_units_profile": unobserved_units_profile})
+    history = require_gc_mtf_history(gc_mtf_history, **units_kwargs)
+    layout = gc_mtf_model_layout(history, **units_kwargs)
     base = compile_compact_entry_execution_profile()
     base_families = tuple(base["mtf_specialists"])
     gc_families = {
@@ -1663,14 +1665,17 @@ def compile_gc_mtf_entry_execution_profile(
 GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME = "compact_mbp_gc_mtf_geometry_entry_research_v1"
 
 
-def compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history: Mapping[str, object]) -> dict[str, object]:
+def compile_gc_mtf_geometry_entry_execution_profile(
+    gc_mtf_history: Mapping[str, object], *, unobserved_units_profile=None,
+) -> dict[str, object]:
     """Restore the omitted chart family to the compact GC research view.
 
     The physical input, normalization, prior compact features and GC history are
     unchanged. This is an opt-in research view, not a new training authority or
     proof that chart fields add predictive value.
     """
-    base = compile_gc_mtf_entry_execution_profile(gc_mtf_history)
+    base = compile_gc_mtf_entry_execution_profile(gc_mtf_history,
+        **({} if unobserved_units_profile is None else {"unobserved_units_profile": unobserved_units_profile}))
     fields = base["physical_field_names"]
     signal, ctx, mtf = (fields[key] for key in ("signal", "ctx_cont", "mtf"))
     family = "chart_geometry_encoder"
@@ -1723,7 +1728,9 @@ def compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history: Mapping[str,
 FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME = "full_xau_gc_mtf_entry_research_v1"
 
 
-def compile_full_gc_mtf_entry_execution_profile(gc_mtf_history: Mapping[str, object]) -> dict[str, object]:
+def compile_full_gc_mtf_entry_execution_profile(
+    gc_mtf_history: Mapping[str, object], *, unobserved_units_profile=None,
+) -> dict[str, object]:
     """Use every declared XAU field and GC history coordinate, without parking.
 
     This is a distinct research input function, not a change to old compact
@@ -1732,7 +1739,8 @@ def compile_full_gc_mtf_entry_execution_profile(gc_mtf_history: Mapping[str, obj
     GC coordinates follow the caller's explicitly bound raw/relative history;
     no coordinate conversion or normalization fit is performed here.
     """
-    base = compile_gc_mtf_entry_execution_profile(gc_mtf_history)
+    base = compile_gc_mtf_entry_execution_profile(gc_mtf_history,
+        **({} if unobserved_units_profile is None else {"unobserved_units_profile": unobserved_units_profile}))
     fields = base["physical_field_names"]
     signal, ctx, mtf = (fields[key] for key in ("signal", "ctx_cont", "mtf"))
     families = tuple(MODEL_NATIVE_TRAINING_SPECIALISTS)
@@ -1775,24 +1783,27 @@ def compile_full_gc_mtf_entry_execution_profile(gc_mtf_history: Mapping[str, obj
 def require_compact_entry_execution_profile_reference(
     value: object, *, context: str = "ENTRY_EXECUTION_PROFILE",
     gc_mtf_history: Mapping[str, object] | None = None,
+    unobserved_units_profile=None,
 ) -> dict[str, str] | None:
     """Accept full, unchanged compact, or the fully bound additive GC candidate."""
     if value is None:
-        if gc_mtf_history is not None:
+        if gc_mtf_history is not None or unobserved_units_profile is not None:
             raise RuntimeError(f"{context}_GC_MTF_EXECUTION_PROFILE_REQUIRED")
         return None
     if not isinstance(context, str) or not context.strip():
         raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_CONTEXT_INVALID")
     if not isinstance(value, Mapping) or set(value) != {"name", "contract_sha256"}:
         raise RuntimeError(f"{context}_COMPACT_ENTRY_EXECUTION_PROFILE_REFERENCE_INVALID")
+    units_kwargs = ({} if unobserved_units_profile is None
+                    else {"unobserved_units_profile": unobserved_units_profile})
     if value["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
-        compiled = compile_full_gc_mtf_entry_execution_profile(gc_mtf_history)
+        compiled = compile_full_gc_mtf_entry_execution_profile(gc_mtf_history, **units_kwargs)
     elif value["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME:
-        compiled = compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
+        compiled = compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history, **units_kwargs)
     elif value["name"] == GC_MTF_ENTRY_EXECUTION_PROFILE_NAME:
-        compiled = compile_gc_mtf_entry_execution_profile(gc_mtf_history)
+        compiled = compile_gc_mtf_entry_execution_profile(gc_mtf_history, **units_kwargs)
     else:
-        if gc_mtf_history is not None:
+        if gc_mtf_history is not None or unobserved_units_profile is not None:
             raise RuntimeError(f"{context}_GC_MTF_EXECUTION_PROFILE_REQUIRED")
         compiled = compile_compact_entry_execution_profile()
     expected = {"name": compiled["name"], "contract_sha256": compiled["contract_sha256"]}

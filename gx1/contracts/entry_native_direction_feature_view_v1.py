@@ -25,6 +25,7 @@ import pandas as pd
 from gx1.contracts import entry_gc_mtf_history_v1 as history
 from gx1.contracts import entry_model_native_input_normalization_v1 as norm
 from gx1.contracts import entry_native_direction_prefix_normalization_v1 as prefix_owner
+from gx1.contracts import entry_native_direction_prefix_units_v1 as units
 from gx1.contracts.entry_model_native_signal_v1 import MODEL_NATIVE_SEQ_LEN
 from gx1.contracts.entry_model_native_training_objective_v1 import ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE
 from gx1.contracts.entry_causal_m1_outcomes_v1 import DYNAMIC_M1_PREFIX_HORIZON_MINUTES
@@ -202,8 +203,13 @@ class NativeDirectionObserverAxes:
         object.__setattr__(self, 'view_sha256', view['contract_sha256'])
 
 
-def _require_view(view):
+def _require_view(view, *, unobserved_units_profile=None):
     _require(isinstance(view, Mapping), 'VIEW_KEYS')
+    units_profile = unobserved_units_profile is not None
+    _require(units_profile == ('unobserved_units_profile' in view), 'EXPLICIT_UNOBSERVED_UNITS_PROFILE')
+    if units_profile:
+        profile = units.require_october_prefix_units_profile(unobserved_units_profile)
+        _require(view['unobserved_units_profile'] == profile, 'UNOBSERVED_UNITS_VIEW_BINDING')
     dense = 'dense_minute_supervision' in view
     price_momentum = 'price_momentum_profile' in view
     full = 'full_feature_profile' in view
@@ -222,6 +228,9 @@ def _require_view(view):
     relative = 'gc_relative_coordinates_sha256' in view
     _require(set(view) == VIEW_KEYS | ({'bps_scale'} if 'bps_scale' in view else set()) | ({'magnitude_weight_contract'} if 'magnitude_weight_contract' in view else set()) | ({'dense_minute_supervision'} if dense else set()) | ({'price_momentum_profile'} if price_momentum else set()) | ({'full_feature_profile'} if full else set()) | ({'five_minute_priority'} if five_priority else set()) | ({'dense_bps_scale'} if dense_bps else set()) | ({'m1_ofi_normalization'} if m1_ofi else set()) | ({'m1_ofi_coarsened'} if coarsened else set()) | ({'family_intervention'} if family else set()) | ({'price_momentum_initialization'} if initialization != 'zero_residual' else set()) | ({'gc_relative_coordinates_sha256'} if relative else set()) | ({'dynamic_state_supervision'} if dynamic_state else set()) | ({'current_state_first_loss_weight'} if current_state else set()) | ({'extended_forecast_minutes'} if extended_state else set()) | ({'first_flat_activity_weight'} if first_activity else set())
         | ({'native_endpoint_loss'} if endpoint else set()) | ({'zero_support_profile', 'reserved_observer_axes'} if masked_profile else set())
+        | ({'unobserved_units_profile'} if units_profile else set())
+        and not (masked_profile and units_profile)
+        and (not units_profile or (full and dynamic_state and endpoint))
         and (not masked_profile or endpoint)
         and (not endpoint or (view['native_endpoint_loss'] is True and first_activity and not extended_state))
         and (not first_activity or current_state)
@@ -273,6 +282,12 @@ def _require_view(view):
     for item in view['source_bindings'].values(): _ref(item)
     _require(masked_profile == ('zero_support_profile_sha256' in view['prefix_normalization'])
              == ('reserved_observer_axes_sha256' in view['prefix_normalization']), 'ZERO_SUPPORT_VIEW_BINDING')
+    _require(units_profile == ('unobserved_units_profile_sha256' in view['prefix_normalization']),
+             'UNOBSERVED_UNITS_VIEW_BINDING')
+    if units_profile:
+        _require(view['prefix_normalization']['unobserved_units_profile_sha256'] == profile['contract_sha256'],
+                 'UNOBSERVED_UNITS_VIEW_BINDING')
+        units.require_prefix_units_fit_identity(view['prefix'], profile)
     if masked_profile:
         profile = view['zero_support_profile']
         prefix_owner.require_december_zero_support_profile(profile)
@@ -343,7 +358,7 @@ def family_reference_view(view):
 
 
 def bind_native_direction_feature_view(*, prefix_normalization, prefix_normalization_ref,
-    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False, zero_support_profile=None):
+    constructor_metadata, constructor_metadata_ref, source_bindings, max_batch_rows, expected=None, bps_scale=None, magnitude_weight_contract=None, dense_minutes=False, price_momentum=False, m1_ofi_normalization=None, m1_ofi_coarsened=False, five_minute_priority=False, dense_bps_scale=None, family_intervention=None, price_momentum_initialization='zero_residual', full_feature_profile=False, dynamic_state_supervision=False, current_state_first_loss_weight=None, extended_forecast_minutes=None, first_flat_activity_weight=None, native_endpoint_loss=False, zero_support_profile=None, unobserved_units_profile=None):
     """Bind verified metadata; ``expected`` requires exact reconstruction of a view.
 
     Plainrefs identify caller-verified files. Content seals bind their decoded
@@ -351,10 +366,16 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     Old constructor metadata may retain old artifact provenance; only its explicit
     scalar configuration/full raw routing are used, never its old GC stats join.
     """
+    _require(zero_support_profile is None or unobserved_units_profile is None, 'PROFILE_MIX')
+    if unobserved_units_profile is not None:
+        unobserved_units_profile = units.require_october_prefix_units_profile(unobserved_units_profile)
+    units_kwargs = ({} if unobserved_units_profile is None
+                    else {'unobserved_units_profile': unobserved_units_profile})
     _sealed(prefix_normalization, 'PREFIX_NORMALIZATION_SEAL')
     _require(set(prefix_normalization) == {'schema_version', 'base_normalization', 'gc_mtf_history',
         'prefix_qualification', 'old055_or223_normalization_identity_reused', 'native_launch_authorized', 'genuine_model_fit_authorized'}
         | {'contract_sha256'} | ({'zero_support_profile'} if zero_support_profile is not None else set())
+        | ({'unobserved_units_profile'} if unobserved_units_profile is not None else set())
         and prefix_normalization['schema_version'] == 'gx1_native_direction_prefix_normalization_v1'
         and prefix_normalization['old055_or223_normalization_identity_reused'] is False
         and prefix_normalization['native_launch_authorized'] is prefix_normalization['genuine_model_fit_authorized'] is False, 'PREFIX_NORMALIZATION_SCOPE')
@@ -365,16 +386,26 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         prefix_owner.require_december_normalization_bindings(prefix_normalization, zero_support_profile)
     else:
         _require('zero_support_profile' not in report, 'UNBOUND_ZERO_SUPPORT_PROFILE')
+    if unobserved_units_profile is not None:
+        _require(full_feature_profile is True and dynamic_state_supervision is True and native_endpoint_loss is True
+                 and prefix_normalization['unobserved_units_profile'] == unobserved_units_profile
+                 and report.get('unobserved_units_profile') == unobserved_units_profile, 'UNOBSERVED_UNITS_FIT_BINDING')
+        prefix_owner.require_october_units_normalization_bindings(prefix_normalization, unobserved_units_profile)
+    else:
+        _require('unobserved_units_profile' not in report, 'UNBOUND_UNOBSERVED_UNITS_PROFILE')
     _require(report.get('fit_allowed') is True and report.get('blockers') == [] and report.get('statistics_fits') == 0, 'SUPPORTED_PREFIX')
     proof = report['proof']; fields, routes, widths = _canonical()
     base = norm.require_input_normalization_contract(prefix_normalization['base_normalization'],
         expected_field_names={name: list(fields['signal'] if name == 'signal' else fields['ctx_cont'] if name == 'ctx_cont' else fields['mtf'])
             for name in norm.EXPECTED_SURFACES}, expected_ctx_cat_names=fields['ctx_cat'],
-        expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE)
-    gc_history = history.require_gc_mtf_history(prefix_normalization['gc_mtf_history'])
+        expected_entry_training_phase=ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE, **units_kwargs)
+    gc_history = history.require_gc_mtf_history(prefix_normalization['gc_mtf_history'], **units_kwargs)
     if zero_support_profile is None:
         surfaces = (*base['surfaces'].values(), *gc_history['normalization']['surfaces'].values())
         _require(all('zero_support_profile_sha256' not in surface for surface in surfaces), 'UNBOUND_ZERO_SUPPORT_PROFILE')
+    if unobserved_units_profile is None:
+        surfaces = (*base['surfaces'].values(), *gc_history['normalization']['surfaces'].values())
+        _require(all('unobserved_units_profile_sha256' not in surface for surface in surfaces), 'UNBOUND_UNOBSERVED_UNITS_PROFILE')
     relative = gc_history['normalization'].get('relative_price')
     _require(price_momentum_initialization in ('zero_residual', 'linear_default')
         and (price_momentum_initialization == 'zero_residual' or (price_momentum and family_intervention is None))
@@ -413,10 +444,10 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
             ('mtf_window_source', 'gx1/features/htf_features.py'), ('gc_gather_source', 'gx1/contracts/entry_gc_mtf_history_v1.py'),
             ('owner_profile_source', 'gx1/features/entry_specialist_feature_groups_v1.py'))), 'SOURCE_PROVENANCE_JOINS')
     scalars = _configuration(constructor_metadata)
-    compiled = (owners.compile_full_gc_mtf_entry_execution_profile(gc_history) if full_feature_profile
-        else price_momentum_owner.compile_price_momentum_profile(gc_history, initialization=price_momentum_initialization) if price_momentum
-        else owners.compile_gc_mtf_geometry_entry_execution_profile(gc_history) if dense_minutes
-        else owners.compile_gc_mtf_entry_execution_profile(gc_history))
+    compiled = (owners.compile_full_gc_mtf_entry_execution_profile(gc_history, **units_kwargs) if full_feature_profile
+        else price_momentum_owner.compile_price_momentum_profile(gc_history, initialization=price_momentum_initialization, **units_kwargs) if price_momentum
+        else owners.compile_gc_mtf_geometry_entry_execution_profile(gc_history, **units_kwargs) if dense_minutes
+        else owners.compile_gc_mtf_entry_execution_profile(gc_history, **units_kwargs))
     if family_intervention is not None:
         from gx1.contracts.entry_direction_family_intervention_v1 import compile_family_intervention
         reference = _require_family_reference(family_intervention)
@@ -487,6 +518,9 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         value['full_axes'] = full
         value['reserved_observer_axes'] = _copy(scope)
         value['prefix_normalization']['reserved_observer_axes_sha256'] = _sha(scope)
+    if unobserved_units_profile is not None:
+        value['unobserved_units_profile'] = _copy(unobserved_units_profile)
+        value['prefix_normalization']['unobserved_units_profile_sha256'] = unobserved_units_profile['contract_sha256']
     if extended_forecast_minutes is not None:
         value['extended_forecast_minutes'] = extended_forecast_minutes
     if price_momentum_initialization != 'zero_residual':
@@ -502,21 +536,21 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
     if family_intervention is not None:
         value['family_intervention'] = _copy(reference)
     value['contract_sha256'] = _sha(value)
-    _require_view(value)
+    _require_view(value, **units_kwargs)
     _require(expected is None or expected == value, 'EXPECTED_VIEW_MISMATCH')
     return value
 
 
 def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, decision_ns,
     entry_sequence_source, snap_x, ctx_cont, ctx_cat, multi_tf_sources, gc_surfaces, gc_layout, batch_parent_rows,
-    m1_ofi_source=None, m1_ofi_clock=None, observer_axes=None):
+    m1_ofi_source=None, m1_ofi_clock=None, observer_axes=None, unobserved_units_profile=None):
     """Gather one bounded raw batch from caller-verified immutable full backings.
 
     The normalization cutoff describes fitted statistics; later OOF feature rows
     remain legal. Training target maturity is handled only by the separate loss.
     No labels, future endpoints, padding or resampling enter these feature arrays.
     """
-    _require_view(view)
+    _require_view(view, unobserved_units_profile=unobserved_units_profile)
     fields, routes, widths = _canonical(); rows = view['full_axes']['rows']
     if 'zero_support_profile' in view:
         _require(type(observer_axes) is NativeDirectionObserverAxes and observer_axes.view_sha256 == view['contract_sha256']
@@ -605,7 +639,9 @@ def gather_native_direction_feature_batch(view, *, parent_rows, bar_start_ns, de
         'multi_tf': witnesses, 'raw_values_not_normalized': True}}
 
 
-def build_native_direction_research_model(view, *, prefix_normalization, constructor_metadata, device):
+def build_native_direction_research_model(
+    view, *, prefix_normalization, constructor_metadata, device, unobserved_units_profile=None,
+):
     """Use the exact native type plus260head; caller controls fresh RNG/policy.
 
     No old artifact reader, Dataset, target provider, checkpoint or factory is
@@ -626,7 +662,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         current_state_first_loss_weight=view.get('current_state_first_loss_weight'),
         extended_forecast_minutes=view.get('extended_forecast_minutes'),
         first_flat_activity_weight=view.get('first_flat_activity_weight'),
-        native_endpoint_loss=view.get('native_endpoint_loss', False), zero_support_profile=view.get('zero_support_profile'))
+        native_endpoint_loss=view.get('native_endpoint_loss', False), zero_support_profile=view.get('zero_support_profile'),
+        **({} if unobserved_units_profile is None else {'unobserved_units_profile': unobserved_units_profile}))
     _, routes, widths = _canonical()
     kwargs = _copy(routes)
     kwargs.update(view['constructor_scalar_config'])
@@ -639,6 +676,8 @@ def build_native_direction_research_model(view, *, prefix_normalization, constru
         kwargs[tf.lower() + '_seq_dim'] = widths['mtf']; kwargs[tf.lower() + '_seq_len'] = length
     if 'zero_support_profile' in view:
         kwargs['zero_support_profile'] = view['zero_support_profile']
+    if unobserved_units_profile is not None:
+        kwargs['research_unobserved_units_profile'] = _copy(unobserved_units_profile)
     backbone = EntryV10CtxHybridTransformer(**kwargs).to(device)
     _require(type(backbone) is EntryV10CtxHybridTransformer and backbone.entry_execution_profile == view['entry_execution_profile']
         and backbone.gc_mtf_history == prefix_normalization['gc_mtf_history'], 'CONSTRUCTED_NATIVE_BINDING')

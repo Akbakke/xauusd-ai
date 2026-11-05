@@ -236,7 +236,7 @@ def _normalization_provenance(value, layout, surfaces):
     return p
 
 
-def require_gc_mtf_history_normalization(value, *, layout):
+def require_gc_mtf_history_normalization(value, *, layout, unobserved_units_profile=None):
     from gx1.contracts.entry_model_native_input_normalization_v1 import require_surface_normalization
     layout = require_gc_mtf_history_layout(layout)
     _require(isinstance(value, Mapping), 'NORMALIZATION_KEYS')
@@ -249,12 +249,20 @@ def require_gc_mtf_history_normalization(value, *, layout):
         and data['layout_sha256'] == layout['contract_sha256']
         and isinstance(data['surfaces'], Mapping)
         and set(data['surfaces']) == {'gc_mtf_' + tf.lower() for tf in TIMEFRAMES}, 'NORMALIZATION_LAYOUT')
+    if unobserved_units_profile is not None:
+        from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
+        units_spec = require_october_prefix_units_profile(unobserved_units_profile)
+        _require(not relative, 'UNOBSERVED_UNITS_RAW_COORDINATES')
     for tf in TIMEFRAMES:
         name = 'gc_mtf_' + tf.lower()
-        require_surface_normalization(data['surfaces'][name], surface=name, field_names=layout['field_names'][tf])
+        require_surface_normalization(data['surfaces'][name], surface=name, field_names=layout['field_names'][tf],
+            unobserved_units_profile=unobserved_units_profile)
         _require(data['surfaces'][name]['categorical_domains'] == layout['categorical_domains'][tf],
             'NORMALIZATION_CATEGORICAL_DOMAINS:' + tf)
     _normalization_provenance(data['provenance'], layout, data['surfaces'])
+    if unobserved_units_profile is not None:
+        _require(data['provenance']['train_end_ns'] == units_spec['fit_prefix']['cutoff_ns'],
+            'UNOBSERVED_UNITS_FIT_CUTOFF')
     if relative:
         from gx1.contracts.gc_relative_price_coordinates_v1 import require_gc_native_relative_price_layout
         coordinates = data['relative_price']
@@ -278,11 +286,12 @@ def require_gc_mtf_history_normalization(value, *, layout):
 
 
 def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train_start_ns, train_end_ns, layout,
-        relative_price_coordinates=None, zero_support_profile=None):
+        relative_price_coordinates=None, zero_support_profile=None, unobserved_units_profile=None):
     """Fit only the explicit unique TRAIN union chosen by the existing selector.
 
     Warmup history before TRAIN start is legal. CONTROL rows are never read by
-    this fit, and no unobserved-field domain fallback is introduced.
+    this fit. Default fitting rejects unobserved fields; exact research units
+    require the separate explicit profile.
     """
     from gx1.contracts.entry_model_native_input_normalization_v1 import fit_surface_normalization
     layout = require_gc_mtf_history_layout(layout)
@@ -292,6 +301,12 @@ def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train
     _require(isinstance(train_row_indices_by_tf, Mapping)
         and set(train_row_indices_by_tf) == set(TIMEFRAMES), 'FIT_TRAIN_UNION_KEYS')
     coordinates = None
+    if unobserved_units_profile is not None:
+        from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
+        units_spec = require_october_prefix_units_profile(unobserved_units_profile)
+        _require(zero_support_profile is None and relative_price_coordinates is None,
+            'UNOBSERVED_UNITS_PROFILE_CONFLICT')
+        _require(train_end_ns == units_spec['fit_prefix']['cutoff_ns'], 'UNOBSERVED_UNITS_FIT_CUTOFF')
     if zero_support_profile is not None:
         from gx1.contracts.entry_native_direction_prefix_normalization_v1 import require_december_zero_support_profile
         spec = require_december_zero_support_profile(zero_support_profile)
@@ -335,6 +350,7 @@ def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train
         fitted[name] = fit_surface_normalization(selected, surface=name,
             field_names=layout['field_names'][tf], row_count=len(rows),
             semantic_categorical_domains=layout['categorical_domains'][tf],
+            unobserved_units_profile=unobserved_units_profile,
             **({'zero_support_profile': spec} if zero_support_profile is not None and tf == 'D1' else {}))
         unions[tf] = {'rows': len(rows), 'native_row_indices_sha256': _array_sha(rows),
             'available_ns_sha256': _array_sha(closes)}
@@ -345,23 +361,25 @@ def fit_gc_mtf_history_normalization(surfaces, train_row_indices_by_tf, *, train
     if coordinates is not None:
         value['schema_version'] = RELATIVE_NORMALIZATION_SCHEMA_VERSION
         value['relative_price'] = {'layout': coordinates, 'anchor_surfaces': anchors}
-    return require_gc_mtf_history_normalization({**value, 'contract_sha256': _sha(value)}, layout=layout)
+    return require_gc_mtf_history_normalization({**value, 'contract_sha256': _sha(value)}, layout=layout,
+        unobserved_units_profile=unobserved_units_profile)
 
 
-def require_gc_mtf_history(value):
+def require_gc_mtf_history(value, *, unobserved_units_profile=None):
     """The one candidate wrapper schema consumed by model/profile/bundle."""
     _require(isinstance(value, Mapping) and set(value) == {'layout', 'normalization'}, 'WRAPPER_KEYS')
     layout = require_gc_mtf_history_layout(value['layout'])
-    return {'layout': layout, 'normalization': require_gc_mtf_history_normalization(value['normalization'], layout=layout)}
+    return {'layout': layout, 'normalization': require_gc_mtf_history_normalization(
+        value['normalization'], layout=layout, unobserved_units_profile=unobserved_units_profile)}
 
 
-def gc_mtf_model_layout(history):
+def gc_mtf_model_layout(history, *, unobserved_units_profile=None):
     """Projection dimensions; the raw layout identity and loader stay unchanged.
 
     Relative coordinates are bound by normalization.contract_sha256. This
     derived model view is not a replacement raw artifact layout contract.
     """
-    history = require_gc_mtf_history(history)
+    history = require_gc_mtf_history(history, unobserved_units_profile=unobserved_units_profile)
     model_layout = json.loads(json.dumps(history['layout']))
     relative = history['normalization'].get('relative_price')
     if relative is not None:
@@ -373,9 +391,9 @@ def gc_mtf_model_layout(history):
     return model_layout
 
 
-def gc_mtf_normalization_surfaces(history):
+def gc_mtf_normalization_surfaces(history, *, unobserved_units_profile=None):
     """Expose original-column statistics plus the separate observed-anchor fits."""
-    history = require_gc_mtf_history(history)
+    history = require_gc_mtf_history(history, unobserved_units_profile=unobserved_units_profile)
     surfaces = dict(history['normalization']['surfaces'])
     relative = history['normalization'].get('relative_price')
     if relative is not None:

@@ -518,14 +518,27 @@ class EntryV10CtxHybridTransformer(nn.Module):
         entry_execution_profile: Optional[Mapping[str, str]] = None,
         gc_mtf_history: Optional[Mapping[str, object]] = None,
         zero_support_profile: Optional[Mapping[str, object]] = None,
+        research_unobserved_units_profile: Optional[Mapping[str, object]] = None,
     ) -> None:
+        if research_unobserved_units_profile is not None:
+            from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
+            research_unobserved_units_profile = require_october_prefix_units_profile(research_unobserved_units_profile)
+            if zero_support_profile is not None:
+                raise RuntimeError("NATIVE_RESEARCH_UNITS_PROFILE_CONFLICT")
         if gc_mtf_history is not None:
             from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history
-            gc_mtf_history = require_gc_mtf_history(gc_mtf_history)
+            gc_mtf_history = require_gc_mtf_history(
+                gc_mtf_history, unobserved_units_profile=research_unobserved_units_profile)
         profile_reference = require_entry_execution_profile_reference(
             entry_execution_profile, context="ENTRY_MODEL_EXECUTION_PROFILE",
             gc_mtf_history=gc_mtf_history,
+            unobserved_units_profile=research_unobserved_units_profile,
         )
+        if research_unobserved_units_profile is not None and (
+                gc_mtf_history is None or profile_reference is None
+                or profile_reference["name"] != FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+                or entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+            raise RuntimeError("NATIVE_RESEARCH_UNITS_SCOPE")
         if profile_reference is not None and entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE:
             raise RuntimeError("COMPACT_ENTRY_EXECUTION_PROFILE_REQUIRES_DYNAMIC_PHASE")
         price_momentum_mode = (
@@ -533,13 +546,17 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if profile_reference is not None and profile_reference["name"] in PRICE_MOMENTUM_PROFILE_NAMES else None
         )
         compiled_profile = (
-            compile_full_gc_mtf_entry_execution_profile(gc_mtf_history)
+            compile_full_gc_mtf_entry_execution_profile(
+                gc_mtf_history, unobserved_units_profile=research_unobserved_units_profile)
             if profile_reference is not None and profile_reference["name"] == FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME else
-            compile_price_momentum_profile(gc_mtf_history, initialization=price_momentum_mode)
+            compile_price_momentum_profile(gc_mtf_history, initialization=price_momentum_mode,
+                unobserved_units_profile=research_unobserved_units_profile)
             if price_momentum_mode is not None else
-            compile_gc_mtf_geometry_entry_execution_profile(gc_mtf_history)
+            compile_gc_mtf_geometry_entry_execution_profile(
+                gc_mtf_history, unobserved_units_profile=research_unobserved_units_profile)
             if profile_reference is not None and profile_reference["name"] == GC_MTF_GEOMETRY_ENTRY_EXECUTION_PROFILE_NAME else
-            compile_gc_mtf_entry_execution_profile(gc_mtf_history)
+            compile_gc_mtf_entry_execution_profile(
+                gc_mtf_history, unobserved_units_profile=research_unobserved_units_profile)
             if gc_mtf_history is not None else
             compile_compact_entry_execution_profile()
             if profile_reference is not None else None
@@ -560,6 +577,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             architecture = (
                 current_entry_exit_architecture_observation(
                     entry_execution_profile=architecture_profile, gc_mtf_history=gc_mtf_history,
+                    unobserved_units_profile=research_unobserved_units_profile,
                 )
                 if architecture_profile is not None else current_entry_exit_architecture_observation()
             )
@@ -609,12 +627,19 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 architecture,
                 context="ENTRY_V10_MODEL_CONSTRUCTION",
                 gc_mtf_history=gc_mtf_history,
+                unobserved_units_profile=research_unobserved_units_profile,
             )
         super().__init__()
         self.entry_training_phase = require_entry_training_phase(
             entry_training_phase, context="ENTRY_MODEL_CONSTRUCTION",
         )
         self.entry_execution_profile = profile_reference
+        self._research_unobserved_units_profile = research_unobserved_units_profile
+        if research_unobserved_units_profile is not None:
+            self.register_buffer(
+                "research_unobserved_units_profile_sha256",
+                torch.tensor(list(bytes.fromhex(research_unobserved_units_profile["contract_sha256"])), dtype=torch.uint8),
+            )
         self.gc_mtf_history = gc_mtf_history
         self._gc_mtf_history_identity = (
             (gc_mtf_history["layout"]["contract_sha256"],
@@ -791,6 +816,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
             expected_field_names=normalization_field_names,
             expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS,
             expected_entry_training_phase=self.entry_training_phase,
+            unobserved_units_profile=research_unobserved_units_profile,
         )
         expected_surface_widths = {
             "signal": int(seq_input_dim),
@@ -923,7 +949,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 torch.tensor(list(bytes.fromhex(self._gc_mtf_history_identity[1])), dtype=torch.uint8),
             )
             from gx1.contracts.entry_gc_mtf_history_v1 import gc_mtf_normalization_surfaces
-            for surface, stats in gc_mtf_normalization_surfaces(gc_mtf_history).items():
+            for surface, stats in gc_mtf_normalization_surfaces(
+                    gc_mtf_history, unobserved_units_profile=research_unobserved_units_profile).items():
                 self._input_normalization_field_names[surface] = list(stats["field_names"])
                 self._input_norm_categorical_domains[surface] = {
                     name: tuple(domain) for name, domain in stats["categorical_domains"].items()
@@ -1617,7 +1644,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
             self.gc_mtf_feature_context_gate = nn.ModuleDict()
             self._gc_mtf_specialist_index_tuples = {}
             from gx1.contracts.entry_gc_mtf_history_v1 import gc_mtf_model_layout
-            projection_layout = gc_mtf_model_layout(gc_mtf_history)
+            projection_layout = gc_mtf_model_layout(
+                gc_mtf_history, unobserved_units_profile=research_unobserved_units_profile)
             for tf in gc_mtf_history["layout"]["timeframes"]:
                 suffix = tf.lower()
                 for family in self._mtf_specialist_names:
@@ -1854,6 +1882,38 @@ class EntryV10CtxHybridTransformer(nn.Module):
             if not torch.equal(self.entry_execution_profile_contract_sha256.detach().cpu(), expected_profile_hash):
                 raise RuntimeError("ENTRY_MODEL_EXECUTION_PROFILE_STATE_BINDING_INVALID")
         contract = self._input_normalization_contract
+        units_profile = getattr(self, "_research_unobserved_units_profile", None)
+        units_buffer = getattr(self, "research_unobserved_units_profile_sha256", None)
+        research_stats = list(contract["surfaces"].values())
+        if self.gc_mtf_history is not None:
+            research_stats.extend(self.gc_mtf_history["normalization"]["surfaces"].values())
+        units_marked = any("unobserved_units_profile_sha256" in stats or "observed_fit_counts" in stats
+                           for stats in research_stats)
+        if units_profile is not None or units_marked or units_buffer is not None:
+            if units_profile is None:
+                raise RuntimeError("NATIVE_RESEARCH_UNITS_STATE_OPT_IN_REQUIRED")
+            from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
+            units_profile = require_october_prefix_units_profile(units_profile)
+            if (getattr(self, "_research_zero_columns", {})
+                    or any("zero_support_profile_sha256" in stats for stats in research_stats)):
+                raise RuntimeError("NATIVE_RESEARCH_UNITS_PROFILE_CONFLICT")
+            if (self.gc_mtf_history is None or self.entry_execution_profile is None
+                    or self.entry_execution_profile["name"] != FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME
+                    or self.entry_training_phase != ENTRY_ONLY_DYNAMIC_M5_PATH_TRAINING_PHASE):
+                raise RuntimeError("NATIVE_RESEARCH_UNITS_SCOPE")
+            expected_units_hash = torch.tensor(
+                list(bytes.fromhex(units_profile["contract_sha256"])), dtype=torch.uint8)
+            if (not isinstance(units_buffer, torch.Tensor) or units_buffer.dtype != torch.uint8
+                    or not torch.equal(units_buffer.detach().cpu(), expected_units_hash)):
+                raise RuntimeError("NATIVE_RESEARCH_UNITS_STATE_HASH_MISMATCH")
+            contract = require_input_normalization_contract(
+                contract,
+                expected_field_names={key: self._input_normalization_field_names[key]
+                                      for key in INPUT_NORMALIZATION_SURFACES},
+                expected_ctx_cat_names=MODEL_NATIVE_CTX_CAT_FIELDS,
+                expected_entry_training_phase=self.entry_training_phase,
+                unobserved_units_profile=units_profile,
+            )
         marked = any("zero_support_profile_sha256" in v for v in contract["surfaces"].values())
         if marked or getattr(self, "_research_zero_columns", {}):
             from gx1.contracts.entry_native_direction_prefix_normalization_v1 import (
@@ -1876,7 +1936,7 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 raise RuntimeError("GC_MTF_MODEL_STATE_BINDING_INVALID")
         else:
             from gx1.contracts.entry_gc_mtf_history_v1 import require_gc_mtf_history
-            history = require_gc_mtf_history(self.gc_mtf_history)
+            history = require_gc_mtf_history(self.gc_mtf_history, unobserved_units_profile=units_profile)
             hashes = (history["layout"]["contract_sha256"],
                       history["normalization"]["contract_sha256"])
             if hashes != self._gc_mtf_history_identity or self.cfg.gc_mtf_history != history:
@@ -1890,9 +1950,9 @@ class EntryV10CtxHybridTransformer(nn.Module):
                 ):
                     raise RuntimeError("GC_MTF_MODEL_STATE_HASH_MISMATCH")
             from gx1.contracts.entry_gc_mtf_history_v1 import gc_mtf_model_layout, gc_mtf_normalization_surfaces
-            normalization_surfaces = gc_mtf_normalization_surfaces(history)
+            normalization_surfaces = gc_mtf_normalization_surfaces(history, unobserved_units_profile=units_profile)
             state_surfaces.update(normalization_surfaces)
-            projection_layout = gc_mtf_model_layout(history)
+            projection_layout = gc_mtf_model_layout(history, unobserved_units_profile=units_profile)
             expected_indices = {
                 f"{tf.lower()}__{family}": tuple(indices)
                 for tf in history["layout"]["timeframes"]
