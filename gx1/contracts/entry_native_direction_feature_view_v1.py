@@ -48,6 +48,7 @@ DENSE_SOURCE_REF_KEYS = frozenset({'dense_direction_component_source', 'dense_pr
 PRICE_MOMENTUM_SOURCE_REF_KEYS = frozenset({'price_momentum_profile_source'})
 DYNAMIC_STATE_SOURCE_REF_KEYS = frozenset({'dynamic_state_target_source'})
 CONFIRMED_AGE_SOURCE_REF_KEYS = frozenset({'confirmed_age_candidate_design'})
+OCTOBER_SOURCE_REF_KEYS = frozenset({'october_input_plan'})
 GC_RELATIVE_SOURCE_REF_KEYS = frozenset({'gc_relative_coordinates_source', 'gc_price_coordinate_source_map_source'})
 FAMILY_SOURCE_REF_KEYS = frozenset({'family_intervention_source'})
 FIVE_PRIORITY_SOURCE_REF_KEYS = frozenset({'five_priority_source'})
@@ -218,6 +219,7 @@ def _require_view(view, *, unobserved_units_profile=None):
     dynamic_state = 'dynamic_state_supervision' in view
     current_state = 'current_state_first_loss_weight' in view
     confirmed_age = 'confirmed_run_age_input' in view
+    october_source = 'october_input_plan' in view.get('source_bindings', {})
     first_activity = 'first_flat_activity_weight' in view
     endpoint = 'native_endpoint_loss' in view
     masked_profile = 'zero_support_profile' in view
@@ -285,7 +287,7 @@ def _require_view(view, *, unobserved_units_profile=None):
         and view['research_objective'] == objective
         and view['evidence_scope'] == EVIDENCE_SCOPE
         and type(view['max_batch_rows']) is int and view['max_batch_rows'] > 0, 'VIEW_CANONICAL_IDENTITY')
-    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_age else set()), 'SOURCE_REF_KEYS')
+    _require(set(view['source_bindings']) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi else set()) | (FAMILY_SOURCE_REF_KEYS if family else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_age else set()) | (OCTOBER_SOURCE_REF_KEYS if october_source else set()), 'SOURCE_REF_KEYS')
     for item in view['source_bindings'].values(): _ref(item)
     _require(masked_profile == ('zero_support_profile_sha256' in view['prefix_normalization'])
              == ('reserved_observer_axes_sha256' in view['prefix_normalization']), 'ZERO_SUPPORT_VIEW_BINDING')
@@ -453,15 +455,26 @@ def bind_native_direction_feature_view(*, prefix_normalization, prefix_normaliza
         and (dense_bps_scale is None or (dense_minutes and price_momentum and not five_minute_priority and m1_ofi_normalization is None))
         and (m1_ofi_normalization is None or dense_minutes)
         and (not m1_ofi_coarsened or m1_ofi_normalization is not None), 'OBJECTIVE_MODE')
-    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_minute_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps_scale is not None else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()) | (FAMILY_SOURCE_REF_KEYS if family_intervention is not None else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative is not None else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state_supervision else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_run_age_input else set()), 'SOURCE_REF_KEYS')
-    source_bindings = {key: _ref(value) for key, value in source_bindings.items()}
     provenance = proof['source_bindings']
-    _require(source_bindings['raw_input_provider_plan'] == provenance['ancestral264_plan']
-        and source_bindings['raw_gc_layout'] == provenance['current_gc_layout']
-        and source_bindings['raw_gc_transition'] == provenance['current_gc_raw_transition']
-        and all(source_bindings[key] == provenance['current_source_owners'][owner] for key, owner in (
-            ('mtf_window_source', 'gx1/features/htf_features.py'), ('gc_gather_source', 'gx1/contracts/entry_gc_mtf_history_v1.py'),
-            ('owner_profile_source', 'gx1/features/entry_specialist_feature_groups_v1.py'))), 'SOURCE_PROVENANCE_JOINS')
+    october_provenance = unobserved_units_profile is not None and set(provenance) == {
+            'ancestral_264_plan', 'ancestral_267_plan', 'current_plan', 'prior_october_support'}
+    _require(isinstance(source_bindings, Mapping) and set(source_bindings) == SOURCE_REF_KEYS | (DENSE_SOURCE_REF_KEYS if dense_minutes else set()) | (PRICE_MOMENTUM_SOURCE_REF_KEYS if price_momentum else set()) | (FIVE_PRIORITY_SOURCE_REF_KEYS if five_minute_priority else set()) | (DENSE_BPS_SOURCE_REF_KEYS if dense_bps_scale is not None else set()) | (M1_OFI_SOURCE_REF_KEYS if m1_ofi_normalization is not None else set()) | (FAMILY_SOURCE_REF_KEYS if family_intervention is not None else set()) | (GC_RELATIVE_SOURCE_REF_KEYS if relative is not None else set()) | (DYNAMIC_STATE_SOURCE_REF_KEYS if dynamic_state_supervision else set()) | (CONFIRMED_AGE_SOURCE_REF_KEYS if confirmed_run_age_input else set()) | (OCTOBER_SOURCE_REF_KEYS if october_provenance else set()), 'SOURCE_REF_KEYS')
+    source_bindings = {key: _ref(value) for key, value in source_bindings.items()}
+    if october_provenance:
+        # October's qualified input-only proof binds its own plan and ancestry.
+        # The caller verifies every file ref before this metadata-only binding.
+        _require(source_bindings['raw_input_provider_plan'] == provenance['ancestral_264_plan']
+                 and source_bindings['october_input_plan'] == provenance['current_plan']
+                 and source_bindings['input_qualification']['path'] ==
+                     str(PurePosixPath(prefix_normalization_ref['path']).with_name('QUALIFICATION.json')),
+                 'OCTOBER_SOURCE_PROVENANCE_JOINS')
+    else:
+        _require(source_bindings['raw_input_provider_plan'] == provenance['ancestral264_plan']
+            and source_bindings['raw_gc_layout'] == provenance['current_gc_layout']
+            and source_bindings['raw_gc_transition'] == provenance['current_gc_raw_transition']
+            and all(source_bindings[key] == provenance['current_source_owners'][owner] for key, owner in (
+                ('mtf_window_source', 'gx1/features/htf_features.py'), ('gc_gather_source', 'gx1/contracts/entry_gc_mtf_history_v1.py'),
+                ('owner_profile_source', 'gx1/features/entry_specialist_feature_groups_v1.py'))), 'SOURCE_PROVENANCE_JOINS')
     scalars = _configuration(constructor_metadata)
     compiled = (owners.compile_full_gc_mtf_entry_execution_profile(gc_history, **units_kwargs) if full_feature_profile
         else price_momentum_owner.compile_price_momentum_profile(gc_history, initialization=price_momentum_initialization, **units_kwargs) if price_momentum

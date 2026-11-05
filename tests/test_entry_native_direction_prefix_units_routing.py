@@ -234,6 +234,34 @@ def test_raw_gather_requires_opt_in_and_preserves_later_values_and_masks(binding
     assert result['witness']['raw_values_not_normalized'] is True
 
 
+def test_october_qualification_provenance_binds_its_own_source_plan(binding_case, monkeypatch):
+    args = deepcopy(binding_case['arguments'])
+    proof = args['prefix_normalization']['prefix_qualification']['proof']
+    plan = _ref('october-input-plan.json')
+    proof['source_bindings'] = {'ancestral_264_plan': args['source_bindings']['raw_input_provider_plan'],
+        'ancestral_267_plan': _ref('ancestral-267.json'), 'current_plan': plan,
+        'prior_october_support': _ref('october-support.json')}
+    args['prefix_normalization']['prefix_qualification'] = _seal(
+        args['prefix_normalization']['prefix_qualification'])
+    args['prefix_normalization'] = _seal(args['prefix_normalization'])
+    args['source_bindings']['october_input_plan'] = plan
+    args['source_bindings']['input_qualification'] = _ref('QUALIFICATION.json')
+    monkeypatch.setattr(view.prefix_owner, 'require_october_units_normalization_bindings',
+        lambda fitted, profile: units.require_prefix_units_fit_identity(
+            fitted['prefix_qualification']['proof']['prefix'], profile))
+    bound = view.bind_native_direction_feature_view(**args)
+    assert bound['source_bindings']['october_input_plan'] == plan
+    assert view._require_view(bound, unobserved_units_profile=binding_case['profile']) == bound
+    wrong = deepcopy(args)
+    wrong['source_bindings']['october_input_plan'] = _ref('wrong-plan.json')
+    with pytest.raises(RuntimeError, match='OCTOBER_SOURCE_PROVENANCE_JOINS'):
+        view.bind_native_direction_feature_view(**wrong)
+    missing = deepcopy(args)
+    del missing['source_bindings']['october_input_plan']
+    with pytest.raises(RuntimeError, match='SOURCE_REF_KEYS'):
+        view.bind_native_direction_feature_view(**missing)
+
+
 def test_scoped_october_axes_allow_only_bound_fit_or_development_rows(binding_case):
     case, profile = binding_case['case'], binding_case['profile']
     n = binding_case['view']['prefix']['rows']
