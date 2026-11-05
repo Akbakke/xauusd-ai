@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T00:14:47.947873+00:00",
-  "status": "DECEMBER_FROZEN_ONE_SCORE_ADMITTED_TRAINING_DISABLED",
+  "observed_utc": "2026-11-05T00:49:54.137608+00:00",
+  "status": "DECEMBER_SINGLE_CANDIDATE_CONSUMED_FAILED_REGISTERED_GATE_TRAINING_DISABLED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "After the next safe physical boot, perform exactly one frozen-checkpoint December score on the 5,736 reserved parents. Keep training/optimizer off, verify all guards and the registered score, and report even a negative result.",
+  "next_action": "Freeze the one December result. Use early TRAIN only to prebind and check whether genuine GC book imbalance and XAU SMC structure add M5 direction ranking within the frozen candle reference. Do not tune on December or open a new native run. Physical XAU receipt and ATR availability remain unverified.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "User explicitly approved the one already bounded pass as a historical event-time learning study despite unproven real-time receipt. The one private control is complete; at most one 47,602-parent/2,976-update fit and one TRAIN/reused-development scoring. No automatic repetition, TEST, Exit, broker or trading.",
-    "current_activity": "Step 1 completed. The candidate endpoint-loss arithmetic at five native horizons matches independent earlier-TRAIN oracles.",
+    "current_activity": "Terminal December result independently reproduced from 12 saved arrays. Research is now focused on conditional M5 direction beyond candle on earlier TRAIN.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -277,7 +277,7 @@
       "stable_run_policy": "Brief status only during stable work; existing hardware guards own frequent telemetry. No minute-level model polling or filler jobs.",
       "thread_heartbeat_id": "gx1-fullf-r-m5-entry"
     },
-    "current_research_id": "dynamic_mtf_native_endpoint_loss_step1_20261104_001",
+    "current_research_id": "direction_edge_research_goal_20261105",
     "fresh_dataset_requested": true,
     "replacement_dataset_accepted": true,
     "obsolete_generated_cleanup_complete": false,
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Full profile remains blocked by seven unobserved GC D1 zone coordinates. Prefix normalization, candle reference, new native qualification/recipe and matched December OOF forecasts are missing. Historical XAU physical arrival/ATR readiness and independent edge remain unknown.",
+    "current_blocker": "The single December candidate failed its registered gate. Physical XAU receipt/ATR readiness, independent edge and the incremental direction information in particular indicator families are unproved. The seven canonical GC-D1 bearish zone coordinates have no prefix support and remained explicitly masked in this research profile.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "After the next safe physical boot, perform exactly one frozen-checkpoint December score on the 5,736 reserved parents. Keep training/optimizer off, verify all guards and the registered score, and report even a negative result.",
+    "next_action": "Freeze the one December result. Use early TRAIN only to prebind and check whether genuine GC book imbalance and XAU SMC structure add M5 direction ranking within the frozen candle reference. Do not tune on December or open a new native run. Physical XAU receipt and ATR availability remain unverified.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -17469,8 +17469,8 @@
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_EXPLICIT_PREVIOUS_RETURN_REFERENCE_20261024_259/DECISION.json",
       "sha256": "ab1a21e50ee7f1a403c0c910295ab608aada0775c2a7173618cf8d69599f5a76"
     },
-    "current_native_launch_authorized": true,
-    "current_training_scope": "NO_TRAINING_ONE_ZERO_UPDATE_RESERVED_DECEMBER_SCORE",
+    "current_native_launch_authorized": false,
+    "current_training_scope": "NO_TRAINING_ALL_REGISTERED_NATIVE_PHASES_CONSUMED",
     "latest_reference_TRAIN_fit_diagnosis": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GC_SIX_QUARTER_SAVED_TRAIN_SCORING_20261023_212/DECISION.json",
       "sha256": "38f0bea856432fcc70d758209959a1cc04516b68f29426a8541b91095fb28948"
@@ -17884,7 +17884,7 @@
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_SESSION_REGIME_001/UNEXPECTED_INTERRUPTION_INTEGRITY_001.json",
       "sha256": "a24c10b0873f8c94ea086c8c79083d390092521a9aabf77523c3624e2ecfe020"
     },
-    "current_native_launch_scope": "CLOSED_ONE_FIT_AND_FIRST_SCORE_CONSUMED_NO_RELAUNCH",
+    "current_native_launch_scope": "CLOSED_QUALIFICATION_FIT_AND_ONE_DECEMBER_SCORE_CONSUMED_NO_RELAUNCH",
     "current_host_interruption": {
       "path": "/home/andre2/GX1_RUNS/DIRECTION_FAMILY_ADDED_VALUE_20261030_01a18c19/FIT_CHART_GEOMETRY_001/CONNECTION_LOSS_OBSERVATION_001.json",
       "sha256": "b399a59dc7af1e8b0af84c8c135d5b4efe96ac3eaa74aa4f7fb54ee8a3ce9882"
@@ -20174,7 +20174,7 @@
         "december_held_out_evaluated": false
       },
       "december_candidate_geometry": {
-        "role": "Current conditional December geometry of the same registered endpoint-loss candidate. The October specification and its counts above remain the original data review and hypothesis lineage. No recipe or fit admission.",
+        "role": "Historical geometry of the single frozen, consumed December candidate. The seven unsupported GC-D1 fields remained explicitly masked. Earlier October geometry is retained as lineage.",
         "binding": {
           "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDIDATE_GEOMETRY_001.json",
           "sha256": "7acb5596032fa868b180dd872c1581b1af4e1cf7bcb8b568a63b44b88797fe28"
@@ -20212,7 +20212,7 @@
         "qualified_native_recipe": null,
         "model_calls_authorized": false,
         "normalization_fit_authorized": false,
-        "held_out_outcomes_read": false,
+        "held_out_outcomes_read": true,
         "run_admission": false,
         "qualified_endpoint_loss_arithmetic": {
           "objective_sha256": "cb5b67353652d74c2d1ad26e0cb2d68fa898521956a96a9d98fbc4542f0a8a43",
@@ -20238,8 +20238,8 @@
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/FEATURE_VIEW.json",
             "sha256": "b2203f564aaa55ef273db13380beada17a5913c43405f654e8881fe97e28824f"
           },
-          "run_admission": true,
-          "model_calls_authorized": true,
+          "run_admission": false,
+          "model_calls_authorized": false,
           "verified_review": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/MASKED_DECEMBER_INPUT_NORMALIZATION_001/VERIFIED_REVIEW.json",
             "sha256": "d6fc39f198a859fe88deb0857375d97a4fb5b0b55fc1f8fdbf695a6062687c96"
@@ -20279,8 +20279,8 @@
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/ACTUAL_ROOT_REVIEW.json",
             "sha256": "a6777fd79ddff2d081f52bed07c5e3c2581c324fc61559b9541d7ecdef2ce9b5"
           },
-          "active_phase": "score",
-          "reserved_scoring_authorized": true,
+          "active_phase": null,
+          "reserved_scoring_authorized": false,
           "actual_fit_terminal": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/ACTUAL_ROOT_REVIEW.json",
             "sha256": "3b6aa70365ac2d8219098353832e3966a2a6706d87c8081326d58ce6d724cfed"
@@ -20289,7 +20289,16 @@
           "registered_score_recipe": {
             "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RECIPE.json",
             "sha256": "357fe7b8b5814244123aaa40f2ea055bd9037a701205ce92d154265b7ac45476"
-          }
+          },
+          "actual_score_terminal": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/ACTUAL_ROOT_REVIEW.json",
+            "sha256": "e3d8bc78fce5bfee7831c3fa6567205b54b09d62709c2466acc4236360d41cb5"
+          },
+          "registered_score": {
+            "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME/prefix-fit/window-0001/OOF_PREDICTIONS/DECEMBER_SCORE.json",
+            "sha256": "715108dc5dfcd7e8be4ae9624c2bbe501607f63c579ecee76fbcc8bd877084c1"
+          },
+          "scoring_decision": "FAIL_REGISTERED_GATE"
         }
       }
     },
@@ -22916,7 +22925,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-04T16:19:42.255515+00:00",
+  "updated_utc": "2026-11-05T00:49:54.137633+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -55585,7 +55594,7 @@
   "dynamic_mtf_december_direction_execution_goal_20261104": {
     "objective": "Før den ene forhåndsregistrerte GX1-desemberkandidaten gjennom faktisk, isolert TRAIN-only modellkvalifisering og, kun etter at hver eksakte port består, ett pass og én fryst kronologisk måling på de 5 736 reserverte desemberforeldrene. Behold 41 866 tidligere TRAIN-foreldre, samme maskerte profil og fem dynamiske tidsrammer, alle genuine forente inputs/kausale vakter, korrekt hendelsesskåring, trygg fysisk omstart og eksisterende capped rute. Dokumenter målte resultater eller det første virkelige stoppkriteriet uten omgåelse, skille modellæring, retningsverdi og uavhengig edge. Ingen TEST, handel, broker eller spending.",
     "operator_request": "All next stages for the single frozen December candidate, gated in sequence by actual evidence. No additional candidates, retuning, TEST or trading.",
-    "status": "ACTIVE_FROZEN_DECEMBER_SCORE_ONLY",
+    "status": "COMPLETE_SINGLE_RESEARCH_TRIAL_NEGATIVE",
     "parent_goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "candidate_plan": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
@@ -55615,15 +55624,15 @@
     ],
     "stage_admissions_are_not_implied_by_goal": true,
     "no_test_broker_orders_trading_spending": true,
-    "native_launch_authorized_now": true,
-    "actual_december_scores": 0,
-    "milestone_complete": false,
+    "native_launch_authorized_now": false,
+    "actual_december_scores": 1,
+    "milestone_complete": true,
     "private_input_preflight": "dynamic_mtf_december_private_inputs_preflight_20261104_002",
     "first_input_preflight_terminal": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_PREFLIGHT_001/TERMINAL.json",
       "sha256": "730c7e06317bdd84c5f903c358e6a647cfe68a58beeefdf5b2906f47a24082d0"
     },
-    "active_native_phase": "score",
+    "active_native_phase": null,
     "private_input_evidence": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_PREFLIGHT_002/VERIFIED_REVIEW.json",
       "sha256": "a544b549ea7685c60d3c8657e4d30aff3fa4be4e8e62a00778f8a1d905d7f6dd"
@@ -55632,7 +55641,7 @@
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/ACTUAL_ROOT_REVIEW.json",
       "sha256": "a6777fd79ddff2d081f52bed07c5e3c2581c324fc61559b9541d7ecdef2ce9b5"
     },
-    "long_term_goal_tool_status_last_observed": "active",
+    "long_term_goal_tool_status_last_observed": "complete",
     "fit_terminal_review": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/ACTUAL_ROOT_REVIEW.json",
       "sha256": "3b6aa70365ac2d8219098353832e3966a2a6706d87c8081326d58ce6d724cfed"
@@ -55649,7 +55658,14 @@
     "reserved_target_terminal": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_TARGETS_001/TERMINAL.json",
       "sha256": "174cf541a2e07b06ce6e15c2ec60945c33fca30e1ecf14f63b92397656c86f03"
-    }
+    },
+    "terminal_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "e3d8bc78fce5bfee7831c3fa6567205b54b09d62709c2466acc4236360d41cb5"
+    },
+    "registered_result": "FAIL_REGISTERED_GATE",
+    "independent_edge_demonstrated": false,
+    "follow_on_research_goal": "direction_edge_research_goal_20261105"
   },
   "dynamic_mtf_december_private_inputs_preflight_20261104_001": {
     "status": "FAILED_CONSUMED_XAU_MANIFEST_WRONG_READER_NO_MODEL",
@@ -56652,7 +56668,7 @@
     "published_npy_bytes": 5764528
   },
   "dynamic_mtf_state_december_native_score_20261104_001": {
-    "status": "ADMITTED_ONCE_FROZEN_RESERVED_DECEMBER_SCORE_ZERO_UPDATES",
+    "status": "COMPLETE_CONSUMED_FROZEN_DECEMBER_SCORE_FAILED_REGISTERED_GATE",
     "candidate_plan": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_CANDLE_AND_CANDIDATE_PLAN_001/CANDIDATE_PLAN.json",
       "sha256": "a5bc7eb8fe55ee4cdfef79bd0cd3b42661ab73cc43a350a11baa87db3f7f63c7"
@@ -56723,25 +56739,25 @@
     },
     "power_limit_w": 250,
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "training_rounds": 0,
     "max_optimizer_updates": 0,
     "max_reserved_scores": 1,
     "max_reserved_parents": 5736,
     "max_genuine_batch_forwards": 359,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "native_launch_authorized": true,
-    "zero_update_reserved_scoring_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "held_out_features_authorized": true,
-    "held_out_outcomes_authorized": true,
-    "user_reboot_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "native_launch_authorized": false,
+    "zero_update_reserved_scoring_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "held_out_features_authorized": false,
+    "held_out_outcomes_authorized": false,
+    "user_reboot_authorized": false,
     "fresh_windows_boot_required": true,
     "genuine_backward_authorized": false,
     "genuine_updates_authorized": false,
@@ -56754,6 +56770,72 @@
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
     "exit_evaluation": false,
-    "broker_access_allowed": false
+    "broker_access_allowed": false,
+    "actual_reserved_parents": 5736,
+    "actual_reserved_scores": 1,
+    "actual_physical_optimizer_updates": 0,
+    "actual_native_batch_forwards": 359,
+    "terminal_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "e3d8bc78fce5bfee7831c3fa6567205b54b09d62709c2466acc4236360d41cb5"
+    },
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "2f077340ffa806fc412b2c0fd4023cbda7382666f8961279fda9100985c9cb69"
+    },
+    "progress": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME/invocation-evidence/invocation-0001/PROGRESS.json",
+      "sha256": "5400ba919cf681a724aef141c11141939cabe4324300240714b69e747ae9b18f"
+    },
+    "cursor": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME/prefix-cursor/RESUME_CURSOR.json",
+      "sha256": "53d12f94de8f2cec931f00fc25a4b3ef9bf1b1d1d18ab00c5717c666e9cfcb94"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "12b03aa215af8f05ad808ceea32cb24c3de7e9919d04e9ba10eaaa91b299de66"
+    },
+    "power_after": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/POWER_AFTER.json",
+      "sha256": "b8312163e8f5130c20509702594bbdb3983e4675c51c94ad4f3d89d59acf375f"
+    },
+    "oof_measurement": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "fccd5548e533981ad0381ffb28cd4c3ff20d03612c4392964814e2824511c915"
+    },
+    "prediction_manifest": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME/prefix-fit/window-0001/OOF_PREDICTIONS/ARRAYS.json",
+      "sha256": "47a348d24215dcbe16f88291ef8304578dedb9845e26a35f67196bea7d586eee"
+    },
+    "registered_score": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/RUNTIME/prefix-fit/window-0001/OOF_PREDICTIONS/DECEMBER_SCORE.json",
+      "sha256": "715108dc5dfcd7e8be4ae9624c2bbe501607f63c579ecee76fbcc8bd877084c1"
+    },
+    "saved_direction_diagnosis": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/FIT_TO_DECEMBER_DIRECTION_DIAGNOSIS.json",
+      "sha256": "9ff82e20c6497f7c4819287f40fdd1ba69dd567e3f2b166fde92ece69e57daa9"
+    },
+    "scientific_decision": "FAIL_REGISTERED_GATE",
+    "independent_edge_demonstrated": false
+  },
+  "direction_edge_research_goal_20261105": {
+    "objective": "Establish reproducible out-of-sample directional value of genuine inputs for M5/M15/H1/H4/D1, with M5 +5 as first priority. Distinguish directional ranking, three-class probability quality, independent confirmation and economics.",
+    "operator_request": "Fortsett å jobb aktivt mot å skaffe Edge i retning, lag deg et langsiktig mål",
+    "status": "ACTIVE_TRAIN_ONLY_RESEARCH",
+    "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
+    "goal_created_unix": 1793839707,
+    "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
+    "previous_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_SCORE_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "e3d8bc78fce5bfee7831c3fa6567205b54b09d62709c2466acc4236360d41cb5"
+    },
+    "first_milestone": "One prespecified early TRAIN data-only comparison of M5 direction versus the frozen last candle, for genuine GC top-of-book imbalance and XAU SMC structure, with source-clock/mask verification, coverage, dependence-aware uncertainty and no field or threshold selection.",
+    "reserved_december_reuse_for_selection": false,
+    "native_launch_authorized": false,
+    "training_enabled": false,
+    "independent_edge": "UNKNOWN",
+    "production_xau_m1_arrival_and_atr_readiness": "UNKNOWN",
+    "test_access_authorized": false,
+    "broker_orders_or_trading_authorized": false
   }
 }
