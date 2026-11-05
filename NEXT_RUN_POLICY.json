@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T23:36:34.033116+00:00",
-  "status": "M5_ENTRY_OCTOBER_BATCH_001_FAILED_CONSUMED_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T23:38:18.269847+00:00",
+  "status": "M5_ENTRY_OCTOBER_GENUINE_BATCH_002_COMPLETE_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "The first genuine October batch binding claim failed on the missing source-unit profile argument and is consumed. The one-argument source correction and exact successor plan 002 are prepared; admit and run 002 once under standing zero-cost authorization. Native model/OOF and TEST/trading remain closed; training_enabled=false.",
+  "next_action": "The corrected October native batch binding claim 002 passed on fixed genuine fit/development samples; predecessor 001 remains failed and consumed. The exact control/candidate feature and target batches now join causally, with age only in candidate. Next prepare an October-bound native worker and one matched chronological TRAIN-OOF plan; model, TEST and trading remain closed, training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_BATCH_ROUTING_SOURCE_CHECKED_EDGE_UNKNOWN",
+    "status": "OCTOBER_GENUINE_BATCH_BINDING_MEASURED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57082,7 +57082,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Candidate 001, October target series, matched views and causal feature delivery are complete; the age batch join passed source-only synthetic checks. Qualify an October-bound worker and genuine native consumption, then one exact matched prefix-owned October OOF with mature targets, a fresh baseline, gradient/resume proof, safe boot and separate capped model admission. Independent edge remains UNKNOWN.",
+    "next_milestone": "Candidate 001, October target series, matched views, causal feature delivery and fixed genuine control/age native batch joins are complete. Next qualify one October-bound worker and matched prefix-owned OOF with mature targets, fresh baseline, gradient/resume proof, safe boot and separate capped model admission. No native forward has run; independent edge remains UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",
@@ -58251,7 +58251,7 @@
     "new_claim_required": true
   },
   "dynamic_m5_october_native_batch_binding_20261106_002": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002.json",
       "sha256": "8287e4b16dcd7a1e6e82162b756b32a17c6030f2b9c9e86d865ac8cc5db8d750"
@@ -58261,7 +58261,7 @@
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "admitted_utc": "2026-11-05T23:37:01.962652+00:00",
     "source_head_at_admission": "851b97a48060a25e2bb2b939583fc6406fcaff1f",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002",
     "scope": "One genuine 4 fit plus 4 October parent control/candidate native feature/target batch join, source unit profile corrected; no model, training or TEST.",
     "predecessor_failed_consumed": "dynamic_m5_october_native_batch_binding_20261106_001",
@@ -58269,6 +58269,23 @@
     "native_model_calls_authorized": 0,
     "test_split_access_authorized": false,
     "broker_orders_or_trading_authorized": false,
-    "independent_edge": "UNKNOWN"
+    "independent_edge": "UNKNOWN",
+    "claim_exit_code": 0,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002/RESULT.json",
+      "sha256": "57608c0cab08605fd6ac4095090f80ee56ac90037e89887503210a1230a80aa0"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002/TERMINAL.json",
+      "sha256": "7f37b20cee15faebcf81379bd3bd5bf66e9a9c0696b8e70a84b4c31f84c0dbbd"
+    },
+    "post_run_review": "Result and terminal rehashed; exact fixed role samples, 17 matched feature groups, candidate-only 5x2 age group, full 1440-minute target domain and zero model/TEST confirmed from published JSON only.",
+    "actual_genuine_batch_join_passed": true,
+    "fit_sample_rows": 4,
+    "development_sample_rows": 4,
+    "native_feature_groups_including_current": 17,
+    "candidate_only_age_group": "current_confirmed_run_age_features",
+    "native_model_calls": 0,
+    "remaining_unknown": "Native model forward/gradient/resume, chronological TRAIN OOF, directional learning, independent edge, physical ONLINE availability and economics."
   }
 }
