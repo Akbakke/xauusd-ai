@@ -43,6 +43,16 @@ konkrete, allerede autoriserte lokale milepæler; avdekk og rett målte mangler,
 gjenbruk kvitteringer og klargjør én begrunnet kandidat om gangen. Ikke fyll
 ventetid med nye modellrunder eller gjentatte uendrede kontroller. Fullfør
 lokalt beslutningsgrunnlag før en nødvendig ny eksakt admisjon legges fram.
+
+Senere operatørpresisering05.11.2026: «Ja, og ikke spør meg hver jævla gang.
+ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre».
+Lokalt GX1-arbeid til 0 USD uten betalte eksterne API-/modelltoken kan derfor
+fortsette uten nye operatørspørsmål. Hver ny kjøring skal fortsatt ha egen
+nøyaktig policyadmisjon, kilde-/ressursbinding og nødvendige maskinvarevakter;
+brukte engangsplaner relanseres aldri. Denne presiseringen åpner ingen TEST,
+broker, ordre, handel, spending eller Exit. Modellporten `training_enabled=false`
+endres først etter en egen kvalifisert, eksakt modelladmisjon og trygg omstart
+når ruten krever det.
 Arbeidsbestillingen åpner ikke trening, konsumerte planer, desembergjenbruk,
 TEST, broker, handel, spending eller Exit. Uavklart fysisk UTC stenger
 påstander om ONLINE-punktlighet, ikke kilde-/syntetisk forberedelse av

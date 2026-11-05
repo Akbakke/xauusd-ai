@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T21:27:08.404114+00:00",
-  "status": "M5_ENTRY_OCTOBER_INPUT_ONLY_003_PREPARED_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T21:50:29.630533+00:00",
+  "status": "M5_ENTRY_OCTOBER_INPUT_ONLY_003_ADMITTED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Plan 003 is prepared, not admitted. It binds the measured singleton M5 apex field to the source-defined 0-to-1 unit, verifies the same TRAIN support and makes at most one input-only normalization fit after separate approval. Plan 002 is consumed. Other possible scale failures remain unknown until that fit; no model, outcome, TEST, broker or trading authority follows.",
+  "next_action": "Run the explicitly admitted October input-only plan 003 exactly once through its fixed capped audit command. Plan 002 remains consumed. Record support, fit or failure from the original terminal. No model, outcome, TEST, broker or trading authority follows.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Plan 003 is prepared, not admitted. It binds the measured singleton M5 apex field to the source-defined 0-to-1 unit, verifies the same TRAIN support and makes at most one input-only normalization fit after separate approval. Plan 002 is consumed. Other possible scale failures remain unknown until that fit; no model, outcome, TEST, broker or trading authority follows.",
+    "next_action": "Run the explicitly admitted October input-only plan 003 exactly once through its fixed capped audit command. Plan 002 remains consumed. Record support, fit or failure from the original terminal. No model, outcome, TEST, broker or trading authority follows.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_INPUT_ONLY_003_PREPARED_EDGE_UNKNOWN",
+    "status": "OCTOBER_INPUT_ONLY_003_ADMITTED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57826,13 +57826,15 @@
     "remaining_unknown": "Confirmed-state age coverage, M5 +5 first-gap event censor and target usefulness, physical online timing, strict TRAIN-OOF, independent edge and economics remain unqualified. TRAIN endpoint coverage is already measured in the preserved target receipt."
   },
   "dynamic_m5_october_input_only_20261105_003": {
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED_ONCE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003.json",
       "sha256": "4a80b5d15f16e6a790de3a80155043e9fc2177a329256d67f4985597384f8fa5"
     },
-    "operator_approved": false,
-    "remaining_invocations": 0,
+    "operator_approved": true,
+    "operator_approval": "User answered Ja to exact plan 003 and gave standing authorization for future no-cost, no paid-token/API-token local GX1 work without repeated questions in this chat on 2026-11-05.",
+    "admitted_utc": "2026-11-05T21:50:29.630533+00:00",
+    "remaining_invocations": 1,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003",
     "prior_consumed_plan": "dynamic_m5_october_input_only_20261105_002",
     "predecessor_qualification": {
@@ -57861,5 +57863,12 @@
     "broker_orders_or_trading_authorized": false,
     "scope": "One exact 29,849-parent October TRAIN input qualification, all 12 physical surfaces, the measured bounded-unit singleton correction on mtf_m5, at most one new prefix-only normalization fit, and outcome-free hash of 6,323 October development clock rows. No model or target values.",
     "remaining_unknown": "Whether the complete fit succeeds or exposes another unscaleable field; confirmed-state age coverage, M5 +5 first-gap event censor, strict TRAIN-OOF, independent direction edge and economics remain unqualified."
+  },
+  "no_cost_local_standing_authorization_20261105": {
+    "operator_instruction": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+    "observed_utc": "2026-11-05T21:50:29.630533+00:00",
+    "scope": "Standing authorization for further local GX1 work with zero monetary cost and no billable external API or model tokens. A new exact plan, fresh policy admission, clean source, capped route and all required machine guards still apply to each run. No reuse of consumed claims.",
+    "model_checks": "May be admitted under this standing authorization only after a separately exact, source-qualified model plan, safe reboot where required and policy training gate; no model run is admitted now.",
+    "unchanged_prohibitions": "TEST, broker, orders, trading, paid APIs, spending and Exit work remain closed."
   }
 }
