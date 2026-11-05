@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "The one confirmed-age candidate is source-locked before October outcomes. Next qualify October development targets under a separate zero-cost, capped, source-bound claim; then bind actual model consumption and strict prefix-owned OOF. training_enabled=false; no model, TEST or trading admission.",
+  "next_action": "Run the one admitted October development-only target coverage claim, review results and close it; then bind age consumption and strict prefix-owned OOF. No model or TEST admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -57947,20 +57947,24 @@
     "next_gate": "Qualify October target series and target availability strictly before 2024-11-01, then exact matched model/OOF recipe and native consumption; no model run yet."
   },
   "dynamic_m5_october_target_only_20261105_001": {
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "ADMITTED_ONCE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001.json",
       "sha256": "7f0b86ab1083f045a08f71cdbe18431e1f247b217619d922cee9011987e35644"
     },
-    "operator_approved": false,
+    "operator_approved": true,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "remaining_invocations": 0,
+    "remaining_invocations": 1,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001",
     "scope": "One October 2024 development-only target/input coverage check after candidate 001 lock. Original target NPY files are verified opaquely and only pre-November values decoded. No model, TEST, broker, network or spending.",
     "source_tests": "4 final focused synthetic endpoint/cutoff cases passed under capped audit after correcting one synthetic fixture to exclude a cutoff-equal row.",
     "model_calls_authorized": 0,
     "training_enabled": false,
     "test_access_authorized": false,
-    "independent_edge": "UNKNOWN"
+    "independent_edge": "UNKNOWN",
+    "operator_approval": "Standing no-cost local authorization given by user 2026-11-05; this exact October target-only claim admitted once. No paid API or model tokens.",
+    "admitted_utc": "2026-11-05T22:20:53.460776+00:00",
+    "source_head_at_admission": "79fb08a0b20430b17b0420e9d8e5b15dd5a53008",
+    "closed_gate_preflight": "Capped invocation returned EXPLICIT_ADMISSION_REQUIRED before target values; output root absent."
   }
 }
