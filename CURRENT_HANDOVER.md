@@ -11,6 +11,8 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Matchet oktober-visningsbinding er innrømmet, ikke kjørt.** [Plan](configs/research/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001.json) skal lese kun to publiserte målaksearrays og metadata, binde kontroll og den forhåndslåste alderskandidaten til samme 29 849-raders fit, 6 323-raders oktoberfold og den allerede tilpassede prefixnormaliseringen. Begge bruker de tidligere vedtatte v5-tapsvektene; bare kandidatens alderskanaler avviker. 2 GiB/512 MiB, 600 sekunder, 0 USD, én capped claim. Ingen feature-/utfallsarray, modell, TEST eller handel.
+
 **05.11 – Oktober-normaliseringens bevis hadde en annen kildeproveniens enn den gamle visningsbinderen forventet.** Det faktiske 003-beviset oppgir sin egen plan og 264/267-forfedre, mens visningen bare godtok den eldre `current_source_owners`-formen. Binderen godtar nå den eksakte oktoberformen med planref og kvalifiseringsfil ved siden av normaliseringen; den gamle grenen er beholdt. En syntetisk avvisningskontroll er skrevet. Ekte oktober-featureleveranse og native modellkonsum er ennå ikke kvalifisert.
 
 **05.11 – Målt OOF-rutemismatch: den eldre inputvisningen krevde hele 118 249-raders aksen og current-matrisene også for en avgrenset oktoberfold.** Den eksisterende observerakse-eieren er nå utvidet til eksplisitt fit-/oktoberprofil, med egne aksedigest og nøyaktig to roller. Den ene capped syntetiske kilde-/gatherkontrollen avsluttet med kode 0: to fokuserte tester bestod for kontroll og aldervisning, inkludert avvisning av feil utviklingsdato. [Terminal](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_SCOPED_AXES_SOURCE_20261105_001/TERMINAL.json). Planen er konsumert. Ekte oktober-inputrader, native forward og OOF er fortsatt ukvalifisert.
