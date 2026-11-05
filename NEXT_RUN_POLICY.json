@@ -56836,6 +56836,24 @@
     "independent_edge": "UNKNOWN",
     "production_xau_m1_arrival_and_atr_readiness": "UNKNOWN",
     "test_access_authorized": false,
-    "broker_orders_or_trading_authorized": false
+    "broker_orders_or_trading_authorized": false,
+    "indicator_data_stage": "dynamic_m5_book_smc_within_candle_train_20261105_001"
+  },
+  "dynamic_m5_book_smc_within_candle_train_20261105_001": {
+    "status": "ADMITTED_SINGLE_TRAIN_INDICATOR_DATA_AUDIT",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/M5_BOOK_SMC_WITHIN_CANDLE_TRAIN_001/PLAN.json",
+      "sha256": "68e8bfd82b86da4ea4ad501bbe7b43e01e4b54fe437576ff9df6ebdc7bff6097"
+    },
+    "fit_parents": 41866,
+    "reserved_december_parents_accessed": 0,
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "data_audit_authorized": true,
+    "training_enabled": false,
+    "model_calls_authorized": false,
+    "test_data_used": false
   }
 }
