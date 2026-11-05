@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run the one admitted October development-only target coverage claim, review results and close it; then bind age consumption and strict prefix-owned OOF. No model or TEST admission.",
+  "next_action": "October development target coverage claim is complete and consumed. Next bind candidate 001 age channels into actual native consumption and qualify one exact prefix-owned October OOF recipe with mature targets, matched control and capped model gates. training_enabled=false; no model, TEST or trading admission.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "TRAIN age/censor claim 001 completed once on 29,849 pre-October parents and is consumed. Five-TF age coverage and M5 +5 first-gap support measured; target usefulness and model edge remain unknown.",
+    "current_activity": "One October development-only target check completed once on 6,323 parents after candidate lock. M5 +5 known endpoint 3,359; 2,963 complete windows unknown; M5 age observed 1,513. No model score or independent edge.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "TRAIN_AGE_AND_M5_FIRST_GAP_MEASURED_EDGE_UNKNOWN",
+    "status": "OCTOBER_DEVELOPMENT_TARGET_COVERAGE_MEASURED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57082,7 +57082,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Candidate 001 is source-locked before October outcomes. Qualify October targets and first-gap support as development only, then bind exact native consumption, matched control, prefix-owned OOF and capped model admission after required baseline/resume/boot checks. Independent edge remains UNKNOWN.",
+    "next_milestone": "One candidate and its October development target coverage are locked. Bind confirmed-age channels to actual native consumption and prepare exact matched prefix-owned October OOF with a fresh baseline, gradient/resume proof, safe boot and separate capped model admission. Independent edge remains UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",
@@ -57947,14 +57947,14 @@
     "next_gate": "Qualify October target series and target availability strictly before 2024-11-01, then exact matched model/OOF recipe and native consumption; no model run yet."
   },
   "dynamic_m5_october_target_only_20261105_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001.json",
       "sha256": "7f0b86ab1083f045a08f71cdbe18431e1f247b217619d922cee9011987e35644"
     },
     "operator_approved": true,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001",
     "scope": "One October 2024 development-only target/input coverage check after candidate 001 lock. Original target NPY files are verified opaquely and only pre-November values decoded. No model, TEST, broker, network or spending.",
     "source_tests": "4 final focused synthetic endpoint/cutoff cases passed under capped audit after correcting one synthetic fixture to exclude a cutoff-equal row.",
@@ -57965,6 +57965,42 @@
     "operator_approval": "Standing no-cost local authorization given by user 2026-11-05; this exact October target-only claim admitted once. No paid API or model tokens.",
     "admitted_utc": "2026-11-05T22:20:53.460776+00:00",
     "source_head_at_admission": "79fb08a0b20430b17b0420e9d8e5b15dd5a53008",
-    "closed_gate_preflight": "Capped invocation returned EXPLICIT_ADMISSION_REQUIRED before target values; output root absent."
+    "closed_gate_preflight": "Capped invocation returned EXPLICIT_ADMISSION_REQUIRED before target values; output root absent.",
+    "claim_exit_code": 0,
+    "endpoint_coverage_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001/ENDPOINT_COVERAGE.json",
+      "sha256": "78f25611326ee23776447424f837369e23239a2f70c38b7e8aa015d300486aa4"
+    },
+    "age_input_coverage_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001/AGE_INPUT_COVERAGE.json",
+      "sha256": "402b410af7d3d3a677799f80ab0f0880b0e3a97ba450e2ca2969e93e97360ded"
+    },
+    "m5_first_gap_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001/M5_FIRST_GAP.json",
+      "sha256": "3b0eb90a4f1cd3a34c470b2bec3ec1e10cd2e3e8dac686db00aa3d73afe8dac0"
+    },
+    "result_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001/RESULT.json",
+      "sha256": "5fec2656e09899cc79c6dc416641154751675e9d3759f287a6137e970c5eff2d"
+    },
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001/TERMINAL.json",
+      "sha256": "e27a305228d08aa1f04f563aadae552798f386a6d778d63b73bb10a8d30d4a64"
+    },
+    "source_row_slice": [
+      0,
+      182360
+    ],
+    "parent_range": [
+      29849,
+      36172
+    ],
+    "m5_known_endpoint": 3359,
+    "m5_complete_window_unknown": 2963,
+    "m5_age_observed": 1513,
+    "m5_full_five_minute_followup": 1189,
+    "native_model_calls": 0,
+    "post_run_output_review": "All published refs rehashed; class and censor partitions, M5 input/start equality, strict cutoff and zero model/post-October/TEST checked from outputs only. No second genuine target read.",
+    "remaining_unknown": "No target-series artifact was published; native age consumption, exact OOF recipe, model learning, independent edge, online punctuality and economics remain unqualified."
   }
 }
