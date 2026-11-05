@@ -57945,5 +57945,22 @@
     "test_access_authorized": false,
     "independent_edge": "UNKNOWN",
     "next_gate": "Qualify October target series and target availability strictly before 2024-11-01, then exact matched model/OOF recipe and native consumption; no model run yet."
+  },
+  "dynamic_m5_october_target_only_20261105_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001.json",
+      "sha256": "7f0b86ab1083f045a08f71cdbe18431e1f247b217619d922cee9011987e35644"
+    },
+    "operator_approved": false,
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "remaining_invocations": 0,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ONLY_20261105_001",
+    "scope": "One October 2024 development-only target/input coverage check after candidate 001 lock. Original target NPY files are verified opaquely and only pre-November values decoded. No model, TEST, broker, network or spending.",
+    "source_tests": "4 final focused synthetic endpoint/cutoff cases passed under capped audit after correcting one synthetic fixture to exclude a cutoff-equal row.",
+    "model_calls_authorized": 0,
+    "training_enabled": false,
+    "test_access_authorized": false,
+    "independent_edge": "UNKNOWN"
   }
 }
