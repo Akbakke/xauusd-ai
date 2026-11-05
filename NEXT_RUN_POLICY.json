@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-05T21:11:52.192499+00:00",
-  "status": "M5_ENTRY_OCTOBER_INPUT_ONLY_002_ADMITTED_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-05T21:15:59.032394+00:00",
+  "status": "M5_ENTRY_OCTOBER_INPUT_ONLY_002_FAILED_CONSUMED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run the explicitly admitted October input-only plan 002 exactly once through its fixed capped audit command, then record the terminal and assess genuine prefix support and normalization. Plan 001 remains consumed; no model, outcome, TEST, broker or trading authority follows.",
+  "next_action": "Plan 002 passed genuine input support but failed normalization on one observed M5 geomchan_apex_proximity event; its claim is consumed. Use the immutable qualification receipt to sweep the defect class, bind a source-derived unit for the sparse field, and prepare one separately admitted successor with full scaleability diagnostics. No model, outcome, TEST, broker or trading run is authorized.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -7779,7 +7779,7 @@
         "consumed_utc": "2026-10-16T18:20:49Z"
       }
     },
-    "next_action": "Run the explicitly admitted October input-only plan 002 exactly once through its fixed capped audit command, then record the terminal and assess genuine prefix support and normalization. Plan 001 remains consumed; no model, outcome, TEST, broker or trading authority follows.",
+    "next_action": "Plan 002 passed genuine input support but failed normalization on one observed M5 geomchan_apex_proximity event; its claim is consumed. Use the immutable qualification receipt to sweep the defect class, bind a source-derived unit for the sparse field, and prepare one separately admitted successor with full scaleability diagnostics. No model, outcome, TEST, broker or trading run is authorized.",
     "gc_continuous_source_plan_004": {
       "plan_path": "configs/research/GC_CONTINUOUS_SOURCE_ADMISSION_20261016_004.json",
       "plan_sha256": "8eab7e5457a6b9e88899674bf24de551b346ee70b251f2eed4a44f8138a09aaf",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_INPUT_ONLY_002_ADMITTED_ONCE_EDGE_UNKNOWN",
+    "status": "OCTOBER_INPUT_ONLY_002_FAILED_CONSUMED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57793,7 +57793,7 @@
     }
   },
   "dynamic_m5_october_input_only_20261105_002": {
-    "status": "ADMITTED_ONCE",
+    "status": "FAILED_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002.json",
       "sha256": "afb8115d2364060e81e32a288df01820cf7f9c142a847dc8f2549c31d593b436"
@@ -57801,7 +57801,7 @@
     "operator_approved": true,
     "operator_approval": "User answered Ja, kjør plan 002 én gang to the exact linked plan in this chat on 2026-11-05.",
     "admitted_utc": "2026-11-05T21:11:52.182454+00:00",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002",
     "prior_consumed_plan": "dynamic_m5_october_input_only_20261105_001",
     "source_test_terminal": {
@@ -57809,8 +57809,15 @@
       "sha256": "9e633e7be81f1693e7a382dbc79e4a69ac0fa2f5b45161de4044f1124bffa9b8"
     },
     "synthetic_checks_passed": 40,
-    "new_genuine_data_audit_started": false,
+    "new_genuine_data_audit_started": true,
     "genuine_statistics_fits": 0,
+    "claim_exit_code": 1,
+    "input_support_qualification_passed": true,
+    "qualification_fit_allowed": true,
+    "observed_failure": "ENTRY_INPUT_NORMALIZATION_UNSCALEABLE surface=mtf_m5 field=geomchan_apex_proximity center=0.0 scale=0.0; 1 nonzero of 29,978 observed prefix cells. No completed normalization bundle.",
+    "axis_receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002/OCTOBER_AXIS.json", "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"},
+    "qualification_receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002/QUALIFICATION.json", "sha256": "4975a30ae089625cf6f30c73ec2dd2ae72c9d226ddc6881cb82825d906ea6f13"},
+    "failure_receipt": {"path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_002/FAILED.json", "sha256": "9df639a66876d66596af7ed30d518741a1a84ded5dcd47abf78f8cee4502113a"},
     "native_model_calls": 0,
     "training_enabled": false,
     "test_access_authorized": false,
