@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T20:55:25.028211+00:00",
+  "observed_utc": "2026-11-06T21:01:06.824892+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "Transition-mechanism audit completed and consumed without factor choice. At 1.0 ATR, 30,760/30,818 row-adjacent binary activity flips across five TF were strict consecutive-minute; zero required an ATR threshold update. At 0.5 ATR, 14,268/14,305 were strict and 337 required threshold updates. This is mostly rolling-range churn, not closure artifacts. Define one physically meaningful sustained UP/DOWN/FLAT episode candidate and preserve separate activity/direction masks before any fit. One separately bound TRAIN-only generic5 numeric audit is claimed for next execution; trendline conditional plan is prepared, not admitted. No model, TEST, Entry-Q, broker, trading or spending.",
+  "next_action": "Generic5 _001 failed before data and is consumed; distinct _002 direct capped help smoke passed before policy claim. Execute _002 once on fixed 64 TRAIN bars per five TF, then inspect original receipts; do not relaunch either plan. Target mechanism result remains: 1.0 ATR binary churn is predominantly consecutive-minute rolling range, not closure/ATR threshold updates. Define one physically meaningful sustained five-TF UP/DOWN/FLAT episode target before any fit. Trendline conditional plan is prepared, not admitted. No model, TEST, Entry-Q, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Saved-array TRAIN transition-mechanism audit completed with exact receipts: closure gaps explain few binary flips, and 1.0 threshold updates explain none. Target remains unlocked. A one-use generic5 independent numeric audit is claimed but not executed; trendline conditional plan remains prepared only. No fit.",
+    "current_activity": "TRAIN transition mechanism completed/consumed; target unlocked. Generic5 _001 failed before worker claim/data and is consumed. Distinct _002 exact capped direct-script startup smoke passed; one-use policy claim prepared for execution. Trendline conditional plan remains prepared only; no fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "No sustained five-TF UP/DOWN/FLAT target is locked: 1.0 ATR binary churn is predominantly real consecutive-minute rolling-range churn; 0.5 still has large known-active/unknown-direction M5+5 coverage. Ninety-four formerly parked fields per TF still lack corresponding independent formula/causal evidence; close_position_range20 is already independently checked.",
+    "current_blocker": "Sustained five-TF UP/DOWN/FLAT target contract remains unlocked. The five generic fields still need the claimed _002 numerical audit; other formerly parked fields remain without corresponding formula/causal evidence. No model fit admitted.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60574,7 +60574,7 @@
     "post_run_review": "Rehashed COMPLETE receipts. May-Sep 2024 TRAIN only: 1.0 ATR has 30,760 strict consecutive-minute FLAT/activity flips of 30,818 row-adjacent flips across five TF, zero threshold-update-required flips; 0.5 has 14,268 of 14,305 strict flips and 337 threshold-update-required. Closure gaps explain few flips; 1.0 churn is range-driven. No target build, model, TEST or factor selection. These are binary activity switches, not directional target quality."
   },
   "generic_scalar5_numeric_20261106_001": {
-    "status": "EXECUTION_CLAIMED",
+    "status": "FAILED_PRECLAIM_CONSUMED",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001/PLAN.json",
       "sha256": "abbd91e0db3b445fb52583d7a880f151bf4672f609ebd330ceef22987bbca360"
@@ -60585,7 +60585,7 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001",
     "execution_authorized": false,
-    "data_reads_authorized": true,
+    "data_reads_authorized": false,
     "claimed_invocations": 1,
     "completed_invocations": 0,
     "max_invocations": 1,
@@ -60601,7 +60601,48 @@
     "operator_approval": "Current 2026-11-06 all-indicator market-state task and standing zero-cost local GX1 authorization; one bounded TRAIN-only five-field numeric audit, no model, TEST, trading or paid calls.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "source_head_at_claim_preparation": "7137cdfbb859bcea2ebafed81657ab9dabeaf079",
-    "scope": "64 fixed 2024 TRAIN bars on each of five TF; independent scalar formulas for five generic fields using native OHLC, cache comparator only. One-use; no model/training/TEST/Entry/Exit/trading."
+    "scope": "64 fixed 2024 TRAIN bars on each of five TF; independent scalar formulas for five generic fields using native OHLC, cache comparator only. One-use; no model/training/TEST/Entry/Exit/trading.",
+    "failed_preclaim_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001/FAILED_PRECLAIM.json",
+      "sha256": "5a9986673049d415cb59eec0e04fffa554a4263157b3fe4360cd5ab070cfc92c"
+    },
+    "source_head_at_run": "51ac69edeea103ff70318cfd808ac4e3873481a5",
+    "observed_error": "Direct capped script launch exited 1 before worker CLAIM/OUTPUT or native data read: ModuleNotFoundError: No module named gx1 at top-level import line 19. Plan _001 consumed; no relaunch."
+  },
+  "generic_scalar5_numeric_20261106_002": {
+    "status": "EXECUTION_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002/PLAN.json",
+      "sha256": "8cdfc239032fac94d6affd524e955f9fce27693dd4d8e6311e6e7e395609a711"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_generic_scalar5_numeric_v1.py",
+      "sha256": "03c598fa060e9008a32cc28cc53c513d1f039588e5d7cf255881a48e7c1ec678"
+    },
+    "startup_smoke": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002/STARTUP_SMOKE.json",
+      "sha256": "85f86ec446dc0b5716978257685732576a5e909d38f13f09cbbcb037efb3bce6"
+    },
+    "prior_failed_consumed_stage": "generic_scalar5_numeric_20261106_001",
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002",
+    "execution_authorized": false,
+    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "test_data_used": false,
+    "model_forwards_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "optimizer_steps_authorized": false,
+    "broker_access_allowed": false,
+    "operator_approval": "Current 2026-11-06 all-indicator market-state task and standing zero-cost local GX1 authorization; distinct one-use replacement after preclaim import failure in _001. No model, TEST, trading or paid calls.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "source_head_at_claim_preparation": "51ac69edeea103ff70318cfd808ac4e3873481a5",
+    "scope": "Identical 64 fixed 2024 TRAIN bars, five TF and five formulas to consumed _001; direct-script package import fixed. One-use, no model/training/TEST/Entry/Exit/trading."
   },
   "dynamic_mtf_state_semantic_calibration_20261106_001": {
     "status": "FAILED_CONSUMED",

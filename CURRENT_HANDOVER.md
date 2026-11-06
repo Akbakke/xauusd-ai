@@ -190,9 +190,20 @@ helfil-sjekksum leser også senere cachebytes, uten statistisk TEST-inspeksjon.
 De 19 livssyklusfeltene og selve linjevalget står fortsatt åpne. En separat
 [plan for de fem gjenværende generiske feltene](/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001/PLAN.json)
 SHA-256 `abbd91e0db3b445fb52583d7a880f151bf4672f609ebd330ceef22987bbca360`
-er statisk forhåndskontrollert på 64 faste TRAIN-barer per TF. Én
-engangsport er claimet for kjøring; ingen numerisk RESULT finnes ennå. Begge planene gjenbruker eksisterende råkilder
-og cache; ingen ny modell eller trening er startet.
+var statisk forhåndskontrollert på 64 faste TRAIN-barer per TF, men eksakt
+capped direkte skriptstart for `_001` stoppet før worker-CLAIM eller data:
+`ModuleNotFoundError: No module named gx1` ved top-level import.
+[FAILED_PRECLAIM](/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001/FAILED_PRECLAIM.json)
+SHA-256 `5a9986673049d415cb59eec0e04fffa554a4263157b3fe4360cd5ab070cfc92c`;
+ingen OUTPUT, RESULT eller numerisk påstand. Planen er konsumert og skal ikke
+relanseres. Separat [plan `_002`](/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002/PLAN.json)
+SHA-256 `8cdfc239032fac94d6affd524e955f9fce27693dd4d8e6311e6e7e395609a711`
+endrer kun direkte import/start og planidentitet, ikke formler, utvalg eller
+sammenligning. Eksakt capped direkte `--help` røykprøve bestod før claim:
+[STARTUP_SMOKE](/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002/STARTUP_SMOKE.json)
+SHA-256 `85f86ec446dc0b5716978257685732576a5e909d38f13f09cbbcb037efb3bce6`.
+Egen engangsport er claimet; ingen numerisk RESULT ennå. Begge planene
+gjenbruker eksisterende råkilder og cache; ingen ny modell eller trening.
 
 Vi har ikke kjørt omfattende trening gjennom flere år. Tidligere fem-TF-fit
 var ett pass på 47 602 TRAIN-foreldre (2 976 steg); oktoberparet var ett pass

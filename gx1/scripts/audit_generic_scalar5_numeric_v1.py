@@ -11,6 +11,9 @@ import subprocess
 import sys
 import time
 
+REPO = Path('/home/andre2/src/GX1_CURRENT')
+sys.path.insert(0, str(REPO))  # Direct script launch must resolve the project package.
+
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -19,9 +22,8 @@ from scipy.signal import lfilter
 from gx1.contracts.gx1_capped_execution_v1 import require_capped_cpu_audit_execution, require_capped_lock_ancestry
 from gx1.contracts.entry_model_native_bundle_commit_v1 import publish_bundle_directory_noreplace
 
-REPO = Path('/home/andre2/src/GX1_CURRENT')
-ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001')
-STAGE = 'generic_scalar5_numeric_20261106_001'
+ROOT = Path('/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002')
+STAGE = 'generic_scalar5_numeric_20261106_002'
 TFS = ('M5', 'M15', 'H1', 'H4', 'D1')
 FIELDS = ('rsi14_z48', 'macd_line_atr_change_3', 'macd_line_atr_change_5',
           'range_z20', 'mid_ema200_distance_change_1_atr')

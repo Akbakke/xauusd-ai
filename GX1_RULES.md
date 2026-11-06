@@ -87,10 +87,12 @@ ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre».
 Lokalt GX1-arbeid til 0 USD uten betalte eksterne API-/modelltoken kan derfor
 fortsette uten nye operatørspørsmål. Hver ny kjøring skal fortsatt ha egen
 nøyaktig policyadmisjon, kilde-/ressursbinding og nødvendige maskinvarevakter;
-brukte engangsplaner relanseres aldri. Før claim av ny engangsplan må en
-lett, lesende preflight kontrollere alle brukte kvitteringsnøkler mot de
-faktiske bundne filene og både suksess- og feilvei i rapporteringen med små
-syntetiske verdier. Ingen full data-/modelljobb gjentas for denne kontrollen.
+brukte engangsplaner relanseres aldri. Før policy-claim av ny engangsplan må
+oppstart/import fra den eksakte planlagte kommandoen, arbeidskatalogen og
+miljøet røykprøves lesende uten å lage CLAIM/OUTPUT. En lett preflight må
+også kontrollere alle brukte kvitteringsnøkler mot de faktiske bundne filene
+og både suksess- og feilvei i rapporteringen med små syntetiske verdier.
+Ingen full data-/modelljobb gjentas for denne kontrollen.
 Denne presiseringen åpner ingen TEST,
 broker, ordre, handel, spending eller Exit. Modellporten `training_enabled=false`
 endres først etter en egen kvalifisert, eksakt modelladmisjon og trygg omstart
