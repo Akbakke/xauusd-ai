@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T21:42:56.176000+00:00",
-  "status": "MARKET_STATE_HYSTERESIS_SEMANTIC_AUDIT_ADMITTED_NO_FIT",
+  "observed_utc": "2026-11-06T21:47:23.799750+00:00",
+  "status": "MARKET_STATE_HYSTERESIS_TRIAL_CONSUMED_FIVE_TF_TARGET_REJECTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "Run exactly once the admitted May-Sep 2024 TRAIN-only hysteresis episode semantic audit through its bound capped command. Inspect immutable CLAIM/RESULT/TERMINAL and mark consumed. Do not select/lock a target or fit a model from this result. If OPP/NED survival upper bound is below one half at own-TF lead, reject that side/TF candidate; sparse/censored support remains UNKNOWN. No TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "No fit or target lock. The 1.0-enter/0.5-release universal five-TF episode candidate is rejected: H4 DOWN upper +240-minute survival bound is below 0.5 in May/Aug/Sep, H1 DOWN below 0.5 in Aug; D1 +1440 persistence is unobservable under the strict path mask. Define a new causal per-TF state and observability contract before any training: preserve M5/M15 evidence only as diagnostic, resolve D1 known-closure/unknown-gap horizon and H1/H4 DOWN duration physically, bind partial {UP,DOWN} mask, native validity, simple reference, loss and acceptance rule. Then one source-only qualification. No TEST, Entry/Exit, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "One May-Sep 2024 TRAIN-only 1.0-enter/0.5-release hysteresis episode semantic audit is admitted but unclaimed. Exact worker/plan, bound source hashes and receipt fields, synthetic boundaries, and capped direct startup smoke passed. No target lock or fit.",
+    "current_activity": "Completed and consumed one TRAIN-only hysteresis semantic trial; 29,849 May-Sep 2024 M5 issues, 5 TF, zero model/optimizer/target build/TEST. M5/M15 have provisional persistence support, H1/H4 DOWN fails predeclared monthly durability in observed months, D1 remains censored. Five-TF target rejected; training stays disabled.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -22928,7 +22928,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-06T21:42:56.176000+00:00",
+  "updated_utc": "2026-11-06T21:47:23.799750+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -60887,17 +60887,17 @@
     "alternative_series_published": false
   },
   "dynamic_mtf_state_hysteresis_semantics_20261106_001": {
-    "status": "ADMITTED_UNCLAIMED",
+    "status": "COMPLETE_CONSUMED_FIVE_TF_TARGET_REJECTED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001.json",
       "sha256": "e9372ca913c5de4d9a929b314aac04dfd382e2ad1cb1d675e6ef06ed9cf6e868"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "target_builds_authorized": 0,
     "model_calls_authorized": 0,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "test_authorized": false,
     "later_aggregate_authorized": false,
@@ -60910,5 +60910,28 @@
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001",
     "scope": "May-Sep 2024 TRAIN only; distinct episode candidate with complete-W support, 1.0 ATR activation, 0.5 ATR release, conservative OHLC direction and quiet-anchor reset. Exact own-TF UTC validity and censored duration bounds; saved source/target parity; no target series publication, model, VAL/TEST, Entry/Exit, broker, trading or spending.",
     "relaunch_allowed": false,
-    "preclaim_evidence": "Bound 12 input refs, 8 source-owner refs and 13 saved arrays hash-checked; all used saved receipt keys checked; exact capped direct --help synthetic smoke passed; independent static peer found no concrete blocker."
+    "preclaim_evidence": "Bound 12 input refs, 8 source-owner refs and 13 saved arrays hash-checked; all used saved receipt keys checked; exact capped direct --help synthetic smoke passed; independent static peer found no concrete blocker.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001/CLAIM.json",
+      "sha256": "df2599e17d47d352ac0ebd545f0f7d6764b16a86cecae3e35ad9ce58145f57f9"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001/RESULT.json",
+      "sha256": "e0c62be5643816cb8e820f925b8592f9f9f930a24f3326eef3ea54970d60aa55"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001/TERMINAL.json",
+      "sha256": "571ac16472a9af7d580abfa9a41e416ba469e45e2258d4aa087ff8b3118c52ba"
+    },
+    "execution_binding": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001/EXECUTION_BINDING.json",
+      "sha256": "1d368167d879b2be94c742eb1d86ae0d5df40cb668fb7e7b841e3c00a74507ee"
+    },
+    "source_head_at_run": "56c3808d4b0cdd14a40c1f66556dfb23c958bf46",
+    "elapsed_seconds": 7.372533630001271,
+    "peak_rss_bytes": 387006464,
+    "target_selected": false,
+    "model_calls": 0,
+    "test_data_used": false,
+    "post_run_review": "Independent receipt and all 25 month-TF partition checks PASS. M5 5028 strict binary flips (0 threshold-update-required) versus prior raw 1.0 21353, with +5 DOWN/UP proven survival lower 0.6046/0.6200. M15 +15 lower 0.5425/0.5712. H4 DOWN monthly upper survival <0.5 in May/Aug/Sep; H1 DOWN Aug upper <0.5. D1 has 0 proven +1440 survivors among 12 DOWN and 16 UP confirmed starts but wide censor bounds, so unresolved rather than failed. No five-TF target lock or fit."
   }}

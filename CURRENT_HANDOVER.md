@@ -144,7 +144,7 @@ tilbake etter liten siste bevegelse når hele lokale vinduet har passert
 grensen. Det er ikke en påvist feil i dagens rullerende definisjon;
 nullstilling krever en egen episodekontrakt.
 
-Én avgrenset TRAIN-kandidat er nå innrømmet for engangs semantikkmåling: aktiver ved komplett lokal
+Én avgrenset TRAIN-kandidat ble undersøkt i en engangs semantikkmåling: aktiver ved komplett lokal
 range ≥ 1,0 × sist lukkede TF-ATR14 og gå til FLATT først ved komplett range
 < 0,5 × ATR14, med konservativ OHLC-retning og `{OPP, NED}` der side er
 ukjent. På M5 er inn-/utgrensen omtrent 3,5–4,3 / 1,7–2,1 siterte spreads
@@ -157,22 +157,48 @@ UTC-gyldighet på egen TF samt observerte M1-minutter. Hvis retning fortsatt
 er for kort eller uobserverbar, forkastes kandidaten før trening.
 En framtidig tilstandsandel fra lagret serie kan diagnostisere hvor mye
 retningsinformasjon som faktisk er kjent, men er ikke en ny treklassefasit.
-Ingen av disse kandidatene er valgt, bygget eller kjørt.
+Ingen av disse kandidatene er valgt eller bygget som nytt treningsmål.
 
 [Hystereseplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001.json)
 SHA-256 `e9372ca913c5de4d9a929b314aac04dfd382e2ad1cb1d675e6ef06ed9cf6e868`
-er innrømmet, ikke claimet. Arbeider SHA-256
-`256a56e9e51863ed9567a59960b8739996a9f801e29df74c281b38213fd723ba`.
-Den gjenbruker lagret 0,5-serie, leser M1-kilden én gang og måler bare
-mai–september 2024 TRAIN. Fullt observert lokalt vindu kreves etter ukjent
-kildegap eller tapt ATR; kjent stengning bevarer låsen, men løp sensureres
-over manglende minutter. Etter hver bekreftet rolig bar nullstilles
-retningsankeret. Aktiv tilstand med ukjent side er `{OPP,NED}`. Målingen
-rapporterer kilde- og prognosemasker, eksakt egen-TF UTC-framtid,
-retningsepisoder og sensurgrenser per måned/TF. Alle 12 inputfiler, åtte
-kildefiler og 13 lagrede arrays har riktig hash; brukte kvitteringsnøkler,
-syntetiske grensefall og nøyaktig begrenset oppstart er kontrollert før
-claim. Ingen modell, mållås, TEST eller handel er innrømmet.
+er fullført og konsumert én gang. [RESULT](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001/RESULT.json)
+SHA-256 `e0c62be5643816cb8e820f925b8592f9f9f930a24f3326eef3ea54970d60aa55`;
+[TERMINAL](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001/TERMINAL.json)
+SHA-256 `571ac16472a9af7d580abfa9a41e416ba469e45e2258d4aa087ff8b3118c52ba`,
+`COMPLETE`, exit 0. Eksakt bundne 12 inputs, åtte kildefiler, 13 lagrede arrays
+og alle 25 måned×TF-partisjoner bestod. Én M1-lesing, ingen alternativ
+målserie, modell, optimizer, TEST eller målvalg; 7,37 s og 387,0 MB
+prosessmaks under 4 GiB-vakten. Kildekoden var fryst ved kjøring.
+
+| TF / egen UTC-lead | Eksakt kilderad | Kjent treklasse | Aktiv, side `{OPP,NED}` | Ukjent aktivitet |
+| --- | ---: | ---: | ---: | ---: |
+| M5 / +5 | 29 834 | 27 036 | 2 754 | 44 |
+| M15 / +15 | 29 614 | 28 361 | 1 120 | 133 |
+| H1 / +60 | 28 629 | 27 590 | 729 | 310 |
+| H4 / +240 | 27 604 | 24 571 | 1 115 | 1 918 |
+| D1 / +1440 | 23 457 | 14 107 | 47 | 9 303 |
+
+På M5 falt strenge sammenhengende FLATT/aktiv-skifter til 5 028 mot
+21 353 med tidligere ren 1,0-grense; ingen av de 5 028 krevde ny ATR-verdi.
+Strengt observerte bekreftede M5-NED/OPP-episoder hadde +5-minutters
+varighetsgrenser 60,5–68,8 % / 62,0–69,6 %. M15 +15 var 54,3–59,0 % /
+57,1–62,2 %. Dette er episodeobservasjoner, ikke modellprognoser,
+uavhengige M5-handler eller økonomisk edge. H4-NEDs øvre +240-grense
+var under 50 % i mai (10/22), august (12/27) og september (10/28);
+H1-NED var under 50 % i august (52/105). Den forhåndsbestemte
+varighetsregelen forkaster derfor denne **felles fem-TF-kandidaten** før fit.
+D1 hadde 0 påviste +1440-overlevende blant bare 12 bekreftede NED- og 16
+OPP-starter, men mange sensurerte løp; døgnvarighet er **ukjent**, ikke
+påvist svikt. Kjent stengning bevarer aktivitetslåsen, men manglende M1-
+minutter bryter streng episodeobservasjon. Fullt lokalt vindu etter ukjent
+gap eller tapt ATR gjør D1 spesielt lite dekket. Ingen ny trening er innrømmet.
+
+Neste målbeslutning må definere en fysisk begrunnet, kausal tilstands- og
+observerbarhetskontrakt per TF: håndter D1-stengning/gap og egen horisont
+uten å gjøre ukjent til FLATT; krev meningsfull H1/H4-NED-varighet; bind
+separate aktivitets-/retningsmasker, eksakt gyldighet, enkel referanse,
+tap og akseptregel. M5/M15-funnet kan brukes som diagnostikk, ikke som
+låst mål. En ny kilde-only kvalifisering må bestå før noen fit.
 
 Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
 støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og
