@@ -59277,5 +59277,42 @@
     "task_name": "GX1OctoberCandidatePrivate20261106_004",
     "task_state": "Disabled",
     "completed_boot_id": 609
+  },
+  "dynamic_m5_october_fit_materializer_source_20261106_001": {
+    "status": "SOURCE_READY_RECIPES_PUBLISHED_NOT_ADMITTED",
+    "observed_utc": "2026-11-06T03:43:00.700250+00:00",
+    "scope": "Two separate source-bound October TRAIN prefix fit recipes, one arm at a time; 29,849 parents, one pass, at most 1,866 updates and three fresh-boot capped windows per arm. No October held-out outcome during fit.",
+    "materializer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_dynamic_m5_october_fit_campaign_v1.py",
+      "sha256": "07621f810f7f69766bc04286ea8cd2ff9e05f32141e0e9cb6da8ea67cc987f93"
+    },
+    "fit_recipes": {
+      "control": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/RECIPE.json",
+        "sha256": "edb3c684c6cd0e78f973af2c7893d27969c8800d21f77e1027de1e4f99e53fc6"
+      },
+      "candidate": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_001/RECIPE.json",
+        "sha256": "46981998c8b12ff5575dd11f9374a76c04b172a6e11cea4787368da77724ed76"
+      }
+    },
+    "private_mechanics": {
+      "control": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/ACTUAL_ROOT_REVIEW.json",
+        "sha256": "f7b819619ab3d40f130a00bf17a04497be00bb6f2543a5873d9a62d680cd3765"
+      },
+      "candidate": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/ACTUAL_ROOT_REVIEW.json",
+        "sha256": "8a33d2222876e17a58f4ed92937dc8a5e520883e7a0cae4f4888383dbb0695f0"
+      }
+    },
+    "focused_tests_passed": 200,
+    "training_enabled": false,
+    "fit_campaign_materialized": false,
+    "model_fit_started": false,
+    "october_oof_started": false,
+    "test_data_used": false,
+    "independent_edge": "UNKNOWN",
+    "remaining": "Prepare exact control fit admission and boot, materialize one guarded plan from clean source, then launch only its first window. Candidate fit and October score remain closed."
   }
 }

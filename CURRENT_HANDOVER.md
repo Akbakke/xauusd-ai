@@ -11,6 +11,20 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Begge kildebundne oktober-fit-oppskrifter er publisert; ingen fit er innrømmet.**
+[Kontrollens oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/RECIPE.json)
+og [kandidatens](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_001/RECIPE.json)
+passerte faktisk kilde- og privatkvitteringsport fra ren `fb519a5d`. Hver binder
+29 849 tidligere TRAIN-foreldre, ett pass, høyst 1 866 oppdateringer, egen
+256-raders initialmåling og sluttmåling på fit-prefikset. Ny
+[kampanjematerialiserer](gx1/scripts/materialize_dynamic_m5_october_fit_campaign_v1.py)
+bygger én arm av gangen med tre avgrensede Windows-vinduer, eksakt policy-/boot-/kildebinding
+og eksisterende 20 GiB/512 MiB, 250 W og signerte vakter. 200 målrettede oktober-,
+prefix- og research-kampanjetester bestod under capped audit; syntaks og diffkontroll bestod.
+Ingen fit-kampanje eller modell er kjørt; `training_enabled=false`. Neste port er
+egen eksakt kontroll-fit-admisjon og trygg fysisk omstart. Oktoberutviklings-OOF,
+uavhengig edge og økonomi er UNKNOWN.
+
 **06.11 – Begge friske private `_004`-armer bestod teknisk; hovedfit er fortsatt stengt.**
 Kandidaten kjørte én capped invokasjon på fysisk boot 609 og ble lukket med
 [rotgjennomgang](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/ACTUAL_ROOT_REVIEW.json).
