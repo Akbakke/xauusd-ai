@@ -1,0 +1,83 @@
+{
+  "base_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002.json",
+    "sha256": "8287e4b16dcd7a1e6e82162b756b32a17c6030f2b9c9e86d865ac8cc5db8d750"
+  },
+  "execution": {
+    "class": "audit",
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- timeout --signal=TERM --kill-after=10s 1800s .venv/bin/python -m gx1.audit.dynamic_m5_october_native_feature_numeric",
+    "cost_usd": 0,
+    "kill_after_seconds": 10,
+    "memory": "4G",
+    "swap": "512M",
+    "timeout_seconds": 1800
+  },
+  "indicator_fields": [
+    "atr_bps_14",
+    "ema20_dist_atr",
+    "mtf_geometry_support_dist_atr",
+    "mtf_geometry_resistance_dist_atr"
+  ],
+  "max_invocations": 1,
+  "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001",
+  "parent_range": [
+    0,
+    36172
+  ],
+  "plan_id": "DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001",
+  "prepared_from_head": "478c37317eac6e4c4eef05cd745cb474596655f4",
+  "prepared_utc": "2026-11-06T16:35:48.242225+00:00",
+  "purpose": "One model-free physical as-of and raw EMA/ATR/SR cache-to-gather audit for the existing October candidate; no post-normalization or feature-value claim.",
+  "read_scope": "Existing 002 source/axes, first 36,172 pre-November parents and bound native MTF cache; no later outcomes or TEST.",
+  "restrictions": {
+    "broker_or_network": false,
+    "model_construction": false,
+    "model_forward": false,
+    "optimizer_updates": false,
+    "post_october_outcomes": false,
+    "spending_usd": 0,
+    "test_split": false
+  },
+  "sample_parent_positions": [
+    0,
+    1,
+    29847,
+    29848,
+    29849,
+    29850,
+    36170,
+    36171
+  ],
+  "schema_version": "gx1_dynamic_m5_october_native_feature_numeric_plan_v1",
+  "script_sha256": "65dbf80ad00de800e2c32b2b9d10c5a0b10c952a2603cb89a82f474123ee98c2",
+  "source_files_sha256": {
+    "gx1/audit/dynamic_m5_october_native_batch_binding.py": "9a21e8df7512332529ba4d00c1ffe3f0904a4dcedf336f5db70fd623beaa4a09",
+    "gx1/audit/dynamic_m5_october_native_feature_numeric.py": "65dbf80ad00de800e2c32b2b9d10c5a0b10c952a2603cb89a82f474123ee98c2",
+    "gx1/audit/dynamic_mtf_december_normalization.py": "a9d4a4445380b4220987d883b467875b89a25dde6f72d15c6a41012cf7bef315",
+    "gx1/audit/dynamic_mtf_october_feature_delivery.py": "6ffb8d566c8709e88441b02e59dae81f7171c046b9c8b46181869fb1f5f3491e",
+    "gx1/audit/dynamic_mtf_october_input_only.py": "174c46d0bec2dc7a9ae46f893bcfbd7ef5945f79c39d95cefa9595918251f680",
+    "gx1/contracts/entry_dynamic_m5_october_causal_inputs_v1.py": "f5ab03dd97bda9e0309803d20dca3700f5b9649ede9b47e19c1d3a9865f859c8",
+    "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212",
+    "gx1/contracts/entry_exit_feature_surface_v1.py": "64bef1d239f7ef4cc347e08243c13f2e2cb7b9b2e799ac5a114cb76176b49d31",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "ef64a40a7ac24fc931acc267fae298adde26f20ed91ed587fd28ffcaae71c565",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "e3fe8f45690e99f5aac769d7f921b4676cfe562400689acbb3c4efc1fa686697",
+    "gx1/contracts/entry_native_direction_prefix_units_v1.py": "37627f5321e476b00b2b5ed6c9d96b4c59f3b04124b3eb64cbedb6b3cf9a021d",
+    "gx1/contracts/entry_native_direction_research_v1.py": "dba2d263f0d28e52e73fa38e1d7febd88b3e9a5958edc566f30df0ca69180fa3",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/contracts/local_random_access_campaign_v2.py": "00759c4ae37f0894ff42a673ad4b7d91e6e1a8bf9945386ac202cfaa6b992143",
+    "gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "733335d8c44cc3c6b44e4f24e18d8984118aee7fe65be0a0b4fcbb87fe252f81",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "standing_authorization": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+  "status": "PREPARED_NOT_ADMITTED",
+  "stop_rule": "Do not relaunch after claim, success or failure. Only a concrete observed blocker can justify a successor plan.",
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "write_scope": "One private aggregate result and eight fixed raw indicator sample values; no raw data, weights or secrets in Git."
+}

@@ -172,6 +172,29 @@ og måler ikke isolert endpoint-gradient eller vektendring per parameter.
 Ingen vedvarende gradientbrudd er påvist; dette innrømmer ingen kodeendring
 eller ny fit.
 
+Ny feilhypotese fra brukerens EMA/ATR/nivåinnvending: oktoberkandidaten
+predikerer M1-midbasert markedstilstand, ikke executable Entry-Q. I den
+aktive dynamiske M5-Entry-fasen er `entry_action_q_loss` inaktivt;
+Entry-kvalitet er predikert terminal-netto minus predikert tidlig MAE fra
+to separat trente komponenter. Dette er en mål-/beslutningsmismatch,
+ikke en bevist featurekodefeil. Den eldre samme-rad-kontrollen i
+`docs/DYNAMIC_MTF_STATE_NO_EDGE_DIAGNOSIS_20261103.md` fant motsatt
+M5-candlefortegn AUC 0,5185 mot modell 0,4979 på 7 812 senere
+utviklingsrader, men ingen Entry- eller økonomisk edge. EMA20/ATR14 og rå
+støtte-/motstandsavstand har varierende TRAIN-normaliseringsstatistikk på
+alle fem TF; faktisk rå tensorparitet på beslutningsrader er ikke bevist.
+
+Én [rå inputaudit](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001.json) SHA-256
+`b5a6785ab4666d03663ce4ad3878f6c84a839821d4c3f2598cc6d2f2e01ef0d9`
+er innrømmet som lokalt 0 USD engangskall: alle 36 172 as-of-valg på fem TF
+og åtte faste rader med rå EMA/ATR/nivå cache→gather-paritet. Ingen
+modellforward, trening, TEST eller broker. Resultatet kvalifiserer ikke
+post-normalisering, per-felt modellbidrag eller nivåobservasjon. Først etter
+denne kontrollen vurderes hypotesen om direkte supervisjon av dagens
+`terminal-netto − MAE`-kvalitet på felles observasjonsmaske; ingen fit er
+innrømmet. FLAT på 191s 256 CONTROL-rader kan være riktig, siden observert
+sidekvalitet der var negativ i snitt.
+
 En siste metadataavklaring fant ingen lagret, foreldrejustert 2D-matrise
 med hele den native inputflaten i gjeldende bundne kandidat-artefakter. [CAUSAL_INPUTS](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001/CAUSAL_INPUTS/CAUSAL_INPUTS.json) SHA-256
 `2fdea20ebeb90ec8a027f067726f1dd488139e4a1662ee61a75920b1ab764ae6`

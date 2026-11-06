@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-06T15:30:44.615186+00:00",
-  "status": "M5_STATE_TRANSFER_GAP_M5_ONLY_BASELINE_NOT_ADMITTED",
+  "status": "M5_ENTRY_INPUT_NUMERIC_AUDIT_ADMITTED_DIRECT_Q_HYPOTHESIS_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "No new model fit or score run. The M5-only cache omits native signal, context, GC and other TF inputs; its 36,172 parent-to-cache matches remain unverified. A frozen candidate linear readout is not chronological OOF for the pretrained backbone and saved hidden vectors do not exist; the +5 side label omits FLAT, path and economics. Later zero-refit state scoring needs a new exact plan and remains development evidence only. Do not launch a model-free hindsight target census as an Entry qualification; it cannot measure causal predictability. Require one distinct direct full-native LONG/SHORT/FLAT Entry hypothesis with prebound chronology, coverage and path/cost/economic acceptance before admitting an Entry model run. Existing native XAU/GC data permit new chronological development OOF with fold-specific fits after an exact admission; fresh data are not a prerequisite to investigate learning. A genuinely independent future confirmation route is necessary only for a final real-edge claim. Historical cost truth is not recoverable from the saved candle/fill evidence; declared costs are scenario assumptions, not realized economics. Preserve the five-TF forecast goal separately; October is inspected development and TEST stays sealed.",
+  "next_action": "One capped zero-model-call raw native input audit is admitted once under dynamic_m5_october_native_feature_numeric_20261106_001. It checks all 36,172 five-TF as-of selections and eight fixed EMA/ATR/SR raw cache-to-gather rows; it cannot prove post-normalization or feature utility. No fit or model score run. The October candidate predicts market state, not executable Entry; the current dynamic Entry phase derives quality from separately supervised terminal and MAE components while entry_action_q loss is inactive. After input audit, bind one direct quality-loss hypothesis on the same score and shared observed mask with chronological development acceptance before any fit. Existing XAU/GC data suffice for internal OOF; TEST remains sealed, Exit/broker/trading/spending closed, historical costs are scenario assumptions.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -60389,5 +60389,24 @@
       "later_october_row_auc": 0.48981681797537713,
       "entry_gate_pass": false
     }
+  },
+  "dynamic_m5_october_native_feature_numeric_20261106_001": {
+    "status": "ADMITTED_ONCE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001.json",
+      "sha256": "b5a6785ab4666d03663ce4ad3878f6c84a839821d4c3f2598cc6d2f2e01ef0d9"
+    },
+    "operator_approved": true,
+    "operator_approval": "Standing zero-cost local GX1 authorization given 2026-11-05; one raw feature clock/numeric audit, no paid API or model tokens.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "source_head_at_admission": "478c37317eac6e4c4eef05cd745cb474596655f4",
+    "remaining_invocations": 1,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001",
+    "scope": "One model-free all-36,172-parent five-TF as-of audit plus eight fixed raw EMA/ATR/SR cache-to-gather value checks; no post-normalization or model-effect claim.",
+    "training_enabled": false,
+    "model_calls_authorized": 0,
+    "test_data_used": false,
+    "broker_orders_or_trading_authorized": false,
+    "independent_edge": "UNKNOWN"
   }
 }
