@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T05:53:56.824651+00:00",
-  "status": "M5_ENTRY_OCTOBER_CONTROL_TRAIN_SCORING_RECOVERY_ADMITTED_FRESH_BOOT_PENDING_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-06T07:48:48.459434+00:00",
+  "status": "M5_ENTRY_OCTOBER_CONTROL_TRAIN_FINAL_MEASURED_CANDIDATE_AND_OOF_CLOSED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run one admitted, exact zero-update control TRAIN-final measurement recovery from the preserved checkpoint after metadata preparation and safe fresh-boot receipt transaction. No candidate fit or October OOF admitted. training_enabled=false; edge and economics UNKNOWN.",
+  "next_action": "Control pre-October TRAIN fit has a complete zero-update final measurement from the preserved state. Compare only in-sample fit to frozen references, then bind the single age-candidate fit and recovered-fit October score provenance before any separately admitted runs. training_enabled=false; independent edge and economics UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -59429,9 +59429,9 @@
     },
     "task_state": "Disabled"
   },
-    "dynamic_m5_october_control_final_train_recovery_20261106_001": {
-    "status": "ADMITTED_ONE_ZERO_UPDATE_TRAIN_SCORING_RECOVERY_PENDING_PREPARATION",
-    "observed_utc": "2026-11-06T05:53:56.824651+00:00",
+      "dynamic_m5_october_control_final_train_recovery_20261106_001": {
+    "status": "COMPLETE_CONSUMED_ZERO_UPDATE_TRAIN_FINAL_MEASUREMENT",
+    "observed_utc": "2026-11-06T07:48:48.459434+00:00",
     "scope": "One new source-bound control checkpoint recovery: full 29,849-parent pre-October TRAIN final measurement only, 1,866 forwards, zero backward/optimizer updates, one fresh-boot guarded window. No October score.",
     "arm": "control",
     "input_role": "fit",
@@ -59473,27 +59473,27 @@
       "sha256": "a4f364e42ccfd059183c55c70b8055ca37d06a03733f12775131f8ac07eeb248"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_rounds": 0,
     "automatic_repetition_authorized": false,
     "automatic_full_training_authorized": false,
     "qualification_weights_for_main_fit": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
     "genuine_backward_authorized": false,
     "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
     "training_enabled": false,
     "native_training_enabled": false,
     "full_epoch_training_allowed": false,
-    "native_launch_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "zero_update_scoring_recovery_authorized": true,
+    "native_launch_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "zero_update_scoring_recovery_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -59515,13 +59515,49 @@
       "max_windows": 1,
       "usd": 0
     },
-    "prepared_plan_materialized": false,
-    "prepared_binding_materialized": false,
-    "machine_wide_idle_verified_for_reboot": false,
-    "physical_reboot_executed": false,
-    "model_calls": 0,
+    "prepared_plan_materialized": true,
+    "prepared_binding_materialized": true,
+    "machine_wide_idle_verified_for_reboot": true,
+    "physical_reboot_executed": true,
+    "model_calls": 1,
     "october_outcomes_read": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "Materialize exact one-window plan from clean source, verify whole-machine idle and signed guards, prepare/confirm reboot receipt before safe physical reboot, then score only full TRAIN."
+    "remaining": "Control full TRAIN final measurement completed from preserved checkpoint with zero new optimizer updates. The old fit and recovery plans are consumed. Candidate fit is not admitted; October OOF needs a separately bound recovered-fit source route and exact score admission. TRAIN fit is in sample; independent edge and economics UNKNOWN.",
+    "actual_new_optimizer_updates": 0,
+    "actual_new_backward_calls": 0,
+    "actual_final_train_forward_calls": 1866,
+    "task_state": "Disabled",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "dffdd4cd5ae18f222615707b03126bbe15d94ceaea89649b9ce3dd157c2115d3"
+    },
+    "pre_reboot_idle_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/PRE_REBOOT_IDLE_REVIEW.json",
+      "sha256": "e8299126ef476b7829058e45bd16c06a0823b927343ac4912a2e4a455d2ab586"
+    },
+    "reboot_request_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/RUNTIME/reboot-receipts/after-0000.json",
+      "sha256": "cb2717c9228b753575137cfcfd74fe69542f1967b7c29dd76a3ea4af47eb5ef3"
+    },
+    "receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "093244416b201fdb57612f8b28e205a2d94c3cd649a99613b401b56a65a6e111"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "c08f094faad5a8ec3407536e50e827db9d67ebc1d85681aff32aec0258df6efa"
+    },
+    "final_train_measurement": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/RUNTIME/prefix-fit/window-0001/FINAL_TRAIN.json",
+      "sha256": "1c2435c5473541032e9cf4803e566160ee85020c29f08d0cc6371df6a24bd5cb"
+    },
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "480d90032cdc582b186777d19b66d16c3f00816ce1ba5f1abe097c92667cfc60"
+    },
+    "power_after": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/POWER_AFTER.json",
+      "sha256": "7c8e2039187bcebdd0eedb2b380c9a06b7185306c489e8298e6b2b7b56d2861b"
+    }
   }
 }

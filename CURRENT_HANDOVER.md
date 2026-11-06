@@ -11,18 +11,19 @@ Programrot:
 
 ## Aktuell status
 
-**06.11 – Nulloppdateringsrute for kontrollens manglende TRAIN-sluttmåling er eksakt innrømmet.**
-En ny, separat oppskrift kan bindes til det immutable kontroll-checkpointet fra vindu 1,
-forseglet policy ved lukking, signert første kvittering og den dokumenterte Windows-feilen.
-Porten krever samme 68 kildeeiere; kun navngitte kontrollfunksjoner kan ha nye bytes.
-Den eksisterende worker-ruten tillater i denne rollen bare 1 866 FINAL_TRAIN-forwards,
-null backward-/optimizersteg og ingen oktober-OOF. Privat kvalifikasjon og faktisk
-kildelikhet er målt på metadata; fire målrettede kampanje-/recovery-testsuiter bestod.
-Den immutable oppskriften er publisert, bundet til kilde `6b044361` og kontrollert
-med faktisk lukke-/checkpoint-evidens. Policyen innrømmer én ny lese-only
-12 000-sekunders kampanje med 20 GiB/512 MiB, 250 W, null oppdateringer og 0 USD.
-Plan, omstart og modell er ennå ikke kjørt. `training_enabled=false`; selv TRAIN-sluttmåling, utviklingsgeneralisering,
-uavhengig edge og økonomi er fortsatt UNKNOWN.
+**06.11 – Kontrollens fullstendige TRAIN-sluttmåling er fullført fra bevart checkpoint; ingen ny trening.**
+En ny engangskampanje på fysisk boot 612 endte `COMPLETE` med signert vakt PASS.
+[Rotgjennomgangen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json)
+binder originalt 1 866-stegs checkpoint, nytt identisk state-seal, 29 849 TRAIN-foreldre,
+1 866 `FINAL_TRAIN`-forwards og **null** nye backward-/optimizersteg. Den korrekte
+`after-0000`-omstartskvitteringen ble skrevet før omstart. Oppstartsoppgaven er
+deaktivert, 250 W er bekreftet, og ingen oktober-OOF, TEST, broker eller handel ble åpnet.
+M5 +5 Brier på samme TRAIN-prefiks var 0,60472 mot prior 0,60907 og Markov 0,61175;
+modellens 7 465 korrekte av 16 798 er samtidig lavere enn priorens 7 549.
+Dette er **in-sample fit**, ikke senere generalisering eller uavhengig edge.
+Begge gamle fit-/recoveryplaner er konsumert. Kandidatens fit er ikke innrømmet,
+og score-ruten trenger en eksakt kildebinding til det gjenopprettede fit-opphavet.
+`training_enabled=false`; uavhengig retningsedge og økonomi UNKNOWN.
 
 **06.11 – Kontrollfit fullførte alle TRAIN-oppdateringer; original kampanje er lukket før sluttmåling.**
 Invokasjon 1 på boot 610 ga `RESUMABLE` med signert vakt PASS, 1 866 optimizersteg,
