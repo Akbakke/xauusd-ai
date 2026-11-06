@@ -1,0 +1,56 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_train_rank_v1_plan",
+  "status": "DESCRIPTIVE_RULE_BOUND_BEFORE_THIS_TRAIN_RANK_AFTER_FIT_AND_OCTOBER_EXPOSURE",
+  "created_utc": "2026-11-06T15:10:37.440031+00:00",
+  "script_sha256": "787050423413379e5b4c27e086312dd1d98994b8e1fcf71ab5080fae46f87c98",
+  "fit_review": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/ACTUAL_ROOT_REVIEW.json",
+    "sha256": "57edacf9701f311dd12f185455cfe8d140b0e4e5dabadbeb4f5556025e3ad1dc"
+  },
+  "fit_recipe": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RECIPE.json",
+    "sha256": "0f25fc95720f001915e74550be865d228e6abb2d88706ca90784f070410b65c8"
+  },
+  "final_train_measurement": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/prefix-fit/window-0002/FINAL_TRAIN.json",
+    "sha256": "33be845ea4547c1d02cf74b05daf14241b4bc2ea9f3561ab967ffac5ecb4db72"
+  },
+  "predictions_manifest": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/prefix-fit/window-0002/FINAL_TRAIN_PREDICTIONS/ARRAYS.json",
+    "sha256": "77abe66d40db906fdb8266edfdb532b2dbffa161db83994ef644107f1f973b38"
+  },
+  "target_manifest": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_TARGETS/SERIES.json",
+    "sha256": "288d9e04c56337e0413cf29f0235e810ae896d3bc6be3f482eaa84b25ff4d1cb"
+  },
+  "parent_range": [
+    0,
+    29849
+  ],
+  "train_cutoff_ns_exclusive": 1727740800000000000,
+  "lead_minutes": 5,
+  "expected_observed": 16798,
+  "expected_brier": 0.6042147567186823,
+  "expected_prior_brier": 0.6090713086128303,
+  "expected_fitted_updates": 1866,
+  "primary_question": "Did the saved final candidate learn within-TRAIN UP-versus-DOWN rank at M5+5 on its observed TRAIN labels?",
+  "primary_metric": "Conditional UP/DOWN row-weighted AUC of frozen P(UP)/(P(DOWN)+P(UP)), excluding observed FLAT and unknown labels by declared mask.",
+  "descriptive_reference": "AUC 0.5 constant chance and later October development candidate AUC 0.4898168 from already inspected report; periods are not paired or independent confirmation.",
+  "interpretation_limit": "In-sample TRAIN rank separates failure to fit direction from possible failure to transfer; it does not prove causal predictability, independent edge, Entry action quality or profit.",
+  "bootstrap_draws": 10000,
+  "bootstrap_seed": 20260911,
+  "source_read_scope": "Hash-verify one saved candidate final TRAIN prediction array and target series, then memmap only M5+5 score slice; no native forward, no TEST.",
+  "claim_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001/CLAIM.json",
+  "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001/REPORT.json",
+  "max_wall_seconds": 3600,
+  "capped_class": "audit",
+  "memory_bytes": 4294967296,
+  "swap_bytes": 536870912,
+  "usd_budget": 0,
+  "model_calls_authorized": 0,
+  "test_data_used": false,
+  "no_action_selection": true,
+  "decision_authority": "NONE",
+  "broker_access_allowed": false,
+  "trading_allowed": false
+}

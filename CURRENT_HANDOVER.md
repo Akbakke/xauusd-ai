@@ -108,11 +108,15 @@ På hele M5-horisontgridet var kandidaten verre enn prior også i TRAIN:
 0,680811 mot 0,618665. Det native +5-endepunktet har eksplisitt tapsvekt
 1,0 og faktisk gradient; ren 5×1440-tapsfortynning er ingen påvist forklaring.
 TRAIN OPP/NED-rang AUC er ennå ikke målt, selv om endelige prognoser er lagret.
-Neste minste måling er en kandidat-only, modellfri, hashverifisert TRAIN M5+5
-rang-AUC fra disse lagrede prognosene og de samme observerte TRAIN-etikettene,
-under egen eksakt capped plan. Dette kan skille manglende retningsfit fra
-senere generaliseringssvikt, men ingen uavhengig Entry-edge. Ingen ny modellrunde
-velges før den målingen. Fem-TF-prognosemålet og Entry-kravene består.
+Neste minste måling er kandidat-only M5+5 OPP/NED-rang-AUC på lagret
+slutt-TRAIN-prognose og de samme 16 798 observerte TRAIN-etikettene.
+[Engangsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001.json) SHA-256
+`1da8201cc59a5e69308b0b6c8c3bef6a311a9f52711d779df2254f050b29e553`
+er bundet før denne nye målingen, med 4 GiB capped audit, atomisk claim og
+sekvensiell SHA-kontroll/minnekartlegging av én lagret 2,58 GB-prognosefil.
+Den kan skille manglende in-sample retningsfit fra senere generaliseringssvikt,
+men ikke bevise uavhengig Entry-edge. Ingen ny modellrunde velges før resultatet.
+Fem-TF-prognosemålet og Entry-kravene består.
 
 M5 Entry er hovedmål med kausal lukket M15/H1/H4/D1-kontekst, åtte
 spesialister og niende D1/makro. `training_enabled=false`. TEST er forseglet;
