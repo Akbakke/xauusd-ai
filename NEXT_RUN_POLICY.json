@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T22:57:15.948058+00:00",
-  "status": "MARKET_STATE_CALENDAR_FIRST_ATTEMPT_FAILED_SECOND_ADMITTED",
+  "observed_utc": "2026-11-06T23:02:46.200840+00:00",
+  "status": "MARKET_STATE_CALENDAR_TWO_FAILED_THIRD_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The 0.5-versus-1.0 ATR endpoint allowed-set contract is PROPOSED, not locked. Two source-only workers are prepared; only the exact seven-document calendar extension is admitted. No target promotion, model fit, TEST, Entry/Exit, broker, trading or spending. training_enabled=false.",
-  "next_action": "First calendar plan failed before any GET because direct script invocation could not import gx1 and is consumed. Use only distinct admitted plan 002 with module invocation, whose capped module/import smoke passed; verify seven archived bytes and conservative veto before any full TRAIN labels. Then separately admit one capped May-Sep rowwise endpoint-mask verifier and check all 25 partitions. Target stays PROPOSED until full TRAIN source/clock, indicators, output/loss/scores and chronological references are qualified. No model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "Calendar plans 001 and 002 are consumed: first stopped before GET on import; second stopped on Jul08 Wayback redirect after four in-memory holiday checks, with no published calendar. Use only distinct admitted plan 003 with direct-200 May06 regular capture in place of Jul08, then verify all seven source bytes and conservative veto before any full TRAIN labels. Then separately admit one capped May-Sep rowwise endpoint-mask verifier and check all 25 partitions. Target stays PROPOSED until full TRAIN source/clock, indicators, output/loss/scores and chronological references are qualified. No model fit, TEST, Entry/Exit, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Proposed five-TF pointwise endpoint allowed-set contract documented; 29,849 May-Sep issue aggregates give 41.56-49.90% exact singleton M5-H4 and 25.49% D1, with partial ACTIVE masks. Five expanding TRAIN-only folds and mask-aware references predeclared. Calendar source attempt 001 failed on gx1 import before any GET and is consumed; distinct module-launch plan 002 passed exact capped startup/import smoke and is admitted. Rowwise verifier remains prepared. No market data job or fit yet.",
+    "current_activity": "Proposed five-TF pointwise endpoint allowed-set contract documented; 29,849 May-Sep issue aggregates give 41.56-49.90% exact singleton M5-H4 and 25.49% D1, with partial ACTIVE masks. Five expanding TRAIN-only folds and mask-aware references predeclared. Calendar source attempts 001/002 are consumed without calendar output: import failure before GET, then a Jul08 Wayback redirect. Direct-200 May06 replacement is bound in admitted plan 003; rowwise verifier remains prepared. No market data job or fit yet.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -61017,10 +61017,15 @@
     "training_authorized": false
   },
   "xau_2025_published_calendar_extension_20261106_002": {
-    "claimed_invocations": 0,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/XAU_2025_PUBLISHED_CALENDAR_EXTENSION_20261106_002/CLAIM.json",
+      "sha256": "b36a6cb7d6e342226b5c4f10b05da37a6759b617ff65c9091dd48af420f7a5e4"
+    },
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "decision": "ADMITTED",
-    "execution_authorized": true,
+    "decision": "BLOCKED",
+    "execution_authorized": false,
+    "failure": "Fifth of seven archive GETs, Jul08 regular, returned 302 to May06 capture; strict source gate stopped before any public-source or calendar publication. Plan consumed; no relaunch.",
     "launch_argv": [
       "bash",
       "scripts/gx1_capped_run.sh",
@@ -61045,6 +61050,48 @@
     },
     "relaunch_allowed": false,
     "scope": "Seven exact public Wayback OANDA source documents; extend verified regular XAU/USD calendar to exclusive 2026-01-01 with eleven conservative metal-date vetoes. No market M1 read, target, model, TEST or trade.",
+    "source_downloads_authorized": 0,
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "status": "FAILED_CONSUMED_ARCHIVE_REDIRECT",
+    "target_builds_authorized": 0,
+    "target_data_reads_authorized": false,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/XAU_2025_PUBLISHED_CALENDAR_EXTENSION_20261106_002/TERMINAL.json",
+      "sha256": "6f4eba3b15366093dfada31285720aa1c030ec3763a40bf1ead73a9a970a36ba"
+    },
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after claimed capped invocation; no relaunch.",
+    "test_authorized": false,
+    "training_authorized": false
+  },
+  "xau_2025_published_calendar_extension_20261106_003": {
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "decision": "ADMITTED",
+    "execution_authorized": true,
+    "launch_argv": [
+      "bash",
+      "scripts/gx1_capped_run.sh",
+      "--class",
+      "audit",
+      "--mem",
+      "4G",
+      "--swap",
+      "512M",
+      "--",
+      "/home/andre2/src/GX1_CURRENT/.venv/bin/python",
+      "-B",
+      "-m",
+      "gx1.audit.build_xau_2025_published_calendar_v1"
+    ],
+    "max_invocations": 1,
+    "model_calls_authorized": 0,
+    "output_root": "/home/andre2/GX1_RUNS/XAU_2025_PUBLISHED_CALENDAR_EXTENSION_20261106_003",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/XAU_2025_PUBLISHED_CALENDAR_EXTENSION_20261106_003.json",
+      "sha256": "3020648960be7134ead67a5aa9373e64bec0a08f08d7b26dfc871006fe4a15ef"
+    },
+    "relaunch_allowed": false,
+    "scope": "Seven exact public Wayback documents with direct-200 May06/Nov15/Dec13 regular snapshots and four holiday snapshots; extend verified XAU calendar to exclusive 2026-01-01 with eleven conservative metal-date vetoes. No market M1 read, target, model, TEST or trade.",
     "source_downloads_authorized": 7,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "status": "ADMITTED_NOT_CLAIMED",
