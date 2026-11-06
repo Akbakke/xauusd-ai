@@ -46,8 +46,8 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-06T00:35:11.495960+00:00",
   "status": "M5_ENTRY_OCTOBER_FIT_ROLE_READ_GUARD_SOURCE_CHECKED_EDGE_UNKNOWN",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
   "next_action": "Fixed pre-October private 32-row cohort and 256-row initial measurement passed technical target support under consumed plan 001. Bind exact matched control/age October private, fit and score campaign roles in existing native authority/worker, then qualify fresh baseline and gradient/resume before OOF. training_enabled=false; edge UNKNOWN.",
@@ -33714,7 +33714,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -59279,7 +59279,7 @@
     "completed_boot_id": 609
   },
   "dynamic_m5_october_fit_materializer_source_20261106_001": {
-    "status": "CONTROL_FIT_EXACT_ADMISSION_PENDING_MATERIALIZATION",
+    "status": "CONTROL_FIT_W1_TRAIN_COMPLETE_SCORING_RECOVERY_REQUIRED",
     "observed_utc": "2026-11-06T03:43:00.700250+00:00",
     "scope": "Two separate source-bound October TRAIN prefix fit recipes, one arm at a time; 29,849 parents, one pass, at most 1,866 updates and three fresh-boot capped windows per arm. No October held-out outcome during fit.",
     "materializer": {
@@ -59313,12 +59313,16 @@
     "october_oof_started": false,
     "test_data_used": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "One control fit campaign is admitted pending exact metadata materialization and fresh boot; candidate fit and October OOF remain closed.",
-    "control_fit_stage": "dynamic_m5_october_control_fit_20261106_001"
+    "remaining": "First control fit window reached all 29,849 TRAIN parents and 1,866 updates. Scoring-only recovery with exact preserved state is required after missing reboot request receipt; candidate fit/OOF remain closed.",
+    "control_fit_stage": "dynamic_m5_october_control_fit_20261106_001",
+    "failure_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/WINDOW2_BOOTSTRAP_FAILURE_REVIEW.json",
+      "sha256": "fc19df3ddd702c5fbcac3a596593b94f61eccc0f3e61d9317089347a8c80ed7a"
+    }
   },
   "dynamic_m5_october_control_fit_20261106_001": {
-    "status": "ADMITTED_ONCE_PENDING_MATERIALIZATION_AND_FRESH_BOOT",
-    "observed_utc": "2026-11-06T03:44:19.552241+00:00",
+    "status": "CLOSED_AFTER_W1_TRAIN_COMPLETE_W2_BOOTSTRAP_FAILED",
+    "observed_utc": "2026-11-06T05:35:55.796644+00:00",
     "scope": "One source-bound control-arm fit on the 29,849 pre-October TRAIN parents, one pass, own 256 initial and full-prefix final TRAIN measures, at most 1,866 optimizer updates and three fresh-boot guarded windows. No October score or candidate fit.",
     "arm": "control",
     "input_role": "fit",
@@ -59352,25 +59356,25 @@
       "sha256": "f7b819619ab3d40f130a00bf17a04497be00bb6f2543a5873d9a62d680cd3765"
     },
     "max_invocations": 3,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
     "training_rounds": 1,
     "automatic_repetition_authorized": false,
     "automatic_full_training_authorized": false,
     "qualification_weights_for_main_fit": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -59380,7 +59384,7 @@
     "held_out_features_authorized": false,
     "held_out_outcomes_authorized": false,
     "fresh_windows_boot_required": true,
-    "user_reboot_authorized": true,
+    "user_reboot_authorized": false,
     "power_limit_w": 250,
     "train_parent_rows": 29849,
     "max_optimizer_updates": 1866,
@@ -59392,13 +59396,37 @@
       "max_windows": 3,
       "usd": 0
     },
-    "prepared_plan_materialized": false,
-    "prepared_binding_materialized": false,
-    "machine_wide_idle_verified_for_reboot": false,
-    "physical_reboot_executed": false,
-    "model_calls": 0,
+    "prepared_plan_materialized": true,
+    "prepared_binding_materialized": true,
+    "machine_wide_idle_verified_for_reboot": true,
+    "physical_reboot_executed": true,
+    "model_calls": 1,
     "october_outcomes_read": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "Materialize exact control fit plan under capped metadata audit from clean HEAD, verify source/task/idle, then fresh physical reboot and only the first capped native window. Subsequent windows require terminal receipts and fresh boots; candidate fit/October OOF remain closed."
+    "remaining": "Original plan cannot continue: after-W1 reboot request receipt was not recorded before boot 611. First-window fit state is preserved with all 29,849 TRAIN parents and 1,866 updates but final TRAIN measurement missing. Prepare a separately source-bound zero-update scoring recovery; no relaunch of original windows, candidate fit or October OOF yet.",
+    "unclaimed_windows_revoked": [
+      2,
+      3
+    ],
+    "actual_optimizer_updates": 1866,
+    "actual_fit_parents": 29849,
+    "actual_reserved_predictions": 0,
+    "first_window_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "c77a38d066204c7b4766a77a837be0d6d19c82000be89fe8ba2a315d2a4a9f8e"
+    },
+    "first_window_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "aebf0ef4ac190380d1748372f30c9b1121223c6946cc865dcdee435239fcc29d"
+    },
+    "first_window_cursor_snapshot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/RUNTIME/invocation-evidence/invocation-0001/CHECKPOINT_POINTER.json",
+      "sha256": "a4f364e42ccfd059183c55c70b8055ca37d06a03733f12775131f8ac07eeb248"
+    },
+    "bootstrap_failure_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/WINDOW2_BOOTSTRAP_FAILURE_REVIEW.json",
+      "sha256": "fc19df3ddd702c5fbcac3a596593b94f61eccc0f3e61d9317089347a8c80ed7a"
+    },
+    "task_state": "Disabled"
   }
 }

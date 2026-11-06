@@ -11,6 +11,18 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Kontrollfit fullførte alle TRAIN-oppdateringer; original kampanje er lukket før sluttmåling.**
+Invokasjon 1 på boot 610 ga `RESUMABLE` med signert vakt PASS, 1 866 optimizersteg,
+29 849 foreldre, null OOF og bevart terminalt checkpoint. Invokasjon 2 på boot 611
+stoppet i Windows preflight med `confirmed reboot request receipt required`: en egen
+reboot-kvittering var ikke skrevet før omstarten. [Feilgjennomgangen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/WINDOW2_BOOTSTRAP_FAILURE_REVIEW.json)
+binder plan, første terminal, immutable cursor og Windows-feilkvittering. Ingen andre
+modell- eller optimizerkall fant sted. Oppstartsoppgaven er deaktivert og vindu 2–3 i
+originalplanen er tilbakekalt; ingen kvittering konstrueres i ettertid.
+`training_enabled=false`. Neste oppgave er en ny, eksakt nulloppdateringsrute som bare
+fullfører kontrollens TRAIN-sluttmåling fra det bevarede checkpointet. Kandidatfit og
+oktober-OOF er stengt; retningsedge og økonomi UNKNOWN.
+
 **06.11 – Kontrollens ene full-prefix-fit er eksakt innrømmet, før metadataforberedelse.**
 Den publiserte kontrolloppskriften binder 29 849 pre-oktober TRAIN-foreldre, ett pass,
 høyst 1 866 optimizeroppdateringer, egen initial-/sluttmåling og tre mulige 12 000-sekunders
