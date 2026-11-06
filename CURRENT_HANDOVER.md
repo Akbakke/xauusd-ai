@@ -138,7 +138,26 @@ men kan skjule en stor motgående high/low-bevegelse inne i samme minutt og
 kan ikke oppgradere `{OPP, NED}` til sikker fasit. Behold den konservative
 OHLC-masken; en close-proxy må være separat. Varighet må kontrolleres både i
 observerte M1-minutter og ved eksakt prognosetid i UTC, uten å omskrive
-eldre etiketter med framtidig varighet.
+eldre etiketter med framtidig varighet. En lesende syntetisk kontroll av
+nåværende mål-kode viste at retning kan overleve en FLATT-periode og komme
+tilbake etter liten siste bevegelse når hele lokale vinduet har passert
+grensen. Det er ikke en påvist feil i dagens rullerende definisjon;
+nullstilling krever en egen episodekontrakt.
+
+Én mulig, ennå ikke innrømmet TRAIN-kandidat er å aktivere ved komplett lokal
+range ≥ 1,0 × sist lukkede TF-ATR14 og gå til FLATT først ved komplett range
+< 0,5 × ATR14, med konservativ OHLC-retning og `{OPP, NED}` der side er
+ukjent. På M5 er inn-/utgrensen omtrent 3,5–4,3 / 1,7–2,1 siterte spreads
+i de målte månedene; det er fysisk prøvebegrunnelse, ikke fasitvalg. D1 har
+få uavhengige 1,0-hendelser (mai: 3 fullførte NED og 5 OPP), så mange
+M5-rader må ikke utgis for robust D1-støtte. Før en eventuell test må
+kjente/ukjente gap, retningsminne og ATR-oppdateringer bindes, og
+sensurerte OPP/NED/FLATT-løp må sammenlignes med eksakt framtidig
+UTC-gyldighet på egen TF samt observerte M1-minutter. Hvis retning fortsatt
+er for kort eller uobserverbar, forkastes kandidaten før trening.
+En framtidig tilstandsandel fra lagret serie kan diagnostisere hvor mye
+retningsinformasjon som faktisk er kjent, men er ikke en ny treklassefasit.
+Ingen av disse kandidatene er valgt, bygget eller kjørt.
 
 Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
 støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og

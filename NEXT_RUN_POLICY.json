@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T21:11:57.747665+00:00",
+  "observed_utc": "2026-11-06T21:19:07.267218+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "Transition mechanism, generic5 bounded numeric and trendline conditional/representation audits are completed/consumed. Of 95 formerly parked fields/TF, one close_position_range20 has full formula evidence, five generic fields have 64-bar/TF independent arithmetic samples, 12 trendline geometry/clock fields have conditional TRAIN witnesses, and 77 lack an independent formula sample. Trendline line selection and 19 lifecycle fields remain unproved despite full producer/cache replay parity. Prioritize a physically meaningful sustained five-TF UP/DOWN/FLAT target with truthful partial masks and exact wall-clock forecast validity before any fit; a close-only side must not upgrade ambiguous OHLC paths. Then audit remaining producers and compare indicators against prebound simple baselines on chronological development. No model, TEST, Entry-Q, broker, trading or spending.",
+  "next_action": "No new fit. Next target gate is ONE prebound TRAIN-only semantic trial, not an admitted run: enter active only when complete local range >= 1.0 x last-closed-TF ATR14; release to FLAT only when complete range < 0.5 x ATR14, with existing conservative OHLC side and {UP,DOWN} partial mask. The 1.0/0.5 pair has an M5 physical spread interpretation but is not target-locked; D1 episodes are sparse. Predeclare exact unknown/known-gap, direction-memory and ATR-update behavior; report censored UP/DOWN/FLAT episode durations in observed minutes AND state at exact +5/+15/+60/+240/+1440 UTC validity, with independent episode counts. Reject if directional periods remain too short or unobservable. A close-only direction proxy cannot upgrade ambiguous OHLC. Existing direction persistence across FLAT is not a proved bug; change it only under an explicit new episode contract. Generic5/trendline audits are complete; 77 parked fields/TF still have no independent formula sample. No model, TEST, Entry-Q, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "TRAIN transition mechanism, generic5 1,600-sample numeric and trendline 1,544,699-row representation/516 conditional numeric audit completed with exact receipts and consumed. Market-state target remains unlocked; no fit. Next work is target/episode semantics first, then remaining indicator formula/utility checks.",
+    "current_activity": "TRAIN transition mechanism, generic5 numeric sample and trendline conditional audit completed/consumed and pushed. Target remains unlocked; one conservative OHLC hysteresis semantic trial is proposed but not admitted. Read-only synthetic check found direction can persist across FLAT under current rolling-local contract without proving a defect. No fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Sustained five-TF UP/DOWN/FLAT target is not locked. Seventy-seven of 95 formerly parked fields/TF lack independent formula samples; five generic and 12 trendline fields have only bounded/conditional arithmetic evidence. Trendline lifecycle/line selection and feature predictive utility remain unproved.",
+    "current_blocker": "No physically qualified sustained five-TF UP/DOWN/FLAT target. A 1.0/0.5 ATR hysteresis candidate may reduce binary churn but has not been tested for directional duration, partial-mask coverage or exact future validity; D1 support is sparse. Seventy-seven of 95 parked fields/TF lack independent formula samples; feature utility unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
