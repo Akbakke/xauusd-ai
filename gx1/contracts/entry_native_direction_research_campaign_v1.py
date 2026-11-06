@@ -175,6 +175,13 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     if value.get('run_scope') == december.PRIVATE_SCOPE:
         _require(ref['path'] == str(december.PRIVATE_RECIPE_PATH), 'DECEMBER_RECIPE_PATH')
         return december.require_december_native_recipe(value, source_repo=source_repo, source_commit=source_commit, phase='private')
+    from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
+    if value.get('run_scope') == october.roles.PRIVATE_SCOPE:
+        arm = value.get('arm')
+        _require(arm in october.PRIVATE_ROOTS
+                 and ref['path'] == str(october.PRIVATE_ROOTS[arm].parent / 'NATIVE_RECIPE.json'),
+                 'OCTOBER_PRIVATE_RECIPE_PATH')
+        return october.require_private_recipe(value, source_repo=source_repo, source_commit=source_commit)
     if value.get('run_scope') == DYNAMIC_STATE_PRIVATE_SCOPE:
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import require_dynamic_state_launch_recipe
         return require_dynamic_state_launch_recipe(value, source_repo=source_repo, source_commit=source_commit, private_scope=True)
@@ -533,7 +540,8 @@ def guarded_research_power_limit(recipe):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
     _require(isinstance(recipe, Mapping), 'POWER_RECIPE')
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
-    if recipe.get('run_scope') in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE):
+    from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
+    if recipe.get('run_scope') in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE, october.roles.PRIVATE_SCOPE):
         _require(recipe.get('full_feature_profile') is True
             and recipe.get('numerical_recipe', {}).get('dynamic_state_supervision') is True, 'STATE_POWER_SCOPE')
         return 250
@@ -626,7 +634,8 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
         policy_recipe = require_research_launch_recipe(result['recipe'],
             source_repo=CANONICAL_REPO, source_commit=result['source_commit'])
         from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
-        if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE):
+        from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
+        if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE, october.roles.PRIVATE_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -690,6 +699,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     if recipe['run_scope'] == december.PRIVATE_SCOPE:
         december.require_phase_gate(gate, recipe)
+    from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
+    if recipe['run_scope'] == october.roles.PRIVATE_SCOPE:
+        october.require_phase_gate(gate, recipe)
     if recipe['run_scope'] == BPS_SCOPE:
         _require(gate.get('signed_bps_scale_fit_authorized') is True,'READINESS_BPS_SCALE')
     if recipe['run_scope'] == WEIGHT_SCOPE:

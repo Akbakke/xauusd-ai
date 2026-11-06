@@ -627,7 +627,8 @@ def run_native_direction_research_window(*, policy_path: Path, policy_file_sha25
         from gx1.scripts.run_entry_native_direction_order_qualification_v1 import run_order_qualification
         return run_order_qualification(policy_path=policy_path,policy_file_sha256=policy_file_sha256,progress_path=progress_path)
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
-    if launch['run_scope'] in (december.PRIVATE_SCOPE,authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
+    from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
+    if launch['run_scope'] in (december.PRIVATE_SCOPE,october.roles.PRIVATE_SCOPE,authority.DENSE_PRIVATE_SCOPE,authority.DECIMAL_PRIVATE_SCOPE,
             prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,prefix_authority.M5_DENSE_BPS_PRIVATE_SCOPE,
             authority.FAMILY_PRIVATE_SCOPE, authority.DYNAMIC_STATE_PRIVATE_SCOPE):
         from gx1.scripts.run_entry_native_direction_dense_qualification_v1 import run_dense_qualification

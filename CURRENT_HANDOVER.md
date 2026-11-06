@@ -11,6 +11,24 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Begge oktoberarmer har nå kildebundet privat TRAIN-kampanjerute, uten admisjon.**
+Den nye [oppskriftseieren](gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py)
+binder den konsumerte 29 849-raders fit-serien, de samme 32 private og 256
+initiale TRAIN-foreldrene, referanse og kausale inputs, 68 kildeeiere og separate
+kontroll-/aldersvisninger. Den eksisterende [native autoriteten](gx1/contracts/entry_native_direction_research_campaign_v1.py)
+og [private workeren](gx1/scripts/run_entry_native_direction_dense_qualification_v1.py)
+godtar bare eksakt oktoberrolle og oppskriftssti; private fit-rollen kan ikke få
+oktoberutfall. Kandidatens bekreftede alder er den eneste planlagte inputforskjellen.
+31 fokuserte kilde-/syntetiske tester og 115 berørte desember-/research-regresjoner
+bestod: eksakt oppskrift, resealet manipulasjon, feil rolle/sti, holdt-ut-tilgang
+og dispatch. Ingen modell, gradient, trening,
+OOF, oktoberutfall, TEST, broker eller handel ble kjørt. `training_enabled=false`
+og native launch er fortsatt stengt. Neste port er eksakt fit-/score-oppskrift og
+separate kvitterings- og admisjonsvakter, deretter eventuell fersk native baseline
+under trygg omstart og capped rute. Teknisk kildesamsvar er ikke retningslæring;
+uavhengig edge og økonomi er UNKNOWN. Status er
+`dynamic_m5_october_private_campaign_source_20261106_001` i policyen.
+
 **06.11 – Oktoberens faste private TRAIN-gruppe er målt og plan 001 konsumert.**
 Den eksakte [planen](configs/research/DYNAMIC_M5_OCTOBER_PRIVATE_COHORT_20261106_001.json)
 valgte de første 32 radene fra den frøbundne 29 849-raders fit-permutasjonen,

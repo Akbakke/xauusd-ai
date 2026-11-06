@@ -50,12 +50,13 @@ def test_dynamic_state_selection_rejects_unsorted_duplicate_or_non_train_parents
         worker.select_dynamic_state_qualification_parents(np.r_[ordered, ordered[0]], {'parents_sorted': valid}, np=np)
 
 
-@pytest.mark.parametrize('scope',['dense','decimal','candidate'])
+@pytest.mark.parametrize('scope',['dense','decimal','candidate','october'])
 def test_guarded_dispatcher_selects_only_explicit_dense_scope(monkeypatch,tmp_path,scope):
     from gx1.scripts import run_entry_native_direction_research_window_v1 as dispatcher
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_authority
+    from gx1.contracts import entry_dynamic_m5_october_native_roles_v1 as october
     scopes={'dense':authority.DENSE_PRIVATE_SCOPE,'decimal':authority.DECIMAL_PRIVATE_SCOPE,
-        'candidate':prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE}
+        'candidate':prefix_authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE, 'october':october.PRIVATE_SCOPE}
     calls=[]
     monkeypatch.setattr(capped,'require_guarded_cuda_trainer_execution',lambda:calls.append('guard') or {})
     monkeypatch.setattr(authority,'require_native_direction_research_context',lambda *args:
