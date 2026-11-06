@@ -43,8 +43,12 @@ Ingen uavhengig retningsedge eller økonomisk edge er påvist.
 foreldre. Beslutningstid er barstart pluss lukket M5-bar i den eksisterende
 eieren. Dette kvalifiserer rad-/klokkematch, ikke observerbarheten av
 framtidige executable endepunkter eller MFE/MAE-stier; tette framtidsbaner
-er ikke lagret. Neste minste steg er én forhåndsbundet, capped, lesende
-projeksjon av endepunkt-/sti-masker og sensur for nøyaktig disse radene.
+er ikke lagret. [Planen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_ENTRY_MASK_COVERAGE_20261106_001.json) SHA-256
+`6aad1e0a2cebddd405b034f932815d8cb434e4a7ec7709c56764cb7216b0fc35` innrømmer nøyaktig én capped 4 GiB lesende
+projeksjon av endepunkt-/sti-masker og sensur for disse radene og alle
+1..480 minutter. Den eksisterende eieren leser også hele pre-2026 TRAIN-
+kilden ved oppsett; bare forespørsler før oktobercutoff inngår i rapporten.
+Ingen TEST eller modellkall er innrømmet.
 Først når kilde- og maskdekningen er målt kan en modellfri utviklingsmåling
 koble tilstandsprognosen til LONG/SHORT/FLAT, valgt/avstått og pre-MFE-MAE/MFE.
 Gjenbruk eksisterende eiere; ingen ny modell eller targeteier følger automatisk.

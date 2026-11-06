@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T13:54:45.235924+00:00",
-  "status": "M5_ENTRY_OCTOBER_AGE_PAIR_DESCRIPTIVE_COMPLETE_NO_DIRECTION_EDGE_QUALIFIED",
+  "observed_utc": "2026-11-06T14:02:48.649028+00:00",
+  "status": "M5_ENTRY_OCTOBER_ENTRY_MASK_CENSUS_ONE_READ_ONLY_AUDIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "The existing Entry-path TRAIN physical clock matches the October 6323-parent slice. Bind one capped read-only projection of executable endpoint/path masks and censor on exactly these rows before any state-to-Entry interpretation. No model, TEST, broker, trade, retrospective PASS or independent edge claim.",
+  "next_action": "Run only the hash-bound capped 4 GiB read-only October Entry-path mask census on rows 29849:36172. Query only endpoint times before November 2024 cutoff; report all 1..480 horizons and right censor. Existing loader reads full pre-2026 TRAIN source, no TEST. No model, training, broker, trade or selection authority.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "October age pair is complete with no qualified M5 directional value. Existing Entry-path physical TRAIN clock matches the exact October parent slice, but later endpoint/path observability is unmeasured. No new model run admitted; independent edge and economics UNKNOWN.",
+    "current_activity": "October age pair is closed without qualified M5 directional value. Entry-path axis matches; one bounded read-only October endpoint/path mask census is admitted, with no model run or TEST. Economic edge UNKNOWN.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Exact October Entry-path row/clock alignment is metadata-qualified, but executable endpoint/path masks and censor on those 6323 rows remain unmeasured. Bind a read-only projection before interpreting Entry quality; no model authority. Independent edge and economics UNKNOWN.",
+    "current_blocker": "Later executable endpoint/path observability on the matched 6323 October rows is not yet measured; one exact read-only capped census is admitted. No model authority; independent edge and economics UNKNOWN.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60164,5 +60164,37 @@
     "broker_access_allowed": false,
     "trading_allowed": false,
     "next_action": "Source-bind and admit exactly one capped read-only projection of endpoint/path masks and censor on the October slice; no candidate selection or training follows automatically."
+  },
+  "dynamic_m5_october_entry_mask_coverage_20261106_001": {
+    "status": "ADMITTED_ONE_CAPPED_READ_ONLY_OCTOBER_MASK_CENSUS",
+    "observed_utc": "2026-11-06T14:02:48.649028+00:00",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_ENTRY_MASK_COVERAGE_20261106_001.json",
+      "sha256": "6aad1e0a2cebddd405b034f932815d8cb434e4a7ec7709c56764cb7216b0fc35"
+    },
+    "source_script": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/report_dynamic_m5_october_entry_mask_coverage_v1.py",
+      "sha256": "bcdcd1653974d9f5c4a3ed64fdd222f235f0e6d2e66d18976db9c24453cc60e8"
+    },
+    "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_MASK_COVERAGE_20261106_001/REPORT.json",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "relaunch_allowed": false,
+    "capped_class": "audit",
+    "memory_bytes": 4294967296,
+    "swap_bytes": 536870912,
+    "max_wall_seconds": 3600,
+    "usd_budget": 0,
+    "source_read_scope": "Existing owner loads full pre-2026 TRAIN physical target columns and quote index; only October parent rows and endpoint times strictly before 2024-11-01 are queried into this report.",
+    "model_calls_authorized": 0,
+    "training_enabled": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "trading_allowed": false,
+    "independent_edge": "UNKNOWN",
+    "economic_edge": "UNKNOWN",
+    "next_action": "Run once, verify output and close. No automatic state-to-Entry inference or new model."
   }
 }

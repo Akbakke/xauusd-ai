@@ -1,0 +1,40 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_entry_mask_coverage_v1_plan",
+  "status": "ONE_READ_ONLY_OCTOBER_CENSUS",
+  "created_utc": "2026-11-06T14:02:48.649028+00:00",
+  "script_sha256": "bcdcd1653974d9f5c4a3ed64fdd222f235f0e6d2e66d18976db9c24453cc60e8",
+  "input_recipe": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RECIPE.json",
+    "sha256": "83dbdaec44aac242db740cc43bd1314679aba2668eb53da4bc5e1a972afc82cd"
+  },
+  "physical_target_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
+    "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
+  },
+  "october_axis": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/OCTOBER_AXIS.json",
+    "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"
+  },
+  "parent_range": [
+    29849,
+    36172
+  ],
+  "october_cutoff_ns_exclusive": 1730419200000000000,
+  "lead_minutes_inclusive_range": [
+    1,
+    480
+  ],
+  "chunk_parents": 32,
+  "max_wall_seconds": 3600,
+  "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_MASK_COVERAGE_20261106_001/REPORT.json",
+  "capped_class": "audit",
+  "memory_bytes": 4294967296,
+  "swap_bytes": 536870912,
+  "source_read_scope": "Existing owner loads full pre-2026 TRAIN physical target columns and quote index; only October parent rows and endpoint times strictly before 2024-11-01 are queried into this report.",
+  "measurement": "All 480 elapsed-minute horizons, both executable terminal-open and closed-prefix path endpoint masks; reason counts and October right censor only; no price values published.",
+  "model_calls_authorized": 0,
+  "test_data_used": false,
+  "broker_access_allowed": false,
+  "trading_allowed": false,
+  "usd_budget": 0
+}
