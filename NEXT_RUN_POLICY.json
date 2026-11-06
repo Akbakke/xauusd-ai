@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "October control/age private TRAIN campaign recipe is source-bound to one fixed 32-row cohort and a 256-row initial measurement. Fit-only genuine four-row adapter data passed earlier; current code passed focused source/synthetic checks. No private model or OOF has run.",
+    "current_activity": "October control/age private source and fit-only role/worker/cursor routes are bound to the fixed pre-October 29,849-parent prefix. Source/synthetic tests pass; no private model receipt, fit recipe or OOF exists.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "training_enabled=false and no native model admission. October private route is source-only; exact fit/score recipe, safe-boot/capped native private qualification, matched chronological TRAIN OOF and independent prospective confirmation remain. ONLINE timing and original ordered XAU quotes are UNKNOWN.",
+    "current_blocker": "training_enabled=false and native launch closed. Both October fit recipes correctly reject the absent arm-specific private mechanics review; score remains unbound. Native private baseline/gradient/resume, actual fit, matched chronological TRAIN OOF, independent forecasts and economics remain unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_PRIVATE_CAMPAIGN_SOURCE_BOUND_NOT_ADMITTED_EDGE_UNKNOWN",
+    "status": "OCTOBER_FIT_SOURCE_ROUTE_CLOSED_ON_PRIVATE_RECEIPT_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -58484,6 +58484,7 @@
   },
   "dynamic_m5_october_private_campaign_source_20261106_001": {
     "status": "SOURCE_ONLY_PRIVATE_RECIPE_BOUND_NOT_ADMITTED",
+    "review_source_commit": "b18465b1f113f035fb3a4e6a54d93eb5442bd96f",
     "observed_utc": "2026-11-06T01:13:58.757380+00:00",
     "scope": "Both locked October control and confirmed-age candidate private TRAIN recipes over the same 29,849 fit parents; fixed 32 private and 256 initial rows; no fit/score launch or target arrays opened.",
     "source_refs": {
@@ -58514,5 +58515,39 @@
     "test_split_used": false,
     "independent_edge": "UNKNOWN",
     "remaining": "Exact fit/score recipe and receipt gates; native private model, fresh initial baseline, age gradient/resume, matched chronological TRAIN OOF, later development comparison, independent forecast edge and economics."
+  },
+  "dynamic_m5_october_fit_campaign_source_20261106_001": {
+    "status": "SOURCE_ONLY_FIT_ROUTE_PRIVATE_RECEIPT_MISSING",
+    "observed_utc": "2026-11-06T01:30:30.445088+00:00",
+    "scope": "Exact October control/candidate fit-only source route; 29,849 prior TRAIN parents, one pass, maximum 1,866 updates, fixed 256 initial and full-prefix final measurement; OOF cursor forced to zero.",
+    "source_refs": {
+      "gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py",
+        "sha256": "f024254f797d68dd3c4493212b306f85f24d9a3757eb80ef33d514bb58a03efb"
+      },
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+        "sha256": "2a84b5ae4112f8ab6c2224ced7435c418dcdd057427b784183a76a10944c0b68"
+      },
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "4cafb56c17b8e69875140e2ec9add2d0cedb6a621d8a9f2f63c8b89887761bae"
+      }
+    },
+    "rebuilt_private_recipe_sha256": {
+      "control": "b4bccf55461f4354dde542e133e0f35ca3d040939903f776a54ec4604fb09f69",
+      "candidate": "b7ebbbd6c21b60a4e96e69e6d84c6830033c45f7f20a62a01a649f119942354a"
+    },
+    "private_review_present": false,
+    "fit_recipe_materialized": false,
+    "score_role_authorized": false,
+    "synthetic_checks": "147 focused and touched-route October/prefix/December tests passed; exact fit path, cross-arm cursor, OOF denial, final TRAIN selection and score-scope rejection covered. Genuine fit builder rejects absent private review.",
+    "native_model_calls": 0,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "october_outcomes_read": false,
+    "test_split_used": false,
+    "independent_edge": "UNKNOWN",
+    "remaining": "Arm-specific private mechanics receipt and model admission; only then exact fit recipe and run. Score source/fit-terminal gate and chronological TRAIN OOF are still not built."
   }
 }

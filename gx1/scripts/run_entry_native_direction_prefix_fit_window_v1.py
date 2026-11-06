@@ -948,14 +948,16 @@ def _final_train_selection(prepared, diagnostic_ids, launch, updates_in_invocati
     """Whole-prefix family scoring starts only in a fresh scoring invocation."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     if launch['run_scope'] == december.SCORE_SCOPE:
         return None
-    if launch['run_scope'] not in (authority.FAMILY_SIGN_SCOPE, authority.DYNAMIC_STATE_SCOPE, december.FIT_SCOPE):
+    if launch['run_scope'] not in (authority.FAMILY_SIGN_SCOPE, authority.DYNAMIC_STATE_SCOPE, december.FIT_SCOPE, october.roles.FIT_SCOPE):
         return diagnostic_ids
     if updates_in_invocation > 0:
         return None
     selected=prepared['arrays']['parent_rows'][:launch['fold']['prefix_rows']]
-    size = december.FOLD['prefix_rows'] if launch['run_scope'] == december.FIT_SCOPE else 47602
+    size = (december.FOLD['prefix_rows'] if launch['run_scope'] == december.FIT_SCOPE
+            else october.FOLD['prefix_rows'] if launch['run_scope'] == october.roles.FIT_SCOPE else 47602)
     _require(len(selected) == launch['final_train_measurement_rows'] == size, 'FAMILY_FULL_TRAIN_SELECTION')
     return selected
 
@@ -1308,7 +1310,10 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     december_fit = launch['run_scope'] == december.FIT_SCOPE
     december_score = launch['run_scope'] == december.SCORE_SCOPE
-    dynamic_state = launch['run_scope'] == authority.DYNAMIC_STATE_SCOPE or december_fit or december_score
+    from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
+    october_fit = launch['run_scope'] == october.roles.FIT_SCOPE
+    registered_fit = december_fit or october_fit
+    dynamic_state = launch['run_scope'] == authority.DYNAMIC_STATE_SCOPE or registered_fit or december_score
     factor_bps=launch['run_scope']==authority.M5_FACTOR_BPS_SCOPE
     family_fit=launch['run_scope']==authority.FAMILY_SIGN_SCOPE
     recovery=authority.is_scoring_recovery(launch)
@@ -1586,8 +1591,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                     own_initial_state=initial_ref,fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
             del measured
         oof_ref=None
-        if december_fit and phase=='SCORING' and final_measurement is not None:
-            _require(oof_cursor == 0 and prepared['december_role'] == 'fit', 'DECEMBER_FIT_ONLY')
+        if registered_fit and phase=='SCORING' and final_measurement is not None:
+            role_key = 'october_role' if october_fit else 'december_role'
+            _require(oof_cursor == 0 and prepared[role_key] == 'fit', 'REGISTERED_FIT_ONLY')
             phase='COMPLETE'
         if phase=='SCORING' and final_measurement is not None:
             selected=(prepared['december_score_parent_rows'] if december_score else
@@ -1656,7 +1662,8 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         'test_data_used':False,'qualification_weights_reused':False,'predictive_value_qualified':False,
         **({'candidate_plan':launch['candidate_plan'], 'held_out_features_read':december_score,
             'held_out_outcomes_read':december_score, 'input_role':launch['input_role'],
-            'physical_optimizer_updates':counters['optimizer_step_returns']} if december_fit or december_score else {}),
+            'physical_optimizer_updates':counters['optimizer_step_returns'],
+            **({'arm':launch['arm']} if october_fit else {})} if registered_fit or december_score else {}),
         **({'scoring_recovery_origin':launch['scoring_recovery_origin']} if recovery else {}),
         **({'own_prefix_bps_scale':bps_scale_ref} if bps_scale_ref is not None else {})},counters,launch['max_published_json_bytes'])
     cursor=authority.build_prefix_fit_cursor(recipe_ref=window['recipe'],fold=fold,feature_view_identity=view_identity,phase_state=phase,outcome=outcome,

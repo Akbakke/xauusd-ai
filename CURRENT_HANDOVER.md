@@ -11,6 +11,26 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Oktober-fit har en egen source-only rolle, men ingen modelladmisjon.**
+[Oppskriftseieren](gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py)
+kan nå kreve armens egen private kvalifikasjonskvittering før den bygger en
+fit-oppskrift. Kontroll og alder bruker samme fit-mål og inputakse; fit omfatter
+29 849 pre-oktober TRAIN-foreldre, ett pass, høyst 1 866 oppdateringer,
+256 initialrader og en egen sluttmåling på hele fit-prefikset. Den
+[eksisterende kampanjeautoriteten](gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py)
+og [workeren](gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py)
+gjenkjenner nå bare eksakt oktober-fit-rolle og sti. Fit-cursor/progress avviser
+OOF-rader og feil arm; sluttmålingen kan ikke velge oktoberforeldre. 147 fokuserte oktober-/prefix-/desembertester bestod. En faktisk
+metadatakontroll bygde begge private oppskrifter med 68 kildeeiere og viste at
+begge fit-byggere stopper på manglende private kvittering. Ingen fit-oppskrift er
+materialisert, og score-rollen er fortsatt stengt. Ingen modell, trening,
+oktoberutfall, OOF, TEST, broker eller handel ble kjørt. `training_enabled=false`,
+retningseffekt og økonomi UNKNOWN. Gjeldende source-only status er
+`dynamic_m5_october_fit_campaign_source_20261106_001` i policyen. Neste port er
+armspesifikk privat native kvalifikasjon under egen eksakt admisjon og trygg,
+capped kjøring; score må senere bindes til fullført fit, uten å bruke
+kvalifikasjonsvekter som hovedmodell.
+
 **06.11 – Begge oktoberarmer har nå kildebundet privat TRAIN-kampanjerute, uten admisjon.**
 Den nye [oppskriftseieren](gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py)
 binder den konsumerte 29 849-raders fit-serien, de samme 32 private og 256

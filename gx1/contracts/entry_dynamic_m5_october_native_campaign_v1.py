@@ -17,6 +17,10 @@ PRIVATE_ROOTS = {arm: BASE / (arm.upper() + '_PRIVATE_001') / 'RUNTIME'
                  for arm in ('control', 'candidate')}
 PRIVATE_STAGES = {arm: 'dynamic_m5_october_' + arm + '_private_20261106_001'
                   for arm in PRIVATE_ROOTS}
+FIT_ROOTS = {arm: BASE / (arm.upper() + '_FIT_001') / 'RUNTIME'
+             for arm in PRIVATE_ROOTS}
+FIT_STAGES = {arm: 'dynamic_m5_october_' + arm + '_fit_20261106_001'
+              for arm in PRIVATE_ROOTS}
 FOLD = {'fold_id': 'october_2024_confirmed_age_v1', 'prefix_rows': 29849,
         'oof_start_row': 29849, 'oof_end_row': 36172,
         'train_cutoff_ns': 1727740800000000000,
@@ -168,3 +172,81 @@ def require_phase_gate(gate, recipe):
              and gate.get('held_out_features_authorized') is False
              and gate.get('held_out_outcomes_authorized') is False,
              'PRIVATE_ROLE_GATE')
+
+
+def build_fit_recipe(*, arm, qualification_review, source_commit, source_owners=None):
+    """Build one pre-October fit recipe only after its own private mechanics pass."""
+    _require(isinstance(source_commit, str) and len(source_commit) == 40
+             and all(char in '0123456789abcdef' for char in source_commit), 'FIT_SOURCE_COMMIT')
+    _require(arm in FIT_ROOTS and isinstance(qualification_review, Mapping)
+             and qualification_review.get('path') == str(PRIVATE_ROOTS[arm].parent / 'ACTUAL_ROOT_REVIEW.json'),
+             'FIT_PRIVATE_ORIGIN')
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    with campaign.file_verification_scope():
+        batch, refs, _cohort = _registered()
+        view_ref = batch[arm + '_view']
+        view = _read(view_ref)
+        _require(view['prefix']['rows'] == FOLD['prefix_rows']
+                 and view['prefix']['cutoff_ns'] == FOLD['train_cutoff_ns']
+                 and view['october_observer_axes'] == _read(batch['observer_axes'])
+                 and view['native_endpoint_loss'] is True
+                 and view.get('confirmed_run_age_input', False) is (arm == 'candidate'),
+                 'FIT_VIEW')
+        updates = (FOLD['prefix_rows'] + 15) // 16
+        numerical = native_direction_research_recipe(batch_size=16, max_updates=updates,
+            dynamic_state=True,
+            current_state_first_loss_weight=view['current_state_first_loss_weight'],
+            first_flat_activity_weight=view['first_flat_activity_weight'],
+            native_endpoint_loss=True, confirmed_run_age_input=(arm == 'candidate'))
+        _require(numerical['research_objective_sha256'] == view['research_objective']['contract_sha256'],
+                 'FIT_OBJECTIVE')
+        root = FIT_ROOTS[arm]
+        result = {'schema_version': 'gx1_native_direction_prefix_fit_launch_recipe_v1',
+            'source_repo': str(REPO), 'run_scope': roles.FIT_SCOPE,
+            'admission_stage': FIT_STAGES[arm], 'runtime_root': str(root),
+            'execution_binding_path': str(root / 'EXECUTION_BINDING.json'),
+            'arm': arm, 'candidate_plan': roles.BATCH_PLAN,
+            'reference_plan': roles.REFERENCE_PLAN, 'input_role': 'fit',
+            'fold': dict(FOLD), 'full_feature_profile': True,
+            'feature_view': view_ref, 'prefix_normalization': view['prefix_normalization']['binding'],
+            'prefix_prior': refs['fit_prior'], 'label_audit': refs['fit_counts'],
+            'input_manifest': roles.BATCH_PLAN,
+            'observer_axes': batch['observer_axes'], 'causal_inputs': batch['causal_inputs'],
+            'target_manifest': refs['fit_series'], 'target_sources': batch['target_source_refs'],
+            'numerical_recipe': numerical, 'source_owners': _owners(source_owners),
+            'native_dynamic_state_qualification': dict(qualification_review),
+            'train_passes': 1, 'initial_measurement_rows': 256,
+            'final_train_measurement_rows': FOLD['prefix_rows'],
+            'max_windows': 3, 'checkpoint_every_updates': 256,
+            'parent_order_algorithm': prefix.PARENT_ORDER_ALGORITHM,
+            'eval_batch_size': 16, 'max_checkpoint_bytes': 1073741824,
+            'max_checkpoint_total_bytes': 4294967296, 'max_published_json_bytes': 33554432,
+            'training_enabled': True, 'full_epoch_training_allowed': True,
+            'qualification_weights_for_main_fit': False,
+            'test_data_used': False, 'predictive_value_claimed': False}
+        prefix.require_dynamic_state_qualification(result, source_repo=REPO, source_commit=source_commit)
+        result['recipe_sha256'] = campaign.canonical_sha256(result)
+        return result
+
+
+def require_fit_recipe(value, *, source_repo, source_commit):
+    _require(Path(source_repo) == REPO and isinstance(source_commit, str)
+             and len(source_commit) == 40 and all(char in '0123456789abcdef' for char in source_commit),
+             'FIT_SOURCE_REPO')
+    arm = value.get('arm') if isinstance(value, Mapping) else None
+    _require(arm in FIT_ROOTS and value.get('run_scope') == roles.FIT_SCOPE, 'FIT_SCOPE')
+    expected = build_fit_recipe(arm=arm, source_commit=source_commit,
+        qualification_review=value.get('native_dynamic_state_qualification'),
+        source_owners=value.get('source_owners'))
+    _require(value == expected and value.get('recipe_sha256') == campaign.canonical_sha256(
+             {key: item for key, item in value.items() if key != 'recipe_sha256'}), 'EXACT_FIT_RECIPE')
+    return expected
+
+
+def require_fit_phase_gate(gate, recipe):
+    _require(gate.get('candidate_plan') == roles.BATCH_PLAN
+             and gate.get('arm') == recipe['arm']
+             and gate.get('input_role') == 'fit'
+             and gate.get('held_out_features_authorized') is False
+             and gate.get('held_out_outcomes_authorized') is False,
+             'FIT_ROLE_GATE')
