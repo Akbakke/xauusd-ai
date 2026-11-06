@@ -98,6 +98,11 @@ hver TFs forhåndsvalgte prognosetid; kortere løp krever en bevisst ny
 mål-/episodekontrakt, ikke flere epoker på samme fasit. Skifter over
 markedspauser må skilles fra sammenhengende M1-minutter. Kontroller om
 rullerende range eller ATR-terskeloppdatering faktisk utløser skiftene.
+En ren retningsendring fra M1-sluttpriser er en separat proxy: store motgående
+high/low-bevegelser inne i minuttet kan ikke oppgraderes fra `{OPP, NED}` til
+sikker retning. Mål varighet både i observerte M1-minutter og ved eksakte
+framtidige prognosetidspunkter i UTC; framtidig varighet kan ikke omskrive
+en tidligere etikett. Gjenåpningsgap og endret ATR-skala merkes særskilt.
 
 Mål kvalitet på alle tre tilstander og alle fem TF, både fortsettelse og
 skifter: sannsynlighetskvalitet/kalibrering, feilvarsler, oversette bevegelser

@@ -18,12 +18,14 @@ import subprocess
 import sys
 import time
 
+REPO = Path('/home/andre2/src/GX1_CURRENT')
+sys.path.insert(0, str(REPO))  # Direct script launch resolves the project package.
+
 import numpy as np
 from gx1.features.smc_v1 import SWING_LOOKBACK
 
 sys.dont_write_bytecode = True
 
-REPO = Path('/home/andre2/src/GX1_CURRENT')
 STAGE = 'trendline_conditional_prefix_20261106_001'
 TF_ORDER = ('M5', 'M15', 'H1', 'H4', 'D1')
 TF_SECONDS = {'M5': 300, 'M15': 900, 'H1': 3600, 'H4': 14400, 'D1': 86400}

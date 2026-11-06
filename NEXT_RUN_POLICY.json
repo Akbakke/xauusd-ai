@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T21:01:06.824892+00:00",
+  "observed_utc": "2026-11-06T21:06:23.552044+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "Generic5 _001 failed before data and is consumed; distinct _002 direct capped help smoke passed before policy claim. Execute _002 once on fixed 64 TRAIN bars per five TF, then inspect original receipts; do not relaunch either plan. Target mechanism result remains: 1.0 ATR binary churn is predominantly consecutive-minute rolling range, not closure/ATR threshold updates. Define one physically meaningful sustained five-TF UP/DOWN/FLAT episode target before any fit. Trendline conditional plan is prepared, not admitted. No model, TEST, Entry-Q, broker, trading or spending.",
+  "next_action": "Generic5 _002 completed and consumed: 1,600 fixed TRAIN comparisons with zero beyond tolerance; five formerly parked fields have bounded formula evidence, 89 of original 95 have no independent formula sample. One bounded trendline conditional/representation audit is admitted but unclaimed after exact capped direct-script startup smoke; reuse five existing 31-field producer/cache replays, do not repeat them. Target still unlocked: 1.0 ATR binary churn is mostly rolling range, and a close-only direction proposal was rejected as a target because intraminute opposite movement remains ambiguous. Preserve OHLC-conservative partial masks; define/falsify one physical sustained five-TF state target before any fit. No model, TEST-value selection, Entry-Q, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "TRAIN transition mechanism completed/consumed; target unlocked. Generic5 _001 failed before worker claim/data and is consumed. Distinct _002 exact capped direct-script startup smoke passed; one-use policy claim prepared for execution. Trendline conditional plan remains prepared only; no fit.",
+    "current_activity": "TRAIN transition mechanism and generic5 _002 numeric sample completed/consumed. Trendline conditional/representation plan is admitted but unclaimed after exact startup and independent static checks. State target not locked; close-only direction cannot upgrade ambiguous OHLC path. No fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Sustained five-TF UP/DOWN/FLAT target contract remains unlocked. The five generic fields still need the claimed _002 numerical audit; other formerly parked fields remain without corresponding formula/causal evidence. No model fit admitted.",
+    "current_blocker": "Five-TF sustained UP/DOWN/FLAT target remains semantically unlocked. Of 95 parked fields/TF, one close_position_range20 full formula audit and five generic bounded sample checks pass; 89 have no independent formula sample. Trendline lifecycle and predictive utility unproven.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60610,7 +60610,7 @@
     "observed_error": "Direct capped script launch exited 1 before worker CLAIM/OUTPUT or native data read: ModuleNotFoundError: No module named gx1 at top-level import line 19. Plan _001 consumed; no relaunch."
   },
   "generic_scalar5_numeric_20261106_002": {
-    "status": "EXECUTION_CLAIMED",
+    "status": "COMPLETE_CONSUMED_SAMPLE_ONLY",
     "plan": {
       "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002/PLAN.json",
       "sha256": "8cdfc239032fac94d6affd524e955f9fce27693dd4d8e6311e6e7e395609a711"
@@ -60626,9 +60626,9 @@
     "prior_failed_consumed_stage": "generic_scalar5_numeric_20261106_001",
     "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002",
     "execution_authorized": false,
-    "data_reads_authorized": true,
+    "data_reads_authorized": false,
     "claimed_invocations": 1,
-    "completed_invocations": 0,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "relaunch_allowed": false,
     "memory_max": "4G",
@@ -60642,7 +60642,57 @@
     "operator_approval": "Current 2026-11-06 all-indicator market-state task and standing zero-cost local GX1 authorization; distinct one-use replacement after preclaim import failure in _001. No model, TEST, trading or paid calls.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "source_head_at_claim_preparation": "51ac69edeea103ff70318cfd808ac4e3873481a5",
-    "scope": "Identical 64 fixed 2024 TRAIN bars, five TF and five formulas to consumed _001; direct-script package import fixed. One-use, no model/training/TEST/Entry/Exit/trading."
+    "scope": "Identical 64 fixed 2024 TRAIN bars, five TF and five formulas to consumed _001; direct-script package import fixed. One-use, no model/training/TEST/Entry/Exit/trading.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002/OUTPUT/CLAIM.json",
+      "sha256": "690fdf6abbba2e227d161c8fddaf58db10158c56d7e3c3c615d70de757c52052"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002/OUTPUT/RESULTS/RESULT.json",
+      "sha256": "36f80f529362aa9abe32a66c24820f7b9815c644a63d57d79664544231cd8c6b"
+    },
+    "inner_terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002/OUTPUT/RESULTS/TERMINAL.json",
+      "sha256": "3ff7218c714740880dddfefcfbfea78ed8c7da0d0f920c4db4249f57f31d661b"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_002/OUTPUT/TERMINAL.json",
+      "sha256": "6c7fbee7c35c4bb47a46ee2cec6940d68b572f741b3a38435619b6a3c21c2490"
+    },
+    "source_head_at_run": "4c9962ae6697dacc46144dbcafc74eb46e9e6320",
+    "sampled_train_values": 1600,
+    "max_abs_error": 2.2080813177893788e-07,
+    "post_run_review": "Independent original receipt review: 5 TF x 5 generic fields x 64 fixed 2024 TRAIN bars = 1,600 comparator values, zero beyond prebound tolerance; max absolute error 2.2080813177893788e-07. Native source and cache inputs unchanged, no model/optimizer/TEST. Bounded arithmetic sample only; no exhaustive cache, predictor utility, generalization or economic claim."
+  },
+  "trendline_conditional_prefix_20261106_001": {
+    "status": "ADMITTED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/TRENDLINE_CONDITIONAL_PREFIX_20261106_001.json",
+      "sha256": "bc4469117ef476250e50ed308941b790da67ed30b134b5bf350e100240f17491"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_trendline_conditional_prefix_v1.py",
+      "sha256": "feed8e0786179c02ef058901d3323436c4b5d4d410519f7b513f7caf3105e416"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/TRENDLINE_CONDITIONAL_PREFIX_20261106_001",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "test_data_used": false,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "broker_access_allowed": false,
+    "operator_approval": "Current 2026-11-06 all-indicator market-state task and standing zero-cost local GX1 authorization; one bounded read-only conditional trendline TRAIN numeric/representation audit. No model, TEST-value adaptation, trading or paid calls.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "source_head_at_admission": "4c9962ae6697dacc46144dbcafc74eb46e9e6320",
+    "scope": "May-Dec 2024 physical TRAIN witnesses for 12 conditional geometry/clock fields; 31-field cache representation invariants only through replay-matched pre-2025-07-01 numeric prefix. Full cache SHA integrity reads later bytes through 2026-06-30 without inspecting those values or adapting to sealed TEST. Five previous full producer/cache replays reused; no new model/target/Entry/trading."
   },
   "dynamic_mtf_state_semantic_calibration_20261106_001": {
     "status": "FAILED_CONSUMED",

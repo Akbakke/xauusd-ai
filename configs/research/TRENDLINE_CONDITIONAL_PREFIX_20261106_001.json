@@ -259,7 +259,7 @@
     },
     "worker": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_trendline_conditional_prefix_v1.py",
-      "sha256": "2a978550b50f95d21062bc6b56cc8c49f2ea7268f27a7c153f641b2a0ca3fa61"
+      "sha256": "feed8e0786179c02ef058901d3323436c4b5d4d410519f7b513f7caf3105e416"
     }
   },
   "stage": "trendline_conditional_prefix_20261106_001",
