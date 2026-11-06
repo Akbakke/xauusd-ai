@@ -167,6 +167,29 @@ akseptregel; oktober er undersøkt utvikling, TEST forseglet. Inntil da står
 modellen uten påvist senere retnings- eller Entry-beslutningsverdi.
 Fem-TF-prognosemålet og Entry-kravene består.
 
+En fryst lineær avlesning av kandidatens siste hidden er ikke en gyldig
+kronologisk OOF-test av representasjonen: backbonen ble fit på alle 29 849
+pre-oktober TRAIN-foreldre. Lagrede [TRAIN-arrays](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/prefix-fit/window-0002/FINAL_TRAIN_PREDICTIONS/ARRAYS.json)
+SHA-256 `77abe66d40db906fdb8266edfdb532b2dbffa161db83994ef644107f1f973b38`
+og [oktober-arrays](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/RUNTIME/prefix-fit/window-0001/OOF_PREDICTIONS/ARRAYS.json)
+SHA-256 `d8bd67c9c471f4ef93978ca8ab8367f50197d9a82694c1d0eee5dd9b6f557bcc`
+inneholder bare rad/tid, sannsynligheter og sekvenstap, ikke hidden. Et nytt
+uttrekk ville kreve ca. 2 261 full-native batcher over 36 172 foreldre.
+Direkte +5-join måler bare relativ LONG/SHORT terminal-markout, ikke FLAT,
+MAE før første MFE, valgt kvalitet eller økonomi. Den lineære proben er
+høyst komponentdiagnostikk og er ikke innrømmet som Entry-test.
+
+Zero-refit-skåring av en senere utviklingsmåned er fysisk mulig med bevart
+checkpoint, men dagens scorer og mål/akser/tape er bundet eksakt til oktober.
+En ny måned krever ny avgrenset plan og kvalifisert full-native input; to
+oktoberlignende scorearmer tok samlet omtrent 35 minutter og 1,1 GB output.
+Dette ville fortsatt måle tilstand, ikke full Entry-beslutning, og alle
+26 historiske måneder er utvikling. Forward-journalen i `GX1_RULES.md`
+gjelder D1-swing, ikke M5. Ingen slik kjøring er innrømmet. Neste kvalifiserende
+hypotese må gjelde direkte LONG/SHORT/FLAT Entry med forhåndsbundet
+kronologi, dekning, path/kost/økonomi og en genuint uavhengig fremtidig
+bekreftelsesrute; fem-TF-prognosemålet bevares separat.
+
 M5 Entry er hovedmål med kausal lukket M15/H1/H4/D1-kontekst, åtte
 spesialister og niende D1/makro. `training_enabled=false`. TEST er forseglet;
 bare forward-journalen scorer sin periode på forhåndsbundet måte. Exit,
