@@ -1,0 +1,142 @@
+{
+  "budget": {
+    "max_invocations": 1,
+    "max_json_bytes": 16777216,
+    "max_wall_seconds": 1800,
+    "memory_max": 4294967296,
+    "numerical_threads": 1,
+    "pids": 64,
+    "swap": 536870912
+  },
+  "existing_contract_sha256": "d44cf218b0f07c477e3ac52cc2374933c2754b40511492cdcf037811afc23ddd",
+  "factors": [
+    0.5,
+    1.0
+  ],
+  "inputs": {
+    "calendar_source_reference": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/SOURCE_REFERENCE.json",
+      "sha256": "803b3e0c975a282067aa0d65971994c644ceff6942c2d486e2f614d5cfbe72d7"
+    },
+    "closure_authority": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/closure_authority.json",
+      "sha256": "71ff7591f05353bb566356fb8862b09cbe4cdbe75cc878b67af952d1e790b8ba"
+    },
+    "exact_schedule": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_003/exact_schedule.json",
+      "sha256": "9e250fe694b2526211e76f1fdf07ff671da50c3a8c939e77277520e27f9c8adb"
+    },
+    "m1": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/m1_quotes.parquet",
+      "sha256": "54b66c5e9b5a0125f089afcc9d3327c79af9c3543eebdb2644281ed9d3c2734c"
+    },
+    "m1_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json",
+      "sha256": "42e2b20bbb3b1661c704352003461583eab488bba6dbacbd8404a134f060de1d"
+    },
+    "prior_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/RESULT.json",
+      "sha256": "007b1518c9ed1bfdd3eb8024b60421511dd158dbb2c16d2532bba4328214aa6b"
+    },
+    "prior_series": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/SERIES.json",
+      "sha256": "d2addf8fbb6f9ac9e9ed741bbbd2fe2bfdc07f59553ea28c021ea198d5fbfa8e"
+    },
+    "published_calendar": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/PUBLISHED_CALENDAR.json",
+      "sha256": "381f1879f97c1cd8d0103ab137d23076c0da3729ae19ec10e737461229965eda"
+    },
+    "sensitivity_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001/RESULT.json",
+      "sha256": "b31f022ec3398a1a6400e202f513407830229d97e0e86d73063bf70bc1655ab2"
+    }
+  },
+  "launch_argv": [
+    "bash",
+    "scripts/gx1_capped_run.sh",
+    "--class",
+    "audit",
+    "--mem",
+    "4G",
+    "--swap",
+    "512M",
+    "--",
+    "/home/andre2/src/GX1_CURRENT/.venv/bin/python",
+    "-B",
+    "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_mtf_state_semantic_calibration_v1.py"
+  ],
+  "lead_minutes": [
+    5,
+    15,
+    60,
+    240,
+    1440
+  ],
+  "max_witnesses": 50,
+  "month_edges_ns": [
+    1714521600000000000,
+    1717200000000000000,
+    1719792000000000000,
+    1722470400000000000,
+    1725148800000000000,
+    1727740800000000000
+  ],
+  "preparation_status": "PREPARED_NOT_ADMITTED",
+  "report_cutoff_ns": 1727740800000000000,
+  "report_parents": 29849,
+  "revision_reason": {
+    "fix": "Map plan input calendar_source_reference to prior receipt key source_reference; all other metadata keys unchanged.",
+    "prior_stage": "dynamic_mtf_state_semantic_calibration_20261106_001",
+    "prior_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_001/TERMINAL.json",
+      "sha256": "0e9c683c308541f4766f3eb84822d2aa30ee4bdac1c58a588efebdcc0bab40ad"
+    }
+  },
+  "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002",
+  "schema_version": "dynamic_mtf_state_semantic_calibration_20261106_002_plan_v1",
+  "scope": {
+    "population": "May-September 2024 issues and native target validity strictly before 2024-10-01; source run summaries also restricted to those months",
+    "price_scale": "Target-validity threshold in XAU USD and bps against contemporaneous quoted bid/ask close spread, only complete local windows",
+    "prohibited": "No factor choice, model/optimizer, VAL/TEST aggregate or score, Entry/Exit, broker, trading or spending",
+    "purpose": "TRAIN-only semantics for local market-state activity and directional observability before target lock",
+    "reuse": "Saved 0.5 target arrays and completed 0.5/1.0 monthly count receipt; one process-local 1.0 target reconstruction for exact direction masks",
+    "runs": "Unique source M1 binary activity runs and strict path-observed three-class runs; unknown intervals and month edges censor; active minutes separate from wall minutes",
+    "source_limit": "Bound closure authority requires full saved May 2024-March 2025 M1 clock for ephemeral reconstruction; no post-September aggregate, witness, model or selection",
+    "witnesses": "At most one SHA256-ranked eligible parent per month, TF and each of two fixed categories; up to twelve ordered OHLC subinterval summaries per witness"
+  },
+  "source_owners": {
+    "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+      "sha256": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212"
+    },
+    "gx1/contracts/gx1_capped_execution_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "gx1/contracts/immutable_event_authority_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "gx1/contracts/unified_exit_market_closure_authority_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_market_closure_authority_v1.py",
+      "sha256": "899380c7e1e23d28893e1f155dd8ca8ef8d5c149188fed08bf4bba700bdf6ed9"
+    },
+    "gx1/features/htf_features.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+      "sha256": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520"
+    },
+    "gx1/scripts/audit_dynamic_mtf_state_target_sensitivity_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_mtf_state_target_sensitivity_v1.py",
+      "sha256": "ed2d2395e55ac0065b9c3d3cf3c1a251d3a980948a23b2cdbae9c4112c4d4e2d"
+    }
+  },
+  "stage": "dynamic_mtf_state_semantic_calibration_20261106_002",
+  "witness_categories": [
+    "factor_disagreement",
+    "partial_direction_at_1_0"
+  ],
+  "worker": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_mtf_state_semantic_calibration_v1.py",
+    "sha256": "fce456c3fe9b7a605c17a4acdf9ac82dbac218e2cce87a69c0bacc2649c47284"
+  }
+}

@@ -10,9 +10,9 @@ import sys
 import time
 
 REPO = Path("/home/andre2/src/GX1_CURRENT")
-STAGE = "dynamic_mtf_state_semantic_calibration_20261106_001"
-PLAN_PATH = REPO / "configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_001.json"
-ROOT = Path("/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_001")
+STAGE = "dynamic_mtf_state_semantic_calibration_20261106_002"
+PLAN_PATH = REPO / "configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002.json"
+ROOT = Path("/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002")
 BUDGET = {"memory_max": 4294967296, "swap": 536870912, "pids": 64,
           "numerical_threads": 1, "max_wall_seconds": 1800,
           "max_invocations": 1, "max_json_bytes": 16777216}
@@ -131,8 +131,11 @@ def audit(plan, binding, claim, snapshots, old):
          and saved["model_calls"] == saved["optimizer_steps"] == 0
          and saved["test_data_used"] is False
          and saved["alternative_series_published"] is False, "SENSITIVITY")
-    for name in ("calendar_source_reference", "closure_authority", "exact_schedule", "published_calendar"):
-        need(previous["calendar_binding"][name] == plan["inputs"][name], "CALENDAR")
+    for input_name, receipt_name in (("calendar_source_reference", "source_reference"),
+                                     ("closure_authority", "closure_authority"),
+                                     ("exact_schedule", "exact_schedule"),
+                                     ("published_calendar", "published_calendar")):
+        need(previous["calendar_binding"][receipt_name] == plan["inputs"][input_name], "CALENDAR")
     manifest = old.read(plan["inputs"]["prior_series"])
     for item in manifest["arrays"].values():
         snapshots[item["path"]] = old.regular(item["path"])

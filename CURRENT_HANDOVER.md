@@ -72,15 +72,24 @@ En spredt, umanifestert Dukascopy-tickcache dekker ikke aktiv 2024-TRAIN;
 GC-futures er heller ikke fasit for XAU. Den avgrensede 0,5/1,0-ATR-
 sensitiviteten over er fullført og konsumert; den valgte ingen ny terskel.
 Neste målavgjørelse gjelder semantikken i delvis observerte tilstander,
-uten modellscore, VAL eller TEST som terskelvelger. Én
-[semantisk TRAIN-plan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_001.json)
-SHA-256 `63a8a5410d3444569612323c6ba07b0bb1e624c3f8fe382bd9bf310af2b462ad`
-er innrømmet, ennå ikke claimet. Den gjenbruker 0,5-serien og tidligere
-0,5/1,0-tall, bygger 1,0 bare midlertidig og måler terskel i XAU USD/bps
-og historisk sitert spread, delvis retningsfasit, sensurerte forløp og et
-fast lite utvalg prisforløp for mai–september 2024. Den bundne kilden må
-leses gjennom mars 2025, men ingen senere aggregat/vitne eller modellscore
-kan publiseres. Dette velger ikke en faktor automatisk.
+uten modellscore, VAL eller TEST som terskelvelger. Første
+[semantiske TRAIN-plan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_001.json)
+ble claimet og stoppet før prislesing fordi kalenderkvitteringens faktiske
+nøkkel heter `source_reference`, ikke `calendar_source_reference`.
+[TERMINAL](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_001/TERMINAL.json)
+SHA-256 `0e9c683c308541f4766f3eb84822d2aa30ee4bdac1c58a588efebdcc0bab40ad`,
+`FAILED_CONSUMED`; ingen RESULT, target-build, modell eller TEST. Den
+opprinnelige planen er sperret og kvitteringene bevart.
+
+En separat [korrigert semantisk engangsplan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002.json)
+SHA-256 `af921fdacd659f1c090259531ea70e2e9ac1644fcdb1ab1e71df79503184e55c`
+er innrømmet, ennå ikke claimet. Eksakt metadata-preflight kontrollerte
+kalender-, source-, serie- og alle 5 × 5 × 2 rapportnøkler. Den gjenbruker
+0,5-serien og 0,5/1,0-tall, bygger 1,0 midlertidig og måler målskala i
+XAU USD/bps og historisk sitert spread, delvis fasit, sensurerte forløp og
+forhåndsvalgte prisvitner for mai–september 2024. Bundet kilde leses
+fram til mars 2025, men senere aggregat/vitne og modellscore er stengt.
+Ingen faktor velges automatisk.
 
 Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
 støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og
