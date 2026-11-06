@@ -11,6 +11,25 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Kontrollens private `_003` bestod teknisk og er konsumert; alderkandidaten er neste eksakte arm.**
+Ny fysisk Windows-boot 606 startet én kontrollinvokasjon gjennom den eksisterende capped ruten.
+[Kampanjekvitteringen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_003/RUNTIME/receipts/invocation-0001.json)
+er COMPLETE, signert vakt PASS og oppstartsoppgaven deaktivert. Den immutable
+[rotgjennomgangen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_003/ACTUAL_ROOT_REVIEW.json)
+har SHA-256 d66dd6dfc14b6b2a96dc5ffdbf92b5becaa3c5795b4330d1813d301a2fcb5865.
+Tre modellkonstruksjoner, 21 forwards og fire backwards/optimizersteg på 32 faste TRAIN-foreldre
+bestod gradientkontakt og bitlik resume. Fem initialprediksjonsfiler, initial-/slutttilstand,
+68 kildeeiere og 250 W etterkontroll ble hashverifisert. Ingen reserverte oktoberfeatures/-utfall,
+TEST, broker, ordre eller handel ble brukt. Private vekter er sperret for hovedfit; denne
+mekanikk-PASS sier ingenting om retningskvalitet.
+
+Kandidatens matchede `_003`-oppskrift var allerede publisert. Bare policyblokken
+`dynamic_m5_october_candidate_private_20261106_003` er nå innrømmet for én tilsvarende privat
+mekanikk-kjøring, med bootreferanse 606, capped 20 GiB/512 MiB, 250 W, høyst fire oppdateringer
+og 0 USD. Kampanjeplan, ny fysisk boot og kandidatens modellkall mangler ennå. Kontrollens
+admisjon er lukket; full prefix-fit og oktober-OOF for begge armer er fortsatt stengt.
+TRAIN-læring, uavhengig edge og økonomi er UNKNOWN.
+
 **06.11 – Frisk privat `_003`-kontroll er eksakt innrømmet, før ny native kjøring.**
 Fra ren kilde `cd15bcfc` er begge matchede `_003`-oppskrifter publisert. Kontrollens
 [oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_003/NATIVE_RECIPE.json)
