@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "October fit role now binds the 29,849-parent target manifest, prefix-only causal value validation and an exact 33-file physical read set; the guard rejects the October outcome manifest. Candidate age has its own gradient witness group. Source/metadata and synthetic checks passed, but genuine adapter prepare is unrun. Next admit one capped fit-only data preflight of this adapter, then bind the October private/fit/score campaign recipe and qualify fresh native baseline, age gradient/resume and matched chronological TRAIN-OOF. training_enabled=false; edge UNKNOWN.",
+  "next_action": "One admitted capped fit-only native data preflight is ready on clean source. Run exactly once, review immutable result, then consume its policy claim. Model/training remain closed; independent edge UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_FIT_ROLE_READ_GUARD_SOURCE_CHECKED_EDGE_UNKNOWN",
+    "status": "OCTOBER_NATIVE_FIT_PREFLIGHT_ADMITTED_NOT_RUN_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -58324,5 +58324,26 @@
       "sha256": "ba0d3d37673aeb1151890068ecf25407e718e9bffdc50e03ef4fddd4dc393fcb"
     },
     "post_run_review": "Exit 0; terminal/result rehashed; exact prior replay, zero new prior fits/model calls/October outcomes/TEST; five fit-only candle panels and orientation algebra checked. Fit-oriented AUC is in-sample reference preparation, not OOF or edge."
+  },
+  "dynamic_m5_october_native_fit_preflight_20261106_001": {
+    "status": "ADMITTED_ONCE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_001.json",
+      "sha256": "019cc0add89a368a407ca2498cfbe143e3eb25d8954e345aa1e9d84cb7515064"
+    },
+    "operator_approved": true,
+    "operator_approval": "Standing zero-cost local GX1 authorization from user 2026-11-05; one exact fit-only model-free data claim admitted.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "admitted_utc": "2026-11-06T00:44:25.268186+00:00",
+    "source_head_at_admission": "cde2bf05017ce5a7ff46626130598173d2efdfc9",
+    "remaining_invocations": 1,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_001",
+    "scope": "Four fixed pre-October TRAIN parents per arm through the genuine October native fit-only adapter, matched feature and target batch, 33 physical files, 13 fit-target leaves and six causal leaves; no model or October outcomes.",
+    "training_enabled": false,
+    "native_model_calls_authorized": 0,
+    "test_split_access_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "spending_usd_authorized": 0,
+    "independent_edge": "UNKNOWN"
   }
 }
