@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T20:38:20.580841+00:00",
+  "observed_utc": "2026-11-06T20:55:25.028211+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "One exact TRAIN-only transition-mechanism audit is admitted but unclaimed. It will separate strict consecutive-minute FLAT/activity flips from market gaps and count flips requiring ATR-threshold updates versus range change, using saved May-Sep arrays only. Neither 0.5 nor 1.0 ATR is selected: 1.0 M5/M15/H1 completed activity runs are shorter than native forecast leads, while 0.5 leaves 13,017 M5+5 active/unknown-direction cells. After the mechanism receipt, bind one physically meaningful sustained-state/episode candidate; retain separate activity/direction masks and do not auto-add native binary loss because saved M5+5 binary score already beats Markov. Reuse the independent close_position_range20 numeric proof: 94 formerly parked fields per TF remain without corresponding formula evidence. Trendline31 full producer/cache replays already pass, so audit geometry/clock on bounded independent witnesses instead of repeating them; then check other producers. Only after target/input gates, prebind EMA/ATR reference and one chronological state comparison. No model fit, TEST, Entry-Q, broker, trading or spending admitted.",
+  "next_action": "Transition-mechanism audit completed and consumed without factor choice. At 1.0 ATR, 30,760/30,818 row-adjacent binary activity flips across five TF were strict consecutive-minute; zero required an ATR threshold update. At 0.5 ATR, 14,268/14,305 were strict and 337 required threshold updates. This is mostly rolling-range churn, not closure artifacts. Define one physically meaningful sustained UP/DOWN/FLAT episode candidate and preserve separate activity/direction masks before any fit. One separately bound TRAIN-only generic5 numeric audit is claimed for next execution; trendline conditional plan is prepared, not admitted. No model, TEST, Entry-Q, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Semantic 0.5/1.0 TRAIN audit completed without factor lock; a distinct saved-array transition-mechanism audit is admitted but unclaimed. Post-normalization sample parity passed, close_position_range20 has independent five-TF numeric proof, and 94 formerly parked fields per TF still need formula evidence. No model fit admitted.",
+    "current_activity": "Saved-array TRAIN transition-mechanism audit completed with exact receipts: closure gaps explain few binary flips, and 1.0 threshold updates explain none. Target remains unlocked. A one-use generic5 independent numeric audit is claimed but not executed; trendline conditional plan remains prepared only. No fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The market-state target remains semantically unlocked: 1.0 completed activity episodes on M5/M15/H1 are shorter than native forecast leads, while 0.5 leaves many M5+5 active/unknown-direction labels; M1 OHLC cannot resolve intraminute order. Post-normalization sample parity and independent close_position_range20 arithmetic pass, but 94 formerly parked fields per TF still lack corresponding independent formula/causal evidence.",
+    "current_blocker": "No sustained five-TF UP/DOWN/FLAT target is locked: 1.0 ATR binary churn is predominantly real consecutive-minute rolling-range churn; 0.5 still has large known-active/unknown-direction M5+5 coverage. Ninety-four formerly parked fields per TF still lack corresponding independent formula/causal evidence; close_position_range20 is already independently checked.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60530,17 +60530,17 @@
     "post_run_review": "Original receipts rehashed: all five TF have eight fixed 253-field cache rows, NumPy/reference versus native runtime normalizer maximum absolute difference 0.0; categorical/binary identity and level presence/absence guards passed. No model forward/fit/TEST. This does not prove 95 remaining formulas, all-row raw gather, indicator value or forecast edge."
   },
   "dynamic_mtf_state_transition_mechanism_20261106_001": {
-    "status": "ADMITTED_UNCLAIMED",
+    "status": "COMPLETE_CONSUMED_NO_FACTOR_LOCK",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001.json",
       "sha256": "8b7814d978ffc2cad3d410627d5d6239443934185271a3e5ee1adbb45e263b24"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "target_builds_authorized": 0,
     "model_calls_authorized": 0,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "test_authorized": false,
     "later_aggregate_authorized": false,
@@ -60551,7 +60551,57 @@
     "source_head_at_admission": "7831fa9f0c590855927f768bf2bc44b0241ef7d8",
     "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001",
-    "scope": "May-Sep 2024 saved 0.5 target arrays, 1.0 as two times threshold, exact consecutive complete M1 pairs; attribute FLAT/activity flips to range versus threshold update and separate cross-gap row neighbors. No target build, raw M1, model, VAL/TEST, factor choice or trading."
+    "scope": "May-Sep 2024 saved 0.5 target arrays, 1.0 as two times threshold, exact consecutive complete M1 pairs; attribute FLAT/activity flips to range versus threshold update and separate cross-gap row neighbors. No target build, raw M1, model, VAL/TEST, factor choice or trading.",
+    "relaunch_allowed": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001/CLAIM.json",
+      "sha256": "2f20697eacdd3f5e4778493a3275f0b851b3823a7ab3f2960fb77cc078636cf0"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001/RESULT.json",
+      "sha256": "6becbc980f770c5029292f18104a9f2b36e81d3b9516d01bf0264c3386b5861a"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001/TERMINAL.json",
+      "sha256": "5b9543ed169b3eb073065aa4b400738163d914fe76ab81fdfc8c6dd7f3581fd1"
+    },
+    "execution_binding": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001/EXECUTION_BINDING.json",
+      "sha256": "bbff1c88b456301b1a8f4446a95866821cd507b007a3ff8d3155302201b2a885"
+    },
+    "source_head_at_run": "7137cdfbb859bcea2ebafed81657ab9dabeaf079",
+    "elapsed_seconds": 0.35776772600002005,
+    "post_run_review": "Rehashed COMPLETE receipts. May-Sep 2024 TRAIN only: 1.0 ATR has 30,760 strict consecutive-minute FLAT/activity flips of 30,818 row-adjacent flips across five TF, zero threshold-update-required flips; 0.5 has 14,268 of 14,305 strict flips and 337 threshold-update-required. Closure gaps explain few flips; 1.0 churn is range-driven. No target build, model, TEST or factor selection. These are binary activity switches, not directional target quality."
+  },
+  "generic_scalar5_numeric_20261106_001": {
+    "status": "EXECUTION_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001/PLAN.json",
+      "sha256": "abbd91e0db3b445fb52583d7a880f151bf4672f609ebd330ceef22987bbca360"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_generic_scalar5_numeric_v1.py",
+      "sha256": "991b988bdaaf6cd4468d747538f4eddbfced69749782f39d057e205594f981c2"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001",
+    "execution_authorized": false,
+    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "test_data_used": false,
+    "model_forwards_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "optimizer_steps_authorized": false,
+    "broker_access_allowed": false,
+    "operator_approval": "Current 2026-11-06 all-indicator market-state task and standing zero-cost local GX1 authorization; one bounded TRAIN-only five-field numeric audit, no model, TEST, trading or paid calls.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "source_head_at_claim_preparation": "7137cdfbb859bcea2ebafed81657ab9dabeaf079",
+    "scope": "64 fixed 2024 TRAIN bars on each of five TF; independent scalar formulas for five generic fields using native OHLC, cache comparator only. One-use; no model/training/TEST/Entry/Exit/trading."
   },
   "dynamic_mtf_state_semantic_calibration_20261106_001": {
     "status": "FAILED_CONSUMED",

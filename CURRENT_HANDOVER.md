@@ -117,14 +117,23 @@ På M15 og H1 er også de fullførte 1,0-aktivitetsløpenes månedsmedian korter
 enn henholdsvis +15 og +60 minutter. Ingen av de to grensene kvalifiserer
 alene en vedvarende fem-TF-markedstilstand. Den eksisterende M5+5 binære
 modellen scorer bedre enn Markov på gjenbrukt utvikling, så en ny binær loss
-er ikke en påvist retningsrettelse. Én
-[overgangsmekanismeplan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001.json)
+er ikke en påvist retningsrettelse. [Overgangsmekanismeplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001.json)
 SHA-256 `8b7814d978ffc2cad3d410627d5d6239443934185271a3e5ee1adbb45e263b24`
-er innrømmet, ennå ikke claimet. Den gjenbruker kun lagrede mai–september-
-TRAIN-arrays og teller sammenhengende M1-skifter separat fra markedsstengte
-radnaboer; den skiller range-utløste skifter fra skifter som krever oppdatert
-ATR-grense. Ingen ny 1,0-serie, målvalg, modell eller TEST. Resultatet skal
-styre om én på forhånd definert episode-/hysteresekandidat er berettiget.
+er fullført og konsumert. [RESULT](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001/RESULT.json)
+SHA-256 `6becbc980f770c5029292f18104a9f2b36e81d3b9516d01bf0264c3386b5861a`;
+[TERMINAL](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001/TERMINAL.json)
+SHA-256 `5b9543ed169b3eb073065aa4b400738163d914fe76ab81fdfc8c6dd7f3581fd1`,
+`COMPLETE`, exit 0. Av 30 818 månedsinterne radnaboskifter med 1,0 ATR på
+fem TF var 30 760 mellom sammenhengende hele M1-minutter; 58 krysset
+kildegap. Ingen av de 30 760 krevde en oppdatert ATR-grense for å skifte.
+Ved 0,5 ATR var 14 268 av 14 305 sammenhengende; 337 av de 14 268 krevde
+ATR-endring. M5 alene: 1,0 ga 21 353 sammenhengende av 21 401, mot 8 904
+av 8 910 ved 0,5. De raske 1,0-skiftene er dermed i hovedsak faktisk
+rullerende range ved uendret grense, ikke et artefakt av markedsstengning.
+Dette gjelder binær FLATT/aktiv, ikke OPP/NED-kvalitet. Ingen ny målserie,
+faktorvalg, modell, TEST eller Entry. Neste målbeslutning er én fysisk
+begrunnet kontrakt for en vedvarende OPP/NED/FLATT-episode, med separate
+aktivitets- og retningsmasker.
 
 Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
 støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og
@@ -181,8 +190,8 @@ helfil-sjekksum leser også senere cachebytes, uten statistisk TEST-inspeksjon.
 De 19 livssyklusfeltene og selve linjevalget står fortsatt åpne. En separat
 [plan for de fem gjenværende generiske feltene](/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001/PLAN.json)
 SHA-256 `abbd91e0db3b445fb52583d7a880f151bf4672f609ebd330ceef22987bbca360`
-er statisk forhåndskontrollert på 64 faste TRAIN-barer per TF, men ennå ikke
-innrømmet eller numerisk kjørt. Begge planene gjenbruker eksisterende råkilder
+er statisk forhåndskontrollert på 64 faste TRAIN-barer per TF. Én
+engangsport er claimet for kjøring; ingen numerisk RESULT finnes ennå. Begge planene gjenbruker eksisterende råkilder
 og cache; ingen ny modell eller trening er startet.
 
 Vi har ikke kjørt omfattende trening gjennom flere år. Tidligere fem-TF-fit
