@@ -11,6 +11,22 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Begge matchede oktober-oppskriftene for privat native-mekanikk er nå publisert som
+metadata, uten modelladmisjon.** Kontrollens
+[oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_001/NATIVE_RECIPE.json)
+har fil-SHA-256 9df5331da17b720e5fd28d1f713dad165f5acc555353213584453abdd204ae96;
+alderskandidatens
+[oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_001/NATIVE_RECIPE.json)
+har fil-SHA-256 29eec1878a8d3a2f10dff1dd64ec750a79e3eb5a8f18fd8a103782d82c773ec6. Begge er bygget
+fra samme rene kilde `d7a2cefe`, verifisert mot rollebinderen og låser 32 pre-oktober
+TRAIN-foreldre, 256 initialrader og høyst fire private optimizersteg per arm. En oppskrift er ikke
+en kjøreplan eller tillatelse: `training_enabled=false`, ingen kampanjeplan, fysisk omstart eller
+modellkall er gjort. Neste port er eksakt per-arm kampanje- og policyadmisjon, maskinvid ledighet,
+trygg fysisk omstart og eksisterende capped native-rute. Fit krever deretter en fullført privat
+kvittering, og oktober-score krever egen fullført fit. Ingen oktoberutfall, TEST, broker eller
+handel ble åpnet; uavhengig edge og økonomi er UNKNOWN. Arbeidsstatus:
+`dynamic_m5_october_private_recipe_preparation_20261106_001` i policyen.
+
 **06.11 – Oktober-score har nå en kildebundet, skrivebeskyttet rute; faktisk OOF er fortsatt
 ikke kjørt.**
 [Kampanjekontrakten](gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py) krever

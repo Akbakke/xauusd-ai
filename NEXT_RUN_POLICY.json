@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "October control/age private, fit-only and score-only source routes are bound. Score requires its own closed fit receipt/checkpoint and selects 6,323 reserved October TRAIN development parents with zero optimizer updates. Source/synthetic checks pass; no private model receipt, fit or OOF exists.",
+    "current_activity": "October control/age private recipes are materialized from the same frozen source and their role/cursor/worker score source is bound. This is metadata only: no campaign plan/admission, model, fit or OOF exists.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "training_enabled=false and native launch closed. Both October fit recipes reject absent arm-specific private mechanics reviews; both score recipes reject absent arm-specific completed fit reviews. Native private baseline/gradient/resume, actual fit, matched chronological TRAIN OOF, independent forecasts and economics remain unmeasured.",
+    "current_blocker": "training_enabled=false and native launch closed. Per-arm private recipes exist but lack exact campaign admission and private mechanics receipts. Fit recipes require those receipts; score recipes require completed own-arm fit reviews. Native baseline/gradient/resume, fit, OOF, independent forecasts and economics remain unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_SCORE_SOURCE_ROUTE_CLOSED_ON_FIT_RECEIPT_EDGE_UNKNOWN",
+    "status": "OCTOBER_PRIVATE_RECIPES_MATERIALIZED_NATIVE_GATE_CLOSED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57090,7 +57090,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "October private/fit/score source roles and genuine fit-only data preflight are bound. Next is one exact private native mechanics admission with safe fresh boot and capped route, followed only on passed own-arm receipts by fit, then read-only October TRAIN development OOF. No native forward has run; independent edge UNKNOWN.",
+    "next_milestone": "Two immutable matched October private recipes exist, source-frozen and metadata checked. Build/review exact per-arm campaign plan and policy admission; safe physical reboot and capped private mechanics are required before model construction. Only passed private receipts can open fit recipes; only completed fit can open reserved October TRAIN development OOF. Independent edge UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",
@@ -58590,5 +58590,55 @@
     "test_split_used": false,
     "independent_edge": "UNKNOWN",
     "remaining": "Own-arm private mechanics admission/receipt, exact fit recipe and run, then score recipe and chronological TRAIN development OOF; later untouched confirmation, physical ONLINE availability and economics remain UNKNOWN."
+  },
+  "dynamic_m5_october_private_recipe_preparation_20261106_001": {
+    "status": "PREPARED_NOT_ADMITTED",
+    "observed_utc": "2026-11-06T01:54:02.327795+00:00",
+    "source_commit_at_materialization": "d7a2cefe9963c52d4ea2f8dd14184b7442a02f32",
+    "scope": "Matched control and one prespecified confirmed-age candidate; pre-October TRAIN only. Each arm has one private native mechanics invocation, fixed 32 parents, 256 initial rows, at most three constructions, 21 forwards, four backward/update calls. No main fit or OOF.",
+    "arms": {
+      "control": {
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_001/NATIVE_RECIPE.json",
+          "sha256": "9df5331da17b720e5fd28d1f713dad165f5acc555353213584453abdd204ae96"
+        },
+        "recipe_sha256": "03a4caaa59e8160265c6b1bd5e5aff5083586c3f6deacbc4d5763f0ad74cb649",
+        "admission_stage": "dynamic_m5_october_control_private_20261106_001",
+        "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_001/RUNTIME",
+        "private_parent_rows": 32,
+        "initial_parent_rows": 256
+      },
+      "candidate": {
+        "recipe": {
+          "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_001/NATIVE_RECIPE.json",
+          "sha256": "29eec1878a8d3a2f10dff1dd64ec750a79e3eb5a8f18fd8a103782d82c773ec6"
+        },
+        "recipe_sha256": "3ac09db840c33d5cced936c9329c23fe846269d3763315a456eb727e2e41749d",
+        "admission_stage": "dynamic_m5_october_candidate_private_20261106_001",
+        "runtime_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_001/RUNTIME",
+        "private_parent_rows": 32,
+        "initial_parent_rows": 256
+      }
+    },
+    "campaign_plan_materialized": false,
+    "prepared_boot_recorded": false,
+    "caps": {
+      "memory_bytes": 21474836480,
+      "swap_bytes": 536870912,
+      "native_window_seconds": 12000,
+      "outer_guard_seconds": 13800,
+      "physical_power_limit_w": 250,
+      "fresh_physical_boot_each_invocation": true,
+      "usd": 0
+    },
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "execution_authorized": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "october_outcomes_read": false,
+    "independent_edge": "UNKNOWN",
+    "remaining": "Exact per-arm campaign plan/source/policy admission and machine-wide idle/fresh boot checks, then capped private mechanics. Neither recipe alone authorizes any model call."
   }
 }
