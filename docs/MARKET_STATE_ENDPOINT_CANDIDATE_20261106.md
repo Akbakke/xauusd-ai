@@ -23,19 +23,19 @@ En bred M1-bar kan romme begge retninger i ukjent rekkefølge. En singelside kre
 
 ## Avledet TRAIN-dekning og åpne porter
 
-May–Sep 2024, 29 849 M5-prognoser per TF. Tallene er uavhengig summert over alle 25 måned×TF-partisjoner fra den bevarte 0,5/1,0-semantikkrapporten og stengningsrapporten. **Dette er aggregert kandidatdekning, ikke radvis kvalifiserte nye etiketter.** Eksakt = 0,5-FLATT + 1,0-NED/OPP minus sider uten komplett aktivitetsbevis; delvis = 1,0-aktivitet uten side + separat tidlig post-gap-aktivitetsbevis.
+May–Sep 2024, 29 849 M5-prognoser per TF. Tallene ble først summert over alle 25 måned×TF-partisjoner fra bevarte 0,5/1,0-semantikk- og stengningsrapporter og er nå kontrollert radvis mot samme kilder. **Dette er fem måneders kandidatdekning, ikke et låst full-TRAIN-mål eller prediksjonsevne.** Eksakt = 0,5-FLATT + 1,0-NED/OPP minus sider uten komplett aktivitetsbevis; delvis = 1,0-aktivitet uten side + separat tidlig post-gap-aktivitetsbevis.
 
-| TF | Kandidat eksakt `{FLATT/NED/OPP}` | Andel av 29 849 | Kandidat delvis `{NED,OPP}` |
-| --- | ---: | ---: | ---: |
-| M5 | 12 404 | 41,56 % | 1 878 |
-| M15 | 14 841 | 49,72 % | 468 |
-| H1 | 14 896 | 49,90 % | 95 |
-| H4 | 14 280 | 47,84 % | 97, derav 34 tidlig |
-| D1 | 7 610 | 25,49 % | 906, alle tidlig |
+| TF | Eksakt `{FLATT/NED/OPP}` | Andel av 29 849 | Delvis `{NED,OPP}` | Ukjent |
+| --- | ---: | ---: | ---: | ---: |
+| M5 | 12 404 | 41,56 % | 1 878 | 15 567 |
+| M15 | 14 841 | 49,72 % | 468 | 14 540 |
+| H1 | 14 896 | 49,90 % | 95 | 14 858 |
+| H4 | 14 280 | 47,84 % | 97, derav 34 tidlig | 15 472 |
+| D1 | 7 610 | 25,49 % | 906, alle tidlig | 21 333 |
 
-Kilder: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/RESULT.json` (SHA-256 `bcd9a82ff6e3218cf58539ec0c4d88cdbb80b1e7c497d2991d31aab071033bf7`) og `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001/RESULT.json` (SHA-256 `bbd2811dbcd04cdf5d3ac01e4f79c30b405cd085c97ce12093648af699203603`). De publiserte ikke en ny radvis målserie. Særlig D1s 906 tidlige bevis var diagnostikk uten labelpromotering.
+Kilder: `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/RESULT.json` (SHA-256 `bcd9a82ff6e3218cf58539ec0c4d88cdbb80b1e7c497d2991d31aab071033bf7`) og `/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001/RESULT.json` (SHA-256 `bbd2811dbcd04cdf5d3ac01e4f79c30b405cd085c97ce12093648af699203603`). De publiserte ikke en ny radvis målserie. Den separate [radvise kontrollen](/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_CANDIDATE_ROWWISE_20261106_001/RESULT.json) SHA-256 `395e2604029e00b388f0fc97dfa18c58c1ca1f0c8abfe45c399a50af40caccdf` publiserte [tillattemengde-masker](/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_CANDIDATE_ROWWISE_20261106_001/ROW_MASKS.npz) SHA-256 `5de51adef82cdec0bb717564ec5effc02d407f5972570b1ebfd1f8a93ad4a019`. Alle 25 partisjoner matchet de to rapportene, og en uavhengig etterkontroll fant 940 tidlige/ufullstendige AKTIV-rader uten sidepromotering (906 D1 og 34 H4). Målstatus forblir PROPOSED; ingen modellevaluering er gjort.
 
-Denne kandidatkontrollen dekker bare May–Sep 2024. Full TRAIN-kalender fram til eksklusiv 2026-01-01, særlig **hele perioden etter mars 2025**, mangler tilsvarende kontrakt- og dekningskontroll; det er et kvalifikasjonsgap, ikke påvist mangel på markedsdata. Kildeautoritet skal utvides med arkiverte åpningstider og konservativt veto av dokumenterte metallhelligdager; enhver annen prisåpning eller kildepause forblir UKJENT. Ingen senere prisrad eller senere fold kan brukes til å velge terskler.
+Denne kandidatkontrollen dekker bare May–Sep 2024. En [publisert ordinær kalender](/home/andre2/GX1_RUNS/XAU_2025_PUBLISHED_CALENDAR_EXTENSION_20261106_003/PUBLISHED_CALENDAR.json) SHA-256 `6911f30d3c7aa013c8ad2a5c31b5e2535a872cd54613ced70b4b812d4226e3a7` dekker nå gjennom eksklusiv 2026-01-01, med 185 nye intervaller og elleve metallunntak vetoet. **Faktiske M1-gap etter mars 2025 er ennå ikke koblet til denne kalenderen**, så full TRAIN-kildeautoritet og målserie mangler; dette er et kvalifikasjonsgap, ikke påvist mangel på markedsdata. Bare gap fullt inne i kildebundet stengning kan bli kjente; enhver annen prisåpning eller kildepause forblir UKJENT. Ingen senere prisrad eller senere fold kan brukes til å velge terskler.
 
 Før fit forhåndsbindes disse fem ekspanderende TRAIN-foldene, alle med venstre grense inkludert og høyre ekskludert:
 

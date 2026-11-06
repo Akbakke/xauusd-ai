@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T23:07:38.371862+00:00",
-  "status": "MARKET_STATE_CALENDAR_SOURCE_COMPLETE_ROWWISE_ADMITTED",
+  "observed_utc": "2026-11-06T23:14:23.852743+00:00",
+  "status": "MARKET_STATE_ROWWISE_VERIFIED_FULL_TRAIN_AUTHORITY_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "The 0.5-versus-1.0 ATR endpoint allowed-set contract is PROPOSED, not locked. Two source-only workers are prepared; only the exact seven-document calendar extension is admitted. No target promotion, model fit, TEST, Entry/Exit, broker, trading or spending. training_enabled=false.",
-  "next_action": "Calendar plan 003 completed and consumed: seven archived OANDA bytes, old 230 interval prefix, 185 added intervals and eleven metal-date vetoes independently verified. This is published schedule evidence; full TRAIN M1-gap closure authority is not yet built. Run only the separately admitted May-Sep rowwise endpoint-mask verifier once and check all 25 partitions. Target stays PROPOSED until full TRAIN source/clock, indicators, output/loss/scores and chronological references are qualified. No model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "rule": "The 0.5-versus-1.0 ATR endpoint allowed-set contract is PROPOSED, not locked. Public source calendar and May-Sep rowwise mask audits are complete and consumed; full TRAIN M1-gap authority, complete labels, indicator qualification and chronological baseline remain open. No model fit, TEST, Entry/Exit, broker, trading or spending. training_enabled=false.",
+  "next_action": "Calendar plan 003 and May-Sep rowwise plan 001 both completed/consumed with independent PASS. Next build one source-bound full TRAIN M1-gap closure authority from the verified calendar, then assess full TRAIN target coverage and earlier-only simple references. Target stays PROPOSED until full TRAIN source/clock, indicators, output/loss/scores and chronological references are qualified. No model fit, TEST, Entry/Exit, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Proposed five-TF pointwise endpoint allowed-set contract documented; 29,849 May-Sep issue aggregates give 41.56-49.90% exact singleton M5-H4 and 25.49% D1, with partial ACTIVE masks. Five expanding TRAIN-only folds and mask-aware references predeclared. Calendar source attempt 003 completed/consumed: 7 public archives, 230 old +185 new regular intervals through exclusive 2026-01-01, 11 conservative metal vetoes; independent receipt/source review PASS. Full TRAIN M1-gap authority and rowwise endpoint labels remain open. One May-Sep rowwise verifier is now admitted, no fit.",
+    "current_activity": "Proposed five-TF pointwise endpoint allowed-set contract documented; 29,849 May-Sep issue aggregates give 41.56-49.90% exact singleton M5-H4 and 25.49% D1, with partial ACTIVE masks. Five expanding TRAIN-only folds and mask-aware references predeclared. Calendar source attempt 003 and May-Sep rowwise mask attempt 001 completed/consumed; 25 partitions and exact UTC source lookups independently PASS. Five-TF exact singleton total 64031 and partial ACTIVE 3444 are overlapping M5 forecasts, not independent episodes; D1 exact7610/29849, partial906. Full TRAIN M1-gap authority and target coverage remain open, no fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Endpoint target remains PROPOSED: only May-Sep aggregate projection exists, no rowwise candidate labels or full TRAIN M1-gap closure authority after March 2025. The public regular schedule is now source-bound through 2025. The previously tested hysteresis sustained-state candidate failed its H4/H1 DOWN duration gate; that is separate from endpoint prediction. Seventy-seven of 95 parked fields/TF lack independent formula samples; feature utility unmeasured.",
+    "current_blocker": "Endpoint target remains PROPOSED: May-Sep rowwise candidate masks now pass, but full TRAIN M1-gap closure authority and complete target coverage after March 2025 are missing. The public regular schedule is source-bound through 2025. The previously tested hysteresis sustained-state candidate failed its H4/H1 DOWN duration gate; that is separate from endpoint prediction. Seventy-seven of 95 parked fields/TF lack independent formula samples; feature utility unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -61120,11 +61120,15 @@
   },
   "market_state_endpoint_candidate_rowwise_20261106_001": {
     "admission_reason": "One bounded May-Sep rowwise source verifier of proposed allowed-set endpoint masks; 25 partition parity against saved semantics and closure audits. No target lock/model/TEST.",
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "data_reads_authorized": true,
-    "decision": "ADMITTED",
-    "execution_authorized": true,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_CANDIDATE_ROWWISE_20261106_001/CLAIM.json",
+      "sha256": "a351236a1e812357268cf8355b36442e9ed734de50bf96646813be1320e86dea"
+    },
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "data_reads_authorized": false,
+    "decision": "BLOCKED",
+    "execution_authorized": false,
     "launch_argv": [
       "bash",
       "scripts/gx1_capped_run.sh",
@@ -61147,11 +61151,24 @@
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_ENDPOINT_CANDIDATE_ROWWISE_20261106_001.json",
       "sha256": "8383ac3d988d5aaf97d10ca206df710bf520ca7293b083aa04b1f749c679f081"
     },
+    "post_run_review": "Independent 18 refs/five tape arrays and all25 month-TF NPZ partitions PASS; exact singletons M5/M15/H1/H4/D1=12404/14841/14896/14280/7610, partial ACTIVE=1878/468/95/97/906, 940 incomplete/early ACTIVE (34H4+906D1) with no side promotion. May-Sep TRAIN only; no target lock/model/optimizer/TEST or learned edge.",
     "relaunch_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_CANDIDATE_ROWWISE_20261106_001/RESULT.json",
+      "sha256": "395e2604029e00b388f0fc97dfa18c58c1ca1f0c8abfe45c399a50af40caccdf"
+    },
+    "row_masks": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_CANDIDATE_ROWWISE_20261106_001/ROW_MASKS.npz",
+      "sha256": "5de51adef82cdec0bb717564ec5effc02d407f5972570b1ebfd1f8a93ad4a019"
+    },
     "scope": "One May-Sep 2024 TRAIN-only source verifier after separate admission; 25 month-TF parity, no model/TEST, target remains proposed.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "status": "ADMITTED_NOT_CLAIMED",
-    "target_builds_authorized": 1,
+    "status": "COMPLETE_CONSUMED_SOURCE_DIAGNOSTIC_NO_TARGET_LOCK",
+    "target_builds_authorized": 0,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_CANDIDATE_ROWWISE_20261106_001/TERMINAL.json",
+      "sha256": "2b8a44151109f20d542f0034608639d514042fe06075ef729cb8db995f84c993"
+    },
     "terminal_owner": "Integrator writes immutable success/failure TERMINAL after claimed capped invocation; no relaunch.",
     "test_authorized": false,
     "training_authorized": false
