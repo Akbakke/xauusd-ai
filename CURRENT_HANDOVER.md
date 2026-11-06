@@ -11,6 +11,19 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Kontrollens nye private `_002`-engangsadmisjon er kilde- og rollebundet, før
+modellstart.** Begge matchede
+[oppskrifter](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001) er publisert
+fra ren `73de6bd2`; kontrollens fil-SHA-256 er
+ac768a325590486841df0d42ee90c871eccf2b485ba145bfd5a3f528f3d54558 og oppskriftshash
+bd24fffa36d4758e717a1f9a111ba2e248ee49096a532542e90e0f8634236b8f. Bare policyblokken
+`dynamic_m5_october_control_private_20261106_002` er åpnet for capped metadatamaterialisering og
+én privat native-kontroll. Den inkluderer nå `arm=control`, som den konsumerte 001-planen manglet;
+rolleporten ble prøvd før commit. Bootreferansen er fortsatt fysisk boot 604, mens ny boot,
+maskinvid ledighet, kampanjeplan, modell, gradient og resume ennå ikke er målt. Grensene er ett 12
+000-sekunders vindu, 20 GiB/512 MiB, 250 W, høyst fire private oppdateringer, 0 USD;
+kandidat/fit/score er stengt. TEST, broker, ordre og handel er stengt, og edge/økonomi UNKNOWN.
+
 **06.11 – Privat kampanjeforberedelse 001 feilet på én målt policy-mismatch og er konsumert uten
 modellkjøring.** Den capped 2 GiB-metadatajobben skrev
 [kampanjeplanen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_001/CAMPAIGN/CAMPAIGN_PLAN.json)
