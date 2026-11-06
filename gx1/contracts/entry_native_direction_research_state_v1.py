@@ -57,6 +57,13 @@ def _view(model, expected):
         from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
         december.require_checkpoint_view(value)
         _require(getattr(model, 'native_endpoint_loss', False) is True, 'DECEMBER_CHECKPOINT_OBJECTIVE')
+    elif isinstance(prefix, Mapping) and 'october_observer_axes_sha256' in prefix:
+        from gx1.contracts import entry_dynamic_m5_october_native_identity_v1 as october
+        arm = october.require_checkpoint_view(value)
+        _require(type(model) is NativeDynamicMTFStateResearch
+            and getattr(model, 'native_endpoint_loss', False) is True
+            and model.confirmed_run_age_input is (arm == 'candidate'),
+            'OCTOBER_CHECKPOINT_OBJECTIVE')
     else:
         _require(isinstance(prefix, Mapping) and set(prefix) == {'binding', 'contract_sha256', 'base_sha256',
             'gc_layout_sha256', 'gc_normalization_sha256', 'qualification_sha256'}, 'PREFIX_IDENTITY')
@@ -80,6 +87,7 @@ def _parameters(model):
     inactive = [(name, p) for name, p in pairs if name.startswith(INACTIVE_PREFIXES)]
     head_prefixes = (('state_query_projection.', 'state_initial_head.', 'state_transition_head.')
         + (('state_current_projection.',) if model.current_state_input else ())
+        + (('state_confirmed_age_weight',) if model.confirmed_run_age_input else ())
         if type(model) is NativeDynamicMTFStateResearch else ('direction_head.',))
     _require(active and inactive and all(any(name.startswith(prefix) for name, _ in active)
         for prefix in head_prefixes), 'PARAMETER_PARTITIONS')

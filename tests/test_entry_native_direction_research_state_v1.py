@@ -135,6 +135,40 @@ def test_recipe_requires_explicit_positive_integer_geometry(batch,updates):
         recipes.native_direction_research_recipe(batch_size=batch,max_updates=updates)
 
 
+def test_october_checkpoint_route_requires_age_mode_and_active_age_parameter(monkeypatch):
+    from gx1.contracts import entry_dynamic_m5_october_native_identity_v1 as october
+
+    prefix = {'binding': {'path': '/synthetic/PREFIX_NORMALIZATION.json', 'sha256': '2' * 64},
+              'contract_sha256': '3' * 64, 'base_sha256': '4' * 64,
+              'gc_layout_sha256': '5' * 64, 'gc_normalization_sha256': '6' * 64,
+              'qualification_sha256': '7' * 64, 'unobserved_units_profile_sha256': '8' * 64,
+              'october_observer_axes_sha256': '9' * 64}
+    identity = {'contract_sha256': 'a' * 64, 'prefix_normalization': prefix,
+                'research_objective_sha256': 'b' * 64}
+    pairs = [(name, nn.Parameter(torch.ones(1))) for name in
+             ('state_query_projection.0.weight', 'state_initial_head.weight',
+              'state_transition_head.weight', 'state_current_projection.weight',
+              'state_confirmed_age_weight', 'backbone.head_dynamic_mfe.weight')]
+    model = SimpleNamespace(feature_view_identity=identity,
+        research_objective={'contract_sha256': 'b' * 64}, native_endpoint_loss=True,
+        confirmed_run_age_input=True, current_state_input=True,
+        _require_binding=lambda: None,
+        backbone=SimpleNamespace(require_input_normalization_state=lambda: None),
+        named_parameters=lambda remove_duplicate=False: pairs)
+    monkeypatch.setattr(state_owner, 'NativeDynamicMTFStateResearch', SimpleNamespace)
+    monkeypatch.setattr(october, 'require_checkpoint_view', lambda value: 'candidate')
+    assert state_owner._view(model, identity) == identity
+    _, active, _ = state_owner._parameters(model)
+    assert 'state_confirmed_age_weight' in [name for name, _ in active]
+    model.confirmed_run_age_input = False
+    with pytest.raises(RuntimeError, match='OCTOBER_CHECKPOINT_OBJECTIVE'):
+        state_owner._view(model, identity)
+    model.confirmed_run_age_input = True
+    pairs.pop(-2)
+    with pytest.raises(RuntimeError, match='PARAMETER_PARTITIONS'):
+        state_owner._parameters(model)
+
+
 def test_optimizer_partition_defaults_and_no_old_phase_aliases(monkeypatch):
     case=_make(monkeypatch);parameters=dict(case.model.named_parameters())
     active=case.binding['active_parameter_names'];inactive=case.binding['inactive_parameter_names']
