@@ -37,11 +37,14 @@ innrømmede `_002`-materialisering stoppet før modell og oktoberlesing:
 manglet eksplisitt i scoreporten. [Feilkvitteringen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_002/MATERIALIZATION_FAILURE_REVIEW.json)
 SHA-256 6dc7d6b6ffd2691ade4e912dff0b3923967beb06cc73a9ed2c20cef1ced8f2f5
 bevarer claim og delplan; `_002` er konsumert uten omstart eller modell.
-Kandidatens `_001` var aldri innrømmet. Kildens scoreporter flyttes til
-`CONTROL_SCORE_003` og `CANDIDATE_SCORE_002`; ny preflight krever alle
-lukkede boolske porter før claim. Neste steg er nye kildebunde oppskrifter
-og én kontrolladmisjon. `training_enabled=false`; uavhengig edge og økonomi
-UNKNOWN. TEST, Exit, broker, ordre og handel er stengt.
+Kandidatens `_001` var aldri innrømmet. Nye [kontroll-`_003`](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_003/RECIPE.json)
+og [kandidat-`_002`](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/RECIPE.json)
+score-oppskrifter er publisert fra ren kilde. Ny preflight krever alle
+lukkede boolske porter før claim. Bare kontrollens `_003` er eksakt innrømmet
+for ett lesende vindu på 6 323 oktoberforeldre med null oppdateringer;
+kandidatens score er stengt. Maskinvid ledighet, omstartskvittering og capped
+kjøring gjenstår. `training_enabled=false`; uavhengig edge og økonomi UNKNOWN.
+TEST, Exit, broker, ordre og handel er stengt.
 
 **06.11 – Gjenopprettet kontroll-score og alderkandidatens fit er kildekontrollert, ennå ikke innrømmet.**
 Den faktiske [kontroll-recoveryen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json)
