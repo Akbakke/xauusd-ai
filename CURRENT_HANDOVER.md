@@ -33,10 +33,12 @@ Større grense løser mye av M5-observasjonsmangelen, men gjør FLATT til
 majoriteten av de observerte etikettene og reduserer D1-dekningen. Dette
 er en mål- og observerbarhetsavveining, ingen modellkvalifisering eller
 automatisk beslutning om ny terskel. Gjeldende 0,5-kandidat er fortsatt
-semantisk ulåst. Aktiv neste oppgave er å binde observert aktivitet versus
-ukjent retning, framtidige gyldighetstidspunkter, output, tap og måling
-uten å gjøre ukjent til FLATT. Den avgrensede normaliseringskontrollen er nå
-fullført; uavhengig formelkvalifisering av 95 felt/TF gjenstår.
+semantisk ulåst. Ny TRAIN-semantikk under viser at 0,5 gir mange kjente
+aktive M5+5-vinduer med ukjent retning, mens 1,0 gir langt flere FLATT-
+tilstander og kortere aktivitetsskifter. Neste målbeslutning må binde hva
+vedvarende OPP/NED/FLATT betyr ved M5-prognosetakt, med separate aktivitets-
+og retningsmasker, output, tap og måling. Den avgrensede normaliseringskontrollen
+er fullført; uavhengig formelkvalifisering av 95 felt/TF gjenstår.
 
 Kildegjennomgang viser en konkret delvis observert fasit som dagens tap ikke
 bruker direkte ved senere native ledespørsmål: full lokal range kan bevise
@@ -81,15 +83,36 @@ SHA-256 `0e9c683c308541f4766f3eb84822d2aa30ee4bdac1c58a588efebdcc0bab40ad`,
 `FAILED_CONSUMED`; ingen RESULT, target-build, modell eller TEST. Den
 opprinnelige planen er sperret og kvitteringene bevart.
 
-En separat [korrigert semantisk engangsplan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002.json)
+Den separate [korrigerte semantiske engangsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002.json)
 SHA-256 `af921fdacd659f1c090259531ea70e2e9ac1644fcdb1ab1e71df79503184e55c`
-er innrømmet, ennå ikke claimet. Eksakt metadata-preflight kontrollerte
-kalender-, source-, serie- og alle 5 × 5 × 2 rapportnøkler. Den gjenbruker
-0,5-serien og 0,5/1,0-tall, bygger 1,0 midlertidig og måler målskala i
-XAU USD/bps og historisk sitert spread, delvis fasit, sensurerte forløp og
-forhåndsvalgte prisvitner for mai–september 2024. Bundet kilde leses
-fram til mars 2025, men senere aggregat/vitne og modellscore er stengt.
-Ingen faktor velges automatisk.
+er fullført og konsumert. [RESULT](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/RESULT.json)
+SHA-256 `bcd9a82ff6e3218cf58539ec0c4d88cdbb80b1e7c497d2991d31aab071033bf7`;
+[TERMINAL](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/TERMINAL.json)
+SHA-256 `ac1873ec5b7ef3f07de335580eaa2f8c8facba850b40613cd84d2922130ee00c`,
+`COMPLETE`, exit 0. Eksakt 0,5/1,0 treklassetall mot tidligere sensitivitet,
+29 849 mai–september-foreldre, fem TF, 45 forhåndsbundne vitner, 0 modellkall,
+0 TEST, 6,8 s og 511 MB prosessmaks. Bundet kilde ble lest fram til mars 2025;
+rapport og vitner er bare før oktober 2024. Ingen faktor ble valgt.
+
+| M5 / +5, mai–sep TRAIN | 0,5 × ATR | 1,0 × ATR |
+| --- | ---: | ---: |
+| Komplett lokal aktivitet (av 29 849) | 29 814 | 29 814 |
+| FLATT ved komplett aktivitet | 2 313 | 17 845 |
+| Kjent ikke-FLATT, ukjent OPP/NED | 13 017 | 1 878 |
+| Månedlig median målgrense, USD | 0,69–0,82 | 1,38–1,64 |
+| Månedlig median grense / sitert spread | 1,74–2,14 | 3,48–4,29 |
+| Observerte FLATT/ikke-FLATT-skifter på unike M1-kilder | 8 910 | 21 401 |
+
+Skiftene teller månedssensurerte, unike M1-kildeminutter, ikke uavhengige
+M5-prognoser. Strengt observerte M5 1,0-retningsløp hadde månedlig median
+3–4 minutter blant fullførte løp, under femminutters prognosetakt; ukjente
+forløp er sensurert, så dette er ikke totalvarighet for alle retninger.
+På D1 finnes også kjent treklasse uten komplett aktivitetsvindu (0,5:
+3 105; 1,0: 906), så maskene må forbli separate. Historisk sitert spread
+er bare fysisk målskala, ikke gjennomførbar økonomi. Det valgte vitneutvalget
+er kontroll av målbetydning, ikke et representativt estimat alene. Neste
+målavgjørelse må avklare fysisk meningsfull bevegelse og ønsket varighet
+uten å velge faktor etter klassebalanse, dekning eller modelltreff.
 
 Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
 støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og

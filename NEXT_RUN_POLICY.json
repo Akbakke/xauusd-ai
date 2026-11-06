@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T20:15:04.909641+00:00",
+  "observed_utc": "2026-11-06T20:19:06.753436+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "The semantic target audit _001 was claimed and failed on a calendar receipt key before price read; it is consumed. Run only the distinct admitted _002 plan after exact metadata preflight: same May-Sep 2024 TRAIN validity-time XAU USD/bps/quoted spread, partial activity/direction, censored duration/transitions and fixed trajectory witnesses. No factor is auto-selected. Current target 0.5 versus 1.0 remains semantically unlocked; do not choose by coverage or model score. Existing native activity query/scorer already exist; additional activity loss remains a hypothesis. Post-normalization input parity passed eight rows per TF; 95 parked fields/TF need producer-wise independent formula/clock review, trendlines first. No model fit, TEST, Entry-Q, broker, trading or spending admitted.",
+  "next_action": "Semantic target audit _002 completed and is consumed without choosing 0.5 or 1.0 ATR. M5 complete activity is nearly fully observable, but 0.5 leaves 13,017/29,849 native +5 cells with known non-FLAT/unknown direction; 1.0 reduces these to 1,878 while raising FLAT to 17,845 and binary activity transitions from 8,910 to 21,401 across May-Sep source months. Inspect the fixed TRAIN trajectory witnesses and bind what sustained UP/DOWN/FLAT should mean at M5 forecast cadence; do not choose a factor by class balance, coverage, or model score. Keep activity and direction masks separate; direct native binary loss is only a hypothesis until target semantics are locked. Then independently qualify 95 parked fields per TF producer-wise, trendline31 first, and prebind a simple EMA/ATR reference plus one chronological state comparison. No model fit, TEST, Entry-Q, broker, trading or spending admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "The 0.5 versus 1.0 ATR target remains semantically unlocked. Corrected post-normalization audit _002 passed five-TF sample parity. Semantic audit _001 failed before price read and is consumed; exact corrected _002 is admitted but unclaimed. The 95 parked fields per TF remain formula-unqualified and no model fit is admitted.",
+    "current_activity": "Semantic target audit _001 failed before price read and is consumed; corrected _002 completed May-Sep TRAIN scale, partial-mask and censored-run review with no factor selected. Post-normalization _002 passed sample parity. The market-state target remains unlocked; 95 parked fields per TF remain formula-unqualified and no model fit is admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The 0.5 ATR target is semantically unlocked. 1.0 ATR sharply improves M5 label coverage but makes observed M5+5 mostly FLAT and reduces D1 coverage; source M1 OHLC cannot resolve intraminute order. All 253 post-normalized cache fields matched on eight rows per TF, but 95 full-profile fields per TF still lack independent formula/causal numeric qualification.",
+    "current_blocker": "The market-state target remains semantically unlocked: 0.5 ATR has large known-active/unknown-direction M5+5 coverage, while 1.0 increases FLAT and short activity transitions; M1 OHLC cannot resolve intraminute order. Full-profile post-normalization sample parity passed, but 95 fields per TF still lack independent formula/causal numeric qualification.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60565,17 +60565,17 @@
     "observed_failure": "Prior receipt calendar key was source_reference, not calendar_source_reference; KeyError before M1 price read, no target build or RESULT. Original one-use plan consumed."
   },
   "dynamic_mtf_state_semantic_calibration_20261106_002": {
-    "status": "ADMITTED_UNCLAIMED",
+    "status": "COMPLETE_CONSUMED_NO_FACTOR_LOCK",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002.json",
       "sha256": "af921fdacd659f1c090259531ea70e2e9ac1644fcdb1ab1e71df79503184e55c"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "target_builds_authorized": 1,
     "model_calls_authorized": 0,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "test_authorized": false,
     "later_aggregate_authorized": false,
@@ -60587,7 +60587,76 @@
     "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002",
     "scope": "Same May-Sep 2024 TRAIN-only semantic audit as 001, with exact prior calendar key mapping fix and metadata preflight. Reuse 0.5, one ephemeral 1.0 build, no later aggregate/factor choice/model/VAL/TEST/trading.",
-    "prior_failed_consumed_stage": "dynamic_mtf_state_semantic_calibration_20261106_001"
+    "prior_failed_consumed_stage": "dynamic_mtf_state_semantic_calibration_20261106_001",
+    "relaunch_allowed": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/CLAIM.json",
+      "sha256": "2ee195496e7ec3bd6930fbf7c275ba91d11255aba233022bbc2432ed9e53780c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/RESULT.json",
+      "sha256": "bcd9a82ff6e3218cf58539ec0c4d88cdbb80b1e7c497d2991d31aab071033bf7"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/TERMINAL.json",
+      "sha256": "ac1873ec5b7ef3f07de335580eaa2f8c8facba850b40613cd84d2922130ee00c"
+    },
+    "source_head_at_run": "d32eb03de47822db7bad398b63af42ffc1adf718",
+    "elapsed_seconds": 6.814156073996855,
+    "peak_rss_bytes": 510599168,
+    "report_parents": 29849,
+    "witnesses": 45,
+    "m5_native_semantic_summary": {
+      "0.5": {
+        "complete_activity": 29814,
+        "flat": 2313,
+        "nonflat": 27501,
+        "partial_up_or_down": 13017,
+        "binary_source_transitions": 8910,
+        "monthly_median_threshold_usd": [
+          0.7814365296714068,
+          0.6895874032486171,
+          0.7458663154214649,
+          0.8203973779400393,
+          0.7290012035986309
+        ],
+        "monthly_median_threshold_to_quoted_spread": [
+          1.9300453247131983,
+          1.741270495119576,
+          1.9482195514609728,
+          2.1441353041778806,
+          1.9487434486242874
+        ]
+      },
+      "1.0": {
+        "complete_activity": 29814,
+        "flat": 17845,
+        "nonflat": 11969,
+        "partial_up_or_down": 1878,
+        "binary_source_transitions": 21401,
+        "monthly_median_threshold_usd": [
+          1.5628730593428135,
+          1.3791748064972342,
+          1.4917326308429297,
+          1.6407947558800786,
+          1.4580024071972617
+        ],
+        "monthly_median_threshold_to_quoted_spread": [
+          3.8600906494263967,
+          3.482540990239152,
+          3.8964391029219456,
+          4.288270608355761,
+          3.8974868972485748
+        ]
+      }
+    },
+    "ephemeral_target_builds": 1,
+    "model_calls": 0,
+    "optimizer_steps": 0,
+    "test_data_used": false,
+    "target_factor_selected": false,
+    "independent_edge": "UNKNOWN",
+    "post_run_review": "Original receipts rehashed; five May-Sep TRAIN months, all five TF, 0.5/1.0 saved threeclass count parity, separate complete activity/partial direction, censored runs and 45 deterministic witnesses. M5 0.5 has 13,017 partial UP/DOWN and 8,910 binary source transitions; 1.0 has 1,878 partial but 17,845 FLAT and 21,401 transitions. Quoted spread is only semantic scale, strict-path durations censored, no model/VAL/TEST/factor selection or edge claim."
   },
   "dynamic_mtf_state_target_sensitivity_20261106_001": {
     "status": "COMPLETE_CONSUMED_NO_TARGET_LOCK",
