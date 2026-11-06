@@ -25,7 +25,7 @@ ingen TEST, broker, handel eller uavhengig edge.
 eneste native tapskonsumenten fører modusen fra modellen. Historiske kontrollresultater
 beholdes, men kontrollens `_003`-kildehash er ikke identisk med nåværende kilde; den kan
 derfor ikke alene innrømme en ny fit. 168 målrettede state-/prefix-/oktobertester bestod
-under capped audit. Friske, separate `_004`-røtter og stadier er kildeklare for kontroll
+under capped audit. Friske, separate `_004`-røtter, stadier og kampanje-ID er kildeklare for kontroll
 og kandidat, uten oppskrift, kampanje, omstart eller modelladmisjon.
 `training_enabled=false`; retningslæring og edge er UNKNOWN.
 

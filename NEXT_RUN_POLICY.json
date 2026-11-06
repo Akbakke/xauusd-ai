@@ -59035,6 +59035,10 @@
       "gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py": {
         "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py",
         "sha256": "689b1ca75fdcb8203e567671fb832979f0855d60a6d5fc79eb718ab4b94e3bf8"
+      },
+      "gx1/scripts/materialize_dynamic_m5_october_private_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_dynamic_m5_october_private_campaign_v1.py",
+        "sha256": "7ff778f45ceaf403500abd93a6762beceda9f4656f8c60e7a2d0dd7dec0b4019"
       }
     },
     "focused_tests_passed": 168,
@@ -59057,11 +59061,12 @@
         "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/NATIVE_RECIPE.json",
         "sha256": "016c368e82c88fc1b099301a682ad4638640be17ac89aaff862787f32149acf8"
       }
-    }
+    },
+    "campaign_id_source_correction": "The fresh private campaign identity is _004, matching new roots and stages; discovered before any metadata materialization."
   },
   "dynamic_m5_october_control_private_20261106_004": {
     "status": "ADMITTED_ONCE_PENDING_MATERIALIZATION_AND_FRESH_BOOT",
-    "observed_utc": "2026-11-06T03:10:36.128798+00:00",
+    "observed_utc": "2026-11-06T03:11:34.653109+00:00",
     "scope": "Control arm only; fixed pre-October TRAIN private mechanics on 32 unique parents, 256 fresh initial rows, at most four updates. No main fit or October OOF.",
     "arm": "control",
     "input_role": "fit",
@@ -59079,7 +59084,7 @@
     "recipe_sha256": "9ef879d1f721d21cbe9f8a4fefa406e4d7527f551ad1b3431fbcb04e4424f7eb",
     "materializer": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_dynamic_m5_october_private_campaign_v1.py",
-      "sha256": "aa710ea8e364c77eaa297ea616d964cf888342af8be855976e04957e401d0e1d"
+      "sha256": "7ff778f45ceaf403500abd93a6762beceda9f4656f8c60e7a2d0dd7dec0b4019"
     },
     "prepared_boot": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/PREPARED_WINDOWS_BOOT.json",
