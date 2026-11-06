@@ -82,6 +82,27 @@ direkte native 191/192 valgte FLAT på alle 256 TRAIN + 256 gjenbrukte CONTROL;
 er lagret i aktivt scope. Gamle rene retningsreferanser 247/249/252/259/215
 er konsumert eller avvist; ikke gjenta dem.
 
+Den fysiske Entry-kvitteringen dekker 118 249 TRAIN- og 17 284 VAL-foreldre,
+men `dense_future_paths_materialized=false`; den lagrer M1-radpekere og
+første masker, ikke en bred LONG/SHORT/FLAT-fasit. Eksisterende
+`DynamicM5TargetProvider.targets_for_rows` beregner terminal og path
+on-demand. Oktoberrapporten måler bare dekning; 512-raders native panel er
+ikke bred kronologisk Entry-OOF. En ny modellfri målfordeling må derfor være
+en egen, forhåndsbundet og ressursbegrenset kjøring, ikke en ombruk av
+konsumerte planer.
+
+[Kostautoriteten](/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_COST_TERMS_20261019_059/COST_POLICY/parameter_authority.json)
+SHA-256 `e93ed40451a24344f94716e1f5ebe4cd348e6c7c3120e7509d6d55827bf40522`
+er en komplett prospektiv parameterpolicy, men `historical_cost_truth_qualified=false`.
+[Brokerevidensen](/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_COST_TERMS_20261019_059/BROKER_EVIDENCE.json)
+SHA-256 `d0dd8b19a4aa8aed82aaa3c20cadc0dae211d14f6edcc797db0e0c2084ee951c`
+har 258 fills, men mangler full historisk finansieringsrenteserie,
+beslutningsquote-til-fyll-klokke og eksplisitt historisk prisplan. M1
+BID/ASK-candles ved barstart kan ikke gjenopprette disse faktaene; 2 bps
+slippage per utførelse er en prospektiv antakelse med 1/2/4-sensitivitet.
+Rapporter deklarert kost og sensitiviteter, aldri historisk kostsannhet
+eller realisert økonomi fra disse bytene.
+
 Mål-mot-mål-kontrollen er fullført én gang etter [engangsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001.json) SHA-256
 `90915641b504d18603fd76562a97461fa2872c399283f36014bb0fd1f84e3d39`.
 [CLAIM](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/CLAIM.json) SHA-256
