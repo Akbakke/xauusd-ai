@@ -1,4 +1,4 @@
-# GX1-regler — bindende for alle agenter (mål senest presisert 01.11.2026)
+# GX1-regler — bindende for alle agenter (mål senest presisert 06.11.2026)
 
 Originalbestillingen er bevart ordrett i
 [docs/ORIGINAL_PROJECT_GOAL.md](docs/ORIGINAL_PROJECT_GOAL.md).
@@ -17,8 +17,9 @@ arkivfiler på disk er aldri kjøreautoritet.
 
 ## Varig prosjektmål og arbeidsmåte
 
-Siste målpresisering01.11 nedenfor styrer den aktive prognosefasen; eldre
-daterte beskrivelser beholdes som bakgrunn der de ikke er avløst.
+Siste målpresisering06.11 nedenfor styrer den aktive prognosefasen;
+01.11-definisjonen av markedstilstand består. Eldre daterte beskrivelser
+er bakgrunn der de er avløst.
 
 Operatørbestilling 18.10.2026 er gjeldende prosjektretning: bygg en
 fullautomatisk XAUUSD-bot med M5 Entry og kausal, lukket M15/H1/H4/D1-kontekst.
@@ -35,10 +36,43 @@ fast95min er ikke hovedfasit. Exit vurderes eller trenes ikke i denne bølgen.
 Dette avløser tidligere primær-h20-/fast95-vedtak, ikke lang kontekst eller
 historiske kildekvitteringer.
 
-Presisering05.11.2026: M5-Entry skal på plass først. Entry tas på lukkede M5-barer med kausal M15/H1/H4/D1-kontekst. Brukeren har eksplisitt valgt å beholde den M1-avledede beregningen av M5/M15/H1/H4/D1-nåtilstand; denne konteksten leses bare ved M5-Entry-tidspunktene. M1 er ingen egen Entry-klokke. Tettere M1-overvåking av en allerede åpen handel hører til en senere fase; Exit vurderes eller trenes ikke i denne bølgen. Klokke-/kildearbeid skal støtte M5-Entry og ikke overta som hovedmål.
+Presisering05.11.2026 (faseprioriteten avløst06.11): M5-Entry var da
+planlagt først. De tekniske klokkevalgene består for senere Entry: lukkede
+M5-barer med kausal M15/H1/H4/D1-kontekst, M1-avledet nåtilstand bare
+ved M5-tidspunkter, og ingen egen M1-Entry-klokke. Tettere overvåking av
+en åpen handel og Exit hører til senere faser.
+
+## Operatørpresisering06.11.2026: markedstilstand før Entry
+
+Aktiv fase er å definere og lære løpende markedstilstand riktig **før** vi
+bestemmer hvor en Entry skal ligge. Entry-beslutning, Entry-Q, Exit, ordre
+og handel kommer senere og skal ikke brukes som suksessmål eller treningsmål
+i denne bølgen. M5 er tidspunktet for nye prognoser; M15/H1/H4/D1 er kausalt
+lukket kontekst og har egne framtidige tilstandsmål. M1-oppløsning kan
+brukes til faktisk tilstandsfasit, ikke som egen Entry-klokke eller framtidig
+input. 01.11-definisjonen av dynamisk OPP/NED/FLATT, lokale skalaer,
+retning/størrelse/tidsforløp, ukjente utfall og ingen fast prisanker består.
+
+Før en ny fit skal målkontrakten beskrive meningsfull bevegelse og FLATT på
+hver TF, tids- og hendelsesreferanse, framtidig gyldighetsdomene,
+observerbarhetsmasker, output, tap og samme evalueringsmål. Kandidaten
+0,5 × ATR(14) er ingen ferdig fasit før den er kontrollert på eksisterende
+TRAIN-prisforløp. Alle genuine indikatorer, EMA/ATR, støtte/motstand, GC,
+alle fem TF, åtte spesialister og D1/makro skal få kontrollerte formler,
+enheter, warmup, masker, kausal tidskobling, normalisering og faktisk
+modellkonsum. Numerisk gyldighet er ikke prediktiv verdi.
+
+De eksisterende 26 månedene kan brukes til kronologisk utviklings-OOF;
+trening på tidligere rader og scoring på senere rader må bruke modne mål
+og foldspesifikk TRAIN-normalisering. Tidligere avgrensede fits/én epoke
+beviser ikke at modellen er ferdigtrent eller at markedet mangler signal.
+Forseglet TEST, Entry, Exit, broker og handel åpnes ikke av presiseringen.
+`training_enabled=false` består til mål, indikatorgrunnlag og en eksakt
+kronologisk treningsplan er kvalifisert og innrømmet.
 
 Stående arbeidsbestilling05.11.2026: Brukeren ber om langsiktig, aktivt arbeid
-for god retningsedge ved M5-Entry uten gjentatte «fortsett». Gå videre mellom
+mot senere retningsedge ved M5-Entry via den aktive markedstilstandsfasen
+uten gjentatte «fortsett». Gå videre mellom
 konkrete, allerede autoriserte lokale milepæler; avdekk og rett målte mangler,
 gjenbruk kvitteringer og klargjør én begrunnet kandidat om gangen. Ikke fyll
 ventetid med nye modellrunder eller gjentatte uendrede kontroller. Fullfør
@@ -292,11 +326,12 @@ CPU-/trådgrenser og GPU-/temperaturvakter består. Dette åpner ikke trening.
 
 ## Omfang
 
-Kun offline XAUUSD: Entry på native M5 (eller en høyere lukket tidsramme når det er
-vedtatt), Exit på native M1, de samme åtte kausale feature-eierne, og offline
-train/OOS/replay-evidens. Live, paper, demo, broker, daemon, collector, publisher,
-promotion, drift og online-adaptasjon er forbudt og kan ikke gjenåpnes av historiske
-moduler på disk.
+Aktiv fase er offline prognose av dynamisk markedstilstand på fem TF ved M5-takt.
+Entry på native M5 (eller en høyere lukket tidsramme når det er vedtatt) og
+Exit på native M1 er senere faser. De samme åtte kausale feature-eierne og
+offline train/OOS/replay-evidens beholdes. Live, paper, demo, broker,
+daemon, collector, publisher, promotion, drift og online-adaptasjon er
+forbudt og kan ikke gjenåpnes av historiske moduler på disk.
 
 ## Ikke-forhandlbare regler
 
@@ -391,7 +426,9 @@ moduler på disk.
 17. **Head-liveness krever de eksakte batch-nøklene** Dataset-mappingen emitter; aliaser,
     defaults eller dupliserte mål for å tilfredsstille en sjekk er forbudt.
 18. **Input-normalisering tilpasses én gang på hele den fysiske TRAIN-populasjonen** før
-    sampling; statistikk, kategoriske domener og hasher er immutabel bundle-tilstand.
+    sampling i én native fit. I kronologisk utviklings-OOF er hver folds tidligere,
+    målmodne TRAIN-rader den eneste fit-populasjonen for den foldens statistikk.
+    Statistikk, kategoriske domener og hasher er immutabel bundle-tilstand.
     VAL, TEST og serve refitter aldri.
 19. **Hvert kontekstfelt har nøyaktig én spesialisteier**; aliaser oppdages fra det faktiske
     signalmanifestet, må være bit-identiske og kan ikke skape en ny normaliseringseier.

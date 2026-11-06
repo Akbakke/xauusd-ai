@@ -1,10 +1,56 @@
-# CURRENT HANDOVER — GX1 M5 Entry
+# CURRENT HANDOVER — GX1 markedstilstand før Entry
 
 Eneste arbeidssted: `/home/andre2/src/GX1_CURRENT`, branch `work/gx1-current`.
 Les `GX1_RULES.md` helt ved første overtakelse og kjør
 `bash scripts/gx1_handover.sh --check`. `NEXT_RUN_POLICY.json` er eneste
 arbeidsstatus. Terminalkvitteringer overstyrer denne teksten. Tidligere
 statusnotater er bevart i Git og originale kvitteringer.
+
+## Aktiv fase etter brukerpresisering 06.11
+
+Definer og lær dynamisk OPP/NED/FLATT-markedstilstand på M5, M15, H1, H4 og
+D1 først. M5 er prognosetakt; Entry-plassering, direkte Entry-Q, Exit og
+handelsbeslutninger kommer senere. Ingen ny fit er innrømmet.
+
+Målkontrakten er ennå ikke låst som meningsfull markedsdefinisjon. Faktoren
+0,5 × ATR(14) per TF er en brukerakseptert kandidat, ikke endelig kalibrert.
+02.11-gjennomgangen bestod teknisk regelkontroll på 61 TRAIN-spor og merket
+bare dette avgrensede reviewet `target_rule_locked=true`; gjeldende
+04.11-målvurdering og 05.11-serie har `false`. Ingen korrupt artefakt eller
+mål-kodefeil er påvist av spriket. Før ny fit må bevegelse/FLATT, de
+forhåndsvalgte framtidige gyldighetstidene, ukjent-maske, output, tap og
+måling bindes sammen på hver TF. M1-OHLC gir observerbar M5-tilstand på
+126 395 av 238 142 unike TRAIN-tidspunkter (53,08 %); oktober M5+5 har
+3 359 av 6 323 (53,12 %). Ukjent er aldri FLATT. Den aktive
+[OANDA M1-kilden](/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json)
+har ett OHLC-tidsstempel per minutt og kan ikke ordne intraminutt høy/lav.
+En spredt, umanifestert Dukascopy-tickcache dekker ikke aktiv 2024-TRAIN;
+GC-futures er heller ikke fasit for XAU. Neste minste målkontroll er en
+forhåndsbundet TRAIN-only sensitivitet mot 1,0 × ATR med samme dynamiske
+segmentering, aktive-M1-vinduer og fem native prognosetider. Rapporter per
+måned/TF dekning, klassefordeling og skifter; velg ikke faktor med modelltreff,
+VAL eller TEST. 1,0 er sammenligningsskala, ikke vedtatt mål.
+
+Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
+støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og
+kausalt valgt lukket bar i målt scope. 95 tidligere parkerte felt per TF
+inngår nå i fullprofilen uten selvstendig numerisk kvalifisering. Råaudit
+beviser ikke verdier etter normalisering, kvaliteten på de observerte nivåene
+eller prediktiv bruk. Neste minste indikatorsteg er en avgrenset kontroll av
+normalisert input og nivåmasker, deretter numerisk kvalifisering av disse 95
+feltene og måling av bidrag på kronologisk utviklings-OOF.
+
+Vi har ikke kjørt omfattende trening gjennom flere år. Tidligere fem-TF-fit
+var ett pass på 47 602 TRAIN-foreldre (2 976 steg); oktoberparet var ett pass
+per arm på 29 849 foreldre (1 866 steg hver), med senere score uten refit.
+26 måneder beskriver datadekning, ikke treningsmengde. Den lagrede
+M5-retningsrangeringen på senere utviklingsrader falt fra AUC ca. 0,845
+ved +1 minutt til ca. 0,498 ved +5; på foreldre med begge observerte
+retningsfasiter skiftet 48,09 % klasse mellom disse tidene. Det avgrenser
+hvilket mål og tidspunkt som faktisk ble lært, ikke alt mulig signal.
+Først etter låst mål og kvalifiserte inputs kan én forhåndsbundet
+tilstandsfit sammenlignes med enkle referanser på senere utviklingsrader.
+TEST og Entry-fasen forblir stengt.
 
 ## Gjort og målt
 
@@ -29,7 +75,7 @@ statusnotater er bevart i Git og originale kvitteringer.
   er ikke FLAT. Dette er målkontraktens konservative kildegrense, ingen
   påvist kodefeil.
 
-## Hindring og neste minste steg
+## Bevarte utviklingsmålinger og senere Entry-spor
 
 Aldersinput kvalifiserte ikke M5-retningsverdi. Oktober er utviklingsdata,
 og den opprinnelige planen manglet en konkret beslutningsregel bundet før
@@ -174,7 +220,7 @@ eller ny fit.
 
 Ny feilhypotese fra brukerens EMA/ATR/nivåinnvending: oktoberkandidaten
 predikerer M1-midbasert markedstilstand, ikke executable Entry-Q. I den
-aktive dynamiske M5-Entry-fasen er `entry_action_q_loss` inaktivt;
+historiske dynamiske M5-Entry-implementasjonen er `entry_action_q_loss` inaktivt;
 Entry-kvalitet er predikert terminal-netto minus predikert tidlig MAE fra
 to separat trente komponenter. Dette er en mål-/beslutningsmismatch,
 ikke en bevist featurekodefeil. Den eldre samme-rad-kontrollen i
@@ -201,13 +247,10 @@ regnskapene må ikke omtales som samme mål. Kjøringen avsluttet 0 uten OOM.
 Kontrollen beviser ikke post-normalisering, per-felt modellbidrag, faktisk
 nivåobservasjon eller Entry-verdi. Planen er konsumert og kan ikke kjøres igjen.
 
-Neste særskilte designhypotese er ett direkte tap på dagens
-`terminal-netto − MAE`-kvalitet per forhåndsvalgt horisont og side, med
-felles terminal-/path-observasjonsmaske og FLAT=0. Full-native input og
-eksisterende komponentmål bevares. Bind targetenhet, tapsvekt/skala,
-fersk initialbaseline og kronologisk valgt/avstått aksept mot fryst 191
-før noen fit. Dette er ikke en påvist rettelse: på 191s 256 CONTROL-rader
-var observert sidekvalitet negativ i snitt, så FLAT kan være riktig der.
+Parkert hypotese for en senere Entry-fase: ett direkte tap på
+`terminal-netto − MAE`-kvalitet. Den er ikke gjeldende neste steg og gir
+ingen fit-adgang. Tidligere 191s 256 CONTROL-rader hadde negativ observert
+sidekvalitet i snitt; det kvalifiserer heller ikke Entry.
 
 En siste metadataavklaring fant ingen lagret, foreldrejustert 2D-matrise
 med hele den native inputflaten i gjeldende bundne kandidat-artefakter. [CAUSAL_INPUTS](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001/CAUSAL_INPUTS/CAUSAL_INPUTS.json) SHA-256
@@ -222,11 +265,12 @@ har bevist likhet med alle de 36 172 foreldrebarene i dette bundne
 pre-november-scope. Denne M5-only-baselinen er
 ikke innrømmet: den kan ikke avgjøre full native input- eller Entry-verdi.
 
-Ingen ny native eller enkel modellfit er innrømmet. Neste eksperiment krever
-én særskilt hypotese med forhåndsbundet kronologi, målmaske, referanse og
-akseptregel; oktober er undersøkt utvikling, TEST forseglet. Inntil da står
-modellen uten påvist senere retnings- eller Entry-beslutningsverdi.
-Fem-TF-prognosemålet og Entry-kravene består.
+Ingen ny native eller enkel modellfit er innrømmet. Gjeldende neste steg
+er tilstandsmålets semantikk og observerbarhet, deretter indikatorenes
+normaliserte konsum og kvalifisering. En senere tilstandsfit krever én
+forhåndsbundet kronologisk hypotese, målmaske, referanse og akseptregel.
+Oktober er undersøkt utvikling; TEST er forseglet. Senere retningsverdi
+er ikke påvist.
 
 Eksisterende data er nok til å undersøke læring videre: fysisk native XAU/GC
 TRAIN har 118 249 foreldre fra 2024-05-01 til 2026-01-01, og VAL har
@@ -257,14 +301,15 @@ En ny måned krever ny avgrenset plan og kvalifisert full-native input; to
 oktoberlignende scorearmer tok samlet omtrent 35 minutter og 1,1 GB output.
 Dette ville fortsatt måle tilstand, ikke full Entry-beslutning, og alle
 26 historiske måneder er utvikling. Forward-journalen i `GX1_RULES.md`
-gjelder D1-swing, ikke M5. Ingen slik kjøring er innrømmet. Neste kvalifiserende
-hypotese må gjelde direkte LONG/SHORT/FLAT Entry med forhåndsbundet
-kronologi, dekning, path/kost/økonomi og en genuint uavhengig fremtidig
-bekreftelsesrute; fem-TF-prognosemålet bevares separat.
+gjelder D1-swing, ikke M5. Ingen slik kjøring er innrømmet. Neste
+kvalifiserende hypotese gjelder fem-TF-markedstilstand med forhåndsbundet
+kronologi, dekning, mål og enkle referanser. Direkte Entry,
+path, kost og økonomi hører til den senere fasen.
 
-M5 Entry er hovedmål med kausal lukket M15/H1/H4/D1-kontekst, åtte
-spesialister og niende D1/makro. `training_enabled=false`. TEST er forseglet;
-bare forward-journalen scorer sin periode på forhåndsbundet måte. Exit,
+Aktivt mål er fem-TF-markedstilstand med M5-prognosetakt, kausal lukket
+M15/H1/H4/D1-kontekst, åtte spesialister og niende D1/makro.
+`training_enabled=false`. TEST er forseglet; bare forward-journalen scorer
+sin periode på forhåndsbundet måte. Exit,
 broker, ordre, live/paper, spending og promotion er stengt. Ingen konsumert
 engangsplan relanseres. Stabil langkjøring kontrolleres ca. hver 15.–30.
 minutt, gjerne sjeldnere ved stabil drift.

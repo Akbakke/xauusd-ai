@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T15:30:44.615186+00:00",
-  "status": "M5_ENTRY_RAW_INPUT_ASOF_PASS_DIRECT_Q_HYPOTHESIS_PENDING",
+  "observed_utc": "2026-11-06T16:54:16.357050+00:00",
+  "status": "MARKET_STATE_TARGET_AND_INDICATOR_QUALIFICATION_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "The one raw native input audit completed with zero model calls: all 36,172 parents selected latest closed bars on five TF, M5 cache barstarts matched, and eight fixed EMA/ATR/SR raw tensor rows bit-matched cache; those fields varied across parent rows. This does not establish post-normalization values, family influence or predictive utility. No fit/score is admitted. The concrete next design hypothesis is to supervise the existing dynamic Entry quality difference (terminal net minus pre-MFE MAE) directly on the shared observed mask, retaining the full-native inputs and component targets; first bind an exact target/loss scale, fresh baseline and chronological selected/abstained acceptance against frozen 191. All-FLAT on the small 191 CONTROL panel may be correct. Existing XAU/GC data suffice for internal OOF; TEST, Exit, broker/trading/spending remain closed and historical costs are scenario assumptions.",
+  "rule": "Active phase is dynamic five-timeframe market-state forecasting before Entry. The 0.5 ATR target is a technically reviewed but semantically unlocked candidate. Prior one-pass fits and scores are consumed. No model call or fit is admitted; training_enabled=false. TEST, Entry-Q, Exit, broker, trading and spending remain closed. Changed ONLINE function requires fresh evidence and initial baseline.",
+  "next_action": "First prebind one target-only May-Sep 2024 TRAIN sensitivity: current 0.5 ATR versus unit-scale 1.0 ATR with identical five-TF dynamic segmentation, active-M1 spans and fixed native validity leads. Report monthly/TF observability, class shares and state changes; 1.0 is a comparator, not an admitted replacement. Active OANDA XAU source has only M1 OHLC, so unknown intraminute high/low order remains UNKNOWN. Do not select threshold using model scores, VAL or TEST. The 02-Nov target_rule_locked=true is scoped technical review; current semantic target is unlocked. Then audit post-normalization input/level masks and independently qualify 95 previously parked fields per TF in full profile. Only after target and input gates, prebind one chronological state-forecast comparison with simple baselines on existing XAU/GC development data. Entry-Q is a later phase. No target audit run, model fit, TEST, broker, trading or spending is admitted by this status.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -254,8 +254,8 @@
     }
   },
   "current_work": {
-    "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "October age pair and Entry mask census are complete. One exact model-free M5 +5 saved-rank versus executable-side development join is admitted, claim-before-outcomes. No model or TEST; independent edge/economics UNKNOWN.",
+    "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
+    "current_activity": "Market-state target semantics and observability plus full-profile indicator calibration are the active scope. Earlier one-pass fits and October scoring are complete and consumed; no new model job admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "State forecast relationship to executable LONG/SHORT +5 outcomes is unmeasured. One descriptive, no-selection, claimed join is admitted. It cannot establish FLAT/MAE/realized economics or independent edge.",
+    "current_blocker": "The 0.5 ATR five-TF state target passed scoped technical rule review but remains semantically unlocked; M5 label observability is about 53%. Normalized consumption and 95 full-profile fields per TF lack complete independent qualification. No causal input defect is proven.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -15950,7 +15950,7 @@
       "current_phase": "Offline market-forecast objective/source/evidence investigation. Entry and trades are later decisions; no new native model work.",
       "entry_decision_cadence_seconds": 300,
       "future_outcome_queries": "Source-supported time/size domain for future local-state validity remains to be bound for each timeframe. Existing terminal/first-event/session-day targets are scoped historical evidence, not a ready dynamic-state contract.",
-      "latest_operator_clarification_date": "2026-11-01",
+      "latest_operator_clarification_date": "2026-11-06",
       "current_forecast_role": "Rolling market-state forecasts from information available at each completed-M5 issue time, with explicit future validity times and all-five-timeframe targets/assessment. Issue time is not a price-level anchor or trade entry.",
       "required_forecast_timeframes": [
         "M5",

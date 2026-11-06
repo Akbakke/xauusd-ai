@@ -28,6 +28,9 @@ Claude og Codex. En teknisk PASS er ikke bedre handelsbeslutninger eller profitt
 - Modell-/treningskode endres bare for en konkret observert blokkering eller
   vedtatt designendring. Begrunn minste rettelse før implementasjon. Ingen
   forebyggende refaktorering, brede søk, nye rammeverk eller gjentatte fullsuiter.
+- Aktiv fase etter brukerpresisering06.11: definer og lær dynamisk
+  markedstilstand først; Entry-beslutning og Entry-Q kommer senere. M5 er
+  prognosetakt, ikke en Entry-ordre i denne bølgen. Se GX1_RULES.md.
 - Følg det varige M5/MTF/26måneders-MBP-målet i GX1_RULES.md. Revider ALLE
   genuine indikatorer og alle tidsrammer til faktisk modellkonsum; åtte
   spesialistfamilier og niende D1/makro-kontekst beholdes. Meld og rett målte

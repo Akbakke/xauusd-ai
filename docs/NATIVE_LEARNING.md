@@ -87,12 +87,17 @@ er representert beviser ikke at hvert felt brukes eller gir prognoseverdi.
 Ingen automatisk aktivering, sletting eller ny modellkjøring følger av dette.
 TRAIN-fit, senere generalisering og eventuell handelsverdi måles separat.
 
-Dagens binære1..60minuttersfunksjon dekker ikke denne kontrakten. Nøyaktig
-lokal tilstandsdefinisjon, støttet størrelses-/tidsdomene, prisoppløsning,
-partial-observation-behandling og samsvarende output/loss må fastsettes før
-implementasjon kan kalles dekkende. Tidligere lengre path-/bps-forsøk beholdes
-som avgrenset evidens, ikke nye uprøvde løsninger. Konkret dekningsoversikt
-står i docs/DIRECTION_OBJECTIVE_ALIGNMENT_REVIEW_20261101.json. Aktuell
+En dynamisk fem-TF target-/output-/loss-kandidat er nå implementert og teknisk
+regelkontrollert. Den binære 1..60-minuttersfunksjonen var et snevrere eldre
+forskningsmål. Kandidatens meningsfulle bevegelsesgrense og høye andel
+ukjente M5-etiketter er ennå ikke kvalifisert som endelig mål. Den aktive
+XAU-kilden har M1-OHLC uten tidsstemplet intraminuttrekkefølge; ukjent høy/lav-
+rekkefølge må beholdes som ukjent. Sammenlign først dagens 0,5 × ATR-kandidat
+med en forhåndsbundet 1,0 × ATR-sensitivitet på samme TRAIN-prefiks, fem TF,
+aktive-M1-vinduer og prognosetider. Mål observerbarhet, klassefordeling og
+skifter per måned/TF; 1,0 er en enhetsskala til følsomhetskontroll, ikke et
+automatisk nytt mål. Bruk ikke modelltreff, VAL eller TEST til terskelvalg.
+Tidligere path-/bps-forsøk beholdes som avgrenset evidens. Gjeldende
 kjøreautorisasjon eies av NEXT_RUN_POLICY; målbeskrivelsen starter ingen jobb.
 
 ## Før en modell kan startes
