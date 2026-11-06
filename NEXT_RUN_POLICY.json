@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T19:46:31.538645+00:00",
+  "observed_utc": "2026-11-06T19:50:00.562744+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "The consumed 0.5 versus 1.0 ATR TRAIN sensitivity leaves the semantic market-state threshold unlocked. Existing singleton target queries and December score code already provide masked FLAT/non-FLAT at all five native leads; do not build another label/scorer. The active loss uses binary activity only at +1, but saved reused-development M5+5 binary Brier already beats Markov while D1 loses, so an extra native activity loss is a hypothesis, not a proven directional remedy. First bind partial observation semantics and decide whether to admit this single loss change; retain UNKNOWN direction. Run the admitted one-use post-normalization indicator/level-mask audit on eight fixed physical rows; consume the exact result, then qualify 95 formerly parked fields per TF. Only after target/input gates, prebind chronological state forecast versus simple causal references. No new model fit, TEST, Entry-Q, broker, trading or spending admitted.",
+  "next_action": "The consumed 0.5 versus 1.0 ATR TRAIN sensitivity leaves the semantic market-state threshold unlocked. Existing singleton target queries and December score code already provide masked FLAT/non-FLAT at all five native leads; do not build another label/scorer. The active loss uses binary activity only at +1, but saved reused-development M5+5 binary Brier already beats Markov while D1 loses, so an extra native activity loss is a hypothesis, not a proven directional remedy. First bind partial observation semantics and decide whether to admit this single loss change; retain UNKNOWN direction. The first post-normalization audit was claimed and failed in error-message formatting; it is consumed. Run only the distinct admitted _002 plan on eight fixed physical rows; consume its exact result, then qualify 95 formerly parked fields per TF. Only after target/input gates, prebind chronological state forecast versus simple causal references. No new model fit, TEST, Entry-Q, broker, trading or spending admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Completed 0.5 versus 1.0 ATR target sensitivity and source audit of later-lead partial activity labels. One exact post-normalization indicator audit is admitted but not claimed; semantic market-state target remains unlocked and no model fit is admitted.",
+    "current_activity": "Completed 0.5 versus 1.0 ATR target sensitivity and source audit of later-lead partial activity labels. Post-normalization audit _001 failed after claim in error-message formatting and is consumed. Exact corrected _002 is admitted but unclaimed; semantic market-state target remains unlocked and no model fit is admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -60438,10 +60438,45 @@
     "post_run_review": "Original result/terminal rehashed; all 36,172 parent as-of selections on five TF and exact M5 parent barstart passed; eight raw EMA/ATR/SR tensor rows bit-match cache. Does not test post-normalization, model influence, level observation or Entry value."
   },
   "dynamic_m5_october_native_postnorm_20261106_001": {
-    "status": "ADMITTED_UNCLAIMED",
+    "status": "FAILED_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001.json",
       "sha256": "5e4f5f5cc96db4e684fcb30dba3ba1e824217d9e445562917681c103e898d62c"
+    },
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "model_constructions_authorized": 1,
+    "model_forwards_authorized": 0,
+    "optimizer_updates_authorized": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "test_authorized": false,
+    "training_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "operator_approval": "Standing zero-cost local GX1 authorization from 2026-11-05 and 2026-11-06 market-state/indicator task; one bounded post-normalization audit, no fit or paid model calls.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "source_head_at_admission": "97569cc7",
+    "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001",
+    "scope": "Eight fixed cache rows times five 253-field TF surfaces: NumPy versus native model runtime post-normalization and level presence/absence; one CPU model construction, zero forwards/updates. Exact loss-only source compatibility pinned; no formula qualification, predictive signal, TEST or edge claim.",
+    "relaunch_allowed": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001/CLAIM.json",
+      "sha256": "8a7169039f40c5a6d14b0252512ec6534e56ff26d72aaa9baaa96979f5aacbd9"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001/TERMINAL.json",
+      "sha256": "31460991b2ed2008bd03c38c93176f1fc806b8514486bf8840391075a5837249"
+    },
+    "source_head_at_run": "0e3c365b34dd4312522d9e110cfa8334d1a2b193",
+    "observed_failure": "Eager evaluation of first mismatch index in error message raised IndexError when first checked TF had all 253x8 normalized values close; other TFs not reached. No RESULT; no fit, forward or TEST. Original one-use plan remains consumed."
+  },
+  "dynamic_m5_october_native_postnorm_20261106_002": {
+    "status": "ADMITTED_UNCLAIMED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002.json",
+      "sha256": "172907a002cb8ce808f0836e3166cc8cec9c109550799660e97a84ed30fb92c2"
     },
     "execution_authorized": true,
     "data_reads_authorized": true,
@@ -60454,12 +60489,13 @@
     "test_authorized": false,
     "training_authorized": false,
     "broker_orders_or_trading_authorized": false,
-    "operator_approval": "Standing zero-cost local GX1 authorization from 2026-11-05 and 2026-11-06 market-state/indicator task; one bounded post-normalization audit, no fit or paid model calls.",
+    "operator_approval": "Current 2026-11-06 market-state/indicator task and standing zero-cost local GX1 authorization; distinct one-use replacement after exact reporting bug in 001. No fit or paid model calls.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "source_head_at_admission": "97569cc7",
+    "source_head_at_admission": "0e3c365b34dd4312522d9e110cfa8334d1a2b193",
     "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
-    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001",
-    "scope": "Eight fixed cache rows times five 253-field TF surfaces: NumPy versus native model runtime post-normalization and level presence/absence; one CPU model construction, zero forwards/updates. Exact loss-only source compatibility pinned; no formula qualification, predictive signal, TEST or edge claim."
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002",
+    "scope": "Same eight fixed cache rows times five 253-field TF surfaces; exact eager error-message evaluation fix only. NumPy versus runtime post-normalization and level presence/absence; one CPU model construction, zero forwards/updates; no formula qualification, predictive signal, TEST or edge claim.",
+    "prior_failed_consumed_stage": "dynamic_m5_october_native_postnorm_20261106_001"
   },
   "dynamic_mtf_state_target_sensitivity_20261106_001": {
     "status": "COMPLETE_CONSUMED_NO_TARGET_LOCK",

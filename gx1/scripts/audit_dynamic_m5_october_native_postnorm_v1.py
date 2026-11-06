@@ -18,9 +18,9 @@ import sys
 import time
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
-STAGE = 'dynamic_m5_october_native_postnorm_20261106_001'
-PLAN_PATH = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001.json'
-ROOT = Path('/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001')
+STAGE = 'dynamic_m5_october_native_postnorm_20261106_002'
+PLAN_PATH = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002.json'
+ROOT = Path('/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002')
 TFS = ('M5', 'M15', 'H1', 'H4', 'D1')
 POSITIONS = (0, 1, 29847, 29848, 29849, 29850, 36170, 36171)
 FIELDS = ('atr_bps_14', 'ema20_dist_atr', 'mtf_geometry_support_dist_atr',
@@ -264,8 +264,9 @@ def audit(plan, claim, binding, snapshots):
                         and np.isfinite(reference).all() and np.isfinite(actual).all(),
                         'NORMALIZED_FINITE:' + tf)
                 close = np.isclose(actual, reference, rtol=RTOL, atol=ATOL)
-                require(bool(close.all()), 'NORMALIZED_PARITY:' + tf + ':'
-                        + names[int(np.argwhere(~close)[0, 1])])
+                if not bool(close.all()):
+                    first_bad_field = names[int(np.argwhere(~close)[0, 1])]
+                    require(False, 'NORMALIZED_PARITY:' + tf + ':' + first_bad_field)
                 identity = (np.asarray(contract['binary_mask'], dtype=bool)
                             | np.asarray(contract['categorical_mask'], dtype=bool))
                 require(np.array_equal(actual[:, identity], raw[:, identity])

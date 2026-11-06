@@ -79,13 +79,21 @@ støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og
 kausalt valgt lukket bar i målt scope. 95 tidligere parkerte felt per TF
 inngår nå i fullprofilen uten selvstendig numerisk kvalifisering. Råaudit
 beviser ikke verdier etter normalisering, kvaliteten på de observerte nivåene
-eller prediktiv bruk. Én [avgrenset postnorm-plan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001.json)
-SHA-256 `5e4f5f5cc96db4e684fcb30dba3ba1e824217d9e445562917681c103e898d62c` er
-innrømmet, ennå ikke claimet: åtte faste cache-rader på fem TF, alle 253 felt
-per TF mot modellens normalisering, uten forward/fit/TEST. Den binder eksakt
-kjent kildeavvik i en tapsfunksjon; avviket gir ikke fit-/forward-adgang.
-Etter terminalkontroll gjenstår numerisk kvalifisering av 95 felt per TF og
-bidrag på kronologisk utviklings-OOF.
+eller prediktiv bruk. Første [postnorm-plan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001.json)
+ble claimet og feilet i ren feilmeldingsformatering: `np.argwhere` indekserte
+en tom avviksliste selv om første TFs 8 × 253 verdier lå innen toleransen.
+[TERMINAL](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001/TERMINAL.json)
+SHA-256 `31460991b2ed2008bd03c38c93176f1fc806b8514486bf8840391075a5837249`,
+`FAILED_CONSUMED`; ingen RESULT eller påstand om de fire øvrige TF. Ingen
+modell-forward, fit eller TEST ble startet. Originalkvitteringene er bevart.
+
+En separat [korrigert engangsplan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002.json)
+SHA-256 `172907a002cb8ce808f0836e3166cc8cec9c109550799660e97a84ed30fb92c2`
+er innrømmet, ennå ikke claimet. Den endrer bare evaluering av feilmelding;
+samme åtte cache-rader, fem TF og 253 felt/TF, null forward/fit/TEST. Begge
+planer binder eksakt kjent kildeavvik i en tapsfunksjon uten å gi fit-/forward-
+adgang. Etter terminalkontroll gjenstår uavhengig numerisk kvalifisering av
+95 felt per TF og bidrag på kronologisk utviklings-OOF.
 
 Vi har ikke kjørt omfattende trening gjennom flere år. Tidligere fem-TF-fit
 var ett pass på 47 602 TRAIN-foreldre (2 976 steg); oktoberparet var ett pass
