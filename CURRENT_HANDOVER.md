@@ -45,10 +45,16 @@ SHA-256 `963115cac4f3b7859a47f8155985c4305d361c9763a867b3db49b9575a862331`
 fant 21 252 slike M5+5-rader i den eldre 47 602-raders TRAIN-populasjonen og
 8 305 i 17 288 senere gjenbrukte utviklingsrader. Det aktive binære
 tillleggstapet gjelder bare +1; native +5-tapet krever kjent treklassefasit.
-Sekvensloss kan fortsatt gi indirekte gradient via nabotilstander. Minste
-neste designhypotese er maskert FLATT/ikke-FLATT-læring og tilsvarende score
-på forhåndsvalgte senere ledetider etter semantisk mållås. Dette er påvist
-ubrukt fasit, ikke påvist årsak til svak OPP/NED-rangering eller ny fit-adgang.
+Sekvensloss kan fortsatt gi indirekte gradient via nabotilstander.
+Eksisterende målspørring kan hente binær aktivitet ved vilkårlig native lead,
+og desember-scoreren gjør det allerede på alle fem TF. Ingen ny fasitmotor
+eller scorer trengs nå. [Lagret binær skår](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_BINARY_ACTIVITY_SCORE_NATIVE_LEADS.json)
+SHA-256 `c8bb833a3f0777f362108252a9b2c9dbcbb98aaa7cde8fea3df405ec2a451bb4`
+viser at den eldre ettpassmodellen ved M5+5 hadde binær Brier 0,063594
+mot Markov 0,071860 på gjenbrukt utvikling, mens D1 var verre.
+Dermed er et ekstra binært tap en kontrollert hypotese, ikke en klar første
+rettelse for OPP/NED. Bind eventuell delvis-observert native loss, maske,
+enhet og vekt før fersk baseline; ikke tren den automatisk.
 
 Målkontrakten er ennå ikke låst som meningsfull markedsdefinisjon. Faktoren
 0,5 × ATR(14) per TF er en brukerakseptert kandidat, ikke endelig kalibrert.
@@ -63,21 +69,23 @@ måling bindes sammen på hver TF. M1-OHLC gir observerbar M5-tilstand på
 [bundne OANDA M1-kilden](/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json)
 har ett OHLC-tidsstempel per minutt og kan ikke ordne intraminutt høy/lav.
 En spredt, umanifestert Dukascopy-tickcache dekker ikke aktiv 2024-TRAIN;
-GC-futures er heller ikke fasit for XAU. Neste minste målkontroll er en
-forhåndsbundet sensitivitet på kun fitprefikset 01.05–30.09.2024 mot
-1,0 × ATR, med samme dynamiske segmentering, aktive-M1-vinduer og fem
-native prognosetider. Oktober og senere brukes ikke til målvalg. Rapporter per
-måned/TF dekning, klassefordeling og skifter; velg ikke faktor med modelltreff,
-VAL eller TEST. 1,0 er sammenligningsskala, ikke vedtatt mål.
+GC-futures er heller ikke fasit for XAU. Den avgrensede 0,5/1,0-ATR-
+sensitiviteten over er fullført og konsumert; den valgte ingen ny terskel.
+Neste målavgjørelse gjelder semantikken i delvis observerte tilstander,
+uten modellscore, VAL eller TEST som terskelvelger.
 
 Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
 støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og
 kausalt valgt lukket bar i målt scope. 95 tidligere parkerte felt per TF
 inngår nå i fullprofilen uten selvstendig numerisk kvalifisering. Råaudit
 beviser ikke verdier etter normalisering, kvaliteten på de observerte nivåene
-eller prediktiv bruk. Neste minste indikatorsteg er en avgrenset kontroll av
-normalisert input og nivåmasker, deretter numerisk kvalifisering av disse 95
-feltene og måling av bidrag på kronologisk utviklings-OOF.
+eller prediktiv bruk. Én [avgrenset postnorm-plan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001.json)
+SHA-256 `5e4f5f5cc96db4e684fcb30dba3ba1e824217d9e445562917681c103e898d62c` er
+innrømmet, ennå ikke claimet: åtte faste cache-rader på fem TF, alle 253 felt
+per TF mot modellens normalisering, uten forward/fit/TEST. Den binder eksakt
+kjent kildeavvik i en tapsfunksjon; avviket gir ikke fit-/forward-adgang.
+Etter terminalkontroll gjenstår numerisk kvalifisering av 95 felt per TF og
+bidrag på kronologisk utviklings-OOF.
 
 Vi har ikke kjørt omfattende trening gjennom flere år. Tidligere fem-TF-fit
 var ett pass på 47 602 TRAIN-foreldre (2 976 steg); oktoberparet var ett pass

@@ -1,0 +1,135 @@
+{
+  "atol": 2e-06,
+  "budget": {
+    "max_invocations": 1,
+    "max_json_bytes": 1048576,
+    "max_wall_seconds": 1800,
+    "memory_max": 4294967296,
+    "numerical_threads": 1,
+    "pids": 64,
+    "swap": 536870912
+  },
+  "indicator_fields": [
+    "atr_bps_14",
+    "ema20_dist_atr",
+    "mtf_geometry_support_dist_atr",
+    "mtf_geometry_resistance_dist_atr"
+  ],
+  "inputs": {
+    "cache_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/manifest.json",
+      "sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4"
+    },
+    "candidate_view": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/CANDIDATE_VIEW.json",
+      "sha256": "20a503b812d0b0af9dcadbd8f07570aa912f46d6e6dd4dee0a84cf1ab8220867"
+    },
+    "constructor_metadata": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/CONSTRUCTOR_METADATA.json",
+      "sha256": "8d0fc19b646b142dced37ad86dd0e43a71bb8efe299a9ba4fd2de08e324db2bf"
+    },
+    "prefix_normalization": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/PREFIX_NORMALIZATION.json",
+      "sha256": "9cbde23587e2296365b799d9f288c27ce3cd9b4023baa19cc77aad3476076109"
+    },
+    "raw_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001/RESULT.json",
+      "sha256": "62f37fc0ae50d967b2b8a449a54d72ed66b2fc5a08ad11ae0a381f68f92388e7"
+    }
+  },
+  "launch_argv": [
+    "bash",
+    "scripts/gx1_capped_run.sh",
+    "--class",
+    "audit",
+    "--mem",
+    "4G",
+    "--swap",
+    "512M",
+    "--",
+    "/home/andre2/src/GX1_CURRENT/.venv/bin/python",
+    "-B",
+    "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_m5_october_native_postnorm_v1.py"
+  ],
+  "preparation_status": "PREPARED_NOT_ADMITTED",
+  "raw_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001.json",
+    "sha256": "b5a6785ab4666d03663ce4ad3878f6c84a839821d4c3f2598cc6d2f2e01ef0d9"
+  },
+  "rtol": 2e-06,
+  "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001",
+  "sample_parent_positions": [
+    0,
+    1,
+    29847,
+    29848,
+    29849,
+    29850,
+    36170,
+    36171
+  ],
+  "schema_version": "dynamic_m5_october_native_postnorm_20261106_001_plan_v1",
+  "scope": {
+    "comparison": "Bound NumPy reference against fresh candidate-model runtime input normalizer, all 253 fields per TF; exact identity masks and level occupancy witnesses",
+    "input": "Eight fixed parent positions from the already completed raw as-of audit; five 253-field MTF cache rows each",
+    "limits": "No model forward, optimizer, fit, TEST labels/outcomes, VAL selection, new feature formula qualification, all-253 gather proof, indicator usefulness or edge claim",
+    "phase": "Indicator correctness after market-state target contract",
+    "source_compatibility": "Only the candidate-view direction_component_source old SHA is allowed to differ: f574d838 exact patch adds confirmed-run-age loss identity checks and changes no normalization/constructor path; every other view source binding must match physical SHA",
+    "unqualified_remaining": "95 formerly parked MTF fields per TF require separate independent numeric formula review"
+  },
+  "source_compatibility": {
+    "commit": "f574d838d7c54d5ed36881cdbb4525efe167dc15",
+    "current_sha256": "dba2d263f0d28e52e73fa38e1d7febd88b3e9a5958edc566f30df0ca69180fa3",
+    "key": "direction_component_source",
+    "old_sha256": "627e063c51524d1bd9bfcf4f70b4c29451ddbb0e63d4ecda0906f1c327c3d497",
+    "patch_sha256": "827bec7f99ecf635a0f821b63eeffbce1e4ff44072a973f5b76c0912de2a2054",
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+    "scope": "f574d838 changes only confirmed_run_age_input validation and loss-contract identity in native_dynamic_mtf_state_loss; no normalization or model constructor change"
+  },
+  "source_owners": {
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_model_native_input_normalization_v1.py",
+      "sha256": "d61f69ef733ab756d5848867c579a0339890fc8f396f4adb41ca80545d7ac99d"
+    },
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_feature_view_v1.py",
+      "sha256": "e3fe8f45690e99f5aac769d7f921b4676cfe562400689acbb3c4efc1fa686697"
+    },
+    "gx1/contracts/entry_native_direction_research_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_v1.py",
+      "sha256": "dba2d263f0d28e52e73fa38e1d7febd88b3e9a5958edc566f30df0ca69180fa3"
+    },
+    "gx1/contracts/gx1_capped_execution_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "gx1/contracts/immutable_event_authority_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "gx1/features/gc_native_context_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/gc_native_context_v1.py",
+      "sha256": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf"
+    },
+    "gx1/features/micro_structure_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/micro_structure_v1.py",
+      "sha256": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd"
+    },
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py",
+      "sha256": "43526ebda18d32a98e29da100e845f1643d0b558da9b950ffa9d1c54b4df2c6e"
+    }
+  },
+  "stage": "dynamic_m5_october_native_postnorm_20261106_001",
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "worker": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_m5_october_native_postnorm_v1.py",
+    "sha256": "6f21704418ffb457d4312de17b4e889604417aa17fd4b98df580f45ad01096c8"
+  }
+}

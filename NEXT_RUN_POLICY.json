@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T17:21:31.289322+00:00",
+  "observed_utc": "2026-11-06T19:46:31.538645+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "The consumed 0.5 versus 1.0 ATR TRAIN sensitivity shows a large coverage/FLAT tradeoff, not an automatic target choice. Source audit confirms known non-FLAT activity with unknown direction at M5+5 is not directly supervised: older full TRAIN had 21,252 such cells and reused later development 8,305; the active activity adjunct is only +1, while native endpoint loss requires observed three-class state. Sequence loss may give indirect gradient. First bind target semantics, separate activity/direction masks, output, later-lead binary loss and same-cell binary score as a candidate, without treating UNKNOWN as FLAT. Then check normalized indicator/level-mask delivery and 95 previously parked fields per TF. Only after these gates, prebind one chronological state-forecast comparison with simple baselines. No new target run or model fit, TEST, Entry-Q, broker, trading or spending is admitted.",
+  "next_action": "The consumed 0.5 versus 1.0 ATR TRAIN sensitivity leaves the semantic market-state threshold unlocked. Existing singleton target queries and December score code already provide masked FLAT/non-FLAT at all five native leads; do not build another label/scorer. The active loss uses binary activity only at +1, but saved reused-development M5+5 binary Brier already beats Markov while D1 loses, so an extra native activity loss is a hypothesis, not a proven directional remedy. First bind partial observation semantics and decide whether to admit this single loss change; retain UNKNOWN direction. Run the admitted one-use post-normalization indicator/level-mask audit on eight fixed physical rows; consume the exact result, then qualify 95 formerly parked fields per TF. Only after target/input gates, prebind chronological state forecast versus simple causal references. No new model fit, TEST, Entry-Q, broker, trading or spending admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Completed 0.5 versus 1.0 ATR target sensitivity and source audit of later-lead partial activity labels. The semantic market-state/partial-label contract is the active work; no model fit admitted.",
+    "current_activity": "Completed 0.5 versus 1.0 ATR target sensitivity and source audit of later-lead partial activity labels. One exact post-normalization indicator audit is admitted but not claimed; semantic market-state target remains unlocked and no model fit is admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -60436,6 +60436,30 @@
     "resource_accounting_note": "Process ru_maxrss exceeds requested 4G memory.max; actual cgroup peak was not retained. Scope limit was verified and exit was 0 without OOM; do not equate these measures.",
     "source_unchanged": true,
     "post_run_review": "Original result/terminal rehashed; all 36,172 parent as-of selections on five TF and exact M5 parent barstart passed; eight raw EMA/ATR/SR tensor rows bit-match cache. Does not test post-normalization, model influence, level observation or Entry value."
+  },
+  "dynamic_m5_october_native_postnorm_20261106_001": {
+    "status": "ADMITTED_UNCLAIMED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001.json",
+      "sha256": "5e4f5f5cc96db4e684fcb30dba3ba1e824217d9e445562917681c103e898d62c"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "model_constructions_authorized": 1,
+    "model_forwards_authorized": 0,
+    "optimizer_updates_authorized": 0,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "test_authorized": false,
+    "training_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "operator_approval": "Standing zero-cost local GX1 authorization from 2026-11-05 and 2026-11-06 market-state/indicator task; one bounded post-normalization audit, no fit or paid model calls.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "source_head_at_admission": "97569cc7",
+    "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001",
+    "scope": "Eight fixed cache rows times five 253-field TF surfaces: NumPy versus native model runtime post-normalization and level presence/absence; one CPU model construction, zero forwards/updates. Exact loss-only source compatibility pinned; no formula qualification, predictive signal, TEST or edge claim."
   },
   "dynamic_mtf_state_target_sensitivity_20261106_001": {
     "status": "COMPLETE_CONSUMED_NO_TARGET_LOCK",

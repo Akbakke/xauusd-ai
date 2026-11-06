@@ -72,10 +72,17 @@ etterfølgende vendepunkter mates aldri inn som kjent informasjon ved t.
 Ukjent intrabarrekkefølge og manglende dekning beholdes som ukjent. En fasit
 fra lukkede M1-barer beviser ikke subminuttforløpet. Hvis lokal range med
 komplett dekning beviser aktivitet/ro mens retningen er ukjent, behold et
-eget binært mål og maske for samme framtidstidspunkt. Et binært tap bare ved
-første minutt dekker ikke automatisk senere native mål. Før et eventuelt nytt
-tap skal output, maske og binær score bindes på de samme radene; det er en
-målhypotese, ingen bevist retningsforbedring.
+eget binært mål og maske for samme framtidstidspunkt. Eksisterende singleton-
+målspørring og desember-scorer dekker de fem native ledetidene uten ny
+fasitmotor; det aktive treningstapet bruker binær aktivitet bare ved første
+minutt. Før et eventuelt nytt tap skal eksisterende output, maske og binær
+score bindes på de samme radene. Ekstra aktivitetstap er en hypotese, ingen
+bevist retningsforbedring. En delvis fasit på ett TF/gyldighetstidspunkt er
+{OPP}, {NED} eller {FLATT} når treklassetilstanden er bevist; ellers
+{OPP, NED} når komplett lokal range beviser ikke-FLATT, men rekkefølgen
+ikke avgjør retningen; ellers ingen supervisjon. Det er ingen fjerde
+markeds-/handlingsklasse. Treklasse- og aktivitetsmaskene er separate:
+en kjent retning kan forekomme uten komplett aktivitetsvindu på lang TF.
 
 Mål kvalitet på alle tre tilstander og alle fem TF, både fortsettelse og
 skifter: sannsynlighetskvalitet/kalibrering, feilvarsler, oversette bevegelser
