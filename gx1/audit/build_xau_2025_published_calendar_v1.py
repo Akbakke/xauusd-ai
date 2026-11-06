@@ -23,7 +23,7 @@ from zoneinfo import ZoneInfo
 
 
 SCHEMA = "gx1_xau_2025_published_calendar_extension_plan_v1"
-POLICY_GATE = "xau_2025_published_calendar_extension_20261106_001"
+POLICY_GATE_PREFIX = "xau_2025_published_calendar_extension_20261106_"
 CLAIM_SCHEMA = "gx1_xau_2025_published_calendar_extension_claim_v1"
 MAX_SOURCE_BYTES = 16 * 1024 * 1024
 OLD_CALENDAR_PATH = Path(
@@ -125,7 +125,7 @@ def _check_plan(plan: dict, plan_ref: dict, out_dir: Path) -> None:
         "schema_version", "old_calendar", "archive_documents", "source_owners",
         "timezone_database", "output_root", "coverage_end_utc_exclusive", "policy_gate", "test_data_used",
     }, "PLAN_SHAPE")
-    require(plan["schema_version"] == SCHEMA and plan["policy_gate"] == POLICY_GATE
+    require(plan["schema_version"] == SCHEMA and re.fullmatch(POLICY_GATE_PREFIX + r"[0-9]{3}", plan["policy_gate"]) is not None
             and plan["test_data_used"] is False, "PLAN_SCOPE")
     require(plan["old_calendar"] == {"path": str(OLD_CALENDAR_PATH), "sha256": OLD_FILE_SHA256}, "OLD_REF")
     require(plan["coverage_end_utc_exclusive"] == "2026-01-01T00:00:00+00:00", "CUTOFF")
@@ -187,7 +187,7 @@ def _check_admission(plan: dict, plan_ref: dict, claim: dict) -> dict:
     require(isinstance(policy_ref, dict) and policy_ref.get("path") == str(repo / "NEXT_RUN_POLICY.json"),
             "POLICY_PATH")
     policy = json.loads(_read_ref(policy_ref))
-    gate = policy[POLICY_GATE]
+    gate = policy[plan["policy_gate"]]
     expected = {"decision": "ADMITTED", "plan": plan_ref, "execution_authorized": True,
                 "source_downloads_authorized": len(ARCHIVES), "target_data_reads_authorized": False,
                 "target_builds_authorized": 0, "model_calls_authorized": 0, "test_authorized": False,

@@ -1,0 +1,84 @@
+{
+  "archive_documents": [
+    {
+      "archive_url": "https://web.archive.org/web/20250719220103id_/https://www.oanda.com/uk-en/trading/holiday-trading-hours/",
+      "capture_timestamp": "20250719220103",
+      "cdx_sha1_digest": "LAQ6PW5ROAJCSEAE3DJGJAIL7CJE2EBM",
+      "original_url": "https://www.oanda.com/uk-en/trading/holiday-trading-hours/",
+      "role": "holiday"
+    },
+    {
+      "archive_url": "https://web.archive.org/web/20251118074941id_/https://www.oanda.com/uk-en/trading/holiday-trading-hours/",
+      "capture_timestamp": "20251118074941",
+      "cdx_sha1_digest": "EKIJ3S4SNNYH6YG4XTFDC4GBJ4LY3CEB",
+      "original_url": "https://www.oanda.com/uk-en/trading/holiday-trading-hours/",
+      "role": "holiday"
+    },
+    {
+      "archive_url": "https://web.archive.org/web/20251222073046id_/https://www.oanda.com/uk-en/trading/holiday-trading-hours/",
+      "capture_timestamp": "20251222073046",
+      "cdx_sha1_digest": "STWMEWX3GT24VYGPOGDYE2ZSPZ5L3XCT",
+      "original_url": "https://www.oanda.com/uk-en/trading/holiday-trading-hours/",
+      "role": "holiday"
+    },
+    {
+      "archive_url": "https://web.archive.org/web/20260208124247id_/https://www.oanda.com/uk-en/trading/holiday-trading-hours/",
+      "capture_timestamp": "20260208124247",
+      "cdx_sha1_digest": "72NO6QGJ5WEYXXTQ43LWAP64YQOPA4B5",
+      "original_url": "https://www.oanda.com/uk-en/trading/holiday-trading-hours/",
+      "role": "holiday"
+    },
+    {
+      "archive_url": "https://web.archive.org/web/20250708202954id_/https://www.oanda.com/uk-en/trading/hours-of-operation/",
+      "capture_timestamp": "20250708202954",
+      "cdx_sha1_digest": "UHCN3JEXZS74OZ4MPZG76CFJYWHYLAAW",
+      "original_url": "https://www.oanda.com/uk-en/trading/hours-of-operation/",
+      "role": "regular"
+    },
+    {
+      "archive_url": "https://web.archive.org/web/20251115023204id_/https://www.oanda.com/uk-en/trading/hours-of-operation/",
+      "capture_timestamp": "20251115023204",
+      "cdx_sha1_digest": "7BIVLQ6SFRXXE5UCYOTJRMSGNV4F2SUC",
+      "original_url": "https://www.oanda.com/uk-en/trading/hours-of-operation/",
+      "role": "regular"
+    },
+    {
+      "archive_url": "https://web.archive.org/web/20251213234655id_/https://www.oanda.com/uk-en/trading/hours-of-operation/",
+      "capture_timestamp": "20251213234655",
+      "cdx_sha1_digest": "47ZY2CZIZUTKCQGI3YNBTEFPGQYYL6TJ",
+      "original_url": "https://www.oanda.com/uk-en/trading/hours-of-operation/",
+      "role": "regular"
+    }
+  ],
+  "coverage_end_utc_exclusive": "2026-01-01T00:00:00+00:00",
+  "old_calendar": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/OANDA_CALENDAR_DOWNLOAD_001/PUBLISHED_CALENDAR.json",
+    "sha256": "381f1879f97c1cd8d0103ab137d23076c0da3729ae19ec10e737461229965eda"
+  },
+  "output_root": "/home/andre2/GX1_RUNS/XAU_2025_PUBLISHED_CALENDAR_EXTENSION_20261106_002",
+  "policy_gate": "xau_2025_published_calendar_extension_20261106_002",
+  "schema_version": "gx1_xau_2025_published_calendar_extension_plan_v1",
+  "source_owners": {
+    "capped_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "closure_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/unified_exit_market_closure_authority_v1.py",
+      "sha256": "899380c7e1e23d28893e1f155dd8ca8ef8d5c149188fed08bf4bba700bdf6ed9"
+    },
+    "publication_owner": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/build_xau_2025_published_calendar_v1.py",
+      "sha256": "6186d7db6926361a81ec887ee3757d66d43587042908f219d793b66e6239af3e"
+    }
+  },
+  "test_data_used": false,
+  "timezone_database": {
+    "path": "/usr/share/zoneinfo/America/New_York",
+    "sha256": "e9ed07d7bee0c76a9d442d091ef1f01668fee7c4f26014c0a868b19fe6c18a95"
+  }
+}
