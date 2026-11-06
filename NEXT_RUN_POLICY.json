@@ -46,7 +46,7 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-06T00:35:11.495960+00:00",
   "status": "M5_ENTRY_OCTOBER_FIT_ROLE_READ_GUARD_SOURCE_CHECKED_EDGE_UNKNOWN",
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
@@ -59019,7 +59019,7 @@
     "failure_error": "RuntimeError:NATIVE_DIRECTION_PREFIX_WINDOW_STATE_LOSS_IDENTITY"
   },
   "dynamic_m5_october_private_004_source_preparation_20261106_001": {
-    "status": "SOURCE_FIXED_PRIVATE_RECIPES_NOT_MATERIALIZED",
+    "status": "MATCHED_PRIVATE_RECIPES_PUBLISHED_CONTROL_ADMISSION_ONLY",
     "observed_utc": "2026-11-06T03:06:00.294138+00:00",
     "scope": "Both fresh matched control and confirmed-age candidate private TRAIN mechanics; separate _004 roots and stages. No new recipe, campaign, reboot, model, fit, October score or TEST.",
     "observed_failure": "Candidate _003 stopped at model/loss objective hash mismatch after two forwards and before gradients or updates.",
@@ -59046,6 +59046,96 @@
     "training_enabled": false,
     "native_model_admitted": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "Publish fresh source-bound private recipes on clean HEAD; admit each arm separately with exact policy and safe reboot/capped route; only then fit and October development OOF."
+    "remaining": "Control private _004 is separately admitted and pending metadata materialization, machine-wide idle, fresh physical boot and one capped native mechanics invocation; candidate _004, fit and October OOF remain closed.",
+    "source_commit_at_recipe_materialization": "f574d838d7c54d5ed36881cdbb4525efe167dc15",
+    "recipes": {
+      "control": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/NATIVE_RECIPE.json",
+        "sha256": "ab9f96cef5c6cc303e07d5340f6d59895b81411d897d26ea02dfdf03f5e5ba4d"
+      },
+      "candidate": {
+        "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/NATIVE_RECIPE.json",
+        "sha256": "016c368e82c88fc1b099301a682ad4638640be17ac89aaff862787f32149acf8"
+      }
+    }
+  },
+  "dynamic_m5_october_control_private_20261106_004": {
+    "status": "ADMITTED_ONCE_PENDING_MATERIALIZATION_AND_FRESH_BOOT",
+    "observed_utc": "2026-11-06T03:10:36.128798+00:00",
+    "scope": "Control arm only; fixed pre-October TRAIN private mechanics on 32 unique parents, 256 fresh initial rows, at most four updates. No main fit or October OOF.",
+    "arm": "control",
+    "input_role": "fit",
+    "candidate_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002.json",
+      "sha256": "8287e4b16dcd7a1e6e82162b756b32a17c6030f2b9c9e86d865ac8cc5db8d750"
+    },
+    "source_commit_at_recipe_materialization": "f574d838d7c54d5ed36881cdbb4525efe167dc15",
+    "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/RUNTIME",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/NATIVE_RECIPE.json",
+      "sha256": "ab9f96cef5c6cc303e07d5340f6d59895b81411d897d26ea02dfdf03f5e5ba4d"
+    },
+    "recipe_sha256": "9ef879d1f721d21cbe9f8a4fefa406e4d7527f551ad1b3431fbcb04e4424f7eb",
+    "materializer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_dynamic_m5_october_private_campaign_v1.py",
+      "sha256": "aa710ea8e364c77eaa297ea616d964cf888342af8be855976e04957e401d0e1d"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "45542da7e3bbf5d1f184fcda98fdfb3aa648e8054302ebfd1cc5818b065aec16"
+    },
+    "prepared_boot_id": 607,
+    "guard_template": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "28a0bd8d659a7636a5b399d5b3785c5ead1e64e780a7ca9c068a23cc9975173e"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": true,
+    "native_training_enabled": true,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "full_epoch_training_allowed": false,
+    "held_out_features_authorized": false,
+    "held_out_outcomes_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "relaunch_allowed": false,
+    "private_weights_for_fit": false,
+    "fresh_windows_boot_required": true,
+    "user_reboot_authorized": true,
+    "power_limit_w": 250,
+    "budgets": {
+      "memory_bytes": 21474836480,
+      "swap_bytes": 536870912,
+      "native_window_seconds": 12000,
+      "outer_guard_seconds": 13800,
+      "max_model_constructions": 3,
+      "max_forwards": 21,
+      "max_backwards": 4,
+      "max_private_updates": 4,
+      "usd": 0
+    },
+    "prepared_plan_materialized": false,
+    "prepared_binding_materialized": false,
+    "machine_wide_idle_verified_for_reboot": false,
+    "physical_reboot_executed": false,
+    "model_calls": 0,
+    "october_outcomes_read": false,
+    "independent_edge": "UNKNOWN",
+    "remaining": "Materialize control _004 exactly once from clean HEAD under capped metadata audit; verify source, task, host-wide idle, then fresh physical reboot and one capped private mechanics invocation. Candidate _004, fit and OOF are closed."
   }
 }

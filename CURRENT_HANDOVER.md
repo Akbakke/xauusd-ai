@@ -11,6 +11,15 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Friske private `_004`-oppskrifter er publisert; bare kontroll er innrømmet.**
+Fra ren `f574d838` er kontroll og alderkandidat bundet til samme oppdaterte 68-kilders
+metadata og egne immutable oppskrifter. Bare kontrollens nye policyblokk åpner én
+metadataforberedelse og én capped privat mekanikk-kjøring på de faste 32 TRAIN-foreldrene,
+256 initialradene og høyst fire oppdateringer. Forberedt fysisk boot er 607; ny boot,
+maskinvid ledighet, kampanjeplan og modellkall er ikke utført. Kandidat, fit og oktober-OOF
+er fortsatt stengt. `training_enabled=true` gjelder kun kontrollens eksakte `_004`-rolle;
+ingen TEST, broker, handel eller uavhengig edge.
+
 **06.11 – Den målte tap/identitetsfeilen er rettet i kilde; begge armer trenger frisk privat kvalifikasjon.**
 `native_dynamic_mtf_state_loss` tar nå kandidatens eksplisitte bekreftet-alder-modus, og den
 eneste native tapskonsumenten fører modusen fra modellen. Historiske kontrollresultater
