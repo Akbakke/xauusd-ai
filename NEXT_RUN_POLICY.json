@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T15:10:37.440031+00:00",
-  "status": "M5_SAVED_TRAIN_DIRECTION_RANK_ONE_READ_ONLY_AUDIT_ADMITTED",
+  "observed_utc": "2026-11-06T15:11:28.526840+00:00",
+  "status": "M5_STATE_TRAIN_RANK_WEAK_IN_SAMPLE_OCTOBER_TRANSFER_UNQUALIFIED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run exactly one capped read-only audit of frozen candidate final TRAIN M5+5 direction rank on observed labels. Compare descriptively with later October AUC; no native model, TEST, Entry action or edge authority.",
+  "next_action": "Read-only review of causal feature consumption, target masks and existing simpler reference evidence to identify one distinct generalization hypothesis. No new model fit, TEST, Entry action or trading is authorized by this completed audit.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -60335,8 +60335,8 @@
     }
   },
   "dynamic_m5_october_train_rank_20261106_001": {
-    "status": "ADMITTED_ONE_CLAIMED_READ_ONLY_TRAIN_RANK_PENDING",
-    "observed_utc": "2026-11-06T15:10:37.440031+00:00",
+    "status": "COMPLETED_ONE_READ_ONLY_IN_SAMPLE_TRAIN_RANK_NO_ENTRY_GATE",
+    "observed_utc": "2026-11-06T15:11:28.526840+00:00",
     "scope": "Final candidate in-sample pre-October TRAIN M5+5 conditional UP/DOWN rank from saved probabilities and observed labels, no new model.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001.json",
@@ -60349,9 +60349,9 @@
     "claim_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001/CLAIM.json",
     "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001/REPORT.json",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "relaunch_allowed": false,
     "capped_class": "audit",
     "memory_bytes": 4294967296,
@@ -60366,6 +60366,28 @@
     "decision_authority": "NONE",
     "independent_edge": "UNKNOWN",
     "economic_edge": "UNKNOWN",
-    "next_action": "Run once under capped 4 GiB after atomic claim; report in-sample M5+5 direction AUC and UTC-day interval with Brier parity. No new model or Entry gate."
+    "next_action": "No rerun. Use the weak in-sample TRAIN rank and later October decline to formulate one distinct causal-input/generalization hypothesis before any new model fit. Existing direct Entry action quality remains unqualified.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001/CLAIM.json",
+      "sha256": "f75d5382c858b4a693e971ef9af10f1b652de487e73b665c6a4f8be8d676a94b"
+    },
+    "report": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001/REPORT.json",
+      "sha256": "a1518c6ae33705ce1229ee9eb77e87c9079f227bb0b48f3dd089fe2f5462ec3b"
+    },
+    "result_summary": {
+      "m5_plus5_observed": 16798,
+      "direction_rows": 14485,
+      "row_auc": 0.5217835745333487,
+      "minus_half_utc_day_95_interval": [
+        0.012715963991738445,
+        0.030791517481950713
+      ],
+      "outcome_utc_days": 131,
+      "reproduced_brier": 0.6042147567186827,
+      "prior_brier": 0.6090713086128303,
+      "later_october_row_auc": 0.48981681797537713,
+      "entry_gate_pass": false
+    }
   }
 }
