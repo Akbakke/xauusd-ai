@@ -11,15 +11,17 @@ Programrot:
 
 ## Aktuell status
 
-**06.11 – Nulloppdateringsrute for kontrollens manglende TRAIN-sluttmåling er kildeklar, ennå ikke innrømmet.**
+**06.11 – Nulloppdateringsrute for kontrollens manglende TRAIN-sluttmåling er eksakt innrømmet.**
 En ny, separat oppskrift kan bindes til det immutable kontroll-checkpointet fra vindu 1,
 forseglet policy ved lukking, signert første kvittering og den dokumenterte Windows-feilen.
 Porten krever samme 68 kildeeiere; kun navngitte kontrollfunksjoner kan ha nye bytes.
 Den eksisterende worker-ruten tillater i denne rollen bare 1 866 FINAL_TRAIN-forwards,
 null backward-/optimizersteg og ingen oktober-OOF. Privat kvalifikasjon og faktisk
 kildelikhet er målt på metadata; fire målrettede kampanje-/recovery-testsuiter bestod.
-Ingen ny oppskrift, kampanje, omstart eller modell er ennå publisert eller kjørt.
-`training_enabled=false`; selv TRAIN-sluttmåling, utviklingsgeneralisering,
+Den immutable oppskriften er publisert, bundet til kilde `6b044361` og kontrollert
+med faktisk lukke-/checkpoint-evidens. Policyen innrømmer én ny lese-only
+12 000-sekunders kampanje med 20 GiB/512 MiB, 250 W, null oppdateringer og 0 USD.
+Plan, omstart og modell er ennå ikke kjørt. `training_enabled=false`; selv TRAIN-sluttmåling, utviklingsgeneralisering,
 uavhengig edge og økonomi er fortsatt UNKNOWN.
 
 **06.11 – Kontrollfit fullførte alle TRAIN-oppdateringer; original kampanje er lukket før sluttmåling.**
