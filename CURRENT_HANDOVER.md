@@ -71,18 +71,26 @@ Erklærte historiske kostnader er ikke sannhetskvalifiserte. Dette er bare
 utviklingsdiagnostikk og gir ingen Entry-gate, uavhengig eller økonomisk edge.
 Planen er konsumert og kan ikke kjøres på nytt.
 
-Stans +5-tilstandsscore som surrogat for Entry-sidegate. Neste minste steg
-er en smal, lesende designgjennomgang av eksisterende direkte executable
-Entry-target og allerede prøvde baseliner. Tidligere rene retningsreferanser
-(247/249/252/259 og sekskvartalsreferanse 215) er konsumert eller avvist;
-ikke gjenta dem. Gjennomgangen skal finne én særskilt hypotese for direkte
-Entry-kvalitet på kronologiske data, eller stanse videre eksperimenter. Gjenbruk eierne i
-`gx1/contracts/entry_observed_market_v1.py` og
-`gx1/contracts/entry_causal_m1_outcomes_v1.py`; ikke lag ny targeteier eller
-start nye modellrunder. Bare en ny, særskilt bundet kronologisk plan med
-konkret akseptregel kan åpne et nytt eksperiment. Oktober er allerede
-undersøkt utviklingsperiode og er ikke uavhengig bekreftelse. FLAT-valg,
-pre-MFE-MAE og realisert økonomi gjenstår.
+Stans +5-tilstandsscoren som surrogat for Entry-sidegate. Det løpende
+OPP/NED/FLATT-prognosemålet på fem TF består som egen fase. Kontraktene viser
+at tilstand ved beslutning+5 gjelder lokal M5-retning fra lukkede M1-midtbars,
+mens Entry-sideutfallet er netto executable BID/ASK-endring fra beslutningen
+til terminal-open. De er ikke samme target. En lesende gjennomgang fant at
+direkte native 191/192 valgte FLAT på alle 256 TRAIN + 256 gjenbrukte CONTROL;
+177/178 gjorde også bare FLAT, mens 151/152 valgte 39 LONG og 71 SHORT av
+512 uten kvalifisert valgt kvalitet. Ingen bred kronologisk direkte Entry-OOF
+er lagret i aktivt scope. Gamle rene retningsreferanser 247/249/252/259/215
+er konsumert eller avvist; ikke gjenta dem.
+
+Neste ene måling er en forhåndsbundet, modellfri krysstabell mellom faktiske
+DOWN/FLAT/UP-tilstandsetiketter og netto LONG-/SHORT-bedre-utfall på nøyaktig
+felles observerte oktober M5+5-rader. [Planen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001.json) SHA-256
+`90915641b504d18603fd76562a97461fa2872c399283f36014bb0fd1f84e3d39`
+binder kilde, klokke, 6 323 foreldre, 3 359 observerte tilstandsetiketter,
+6 297 executable sideutfall, UTC-dag-intervall, atomisk claim og capped 4 GiB.
+Den felles koblingen er ikke undersøkt ennå. Oktober er utvikling; rapporten
+kan bare skille mål-samsvar fra modell-læring som neste forskningsspørsmål.
+Ingen handling, ny trening eller Entry-gate følger av dette.
 
 M5 Entry er hovedmål med kausal lukket M15/H1/H4/D1-kontekst, åtte
 spesialister og niende D1/makro. `training_enabled=false`. TEST er forseglet;

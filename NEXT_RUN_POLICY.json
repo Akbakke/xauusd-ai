@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T14:31:48.580353+00:00",
-  "status": "M5_ENTRY_OCTOBER_SIDE_RANK_COMPLETED_NO_GATE_REVIEW_DIRECT_TARGET",
+  "observed_utc": "2026-11-06T14:53:53.518217+00:00",
+  "status": "M5_STATE_ENTRY_TARGET_ALIGNMENT_ONE_READ_ONLY_AUDIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Stop using the October +5 state forecast as a surrogate Entry-side gate. Review the existing direct executable Entry target and already-consumed baselines for one distinct chronological development question with a concrete acceptance rule. No new run or training is authorized by this completed plan.",
+  "next_action": "Run exactly one claimed capped 4 GiB read-only October M5+5 target-target alignment audit. Use saved state labels and existing Entry outcome owner on common observed rows; no model, TEST, action selection or edge authority.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -60275,5 +60275,39 @@
       "control_equal_day_auc": 0.47747446675073496,
       "entry_gate_pass": false
     }
+  },
+  "dynamic_m5_october_target_alignment_20261106_001": {
+    "status": "ADMITTED_ONE_CLAIMED_READ_ONLY_TARGET_ALIGNMENT_PENDING",
+    "observed_utc": "2026-11-06T14:53:53.518217+00:00",
+    "scope": "October M5+5 future local state label versus relative declared-net executable Entry side on exact common observed rows; descriptive only.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001.json",
+      "sha256": "90915641b504d18603fd76562a97461fa2872c399283f36014bb0fd1f84e3d39"
+    },
+    "source_script": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/report_dynamic_m5_october_target_alignment_v1.py",
+      "sha256": "a1d0353180aaa01fa9d87e5cd87e24fed1fdd92e4b5cfb820d5e2b5bc040531b"
+    },
+    "claim_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/CLAIM.json",
+    "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/REPORT.json",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "relaunch_allowed": false,
+    "capped_class": "audit",
+    "memory_bytes": 4294967296,
+    "swap_bytes": 536870912,
+    "max_wall_seconds": 3600,
+    "usd_budget": 0,
+    "model_calls_authorized": 0,
+    "training_enabled": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "trading_allowed": false,
+    "decision_authority": "NONE",
+    "independent_edge": "UNKNOWN",
+    "economic_edge": "UNKNOWN",
+    "next_action": "Run once under capped 4 GiB after atomic claim; close with exact joint counts and UTC-day interval. No model, action, TEST or edge authority."
   }
 }

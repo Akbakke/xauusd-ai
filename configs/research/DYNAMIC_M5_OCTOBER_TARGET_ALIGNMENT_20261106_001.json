@@ -1,0 +1,76 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_target_alignment_v1_plan",
+  "status": "DESCRIPTIVE_RULE_BOUND_BEFORE_THIS_ALIGNMENT_AFTER_PRIOR_OCTOBER_EXPOSURE",
+  "created_utc": "2026-11-06T14:53:53.518217+00:00",
+  "script_sha256": "a1d0353180aaa01fa9d87e5cd87e24fed1fdd92e4b5cfb820d5e2b5bc040531b",
+  "state_report": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_PAIRED_DESCRIPTIVE_20261106_001/REPORT.json",
+    "sha256": "82988bb594c31c5d77ac1108b79befb6497dbaac65277b3e6babc8770f17e258"
+  },
+  "entry_report": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/REPORT.json",
+    "sha256": "078f9ea44a096a64d5001799773b9ae8d6e508756c332868fa74dce236101ad0"
+  },
+  "entry_mask_report": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_MASK_COVERAGE_20261106_001/REPORT.json",
+    "sha256": "17943a62ef36020120878c3e72a124c99304fe2f60ea7d7c638926b5175a0b37"
+  },
+  "state_manifest": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_SERIES_20261105_001/STATE_SERIES/SERIES.json",
+    "sha256": "302ca457b81b8ff59347d25d29dcace0aed7bbaa75a0236298fb216547b7a7ac"
+  },
+  "input_recipe": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RECIPE.json",
+    "sha256": "83dbdaec44aac242db740cc43bd1314679aba2668eb53da4bc5e1a972afc82cd"
+  },
+  "physical_target_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
+    "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
+  },
+  "october_axis": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/OCTOBER_AXIS.json",
+    "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"
+  },
+  "cost_authority": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_COST_TERMS_20261019_059/COST_POLICY/parameter_authority.json",
+    "sha256": "e93ed40451a24344f94716e1f5ebe4cd348e6c7c3120e7509d6d55827bf40522"
+  },
+  "parent_range": [
+    29849,
+    36172
+  ],
+  "october_cutoff_ns_exclusive": 1730419200000000000,
+  "lead_minutes": 5,
+  "expected_state_observed": 3359,
+  "expected_state_classes": {
+    "DOWN": 1334,
+    "FLAT": 490,
+    "UP": 1535
+  },
+  "expected_entry_fold_mature": 6322,
+  "expected_entry_executable": 6297,
+  "expected_entry_long_better": 3225,
+  "expected_entry_short_better": 3072,
+  "expected_entry_ties": 0,
+  "primary_question": "On exactly common observed October M5+5 rows, does future local M5 state UP associate with higher relative declared-net executable LONG-better incidence than state DOWN?",
+  "primary_metric": "P(LONG-better|state UP)-P(LONG-better|state DOWN), all common observed rows; FLAT retained separately in three-by-two table",
+  "descriptive_interpretation": "Positive interval wholly above zero suggests target alignment in inspected October development; interval containing zero leaves association unresolved; wholly negative suggests opposite alignment. No case is an Entry gate, independent edge or action rule.",
+  "bootstrap_draws": 10000,
+  "bootstrap_seed": 20260911,
+  "clock_semantics": "State at issue+5 describes last observed closed M1 midpoint bars, independent of issue price; Entry terminal is executable BID/ASK open at issue+5, relative to issue fill.",
+  "pre_registration_limit": "Both separate October outcomes and scores have already been inspected. Only their joint row association is bound before this read; descriptive development only.",
+  "source_read_scope": "Saved pre-November state target plus existing Entry owner full pre-2026 TRAIN physical source setup; query only October parent rows with +5 terminal before 2024-11-01. No TEST.",
+  "claim_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/CLAIM.json",
+  "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/REPORT.json",
+  "max_wall_seconds": 3600,
+  "capped_class": "audit",
+  "memory_bytes": 4294967296,
+  "swap_bytes": 536870912,
+  "usd_budget": 0,
+  "model_calls_authorized": 0,
+  "test_data_used": false,
+  "no_action_selection": true,
+  "decision_authority": "NONE",
+  "broker_access_allowed": false,
+  "trading_allowed": false
+}
