@@ -35,8 +35,8 @@ er en mål- og observerbarhetsavveining, ingen modellkvalifisering eller
 automatisk beslutning om ny terskel. Gjeldende 0,5-kandidat er fortsatt
 semantisk ulåst. Aktiv neste oppgave er å binde observert aktivitet versus
 ukjent retning, framtidige gyldighetstidspunkter, output, tap og måling
-uten å gjøre ukjent til FLATT. Deretter følger indikatorenes normaliserte
-konsum og den åpne numeriske kvalifiseringen.
+uten å gjøre ukjent til FLATT. Den avgrensede normaliseringskontrollen er nå
+fullført; uavhengig formelkvalifisering av 95 felt/TF gjenstår.
 
 Kildegjennomgang viser en konkret delvis observert fasit som dagens tap ikke
 bruker direkte ved senere native ledespørsmål: full lokal range kan bevise
@@ -87,13 +87,21 @@ SHA-256 `31460991b2ed2008bd03c38c93176f1fc806b8514486bf8840391075a5837249`,
 `FAILED_CONSUMED`; ingen RESULT eller påstand om de fire øvrige TF. Ingen
 modell-forward, fit eller TEST ble startet. Originalkvitteringene er bevart.
 
-En separat [korrigert engangsplan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002.json)
+Den separate [korrigerte engangsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002.json)
 SHA-256 `172907a002cb8ce808f0836e3166cc8cec9c109550799660e97a84ed30fb92c2`
-er innrømmet, ennå ikke claimet. Den endrer bare evaluering av feilmelding;
-samme åtte cache-rader, fem TF og 253 felt/TF, null forward/fit/TEST. Begge
-planer binder eksakt kjent kildeavvik i en tapsfunksjon uten å gi fit-/forward-
-adgang. Etter terminalkontroll gjenstår uavhengig numerisk kvalifisering av
-95 felt per TF og bidrag på kronologisk utviklings-OOF.
+er fullført og konsumert. [RESULT](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002/RESULT.json)
+SHA-256 `dfce8d60a1f9fb9439ca3aa58c66b187c705732d443ba81ecec6878354ebf829`;
+[TERMINAL](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002/TERMINAL.json)
+SHA-256 `03e1883098699b6cd4d9c0b325160a1ac2ddb0d7fb1099e9435595b1878bf18e`,
+`COMPLETE`, exit 0. På hver av M5/M15/H1/H4/D1 matchet alle 8 × 253
+normaliserte cache-verdier NumPy-referansen eksakt (`maks |diff| = 0,0`):
+10 120 sammenligninger, men bare 22 unike fysiske TF-rader. Binær-/kategorimasker
+og tilstedeværende/fraværende nivåverdier passerte. Én CPU-konstruksjon,
+0 forward/bakover/optimizer, 0 TEST; 14,5 s og 713 MB prosessmaks under 4 GiB.
+Eksakt kildeavvik i en tapsfunksjon ble bundet uten fit-/forward-adgang.
+Stikkprøven beviser ikke all-253 gather, indikatorenes formel eller verdi.
+Neste indikatorsteg er uavhengig numerisk og kausal kvalifisering av 95
+felt per TF; bidrag må deretter måles på kronologisk utvikling.
 
 Vi har ikke kjørt omfattende trening gjennom flere år. Tidligere fem-TF-fit
 var ett pass på 47 602 TRAIN-foreldre (2 976 steg); oktoberparet var ett pass

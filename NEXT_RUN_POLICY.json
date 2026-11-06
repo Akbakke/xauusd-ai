@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T19:50:00.562744+00:00",
+  "observed_utc": "2026-11-06T19:52:38.941344+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "The consumed 0.5 versus 1.0 ATR TRAIN sensitivity leaves the semantic market-state threshold unlocked. Existing singleton target queries and December score code already provide masked FLAT/non-FLAT at all five native leads; do not build another label/scorer. The active loss uses binary activity only at +1, but saved reused-development M5+5 binary Brier already beats Markov while D1 loses, so an extra native activity loss is a hypothesis, not a proven directional remedy. First bind partial observation semantics and decide whether to admit this single loss change; retain UNKNOWN direction. The first post-normalization audit was claimed and failed in error-message formatting; it is consumed. Run only the distinct admitted _002 plan on eight fixed physical rows; consume its exact result, then qualify 95 formerly parked fields per TF. Only after target/input gates, prebind chronological state forecast versus simple causal references. No new model fit, TEST, Entry-Q, broker, trading or spending admitted.",
+  "next_action": "The 0.5 versus 1.0 ATR TRAIN sensitivity leaves the market-state threshold semantically unlocked; do not choose by label coverage or model score. Existing singleton target queries and December scorer already provide masked FLAT/non-FLAT on all native leads. The active loss uses binary activity only at +1; another loss is a hypothesis, not a proven directional remedy. Bind partial {UP,DOWN} semantics, separate activity/direction masks and one meaningful ATR-scale decision from TRAIN-only price-unit, spread, state-duration and trajectory checks. Corrected post-normalization audit _002 passed all five TF times eight 253-field rows with exact parity; now independently qualify formulas/causal clock of 95 formerly parked fields per TF, then prebind a simple EMA/ATR reference and one chronological state comparison. No new model fit, TEST, Entry-Q, broker, trading or spending admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Completed 0.5 versus 1.0 ATR target sensitivity and source audit of later-lead partial activity labels. Post-normalization audit _001 failed after claim in error-message formatting and is consumed. Exact corrected _002 is admitted but unclaimed; semantic market-state target remains unlocked and no model fit is admitted.",
+    "current_activity": "The 0.5 versus 1.0 ATR sensitivity remains semantically undecided. Post-normalization audit _001 failed and is consumed; corrected _002 completed: all five TF times eight 253-field rows matched runtime normalization exactly. The 95 formerly parked fields per TF still need independent formula qualification; no model fit admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The 0.5 ATR target is semantically unlocked. 1.0 ATR sharply improves M5 label coverage but makes observed M5+5 mostly FLAT and reduces D1 coverage; source M1 OHLC cannot resolve intraminute order. Normalized input and 95 full-profile fields per TF remain incompletely qualified.",
+    "current_blocker": "The 0.5 ATR target is semantically unlocked. 1.0 ATR sharply improves M5 label coverage but makes observed M5+5 mostly FLAT and reduces D1 coverage; source M1 OHLC cannot resolve intraminute order. All 253 post-normalized cache fields matched on eight rows per TF, but 95 full-profile fields per TF still lack independent formula/causal numeric qualification.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60473,18 +60473,18 @@
     "observed_failure": "Eager evaluation of first mismatch index in error message raised IndexError when first checked TF had all 253x8 normalized values close; other TFs not reached. No RESULT; no fit, forward or TEST. Original one-use plan remains consumed."
   },
   "dynamic_m5_october_native_postnorm_20261106_002": {
-    "status": "ADMITTED_UNCLAIMED",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002.json",
       "sha256": "172907a002cb8ce808f0836e3166cc8cec9c109550799660e97a84ed30fb92c2"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "model_constructions_authorized": 1,
     "model_forwards_authorized": 0,
     "optimizer_updates_authorized": 0,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "test_authorized": false,
     "training_authorized": false,
@@ -60495,7 +60495,39 @@
     "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002",
     "scope": "Same eight fixed cache rows times five 253-field TF surfaces; exact eager error-message evaluation fix only. NumPy versus runtime post-normalization and level presence/absence; one CPU model construction, zero forwards/updates; no formula qualification, predictive signal, TEST or edge claim.",
-    "prior_failed_consumed_stage": "dynamic_m5_october_native_postnorm_20261106_001"
+    "prior_failed_consumed_stage": "dynamic_m5_october_native_postnorm_20261106_001",
+    "relaunch_allowed": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002/CLAIM.json",
+      "sha256": "c2a34f02b73e0d03faea8ed550770f3658bb9b4ed8e52c0647f1e05e81519eea"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002/RESULT.json",
+      "sha256": "dfce8d60a1f9fb9439ca3aa58c66b187c705732d443ba81ecec6878354ebf829"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_002/TERMINAL.json",
+      "sha256": "03e1883098699b6cd4d9c0b325160a1ac2ddb0d7fb1099e9435595b1878bf18e"
+    },
+    "source_head_at_run": "1bb2339feb9aa2c7822bc86037c66bec045b48d3",
+    "elapsed_seconds": 14.521161772998312,
+    "peak_rss_bytes": 713084928,
+    "checked_normalized_values": 10120,
+    "timeframes": [
+      "D1",
+      "H1",
+      "H4",
+      "M15",
+      "M5"
+    ],
+    "max_absolute_difference": 0.0,
+    "model_constructions": 1,
+    "model_forwards": 0,
+    "backward_calls": 0,
+    "optimizer_updates": 0,
+    "test_data_used": false,
+    "independent_edge": "UNKNOWN",
+    "post_run_review": "Original receipts rehashed: all five TF have eight fixed 253-field cache rows, NumPy/reference versus native runtime normalizer maximum absolute difference 0.0; categorical/binary identity and level presence/absence guards passed. No model forward/fit/TEST. This does not prove 95 remaining formulas, all-row raw gather, indicator value or forecast edge."
   },
   "dynamic_mtf_state_target_sensitivity_20261106_001": {
     "status": "COMPLETE_CONSUMED_NO_TARGET_LOCK",
