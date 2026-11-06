@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T14:53:53.518217+00:00",
-  "status": "M5_STATE_ENTRY_TARGET_ALIGNMENT_ONE_READ_ONLY_AUDIT_ADMITTED",
+  "observed_utc": "2026-11-06T14:57:09.980552+00:00",
+  "status": "M5_STATE_TARGET_ALIGNS_ON_OBSERVED_OCTOBER_MODEL_EDGE_UNPROVEN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run exactly one claimed capped 4 GiB read-only October M5+5 target-target alignment audit. Use saved state labels and existing Entry outcome owner on common observed rows; no model, TEST, action selection or edge authority.",
+  "next_action": "Measure conditional M5+5 UP/DOWN rank AUC from the saved final candidate TRAIN predictions on their observed TRAIN labels, using one separately bound capped read-only audit. Compare descriptively with October AUC; no model scoring, training or Entry gate is authorized by the completed alignment plan.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -60277,8 +60277,8 @@
     }
   },
   "dynamic_m5_october_target_alignment_20261106_001": {
-    "status": "ADMITTED_ONE_CLAIMED_READ_ONLY_TARGET_ALIGNMENT_PENDING",
-    "observed_utc": "2026-11-06T14:53:53.518217+00:00",
+    "status": "COMPLETED_ONE_READ_ONLY_DESCRIPTIVE_TARGET_ALIGNMENT_NO_ENTRY_GATE",
+    "observed_utc": "2026-11-06T14:57:09.980552+00:00",
     "scope": "October M5+5 future local state label versus relative declared-net executable Entry side on exact common observed rows; descriptive only.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001.json",
@@ -60291,9 +60291,9 @@
     "claim_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/CLAIM.json",
     "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/REPORT.json",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "relaunch_allowed": false,
     "capped_class": "audit",
     "memory_bytes": 4294967296,
@@ -60308,6 +60308,30 @@
     "decision_authority": "NONE",
     "independent_edge": "UNKNOWN",
     "economic_edge": "UNKNOWN",
-    "next_action": "Run once under capped 4 GiB after atomic claim; close with exact joint counts and UTC-day interval. No model, action, TEST or edge authority."
+    "next_action": "Saved TRAIN M5+5 Brier has a small in-sample advantage over prior, while October has none; measure saved TRAIN rank AUC under a separate exact read-only plan before selecting a learning change. No model run follows automatically.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/CLAIM.json",
+      "sha256": "b6ee022fc6d75860abe89f862cdf6e30f3a4c760510888a5e39b17fafd20fee0"
+    },
+    "report": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/REPORT.json",
+      "sha256": "3377e7d092abcccc90705e064031d6c545ec63ca7329978e4b43682c0566f090"
+    },
+    "result_summary": {
+      "parent_rows": 6323,
+      "common_observed": 3344,
+      "state_unknown_entry_known": 2953,
+      "entry_unknown_state_known": 15,
+      "both_unknown": 11,
+      "long_better_rate_given_up": 0.7926749509483323,
+      "long_better_rate_given_down": 0.19714070729872085,
+      "up_minus_down_long_better_rate": 0.5955342436496114,
+      "up_minus_down_utc_day_95_interval": [
+        0.5662323323349936,
+        0.6251929114673558
+      ],
+      "outcome_utc_days": 27,
+      "entry_gate_pass": false
+    }
   }
 }

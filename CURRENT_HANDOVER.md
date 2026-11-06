@@ -82,15 +82,37 @@ direkte native 191/192 valgte FLAT på alle 256 TRAIN + 256 gjenbrukte CONTROL;
 er lagret i aktivt scope. Gamle rene retningsreferanser 247/249/252/259/215
 er konsumert eller avvist; ikke gjenta dem.
 
-Neste ene måling er en forhåndsbundet, modellfri krysstabell mellom faktiske
-DOWN/FLAT/UP-tilstandsetiketter og netto LONG-/SHORT-bedre-utfall på nøyaktig
-felles observerte oktober M5+5-rader. [Planen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001.json) SHA-256
-`90915641b504d18603fd76562a97461fa2872c399283f36014bb0fd1f84e3d39`
-binder kilde, klokke, 6 323 foreldre, 3 359 observerte tilstandsetiketter,
-6 297 executable sideutfall, UTC-dag-intervall, atomisk claim og capped 4 GiB.
-Den felles koblingen er ikke undersøkt ennå. Oktober er utvikling; rapporten
-kan bare skille mål-samsvar fra modell-læring som neste forskningsspørsmål.
-Ingen handling, ny trening eller Entry-gate følger av dette.
+Mål-mot-mål-kontrollen er fullført én gang etter [engangsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001.json) SHA-256
+`90915641b504d18603fd76562a97461fa2872c399283f36014bb0fd1f84e3d39`.
+[CLAIM](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/CLAIM.json) SHA-256
+`b6ee022fc6d75860abe89f862cdf6e30f3a4c760510888a5e39b17fafd20fee0` og
+[REPORT](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TARGET_ALIGNMENT_20261106_001/REPORT.json) SHA-256
+`3377e7d092abcccc90705e064031d6c545ec63ca7329978e4b43682c0566f090`.
+Felles observerte oktober M5+5-rader: 3 344. DOWN hadde 262 LONG-bedre og
+1 067 SHORT-bedre; UP 1 212 LONG-bedre og 317 SHORT-bedre; FLAT 263/223.
+P(LONG-bedre | UP) = 0,7927 mot 0,1971 ved DOWN; forskjell 0,5955 med
+beskrivende 95 % UTC-dag-intervall [0,5662, 0,6252] over 27 dager.
+Ytterligere 2 953 executable rader hadde ukjent tilstand; 15 hadde kjent
+tilstand, men ukjent Entry-side; 11 hadde begge ukjent. Tilstandsmålet
+samsvarer dermed sterkt med sideutfall på den observerte delmengden,
+men fullpopulasjons-samsvar og forutsigbarhet fra kausale inputs er ubevist.
+Samtidig rangerte de lagrede modellprognosene M5+5 nær tilfeldig på oktober.
+0 modellkall, 0 optimizersteg, 0 TEST, 0 action-seleksjon; 110,5 sekunder,
+2,75 GiB maksimal RSS under 4 GiB. Kostsannhet er fortsatt ukvalifisert.
+Ingen Entry-gate eller økonomisk edge følger av denne utviklingsrapporten.
+Planen er konsumert og kan ikke kjøres igjen.
+
+Lagret sluttmåling på 16 798 observerte TRAIN M5+5-rader har kandidat-Brier
+0,604215 mot fryst prior 0,609071. Oktober har 0,614672 mot prior 0,612714.
+På hele M5-horisontgridet var kandidaten verre enn prior også i TRAIN:
+0,680811 mot 0,618665. Det native +5-endepunktet har eksplisitt tapsvekt
+1,0 og faktisk gradient; ren 5×1440-tapsfortynning er ingen påvist forklaring.
+TRAIN OPP/NED-rang AUC er ennå ikke målt, selv om endelige prognoser er lagret.
+Neste minste måling er en kandidat-only, modellfri, hashverifisert TRAIN M5+5
+rang-AUC fra disse lagrede prognosene og de samme observerte TRAIN-etikettene,
+under egen eksakt capped plan. Dette kan skille manglende retningsfit fra
+senere generaliseringssvikt, men ingen uavhengig Entry-edge. Ingen ny modellrunde
+velges før den målingen. Fem-TF-prognosemålet og Entry-kravene består.
 
 M5 Entry er hovedmål med kausal lukket M15/H1/H4/D1-kontekst, åtte
 spesialister og niende D1/makro. `training_enabled=false`. TEST er forseglet;
