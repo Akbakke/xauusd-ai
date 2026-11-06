@@ -11,6 +11,19 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Én alderkandidat-fit er eksakt innrømmet; kontroll-score-oppskrift er låst uten utfallstilgang.**
+Den nye [fit-oppskriften](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RECIPE.json)
+binder 29 849 pre-oktober TRAIN-foreldre, 1 866 maksimum oppdateringer,
+én passering og høyst tre fysiske Windows-vinduer på 12 000 sekunder med
+20 GiB/512 MiB, 250 W og 0 USD. Kildematch mot kandidatens beståtte `_004`
+ble målt, uten å endre numerisk modellkode eller kjøre ny privat modell.
+[Kontrollens score-oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_001/RECIPE.json)
+er kilde- og fit-bundet, men **ikke** innrømmet eller kjørt; ingen oktoberutfall
+ble lest. Policyen åpner bare kandidatens fit; trygg maskinvid ledighetskontroll,
+korrekt omstartskvittering og eksisterende capped rute gjenstår før native start.
+TEST, broker, Exit, ordre og handel er stengt. Edge og økonomi UNKNOWN.
+
+
 **06.11 – Gjenopprettet kontroll-score og alderkandidatens fit er kildekontrollert, ennå ikke innrømmet.**
 Den faktiske [kontroll-recoveryen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json)
 er nå et gyldig, separat score-opphav: ny kildekontroll verifiserer COMPLETE-kvittering,
