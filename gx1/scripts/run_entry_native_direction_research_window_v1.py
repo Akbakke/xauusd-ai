@@ -165,10 +165,14 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
             origin = context['october_score_read_authority']
             launch = context['dynamic_state_launch']
             expected = origin['fit_checkpoint']['path']
+            recovered = launch.get('arm') == 'control' and launch.get('fit_terminal') == october.CONTROL_RECOVERED_FIT_REVIEW
+            state_root = (october.BASE/'CONTROL_FINAL_TRAIN_RECOVERY_001/RUNTIME' if recovered
+                else october.FIT_ROOTS[launch['arm']])
             _require(launch['run_scope'] == october.roles.SCORE_SCOPE
-                and launch['score_origin'] == origin and launch['arm'] in october.FIT_ROOTS
+                and launch['score_origin'] == origin and origin['fit_terminal_review'] == launch['fit_terminal']
+                and launch['arm'] in october.FIT_ROOTS
                 and launch['candidate_plan'] == october.roles.BATCH_PLAN and launch['input_role'] == 'score'
-                and Path(expected).parent == october.FIT_ROOTS[launch['arm']]/'prefix-fit/states'
+                and Path(expected).parent == state_root/'prefix-fit/states'
                 and extra_read_paths == (expected,), 'OCTOBER_READ_ONLY_FIT_CHECKPOINT')
         elif recovered is not None:
             from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import scoring_recovery_identity, FAMILY_SIGN_SCOPE, DYNAMIC_STATE_SCOPE

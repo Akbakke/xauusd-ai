@@ -11,6 +11,19 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Gjenopprettet kontroll-score og alderkandidatens fit er kildekontrollert, ennå ikke innrømmet.**
+Den faktiske [kontroll-recoveryen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json)
+er nå et gyldig, separat score-opphav: ny kildekontroll verifiserer COMPLETE-kvittering,
+null nye oppdateringer, full TRAIN-måling, 68 kildeeiere og bare navngitte
+kontrollendringer. Ingen original COMPLETE-kvittering er konstruert. Kandidatens
+allerede beståtte private `_004`-mekanikk kan brukes til en ny `CANDIDATE_FIT_002`
+etter AST-/hashkontroll som holder numeriske kilder byte-identiske. Den faktiske
+fit- og score-oppskriftsbyggeren bestod metadata-kontrollen; fokuserte oktober-,
+recovery- og prefix-tester bestod. Ingen ny oppskrift, fit, oktoberutfall eller
+score er innrømmet/kjørt. `training_enabled=false`; selv om kontrollen viser
+in-sample Brier-forbedring, er senere generalisering, uavhengig edge og økonomi UNKNOWN.
+
+
 **06.11 – Kontrollens fullstendige TRAIN-sluttmåling er fullført fra bevart checkpoint; ingen ny trening.**
 En ny engangskampanje på fysisk boot 612 endte `COMPLETE` med signert vakt PASS.
 [Rotgjennomgangen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json)

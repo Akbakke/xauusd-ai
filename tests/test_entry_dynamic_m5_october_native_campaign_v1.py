@@ -285,3 +285,27 @@ def test_missing_fit_terminal_denies_score_before_recipe():
                 'sha256': '0' * 64}
     with pytest.raises(Exception, match='bound JSON file unavailable'):
         october.build_score_recipe(arm='candidate', fit_terminal=terminal, source_commit='a' * 40)
+
+
+def test_recovered_score_source_transition_preserves_numerical_nodes(tmp_path, monkeypatch):
+    import hashlib
+    import subprocess
+
+    name = 'control.py'
+    before = b'def route():\n    return 1\n\ndef numerical():\n    return 8\n'
+    after = b'def route():\n    return 2\n\ndef numerical():\n    return 8\n'
+    path = tmp_path/name
+    path.write_bytes(after)
+    ref = lambda raw: {'path': str(path), 'sha256': hashlib.sha256(raw).hexdigest()}
+    prior = {'source_owners': {name: ref(before)}}
+    current = {name: ref(after)}
+    monkeypatch.setattr(october, 'REPO', tmp_path)
+    monkeypatch.setattr(october, 'RECOVERY_SCORE_CONTROL_CHANGES',
+                        {name: (('route',), (), ())})
+    monkeypatch.setattr(subprocess, 'check_output', lambda *args, **kwargs: before)
+    october._require_recovered_score_source_equivalence(prior, current)
+    tampered = after.replace(b'return 8', b'return 9')
+    path.write_bytes(tampered)
+    current[name] = ref(tampered)
+    with pytest.raises(RuntimeError, match='NONCONTROL_SOURCE_CHANGED'):
+        october._require_recovered_score_source_equivalence(prior, current)

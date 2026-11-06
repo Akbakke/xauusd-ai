@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T07:48:48.459434+00:00",
-  "status": "M5_ENTRY_OCTOBER_CONTROL_TRAIN_FINAL_MEASURED_CANDIDATE_AND_OOF_CLOSED_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-06T08:00:01.948510+00:00",
+  "status": "M5_ENTRY_OCTOBER_CONTROL_RECOVERED_SCORE_SOURCE_CHECKED_CANDIDATE_FIT_UNADMITTED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Control pre-October TRAIN fit has a complete zero-update final measurement from the preserved state. Compare only in-sample fit to frozen references, then bind the single age-candidate fit and recovered-fit October score provenance before any separately admitted runs. training_enabled=false; independent edge and economics UNKNOWN.",
+  "next_action": "Exact recovered-control score provenance and candidate age fit source equivalence passed metadata gates. Publish one fresh candidate fit recipe under CANDIDATE_FIT_002, admit it separately, then fresh guarded boot and capped one-pass fit. Control score and October OOF are not admitted. training_enabled=false; edge and economics UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",

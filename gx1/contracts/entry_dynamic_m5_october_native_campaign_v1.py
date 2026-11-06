@@ -17,14 +17,31 @@ PRIVATE_ROOTS = {arm: BASE / (arm.upper() + '_PRIVATE_004') / 'RUNTIME'
                  for arm in ('control', 'candidate')}
 PRIVATE_STAGES = {arm: 'dynamic_m5_october_' + arm + '_private_20261106_004'
                   for arm in PRIVATE_ROOTS}
-FIT_ROOTS = {arm: BASE / (arm.upper() + '_FIT_001') / 'RUNTIME'
-             for arm in PRIVATE_ROOTS}
-FIT_STAGES = {arm: 'dynamic_m5_october_' + arm + '_fit_20261106_001'
-              for arm in PRIVATE_ROOTS}
+FIT_ROOTS = {'control': BASE/'CONTROL_FIT_001/RUNTIME',
+             'candidate': BASE/'CANDIDATE_FIT_002/RUNTIME'}
+FIT_STAGES = {'control': 'dynamic_m5_october_control_fit_20261106_001',
+              'candidate': 'dynamic_m5_october_candidate_fit_20261106_002'}
 SCORE_ROOTS = {arm: BASE / (arm.upper() + '_SCORE_001') / 'RUNTIME'
                for arm in PRIVATE_ROOTS}
 SCORE_STAGES = {arm: 'dynamic_m5_october_' + arm + '_score_20261106_001'
                 for arm in PRIVATE_ROOTS}
+CONTROL_RECOVERED_FIT_REVIEW = {
+    'path': str(BASE/'CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json'),
+    'sha256': '480d90032cdc582b186777d19b66d16c3f00816ce1ba5f1abe097c92667cfc60',
+}
+RECOVERY_SCORE_SOURCE_HEAD = '24025af2e96b0c32f29abfcbd2f7a95e41ddedb2'
+RECOVERY_SCORE_CONTROL_CHANGES = {
+    'gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py': (
+        ('build_score_recipe',),
+        ('require_recovered_fit_origin', '_require_recovered_score_source_equivalence'),
+        ('FIT_ROOTS', 'FIT_STAGES', 'CONTROL_RECOVERED_FIT_REVIEW',
+         'RECOVERY_SCORE_SOURCE_HEAD', 'RECOVERY_SCORE_CONTROL_CHANGES')),
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py':
+        (('require_dynamic_state_qualification', '_require_scoring_recovery_source_equivalence'),
+         (), ('OCTOBER_CONTROL_SCORING_RECOVERY_CONTROL_CHANGES',)),
+    'gx1/scripts/run_entry_native_direction_research_window_v1.py':
+        (('_install_read_guard',), (), ()),
+}
 FOLD = {'fold_id': 'october_2024_confirmed_age_v1', 'prefix_rows': 29849,
         'oof_start_row': 29849, 'oof_end_row': 36172,
         'train_cutoff_ns': 1727740800000000000,
@@ -362,6 +379,168 @@ def require_fit_origin(fit_terminal, *, arm):
             'state_seal': checkpoint['contract_sha256']}
 
 
+def _require_recovered_score_source_equivalence(fit_recipe, current_owners):
+    """Only the named score provenance/read guard changes may follow recovered fit."""
+    import ast
+    import hashlib
+    import subprocess
+    before, after = fit_recipe['source_owners'], current_owners
+    _require(set(before) == set(after), 'RECOVERED_SCORE_SOURCE_SET')
+    changed = set()
+    for name, old_ref in before.items():
+        new_ref = after[name]
+        path = REPO/name
+        _require(old_ref['path'] == new_ref['path'] == str(path),
+                 'RECOVERED_SCORE_SOURCE_PATH:' + name)
+        latest = path.read_bytes()
+        _require(hashlib.sha256(latest).hexdigest() == new_ref['sha256'],
+                 'RECOVERED_SCORE_CURRENT_SHA:' + name)
+        if old_ref == new_ref:
+            continue
+        changed.add(name)
+        _require(name in RECOVERY_SCORE_CONTROL_CHANGES,
+                 'RECOVERED_SCORE_NUMERICAL_SOURCE_CHANGED:' + name)
+        prior = subprocess.check_output(['git', '-C', str(REPO), 'show',
+            RECOVERY_SCORE_SOURCE_HEAD + ':' + name])
+        _require(hashlib.sha256(prior).hexdigest() == old_ref['sha256'],
+                 'RECOVERED_SCORE_ORIGINAL_SHA:' + name)
+        changed_functions, added_functions, assignments = map(
+            set, RECOVERY_SCORE_CONTROL_CHANGES[name])
+        def unchanged(raw, old):
+            text = raw.decode('utf-8')
+            kept, functions, constants = [], set(), set()
+            for node in ast.parse(text).body:
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in changed_functions|added_functions:
+                    _require(node.name not in functions, 'RECOVERED_SCORE_DUPLICATE_FUNCTION')
+                    functions.add(node.name)
+                elif isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name) and node.targets[0].id in assignments:
+                    _require(node.targets[0].id not in constants, 'RECOVERED_SCORE_DUPLICATE_CONSTANT')
+                    constants.add(node.targets[0].id)
+                else:
+                    kept.append(ast.get_source_segment(text,node))
+            old_constants = ({'FIT_ROOTS', 'FIT_STAGES'} if name == 'gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py' else
+                {'OCTOBER_CONTROL_SCORING_RECOVERY_CONTROL_CHANGES'} if name == 'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py' else set())
+            _require(functions == (changed_functions if old else changed_functions|added_functions)
+                     and constants == (old_constants if old else assignments),
+                     'RECOVERED_SCORE_CONTROL_NODE_SET:' + name)
+            return kept
+        _require(unchanged(prior,True) == unchanged(latest,False),
+                 'RECOVERED_SCORE_NONCONTROL_SOURCE_CHANGED:' + name)
+    _require(changed == set(RECOVERY_SCORE_CONTROL_CHANGES),
+             'RECOVERED_SCORE_CHANGED_OWNER_SET')
+
+
+def require_recovered_fit_origin(fit_terminal):
+    """Validate the one real recovered control fit without inventing a fit receipt."""
+    _require(fit_terminal == CONTROL_RECOVERED_FIT_REVIEW,
+             'RECOVERED_FIT_REVIEW_IDENTITY')
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    review = _read(fit_terminal)
+    root = BASE/'CONTROL_FINAL_TRAIN_RECOVERY_001'
+    runtime = root/'RUNTIME'
+    _require(review.get('schema_version') == 'gx1_october_control_scoring_recovery_root_review_v1'
+        and review.get('status') == 'COMPLETE_CONSUMED_ZERO_UPDATE_TRAIN_FINAL_MEASUREMENT'
+        and review.get('arm') == 'control' and review.get('input_role') == 'fit'
+        and review.get('train_parent_rows') == 29849
+        and review.get('inherited_optimizer_updates') == 1866
+        and review.get('new_optimizer_updates') == review.get('new_backward_calls') == 0
+        and review.get('final_train_forward_calls') == 1866
+        and review.get('october_features_read') is review.get('october_outcomes_read') is False
+        and review.get('oof_cursor') == 0 and review.get('test_data_used') is False
+        and review.get('source_head') == RECOVERY_SCORE_SOURCE_HEAD
+        and review.get('state_seal') == '9475e84ef373cc420f0f5a767e97fa29794f6bfa87e19dce0b958c0c52a0238a'
+        and review.get('later_development_generalization') == 'UNKNOWN'
+        and review.get('independent_direction_edge') == 'UNKNOWN',
+        'RECOVERED_FIT_REVIEW_SCOPE')
+    for key, path in {
+        'plan':root/'CAMPAIGN/CAMPAIGN_PLAN.json',
+        'recipe':root/'RECIPE.json',
+        'receipt':runtime/'receipts/invocation-0001.json',
+        'cursor':runtime/'prefix-cursor/RESUME_CURSOR.json',
+        'result':runtime/'prefix-fit/window-0001/RESULT.json',
+        'final_train_measurement':runtime/'prefix-fit/window-0001/FINAL_TRAIN.json',
+        'power_after':root/'POWER_AFTER.json',
+    }.items():
+        _require(review.get(key,{}).get('path') == str(path),
+                 'RECOVERED_FIT_ARTIFACT_PATH:' + key)
+    plan, fit_recipe, receipt = (_read(review[k]) for k in ('plan','recipe','receipt'))
+    _require(plan.get('plan_sha256') == campaign.canonical_sha256(
+            {k:v for k,v in plan.items() if k != 'plan_sha256'})
+        and plan.get('source_commit') == RECOVERY_SCORE_SOURCE_HEAD
+        and plan.get('recipe') == review['recipe']
+        and plan.get('runtime_root') == str(runtime)
+        and plan.get('test_data_used') is False
+        and len(plan.get('invocations',[])) == 1,
+        'RECOVERED_FIT_PLAN')
+    _require(fit_recipe.get('recipe_sha256') == campaign.canonical_sha256(
+            {k:v for k,v in fit_recipe.items() if k != 'recipe_sha256'})
+        and fit_recipe.get('run_scope') == roles.FIT_SCOPE
+        and fit_recipe.get('arm') == 'control' and fit_recipe.get('input_role') == 'fit'
+        and fit_recipe.get('fold') == FOLD and fit_recipe.get('train_passes') == 1
+        and fit_recipe.get('max_windows') == 1
+        and fit_recipe.get('training_enabled') is fit_recipe.get('full_epoch_training_allowed') is False
+        and fit_recipe.get('scoring_recovery_origin',{}).get('closure_review') == review['original_failure_review'],
+        'RECOVERED_FIT_RECIPE')
+    _require(receipt.get('plan_sha256') == plan['plan_sha256']
+        and receipt.get('invocation_number') == 1 and receipt.get('outcome') == 'COMPLETE'
+        and receipt.get('guard_decision') == 'PASS'
+        and receipt.get('trainer_guard_exit_code') == receipt.get('progress_observer_exit_code') == 0
+        and receipt.get('checkpoint_pointer_after') == review['cursor']
+        and receipt.get('test_data_used') is False,
+        'RECOVERED_FIT_RECEIPT')
+    campaign.require_binding(receipt['guard_log'], label='recovered signed guard log', verify_file=True)
+    cursor = prefix.require_prefix_fit_cursor(_read(review['cursor']),
+        expected_recipe=review['recipe'], expected_fold=FOLD, verify_files=True)
+    result = _read(review['result'])
+    _require(cursor['result'] == review['result']
+        and cursor['outcome'] == cursor['phase_state'] == result.get('outcome') == 'COMPLETE'
+        and cursor['parent_cursor'] == result.get('parent_cursor') == 29849
+        and cursor['optimizer_updates'] == result.get('optimizer_updates') == 1866
+        and cursor['oof_cursor'] == result.get('oof_cursor') == 0
+        and cursor['final_train_measurement'] == result.get('final_train_measurement') == review['final_train_measurement']
+        and cursor['full_state'] == result.get('full_state') == result.get('durable_checkpoint',{}).get('state')
+        and result.get('durable_checkpoint',{}).get('contract_sha256') == review['state_seal']
+        and result.get('physical_optimizer_updates') == 0
+        and result.get('held_out_features_read') is result.get('held_out_outcomes_read') is False
+        and result.get('error') is None and result.get('source_unchanged') is True
+        and result.get('forbidden_open_paths') == [] and result.get('test_data_used') is False
+        and result.get('counts',{}).get('forward_kind_calls') == {'FINAL_TRAIN':1866}
+        and all(result.get('counts',{}).get(k) == 0 for k in (
+            'backward_calls','backward_returns','optimizer_step_calls','optimizer_step_returns')),
+        'RECOVERED_FIT_RESULT')
+    _require(review['recovered_full_state'] == cursor['full_state']
+        and review['original_full_state'] != cursor['full_state']
+        and roles.identity.require_checkpoint_view(cursor['feature_view_identity']) == 'control',
+        'RECOVERED_FIT_STATE')
+    initial = _read(cursor['initial_measurement'])
+    final = _read(cursor['final_train_measurement'])
+    _require(initial.get('role') == 'INITIAL_TRAIN' and final.get('role') == 'FINAL_TRAIN'
+        and initial.get('fold') == final.get('fold') == FOLD
+        and final.get('target_manifest') == fit_recipe['target_manifest']
+        and final.get('feature_view_identity') == cursor['feature_view_identity']
+        and final.get('own_initial_state') == cursor['own_initial_state']
+        and final.get('timeframes') == ['M5','M15','H1','H4','D1']
+        and final.get('model_metrics',{}).get('parents') == 29849
+        and final.get('test_data_used') is False,
+        'RECOVERED_FIT_MEASUREMENTS')
+    arrays = _read(final['predictions'])
+    _require(final['predictions'] == review['final_predictions_manifest']
+        and arrays['arrays']['probabilities']['shape'] == [29849,5,1440,3],
+        'RECOVERED_FIT_PREDICTIONS')
+    power = _read(review['power_after'])
+    _require(power.get('task',{}).get('TaskState') == 'Disabled'
+        and power.get('task',{}).get('LastTaskResult') == 0
+        and power.get('power_limit_w') == 250 and power.get('test_data_used') is False
+        and not (runtime/'ACTIVE_INVOCATION.json').exists(),
+        'RECOVERED_FIT_POWER')
+    return {'fit_terminal_review':dict(fit_terminal), 'fit_recipe':review['recipe'],
+            'fit_cursor':review['cursor'], 'fit_checkpoint':cursor['full_state'],
+            'own_initial_state':cursor['own_initial_state'],
+            'initial_measurement':cursor['initial_measurement'],
+            'final_train_measurement':cursor['final_train_measurement'],
+            'state_seal':review['state_seal']}
+
+
 def score_storage_plan(*, max_published_json_bytes, max_checkpoint_total_bytes):
     """Reserve one staged October prediction set plus JSON and checkpoint headroom."""
     from gx1.contracts.entry_dynamic_mtf_state_report_v1 import dynamic_state_prediction_file_bytes
@@ -401,19 +580,24 @@ def build_score_recipe(*, arm, fit_terminal, source_commit, source_owners=None):
     _require(arm in SCORE_ROOTS and isinstance(source_commit, str)
              and len(source_commit) == 40 and all(char in '0123456789abcdef' for char in source_commit)
              and isinstance(fit_terminal, Mapping)
-             and fit_terminal.get('path') == str(FIT_ROOTS[arm].parent/'ACTUAL_ROOT_REVIEW.json'),
+             and (fit_terminal.get('path') == str(FIT_ROOTS[arm].parent/'ACTUAL_ROOT_REVIEW.json')
+                  or (arm == 'control' and fit_terminal == CONTROL_RECOVERED_FIT_REVIEW)),
              'SCORE_COORDINATES')
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
     with campaign.file_verification_scope():
         batch, refs, _cohort = _registered()
-        origin = require_fit_origin(fit_terminal, arm=arm)
+        recovered = arm == 'control' and fit_terminal == CONTROL_RECOVERED_FIT_REVIEW
+        origin = require_recovered_fit_origin(fit_terminal) if recovered else require_fit_origin(fit_terminal, arm=arm)
         fit_recipe = _read(origin['fit_recipe'])
+        current_owners = _owners(source_owners)
+        if recovered:
+            _require_recovered_score_source_equivalence(fit_recipe, current_owners)
         view_ref = batch[arm + '_view']
         _require(fit_recipe['run_scope'] == roles.FIT_SCOPE and fit_recipe['arm'] == arm
                  and fit_recipe['feature_view'] == view_ref
                  and fit_recipe['target_manifest'] == refs['fit_series']
                  and fit_recipe['fold'] == FOLD
-                 and fit_recipe['source_owners'] == _owners(source_owners),
+                 and (recovered or fit_recipe['source_owners'] == current_owners),
                  'SCORE_FIT_IDENTITY')
         root = SCORE_ROOTS[arm]
         result = {'schema_version': 'gx1_native_direction_prefix_fit_launch_recipe_v1',
@@ -430,7 +614,7 @@ def build_score_recipe(*, arm, fit_terminal, source_commit, source_owners=None):
             'observer_axes': batch['observer_axes'], 'causal_inputs': batch['causal_inputs'],
             'target_manifest': refs['october_series'], 'target_sources': batch['target_source_refs'],
             'numerical_recipe': fit_recipe['numerical_recipe'],
-            'source_owners': fit_recipe['source_owners'],
+            'source_owners': current_owners,
             'native_dynamic_state_qualification': fit_recipe['native_dynamic_state_qualification'],
             'fit_terminal': dict(fit_terminal), 'score_origin': origin,
             'score_storage_plan': score_storage_plan(max_published_json_bytes=33554432,

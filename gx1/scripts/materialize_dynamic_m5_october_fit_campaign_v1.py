@@ -141,7 +141,8 @@ def materialize(binding_path: Path):
     hardware['physical_power_limit_w'] = 250
     plan = _seal({
         'schema_version': campaign.PLAN_SCHEMA, 'decision': 'PASS_PREPARED',
-        'campaign_id': 'GX1_DYNAMIC_M5_OCTOBER_' + arm.upper() + '_FIT_20261106_001',
+        'campaign_id': 'GX1_DYNAMIC_M5_OCTOBER_' + arm.upper() + '_FIT_20261106_'
+            + ('002' if arm == 'candidate' else '001'),
         'phase': prefix.PHASE, 'created_utc': datetime.now(timezone.utc).isoformat(),
         'source_repo': str(repo), 'source_commit': head, 'runtime_root': str(runtime),
         'gpu_uuid': old['gpu_uuid'], 'prepared_windows_boot': boot,

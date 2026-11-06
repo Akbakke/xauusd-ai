@@ -748,6 +748,21 @@ def require_dynamic_state_qualification(recipe, *, source_repo, source_commit):
         prior = campaign.read_bound_json(Path(plan['recipe']['path']), plan['recipe']['sha256'])
         _require(prior.get('recipe_sha256') == campaign.canonical_sha256(
             {k:v for k,v in prior.items() if k != 'recipe_sha256'}), 'STATE_NATIVE_HISTORICAL_RECIPE_SEAL')
+    elif (oct_fit and recipe.get('arm') == 'candidate'
+          and recipe['native_dynamic_state_qualification'] == {
+              'path':str(october.PRIVATE_ROOTS['candidate'].parent/'ACTUAL_ROOT_REVIEW.json'),
+              'sha256':'8a33d2222876e17a58f4ed92937dc8a5e520883e7a0cae4f4888383dbb0695f0'}
+          and plan.get('source_commit') == 'bebc5b7b76bf7e90d2c9ed3fc5369baa89e9fac7'):
+        # Same exact private 4U evidence; prove only named post-fit control changes.
+        prior = campaign.read_bound_json(Path(plan['recipe']['path']), plan['recipe']['sha256'])
+        _require(prior.get('recipe_sha256') == campaign.canonical_sha256(
+            {k:v for k,v in prior.items() if k != 'recipe_sha256'})
+            and prior.get('run_scope') == october.roles.PRIVATE_SCOPE
+            and prior.get('arm') == 'candidate' and prior.get('candidate_plan') == october.roles.BATCH_PLAN,
+            'OCTOBER_CANDIDATE_PRIOR_PRIVATE_SEAL')
+        _require_scoring_recovery_source_equivalence(source_repo,
+            {'run_scope':october.roles.FIT_SCOPE,'source_owners':prior['source_owners']}, recipe)
+        qualified_recipe = {**recipe, 'source_owners':prior['source_owners']}
     else:
         prior = private.require_research_launch_recipe(plan['recipe'], source_repo=source_repo, source_commit=plan['source_commit'])
     result = campaign.read_bound_json(Path(refs['result']['path']), refs['result']['sha256'])
@@ -938,10 +953,16 @@ OCTOBER_CONTROL_SCORING_RECOVERY_CONTROL_CHANGES = {
     'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': (
         ('scoring_recovery_identity', '_require_scoring_recovery_source_equivalence',
          'require_scoring_recovery_origin', 'require_prefix_fit_launch_recipe',
-         'require_prefix_fit_cursor', 'require_prefix_fit_progress'),
+         'require_prefix_fit_cursor', 'require_prefix_fit_progress',
+         'require_dynamic_state_qualification'),
         ('_require_october_control_scoring_recovery_origin',),
         ('OCTOBER_CONTROL_SCORING_RECOVERY_ROOT', 'OCTOBER_CONTROL_SCORING_RECOVERY_IDENTITY',
          'OCTOBER_CONTROL_SCORING_RECOVERY_CONTROL_CHANGES')),
+    'gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py': (
+        ('build_score_recipe',),
+        ('require_recovered_fit_origin', '_require_recovered_score_source_equivalence'),
+        ('FIT_ROOTS', 'FIT_STAGES', 'CONTROL_RECOVERED_FIT_REVIEW',
+         'RECOVERY_SCORE_SOURCE_HEAD', 'RECOVERY_SCORE_CONTROL_CHANGES')),
     'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py':
         (('run_native_direction_prefix_fit_window',), (), ()),
     'gx1/scripts/run_entry_native_direction_research_window_v1.py':
@@ -1008,7 +1029,8 @@ def _require_scoring_recovery_source_equivalence(source_repo, original, current)
         changed, added, assignments = map(set, control_changes[path])
         # Chart's original source already includes the qualified session recovery.
         old_added = added - {'scoring_recovery_identity'} if chart else set()
-        old_assignments = assignments - {'CHART_SCORING_RECOVERY_IDENTITY'} if chart else set()
+        old_assignments = (assignments - {'CHART_SCORING_RECOVERY_IDENTITY'} if chart else
+            {'FIT_ROOTS', 'FIT_STAGES'} if october and path == 'gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py' else set())
         def unchanged(raw, old):
             text = raw.decode('utf-8'); nodes = ast.parse(text).body
             kept=[]; functions=set(); constants=set()
