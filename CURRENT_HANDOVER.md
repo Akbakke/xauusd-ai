@@ -11,6 +11,18 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Kontrollarmens private kampanjekoordinater er forberedt, fortsatt uten kjøreautoritet.**
+Policyblokken `dynamic_m5_october_control_private_20261106_001` binder kontrollens SHA-verifiserte
+oppskrift, Windows boot 604, den eksisterende native vaktmalen, ett fit-only vindu, 32 faste
+TRAIN-foreldre, 256 initialrader, høyst fire private oppdateringer, 20 GiB/512 MiB, 250 W og 0
+USD. Boot-ID-en kom fra faktisk Windows CIM/BootId-oppslag; en første WSL-/GPU-prosesskontroll
+fant ingen aktiv GX1- eller GPU-beregning, men gir ikke varig maskinvid ledighet. Kampanjeplan og
+execution-binding er ikke skrevet; `campaign_preparation_authorized=false` og
+`training_enabled=false`. Neste port er en egen eksakt policyadmisjon og ferskt maskinvidt
+idle-bevis, deretter kampanjematerialisering, trygg fysisk omstart og capped privat mekanikk.
+Alderskandidaten er ikke åpnet parallelt. Ingen modell, fit, OOF, oktoberutfall, TEST, broker
+eller handel ble brukt; edge og økonomi er UNKNOWN.
+
 **06.11 – Eksakt privat kampanjematerialisering er kildeklar, men ikke innrømmet.**
 [Materialisereren](gx1/scripts/materialize_dynamic_m5_october_private_campaign_v1.py) gjenbruker
 den eksisterende native forskningskampanjen for én arm av gangen. Den binder ren HEAD, armens
