@@ -22,9 +22,10 @@ Ved M5 +5 var 3 359 fasiter observerbare: kontroll Brier 0,6150908807,
 Markov 0,6153249867, fast TRAIN-prior 0,6127142397. Kontrollens 1 465
 korrekte var færre enn priorens 1 535. Dette er utviklingsmåling, ikke
 uavhengig edge. Kontrollens SCORE_003 er konsumert. Kandidatens forhåndsdefinerte
-SCORE_002 er fortsatt PREPARED_NOT_ADMITTED; neste steg er én eksakt admisjon,
-frisk trygg fysisk omstart, én capped nulloppdateringsscore og paret analyse
-på samme masker. `training_enabled=false`; økonomi og uavhengig edge UNKNOWN.
+SCORE_002 er nå eksakt innrømmet fra ren kilde og fysisk boot 615 for ett
+nulloppdateringsvindu innen 20 GiB/512 MiB, 250 W og 12 000 sekunder.
+Kampanjeplan, trygg omstart og selve scoren gjenstår. Deretter sammenlignes
+armene paret på samme observerbare oktoberfasit. `training_enabled=false`; økonomi og uavhengig edge UNKNOWN.
 
 Alderkandidatens [pre-oktober TRAIN-fit](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/ACTUAL_ROOT_REVIEW.json)
 SHA-256 57edacf9701f311dd12f185455cfe8d140b0e4e5dabadbeb4f5556025e3ad1dc
