@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T15:11:28.526840+00:00",
-  "status": "M5_STATE_TRAIN_RANK_WEAK_IN_SAMPLE_OCTOBER_TRANSFER_UNQUALIFIED",
+  "observed_utc": "2026-11-06T15:25:50.395546+00:00",
+  "status": "M5_STATE_TRANSFER_DIAG_COMPLETE_NO_NEW_FIT_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Read-only review of causal feature consumption, target masks and existing simpler reference evidence to identify one distinct generalization hypothesis. No new model fit, TEST, Entry action or trading is authorized by this completed audit.",
+  "next_action": "Stop new native/model runs. Current fit-to-October transfer gap has no measured input-route or mask bug. No parent-aligned full-input 2D matrix was found in the current bound candidate artifacts for a cheap same-target baseline; an M5-only 253-field cache would require a new causal as-of join and would not test the full model. Admit a future experiment only for one distinct prebound hypothesis with exact chronology, masks, comparator and acceptance; do not reuse October as independent confirmation.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",

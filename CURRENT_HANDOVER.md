@@ -107,7 +107,6 @@ Lagret sluttmåling på 16 798 observerte TRAIN M5+5-rader har kandidat-Brier
 På hele M5-horisontgridet var kandidaten verre enn prior også i TRAIN:
 0,680811 mot 0,618665. Det native +5-endepunktet har eksplisitt tapsvekt
 1,0 og faktisk gradient; ren 5×1440-tapsfortynning er ingen påvist forklaring.
-TRAIN OPP/NED-rang AUC er ennå ikke målt, selv om endelige prognoser er lagret.
 Kandidat-only TRAIN-rangmålingen er fullført én gang etter [engangsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001.json) SHA-256
 `1da8201cc59a5e69308b0b6c8c3bef6a311a9f52711d779df2254f050b29e553`.
 [CLAIM](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_TRAIN_RANK_20261106_001/CLAIM.json) SHA-256
@@ -126,10 +125,36 @@ ble SHA-verifisert, M5+5 ble minnekartlagt, og kjøringen brukte 0 modellkall,
 Ingen Entry-handling, uavhengig edge eller økonomisk edge er påvist.
 Planen er konsumert og kan ikke kjøres igjen.
 
-Neste steg er en smal, lesende revisjon av faktisk kausalt featurekonsum,
-observasjonsmasker og allerede prøvde enklere referanser for å formulere
-én ny hypotese om generaliseringssvikten. Ingen ny modellrunde følger av
-disse deskriptive tallene. Fem-TF-prognosemålet og Entry-kravene består.
+Lesende feature-/maskerevisjon fant ingen konkret input- eller
+normaliseringsfeil. Kandidatens fit- og scoreoppskrifter binder samme
+feature-view, prefix-normalisering, kausale input og målskilder; faktiske
+kjøringer gjorde 1 866 optimizersteg og 396 score-forwards. Den fire-raders
+[batchkvitteringen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002/RESULT.json) SHA-256
+`57608c0cab08605fd6ac4095090f80ee56ac90037e89887503210a1230a80aa0`
+viser de 17 forventede inputnøklene. Koden ruter fem TF og åtte spesialister,
+med 61 D1/makrofelt til kontekst. Teknisk rute og liten batchparitet beviser
+ikke at alle felt er informative eller at modellen lærte bidragene deres.
+M5+5-observasjonsdekning var 56,28 % i TRAIN og 53,12 % i oktober;
+DOWN/FLAT/UP-fordelingen var henholdsvis 41,29/13,77/44,94 % og
+39,71/14,59/45,70 %. Kandidatens Brier forverret seg 0,01046 mot priorens
+0,00364. Mask-/klasseforskyvning alene forklarer ikke målt fall, og ingen
+kausal feilårsak er påvist.
+
+En siste metadataavklaring fant ingen lagret, foreldrejustert 2D-matrise
+med hele den native inputflaten i gjeldende bundne kandidat-artefakter. [CAUSAL_INPUTS](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001/CAUSAL_INPUTS/CAUSAL_INPUTS.json) SHA-256
+`2fdea20ebeb90ec8a027f067726f1dd488139e4a1662ee61a75920b1ab764ae6`
+har bare justert nåtilstand/alder/masker. [M5-cachemanifestet](/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/manifest.json) SHA-256
+`3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4`
+har en kausal M5-matrise på 1 140 982 × 253 på baraksen, men den må først
+kobles as-of til beslutningene og mangler native signal-/kontekst-/GC-flaten.
+En slik avgrenset baseline er derfor en egen design og kan ikke avgjøre full
+inputverdi uten videre bevis.
+
+Ingen ny native eller enkel modellfit er innrømmet. Neste eksperiment krever
+én særskilt hypotese med forhåndsbundet kronologi, målmaske, referanse og
+akseptregel; oktober er undersøkt utvikling, TEST forseglet. Inntil da står
+modellen uten påvist senere retnings- eller Entry-beslutningsverdi.
+Fem-TF-prognosemålet og Entry-kravene består.
 
 M5 Entry er hovedmål med kausal lukket M15/H1/H4/D1-kontekst, åtte
 spesialister og niende D1/makro. `training_enabled=false`. TEST er forseglet;
