@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T23:29:26.342927+00:00",
-  "status": "FULL_TRAIN_XAU_GAP_AUTHORITY_VERIFIED_TARGET_PENDING",
+  "observed_utc": "2026-11-06T23:45:08.358751+00:00",
+  "status": "FULL_TRAIN_ENDPOINT_CANDIDATE_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Full TRAIN M1 gap authority is verified but the 0.5-versus-1.0 ATR endpoint allowed-set contract is PROPOSED, not locked. Full TRAIN rowwise masks, indicator qualification, output/loss/scores and chronological reference remain open. No model fit, TEST, Entry/Exit, broker, trading or spending. training_enabled=false.",
-  "next_action": "Full TRAIN source-gap continuity passed: 591682 M1 bars, 413 exact known closures, 95 unknown gaps. Next bind a separate one-use full TRAIN rowwise five-TF endpoint candidate audit against this authority, then earlier-only simple references and indicator formula/consumption gates. Target remains PROPOSED; training_enabled=false. No TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "One source-only, capped full TRAIN endpoint candidate audit is admitted under a distinct one-use plan. It will produce 20x5 allowed-set masks, coverage, and a safe old-overlap diagnostic. It does not lock the target, train, score forecasts, use TEST, or act on Entry/Exit/trades. After verified terminal, inspect old-overlap mismatches and per-TF/month support before simple chronological references and indicator gates.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -61216,6 +61216,28 @@
       "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001/TERMINAL.json",
       "sha256": "9c2869f6dd1bf6f33d8a574e211edc8c13bf0d2b6e37f7307044efdef710f91c"
     },
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after claimed capped invocation; no relaunch.",
+    "test_authorized": false,
+    "training_authorized": false
+  },
+  "full_train_market_state_endpoint_candidate_20261107_001": {
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "data_reads_authorized": true,
+    "decision": "ADMITTED",
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "model_calls_authorized": 0,
+    "output_root": "/home/andre2/GX1_RUNS/FULL_TRAIN_MARKET_STATE_ENDPOINT_CANDIDATE_20261107_001",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/FULL_TRAIN_MARKET_STATE_ENDPOINT_CANDIDATE_20261107_001.json",
+      "sha256": "c3c789f4e7ed3edba2880bfb9e51decc9efad779324351bbd19ac86d2a607ce2"
+    },
+    "relaunch_allowed": false,
+    "scope": "One 20-month TRAIN-only 0.5/1.0 ATR five-TF endpoint candidate mask/coverage audit. M1 exact TRAIN OHLC; M5 historical OHLC and Jan2026 boundary group decoded then post-cutoff rows excluded before calculations. No July+ TEST, model, optimizer, forecast score, target lock, Entry or trade.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "status": "READY_UNCLAIMED",
+    "target_builds_authorized": 2,
     "terminal_owner": "Integrator writes immutable success/failure TERMINAL after claimed capped invocation; no relaunch.",
     "test_authorized": false,
     "training_authorized": false
