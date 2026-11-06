@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T08:07:22.525182+00:00",
-  "status": "M5_ENTRY_OCTOBER_AGE_CANDIDATE_FIT_ADMITTED_FRESH_BOOT_PENDING_EDGE_UNKNOWN",
-  "training_enabled": true,
-  "full_epoch_training_allowed": true,
+  "observed_utc": "2026-11-06T11:49:56.545044+00:00",
+  "status": "M5_ENTRY_OCTOBER_MATCHED_FITS_COMPLETE_SCORES_UNADMITTED_EDGE_UNKNOWN",
+  "training_enabled": false,
+  "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "One age-candidate pre-October TRAIN fit is exactly admitted with three bounded guarded windows and at most 1,866 updates. Materialize from clean source, verify whole-machine idle, record reboot intent/receipt, then run from fresh physical boot. Control score recipe is prepared but not admitted; no October OOF yet. Edge and economics UNKNOWN.",
+  "next_action": "Candidate fit completed in two guarded windows and review passed; training is closed. Publish clean-source control SCORE_002 and candidate SCORE_001 recipes, admit each score separately, then fresh-boot capped October development scoring and paired M5 +5 comparison. No TEST or independent edge claim.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -33714,7 +33714,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": true,
+  "native_training_enabled": false,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -59561,8 +59561,8 @@
     }
   },
   "dynamic_m5_october_candidate_fit_20261106_002": {
-    "status": "ADMITTED_ONE_CANDIDATE_PREFIX_FIT_PENDING_PREPARATION",
-    "observed_utc": "2026-11-06T08:07:22.525182+00:00",
+    "status": "COMPLETE_CONSUMED_TWO_WINDOWS_TRAIN_FINAL_MEASUREMENT",
+    "observed_utc": "2026-11-06T11:49:56.545044+00:00",
     "scope": "One source-bound confirmed-run-age candidate fit on 29,849 pre-October TRAIN parents, one pass, 256 initial and full-prefix final TRAIN measures, at most 1,866 optimizer updates and three fresh-boot guarded windows. No October score.",
     "arm": "candidate",
     "input_role": "fit",
@@ -59596,25 +59596,25 @@
       "sha256": "8a33d2222876e17a58f4ed92937dc8a5e520883e7a0cae4f4888383dbb0695f0"
     },
     "max_invocations": 3,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 2,
+    "completed_invocations": 2,
     "relaunch_allowed": false,
     "training_rounds": 1,
     "automatic_repetition_authorized": false,
     "automatic_full_training_authorized": false,
     "qualification_weights_for_main_fit": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
-    "genuine_predictor_fit_authorized": true,
-    "training_enabled": true,
-    "native_training_enabled": true,
-    "full_epoch_training_allowed": true,
-    "native_launch_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "full_epoch_training_allowed": false,
+    "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
     "test_data_used": false,
@@ -59636,17 +59636,75 @@
       "max_windows": 3,
       "usd": 0
     },
-    "prepared_plan_materialized": false,
-    "prepared_binding_materialized": false,
-    "machine_wide_idle_verified_for_reboot": false,
-    "physical_reboot_executed": false,
-    "model_calls": 0,
+    "prepared_plan_materialized": true,
+    "prepared_binding_materialized": true,
+    "machine_wide_idle_verified_for_reboot": true,
+    "physical_reboot_executed": true,
+    "model_calls": 2,
     "october_outcomes_read": false,
     "independent_edge": "UNKNOWN",
     "prepared_control_score_recipe": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_001/RECIPE.json",
       "sha256": "543f86456052e631cdae9b5168acf729ee1264372ab4b3fbf2ad0030767f3d4b"
     },
-    "remaining": "Materialize exact source-bound candidate fit campaign, confirm all-project idle, prepare/confirm each reboot receipt before physical restart, run one capped fit then full TRAIN final scoring. Control and candidate October score remain unadmitted."
+    "remaining": "The candidate fit and both windows are consumed; third invocation is forbidden. Original prepared CONTROL_SCORE_001 recipe is unadmitted and superseded by the source fix. Publish clean-source CONTROL_SCORE_002 and CANDIDATE_SCORE_001 recipes and admit each zero-update October development score separately. No October outcome has been read; independent edge and economics UNKNOWN.",
+    "plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "0ec7f476000dd7e98ae20358567919f992dffcf14de8a38d2a82e422bc0719e0"
+    },
+    "preparation_execution_binding": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/PREPARATION_EXECUTION_BINDING.json",
+      "sha256": "66357f72d211ce1918972d3f4a0a755cadd6020f8f429471027d9f333a22bd63"
+    },
+    "first_pre_reboot_idle_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/PRE_REBOOT_IDLE_REVIEW.json",
+      "sha256": "b3c9afb2a0fb24c8063105122456194c8479d98abbc94c7725e26c869c954645"
+    },
+    "second_pre_reboot_idle_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/PRE_REBOOT_IDLE_REVIEW_AFTER_0001.json",
+      "sha256": "7ac73c53e3ca353a8d3bf537af69adb8d86b38a73d0b7ccc26e57a4c3f4625e8"
+    },
+    "first_reboot_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/reboot-receipts/after-0000.json",
+      "sha256": "c8bd7849209618e8cfb51b1352f46a55196d5fbb607cf2fc75472f3ab2b9646a"
+    },
+    "second_reboot_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/reboot-receipts/after-0001.json",
+      "sha256": "fe75f08b92d5a6536b967abb1e021d0fcb83488fc497a972dfd3ac981752f27c"
+    },
+    "first_window_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "d5df5107f152e13d8b1dd00b14c5d8e0297b2df76474ff47ee3f60ec166535f6"
+    },
+    "terminal_window_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/receipts/invocation-0002.json",
+      "sha256": "fcf68fa437570a9252cfc6bd29f9c8e8bc7c884f4ed67bbdd94205928d4eee66"
+    },
+    "power_after": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/POWER_AFTER.json",
+      "sha256": "ed6bd1bbbc7058a83b28fb054baf5f436416cb95dd107dc95752ec1f98a31a9b"
+    },
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "57edacf9701f311dd12f185455cfe8d140b0e4e5dabadbeb4f5556025e3ad1dc"
+    },
+    "final_train_measurement": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/prefix-fit/window-0002/FINAL_TRAIN.json",
+      "sha256": "33be845ea4547c1d02cf74b05daf14241b4bc2ea9f3561ab967ffac5ecb4db72"
+    },
+    "m5_plus5_train": {
+      "observed": 16798,
+      "candidate_brier": 0.6042147567186823,
+      "control_brier": 0.6047207662963342,
+      "candidate_correct": 7506,
+      "control_correct": 7465,
+      "evidence_class": "SAME_PRE_OCTOBER_TRAIN_PREFIX_IN_SAMPLE_ONLY"
+    },
+    "m5_all_leads_train": {
+      "candidate_brier": 0.6808106504538449,
+      "control_brier": 0.6771961777292737,
+      "evidence_class": "SAME_PRE_OCTOBER_TRAIN_PREFIX_IN_SAMPLE_ONLY"
+    },
+    "prepared_control_score_recipe_status": "SUPERSEDED_UNADMITTED_BY_NARROW_TERMINAL_VALIDATOR_SOURCE_FIX"
   }
 }

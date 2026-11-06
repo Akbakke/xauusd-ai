@@ -280,7 +280,8 @@ def test_score_phase_gate_and_cursor_are_own_arm_read_only():
         {'run_scope': october.roles.SCORE_SCOPE}, 0) is None
 
 
-def test_missing_fit_terminal_denies_score_before_recipe():
+def test_missing_fit_terminal_denies_score_before_recipe(tmp_path, monkeypatch):
+    monkeypatch.setitem(october.FIT_ROOTS, 'candidate', tmp_path/'candidate'/'RUNTIME')
     terminal = {'path': str(october.FIT_ROOTS['candidate'].parent/'ACTUAL_ROOT_REVIEW.json'),
                 'sha256': '0' * 64}
     with pytest.raises(Exception, match='bound JSON file unavailable'):
