@@ -43,14 +43,20 @@ Ingen uavhengig retningsedge eller økonomisk edge er påvist.
 foreldre. Beslutningstid er barstart pluss lukket M5-bar i den eksisterende
 eieren. Dette kvalifiserer rad-/klokkematch, ikke observerbarheten av
 framtidige executable endepunkter eller MFE/MAE-stier; tette framtidsbaner
-er ikke lagret. [Planen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_ENTRY_MASK_COVERAGE_20261106_001.json) SHA-256
-`6aad1e0a2cebddd405b034f932815d8cb434e4a7ec7709c56764cb7216b0fc35` innrømmer nøyaktig én capped 4 GiB lesende
-projeksjon av endepunkt-/sti-masker og sensur for disse radene og alle
-1..480 minutter. Den eksisterende eieren leser også hele pre-2026 TRAIN-
-kilden ved oppsett; bare forespørsler før oktobercutoff inngår i rapporten.
-Ingen TEST eller modellkall er innrømmet.
-Først når kilde- og maskdekningen er målt kan en modellfri utviklingsmåling
-koble tilstandsprognosen til LONG/SHORT/FLAT, valgt/avstått og pre-MFE-MAE/MFE.
+er ikke lagret. [Dekningsrapporten](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_MASK_COVERAGE_20261106_001/REPORT.json) SHA-256
+`17943a62ef36020120878c3e72a124c99304fe2f60ea7d7c638926b5175a0b37` er fullført og engangsplanen konsumert. Den målte alle
+tette 1..480 minutters horisonter innen oktobercutoff med 0 modellkall,
+0 oppdateringer, 121,6 sekunder og maksimalt 2,94 GiB RSS under 4 GiB.
+Ved +5 var 6 322 rader foldmodne (én høyresensur); 6 297 hadde executable
+terminal-open og observerbar terminal-open bane på begge sider, og 6 322
+hadde observerbar closed-prefix-bane. Dette er andre mål enn tilstandsfasiten
+på 3 359 observerte rader; bedre dekning er ikke lært retningsedge.
+Ved +480 hadde 5 607 av 6 240 foldmodne executable terminal og 4 079
+observerbar terminal-open bane. Den eksisterende kildeleseren åpnet hele
+pre-2026 TRAIN-kilden ved oppsett, men rapporterte bare spørringer før
+oktobercutoff; ingen TEST. Neste minste steg er en forhåndsbundet,
+modellfri utviklingsjoin av lagrede tilstandsprognoser med executable
+LONG/SHORT-utfall og pre-MFE-MAE/MFE på eksakt felles mask/populasjon.
 Gjenbruk eksisterende eiere; ingen ny modell eller targeteier følger automatisk.
 
 M5 Entry er hovedmål med kausal lukket M15/H1/H4/D1-kontekst, åtte
