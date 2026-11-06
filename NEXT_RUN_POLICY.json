@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T23:24:47.104668+00:00",
-  "status": "FULL_TRAIN_XAU_CLOSURE_AUTHORITY_ADMITTED",
+  "observed_utc": "2026-11-06T23:29:26.342927+00:00",
+  "status": "FULL_TRAIN_XAU_GAP_AUTHORITY_VERIFIED_TARGET_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "The 0.5-versus-1.0 ATR endpoint allowed-set contract is PROPOSED, not locked. Public source calendar and May-Sep rowwise mask audits are complete and consumed; full TRAIN M1-gap authority, complete labels, indicator qualification and chronological baseline remain open. No model fit, TEST, Entry/Exit, broker, trading or spending. training_enabled=false.",
-  "next_action": "One capped, source-only full TRAIN M1 time-gap authority is admitted under plan 001. No price/VAL decoding, target, model, TEST, Entry/Exit or trading. After immutable terminal and independent gap review, evaluate full TRAIN endpoint target coverage; target remains PROPOSED and training_enabled=false.",
+  "rule": "Full TRAIN M1 gap authority is verified but the 0.5-versus-1.0 ATR endpoint allowed-set contract is PROPOSED, not locked. Full TRAIN rowwise masks, indicator qualification, output/loss/scores and chronological reference remain open. No model fit, TEST, Entry/Exit, broker, trading or spending. training_enabled=false.",
+  "next_action": "Full TRAIN source-gap continuity passed: 591682 M1 bars, 413 exact known closures, 95 unknown gaps. Next bind a separate one-use full TRAIN rowwise five-TF endpoint candidate audit against this authority, then earlier-only simple references and indicator formula/consumption gates. Target remains PROPOSED; training_enabled=false. No TEST, Entry/Exit, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -61174,11 +61174,23 @@
     "training_authorized": false
   },
   "full_train_xau_closure_authority_20261107_001": {
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "data_reads_authorized": true,
-    "decision": "ADMITTED",
-    "execution_authorized": true,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001/CLAIM.json",
+      "sha256": "7c7b46dda120866a56e090a3daed194611c0021e9119a44b732b2630022b0023"
+    },
+    "claimed_invocations": 1,
+    "closure_authority": {
+      "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001/closure_authority.json",
+      "sha256": "4fcde066583cef98fd1fcd8a748c4544b4f11eb5be8fbf2705159fc3b1bfe978"
+    },
+    "completed_invocations": 1,
+    "data_reads_authorized": false,
+    "decision": "BLOCKED",
+    "exact_schedule": {
+      "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001/exact_schedule.json",
+      "sha256": "ddcefbc63404162b4f682179cf1277f9262227afc5da819116b7fe01835b1fc7"
+    },
+    "execution_authorized": false,
     "max_invocations": 1,
     "model_calls_authorized": 0,
     "output_root": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001",
@@ -61186,11 +61198,24 @@
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001.json",
       "sha256": "3e2ae79c14df2f89385260222ed55792e18dab8005731b39c0f7303807ee1eef"
     },
+    "post_run_review": "Independent source SHA, 591682 TRAIN M1 time rows, all508 gaps and interval hashes PASS. 413 fully contained regular closures exact; 95 unknown, including 54 one-minute source gaps. No false-known under bound calendar. Source-gap authority only, not target/model/edge; no price decode, TEST or model.",
     "relaunch_allowed": false,
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001/RESULT.json",
+      "sha256": "b58875df44811da3dafde11edbb89347ec49c74d830249f2ed0903a53b502d1c"
+    },
     "scope": "One exact TRAIN M1 time-column closure audit, 2024-05-01 to exclusive 2026-01-01. Whole pre-TEST parquet SHA is read as opaque integrity bytes; only TRAIN time row groups decode. Full containment in verified published calendar certifies known closure; other gaps unknown. No target/model/TEST/Entry/trade.",
+    "source_reference": {
+      "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001/SOURCE_REFERENCE.json",
+      "sha256": "11e4199a8e0ea17ab1f9f602d15787aba990144fb8d0486bbabc51651354ee7e"
+    },
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "status": "READY_UNCLAIMED",
+    "status": "COMPLETE_CONSUMED_SOURCE_GAP_AUTHORITY",
     "target_builds_authorized": 0,
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001/TERMINAL.json",
+      "sha256": "9c2869f6dd1bf6f33d8a574e211edc8c13bf0d2b6e37f7307044efdef710f91c"
+    },
     "terminal_owner": "Integrator writes immutable success/failure TERMINAL after claimed capped invocation; no relaunch.",
     "test_authorized": false,
     "training_authorized": false
