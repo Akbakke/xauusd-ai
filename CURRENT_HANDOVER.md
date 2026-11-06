@@ -11,6 +11,23 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Frisk privat `_003`-kontroll er eksakt innrømmet, før ny native kjøring.**
+Fra ren kilde `cd15bcfc` er begge matchede `_003`-oppskrifter publisert. Kontrollens
+[oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_003/NATIVE_RECIPE.json)
+har fil-SHA-256 1169850da337034cbb882ecac5ac90ba8f8e6f11f9b6999f7a12feaf9c4e56f1;
+kandidatens har 8cd3244a492091ee9babcb7755435cb12231a375358673e96547a8d828aa333f.
+En capped, modellfri kontroll av faktiske lagrede TRAIN-metadata bestod både full GC/MTF-profil
+med eksplisitt Oktober-enhetsprofil og eksakt view-binding for hver arm. 177 målrettede
+oktober-/prefix-/desember-/native-regresjonstester, syntaks og kildeinspeksjon av alle tre
+opt-in-konsumenter bestod. Bare policyblokken
+`dynamic_m5_october_control_private_20261106_003` åpner én capped materialisering og privat
+native-mekanikk på de faste 32 TRAIN-foreldrene, 256 initialradene og høyst fire oppdateringer.
+Den binder boot 605, 20 GiB/512 MiB, 250 W, maks 12 000 sekunder, 0 USD og eksisterende vakter.
+`training_enabled=true` gjelder bare denne eksakte kontrollrollen. Kampanjeplan, ny fysisk boot,
+modell, gradient og resume er fortsatt ikke utført i `_003`. Kandidatens private løp, fit og
+oktober-OOF er ikke innrømmet. Den feilede `_002` forblir konsumert. Ingen TEST, broker, ordre
+eller handel; retningsedge og økonomi UNKNOWN.
+
 **06.11 – Oktober-kontrollens private `_002` er konsumert med konkret kildefeil, uten modellkall.**
 Fysisk Windows-boot gikk fra 604 til 605. Den installerte, SHA-bundne oppstartsoppgaven startet
 én capped native-invokasjon; signert vakt og 20 GiB/512 MiB-grensen var aktive. Invokasjonen
