@@ -28,9 +28,13 @@ På samme TRAIN-prefiks hadde kandidaten ved primærmålet M5 +5 Brier
 0,6042147567 mot kontrollens 0,6047207663 og 7 506 mot 7 465 korrekte
 av 16 798 observerte. Over alle M5-horisonter var kandidatens Brier
 0,6808106505 mot kontrollens 0,6771961777. Dette er bare in-sample
-TRAIN-fit, ikke senere generalisering eller edge. Neste port er nye,
-rene kildebundne score-oppskrifter for kontroll og kandidat, separat admisjon
-og kronologisk oktoberutviklingsmåling. `training_enabled=false`;
+TRAIN-fit, ikke senere generalisering eller edge. [Kontrollens nye
+score-oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_002/RECIPE.json)
+og [kandidatens score-oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_001/RECIPE.json)
+er publisert fra ren kilde og bestod metadatakontroll; nødvendig diskplass
+ble målt. Ingen av dem er innrømmet, og ingen oktoberutfall er lest. Neste
+port er eksakt admisjon av én scorearm om gangen, maskinvid ledighet, fysisk
+omstart med kvittering og eksisterende capped rute. `training_enabled=false`;
 uavhengig edge og økonomi er UNKNOWN. TEST, Exit, broker, ordre og handel er stengt.
 
 **06.11 – Gjenopprettet kontroll-score og alderkandidatens fit er kildekontrollert, ennå ikke innrømmet.**
