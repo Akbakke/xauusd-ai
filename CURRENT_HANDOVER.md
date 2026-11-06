@@ -11,6 +11,16 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Kontrollens ene full-prefix-fit er eksakt innrømmet, før metadataforberedelse.**
+Den publiserte kontrolloppskriften binder 29 849 pre-oktober TRAIN-foreldre, ett pass,
+høyst 1 866 optimizeroppdateringer, egen initial-/sluttmåling og tre mulige 12 000-sekunders
+vinduer med 20 GiB/512 MiB, 250 W og signert vakt. Policyen binder den nye
+materialisereren, kontrollens godkjente private `_004`-kvittering, fysisk boot 609
+og 0 USD. `training_enabled=true` og `full_epoch_training_allowed=true` gjelder kun
+kontrollens eksakte fit-rolle og dette ene passet. Kampanjeplan, ny boot og modellfit
+er ikke kjørt; kandidat-fit og oktober-OOF er stengt. Ingen TEST, broker eller handel.
+Retningsedge og økonomi UNKNOWN.
+
 **06.11 – Begge kildebundne oktober-fit-oppskrifter er publisert; ingen fit er innrømmet.**
 [Kontrollens oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/RECIPE.json)
 og [kandidatens](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_001/RECIPE.json)
