@@ -13,9 +13,9 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_re
 
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 BASE = Path('/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001')
-PRIVATE_ROOTS = {arm: BASE / (arm.upper() + '_PRIVATE_001') / 'RUNTIME'
+PRIVATE_ROOTS = {arm: BASE / (arm.upper() + '_PRIVATE_002') / 'RUNTIME'
                  for arm in ('control', 'candidate')}
-PRIVATE_STAGES = {arm: 'dynamic_m5_october_' + arm + '_private_20261106_001'
+PRIVATE_STAGES = {arm: 'dynamic_m5_october_' + arm + '_private_20261106_002'
                   for arm in PRIVATE_ROOTS}
 FIT_ROOTS = {arm: BASE / (arm.upper() + '_FIT_001') / 'RUNTIME'
              for arm in PRIVATE_ROOTS}

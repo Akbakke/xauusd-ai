@@ -73,6 +73,8 @@ def materialize(binding_path: Path):
              and gate.get('max_invocations') == 1
              and gate.get('relaunch_allowed') is False
              and gate.get('test_data_used') is False, 'MATERIALIZER_POLICY_GATE')
+    # A missing arm/role gate must fail before any one-shot preparation output.
+    october.require_phase_gate(gate, {'arm': arm})
     require_capped_cpu_audit_execution()
     require_capped_lock_ancestry()
     _require(not (root/'CAMPAIGN').exists()
@@ -141,7 +143,7 @@ def materialize(binding_path: Path):
     hardware['physical_power_limit_w'] = 250
     plan = _seal({
         'schema_version': campaign.PLAN_SCHEMA, 'decision': 'PASS_PREPARED',
-        'campaign_id': 'GX1_DYNAMIC_M5_OCTOBER_' + arm.upper() + '_PRIVATE_20261106_001',
+        'campaign_id': 'GX1_DYNAMIC_M5_OCTOBER_' + arm.upper() + '_PRIVATE_20261106_002',
         'phase': authority.PHASE, 'created_utc': datetime.now(timezone.utc).isoformat(),
         'source_repo': str(repo), 'source_commit': head, 'runtime_root': str(runtime),
         'gpu_uuid': old['gpu_uuid'], 'prepared_windows_boot': boot,

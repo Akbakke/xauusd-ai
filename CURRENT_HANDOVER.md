@@ -11,6 +11,20 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Privat kampanjeforberedelse 001 feilet på én målt policy-mismatch og er konsumert uten
+modellkjøring.** Den capped 2 GiB-metadatajobben skrev
+[kampanjeplanen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_001/CAMPAIGN/CAMPAIGN_PLAN.json)
+og execution-binding, men den eksisterende readiness-porten avviste policyblokken fordi
+`arm=control` manglet.
+[Feilgjennomgangen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_001/MATERIALIZATION_FAILURE_REVIEW.json)
+binder plan, claim og eksakt feilkode `OCTOBER_NATIVE_CAMPAIGN_PRIVATE_ROLE_GATE`; det finnes
+ingen ACTIVE_INVOCATION, kvittering, privat resultat eller native modellkall. Plan 001 relanseres
+ikke. Begge matchede private rot-/stage-identiteter flyttes til `_002`, mens fit-/score-rutene
+bevares. Policyen er lukket igjen med `training_enabled=false`. Begge private ruter bruker nå
+friske `_002`-stier, og materialisereren avviser feil arm/rolle før den skriver engangsartefakter.
+159 fokuserte kilde-/regresjonstester bestod; nye oppskrifter og egen admisjon gjenstår. Ingen
+oktoberutfall, TEST, broker eller handel ble brukt; edge og økonomi er UNKNOWN.
+
 **06.11 – Én kontrollarm for privat native-mekanikk er eksakt innrømmet i policyen, men ennå ikke
 kjørt.** Bare `dynamic_m5_october_control_private_20261106_001` har engangsadgang til 32 faste
 pre-oktober TRAIN-foreldre, 256-raders fersk baseline, høyst fire private optimizersteg, ett 12
