@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Fit-only native data adapter passed on four fixed TRAIN parents per arm under consumed plan 003. Next bind one exact October private/fit/score campaign recipe, then qualify fresh native baseline, candidate age gradient/resume and matched chronological TRAIN-OOF under separate admission and safe reboot where required. training_enabled=false; edge UNKNOWN.",
+  "next_action": "The frozen December private cohort crosses the October fit cutoff. One deterministic 32-row and 256-row pre-October TRAIN target-support audit is admitted; run once and consume it, then bind exact October native campaign recipe. training_enabled=false; edge UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_NATIVE_FIT_DATA_PASS_MODEL_EDGE_UNKNOWN",
+    "status": "OCTOBER_PRIVATE_COHORT_ADMITTED_NOT_RUN_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -58436,5 +58436,26 @@
     "native_model_calls": 0,
     "post_run_review": "Exit 0; claim/result/terminal rehashed; 33 physical files, 13 fit target leaves, six causal leaves, four fixed fit parents per arm, 17 equal base groups and exact targets, candidate-only age group. No October outcome, model or TEST. Source unchanged. No independent edge claim.",
     "remaining_unknown": "Native forward, baseline, age gradient/resume, strict chronological TRAIN OOF, later development generalization, independent edge, physical ONLINE timeliness and economics remain unqualified."
+  },
+  "dynamic_m5_october_private_cohort_20261106_001": {
+    "status": "ADMITTED_ONCE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_PRIVATE_COHORT_20261106_001.json",
+      "sha256": "da4bc42d4e779251708276255987db47a6eb0af66d9f7781c8b107a54b72102d"
+    },
+    "operator_approved": true,
+    "operator_approval": "Standing zero-cost local GX1 authorization; one exact fixed fit-only target-support claim admitted, no paid APIs/model tokens.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "admitted_utc": "2026-11-06T01:01:05.745068+00:00",
+    "source_head_at_admission": "4244d2bdfec5fe21ad3cde75b6f42db48a3e5e93",
+    "remaining_invocations": 1,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_PRIVATE_COHORT_20261106_001",
+    "scope": "First 32 and 256 deterministic pre-October TRAIN rows from the native fit permutation; target support only, no model, October outcome or TEST.",
+    "training_enabled": false,
+    "native_model_calls_authorized": 0,
+    "test_split_access_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "spending_usd_authorized": 0,
+    "independent_edge": "UNKNOWN"
   }
 }
