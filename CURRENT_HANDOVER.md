@@ -147,8 +147,10 @@ har bare justert nåtilstand/alder/masker. [M5-cachemanifestet](/home/andre2/GX1
 `3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4`
 har en kausal M5-matrise på 1 140 982 × 253 på baraksen, men den må først
 kobles as-of til beslutningene og mangler native signal-/kontekst-/GC-flaten.
-En slik avgrenset baseline er derfor en egen design og kan ikke avgjøre full
-inputverdi uten videre bevis.
+Eksisterende eier `gx1/features/htf_features.py:slice_multi_tf_v4_window`
+velger siste lagrede M5-barstart ≤ `issue−5 min`, men likhet med hver av de 36 172
+foreldrebarene er ennå ikke fysisk kontrollert. Denne M5-only-baselinen er
+ikke innrømmet: den kan ikke avgjøre full native input- eller Entry-verdi.
 
 Ingen ny native eller enkel modellfit er innrømmet. Neste eksperiment krever
 én særskilt hypotese med forhåndsbundet kronologi, målmaske, referanse og
