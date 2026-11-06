@@ -144,20 +144,35 @@ tilbake etter liten siste bevegelse når hele lokale vinduet har passert
 grensen. Det er ikke en påvist feil i dagens rullerende definisjon;
 nullstilling krever en egen episodekontrakt.
 
-Én mulig, ennå ikke innrømmet TRAIN-kandidat er å aktivere ved komplett lokal
+Én avgrenset TRAIN-kandidat er nå innrømmet for engangs semantikkmåling: aktiver ved komplett lokal
 range ≥ 1,0 × sist lukkede TF-ATR14 og gå til FLATT først ved komplett range
 < 0,5 × ATR14, med konservativ OHLC-retning og `{OPP, NED}` der side er
 ukjent. På M5 er inn-/utgrensen omtrent 3,5–4,3 / 1,7–2,1 siterte spreads
 i de målte månedene; det er fysisk prøvebegrunnelse, ikke fasitvalg. D1 har
 få uavhengige 1,0-hendelser (mai: 3 fullførte NED og 5 OPP), så mange
-M5-rader må ikke utgis for robust D1-støtte. Før en eventuell test må
-kjente/ukjente gap, retningsminne og ATR-oppdateringer bindes, og
+M5-rader må ikke utgis for robust D1-støtte. I engangsplanen er
+kjente/ukjente gap, retningsminne og ATR-oppdateringer bundet, og
 sensurerte OPP/NED/FLATT-løp må sammenlignes med eksakt framtidig
 UTC-gyldighet på egen TF samt observerte M1-minutter. Hvis retning fortsatt
 er for kort eller uobserverbar, forkastes kandidaten før trening.
 En framtidig tilstandsandel fra lagret serie kan diagnostisere hvor mye
 retningsinformasjon som faktisk er kjent, men er ikke en ny treklassefasit.
 Ingen av disse kandidatene er valgt, bygget eller kjørt.
+
+[Hystereseplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001.json)
+SHA-256 `e9372ca913c5de4d9a929b314aac04dfd382e2ad1cb1d675e6ef06ed9cf6e868`
+er innrømmet, ikke claimet. Arbeider SHA-256
+`256a56e9e51863ed9567a59960b8739996a9f801e29df74c281b38213fd723ba`.
+Den gjenbruker lagret 0,5-serie, leser M1-kilden én gang og måler bare
+mai–september 2024 TRAIN. Fullt observert lokalt vindu kreves etter ukjent
+kildegap eller tapt ATR; kjent stengning bevarer låsen, men løp sensureres
+over manglende minutter. Etter hver bekreftet rolig bar nullstilles
+retningsankeret. Aktiv tilstand med ukjent side er `{OPP,NED}`. Målingen
+rapporterer kilde- og prognosemasker, eksakt egen-TF UTC-framtid,
+retningsepisoder og sensurgrenser per måned/TF. Alle 12 inputfiler, åtte
+kildefiler og 13 lagrede arrays har riktig hash; brukte kvitteringsnøkler,
+syntetiske grensefall og nøyaktig begrenset oppstart er kontrollert før
+claim. Ingen modell, mållås, TEST eller handel er innrømmet.
 
 Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
 støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og

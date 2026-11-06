@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T21:19:07.267218+00:00",
-  "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
+  "observed_utc": "2026-11-06T21:42:56.176000+00:00",
+  "status": "MARKET_STATE_HYSTERESIS_SEMANTIC_AUDIT_ADMITTED_NO_FIT",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "No new fit. Next target gate is ONE prebound TRAIN-only semantic trial, not an admitted run: enter active only when complete local range >= 1.0 x last-closed-TF ATR14; release to FLAT only when complete range < 0.5 x ATR14, with existing conservative OHLC side and {UP,DOWN} partial mask. The 1.0/0.5 pair has an M5 physical spread interpretation but is not target-locked; D1 episodes are sparse. Predeclare exact unknown/known-gap, direction-memory and ATR-update behavior; report censored UP/DOWN/FLAT episode durations in observed minutes AND state at exact +5/+15/+60/+240/+1440 UTC validity, with independent episode counts. Reject if directional periods remain too short or unobservable. A close-only direction proxy cannot upgrade ambiguous OHLC. Existing direction persistence across FLAT is not a proved bug; change it only under an explicit new episode contract. Generic5/trendline audits are complete; 77 parked fields/TF still have no independent formula sample. No model, TEST, Entry-Q, broker, trading or spending.",
+  "next_action": "Run exactly once the admitted May-Sep 2024 TRAIN-only hysteresis episode semantic audit through its bound capped command. Inspect immutable CLAIM/RESULT/TERMINAL and mark consumed. Do not select/lock a target or fit a model from this result. If OPP/NED survival upper bound is below one half at own-TF lead, reject that side/TF candidate; sparse/censored support remains UNKNOWN. No TEST, Entry/Exit, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "TRAIN transition mechanism, generic5 numeric sample and trendline conditional audit completed/consumed and pushed. Target remains unlocked; one conservative OHLC hysteresis semantic trial is proposed but not admitted. Read-only synthetic check found direction can persist across FLAT under current rolling-local contract without proving a defect. No fit.",
+    "current_activity": "One May-Sep 2024 TRAIN-only 1.0-enter/0.5-release hysteresis episode semantic audit is admitted but unclaimed. Exact worker/plan, bound source hashes and receipt fields, synthetic boundaries, and capped direct startup smoke passed. No target lock or fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -22928,7 +22928,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-05T05:47:12.164149+00:00",
+  "updated_utc": "2026-11-06T21:42:56.176000+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -60885,5 +60885,30 @@
     "test_data_used": false,
     "model_calls": 0,
     "alternative_series_published": false
-  }
-}
+  },
+  "dynamic_mtf_state_hysteresis_semantics_20261106_001": {
+    "status": "ADMITTED_UNCLAIMED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001.json",
+      "sha256": "e9372ca913c5de4d9a929b314aac04dfd382e2ad1cb1d675e6ef06ed9cf6e868"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "target_builds_authorized": 0,
+    "model_calls_authorized": 0,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "test_authorized": false,
+    "later_aggregate_authorized": false,
+    "training_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "operator_approval": "Current 2026-11-06 market-state instruction Ja gjør dette and standing zero-cost local GX1 authorization; one TRAIN-only read-only semantic audit, no model or paid calls.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "source_head_at_admission": "5635e34c2e60a60da3913c6e86f2a6d80c9873a4",
+    "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_HYSTERESIS_SEMANTICS_20261106_001",
+    "scope": "May-Sep 2024 TRAIN only; distinct episode candidate with complete-W support, 1.0 ATR activation, 0.5 ATR release, conservative OHLC direction and quiet-anchor reset. Exact own-TF UTC validity and censored duration bounds; saved source/target parity; no target series publication, model, VAL/TEST, Entry/Exit, broker, trading or spending.",
+    "relaunch_allowed": false,
+    "preclaim_evidence": "Bound 12 input refs, 8 source-owner refs and 13 saved arrays hash-checked; all used saved receipt keys checked; exact capped direct --help synthetic smoke passed; independent static peer found no concrete blocker."
+  }}
