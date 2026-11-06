@@ -113,12 +113,25 @@ er bare fysisk målskala, ikke gjennomførbar økonomi. Det valgte vitneutvalget
 er kontroll av målbetydning, ikke et representativt estimat alene. Neste
 målavgjørelse må avklare fysisk meningsfull bevegelse og ønsket varighet
 uten å velge faktor etter klassebalanse, dekning eller modelltreff.
+På M15 og H1 er også de fullførte 1,0-aktivitetsløpenes månedsmedian kortere
+enn henholdsvis +15 og +60 minutter. Ingen av de to grensene kvalifiserer
+alene en vedvarende fem-TF-markedstilstand. Den eksisterende M5+5 binære
+modellen scorer bedre enn Markov på gjenbrukt utvikling, så en ny binær loss
+er ikke en påvist retningsrettelse. Én
+[overgangsmekanismeplan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001.json)
+SHA-256 `8b7814d978ffc2cad3d410627d5d6239443934185271a3e5ee1adbb45e263b24`
+er innrømmet, ennå ikke claimet. Den gjenbruker kun lagrede mai–september-
+TRAIN-arrays og teller sammenhengende M1-skifter separat fra markedsstengte
+radnaboer; den skiller range-utløste skifter fra skifter som krever oppdatert
+ATR-grense. Ingen ny 1,0-serie, målvalg, modell eller TEST. Resultatet skal
+styre om én på forhånd definert episode-/hysteresekandidat er berettiget.
 
 Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
 støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og
 kausalt valgt lukket bar i målt scope. 95 tidligere parkerte felt per TF
-inngår nå i fullprofilen uten selvstendig numerisk kvalifisering. Råaudit
-beviser ikke verdier etter normalisering, kvaliteten på de observerte nivåene
+inngår nå i fullprofilen. Ett av disse, `close_position_range20`, har en
+senere uavhengig fem-TF formelkontroll; 94 gjenstår uten tilsvarende bevis.
+Råaudit beviser ikke verdier etter normalisering, kvaliteten på de observerte nivåene
 eller prediktiv bruk. Første [postnorm-plan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001.json)
 ble claimet og feilet i ren feilmeldingsformatering: `np.argwhere` indekserte
 en tom avviksliste selv om første TFs 8 × 253 verdier lå innen toleransen.
@@ -140,18 +153,37 @@ og tilstedeværende/fraværende nivåverdier passerte. Én CPU-konstruksjon,
 0 forward/bakover/optimizer, 0 TEST; 14,5 s og 713 MB prosessmaks under 4 GiB.
 Eksakt kildeavvik i en tapsfunksjon ble bundet uten fit-/forward-adgang.
 Stikkprøven beviser ikke all-253 gather, indikatorenes formel eller verdi.
-Neste indikatorsteg er uavhengig numerisk og kausal kvalifisering av 95
-felt per TF; bidrag må deretter måles på kronologisk utvikling. Den eksakte
+Neste indikatorsteg er uavhengig numerisk og kausal kvalifisering av 94
+felt per TF; bidrag må deretter måles på kronologisk utvikling. Den opprinnelige
 95-listen er [128-scope](/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/REMAINING_MTF_SCOPE.json)
 SHA-256 `fcbc3731d084ef097e44ddc3fb6732100692964f4f3403e0e8a606bc16a9879a`
 minus de allerede kvalifiserte feltene i [133-indeksen](/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/QUALIFIED_MTF_NUMERIC_INDEX.json)
 SHA-256 `f5022afbdcde059440a327d8ea2b9b06cb5bc07a077b482b45b61302232a292f`:
 trendlinje 31, candle 21, momentum 15, lokale 16, generiske 6, volum 3 og
-squeeze 3 per TF. Trendlinjene prioriteres på grunn av tilstandslogikk og
+squeeze 3 per TF. Den [uavhengige close-position-kontrollen](/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CLOSE_POSITION_NUMERIC_20261028_001/OUTPUT/RESULT.json)
+SHA-256 `7f381bdf8d876471fd67ae0b2d8289737b3bdc42d7d40140bc2b43ba11f9598a`
+matchet dagens cache- og formelkilde på fem TF, 0 avvik; generisk rest er fem,
+total rest 94. Trendlinjene prioriteres på grunn av tilstandslogikk og
 støtte/motstand. Den tidligere 94-felts revisjonen tok 1 326,7 av 1 800 s;
 én ny 95-felts totaljobb er ikke ressurskvalifisert. Revider produsentvis,
 med uavhengig formelreferanse og eksisterende datakilder, uten å gjøre
 produksjonskoden til sin egen fasit.
+
+Fem tidligere trendlinje-replayer matcher produsent/cache på alle 31 felt og
+alle TF i sitt før-01.07.2025-scope; dette beviser transport, ikke at
+linjevalg og livssyklus er matematisk riktig. En
+[trendlinjeplan](/home/andre2/src/GX1_CURRENT/configs/research/TRENDLINE_CONDITIONAL_PREFIX_20261106_001.json)
+SHA-256 `cbff8103374b35ef884e650d0e096daa7108b9d7a6e8ea5c300e8e9dbe1d7dbb`
+for 12 betingede geometri-/klokkeverdier og alle 31 representasjonsfelt er
+forberedt, ikke innrømmet eller kjørt. Den numeriske kontrollen bruker bare
+før-01.07.2025-prefikset og fysiske TRAIN-vitner fra mai–desember 2024;
+helfil-sjekksum leser også senere cachebytes, uten statistisk TEST-inspeksjon.
+De 19 livssyklusfeltene og selve linjevalget står fortsatt åpne. En separat
+[plan for de fem gjenværende generiske feltene](/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001/PLAN.json)
+SHA-256 `abbd91e0db3b445fb52583d7a880f151bf4672f609ebd330ceef22987bbca360`
+er statisk forhåndskontrollert på 64 faste TRAIN-barer per TF, men ennå ikke
+innrømmet eller numerisk kjørt. Begge planene gjenbruker eksisterende råkilder
+og cache; ingen ny modell eller trening er startet.
 
 Vi har ikke kjørt omfattende trening gjennom flere år. Tidligere fem-TF-fit
 var ett pass på 47 602 TRAIN-foreldre (2 976 steg); oktoberparet var ett pass

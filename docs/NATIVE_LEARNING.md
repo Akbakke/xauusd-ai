@@ -92,7 +92,12 @@ representative prisforløp mot hva OPP/NED/FLATT skal bety. Bind på forhånd
 hvilken fysisk bevegelse, varighet og observerbarhet som er akseptabel, og
 begrunn én felles ATR-faktor eller eksplisitte TF-spesifikke faktorer.
 0,5 mot 1,0 ATR er en sensitivitet, ikke et resultatvalg: bedre dekning alene,
-klassebalanse eller senere treff gir ingen semantisk mållås.
+klassebalanse eller senere treff gir ingen semantisk mållås. Før en tilstand
+kalles vedvarende, sammenlign observerte, sensurerte OPP/NED/FLATT-løp med
+hver TFs forhåndsvalgte prognosetid; kortere løp krever en bevisst ny
+mål-/episodekontrakt, ikke flere epoker på samme fasit. Skifter over
+markedspauser må skilles fra sammenhengende M1-minutter. Kontroller om
+rullerende range eller ATR-terskeloppdatering faktisk utløser skiftene.
 
 Mål kvalitet på alle tre tilstander og alle fem TF, både fortsettelse og
 skifter: sannsynlighetskvalitet/kalibrering, feilvarsler, oversette bevegelser

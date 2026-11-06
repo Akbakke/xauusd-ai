@@ -1,0 +1,268 @@
+{
+  "inputs": {
+    "cache_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/manifest.json",
+      "sha256": "3f4c3b4b54b08931850b716e0b7cf4b5de0b54c42b0fee813cde6f1324371da4"
+    },
+    "enriched_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet.manifest.json",
+      "sha256": "d1c0f94bcfa7c837143b287fc8a4355e3ea564cffcbae2d96c53c64e7bb62de6"
+    },
+    "fit_result": {
+      "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DENSE_ONEPASS_FIT_20261028_001/RUNTIME/prefix-fit/window-0001/RESULT.json",
+      "sha256": "2ce98e2e1967feeaabd6d0e1e4ffffac2178cdafa7cdc5e6561e6cd52f4dc3b8"
+    },
+    "native_manifest": {
+      "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json",
+      "sha256": "ca0012e5e30f7808876d666fe4d32e3fb873fddb6fc6178bd47b97eb89194cca"
+    },
+    "native_parts": [
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2009/part-000.parquet",
+        "sha256": "768566439ecdae2d75f9a4ded1fa95efe6ef65feffebf2a2190cbb2899be6373"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2010/part-000.parquet",
+        "sha256": "20a4b0f2e7d6005dbf4652b65d89744b94eed293eaa908c36b3f0af835474ee8"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2011/part-000.parquet",
+        "sha256": "af7e354c5689b80772e1e03749d78ce5534e22dee8db28c927a772c1d87d9c8c"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2012/part-000.parquet",
+        "sha256": "107aa87c79ea887a577333c684e9e5abf51dd605dbc4af447cfcbab376606f5a"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2013/part-000.parquet",
+        "sha256": "7d0c46ccdfff4aa873a73f9471d64e2eaa540722efe73d7c3d74acc475e70d6a"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2014/part-000.parquet",
+        "sha256": "fca88c77787f57a0ae0b95e3d5a2af8567305d18f9fa1b7bf121d161ff3eb1b5"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2015/part-000.parquet",
+        "sha256": "9aa853f58956e28c33a309e8bee00e2f58c8bffd7d0cd07a2366b539252a7b5a"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2016/part-000.parquet",
+        "sha256": "a5ed0e8f5d308d85ab43c80cbd244eab1486a5c7aa214040547ab57da48d786d"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2017/part-000.parquet",
+        "sha256": "b9389dd32520049e6fcb2981f59db6f6c393b83e9028c4686d10bec4b8833c30"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2018/part-000.parquet",
+        "sha256": "afdde5b4593a47035f304e8a06565250cc2f48238eb7fba1567215d11fceb64f"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2019/part-000.parquet",
+        "sha256": "f9ac110a6be9d70c126271d3f0190c4260cb00c9e841de21e7e80ae97a3b971e"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2020/part-000.parquet",
+        "sha256": "4df370d2dd54b82bbe5fd277ecbafad5d92597e4751272c226722eec6619ccce"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2021/part-000.parquet",
+        "sha256": "d1ddb6987cf6e8011ed37d29ca4d4817f3ee94a04220c7f37df0fe878bc2febe"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2022/part-000.parquet",
+        "sha256": "bfe5ffa734c3bea5434c7cb6a98f2cf1a37e00b68c00045b6d1a536919e10e0e"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2023/part-000.parquet",
+        "sha256": "09c9591ab93a742ba0ecf8833baa3812dca880230b8134fd0c9c8ef6b1e589fe"
+      },
+      {
+        "path": "/home/andre2/GX1_DATA/data/native_xau/XAU_M5_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/year=2024/part-000.parquet",
+        "sha256": "e08957b10dc2023c8c0bc438704cdf868e8df4c2f07f0ad7526fc20bda51abbf"
+      }
+    ],
+    "per_tf": {
+      "D1": {
+        "feats": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_feats.npy",
+          "sha256": "d4b9fba04d89843fc119906053d2ea42feed70c568807eaefca6f0f9ddf457f5"
+        },
+        "replay_plan": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_NATIVE_HISTORY_REPLAY_PLAN_20261028_001.json",
+          "sha256": "20a829c4d84bc00ee9f05a4239262aecc0c5d2e4d10422d0ec9704939aca15f1"
+        },
+        "replay_result": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json",
+          "sha256": "52e8b24b0e0df6a4684847071bd15563c93f931e7cfb5cd5b7117b983db93fd7"
+        },
+        "replay_terminal": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_D1_NATIVE_HISTORY_REPLAY_20261028_001/TERMINAL.json",
+          "sha256": "f2ab5bf6d7c9fa2395c06221878e6f08eee9d2dd5203da075c4c8328a3255e40"
+        },
+        "ts": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/D1_ts.npy",
+          "sha256": "e3ed0e97376b178a2629341df88f859182a269b85ed19cd8cad3808c154d2a0f"
+        }
+      },
+      "H1": {
+        "feats": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H1_feats.npy",
+          "sha256": "bd18f0654c6773780434af8a1b300b4e225c044fa7bde826150de35b6d5e5e06"
+        },
+        "replay_plan": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_NATIVE_HISTORY_REPLAY_PLAN_20261028_001.json",
+          "sha256": "48d7db83212b7810040bb3d559dbeb4d106f1e2e43ac29cef56a1349d45a4536"
+        },
+        "replay_result": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json",
+          "sha256": "94b524013ab9f3cf98e5ad679954b036ba15bd12286e8f87d0c08c7dcfbf4dae"
+        },
+        "replay_terminal": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H1_NATIVE_HISTORY_REPLAY_20261028_001/TERMINAL.json",
+          "sha256": "d1194ba915031c7e55ee6938b2f92d9340aa4517d157bd83a276898b953aae50"
+        },
+        "ts": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H1_ts.npy",
+          "sha256": "31acc8191749845ac19d9e40194d74f2a96f3f09c878f3eff45aeef73aa30109"
+        }
+      },
+      "H4": {
+        "feats": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_feats.npy",
+          "sha256": "83db5ba4f928283224efd92c0a849dd4e045f497b15bff3608361afe4b45abf0"
+        },
+        "replay_plan": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H4_NATIVE_HISTORY_REPLAY_PLAN_20261028_001.json",
+          "sha256": "35b0ff2d587f3bbf98eb0f784c3e3acc0ee899ab84251752477a3425a280dca8"
+        },
+        "replay_result": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H4_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json",
+          "sha256": "debdc7287f3e8f87ffcad1bbe72469446230d0670b24f3f66c0639e5a55b33c0"
+        },
+        "replay_terminal": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_H4_NATIVE_HISTORY_REPLAY_20261028_001/TERMINAL.json",
+          "sha256": "cce1bbc29d379eccbd80beb40850b50d9490ac304d2d902bd9d659fbd0894ceb"
+        },
+        "ts": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/H4_ts.npy",
+          "sha256": "e7dc88e6c93f1868349f9b3746cebbdb1c4e0640a0e1fd32c8efbbdc72bcd71f"
+        }
+      },
+      "M15": {
+        "feats": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M15_feats.npy",
+          "sha256": "eaf89c6c37469d2776a43d5bf9eb41b7af761b6e6943c84bac95b455d024d468"
+        },
+        "replay_plan": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M15_NATIVE_HISTORY_REPLAY_PLAN_20261028_001.json",
+          "sha256": "555a45affade691bd5d7b480e9902ed9fa4d4e4ce8d5215e782bc1fdc5f24988"
+        },
+        "replay_result": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M15_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json",
+          "sha256": "1f06f563c2258c9766c53963f8883a3c9f84d6c1dd8b3f1142f67da554442c38"
+        },
+        "replay_terminal": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M15_NATIVE_HISTORY_REPLAY_20261028_001/TERMINAL.json",
+          "sha256": "476264b5f0fce2b644ae17bc44e5ab14e1ec1247e23dad3d04c81e4fa730cdf8"
+        },
+        "ts": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M15_ts.npy",
+          "sha256": "99c8c3b4e5419d884b19def99458f1e6f72b40911d6199e315556ce68a50acf5"
+        }
+      },
+      "M5": {
+        "feats": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M5_feats.npy",
+          "sha256": "d62a543876c744218e9ee4f8b94ec8612cdf249f27e4ab60ef6f24afcf40eeb7"
+        },
+        "replay_plan": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_NATIVE_HISTORY_REPLAY_PLAN_20261028_001.json",
+          "sha256": "98d65cfa6158fe20778f80a439a1b6818133f9bcb4257b531801455d8589adcc"
+        },
+        "replay_result": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_NATIVE_HISTORY_REPLAY_20261028_001/OUTPUT/RESULT.json",
+          "sha256": "d1c39ec3f8ad7edbda23f620ea6ce5fec606eebe9ad763080cc1847c7dedd3ed"
+        },
+        "replay_terminal": {
+          "path": "/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_M5_NATIVE_HISTORY_REPLAY_20261028_001/TERMINAL.json",
+          "sha256": "10b1fcaefad554f2b4213d5cd6129e1566b57dbd62f2d5151fbda10a73d695d1"
+        },
+        "ts": {
+          "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/MULTI_TF_V4_CACHE/M5_ts.npy",
+          "sha256": "bca1c92a25e3daf81c358b60558b2e0600723b62bfa6d8cc29c48b3e4032bf69"
+        }
+      }
+    },
+    "qualified_index": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_REMAINING_ACTIVE_CORE_NUMERIC_REFERENCE_20261021_133/QUALIFIED_MTF_NUMERIC_INDEX.json",
+      "sha256": "f5022afbdcde059440a327d8ea2b9b06cb5bc07a077b482b45b61302232a292f"
+    },
+    "source_m5": {
+      "path": "/home/andre2/GX1_DATA/data/data/prebuilt/XAU_GC_NATIVE_26M_20261018_003/M5_ENRICHED.parquet",
+      "sha256": "5e5cb256fc60a5e9a7ffe1a161aa875660f01806b8e8de2bf601fc2f528e7f99"
+    }
+  },
+  "limits": {
+    "execution_class": "audit",
+    "memory_max": "4G",
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "swap_max": "512M",
+    "wall_seconds": 1800
+  },
+  "limits_of_claim": "Conditional geometry arithmetic on genuine May-December 2024 TRAIN witnesses and representation invariants on the replay-matched pre-2025-07-01 cache prefix; full cache files through 2026-06-30 read for SHA-256 integrity only. All 19 lifecycle fields and full semantic line selection remain unproven; no sealed TEST/model/training.",
+  "output_dir": "/home/andre2/GX1_RUNS/TRENDLINE_CONDITIONAL_PREFIX_20261106_001",
+  "prepared_at_head": "7831fa9f0c590855927f768bf2bc44b0241ef7d8",
+  "schema_version": "gx1_trendline_conditional_prefix_plan_v1",
+  "scope": {
+    "cache_prefix_exclusive_ns": 1751328000000000000,
+    "test_data_used": false,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "witness_end_exclusive_ns": 1735689600000000000,
+    "witness_start_ns": 1714521600000000000
+  },
+  "sources": {
+    "atr": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/technical_indicators_v1.py",
+      "sha256": "3a81bec825639e57a3071cc28d4dc2d3d394fef031dc89d71da3b468ca28ecad"
+    },
+    "capped_runner": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+    },
+    "pivot": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/smc_v1.py",
+      "sha256": "56b9fe479e1cdb7dc524179b65e585d890cdd2fef128d47a6cada00692b94d9a"
+    },
+    "producer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/trendline_registry_v1.py",
+      "sha256": "df46a23dd47d81157eeeefd09401d1e2818b618f72998987fdcf3531a845f0f3"
+    },
+    "publication": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "replay_loader": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_direction_d1_trendline_replay_v1.py",
+      "sha256": "afe228b61eb5ec5a10e39f80c1bf4131b806ebf95ea028c6545c74f89530b56a"
+    },
+    "resample": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/features/htf_features.py",
+      "sha256": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_trendline_conditional_prefix_v1.py",
+      "sha256": "2a978550b50f95d21062bc6b56cc8c49f2ea7268f27a7c153f641b2a0ca3fa61"
+    }
+  },
+  "stage": "trendline_conditional_prefix_20261106_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false
+}

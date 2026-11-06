@@ -1,0 +1,98 @@
+{
+  "budget": {
+    "max_invocations": 1,
+    "max_json_bytes": 8388608,
+    "max_wall_seconds": 1800,
+    "memory_max": 4294967296,
+    "numerical_threads": 1,
+    "pids": 64,
+    "swap": 536870912
+  },
+  "factors": [
+    0.5,
+    1.0
+  ],
+  "inputs": {
+    "prior_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/RESULT.json",
+      "sha256": "007b1518c9ed1bfdd3eb8024b60421511dd158dbb2c16d2532bba4328214aa6b"
+    },
+    "prior_series": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/SERIES.json",
+      "sha256": "d2addf8fbb6f9ac9e9ed741bbbd2fe2bfdc07f59553ea28c021ea198d5fbfa8e"
+    },
+    "semantic_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/RESULT.json",
+      "sha256": "bcd9a82ff6e3218cf58539ec0c4d88cdbb80b1e7c497d2991d31aab071033bf7"
+    },
+    "semantic_terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/TERMINAL.json",
+      "sha256": "ac1873ec5b7ef3f07de335580eaa2f8c8facba850b40613cd84d2922130ee00c"
+    }
+  },
+  "launch_argv": [
+    "bash",
+    "scripts/gx1_capped_run.sh",
+    "--class",
+    "audit",
+    "--mem",
+    "4G",
+    "--swap",
+    "512M",
+    "--",
+    "/home/andre2/src/GX1_CURRENT/.venv/bin/python",
+    "-B",
+    "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_mtf_state_transition_mechanism_v1.py"
+  ],
+  "month_edges_ns": [
+    1714521600000000000,
+    1717200000000000000,
+    1719792000000000000,
+    1722470400000000000,
+    1725148800000000000,
+    1727740800000000000
+  ],
+  "preparation_status": "PREPARED_NOT_ADMITTED",
+  "report_cutoff_ns": 1727740800000000000,
+  "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001",
+  "schema_version": "dynamic_mtf_state_transition_mechanism_20261106_001_plan_v1",
+  "scope": {
+    "activity": "0.5 FLAT/non-FLAT from saved threshold/local_range/reason, 1.0 from exactly two times saved threshold; no 1.0 target rebuild",
+    "legacy_comparison": "Prior semantic report counted adjacent rows even if their source validity had a known closure gap; report both old and exact-minute switches and their difference",
+    "limits": "Descriptive threshold mechanism only; it does not establish market causality, directional label quality, optimal factor or forecast edge",
+    "mechanism": "Separate ATR timestamp/value unchanged versus changed; compare current range with previous threshold to partition range-sufficient and threshold-required flips; report boundary-distance quantiles",
+    "population": "Only complete adjacent unique M1 source-minute pairs within each May-Sep 2024 TRAIN month; month boundaries and nonconsecutive time pairs censored",
+    "prohibited": "No raw M1 reads, new target or ATR build, model/optimizer, VAL/TEST aggregate, factor choice, hysteresis candidate, Entry/Exit, broker, trading or spending"
+  },
+  "source_owners": {
+    "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+      "sha256": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212"
+    },
+    "gx1/contracts/gx1_capped_execution_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "gx1/contracts/immutable_event_authority_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "gx1/scripts/audit_dynamic_mtf_state_target_sensitivity_v1.py": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_mtf_state_target_sensitivity_v1.py",
+      "sha256": "ed2d2395e55ac0065b9c3d3cf3c1a251d3a980948a23b2cdbae9c4112c4d4e2d"
+    }
+  },
+  "stage": "dynamic_mtf_state_transition_mechanism_20261106_001",
+  "target_contract_sha256": "d44cf218b0f07c477e3ac52cc2374933c2754b40511492cdcf037811afc23ddd",
+  "timeframes": [
+    "M5",
+    "M15",
+    "H1",
+    "H4",
+    "D1"
+  ],
+  "worker": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_mtf_state_transition_mechanism_v1.py",
+    "sha256": "2be17570b34814ad29152bb970f63c9bbaaab9f566dfacd4714f5636483568c0"
+  }
+}

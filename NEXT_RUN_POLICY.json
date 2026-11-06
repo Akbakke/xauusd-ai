@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T20:19:06.753436+00:00",
+  "observed_utc": "2026-11-06T20:38:20.580841+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "Semantic target audit _002 completed and is consumed without choosing 0.5 or 1.0 ATR. M5 complete activity is nearly fully observable, but 0.5 leaves 13,017/29,849 native +5 cells with known non-FLAT/unknown direction; 1.0 reduces these to 1,878 while raising FLAT to 17,845 and binary activity transitions from 8,910 to 21,401 across May-Sep source months. Inspect the fixed TRAIN trajectory witnesses and bind what sustained UP/DOWN/FLAT should mean at M5 forecast cadence; do not choose a factor by class balance, coverage, or model score. Keep activity and direction masks separate; direct native binary loss is only a hypothesis until target semantics are locked. Then independently qualify 95 parked fields per TF producer-wise, trendline31 first, and prebind a simple EMA/ATR reference plus one chronological state comparison. No model fit, TEST, Entry-Q, broker, trading or spending admitted.",
+  "next_action": "One exact TRAIN-only transition-mechanism audit is admitted but unclaimed. It will separate strict consecutive-minute FLAT/activity flips from market gaps and count flips requiring ATR-threshold updates versus range change, using saved May-Sep arrays only. Neither 0.5 nor 1.0 ATR is selected: 1.0 M5/M15/H1 completed activity runs are shorter than native forecast leads, while 0.5 leaves 13,017 M5+5 active/unknown-direction cells. After the mechanism receipt, bind one physically meaningful sustained-state/episode candidate; retain separate activity/direction masks and do not auto-add native binary loss because saved M5+5 binary score already beats Markov. Reuse the independent close_position_range20 numeric proof: 94 formerly parked fields per TF remain without corresponding formula evidence. Trendline31 full producer/cache replays already pass, so audit geometry/clock on bounded independent witnesses instead of repeating them; then check other producers. Only after target/input gates, prebind EMA/ATR reference and one chronological state comparison. No model fit, TEST, Entry-Q, broker, trading or spending admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Semantic target audit _001 failed before price read and is consumed; corrected _002 completed May-Sep TRAIN scale, partial-mask and censored-run review with no factor selected. Post-normalization _002 passed sample parity. The market-state target remains unlocked; 95 parked fields per TF remain formula-unqualified and no model fit is admitted.",
+    "current_activity": "Semantic 0.5/1.0 TRAIN audit completed without factor lock; a distinct saved-array transition-mechanism audit is admitted but unclaimed. Post-normalization sample parity passed, close_position_range20 has independent five-TF numeric proof, and 94 formerly parked fields per TF still need formula evidence. No model fit admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The market-state target remains semantically unlocked: 0.5 ATR has large known-active/unknown-direction M5+5 coverage, while 1.0 increases FLAT and short activity transitions; M1 OHLC cannot resolve intraminute order. Full-profile post-normalization sample parity passed, but 95 fields per TF still lack independent formula/causal numeric qualification.",
+    "current_blocker": "The market-state target remains semantically unlocked: 1.0 completed activity episodes on M5/M15/H1 are shorter than native forecast leads, while 0.5 leaves many M5+5 active/unknown-direction labels; M1 OHLC cannot resolve intraminute order. Post-normalization sample parity and independent close_position_range20 arithmetic pass, but 94 formerly parked fields per TF still lack corresponding independent formula/causal evidence.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60528,6 +60528,30 @@
     "test_data_used": false,
     "independent_edge": "UNKNOWN",
     "post_run_review": "Original receipts rehashed: all five TF have eight fixed 253-field cache rows, NumPy/reference versus native runtime normalizer maximum absolute difference 0.0; categorical/binary identity and level presence/absence guards passed. No model forward/fit/TEST. This does not prove 95 remaining formulas, all-row raw gather, indicator value or forecast edge."
+  },
+  "dynamic_mtf_state_transition_mechanism_20261106_001": {
+    "status": "ADMITTED_UNCLAIMED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001.json",
+      "sha256": "8b7814d978ffc2cad3d410627d5d6239443934185271a3e5ee1adbb45e263b24"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "target_builds_authorized": 0,
+    "model_calls_authorized": 0,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "test_authorized": false,
+    "later_aggregate_authorized": false,
+    "training_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "operator_approval": "Current 2026-11-06 market-state task and standing zero-cost local GX1 authorization; one read-only saved-TRAIN transition mechanism audit, no model or paid calls.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "source_head_at_admission": "7831fa9f0c590855927f768bf2bc44b0241ef7d8",
+    "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TRANSITION_MECHANISM_20261106_001",
+    "scope": "May-Sep 2024 saved 0.5 target arrays, 1.0 as two times threshold, exact consecutive complete M1 pairs; attribute FLAT/activity flips to range versus threshold update and separate cross-gap row neighbors. No target build, raw M1, model, VAL/TEST, factor choice or trading."
   },
   "dynamic_mtf_state_semantic_calibration_20261106_001": {
     "status": "FAILED_CONSUMED",
