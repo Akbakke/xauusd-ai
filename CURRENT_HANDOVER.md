@@ -11,6 +11,18 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Begge friske private `_004`-armer bestod teknisk; hovedfit er fortsatt stengt.**
+Kandidaten kjørte én capped invokasjon på fysisk boot 609 og ble lukket med
+[rotgjennomgang](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/ACTUAL_ROOT_REVIEW.json).
+Tre modellkonstruksjoner, 21 forwards, fire bakover-/optimizersteg, bitlik resume,
+68 kildeeiere, fem prediksjonsfiler og 256 faste initialforeldre er verifisert.
+Den signerte vakten er PASS, task deaktivert og 250 W bekreftet. Begge armers
+fit-oppskrifter passerte den faktiske private-kvitteringsporten i en capped, modellfri
+kontroll; ingen full fit eller oktober-OOF er kjørt. `training_enabled=false`.
+Ingen TEST, broker, ordre eller handel. TRAIN-læring, utviklingsgeneralisering,
+uavhengig retningsedge og økonomi er UNKNOWN. Neste steg er egne eksakte fit-oppskrifter
+og én fit-admisjon om gangen.
+
 **06.11 – Kontrollens private `_004` bestod under ny kilde; alderkandidaten er innrømmet som neste arm.**
 Fysisk boot 608 kjørte én capped kontrollinvokasjon. [Rotgjennomgangen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/ACTUAL_ROOT_REVIEW.json)
 verifiserer 3 modellkonstruksjoner, 21 forwards, 4 bakover-/optimizersteg, bitlik resume,

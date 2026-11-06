@@ -46,7 +46,7 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-06T00:35:11.495960+00:00",
   "status": "M5_ENTRY_OCTOBER_FIT_ROLE_READ_GUARD_SOURCE_CHECKED_EDGE_UNKNOWN",
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
@@ -59019,7 +59019,7 @@
     "failure_error": "RuntimeError:NATIVE_DIRECTION_PREFIX_WINDOW_STATE_LOSS_IDENTITY"
   },
   "dynamic_m5_october_private_004_source_preparation_20261106_001": {
-    "status": "CONTROL_PRIVATE_COMPLETE_CANDIDATE_ADMISSION_ONLY",
+    "status": "BOTH_PRIVATE_MECHANICS_COMPLETE_FIT_NOT_ADMITTED",
     "observed_utc": "2026-11-06T03:06:00.294138+00:00",
     "scope": "Both fresh matched control and confirmed-age candidate private TRAIN mechanics; separate _004 roots and stages. No new recipe, campaign, reboot, model, fit, October score or TEST.",
     "observed_failure": "Candidate _003 stopped at model/loss objective hash mismatch after two forwards and before gradients or updates.",
@@ -59050,7 +59050,7 @@
     "training_enabled": false,
     "native_model_admitted": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "Candidate private _004 separately admitted; fit and October OOF still closed and independent edge UNKNOWN.",
+    "remaining": "Both source-matched private mechanics reviews pass exact fit recipe builder. Build and separately admit one full 29,849-parent fit at a time, then read-only October development OOF; independent edge remains UNKNOWN.",
     "source_commit_at_recipe_materialization": "f574d838d7c54d5ed36881cdbb4525efe167dc15",
     "recipes": {
       "control": {
@@ -59066,6 +59066,10 @@
     "control_review": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/ACTUAL_ROOT_REVIEW.json",
       "sha256": "f7b819619ab3d40f130a00bf17a04497be00bb6f2543a5873d9a62d680cd3765"
+    },
+    "candidate_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "8a33d2222876e17a58f4ed92937dc8a5e520883e7a0cae4f4888383dbb0695f0"
     }
   },
   "dynamic_m5_october_control_private_20261106_004": {
@@ -59172,8 +59176,8 @@
     "completed_boot_id": 608
   },
   "dynamic_m5_october_candidate_private_20261106_004": {
-    "status": "ADMITTED_ONCE_PENDING_MATERIALIZATION_AND_FRESH_BOOT",
-    "observed_utc": "2026-11-06T03:27:23.070080+00:00",
+    "status": "COMPLETE_CONSUMED_PRIVATE_MECHANICS",
+    "observed_utc": "2026-11-06T03:39:12.187731+00:00",
     "scope": "Candidate confirmed-current-state-age arm only; fixed pre-October TRAIN private mechanics on the same 32 unique parents, 256 fresh initial rows, at most four updates. No main fit or October OOF.",
     "arm": "candidate",
     "input_role": "fit",
@@ -59203,18 +59207,18 @@
       "sha256": "28a0bd8d659a7636a5b399d5b3785c5ead1e64e780a7ca9c068a23cc9975173e"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -59228,7 +59232,7 @@
     "relaunch_allowed": false,
     "private_weights_for_fit": false,
     "fresh_windows_boot_required": true,
-    "user_reboot_authorized": true,
+    "user_reboot_authorized": false,
     "power_limit_w": 250,
     "budgets": {
       "memory_bytes": 21474836480,
@@ -59241,13 +59245,37 @@
       "max_private_updates": 4,
       "usd": 0
     },
-    "prepared_plan_materialized": false,
-    "prepared_binding_materialized": false,
-    "machine_wide_idle_verified_for_reboot": false,
-    "physical_reboot_executed": false,
-    "model_calls": 0,
+    "prepared_plan_materialized": true,
+    "prepared_binding_materialized": true,
+    "machine_wide_idle_verified_for_reboot": true,
+    "physical_reboot_executed": true,
+    "model_calls": 3,
     "october_outcomes_read": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "Materialize candidate _004 once from clean HEAD under capped metadata audit; verify source, task and host-wide idle, then fresh physical reboot and one capped private mechanics invocation. Full fit and October OOF stay closed."
+    "remaining": "Candidate _004 private mechanics qualified and consumed; weights barred from main fit. Both arms can now build separate full-prefix fit recipes, but no fit/OOF is admitted or launched.",
+    "forwards": 21,
+    "backwards": 4,
+    "optimizer_updates": 4,
+    "technical_pass": true,
+    "predictive_value_qualified": false,
+    "terminal_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "8a33d2222876e17a58f4ed92937dc8a5e520883e7a0cae4f4888383dbb0695f0"
+    },
+    "campaign_plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "5a3e8c82019a36a293bf93ae4fa83aecdffc90456b4da7bfc5097c4bb40b86c2"
+    },
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "b195d2403680af7417f3c94cbcbc6610dbadb2c3adfa9fd4f62c912821c61469"
+    },
+    "power_after": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/POWER_AFTER.json",
+      "sha256": "abb3b27b65f84d5bb683bb4def814408074e031d55a05a9a1a784e6809b6b08c"
+    },
+    "task_name": "GX1OctoberCandidatePrivate20261106_004",
+    "task_state": "Disabled",
+    "completed_boot_id": 609
   }
 }
