@@ -11,6 +11,17 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Eksakt privat kampanjematerialisering er kildeklar, men ikke innrømmet.**
+[Materialisereren](gx1/scripts/materialize_dynamic_m5_october_private_campaign_v1.py) gjenbruker
+den eksisterende native forskningskampanjen for én arm av gangen. Den binder ren HEAD, armens
+publiserte oppskrift, policybyte, tidligere godkjente vaktkilder, fysisk boot-ID, 20 GiB/512 MiB,
+250 W, ett vindu, 256 initialrader og høyst fire private oppdateringer; den krever capped
+CPU-audit og skriver bare kampanjemetadata før en separat omstart. Python-syntaks og `git diff
+--check` bestod. Materialisereren er ikke kjørt, ingen kampanjeplan er publisert og
+`training_enabled=false`. Neste lokale kontroll er en gjennomgått, eksakt per-arm plan og
+maskinvid idle-/bootbevis før en eventuell egen native admisjon. Ingen modell, OOF, TEST, broker
+eller handel ble brukt; uavhengig edge og økonomi er UNKNOWN.
+
 **06.11 – Begge matchede oktober-oppskriftene for privat native-mekanikk er nå publisert som
 metadata, uten modelladmisjon.** Kontrollens
 [oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_001/NATIVE_RECIPE.json)

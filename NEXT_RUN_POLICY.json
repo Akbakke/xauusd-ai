@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "October control/age private recipes are materialized from the same frozen source and their role/cursor/worker score source is bound. This is metadata only: no campaign plan/admission, model, fit or OOF exists.",
+    "current_activity": "Matched October private recipes and a single hash-bound per-arm campaign materializer source are ready. The materializer has not run: policy still denies campaign preparation, model, fit and OOF.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_PRIVATE_RECIPES_MATERIALIZED_NATIVE_GATE_CLOSED_EDGE_UNKNOWN",
+    "status": "OCTOBER_PRIVATE_MATERIALIZER_SOURCE_READY_NATIVE_GATE_CLOSED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57090,7 +57090,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Two immutable matched October private recipes exist, source-frozen and metadata checked. Build/review exact per-arm campaign plan and policy admission; safe physical reboot and capped private mechanics are required before model construction. Only passed private receipts can open fit recipes; only completed fit can open reserved October TRAIN development OOF. Independent edge UNKNOWN.",
+    "next_milestone": "Review exact per-arm campaign metadata, source/boot/guard bindings and machine-wide idle state without launching a model. Native mechanics still require separate exact policy admission, safe physical reboot and capped route; fit then score depend on actual own-arm receipts. Independent edge UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",
@@ -58592,7 +58592,7 @@
     "remaining": "Own-arm private mechanics admission/receipt, exact fit recipe and run, then score recipe and chronological TRAIN development OOF; later untouched confirmation, physical ONLINE availability and economics remain UNKNOWN."
   },
   "dynamic_m5_october_private_recipe_preparation_20261106_001": {
-    "status": "PREPARED_NOT_ADMITTED",
+    "status": "MATERIALIZER_SOURCE_READY_NOT_ADMITTED",
     "observed_utc": "2026-11-06T01:54:02.327795+00:00",
     "source_commit_at_materialization": "d7a2cefe9963c52d4ea2f8dd14184b7442a02f32",
     "scope": "Matched control and one prespecified confirmed-age candidate; pre-October TRAIN only. Each arm has one private native mechanics invocation, fixed 32 parents, 256 initial rows, at most three constructions, 21 forwards, four backward/update calls. No main fit or OOF.",
@@ -58620,6 +58620,7 @@
         "initial_parent_rows": 256
       }
     },
+    "materializer_source": {"path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_dynamic_m5_october_private_campaign_v1.py", "sha256": "715b70d592c739574c9436bfc5c0e7732fd0602e9b0cd8d9afa2426f9732998a"},
     "campaign_plan_materialized": false,
     "prepared_boot_recorded": false,
     "caps": {
