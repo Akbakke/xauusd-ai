@@ -66,6 +66,20 @@ def materialize(binding_path: Path):
             and recipe['test_data_used'] is False,
             'SCORE_MATERIALIZER_RECIPE')
     october.require_score_phase_gate(gate, recipe)
+    require(all(policy.get(key) is False for key in (
+        'training_enabled', 'native_training_enabled', 'full_epoch_training_allowed',
+        'full_val_allowed')), 'SCORE_MATERIALIZER_GLOBAL_CLOSED')
+    for key in ('normalization_fit_authorized', 'synthetic_test_execution_authorized',
+                'test_data_used', 'exit_evaluation', 'broker_access_allowed', 'full_val_allowed'):
+        require(gate.get(key) is False, 'SCORE_MATERIALIZER_CLOSED_GATE:' + key)
+    for key in ('execution_authorized', 'data_reads_authorized',
+                'genuine_constructor_authorized', 'genuine_forward_authorized',
+                'native_launch_authorized'):
+        require(gate.get(key) is True, 'SCORE_MATERIALIZER_OPEN_GATE:' + key)
+    for key in ('genuine_backward_authorized', 'genuine_updates_authorized',
+                'genuine_predictor_fit_authorized', 'training_enabled',
+                'native_training_enabled', 'full_epoch_training_allowed'):
+        require(gate.get(key) is False, 'SCORE_MATERIALIZER_NO_FIT_GATE:' + key)
     storage = october.require_score_storage(root, recipe['score_storage_plan'])
     boot = campaign.require_boot_identity(campaign.read_bound_json(
         Path(binding['prepared_boot']['path']), binding['prepared_boot']['sha256']))
@@ -125,7 +139,7 @@ def materialize(binding_path: Path):
     plan = _seal({
         'schema_version': campaign.PLAN_SCHEMA, 'decision': 'PASS_PREPARED',
         'campaign_id': 'GX1_DYNAMIC_M5_OCTOBER_' + arm.upper() + '_SCORE_20261106_'
-            + ('002' if arm == 'control' else '001'),
+            + stage.rsplit('_', 1)[1],
         'phase': prefix.PHASE, 'created_utc': datetime.now(timezone.utc).isoformat(),
         'source_repo': str(repo), 'source_commit': head,
         'runtime_root': str(runtime), 'gpu_uuid': old['gpu_uuid'],

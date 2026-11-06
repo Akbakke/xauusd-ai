@@ -21,10 +21,10 @@ FIT_ROOTS = {'control': BASE/'CONTROL_FIT_001/RUNTIME',
              'candidate': BASE/'CANDIDATE_FIT_002/RUNTIME'}
 FIT_STAGES = {'control': 'dynamic_m5_october_control_fit_20261106_001',
               'candidate': 'dynamic_m5_october_candidate_fit_20261106_002'}
-SCORE_ROOTS = {'control': BASE/'CONTROL_SCORE_002/RUNTIME',
-               'candidate': BASE/'CANDIDATE_SCORE_001/RUNTIME'}
-SCORE_STAGES = {'control': 'dynamic_m5_october_control_score_20261106_002',
-                'candidate': 'dynamic_m5_october_candidate_score_20261106_001'}
+SCORE_ROOTS = {'control': BASE/'CONTROL_SCORE_003/RUNTIME',
+               'candidate': BASE/'CANDIDATE_SCORE_002/RUNTIME'}
+SCORE_STAGES = {'control': 'dynamic_m5_october_control_score_20261106_003',
+                'candidate': 'dynamic_m5_october_candidate_score_20261106_002'}
 CONTROL_RECOVERED_FIT_REVIEW = {
     'path': str(BASE/'CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json'),
     'sha256': '480d90032cdc582b186777d19b66d16c3f00816ce1ba5f1abe097c92667cfc60',

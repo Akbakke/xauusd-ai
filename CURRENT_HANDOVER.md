@@ -31,13 +31,17 @@ av 16 798 observerte. Over alle M5-horisonter var kandidatens Brier
 TRAIN-fit, ikke senere generalisering eller edge. [Kontrollens nye
 score-oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_002/RECIPE.json)
 og [kandidatens score-oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_001/RECIPE.json)
-er publisert fra ren kilde og bestod metadatakontroll; nødvendig diskplass
-ble målt. Kontrollens `_002` er nå alene eksakt innrømmet for ett lesende,
-null-oppdaterings scorevindu over 6 323 senere oktoberforeldre; kandidatens
-score er fortsatt stengt. Ingen oktoberutfall er lest ennå. Neste port er
-materialisering fra ren kilde, maskinvid ledighet, fysisk omstart med
-kvittering og eksisterende capped rute. `training_enabled=false`;
-uavhengig edge og økonomi er UNKNOWN. TEST, Exit, broker, ordre og handel er stengt.
+var publisert fra ren kilde og bestod metadatakontroll, men kontrollens
+innrømmede `_002`-materialisering stoppet før modell og oktoberlesing:
+`synthetic_test_execution_authorized=false` og `full_val_allowed=false`
+manglet eksplisitt i scoreporten. [Feilkvitteringen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_002/MATERIALIZATION_FAILURE_REVIEW.json)
+SHA-256 6dc7d6b6ffd2691ade4e912dff0b3923967beb06cc73a9ed2c20cef1ced8f2f5
+bevarer claim og delplan; `_002` er konsumert uten omstart eller modell.
+Kandidatens `_001` var aldri innrømmet. Kildens scoreporter flyttes til
+`CONTROL_SCORE_003` og `CANDIDATE_SCORE_002`; ny preflight krever alle
+lukkede boolske porter før claim. Neste steg er nye kildebunde oppskrifter
+og én kontrolladmisjon. `training_enabled=false`; uavhengig edge og økonomi
+UNKNOWN. TEST, Exit, broker, ordre og handel er stengt.
 
 **06.11 – Gjenopprettet kontroll-score og alderkandidatens fit er kildekontrollert, ennå ikke innrømmet.**
 Den faktiske [kontroll-recoveryen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json)
