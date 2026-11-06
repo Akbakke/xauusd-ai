@@ -11,6 +11,26 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Den målte tap/identitetsfeilen er rettet i kilde; begge armer trenger frisk privat kvalifikasjon.**
+`native_dynamic_mtf_state_loss` tar nå kandidatens eksplisitte bekreftet-alder-modus, og den
+eneste native tapskonsumenten fører modusen fra modellen. Historiske kontrollresultater
+beholdes, men kontrollens `_003`-kildehash er ikke identisk med nåværende kilde; den kan
+derfor ikke alene innrømme en ny fit. 168 målrettede state-/prefix-/oktobertester bestod
+under capped audit. Friske, separate `_004`-røtter og stadier er kildeklare for kontroll
+og kandidat, uten oppskrift, kampanje, omstart eller modelladmisjon.
+`training_enabled=false`; retningslæring og edge er UNKNOWN.
+
+**06.11 – Kandidatens private `_003` feilet før første update; engangsplanen er konsumert.**
+Windows boot 607 startet én capped invokasjon. [Feilgjennomgangen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_003/INVOCATION_FAILURE_REVIEW.json)
+binder terminalkvittering, plan og feilen `NATIVE_DIRECTION_PREFIX_WINDOW_STATE_LOSS_IDENTITY`.
+Én modellkonstruksjon og to forwards ble gjort, men null backwards/optimizersteg.
+Årsaken i kilde er at loss-kontrakten beregner basisidentiteten selv om modellen er
+bundet til den eksplisitte bekreftet-alder-kandidaten; objektiv-hashene blir dermed ulike.
+Oppstartsoppgaven er deaktivert, `training_enabled=false`, og `_003` relanseres ikke.
+Ingen oktoberutfall, TEST, broker eller handel ble åpnet. Kontrollens private PASS består,
+men kandidatens mekanikk, TRAIN-læring, utviklingsgeneralisering, uavhengig edge og økonomi
+er fortsatt ubevist. Neste steg er minste kilde- og testrettelse og en frisk kandidatplan.
+
 **06.11 – Kontrollens private `_003` bestod teknisk og er konsumert; alderkandidaten er neste eksakte arm.**
 Ny fysisk Windows-boot 606 startet én kontrollinvokasjon gjennom den eksisterende capped ruten.
 [Kampanjekvitteringen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_003/RUNTIME/receipts/invocation-0001.json)

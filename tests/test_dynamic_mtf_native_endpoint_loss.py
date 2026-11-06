@@ -185,6 +185,30 @@ def test_confirmed_age_objective_is_opt_in_and_retains_v5_identity():
             current_state_input=True, **HISTORICAL, confirmed_run_age_input=True)
 
 
+def test_confirmed_age_loss_matches_model_identity_without_changing_target_math():
+    logits, labels, cutoff = _case(1)
+    _observe(labels, 0, 0, 1, targets.UP)
+    _observe(labels, 0, 0, 5, targets.UP)
+    base_objective = research.dynamic_mtf_state_research_contract(
+        current_state_input=True, **HISTORICAL, native_endpoint_loss=True)
+    age_objective = research.dynamic_mtf_state_research_contract(
+        current_state_input=True, **HISTORICAL, native_endpoint_loss=True,
+        confirmed_run_age_input=True)
+    base = _state_loss(SimpleNamespace(**HISTORICAL, extended_forecast_minutes=None,
+        native_endpoint_loss=True, confirmed_run_age_input=False,
+        research_objective=base_objective), logits, labels, cutoff=cutoff)
+    candidate = _state_loss(SimpleNamespace(**HISTORICAL, extended_forecast_minutes=None,
+        native_endpoint_loss=True, confirmed_run_age_input=True,
+        research_objective=age_objective), logits, labels, cutoff=cutoff)
+    assert base['research_objective_sha256'] == base_objective['contract_sha256']
+    assert candidate['research_objective_sha256'] == age_objective['contract_sha256']
+    torch.testing.assert_close(candidate['loss'], base['loss'])
+    with pytest.raises(RuntimeError, match='STATE_LOSS_IDENTITY'):
+        _state_loss(SimpleNamespace(**HISTORICAL, extended_forecast_minutes=None,
+            native_endpoint_loss=True, confirmed_run_age_input=False,
+            research_objective=age_objective), logits, labels, cutoff=cutoff)
+
+
 def test_confirmed_age_recipe_opt_in_preserves_old_identity_and_rejects_unbound_modes():
     from gx1.contracts.entry_model_native_train_recipe_v1 import (
         native_direction_research_recipe, require_native_direction_research_recipe)

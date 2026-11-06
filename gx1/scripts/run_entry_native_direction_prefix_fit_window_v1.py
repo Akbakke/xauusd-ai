@@ -251,6 +251,7 @@ def _state_loss(model, outputs, target, *, cutoff):
         first_state_loss_weight=model.first_state_loss_weight, extended_forecast_minutes=model.extended_forecast_minutes,
         first_flat_activity_weight=getattr(model, 'first_flat_activity_weight', None),
         native_endpoint_loss=getattr(model, 'native_endpoint_loss', False),
+        confirmed_run_age_input=getattr(model, 'confirmed_run_age_input', False),
         **({key:target[key] for key in ('first_flat_activity_observed', 'first_flat_activity_is_flat')}
             if getattr(model, 'first_flat_activity_weight', None) is not None else {}))
     _require(loss['research_objective_sha256'] == model.research_objective['contract_sha256'], 'STATE_LOSS_IDENTITY')

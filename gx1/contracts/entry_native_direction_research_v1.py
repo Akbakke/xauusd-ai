@@ -784,13 +784,17 @@ def state_chain_negative_log_likelihood(initial_state_logits, state_transition_l
 def native_dynamic_mtf_state_loss(initial_state_logits, state_transition_logits, *,
         state, observed, issue_ns, validity_ns, maturity_ns, cutoff_ns, first_state_loss_weight=None,
         extended_forecast_minutes=None, first_flat_activity_weight=None,
-        first_flat_activity_observed=None, first_flat_activity_is_flat=None, native_endpoint_loss=False):
+        first_flat_activity_observed=None, first_flat_activity_is_flat=None, native_endpoint_loss=False,
+        confirmed_run_age_input=False):
     """Strict declared-grid loss; labels and future clocks stay outside forward."""
     _require(first_state_loss_weight is not None or extended_forecast_minutes is None, "STATE_EXTENDED_REQUIRES_CURRENT_INPUT")
     _require(type(native_endpoint_loss) is bool and (not native_endpoint_loss or first_state_loss_weight is not None),
         "STATE_NATIVE_ENDPOINT_MODE")
+    _require(type(confirmed_run_age_input) is bool and (not confirmed_run_age_input or
+        first_state_loss_weight is not None), "STATE_CONFIRMED_AGE_MODE")
     contract = (dynamic_mtf_state_research_contract() if first_state_loss_weight is None
-        else dynamic_mtf_state_research_contract(current_state_input=True, first_state_loss_weight=first_state_loss_weight,
+        else dynamic_mtf_state_research_contract(current_state_input=True,
+            confirmed_run_age_input=confirmed_run_age_input, first_state_loss_weight=first_state_loss_weight,
             extended_forecast_minutes=extended_forecast_minutes, first_flat_activity_weight=first_flat_activity_weight,
             native_endpoint_loss=native_endpoint_loss))
     _require(first_state_loss_weight is not None or first_flat_activity_weight is None, "STATE_FIRST_ACTIVITY_REQUIRES_CURRENT")
