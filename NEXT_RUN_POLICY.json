@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T16:54:16.357050+00:00",
-  "status": "MARKET_STATE_TARGET_AND_INDICATOR_QUALIFICATION_PENDING",
+  "observed_utc": "2026-11-06T17:11:10.429481+00:00",
+  "status": "MARKET_STATE_TRAIN_TARGET_SENSITIVITY_ADMITTED_ONE",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Active phase is dynamic five-timeframe market-state forecasting before Entry. The 0.5 ATR target is a technically reviewed but semantically unlocked candidate. Prior one-pass fits and scores are consumed. No model call or fit is admitted; training_enabled=false. TEST, Entry-Q, Exit, broker, trading and spending remain closed. Changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "First prebind one target-only May-Sep 2024 TRAIN sensitivity: current 0.5 ATR versus unit-scale 1.0 ATR with identical five-TF dynamic segmentation, active-M1 spans and fixed native validity leads. Report monthly/TF observability, class shares and state changes; 1.0 is a comparator, not an admitted replacement. Active OANDA XAU source has only M1 OHLC, so unknown intraminute high/low order remains UNKNOWN. Do not select threshold using model scores, VAL or TEST. The 02-Nov target_rule_locked=true is scoped technical review; current semantic target is unlocked. Then audit post-normalization input/level masks and independently qualify 95 previously parked fields per TF in full profile. Only after target and input gates, prebind one chronological state-forecast comparison with simple baselines on existing XAU/GC development data. Entry-Q is a later phase. No target audit run, model fit, TEST, broker, trading or spending is admitted by this status.",
+  "rule": "Active phase is dynamic five-timeframe market-state forecasting before Entry. One exact target-only 0.5 versus 1.0 ATR sensitivity on May-September 2024 TRAIN is admitted under its own claim, source binding and capped guard. It does not choose a new target or admit a model call. Prior one-pass fits and scores are consumed. training_enabled=false; TEST, Entry-Q, Exit, broker, trading and spending remain closed.",
+  "next_action": "Run dynamic_mtf_state_target_sensitivity_20261106_001 once only through its exact plan and capped audit guard. Require full saved-0.5 array parity, report only 29,849 pre-October TRAIN issues at five native leads, monthly/TF masks, state shares, transitions and intraminute-order flags for 0.5 and 1.0 ATR. Do not choose target from model score, VAL or TEST; no 1.0 series promotion. After terminal review, settle target semantics and observer masks before normalized indicator checks and any chronological state fit. Entry-Q is later. No model fit, TEST, broker, trading or spending admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Market-state target semantics and observability plus full-profile indicator calibration are the active scope. Earlier one-pass fits and October scoring are complete and consumed; no new model job admitted.",
+    "current_activity": "One exact target-only May-Sep 2024 sensitivity audit is admitted, not yet claimed. It compares 0.5 and 1.0 ATR labels with saved-baseline parity under capped 4G/1800s guard; no model fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -60436,5 +60436,24 @@
     "resource_accounting_note": "Process ru_maxrss exceeds requested 4G memory.max; actual cgroup peak was not retained. Scope limit was verified and exit was 0 without OOM; do not equate these measures.",
     "source_unchanged": true,
     "post_run_review": "Original result/terminal rehashed; all 36,172 parent as-of selections on five TF and exact M5 parent barstart passed; eight raw EMA/ATR/SR tensor rows bit-match cache. Does not test post-normalization, model influence, level observation or Entry value."
+  },
+  "dynamic_mtf_state_target_sensitivity_20261106_001": {
+    "status": "ADMITTED_ONE_TARGET_ONLY_SENSITIVITY_NOT_CLAIMED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001.json",
+      "sha256": "9aa37c8531de784968c9821960b43cd40ee7722a018827c00561ab1319543e2a"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "target_builds_authorized": 2,
+    "model_calls_authorized": 0,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "test_authorized": false,
+    "later_aggregate_authorized": false,
+    "training_authorized": false,
+    "output_scope": "May-Sep 2024 TRAIN aggregate only; 0.5 exact parity and 1.0 diagnostic, no alternative series publication",
+    "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD"
   }
 }

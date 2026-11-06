@@ -10,7 +10,12 @@ statusnotater er bevart i Git og originale kvitteringer.
 
 Definer og lær dynamisk OPP/NED/FLATT-markedstilstand på M5, M15, H1, H4 og
 D1 først. M5 er prognosetakt; Entry-plassering, direkte Entry-Q, Exit og
-handelsbeslutninger kommer senere. Ingen ny fit er innrømmet.
+handelsbeslutninger kommer senere. Ingen ny fit er innrømmet. Én ren
+[målsensitivitetsplan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001.json)
+SHA-256 `9aa37c8531de784968c9821960b43cd40ee7722a018827c00561ab1319543e2a` er innrømmet, men ikke claimet: to målbygg,
+0 modellkall, 29 849 pre-oktober TRAIN-foreldre, 4 GiB/512 MiB og 1 800 s.
+Den må først gjenskape lagret 0,5-serie eksakt, deretter rapportere 1,0 som
+diagnose. Kjør bare gjennom capped engangsvakt; ingen target-promotering.
 
 Målkontrakten er ennå ikke låst som meningsfull markedsdefinisjon. Faktoren
 0,5 × ATR(14) per TF er en brukerakseptert kandidat, ikke endelig kalibrert.
@@ -26,8 +31,9 @@ måling bindes sammen på hver TF. M1-OHLC gir observerbar M5-tilstand på
 har ett OHLC-tidsstempel per minutt og kan ikke ordne intraminutt høy/lav.
 En spredt, umanifestert Dukascopy-tickcache dekker ikke aktiv 2024-TRAIN;
 GC-futures er heller ikke fasit for XAU. Neste minste målkontroll er en
-forhåndsbundet TRAIN-only sensitivitet mot 1,0 × ATR med samme dynamiske
-segmentering, aktive-M1-vinduer og fem native prognosetider. Rapporter per
+forhåndsbundet sensitivitet på kun fitprefikset 01.05–30.09.2024 mot
+1,0 × ATR, med samme dynamiske segmentering, aktive-M1-vinduer og fem
+native prognosetider. Oktober og senere brukes ikke til målvalg. Rapporter per
 måned/TF dekning, klassefordeling og skifter; velg ikke faktor med modelltreff,
 VAL eller TEST. 1,0 er sammenligningsskala, ikke vedtatt mål.
 
