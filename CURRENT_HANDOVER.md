@@ -139,6 +139,15 @@ DOWN/FLAT/UP-fordelingen var henholdsvis 41,29/13,77/44,94 % og
 39,71/14,59/45,70 %. Kandidatens Brier forverret seg 0,01046 mot priorens
 0,00364. Mask-/klasseforskyvning alene forklarer ikke målt fall, og ingen
 kausal feilårsak er påvist.
+Lagret [kandidatfit](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/prefix-fit/window-0001/RESULT.json) SHA-256
+`a42712db365c1bb4f53669c4564c09db7cf3e56c9feb2f6ff6257d43f53f11a5` viser
+1 866 fysiske AdamW-steg. Siste batch hadde ikke-null gradient i alle 135
+rapporterte grupper, inkludert åtte spesialistprojeksjoner, MTF/GC,
+`entry_q_joint` og tilstandshodene. Første batch hadde null i de åtte
+spesialistprojeksjonene; det vedvarte ikke. Kvitteringen gjelder samlet tap
+og måler ikke isolert endpoint-gradient eller vektendring per parameter.
+Ingen vedvarende gradientbrudd er påvist; dette innrømmer ingen kodeendring
+eller ny fit.
 
 En siste metadataavklaring fant ingen lagret, foreldrejustert 2D-matrise
 med hele den native inputflaten i gjeldende bundne kandidat-artefakter. [CAUSAL_INPUTS](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001/CAUSAL_INPUTS/CAUSAL_INPUTS.json) SHA-256
