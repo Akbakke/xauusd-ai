@@ -11,7 +11,18 @@ Programrot:
 
 ## Aktuell status
 
-**06.11 – Fit-only native datapreflight 001 feilet og er konsumert; etterfølger 002 er innrømmet, ikke kjørt.** Plan 001 nådde `prepare_october_native` på genuine fit-data, men native batch stoppet på `NATIVE_DIRECTION_FEATURE_VIEW_SOURCE_HEADERS` før noen komplett batch. Kildekontrollen viste at sekvensens NumPy-arrays ikke var satt skrivebeskyttet slik den allerede beståtte native Batch-002-ruten gjør. Adapteren setter nå disse eksakt samme arrays skrivebeskyttet før gather. [Feilkvittering](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_001/FAILED.json) er bevart; [plan 002](configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002.json) har ny kildehash, ressursgrense og engangsadmisjon. Ingen modell, trening, oktoberutfall, TEST, broker eller handel ble åpnet. Fit-batch, OOF, uavhengig edge og økonomi er fortsatt UNKNOWN.
+**06.11 – Fit-only datapreflight 001 og 002 feilet og er konsumert; 003 er
+innrømmet, ikke kjørt.** 001 nådde `prepare_october_native` på genuine TRAIN-data,
+men batchen avviste skrivbare sekvensheaders. Adapteren bruker nå den samme
+skrivebeskyttelsen som den beståtte Batch-002-ruten. I 002 ble kontrollbatchen
+levert, men etterkontrollen forsøkte å lese `CONTROL_VIEW.json` gjennom en guard
+som bare kjente kandidatmetadata. Adapterkontrollen samler nå begge eksakte
+metadata-inventar før guarden installeres; en syntetisk kontroll avviste
+motstridende filbindinger. [Feil 001](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_001/FAILED.json)
+· [feil 002](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002/FAILED.json)
+· [plan 003](configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003.json).
+Ingen komplett matchet fit-batch, modell, trening, oktoberutfall, TEST, broker
+eller handel er dokumentert. OOF, uavhengig edge og økonomi er UNKNOWN.
 
 **06.11 – Oktoberens native fit-rolle har en egen kilde- og leseguard, uten datagather eller modellkjøring.** [Rollebinderen](gx1/contracts/entry_dynamic_m5_october_native_roles_v1.py) binder kontroll og alderskandidat til den samme 29 849-raders TRAIN-målserien ved privat kvalifikasjon/fit og reserverer 36 172-radersserien til en separat score-rolle. Den [kausale inputleseren](gx1/contracts/entry_dynamic_m5_october_causal_inputs_v1.py) verifiserer fortsatt alle fil-SHA-er, men tolker bare TRAIN-verdier i fit-rollen og kan ikke betjene en score-batch derfra. [Native adapteren](gx1/audit/dynamic_m5_october_native_inputs.py) er koblet til eksisterende worker og begrenser lesegarden til 33 nødvendige fysiske filer, 13 rollevalgte målblader og seks kausale inputblader; den gamle desember-/historiske ruten er beholdt. Et direkte forsøk på å åpne et oktober-målblad under fit-garden ble avvist. Aldersvekten er nå egen gradientgruppe i den native privatkvalifikasjonen; et nullgradient kan dermed ikke skjules i restgruppen. Ni fokuserte syntetiske tester og Python-syntaks bestod under/etter capped 2 GiB audit; hashbundne metadata for begge fit-armer og gardkonstruksjonen ble prøvd mot lagrede kvitteringer uten feature-/målarray eller modell. Den første metadata-proben traff en dokumentert 16 MiB-grense for cachemanifestet; adapteren bruker nå den eksisterende store, SHA-verifiserte manifestleseren. **Faktisk `prepare_october_native`, GPU-baseline, gradient/resume, kampanjeoppskrift og kronologisk TRAIN-OOF er ennå ikke kjørt.** Neste steg er én ny, eksakt admitted capped fit-only datapreflight på ren kilde. `training_enabled=false`; oktober er utvikling, uavhengig edge og økonomi er UNKNOWN.
 

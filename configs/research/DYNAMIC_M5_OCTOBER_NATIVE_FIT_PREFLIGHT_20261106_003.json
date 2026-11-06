@@ -1,0 +1,91 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_native_fit_preflight_plan_v1",
+  "plan_id": "DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003",
+  "status": "PREPARED_NOT_ADMITTED",
+  "prepared_from_head": "3f24163ef92cd1bd1dfd789673809301e3f7688e",
+  "prepared_utc": "2026-11-06T00:51:20.152120+00:00",
+  "purpose": "One successor model-free fit-role adapter check after a measured control metadata bookend guard mismatch; same four fixed TRAIN parents and matched arms.",
+  "standing_authorization": "Ja, og ikke spør meg hver jævla gang. ALT som ikke koster penger/tokens/Api tokens gjør du uten å spørre",
+  "batch_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002.json",
+    "sha256": "8287e4b16dcd7a1e6e82162b756b32a17c6030f2b9c9e86d865ac8cc5db8d750"
+  },
+  "reference_plan": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_FIT_REFERENCES_20261106_001.json",
+    "sha256": "7b8f6664bed2bceabde805c09dc4d5a54d7600999847f173fbe72c48beb973d0"
+  },
+  "fit_target": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DATA_PREFIX_001/FIT_TARGETS/SERIES.json",
+    "sha256": "288d9e04c56337e0413cf29f0235e810ae896d3bc6be3f482eaa84b25ff4d1cb"
+  },
+  "sample_parent_rows": [
+    0,
+    1,
+    29847,
+    29848
+  ],
+  "arms": [
+    "control",
+    "candidate"
+  ],
+  "read_scope": {
+    "physical_source_files": 33,
+    "fit_target_leaves": 13,
+    "causal_input_leaves": 6,
+    "target_role": "fit_pre_october_2024_only",
+    "target_query_minutes": [
+      1,
+      1440
+    ],
+    "raw_feature_batch_rows_per_arm": 4,
+    "october_outcomes": false
+  },
+  "write_scope": {
+    "aggregate_result_only": true,
+    "raw_values": false,
+    "model_predictions": false
+  },
+  "restrictions": {
+    "model_construction": false,
+    "model_forward": false,
+    "optimizer_updates": false,
+    "october_outcomes": false,
+    "test_split": false,
+    "broker_or_network": false,
+    "spending_usd": 0
+  },
+  "execution": {
+    "command": "bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- timeout --signal=TERM --kill-after=10s 1800s .venv/bin/python -m gx1.audit.dynamic_m5_october_native_fit_preflight",
+    "memory": "4G",
+    "swap": "512M",
+    "timeout_seconds": 1800,
+    "kill_after_seconds": 10
+  },
+  "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003",
+  "max_invocations": 1,
+  "stop_rule": "Failure, timeout or success consumes this claim; preserve receipts and do not retry. No model, training, October outcomes, TEST, broker or trading.",
+  "source_files_sha256": {
+    "gx1/audit/dynamic_m5_october_native_fit_preflight.py": "1f84d05eb6d8d4ba04bea4361b6011b1b279c8d1d4c1c29b164411e490bb4cfe",
+    "gx1/audit/dynamic_m5_october_native_inputs.py": "d0c52d8a1f9ecbca9503e465457b8e6627450a39e9b1f888cbd94a3cab0aef4c",
+    "gx1/audit/dynamic_m5_october_native_batch_binding.py": "9a21e8df7512332529ba4d00c1ffe3f0904a4dcedf336f5db70fd623beaa4a09",
+    "gx1/audit/dynamic_mtf_october_feature_delivery.py": "6ffb8d566c8709e88441b02e59dae81f7171c046b9c8b46181869fb1f5f3491e",
+    "gx1/audit/dynamic_mtf_october_input_only.py": "174c46d0bec2dc7a9ae46f893bcfbd7ef5945f79c39d95cefa9595918251f680",
+    "gx1/audit/dynamic_mtf_train_prefix_inputs.py": "cb29b4a696119b341bc1f1eae0a1bbb281ea4c101498dd34544abfcf46bd7185",
+    "gx1/audit/dynamic_mtf_december_native_inputs.py": "e8eca2f953ff4e46b448c6f84d4e016c9ad15d436257de8d671e0bcbc4e647dc",
+    "gx1/contracts/entry_dynamic_m5_october_native_roles_v1.py": "40d2b8aa0f6b87300723ff0ec28c620d791815efb0b310b7af1b2500ae5eb2bf",
+    "gx1/contracts/entry_dynamic_m5_october_causal_inputs_v1.py": "f5ab03dd97bda9e0309803d20dca3700f5b9649ede9b47e19c1d3a9865f859c8",
+    "gx1/contracts/entry_dynamic_mtf_state_targets_v1.py": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "e3fe8f45690e99f5aac769d7f921b4676cfe562400689acbb3c4efc1fa686697",
+    "gx1/contracts/entry_native_direction_prefix_units_v1.py": "37627f5321e476b00b2b5ed6c9d96b4c59f3b04124b3eb64cbedb6b3cf9a021d",
+    "gx1/contracts/local_random_access_campaign_v2.py": "00759c4ae37f0894ff42a673ad4b7d91e6e1a8bf9945386ac202cfaa6b992143",
+    "gx1/contracts/gx1_capped_execution_v1.py": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5",
+    "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": "101bf8974ed1d4e0855cfeb79dff17a1db4d2d6796410b58495cd149b7299939",
+    "gx1/scripts/run_entry_native_direction_research_window_v1.py": "c03335f80bdc1aefb8a29d9628a3057929ab6e939a79a59554ead472311c2157",
+    "scripts/gx1_capped_run.sh": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+  },
+  "predecessor_failure": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002/FAILED.json",
+    "sha256": "56d49fdfda5d3e6b0e6e16c237e1c9c979198139cbfbb218bda5868880fae276"
+  },
+  "reason_for_successor": "Merge exact control and candidate metadata into the guarded read inventory before source bookends; 002 stopped on CONTROL_VIEW.json."
+}

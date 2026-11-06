@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Plan 001 failed consumed at mutable native sequence SOURCE_HEADERS. Minimal read-only adapter correction and exact successor 002 are admitted on clean source; run 002 once, review result, consume policy. No model or training; edge UNKNOWN.",
+  "next_action": "Plans 001/002 failed consumed on read-only sequence headers and the two-arm metadata read guard. Exact successor 003 is admitted on clean source after targeted synthetic conflict check; run once, review result, consume claim. No model/training; edge UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_NATIVE_FIT_PREFLIGHT_002_ADMITTED_NOT_RUN_EDGE_UNKNOWN",
+    "status": "OCTOBER_NATIVE_FIT_PREFLIGHT_003_ADMITTED_NOT_RUN_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -58358,7 +58358,7 @@
     "measured_blocker": "Actual fit-only prepare reached the native batch gather, then SOURCE_HEADERS rejected mutable sequence arrays. No completed batch, model or October outcome read; plan 001 cannot be relaunched."
   },
   "dynamic_m5_october_native_fit_preflight_20261106_002": {
-    "status": "ADMITTED_ONCE",
+    "status": "FAILED_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002.json",
       "sha256": "de659269c0372c24e75819a7cc5d1c3129941b3e8cbd7980e5bbcc43381e034c"
@@ -58368,12 +58368,48 @@
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "admitted_utc": "2026-11-06T00:48:24.423120+00:00",
     "source_head_at_admission": "17b8e70bb28fe6717cda69faeb5fe0f557d463c0",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002",
     "scope": "One successor model-free, fit-only four-row-per-arm data adapter check; 001 failed consumed at SOURCE_HEADERS.",
     "predecessor_failure": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_001/FAILED.json",
       "sha256": "6e6507d829e87f55c357231d4539781109bea44b218597424acf2c27735ba547"
+    },
+    "training_enabled": false,
+    "native_model_calls_authorized": 0,
+    "test_split_access_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "spending_usd_authorized": 0,
+    "independent_edge": "UNKNOWN",
+    "claim_exit_code": 1,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002/CLAIM.json",
+      "sha256": "f5078bd3200b63a4a40cd4eb795f95635999188bb5cd8c7db0210601001ecab1"
+    },
+    "failed": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002/FAILED.json",
+      "sha256": "56d49fdfda5d3e6b0e6e16c237e1c9c979198139cbfbb218bda5868880fae276"
+    },
+    "native_model_calls": 0,
+    "measured_blocker": "Control fit batch completed, but source bookend could not reread CONTROL_VIEW.json under candidate-only metadata guard. No result or candidate batch; plan 002 cannot be relaunched."
+  },
+  "dynamic_m5_october_native_fit_preflight_20261106_003": {
+    "status": "ADMITTED_ONCE",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003.json",
+      "sha256": "2cb85fa541608826b54279726ce1a2d9b8c9871b9126da03e9e3754b34eabe33"
+    },
+    "operator_approved": true,
+    "operator_approval": "Standing zero-cost local GX1 authorization from user 2026-11-05; exact successor 003 admitted once after measured two-arm metadata guard correction.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "admitted_utc": "2026-11-06T00:51:20.183791+00:00",
+    "source_head_at_admission": "3f24163ef92cd1bd1dfd789673809301e3f7688e",
+    "remaining_invocations": 1,
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003",
+    "scope": "One successor model-free, fit-only four-row-per-arm data adapter check with union of exact bound arm metadata; 001 and 002 failed consumed.",
+    "predecessor_failure": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002/FAILED.json",
+      "sha256": "56d49fdfda5d3e6b0e6e16c237e1c9c979198139cbfbb218bda5868880fae276"
     },
     "training_enabled": false,
     "native_model_calls_authorized": 0,

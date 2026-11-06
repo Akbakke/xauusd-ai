@@ -17,10 +17,10 @@ from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as worke
 from gx1.scripts import run_entry_native_direction_research_window_v1 as common
 
 REPO = Path(__file__).resolve().parents[2]
-PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002.json'
+PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003.json'
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-POLICY_KEY = 'dynamic_m5_october_native_fit_preflight_20261106_002'
-ROOT = Path('/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002')
+POLICY_KEY = 'dynamic_m5_october_native_fit_preflight_20261106_003'
+ROOT = Path('/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003')
 COMMAND = ('bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- '
            'timeout --signal=TERM --kill-after=10s 1800s '
            '.venv/bin/python -m gx1.audit.dynamic_m5_october_native_fit_preflight')
@@ -55,11 +55,12 @@ def _identity(plan, policy, plan_ref):
              and policy['full_epoch_training_allowed'] is False
              and policy['direction_edge_research_goal_20261105']['native_launch_authorized'] is False,
              'ADMISSION')
-    predecessor = policy['dynamic_m5_october_native_fit_preflight_20261106_001']
+    predecessor = policy['dynamic_m5_october_native_fit_preflight_20261106_002']
     _require(predecessor['status'] == 'FAILED_CONSUMED' and predecessor['remaining_invocations'] == 0
              and plan.get('predecessor_failure') == predecessor['failed']
-             and plan.get('reason_for_successor') == 'Set the existing native source/current arrays read-only before gather; 001 stopped at SOURCE_HEADERS.'
-             and delivery._read(predecessor['failed'])['error'] == 'NATIVE_DIRECTION_FEATURE_VIEW_SOURCE_HEADERS',
+             and plan.get('reason_for_successor') == 'Merge exact control and candidate metadata into the guarded read inventory before source bookends; 002 stopped on CONTROL_VIEW.json.'
+             and delivery._read(predecessor['failed'])['error'] ==
+                'NATIVE_DIRECTION_RESEARCH_WINDOW_UNBOUND_OPEN:/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/CONTROL_VIEW.json',
              'PREDECESSOR')
     _require(all(delivery._sha(REPO / path) == digest for path, digest in plan['source_files_sha256'].items()),
              'SOURCE_IDENTITY')
@@ -71,6 +72,14 @@ def _launch(batch, refs, arm):
             'feature_view': batch[arm + '_view'], 'target_manifest': refs['fit_series'],
             'causal_inputs': batch['causal_inputs'], 'observer_axes': batch['observer_axes'],
             'full_feature_profile': True, 'numerical_recipe': {'dynamic_state_supervision': True}}
+
+
+def _bind_arm_metadata(contexts):
+    # Both arms are verified before guard installation; the one guard needs both views.
+    candidate = contexts['candidate']['info']['metadata']
+    for path, item in contexts['control']['info']['metadata'].items():
+        _require(path not in candidate or candidate[path] == item, 'ARM_METADATA_CONFLICT')
+        candidate[path] = item
 
 
 def _bookend(context):
@@ -103,6 +112,7 @@ def run():
     _require(all(contexts[arm]['october_role'] == 'fit'
                  and contexts[arm]['state_target_manifest']['metadata']['parents'] == 29849
                  for arm in plan['arms']), 'FIT_ONLY_METADATA')
+    _bind_arm_metadata(contexts)
     ROOT.mkdir(parents=True, exist_ok=False)
     began = time.monotonic()
     delivery._publish(ROOT, 'CLAIM.json', {'plan': plan_ref, 'source_head': head,
