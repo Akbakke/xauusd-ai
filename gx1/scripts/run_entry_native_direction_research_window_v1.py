@@ -160,6 +160,16 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
                 and launch['candidate_plan'] == december.PLAN_REF and launch['input_role'] == 'score'
                 and Path(expected).parent == december.ROOTS['fit']/'prefix-fit/states'
                 and extra_read_paths == (expected,), 'DECEMBER_READ_ONLY_FIT_CHECKPOINT')
+        elif context.get('october_score_read_authority') is not None:
+            from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
+            origin = context['october_score_read_authority']
+            launch = context['dynamic_state_launch']
+            expected = origin['fit_checkpoint']['path']
+            _require(launch['run_scope'] == october.roles.SCORE_SCOPE
+                and launch['score_origin'] == origin and launch['arm'] in october.FIT_ROOTS
+                and launch['candidate_plan'] == october.roles.BATCH_PLAN and launch['input_role'] == 'score'
+                and Path(expected).parent == october.FIT_ROOTS[launch['arm']]/'prefix-fit/states'
+                and extra_read_paths == (expected,), 'OCTOBER_READ_ONLY_FIT_CHECKPOINT')
         elif recovered is not None:
             from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import scoring_recovery_identity, FAMILY_SIGN_SCOPE, DYNAMIC_STATE_SCOPE
             _require(isinstance(recovered,dict) and set(recovered)=={'launch','validated_origin'},

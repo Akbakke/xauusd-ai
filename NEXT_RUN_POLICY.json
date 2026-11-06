@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "October control/age private source and fit-only role/worker/cursor routes are bound to the fixed pre-October 29,849-parent prefix. Source/synthetic tests pass; no private model receipt, fit recipe or OOF exists.",
+    "current_activity": "October control/age private, fit-only and score-only source routes are bound. Score requires its own closed fit receipt/checkpoint and selects 6,323 reserved October TRAIN development parents with zero optimizer updates. Source/synthetic checks pass; no private model receipt, fit or OOF exists.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "training_enabled=false and native launch closed. Both October fit recipes correctly reject the absent arm-specific private mechanics review; score remains unbound. Native private baseline/gradient/resume, actual fit, matched chronological TRAIN OOF, independent forecasts and economics remain unmeasured.",
+    "current_blocker": "training_enabled=false and native launch closed. Both October fit recipes reject absent arm-specific private mechanics reviews; both score recipes reject absent arm-specific completed fit reviews. Native private baseline/gradient/resume, actual fit, matched chronological TRAIN OOF, independent forecasts and economics remain unmeasured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_FIT_SOURCE_ROUTE_CLOSED_ON_PRIVATE_RECEIPT_EDGE_UNKNOWN",
+    "status": "OCTOBER_SCORE_SOURCE_ROUTE_CLOSED_ON_FIT_RECEIPT_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57090,7 +57090,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "October fit/score role source and fit-only read guard are now wired; actual adapter prepare is not yet tested. Next one exact capped fit-only data preflight, then October campaign launch recipe/private qualification, fresh baseline, age-gradient/resume and matched chronological TRAIN-OOF under separate model admission/safe boot. No native forward has run; independent edge UNKNOWN.",
+    "next_milestone": "October private/fit/score source roles and genuine fit-only data preflight are bound. Next is one exact private native mechanics admission with safe fresh boot and capped route, followed only on passed own-arm receipts by fit, then read-only October TRAIN development OOF. No native forward has run; independent edge UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",
@@ -58549,5 +58549,46 @@
     "test_split_used": false,
     "independent_edge": "UNKNOWN",
     "remaining": "Arm-specific private mechanics receipt and model admission; only then exact fit recipe and run. Score source/fit-terminal gate and chronological TRAIN OOF are still not built."
+  },
+  "dynamic_m5_october_score_campaign_source_20261106_001": {
+    "status": "SOURCE_ONLY_SCORE_ROUTE_FIT_RECEIPTS_MISSING",
+    "observed_utc": "2026-11-06T01:46:53.487137+00:00",
+    "scope": "Exact own-arm October score source; 6,323 reserved pre-November TRAIN development parents, matched 29,849-parent fitted prefix, one read-only window, zero updates, 396 maximum OOF forward batches.",
+    "source_refs": {
+      "gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py",
+        "sha256": "4b3eccd9bcc78aeb86373c7e15d7d2530a43a0bfe4931497c98855834ed2233a"
+      },
+      "gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py",
+        "sha256": "6adbdfdb3ae3f43f8b861f9499ad620a6993415ed2c7cd878125476d344d21e1"
+      },
+      "gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py",
+        "sha256": "01bcbc2baf18aea9ae217e975ae803a080dc42c6d9d525fac4696d639afc57b3"
+      },
+      "gx1/scripts/run_entry_native_direction_research_window_v1.py": {
+        "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/run_entry_native_direction_research_window_v1.py",
+        "sha256": "c08eccd16785fa0fd6ff1808de576fb250007b25d3230f991387bac29093d6ae"
+      }
+    },
+    "rebuilt_private_recipe_sha256": {
+      "control": "03a4caaa59e8160265c6b1bd5e5aff5083586c3f6deacbc4d5763f0ad74cb649",
+      "candidate": "3ac09db840c33d5cced936c9329c23fe846269d3763315a456eb727e2e41749d"
+    },
+    "fit_terminal_review_present": {
+      "control": false,
+      "candidate": false
+    },
+    "score_recipe_materialized": false,
+    "score_storage_required_free_bytes": 4908662212,
+    "synthetic_checks": "159 focused October/prefix/December tests passed under capped 2 GiB audit. Source score recipe/cursor/phase gates reject cross-arm and absent fit; read-only worker uses own fit checkpoint and reserved October rows. One outdated December test stub was corrected for an existing unit-profile argument.",
+    "native_model_calls": 0,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "october_outcomes_read": false,
+    "test_split_used": false,
+    "independent_edge": "UNKNOWN",
+    "remaining": "Own-arm private mechanics admission/receipt, exact fit recipe and run, then score recipe and chronological TRAIN development OOF; later untouched confirmation, physical ONLINE availability and economics remain UNKNOWN."
   }
 }

@@ -1252,6 +1252,11 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         _require(arm in october.FIT_ROOTS and ref['path'] == str(october.FIT_ROOTS[arm].parent/'RECIPE.json'),
                  'OCTOBER_FIT_RECIPE_PATH')
         return october.require_fit_recipe(value, source_repo=source_repo, source_commit=source_commit)
+    if value.get('run_scope') == october.roles.SCORE_SCOPE:
+        arm = value.get('arm')
+        _require(arm in october.SCORE_ROOTS and ref['path'] == str(october.SCORE_ROOTS[arm].parent/'RECIPE.json'),
+                 'OCTOBER_SCORE_RECIPE_PATH')
+        return october.require_score_recipe(value, source_repo=source_repo, source_commit=source_commit)
     if value.get('run_scope') == DYNAMIC_STATE_SCOPE:
         return require_dynamic_state_launch_recipe(value, source_repo=source_repo, source_commit=source_commit, private_scope=False)
     fields = {'schema_version', 'source_repo', 'runtime_root', 'admission_stage', 'run_scope',
@@ -1619,7 +1624,8 @@ def guarded_prefix_power_limit(recipe):
     scope = recipe.get('run_scope')
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
-    if scope in (DYNAMIC_STATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE, october.roles.FIT_SCOPE):
+    if scope in (DYNAMIC_STATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE,
+                  october.roles.FIT_SCOPE, october.roles.SCORE_SCOPE):
         _require(recipe.get('full_feature_profile') is True
             and recipe.get('numerical_recipe', {}).get('dynamic_state_supervision') is True, 'DYNAMIC_STATE_POWER_SCOPE')
         return 250
@@ -1649,8 +1655,9 @@ def require_prefix_fit_invocation_execution(result, execution, *, source_repo, s
     window = require_prefix_fit_window_policy(campaign.read_bound_json(Path(policy_ref['path']), policy_ref['sha256']))
     number = result['invocation_number']
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+    from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     recovery = is_scoring_recovery(recipe)
-    read_only = recovery or recipe['run_scope'] == december.SCORE_SCOPE
+    read_only = recovery or recipe['run_scope'] in (december.SCORE_SCOPE, october.roles.SCORE_SCOPE)
     windows = 1 if read_only else recipe['max_windows']
     _require(result['requires_fresh_windows_boot'] is True or recipe['run_scope'] == FAMILY_SIGN_SCOPE, 'FAMILY_ONLY_BOOT_MODE')
     separator = result['launcher_argv'].index('--')
@@ -1697,7 +1704,8 @@ def require_prefix_fit_plan(value, *, verify_files=True):
     if verify_files:
         policy_recipe = require_prefix_fit_launch_recipe(result['recipe'],
             source_repo=CANONICAL_REPO, source_commit=result['source_commit'])
-        if policy_recipe['run_scope'] in (DYNAMIC_STATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE, october.roles.FIT_SCOPE):
+        if policy_recipe['run_scope'] in (DYNAMIC_STATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE,
+                                           october.roles.FIT_SCOPE, october.roles.SCORE_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -1749,7 +1757,7 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     recovery = is_scoring_recovery(recipe)
-    read_only = recovery or recipe['run_scope'] == december.SCORE_SCOPE
+    read_only = recovery or recipe['run_scope'] in (december.SCORE_SCOPE, october.roles.SCORE_SCOPE)
     _require(repo == CANONICAL_REPO and branch == 'work/gx1-current' and not dirty
         and policy.get('schema_version') == 'gx1_next_native_run_policy_v1'
         and policy.get('canonical_source_repo') == str(repo) and policy.get('canonical_branch') == branch
@@ -1771,6 +1779,8 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
         december.require_phase_gate(gate, recipe)
     if recipe['run_scope'] == october.roles.FIT_SCOPE:
         october.require_fit_phase_gate(gate, recipe)
+    if recipe['run_scope'] == october.roles.SCORE_SCOPE:
+        october.require_score_phase_gate(gate, recipe)
     if recovery:
         _require(gate.get('checkpoint_reads_authorized') is True
             and gate.get('zero_update_scoring_recovery_authorized') is True, 'READINESS_RECOVERY_GATE')
@@ -1868,16 +1878,20 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     phases = {str(december.ROOTS[p].parent/'RECIPE.json'):p for p in ('fit','score')}
     phase = phases.get(expected_recipe['path'])
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
-    october_arm = next((arm for arm, root in october.FIT_ROOTS.items()
+    october_fit_arm = next((arm for arm, root in october.FIT_ROOTS.items()
         if expected_recipe['path'] == str(root.parent/'RECIPE.json')), None)
-    _require(not (phase and october_arm), 'CURSOR_PHASE_COLLISION')
+    october_score_arm = next((arm for arm, root in october.SCORE_ROOTS.items()
+        if expected_recipe['path'] == str(root.parent/'RECIPE.json')), None)
+    october_arm = october_fit_arm or october_score_arm
+    _require(not (phase and october_arm) and not (october_fit_arm and october_score_arm),
+             'CURSOR_PHASE_COLLISION')
     if phase:
         _require(passes == 1 and result['fold'] == december.FOLD, 'DECEMBER_CURSOR_FOLD')
         fold = dict(december.FOLD)
     elif october_arm:
         _require(passes == 1 and result['fold'] == october.FOLD, 'OCTOBER_CURSOR_FOLD')
         fold = dict(october.FOLD)
-        phase = 'fit'
+        phase = 'fit' if october_fit_arm else 'score'
     else:
         fold = _fold(result['fold'])
     n = fold['prefix_rows']
@@ -1912,8 +1926,10 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
         if launch is not None:
             bound = result['feature_view_identity']['prefix_normalization']
             if october_arm:
-                matches = (launch.get('run_scope') == october.roles.FIT_SCOPE
-                    and launch.get('arm') == october_arm and launch.get('input_role') == 'fit'
+                matches = (launch.get('run_scope') ==
+                    (october.roles.FIT_SCOPE if october_fit_arm else october.roles.SCORE_SCOPE)
+                    and launch.get('arm') == october_arm
+                    and launch.get('input_role') == phase
                     and launch.get('candidate_plan') == october.roles.BATCH_PLAN
                     and bound['binding'] == launch['prefix_normalization'])
             elif phase:
@@ -1992,17 +2008,19 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
         str(december.ROOTS[p].parent/'RECIPE.json')), None)
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     october_fit = any(recipe_path == str(root.parent/'RECIPE.json') for root in october.FIT_ROOTS.values())
+    october_score = any(recipe_path == str(root.parent/'RECIPE.json') for root in october.SCORE_ROOTS.values())
+    _require(not (october_fit and october_score), 'PROGRESS_PHASE_COLLISION')
     if dec_phase:
         _require(passes == 1 and result['fold'] == december.FOLD, 'DECEMBER_PROGRESS_FOLD')
         fold = dict(december.FOLD)
-    elif october_fit:
+    elif october_fit or october_score:
         _require(passes == 1 and result['fold'] == october.FOLD, 'OCTOBER_PROGRESS_FOLD')
         fold = dict(october.FOLD)
     else:
         fold = _fold(result['fold'])
     n = fold['prefix_rows']
     quarter = 0 if dec_phase == 'fit' or october_fit else fold['oof_end_row']-n
-    readonly = invocation.get('direction_prefix_fit_scoring_recovery') is True or dec_phase == 'score'
+    readonly = invocation.get('direction_prefix_fit_scoring_recovery') is True or dec_phase == 'score' or october_score
     _require(invocation['optimizer_step_budget'] == (0 if readonly else passes*((n+15)//16)), 'PROGRESS_PASS_BUDGET')
     if readonly:
         _require(passes==1 and invocation['invocation_number']==invocation['window_count']==1

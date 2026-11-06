@@ -182,3 +182,106 @@ def test_prefix_launch_accepts_only_exact_october_fit_recipe_path(tmp_path, monk
         prefix.require_prefix_fit_launch_recipe(
             {'path': str(score_path), 'sha256': october.campaign.file_sha256(score_path)},
             source_repo=october.REPO, source_commit='a' * 40)
+
+
+def test_score_recipe_requires_own_completed_fit_and_reserves_only_october(monkeypatch):
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    monkeypatch.setattr(prefix, 'require_dynamic_state_qualification', lambda *args, **kwargs: None)
+    original_read = october._read
+    fit = {}
+    origin = {}
+    for arm in ('control', 'candidate'):
+        private = {'path': str(october.PRIVATE_ROOTS[arm].parent/'ACTUAL_ROOT_REVIEW.json'),
+                   'sha256': '1' * 64}
+        fit[arm] = october.build_fit_recipe(arm=arm, qualification_review=private,
+                                           source_commit='a' * 40)
+        fit_ref = {'path': str(october.FIT_ROOTS[arm].parent/'RECIPE.json'),
+                   'sha256': ('2' if arm == 'control' else '3') * 64}
+        terminal = {'path': str(october.FIT_ROOTS[arm].parent/'ACTUAL_ROOT_REVIEW.json'),
+                    'sha256': ('4' if arm == 'control' else '5') * 64}
+        origin[arm] = {'fit_terminal_review': terminal, 'fit_recipe': fit_ref,
+                       'fit_cursor': {'path': '/synthetic/cursor', 'sha256': '6' * 64},
+                       'fit_checkpoint': {'path': '/synthetic/state', 'sha256': '7' * 64},
+                       'own_initial_state': {'path': '/synthetic/initial', 'sha256': '8' * 64},
+                       'initial_measurement': {'path': '/synthetic/initial-report', 'sha256': '9' * 64},
+                       'final_train_measurement': {'path': '/synthetic/final-report', 'sha256': 'a' * 64},
+                       'state_seal': 'b' * 64}
+    monkeypatch.setattr(october, 'require_fit_origin',
+                        lambda terminal, *, arm: origin[arm] if terminal == origin[arm]['fit_terminal_review']
+                        else (_ for _ in ()).throw(RuntimeError('WRONG_FIT_ORIGIN')))
+    monkeypatch.setattr(october, '_read',
+                        lambda ref: fit['control'] if ref == origin['control']['fit_recipe'] else
+                        fit['candidate'] if ref == origin['candidate']['fit_recipe'] else original_read(ref))
+    recipes = {arm: october.build_score_recipe(arm=arm, fit_terminal=origin[arm]['fit_terminal_review'],
+                                                source_commit='a' * 40)
+               for arm in ('control', 'candidate')}
+    for arm, recipe in recipes.items():
+        assert october.require_score_recipe(recipe, source_repo=october.REPO,
+                                            source_commit='a' * 40) == recipe
+        assert recipe['input_role'] == 'score' and recipe['training_enabled'] is False
+        assert recipe['max_windows'] == 1 and recipe['score_origin'] == origin[arm]
+        assert recipe['target_manifest'] == original_read(october.roles.REFERENCE_PLAN)['october_series']
+        assert recipe['score_storage_plan']['parents'] == 6323
+    assert recipes['control']['feature_view'] != recipes['candidate']['feature_view']
+    assert recipes['control']['target_manifest'] == recipes['candidate']['target_manifest']
+    with pytest.raises(RuntimeError, match='SCORE_COORDINATES'):
+        october.build_score_recipe(arm='candidate', fit_terminal=origin['control']['fit_terminal_review'],
+                                   source_commit='a' * 40)
+    tampered = deepcopy(recipes['candidate'])
+    tampered['score_origin'] = origin['control']
+    tampered['recipe_sha256'] = october.campaign.canonical_sha256(
+        {key: value for key, value in tampered.items() if key != 'recipe_sha256'})
+    with pytest.raises(RuntimeError, match='EXACT_SCORE_RECIPE'):
+        october.require_score_recipe(tampered, source_repo=october.REPO, source_commit='a' * 40)
+
+
+def test_score_phase_gate_and_cursor_are_own_arm_read_only():
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as worker
+    gate = {'candidate_plan': october.roles.BATCH_PLAN, 'arm': 'candidate', 'input_role': 'score',
+            'held_out_features_authorized': True, 'held_out_outcomes_authorized': True,
+            'checkpoint_reads_authorized': True, 'zero_update_reserved_scoring_authorized': True}
+    october.require_score_phase_gate(gate, {'arm': 'candidate'})
+    for patch in ({'arm': 'control'}, {'input_role': 'fit'}, {'held_out_outcomes_authorized': False},
+                  {'checkpoint_reads_authorized': False},
+                  {'zero_update_reserved_scoring_authorized': False}):
+        with pytest.raises(RuntimeError, match='SCORE_ROLE_GATE'):
+            october.require_score_phase_gate({**gate, **patch}, {'arm': 'candidate'})
+    batch = october._read(october.roles.BATCH_PLAN)
+    view = october._read(batch['candidate_view'])
+    identity = {'contract_sha256': view['contract_sha256'],
+                'prefix_normalization': view['prefix_normalization'],
+                'research_objective_sha256': view['research_objective']['contract_sha256']}
+    def ref(name):
+        return {'path': '/synthetic/' + name, 'sha256': '1' * 64}
+    recipe = {'path': str(october.SCORE_ROOTS['candidate'].parent/'RECIPE.json'), 'sha256': '2' * 64}
+    args = dict(recipe_ref=recipe, fold=october.FOLD, feature_view_identity=identity,
+                phase_state='COMPLETE', outcome='COMPLETE', optimizer_updates=1866,
+                parent_cursor=29849, parent_order_sha256='0' * 64,
+                full_state=ref('state'), own_initial_state=ref('initial'),
+                initial_measurement=ref('initial-report'), final_train_measurement=ref('final-report'),
+                oof_cursor=6323, result=ref('result'))
+    cursor = prefix.build_prefix_fit_cursor(**args)
+    assert cursor['oof_cursor'] == 6323
+    invocation = {'invocation_sha256': '3' * 64, 'direction_prefix_fit_recipe': recipe,
+                  'optimizer_step_budget': 0, 'kind': prefix.KIND,
+                  'checkpoint': {'pointer_path': '/synthetic/cursor'}, 'invocation_number': 1,
+                  'window_count': 1, 'expected_success_outcome': 'COMPLETE'}
+    progress = prefix.build_prefix_fit_progress(window={'recipe': recipe},
+        plan={'plan_sha256': '4' * 64}, invocation=invocation,
+        checkpoint_pointer=ref('cursor'), cursor=cursor)
+    assert progress['oof_cursor'] == 6323 and progress['optimizer_updates'] == 1866
+    with pytest.raises(Exception, match='CURSOR_COUNTER:oof_cursor'):
+        prefix.build_prefix_fit_cursor(**{**args, 'oof_cursor': 6324})
+    with pytest.raises(Exception, match='OCTOBER_CURSOR_ARM'):
+        prefix.build_prefix_fit_cursor(**{**args, 'recipe_ref':
+            {'path': str(october.SCORE_ROOTS['control'].parent/'RECIPE.json'), 'sha256': '2' * 64}})
+    assert worker._final_train_selection({}, None,
+        {'run_scope': october.roles.SCORE_SCOPE}, 0) is None
+
+
+def test_missing_fit_terminal_denies_score_before_recipe():
+    terminal = {'path': str(october.FIT_ROOTS['candidate'].parent/'ACTUAL_ROOT_REVIEW.json'),
+                'sha256': '0' * 64}
+    with pytest.raises(Exception, match='bound JSON file unavailable'):
+        october.build_score_recipe(arm='candidate', fit_terminal=terminal, source_commit='a' * 40)

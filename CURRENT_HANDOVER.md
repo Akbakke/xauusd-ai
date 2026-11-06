@@ -11,6 +11,26 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Oktober-score har nå en kildebundet, skrivebeskyttet rute; faktisk OOF er fortsatt
+ikke kjørt.**
+[Kampanjekontrakten](gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py) krever
+armens egen fullførte fit-kvittering, terminalt checkpoint, sluttmåling og uendret kilde før
+score-oppskrift kan bygges.
+[Kampanjeautoriteten](gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py) binder
+score til ett vindu, null optimizer-steg og egen cursor;
+[workeren](gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py) velger bare de 6
+323 reserverte oktoberforeldrene og kan lese bare armens fit-checkpoint gjennom
+[lesegarden](gx1/scripts/run_entry_native_direction_research_window_v1.py). Beregnet reserve
+for scoreartefakt og headroom er 4 908 662 212 bytes. 159 fokuserte
+oktober-/prefix-/desembertester bestod under capped 2 GiB audit; en foreldet desember-teststub
+for eksisterende enhetsargument ble rettet. Ingen arm har fullført privat native-kvalifikasjon
+eller fit, så ingen score-oppskrift er materialisert, ingen oktoberutfall er lest i denne
+bølgen og ingen modell/OOF er kjørt. `training_enabled=false`; neste faktiske port er eksakt
+privat mekanikkadmisjon med trygg omstart og capped rute, deretter fit og først så read-only
+utviklings-OOF. Oktober er gjenbrukt TRAIN-utvikling; uavhengig retningsedge,
+ONLINE-punktlighet og økonomi er UNKNOWN. Gjeldende status er
+`dynamic_m5_october_score_campaign_source_20261106_001` i policyen.
+
 **06.11 – Oktober-fit har en egen source-only rolle, men ingen modelladmisjon.**
 [Oppskriftseieren](gx1/contracts/entry_dynamic_m5_october_native_campaign_v1.py)
 kan nå kreve armens egen private kvalifikasjonskvittering før den bygger en

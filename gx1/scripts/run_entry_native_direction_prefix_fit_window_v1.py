@@ -949,7 +949,7 @@ def _final_train_selection(prepared, diagnostic_ids, launch, updates_in_invocati
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
-    if launch['run_scope'] == december.SCORE_SCOPE:
+    if launch['run_scope'] in (december.SCORE_SCOPE, october.roles.SCORE_SCOPE):
         return None
     if launch['run_scope'] not in (authority.FAMILY_SIGN_SCOPE, authority.DYNAMIC_STATE_SCOPE, december.FIT_SCOPE, october.roles.FIT_SCOPE):
         return diagnostic_ids
@@ -1312,8 +1312,10 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     december_score = launch['run_scope'] == december.SCORE_SCOPE
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     october_fit = launch['run_scope'] == october.roles.FIT_SCOPE
+    october_score = launch['run_scope'] == october.roles.SCORE_SCOPE
     registered_fit = december_fit or october_fit
-    dynamic_state = launch['run_scope'] == authority.DYNAMIC_STATE_SCOPE or registered_fit or december_score
+    registered_score = december_score or october_score
+    dynamic_state = launch['run_scope'] == authority.DYNAMIC_STATE_SCOPE or registered_fit or registered_score
     factor_bps=launch['run_scope']==authority.M5_FACTOR_BPS_SCOPE
     family_fit=launch['run_scope']==authority.FAMILY_SIGN_SCOPE
     recovery=authority.is_scoring_recovery(launch)
@@ -1330,7 +1332,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     input_launch=_fit_input_launch(launch,authority)
     binding_ref=common._hash_file(launch['execution_binding_path']);extra={};binding=common._read(binding_ref,extra)
     context=_launch_metadata(input_launch,common);context['info']['metadata'].update(extra)
-    if dynamic_state and not december_score:
+    if dynamic_state and not registered_score:
         metadata = context['info']['metadata']
         review = common._read(launch['native_dynamic_state_qualification'],metadata)
         initial = common._read(review['initial_report'],metadata)
@@ -1379,18 +1381,20 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         for key in ('initial_measurement','result'):
             common._read(recovery_origin['cursor'][key],context['info']['metadata'])
         context['scoring_recovery_read_authority']={'launch':launch,'validated_origin':recovery_origin}
-    if december_score:
+    if registered_score:
         score_origin = launch['score_origin']
-        for ref in (launch['candle_reference'], score_origin['fit_terminal_review']):
+        for ref in ((launch['candle_reference'], score_origin['fit_terminal_review']) if december_score
+                    else (score_origin['fit_terminal_review'],)):
             common._read(ref, context['info']['metadata'])
         score_cursor = common._read(score_origin['fit_cursor'],context['info']['metadata'])
         common._read(score_origin['initial_measurement'],context['info']['metadata'])
         common._read(score_origin['final_train_measurement'],context['info']['metadata'])
+        score_fold = december.FOLD if december_score else october.FOLD
         _require(score_cursor['outcome'] == score_cursor['phase_state'] == 'COMPLETE'
-            and score_cursor['parent_cursor'] == december.FOLD['prefix_rows'] and score_cursor['oof_cursor'] == 0
+            and score_cursor['parent_cursor'] == score_fold['prefix_rows'] and score_cursor['oof_cursor'] == 0
             and score_cursor['recipe'] == score_origin['fit_recipe'] and score_cursor['full_state'] == score_origin['fit_checkpoint'],
-            'DECEMBER_SCORE_RESTORE')
-        context['december_score_read_authority'] = score_origin
+            'SCORE_RESTORE')
+        context['december_score_read_authority' if december_score else 'october_score_read_authority'] = score_origin
     common._freeze(launch,binding,context)
     output=Path(window['output_directory']);output.mkdir(parents=True,exist_ok=True)
     work=output/f'window-{number:04d}';work.mkdir();state_directory=output/'states';state_directory.mkdir(exist_ok=True)
@@ -1400,6 +1404,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             from gx1.contracts.entry_dynamic_mtf_december_score_v1 import require_december_score_storage
             check = require_december_score_storage(work, launch['score_storage_plan'])
             context['december_score_host_identity'] = check['host_identity']
+        if october_score:
+            check = october.require_score_storage(work, launch['score_storage_plan'])
+            context['october_score_host_identity'] = check['host_identity']
         if launch['numerical_recipe'].get('extended_forecast_minutes') is not None:
             storage = authority.require_dynamic_state_storage_headroom(launch, work, private_scope=False, recovery=recovery)
             context['extended_storage_guard'] = {'recipe':copy.deepcopy(launch), 'private_scope':False, 'recovery':recovery,
@@ -1409,7 +1416,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 + ' host_free=' + str(min(storage['observation']['host_available_bytes'], storage['observation']['mounted_host_available_bytes'])), flush=True)
     denied=common._install_read_guard(context,output,Path(launch['runtime_root']),
         extra_read_paths=((recovery_origin['cursor']['full_state']['path'],recovery_origin['cursor']['own_initial_state']['path'])
-            if recovery else (score_origin['fit_checkpoint']['path'],) if december_score else context['factor_continuation_reads'] if factor_continuation else
+            if recovery else (score_origin['fit_checkpoint']['path'],) if registered_score else context['factor_continuation_reads'] if factor_continuation else
             (origin['terminal_state']['path'],origin['initial_state']['path']) if continuation else ()),
         original_initial_prediction=launch['order_origin']['initial_predictions']['path'] if order_variant else None,
         dense_target=context.get('dense_target'),
@@ -1431,6 +1438,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         +(16 if factor_continuation else 0)+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
     if recovery:ceiling=4057
     if december_score:ceiling=359
+    if october_score:ceiling=(6323+15)//16
     durable=None;observed_progress=None;bps_scale_ref=None
     common._json(work/'CLAIM.json',{'recipe':window['recipe'],'fold':fold,'invocation_number':number,
         'source_head':binding['source_head'],'plan_sha256':plan['plan_sha256'],'limits':limits},counters,launch['max_published_json_bytes'])
@@ -1445,7 +1453,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 optimizer_step=name=='step' and isinstance(frame.f_locals.get('self'),torch.optim.Optimizer)
                 _require(not forbidden and not optimizer_step,'RECOVERY_FORBIDDEN_REVERSE_OR_UPDATE:'+name)
             legacy_profile(frame,event,arg)
-        sys.setprofile(scoring_only_profile if recovery or december_score else legacy_profile)
+        sys.setprofile(scoring_only_profile if recovery or registered_score else legacy_profile)
         prepared,targets,view,context_map,ordered=_prepare(context,input_launch,np,signed_bps=recipe.get('signed_bps_supervision',False),
             magnitude_weighted=recipe.get('magnitude_weighted_direction',False),dense_minutes=recipe.get('dense_minute_supervision',False),
             dense_bps=recipe.get('dense_signed_bps_supervision',False))
@@ -1460,9 +1468,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         if recovery:
             prior_cursor=recovery_origin['cursor']
             _require(prior_cursor['parent_order_sha256']==order_sha,'RECOVERY_SAME_FIXED_PERMUTATION')
-        if december_score:
+        if registered_score:
             prior_cursor=score_cursor
-            _require(prior_cursor['parent_order_sha256'] == order_sha, 'DECEMBER_FIT_CHECKPOINT_ORDER')
+            _require(prior_cursor['parent_order_sha256'] == order_sha, 'SCORE_FIT_CHECKPOINT_ORDER')
         if number>1:
             cursor_ref={'path':window['campaign_cursor_path'],'sha256':marker['pointer_before_sha256']}
             saved_cursor=json.loads(Path(cursor_ref['path']).read_text())
@@ -1551,13 +1559,13 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             if recovery:
                 _require(restored_state['contract_sha256']==recovery_origin['identity']['state_seal'],
                     'RECOVERY_ORIGINAL_FULL_STATE_SEAL')
-            if december_score:
-                _require(restored_state['contract_sha256'] == score_origin['state_seal'], 'DECEMBER_FIT_STATE_SEAL')
+            if registered_score:
+                _require(restored_state['contract_sha256'] == score_origin['state_seal'], 'SCORE_FIT_STATE_SEAL')
             del restored_state
             del loaded;parent_cursor=restored['cursor'];updates=restored['optimizer_updates'];phase=prior_cursor['phase_state']
             final_measurement=prior_cursor['final_train_measurement'];full_state=prior_cursor['full_state']
         durable={'state':full_state or initial_ref,'parent_cursor':parent_cursor,'optimizer_updates':updates}
-        while not recovery and not december_score and parent_cursor<train_passes*len(ordered) and time.monotonic()<deadline:
+        while not recovery and not registered_score and parent_cursor<train_passes*len(ordered) and time.monotonic()<deadline:
             within,right,next_cursor=_next_training_parent_range(parent_cursor,len(ordered),train_passes)
             raw,target=_batch(prepared,targets,view,ordered[within:right],np)
             features,device_target=_device_batch(raw,target,torch,device)
@@ -1597,9 +1605,14 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             phase='COMPLETE'
         if phase=='SCORING' and final_measurement is not None:
             selected=(prepared['december_score_parent_rows'] if december_score else
+                prepared['october_score_parent_rows'] if october_score else
                 prepared['arrays']['parent_rows'][fold['oof_start_row']:fold['oof_end_row']])
             if december_score:
                 _require(prepared['december_role'] == 'score' and len(selected) == 5736, 'DECEMBER_RESERVED_ONLY')
+            if october_score:
+                _require(prepared['october_role'] == 'score' and len(selected) == 6323, 'OCTOBER_RESERVED_ONLY')
+                october.require_score_storage(work, launch['score_storage_plan'],
+                    expected_host=context['october_score_host_identity'])
             measured,oof_cursor=_evaluate(model,prepared,targets,view,context_map,selected,cutoff=fold['oof_cutoff_ns'],kind='OOF',
                 counters=counters,ceiling=ceiling,device=device,torch=torch,np=np,tree_sha=tree_sha,deadline=deadline)
             if measured is not None:
@@ -1607,14 +1620,17 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                     fresh_identity=fresh_identity,context_map=context_map,counters=counters,launch=launch,np=np,common=common,tree_sha=tree_sha)
                 del measured;phase='COMPLETE'
         _require(tree_sha({name:p for name,p in model.named_parameters() if not p.requires_grad})==initial_inactive,'INACTIVE_WEIGHTS_UNCHANGED')
-        if december_score:
+        if registered_score:
             current = state_owner.capture_native_direction_research_state(model,optimizer,recipe=recipe,feature_view_identity=view_identity,
                 parent_order=order,cursor=parent_cursor,optimizer_updates=updates,device=device,train_passes=train_passes)
             seal = current['contract_sha256']
             del current
+            score_rows = 5736 if december_score else 6323
+            score_forwards = (score_rows+15)//16
             _require(seal == score_origin['state_seal'] and full_state == score_origin['fit_checkpoint']
-                and phase == 'COMPLETE' and oof_cursor == 5736 and counters['forward_kind_calls'] == {'OOF':359}
-                and counters['backward_calls'] == counters['optimizer_step_calls'] == 0, 'DECEMBER_EXACT_READONLY_SCORE')
+                and phase == 'COMPLETE' and oof_cursor == score_rows
+                and counters['forward_kind_calls'] == {'OOF':score_forwards}
+                and counters['backward_calls'] == counters['optimizer_step_calls'] == 0, 'EXACT_READONLY_SCORE')
         else:
             full_state,seal=_save_snapshot(model,optimizer,context=context,recipe=recipe,order=order,parent_cursor=parent_cursor,updates=updates,
                 state_directory=state_directory,name=f'w{number:04d}_TERMINAL_u{updates:06d}_p{parent_cursor:06d}',launch=launch,
@@ -1660,10 +1676,10 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
         'forbidden_open_paths':denied,'limits':limits,'elapsed_seconds':time.monotonic()-started,'io_before':before,'io_after':after,
         'rchar_delta':after['rchar']-before['rchar'],'rchar_scope':'process reads; mmap fault bytes excluded','error':error,
         'test_data_used':False,'qualification_weights_reused':False,'predictive_value_qualified':False,
-        **({'candidate_plan':launch['candidate_plan'], 'held_out_features_read':december_score,
-            'held_out_outcomes_read':december_score, 'input_role':launch['input_role'],
+        **({'candidate_plan':launch['candidate_plan'], 'held_out_features_read':registered_score,
+            'held_out_outcomes_read':registered_score, 'input_role':launch['input_role'],
             'physical_optimizer_updates':counters['optimizer_step_returns'],
-            **({'arm':launch['arm']} if october_fit else {})} if registered_fit or december_score else {}),
+            **({'arm':launch['arm']} if october_fit or october_score else {})} if registered_fit or registered_score else {}),
         **({'scoring_recovery_origin':launch['scoring_recovery_origin']} if recovery else {}),
         **({'own_prefix_bps_scale':bps_scale_ref} if bps_scale_ref is not None else {})},counters,launch['max_published_json_bytes'])
     cursor=authority.build_prefix_fit_cursor(recipe_ref=window['recipe'],fold=fold,feature_view_identity=view_identity,phase_state=phase,outcome=outcome,

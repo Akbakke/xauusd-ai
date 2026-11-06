@@ -33,7 +33,7 @@ def test_native_role_builds_readonly_subrange_not_a_whole_table(tmp_path):
 
 
 def test_score_and_fit_roles_check_frozen_disjoint_axes(monkeypatch):
-    monkeypatch.setattr(views,'_require_view',lambda _v:None)
+    monkeypatch.setattr(views,'_require_view',lambda _v, **_kwargs:None)
     parent = np.arange(7,dtype=np.int64)
     bar = (parent+10)*views.BAR_NS
     clock = bar+views.BAR_NS

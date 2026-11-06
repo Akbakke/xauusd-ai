@@ -21,6 +21,10 @@ FIT_ROOTS = {arm: BASE / (arm.upper() + '_FIT_001') / 'RUNTIME'
              for arm in PRIVATE_ROOTS}
 FIT_STAGES = {arm: 'dynamic_m5_october_' + arm + '_fit_20261106_001'
               for arm in PRIVATE_ROOTS}
+SCORE_ROOTS = {arm: BASE / (arm.upper() + '_SCORE_001') / 'RUNTIME'
+               for arm in PRIVATE_ROOTS}
+SCORE_STAGES = {arm: 'dynamic_m5_october_' + arm + '_score_20261106_001'
+                for arm in PRIVATE_ROOTS}
 FOLD = {'fold_id': 'october_2024_confirmed_age_v1', 'prefix_rows': 29849,
         'oof_start_row': 29849, 'oof_end_row': 36172,
         'train_cutoff_ns': 1727740800000000000,
@@ -250,3 +254,221 @@ def require_fit_phase_gate(gate, recipe):
              and gate.get('held_out_features_authorized') is False
              and gate.get('held_out_outcomes_authorized') is False,
              'FIT_ROLE_GATE')
+
+
+def _fit_stage_file(ref, arm, name):
+    root = FIT_ROOTS[arm].parent
+    _require(isinstance(ref, Mapping) and ref.get('path') == str(root / name),
+             'FIT_ARTIFACT_PATH:' + name)
+    return _read(ref)
+
+
+def require_fit_origin(fit_terminal, *, arm):
+    """Verify a closed own-arm fit and its checkpoint before any October score read."""
+    _require(arm in FIT_ROOTS, 'SCORE_ARM')
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    root = FIT_ROOTS[arm]
+    review = _fit_stage_file(fit_terminal, arm, 'ACTUAL_ROOT_REVIEW.json')
+    _require(review.get('schema_version') == 'gx1_october_native_fit_terminal_review_v1'
+             and review.get('status') == 'COMPLETE_CONSUMED_OCTOBER_FIT'
+             and review.get('arm') == arm and review.get('candidate_plan') == roles.BATCH_PLAN
+             and review.get('test_data_used') is False, 'FIT_TERMINAL_REVIEW')
+    plan = _fit_stage_file(review['plan'], arm, 'CAMPAIGN/CAMPAIGN_PLAN.json')
+    _require(plan['recipe'] == review['recipe']
+             and plan['recipe']['path'] == str(root.parent/'RECIPE.json')
+             and plan['runtime_root'] == str(root), 'FIT_TERMINAL_CAMPAIGN')
+    checked = campaign.require_plan(plan, verify_files=True)
+    receipt_paths = sorted((root/'receipts').glob('invocation-*.json'))
+    _require(1 <= len(receipt_paths) <= 3
+             and [path.name for path in receipt_paths] == [f'invocation-{n:04d}.json'
+                 for n in range(1, len(receipt_paths)+1)]
+             and review['receipt']['path'] == str(receipt_paths[-1])
+             and not (root/'ACTIVE_INVOCATION.json').exists(), 'FIT_RECEIPT_SET')
+    receipts = [campaign.read_bound_json(path, campaign.file_sha256(path)) for path in receipt_paths]
+    chain = campaign.require_receipt_chain(checked, receipts)
+    _require(chain[-1]['outcome'] == 'COMPLETE' and chain[-1]['guard_decision'] == 'PASS'
+             and all(row['outcome'] == 'RESUMABLE' for row in chain[:-1])
+             and chain[-1]['checkpoint_pointer_after'] == review['cursor']
+             and _read(review['receipt'])['receipt_sha256'] == chain[-1]['receipt_sha256'],
+             'FIT_TERMINAL_RECEIPTS')
+    cursor = prefix.require_prefix_fit_cursor(
+        _fit_stage_file(review['cursor'], arm, 'RUNTIME/prefix-cursor/RESUME_CURSOR.json'),
+        expected_recipe=plan['recipe'], expected_fold=FOLD)
+    result = _fit_stage_file(review['result'], arm,
+                             f'RUNTIME/prefix-fit/window-{len(chain):04d}/RESULT.json')
+    _require(cursor['outcome'] == cursor['phase_state'] == result['outcome'] == 'COMPLETE'
+             and cursor['parent_cursor'] == result['parent_cursor'] == FOLD['prefix_rows']
+             and 0 < cursor['optimizer_updates'] == result['optimizer_updates'] <= 1866
+             and cursor['oof_cursor'] == result['oof_cursor'] == 0
+             and result.get('oof_measurement') is None
+             and result.get('error') is None and result.get('source_unchanged') is True
+             and result.get('forbidden_open_paths') == []
+             and result.get('qualification_weights_reused') is False
+             and result.get('test_data_used') is False
+             and result.get('candidate_plan') == roles.BATCH_PLAN
+             and result.get('arm') == arm and result.get('input_role') == 'fit'
+             and result.get('held_out_features_read') is False
+             and result.get('held_out_outcomes_read') is False
+             and result.get('physical_optimizer_updates') == cursor['optimizer_updates']
+             and result.get('counts', {}).get('optimizer_step_returns') == cursor['optimizer_updates']
+             and result.get('counts', {}).get('backward_returns') == cursor['optimizer_updates']
+             and cursor['result'] == review['result'] and result['recipe'] == review['recipe'],
+             'FIT_TERMINAL_OUTCOME')
+    _require(roles.identity.require_checkpoint_view(cursor['feature_view_identity']) == arm,
+             'FIT_CHECKPOINT_ARM')
+    checkpoint = result['durable_checkpoint']
+    _require(checkpoint['state'] == result['full_state'] == cursor['full_state']
+             and checkpoint['parent_cursor'] == cursor['parent_cursor']
+             and checkpoint['optimizer_updates'] == cursor['optimizer_updates']
+             and checkpoint['state']['path'] == str(root/'prefix-fit/states'/
+                 f"w{len(chain):04d}_TERMINAL_u{cursor['optimizer_updates']:06d}_p029849.pt"),
+             'FIT_TERMINAL_CHECKPOINT')
+    campaign._sha(checkpoint['contract_sha256'], 'October fit full-state seal')
+    fit_recipe = _read(plan['recipe'])
+    _require(fit_recipe['run_scope'] == roles.FIT_SCOPE and fit_recipe['arm'] == arm
+             and fit_recipe['source_owners'] == _owners(fit_recipe['source_owners']),
+             'FIT_RECIPE_SOURCE')
+    for role, key, count in (('INITIAL_TRAIN', 'initial_measurement', 256),
+                             ('FINAL_TRAIN', 'final_train_measurement', FOLD['prefix_rows'])):
+        ref = cursor[key]
+        _require(Path(ref['path']).is_relative_to(root/'prefix-fit'), 'FIT_MEASUREMENT_ROOT')
+        report = _read(ref)
+        _require(report['role'] == role and report['fold'] == FOLD
+                 and report['target_manifest'] == fit_recipe['target_manifest']
+                 and report['research_objective_sha256'] == fit_recipe['numerical_recipe']['research_objective_sha256']
+                 and report['feature_view_identity'] == cursor['feature_view_identity']
+                 and report['own_initial_state'] == cursor['own_initial_state']
+                 and len(report['timeframes']) == 5
+                 and report['test_data_used'] is False, 'FIT_MEASUREMENT:' + role)
+        _require(Path(report['predictions']['path']).is_relative_to(root/'prefix-fit'),
+                 'FIT_PREDICTIONS_ROOT')
+        arrays = _read(report['predictions'])
+        _require(arrays['arrays']['probabilities']['shape'] == [count, 5, 1440, 3],
+                 'FIT_MEASUREMENT_ROWS:' + role)
+    power = _fit_stage_file(review['power_after'], arm, 'POWER_AFTER.json')
+    gpu = [part.strip() for part in power['gpu'][0].split(',')] if len(power.get('gpu', [])) == 1 else []
+    _require(len(gpu) == 6 and gpu[0] == plan['gpu_uuid']
+             and float(gpu[1]) == power.get('configured_power_limit_w') == 250
+             and power.get('task_state') == 'Disabled'
+             and power.get('test_data_used') is False
+             and {row['TaskName'] for row in power['keeper'] if row.get('State') == 4}
+                 == {'GX1GpuPowerLimit', 'GX1HostTelemetryBridge'},
+             'FIT_TERMINAL_POWER')
+    return {'fit_terminal_review': dict(fit_terminal), 'fit_recipe': review['recipe'],
+            'fit_cursor': review['cursor'], 'fit_checkpoint': cursor['full_state'],
+            'own_initial_state': cursor['own_initial_state'],
+            'initial_measurement': cursor['initial_measurement'],
+            'final_train_measurement': cursor['final_train_measurement'],
+            'state_seal': checkpoint['contract_sha256']}
+
+
+def score_storage_plan(*, max_published_json_bytes, max_checkpoint_total_bytes):
+    """Reserve one staged October prediction set plus JSON and checkpoint headroom."""
+    from gx1.contracts.entry_dynamic_mtf_state_report_v1 import dynamic_state_prediction_file_bytes
+    _require(type(max_published_json_bytes) is int and max_published_json_bytes > 0
+             and type(max_checkpoint_total_bytes) is int and max_checkpoint_total_bytes >= 0,
+             'SCORE_STORAGE_LIMITS')
+    rows = FOLD['oof_end_row'] - FOLD['oof_start_row']
+    files = dynamic_state_prediction_file_bytes(rows, 1440)
+    raw = sum(files.values())
+    result = {'schema_version': 'gx1_october_score_storage_v1', 'parents': rows,
+              'base_npy': files, 'total_npy_bytes': raw,
+              'staged_sidecar_and_manifest_cap': max_published_json_bytes,
+              'campaign_json_reserve': max_published_json_bytes,
+              'checkpoint_reserve': max_checkpoint_total_bytes,
+              'required_free_bytes': raw + 2 * max_published_json_bytes + max_checkpoint_total_bytes}
+    result['contract_sha256'] = campaign.canonical_sha256(result)
+    return result
+
+
+def require_score_storage(directory, plan, *, expected_host=None):
+    from datetime import datetime, timezone
+    from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import _observe_wsl_host_storage
+    _require(plan == score_storage_plan(max_published_json_bytes=plan['campaign_json_reserve'],
+        max_checkpoint_total_bytes=plan['checkpoint_reserve']), 'SCORE_STORAGE_PLAN')
+    observed = _observe_wsl_host_storage(Path(directory))
+    host = (observed['host_base_path'], observed['host_drive_root'])
+    _require(expected_host is None or tuple(expected_host) == host, 'SCORE_HOST_IDENTITY')
+    free = min(observed[key] for key in ('guest_available_bytes', 'host_available_bytes',
+                                          'mounted_host_available_bytes'))
+    _require(free >= plan['required_free_bytes'], 'SCORE_DISK_HEADROOM')
+    return {'plan': plan, 'observation': observed, 'host_identity': list(host),
+            'observed_utc': datetime.now(timezone.utc).isoformat(), 'reserved': False}
+
+
+def build_score_recipe(*, arm, fit_terminal, source_commit, source_owners=None):
+    """Bind one read-only October score to its own fully closed fit checkpoint."""
+    _require(arm in SCORE_ROOTS and isinstance(source_commit, str)
+             and len(source_commit) == 40 and all(char in '0123456789abcdef' for char in source_commit)
+             and isinstance(fit_terminal, Mapping)
+             and fit_terminal.get('path') == str(FIT_ROOTS[arm].parent/'ACTUAL_ROOT_REVIEW.json'),
+             'SCORE_COORDINATES')
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    with campaign.file_verification_scope():
+        batch, refs, _cohort = _registered()
+        origin = require_fit_origin(fit_terminal, arm=arm)
+        fit_recipe = _read(origin['fit_recipe'])
+        view_ref = batch[arm + '_view']
+        _require(fit_recipe['run_scope'] == roles.FIT_SCOPE and fit_recipe['arm'] == arm
+                 and fit_recipe['feature_view'] == view_ref
+                 and fit_recipe['target_manifest'] == refs['fit_series']
+                 and fit_recipe['fold'] == FOLD
+                 and fit_recipe['source_owners'] == _owners(source_owners),
+                 'SCORE_FIT_IDENTITY')
+        root = SCORE_ROOTS[arm]
+        result = {'schema_version': 'gx1_native_direction_prefix_fit_launch_recipe_v1',
+            'source_repo': str(REPO), 'run_scope': roles.SCORE_SCOPE,
+            'admission_stage': SCORE_STAGES[arm], 'runtime_root': str(root),
+            'execution_binding_path': str(root/'EXECUTION_BINDING.json'),
+            'arm': arm, 'candidate_plan': roles.BATCH_PLAN,
+            'reference_plan': roles.REFERENCE_PLAN, 'input_role': 'score',
+            'fold': dict(FOLD), 'full_feature_profile': True,
+            'feature_view': view_ref,
+            'prefix_normalization': fit_recipe['prefix_normalization'],
+            'prefix_prior': fit_recipe['prefix_prior'], 'label_audit': fit_recipe['label_audit'],
+            'input_manifest': roles.BATCH_PLAN,
+            'observer_axes': batch['observer_axes'], 'causal_inputs': batch['causal_inputs'],
+            'target_manifest': refs['october_series'], 'target_sources': batch['target_source_refs'],
+            'numerical_recipe': fit_recipe['numerical_recipe'],
+            'source_owners': fit_recipe['source_owners'],
+            'native_dynamic_state_qualification': fit_recipe['native_dynamic_state_qualification'],
+            'fit_terminal': dict(fit_terminal), 'score_origin': origin,
+            'score_storage_plan': score_storage_plan(max_published_json_bytes=33554432,
+                                                      max_checkpoint_total_bytes=4294967296),
+            'train_passes': 1, 'initial_measurement_rows': 256,
+            'final_train_measurement_rows': FOLD['prefix_rows'],
+            'max_windows': 1, 'checkpoint_every_updates': 256,
+            'parent_order_algorithm': prefix.PARENT_ORDER_ALGORITHM,
+            'eval_batch_size': 16, 'max_checkpoint_bytes': 1073741824,
+            'max_checkpoint_total_bytes': 4294967296, 'max_published_json_bytes': 33554432,
+            'training_enabled': False, 'full_epoch_training_allowed': False,
+            'qualification_weights_for_main_fit': False,
+            'test_data_used': False, 'predictive_value_claimed': False}
+        roles.require_role_binding(result)
+        result['recipe_sha256'] = campaign.canonical_sha256(result)
+        return result
+
+
+def require_score_recipe(value, *, source_repo, source_commit):
+    _require(Path(source_repo) == REPO and isinstance(source_commit, str)
+             and len(source_commit) == 40 and all(char in '0123456789abcdef' for char in source_commit),
+             'SCORE_SOURCE_REPO')
+    arm = value.get('arm') if isinstance(value, Mapping) else None
+    _require(arm in SCORE_ROOTS and value.get('run_scope') == roles.SCORE_SCOPE,
+             'SCORE_SCOPE')
+    expected = build_score_recipe(arm=arm, fit_terminal=value.get('fit_terminal'),
+        source_commit=source_commit, source_owners=value.get('source_owners'))
+    _require(value == expected and value.get('recipe_sha256') == campaign.canonical_sha256(
+             {key: item for key, item in value.items() if key != 'recipe_sha256'}),
+             'EXACT_SCORE_RECIPE')
+    return expected
+
+
+def require_score_phase_gate(gate, recipe):
+    _require(gate.get('candidate_plan') == roles.BATCH_PLAN
+             and gate.get('arm') == recipe['arm'] and gate.get('input_role') == 'score'
+             and gate.get('held_out_features_authorized') is True
+             and gate.get('held_out_outcomes_authorized') is True
+             and gate.get('checkpoint_reads_authorized') is True
+             and gate.get('zero_update_reserved_scoring_authorized') is True,
+             'SCORE_ROLE_GATE')
