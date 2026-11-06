@@ -1,0 +1,31 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_age_pair_descriptive_v1_plan",
+  "status": "DESCRIPTIVE_PRE_OUTCOME_AFTER_SCORING",
+  "decision_authority": "NONE",
+  "created_utc": "2026-11-06T13:43:58.565290+00:00",
+  "source_file_sha256": "c240f5951d99b2051a02aa4163dbf46b5b58b77152d5d48998aa12dd670f38e0",
+  "design": {
+    "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_CONFIRMED_AGE_CANDIDATE_20261105_001.json",
+    "sha256": "b40123a364a65bb337699cc82215707049596b8ab0940c98ec64efc06fe17c8e"
+  },
+  "control_review": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_003/ACTUAL_ROOT_REVIEW.json",
+    "sha256": "d37c387736b8578fc3ff228aff7eba09d75b8380dcd102624061c6f4d4e9d932"
+  },
+  "candidate_review": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/ACTUAL_ROOT_REVIEW.json",
+    "sha256": "02043546ea5da35437843164724d9107cdc0a994042e99b8b07a332b0e71c47d"
+  },
+  "score_cutoff_ns_exclusive": 1730419200000000000,
+  "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_PAIRED_DESCRIPTIVE_20261106_001/REPORT.json",
+  "primary_diagnostic": "M5 +5 observed three-class Brier, logloss and nonflat UP/DOWN AUC",
+  "secondary_diagnostics": "M15 +15, H1 +60, H4 +240, D1 +1440; coverage by UTC outcome day; prior and Markov comparisons",
+  "uncertainty": "10,000 PCG64 UTC outcome-day resamples, seed 20260911, paired row and equal-day intervals; descriptive only",
+  "pre_registration_gap": "Original design required bound rule and implementation before model scoring. That gate was not bound before October scoring; this plan was bound after scores completed but before candidate outcome values were opened for comparison. No retrospective PASS.",
+  "candle_reference": "Not bound for the pre-October fit; report as unmeasured",
+  "no_model_calls": true,
+  "no_training": true,
+  "test_data_used": false,
+  "broker_access_allowed": false,
+  "trading_allowed": false
+}

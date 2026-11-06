@@ -11,6 +11,19 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Begge oktober-scorearmer er fullført; bare lesende parrapport er innrømmet.**
+[Kandidatens terminalreview](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/ACTUAL_ROOT_REVIEW.json)
+SHA-256 02043546ea5da35437843164724d9107cdc0a994042e99b8b07a332b0e71c47d binder signert PASS på fysisk boot 616,
+6 323 senere oktoberforeldre, 396 OOF-forwards og null nye backward-/optimizersteg.
+Eget fit-checkpoint, identiske scoreakser/mål/prior/normalisering og deaktivert
+oppstartsoppgave er kontrollert. Kandidatens resultatverdier er ennå ikke åpnet
+for sammenligning. Den tidligere designplanen krevde en bundet beslutningsregel
+før scoring, men en konkret oktobergate ble ikke bundet. Derfor er
+[sammenligningsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_AGE_PAIRED_DESCRIPTIVE_20261106_001.json) SHA-256 09b35e675b17ac412c96973d94ee2c8cca477c850e9a55282cebc9f5a54afe3b utelukkende
+**deskriptiv utviklingsevidens**, bundet nå før kandidatutfall leses. Ett
+lesende, kildehashbundet auditvindu gjenstår. Ingen ny modell/trening, TEST,
+broker, handel eller retrospektiv PASS. Uavhengig retningsedge og økonomi UNKNOWN.
+
 **06.11 – Kontrollens senere oktober-score er fullført og konsumert; kandidatens score er neste port.**
 [Kontrollens terminalreview](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_003/ACTUAL_ROOT_REVIEW.json)
 SHA-256 d37c387736b8578fc3ff228aff7eba09d75b8380dcd102624061c6f4d4e9d932

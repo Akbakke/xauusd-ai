@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T12:49:09.266302+00:00",
-  "status": "M5_ENTRY_OCTOBER_CANDIDATE_SCORE_002_EXACTLY_ADMITTED_FRESH_BOOT_PENDING_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-06T13:43:58.565290+00:00",
+  "status": "M5_ENTRY_OCTOBER_SCORES_COMPLETE_PAIRED_DESCRIPTIVE_PENDING_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Candidate SCORE_002 alone is exactly admitted for one zero-update chronological October development score. Materialize under clean source, verify whole-machine idle, confirm reboot receipt before physical restart, then run capped. Control SCORE_003 is consumed. No TEST, broker, trade, or independent edge claim.",
+  "next_action": "Run only the bound read-only paired October development report; no model, training, TEST, broker, trade, selection PASS or independent edge claim. Original pre-scoring decision gate was missing.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Control October development score is closed; candidate SCORE_002 alone is admitted for one zero-update 6,323-parent score after safe fresh physical reboot. Independent edge and economics UNKNOWN.",
+    "current_activity": "Both matched October development scores are complete and consumed, zero new optimizer updates during scoring. Only one read-only descriptive paired report is admitted. Original pre-scoring decision gate is missing; independent edge and economics UNKNOWN.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Candidate private _003 needs one capped materialization and fresh safe boot. Each arm then needs its own full prefix fit and held-out October development score; independent edge and economics remain UNKNOWN.",
+    "current_blocker": "Both October score arms are complete. Only the bound read-only paired development report remains; the pre-scoring decision-rule gap prevents retrospective PASS. Independent edge and economics UNKNOWN.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -59980,8 +59980,8 @@
     }
   },
   "dynamic_m5_october_candidate_score_20261106_002": {
-    "status": "ADMITTED_ONE_ZERO_UPDATE_CANDIDATE_OCTOBER_SCORE_PENDING_PREPARATION",
-    "observed_utc": "2026-11-06T12:49:09.266302+00:00",
+    "status": "COMPLETE_CONSUMED_ZERO_UPDATE_CANDIDATE_OCTOBER_DEVELOPMENT_SCORE",
+    "observed_utc": "2026-11-06T13:43:58.565290+00:00",
     "scope": "One strictly chronological October 2024 development score on 6,323 later parents using the frozen pre-October own-arm fit, prior and normalization; zero optimizer updates. No TEST, broker, order or trade.",
     "arm": "candidate",
     "input_role": "score",
@@ -60010,19 +60010,19 @@
       "sha256": "842a38c7ebaa7f84bde70824ce6d58eff2b8125b5767a491c8b9a45986ecc9c7"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "held_out_features_authorized": true,
-    "held_out_outcomes_authorized": true,
-    "checkpoint_reads_authorized": true,
-    "zero_update_reserved_scoring_authorized": true,
-    "native_launch_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "held_out_features_authorized": false,
+    "held_out_outcomes_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "zero_update_reserved_scoring_authorized": false,
+    "native_launch_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
     "genuine_backward_authorized": false,
     "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
@@ -60036,7 +60036,7 @@
     "broker_access_allowed": false,
     "exit_evaluation": false,
     "fresh_windows_boot_required": true,
-    "user_reboot_authorized": true,
+    "user_reboot_authorized": false,
     "power_limit_w": 250,
     "score_parent_rows": 6323,
     "max_optimizer_updates": 0,
@@ -60049,20 +60049,74 @@
       "usd": 0
     },
     "score_storage_required_free_bytes": 4908662212,
-    "prepared_plan_materialized": false,
-    "prepared_binding_materialized": false,
-    "machine_wide_idle_verified_for_reboot": false,
-    "physical_reboot_executed": false,
-    "model_calls": 0,
+    "prepared_plan_materialized": true,
+    "prepared_binding_materialized": true,
+    "machine_wide_idle_verified_for_reboot": true,
+    "physical_reboot_executed": true,
+    "model_calls": 1,
     "october_outcomes_read": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "Materialize only candidate SCORE_002 under clean source; verify whole-machine idle and exact task, confirm reboot receipt before physical restart, then run one capped zero-update score. Control score already closed. No TEST, broker or trade; independent edge UNKNOWN.",
+    "remaining": "Candidate score is complete and consumed. One pre-outcome-bound descriptive October pair report is admitted; original pre-scoring decision gate is missing. No additional model, TEST, broker or trade.",
     "superseded_unadmitted_stage": "dynamic_m5_october_candidate_score_20261106_001",
     "prepared_boot": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/PREPARED_WINDOWS_BOOT.json",
       "sha256": "c2a6c0b1652f0f761b56440baba6beb4d11fd349c24df406a4dae224647b5fad"
     },
-    "prepared_boot_id": 615,
-    "admission_prep_head": "09a3695fff5b77b3629f2718dfd09da6ccc55992"
+    "prepared_boot_id": 616,
+    "admission_prep_head": "09a3695fff5b77b3629f2718dfd09da6ccc55992",
+    "score_outcome_values_opened_for_review": false,
+    "prepared_plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "3668f93475e39ac322d1d256f07e732e78bd0a4caf9daa0f9f4195b9acea6740"
+    },
+    "reboot_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/RUNTIME/reboot-receipts/after-0000.json",
+      "sha256": "2f8d1a55f2eed83c648c52a333b0b7db79471a8f4368341d168cb1c159b0af90"
+    },
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "7f4699c0dc66665c4bad74e41b9473319536183c57f8a5b74839b8a8890c282a"
+    },
+    "oof_measurement": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/RUNTIME/prefix-fit/window-0001/OOF.json",
+      "sha256": "48ea9fb1ba507421760c4dfa35f7d200cfa2be24f754f5b5d0cfdbb59fce2ad0"
+    },
+    "predictions_manifest": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/RUNTIME/prefix-fit/window-0001/OOF_PREDICTIONS/ARRAYS.json",
+      "sha256": "d8bd67c9c471f4ef93978ca8ab8367f50197d9a82694c1d0eee5dd9b6f557bcc"
+    },
+    "power_after": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/POWER_AFTER.json",
+      "sha256": "659bef8735bc18395d5cac1b2816ddfe5cad52bbadaae16ffc84b2bdf5177225"
+    },
+    "actual_root_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "02043546ea5da35437843164724d9107cdc0a994042e99b8b07a332b0e71c47d"
+    }
+  },
+  "dynamic_m5_october_age_pair_descriptive_20261106_001": {
+    "status": "ADMITTED_ONE_READ_ONLY_DESCRIPTIVE_REPORT_PENDING",
+    "observed_utc": "2026-11-06T13:43:58.565290+00:00",
+    "scope": "Paired October 2024 development-only comparison of frozen control and age candidate on exact matched 6323-parent axis, five native leads and prefix references. Original pre-scoring rule gap bars PASS/selection.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_AGE_PAIRED_DESCRIPTIVE_20261106_001.json",
+      "sha256": "09b35e675b17ac412c96973d94ee2c8cca477c850e9a55282cebc9f5a54afe3b"
+    },
+    "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_PAIRED_DESCRIPTIVE_20261106_001/REPORT.json",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "model_calls_authorized": 0,
+    "training_enabled": false,
+    "native_launch_authorized": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "trading_allowed": false,
+    "candidate_outcomes_opened_for_comparison": false,
+    "decision_authority": "NONE",
+    "independent_edge": "UNKNOWN",
+    "economic_edge": "UNKNOWN",
+    "next_action": "Run the source- and plan-hash-bound report once through capped audit, then verify, close and publish evidence."
   }
 }
