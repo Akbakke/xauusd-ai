@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T11:57:29.463764+00:00",
-  "status": "M5_ENTRY_OCTOBER_SCORE_RECIPES_PREPARED_NOT_ADMITTED_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-06T11:59:01.443275+00:00",
+  "status": "M5_ENTRY_OCTOBER_CONTROL_SCORE_EXACTLY_ADMITTED_FRESH_BOOT_PENDING_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Matched pre-October TRAIN fits are closed. Metadata-only control SCORE_002 and candidate SCORE_001 recipes and score materializer are prepared; no October outcomes read. From clean commit, snapshot physical boot, admit only the exact zero-update control score, verify whole-machine idle, reboot with receipt and run capped. Candidate score requires its own later admission. TEST, broker and trading closed; independent edge UNKNOWN.",
+  "next_action": "Control SCORE_002 alone is admitted for one 0-update chronological October development score on 6,323 later parents. Materialize under clean source, verify whole-machine idle, confirm reboot receipt before physical restart, then one capped native score. Candidate score is not admitted. No TEST, broker or trade; independent edge UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -59708,8 +59708,8 @@
     "prepared_control_score_recipe_status": "SUPERSEDED_UNADMITTED_BY_NARROW_TERMINAL_VALIDATOR_SOURCE_FIX"
   },
   "dynamic_m5_october_control_score_20261106_002": {
-    "status": "PREPARED_NOT_ADMITTED",
-    "observed_utc": "2026-11-06T11:57:29.463764+00:00",
+    "status": "ADMITTED_ONE_ZERO_UPDATE_CONTROL_OCTOBER_SCORE_PENDING_PREPARATION",
+    "observed_utc": "2026-11-06T11:59:01.443275+00:00",
     "scope": "One source-bound zero-update October development score on 6,323 chronological later parents, with frozen pre-October fit, prior and normalization; no new optimizer updates, TEST or trading.",
     "arm": "control",
     "input_role": "score",
@@ -59733,14 +59733,14 @@
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "relaunch_allowed": false,
-    "campaign_preparation_authorized": false,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "held_out_features_authorized": false,
-    "held_out_outcomes_authorized": false,
-    "checkpoint_reads_authorized": false,
-    "zero_update_reserved_scoring_authorized": false,
-    "native_launch_authorized": false,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "held_out_features_authorized": true,
+    "held_out_outcomes_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "zero_update_reserved_scoring_authorized": true,
+    "native_launch_authorized": true,
     "training_enabled": false,
     "native_training_enabled": false,
     "full_epoch_training_allowed": false,
@@ -59759,11 +59759,40 @@
       "usd": 0
     },
     "score_storage_required_free_bytes": 4908662212,
-    "remaining": "Prepare exact boot and one-arm policy admission, then whole-machine idle, confirmed reboot receipt and one capped read-only October development score. Do not relaunch or read TEST.",
+    "remaining": "Materialize exact control score under clean source; whole-machine idle and confirmed reboot receipt before one capped 0-update October development score. Candidate score remains PREPARED_NOT_ADMITTED. No TEST, broker, orders or trading.",
     "superseded_unadmitted_recipe": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_001/RECIPE.json",
       "sha256": "543f86456052e631cdae9b5168acf729ee1264372ab4b3fbf2ad0030767f3d4b"
-    }
+    },
+    "admission_prep_head": "82b9f058c91604b9425e83c3443ac466a8c29d06",
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_002/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "bc47d2e1109137d684b43f7697fb5ef07b9acec6f2e5abf67ef7a77734cd262d"
+    },
+    "prepared_boot_id": 614,
+    "guard_template": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_FIT_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "842a38c7ebaa7f84bde70824ce6d58eff2b8125b5767a491c8b9a45986ecc9c7"
+    },
+    "candidate_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002.json",
+      "sha256": "8287e4b16dcd7a1e6e82162b756b32a17c6030f2b9c9e86d865ac8cc5db8d750"
+    },
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "normalization_fit_authorized": false,
+    "max_optimizer_updates": 0,
+    "fresh_windows_boot_required": true,
+    "user_reboot_authorized": true,
+    "power_limit_w": 250,
+    "score_parent_rows": 6323,
+    "prepared_plan_materialized": false,
+    "prepared_binding_materialized": false,
+    "machine_wide_idle_verified_for_reboot": false,
+    "physical_reboot_executed": false
   },
   "dynamic_m5_october_candidate_score_20261106_001": {
     "status": "PREPARED_NOT_ADMITTED",

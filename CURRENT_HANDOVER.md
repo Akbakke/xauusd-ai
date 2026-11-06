@@ -32,9 +32,11 @@ TRAIN-fit, ikke senere generalisering eller edge. [Kontrollens nye
 score-oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_002/RECIPE.json)
 og [kandidatens score-oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_001/RECIPE.json)
 er publisert fra ren kilde og bestod metadatakontroll; nødvendig diskplass
-ble målt. Ingen av dem er innrømmet, og ingen oktoberutfall er lest. Neste
-port er eksakt admisjon av én scorearm om gangen, maskinvid ledighet, fysisk
-omstart med kvittering og eksisterende capped rute. `training_enabled=false`;
+ble målt. Kontrollens `_002` er nå alene eksakt innrømmet for ett lesende,
+null-oppdaterings scorevindu over 6 323 senere oktoberforeldre; kandidatens
+score er fortsatt stengt. Ingen oktoberutfall er lest ennå. Neste port er
+materialisering fra ren kilde, maskinvid ledighet, fysisk omstart med
+kvittering og eksisterende capped rute. `training_enabled=false`;
 uavhengig edge og økonomi er UNKNOWN. TEST, Exit, broker, ordre og handel er stengt.
 
 **06.11 – Gjenopprettet kontroll-score og alderkandidatens fit er kildekontrollert, ennå ikke innrømmet.**
