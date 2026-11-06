@@ -144,6 +144,10 @@ def prepare_october_native(context, launch, np_module):
              and np_module.array_equal(tape.arrays['parent_rows'][part], selected)
              and np_module.array_equal(tape.arrays['issue_ns'][part], issues), 'ROLE_AXES')
     view = context['october_bound']['view']
+    sequence = physical['entry_sequence_source']
+    for value in (sequence['signal'], sequence['times_ns'], sequence['sample_positions'],
+                  *physical['current'].values()):
+        value.setflags(write=False)
     prepared = batch_owner._role_prepared(physical, axes, view, context['october_bound']['axes'], tape,
         role, part, units.october_prefix_units_profile())
     prepared['state_artifact_directory'] = context['state_artifact_directory']

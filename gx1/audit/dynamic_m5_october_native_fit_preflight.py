@@ -17,10 +17,10 @@ from gx1.scripts import run_entry_native_direction_prefix_fit_window_v1 as worke
 from gx1.scripts import run_entry_native_direction_research_window_v1 as common
 
 REPO = Path(__file__).resolve().parents[2]
-PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_001.json'
+PLAN = REPO / 'configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002.json'
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-POLICY_KEY = 'dynamic_m5_october_native_fit_preflight_20261106_001'
-ROOT = Path('/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_001')
+POLICY_KEY = 'dynamic_m5_october_native_fit_preflight_20261106_002'
+ROOT = Path('/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002')
 COMMAND = ('bash scripts/gx1_capped_run.sh --class audit --mem 4G --swap 512M -- '
            'timeout --signal=TERM --kill-after=10s 1800s '
            '.venv/bin/python -m gx1.audit.dynamic_m5_october_native_fit_preflight')
@@ -55,6 +55,12 @@ def _identity(plan, policy, plan_ref):
              and policy['full_epoch_training_allowed'] is False
              and policy['direction_edge_research_goal_20261105']['native_launch_authorized'] is False,
              'ADMISSION')
+    predecessor = policy['dynamic_m5_october_native_fit_preflight_20261106_001']
+    _require(predecessor['status'] == 'FAILED_CONSUMED' and predecessor['remaining_invocations'] == 0
+             and plan.get('predecessor_failure') == predecessor['failed']
+             and plan.get('reason_for_successor') == 'Set the existing native source/current arrays read-only before gather; 001 stopped at SOURCE_HEADERS.'
+             and delivery._read(predecessor['failed'])['error'] == 'NATIVE_DIRECTION_FEATURE_VIEW_SOURCE_HEADERS',
+             'PREDECESSOR')
     _require(all(delivery._sha(REPO / path) == digest for path, digest in plan['source_files_sha256'].items()),
              'SOURCE_IDENTITY')
 
