@@ -11,6 +11,23 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Paret oktoberutviklingsrapport er fullført; aldersinput kvalifiserte ikke M5-retning.**
+[Rapporten](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_PAIRED_DESCRIPTIVE_20261106_001/REPORT.json) SHA-256 82988bb594c31c5d77ac1108b79befb6497dbaac65277b3e6babc8770f17e258 bruker nøyaktig samme
+6 323 senere foreldre, mål, masker og faste referanser for de to armene.
+På observerbar M5 +5 (3 359 rader) var kandidat/kontroll/prior/Markov Brier
+0,614672 / 0,615091 / 0,612714 / 0,615325. Kandidatens forbedring mot
+kontrollen er 0,000419, men radvektet parret 95 %-intervall for forskjellen
+[−0,000861, +0,000032] inkluderer null. OPP/NED-AUC er 0,4898 for kandidaten
+mot 0,4897 for kontrollen; parret AUC-intervall inkluderer null. M5 fullgrid
+Brier er 0,686345 mot kontroll 0,685498 og TRAIN-prior 0,624951. De øvrige
+fire tidsrammene er separat rapportert, ikke utvalgskriterier for M5 Entry.
+Ingen før-score oktobergate var bundet, så dette er kun utviklingsevidens uten
+retrospektiv PASS. Lysestakreferanse var ikke kildekvalifisert for pre-oktober
+fit. Rapportplanen er konsumert; ingen ny modell, trening, TEST, broker eller
+handel er innrømmet. Neste konkrete arbeid er en kort kildebasert design av
+M5 Entry-mål og referanser som må forhåndsbindes før eventuell ny kjøring.
+Uavhengig retningsedge og økonomi UNKNOWN.
+
 **06.11 – Begge oktober-scorearmer er fullført; bare lesende parrapport er innrømmet.**
 [Kandidatens terminalreview](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/ACTUAL_ROOT_REVIEW.json)
 SHA-256 02043546ea5da35437843164724d9107cdc0a994042e99b8b07a332b0e71c47d binder signert PASS på fysisk boot 616,
