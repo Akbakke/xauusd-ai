@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-06T14:31:48.580353+00:00",
-  "status": "M5_ENTRY_OCTOBER_EXECUTABLE_SIDE_RANK_ONE_READ_ONLY_JOIN_ADMITTED",
+  "status": "M5_ENTRY_OCTOBER_SIDE_RANK_COMPLETED_NO_GATE_REVIEW_DIRECT_TARGET",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Run exactly one claimed, capped 4 GiB read-only M5 +5 October development join of saved state ranks with executable declared-net LONG-versus-SHORT side outcomes on common observed rows. Query only endpoints strictly before November 2024. Report descriptive paired UTC-day AUC; no selection, model, TEST, broker, trade or edge authority.",
+  "next_action": "Stop using the October +5 state forecast as a surrogate Entry-side gate. Review the existing direct executable Entry target and already-consumed baselines for one distinct chronological development question with a concrete acceptance rule. No new run or training is authorized by this completed plan.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -60221,8 +60221,8 @@
     "elapsed_seconds": 121.60216255099976
   },
   "dynamic_m5_october_entry_direction_join_20261106_001": {
-    "status": "ADMITTED_ONE_CLAIMED_READ_ONLY_ENTRY_SIDE_JOIN_PENDING",
-    "observed_utc": "2026-11-06T14:31:48.580353+00:00",
+    "status": "COMPLETED_ONE_READ_ONLY_DESCRIPTIVE_JOIN_NO_ENTRY_GATE",
+    "observed_utc": "2026-11-06T14:37:35.880152+00:00",
     "scope": "M5 +5 October development relative executable LONG-vs-SHORT rank association on exact common rows; no FLAT, MAE or action selection.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001.json",
@@ -60235,9 +60235,9 @@
     "claim_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/CLAIM.json",
     "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/REPORT.json",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
     "relaunch_allowed": false,
     "capped_class": "audit",
     "memory_bytes": 4294967296,
@@ -60252,6 +60252,28 @@
     "decision_authority": "NONE",
     "independent_edge": "UNKNOWN",
     "economic_edge": "UNKNOWN",
-    "next_action": "Publish claim before Entry outcome read, run once, verify output and close; no automatic model or action."
+    "next_action": "Retire this +5 state-score surrogate for Entry. Read-only review of the existing direct Entry target and already-consumed baselines; only a distinct prebound chronological design can justify a future run. No automatic training or action selection.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/CLAIM.json",
+      "sha256": "03dbcfb1e5836502ed02bc129cbc2b4cc6e98251eb38369642090fca3bf12c34"
+    },
+    "report": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/REPORT.json",
+      "sha256": "078f9ea44a096a64d5001799773b9ae8d6e508756c332868fa74dce236101ad0"
+    },
+    "result_summary": {
+      "fold_mature": 6322,
+      "executable_non_tie_rows": 6297,
+      "outcome_utc_days": 27,
+      "candidate_row_auc": 0.4905185117894057,
+      "control_row_auc": 0.4902494145671835,
+      "candidate_minus_control_row_95ci": [
+        -0.0013058405909652333,
+        0.0019502552781793824
+      ],
+      "candidate_equal_day_auc": 0.47791051253694533,
+      "control_equal_day_auc": 0.47747446675073496,
+      "entry_gate_pass": false
+    }
   }
 }

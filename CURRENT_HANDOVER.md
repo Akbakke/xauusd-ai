@@ -54,14 +54,35 @@ på 3 359 observerte rader; bedre dekning er ikke lært retningsedge.
 Ved +480 hadde 5 607 av 6 240 foldmodne executable terminal og 4 079
 observerbar terminal-open bane. Den eksisterende kildeleseren åpnet hele
 pre-2026 TRAIN-kilden ved oppsett, men rapporterte bare spørringer før
-oktobercutoff; ingen TEST. Neste minste steg er en forhåndsbundet,
-modellfri M5 +5-utviklingsjoin av lagret OPP/NED-rang med executable
-relativt netto LONG-mot-SHORT-utfall på felles observerte rader.
-[Engangsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001.json) SHA-256 `f4423aca0309b18cfd54f4f0bd14716fd5ad621048efcbac7f52723108f18cb7` er bundet før
-denne joinens Entry-utfall leses, med atomisk claim, capped 4 GiB og ingen
-action-seleksjon. Oktober er allerede undersøkt utvikling, ikke uavhengig
-bekreftelse. FLAT-valg, pre-MFE-MAE og økonomi må fortsatt måles separat.
-Gjenbruk eksisterende eiere; ingen ny modell eller targeteier følger automatisk.
+oktobercutoff; ingen TEST. Den forhåndsbundne, modellfrie M5 +5-joinen er nå fullført én gang.
+[CLAIM](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/CLAIM.json) SHA-256
+`03dbcfb1e5836502ed02bc129cbc2b4cc6e98251eb38369642090fca3bf12c34` og
+[REPORT](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/REPORT.json) SHA-256
+`078f9ea44a096a64d5001799773b9ae8d6e508756c332868fa74dce236101ad0`.
+Av 6 323 foreldre var 6 322 innen cutoff og 6 297 hadde executable
+terminalutfall på begge sider. Ingen eksakte LONG/SHORT-ties. Kandidatens
+radvektede AUC var 0,490519 mot kontrollens 0,490249. Paret forskjell
+hadde 95 % UTC-dag-bootstrapintervall [−0,001306, +0,001950]. Ved lik
+vekt per UTC-utfallsdag var AUC 0,477911 mot 0,477474. Kandidat mot
+0,5 hadde lik-dag-intervall [−0,043802, −0,004016]; radvektet
+mot 0,5 omfattet null. 27 utfallsdager. 0 modellkall, 0 oppdateringer,
+0 TEST, 0 seleksjon; 116,0 sekunder, 2,72 GiB maksimal RSS under 4 GiB.
+Erklærte historiske kostnader er ikke sannhetskvalifiserte. Dette er bare
+utviklingsdiagnostikk og gir ingen Entry-gate, uavhengig eller økonomisk edge.
+Planen er konsumert og kan ikke kjøres på nytt.
+
+Stans +5-tilstandsscore som surrogat for Entry-sidegate. Neste minste steg
+er en smal, lesende designgjennomgang av eksisterende direkte executable
+Entry-target og allerede prøvde baseliner. Tidligere rene retningsreferanser
+(247/249/252/259 og sekskvartalsreferanse 215) er konsumert eller avvist;
+ikke gjenta dem. Gjennomgangen skal finne én særskilt hypotese for direkte
+Entry-kvalitet på kronologiske data, eller stanse videre eksperimenter. Gjenbruk eierne i
+`gx1/contracts/entry_observed_market_v1.py` og
+`gx1/contracts/entry_causal_m1_outcomes_v1.py`; ikke lag ny targeteier eller
+start nye modellrunder. Bare en ny, særskilt bundet kronologisk plan med
+konkret akseptregel kan åpne et nytt eksperiment. Oktober er allerede
+undersøkt utviklingsperiode og er ikke uavhengig bekreftelse. FLAT-valg,
+pre-MFE-MAE og realisert økonomi gjenstår.
 
 M5 Entry er hovedmål med kausal lukket M15/H1/H4/D1-kontekst, åtte
 spesialister og niende D1/makro. `training_enabled=false`. TEST er forseglet;
