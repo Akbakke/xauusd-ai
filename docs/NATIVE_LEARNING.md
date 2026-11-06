@@ -70,7 +70,12 @@ omdøpes til dynamisk tilstand. Fasit fra framtidige observasjoner modnes først
 når det deklarerte observasjonsbehovet er dekket; disse observasjonene og
 etterfølgende vendepunkter mates aldri inn som kjent informasjon ved t.
 Ukjent intrabarrekkefølge og manglende dekning beholdes som ukjent. En fasit
-fra lukkede M1-barer beviser ikke subminuttforløpet.
+fra lukkede M1-barer beviser ikke subminuttforløpet. Hvis lokal range med
+komplett dekning beviser aktivitet/ro mens retningen er ukjent, behold et
+eget binært mål og maske for samme framtidstidspunkt. Et binært tap bare ved
+første minutt dekker ikke automatisk senere native mål. Før et eventuelt nytt
+tap skal output, maske og binær score bindes på de samme radene; det er en
+målhypotese, ingen bevist retningsforbedring.
 
 Mål kvalitet på alle tre tilstander og alle fem TF, både fortsettelse og
 skifter: sannsynlighetskvalitet/kalibrering, feilvarsler, oversette bevegelser

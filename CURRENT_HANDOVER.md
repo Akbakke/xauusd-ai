@@ -35,8 +35,20 @@ er en mål- og observerbarhetsavveining, ingen modellkvalifisering eller
 automatisk beslutning om ny terskel. Gjeldende 0,5-kandidat er fortsatt
 semantisk ulåst. Aktiv neste oppgave er å binde observert aktivitet versus
 ukjent retning, framtidige gyldighetstidspunkter, output, tap og måling
-uten å gjøre ukjent til FLATT. Deretter følger indikatorens normaliserte
+uten å gjøre ukjent til FLATT. Deretter følger indikatorenes normaliserte
 konsum og den åpne numeriske kvalifiseringen.
+
+Kildegjennomgang viser en konkret delvis observert fasit som dagens tap ikke
+bruker direkte ved senere native ledespørsmål: full lokal range kan bevise
+ikke-FLATT selv når OPP/NED er ukjent. [Lagret dekningskontroll](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261103_001/FIT_ONEPASS_001/SAVED_BINARY_ACTIVITY_LABEL_COVERAGE_NATIVE_LEADS.json)
+SHA-256 `963115cac4f3b7859a47f8155985c4305d361c9763a867b3db49b9575a862331`
+fant 21 252 slike M5+5-rader i den eldre 47 602-raders TRAIN-populasjonen og
+8 305 i 17 288 senere gjenbrukte utviklingsrader. Det aktive binære
+tillleggstapet gjelder bare +1; native +5-tapet krever kjent treklassefasit.
+Sekvensloss kan fortsatt gi indirekte gradient via nabotilstander. Minste
+neste designhypotese er maskert FLATT/ikke-FLATT-læring og tilsvarende score
+på forhåndsvalgte senere ledetider etter semantisk mållås. Dette er påvist
+ubrukt fasit, ikke påvist årsak til svak OPP/NED-rangering eller ny fit-adgang.
 
 Målkontrakten er ennå ikke låst som meningsfull markedsdefinisjon. Faktoren
 0,5 × ATR(14) per TF er en brukerakseptert kandidat, ikke endelig kalibrert.

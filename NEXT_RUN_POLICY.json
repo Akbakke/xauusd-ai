@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T17:16:07.660392+00:00",
-  "status": "MARKET_STATE_TARGET_SENSITIVITY_COMPLETE_SEMANTIC_CHOICE_PENDING",
+  "observed_utc": "2026-11-06T17:21:31.289322+00:00",
+  "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "Review the completed target sensitivity and 0.5 rule traces against the operator market-state definition. M5+5 observability rises from 16,798/29,849 to 27,936/29,849 at 1.0 ATR, while FLAT among observed rises from 2,313/16,798 to 17,845/27,936; D1 native-lead observability falls. Do not select 1.0 just for coverage or fill unknown direction as FLAT. Define activity versus directional partial-label semantics, validity leads and loss/score alignment for all five TF before any new fit. Then verify normalized indicator/level-mask delivery and 95 previously parked full-profile fields per TF, followed by a prebound chronological state-forecast comparison. The sensitivity plan is consumed and cannot be relaunched. No model fit, TEST, broker, trading or spending admitted.",
+  "next_action": "The consumed 0.5 versus 1.0 ATR TRAIN sensitivity shows a large coverage/FLAT tradeoff, not an automatic target choice. Source audit confirms known non-FLAT activity with unknown direction at M5+5 is not directly supervised: older full TRAIN had 21,252 such cells and reused later development 8,305; the active activity adjunct is only +1, while native endpoint loss requires observed three-class state. Sequence loss may give indirect gradient. First bind target semantics, separate activity/direction masks, output, later-lead binary loss and same-cell binary score as a candidate, without treating UNKNOWN as FLAT. Then check normalized indicator/level-mask delivery and 95 previously parked fields per TF. Only after these gates, prebind one chronological state-forecast comparison with simple baselines. No new target run or model fit, TEST, Entry-Q, broker, trading or spending is admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "Target-only May-Sep 2024 0.5 versus 1.0 ATR sensitivity completed once with exact 0.5 parity and no model/TEST. Semantic target choice and partial-label handling remain pending; indicator calibration follows.",
+    "current_activity": "Completed 0.5 versus 1.0 ATR target sensitivity and source audit of later-lead partial activity labels. The semantic market-state/partial-label contract is the active work; no model fit admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",

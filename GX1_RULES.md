@@ -55,7 +55,11 @@ retning/størrelse/tidsforløp, ukjente utfall og ingen fast prisanker består.
 
 Før en ny fit skal målkontrakten beskrive meningsfull bevegelse og FLATT på
 hver TF, tids- og hendelsesreferanse, framtidig gyldighetsdomene,
-observerbarhetsmasker, output, tap og samme evalueringsmål. Kandidaten
+observerbarhetsmasker, output, tap og samme evalueringsmål. Når komplett
+lokal range beviser FLATT/ikke-FLATT, men intraminuttorden ikke beviser
+OPP/NED, skal aktivitet og retning ha separate, sanne masker i mål,
+tap og måling ved relevante framtidstidspunkter. Ukjent retning fylles
+aldri som FLATT eller en gjettet side. Kandidaten
 0,5 × ATR(14) er ingen ferdig fasit før den er kontrollert på eksisterende
 TRAIN-prisforløp. Alle genuine indikatorer, EMA/ATR, støtte/motstand, GC,
 alle fem TF, åtte spesialister og D1/makro skal få kontrollerte formler,
