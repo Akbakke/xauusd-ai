@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T19:52:38.941344+00:00",
+  "observed_utc": "2026-11-06T20:12:12.813551+00:00",
   "status": "MARKET_STATE_TARGET_PARTIAL_LABEL_CONTRACT_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "The 0.5 versus 1.0 ATR TRAIN sensitivity leaves the market-state threshold semantically unlocked; do not choose by label coverage or model score. Existing singleton target queries and December scorer already provide masked FLAT/non-FLAT on all native leads. The active loss uses binary activity only at +1; another loss is a hypothesis, not a proven directional remedy. Bind partial {UP,DOWN} semantics, separate activity/direction masks and one meaningful ATR-scale decision from TRAIN-only price-unit, spread, state-duration and trajectory checks. Corrected post-normalization audit _002 passed all five TF times eight 253-field rows with exact parity; now independently qualify formulas/causal clock of 95 formerly parked fields per TF, then prebind a simple EMA/ATR reference and one chronological state comparison. No new model fit, TEST, Entry-Q, broker, trading or spending admitted.",
+  "next_action": "The 0.5 versus 1.0 ATR sensitivity leaves the market-state threshold semantically unlocked; do not choose by coverage or model score. Run only the admitted one-use TRAIN semantic calibration plan: validity-time XAU USD/bps/quoted-spread scale, complete activity and partial direction, censored duration/transitions and fixed trajectory witnesses on May-Sep 2024. No factor is auto-selected. Existing singleton target queries and December scorer already cover native binary activity; extra native activity loss remains a hypothesis. Post-normalization audit passed eight rows per TF, while 95 formerly parked fields per TF need independent producer-wise formula/clock review, trendline31 first. Only after target/input gates, prebind a simple EMA/ATR reference and chronological state comparison. No new model fit, TEST, Entry-Q, broker, trading or spending admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "The 0.5 versus 1.0 ATR sensitivity remains semantically undecided. Post-normalization audit _001 failed and is consumed; corrected _002 completed: all five TF times eight 253-field rows matched runtime normalization exactly. The 95 formerly parked fields per TF still need independent formula qualification; no model fit admitted.",
+    "current_activity": "The 0.5 versus 1.0 ATR target remains semantically unlocked. Corrected post-normalization audit _002 completed with exact five-TF parity on eight rows per TF. One TRAIN-only semantic target calibration audit is admitted but unclaimed; 95 formerly parked fields per TF remain formula-unqualified. No model fit admitted.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -60528,6 +60528,30 @@
     "test_data_used": false,
     "independent_edge": "UNKNOWN",
     "post_run_review": "Original receipts rehashed: all five TF have eight fixed 253-field cache rows, NumPy/reference versus native runtime normalizer maximum absolute difference 0.0; categorical/binary identity and level presence/absence guards passed. No model forward/fit/TEST. This does not prove 95 remaining formulas, all-row raw gather, indicator value or forecast edge."
+  },
+  "dynamic_mtf_state_semantic_calibration_20261106_001": {
+    "status": "ADMITTED_UNCLAIMED",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_001.json",
+      "sha256": "63a8a5410d3444569612323c6ba07b0bb1e624c3f8fe382bd9bf310af2b462ad"
+    },
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "target_builds_authorized": 1,
+    "model_calls_authorized": 0,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "test_authorized": false,
+    "later_aggregate_authorized": false,
+    "training_authorized": false,
+    "broker_orders_or_trading_authorized": false,
+    "operator_approval": "Current 2026-11-06 market-state target task and standing zero-cost local GX1 authorization; one TRAIN-only semantic audit, no model or paid calls.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "source_head_at_admission": "bbc872cec511dc8c004836cf265fca8167486425",
+    "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
+    "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_001",
+    "scope": "Reuse saved 0.5 target and completed 0.5/1.0 counts; build 1.0 only ephemerally on bound full M1 clock. Publish only May-Sep 2024 TRAIN validity/price/spread/partial-label/run/witness summaries. No target factor selection, later aggregates, model, VAL/TEST or trading."
   },
   "dynamic_mtf_state_target_sensitivity_20261106_001": {
     "status": "COMPLETE_CONSUMED_NO_TARGET_LOCK",
