@@ -193,6 +193,34 @@ påvist svikt. Kjent stengning bevarer aktivitetslåsen, men manglende M1-
 minutter bryter streng episodeobservasjon. Fullt lokalt vindu etter ukjent
 gap eller tapt ATR gjør D1 spesielt lite dekket. Ingen ny trening er innrømmet.
 
+Etterkontroll av D1-observasjonen viser en konkret begrensning i forrige
+strenge **varighetsdiagnostikk**: Lengste sammenhengende M1-løp i
+mai–september er 1 376 gyldigheter, mens +1440 krever 1 441. Null påviste
+D1-overlevende var derfor matematisk tvunget av målemasken og kan ikke
+brukes som markedskonklusjon. Autorisert kalender omfatter 83 daglige
+stengninger på 64–65 minutter og 22 helgestengninger; 40 kildegap er
+ukjente. D1 hadde 50 508 kilderader og 9 303 eksakte native utfall med
+ukjent aktivitet etter kravet om fullt 1 440-observasjonsvindu. En stor nok
+**observert** bevegelse etter gap kan bevise aktiv tilstand før fullt vindu;
+liten bevegelse kan ikke bevise FLATT eller en bestemt side. Det er ennå bare
+en kildehypotese, ikke en oppgradert målserie.
+
+[Stengnings-/observerbarhetsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001.json)
+SHA-256 `118cc7de28b5450756ac4611357a8b214ba50efd3c98ddca1ce24a18d98a8e45`
+er innrømmet én gang, ikke claimet. Arbeider SHA-256
+`f10f3c2253fb0631e9d106409f03e4bcd2a1dc03f496569059fc1b877059611f`.
+Den måler tilstand ved eksakt egen-TF UTC-framtid separat fra varighet på
+observerte åpne markedsminutter; bare dokumenterte stengninger kan passeres,
+ukjente gap sensureres og manglende sluttminutt fylles ikke. Tidlig aktivt
+bevis rapporteres separat uten å endre forrige hystereseetikett. Alle bundne
+input- og kildefiler, gamle rapportnøkler, syntetiske grensefall og nøyaktig
+begrenset oppstart er kontrollert før claim. Ingen trening eller TEST.
+
+Forrige varighetsregel forkastet 1,0/0,5 som **vedvarende** felles fem-TF-
+tilstand, ikke muligheten for å prediktere tilstand ved eksakt framtidstid.
+En H4-NED-episode kan være meningsfull selv om den skifter før +240.
+Tilstandsfasit, overgang og varighet må vurderes separat før ny målbeslutning.
+
 Neste målbeslutning må definere en fysisk begrunnet, kausal tilstands- og
 observerbarhetskontrakt per TF: håndter D1-stengning/gap og egen horisont
 uten å gjøre ukjent til FLATT; krev meningsfull H1/H4-NED-varighet; bind
