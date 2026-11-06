@@ -323,7 +323,9 @@ def _run_dynamic_state_qualification(*, window, plan, invocation, launch, limits
                 'DECEMBER_REGISTERED_PARENT_IDS')
         order = torch.from_numpy(selected.copy())
         order_sha = tree_sha(order)
-        profile = compile_full_gc_mtf_entry_execution_profile(context['fitted']['gc_mtf_history'])
+        profile = compile_full_gc_mtf_entry_execution_profile(
+            context['fitted']['gc_mtf_history'],
+            unobserved_units_profile=view.get('unobserved_units_profile'))
         _require(view['entry_execution_profile'] == {key:profile[key] for key in ('name','contract_sha256')},
             'STATE_INPUT_PROFILE_BINDING')
         batches = []

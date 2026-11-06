@@ -1479,7 +1479,9 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
             _require(prior_cursor['parent_order_sha256']==order_sha,'SAME_FIXED_PERMUTATION')
         trainer._set_deterministic(recipe['seed'],device,recipe['precision_policy'])
         counters['model_constructions']+=1
-        model=build_native_direction_research_model(view,prefix_normalization=context['fitted'],constructor_metadata=context['constructor'],device=device)
+        model=build_native_direction_research_model(view,prefix_normalization=context['fitted'],
+            constructor_metadata=context['constructor'],device=device,
+            unobserved_units_profile=view.get('unobserved_units_profile'))
         counters['model_construction_returns']+=1;model.train()
         optimizer,_optimizer_binding=state_owner.build_native_direction_research_optimizer(model,recipe=recipe);counters['optimizer_constructions']+=1
         view_identity=model.feature_view_identity

@@ -46,7 +46,7 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-06T00:35:11.495960+00:00",
   "status": "M5_ENTRY_OCTOBER_FIT_ROLE_READ_GUARD_SOURCE_CHECKED_EDGE_UNKNOWN",
-  "training_enabled": true,
+  "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "The consumed control 001 preparation is closed. New matched _002 private recipes are SHA-verified; only control _002 has one exact policy admission pending capped metadata materialization and fresh physical boot. No native model call has begun.",
+    "current_activity": "October control private _002 consumed after bounded boot 605: explicit source-unit profile opt-in failed before model construction, with zero forwards and updates. Startup task disabled; _003 source correction is under local review. Candidate, fit and score remain closed; edge UNKNOWN.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The admitted control _002 campaign has no materialized plan or fresh reboot yet. Candidate private, fit and October OOF remain gated on their own receipts; independent directional edge and economics are unknown.",
+    "current_blocker": "Control private _002 failed and cannot be relaunched. Correct the measured opt-in propagation, qualify a fresh _003 source/recipe/plan and boot. Candidate private, fit, October OOF and independent edge remain unqualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_CONTROL_PRIVATE_002_ONE_SHOT_ADMITTED_PENDING_BOOT_EDGE_UNKNOWN",
+    "status": "OCTOBER_CONTROL_PRIVATE_002_FAILED_CONSUMED_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -58722,8 +58722,8 @@
     "remaining": "This exact preparation is consumed and cannot relaunch. New control/candidate _002 source and separately admitted plans are required; no native invocation was claimed."
   },
   "dynamic_m5_october_control_private_20261106_002": {
-    "status": "ADMITTED_ONCE_PENDING_MATERIALIZATION_AND_FRESH_BOOT",
-    "observed_utc": "2026-11-06T02:10:41.277011+00:00",
+    "status": "FAILED_CONSUMED_NO_RELAUNCH",
+    "observed_utc": "2026-11-06T02:29:17.549858+00:00",
     "scope": "Control arm only; fixed pre-October TRAIN private mechanics on 32 unique parents, 256 fresh initial rows, at most four updates. No main fit or October OOF.",
     "arm": "control",
     "input_role": "fit",
@@ -58753,18 +58753,18 @@
       "sha256": "28a0bd8d659a7636a5b399d5b3785c5ead1e64e780a7ca9c068a23cc9975173e"
     },
     "max_invocations": 1,
-    "claimed_invocations": 0,
+    "claimed_invocations": 1,
     "completed_invocations": 0,
-    "campaign_preparation_authorized": true,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "genuine_constructor_authorized": true,
-    "genuine_forward_authorized": true,
-    "genuine_backward_authorized": true,
-    "genuine_updates_authorized": true,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
     "genuine_predictor_fit_authorized": false,
-    "training_enabled": true,
-    "native_training_enabled": true,
+    "training_enabled": false,
+    "native_training_enabled": false,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -58778,7 +58778,7 @@
     "relaunch_allowed": false,
     "private_weights_for_fit": false,
     "fresh_windows_boot_required": true,
-    "user_reboot_authorized": true,
+    "user_reboot_authorized": false,
     "power_limit_w": 250,
     "budgets": {
       "memory_bytes": 21474836480,
@@ -58791,13 +58791,28 @@
       "max_private_updates": 4,
       "usd": 0
     },
-    "prepared_plan_materialized": false,
-    "prepared_binding_materialized": false,
-    "machine_wide_idle_verified_for_reboot": false,
-    "physical_reboot_executed": false,
+    "prepared_plan_materialized": true,
+    "prepared_binding_materialized": true,
+    "machine_wide_idle_verified_for_reboot": true,
+    "physical_reboot_executed": true,
     "model_calls": 0,
     "october_outcomes_read": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "Materialize once under capped audit, inspect exact plan and machine-wide idle, then safe physical reboot and existing capped private mechanics route. Candidate/fit/score remain closed."
+    "remaining": "Private control _002 failed before model construction at explicit source-unit profile opt-in; immutable failed receipt and disabled startup task close this one-shot. Repair source; bind a fresh _003 recipe, plan and boot before another private attempt.",
+    "campaign_plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_002/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "d1f8eb5db69dafb1e7de3f05d8523f57d681154d800e75894ae07b5d126e1626"
+    },
+    "failure_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_002/INVOCATION_FAILURE_REVIEW.json",
+      "sha256": "a4a43cda36e95fe128a647db866b55812fd5f65714da7c6a50bc3ef3afaf96a7"
+    },
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_002/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "cf45ad0743dffbc2dd97acfe0fc33b974d6e861cf755589ba3f48aec5ca74a73"
+    },
+    "task_name": "GX1OctoberControlPrivate20261106_002",
+    "task_state": "Disabled",
+    "failure_error": "RuntimeError:ENTRY_INPUT_RESEARCH_UNITS_OPT_IN_REQUIRED"
   }
 }

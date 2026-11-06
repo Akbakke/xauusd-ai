@@ -452,7 +452,9 @@ def _fresh(context, view, recipe, device, counters, *, max_constructions=3):
     trainer._set_deterministic(recipe['seed'],device,recipe['precision_policy'])
     _require(type(max_constructions) is int and max_constructions in (3,4),'CONSTRUCTOR_PROFILE')
     counters['model_constructions']+=1;_require(counters['model_constructions']<=max_constructions,'CONSTRUCTOR_BUDGET')
-    model=build_native_direction_research_model(view,prefix_normalization=context['fitted'],constructor_metadata=context['constructor'],device=device)
+    model=build_native_direction_research_model(view,prefix_normalization=context['fitted'],
+        constructor_metadata=context['constructor'],device=device,
+        unobserved_units_profile=view.get('unobserved_units_profile'))
     counters['model_construction_returns']+=1;model.train()
     optimizer,binding=build_native_direction_research_optimizer(model,recipe=recipe);counters['optimizer_constructions']+=1
     return model,optimizer,binding

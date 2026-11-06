@@ -11,6 +11,21 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Oktober-kontrollens private `_002` er konsumert med konkret kildefeil, uten modellkall.**
+Fysisk Windows-boot gikk fra 604 til 605. Den installerte, SHA-bundne oppstartsoppgaven startet
+én capped native-invokasjon; signert vakt og 20 GiB/512 MiB-grensen var aktive. Invokasjonen
+stoppet på `ENTRY_INPUT_RESEARCH_UNITS_OPT_IN_REQUIRED` før modellkonstruksjon: null forwards,
+backwards og optimizersteg, ingen oktober-utfall eller TEST. Den immutable
+[feilgjennomgangen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_002/INVOCATION_FAILURE_REVIEW.json)
+har SHA-256 a4a43cda36e95fe128a647db866b55812fd5f65714da7c6a50bc3ef3afaf96a7;
+[kampanjekvitteringen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_002/RUNTIME/receipts/invocation-0001.json)
+er FAILED, og inspect returnerer `BLOCKED_FAILED_INVOCATION`. Windows-oppgaven er deaktivert,
+`training_enabled=false`, og `_002` relanseres ikke. Den målte mangelen er rettet ved å føre
+Oktober-profilen eksplisitt gjennom privat inputprofil, modellkonstruksjon og senere fit-konstruksjon;
+neste friske private sti er `_003`. Målrettede kilde-/regresjonstester og syntaks bestod.
+Ingen ny `_003`-oppskrift, kampanje eller admisjon er publisert ennå. Kandidat, fit og oktober-OOF
+gjenstår; TRAIN-læring, uavhengig retningsedge og økonomi er UNKNOWN.
+
 **06.11 – Kontrollens nye private `_002`-engangsadmisjon er kilde- og rollebundet, før
 modellstart.** Begge matchede
 [oppskrifter](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001) er publisert
