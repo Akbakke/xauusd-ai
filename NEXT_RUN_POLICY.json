@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T23:14:23.852743+00:00",
-  "status": "MARKET_STATE_ROWWISE_VERIFIED_FULL_TRAIN_AUTHORITY_PENDING",
+  "observed_utc": "2026-11-06T23:24:47.104668+00:00",
+  "status": "FULL_TRAIN_XAU_CLOSURE_AUTHORITY_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The 0.5-versus-1.0 ATR endpoint allowed-set contract is PROPOSED, not locked. Public source calendar and May-Sep rowwise mask audits are complete and consumed; full TRAIN M1-gap authority, complete labels, indicator qualification and chronological baseline remain open. No model fit, TEST, Entry/Exit, broker, trading or spending. training_enabled=false.",
-  "next_action": "Calendar plan 003 and May-Sep rowwise plan 001 both completed/consumed with independent PASS. Next build one source-bound full TRAIN M1-gap closure authority from the verified calendar, then assess full TRAIN target coverage and earlier-only simple references. Target stays PROPOSED until full TRAIN source/clock, indicators, output/loss/scores and chronological references are qualified. No model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "One capped, source-only full TRAIN M1 time-gap authority is admitted under plan 001. No price/VAL decoding, target, model, TEST, Entry/Exit or trading. After immutable terminal and independent gap review, evaluate full TRAIN endpoint target coverage; target remains PROPOSED and training_enabled=false.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -61169,6 +61169,28 @@
       "path": "/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_CANDIDATE_ROWWISE_20261106_001/TERMINAL.json",
       "sha256": "2b8a44151109f20d542f0034608639d514042fe06075ef729cb8db995f84c993"
     },
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after claimed capped invocation; no relaunch.",
+    "test_authorized": false,
+    "training_authorized": false
+  },
+  "full_train_xau_closure_authority_20261107_001": {
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "data_reads_authorized": true,
+    "decision": "ADMITTED",
+    "execution_authorized": true,
+    "max_invocations": 1,
+    "model_calls_authorized": 0,
+    "output_root": "/home/andre2/GX1_RUNS/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/FULL_TRAIN_XAU_CLOSURE_AUTHORITY_20261107_001.json",
+      "sha256": "3e2ae79c14df2f89385260222ed55792e18dab8005731b39c0f7303807ee1eef"
+    },
+    "relaunch_allowed": false,
+    "scope": "One exact TRAIN M1 time-column closure audit, 2024-05-01 to exclusive 2026-01-01. Whole pre-TEST parquet SHA is read as opaque integrity bytes; only TRAIN time row groups decode. Full containment in verified published calendar certifies known closure; other gaps unknown. No target/model/TEST/Entry/trade.",
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "status": "READY_UNCLAIMED",
+    "target_builds_authorized": 0,
     "terminal_owner": "Integrator writes immutable success/failure TERMINAL after claimed capped invocation; no relaunch.",
     "test_authorized": false,
     "training_authorized": false
