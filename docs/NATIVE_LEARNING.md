@@ -92,11 +92,12 @@ regelkontrollert. Den binære 1..60-minuttersfunksjonen var et snevrere eldre
 forskningsmål. Kandidatens meningsfulle bevegelsesgrense og høye andel
 ukjente M5-etiketter er ennå ikke kvalifisert som endelig mål. Den aktive
 XAU-kilden har M1-OHLC uten tidsstemplet intraminuttrekkefølge; ukjent høy/lav-
-rekkefølge må beholdes som ukjent. Sammenlign først dagens 0,5 × ATR-kandidat
-med en forhåndsbundet 1,0 × ATR-sensitivitet på fitprefikset
-01.05–30.09.2024, fem TF, aktive-M1-vinduer og prognosetider. Mål observerbarhet, klassefordeling og
-skifter per måned/TF; 1,0 er en enhetsskala til følsomhetskontroll, ikke et
-automatisk nytt mål. Bruk ikke modelltreff, VAL eller TEST til terskelvalg.
+rekkefølge må beholdes som ukjent. En forhåndsbundet 0,5 mot 1,0 × ATR-
+sensitivitet på fitprefikset 01.05–30.09.2024 må tolkes som en kontroll av
+observerbarhet, klassefordeling og skifter på fem TF, ikke automatisk
+målvalg. Den fullførte engangsplanen står i CURRENT_HANDOVER.md og gjentas
+ikke uten en ny konkret hypotese. Bruk ikke modelltreff, VAL eller TEST til
+terskelvalg.
 Tidligere path-/bps-forsøk beholdes som avgrenset evidens. Gjeldende
 kjøreautorisasjon eies av NEXT_RUN_POLICY; målbeskrivelsen starter ingen jobb.
 

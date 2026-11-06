@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T17:11:10.429481+00:00",
-  "status": "MARKET_STATE_TRAIN_TARGET_SENSITIVITY_ADMITTED_ONE",
+  "observed_utc": "2026-11-06T17:16:07.660392+00:00",
+  "status": "MARKET_STATE_TARGET_SENSITIVITY_COMPLETE_SEMANTIC_CHOICE_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Active phase is dynamic five-timeframe market-state forecasting before Entry. One exact target-only 0.5 versus 1.0 ATR sensitivity on May-September 2024 TRAIN is admitted under its own claim, source binding and capped guard. It does not choose a new target or admit a model call. Prior one-pass fits and scores are consumed. training_enabled=false; TEST, Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "Run dynamic_mtf_state_target_sensitivity_20261106_001 once only through its exact plan and capped audit guard. Require full saved-0.5 array parity, report only 29,849 pre-October TRAIN issues at five native leads, monthly/TF masks, state shares, transitions and intraminute-order flags for 0.5 and 1.0 ATR. Do not choose target from model score, VAL or TEST; no 1.0 series promotion. After terminal review, settle target semantics and observer masks before normalized indicator checks and any chronological state fit. Entry-Q is later. No model fit, TEST, broker, trading or spending admitted.",
+  "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
+  "next_action": "Review the completed target sensitivity and 0.5 rule traces against the operator market-state definition. M5+5 observability rises from 16,798/29,849 to 27,936/29,849 at 1.0 ATR, while FLAT among observed rises from 2,313/16,798 to 17,845/27,936; D1 native-lead observability falls. Do not select 1.0 just for coverage or fill unknown direction as FLAT. Define activity versus directional partial-label semantics, validity leads and loss/score alignment for all five TF before any new fit. Then verify normalized indicator/level-mask delivery and 95 previously parked full-profile fields per TF, followed by a prebound chronological state-forecast comparison. The sensitivity plan is consumed and cannot be relaunched. No model fit, TEST, broker, trading or spending admitted.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "One exact target-only May-Sep 2024 sensitivity audit is admitted, not yet claimed. It compares 0.5 and 1.0 ATR labels with saved-baseline parity under capped 4G/1800s guard; no model fit.",
+    "current_activity": "Target-only May-Sep 2024 0.5 versus 1.0 ATR sensitivity completed once with exact 0.5 parity and no model/TEST. Semantic target choice and partial-label handling remain pending; indicator calibration follows.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "The 0.5 ATR five-TF state target passed scoped technical rule review but remains semantically unlocked; M5 label observability is about 53%. Normalized consumption and 95 full-profile fields per TF lack complete independent qualification. No causal input defect is proven.",
+    "current_blocker": "The 0.5 ATR target is semantically unlocked. 1.0 ATR sharply improves M5 label coverage but makes observed M5+5 mostly FLAT and reduces D1 coverage; source M1 OHLC cannot resolve intraminute order. Normalized input and 95 full-profile fields per TF remain incompletely qualified.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60438,22 +60438,50 @@
     "post_run_review": "Original result/terminal rehashed; all 36,172 parent as-of selections on five TF and exact M5 parent barstart passed; eight raw EMA/ATR/SR tensor rows bit-match cache. Does not test post-normalization, model influence, level observation or Entry value."
   },
   "dynamic_mtf_state_target_sensitivity_20261106_001": {
-    "status": "ADMITTED_ONE_TARGET_ONLY_SENSITIVITY_NOT_CLAIMED",
+    "status": "COMPLETE_CONSUMED_NO_TARGET_LOCK",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001.json",
       "sha256": "9aa37c8531de784968c9821960b43cd40ee7722a018827c00561ab1319543e2a"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "target_builds_authorized": 2,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "target_builds_authorized": 0,
     "model_calls_authorized": 0,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "test_authorized": false,
     "later_aggregate_authorized": false,
     "training_authorized": false,
     "output_scope": "May-Sep 2024 TRAIN aggregate only; 0.5 exact parity and 1.0 diagnostic, no alternative series publication",
-    "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD"
+    "source_head_role": "EXECUTION_BINDING binds final clean committed HEAD",
+    "relaunch_allowed": false,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001/CLAIM.json",
+      "sha256": "6c697a72415918a5740c0601cd0d8d1f864236b95df8f7034c2e0ea83df8bf96"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001/RESULT.json",
+      "sha256": "b31f022ec3398a1a6400e202f513407830229d97e0e86d73063bf70bc1655ab2"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001/TERMINAL.json",
+      "sha256": "db33cf6136e1d020027f4bf4cfad9022f63d5eb6d613531148e900add87326ae"
+    },
+    "source_head_at_run": "8a3aabe475bf8df4a2254230ac22cd0ab1810a7e",
+    "elapsed_seconds": 10.236352111000087,
+    "peak_rss_bytes": 481095680,
+    "baseline_exact_array_parity": true,
+    "target_rule_locked": false,
+    "m5_plus5": {
+      "factor_0_5_observed": 16798,
+      "factor_0_5_flat_observed": 2313,
+      "factor_1_0_observed": 27936,
+      "factor_1_0_flat_observed": 17845,
+      "issues": 29849
+    },
+    "test_data_used": false,
+    "model_calls": 0,
+    "alternative_series_published": false
   }
 }

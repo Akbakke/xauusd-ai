@@ -10,12 +10,33 @@ statusnotater er bevart i Git og originale kvitteringer.
 
 Definer og lær dynamisk OPP/NED/FLATT-markedstilstand på M5, M15, H1, H4 og
 D1 først. M5 er prognosetakt; Entry-plassering, direkte Entry-Q, Exit og
-handelsbeslutninger kommer senere. Ingen ny fit er innrømmet. Én ren
-[målsensitivitetsplan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001.json)
-SHA-256 `9aa37c8531de784968c9821960b43cd40ee7722a018827c00561ab1319543e2a` er innrømmet, men ikke claimet: to målbygg,
-0 modellkall, 29 849 pre-oktober TRAIN-foreldre, 4 GiB/512 MiB og 1 800 s.
-Den må først gjenskape lagret 0,5-serie eksakt, deretter rapportere 1,0 som
-diagnose. Kjør bare gjennom capped engangsvakt; ingen target-promotering.
+handelsbeslutninger kommer senere. Ingen ny fit er innrømmet.
+
+Én [målsensitivitetsplan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001.json)
+SHA-256 `9aa37c8531de784968c9821960b43cd40ee7722a018827c00561ab1319543e2a`
+er fullført og konsumert. [RESULT](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001/RESULT.json) SHA-256
+`b31f022ec3398a1a6400e202f513407830229d97e0e86d73063bf70bc1655ab2`; [TERMINAL](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_TARGET_SENSITIVITY_20261106_001/TERMINAL.json) SHA-256
+`db33cf6136e1d020027f4bf4cfad9022f63d5eb6d613531148e900add87326ae`. Den gjenskapte alle 13 lagrede
+0,5-arrays eksakt og sammenlignet 1,0 på 29 849 mai–september-foreldre
+uten modellkall, TEST eller publisering av 1,0-serie. Exit 0, 10,3 s og
+481,1 MB prosessmaks under 4 GiB-vakten; ingen ny kjøring er innrømmet.
+
+| TF / native lead | 0,5 observert | 1,0 observert | FLATT av observerte, 0,5 → 1,0 |
+| --- | ---: | ---: | ---: |
+| M5 / +5 | 16 798 / 29 849 | 27 936 / 29 849 | 13,8 % → 63,9 % |
+| M15 / +15 | 25 679 / 29 849 | 29 062 / 29 849 | 13,9 % → 61,2 % |
+| H1 / +60 | 27 770 / 29 849 | 28 278 / 29 849 | 13,4 % → 60,5 % |
+| H4 / +240 | 26 829 / 29 849 | 26 632 / 29 849 | 8,4 % → 54,7 % |
+| D1 / +1440 | 18 799 / 29 849 | 16 640 / 29 849 | 3,4 % → 52,7 % |
+
+Større grense løser mye av M5-observasjonsmangelen, men gjør FLATT til
+majoriteten av de observerte etikettene og reduserer D1-dekningen. Dette
+er en mål- og observerbarhetsavveining, ingen modellkvalifisering eller
+automatisk beslutning om ny terskel. Gjeldende 0,5-kandidat er fortsatt
+semantisk ulåst. Aktiv neste oppgave er å binde observert aktivitet versus
+ukjent retning, framtidige gyldighetstidspunkter, output, tap og måling
+uten å gjøre ukjent til FLATT. Deretter følger indikatorens normaliserte
+konsum og den åpne numeriske kvalifiseringen.
 
 Målkontrakten er ennå ikke låst som meningsfull markedsdefinisjon. Faktoren
 0,5 × ATR(14) per TF er en brukerakseptert kandidat, ikke endelig kalibrert.
@@ -27,7 +48,7 @@ forhåndsvalgte framtidige gyldighetstidene, ukjent-maske, output, tap og
 måling bindes sammen på hver TF. M1-OHLC gir observerbar M5-tilstand på
 126 395 av 238 142 unike TRAIN-tidspunkter (53,08 %); oktober M5+5 har
 3 359 av 6 323 (53,12 %). Ukjent er aldri FLATT. Den aktive
-[OANDA M1-kilden](/home/andre2/GX1_DATA/data/native_xau/XAU_M1_NATIVE_2009_20260701_PAIR_WEEKCLOSED_20260927/MANIFEST.json)
+[bundne OANDA M1-kilden](/home/andre2/GX1_DATA/data/data/prebuilt/HISTORY2009W_BOOTSTRAP_20260927/artifacts/pretest_direct_m1_quotes_source/manifest.json)
 har ett OHLC-tidsstempel per minutt og kan ikke ordne intraminutt høy/lav.
 En spredt, umanifestert Dukascopy-tickcache dekker ikke aktiv 2024-TRAIN;
 GC-futures er heller ikke fasit for XAU. Neste minste målkontroll er en
