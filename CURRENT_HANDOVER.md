@@ -190,6 +190,17 @@ akseptregel; oktober er undersøkt utvikling, TEST forseglet. Inntil da står
 modellen uten påvist senere retnings- eller Entry-beslutningsverdi.
 Fem-TF-prognosemålet og Entry-kravene består.
 
+Eksisterende data er nok til å undersøke læring videre: fysisk native XAU/GC
+TRAIN har 118 249 foreldre fra 2024-05-01 til 2026-01-01, og VAL har
+17 284 fra 2026-01-01 til 2026-04-01. GC MBP-1, genuine indikatorer, fem TF,
+åtte spesialister og D1/makro er ikke en manglende datakilde. Ny historisk
+kronologisk TRAIN-OOF kan planlegges med foldspesifikk fit på tidligere,
+målmodne rader uten nye data; dette åpner ikke dagens `training_enabled=false`
+eller en ny kjøring uten særskilt hypotese og eksakt policyadmisjon. Alle
+26 månedene er allerede undersøkt utvikling, så intern OOF er ikke en urørt
+sluttbekreftelse. Nye uavhengige data er ikke en forutsetning for å undersøke
+læring nå; de trengs først for en endelig uavhengig edgepåstand.
+
 En fryst lineær avlesning av kandidatens siste hidden er ikke en gyldig
 kronologisk OOF-test av representasjonen: backbonen ble fit på alle 29 849
 pre-oktober TRAIN-foreldre. Lagrede [TRAIN-arrays](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/RUNTIME/prefix-fit/window-0002/FINAL_TRAIN_PREDICTIONS/ARRAYS.json)
