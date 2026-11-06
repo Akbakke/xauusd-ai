@@ -87,9 +87,11 @@ men `dense_future_paths_materialized=false`; den lagrer M1-radpekere og
 første masker, ikke en bred LONG/SHORT/FLAT-fasit. Eksisterende
 `DynamicM5TargetProvider.targets_for_rows` beregner terminal og path
 on-demand. Oktoberrapporten måler bare dekning; 512-raders native panel er
-ikke bred kronologisk Entry-OOF. En ny modellfri målfordeling må derfor være
-en egen, forhåndsbundet og ressursbegrenset kjøring, ikke en ombruk av
-konsumerte planer.
+ikke bred kronologisk Entry-OOF. En bred modellfri målfordeling ville bare
+telle kjente framtidsmuligheter, ikke kausal forutsigbarhet. Den endrer ikke
+Entry-beslutningen og er ikke neste kjøring; en slik diagnose får bare egen
+plan ved et nytt, konkret spørsmål som krever den. Skjult maksimum av
+framtidsfasit over horisonter er forbudt som Entry-Q.
 
 [Kostautoriteten](/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_COST_TERMS_20261019_059/COST_POLICY/parameter_authority.json)
 SHA-256 `e93ed40451a24344f94716e1f5ebe4cd348e6c7c3120e7509d6d55827bf40522`
