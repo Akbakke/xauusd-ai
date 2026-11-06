@@ -1,0 +1,63 @@
+{
+  "schema_version": "gx1_dynamic_m5_october_entry_direction_join_v1_plan",
+  "status": "DESCRIPTIVE_RULE_BOUND_BEFORE_THIS_JOIN_AFTER_PRIOR_DEVELOPMENT_EXPOSURE",
+  "created_utc": "2026-11-06T14:31:48.580353+00:00",
+  "script_sha256": "b1fd69e913a6512242bf10fa01de01967086e3dcb1347c125506c5f8e4d0df33",
+  "control_review": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_003/ACTUAL_ROOT_REVIEW.json",
+    "sha256": "d37c387736b8578fc3ff228aff7eba09d75b8380dcd102624061c6f4d4e9d932"
+  },
+  "candidate_review": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/ACTUAL_ROOT_REVIEW.json",
+    "sha256": "02043546ea5da35437843164724d9107cdc0a994042e99b8b07a332b0e71c47d"
+  },
+  "entry_mask_report": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_MASK_COVERAGE_20261106_001/REPORT.json",
+    "sha256": "17943a62ef36020120878c3e72a124c99304fe2f60ea7d7c638926b5175a0b37"
+  },
+  "input_recipe": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_COMPACT_SINGLE_FULL_NATIVE_EPOCH_20261020_108/RECIPE.json",
+    "sha256": "83dbdaec44aac242db740cc43bd1314679aba2668eb53da4bc5e1a972afc82cd"
+  },
+  "physical_target_receipt": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
+    "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
+  },
+  "october_axis": {
+    "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/OCTOBER_AXIS.json",
+    "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"
+  },
+  "cost_authority": {
+    "path": "/home/andre2/GX1_RUNS/NATIVE_M5_CURRENT_COST_TERMS_20261019_059/COST_POLICY/parameter_authority.json",
+    "sha256": "e93ed40451a24344f94716e1f5ebe4cd348e6c7c3120e7509d6d55827bf40522"
+  },
+  "parent_range": [
+    29849,
+    36172
+  ],
+  "october_cutoff_ns_exclusive": 1730419200000000000,
+  "lead_minutes": 5,
+  "expected_fold_mature": 6322,
+  "expected_executable_terminal": 6297,
+  "score": "Frozen issued M5 +5 P(UP)/(P(DOWN)+P(UP)), no orientation flip",
+  "outcome": "Relative executable declared-net LONG markout greater than SHORT; exact ties excluded and counted",
+  "primary_metric": "row-weighted conditional AUC on all executable non-tie October rows",
+  "secondary_metric": "equal-UTC-outcome-day AUC and paired candidate-control/chance 95% day-bootstrap intervals",
+  "bootstrap_draws": 10000,
+  "bootstrap_seed": 20260911,
+  "pre_registration_limit": "October development and model scores have already been examined; this binds only the present join before reading its Entry outcomes. It cannot confirm edge or authorize selection.",
+  "source_read_scope": "Existing owner opens full pre-2026 TRAIN physical target columns and quote index; query only October parent rows with +5 endpoint strictly before 2024-11-01. No sealed TEST.",
+  "claim_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/CLAIM.json",
+  "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/REPORT.json",
+  "max_wall_seconds": 3600,
+  "capped_class": "audit",
+  "memory_bytes": 4294967296,
+  "swap_bytes": 536870912,
+  "decision_authority": "NONE",
+  "no_action_selection": true,
+  "model_calls_authorized": 0,
+  "test_data_used": false,
+  "broker_access_allowed": false,
+  "trading_allowed": false,
+  "usd_budget": 0
+}

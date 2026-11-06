@@ -55,8 +55,12 @@ Ved +480 hadde 5 607 av 6 240 foldmodne executable terminal og 4 079
 observerbar terminal-open bane. Den eksisterende kildeleseren åpnet hele
 pre-2026 TRAIN-kilden ved oppsett, men rapporterte bare spørringer før
 oktobercutoff; ingen TEST. Neste minste steg er en forhåndsbundet,
-modellfri utviklingsjoin av lagrede tilstandsprognoser med executable
-LONG/SHORT-utfall og pre-MFE-MAE/MFE på eksakt felles mask/populasjon.
+modellfri M5 +5-utviklingsjoin av lagret OPP/NED-rang med executable
+relativt netto LONG-mot-SHORT-utfall på felles observerte rader.
+[Engangsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001.json) SHA-256 `f4423aca0309b18cfd54f4f0bd14716fd5ad621048efcbac7f52723108f18cb7` er bundet før
+denne joinens Entry-utfall leses, med atomisk claim, capped 4 GiB og ingen
+action-seleksjon. Oktober er allerede undersøkt utvikling, ikke uavhengig
+bekreftelse. FLAT-valg, pre-MFE-MAE og økonomi må fortsatt måles separat.
 Gjenbruk eksisterende eiere; ingen ny modell eller targeteier følger automatisk.
 
 M5 Entry er hovedmål med kausal lukket M15/H1/H4/D1-kontekst, åtte

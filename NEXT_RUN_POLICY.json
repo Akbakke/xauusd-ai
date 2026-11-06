@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T14:07:03.786603+00:00",
-  "status": "M5_ENTRY_OCTOBER_ENTRY_MASK_CENSUS_COMPLETE_NO_DIRECTION_EDGE_QUALIFIED",
+  "observed_utc": "2026-11-06T14:31:48.580353+00:00",
+  "status": "M5_ENTRY_OCTOBER_EXECUTABLE_SIDE_RANK_ONE_READ_ONLY_JOIN_ADMITTED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Use the completed October mask census to pre-register one model-free, development-only join between saved M5 state forecasts and executable LONG/SHORT endpoint/path outcomes on exact common rows. Define populations, masks, causal references and no selection rule before reading values. No new model/training, TEST, broker, trade, retrospective PASS or edge claim.",
+  "next_action": "Run exactly one claimed, capped 4 GiB read-only M5 +5 October development join of saved state ranks with executable declared-net LONG-versus-SHORT side outcomes on common observed rows. Query only endpoints strictly before November 2024. Report descriptive paired UTC-day AUC; no selection, model, TEST, broker, trade or edge authority.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "October age pair and one read-only 1..480-minute Entry-path mask census are complete. At +5, 6297 of 6322 fold-mature rows have executable terminal/path outcomes; separate state label is observed on 3359 of 6323 parents. No directional or economic edge qualified; no model run admitted.",
+    "current_activity": "October age pair and Entry mask census are complete. One exact model-free M5 +5 saved-rank versus executable-side development join is admitted, claim-before-outcomes. No model or TEST; independent edge/economics UNKNOWN.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Entry-path availability is measured, but current state forecasts have not been shown to improve executable LONG/SHORT quality or pre-MFE-MAE on the common observed population. A new pre-registered model-free join is needed; independent edge/economics UNKNOWN.",
+    "current_blocker": "State forecast relationship to executable LONG/SHORT +5 outcomes is unmeasured. One descriptive, no-selection, claimed join is admitted. It cannot establish FLAT/MAE/realized economics or independent edge.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60219,5 +60219,39 @@
     },
     "max_rss_kib": 3083828,
     "elapsed_seconds": 121.60216255099976
+  },
+  "dynamic_m5_october_entry_direction_join_20261106_001": {
+    "status": "ADMITTED_ONE_CLAIMED_READ_ONLY_ENTRY_SIDE_JOIN_PENDING",
+    "observed_utc": "2026-11-06T14:31:48.580353+00:00",
+    "scope": "M5 +5 October development relative executable LONG-vs-SHORT rank association on exact common rows; no FLAT, MAE or action selection.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001.json",
+      "sha256": "f4423aca0309b18cfd54f4f0bd14716fd5ad621048efcbac7f52723108f18cb7"
+    },
+    "source_script": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/report_dynamic_m5_october_entry_direction_join_v1.py",
+      "sha256": "b1fd69e913a6512242bf10fa01de01967086e3dcb1347c125506c5f8e4d0df33"
+    },
+    "claim_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/CLAIM.json",
+    "output_path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_ENTRY_DIRECTION_JOIN_20261106_001/REPORT.json",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "relaunch_allowed": false,
+    "capped_class": "audit",
+    "memory_bytes": 4294967296,
+    "swap_bytes": 536870912,
+    "max_wall_seconds": 3600,
+    "usd_budget": 0,
+    "model_calls_authorized": 0,
+    "training_enabled": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "trading_allowed": false,
+    "decision_authority": "NONE",
+    "independent_edge": "UNKNOWN",
+    "economic_edge": "UNKNOWN",
+    "next_action": "Publish claim before Entry outcome read, run once, verify output and close; no automatic model or action."
   }
 }
