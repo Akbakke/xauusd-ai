@@ -1,0 +1,71 @@
+{
+  "budget": {
+    "max_invocations": 1,
+    "max_json_bytes": 16777216,
+    "max_wall_seconds": 1800,
+    "memory_max": 4294967296,
+    "numerical_threads": 1,
+    "pids": 64,
+    "swap": 536870912
+  },
+  "factors": [
+    0.5,
+    1.0
+  ],
+  "inputs": {
+    "closure_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001.json",
+      "sha256": "118cc7de28b5450756ac4611357a8b214ba50efd3c98ddca1ce24a18d98a8e45"
+    },
+    "closure_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001/RESULT.json",
+      "sha256": "bbd2811dbcd04cdf5d3ac01e4f79c30b405cd085c97ce12093648af699203603"
+    },
+    "semantic_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002.json",
+      "sha256": "af921fdacd659f1c090259531ea70e2e9ac1644fcdb1ab1e71df79503184e55c"
+    },
+    "semantic_result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_SEMANTIC_CALIBRATION_20261106_002/RESULT.json",
+      "sha256": "bcd9a82ff6e3218cf58539ec0c4d88cdbb80b1e7c497d2991d31aab071033bf7"
+    }
+  },
+  "lead_minutes": [
+    5,
+    15,
+    60,
+    240,
+    1440
+  ],
+  "month_edges_ns": [
+    1714521600000000000,
+    1717200000000000000,
+    1719792000000000000,
+    1722470400000000000,
+    1725148800000000000,
+    1727740800000000000
+  ],
+  "report_cutoff_ns": 1727740800000000000,
+  "report_parents": 29849,
+  "run_root": "/home/andre2/GX1_RUNS/MARKET_STATE_ENDPOINT_CANDIDATE_ROWWISE_20261106_001",
+  "schema_version": "market_state_endpoint_candidate_rowwise_20261106_001_plan_v1",
+  "source_owners": {
+    "closure_helper": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_mtf_state_closure_observability_v1.py",
+      "sha256": "f10f3c2253fb0631e9d106409f03e4bcd2a1dc03f496569059fc1b877059611f"
+    },
+    "sensitivity_helper": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/audit_dynamic_mtf_state_target_sensitivity_v1.py",
+      "sha256": "ed2d2395e55ac0065b9c3d3cf3c1a251d3a980948a23b2cdbae9c4112c4d4e2d"
+    },
+    "target_contract": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_mtf_state_targets_v1.py",
+      "sha256": "42de2b1a774ec6be8c4de4a369cadcbee07d390048a8c3f950a78747cc323212"
+    }
+  },
+  "stage": "market_state_endpoint_candidate_rowwise_20261106_001",
+  "worker": {
+    "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_endpoint_candidate_v2.py",
+    "sha256": "8c50c9fead5b79e724f6e3ab365680813f6f19e758d0a76615b66d8377666785"
+  }
+}
