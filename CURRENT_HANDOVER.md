@@ -11,6 +11,16 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Én kontrollarm for privat native-mekanikk er eksakt innrømmet i policyen, men ennå ikke
+kjørt.** Bare `dynamic_m5_october_control_private_20261106_001` har engangsadgang til 32 faste
+pre-oktober TRAIN-foreldre, 256-raders fersk baseline, høyst fire private optimizersteg, ett 12
+000-sekunders vindu, eksisterende 20 GiB/512 MiB og 250 W-vakter, 0 USD. Global
+`training_enabled=true` gjelder bare sammen med denne eksakte stage-gaten; alderkandidaten, fit og
+score har ingen tilsvarende admisjon. Kampanjeplanen skal først materialiseres under capped
+CPU-audit fra ren HEAD og godkjent boot-/kildebinding. Før selve native-kallet kreves fersk
+maskinvid ledighetskontroll og trygg fysisk Windows-omstart fra forberedt boot 604. Ingen
+modellkall er gjort. TEST, broker, ordre og handel er stengt; edge og økonomi er UNKNOWN.
+
 **06.11 – Kontrollarmens private kampanjekoordinater er forberedt, fortsatt uten kjøreautoritet.**
 Policyblokken `dynamic_m5_october_control_private_20261106_001` binder kontrollens SHA-verifiserte
 oppskrift, Windows boot 604, den eksisterende native vaktmalen, ett fit-only vindu, 32 faste

@@ -46,7 +46,7 @@
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-06T00:35:11.495960+00:00",
   "status": "M5_ENTRY_OCTOBER_FIT_ROLE_READ_GUARD_SOURCE_CHECKED_EDGE_UNKNOWN",
-  "training_enabled": false,
+  "training_enabled": true,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Control private native mechanics has an exact policy preparation with own recipe, boot 604 and immutable guard template, still NOT_ADMITTED. Candidate recipe remains prepared separately; no campaign plan, reboot or model call exists.",
+    "current_activity": "Exactly one control-arm October private native mechanics campaign is policy-admitted at 0 USD, pending materialization and a safe fresh Windows boot. Candidate remains unadmitted; no model invocation has begun.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "training_enabled=false and native launch closed. Per-arm private recipes exist but lack exact campaign admission and private mechanics receipts. Fit recipes require those receipts; score recipes require completed own-arm fit reviews. Native baseline/gradient/resume, fit, OOF, independent forecasts and economics remain unmeasured.",
+    "current_blocker": "Control private campaign metadata is not yet materialized and its fresh physical boot/idle boundary is unproved. Candidate private, both fit roles and October OOF remain closed until their exact prior receipts. No independent directional edge or economics measured.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -33714,7 +33714,7 @@
     "mechanical_previous_return_use_qualified": true,
     "better_direction_qualified": false
   },
-  "native_training_enabled": false,
+  "native_training_enabled": true,
   "dynamic_m5_direction_native_sequence_component_260": {
     "status": "COMPLETE_CONSUMED_SYNTHETIC_COMPONENT_QUALIFIED_NATIVE_INPUTS_PENDING",
     "run_root": "/home/andre2/GX1_RUNS/NATIVE_M5_DIRECTION_NATIVE_SEQUENCE_COMPONENT_20261024_260",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_CONTROL_PRIVATE_EXACT_PREPARATION_NOT_ADMITTED_EDGE_UNKNOWN",
+    "status": "OCTOBER_CONTROL_PRIVATE_ONE_SHOT_ADMITTED_PENDING_BOOT_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -57090,7 +57090,7 @@
       "A distinct admitted prospective protocol, frozen before untouched outcomes, with physical input and forecast-publication witnesses and qualified clock uncertainty; existing D1 journal does not admit native M5.",
       "Previously examined historical periods remain development evidence. Economic edge is a separate later question, never inferred from direction metrics."
     ],
-    "next_milestone": "Validate the control-arm metadata plan and machine-wide idle/reboot boundary. A distinct exact policy admission and safe physical reboot are required before the one capped private mechanics run. Preserve candidate separation, then require actual private receipts before fit and actual fit before October OOF. Independent edge UNKNOWN.",
+    "next_milestone": "Materialize the one admitted control private campaign through the bound capped audit. Then verify machine-wide idle, perform safe fresh physical reboot and use existing capped native route for the four-update mechanics check. Candidate remains separately closed; fit and October OOF require actual receipt chains. Independent edge UNKNOWN.",
     "offline_preparation_scope": "Missing absolute UTC uncertainty is not a guard on historical event-time source/synthetic preparation. It remains unresolved for ONLINE/physical forecast punctuality. Actual native/fit execution remains separately closed.",
     "confirmed_age_candidate_preparation": {
       "status": "ONE_CANDIDATE_SOURCE_DESIGN_LOCKED_NOT_MODEL_INTEGRATED",
@@ -58643,7 +58643,7 @@
     "remaining": "Exact per-arm campaign plan/source/policy admission and machine-wide idle/fresh boot checks, then capped private mechanics. Neither recipe alone authorizes any model call."
   },
   "dynamic_m5_october_control_private_20261106_001": {
-    "status": "EXACT_PREPARATION_NOT_ADMITTED",
+    "status": "ADMITTED_ONCE_PENDING_MATERIALIZATION_AND_FRESH_BOOT",
     "observed_utc": "2026-11-06T02:01:10.317234+00:00",
     "scope": "Control arm only, pre-October TRAIN private native mechanics; fixed 32 unique parents, 256-row fresh initial measurement, four optimizer update calls maximum, no main fit or October OOF.",
     "source_commit_at_preparation": "06b882b816b1937e4531a309154b8b345908c3d4",
@@ -58675,16 +58675,16 @@
     "max_invocations": 1,
     "claimed_invocations": 0,
     "completed_invocations": 0,
-    "campaign_preparation_authorized": false,
-    "execution_authorized": false,
-    "data_reads_authorized": false,
-    "genuine_constructor_authorized": false,
-    "genuine_forward_authorized": false,
-    "genuine_backward_authorized": false,
-    "genuine_updates_authorized": false,
+    "campaign_preparation_authorized": true,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "genuine_constructor_authorized": true,
+    "genuine_forward_authorized": true,
+    "genuine_backward_authorized": true,
+    "genuine_updates_authorized": true,
     "genuine_predictor_fit_authorized": false,
-    "training_enabled": false,
-    "native_training_enabled": false,
+    "training_enabled": true,
+    "native_training_enabled": true,
     "native_launch_authorized": false,
     "normalization_fit_authorized": false,
     "synthetic_test_execution_authorized": false,
@@ -58698,6 +58698,7 @@
     "relaunch_allowed": false,
     "private_weights_for_fit": false,
     "fresh_windows_boot_required": true,
+    "user_reboot_authorized": true,
     "power_limit_w": 250,
     "budgets": {
       "memory_bytes": 21474836480,
