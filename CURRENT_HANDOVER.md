@@ -207,14 +207,26 @@ en kildehypotese, ikke en oppgradert målserie.
 
 [Stengnings-/observerbarhetsplanen](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001.json)
 SHA-256 `118cc7de28b5450756ac4611357a8b214ba50efd3c98ddca1ce24a18d98a8e45`
-er innrømmet én gang, ikke claimet. Arbeider SHA-256
-`f10f3c2253fb0631e9d106409f03e4bcd2a1dc03f496569059fc1b877059611f`.
-Den måler tilstand ved eksakt egen-TF UTC-framtid separat fra varighet på
-observerte åpne markedsminutter; bare dokumenterte stengninger kan passeres,
-ukjente gap sensureres og manglende sluttminutt fylles ikke. Tidlig aktivt
-bevis rapporteres separat uten å endre forrige hystereseetikett. Alle bundne
-input- og kildefiler, gamle rapportnøkler, syntetiske grensefall og nøyaktig
-begrenset oppstart er kontrollert før claim. Ingen trening eller TEST.
+er fullført og konsumert én gang. [RESULT](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001/RESULT.json)
+SHA-256 `bbd2811dbcd04cdf5d3ac01e4f79c30b405cd085c97ce12093648af699203603`;
+[TERMINAL](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001/TERMINAL.json)
+SHA-256 `bd44aec1d2d7acc4656f2dd5ef739dd8c66df13168ac2a729b674dbcdbdb7495`,
+`COMPLETE`, exit 0. Alle 25 måned×TF-rapporter matchet gammel hysterese-
+kvittering og bestod partisjoner. Én M1-lesing, 0 målseriebygg, modell,
+optimizer, TEST og målvalg; 7,19 s og 386,2 MB prosessmaks under 4 GiB.
+
+Over bare dokumenterte markedsstengninger, med eksakt +1440 UTC-sluttrad,
+hadde D1 NED 4 påviste overlevende / 12 bekreftede starter (1 bekreftet
+slutt, 7 sensurert) og OPP 5 / 16 (4 slutt, 7 sensurert). Alle ni påviste
+løp krysset en dokumentert stengning. Dette beviser samme tilstand på alle
+**observerte åpne** M1-minutter til sluttid, ikke en tilstand inne i
+stengningen. Sensurgrenser er brede: NED 33,3–91,7 %, OPP 31,3–75,0 %.
+D1-varighet er fortsatt uavklart. 906 eksakte D1-framtidstider hadde
+post-gap-prisrange stor nok til å bevise aktivitet før fullt vindu;
+alle hadde eldre retningsbevis, men ingen side ble uavhengig sertifisert
+eller oppgradert til ny etikett. H4 NEDs øvre +240-grense var fortsatt
+59/119 (49,6 %) samlet og under 50 % i mai, august og september;
+H1 NED i august var 52/105 (49,5 %). Ingen ny trening er innrømmet.
 
 Forrige varighetsregel forkastet 1,0/0,5 som **vedvarende** felles fem-TF-
 tilstand, ikke muligheten for å prediktere tilstand ved eksakt framtidstid.

@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T22:05:45.162515+00:00",
-  "status": "MARKET_STATE_D1_CLOSURE_SOURCE_AUDIT_ADMITTED_NO_FIT",
+  "observed_utc": "2026-11-06T22:09:10.592298+00:00",
+  "status": "MARKET_STATE_CLOSURE_OBSERVABILITY_CONSUMED_TARGET_UNQUALIFIED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The exact May-September 2024 target-only 0.5 versus 1.0 ATR sensitivity completed once and is consumed. Baseline 0.5 parity passed on all saved arrays, no model/TEST, and no 1.0 series promotion. Neither factor is selected by label coverage alone; the market-state target remains semantically unlocked. training_enabled=false; Entry-Q, Exit, broker, trading and spending remain closed.",
-  "next_action": "Run exactly once the prebound May-Sep 2024 TRAIN-only closure observability source audit through its capped command, then inspect immutable receipts and consume. It tests independent early post-gap ACTIVE proof and observed-market-minute episode continuity across only authorized closures, with exact own-TF UTC endpoint and no label promotion. Do not fit or target-lock. Previous D1 zero strict survivors was structurally forced (max contiguous M1 1376 < 1441 required); H1/H4 duration failure is a measured sustained-side criterion, not proof that future endpoint state cannot be forecast. No TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "No fit, target lock or threshold tuning. D1 strict +1440 survival was structurally unobservable; closure-aware observed-open continuity now proves 4/12 DOWN and 5/16 UP starts at exact +1440 but with wide censor bounds. H4 DOWN sustained-side upper +240 bound remains 59/119 (<0.5). Next define one physically grounded endpoint-state contract per TF with separate transition/duration description, partial {UP,DOWN} activity masks and exact UTC validity. A new target identity must bind output, loss, proper activity/direction scores, chronological reference and fold-specific earlier-only fit before any model. Treat 906 early D1 ACTIVE proofs as diagnostic, not promoted labels. No TEST, Entry/Exit, broker, trading or spending.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "06.11: Predict and calibrate dynamic market state first. Entry location/Entry-Q follows later; M5 is forecast cadence. No assumption of extensive prior training.",
-    "current_activity": "One source-only D1/5-TF closure observability diagnosis is admitted but unclaimed after finding strict D1 +1440 survival mathematically unobservable: May-Sep longest consecutive M1 run is 1376. New diagnostic retains exact endpoint, bridges only authorized closures for observed-open-minute continuity, and measures pre-W ACTIVE proof separately without promoting labels. No fit.",
+    "current_activity": "Completed/consumed one TRAIN-only closure observability audit; old hysteresis parity and all 25 partitions passed, one M1 read, zero target/model/optimizer/TEST. D1 strict path impossible max 1376 versus 1441 required; authorized closure bridge yields 9 proven D1 side survivors but high censoring. 906 early D1 ACTIVE proofs remain separate. No target selected or fit.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -22928,7 +22928,7 @@
     "source_bindings_sha256": "f2295cb9fc6ec02fa3763de367a96af9becee08ee73f89ae8aa04f204d142f83",
     "test_data_used": false
   },
-  "updated_utc": "2026-11-06T22:05:45.162515+00:00",
+  "updated_utc": "2026-11-06T22:09:10.592298+00:00",
   "dynamic_m5_loss_scale_fit_run": {
     "status": "COMPLETE_WHOLE_TRAIN_RMS_ARTIFACT_PUBLISHED_NO_NATIVE_ADMISSION",
     "execution_authorized": false,
@@ -60936,17 +60936,17 @@
     "post_run_review": "Independent receipt and all 25 month-TF partition checks PASS. M5 5028 strict binary flips (0 threshold-update-required) versus prior raw 1.0 21353, with +5 DOWN/UP proven survival lower 0.6046/0.6200. M15 +15 lower 0.5425/0.5712. H4 DOWN monthly upper survival <0.5 in May/Aug/Sep; H1 DOWN Aug upper <0.5. D1 has 0 proven +1440 survivors among 12 DOWN and 16 UP confirmed starts but wide censor bounds, so unresolved rather than failed. No five-TF target lock or fit."
   },
   "dynamic_mtf_state_closure_observability_20261106_001": {
-    "status": "ADMITTED_UNCLAIMED",
+    "status": "COMPLETE_CONSUMED_SOURCE_DIAGNOSTIC_NO_TARGET_LOCK",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001.json",
       "sha256": "118cc7de28b5450756ac4611357a8b214ba50efd3c98ddca1ce24a18d98a8e45"
     },
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "target_builds_authorized": 0,
     "model_calls_authorized": 0,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
     "max_invocations": 1,
     "test_authorized": false,
     "later_aggregate_authorized": false,
@@ -60959,6 +60959,29 @@
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001",
     "scope": "May-Sep 2024 TRAIN only; exact native UTC endpoint, old hysteresis parity, early post-reset observed-range ACTIVE evidence separately, known-closure-bridged observed-open-minute episodes, unknown gap/path/month censor. One M1 read, no label promotion, target build, model, VAL/TEST, Entry/Exit, broker, trading or spending.",
     "relaunch_allowed": false,
-    "preclaim_evidence": "3 prior refs, 12 inherited refs, 9 source owners and 13 saved arrays rehashed; all 25 used saved monthly key sets checked; month-first gap parity corrected and verified; exact capped direct --help synthetic smoke passed; independent static peer review passed."
+    "preclaim_evidence": "3 prior refs, 12 inherited refs, 9 source owners and 13 saved arrays rehashed; all 25 used saved monthly key sets checked; month-first gap parity corrected and verified; exact capped direct --help synthetic smoke passed; independent static peer review passed.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001/CLAIM.json",
+      "sha256": "409d6b7c8ebe0cc18cd08b69f35047bdaae26e918ca07bcc6f9c06ac80a61e3a"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001/RESULT.json",
+      "sha256": "bbd2811dbcd04cdf5d3ac01e4f79c30b405cd085c97ce12093648af699203603"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001/TERMINAL.json",
+      "sha256": "bd44aec1d2d7acc4656f2dd5ef739dd8c66df13168ac2a729b674dbcdbdb7495"
+    },
+    "execution_binding": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_CLOSURE_OBSERVABILITY_20261106_001/EXECUTION_BINDING.json",
+      "sha256": "c441909870c443596640adfaea80934aaeda8eb91dc29ab41223d273f7d9aeac"
+    },
+    "source_head_at_run": "349777da74878f2e3ab66d88242f80b737db2546",
+    "elapsed_seconds": 7.190112751006382,
+    "peak_rss_bytes": 386195456,
+    "target_selected": false,
+    "model_calls": 0,
+    "test_data_used": false,
+    "post_run_review": "Independent immutable receipts and all 25 month-TF partitions PASS. Max strict consecutive M1 validities 1376, D1 +1440 strict proof required 1441. Authority-known closure bridge: D1 DOWN N12 S4 F1 C7 and UP N16 S5 F4 C7, all 9 S crossed known closure; bounds wide, no D1 persistence conclusion. Independent pre-W observed-range >= current 1.0 ATR proves ACTIVE on 906 exact D1 queries, no label promotion or side re-certification. H4 DOWN closure-aware upper +240 bound 59/119=0.4958, with May/Aug/Sep below half; H1 DOWN Aug 52/105. Target unqualified, no fit."
   }
 }
