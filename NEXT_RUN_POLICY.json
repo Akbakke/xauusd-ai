@@ -45,12 +45,12 @@
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
   "observed_utc": "2026-11-06T15:30:44.615186+00:00",
-  "status": "M5_ENTRY_INPUT_NUMERIC_AUDIT_ADMITTED_DIRECT_Q_HYPOTHESIS_PENDING",
+  "status": "M5_ENTRY_RAW_INPUT_ASOF_PASS_DIRECT_Q_HYPOTHESIS_PENDING",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "One capped zero-model-call raw native input audit is admitted once under dynamic_m5_october_native_feature_numeric_20261106_001. It checks all 36,172 five-TF as-of selections and eight fixed EMA/ATR/SR raw cache-to-gather rows; it cannot prove post-normalization or feature utility. No fit or model score run. The October candidate predicts market state, not executable Entry; the current dynamic Entry phase derives quality from separately supervised terminal and MAE components while entry_action_q loss is inactive. After input audit, bind one direct quality-loss hypothesis on the same score and shared observed mask with chronological development acceptance before any fit. Existing XAU/GC data suffice for internal OOF; TEST remains sealed, Exit/broker/trading/spending closed, historical costs are scenario assumptions.",
+  "next_action": "The one raw native input audit completed with zero model calls: all 36,172 parents selected latest closed bars on five TF, M5 cache barstarts matched, and eight fixed EMA/ATR/SR raw tensor rows bit-matched cache; those fields varied across parent rows. This does not establish post-normalization values, family influence or predictive utility. No fit/score is admitted. The concrete next design hypothesis is to supervise the existing dynamic Entry quality difference (terminal net minus pre-MFE MAE) directly on the shared observed mask, retaining the full-native inputs and component targets; first bind an exact target/loss scale, fresh baseline and chronological selected/abstained acceptance against frozen 191. All-FLAT on the small 191 CONTROL panel may be correct. Existing XAU/GC data suffice for internal OOF; TEST, Exit, broker/trading/spending remain closed and historical costs are scenario assumptions.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -60391,7 +60391,7 @@
     }
   },
   "dynamic_m5_october_native_feature_numeric_20261106_001": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001.json",
       "sha256": "b5a6785ab4666d03663ce4ad3878f6c84a839821d4c3f2598cc6d2f2e01ef0d9"
@@ -60400,13 +60400,41 @@
     "operator_approval": "Standing zero-cost local GX1 authorization given 2026-11-05; one raw feature clock/numeric audit, no paid API or model tokens.",
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "source_head_at_admission": "478c37317eac6e4c4eef05cd745cb474596655f4",
-    "remaining_invocations": 1,
+    "source_head_at_execution": "0f504f537557fca43825525c06d2218a4e500fc2",
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001",
     "scope": "One model-free all-36,172-parent five-TF as-of audit plus eight fixed raw EMA/ATR/SR cache-to-gather value checks; no post-normalization or model-effect claim.",
     "training_enabled": false,
     "model_calls_authorized": 0,
     "test_data_used": false,
     "broker_orders_or_trading_authorized": false,
-    "independent_edge": "UNKNOWN"
+    "independent_edge": "UNKNOWN",
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001/RESULT.json",
+      "sha256": "62f37fc0ae50d967b2b8a449a54d72ed66b2fc5a08ad11ae0a381f68f92388e7"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001/TERMINAL.json",
+      "sha256": "3f9abd4bf5c822cf62e119abd17fa1dab7004a53436a39c460428c794e70cec9"
+    },
+    "observed_utc": "2026-11-06T16:38:33.342989+00:00",
+    "actual_parent_count": 36172,
+    "actual_timeframes": 5,
+    "all_parent_latest_closed_passed": true,
+    "m5_parent_cache_barstart_equal": true,
+    "raw_tensor_cache_parity_sample_rows": 8,
+    "raw_indicator_fields_checked": [
+      "atr_bps_14",
+      "ema20_dist_atr",
+      "mtf_geometry_support_dist_atr",
+      "mtf_geometry_resistance_dist_atr"
+    ],
+    "model_forwards": 0,
+    "optimizer_updates": 0,
+    "elapsed_seconds": 15.920341306999035,
+    "max_rss_kib": 4388908,
+    "resource_accounting_note": "Process ru_maxrss exceeds requested 4G memory.max; actual cgroup peak was not retained. Scope limit was verified and exit was 0 without OOM; do not equate these measures.",
+    "source_unchanged": true,
+    "post_run_review": "Original result/terminal rehashed; all 36,172 parent as-of selections on five TF and exact M5 parent barstart passed; eight raw EMA/ATR/SR tensor rows bit-match cache. Does not test post-normalization, model influence, level observation or Entry value."
   }
 }

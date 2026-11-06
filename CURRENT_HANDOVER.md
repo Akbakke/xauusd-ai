@@ -182,18 +182,32 @@ ikke en bevist featurekodefeil. Den eldre samme-rad-kontrollen i
 M5-candlefortegn AUC 0,5185 mot modell 0,4979 på 7 812 senere
 utviklingsrader, men ingen Entry- eller økonomisk edge. EMA20/ATR14 og rå
 støtte-/motstandsavstand har varierende TRAIN-normaliseringsstatistikk på
-alle fem TF; faktisk rå tensorparitet på beslutningsrader er ikke bevist.
+alle fem TF; faktisk rå tensorparitet ble kontrollert nedenfor.
 
 Én [rå inputaudit](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001.json) SHA-256
 `b5a6785ab4666d03663ce4ad3878f6c84a839821d4c3f2598cc6d2f2e01ef0d9`
-er innrømmet som lokalt 0 USD engangskall: alle 36 172 as-of-valg på fem TF
-og åtte faste rader med rå EMA/ATR/nivå cache→gather-paritet. Ingen
-modellforward, trening, TEST eller broker. Resultatet kvalifiserer ikke
-post-normalisering, per-felt modellbidrag eller nivåobservasjon. Først etter
-denne kontrollen vurderes hypotesen om direkte supervisjon av dagens
-`terminal-netto − MAE`-kvalitet på felles observasjonsmaske; ingen fit er
-innrømmet. FLAT på 191s 256 CONTROL-rader kan være riktig, siden observert
-sidekvalitet der var negativ i snitt.
+er fullført én gang. [RESULT](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001/RESULT.json) SHA-256
+`62f37fc0ae50d967b2b8a449a54d72ed66b2fc5a08ad11ae0a381f68f92388e7`
+og [TERMINAL](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FEATURE_NUMERIC_20261106_001/TERMINAL.json) SHA-256
+`3f9abd4bf5c822cf62e119abd17fa1dab7004a53436a39c460428c794e70cec9`.
+Alle 36 172 foreldrene valgte siste lukkede cachebar på fem TF; M5-valget
+hadde eksakt samme barstart som forelderen. På åtte forhåndsbundne rader
+var rå ATR14, EMA20-avstand og støtte-/motstandsavstand bitlike mellom
+cache og modellens gather-tensor. Alle fire felt var finite og ikke-konstante
+på alle fem TF over foreldrene. 0 modellforwards, 0 optimizersteg, 0 TEST;
+15,92 s, `ru_maxrss=4 388 908 KiB` og verifisert `memory.max=4G`.
+RSS-tallet overstiger 4G-grensen; faktisk cgroup-topp ble ikke bevart, så
+regnskapene må ikke omtales som samme mål. Kjøringen avsluttet 0 uten OOM.
+Kontrollen beviser ikke post-normalisering, per-felt modellbidrag, faktisk
+nivåobservasjon eller Entry-verdi. Planen er konsumert og kan ikke kjøres igjen.
+
+Neste særskilte designhypotese er ett direkte tap på dagens
+`terminal-netto − MAE`-kvalitet per forhåndsvalgt horisont og side, med
+felles terminal-/path-observasjonsmaske og FLAT=0. Full-native input og
+eksisterende komponentmål bevares. Bind targetenhet, tapsvekt/skala,
+fersk initialbaseline og kronologisk valgt/avstått aksept mot fryst 191
+før noen fit. Dette er ikke en påvist rettelse: på 191s 256 CONTROL-rader
+var observert sidekvalitet negativ i snitt, så FLAT kan være riktig der.
 
 En siste metadataavklaring fant ingen lagret, foreldrejustert 2D-matrise
 med hele den native inputflaten i gjeldende bundne kandidat-artefakter. [CAUSAL_INPUTS](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_FEATURE_DELIVERY_20261106_001/CAUSAL_INPUTS/CAUSAL_INPUTS.json) SHA-256
@@ -203,8 +217,9 @@ har bare justert nåtilstand/alder/masker. [M5-cachemanifestet](/home/andre2/GX1
 har en kausal M5-matrise på 1 140 982 × 253 på baraksen, men den må først
 kobles as-of til beslutningene og mangler native signal-/kontekst-/GC-flaten.
 Eksisterende eier `gx1/features/htf_features.py:slice_multi_tf_v4_window`
-velger siste lagrede M5-barstart ≤ `issue−5 min`, men likhet med hver av de 36 172
-foreldrebarene er ennå ikke fysisk kontrollert. Denne M5-only-baselinen er
+velger siste lagrede M5-barstart ≤ `issue−5 min`. Ny rå inputaudit
+har bevist likhet med alle de 36 172 foreldrebarene i dette bundne
+pre-november-scope. Denne M5-only-baselinen er
 ikke innrømmet: den kan ikke avgjøre full native input- eller Entry-verdi.
 
 Ingen ny native eller enkel modellfit er innrømmet. Neste eksperiment krever
