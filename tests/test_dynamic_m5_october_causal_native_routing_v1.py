@@ -1,6 +1,7 @@
 """Source-only October batch boundary: no native model or genuine data reads."""
 import hashlib
 import json
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -138,4 +139,25 @@ def test_artifact_bytes_and_masks_are_fail_closed(tape):
     with open(path, 'ab') as stream:
         stream.write(b'x')
     with pytest.raises(RuntimeError, match='REF_IDENTITY'):
+        causal.load_october_causal_inputs(binding, **kwargs)
+
+
+def test_fit_role_does_not_decode_later_feature_values_or_allow_score_gather(tape):
+    _, arrays, _, binding, kwargs = tape
+    later = arrays['current_confirmed_run_age_features'].copy()
+    later[29849, 0, 0] = np.nan
+    path = Path(binding['path'])
+    manifest = json.loads(path.read_text())
+    age_path = manifest['arrays']['current_confirmed_run_age_features']['path']
+    np.save(age_path, later, allow_pickle=False)
+    manifest['arrays']['current_confirmed_run_age_features']['sha256'] = _sha(Path(age_path))
+    binding = _json_ref(path, manifest)
+    fit = causal.load_october_causal_inputs(binding, **kwargs, validation_role='fit')
+    selected = np.array([29848], np.int64)
+    assert fit.gather(parent_rows=selected, issue_ns=arrays['issue_ns'][selected],
+                      role='fit', include_age=True)['current_confirmed_run_age_features'].shape == (1, 5, 2)
+    with pytest.raises(RuntimeError, match='ROLE'):
+        fit.gather(parent_rows=np.array([29849], np.int64), issue_ns=arrays['issue_ns'][[29849]],
+                   role='score', include_age=True)
+    with pytest.raises(RuntimeError, match='CURRENT_VALUE_MASK'):
         causal.load_october_causal_inputs(binding, **kwargs)

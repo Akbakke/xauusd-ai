@@ -145,6 +145,10 @@ def _metadata(launch, common, *, gc_layout_metadata_parity=None, independent_com
 
 
 def _dynamic_state_metadata(launch, common):
+    from gx1.contracts import entry_dynamic_m5_october_native_roles_v1 as october
+    if launch.get('run_scope') in october.SCOPE_ROLES:
+        from gx1.audit.dynamic_m5_october_native_inputs import october_native_metadata
+        return october_native_metadata(launch, common)
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     if launch.get('run_scope') in (december.PRIVATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE) or 'input_role' in launch:
         from gx1.audit.dynamic_mtf_december_native_inputs import december_native_metadata
@@ -183,6 +187,10 @@ def _dynamic_state_metadata(launch, common):
 
 
 def _prepare_dynamic_state(context, launch, np):
+    from gx1.contracts import entry_dynamic_m5_october_native_roles_v1 as october
+    if launch.get('run_scope') in october.SCOPE_ROLES:
+        from gx1.audit.dynamic_m5_october_native_inputs import prepare_october_native
+        return prepare_october_native(context, launch, np)
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     if launch.get('run_scope') in (december.PRIVATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE) or 'input_role' in launch:
         from gx1.audit.dynamic_mtf_december_native_inputs import prepare_december_native
@@ -256,6 +264,8 @@ def _state_gradient_summary(model, torch):
         for name in ('state_query_projection','state_initial_head','state_transition_head')}
     if model.current_state_input:
         groups['state_current_projection'] = list(model.state_current_projection.parameters())
+    if model.confirmed_run_age_input:
+        groups['state_confirmed_age_weight'] = [model.state_confirmed_age_weight]
     groups['entry_q_joint'] = list(model.backbone.entry_q_joint_in.parameters()) + list(model.backbone.entry_q_joint_norm.parameters())
     groups['family_context_global'] = list(model.backbone.family_context_global.parameters())
     for owner in ('specialist_proj','specialist_ctx_cont_proj','specialist_ctx_cat_proj',
@@ -475,7 +485,8 @@ def _require_dynamic_initial_match(measured, previous, *, common):
 def _launch_metadata(launch, common):
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as authority
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
-    if launch.get('run_scope') in (authority.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE, *december.SCOPES.values()):
+    from gx1.contracts import entry_dynamic_m5_october_native_roles_v1 as october
+    if launch.get('run_scope') in (authority.DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE, *december.SCOPES.values(), *october.SCOPE_ROLES):
         return _dynamic_state_metadata(launch, common)
     candidate=launch.get('run_scope') in (authority.M1_PRICE_PRIVATE_ADAPTER_SCOPE,authority.FAMILY_PRIVATE_ADAPTER_SCOPE)
     if launch.get('run_scope') in (authority.DENSE_SCOPE, authority.DENSE_DECIMAL_PRIVATE_SCOPE,

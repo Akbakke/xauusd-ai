@@ -578,3 +578,31 @@ def test_m1_evaluation_reports_existing_context_and_delivers_both_inputs_to_mode
     with pytest.raises(ValueError,match='RAW14_KEYS'):
         evaluate_with({'dense_minute_supervision':True})
     assert calls==[False,True] and model.training
+
+
+def test_confirmed_age_has_its_own_native_gradient_group():
+    class Toy(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.current_state_input = True
+            self.confirmed_run_age_input = True
+            self.state_query_projection = torch.nn.Linear(1, 1)
+            self.state_initial_head = torch.nn.Linear(1, 1)
+            self.state_transition_head = torch.nn.Linear(1, 1)
+            self.state_current_projection = torch.nn.Linear(1, 1)
+            self.state_confirmed_age_weight = torch.nn.Parameter(torch.ones(1))
+            self.backbone = torch.nn.Module()
+            for name in ('entry_q_joint_in', 'entry_q_joint_norm', 'family_context_global'):
+                setattr(self.backbone, name, torch.nn.Linear(1, 1))
+            for name in ('specialist_proj', 'specialist_ctx_cont_proj', 'specialist_ctx_cat_proj',
+                         'mtf_family_proj', 'mtf_feature_context_gate', 'gc_mtf_family_proj',
+                         'gc_mtf_feature_context_gate'):
+                setattr(self.backbone, name, torch.nn.ModuleDict({'one': torch.nn.Linear(1, 1)}))
+    model = Toy()
+    for parameter in model.parameters():
+        parameter.grad = torch.ones_like(parameter)
+    counts = runner._state_gradient_summary(model, torch)
+    assert counts['state_confirmed_age_weight'] == 1
+    assert counts['remaining_native_backbone'] == 0
+    model.state_confirmed_age_weight.grad = None
+    assert runner._state_gradient_summary(model, torch)['state_confirmed_age_weight'] == 0

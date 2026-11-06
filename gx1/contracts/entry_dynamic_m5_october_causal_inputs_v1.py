@@ -53,9 +53,11 @@ class OctoberCausalInputs:
     """Verified full tape; gather returns only selected issue-time feature copies."""
     arrays: Mapping[str, np.ndarray]
     manifest_ref: Mapping[str, str]
+    validation_role: str = 'all'
 
     def gather(self, *, parent_rows, issue_ns, role, include_age):
-        _require(role in ('fit', 'score') and type(include_age) is bool, 'ROLE')
+        _require(role in ('fit', 'score') and type(include_age) is bool
+                 and self.validation_role in ('all', role), 'ROLE')
         _require(isinstance(parent_rows, np.ndarray) and parent_rows.dtype == np.int64
                  and parent_rows.ndim == 1 and 0 < len(parent_rows) <= 16
                  and isinstance(issue_ns, np.ndarray) and issue_ns.dtype == np.int64
@@ -72,8 +74,9 @@ class OctoberCausalInputs:
 
 
 def load_october_causal_inputs(binding, *, observer_axes_ref, candidate_design_ref,
-                               target_series_ref):
-    """Verify the complete immutable artifact once before batch selection."""
+                               target_series_ref, validation_role='all'):
+    """Verify full file identities and the selected role values before batches."""
+    _require(validation_role in ('all', 'fit'), 'VALIDATION_ROLE')
     manifest = _verified_json(binding)
     scope = _verified_json(observer_axes_ref)
     _require(set(manifest) == _MANIFEST_KEYS
@@ -105,21 +108,26 @@ def load_october_causal_inputs(binding, *, observer_axes_ref, candidate_design_r
                  and not value.flags.writeable, 'ARRAY_HEADER:' + name)
         arrays[name] = value
     rows, issues = arrays['parent_rows'], arrays['issue_ns']
-    _require(np.all(rows[1:] > rows[:-1]) and np.all(issues[1:] > issues[:-1])
-             and issues[29848] < scope['fit']['cutoff_ns'] <= issues[29849]
-             and issues[-1] < scope['held_out']['cutoff_ns']
-             and hashlib.sha256(rows.astype('<i8', copy=False).tobytes()).hexdigest() == scope['parent_rows_sha256']
-             and hashlib.sha256(issues.astype('<i8', copy=False).tobytes()).hexdigest() == scope['decision_ns_sha256'],
-             'AXES')
-    for block, part in ((scope['fit'], slice(0, 29849)),
-                        (scope['held_out'], slice(29849, 36172))):
+    checked = slice(0, 29849) if validation_role == 'fit' else slice(None)
+    _require(np.all(rows[checked][1:] > rows[checked][:-1])
+             and np.all(issues[checked][1:] > issues[checked][:-1])
+             and issues[29848] < scope['fit']['cutoff_ns'], 'AXES')
+    if validation_role == 'all':
+        _require(scope['fit']['cutoff_ns'] <= issues[29849]
+                 and issues[-1] < scope['held_out']['cutoff_ns']
+                 and hashlib.sha256(rows.astype('<i8', copy=False).tobytes()).hexdigest() == scope['parent_rows_sha256']
+                 and hashlib.sha256(issues.astype('<i8', copy=False).tobytes()).hexdigest() == scope['decision_ns_sha256'],
+                 'FULL_AXES')
+    blocks = ((scope['fit'], slice(0, 29849)),) if validation_role == 'fit' else (
+        (scope['fit'], slice(0, 29849)), (scope['held_out'], slice(29849, 36172)))
+    for block, part in blocks:
         _require(hashlib.sha256(rows[part].astype('<i8', copy=False).tobytes()).hexdigest()
                  == block['parent_rows_sha256']
                  and hashlib.sha256(issues[part].astype('<i8', copy=False).tobytes()).hexdigest()
                  == block['decision_ns_sha256'], 'ROLE_AXES')
-    observed, path = arrays['current_observed'], arrays['current_path_observed']
-    classes = arrays['current_state']
-    age = arrays['current_confirmed_run_age_features']
+    observed, path = arrays['current_observed'][checked], arrays['current_path_observed'][checked]
+    classes = arrays['current_state'][checked]
+    age = arrays['current_confirmed_run_age_features'][checked]
     mask = age[..., 1]
     _require(np.all((classes == state.UNKNOWN) == ~observed)
              and np.all((classes[observed] >= state.DOWN) & (classes[observed] <= state.UP))
@@ -128,4 +136,4 @@ def load_october_causal_inputs(binding, *, observer_axes_ref, candidate_design_r
              and np.all((mask == 0) | (observed & path))
              and np.all(age[..., 0][mask == 0] == 0)
              and np.all(age[..., 0][mask == 1] > 0), 'CURRENT_VALUE_MASK')
-    return OctoberCausalInputs(MappingProxyType(arrays), dict(binding))
+    return OctoberCausalInputs(MappingProxyType(arrays), dict(binding), validation_role)

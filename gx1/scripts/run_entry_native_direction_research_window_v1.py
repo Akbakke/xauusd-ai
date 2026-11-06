@@ -117,6 +117,9 @@ def _freeze(recipe, binding, context):
     if 'state_array_refs' in context:
         for name,ref in context['state_array_refs'].items():
             _require(_stat(ref['path']) == context['state_array_stats'][name], 'STATE_TARGET_STAT:'+name)
+    if 'october_causal_refs' in context:
+        for name,ref in context['october_causal_refs'].items():
+            _require(_stat(ref['path']) == context['october_causal_stats'][name], 'OCTOBER_CAUSAL_STAT:'+name)
     for path, item in context.get('december_read_files', {}).items():
         _require(_stat(path) == item['stat'], 'DECEMBER_READ_FREEZE:' + path)
     if 'dense_target' in context:
@@ -250,10 +253,23 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
         from gx1.contracts.entry_native_direction_prefix_fit_campaign_v1 import DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE
         launch = context['dynamic_state_launch']
         from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
+        from gx1.contracts import entry_dynamic_m5_october_native_roles_v1 as october
         dec_scope = launch['run_scope'] in december.SCOPES.values()
-        _require((launch['run_scope'] == DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE or dec_scope)
+        oct_scope = launch['run_scope'] in october.SCOPE_ROLES
+        _require((launch['run_scope'] == DYNAMIC_STATE_PRIVATE_ADAPTER_SCOPE or dec_scope or oct_scope)
             and launch['numerical_recipe']['dynamic_state_supervision'] is True
             and launch['full_feature_profile'] is True, 'STATE_READ_SCOPE')
+        if oct_scope:
+            _require(context.get('october_role') == october.SCOPE_ROLES[launch['run_scope']]
+                and context.get('october_arm') == launch.get('arm')
+                and context.get('october_bound', {}).get('target') == context['state_target_manifest']
+                and context.get('october_causal_manifest', {}).get('future_labels_included') is False
+                and isinstance(context.get('october_causal_refs'), dict), 'OCTOBER_ROLE_READ_BINDING')
+            expected_causal = context['october_causal_manifest']['arrays']
+            _require(set(context['october_causal_refs']) == set(expected_causal)
+                and all(context['october_causal_refs'][name] == {key:desc[key] for key in ('path', 'sha256')}
+                    for name, desc in expected_causal.items()), 'OCTOBER_CAUSAL_ARRAYS')
+            extra_read_paths += tuple(ref['path'] for ref in context['october_causal_refs'].values())
         if dec_scope:
             required_role = 'score' if launch['run_scope'] == december.SCORE_SCOPE else 'fit'
             _require(launch.get('candidate_plan') == december.PLAN_REF and launch.get('input_role') == required_role
@@ -268,7 +284,7 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
                 and all(plan['payloads'][k]['stat'] == context['december_read_files'][k]['stat'] for k in plan['payloads']),
                 'DECEMBER_CLOSED_PHYSICAL_FILE_INVENTORY')
             extra_read_paths += tuple(context['december_read_files'])
-        else:
+        elif not oct_scope:
             worker = context['manifest']['physical_provider_worker']
             _require(_hash_file(worker['path']) == worker, 'STATE_PHYSICAL_WORKER_BINDING')
             extra_read_paths += (worker['path'],)
