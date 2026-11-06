@@ -11,6 +11,24 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Oktoberens faste private TRAIN-gruppe er målt og plan 001 konsumert.**
+Den eksakte [planen](configs/research/DYNAMIC_M5_OCTOBER_PRIVATE_COHORT_20261106_001.json)
+valgte de første 32 radene fra den frøbundne 29 849-raders fit-permutasjonen,
+sorterte dem til to B16-batcher, og beholdt de første 256 i samme permutasjon
+til en initialmåling. Den capped 2 GiB/512 MiB-kjøringen endte med exit 0,
+0 USD, uten modell eller oktoberutfall. Begge B16-batcher hadde observerbar
+første klasse, native endepunkt og lokal aktivitet på M5/M15/H1/H4/D1.
+M5 +5 var observert for 9/16 og 5/16 private rader og 140/256 initialrader;
+alle andre mål beholdt sensur. Ingen gruppe ble omvalgt etter utfall.
+[Resultat](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_PRIVATE_COHORT_20261106_001/RESULT.json)
+SHA-256 d71263a2f9b09a9f2a2baef5b6acbd300d50a5fb87629642ed4860d66d554811 ·
+[terminal](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_PRIVATE_COHORT_20261106_001/TERMINAL.json)
+SHA-256 2aaf0bdc2dbeb92191afbfdf12f8d46e62012a2b6242478e54584d1ed301cdab.
+Dette er teknisk måltilgjengelighet, ikke retningslæring. Neste port er
+oktoberbundet private/fit/score-kampanjeoppskrift for begge armer.
+`training_enabled=false`; native modell, TEST, broker, ordre, handel og Exit
+forblir stengt. Uavhengig edge, fysisk ONLINE-punktlighet og økonomi er UNKNOWN.
+
 **06.11 – Fit-only native datapreflight 003 er fullført og konsumert.**
 Den ene [planen](configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003.json)
 kjørte under capped 4 GiB/512 MiB i 26,41 sekunder, 0 USD, exit 0.
