@@ -1437,7 +1437,7 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
     ceiling=(((train_passes-1 if continuation else train_passes)*((fold['prefix_rows']+15)//16))
         +17+((launch['final_train_measurement_rows']+15)//16 if family_fit or dynamic_state else 16)
         +(16 if factor_continuation else 0)+(fold['oof_end_row']-fold['oof_start_row']+15)//16)
-    if recovery:ceiling=4057
+    if recovery:ceiling=(october.FOLD['prefix_rows']+15)//16 if october_fit else 4057
     if december_score:ceiling=359
     if october_score:ceiling=(6323+15)//16
     durable=None;observed_progress=None;bps_scale_ref=None
@@ -1640,12 +1640,22 @@ def run_native_direction_prefix_fit_window(*, policy_path: Path, policy_file_sha
                 counters=counters,torch=torch,device=device,common=common,state_owner=state_owner,train_passes=train_passes)
         if recovery:
             _require(seal==recovery_origin['identity']['state_seal'],'RECOVERY_SCORING_FULL_STATE_UNCHANGED')
-            _require(phase=='COMPLETE' and parent_cursor==47602 and updates==2976 and oof_cursor==17288
-                and counters['forward_calls']==counters['forward_returns']==4057
-                and counters['forward_kind_calls']=={'FINAL_TRAIN':2976,'OOF':1081}
-                and counters['backward_calls']==counters['backward_returns']
-                    ==counters['optimizer_step_calls']==counters['optimizer_step_returns']==0,
-                'RECOVERY_EXACT_SCORING_CALLS')
+            if october_fit:
+                expected_forwards=(october.FOLD['prefix_rows']+15)//16
+                _require(phase=='COMPLETE' and parent_cursor==october.FOLD['prefix_rows']
+                    and updates==expected_forwards and oof_cursor==0
+                    and counters['forward_calls']==counters['forward_returns']==expected_forwards
+                    and counters['forward_kind_calls']=={'FINAL_TRAIN':expected_forwards}
+                    and counters['backward_calls']==counters['backward_returns']
+                        ==counters['optimizer_step_calls']==counters['optimizer_step_returns']==0,
+                    'OCTOBER_RECOVERY_EXACT_FINAL_TRAIN_ONLY')
+            else:
+                _require(phase=='COMPLETE' and parent_cursor==47602 and updates==2976 and oof_cursor==17288
+                    and counters['forward_calls']==counters['forward_returns']==4057
+                    and counters['forward_kind_calls']=={'FINAL_TRAIN':2976,'OOF':1081}
+                    and counters['backward_calls']==counters['backward_returns']
+                        ==counters['optimizer_step_calls']==counters['optimizer_step_returns']==0,
+                    'RECOVERY_EXACT_SCORING_CALLS')
         durable={'state':full_state,'contract_sha256':seal,'optimizer_updates':updates,'parent_cursor':parent_cursor};checkpoint_refs.append(durable)
         _require(counters['model_constructions']==counters['model_construction_returns']==counters['optimizer_constructions']==1
             and counters['forward_calls']==counters['forward_returns'] and counters['backward_calls']==counters['backward_returns']

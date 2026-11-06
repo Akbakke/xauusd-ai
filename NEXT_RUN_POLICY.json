@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T00:35:11.495960+00:00",
-  "status": "M5_ENTRY_OCTOBER_FIT_ROLE_READ_GUARD_SOURCE_CHECKED_EDGE_UNKNOWN",
+  "observed_utc": "2026-11-06T05:47:24.977420+00:00",
+  "status": "M5_ENTRY_OCTOBER_CONTROL_FIT_CLOSED_SCORING_RECOVERY_SOURCE_PREPARED_EDGE_UNKNOWN",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Fixed pre-October private 32-row cohort and 256-row initial measurement passed technical target support under consumed plan 001. Bind exact matched control/age October private, fit and score campaign roles in existing native authority/worker, then qualify fresh baseline and gradient/resume before OOF. training_enabled=false; edge UNKNOWN.",
+  "next_action": "Original control fit completed 29,849 TRAIN parents and 1,866 updates, but its campaign closed after a missing reboot-request receipt before final TRAIN scoring. Exact zero-update scoring recovery source now exists; publish and validate one new recipe, admit it separately, prepare a fresh guarded boot and run at most once. Candidate fit and October OOF remain closed. Edge and economics UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",

@@ -922,6 +922,33 @@ DYNAMIC_SCORING_RECOVERY_CONTROL_CHANGES = {
 }
 
 
+OCTOBER_CONTROL_SCORING_RECOVERY_ROOT = Path(
+    '/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001')
+OCTOBER_CONTROL_SCORING_RECOVERY_IDENTITY = {
+    'origin_schema':'gx1_october_control_fit_scoring_recovery_origin_v1',
+    'source_head':'90a0846748705b83ebf82caea25c0f7d247a6318',
+    'closed_policy_commit':'4bbc6659693e259e973ac44f4403787c75aecd4d',
+    'closed_policy_sha256':'ea370e94a1f29e66a328ed81e3d7a3afada7c7241f713a5fbe0b2e1d02408aea',
+    'state_seal':'9475e84ef373cc420f0f5a767e97fa29794f6bfa87e19dce0b958c0c52a0238a',
+    'closure_review':{
+        'path':'/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FIT_001/WINDOW2_BOOTSTRAP_FAILURE_REVIEW.json',
+        'sha256':'fc19df3ddd702c5fbcac3a596593b94f61eccc0f3e61d9317089347a8c80ed7a'},
+}
+OCTOBER_CONTROL_SCORING_RECOVERY_CONTROL_CHANGES = {
+    'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': (
+        ('scoring_recovery_identity', '_require_scoring_recovery_source_equivalence',
+         'require_scoring_recovery_origin', 'require_prefix_fit_launch_recipe',
+         'require_prefix_fit_cursor', 'require_prefix_fit_progress'),
+        ('_require_october_control_scoring_recovery_origin',),
+        ('OCTOBER_CONTROL_SCORING_RECOVERY_ROOT', 'OCTOBER_CONTROL_SCORING_RECOVERY_IDENTITY',
+         'OCTOBER_CONTROL_SCORING_RECOVERY_CONTROL_CHANGES')),
+    'gx1/scripts/run_entry_native_direction_prefix_fit_window_v1.py':
+        (('run_native_direction_prefix_fit_window',), (), ()),
+    'gx1/scripts/run_entry_native_direction_research_window_v1.py':
+        (('_install_read_guard',), (), ()),
+}
+
+
 def is_scoring_recovery(recipe):
     """Presence selects the strict recovery validator, never grants authority."""
     return 'scoring_recovery_origin' in recipe
@@ -931,6 +958,8 @@ def scoring_recovery_identity(family_arm):
     """Only exact observed, closed interruptions have recovery identities."""
     if family_arm == DYNAMIC_STATE_SCOPE:
         return dict(DYNAMIC_SCORING_RECOVERY_IDENTITY)
+    if family_arm == 'fit_october_dynamic_mtf_state_onepass_v1':
+        return dict(OCTOBER_CONTROL_SCORING_RECOVERY_IDENTITY)
     if family_arm == 'chart_geometry_encoder':
         return dict(CHART_SCORING_RECOVERY_IDENTITY)
     _require(family_arm == 'session_regime_encoder', 'RECOVERY_ARM')
@@ -949,9 +978,11 @@ def _require_scoring_recovery_source_equivalence(source_repo, original, current)
     import ast
     import subprocess
     dynamic = original.get('run_scope') == DYNAMIC_STATE_SCOPE
-    identity = scoring_recovery_identity(DYNAMIC_STATE_SCOPE if dynamic else original.get('family_arm'))
+    october = original.get('run_scope') == 'fit_october_dynamic_mtf_state_onepass_v1'
+    identity = scoring_recovery_identity(DYNAMIC_STATE_SCOPE if dynamic else
+        original['run_scope'] if october else original.get('family_arm'))
     chart = original.get('family_arm') == 'chart_geometry_encoder'
-    control_changes = DYNAMIC_SCORING_RECOVERY_CONTROL_CHANGES if dynamic else ({
+    control_changes = OCTOBER_CONTROL_SCORING_RECOVERY_CONTROL_CHANGES if october else DYNAMIC_SCORING_RECOVERY_CONTROL_CHANGES if dynamic else ({
         'gx1/contracts/entry_native_direction_prefix_fit_campaign_v1.py': (
             ('require_prefix_fit_launch_recipe', 'require_scoring_recovery_origin',
              '_require_scoring_recovery_source_equivalence'),
@@ -993,7 +1024,7 @@ def _require_scoring_recovery_source_equivalence(source_repo, original, current)
                 and constants == (old_assignments if old else assignments), 'RECOVERY_CONTROL_NODE_SET:'+path)
             return kept
         _require(unchanged(before,True) == unchanged(after,False), 'RECOVERY_NONCONTROL_SOURCE_CHANGED:'+path)
-    if chart or dynamic:
+    if chart or dynamic or october:
         _require({path for path in before_owners if before_owners[path] != after_owners[path]} == set(control_changes),
             'RECOVERY_CHANGED_OWNER_SET')
 
@@ -1087,11 +1118,140 @@ def _require_dynamic_state_scoring_recovery_origin(recipe, *, source_repo, sourc
     return {'origin':dict(origin), 'original_recipe':original, 'cursor':cursor, 'identity':identity}
 
 
+def _require_october_control_scoring_recovery_origin(recipe, *, source_repo, source_commit):
+    """One closed October control fit: recover only its missing full-TRAIN measurement."""
+    import subprocess
+    from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
+    identity = scoring_recovery_identity(october.roles.FIT_SCOPE)
+    origin = recipe.get('scoring_recovery_origin')
+    fields = {'schema_version', 'original_source_head', 'original_recipe', 'original_plan',
+        'first_receipt', 'training_cursor', 'closure_review', 'closed_policy_commit'}
+    _require(isinstance(origin, Mapping) and set(origin) == fields
+        and origin['schema_version'] == identity['origin_schema']
+        and origin['original_source_head'] == identity['source_head']
+        and origin['closed_policy_commit'] == identity['closed_policy_commit']
+        and origin['closure_review'] == identity['closure_review']
+        and Path(source_repo) == CANONICAL_REPO and campaign._COMMIT.fullmatch(source_commit) is not None
+        and recipe.get('run_scope') == october.roles.FIT_SCOPE and recipe.get('arm') == 'control'
+        and recipe.get('input_role') == 'fit' and recipe.get('fold') == october.FOLD
+        and recipe.get('max_windows') == 1
+        and recipe.get('training_enabled') is recipe.get('full_epoch_training_allowed') is False
+        and recipe.get('test_data_used') is recipe.get('predictive_value_claimed') is False
+        and recipe.get('qualification_weights_for_main_fit') is False,
+        'OCTOBER_RECOVERY_ROLE')
+    def read(ref, label):
+        bound = campaign.require_binding(ref, label=label, verify_file=True)
+        return campaign.read_bound_json(Path(bound['path']), bound['sha256'])
+    closure = read(origin['closure_review'], 'October recovery closure')
+    _require(closure.get('schema_version') == 'gx1_october_fit_window2_bootstrap_failure_review_v1'
+        and closure.get('status') == 'CLOSED_ORIGINAL_CAMPAIGN_NO_RELAUNCH'
+        and closure.get('arm') == 'control' and closure.get('source_head') == identity['source_head']
+        and closure.get('first_window_parent_cursor') == 29849
+        and closure.get('first_window_training_updates') == 1866
+        and closure.get('first_window_boot_id') == 610 and closure.get('second_boot_id') == 611
+        and closure.get('second_invocation_claimed') is False
+        and closure.get('second_model_calls') == closure.get('second_optimizer_updates') == 0
+        and closure.get('final_train_measurement_complete') is False
+        and closure.get('task_disabled') is True and closure.get('original_plan_relaunch_allowed') is False
+        and closure.get('oof_cursor') == 0 and closure.get('test_data_used') is False
+        and origin['original_plan'] == closure['plan']
+        and origin['first_receipt'] == closure['first_window_receipt']
+        and origin['training_cursor'] == closure['immutable_cursor_snapshot'],
+        'OCTOBER_RECOVERY_CLOSED_ORIGINAL')
+    error = read(closure['bootstrap_error'], 'October recovery bootstrap error')
+    _require(error.get('schema_version') == 'gx1_campaign_bootstrap_error_receipt_v1'
+        and error.get('boot_id') == 611 and error.get('stage') == 'initial_campaign_state'
+        and error.get('plan_file_sha256') == origin['original_plan']['sha256']
+        and 'confirmed reboot request receipt required' in error.get('exception_message', ''),
+        'OCTOBER_RECOVERY_BOOTSTRAP_CAUSE')
+    closed_bytes = subprocess.check_output(['git', '-C', str(source_repo), 'show',
+        identity['closed_policy_commit'] + ':NEXT_RUN_POLICY.json'])
+    _require(hashlib.sha256(closed_bytes).hexdigest() == identity['closed_policy_sha256'],
+        'OCTOBER_RECOVERY_CLOSED_POLICY_SHA')
+    closed_policy = json.loads(closed_bytes)
+    closed = closed_policy.get('dynamic_m5_october_control_fit_20261106_001', {})
+    _require(closed.get('status') == 'CLOSED_AFTER_W1_TRAIN_COMPLETE_W2_BOOTSTRAP_FAILED'
+        and closed.get('recipe') == origin['original_recipe']
+        and closed.get('claimed_invocations') == closed.get('completed_invocations') == 1
+        and closed.get('unclaimed_windows_revoked') == [2, 3]
+        and closed.get('relaunch_allowed') is False
+        and all(closed.get(k) is False for k in ('execution_authorized', 'data_reads_authorized',
+            'genuine_constructor_authorized', 'genuine_forward_authorized', 'genuine_backward_authorized',
+            'genuine_updates_authorized', 'training_enabled', 'native_training_enabled',
+            'full_epoch_training_allowed', 'native_launch_authorized'))
+        and all(closed_policy.get(k) is False for k in ('training_enabled',
+            'native_training_enabled', 'full_epoch_training_allowed')),
+        'OCTOBER_RECOVERY_CLOSED_POLICY')
+    original = read(origin['original_recipe'], 'October recovery original recipe')
+    _require(original.get('schema_version') == RECIPE_SCHEMA
+        and original.get('recipe_sha256') == campaign.canonical_sha256(
+            {k:v for k,v in original.items() if k != 'recipe_sha256'})
+        and original.get('run_scope') == october.roles.FIT_SCOPE and original.get('arm') == 'control'
+        and original.get('fold') == october.FOLD and original.get('train_passes') == 1
+        and original.get('max_windows') == 3
+        and original.get('training_enabled') is original.get('full_epoch_training_allowed') is True
+        and origin['original_recipe']['path'] == str(october.FIT_ROOTS['control'].parent/'RECIPE.json'),
+        'OCTOBER_RECOVERY_ORIGINAL_RECIPE')
+    allowed = {'recipe_sha256', 'source_owners', 'runtime_root', 'admission_stage',
+        'execution_binding_path', 'max_windows', 'training_enabled', 'full_epoch_training_allowed',
+        'scoring_recovery_origin'}
+    _require({k:v for k,v in original.items() if k not in allowed} ==
+        {k:v for k,v in recipe.items() if k not in allowed}, 'OCTOBER_RECOVERY_NUMERICAL_RECIPE_CHANGED')
+    root = OCTOBER_CONTROL_SCORING_RECOVERY_ROOT
+    runtime = root/'RUNTIME'
+    _require(recipe.get('runtime_root') == str(runtime)
+        and recipe.get('execution_binding_path') == str(runtime/'EXECUTION_BINDING.json')
+        and recipe.get('admission_stage') == 'dynamic_m5_october_control_final_train_recovery_20261106_001'
+        and root != october.FIT_ROOTS['control'].parent,
+        'OCTOBER_RECOVERY_NEW_RUNTIME')
+    plan = read(origin['original_plan'], 'October recovery original plan')
+    _require(plan.get('plan_sha256') == campaign.canonical_sha256(
+            {k:v for k,v in plan.items() if k != 'plan_sha256'})
+        and plan.get('source_commit') == identity['source_head']
+        and plan.get('recipe') == origin['original_recipe']
+        and plan.get('runtime_root') == original['runtime_root']
+        and plan.get('test_data_used') is False,
+        'OCTOBER_RECOVERY_ORIGINAL_PLAN')
+    receipt = read(origin['first_receipt'], 'October recovery first receipt')
+    _require(receipt.get('plan_sha256') == plan['plan_sha256']
+        and receipt.get('invocation_number') == 1 and receipt.get('outcome') == 'RESUMABLE'
+        and receipt.get('guard_decision') == 'PASS'
+        and receipt.get('trainer_guard_exit_code') == receipt.get('progress_observer_exit_code') == 0
+        and receipt.get('checkpoint_pointer_snapshot') == origin['training_cursor']
+        and receipt.get('test_data_used') is False,
+        'OCTOBER_RECOVERY_FIRST_RECEIPT')
+    cursor = require_prefix_fit_cursor(read(origin['training_cursor'], 'October recovery cursor'),
+        expected_recipe=origin['original_recipe'], expected_fold=october.FOLD, verify_files=True)
+    result = read(cursor['result'], 'October recovery first result')
+    _require(cursor['phase_state'] == 'SCORING' and cursor['outcome'] == 'RESUMABLE'
+        and cursor['parent_cursor'] == result.get('parent_cursor') == 29849
+        and cursor['optimizer_updates'] == result.get('optimizer_updates') == 1866
+        and cursor['oof_cursor'] == result.get('oof_cursor') == 0
+        and cursor['final_train_measurement'] is None
+        and cursor['full_state'] == result.get('full_state') == result.get('durable_checkpoint',{}).get('state')
+        and cursor['initial_measurement'] == result.get('initial_measurement')
+        and cursor['own_initial_state'] == result.get('own_initial_state')
+        and result.get('durable_checkpoint',{}).get('contract_sha256') == identity['state_seal']
+        and result.get('source_unchanged') is True and result.get('error') is None
+        and result.get('physical_optimizer_updates') == 1866
+        and result.get('counts',{}).get('optimizer_step_returns') == 1866
+        and result.get('test_data_used') is False
+        and result.get('recipe') == origin['original_recipe'],
+        'OCTOBER_RECOVERY_PRESERVED_TRAINING')
+    _require_scoring_recovery_source_equivalence(source_repo, original, recipe)
+    october._owners(recipe['source_owners'])
+    october.roles.require_role_binding(recipe)
+    return {'origin':dict(origin), 'original_recipe':original, 'cursor':cursor,
+            'identity':identity}
+
+
 def require_scoring_recovery_origin(recipe, *, source_repo, source_commit):
     """Validate either exact observed interruption; no generic checkpoint import."""
     import subprocess
     if recipe.get('run_scope') == DYNAMIC_STATE_SCOPE:
         return _require_dynamic_state_scoring_recovery_origin(recipe, source_repo=source_repo, source_commit=source_commit)
+    if recipe.get('run_scope') == 'fit_october_dynamic_mtf_state_onepass_v1':
+        return _require_october_control_scoring_recovery_origin(recipe, source_repo=source_repo, source_commit=source_commit)
     identity = scoring_recovery_identity(recipe.get('family_arm'))
     origin = recipe.get('scoring_recovery_origin')
     fields = {'schema_version','family_arm','original_source_head','original_recipe','original_plan',
@@ -1248,6 +1408,16 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
         return december.require_december_native_recipe(value, source_repo=source_repo, source_commit=source_commit, phase=phase)
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     if value.get('run_scope') == october.roles.FIT_SCOPE:
+        if is_scoring_recovery(value):
+            _require(ref['path'] == str(OCTOBER_CONTROL_SCORING_RECOVERY_ROOT/'RECIPE.json'),
+                     'OCTOBER_RECOVERY_RECIPE_PATH')
+            _require(value.get('schema_version') == RECIPE_SCHEMA
+                     and value.get('recipe_sha256') == campaign.canonical_sha256(
+                         {k:v for k,v in value.items() if k != 'recipe_sha256'}),
+                     'OCTOBER_RECOVERY_RECIPE_SEAL')
+            require_scoring_recovery_origin(value, source_repo=source_repo, source_commit=source_commit)
+            require_dynamic_state_qualification(value, source_repo=source_repo, source_commit=source_commit)
+            return value
         arm = value.get('arm')
         _require(arm in october.FIT_ROOTS and ref['path'] == str(october.FIT_ROOTS[arm].parent/'RECIPE.json'),
                  'OCTOBER_FIT_RECIPE_PATH')
@@ -1880,6 +2050,9 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     october_fit_arm = next((arm for arm, root in october.FIT_ROOTS.items()
         if expected_recipe['path'] == str(root.parent/'RECIPE.json')), None)
+    if expected_recipe['path'] == str(OCTOBER_CONTROL_SCORING_RECOVERY_ROOT/'RECIPE.json'):
+        _require(october_fit_arm is None, 'OCTOBER_RECOVERY_CURSOR_COLLISION')
+        october_fit_arm = 'control'
     october_score_arm = next((arm for arm, root in october.SCORE_ROOTS.items()
         if expected_recipe['path'] == str(root.parent/'RECIPE.json')), None)
     october_arm = october_fit_arm or october_score_arm
@@ -2007,7 +2180,8 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     dec_phase = next((p for p in ('fit','score') if recipe_path ==
         str(december.ROOTS[p].parent/'RECIPE.json')), None)
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
-    october_fit = any(recipe_path == str(root.parent/'RECIPE.json') for root in october.FIT_ROOTS.values())
+    october_fit = (any(recipe_path == str(root.parent/'RECIPE.json') for root in october.FIT_ROOTS.values())
+        or recipe_path == str(OCTOBER_CONTROL_SCORING_RECOVERY_ROOT/'RECIPE.json'))
     october_score = any(recipe_path == str(root.parent/'RECIPE.json') for root in october.SCORE_ROOTS.values())
     _require(not (october_fit and october_score), 'PROGRESS_PHASE_COLLISION')
     if dec_phase:

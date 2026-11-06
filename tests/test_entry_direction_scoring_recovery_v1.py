@@ -160,17 +160,20 @@ def test_semantic_evidence_mismatch_rejected(recovery_fixture,monkeypatch,nested
     with pytest.raises(campaign.RandomAccessCampaignError):require(f)
 
 
-@pytest.mark.parametrize('dynamic',[False,True])
-def test_control_transition_preserves_numerical_bytes(tmp_path,monkeypatch,dynamic):
+@pytest.mark.parametrize('scope',['family','dynamic','october'])
+def test_control_transition_preserves_numerical_bytes(tmp_path,monkeypatch,scope):
     repo=tmp_path; path='control.py'
     before=b'def control():\n    return 1\n\ndef numerical():\n    return 8\n'
     after=b'def control():\n    return 2\n\ndef numerical():\n    return 8\n'
     (repo/path).write_bytes(after)
     def ref(raw):return {'path':str(repo/path),'sha256':hashlib.sha256(raw).hexdigest()}
     original={'family_arm':'session_regime_encoder','source_owners':{path:ref(before)}};current={'source_owners':{path:ref(after)}}
-    if dynamic:original['run_scope']=owner.DYNAMIC_STATE_SCOPE
-    monkeypatch.setattr(owner,'DYNAMIC_SCORING_RECOVERY_CONTROL_CHANGES' if dynamic else 'SCORING_RECOVERY_CONTROL_CHANGES',
-        {path:(('control',),(),())})
+    if scope=='dynamic':original['run_scope']=owner.DYNAMIC_STATE_SCOPE
+    if scope=='october':original['run_scope']='fit_october_dynamic_mtf_state_onepass_v1'
+    changes={'family':'SCORING_RECOVERY_CONTROL_CHANGES',
+        'dynamic':'DYNAMIC_SCORING_RECOVERY_CONTROL_CHANGES',
+        'october':'OCTOBER_CONTROL_SCORING_RECOVERY_CONTROL_CHANGES'}
+    monkeypatch.setattr(owner,changes[scope],{path:(('control',),(),())})
     monkeypatch.setattr(subprocess,'check_output',lambda *a,**k:before)
     owner._require_scoring_recovery_source_equivalence(repo,original,current)
     changed=after.replace(b'return 8',b'return 9');(repo/path).write_bytes(changed)
@@ -254,7 +257,7 @@ def test_scoring_profile_rejects_reverse_and_step_before_call():
 @pytest.mark.parametrize('fault', [None,'global_training','stage_updates','stage_backward',
     'checkpoint_reads','recovery_authority','repeat_claim'])
 def test_readiness_opens_scoring_only(base_fixture,monkeypatch,fault):
-    f=base_fixture;recipe={**f['recipe'],'scoring_recovery_origin':{}}
+    f=base_fixture;recipe={**f['recipe'],'max_windows':1,'scoring_recovery_origin':{}}
     monkeypatch.setattr(owner,'require_prefix_fit_launch_recipe',lambda *a,**k:recipe)
     policy=copy.deepcopy(f['policy']);gate=policy[recipe['admission_stage']]
     for key in ('training_enabled','native_training_enabled','full_epoch_training_allowed'):

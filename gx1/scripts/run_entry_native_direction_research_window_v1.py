@@ -176,17 +176,21 @@ def _install_read_guard(context, output, runtime, *, extra_read_paths=(), origin
                 'RECOVERY_READ_AUTHORITY')
             launch=recovered['launch']; validated=recovered['validated_origin']
             origin=validated['origin'];cursor=validated['cursor']
+            from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
             dynamic=launch.get('run_scope')==DYNAMIC_STATE_SCOPE
-            identity=scoring_recovery_identity(DYNAMIC_STATE_SCOPE if dynamic else launch.get('family_arm'))
+            october_fit=launch.get('run_scope')==october.roles.FIT_SCOPE and launch.get('arm')=='control'
+            identity=scoring_recovery_identity(DYNAMIC_STATE_SCOPE if dynamic else
+                october.roles.FIT_SCOPE if october_fit else launch.get('family_arm'))
             root=str(Path(identity['closure_review']['path']).parent/'RUNTIME'/'prefix-fit'/'states')
-            expected=(root+'/w0001_TERMINAL_u002976_p047602.pt',root+'/INITIAL_0U.pt')
-            _require((dynamic or (launch.get('run_scope')==FAMILY_SIGN_SCOPE
+            rows,updates=(29849,1866) if october_fit else (47602,2976)
+            expected=(root+f'/w0001_TERMINAL_u{updates:06d}_p{rows:06d}.pt',root+'/INITIAL_0U.pt')
+            _require((dynamic or october_fit or (launch.get('run_scope')==FAMILY_SIGN_SCOPE
                     and origin.get('family_arm')==launch.get('family_arm')))
                 and origin.get('schema_version')==identity['origin_schema']
                 and origin.get('original_source_head')==identity['source_head']
                 and origin==launch.get('scoring_recovery_origin') and origin['closure_review']==identity['closure_review']
                 and cursor['recipe']==origin['original_recipe']
-                and cursor['parent_cursor']==47602 and cursor['optimizer_updates']==2976 and cursor['phase_state']=='SCORING'
+                and cursor['parent_cursor']==rows and cursor['optimizer_updates']==updates and cursor['phase_state']=='SCORING'
                 and extra_read_paths==expected==(cursor['full_state']['path'],cursor['own_initial_state']['path']),
                 'RECOVERY_EXACT_READ_PATHS')
         elif matched is not None:
