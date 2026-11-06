@@ -11,18 +11,27 @@ Programrot:
 
 ## Aktuell status
 
-**06.11 – Fit-only datapreflight 001 og 002 feilet og er konsumert; 003 er
-innrømmet, ikke kjørt.** 001 nådde `prepare_october_native` på genuine TRAIN-data,
-men batchen avviste skrivbare sekvensheaders. Adapteren bruker nå den samme
-skrivebeskyttelsen som den beståtte Batch-002-ruten. I 002 ble kontrollbatchen
-levert, men etterkontrollen forsøkte å lese `CONTROL_VIEW.json` gjennom en guard
-som bare kjente kandidatmetadata. Adapterkontrollen samler nå begge eksakte
-metadata-inventar før guarden installeres; en syntetisk kontroll avviste
-motstridende filbindinger. [Feil 001](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_001/FAILED.json)
-· [feil 002](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002/FAILED.json)
-· [plan 003](configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003.json).
-Ingen komplett matchet fit-batch, modell, trening, oktoberutfall, TEST, broker
-eller handel er dokumentert. OOF, uavhengig edge og økonomi er UNKNOWN.
+**06.11 – Fit-only native datapreflight 003 er fullført og konsumert.**
+Den ene [planen](configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003.json)
+kjørte under capped 4 GiB/512 MiB i 26,41 sekunder, 0 USD, exit 0.
+Genuine adapteren leverte fire faste pre-oktober TRAIN-foreldre i begge armer:
+17 like grunnfeaturegrupper og identiske mål på 1–1 440 minutters domenet;
+bare kandidaten hadde den låste bekreftede aldersgruppen. Lesegarden omfattet
+33 fysiske filer, 13 fit-målblader og seks kausale blader; ingen oktoberutfall
+ble åpnet. [Resultat](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003/RESULT.json)
+SHA-256 eb3751c3b2f0cc0309cd06049059bfcc31466b53bd0e8a8693977c473358ecee ·
+[terminal](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003/TERMINAL.json)
+SHA-256 f9e88b5a91b126ced7b073b40aa62b196f644dfdee1041e7b04c69a0a38ff92e.
+Plan 001 feilet på skrivbare sekvensheaders; 002 leverte kontrollbatchen, men
+feilet på en manglende kontrollvisningssti i lesegarden. Begge er konsumert,
+med originale [feil 001](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_001/FAILED.json)
+og [feil 002](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_002/FAILED.json)
+bevart. Kilde-/metadatabinding og den faktiske fit-dataleveransen er nå teknisk
+kvalifisert. Native forward, fersk baseline, kandidatgradient/gjenopptak,
+kronologisk TRAIN-OOF, senere utviklingsgeneralisering, uavhengig edge,
+fysisk ONLINE-tilgjengelighet og økonomi er UNKNOWN. `training_enabled=false`;
+TEST, broker, ordre, handel og Exit er stengt. Neste konkrete steg er én eksakt
+oktoberbundet private/fit/score-kampanjeoppskrift før modelladmisjon.
 
 **06.11 – Oktoberens native fit-rolle har en egen kilde- og leseguard, uten datagather eller modellkjøring.** [Rollebinderen](gx1/contracts/entry_dynamic_m5_october_native_roles_v1.py) binder kontroll og alderskandidat til den samme 29 849-raders TRAIN-målserien ved privat kvalifikasjon/fit og reserverer 36 172-radersserien til en separat score-rolle. Den [kausale inputleseren](gx1/contracts/entry_dynamic_m5_october_causal_inputs_v1.py) verifiserer fortsatt alle fil-SHA-er, men tolker bare TRAIN-verdier i fit-rollen og kan ikke betjene en score-batch derfra. [Native adapteren](gx1/audit/dynamic_m5_october_native_inputs.py) er koblet til eksisterende worker og begrenser lesegarden til 33 nødvendige fysiske filer, 13 rollevalgte målblader og seks kausale inputblader; den gamle desember-/historiske ruten er beholdt. Et direkte forsøk på å åpne et oktober-målblad under fit-garden ble avvist. Aldersvekten er nå egen gradientgruppe i den native privatkvalifikasjonen; et nullgradient kan dermed ikke skjules i restgruppen. Ni fokuserte syntetiske tester og Python-syntaks bestod under/etter capped 2 GiB audit; hashbundne metadata for begge fit-armer og gardkonstruksjonen ble prøvd mot lagrede kvitteringer uten feature-/målarray eller modell. Den første metadata-proben traff en dokumentert 16 MiB-grense for cachemanifestet; adapteren bruker nå den eksisterende store, SHA-verifiserte manifestleseren. **Faktisk `prepare_october_native`, GPU-baseline, gradient/resume, kampanjeoppskrift og kronologisk TRAIN-OOF er ennå ikke kjørt.** Neste steg er én ny, eksakt admitted capped fit-only datapreflight på ren kilde. `training_enabled=false`; oktober er utvikling, uavhengig edge og økonomi er UNKNOWN.
 

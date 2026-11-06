@@ -50,7 +50,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Plans 001/002 failed consumed on read-only sequence headers and the two-arm metadata read guard. Exact successor 003 is admitted on clean source after targeted synthetic conflict check; run once, review result, consume claim. No model/training; edge UNKNOWN.",
+  "next_action": "Fit-only native data adapter passed on four fixed TRAIN parents per arm under consumed plan 003. Next bind one exact October private/fit/score campaign recipe, then qualify fresh native baseline, candidate age gradient/resume and matched chronological TRAIN-OOF under separate admission and safe reboot where required. training_enabled=false; edge UNKNOWN.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -56824,7 +56824,7 @@
   "direction_edge_research_goal_20261105": {
     "objective": "Establish reproducible independent directional value for M5 Entry, with M5 +5 first and dynamic DOWN/FLAT/UP on M5/M15/H1/H4/D1 preserved. Continue authorized local work without repeated requests to continue; keep TRAIN learning, reused development generalization, independent forecasting evidence and trading economics separate.",
     "operator_request": "Ja men så lag deg et langsiktig mål da for faen, jeg er dritt lei si «fortsett»! Målet er at vi skal gjøre ALT vi kan for å få en god Edge på entry retning!",
-    "status": "OCTOBER_NATIVE_FIT_PREFLIGHT_003_ADMITTED_NOT_RUN_EDGE_UNKNOWN",
+    "status": "OCTOBER_NATIVE_FIT_DATA_PASS_MODEL_EDGE_UNKNOWN",
     "goal_thread_id": "01a1a50f-e08b-7bf1-ad89-1dc1a326d289",
     "goal_created_unix": 1793897675,
     "previous_trial": "dynamic_mtf_december_direction_execution_goal_20261104",
@@ -56852,7 +56852,7 @@
         4
       ],
       "model_calls": 0,
-      "source_binding": "The worker now routes three explicit October scopes to a role-specific metadata/prepare adapter. Fit uses the existing 29,849-parent target manifest and validates only earlier causal values; score is a distinct 36,172-parent role. Metadata and read-guard construction passed without arrays or model. Actual prepare, campaign recipe/admission and native model remain closed; historical/December routes are unchanged.",
+      "source_binding": "The worker routes three explicit October scopes to a role-specific adapter. Fit uses the 29,849-parent target manifest, validates only earlier causal values and restricts physical reads to 33 files. Actual four-row fit-only batches for both arms passed under capped plan 003 with matched base features and targets; score, campaign recipe, native model and OOF remain closed.",
       "october_checkpoint_identity_source": {"path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_dynamic_m5_october_native_identity_v1.py", "sha256": "448071634ecb543d28862fde63dae0b3df290c48566a76a9f7c4016466150212"},
       "october_optimizer_state_source": {"path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/entry_native_direction_research_state_v1.py", "sha256": "2505b86bc691fd62b2b1cf9b6ae9d4bdbbc8b5aad36dbca9ccf5de4164dff2ca"},
       "october_checkpoint_qualification": "Source-level exact control/candidate identity hashes were recomputed from saved views and tamper variants rejected; one new October route/active-age-parameter synthetic check and two old optimizer/state-chain regressions passed. No actual native model, checkpoint, optimizer or resume was executed.",
@@ -58394,7 +58394,7 @@
     "measured_blocker": "Control fit batch completed, but source bookend could not reread CONTROL_VIEW.json under candidate-only metadata guard. No result or candidate batch; plan 002 cannot be relaunched."
   },
   "dynamic_m5_october_native_fit_preflight_20261106_003": {
-    "status": "ADMITTED_ONCE",
+    "status": "COMPLETE_CONSUMED",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003.json",
       "sha256": "2cb85fa541608826b54279726ce1a2d9b8c9871b9126da03e9e3754b34eabe33"
@@ -58404,7 +58404,7 @@
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
     "admitted_utc": "2026-11-06T00:51:20.183791+00:00",
     "source_head_at_admission": "3f24163ef92cd1bd1dfd789673809301e3f7688e",
-    "remaining_invocations": 1,
+    "remaining_invocations": 0,
     "output_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003",
     "scope": "One successor model-free, fit-only four-row-per-arm data adapter check with union of exact bound arm metadata; 001 and 002 failed consumed.",
     "predecessor_failure": {
@@ -58416,6 +58416,25 @@
     "test_split_access_authorized": false,
     "broker_orders_or_trading_authorized": false,
     "spending_usd_authorized": 0,
-    "independent_edge": "UNKNOWN"
+    "independent_edge": "UNKNOWN",
+    "claim_exit_code": 0,
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003/CLAIM.json",
+      "sha256": "ada684f6d5de501a91d8b3fe1c52d7dd6623682c057d6cee437c67b9f273a322"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003/RESULT.json",
+      "sha256": "eb3751c3b2f0cc0309cd06049059bfcc31466b53bd0e8a8693977c473358ecee"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_FIT_PREFLIGHT_20261106_003/TERMINAL.json",
+      "sha256": "f9e88b5a91b126ced7b073b40aa62b196f644dfdee1041e7b04c69a0a38ff92e"
+    },
+    "fit_sample_rows_per_arm": 4,
+    "matched_base_feature_groups": 17,
+    "candidate_only_age_group": "current_confirmed_run_age_features",
+    "native_model_calls": 0,
+    "post_run_review": "Exit 0; claim/result/terminal rehashed; 33 physical files, 13 fit target leaves, six causal leaves, four fixed fit parents per arm, 17 equal base groups and exact targets, candidate-only age group. No October outcome, model or TEST. Source unchanged. No independent edge claim.",
+    "remaining_unknown": "Native forward, baseline, age gradient/resume, strict chronological TRAIN OOF, later development generalization, independent edge, physical ONLINE timeliness and economics remain unqualified."
   }
 }
