@@ -59019,7 +59019,7 @@
     "failure_error": "RuntimeError:NATIVE_DIRECTION_PREFIX_WINDOW_STATE_LOSS_IDENTITY"
   },
   "dynamic_m5_october_private_004_source_preparation_20261106_001": {
-    "status": "MATCHED_PRIVATE_RECIPES_PUBLISHED_CONTROL_ADMISSION_ONLY",
+    "status": "CONTROL_PRIVATE_COMPLETE_CANDIDATE_ADMISSION_ONLY",
     "observed_utc": "2026-11-06T03:06:00.294138+00:00",
     "scope": "Both fresh matched control and confirmed-age candidate private TRAIN mechanics; separate _004 roots and stages. No new recipe, campaign, reboot, model, fit, October score or TEST.",
     "observed_failure": "Candidate _003 stopped at model/loss objective hash mismatch after two forwards and before gradients or updates.",
@@ -59050,7 +59050,7 @@
     "training_enabled": false,
     "native_model_admitted": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "Control private _004 is separately admitted and pending metadata materialization, machine-wide idle, fresh physical boot and one capped native mechanics invocation; candidate _004, fit and October OOF remain closed.",
+    "remaining": "Candidate private _004 separately admitted; fit and October OOF still closed and independent edge UNKNOWN.",
     "source_commit_at_recipe_materialization": "f574d838d7c54d5ed36881cdbb4525efe167dc15",
     "recipes": {
       "control": {
@@ -59062,11 +59062,15 @@
         "sha256": "016c368e82c88fc1b099301a682ad4638640be17ac89aaff862787f32149acf8"
       }
     },
-    "campaign_id_source_correction": "The fresh private campaign identity is _004, matching new roots and stages; discovered before any metadata materialization."
+    "campaign_id_source_correction": "The fresh private campaign identity is _004, matching new roots and stages; discovered before any metadata materialization.",
+    "control_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "f7b819619ab3d40f130a00bf17a04497be00bb6f2543a5873d9a62d680cd3765"
+    }
   },
   "dynamic_m5_october_control_private_20261106_004": {
-    "status": "ADMITTED_ONCE_PENDING_MATERIALIZATION_AND_FRESH_BOOT",
-    "observed_utc": "2026-11-06T03:11:34.653109+00:00",
+    "status": "COMPLETE_CONSUMED_PRIVATE_MECHANICS",
+    "observed_utc": "2026-11-06T03:27:23.070080+00:00",
     "scope": "Control arm only; fixed pre-October TRAIN private mechanics on 32 unique parents, 256 fresh initial rows, at most four updates. No main fit or October OOF.",
     "arm": "control",
     "input_role": "fit",
@@ -59091,6 +59095,109 @@
       "sha256": "45542da7e3bbf5d1f184fcda98fdfb3aa648e8054302ebfd1cc5818b065aec16"
     },
     "prepared_boot_id": 607,
+    "guard_template": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "28a0bd8d659a7636a5b399d5b3785c5ead1e64e780a7ca9c068a23cc9975173e"
+    },
+    "max_invocations": 1,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "campaign_preparation_authorized": false,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "genuine_constructor_authorized": false,
+    "genuine_forward_authorized": false,
+    "genuine_backward_authorized": false,
+    "genuine_updates_authorized": false,
+    "genuine_predictor_fit_authorized": false,
+    "training_enabled": false,
+    "native_training_enabled": false,
+    "native_launch_authorized": false,
+    "normalization_fit_authorized": false,
+    "synthetic_test_execution_authorized": false,
+    "full_epoch_training_allowed": false,
+    "held_out_features_authorized": false,
+    "held_out_outcomes_authorized": false,
+    "test_data_used": false,
+    "exit_evaluation": false,
+    "broker_access_allowed": false,
+    "full_val_allowed": false,
+    "relaunch_allowed": false,
+    "private_weights_for_fit": false,
+    "fresh_windows_boot_required": true,
+    "user_reboot_authorized": false,
+    "power_limit_w": 250,
+    "budgets": {
+      "memory_bytes": 21474836480,
+      "swap_bytes": 536870912,
+      "native_window_seconds": 12000,
+      "outer_guard_seconds": 13800,
+      "max_model_constructions": 3,
+      "max_forwards": 21,
+      "max_backwards": 4,
+      "max_private_updates": 4,
+      "usd": 0
+    },
+    "prepared_plan_materialized": true,
+    "prepared_binding_materialized": true,
+    "machine_wide_idle_verified_for_reboot": true,
+    "physical_reboot_executed": true,
+    "model_calls": 3,
+    "october_outcomes_read": false,
+    "independent_edge": "UNKNOWN",
+    "remaining": "Control _004 private mechanics qualified and consumed; its weights cannot enter main fit. Candidate _004 needs own exact private mechanics before either arm can enter full fit/October development OOF.",
+    "forwards": 21,
+    "backwards": 4,
+    "optimizer_updates": 4,
+    "technical_pass": true,
+    "predictive_value_qualified": false,
+    "terminal_review": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/ACTUAL_ROOT_REVIEW.json",
+      "sha256": "f7b819619ab3d40f130a00bf17a04497be00bb6f2543a5873d9a62d680cd3765"
+    },
+    "campaign_plan": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/CAMPAIGN/CAMPAIGN_PLAN.json",
+      "sha256": "f9c9861b646aff3e8400e4c33dae870f790ac65a331f1c9d5fdbebe5507d27f3"
+    },
+    "terminal_receipt": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/RUNTIME/receipts/invocation-0001.json",
+      "sha256": "d485a62438f3b63a08bfca52d0cce85592e55552548740464297a130d19c556f"
+    },
+    "power_after": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/POWER_AFTER.json",
+      "sha256": "caed3c71b5ed5312343476d98cddf5a72c356f9a725ea18d172248e7d48ff09b"
+    },
+    "task_name": "GX1OctoberControlPrivate20261106_004",
+    "task_state": "Disabled",
+    "completed_boot_id": 608
+  },
+  "dynamic_m5_october_candidate_private_20261106_004": {
+    "status": "ADMITTED_ONCE_PENDING_MATERIALIZATION_AND_FRESH_BOOT",
+    "observed_utc": "2026-11-06T03:27:23.070080+00:00",
+    "scope": "Candidate confirmed-current-state-age arm only; fixed pre-October TRAIN private mechanics on the same 32 unique parents, 256 fresh initial rows, at most four updates. No main fit or October OOF.",
+    "arm": "candidate",
+    "input_role": "fit",
+    "candidate_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_BATCH_BINDING_20261106_002.json",
+      "sha256": "8287e4b16dcd7a1e6e82162b756b32a17c6030f2b9c9e86d865ac8cc5db8d750"
+    },
+    "source_commit_at_recipe_materialization": "f574d838d7c54d5ed36881cdbb4525efe167dc15",
+    "preparation_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004",
+    "run_root": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/RUNTIME",
+    "recipe": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/NATIVE_RECIPE.json",
+      "sha256": "016c368e82c88fc1b099301a682ad4638640be17ac89aaff862787f32149acf8"
+    },
+    "recipe_sha256": "7f72c9d3c9e233c7e45907cfccf43dfe8a8258ddcccb42987bab21e7b125f0e3",
+    "materializer": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/materialize_dynamic_m5_october_private_campaign_v1.py",
+      "sha256": "7ff778f45ceaf403500abd93a6762beceda9f4656f8c60e7a2d0dd7dec0b4019"
+    },
+    "prepared_boot": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_PRIVATE_004/PREPARED_WINDOWS_BOOT.json",
+      "sha256": "fcbfc1afaf69537b880f26dec6740f2586203e6aba9a83e54960fad0da01d0a5"
+    },
+    "prepared_boot_id": 608,
     "guard_template": {
       "path": "/home/andre2/GX1_RUNS/DYNAMIC_MTF_TRAIN_GATES_20261104_001/DECEMBER_NATIVE_PRIVATE_001/CAMPAIGN/CAMPAIGN_PLAN.json",
       "sha256": "28a0bd8d659a7636a5b399d5b3785c5ead1e64e780a7ca9c068a23cc9975173e"
@@ -59141,6 +59248,6 @@
     "model_calls": 0,
     "october_outcomes_read": false,
     "independent_edge": "UNKNOWN",
-    "remaining": "Materialize control _004 exactly once from clean HEAD under capped metadata audit; verify source, task, host-wide idle, then fresh physical reboot and one capped private mechanics invocation. Candidate _004, fit and OOF are closed."
+    "remaining": "Materialize candidate _004 once from clean HEAD under capped metadata audit; verify source, task and host-wide idle, then fresh physical reboot and one capped private mechanics invocation. Full fit and October OOF stay closed."
   }
 }

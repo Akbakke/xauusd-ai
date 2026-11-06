@@ -11,6 +11,16 @@ Programrot:
 
 ## Aktuell status
 
+**06.11 – Kontrollens private `_004` bestod under ny kilde; alderkandidaten er innrømmet som neste arm.**
+Fysisk boot 608 kjørte én capped kontrollinvokasjon. [Rotgjennomgangen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_PRIVATE_004/ACTUAL_ROOT_REVIEW.json)
+verifiserer 3 modellkonstruksjoner, 21 forwards, 4 bakover-/optimizersteg, bitlik resume,
+alle 68 kildeeiere, fem prediksjonsfiler, 256 faste initialforeldre og signert vakt PASS.
+Windows-oppgaven er deaktivert, strømgrensen 250 W, ingen oktoberutfall eller TEST.
+Kontrollens fit-oppskrift bestod den faktiske private kvitteringsporten; ingen fit er publisert
+eller kjørt. Bare kandidatens matchede `_004`-policy er nå innrømmet for én privat mekanikksjekk
+fra boot 608 med høyst fire oppdateringer; ny boot, kampanje og kandidatmodell mangler.
+`training_enabled=true` gjelder kun denne eksakte kandidatrollen. Uavhengig edge og økonomi UNKNOWN.
+
 **06.11 – Friske private `_004`-oppskrifter er publisert; bare kontroll er innrømmet.**
 Fra ren `f574d838` er kontroll og alderkandidat bundet til samme oppdaterte 68-kilders
 metadata og egne immutable oppskrifter. Bare kontrollens nye policyblokk åpner én
