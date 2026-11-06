@@ -44,13 +44,13 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-06T13:46:52.907571+00:00",
+  "observed_utc": "2026-11-06T13:54:45.235924+00:00",
   "status": "M5_ENTRY_OCTOBER_AGE_PAIR_DESCRIPTIVE_COMPLETE_NO_DIRECTION_EDGE_QUALIFIED",
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "The prior dynamic five-timeframe fit and scoring and the one saved-prediction CPU calibration replacement are consumed. No automatic repeat or native model call is admitted. Original receipts remain preserved. TEST, Exit, broker and trading remain closed. A changed ONLINE function requires fresh evidence and initial baseline.",
-  "next_action": "Close the age-input ablation: its tiny M5 +5 Brier improvement over control does not beat the TRAIN prior, row-weighted paired interval includes zero, and UP/DOWN AUC is below 0.5. Do a source-only M5 Entry target/reference design review before proposing any new fit; no model, TEST, broker, trade, retrospective PASS or independent edge claim.",
+  "next_action": "The existing Entry-path TRAIN physical clock matches the October 6323-parent slice. Bind one capped read-only projection of executable endpoint/path masks and censor on exactly these rows before any state-to-Entry interpretation. No model, TEST, broker, trade, retrospective PASS or independent edge claim.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -255,7 +255,7 @@
   },
   "current_work": {
     "operator_request": "Behold beregningen; Entry bare på M5. M5 Entry first; M1 open-trade monitoring and Exit belong to a later phase.",
-    "current_activity": "Both matched October development scores and the one descriptive paired report are complete and consumed. Age input did not qualify M5 directional value; original pre-scoring gate was missing. No model run admitted. Independent edge and economics UNKNOWN.",
+    "current_activity": "October age pair is complete with no qualified M5 directional value. Existing Entry-path physical TRAIN clock matches the exact October parent slice, but later endpoint/path observability is unmeasured. No new model run admitted; independent edge and economics UNKNOWN.",
     "restart_and_smoke_goal": {
       "operator_request": "Ja, restart pc’en du, og lag deg et mål som fikser",
       "created_utc": "2026-10-08T05:28:18Z",
@@ -308,7 +308,7 @@
       "path": "/home/andre2/GX1_RUNS/HISTORY2009W_NATIVE_V38_20261007/NATIVE_ENTRY_OBSERVED_SMOKE_20261009_001/COMPLETION_REVIEW_002.json",
       "sha256": "b2b917b56c383460afbbba67362c9483b1c061e9416f40ae6cffd2009e36d777"
     },
-    "current_blocker": "Age-input M5 directional value did not qualify in October development; the pre-scoring decision gate was missing. A new source-only M5 Entry objective/reference design is needed before any separately admitted model work. Independent edge and economics UNKNOWN.",
+    "current_blocker": "Exact October Entry-path row/clock alignment is metadata-qualified, but executable endpoint/path masks and censor on those 6323 rows remain unmeasured. Bind a read-only projection before interpreting Entry quality; no model authority. Independent edge and economics UNKNOWN.",
     "host_restart_observation": {
       "path": "/home/andre2/GX1_RUNS/FEATURE_REPAIR_REBUILD_20261010_001/HOST_BOUNDARY_002/WINDOWS_POST_REBOOT.json",
       "sha256": "250c69eece5971041892d0925f49aec746a9ed3dcc348a0556168be93f70392b"
@@ -60136,5 +60136,33 @@
     },
     "m5_directional_edge_qualified": false,
     "candidate_promotion_allowed": false
+  },
+  "dynamic_m5_october_entry_path_join_feasibility_20261106_001": {
+    "status": "METADATA_AXIS_MATCH_FUTURE_ENDPOINT_PATH_MASKS_UNKNOWN",
+    "observed_utc": "2026-11-06T13:54:45.235924+00:00",
+    "scope": "Read-only metadata join between existing physical Entry-path TRAIN axis and October state-score 6323-parent development slice; no path-target values opened.",
+    "physical_target_receipt": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_ACTUAL_NATIVE_BINDINGS_20261019_057/PHYSICAL_TARGET_RECEIPT.json",
+      "sha256": "dd95d9ecb43f309635e61ba268ec4db6518a3ee23550aa0c94330ff303a5063d"
+    },
+    "october_axis": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_INPUT_ONLY_20261105_003/OCTOBER_AXIS.json",
+      "sha256": "2aa5bad2804d6635211ceac21eb9935639198f147d7d1a821188d3a07d6c17c5"
+    },
+    "train_rows": 118249,
+    "october_parent_row_range": [
+      29849,
+      36172
+    ],
+    "matched_full_bar_start_ns_sha256": "e5d528ff8fcec2b23f0099834b1c5b42a12489dadfada0a6fc4aeab3b6ff4c5d",
+    "future_endpoint_path_observability": "UNKNOWN",
+    "dense_future_paths_materialized": false,
+    "execution_authorized": false,
+    "model_calls_authorized": 0,
+    "training_enabled": false,
+    "test_data_used": false,
+    "broker_access_allowed": false,
+    "trading_allowed": false,
+    "next_action": "Source-bind and admit exactly one capped read-only projection of endpoint/path masks and censor on the October slice; no candidate selection or training follows automatically."
   }
 }
