@@ -144,9 +144,9 @@ Fullprofilen ruter 253 felt per TF til modellen. ATR14, EMA20-avstand og rå
 støtte-/motstandsavstand har kontrollert formel, variasjon, TRAIN-skala og
 kausalt valgt lukket bar i målt scope. 95 tidligere parkerte felt per TF
 inngår nå i fullprofilen. `close_position_range20` har full uavhengig fem-TF
-formelkontroll. Fem generiske felt har nå en avgrenset 64-barers TRAIN-kontroll
-per TF (nedenfor); 89 av de 95 mangler fortsatt en selvstendig numerisk
-formelstikkprøve. Dette er ikke bevis for prediktiv verdi.
+formelkontroll. Fem generiske felt har avgrenset 64-barers TRAIN-kontroll
+per TF, og 12 trendlinjeverdier har betinget TRAIN-geometrikontroll.
+77 av de 95 mangler fortsatt en selvstendig numerisk formelstikkprøve. Dette er ikke bevis for prediktiv verdi.
 Råaudit beviser ikke verdier etter normalisering, kvaliteten på de observerte nivåene
 eller prediktiv bruk. Første [postnorm-plan](/home/andre2/src/GX1_CURRENT/configs/research/DYNAMIC_M5_OCTOBER_NATIVE_POSTNORM_20261106_001.json)
 ble claimet og feilet i ren feilmeldingsformatering: `np.argwhere` indekserte
@@ -169,8 +169,9 @@ og tilstedeværende/fraværende nivåverdier passerte. Én CPU-konstruksjon,
 0 forward/bakover/optimizer, 0 TEST; 14,5 s og 713 MB prosessmaks under 4 GiB.
 Eksakt kildeavvik i en tapsfunksjon ble bundet uten fit-/forward-adgang.
 Stikkprøven beviser ikke all-253 gather, indikatorenes formel eller verdi.
-Neste indikatorsteg er numerisk og kausal kontroll av de 89 ennå ikke
-stikkprøvde feltene per TF, samt bredere kontroll av de fem avgrenset testede;
+Neste indikatorsteg er numerisk og kausal kontroll av de 77 ennå ikke
+stikkprøvde feltene per TF, samt bredere kontroll av de fem generiske og
+12 betingede trendlinjeverdiene;
 bidrag må deretter måles på kronologisk utvikling. Den opprinnelige
 95-listen er [128-scope](/home/andre2/GX1_RUNS/NATIVE_M5_TREND_EVENT_NUMERIC_REFERENCE_20261021_128/REMAINING_MTF_SCOPE.json)
 SHA-256 `fcbc3731d084ef097e44ddc3fb6732100692964f4f3403e0e8a606bc16a9879a`
@@ -180,8 +181,9 @@ trendlinje 31, candle 21, momentum 15, lokale 16, generiske 6, volum 3 og
 squeeze 3 per TF. Den [uavhengige close-position-kontrollen](/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_CLOSE_POSITION_NUMERIC_20261028_001/OUTPUT/RESULT.json)
 SHA-256 `7f381bdf8d876471fd67ae0b2d8289737b3bdc42d7d40140bc2b43ba11f9598a`
 matchet dagens cache- og formelkilde på fem TF, 0 avvik. De fem øvrige
-generiske feltene har nå avgrenset numerisk PASS nedenfor; 89 felt gjenstår
-uten selvstendig formelstikkprøve. Trendlinjene prioriteres på grunn av tilstandslogikk og
+generiske feltene har avgrenset numerisk PASS nedenfor; 12 trendlinjeverdier
+har betinget PASS, og 77 felt mangler selvstendig formelstikkprøve.
+Trendlinjene prioriteres på grunn av tilstandslogikk og
 støtte/motstand. Den tidligere 94-felts revisjonen tok 1 326,7 av 1 800 s;
 én ny 95-felts totaljobb er ikke ressurskvalifisert. Revider produsentvis,
 med uavhengig formelreferanse og eksisterende datakilder, uten å gjøre
@@ -193,11 +195,19 @@ linjevalg og livssyklus er matematisk riktig. En
 [trendlinjeplan](/home/andre2/src/GX1_CURRENT/configs/research/TRENDLINE_CONDITIONAL_PREFIX_20261106_001.json)
 SHA-256 `bc4469117ef476250e50ed308941b790da67ed30b134b5bf350e100240f17491`
 for 12 betingede geometri-/klokkeverdier og alle 31 representasjonsfelt er
-innrømmet én gang, ennå ikke claimet eller kjørt. Direkte capped `--help`
-røykprøve bestod etter en importrettelse før innrømmelse. Den numeriske kontrollen bruker bare
-før-01.07.2025-prefikset og fysiske TRAIN-vitner fra mai–desember 2024;
-helfil-sjekksum leser også senere cachebytes, uten statistisk TEST-inspeksjon.
-De 19 livssyklusfeltene og selve linjevalget står fortsatt åpne. En separat
+fullført og konsumert etter direkte capped oppstartsrøykprøve.
+[RESULT](/home/andre2/GX1_RUNS/TRENDLINE_CONDITIONAL_PREFIX_20261106_001/RESULT.json)
+SHA-256 `09be782ab60eaf522ee121254354ef8af33077d6d71a9ee173c779f0b77add3f`;
+[TERMINAL](/home/andre2/GX1_RUNS/TRENDLINE_CONDITIONAL_PREFIX_20261106_001/TERMINAL.json)
+SHA-256 `02a100486d68e5afb59df94bbb7c5d8372d901f40cb1d5a3de6c5945c65acd2e`,
+`COMPLETE`, exit 0. Alle 1 544 699 tidligere replaymatchede prefiksrader
+bestod representasjonskravene på fem TF. 43 unike fysiske TRAIN-vitner
+dekket alle 12 klassene per TF; 516 betingede tallkontroller bestod, med
+største absolutte avvik `2,2190e-7`. Den numeriske kontrollen bruker bare
+før-01.07.2025-prefikset og TRAIN-vitner fra mai–desember 2024;
+helfil-sjekksum leser også senere cachebytes for integritet, uten statistisk
+TEST-inspeksjon. Linjeidentitet og tilstand kommer fra produsenten, så de 19
+livssyklusfeltene og selve linjevalget er fortsatt ikke uavhengig bevist. En separat
 [plan for de fem gjenværende generiske feltene](/home/andre2/GX1_RUNS/NATIVE_M5_GENERIC_SCALAR5_NUMERIC_20261106_001/PLAN.json)
 SHA-256 `abbd91e0db3b445fb52583d7a880f151bf4672f609ebd330ceef22987bbca360`
 var statisk forhåndskontrollert på 64 faste TRAIN-barer per TF, men eksakt
