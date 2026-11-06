@@ -11,40 +11,29 @@ Programrot:
 
 ## Aktuell status
 
-**06.11 – Alder-kandidatens pre-oktober TRAIN-fit er fullført og konsumert.**
-[Terminalreview](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/ACTUAL_ROOT_REVIEW.json)
-SHA-256 57edacf9701f311dd12f185455cfe8d140b0e4e5dabadbeb4f5556025e3ad1dc
-verifiserer to faktiske, signert beskyttede vinduer på fysisk boot 613/614:
-29 849 TRAIN-foreldre, 1 866 oppdateringer i første vindu, null i andre
-sluttmålingsvindu og ingen oktoberutfall, TEST, broker eller handel.
-Oppstartsoppgaven er deaktivert med resultat 0, og GPU-grensen er 250 W.
-Terminalkontrollen hadde en målt feil: den krevde kumulative oppdateringer i
-siste vindu. Den minste kildefiksen summerer de immutable kvitteringsvinduene;
-en manipulert oppdatering avvises. Kildeovergangen er begrenset til denne
-review-/score-kontrollen. Den forberedte `CONTROL_SCORE_001`-oppskriften er
-supersedert uten å ha blitt innrømmet eller kjørt.
+**06.11 – Kontrollens senere oktober-score er fullført og konsumert; kandidatens score er neste port.**
+[Kontrollens terminalreview](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_003/ACTUAL_ROOT_REVIEW.json)
+SHA-256 d37c387736b8578fc3ff228aff7eba09d75b8380dcd102624061c6f4d4e9d932
+binder én signert PASS-kjøring på fysisk boot 615, 6 323 kronologisk senere
+oktoberforeldre, 396 OOF-forwards og **null** nye backward-/optimizersteg.
+Kilde, checkpoint, prefixnormalisering, faktisk OOF-array, omstartskvittering,
+deaktivert oppstartsoppgave og 250 W er kontrollert. Ingen TEST, broker eller handel.
+Ved M5 +5 var 3 359 fasiter observerbare: kontroll Brier 0,6150908807,
+Markov 0,6153249867, fast TRAIN-prior 0,6127142397. Kontrollens 1 465
+korrekte var færre enn priorens 1 535. Dette er utviklingsmåling, ikke
+uavhengig edge. Kontrollens SCORE_003 er konsumert. Kandidatens forhåndsdefinerte
+SCORE_002 er fortsatt PREPARED_NOT_ADMITTED; neste steg er én eksakt admisjon,
+frisk trygg fysisk omstart, én capped nulloppdateringsscore og paret analyse
+på samme masker. `training_enabled=false`; økonomi og uavhengig edge UNKNOWN.
 
-På samme TRAIN-prefiks hadde kandidaten ved primærmålet M5 +5 Brier
-0,6042147567 mot kontrollens 0,6047207663 og 7 506 mot 7 465 korrekte
-av 16 798 observerte. Over alle M5-horisonter var kandidatens Brier
-0,6808106505 mot kontrollens 0,6771961777. Dette er bare in-sample
-TRAIN-fit, ikke senere generalisering eller edge. [Kontrollens nye
-score-oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_002/RECIPE.json)
-og [kandidatens score-oppskrift](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_001/RECIPE.json)
-var publisert fra ren kilde og bestod metadatakontroll, men kontrollens
-innrømmede `_002`-materialisering stoppet før modell og oktoberlesing:
-`synthetic_test_execution_authorized=false` og `full_val_allowed=false`
-manglet eksplisitt i scoreporten. [Feilkvitteringen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_002/MATERIALIZATION_FAILURE_REVIEW.json)
-SHA-256 6dc7d6b6ffd2691ade4e912dff0b3923967beb06cc73a9ed2c20cef1ced8f2f5
-bevarer claim og delplan; `_002` er konsumert uten omstart eller modell.
-Kandidatens `_001` var aldri innrømmet. Nye [kontroll-`_003`](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_SCORE_003/RECIPE.json)
-og [kandidat-`_002`](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_SCORE_002/RECIPE.json)
-score-oppskrifter er publisert fra ren kilde. Ny preflight krever alle
-lukkede boolske porter før claim. Bare kontrollens `_003` er eksakt innrømmet
-for ett lesende vindu på 6 323 oktoberforeldre med null oppdateringer;
-kandidatens score er stengt. Maskinvid ledighet, omstartskvittering og capped
-kjøring gjenstår. `training_enabled=false`; uavhengig edge og økonomi UNKNOWN.
-TEST, Exit, broker, ordre og handel er stengt.
+Alderkandidatens [pre-oktober TRAIN-fit](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CANDIDATE_FIT_002/ACTUAL_ROOT_REVIEW.json)
+SHA-256 57edacf9701f311dd12f185455cfe8d140b0e4e5dabadbeb4f5556025e3ad1dc
+brukte 29 849 foreldre og 1 866 oppdateringer over to signerte vinduer.
+På samme TRAIN-prefiks var M5 +5 Brier 0,6042147567 mot kontrollens
+0,6047207663, men over alle M5-horisonter var kandidatens 0,6808106505
+mot kontrollens 0,6771961777. Dette er bare in-sample fit. De tidligere
+score-oppskriftene SCORE_001/_002 er supersedert eller konsumert etter målt
+preflight-feil; ingen av dem kan startes på nytt.
 
 **06.11 – Gjenopprettet kontroll-score og alderkandidatens fit er kildekontrollert, ennå ikke innrømmet.**
 Den faktiske [kontroll-recoveryen](/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_NATIVE_CAMPAIGN_20261106_001/CONTROL_FINAL_TRAIN_RECOVERY_001/ACTUAL_ROOT_REVIEW.json)
