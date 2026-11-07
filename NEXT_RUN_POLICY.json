@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side have a corrected five-TF TRAIN mask: 273200 full-window gray cells are ACTIVE with unknown side; seven measured H4/D1 singleton sides were demoted. The fixed five-fold CPU snapshot fit failed the predeclared M5 side gate, while native sequence fit, chronological OOF direction and indicator predictive usefulness remain unqualified; the model-to-loss and four-step optimizer/resume paths are only technically qualified. The read-only M1 duration audit passed selected-endpoint parity but cannot establish physical episode lengths because most side runs are censored. The exact fold1 native time-query fit _001 failed before a batch and is consumed; the separately qualified _002 fit is COMPLETE and consumed; its M5 side Brier is worse than frozen prior in all 14 weeks, so training_enabled=false and no repeat fit is admitted. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "_002 native fit and OOF are COMPLETE/consumed with negative M5 direction; no new training. Existing fold1 qualification shows 51 distinct GC D1 fields have zero observed fit support across three surfaces, while later fold2 prefix has 550-7916 observed ctx_cont values per field. Common M5 ATR/EMA/support/resistance are observed and varying. This is input shift, not proved cause of Brier failure. OOF stores only aggregates, so rank/calibration cannot be recovered. Prepare one distinct, exact, TRAIN-only frozen-checkpoint M5 k1 diagnostic: original versus fit-era absent masking of all three GC D1 aliases, paired Brier, exact tie-aware AUC, ten fixed reliability bins, weekly counts, no row predictions/refit/TEST. First bound one B16 CPU feasibility measurement; admit no full job until measured runtime, provenance and output gates pass. Keep training_enabled=false, TEST/Entry/Exit/broker/trading closed.",
+  "next_action": "Run the distinct exact one-use guarded CUDA producer fold1 M5 k1 frozen checkpoint diagnostic after read-only preflight. Compare original with all 51 GC D1 values and masks fit-absent on signal/ctx_cont/gc_mtf_d1 aliases; paired Brier, tie-aware AUC, fixed 10-bin reliability, weekly aggregates and OOF support counts. No training, TEST, Entry/Exit, broker or trade. Do not relaunch this plan after claim.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -63666,8 +63666,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "MARKET_STATE_FOLD1_INPUT_SHIFT_DIAGNOSTIC_PENDING_UNADMITTED",
-  "recorded_observed_utc": "2026-11-07T19:41:30.809717+00:00",
+  "recorded_status": "MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_ADMITTED_NOT_RUN",
+  "recorded_observed_utc": "2026-11-07T20:08:40.451848+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -63758,5 +63758,35 @@
       "prior_minus_model_activity_brier": 0.0028486698139141807,
       "positive_activity_weeks": 12
     }
+  },
+  "market_state_fold1_paired_diagnostic_20261107_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "scope": "One frozen fold1 TRAIN-only M5 k1 paired GC D1 diagnostic; no fit, TEST, Entry, Exit or trade.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_001.json",
+      "sha256": "2cdb5f9be52b5b845a00ce288ed7c5d7e2584287ce76cd21977137d049dbbea3"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_001",
+    "source_base_head": "f86b3dfa4f58a319f62d054729c95e599d95989a",
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "checkpoint_reads_authorized": true,
+    "model_forwards_authorized": 2220,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false,
+    "broker_access_allowed": false,
+    "test_data_used": false,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "max_invocations": 1,
+    "relaunch_allowed": false,
+    "memory_max": "12G",
+    "swap_max": "512M",
+    "wall_seconds": 3600,
+    "standing_authorization_source": "GX1_RULES_20261105_local_zero_spend_with_exact_new_admission",
+    "row_predictions_published": false,
+    "direction_value_qualified": false
   }
 }
