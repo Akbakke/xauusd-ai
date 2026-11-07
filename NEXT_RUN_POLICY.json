@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 zero-step on two TRAIN rows passed direct activity/side gradient mechanics; target-role clarification, genuine optimizer/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "One exact no-fit TRAIN audit is admitted: MARKET_STATE_NET_SIDE_REVIEW_20261107_001. First smoke the exact planned preflight command from CURRENT with no CLAIM/OUTPUT, validate all sealed source/receipt/selected-mask gates and synthetic success/error reporting. Then make at most one 4G/512M/1800s capped CPU invocation with immutable CLAIM/TERMINAL and independently reconcile five-TF net sign, certified state side and M1-close start-price crossings. No repeated full scans or fit. After this target-role evidence, decide whether separate D_s(v) supervision is justified before v2 checkpoint/resume/OOF and at most one separately admitted fold1 fit. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "The completed rowwise TRAIN audit proves observable signed local net and certified dynamic state side are distinct: 8-13% opposite net on certified >=1.0ATR sides across five TF, with many start-price close crossings in gray windows. Keep selected S_s(v) labels and D_s(v) diagnostic separate. Before any v2 fit, bind one consolidated source-only later-TRAIN comparison of D_s sign/magnitude against frozen prefix prior and exact causal GC/EMA/price-structure references on identical rows and UTC weeks; if a raw M1 reread is necessary, publish the minimal reusable signed target tape in that single capped job instead of repeated scans. Do not tune a direction threshold from later scores or call a close-crossing a confirmed swing. Then decide whether separate D_s supervision is justified, before v2 checkpoint/resume/OOF and at most one separately admitted fold1 fit. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -62845,8 +62845,8 @@
     "post_run_review": "One capped exit0 full TRAIN M5 side-locality diagnostic: all39670 exact 1.0 ATR DOWN/UP endpoints reproduced by cold replay from last five observed M1 bars, local_unknown=0, local_opposite=0. Side transition older than five bars on13298 (33.52 percent), exactly those at/before issue t; FLAT after entry on11882 (29.95 percent). Independent immutable JSON/NPZ review checked all20 months and partitions; raw M1/ATR not independently replayed. Applies only to selected M5 singleton sides, not FLAT/ACTIVE/UNKNOWN or other TF, target lock, forecast skill or edge."
   },
   "market_state_net_side_review_20261107_001": {
-    "status": "ADMITTED",
-    "decision": "ALLOW_ONE_NO_FIT_TRAIN_AUDIT",
+    "status": "COMPLETE_CONSUMED_TARGET_COMPARISON_NO_FIT",
+    "decision": "BLOCKED",
     "scope": "One rowwise full-TRAIN comparison of signed local net with selected certified state side and observed M1-close start-price crossings on M5/M15/H1/H4/D1; reuse sealed source/gray/selected masks. No relabel/fit/model/TEST/broker/trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_NET_SIDE_REVIEW_20261107_001.json",
@@ -62858,10 +62858,10 @@
     },
     "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_NET_SIDE_REVIEW_20261107_001",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
     "relaunch_allowed": false,
     "memory_max": "4G",
     "swap_max": "512M",
@@ -62873,7 +62873,24 @@
     "test_data_used": false,
     "training_authorized": false,
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
-    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch."
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch.",
+    "claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NET_SIDE_REVIEW_20261107_001/CLAIM.json",
+      "sha256": "d4148edabbfb903c5c644da63491f5b4a4c3cba45bfcdc42d05200001d762c3c"
+    },
+    "result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NET_SIDE_REVIEW_20261107_001/RESULT.json",
+      "sha256": "d710ada6799840490208c714ac1d56a985337018b3bca775820e49ac91d7f11b"
+    },
+    "launch_log": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NET_SIDE_REVIEW_20261107_001/LAUNCH.log",
+      "sha256": "f6de0ee2d263d60d358687ae92d186b5bdd0d9210818954be83bb51e597a46f1"
+    },
+    "terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_NET_SIDE_REVIEW_20261107_001/TERMINAL.json",
+      "sha256": "34a96e26d7010d35879e0cbfbd9c051a2fa663821e205b19b2e76bd56acef0ec"
+    },
+    "post_run_review": "One capped 4G/512M/1800s TRAIN source audit completed exit0 in 7.58s on 591682 M1 rows and 118706 M5 issues, zero model/optimizer/TEST. Every five-TF cohort net-sign count exactly matched sealed gray physical RESULT. On certified >=1.0ATR local sides, net sign was opposite for M5/M15/H1/H4/D1 3261/5225/5869/5918/3494 rows (8.22/11.51/13.15/12.84/9.54%). Gray cells with at least one completed-M1-close crossing of first open were 32592/41926/48508/50432/40881; this is a weak path diagnostic, not confirmed swing structure. Independent receipt/input/source/cap and count review passed without raw rescan. D_s is observable but is not the same state side or proven predictive supervision; plan consumed."
   },
   "market_state_gray_physical_20261107_001": {
     "status": "COMPLETE_CONSUMED_PHYSICAL_DIAGNOSTIC_TARGET_OPEN",
@@ -63697,8 +63714,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "MARKET_STATE_NET_SIDE_REVIEW_ONE_NO_FIT_AUDIT_ADMITTED",
-  "recorded_observed_utc": "2026-11-07T22:45:29+00:00",
+  "recorded_status": "MARKET_STATE_NET_SIDE_REVIEW_COMPLETE_TARGET_ROLE_OPEN",
+  "recorded_observed_utc": "2026-11-07T22:51:48+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
