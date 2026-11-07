@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T04:37:07.177411+00:00",
-  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_003_SOURCE_TESTED_PLAN_PENDING",
+  "observed_utc": "2026-11-07T04:38:19.740684+00:00",
+  "status": "MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_003_PLAN_PREPARED_PREFLIGHT_PENDING",
   "market_state_five_endpoint_zero_step_20261107_002": {
     "status": "CONSUMED_FAILED_SOURCE_HEADERS",
     "plan": {
@@ -111,7 +111,11 @@
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105"
   },
   "market_state_five_endpoint_zero_step_20261107_003": {
-    "status": "SOURCE_TESTED_NEW_PLAN_PENDING",
+    "status": "PLAN_PREPARED_PREFLIGHT_PENDING",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FIVE_ENDPOINT_ZERO_STEP_20261107_003.json",
+      "sha256": "6ba2f8449975b11cfa063b85389c281cfd7a17a59994e34088fa67e921755405"
+    },
     "decision": "BLOCKED",
     "scope": "Minimal worker-only immutable clock-header adapter after plan002 claimed and failed before model forward. Same one Oct24 TRAIN fit row, one forward, zero optimizer if separately admitted; host profile currently restored to 250W.",
     "worker": {
@@ -233,7 +237,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Five-endpoint output/loss/scorer, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "The Oct24 metadata-only five-output view and guarded zero-step worker now pass source/synthetic checks. Plan001 is consumed after preclaim signed-power rejection. Host guard config was temporarily reduced from 250W to 160W; signed telemetry now reports 160W. Plan002 claimed and failed before model forward on writable October clock headers; terminal is immutable and no relaunch is allowed. Original 250W host profile was restored and signed-verified. A minimal immutable-header adapter is source-tested for stage003; prepare a new exact plan and preclaim before separate admission. No fit, TEST or old-plan relaunch. No fit until target-only batch/loss, indicator and chronological reference gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
+  "next_action": "The Oct24 metadata-only five-output view and guarded zero-step worker now pass source/synthetic checks. Plan001 is consumed after preclaim signed-power rejection. Host guard config was temporarily reduced from 250W to 160W; signed telemetry now reports 160W. Plan002 claimed and failed before model forward on writable October clock headers; terminal is immutable and no relaunch is allowed. Original 250W host profile was restored and signed-verified. A minimal immutable-header adapter is source-tested and exact stage003 plan is prepared; run read-only preclaim before separate admission. No fit, TEST or old-plan relaunch. No fit until target-only batch/loss, indicator and chronological reference gates pass. Reuse existing five-TF/GC/eight-specialist/D1 backbone; do not enable old 7200-query chain or stale current-state input. Qualify indicator formulas and consumption; only then consider a separately admitted fit. training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
