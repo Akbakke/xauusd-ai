@@ -1,0 +1,96 @@
+{
+  "inputs": {
+    "selected": {
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001.json",
+        "sha256": "9b43bd30b3d3a9bb414923df547191200ca5b9c1e6993fc906cfdd283cd0f406"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001/RESULT.json",
+        "sha256": "a2f085b3d14b4fc6d934db22c47955eeff6f2f25732574f940dc8bba5281916e"
+      },
+      "row_masks": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001/ROW_MASKS.npz",
+        "sha256": "5a6e9b3377ded33760080d7f9145ecfcd8bf60faf24e53a34a42c420ad4a1a02"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001/TERMINAL.json",
+        "sha256": "2f994f52d594e403b9777063aefd0de70f335dc0e5d62a007b6180dd1b2b53fc"
+      }
+    },
+    "side": {
+      "plan": {
+        "path": "/home/andre2/src/GX1_CURRENT/configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json",
+        "sha256": "5b5fe43b92bff84d4405d81b26e63224b47c1cfba995438a0ce24791045ac9aa"
+      },
+      "result": {
+        "path": "/home/andre2/GX1_RUNS/MTF_STATE_SIDE_LOCALITY_20261107_001/RESULT.json",
+        "sha256": "5d65c5aa5f416feaaf11b0e8570ece2f7455a6b65694bb87aa98e844ed12ac9e"
+      },
+      "terminal": {
+        "path": "/home/andre2/GX1_RUNS/MTF_STATE_SIDE_LOCALITY_20261107_001/TERMINAL.json",
+        "sha256": "eda79cacb5711041837b91ebc2b1a285ea5d0ab1d47d685921e5ebb7591eb3fd"
+      }
+    }
+  },
+  "limits": {
+    "execution_class": "audit",
+    "memory_max": "4G",
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "swap_max": "512M",
+    "wall_seconds": 1800
+  },
+  "output_dir": "/home/andre2/GX1_RUNS/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001",
+  "schema_version": "gx1_market_state_local_side_exceptions_plan_v1",
+  "scope": {
+    "exact_side_demotions": {
+      "D1": 1,
+      "H4": 6
+    },
+    "issue_rows": 118706,
+    "test_data_used": false,
+    "timeframes": [
+      "M5",
+      "M15",
+      "H1",
+      "H4",
+      "D1"
+    ],
+    "train_end_utc_exclusive": "2026-01-01T00:00:00+00:00",
+    "train_start_utc": "2024-05-01T00:00:00+00:00"
+  },
+  "source_owners": {
+    "capped_contract": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "capped_runner": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+    },
+    "full_loader": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/build_full_train_market_state_endpoint_candidate_v1.py",
+      "sha256": "20fae20053070161ddfe69dde08b03846e94c3bdccaacb91bf8156695986de52"
+    },
+    "m5_locality": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_m5_state_side_locality_v1.py",
+      "sha256": "d50a1df46eeec171dcbf219cb5825301c96486748b1dd7df27d7599d377b86ab"
+    },
+    "mtf_locality": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_mtf_state_side_locality_v1.py",
+      "sha256": "f3681a905feda4d6b503318da4900bf92141d8e7db5bb67dee6795a0d2fa79c8"
+    },
+    "publication": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_local_side_exceptions_v1.py",
+      "sha256": "1d4dfb28343dad5727e8758dd08ae99270a757dff20684ba7568c3e3b9832777"
+    }
+  },
+  "stage": "market_state_local_side_exceptions_20261107_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false
+}

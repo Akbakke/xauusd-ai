@@ -7,7 +7,7 @@ Les [GX1_RULES.md](GX1_RULES.md) og kjør `bash scripts/gx1_handover.sh --check`
 
 Før Entry skal modellen lære løpende OPP/NED/FLATT på M5/M15/H1/H4/D1, med ny prognose på lukkede M5-barer. Entry-plassering, Exit og handel kommer senere. [Gjenværende læringsmetode](docs/NATIVE_LEARNING.md) og [målkandidatene](docs/MARKET_STATE_ENDPOINT_CANDIDATE_20261106.md) beskriver kravene. **Aktivitetssemantikken er valgt: komplett `R<0,5 ATR` betyr FLATT, komplett `R≥0,5 ATR` betyr AKTIV; OPP/NED krever separat sidebevis. Radvis fem-TF-mål, tap og scoring er ennå ikke bundet.** `training_enabled=false`; ingen ny fit, TEST-tilpasning, broker, ordre eller handel er autorisert.
 
-Aktuell policystatus: `MARKET_STATE_MTF_SIDE_AUDIT_COMPLETE_SEVEN_EXCEPTIONS`. [Fire-TF-sidekontrollen](configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json), [den valgte radmaskekontrollen](configs/research/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001.json) og alle eldre engangsplaner er fullført og konsumert. Ingen fit er innrømmet.
+Aktuell policystatus: `MARKET_STATE_SEVEN_SIDE_CORRECTION_ADMITTED_NO_FIT`. [Sju-siders rettelsesplan](configs/research/MARKET_STATE_LOCAL_SIDE_EXCEPTIONS_20261107_001.json) er innrømmet én capped kildekjøring, ennå ikke claimet. [Fire-TF-sidekontrollen](configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json), [den valgte radmaskekontrollen](configs/research/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001.json) og alle eldre engangsplaner er konsumert. Ingen fit er innrømmet.
 
 ## Målt og bevist konsistent
 
@@ -29,7 +29,7 @@ Aktuell policystatus: `MARKET_STATE_MTF_SIDE_AUDIT_COMPLETE_SEVEN_EXCEPTIONS`. [
 
 Aktivitetssemantikken er valgt etter fysisk TRAIN-kontroll: mellomsonen 0,5–1,0 ATR er AKTIV med uavklart retning. M5-sideankeret er kontrollert på eksakte retninger, men radvis FLATT/AKTIV/UKJENT og øvrige TF er ennå ikke samlet til én målkontrakt. Ingen side eller ukjent kilde fylles med gjettede etiketter.
 
-1. Lag en minimal ny maskerevisjon som endrer bare de sju eksakt identifiserte H4/D1-sidene til AKTIV med ukjent side. Bevar alle TF-/kildeakser, aktivitet og 20 × fem månedspartisjoner; den konsumerte sidekontrollen relanseres ikke. Ingen fysisk årsak antas fra aggregert stengningsstatistikk.
+1. Kjør den ene innrømmede sju-siders rettelsen etter ren preflight/CLAIM. Den skal demotere bare seks H4- og én D1-side til AKTIV med ukjent side, bevare aktivitet, alle kilderader og 20 × fem månedstall. Den konsumerte sidekontrollen relanseres ikke.
 2. Bind fem endepunktsutganger, tillatt-mengde-tap, aktivitet/side/treklasse-skår og kronologiske TRAIN-referanser til **samme** mål. Først deretter kvalifiseres en eksakt, begrenset modellfit. `training_enabled=false` inntil egen admisjon.
 3. Fortsett uavhengig kontroll av resterende indikatorformler på M5/M15/H1/H4 og de øvrige familiene. D1-vinduets PASS er ingen generell dom om alle felt eller prognoseverdi.
 
