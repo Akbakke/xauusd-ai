@@ -178,12 +178,15 @@ def _fold(value):
     return dict(value)
 
 
-def _view_identity(value, *, verify_files):
+def _view_identity(value, *, verify_files, allow_unobserved_units_profile=False):
     _require(isinstance(value, Mapping) and set(value) == {'contract_sha256', 'prefix_normalization',
         'research_objective_sha256'}, 'VIEW_IDENTITY')
     prefix = value['prefix_normalization']
-    _require(isinstance(prefix, Mapping) and set(prefix) == {'binding', 'contract_sha256', 'base_sha256',
-        'gc_layout_sha256', 'gc_normalization_sha256', 'qualification_sha256'}, 'PREFIX_IDENTITY')
+    expected = {'binding', 'contract_sha256', 'base_sha256', 'gc_layout_sha256',
+        'gc_normalization_sha256', 'qualification_sha256'}
+    if allow_unobserved_units_profile:
+        expected.add('unobserved_units_profile_sha256')
+    _require(isinstance(prefix, Mapping) and set(prefix) == expected, 'PREFIX_IDENTITY')
     for key in ('contract_sha256', 'research_objective_sha256'):
         campaign._sha(value[key], key)
     for key in set(prefix) - {'binding'}:

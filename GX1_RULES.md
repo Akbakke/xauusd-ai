@@ -101,6 +101,8 @@ oppstart/import fra den eksakte planlagte kommandoen, arbeidskatalogen og
 miljøet røykprøves lesende uten å lage CLAIM/OUTPUT. En lett preflight må
 også kontrollere alle brukte kvitteringsnøkler mot de faktiske bundne filene
 og både suksess- og feilvei i rapporteringen med små syntetiske verdier.
+Før ny native fit skal den faktiske bundne feature-/normaliseringsidentiteten
+valideres lesende mot checkpointkontrakten; syntetisk form alene er ikke nok.
 Ingen full data-/modelljobb gjentas for denne kontrollen.
 Denne presiseringen åpner ingen TEST,
 broker, ordre, handel, spending eller Exit. Modellporten `training_enabled=false`

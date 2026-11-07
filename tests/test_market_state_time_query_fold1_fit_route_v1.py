@@ -1,9 +1,12 @@
 """Narrow TRAIN-only time-query fit boundaries; no model or GPU run."""
 from __future__ import annotations
 
+import copy
+
 import pytest
 import torch
 
+from gx1.audit import verify_market_state_time_query_zero_step_v1 as zero
 from gx1.contracts import market_state_time_query_fold1_fit_v1 as scope
 from gx1.contracts import market_state_time_query_fold1_fit_state_v1 as state
 from gx1.scripts import run_market_state_time_query_fold1_fit_window_v1 as runner
@@ -22,6 +25,38 @@ def test_numerical_and_frozen_fold1_reference_match_selected_scope():
     assert fold['score_rows'] == 17753
     assert fold['official_fit_cutoff_ns'] == 1727740800000000000
     assert fold['score_end_exclusive_ns'] == scope.FOLD['oof_cutoff_ns']
+
+
+def _bound_fold1_checkpoint_identity():
+    plan = zero._read_ref(scope.private.ZERO_STEP_REFS['plan'])
+    view = zero._bind_view(plan, zero._inspect_receipts(), 1)
+    return {
+        'contract_sha256': view['contract_sha256'],
+        'prefix_normalization': copy.deepcopy(view['prefix_normalization']),
+        'research_objective_sha256': view['research_objective']['contract_sha256'],
+    }
+
+
+def test_fold1_checkpoint_view_accepts_exact_mature_units_profile():
+    identity = _bound_fold1_checkpoint_identity()
+    assert scope.require_checkpoint_view(identity, verify_files=True) == identity
+
+    missing = copy.deepcopy(identity)
+    del missing['prefix_normalization']['unobserved_units_profile_sha256']
+    with pytest.raises(RuntimeError, match='CHECKPOINT_NORMALIZATION_SHAPE'):
+        scope.require_checkpoint_view(missing, verify_files=False)
+
+    tampered = copy.deepcopy(identity)
+    tampered['prefix_normalization']['unobserved_units_profile_sha256'] = '0' * 64
+    with pytest.raises(RuntimeError, match='CHECKPOINT_UNOBSERVED_UNITS_PROFILE'):
+        scope.require_checkpoint_view(tampered, verify_files=False)
+
+
+def test_legacy_prefix_identity_still_rejects_unobserved_units_field():
+    from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
+    identity = _bound_fold1_checkpoint_identity()
+    with pytest.raises(RuntimeError, match='PREFIX_IDENTITY'):
+        prefix._view_identity(identity, verify_files=False)
 
 
 def test_state_cursor_counts_skips_and_final_six_row_batch_exactly():

@@ -16,7 +16,7 @@ from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_re
 from gx1.contracts import market_state_time_query_private_campaign_v1 as private
 
 SCOPE = 'market_state_time_query_fold1_one_pass_fit_v1'
-STAGE = 'market_state_time_query_fold1_fit_20261107_001'
+STAGE = 'market_state_time_query_fold1_fit_20261107_002'
 RECIPE_SCHEMA = 'gx1_native_direction_prefix_fit_launch_recipe_v1'
 NUMERICAL_SCHEMA = 'gx1_market_state_time_query_fold1_fit_numerical_v1'
 RESULT_SCHEMA = 'gx1_market_state_time_query_fold1_fit_result_v1'
@@ -110,8 +110,11 @@ def require_checkpoint_view(value: Any, *, recipe: Mapping[str, Any] | None = No
     _need(isinstance(prefix, Mapping)
           and set(prefix) == {'binding', 'contract_sha256', 'base_sha256',
                               'gc_layout_sha256', 'gc_normalization_sha256',
-                              'qualification_sha256'},
+                              'qualification_sha256', 'unobserved_units_profile_sha256'},
           'CHECKPOINT_NORMALIZATION_SHAPE')
+    from gx1.audit.fit_market_state_mature_fold1_units_v1 import PROFILE_SHA256
+    _need(prefix['unobserved_units_profile_sha256'] == PROFILE_SHA256,
+          'CHECKPOINT_UNOBSERVED_UNITS_PROFILE')
     expected = private.bound_input_refs()['fold1_normalization']
     _need(prefix['binding'] == expected, 'CHECKPOINT_FOLD1_NORMALIZATION')
     if recipe is not None:
@@ -120,7 +123,8 @@ def require_checkpoint_view(value: Any, *, recipe: Mapping[str, Any] | None = No
               and recipe.get('input_refs', {}).get('fold1_normalization') == expected,
               'CHECKPOINT_RECIPE_VIEW')
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix_fit
-    return prefix_fit._view_identity(value, verify_files=verify_files)
+    return prefix_fit._view_identity(value, verify_files=verify_files,
+                                     allow_unobserved_units_profile=True)
 
 
 def _reference_report() -> dict[str, Any]:
