@@ -61,7 +61,33 @@ En separat, **ikke valgt** kildekandidat bruker samme eksakte klokke, konservati
 | H4 | 108 164 (91,12 %) | 252 | 10 290 | 20 776 / 62 072 / 25 316 | 21,66–49,78 |
 | D1 | 81 050 (68,28 %) | 1 537 | 36 119 | 14 910 / 44 417 / 21 723 | 61,36–125,75 |
 
-En uavhengig kontroll av lagret RESULT/NPZ bekreftet alle 100 måned×TF-partisjoner, forholdstall, gyldighetsmasker, uendrede endepunktsrader og at **alle tidligere ikke-UKJENT-masker er bevart**. I alt 273 200 gamle gråsoneceller ble FLATT, ingen ble gitt side. På M5 er tallet 62 687. Over hele TRAIN er M5-medianen `1,0 ATR / sitert spread` 4,164; bare 5,67 % av gyldige M5-vinduer hadde terskel ≤2 spreads. Tilsvarende 0,5 ATR-skala er median 2,082 spreads og 46,24 % ≤2. Etterkontrollen leste ikke rå bud/tilbud eller beregnet ATR på nytt. En direkte avledning fra de to hashbundne radfilene viser at de 62 687 M5-gråsonecellene som nå kalles FLATT har median lokal high–low-range **3,144 siterte spreads**; 82,71 % er minst 2 spreads og 30,69 % minst 4. Tilsvarende samlede TRAIN-medianer for M15/H1/H4/D1 er 5,672/11,725/24,371/67,113 spreads. Beregningen er `range/ATR × ATR/sitert spread` bare der begge verdier er gyldige. Dette er prisbane-range, ikke bevist netto retning. Den høye dekningen kommer hovedsakelig fra **endret FLATT-betydning**, ikke ny prisinformasjon eller bedre modell; at 1,0 ATR vanligvis er større enn sitert spread begrunner ikke alene at alle disse forløpene er FLATT. En lokal high–low-range på 1,0 ATR beviser fortsatt ikke en entydig netto retning, vedvarende episode, prognoseevne eller edge. Før målvedtak må vi velge hva FLATT/OPP/NED faktisk betyr ved hver TF og binde taps- og scorekontrakten; terskel eller modell skal ikke velges fra klasseandelene eller disse dekningsprosentene. Ingen fit, VAL-utvalg, TEST eller handel er gjort.
+En uavhengig kontroll av lagret RESULT/NPZ bekreftet alle 100 måned×TF-partisjoner, forholdstall, gyldighetsmasker, uendrede endepunktsrader og at alle tidligere ikke-UKJENT-masker er bevart. I alt **273 200 gamle gråsoneceller ble FLATT**, uten gjettet side. På M5 er tallet 62 687. Hele TRAIN gir M5-median `1,0 ATR / sitert spread` 4,164 (bare 5,67 % ≤2 spreads), mot 2,082 og 46,24 % ≤2 ved 0,5 ATR. Dette er sitatkvalitet og fysisk skala, ikke gjennomførbar økonomi; den uavhengige kontrollen regnet ikke rå bud/tilbud eller ATR på nytt.
+
+De 62 687 M5-gråsonecellene som 1,0-varianten kaller FLATT hadde selv median lokal high–low-range **3,144 siterte spreads**; 82,71 % var minst 2 spreads og 30,69 % minst 4. Samlede TRAIN-medianer for M15/H1/H4/D1 var 5,672/11,725/24,371/67,113 spreads. Dette er beregnet fra de to hashbundne radfilene som `range/ATR × ATR/sitert spread` bare på gyldige celler. Range er prisbanens spenn, ikke bevist netto retning.
+
+Den gamle hashbundne [0,5 ATR-serien](/home/andre2/GX1_RUNS/DYNAMIC_MTF_STATE_PREPARATION_20261102_001/TARGET_AUDIT_005/STATE_SERIES/SERIES.json) SHA-256 `d2addf8fbb6f9ac9e9ed741bbbd2fe2bfdc07f59553ea28c021ea198d5fbfa8e` dekker den tilgjengelige overlappen fram til 01.04.2025. Kilde- og gyldighetsrader ble koblet eksakt til 1,0-kandidatens gråsoneceller. `Lokal range/(2 × 0,5-terskel)` var identisk med lagret `range/1,0 ATR` på alle koblede rader (maksavvik 0).
+
+| TF | Koblet gammel gråsone | Merket observert NED/OPP ved 0,5 ATR | Andel |
+| --- | ---: | ---: | ---: |
+| M5 | 34 117 | 22 657 | 66,41 % |
+| M15 | 31 180 | 29 506 | 94,63 % |
+| H1 | 29 849 | 29 732 | 99,61 % |
+| H4 | 28 558 | 28 528 | 99,89 % |
+| D1 | 21 612 | 21 597 | 99,93 % |
+
+Disse er **terskelavhengige etiketter fra den gamle eieren**, ikke uavhengig bevis for at 0,5 ATR er meningsfullt, og april–desember 2025 er ikke med i overlappen. Særlig lange TF kan ha eldre retningsanker; den separate lokale sidekontrollen nedenfor gjelder bare eksakte M5-sider ved 1,0 ATR. Tallene viser at 1,0-varianten kaller mange tidligere retningskandidater FLATT. Høyere dekning er dermed endret målbetydning, ikke ny informasjon eller bedre modell. Verken 0,5 eller 1,0 velges etter klasseandel, dekning eller modellscore. Ingen fit, VAL-utvalg, TEST eller handel er gjort.
+
+En ekstra lesende TRAIN-kontroll koblet en nåtilstandsproxy `S_TF(t)` fra eksakt tidligere utstedelse `t−lead` til `S_TF(t+lead)` fra utstedelsen ved `t`. Den krevde samme fysiske M1-kilderad ved `t` og entydig etikett i begge ender; kilderadavvik var 0. Tabellen sammenligner to **faste, ufittede** referanser på *samme* rader innen hver kandidat: behold nåtilstanden og si alltid FLATT. Ulike kandidater har ulike utvalg og skal ikke rangeres ved å sammenligne prosenter på tvers.
+
+| TF | 0,5/1,0: n | Behold nå | Alltid FLATT | 1,0: n | Behold nå | Alltid FLATT |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| M5 | 20 514 | 45,66 % | 13,49 % | 104 009 | 53,82 % | 65,63 % |
+| M15 | 31 522 | 50,58 % | 15,93 % | 112 861 | 54,58 % | 61,06 % |
+| H1 | 29 667 | 46,63 % | 12,54 % | 107 242 | 51,41 % | 59,37 % |
+| H4 | 24 951 | 45,57 % | 12,31 % | 97 610 | 45,46 % | 56,70 % |
+| D1 | 14 337 | 47,15 % | 3,10 % | 54 640 | 45,51 % | 54,19 % |
+
+I den matchede M5-populasjonen var framtidige NED/FLATT/OPP `8 410/2 768/9 336` med to terskler og `17 062/68 256/18 691` med én terskel. De fire M5-overgangene mellom to entydige sider er identiske i variantene: NED→NED 3 626, NED→OPP 4 370, OPP→NED 4 065 og OPP→OPP 4 197. Blant disse sideparene skifter altså 8 435/16 258 (51,88 %) side fra `t` til `t+5`; dette er overlappende radpar, ikke uavhengige episoder. Én-terskelens økte støtte består i stor grad av FLATT-etiketter, og alltid FLATT slår enkel tilstandspersistens på samtlige TF. Nåtilstandsproxyen er historisk kildekobling, ikke bevist live tilgjengelig modellinput, og denne kontrollen er ikke fit, målvalg, prognosebevis eller økonomisk edge.
 
 ## Lokal M5-side ved 1,0 ATR
 
@@ -80,6 +106,23 @@ Før fit forhåndsbindes disse fem ekspanderende TRAIN-foldene, alle med venstre
 | 5 | til 2025-10-01 | 2025-10-01 til 2026-01-01 |
 
 Fit-rader må ha alle brukte målmodningstider strengt før skårperiodens start; skårrader må ha eksakt framtidig gyldighet før periodens slutt. En eventuell ny nåtilstand som modellinput endrer ONLINE-funksjonen og krever fersk initialbaseline før sammenligning. Fem fold er en kronologisk måleplan, ikke fem tillatelser til modellkjøring.
+
+En **mål-uavhengig** etterkontroll av de to hashbundne kandidatfilene fant bitidentiske `issue_ns`, M5-kilderad, native leads og M1-endepunktsrad på alle 118 706 utstedelser. Tabellen viser antall rader med både eksakt M1-endepunkt og `issue+lead < foldgrense`; den teller ennå ikke om FLATT, AKTIV eller side er fysisk bevist. `N` er antall utstedelser i perioden før TF-spesifikk sensur.
+
+| Fold | Del | N | M5 | M15 | H1 | H4 | D1 |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | fit | 29 963 | 29 839 | 29 619 | 28 633 | 27 695 | 23 542 |
+| 1 | skår | 17 821 | 17 756 | 17 626 | 17 041 | 16 471 | 13 678 |
+| 2 | fit | 47 784 | 47 596 | 47 248 | 45 686 | 44 202 | 37 496 |
+| 2 | skår | 17 351 | 17 286 | 17 158 | 16 582 | 16 030 | 13 486 |
+| 3 | fit | 65 135 | 64 882 | 64 406 | 62 268 | 60 232 | 50 982 |
+| 3 | skår | 17 603 | 17 537 | 17 408 | 16 823 | 16 270 | 13 709 |
+| 4 | fit | 82 738 | 82 420 | 81 817 | 79 103 | 76 538 | 64 967 |
+| 4 | skår | 18 138 | 18 067 | 17 933 | 17 331 | 16 808 | 14 270 |
+| 5 | fit | 100 876 | 100 488 | 99 753 | 96 446 | 93 382 | 79 513 |
+| 5 | skår | 17 830 | 17 746 | 17 615 | 17 028 | 16 480 | 13 674 |
+
+For hver celle er `N = berettiget + manglende eksakt M1-endepunkt + umodent endepunkt`, med gjensidig utelukkende grunner: først test `issue+lead < grense`, deretter fysisk endepunktsrad. På de fem skårperiodene er 265/276/276/276/265 D1-endepunkter umodne ved høyre grense og ytterligere 3 878/3 589/3 618/3 592/3 891 modne D1-endepunkter fysisk fraværende. En ren splitt på utstedelsestid ville derfor lekket framtidig D1-fasit. Disse tallene er kilde-/klokkeberettigelse på TRAIN, ikke en ny fasit, modellscore eller treningsadmisjon.
 
 Tre sannsynlighetsreferanser fryses før fit. Tidligere TRAIN-andel estimerer `P(AKTIV)` på alle aktivitetskjente rader og `P(OPP|AKTIV)` bare på sertifiserte sider; hver binær andel får fast Laplace-telling `+1/+1`. Egen-TF overgang estimerer de samme to betingede andelene per eksakt kausal nåtilstand, med ukjent/delvis nåtilstand eller tom gruppe tilbake til ubetinget TRAIN-andel. Indikatorreferansen bruker siste kausalt lukkede egen-TF-bar og `z=(close−EMA20)/ATR14`: en binær logistisk mapping med `|z|` for aktivitet og en med `z` for retning, fast L2-styrke 1, bare tidligere målmodne rader og tilbakefall til de smoothede TRAIN-andelene ved én klasse eller ugyldig input. Alle tre bygger `p(NED),p(FLATT),p(OPP)` fra `P(AKTIV)` og `P(OPP|AKTIV)`. Eksakt solver, intercept og sannsynlighetsklipp må bindes i referanseimplementasjonen før score; ingen parameter velges på senere fold. Alle tre estimerer eller tilpasser parametere fra tidligere TRAIN og kjøres derfor ikke mens `training_enabled=false`; kilde-, fold- og oppskriftskontroll kan forberedes uten fit. En mulig billig nåtilstandsreferanse gjenbruker samme TF-maske fra en eldre M5-utstedelse med eksakt gyldighet ved `t`; manglende forgjenger, særlig etter stengning, må falle tilbake til ubetinget prior og rapportere sin dekning. Dette er en avgrenset tilgjengelighetsvariant, ikke bevis på full nåtilstandsdekning.
 
