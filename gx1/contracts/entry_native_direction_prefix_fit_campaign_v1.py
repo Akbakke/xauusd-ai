@@ -1423,6 +1423,11 @@ def require_prefix_fit_launch_recipe(binding, *, source_repo, source_commit, ver
     ref = campaign.require_binding(binding, label='prefix fit recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
+    if value.get('run_scope') == time_query_fold1.SCOPE:
+        _require(ref['path'] == str(time_query_fold1.RECIPE_PATH), 'TIME_QUERY_RECIPE_PATH')
+        return time_query_fold1.require_launch_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     if value.get('run_scope') in (december.FIT_SCOPE, december.SCORE_SCOPE):
         phase = 'fit' if value['run_scope'] == december.FIT_SCOPE else 'score'
@@ -1814,6 +1819,10 @@ def guarded_prefix_power_limit(recipe):
     """Keep the user-selected 250 W limit for the matched factor routes."""
     _require(isinstance(recipe, Mapping), 'FACTOR_POWER_RECIPE')
     scope = recipe.get('run_scope')
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
+    if scope == time_query_fold1.SCOPE:
+        _require(recipe.get('admission_stage') == time_query_fold1.STAGE, 'TIME_QUERY_POWER_SCOPE')
+        return 250
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     if scope in (DYNAMIC_STATE_SCOPE, december.FIT_SCOPE, december.SCORE_SCOPE,
@@ -1891,6 +1900,10 @@ def require_prefix_fit_plan(value, *, verify_files=True):
     runtime = Path(_path(result['runtime_root'], 'runtime root'))
     result['prepared_windows_boot'] = campaign.require_boot_identity(result['prepared_windows_boot'])
     expected_policy = campaign.family_campaign_policy(result)
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
+    if result['recipe']['path'] == str(time_query_fold1.RECIPE_PATH):
+        _require('family_same_boot' not in result, 'TIME_QUERY_FRESH_BOOT_REQUIRED')
+        expected_policy['physical_power_limit_w'] = 250
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     if verify_files:
@@ -1967,6 +1980,9 @@ def require_native_direction_prefix_fit_readiness(repo, *, window_path, window_f
         expected = not read_only or key in ('execution_authorized','data_reads_authorized',
             'genuine_constructor_authorized','genuine_forward_authorized','native_launch_authorized')
         _require(gate.get(key) is expected, 'READINESS_GATE:' + key)
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
+    if recipe['run_scope'] == time_query_fold1.SCOPE:
+        time_query_fold1.require_fit_gate(gate, recipe)
     if recipe['run_scope'] in (december.FIT_SCOPE, december.SCORE_SCOPE):
         december.require_phase_gate(gate, recipe)
     if recipe['run_scope'] == october.roles.FIT_SCOPE:
@@ -2069,6 +2085,8 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     phases = {str(december.ROOTS[p].parent/'RECIPE.json'):p for p in ('fit','score')}
     phase = phases.get(expected_recipe['path'])
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
+    time_query_fit = expected_recipe['path'] == str(time_query_fold1.RECIPE_PATH)
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     october_fit_arm = next((arm for arm, root in october.FIT_ROOTS.items()
         if expected_recipe['path'] == str(root.parent/'RECIPE.json')), None)
@@ -2080,7 +2098,10 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     october_arm = october_fit_arm or october_score_arm
     _require(not (phase and october_arm) and not (october_fit_arm and october_score_arm),
              'CURSOR_PHASE_COLLISION')
-    if phase:
+    if time_query_fit:
+        _require(passes == 1 and result['fold'] == time_query_fold1.FOLD, 'TIME_QUERY_CURSOR_FOLD')
+        fold = dict(time_query_fold1.FOLD)
+    elif phase:
         _require(passes == 1 and result['fold'] == december.FOLD, 'DECEMBER_CURSOR_FOLD')
         fold = dict(december.FOLD)
     elif october_arm:
@@ -2090,7 +2111,8 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     else:
         fold = _fold(result['fold'])
     n = fold['prefix_rows']
-    quarter = 0 if phase == 'fit' else fold['oof_end_row']-n
+    quarter = (fold['oof_end_row'] - fold['oof_start_row'] if time_query_fit
+        else 0 if phase == 'fit' else fold['oof_end_row'] - n)
     _require(result['recipe'] == expected_recipe and (expected_fold is None or fold == expected_fold)
         and result['test_data_used'] is False and result['outcome'] in {'RESUMABLE','COMPLETE','FAILED'}
         and result['phase_state'] in {'TRAINING','SCORING','COMPLETE'}, 'CURSOR_ROLE')
@@ -2104,14 +2126,18 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
     for key, ceiling in (('parent_cursor',passes*n), ('optimizer_updates',passes*((n+15)//16)), ('oof_cursor',quarter)):
         _require(type(result[key]) is int and 0 <= result[key] <= ceiling, 'CURSOR_COUNTER:' + key)
     completed, within = divmod(result['parent_cursor'], n)
-    _require(within % BATCH_SIZE == 0, 'CURSOR_BATCH_BOUNDARY')
+    _require(within % BATCH_SIZE == 0 or (time_query_fit and result['parent_cursor'] == n),
+        'CURSOR_BATCH_BOUNDARY')
     _require(result['optimizer_updates'] <= completed*((n+15)//16)+(within+15)//16, 'CURSOR_UPDATES_VS_INPUTS')
     campaign._sha(result['parent_order_sha256'], 'parent order')
     campaign.require_binding(result['result'], label='prefix result', verify_file=verify_files)
     premodel_failure = (result['outcome'] == 'FAILED' and result['phase_state'] == 'TRAINING'
         and result['parent_cursor'] == result['optimizer_updates'] == result['oof_cursor'] == 0)
     if result['feature_view_identity'] is not None:
-        if october_arm:
+        if time_query_fit:
+            time_query_fold1.require_checkpoint_view(result['feature_view_identity'],
+                verify_files=verify_files)
+        elif october_arm:
             _require(october.roles.identity.require_checkpoint_view(result['feature_view_identity']) == october_arm,
                      'OCTOBER_CURSOR_ARM')
         elif phase:
@@ -2120,7 +2146,11 @@ def require_prefix_fit_cursor(value, *, expected_recipe, expected_fold=None, ver
             result['feature_view_identity'] = _view_identity(result['feature_view_identity'], verify_files=verify_files)
         if launch is not None:
             bound = result['feature_view_identity']['prefix_normalization']
-            if october_arm:
+            if time_query_fit:
+                time_query_fold1.require_checkpoint_view(result['feature_view_identity'],
+                    recipe=launch, verify_files=verify_files)
+                matches = launch.get('run_scope') == time_query_fold1.SCOPE
+            elif october_arm:
                 matches = (launch.get('run_scope') ==
                     (october.roles.FIT_SCOPE if october_fit_arm else october.roles.SCORE_SCOPE)
                     and launch.get('arm') == october_arm
@@ -2199,6 +2229,8 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     _require(type(passes) is int and ((multipass and passes in (2, 3)) or (not multipass and passes == 1)), 'PROGRESS_PASSES')
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     recipe_path = invocation['direction_prefix_fit_recipe']['path']
+    from gx1.contracts import market_state_time_query_fold1_fit_v1 as time_query_fold1
+    time_query_fit = recipe_path == str(time_query_fold1.RECIPE_PATH)
     dec_phase = next((p for p in ('fit','score') if recipe_path ==
         str(december.ROOTS[p].parent/'RECIPE.json')), None)
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
@@ -2206,7 +2238,10 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
         or recipe_path == str(OCTOBER_CONTROL_SCORING_RECOVERY_ROOT/'RECIPE.json'))
     october_score = any(recipe_path == str(root.parent/'RECIPE.json') for root in october.SCORE_ROOTS.values())
     _require(not (october_fit and october_score), 'PROGRESS_PHASE_COLLISION')
-    if dec_phase:
+    if time_query_fit:
+        _require(passes == 1 and result['fold'] == time_query_fold1.FOLD, 'TIME_QUERY_PROGRESS_FOLD')
+        fold = dict(time_query_fold1.FOLD)
+    elif dec_phase:
         _require(passes == 1 and result['fold'] == december.FOLD, 'DECEMBER_PROGRESS_FOLD')
         fold = dict(december.FOLD)
     elif october_fit or october_score:
@@ -2215,7 +2250,8 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
     else:
         fold = _fold(result['fold'])
     n = fold['prefix_rows']
-    quarter = 0 if dec_phase == 'fit' or october_fit else fold['oof_end_row']-n
+    quarter = (fold['oof_end_row'] - fold['oof_start_row'] if time_query_fit
+        else 0 if dec_phase == 'fit' or october_fit else fold['oof_end_row'] - n)
     readonly = invocation.get('direction_prefix_fit_scoring_recovery') is True or dec_phase == 'score' or october_score
     _require(invocation['optimizer_step_budget'] == (0 if readonly else passes*((n+15)//16)), 'PROGRESS_PASS_BUDGET')
     if readonly:
@@ -2233,7 +2269,7 @@ def require_prefix_fit_progress(value, *, plan_sha256, invocation, expected_sele
         _require(type(result[key]) is int and 0 <= result[key] <= ceiling, 'PROGRESS_COUNTER:' + key)
     completed, within = divmod(result['parent_cursor'], n)
     _require(result['total_units'] == passes*n and result['completed_units'] == result['parent_cursor']
-        and within % 16 == 0
+        and (within % 16 == 0 or (time_query_fit and result['parent_cursor'] == n))
         and result['optimizer_updates'] <= completed*((n+15)//16)+(within+15)//16, 'PROGRESS_UNITS')
     _require(result['phase_state'] != 'TRAINING' or result['oof_cursor'] == 0, 'PROGRESS_TRAINING')
     _require(result['phase_state'] == 'TRAINING' or result['parent_cursor'] == passes*n, 'PROGRESS_SCORING')
