@@ -44,8 +44,23 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T06:03:44.568011+00:00",
-  "status": "MARKET_STATE_MODEL_LOSS_BRIDGE_SOURCE_PREP_INPUT_AUDIT_PENDING",
+  "observed_utc": "2026-11-07T06:18:28.499379+00:00",
+  "status": "MARKET_STATE_MODEL_LOSS_BRIDGE_SOURCE_TESTED_PLAN_PENDING",
+  "market_state_five_endpoint_gradient_bridge_source_20261107": {
+    "status": "SOURCE_TESTED_NO_PLAN_NO_DATA_JOB",
+    "decision": "MODEL_LOSS_BACKWARD_SKIP_WITNESS_SOURCE_READY",
+    "scope": "One guarded CUDA TRAIN full-profile fresh model forward on exact fold-1 fit parents 0 and 29848, canonical five-endpoint loss and one backward on informative row, skip immature row, zero optimizer/EMA/scheduler. Source and synthetic tests only; no physical gradient, full-field influence, learning or TEST claim.",
+    "source": {"path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_five_endpoint_gradient_bridge_v1.py", "sha256": "393926d709e8b6fd133533b32db9f6fc693b43c39514a3d4d342e866655c1ba3"},
+    "dispatcher": {"path": "/home/andre2/src/GX1_CURRENT/gx1/scripts/validate_entry_model_native_technical_checkpoint_v1.py", "sha256": "a4fee26d713f6033a8f1e73332a2112c5bea4bad0cd1259ff0d4760df68f8bc2"},
+    "test": {"path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_five_endpoint_gradient_bridge.py", "sha256": "425d3440c7acf019dde5742bc6ad6998a7fd252be8ab756e5c795b5a06c112d4"},
+    "focused_tests_passed": 31,
+    "data_reads_authorized": false,
+    "model_forwards_authorized": 0,
+    "backward_calls_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false
+  },
   "market_state_ema_side_reference_20261107_001": {
     "status": "CONSUMED_COMPLETE_TRAIN_EMA_REFERENCE",
     "decision": "PASS_REFERENCE_MEASUREMENT_NO_STABLE_DIRECTION_GAIN",
@@ -465,7 +480,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer, one real forward route, and a target-only batch bridge on two real TRAIN rows with synthetic logits are source-qualified; actual model-to-loss and optimizer skip, causal now-state references and indicator usefulness remain unqualified; one five-fold chronological TRAIN constant-prior reference is now measured. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "The new five-endpoint head has only one fresh unfitted TRAIN forward and no actual model-to-loss call; the current physical trainer still uses the older dynamic-state target and sequence loss. Prepare one separate zero-optimizer TRAIN full-profile forward/backward/skip witness, with exact source/cap/host gates and no relaunch of plan003. The old numeric index covers 158 cache fields/TF, scoped trendline oracle covers 31 more, and close_position_range20 has separate full numeric proof; 63 other fields/TF need full independent numeric qualification. Before interpreting model gain also bind a causal current-state transition reference. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
+  "next_action": "The new five-endpoint head has only one fresh unfitted TRAIN forward and no actual model-to-loss call; the current physical trainer still uses the older dynamic-state target and sequence loss. The separate zero-optimizer TRAIN full-profile forward/backward/skip witness source and guarded dispatcher passed 31 focused tests; no plan or physical run yet. Next freeze one exact plan from clean HEAD, direct read-only preflight, then separate admission and 160W guarded launch if all gates pass; never relaunch plan003. The old numeric index covers 158 cache fields/TF, scoped trendline oracle covers 31 more, and close_position_range20 has separate full numeric proof; 63 other fields/TF need full independent numeric qualification. Before interpreting model gain also bind a causal current-state transition reference. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",

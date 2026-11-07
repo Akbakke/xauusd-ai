@@ -1241,6 +1241,41 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    gradient_bridge_options = (
+        "--market-state-five-endpoint-gradient-bridge-plan",
+        "--market-state-five-endpoint-gradient-bridge-plan-sha256",
+    )
+    if any(value.partition("=")[0] in gradient_bridge_options for value in supplied):
+        bridge_parser = argparse.ArgumentParser(
+            description="One bounded five-endpoint TRAIN gradient bridge witness",
+            allow_abbrev=False, add_help=False,
+        )
+        bridge_parser.add_argument(gradient_bridge_options[0], type=Path, required=True)
+        bridge_parser.add_argument(gradient_bridge_options[1], required=True)
+        bridge_parser.add_argument("--device", choices=("cuda",), required=True)
+        bridge_parser.add_argument("--out-dir", type=Path, required=True)
+        bridge_parser.add_argument("--preflight", action="store_true")
+        for option in (*gradient_bridge_options, "--device", "--out-dir", "--preflight"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                bridge_parser.error(f"duplicate flag: {option}")
+        bridge_args = bridge_parser.parse_args(supplied)
+        if not bridge_args.out_dir.is_absolute():
+            bridge_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.verify_market_state_five_endpoint_gradient_bridge_v1 import (
+            preflight_read_only as preflight_bridge, run as run_bridge,
+        )
+
+        report = (preflight_bridge(
+            plan_path=bridge_args.market_state_five_endpoint_gradient_bridge_plan,
+            plan_sha256=str(bridge_args.market_state_five_endpoint_gradient_bridge_plan_sha256),
+            out_dir=bridge_args.out_dir,
+        ) if bridge_args.preflight else run_bridge(
+            plan_path=bridge_args.market_state_five_endpoint_gradient_bridge_plan,
+            plan_sha256=str(bridge_args.market_state_five_endpoint_gradient_bridge_plan_sha256),
+            device="cuda", out_dir=bridge_args.out_dir,
+        ))
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     five_endpoint_options = (
         "--market-state-five-endpoint-zero-step-plan",
         "--market-state-five-endpoint-zero-step-plan-sha256",
