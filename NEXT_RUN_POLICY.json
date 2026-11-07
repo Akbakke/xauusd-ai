@@ -44,19 +44,19 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T05:14:33.535019+00:00",
-  "status": "MARKET_STATE_M5_M15_H1_TRENDLINE_PLAN_PREPARED_PREFLIGHT_PENDING",
+  "observed_utc": "2026-11-07T05:26:28.775693+00:00",
+  "status": "MARKET_STATE_M5_M15_H1_TRENDLINE_ADMITTED_ONE_USE",
   "m5_m15_h1_trendline_physical_oracle_20261107_001": {
-    "status": "PREPARED_NOT_ADMITTED",
-    "decision": "BLOCKED_PENDING_PREFLIGHT_AND_SEPARATE_ADMISSION",
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
     "scope": "One 4G/512M/1800s capped independent source-formula audit of 31 trendline cache columns for May-Dec 2024 TRAIN M5/M15/H1 closed bars. No model, optimizer, TEST, Entry, Exit, broker or trade.",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/M5_M15_H1_TRENDLINE_PHYSICAL_ORACLE_20261107_001.json",
       "sha256": "2fa56e3827926dacb4b469433227bb8e153671ff66ddd45a31e57b9df6173d28"
     },
     "output_root": "/home/andre2/GX1_RUNS/M5_M15_H1_TRENDLINE_PHYSICAL_ORACLE_20261107_001",
-    "execution_authorized": false,
-    "data_reads_authorized": false,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
     "claimed_invocations": 0,
     "completed_invocations": 0,
     "max_invocations": 1,
@@ -421,7 +421,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer, one real forward route, and a target-only batch bridge on two real TRAIN rows with synthetic logits are source-qualified; actual model-to-loss and optimizer skip, causal now-state references and indicator usefulness remain unqualified; one five-fold chronological TRAIN constant-prior reference is now measured. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "One capped five-fold TRAIN prior audit is complete and consumed, with independent reconstruction of exact mature fit prefixes and later score folds; no model/optimizer/TEST. M5 constant prior activity Brier is 0.062047 on 88376 cells; certified-side Brier is 0.249438 on 29576 cells. The scoped M5/M15/H1 trendline source passed 18 focused tests including existing D1/H4 checks; a frozen one-use plan is prepared, with preflight and separate admission pending. No data job yet. Next qualify residual indicator formulas and numerical consumption, beginning with this capped scoped oracle; then bind actual model-to-loss/skip and chronological OOF under fold-specific normalization. Compare activity, certified side and three-class on identical mature rows against this frozen prior before any model fit claim. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
+  "next_action": "One capped five-fold TRAIN prior audit is complete and consumed, with independent reconstruction of exact mature fit prefixes and later score folds; no model/optimizer/TEST. M5 constant prior activity Brier is 0.062047 on 88376 cells; certified-side Brier is 0.249438 on 29576 cells. The scoped M5/M15/H1 trendline source passed 18 focused tests including existing D1/H4 checks; a frozen one-use plan passed direct and capped read-only preflight, and its separate admission now permits exactly one capped TRAIN data audit. No data job has yet started. Next qualify residual indicator formulas and numerical consumption, beginning with this capped scoped oracle; then bind actual model-to-loss/skip and chronological OOF under fold-specific normalization. Compare activity, certified side and three-class on identical mature rows against this frozen prior before any model fit claim. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
