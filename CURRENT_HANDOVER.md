@@ -7,7 +7,7 @@ Les [GX1_RULES.md](GX1_RULES.md) og kjør `bash scripts/gx1_handover.sh --check`
 
 Før Entry skal modellen lære løpende OPP/NED/FLATT på M5/M15/H1/H4/D1, med ny prognose på lukkede M5-barer. Entry-plassering, Exit og handel kommer senere. [Gjenværende læringsmetode](docs/NATIVE_LEARNING.md) og [målkandidatene](docs/MARKET_STATE_ENDPOINT_CANDIDATE_20261106.md) beskriver kravene. **Aktivitetssemantikken er valgt: komplett `R<0,5 ATR` betyr FLATT, komplett `R≥0,5 ATR` betyr AKTIV; OPP/NED krever separat sidebevis. Radvis fem-TF-mål, tap og scoring er ennå ikke bundet.** `training_enabled=false`; ingen ny fit, TEST-tilpasning, broker, ordre eller handel er autorisert.
 
-Aktuell policystatus: `MARKET_STATE_SELECTED_ACTIVITY_MASK_COMPLETE_TARGET_OPEN`. [Den valgte radmaskekontrollen](configs/research/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001.json), [H4-indikatorplanen](configs/research/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001.json) og alle eldre engangsplaner er fullført og konsumert. Ingen fit er innrømmet.
+Aktuell policystatus: `MARKET_STATE_MTF_SIDE_LOCALITY_ADMITTED_TARGET_OPEN`. [Fire-TF-sidekontrollen](configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json) er innrømmet én capped TRAIN-kjøring, ennå ikke claimet. [Den valgte radmaskekontrollen](configs/research/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001.json), [H4-indikatorplanen](configs/research/H4_TRENDLINE_LIFECYCLE_PHYSICAL_ORACLE_20261107_001.json) og alle eldre engangsplaner er konsumert. Ingen fit er innrømmet.
 
 ## Målt og bevist konsistent
 
@@ -28,7 +28,7 @@ Aktuell policystatus: `MARKET_STATE_SELECTED_ACTIVITY_MASK_COMPLETE_TARGET_OPEN`
 
 Aktivitetssemantikken er valgt etter fysisk TRAIN-kontroll: mellomsonen 0,5–1,0 ATR er AKTIV med uavklart retning. M5-sideankeret er kontrollert på eksakte retninger, men radvis FLATT/AKTIV/UKJENT og øvrige TF er ennå ikke samlet til én målkontrakt. Ingen side eller ukjent kilde fylles med gjettede etiketter.
 
-1. Kontroller lokal retning på M15/H1/H4/D1 for de eksisterende 172 771 NED/OPP-cellene med kald M1-replay på hver TF, før full fem-TF-sidefasit låses. Bevar valgt gråsone som AKTIV med ukjent side. Ingen terskel velges fra klassebalanse eller modellscore.
+1. Kjør den ene innrømmede sidekontrollen etter ren preflight og CLAIM. Den sammenligner 172 771 eksisterende NED/OPP-celler på M15/H1/H4/D1 med kald lokal M1-replay og rapporterer lik/ukjent/motsatt side per TF/måned. Den endrer ingen etikett; avvik krever målbeslutning før full lås.
 2. Bind fem endepunktsutganger, tillatt-mengde-tap, aktivitet/side/treklasse-skår og kronologiske TRAIN-referanser til **samme** mål. Først deretter kvalifiseres en eksakt, begrenset modellfit. `training_enabled=false` inntil egen admisjon.
 3. Fortsett uavhengig kontroll av resterende indikatorformler på M5/M15/H1/H4 og de øvrige familiene. D1-vinduets PASS er ingen generell dom om alle felt eller prognoseverdi.
 

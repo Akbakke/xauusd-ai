@@ -44,8 +44,8 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T02:38:17.625967+00:00",
-  "status": "MARKET_STATE_SELECTED_ACTIVITY_MASK_COMPLETE_TARGET_OPEN",
+  "observed_utc": "2026-11-07T02:47:28.813404+00:00",
+  "status": "MARKET_STATE_MTF_SIDE_LOCALITY_ADMITTED_TARGET_OPEN",
   "market_state_activity_semantics": {
     "status": "OPERATOR_SELECTED_CANDIDATE_FULL_TARGET_PENDING",
     "complete_local_range_below_atr14": 0.5,
@@ -58,8 +58,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Operator-selected 0.5 ATR full-window activity semantics now has an immutable rowwise five-TF TRAIN source mask: only 273200 gray old-UNKNOWN cells became ACTIVE side-unknown; all other masks/axes unchanged. M15/H1/H4/D1 side locality, actual five-endpoint output/loss/scoring, as-of state references and chronological baselines remain open. H4 and mask audits are consumed. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Audit existing M15/H1/H4/D1 singleton-side locality against cold last-W M1 replay, with exact source/closure/ATR and no target promotion; if mismatches, resolve target design before full lock. In parallel prepare exact five-endpoint output, partial-set loss, separate proper activity/side/three-class scores and causal TRAIN references on the selected mask. No model fit while training_enabled=false; TEST and trading closed.",
+  "rule": "Selected 0.5 ATR activity semantics and 273200 gray relabels have exact immutable TRAIN source masks. Existing M15/H1/H4/D1 singleton side locality is now admitted for one bounded source-only audit on 172771 endpoints; it cannot relabel targets or fit a model. Five-endpoint output/loss/scores and chronological references remain open. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "Execute the one admitted M15/H1/H4/D1 singleton-side locality audit after clean exact preflight, CLAIM and capped launch, then consume immutable terminal. Compare cold last 15/60/240/1440 observed M1 bars against old side by TF/month; if mismatches occur, resolve target semantics before full lock. No model fit while training_enabled=false; TEST and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -61558,5 +61558,36 @@
       "sha256": "2f994f52d594e403b9777063aefd0de70f335dc0e5d62a007b6180dd1b2b53fc"
     },
     "post_run_review": "One capped TRAIN-only audit exit0 in 0.73s; exact 118706x5 source/clock axes, only 273200 full-window 0.5-1.0 ATR old ALL=7 cells changed to ACTIVE=5, no side promotion; 320330 other cells unchanged. All 20x5 monthly relabel counts match previous immutable receipt. Independent read-only NPZ/receipt review verified all cells, four axes, masks, source/plan/policy/cap and immutable hashes. Activity observed539544, side observed212441, singleton255023 overlapping TF cells. No independent raw M1/ATR replay by reviewer, no M15/H1/H4/D1 side-locality or model learning/edge. Consumed; no relaunch."
+  },
+  "mtf_state_side_locality_20261107_001": {
+    "status": "ADMITTED",
+    "decision": "ADMITTED",
+    "scope": "One TRAIN-only source diagnostic of existing singleton DOWN/UP side locality on M15/H1/H4/D1, 172771 endpoints, cold W=15/60/240/1440 observed M1 bars versus full-history side and source/closure/ATR parity by TF/month. No relabel/model/TEST/Entry/Exit/trade.",
+    "plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MTF_STATE_SIDE_LOCALITY_20261107_001.json",
+      "sha256": "5b5fe43b92bff84d4405d81b26e63224b47c1cfba995438a0ce24791045ac9aa"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_mtf_state_side_locality_v1.py",
+      "sha256": "f3681a905feda4d6b503318da4900bf92141d8e7db5bb67dee6795a0d2fa79c8"
+    },
+    "output_root": "/home/andre2/GX1_RUNS/MTF_STATE_SIDE_LOCALITY_20261107_001",
+    "max_invocations": 1,
+    "claimed_invocations": 0,
+    "completed_invocations": 0,
+    "execution_authorized": true,
+    "data_reads_authorized": true,
+    "relaunch_allowed": false,
+    "memory_max": "4G",
+    "swap_max": "512M",
+    "wall_seconds": 1800,
+    "model_forwards_authorized": false,
+    "optimizer_steps_authorized": false,
+    "checkpoint_reads_authorized": false,
+    "broker_access_allowed": false,
+    "test_data_used": false,
+    "training_authorized": false,
+    "standing_authorization_source": "no_cost_local_standing_authorization_20261105",
+    "terminal_owner": "Integrator writes immutable success/failure TERMINAL after the one claimed capped invocation; no relaunch."
   }
 }
