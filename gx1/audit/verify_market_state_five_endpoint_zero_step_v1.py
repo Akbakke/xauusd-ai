@@ -14,7 +14,7 @@ import time
 
 REPO = Path("/home/andre2/src/GX1_CURRENT")
 POLICY = REPO / "NEXT_RUN_POLICY.json"
-STAGE = "market_state_five_endpoint_zero_step_20261107_002"
+STAGE = "market_state_five_endpoint_zero_step_20261107_003"
 SCHEMA = "gx1_market_state_five_endpoint_zero_step_plan_v1"
 RUNS = Path("/home/andre2/GX1_RUNS")
 FIXED = {
@@ -301,6 +301,22 @@ def _preflight(plan_path: Path, plan_sha256: str, device: str,
     return plan, plan_ref, policy_ref, head
 
 
+
+def _readonly_sequence_source_headers(source: dict) -> dict:
+    """Seal the two writable October clock arrays before the strict gather."""
+    import numpy as np
+    _need(isinstance(source, dict)
+          and set(source) == {"signal", "times_ns", "sample_positions", "audit"},
+          "SEQUENCE_SOURCE_INPUT")
+    sealed = dict(source)
+    for key in ("times_ns", "sample_positions"):
+        values = source[key]
+        _need(isinstance(values, np.ndarray) and values.dtype == np.int64
+              and values.ndim == 1, "SEQUENCE_HEADER_INPUT:" + key)
+        sealed[key] = np.frombuffer(values.tobytes(order="C"), dtype=np.int64)
+    return sealed
+
+
 def _one_forward(plan: dict) -> dict:
     """Decode target-free fit inputs, forward once, then read corrected targets."""
     import numpy as np
@@ -340,7 +356,7 @@ def _one_forward(plan: dict) -> dict:
     raw = views.gather_native_direction_feature_batch(
         view, parent_rows=observer.parent_rows,
         bar_start_ns=observer.bar_start_ns, decision_ns=observer.decision_ns,
-        entry_sequence_source=physical["entry_sequence_source"],
+        entry_sequence_source=_readonly_sequence_source_headers(physical["entry_sequence_source"]),
         snap_x=physical["current"]["snap"],
         ctx_cont=physical["current"]["ctx_cont"],
         ctx_cat=physical["current"]["ctx_cat"], multi_tf_sources=physical["mtf"],

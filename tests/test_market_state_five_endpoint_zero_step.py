@@ -107,6 +107,29 @@ def test_source_refs_drop_prior_target_and_bind_corrected_mask(tmp_path):
         audit._source_refs(old_view, _owners(), mask_ref)
 
 
+
+def test_writable_october_clock_headers_are_sealed_without_value_changes():
+    import numpy as np
+    signal = np.zeros((3, 2), dtype=np.float32)
+    signal.setflags(write=False)
+    times = np.array([10, 20, 30], dtype=np.int64)
+    positions = np.array([0, 2], dtype=np.int64)
+    source = {"signal": signal, "times_ns": times,
+              "sample_positions": positions, "audit": {"source": "synthetic"}}
+    sealed = audit._readonly_sequence_source_headers(source)
+    assert sealed["signal"] is signal and sealed["audit"] is source["audit"]
+    assert np.array_equal(sealed["times_ns"], times)
+    assert np.array_equal(sealed["sample_positions"], positions)
+    assert not sealed["times_ns"].flags.writeable
+    assert not sealed["sample_positions"].flags.writeable
+    assert times.flags.writeable and positions.flags.writeable
+    with pytest.raises(ValueError):
+        sealed["sample_positions"][0] = 1
+    source["times_ns"] = times.astype(np.float32)
+    with pytest.raises(RuntimeError, match="SEQUENCE_HEADER_INPUT:times_ns"):
+        audit._readonly_sequence_source_headers(source)
+
+
 def test_real_october_preclaim_receipts_without_payload():
     audit._inspect_reusable_receipts()
 
