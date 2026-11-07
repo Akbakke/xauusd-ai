@@ -33,17 +33,17 @@ def _bookend(recipe: dict, plan: dict, policy_path: Path,
 
 
 def _load_train_batches(receipts: dict, view: dict, *, np):
-    from gx1.audit import fit_market_state_mature_fold1_units_v1 as mature
+    from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as base
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
     from gx1.contracts.market_state_time_query_batch_v1 import FEATURE_KEYS
     chain = receipts['provider_chain']
-    provider = mature._provider_module()
+    provider = base._provider_module()
     provider_plan = chain['provider_plan']
     info = provider.validate_metadata(provider_plan)
-    prepared = mature._prepare_inputs(provider, provider_plan, info,
+    prepared = base._prepare_inputs(provider, provider_plan, info,
                                       chain['gc_layout'])
     try:
-        mature._validate_axes(receipts['mature_plan']['cohorts'],
+        base._validate_axes(receipts['mature_plan']['cohorts'],
                               prepared['axes'])
         axes = prepared['axes']
         selected = np.asarray(scope.PARENT_ROWS, dtype=np.int64)
@@ -55,6 +55,13 @@ def _load_train_batches(receipts: dict, view: dict, *, np):
         issue = np.asarray(axes['decision_ns'][at], dtype=np.int64)
         _need(len(issue) == 32 and bool(np.all(issue[1:] > issue[:-1])),
               'CHRONOLOGICAL_ISSUES')
+        for key in ('parent_rows', 'bar_start_ns', 'decision_ns'):
+            axes[key].setflags(write=False)
+        sequence = prepared['entry_sequence_source']
+        for key in ('signal', 'times_ns', 'sample_positions'):
+            sequence[key].setflags(write=False)
+        for key in ('snap', 'ctx_cont', 'ctx_cat'):
+            prepared['current'][key].setflags(write=False)
         batches = []
         reports = []
         for left in (0, scope.BATCH_SIZE):
@@ -84,7 +91,7 @@ def _load_train_batches(receipts: dict, view: dict, *, np):
                             'witness': raw['witness']})
         return batches, reports, provider, provider_plan
     finally:
-        mature._release_pages(provider, prepared)
+        base._release_pages(provider, prepared)
 
 
 
@@ -206,9 +213,8 @@ def run_time_query_private_window(*, policy_path: Path,
                        limits=limits, counters=counters,
                        maximum=recipe['max_published_json_bytes'])
         receipts = zero._inspect_receipts()
-        view = zero._bind_view(
-            {'expected_view_sha256_by_fold':
-             {'1': recipe['expected_view_sha256']}}, receipts, 1)
+        zero_plan = zero._read_ref(scope.ZERO_STEP_REFS['plan'])
+        view = zero._bind_view(zero_plan, receipts, 1)
         _need(view['contract_sha256'] == recipe['expected_view_sha256'],
               'FOLD1_VIEW')
         timings['validation_seconds'] = time.monotonic() - tic

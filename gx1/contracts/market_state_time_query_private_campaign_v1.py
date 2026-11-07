@@ -17,7 +17,7 @@ from gx1.contracts import local_random_access_campaign_v2 as campaign
 from gx1.contracts.entry_model_native_train_recipe_v1 import native_direction_research_recipe
 
 SCOPE = 'market_state_time_query_private_4step_v1'
-STAGE = 'market_state_time_query_private_4step_20261107_002'
+STAGE = 'market_state_time_query_private_4step_20261107_003'
 RECIPE_SCHEMA = 'gx1_market_state_time_query_private_launch_recipe_v1'
 NUMERICAL_SCHEMA = 'gx1_market_state_time_query_private_numerical_v1'
 CURSOR_SCHEMA = 'gx1_market_state_time_query_private_cursor_v1'
