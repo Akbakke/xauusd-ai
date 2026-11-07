@@ -1,0 +1,222 @@
+{
+  "backward_calls_authorized": 1,
+  "execution": {
+    "backward_calls": 1,
+    "class": "producer",
+    "cuda_producer": true,
+    "device": "cuda",
+    "flag": "--market-state-time-query-v2-zero-step-plan",
+    "memory": "12G",
+    "model_forwards": 1,
+    "module": "gx1.scripts.validate_entry_model_native_technical_checkpoint_v1",
+    "optimizer_steps": 0,
+    "swap": "512M"
+  },
+  "expected_allowed": [
+    [
+      5,
+      5,
+      1,
+      7,
+      7
+    ],
+    [
+      1,
+      1,
+      7,
+      7,
+      7
+    ]
+  ],
+  "expected_eligible": [
+    [
+      true,
+      true,
+      true,
+      false,
+      false
+    ],
+    [
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  ],
+  "expected_loss_contract_sha256": "4e90203317c349ce9b203cd147ca1f0ac1e6806852b89fbfe5224bc4601f4e0f",
+  "expected_mature": [
+    [
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    [
+      true,
+      true,
+      true,
+      true,
+      true
+    ]
+  ],
+  "expected_model_contract_sha256": "23c2ba59baf86a48811a6ef9f319daeae69293fc2bb28b90d4017330740c986e",
+  "expected_query_k": [
+    [
+      1,
+      3,
+      11,
+      40,
+      211
+    ],
+    [
+      1,
+      2,
+      2,
+      5,
+      92
+    ]
+  ],
+  "expected_scorer_contract_sha256": "90e6f18185064c9081d064aacf8c62c3b1556e16a5bf01ae421ed0187b3d96fc",
+  "expected_view_sha256": "5ceac9557d37234090805b8b0edde0f1444ab4e6a140f7b956c6120811e592ac",
+  "fold_id": 1,
+  "input_refs": {
+    "base_view": {
+      "path": "/home/andre2/GX1_RUNS/DYNAMIC_M5_OCTOBER_VIEW_BINDING_20261106_001/CONTROL_VIEW.json",
+      "sha256": "c0d64f1e0f16ffb8a85942567858b5e2a6e6b04482c901472bdc2789d6aec9db"
+    },
+    "candidate_tape": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_TAPE_20261107_001/TRAIN_CANDIDATE_TAPE.npz",
+      "sha256": "86aff221bf63532b67efe7c5770daa986bdebe916f149dd99961dacde1043b8b"
+    },
+    "constructor": {
+      "path": "/home/andre2/GX1_RUNS/NATIVE_M5_EARLY_MFE_FRESH_PREPARATION_20261022_187/CONSTRUCTOR_METADATA.json",
+      "sha256": "8d0fc19b646b142dced37ad86dd0e43a71bb8efe299a9ba4fd2de08e324db2bf"
+    },
+    "fold1_claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001/CLAIM.json",
+      "sha256": "e85eec1bc81371c7dc77fb922350010ca7a96d9baad31bf41bd9127910e124c1"
+    },
+    "fold1_normalization": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_1.json",
+      "sha256": "e24a2b8d1ae09f6f10c2de7a7097353b52aa2f2118287535e242778272022d54"
+    },
+    "fold1_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001.json",
+      "sha256": "2e74f6369d3b3bf685d9cdaa606db84ed0e5cadf6f4afe1fdb59e7550ef68616"
+    },
+    "fold1_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001/QUALIFICATION_FOLD_1.json",
+      "sha256": "0fad1ac1476205e0485207da4b5e6be6b0de5585a8cb4170f87679c63580fb94"
+    },
+    "fold1_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001/RESULT.json",
+      "sha256": "c6cc941203a38791c348a775e6815318fd265d659406207e59ebac374c2754fc"
+    },
+    "fold1_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001/TERMINAL.json",
+      "sha256": "c0aeef405973d13351f5ebb2b1451a33b8a03f72d7b24cf19f95c5a6a91c2537"
+    },
+    "fold2_normalization": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/PREFIX_NORMALIZATION_FOLD_2.json",
+      "sha256": "32f917bb9cf262f57afe2f60d58025b6679a3ffc5874dbe2d3b49382283ff9bc"
+    },
+    "fold2_qualification": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/QUALIFICATION_FOLD_2.json",
+      "sha256": "c271f952f8befef3485de4ed5d5460791c8da2b608f684b7717cf78a64e9707b"
+    },
+    "mature_claim": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/CLAIM.json",
+      "sha256": "797130de9eb86a9596a4a20a58732d4c887b2a21206eae438a6c92a6e9919d6b"
+    },
+    "mature_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001.json",
+      "sha256": "b77795e606b35424d6189b7866337ca74c9f7dfc22371168452f5a6f6d665029"
+    },
+    "mature_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/RESULT.json",
+      "sha256": "4b2772e893cdca98af91b04daa817d5b289c234f9dcd5cab5e2bac0f680c6833"
+    },
+    "mature_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001/TERMINAL.json",
+      "sha256": "c88cca2d44189ec0284ebfea7f55e431759a43ecce49c801f59a880dff88f1bc"
+    }
+  },
+  "limits": {
+    "max_wall_seconds": 3600,
+    "memory_high": 12884901888,
+    "memory_max": 12884901888,
+    "swap": 536870912
+  },
+  "max_invocations": 1,
+  "max_json_bytes": 1048576,
+  "model_forwards_authorized": 1,
+  "optimizer_steps_authorized": 0,
+  "output_root": "/home/andre2/GX1_RUNS/MARKET_STATE_TIME_QUERY_V2_ZERO_STEP_20261107_001",
+  "pair_axis_sha256": "d2070a9fe49ba379cb78449c24df8d2e02980cc26f0537d689ddcac35a22380f",
+  "partition": "fit",
+  "pass_index": 0,
+  "sample_issue_ns": [
+    1714521900000000000,
+    1714522500000000000
+  ],
+  "sample_parent_rows": [
+    0,
+    2
+  ],
+  "schema_version": "gx1_market_state_time_query_v2_zero_step_plan_v1",
+  "seed": 20261107,
+  "source_base_head": "eae4f0e44931a461e07c9a55668043b93f346f01",
+  "source_owners": {
+    "gx1/audit/fit_market_state_mature_fold1_units_v1.py": "71a937ef68bb6ceae5c8253d2fbbf91fb4f0d3fc850524dd98409d5021560511",
+    "gx1/audit/qualify_market_state_mature_prefix_normalization_v1.py": "bc609287e99eead126804220f5d77b24afd30e45a2937ba62bdcdea673f7dda2",
+    "gx1/audit/verify_market_state_five_endpoint_zero_step_v1.py": "bfbb4d13e32755010587a7d2323a738b7052054e319dfc2f11f281197f140e20",
+    "gx1/audit/verify_market_state_time_query_v2_zero_step_v1.py": "46cb4c58b1115e3bc627a606027bc16506ba6be4dd7ce86e3fa448a262b53a30",
+    "gx1/audit/verify_market_state_time_query_zero_step_v1.py": "e0839d25dafeed234c7411efe78a9b82cabac39e50be11cd67cdd9c531f77027",
+    "gx1/contracts/entry_exit_feature_surface_v1.py": "64bef1d239f7ef4cc347e08243c13f2e2cb7b9b2e799ac5a114cb76176b49d31",
+    "gx1/contracts/entry_exit_production_architecture_v1.py": "8d18cfceb6fb0823f3f568011da2a0a93d2e0684a0e2217cb5b10dd3a7abd399",
+    "gx1/contracts/entry_gc_mtf_history_v1.py": "25881da893bd09a48b6f6ef840947af611401ac6aa3059c795a99a127293f14c",
+    "gx1/contracts/entry_model_native_input_normalization_v1.py": "22a08fb03578535f39cfa959c35a77dc569fba984ea17041fce7e9dd4ee417e1",
+    "gx1/contracts/entry_model_native_signal_v1.py": "521f089a9b6d98121939610ff7cc37e1093e5f651fdb2f5b94b2aab7ab2c0f83",
+    "gx1/contracts/entry_model_native_training_objective_v1.py": "076366e793368bdd079455151cbd6592e4f96432baffaa2239d869c1147cf07b",
+    "gx1/contracts/entry_native_direction_feature_view_v1.py": "2808fa24900d1d5170445666b77787ba3f5ae271c7cc407cf974d026ffef2b3a",
+    "gx1/contracts/entry_native_direction_prefix_normalization_v1.py": "7142437d8dfdd860b89188f1bb7bc76ca75eb60a98357c62e261b140a3fbcd12",
+    "gx1/contracts/entry_native_direction_prefix_units_v1.py": "dd2f2458c6fb7cc0b3bddbddfd295a4ec3d20a72699149c8ea25f5c8c44445a0",
+    "gx1/contracts/entry_native_direction_research_v1.py": "dba2d263f0d28e52e73fa38e1d7febd88b3e9a5958edc566f30df0ca69180fa3",
+    "gx1/contracts/gx1_capped_execution_v1.py": "60b1ccf2eda470a84ddded0d8160c628314ebb19f5766b87b70fef7c9aa3ccff",
+    "gx1/contracts/immutable_event_authority_v1.py": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01",
+    "gx1/contracts/market_state_five_endpoint_contract_v1.py": "5007214d0f8df9dc9834dcf8c88d22ea75567772e8ffc184ad5cecb77fc19b34",
+    "gx1/contracts/market_state_five_endpoint_target_binding_v1.py": "71dc01154aada84d01e930cb78970a79608c5bff5ebd710d9f48273934e14bfd",
+    "gx1/contracts/market_state_time_query_batch_v1.py": "bd5784627594f866dbaa659958dcb26c51b3812c816b708c4a81dd83407f209d",
+    "gx1/contracts/market_state_time_query_batch_v2.py": "e5c5e3fb438de4ab3e830a17bfc98fcd42f41fede9089fedb9456ed8c15303d0",
+    "gx1/contracts/market_state_time_query_binding_v1.py": "ccb4ec1398183597f9ee447f74d7e5b03fbcaf37739c1454b1b4cbb8145a5e91",
+    "gx1/contracts/market_state_time_query_loss_v1.py": "bdb381b7de98e643eb0aee354739b310ea1df5d6d3a9a64f2240787204d5b7be",
+    "gx1/contracts/market_state_time_query_loss_v2.py": "d098429d34af9321c558e1e51e534b0305d91eb4f16c0d0a7950aaad8f84ce13",
+    "gx1/contracts/market_state_time_query_model_v1.py": "f0950004fe143613065dd87b8608967d6c9bf45719587903aa2d0dbbb2efda2e",
+    "gx1/contracts/market_state_time_query_model_v2.py": "469ff190f58ce7ae5968191cf39e199b5d062f7a9b76a2620f85882e107c61af",
+    "gx1/contracts/market_state_time_query_scorer_v1.py": "4bb6920ce9f22ba535e2bf719833645e78eea05922257b9bc0080050aea394fa",
+    "gx1/contracts/market_state_time_query_scorer_v2.py": "a3bd1e8e4482030cee0e267ad88da7552f4e1fe65e4e79182b19339e31acad12",
+    "gx1/contracts/market_state_time_query_target_v1.py": "c4eacacdfb782e7dfb01cac51cb4521e95ca55d3dfeb1c215a958abbdde65ca9",
+    "gx1/contracts/model_state_digest_v1.py": "f5d362079bb61bd61919bdea56e7f782d2461499691f2d588cc9a6a078e487e4",
+    "gx1/contracts/registry_hyperparameter_fit_v1.py": "3673c598dfaaa8c0ae2d7c8b5b2393c88f382fefd337382ce72539b570eb2794",
+    "gx1/features/basic_v1.py": "30ef4e4e6dc5a0011b13eeb7e11227dbeaa3a44b78c35405e64f7ca655bad220",
+    "gx1/features/entry_model_native_feature_layers_v1.py": "97f29b0ccc13a2fb98bcec2fc661a71b5e0ec3a3579afa220ad61972c6dd6ec4",
+    "gx1/features/entry_specialist_feature_groups_v1.py": "6070f033f3046f30c01666b02226155eb032fd66bf1364621697e43cfebdbef3",
+    "gx1/features/gc_native_context_v1.py": "28c4235d7a050698fc474e302ff1277d76983a72a4d11e74005fa74775c86fdf",
+    "gx1/features/htf_features.py": "9ca968805e3eca72525e14c8b53e5b31817cd2baa7c0cdb9b636cb112f092520",
+    "gx1/features/micro_structure_v1.py": "761533b9ae31fd268dbe4c075bb7e73f1436076af8372a8efc08fa2d8c1800dd",
+    "gx1/features/volatility_squeeze_state_v1.py": "0ad2121c620008909d290b24686a095cec05e52f60e41527a4498e7ac663936f",
+    "gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py": "4dff76a2490c15acf731036498862fb5a53ae1b1809b48b48485bb3e720bbf32",
+    "gx1/models/entry_v10/entry_v10_ctx_train_v3.py": "5983cd8d6395ed2a61a139a35069d96accc4c8c62378a8460d09ff3aeaf7201e",
+    "gx1/models/entry_v10/entry_v10_input_normalization.py": "b9bfa16cc61c3772a1621325c25f3ae0631c735b5f4b3dafdf0a5fe63558f148",
+    "gx1/scripts/validate_entry_model_native_technical_checkpoint_v1.py": "55060d9743bb1c3182ec9f03065432859bd19e9205b6516286dc5938135b2587",
+    "gx1/utils/artifact_primitives_v1.py": "94a85b804a10c28ff82ef83be5bd67d114ef686ec3e7d4cd36362a308af68932",
+    "scripts/gx1_capped_run.sh": "6cd8ccbc010e1ca16d2db3c8253582d7547561ae7b832473098f541787aa3c00",
+    "scripts/gx1_guarded_trainer_exec.sh": "6c4a4bfe704828aeb1c5ad2d89160e4cbb8fadb210be5fc33d26f12b96db0c45"
+  },
+  "stage": "market_state_time_query_v2_zero_step_20261107_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false,
+  "training_authorized": false
+}
