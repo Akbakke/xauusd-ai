@@ -44,8 +44,21 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T05:33:59.231654+00:00",
-  "status": "MARKET_STATE_TRENDLINE_FIVE_TF_WINDOW_PARITY_COMPLETE_EMA_REFERENCE_PENDING",
+  "observed_utc": "2026-11-07T05:47:44.467213+00:00",
+  "status": "MARKET_STATE_EMA_REFERENCE_SOURCE_TESTED_PLAN_PENDING",
+  "market_state_ema_side_reference_source_20261107": {
+    "status": "SOURCE_TESTED_NO_PLAN_NO_DATA_JOB",
+    "decision": "BINARY_CLOSED_EMA_SIDE_REFERENCE_SOURCE_READY",
+    "scope": "Five chronological TRAIN folds and all M5/M15/H1/H4/D1 endpoints; latest closed cache EMA50/200 bull-state column 98; same mature rows, activity prior and scoring support as frozen constant prior. Fit only earlier certified OPP/NED per EMA bin with Laplace +1; no fallback on queried unsupported bin. Per-fold paired Brier/log for conditional side and three-class. Reference measurement only, no model fit or trade.",
+    "source": {"path": "/home/andre2/src/GX1_CURRENT/gx1/audit/measure_market_state_ema_side_reference_v1.py", "sha256": "c881d0ac306890bb23ae1d9eff86a4b4de4ec52b68426990d9148036f973730c"},
+    "test": {"path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_ema_side_reference.py", "sha256": "516e0fe4ca85bd1221ee48d5a0b88d098aad54a787ed4a45d150803b56a9cbc8"},
+    "focused_integration_tests_passed": 40,
+    "data_reads_authorized": false,
+    "model_forwards_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false
+  },
   "m5_m15_h1_trendline_physical_oracle_20261107_001": {
     "status": "CONSUMED_COMPLETE_TRAIN_31_FIELD_PARITY",
     "decision": "PASS_M5_M15_H1_TRENDLINE_19_EXERCISED",
@@ -425,7 +438,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer, one real forward route, and a target-only batch bridge on two real TRAIN rows with synthetic logits are source-qualified; actual model-to-loss and optimizer skip, causal now-state references and indicator usefulness remain unqualified; one five-fold chronological TRAIN constant-prior reference is now measured. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "One capped five-fold TRAIN prior audit is complete and consumed, with independent reconstruction of exact mature fit prefixes and later score folds; no model/optimizer/TEST. M5 constant prior activity Brier is 0.062047 on 88376 cells; certified-side Brier is 0.249438 on 29576 cells. The scoped M5/M15/H1 trendline source passed 18 focused tests including existing D1/H4 checks; the one-use capped TRAIN audit finished exit 0 and is consumed: M5/M15/H1 31-field trendline source/cache parity has 0 mismatches across 2098700 May-Dec 2024 TRAIN cells and 19/19 lifecycle support per TF. This is indicator formula parity only. Next test an EMA50/200 binary side reference on the same mature five-fold TRAIN rows before model fit; no new plan is yet admitted. Next qualify residual indicator formulas and numerical consumption, beginning with this capped scoped oracle; then bind actual model-to-loss/skip and chronological OOF under fold-specific normalization. Compare activity, certified side and three-class on identical mature rows against this frozen prior before any model fit claim. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
+  "next_action": "One capped five-fold TRAIN prior audit is complete and consumed, with independent reconstruction of exact mature fit prefixes and later score folds; no model/optimizer/TEST. M5 constant prior activity Brier is 0.062047 on 88376 cells; certified-side Brier is 0.249438 on 29576 cells. The scoped M5/M15/H1 trendline source passed 18 focused tests including existing D1/H4 checks; the one-use capped TRAIN audit finished exit 0 and is consumed: M5/M15/H1 31-field trendline source/cache parity has 0 mismatches across 2098700 May-Dec 2024 TRAIN cells and 19/19 lifecycle support per TF. This is indicator formula parity only. The simplest closed EMA50/200 binary side reference source is now tested on 40 focused tests, including paired prior score/mask identity and TRAIN-only as-of clocks. No EMA plan or data job exists yet. Next freeze an exact one-use capped TRAIN reference plan, preflight read-only, then separately admit and measure. After that qualify remaining indicator formulas and numerical consumption, actual model-to-loss/skip and chronological OOF under fold-specific normalization. Compare activity, certified side and three-class on identical mature rows against this frozen prior before any model fit claim. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
