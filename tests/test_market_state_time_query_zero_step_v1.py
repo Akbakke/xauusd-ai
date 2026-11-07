@@ -18,17 +18,17 @@ def _plan() -> tuple[dict, str]:
         'schema_version': audit.SCHEMA, 'stage': audit.STAGE,
         'status': 'PREPARED_NOT_ADMITTED', 'source_base_head': head,
         'output_root': str(audit.OUT_ROOT),
-        'fold_id': audit.FOLD_ID, 'partition': 'fit',
+        'fold_ids': audit.FOLD_IDS, 'partition': 'fit',
         'sample_parent_rows': audit.PARENT_ROWS,
         'sample_issue_ns': audit.ISSUE_NS,
         'pass_index': audit.PASS_INDEX, 'seed': audit.SEED,
         'max_invocations': 1, 'max_json_bytes': audit.MAX_JSON_BYTES,
-        'model_forwards_authorized': 1, 'backward_calls_authorized': 1,
+        'model_forwards_authorized': 2, 'backward_calls_authorized': 2,
         'optimizer_steps_authorized': 0, 'training_authorized': False,
         'test_data_used': False, 'execution': audit.EXECUTION,
         'limits': audit.LIMITS,
         'input_refs': {key: audit._fixed_ref(key) for key in audit.FIXED},
-        'expected_view_sha256': audit.EXPECTED_VIEW_SHA256,
+        'expected_view_sha256_by_fold': audit.EXPECTED_VIEW_SHA256_BY_FOLD,
         'expected_model_contract_sha256': audit.time_query_model_contract()['contract_sha256'],
         'expected_loss_contract_sha256': audit.time_query_loss_contract()['contract_sha256'],
         'source_owners': {path: audit._sha(audit.REPO / path)
@@ -60,7 +60,7 @@ def test_preclaim_plan_scope_and_source_hash_fail_closed():
                             out_dir=audit.OUT_ROOT, device='cuda', cap=None)
 
 
-def test_complete_fold2_receipts_and_historical_current_ref_split():
+def test_complete_fold1_fold2_receipts_and_source_ref_split():
     if not audit.FIXED['fold2_normalization'][0].exists():
         pytest.skip('Local immutable fold-2 receipt is unavailable')
     receipts = audit._inspect_receipts()
@@ -68,15 +68,34 @@ def test_complete_fold2_receipts_and_historical_current_ref_split():
         '39b4ac93af9938a3452e457d3d14d5a3c8a5846a')
     assert set(receipts['historical_lineage']['reviewed_runtime_drift']) == (
         set(audit.HISTORICAL_RUNTIME_BRIDGE))
+    assert receipts['fold1']['cohort']['joined_fit_rows'] == 29574
+    assert receipts['fold1']['profile']['contract_sha256'] == audit.fold1.PROFILE_SHA256
+    assert receipts['fold1']['lineage']['current_source_owner_count'] == 25
     plan, _ = _plan()
-    view = audit._bind_view(plan, receipts)
-    assert view['contract_sha256'] == audit.EXPECTED_VIEW_SHA256
-    assert view['research_objective']['contract_sha256'] == (
-        audit.time_query_model_contract()['contract_sha256'])
-    assert len(view['source_bindings']) == 17
+    for fold_id in audit.FOLD_IDS:
+        view = audit._bind_view(plan, receipts, fold_id)
+        assert view['contract_sha256'] == audit.EXPECTED_VIEW_SHA256_BY_FOLD[str(fold_id)]
+        assert view['research_objective']['contract_sha256'] == (
+            audit.time_query_model_contract()['contract_sha256'])
+        assert len(view['source_bindings']) == 17
+        assert ('unobserved_units_profile' in view) == (fold_id == 1)
+        assert view['source_bindings']['gc_gather_source']['sha256'] == (
+            audit.HISTORICAL_RUNTIME_BRIDGE['gx1/contracts/entry_gc_mtf_history_v1.py'][
+                1 if fold_id == 1 else 0])
     assert len(audit.IMMUTABLE_VIEW_REF_KEYS) == 7
     assert len(audit.HISTORICAL_VIEW_REF_KEYS) == 1
     assert len(audit.CURRENT_VIEW_REF_KEYS) == 9
+    from gx1.contracts.market_state_time_query_binding_v1 import load_bound_time_query_targets
+    import numpy as np
+    bound = load_bound_time_query_targets()
+    for fold_id in audit.FOLD_IDS:
+        truth = bound.gather_fit_sampled(
+            np.asarray(audit.PARENT_ROWS, dtype=np.int64),
+            np.asarray(audit.ISSUE_NS, dtype=np.int64),
+            fold_id=fold_id, pass_index=audit.PASS_INDEX, seed=audit.SEED)
+        assert truth['query_k'][0].tolist() == audit.EXPECTED_QUERY_K
+        assert truth['allowed'][0].tolist() == audit.EXPECTED_ALLOWED
+        assert truth['eligible'][0].tolist() == [True, True, False, False, False]
 
 
 def test_gradient_summary_synthetic_only():
@@ -146,8 +165,11 @@ def test_run_writes_claim_result_terminal_and_blocks_relaunch(monkeypatch, tmp_p
     plan_path, plan_ref, policy_ref, out_dir = _synthetic_run_preflight(
         monkeypatch, tmp_path)
     monkeypatch.setattr(audit, '_witness', lambda *_args: {
-        'decision': 'SYNTHETIC_BACKWARD_NO_UPDATE', 'model_forwards': 1,
-        'backward_calls': 1, 'optimizer_steps': 0, 'test_data_used': False,
+        'decision': 'SYNTHETIC_DUAL_BACKWARD_NO_UPDATE',
+        'fold_ids': audit.FOLD_IDS,
+        'fold_results': {'1': {'fold_id': 1}, '2': {'fold_id': 2}},
+        'model_forwards': 2, 'backward_calls': 2,
+        'optimizer_steps': 0, 'test_data_used': False,
     })
 
     returned = audit.run(plan_path, plan_ref['sha256'], 'cuda', out_dir)
@@ -162,6 +184,10 @@ def test_run_writes_claim_result_terminal_and_blocks_relaunch(monkeypatch, tmp_p
     assert terminal['result'] == returned['result'] == refs['RESULT.json']
     assert returned['terminal'] == refs['TERMINAL.json']
     assert terminal['status'] == result['status'] == 'COMPLETE'
+    assert claim['fold_ids'] == result['fold_ids'] == audit.FOLD_IDS
+    assert set(result['fold_results']) == {'1', '2'}
+    assert terminal['model_forwards'] == terminal['backward_calls'] == 2
+    assert terminal['optimizer_steps'] == 0
     assert terminal['no_relaunch_under_this_plan'] is True
     assert terminal['output_inventory'] == ['CLAIM.json', 'RESULT.json', 'TERMINAL.json']
     with pytest.raises(FileExistsError):
@@ -187,9 +213,50 @@ def test_run_writes_claim_failed_terminal_and_blocks_relaunch(monkeypatch, tmp_p
     assert failure['claim'] == terminal['claim'] == refs['CLAIM.json']
     assert terminal['failure'] == refs['FAILED.json']
     assert terminal['status'] == 'FAILED' and terminal['exit_code'] == 1
+    assert terminal['model_forwards_upper_bound'] == 2
+    assert terminal['backward_calls_upper_bound'] == 2
     assert failure['no_relaunch_under_this_plan'] is True
     assert terminal['no_relaunch_under_this_plan'] is True
     assert terminal['output_inventory'] == ['CLAIM.json', 'FAILED.json', 'TERMINAL.json']
     with pytest.raises(FileExistsError):
         audit.run(plan_path, plan_ref['sha256'], 'cuda', out_dir)
     assert _run_file_refs(out_dir) == refs
+
+
+def test_admitted_policy_status_and_dual_budget_fail_closed():
+    if audit.OUT_ROOT.exists():
+        pytest.skip('One-use output already exists; plan was consumed')
+    plan, head = _plan()
+    plan_ref = {'path': str(audit.PLAN_PATH), 'sha256': '0' * 64}
+    cap = {
+        'memory_max': audit.MEMORY_BYTES,
+        'memory_high': audit.MEMORY_BYTES,
+        'swap': audit.SWAP_BYTES,
+        'pids': 128, 'class': 'producer', 'execution_mode': 'cuda_producer',
+        'lock': {'scope': '/synthetic.scope'},
+        'cgroup_path': '/sys/fs/cgroup/synthetic.scope',
+    }
+    gate = {
+        'status': 'ADMITTED', 'decision': 'ADMITTED', 'plan': plan_ref,
+        'execution_authorized': True, 'data_reads_authorized': True,
+        'model_forwards_authorized': 2, 'backward_calls_authorized': 2,
+        'optimizer_steps_authorized': 0, 'training_authorized': False,
+        'test_authorized': False, 'claimed_invocations': 0,
+        'completed_invocations': 0, 'max_invocations': 1,
+        'output_root': str(audit.OUT_ROOT), 'relaunch_allowed': False,
+        'checkpoint_reads_authorized': False, 'broker_access_allowed': False,
+        'test_data_used': False, 'memory_max': '12G', 'swap_max': '512M',
+        'wall_seconds': audit.WALL_SECONDS,
+    }
+    policy = {
+        'training_enabled': False, 'native_training_enabled': False,
+        'native_launch_authorized': False, 'full_val_allowed': False,
+        audit.STAGE: gate,
+    }
+    audit._qualify_plan(plan, plan_ref, policy, head=head,
+                        out_dir=audit.OUT_ROOT, device='cuda', cap=cap)
+    for change in ({'status': 'HELD'}, {'model_forwards_authorized': 1}):
+        bad = dict(policy, **{audit.STAGE: dict(gate, **change)})
+        with pytest.raises(RuntimeError, match='POLICY'):
+            audit._qualify_plan(plan, plan_ref, bad, head=head,
+                                out_dir=audit.OUT_ROOT, device='cuda', cap=cap)

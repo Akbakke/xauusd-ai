@@ -1,6 +1,6 @@
 # Markedstilstand ved framtidige M5-beslutningstidspunkt
 
-**Status 07.11.2026:** TRAIN-kandidattape og fryste kronologiske referanser er fysisk kontrollert. Modell-, foldbindings-, taps- og skårkontrakter er kilde-/syntetisk testet; fersk fold 1-normalisering og fysisk nullstegskontroll gjenstår. Ingen modellfit eller TEST-adgang. Gjeldende arbeidsstatus eies av `NEXT_RUN_POLICY.json` og `CURRENT_HANDOVER.md`.
+**Status 07.11.2026:** TRAIN-kandidattape og fryste kronologiske referanser er fysisk kontrollert. Modell-, foldbindings-, taps- og skårkontrakter er kilde-/syntetisk testet; fersk fold 1-normalisering er fysisk fullført og uavhengig kontrollert; en fold 1/2-nullstegskontroll er kilde-/syntetisk kvalifisert og innrømmet, men fysisk CUDA-kontroll gjenstår. Ingen modellfit eller TEST-adgang. Gjeldende arbeidsstatus eies av `NEXT_RUN_POLICY.json` og `CURRENT_HANDOVER.md`.
 
 ## Spørsmålet som skal testes
 

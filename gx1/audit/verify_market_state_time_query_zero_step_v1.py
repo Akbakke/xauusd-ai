@@ -1,8 +1,9 @@
 """One-use TRAIN-only native time-query zero-step gradient witness.
 
 A separately admitted guarded CUDA producer may call ``run`` once. The witness
-uses the published fold-2 mature input normalization, one exact M5 issue and
-its label-blind future queries. It performs no optimizer, checkpoint, TEST,
+uses the published fold-1 and fold-2 mature input normalizations, one
+exact M5 issue per fold and label-blind future queries. It performs no
+optimizer, checkpoint, TEST,
 Entry, Exit or trading operation and grants no model-fit authority.
 """
 from __future__ import annotations
@@ -16,6 +17,10 @@ import subprocess
 import time
 
 from gx1.audit import qualify_market_state_mature_prefix_normalization_v1 as mature
+from gx1.audit import fit_market_state_mature_fold1_units_v1 as fold1
+from gx1.contracts.entry_native_direction_prefix_normalization_v1 import (
+    require_prefix_units_normalization_bindings,
+)
 from gx1.audit import verify_market_state_five_endpoint_zero_step_v1 as old_zero
 from gx1.contracts import market_state_time_query_binding_v1 as binding
 from gx1.contracts.market_state_time_query_loss_v1 import time_query_loss_contract
@@ -34,25 +39,43 @@ MEMORY_BYTES = 12 * 1024**3
 SWAP_BYTES = 512 * 1024**2
 WALL_SECONDS = 3600
 MAX_JSON_BYTES = 1024 * 1024
-FOLD_ID = 2
+FOLD_IDS = [1, 2]
+FOLD1_ID = 1
+FOLD2_ID = 2
 PASS_INDEX = 0
 SEED = 20261107
 PARENT_ROWS = [2]
 ISSUE_NS = [1714522500000000000]
 EXPECTED_QUERY_K = [1, 2, 2, 5, 92]
 EXPECTED_ALLOWED = [1, 1, 7, 7, 7]
-EXPECTED_VIEW_SHA256 = '0cc8bcfa2cabbff6ddb214956d7c16c8b065c0338508678698d59029abdf16ed'
+EXPECTED_VIEW_SHA256_BY_FOLD = {
+    '1': '7e0d13f1b4f58cc4d3dd294bf869d3195b48a69c022fe570e6b4db02f1581f15',
+    '2': '0cc8bcfa2cabbff6ddb214956d7c16c8b065c0338508678698d59029abdf16ed',
+}
 EXECUTION = {
     'class': 'producer', 'cuda_producer': True, 'device': 'cuda',
     'module': 'gx1.scripts.validate_entry_model_native_technical_checkpoint_v1',
     'flag': '--market-state-time-query-zero-step-plan',
-    'memory': '12G', 'swap': '512M', 'model_forwards': 1,
-    'backward_calls': 1, 'optimizer_steps': 0,
+    'memory': '12G', 'swap': '512M', 'model_forwards': 2,
+    'backward_calls': 2, 'optimizer_steps': 0,
 }
 LIMITS = {'memory_max': MEMORY_BYTES, 'memory_high': MEMORY_BYTES,
           'swap': SWAP_BYTES, 'max_wall_seconds': WALL_SECONDS}
 MATURE_ROOT = RUNS / 'MARKET_STATE_MATURE_PREFIX_NORMALIZATION_20261107_001'
+FOLD1_ROOT = RUNS / 'MARKET_STATE_MATURE_FOLD1_NORMALIZATION_20261107_001'
 FIXED = {
+    'fold1_plan': (fold1.PLAN_PATH,
+                   '2e74f6369d3b3bf685d9cdaa606db84ed0e5cadf6f4afe1fdb59e7550ef68616'),
+    'fold1_claim': (FOLD1_ROOT / 'CLAIM.json',
+                    'e85eec1bc81371c7dc77fb922350010ca7a96d9baad31bf41bd9127910e124c1'),
+    'fold1_result': (FOLD1_ROOT / 'RESULT.json',
+                     'c6cc941203a38791c348a775e6815318fd265d659406207e59ebac374c2754fc'),
+    'fold1_terminal': (FOLD1_ROOT / 'TERMINAL.json',
+                       'c0aeef405973d13351f5ebb2b1451a33b8a03f72d7b24cf19f95c5a6a91c2537'),
+    'fold1_qualification': (FOLD1_ROOT / 'QUALIFICATION_FOLD_1.json',
+                            '0fad1ac1476205e0485207da4b5e6be6b0de5585a8cb4170f87679c63580fb94'),
+    'fold1_normalization': (FOLD1_ROOT / 'PREFIX_NORMALIZATION_FOLD_1.json',
+                            'e24a2b8d1ae09f6f10c2de7a7097353b52aa2f2118287535e242778272022d54'),
     'mature_plan': (mature.PLAN_PATH,
                     'b77795e606b35424d6189b7866337ca74c9f7dfc22371168452f5a6f6d665029'),
     'mature_claim': (MATURE_ROOT / 'CLAIM.json',
@@ -70,6 +93,7 @@ FIXED = {
     'candidate_tape': binding.CANDIDATE_REFS['tape'],
 }
 SOURCE_PATHS = mature.SOURCE_PATHS | frozenset({
+    'gx1/audit/fit_market_state_mature_fold1_units_v1.py',
     'gx1/audit/verify_market_state_time_query_zero_step_v1.py',
     'gx1/audit/verify_market_state_five_endpoint_zero_step_v1.py',
     'gx1/contracts/entry_native_direction_feature_view_v1.py',
@@ -197,7 +221,7 @@ def _inspect_receipts() -> dict:
     base_view = _read_ref(_fixed_ref('base_view'))
     mature._validate_cohort_contract(plan['cohorts'])
     fits = result.get('fits', [])
-    fold2 = next((item for item in fits if item.get('fold_id') == FOLD_ID), None)
+    fold2 = next((item for item in fits if item.get('fold_id') == FOLD2_ID), None)
     cohort2 = plan['cohorts'][1]
     _need(result.get('status') == 'COMPLETE_FIVE_MATURE_INPUT_QUALIFICATIONS_CONDITIONAL_FITS_NO_MODEL'
           and result.get('plan') == _fixed_ref('mature_plan')
@@ -230,9 +254,105 @@ def _inspect_receipts() -> dict:
     binding._checked_bytes('tape', 32 * 1024**2)
     chain = mature._receipt_chain()
     lineage = _historical_source_lineage(normal, result)
+    fold1_receipts = _inspect_fold1_receipts(plan)
     return {'mature_plan': plan, 'normal': normal, 'constructor': constructor,
-            'base_view': base_view, 'cohort2': cohort2,
+            'base_view': base_view, 'cohort2': cohort2, 'fold1': fold1_receipts,
             'provider_chain': chain, 'historical_lineage': lineage}
+
+
+def _inspect_fold1_receipts(mature_plan: dict) -> dict:
+    plan = _read_ref(_fixed_ref('fold1_plan'))
+    claim = _read_ref(_fixed_ref('fold1_claim'))
+    result = _read_ref(_fixed_ref('fold1_result'))
+    terminal = _read_ref(_fixed_ref('fold1_terminal'))
+    qualified = _read_ref(_fixed_ref('fold1_qualification'))
+    normal = _read_ref(_fixed_ref('fold1_normalization'))
+    _, old_report, profile = fold1._original_receipts()
+    cohort = mature_plan['cohorts'][0]
+    provenance = qualified['proof']['source_bindings']
+    _need(plan.get('schema_version') == fold1.SCHEMA
+          and plan.get('status') == 'PREPARED_NOT_ADMITTED'
+          and plan.get('cohort') == cohort
+          and plan.get('input_refs') == fold1.INPUT_REFS
+          and claim.get('plan') == result.get('plan') == terminal.get('plan')
+              == _fixed_ref('fold1_plan')
+          and result.get('claim') == terminal.get('claim') == _fixed_ref('fold1_claim')
+          and result.get('policy') == claim.get('policy')
+          and result.get('source_head') == claim.get('source_head')
+              == provenance.get('current_source_head')
+          and result.get('status')
+              == 'COMPLETE_FOLD1_MATURE_UNITS_PREFIX_NORMALIZATION_NO_MODEL'
+          and result.get('input_refs') == fold1.INPUT_REFS
+          and result.get('cohort') == cohort
+          and result.get('old_raw_qualification')
+              == fold1.INPUT_REFS['original_fold1_report']
+          and result.get('new_qualification') == _fixed_ref('fold1_qualification')
+          and result.get('normalization') == _fixed_ref('fold1_normalization')
+          and result.get('normalization_contract_sha256') == normal['contract_sha256']
+          and result.get('unit_profile_sha256') == profile['contract_sha256']
+              == fold1.PROFILE_SHA256
+          and result.get('fit_rows') == cohort['joined_fit_rows'] == fold1.FIT_ROWS
+          and result.get('declared_unit_support_rows') == len(old_report['blockers']) == 153
+          and result.get('statistics_fits') == 1
+          and result.get('decoded_target_arrays') == result.get('decoded_label_arrays') == 0
+          and result.get('model_forwards') == result.get('model_constructions') == 0
+          and result.get('optimizer_steps') == 0
+          and result.get('test_data_used') is False
+          and result.get('model_training_authorized') is False
+          and result.get('native_launch_authorized') is False
+          and terminal.get('status') == 'COMPLETE'
+          and terminal.get('exit_code') == 0
+          and terminal.get('result') == _fixed_ref('fold1_result')
+          and terminal.get('fit_count') == terminal.get('qualification_count') == 1
+          and terminal.get('model_forwards') == terminal.get('optimizer_steps') == 0
+          and terminal.get('test_data_used') is False
+          and terminal.get('no_relaunch_under_this_plan') is True
+          and qualified.get('fit_allowed') is True
+          and qualified.get('blockers') == []
+          and qualified.get('statistics_fits') == 0
+          and qualified.get('unobserved_units_profile') == profile
+          and qualified.get('declared_unit_support') == old_report['blockers']
+          and qualified['proof']['prefix']['rows'] == fold1.FIT_ROWS
+          and qualified['proof']['prefix']['cutoff_ns'] == cohort['effective_fit_cutoff_ns']
+          and normal.get('prefix_qualification') == qualified
+          and normal.get('unobserved_units_profile') == profile
+          and normal.get('old055_or223_normalization_identity_reused') is False
+          and normal.get('genuine_model_fit_authorized') is False
+          and normal.get('native_launch_authorized') is False
+          and provenance.get('current_plan') == _fixed_ref('fold1_plan')
+          and provenance.get('current_source_owners') == plan.get('source_owners'),
+          'MATURE_FOLD1_CHAIN')
+    fold1._validate_new_report(qualified, old_report, profile, provenance)
+    require_prefix_units_normalization_bindings(normal, profile)
+    lineage = _fold1_source_lineage(provenance)
+    return {'normal': normal, 'qualification': qualified, 'profile': profile,
+            'cohort': cohort, 'lineage': lineage}
+
+
+def _fold1_source_lineage(provenance: dict) -> dict:
+    head = provenance['current_source_head']
+    owners = provenance['current_source_owners']
+    _need(isinstance(owners, dict) and set(owners) == fold1.SOURCE_PATHS
+          and subprocess.run(['git', 'cat-file', '-e', head + '^{commit}'],
+                             cwd=REPO, stdout=subprocess.DEVNULL,
+                             stderr=subprocess.DEVNULL).returncode == 0,
+          'FOLD1_SOURCE_HEAD')
+    historical_policy = provenance['current_policy']
+    _need(historical_policy['path'] == str(POLICY)
+          and hashlib.sha256(subprocess.check_output(
+              ['git', 'show', head + ':NEXT_RUN_POLICY.json'], cwd=REPO,
+              timeout=15)).hexdigest() == historical_policy['sha256'],
+          'FOLD1_HISTORICAL_POLICY')
+    for path, source_sha in owners.items():
+        relative = Path(path)
+        _need(not relative.is_absolute() and '..' not in relative.parts
+              and len(source_sha) == 64 and _sha(REPO / relative) == source_sha
+              and hashlib.sha256(subprocess.check_output(
+                  ['git', 'show', head + ':' + path], cwd=REPO,
+                  timeout=15)).hexdigest() == source_sha,
+              'FOLD1_CURRENT_SOURCE:' + path)
+    return {'source_head': head, 'historical_policy_sha256': historical_policy['sha256'],
+            'current_source_owner_count': len(owners)}
 
 
 def _historical_source_lineage(normal: dict, result: dict) -> dict:
@@ -273,8 +393,9 @@ def _historical_source_lineage(normal: dict, result: dict) -> dict:
             'reviewed_runtime_drift': list(sorted(drift))}
 
 
-def _source_refs(plan: dict, receipts: dict) -> dict:
+def _source_refs(plan: dict, receipts: dict, fold_id: int) -> dict:
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    _need(fold_id in FOLD_IDS, 'VIEW_FOLD')
     old = receipts['base_view']['source_bindings']
     _need(views.SOURCE_REF_KEYS <= set(old), 'BASE_VIEW_SOURCE_KEYS')
     sources = {key: old[key] for key in views.SOURCE_REF_KEYS}
@@ -284,8 +405,12 @@ def _source_refs(plan: dict, receipts: dict) -> dict:
         REPO / component_path, plan['source_owners'][component_path])
     sources['native_constructor_source'] = _ref(
         REPO / constructor_path, plan['source_owners'][constructor_path])
-    provenance = receipts['normal']['prefix_qualification']['proof']['source_bindings']
-    sources.update(input_qualification=_fixed_ref('fold2_qualification'),
+    normal = receipts['fold1']['normal'] if fold_id == FOLD1_ID else receipts['normal']
+    qualification = ('fold1_qualification' if fold_id == FOLD1_ID
+                     else 'fold2_qualification')
+    mature_plan = 'fold1_plan' if fold_id == FOLD1_ID else 'mature_plan'
+    provenance = normal['prefix_qualification']['proof']['source_bindings']
+    sources.update(input_qualification=_fixed_ref(qualification),
                    raw_input_provider_plan=provenance['provider_plan'],
                    raw_gc_layout=provenance['boolean_raw_gc_layout'],
                    raw_gc_transition=provenance['boolean_raw_domain_transition'])
@@ -296,15 +421,17 @@ def _source_refs(plan: dict, receipts: dict) -> dict:
     for key, path in TIME_QUERY_SOURCE_PATHS.items():
         sources[key] = _ref(REPO / path, plan['source_owners'][path])
     sources['time_query_candidate_tape'] = _fixed_ref('candidate_tape')
-    sources['time_query_mature_prefix_plan'] = _fixed_ref('mature_plan')
+    sources['time_query_mature_prefix_plan'] = _fixed_ref(mature_plan)
+    historical = (HISTORICAL_VIEW_REF_KEYS if fold_id == FOLD2_ID else frozenset())
+    current = CURRENT_VIEW_REF_KEYS | (HISTORICAL_VIEW_REF_KEYS
+                                       if fold_id == FOLD1_ID else frozenset())
     _need(set(sources) == views.SOURCE_REF_KEYS | views.TIME_QUERY_SOURCE_REF_KEYS
-          == IMMUTABLE_VIEW_REF_KEYS | HISTORICAL_VIEW_REF_KEYS | CURRENT_VIEW_REF_KEYS
-          and not (IMMUTABLE_VIEW_REF_KEYS & HISTORICAL_VIEW_REF_KEYS)
-          and not (IMMUTABLE_VIEW_REF_KEYS & CURRENT_VIEW_REF_KEYS)
-          and not (HISTORICAL_VIEW_REF_KEYS & CURRENT_VIEW_REF_KEYS),
-          'SOURCE_REF_CLASSES')
+          == IMMUTABLE_VIEW_REF_KEYS | historical | current
+          and not (IMMUTABLE_VIEW_REF_KEYS & historical)
+          and not (IMMUTABLE_VIEW_REF_KEYS & current)
+          and not (historical & current), 'SOURCE_REF_CLASSES')
     for key, item in sources.items():
-        if key in HISTORICAL_VIEW_REF_KEYS:
+        if key in historical:
             path = 'gx1/contracts/entry_gc_mtf_history_v1.py'
             _need(item == _ref(REPO / path, HISTORICAL_RUNTIME_BRIDGE[path][0])
                   and _sha(REPO / path) == HISTORICAL_RUNTIME_BRIDGE[path][1],
@@ -322,17 +449,24 @@ def _source_refs(plan: dict, receipts: dict) -> dict:
     return sources
 
 
-def _bind_view(plan: dict, receipts: dict) -> dict:
+def _bind_view(plan: dict, receipts: dict, fold_id: int) -> dict:
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
+    _need(fold_id in FOLD_IDS, 'VIEW_FOLD')
+    normal = receipts['fold1']['normal'] if fold_id == FOLD1_ID else receipts['normal']
+    normalization_ref = ('fold1_normalization' if fold_id == FOLD1_ID
+                         else 'fold2_normalization')
+    profile = receipts['fold1']['profile'] if fold_id == FOLD1_ID else None
     view = views.bind_native_direction_feature_view(
-        prefix_normalization=receipts['normal'],
-        prefix_normalization_ref=_fixed_ref('fold2_normalization'),
+        prefix_normalization=normal,
+        prefix_normalization_ref=_fixed_ref(normalization_ref),
         constructor_metadata=receipts['constructor'],
         constructor_metadata_ref=_fixed_ref('constructor'),
-        source_bindings=_source_refs(plan, receipts), max_batch_rows=16,
-        full_feature_profile=True, market_state_time_query=True)
-    _need(view['contract_sha256'] == EXPECTED_VIEW_SHA256
-          == plan['expected_view_sha256']
+        source_bindings=_source_refs(plan, receipts, fold_id), max_batch_rows=16,
+        full_feature_profile=True, market_state_time_query=True,
+        unobserved_units_profile=profile)
+    key = str(fold_id)
+    _need(view['contract_sha256'] == EXPECTED_VIEW_SHA256_BY_FOLD[key]
+          == plan['expected_view_sha256_by_fold'][key]
           and view['research_objective']['contract_sha256']
           == time_query_model_contract()['contract_sha256']
           == plan['expected_model_contract_sha256'], 'VIEW_IDENTITY')
@@ -352,21 +486,21 @@ def _qualify_plan(plan: dict, plan_ref: dict, policy: dict | None, *,
           and plan.get('output_root') == str(OUT_ROOT) == str(out_dir)
           and out_dir.is_absolute() and not out_dir.exists()
           and device == 'cuda'
-          and plan.get('fold_id') == FOLD_ID and plan.get('partition') == 'fit'
+          and plan.get('fold_ids') == FOLD_IDS and plan.get('partition') == 'fit'
           and plan.get('sample_parent_rows') == PARENT_ROWS
           and plan.get('sample_issue_ns') == ISSUE_NS
           and plan.get('pass_index') == PASS_INDEX and plan.get('seed') == SEED
           and plan.get('max_invocations') == 1
           and plan.get('max_json_bytes') == MAX_JSON_BYTES
-          and plan.get('model_forwards_authorized') == 1
-          and plan.get('backward_calls_authorized') == 1
+          and plan.get('model_forwards_authorized') == 2
+          and plan.get('backward_calls_authorized') == 2
           and plan.get('optimizer_steps_authorized') == 0
           and plan.get('training_authorized') is False
           and plan.get('test_data_used') is False
           and plan.get('execution') == EXECUTION
           and plan.get('limits') == LIMITS
           and plan.get('input_refs') == {key: _fixed_ref(key) for key in FIXED}
-          and plan.get('expected_view_sha256') == EXPECTED_VIEW_SHA256
+          and plan.get('expected_view_sha256_by_fold') == EXPECTED_VIEW_SHA256_BY_FOLD
           and plan.get('expected_model_contract_sha256')
               == time_query_model_contract()['contract_sha256']
           and plan.get('expected_loss_contract_sha256')
@@ -391,9 +525,9 @@ def _qualify_plan(plan: dict, plan_ref: dict, policy: dict | None, *,
           'CAP_AND_LOCK')
     gate = policy.get(STAGE) if isinstance(policy, dict) else None
     expected = {
-        'decision': 'ADMITTED', 'plan': plan_ref,
+        'status': 'ADMITTED', 'decision': 'ADMITTED', 'plan': plan_ref,
         'execution_authorized': True, 'data_reads_authorized': True,
-        'model_forwards_authorized': 1, 'backward_calls_authorized': 1,
+        'model_forwards_authorized': 2, 'backward_calls_authorized': 2,
         'optimizer_steps_authorized': 0, 'training_authorized': False,
         'test_authorized': False, 'claimed_invocations': 0,
         'completed_invocations': 0, 'max_invocations': 1,
@@ -426,19 +560,25 @@ def preflight_read_only(plan_path: Path, plan_sha256: str, out_dir: Path) -> dic
     _qualify_plan(plan, ref, None, head=head, out_dir=Path(out_dir),
                   device='cuda', cap=None)
     receipts = _inspect_receipts()
-    view = _bind_view(plan, receipts)
+    views = {str(fold_id): _bind_view(plan, receipts, fold_id)
+             for fold_id in FOLD_IDS}
     return {'status': 'READY_NO_CLAIM_NO_RAW_FEATURE_PAYLOAD',
             'plan': ref, 'source_head': head,
-            'view_sha256': view['contract_sha256'],
-            'model_contract_sha256': view['research_objective']['contract_sha256'],
+            'view_sha256_by_fold': {key: view['contract_sha256']
+                                    for key, view in views.items()},
+            'model_contract_sha256': time_query_model_contract()['contract_sha256'],
             'loss_contract_sha256': time_query_loss_contract()['contract_sha256'],
             'source_owner_refs_checked': len(plan['source_owners']),
             'view_ref_classes': {
-                'immutable_artifact': sorted(IMMUTABLE_VIEW_REF_KEYS),
-                'historical_mature_source': sorted(HISTORICAL_VIEW_REF_KEYS),
-                'current_runtime_source': sorted(CURRENT_VIEW_REF_KEYS)},
+                'fold1': {'immutable_artifact': sorted(IMMUTABLE_VIEW_REF_KEYS),
+                          'current_runtime_source': sorted(CURRENT_VIEW_REF_KEYS
+                                                           | HISTORICAL_VIEW_REF_KEYS)},
+                'fold2': {'immutable_artifact': sorted(IMMUTABLE_VIEW_REF_KEYS),
+                          'historical_mature_source': sorted(HISTORICAL_VIEW_REF_KEYS),
+                          'current_runtime_source': sorted(CURRENT_VIEW_REF_KEYS)}},
             'tape_sha256_checked': _fixed_ref('candidate_tape')['sha256'],
-            'historical_lineage': receipts['historical_lineage'],
+            'fold1_lineage': receipts['fold1']['lineage'],
+            'fold2_historical_lineage': receipts['historical_lineage'],
             'claim_created': False, 'model_forwards': 0,
             'backward_calls': 0, 'optimizer_steps': 0, 'test_data_used': False}
 
@@ -457,7 +597,8 @@ def _preflight(plan_path: Path, plan_sha256: str, device: str,
     _qualify_plan(plan, plan_ref, policy, head=head, out_dir=out_dir,
                   device=device, cap=cap)
     receipts = _inspect_receipts()
-    _bind_view(plan, receipts)
+    for fold_id in FOLD_IDS:
+        _bind_view(plan, receipts, fold_id)
     return plan, plan_ref, policy_ref, head, cap, receipts
 
 
@@ -497,8 +638,9 @@ def _witness(plan: dict, cap: dict, receipts: dict) -> dict:
         at = np.searchsorted(axes['parent_rows'], selected)
         _need(np.array_equal(axes['parent_rows'][at], selected)
               and np.array_equal(axes['decision_ns'][at], issues)
-              and int(at[0]) < receipts['cohort2']['joined_fit_rows'],
-              'EXACT_FOLD2_SAMPLE')
+              and int(at[0]) < receipts['fold1']['cohort']['joined_fit_rows']
+              < receipts['cohort2']['joined_fit_rows'],
+              'EXACT_DUAL_FOLD_SAMPLE')
         for key in ('parent_rows', 'bar_start_ns', 'decision_ns'):
             axes[key].setflags(write=False)
         sequence = prepared['entry_sequence_source']
@@ -506,105 +648,133 @@ def _witness(plan: dict, cap: dict, receipts: dict) -> dict:
             sequence[key].setflags(write=False)
         for key in ('snap', 'ctx_cont', 'ctx_cat'):
             prepared['current'][key].setflags(write=False)
-        view = _bind_view(plan, receipts)
-        raw = views.gather_native_direction_feature_batch(
-            view, parent_rows=axes['parent_rows'],
-            bar_start_ns=axes['bar_start_ns'], decision_ns=axes['decision_ns'],
-            entry_sequence_source=sequence,
-            snap_x=prepared['current']['snap'],
-            ctx_cont=prepared['current']['ctx_cont'],
-            ctx_cat=prepared['current']['ctx_cat'],
-            multi_tf_sources=prepared['cache'],
-            gc_surfaces=prepared['gc']['surfaces'],
-            gc_layout=prepared['gc']['layout'],
-            batch_parent_rows=selected)
+        bound_views = {fold_id: _bind_view(plan, receipts, fold_id)
+                       for fold_id in FOLD_IDS}
+        raw_by_fold = {}
+        for fold_id in FOLD_IDS:
+            profile = receipts['fold1']['profile'] if fold_id == FOLD1_ID else None
+            raw_by_fold[fold_id] = views.gather_native_direction_feature_batch(
+                bound_views[fold_id], parent_rows=axes['parent_rows'],
+                bar_start_ns=axes['bar_start_ns'], decision_ns=axes['decision_ns'],
+                entry_sequence_source=sequence,
+                snap_x=prepared['current']['snap'],
+                ctx_cont=prepared['current']['ctx_cont'],
+                ctx_cat=prepared['current']['ctx_cat'],
+                multi_tf_sources=prepared['cache'],
+                gc_surfaces=prepared['gc']['surfaces'],
+                gc_layout=prepared['gc']['layout'],
+                batch_parent_rows=selected,
+                unobserved_units_profile=profile)
         snapshot = campaign.capture_verified_file_snapshot()
-    _need(set(raw['features']) == FEATURE_KEYS
-          and raw['witness']['parent_rows'] == PARENT_ROWS
-          and raw['witness']['decision_ns'] == ISSUE_NS,
-          'FEATURE_ONLY_BATCH')
+    for raw in raw_by_fold.values():
+        _need(set(raw['features']) == FEATURE_KEYS
+              and raw['witness']['parent_rows'] == PARENT_ROWS
+              and raw['witness']['decision_ns'] == ISSUE_NS,
+              'FEATURE_ONLY_BATCH')
     mature._release_pages(provider, prepared)
     device = torch.device('cuda')
     _need(torch.cuda.is_available(), 'CUDA_AVAILABLE')
-    trainer._set_deterministic(SEED, device, trainer.DETERMINISTIC_FP32)
-    model = views.build_native_direction_research_model(
-        view, prefix_normalization=receipts['normal'],
-        constructor_metadata=receipts['constructor'], device=device)
-    _need(type(model) is TimeQueryMarketStateModel
-          and model.feature_view_identity['contract_sha256'] == EXPECTED_VIEW_SHA256,
-          'FRESH_MODEL')
-    model.train()
-    initial_state = canonical_model_state_sha256(model.state_dict())
-    tensors = {}
-    for key, value in raw['features'].items():
-        tensor = torch.from_numpy(value).to(device)
-        if tensor.is_floating_point():
-            tensor.requires_grad_(True)
-        tensors[key] = tensor
     bound = binding.load_bound_time_query_targets()
-    torch.cuda.reset_peak_memory_stats()
-    with trainer._training_mha_fastpath_context(model.backbone), \
-         trainer._training_autocast_context(), \
-         trainer._training_model_finite_check_context():
-        _need(not torch.backends.mha.get_fastpath_enabled(), 'CANONICAL_MHA')
-        outcome = evaluate_fit_batch(model, tensors, bound, selected, issues,
-                                     fold_id=FOLD_ID, pass_index=PASS_INDEX,
-                                     seed=SEED)
-    _need(outcome['count'] == 2 and outcome['skip_update'] is False
-          and outcome['query_k'][0].tolist() == EXPECTED_QUERY_K
-          and outcome['allowed'][0].tolist() == EXPECTED_ALLOWED
-          and outcome['per_tf_counts'] == {'M5': 1, 'M15': 1,
-                                          'H1': 0, 'H4': 0, 'D1': 0}
-          and outcome['model_contract_sha256']
-              == time_query_model_contract()['contract_sha256']
-          and outcome['loss_contract_sha256']
-              == time_query_loss_contract()['contract_sha256']
-          and bool(torch.isfinite(outcome['loss'])), 'TARGET_LOSS_BINDING')
-    outcome['loss'].backward()
-    gradients = {key: ({'kind': 'integer_categorical', 'applicable': False}
-                       if not tensor.is_floating_point() else _gradient_summary(tensor.grad))
-                 for key, tensor in tensors.items()}
-    head = _gradient_summary(model.query_head.weight.grad)
-    projection = _gradient_summary(model.query_projection[0].weight.grad)
-    backbone = _gradient_summary(model.backbone.entry_q_joint_in.weight.grad)
-    _need(all(item['present'] and item['finite'] and item['nonzero_count'] > 0
-              for item in gradients.values() if item.get('applicable') is not False)
-          and all(item['present'] and item['finite'] and item['nonzero_count'] > 0
-                  for item in (head, projection, backbone)), 'BACKWARD_CONSUMPTION')
-    final_state = canonical_model_state_sha256(model.state_dict())
-    _need(initial_state == final_state and all(p.grad is not None
-          or not p.requires_grad for p in (model.query_head.weight,
-                                          model.backbone.entry_q_joint_in.weight)),
-          'NO_WEIGHT_UPDATE')
+    fold_reports = {}
+    for fold_id in FOLD_IDS:
+        trainer._set_deterministic(SEED, device, trainer.DETERMINISTIC_FP32)
+        profile = receipts['fold1']['profile'] if fold_id == FOLD1_ID else None
+        normal = receipts['fold1']['normal'] if fold_id == FOLD1_ID else receipts['normal']
+        view = bound_views[fold_id]
+        raw = raw_by_fold[fold_id]
+        model = views.build_native_direction_research_model(
+            view, prefix_normalization=normal,
+            constructor_metadata=receipts['constructor'], device=device,
+            unobserved_units_profile=profile)
+        _need(type(model) is TimeQueryMarketStateModel
+              and model.feature_view_identity['contract_sha256']
+                  == EXPECTED_VIEW_SHA256_BY_FOLD[str(fold_id)],
+              'FRESH_MODEL:' + str(fold_id))
+        model.train()
+        initial_state = canonical_model_state_sha256(model.state_dict())
+        tensors = {}
+        for key, value in raw['features'].items():
+            tensor = torch.from_numpy(value).to(device)
+            if tensor.is_floating_point():
+                tensor.requires_grad_(True)
+            tensors[key] = tensor
+        torch.cuda.reset_peak_memory_stats()
+        with trainer._training_mha_fastpath_context(model.backbone), \
+             trainer._training_autocast_context(), \
+             trainer._training_model_finite_check_context():
+            _need(not torch.backends.mha.get_fastpath_enabled(), 'CANONICAL_MHA')
+            outcome = evaluate_fit_batch(model, tensors, bound, selected, issues,
+                                         fold_id=fold_id, pass_index=PASS_INDEX,
+                                         seed=SEED)
+        _need(outcome['count'] == 2 and outcome['skip_update'] is False
+              and outcome['query_k'][0].tolist() == EXPECTED_QUERY_K
+              and outcome['allowed'][0].tolist() == EXPECTED_ALLOWED
+              and outcome['per_tf_counts'] == {'M5': 1, 'M15': 1,
+                                               'H1': 0, 'H4': 0, 'D1': 0}
+              and outcome['model_contract_sha256']
+                  == time_query_model_contract()['contract_sha256']
+              and outcome['loss_contract_sha256']
+                  == time_query_loss_contract()['contract_sha256']
+              and bool(torch.isfinite(outcome['loss'])),
+              'TARGET_LOSS_BINDING:' + str(fold_id))
+        outcome['loss'].backward()
+        gradients = {key: ({'kind': 'integer_categorical', 'applicable': False}
+                           if not tensor.is_floating_point()
+                           else _gradient_summary(tensor.grad))
+                     for key, tensor in tensors.items()}
+        head = _gradient_summary(model.query_head.weight.grad)
+        projection = _gradient_summary(model.query_projection[0].weight.grad)
+        backbone = _gradient_summary(model.backbone.entry_q_joint_in.weight.grad)
+        _need(all(item['present'] and item['finite'] and item['nonzero_count'] > 0
+                  for item in gradients.values() if item.get('applicable') is not False)
+              and all(item['present'] and item['finite'] and item['nonzero_count'] > 0
+                      for item in (head, projection, backbone)),
+              'BACKWARD_CONSUMPTION:' + str(fold_id))
+        final_state = canonical_model_state_sha256(model.state_dict())
+        _need(initial_state == final_state and all(p.grad is not None
+              or not p.requires_grad for p in (model.query_head.weight,
+                                              model.backbone.entry_q_joint_in.weight)),
+              'NO_WEIGHT_UPDATE:' + str(fold_id))
+        fold_reports[str(fold_id)] = {
+            'fold_id': fold_id, 'pass_index': PASS_INDEX, 'seed': SEED,
+            'sample_parent_rows': PARENT_ROWS, 'sample_issue_ns': ISSUE_NS,
+            'query_k': outcome['query_k'].tolist(),
+            'allowed': outcome['allowed'].tolist(),
+            'eligible': outcome['eligible'].tolist(),
+            'mature': outcome['mature'].tolist(),
+            'per_tf_counts': outcome['per_tf_counts'],
+            'informative_count': outcome['count'],
+            'loss': float(outcome['loss'].detach().item()),
+            'view_sha256': view['contract_sha256'],
+            'model_contract_sha256': outcome['model_contract_sha256'],
+            'loss_contract_sha256': outcome['loss_contract_sha256'],
+            'normalization': _fixed_ref('fold1_normalization' if fold_id == FOLD1_ID
+                                        else 'fold2_normalization'),
+            'feature_witness': raw['witness'],
+            'feature_shapes': {key: list(value.shape) for key, value in tensors.items()},
+            'input_gradients': gradients, 'query_head_gradient': head,
+            'query_projection_gradient': projection, 'backbone_gradient': backbone,
+            'initial_model_state_sha256': initial_state,
+            'final_model_state_sha256': final_state,
+            'cuda_peak_allocated_bytes': int(torch.cuda.max_memory_allocated()),
+            'cuda_peak_reserved_bytes': int(torch.cuda.max_memory_reserved()),
+            'model_forwards': 1, 'backward_calls': 1,
+            'optimizer_steps': 0, 'ema_updates': 0,
+            'scheduler_steps': 0, 'checkpoint_loaded': False,
+            'test_data_used': False,
+        }
+        del outcome, gradients, tensors, model
+        torch.cuda.empty_cache()
     snapshot.require_unchanged()
     provider.validate_metadata(provider_plan)
     return {
-        'decision': 'PASS_FOLD2_TIME_QUERY_MODEL_LOSS_BACKWARD_NO_UPDATE',
-        'scope_limit': 'One fresh TRAIN fit row and one backward show local coupling only; no native fit, held-out score, prediction value or trading economics.',
-        'fold_id': FOLD_ID, 'pass_index': PASS_INDEX, 'seed': SEED,
-        'sample_parent_rows': PARENT_ROWS, 'sample_issue_ns': ISSUE_NS,
-        'query_k': outcome['query_k'].tolist(),
-        'allowed': outcome['allowed'].tolist(),
-        'eligible': outcome['eligible'].tolist(),
-        'mature': outcome['mature'].tolist(),
-        'per_tf_counts': outcome['per_tf_counts'], 'informative_count': outcome['count'],
-        'loss': float(outcome['loss'].detach().item()),
-        'view_sha256': view['contract_sha256'],
-        'model_contract_sha256': outcome['model_contract_sha256'],
-        'loss_contract_sha256': outcome['loss_contract_sha256'],
-        'normalization': _fixed_ref('fold2_normalization'),
+        'decision': 'PASS_DUAL_PROFILE_TIME_QUERY_MODEL_LOSS_BACKWARD_NO_UPDATE',
+        'scope_limit': 'Two fresh TRAIN fit models on one exact row each show local coupling only; no native fit, held-out score, prediction value or trading economics.',
+        'fold_ids': FOLD_IDS, 'fold_results': fold_reports,
         'candidate_tape': _fixed_ref('candidate_tape'),
-        'feature_witness': raw['witness'],
-        'feature_shapes': {key: list(value.shape) for key, value in tensors.items()},
-        'input_gradients': gradients, 'query_head_gradient': head,
-        'query_projection_gradient': projection, 'backbone_gradient': backbone,
-        'initial_model_state_sha256': initial_state,
-        'final_model_state_sha256': final_state,
-        'cuda_peak_allocated_bytes': int(torch.cuda.max_memory_allocated()),
-        'cuda_peak_reserved_bytes': int(torch.cuda.max_memory_reserved()),
         'cgroup_path': cap['cgroup_path'],
         'verified_file_count': snapshot.file_count,
-        'model_forwards': 1, 'backward_calls': 1,
+        'model_forwards': 2, 'backward_calls': 2,
         'optimizer_steps': 0, 'ema_updates': 0,
         'scheduler_steps': 0, 'checkpoint_loaded': False,
         'test_data_used': False,
@@ -646,10 +816,15 @@ def run(plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dict:
         claim = _write(root, 'CLAIM.json', {
             'schema_version': 'gx1_market_state_time_query_zero_step_claim_v1',
             'plan': plan_ref, 'policy': policy_ref, 'source_head': head,
-            'fold_id': FOLD_ID, 'sample_parent_rows': PARENT_ROWS,
+            'fold_ids': FOLD_IDS, 'sample_parent_rows': PARENT_ROWS,
             'invocation': 1, 'test_data_used': False}, limit=MAX_JSON_BYTES)
         with _bounded_worker(began):
             result = _witness(plan, cap, receipts)
+        _need(result.get('fold_ids') == FOLD_IDS
+              and set(result.get('fold_results', {})) == {str(item) for item in FOLD_IDS}
+              and result.get('model_forwards') == result.get('backward_calls') == 2
+              and result.get('optimizer_steps') == 0,
+              'DUAL_WITNESS_COMPLETE')
         _source_bookend(plan, plan_sha256, policy_ref['sha256'], head)
         result_ref = _write(root, 'RESULT.json', {
             'schema_version': 'gx1_market_state_time_query_zero_step_result_v1',
@@ -661,7 +836,7 @@ def run(plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dict:
             'schema_version': 'gx1_market_state_time_query_zero_step_terminal_v1',
             'status': 'COMPLETE', 'exit_code': 0, 'plan': plan_ref,
             'claim': claim, 'result': result_ref,
-            'model_forwards': 1, 'backward_calls': 1,
+            'model_forwards': 2, 'backward_calls': 2,
             'optimizer_steps': 0, 'test_data_used': False,
             'no_relaunch_under_this_plan': True,
             'output_inventory': ['CLAIM.json', 'RESULT.json', 'TERMINAL.json'],
@@ -679,7 +854,7 @@ def run(plan_path: Path, plan_sha256: str, device: str, out_dir: Path) -> dict:
             'schema_version': 'gx1_market_state_time_query_zero_step_terminal_v1',
             'status': 'FAILED', 'exit_code': 1, 'plan': plan_ref,
             'claim': claim, 'failure': failed,
-            'model_forwards_upper_bound': 1, 'backward_calls_upper_bound': 1,
+            'model_forwards_upper_bound': 2, 'backward_calls_upper_bound': 2,
             'optimizer_steps': 0, 'test_data_used': False,
             'no_relaunch_under_this_plan': True,
             'output_inventory': (['CLAIM.json', 'FAILED.json', 'TERMINAL.json']
