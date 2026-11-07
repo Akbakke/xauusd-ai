@@ -174,6 +174,23 @@ matches_bound_gc_q1_freshness() {
   [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
 }
 
+
+# Exact one-use fold-1 TRAIN diagnostic, preserving the signed CUDA producer guard.
+matches_bound_market_state_fold1_paired_diagnostic() {
+  local expected_plan="$1" expected_output="$2"
+  shift 2
+  [[ $# -eq 11 ]] || return 1
+  [[ "$1" == "$CANONICAL_TRAINER_PYTHON" && "$2" == -m \
+    && "$3" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
+    && "$4" == --market-state-fold1-paired-diagnostic-plan && "$5" == "$expected_plan" \
+    && "$6" == --market-state-fold1-paired-diagnostic-plan-sha256 && "$7" =~ ^[0-9a-f]{64}$ \
+    && "$8" == --device && "$9" == cuda && "${10}" == --out-dir \
+    && "${11}" == "$expected_output" && "$expected_plan" == /* && "$expected_output" == /* ]] || return 1
+  [[ -f "$expected_plan" && ! -L "$expected_plan" \
+    && "$(readlink -f "$expected_plan")" == "$expected_plan" ]] || return 1
+  [[ "$(/usr/bin/sha256sum "$expected_plan" | /usr/bin/awk '{print $1}')" == "$7" ]]
+}
+
 validate_target_command() {
   local executable_basename="${1##*/}" target_arg module
   local trainer_reference=false hardware_smoke_reference=false
@@ -272,6 +289,16 @@ validate_target_command() {
         local gc_output="$gc_root/DIRECTION_GC_Q1_FRESHNESS_20261030_001"
         if ! matches_bound_gc_q1_freshness "$gc_plan" "$gc_output" "$@"; then
           echo "FATAL: GC Q1 freshness producer 250W scope is not exactly bound" >&2
+          exit 75
+        fi
+        TRAINER_GPU_MAX_POWER_LIMIT_W=250
+      fi
+      if [[ "${3:-}" == "$TECHNICAL_VALIDATION_PRODUCER_MODULE" \
+        && "${4:-}" == --market-state-fold1-paired-diagnostic-plan ]]; then
+        local paired_plan="$REPO_ROOT/configs/research/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_001.json"
+        local paired_output=/home/andre2/GX1_RUNS/MARKET_STATE_FOLD1_PAIRED_DIAGNOSTIC_20261107_001
+        if ! matches_bound_market_state_fold1_paired_diagnostic "$paired_plan" "$paired_output" "$@"; then
+          echo "FATAL: fold-1 paired diagnostic 250W scope is not exactly bound" >&2
           exit 75
         fi
         TRAINER_GPU_MAX_POWER_LIMIT_W=250

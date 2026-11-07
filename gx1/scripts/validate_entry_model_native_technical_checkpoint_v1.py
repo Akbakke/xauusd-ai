@@ -1241,6 +1241,40 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
         return 0
+    paired_options = (
+        "--market-state-fold1-paired-diagnostic-plan",
+        "--market-state-fold1-paired-diagnostic-plan-sha256",
+    )
+    if any(value.partition("=")[0] in paired_options for value in supplied):
+        paired_parser = argparse.ArgumentParser(
+            description="Frozen fold-1 TRAIN M5 side and GC D1 paired diagnostic",
+            allow_abbrev=False, add_help=False,
+        )
+        paired_parser.add_argument(paired_options[0], type=Path, required=True)
+        paired_parser.add_argument(paired_options[1], required=True)
+        paired_parser.add_argument("--device", choices=("cuda",), required=True)
+        paired_parser.add_argument("--out-dir", type=Path, required=True)
+        paired_parser.add_argument("--preflight", action="store_true")
+        for option in (*paired_options, "--device", "--out-dir", "--preflight"):
+            if sum(value.partition("=")[0] == option for value in supplied) > 1:
+                paired_parser.error(f"duplicate flag: {option}")
+        paired_args = paired_parser.parse_args(supplied)
+        if not paired_args.out_dir.is_absolute():
+            paired_parser.error("--out-dir must be an absolute path")
+        from gx1.audit.run_market_state_fold1_paired_diagnostic_v1 import (
+            preflight_read_only as paired_preflight, run as paired_run,
+        )
+        report = (paired_preflight(
+            plan_path=paired_args.market_state_fold1_paired_diagnostic_plan,
+            plan_sha256=str(paired_args.market_state_fold1_paired_diagnostic_plan_sha256),
+            out_dir=paired_args.out_dir,
+        ) if paired_args.preflight else paired_run(
+            plan_path=paired_args.market_state_fold1_paired_diagnostic_plan,
+            plan_sha256=str(paired_args.market_state_fold1_paired_diagnostic_plan_sha256),
+            device="cuda", out_dir=paired_args.out_dir,
+        ))
+        print(json.dumps(_safe_json(report), indent=2, sort_keys=True, allow_nan=False))
+        return 0
     time_query_zero_step_options = (
         "--market-state-time-query-zero-step-plan",
         "--market-state-time-query-zero-step-plan-sha256",
