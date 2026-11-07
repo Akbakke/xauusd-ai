@@ -1419,7 +1419,7 @@
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
   "rule": "Selected 0.5 ATR activity and conservative local side use the corrected five-TF TRAIN mask. The one mature fold1 native time-query v1 fit and later chronological TRAIN OOF lost M5 certified-side Brier to the frozen prior in all 14 weeks; a paired frozen diagnostic found upward miscalibration and the free-three-logit unknown-side objective defect. Factorized v2 model/loss and stable raw-logit scorer now pass source/synthetic checks, and read-only fold1 receipt/v2 view metadata binding passes. Physical v2 initial predictions, genuine gradient/resume, fit, generalization, Entry decision value and economics are unqualified. training_enabled=false; consumed plans do not authorize new runs. TEST, Entry, Exit, broker, trading and spending remain closed.",
-  "next_action": "Use the physical v2 zero-step PASS only as technical mechanics. The v1 private/fold1 checkpoint owners hard-require v1 model/loss/view identities, and v1 OOF decodes float32-softmax; neither can be reused. Next source-bind a distinct v2 four-step TRAIN checkpoint/bit-exact resume witness and v2 OOF driver using decode_raw_query_grid plus FactorizedTimeQueryMatchedScorer before one separately admitted capped fold1 fit. Hypothesis: removing unknown-side direct gradients improves later certified M5 k1 side proper score versus the same frozen prior, with five-TF/UTC-week reporting. No repeated fit without a new hypothesis. training_enabled=false; TEST/Entry/Exit/broker/trading/spending closed.",
+  "next_action": "Factorized v2 physical zero-step is complete and raw-logit OOF batch bridge is source/synthetic-tested. Next implement a distinct v2 checkpoint/optimizer state and bounded four-step TRAIN bit-exact uninterrupted-versus-resumed witness; v1 state hardcodes v1 model/view/loss identities and cannot be reused. Then bind this batch bridge into a separate full v2 OOF driver and one capped fold1 fit under the predeclared unknown-side-gradient repair hypothesis, with later certified M5 k1 proper score against the same frozen prior and five-TF/UTC-week reporting. training_enabled=false; no repeated fit without a new hypothesis; TEST/Entry/Exit/broker/trading/spending closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
@@ -63666,8 +63666,8 @@
       "sha256": "abc1c3e7af24c04d682ee05ddc002dc45a6893aa8271d51453058883fad61df0"
     }
   },
-  "recorded_status": "MARKET_STATE_V2_ZERO_STEP_CONSUMED_FIT_CLOSED",
-  "recorded_observed_utc": "2026-11-07T22:20:50.530888+00:00",
+  "recorded_status": "MARKET_STATE_V2_RAW_OOF_BATCH_SOURCE_TESTED_FIT_CLOSED",
+  "recorded_observed_utc": "2026-11-07T22:26:23.846146+00:00",
   "market_state_time_query_fold1_fit_20261107_002": {
     "status": "COMPLETE_CONSUMED_NO_DIRECTION_GAIN",
     "decision": "BLOCK",
@@ -64022,5 +64022,25 @@
       "signed_bridge_sample": "34,42,23.78,250,78"
     },
     "limitations": "Two initial TRAIN rows prove only factorized-v2 direct gradient mechanics and physical input/model connection. No optimizer, learned weights, checkpoint/resume, chronological OOF, GC model added value, Entry quality or economic edge. This plan is consumed and cannot be reused."
+  },
+  "market_state_time_query_v2_oof_batch_source_20261107": {
+    "status": "SOURCE_TESTED_NO_PLAN_NO_DATA_JOB",
+    "decision": "RAW_LOGIT_OOF_BATCH_BRIDGE_READY_NOT_FULL_OOF",
+    "scope": "One issue batch, encode once, 288 native query steps in nine 32-step blocks; raw factorized logits to frozen matched v2 scorer, target gather after decoder, identical frozen prior arrays. No checkpoint, full driver, data read, model fit, TEST, Entry or trade.",
+    "source": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/market_state_time_query_oof_batch_v2.py",
+      "sha256": "65d6c37aa2e2c8df511176ee72e87465ed9b1fc3377573bb84fcdd59892b5e27"
+    },
+    "test": {
+      "path": "/home/andre2/src/GX1_CURRENT/tests/test_market_state_time_query_oof_batch_v2.py",
+      "sha256": "b1e29923dba4b5054daeb4eac337f2d8a0445b664f84a4caf547b1aabb9f157d"
+    },
+    "focused_bridge_and_scorer_tests_passed": 8,
+    "data_reads_authorized": false,
+    "model_forwards_authorized": 0,
+    "optimizer_steps_authorized": 0,
+    "training_authorized": false,
+    "test_authorized": false,
+    "test_data_used": false
   }
 }
