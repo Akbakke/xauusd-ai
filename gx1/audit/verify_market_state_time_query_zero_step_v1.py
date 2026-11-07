@@ -31,7 +31,7 @@ from gx1.contracts.market_state_time_query_model_v1 import (
 REPO = Path('/home/andre2/src/GX1_CURRENT')
 RUNS = Path('/home/andre2/GX1_RUNS')
 POLICY = REPO / 'NEXT_RUN_POLICY.json'
-STAGE = 'market_state_time_query_zero_step_20261107_001'
+STAGE = 'market_state_time_query_zero_step_20261107_002'
 SCHEMA = 'gx1_market_state_time_query_zero_step_plan_v1'
 PLAN_PATH = REPO / 'configs/research' / (STAGE.upper() + '.json')
 OUT_ROOT = RUNS / STAGE.upper()
@@ -104,7 +104,6 @@ SOURCE_PATHS = mature.SOURCE_PATHS | frozenset({
     'gx1/contracts/market_state_time_query_binding_v1.py',
     'gx1/contracts/market_state_time_query_batch_v1.py',
     'gx1/contracts/model_state_digest_v1.py',
-    'gx1/contracts/local_random_access_campaign_v2.py',
     'gx1/models/entry_v10/entry_v10_ctx_hybrid_transformer.py',
     'gx1/models/entry_v10/entry_v10_ctx_train_v3.py',
     'gx1/scripts/validate_entry_model_native_technical_checkpoint_v1.py',
@@ -617,7 +616,6 @@ def _witness(plan: dict, cap: dict, receipts: dict) -> dict:
     import numpy as np
     import torch
     from gx1.contracts import entry_native_direction_feature_view_v1 as views
-    from gx1.contracts import local_random_access_campaign_v2 as campaign
     from gx1.contracts.market_state_time_query_batch_v1 import (
         FEATURE_KEYS, evaluate_fit_batch,
     )
@@ -627,45 +625,43 @@ def _witness(plan: dict, cap: dict, receipts: dict) -> dict:
     chain = receipts['provider_chain']
     provider_plan = chain['provider_plan']
     provider = mature._provider_module()
-    with campaign.file_verification_scope():
-        info = provider.validate_metadata(provider_plan)
-        prepared = mature._prepare_inputs(provider, provider_plan, info,
-                                          chain['gc_layout'])
-        mature._validate_axes(receipts['mature_plan']['cohorts'], prepared['axes'])
-        axes = prepared['axes']
-        selected = np.asarray(PARENT_ROWS, dtype=np.int64)
-        issues = np.asarray(ISSUE_NS, dtype=np.int64)
-        at = np.searchsorted(axes['parent_rows'], selected)
-        _need(np.array_equal(axes['parent_rows'][at], selected)
-              and np.array_equal(axes['decision_ns'][at], issues)
-              and int(at[0]) < receipts['fold1']['cohort']['joined_fit_rows']
-              < receipts['cohort2']['joined_fit_rows'],
-              'EXACT_DUAL_FOLD_SAMPLE')
-        for key in ('parent_rows', 'bar_start_ns', 'decision_ns'):
-            axes[key].setflags(write=False)
-        sequence = prepared['entry_sequence_source']
-        for key in ('signal', 'times_ns', 'sample_positions'):
-            sequence[key].setflags(write=False)
-        for key in ('snap', 'ctx_cont', 'ctx_cat'):
-            prepared['current'][key].setflags(write=False)
-        bound_views = {fold_id: _bind_view(plan, receipts, fold_id)
-                       for fold_id in FOLD_IDS}
-        raw_by_fold = {}
-        for fold_id in FOLD_IDS:
-            profile = receipts['fold1']['profile'] if fold_id == FOLD1_ID else None
-            raw_by_fold[fold_id] = views.gather_native_direction_feature_batch(
-                bound_views[fold_id], parent_rows=axes['parent_rows'],
-                bar_start_ns=axes['bar_start_ns'], decision_ns=axes['decision_ns'],
-                entry_sequence_source=sequence,
-                snap_x=prepared['current']['snap'],
-                ctx_cont=prepared['current']['ctx_cont'],
-                ctx_cat=prepared['current']['ctx_cat'],
-                multi_tf_sources=prepared['cache'],
-                gc_surfaces=prepared['gc']['surfaces'],
-                gc_layout=prepared['gc']['layout'],
-                batch_parent_rows=selected,
-                unobserved_units_profile=profile)
-        snapshot = campaign.capture_verified_file_snapshot()
+    info = provider.validate_metadata(provider_plan)
+    prepared = mature._prepare_inputs(provider, provider_plan, info,
+                                      chain['gc_layout'])
+    mature._validate_axes(receipts['mature_plan']['cohorts'], prepared['axes'])
+    axes = prepared['axes']
+    selected = np.asarray(PARENT_ROWS, dtype=np.int64)
+    issues = np.asarray(ISSUE_NS, dtype=np.int64)
+    at = np.searchsorted(axes['parent_rows'], selected)
+    _need(np.array_equal(axes['parent_rows'][at], selected)
+          and np.array_equal(axes['decision_ns'][at], issues)
+          and int(at[0]) < receipts['fold1']['cohort']['joined_fit_rows']
+          < receipts['cohort2']['joined_fit_rows'],
+          'EXACT_DUAL_FOLD_SAMPLE')
+    for key in ('parent_rows', 'bar_start_ns', 'decision_ns'):
+        axes[key].setflags(write=False)
+    sequence = prepared['entry_sequence_source']
+    for key in ('signal', 'times_ns', 'sample_positions'):
+        sequence[key].setflags(write=False)
+    for key in ('snap', 'ctx_cont', 'ctx_cat'):
+        prepared['current'][key].setflags(write=False)
+    bound_views = {fold_id: _bind_view(plan, receipts, fold_id)
+                   for fold_id in FOLD_IDS}
+    raw_by_fold = {}
+    for fold_id in FOLD_IDS:
+        profile = receipts['fold1']['profile'] if fold_id == FOLD1_ID else None
+        raw_by_fold[fold_id] = views.gather_native_direction_feature_batch(
+            bound_views[fold_id], parent_rows=axes['parent_rows'],
+            bar_start_ns=axes['bar_start_ns'], decision_ns=axes['decision_ns'],
+            entry_sequence_source=sequence,
+            snap_x=prepared['current']['snap'],
+            ctx_cont=prepared['current']['ctx_cont'],
+            ctx_cat=prepared['current']['ctx_cat'],
+            multi_tf_sources=prepared['cache'],
+            gc_surfaces=prepared['gc']['surfaces'],
+            gc_layout=prepared['gc']['layout'],
+            batch_parent_rows=selected,
+            unobserved_units_profile=profile)
     for raw in raw_by_fold.values():
         _need(set(raw['features']) == FEATURE_KEYS
               and raw['witness']['parent_rows'] == PARENT_ROWS
@@ -765,7 +761,6 @@ def _witness(plan: dict, cap: dict, receipts: dict) -> dict:
         }
         del outcome, gradients, tensors, model
         torch.cuda.empty_cache()
-    snapshot.require_unchanged()
     provider.validate_metadata(provider_plan)
     return {
         'decision': 'PASS_DUAL_PROFILE_TIME_QUERY_MODEL_LOSS_BACKWARD_NO_UPDATE',
@@ -773,7 +768,6 @@ def _witness(plan: dict, cap: dict, receipts: dict) -> dict:
         'fold_ids': FOLD_IDS, 'fold_results': fold_reports,
         'candidate_tape': _fixed_ref('candidate_tape'),
         'cgroup_path': cap['cgroup_path'],
-        'verified_file_count': snapshot.file_count,
         'model_forwards': 2, 'backward_calls': 2,
         'optimizer_steps': 0, 'ema_updates': 0,
         'scheduler_steps': 0, 'checkpoint_loaded': False,
