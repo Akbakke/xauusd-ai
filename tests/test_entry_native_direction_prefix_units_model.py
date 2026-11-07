@@ -17,9 +17,10 @@ class _BeforeModuleInitialization(Exception):
     pass
 
 
-@pytest.mark.parametrize("opt_in", [False, True])
-def test_constructor_metadata_delegates_exact_profile_before_any_module_initialization(monkeypatch, opt_in):
-    profile = units.october_prefix_units_profile() if opt_in else None
+@pytest.mark.parametrize("profile_kind", [None, "october", "mature_fold1"])
+def test_constructor_metadata_delegates_exact_profile_before_any_module_initialization(monkeypatch, profile_kind):
+    profile = (None if profile_kind is None else units.october_prefix_units_profile() if profile_kind == "october"
+               else units.mature_fold1_prefix_units_profile())
     history = {"synthetic_metadata": True}
     reference = {"name": model_owner.FULL_GC_MTF_ENTRY_EXECUTION_PROFILE_NAME,
                  "contract_sha256": "1" * 64}
@@ -71,9 +72,9 @@ def test_constructor_metadata_delegates_exact_profile_before_any_module_initiali
     assert calls == ["history", "reference", "compile", "architecture_observation", "architecture_require"]
 
 
-def _runtime_shell(monkeypatch):
+def _runtime_shell(monkeypatch, profile=None):
     """Small mock contracts test delegation, not genuine normalization admission."""
-    profile = units.october_prefix_units_profile()
+    profile = units.october_prefix_units_profile() if profile is None else profile
     stats = {"field_names": ["synthetic_value", "synthetic_observed"],
              "center": [0., 0.], "scale": [1., 1.],
              "binary_mask": [0, 1], "categorical_mask": [0, 0],
@@ -146,8 +147,11 @@ def _runtime_shell(monkeypatch):
     return shell, calls
 
 
-def test_runtime_revalidates_base_gc_layout_and_profile_with_one_explicit_identity(monkeypatch):
-    shell, calls = _runtime_shell(monkeypatch)
+@pytest.mark.parametrize("profile_kind", ["october", "mature_fold1"])
+def test_runtime_revalidates_base_gc_layout_and_profile_with_one_explicit_identity(monkeypatch, profile_kind):
+    profile = (units.october_prefix_units_profile() if profile_kind == "october"
+               else units.mature_fold1_prefix_units_profile())
+    shell, calls = _runtime_shell(monkeypatch, profile)
     original = deepcopy(shell._research_unobserved_units_profile)
     Model.require_input_normalization_state(shell)
     assert calls == ["base", "history", "surfaces", "layout"]

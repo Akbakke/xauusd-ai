@@ -521,8 +521,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         research_unobserved_units_profile: Optional[Mapping[str, object]] = None,
     ) -> None:
         if research_unobserved_units_profile is not None:
-            from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
-            research_unobserved_units_profile = require_october_prefix_units_profile(research_unobserved_units_profile)
+            from gx1.contracts.entry_native_direction_prefix_units_v1 import require_prefix_units_profile
+            research_unobserved_units_profile = require_prefix_units_profile(research_unobserved_units_profile)
             if zero_support_profile is not None:
                 raise RuntimeError("NATIVE_RESEARCH_UNITS_PROFILE_CONFLICT")
         if gc_mtf_history is not None:
@@ -1892,8 +1892,8 @@ class EntryV10CtxHybridTransformer(nn.Module):
         if units_profile is not None or units_marked or units_buffer is not None:
             if units_profile is None:
                 raise RuntimeError("NATIVE_RESEARCH_UNITS_STATE_OPT_IN_REQUIRED")
-            from gx1.contracts.entry_native_direction_prefix_units_v1 import require_october_prefix_units_profile
-            units_profile = require_october_prefix_units_profile(units_profile)
+            from gx1.contracts.entry_native_direction_prefix_units_v1 import require_prefix_units_profile
+            units_profile = require_prefix_units_profile(units_profile)
             if (getattr(self, "_research_zero_columns", {})
                     or any("zero_support_profile_sha256" in stats for stats in research_stats)):
                 raise RuntimeError("NATIVE_RESEARCH_UNITS_PROFILE_CONFLICT")
