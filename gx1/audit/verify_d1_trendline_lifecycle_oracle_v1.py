@@ -357,6 +357,7 @@ def oracle_rows(high: Sequence[float], low: Sequence[float], close: Sequence[flo
     positions = [int(v) for v in witness_positions]
     _require(bool(positions) and positions == sorted(set(positions))
              and positions[0] >= 0 and positions[-1] < len(h), "WITNESSES")
+    position_set = set(positions)
     book = _Book()
     output: dict[int, np.ndarray] = {}
     for t in range(positions[-1] + 1):
@@ -375,7 +376,7 @@ def oracle_rows(high: Sequence[float], low: Sequence[float], close: Sequence[flo
         if math.isfinite(a[t]):
             _advance_lines(book, t, float(h[t]), float(l[t]), float(c[t]),
                            float(a[t]), band_atr, seq_len, events)
-        if t in positions:
+        if t in position_set:
             row = np.full(31, math.nan, dtype=np.float64)
             if t >= 2 * PIVOT_RADIUS + 2 and math.isfinite(a[t]):
                 row = _emit(book, t, float(c[t]), float(a[t]), band_atr, seq_len)
