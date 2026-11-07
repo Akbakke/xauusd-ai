@@ -625,3 +625,89 @@ def test_family_continuation_requires_current_terminal_and_real_boot(family_cont
         assert check() == ref
     else:
         with pytest.raises(RuntimeError): check()
+
+
+def test_time_query_private_recipe_uses_distinct_validator(tmp_path,monkeypatch):
+    import sys
+    import types
+    value={'run_scope':owner.TIME_QUERY_PRIVATE_SCOPE,'synthetic':True}
+    ref=write(tmp_path/'RECIPE.json',value)
+    calls=[]
+    helper=types.ModuleType('gx1.contracts.market_state_time_query_private_campaign_v1')
+    def validate(item,**kwargs):
+        calls.append((item,kwargs))
+        return {'validated_time_query':True}
+    helper.require_time_query_private_recipe=validate
+    monkeypatch.setitem(sys.modules,helper.__name__,helper)
+    result=owner.require_research_launch_recipe(ref,source_repo=tmp_path,source_commit='a'*40)
+    assert result=={'validated_time_query':True}
+    assert calls==[(value,{'source_repo':tmp_path,'source_commit':'a'*40,'verify_files':True})]
+
+
+@pytest.mark.parametrize('fault',[
+    {'fold_id':2},{'training_enabled':False},{'test_data_used':True},
+    {'numerical_recipe':{'batch_size':2}}])
+def test_time_query_private_power_stays_at_250w_and_fold1(fault):
+    recipe={'run_scope':owner.TIME_QUERY_PRIVATE_SCOPE,'fold_id':1,'training_enabled':True,
+        'test_data_used':False,'numerical_recipe':{'batch_size':16}}
+    assert owner.guarded_research_power_limit(recipe)==250
+    with pytest.raises(RuntimeError,match='TIME_QUERY_PRIVATE_POWER_SCOPE'):
+        owner.guarded_research_power_limit({**recipe,**fault})
+
+
+def test_time_query_private_cursor_dispatch_is_schema_specific(monkeypatch):
+    import sys
+    import types
+    calls=[]
+    helper=types.ModuleType('gx1.contracts.market_state_time_query_private_campaign_v1')
+    def validate(value,**kwargs):
+        calls.append((value,kwargs))
+        return {'validated_cursor':True}
+    helper.require_time_query_private_cursor=validate
+    monkeypatch.setitem(sys.modules,helper.__name__,helper)
+    cursor={'schema_version':'gx1_market_state_time_query_private_cursor_v1'}
+    assert owner.require_research_cursor(cursor,expected_recipe={'path':'recipe'},
+        verify_files=False,batch_size=16)=={'validated_cursor':True}
+    assert calls==[(cursor,{'expected_recipe':{'path':'recipe'},'verify_files':False,'batch_size':16})]
+    with pytest.raises(RuntimeError,match='FIELDS'):
+        owner.require_research_cursor({'schema_version':owner.BPS_CURSOR_SCHEMA},
+            expected_recipe={'path':'recipe'},verify_files=False,batch_size=16)
+    assert len(calls)==1
+
+
+def test_time_query_private_readiness_requires_extra_gate(fixture,monkeypatch):
+    import sys
+    import types
+    f=fixture
+    recipe={**f['recipe'],'run_scope':owner.TIME_QUERY_PRIVATE_SCOPE,'fold_id':1}
+    monkeypatch.setattr(owner,'require_research_launch_recipe',lambda *args,**kwargs:recipe)
+    helper=types.ModuleType('gx1.contracts.market_state_time_query_private_campaign_v1')
+    calls=[]
+    def gate(value,expected):
+        calls.append((value,expected))
+        raise RuntimeError('TIME_QUERY_PRIVATE_GATE_REJECTED')
+    helper.require_time_query_private_gate=gate
+    monkeypatch.setitem(sys.modules,helper.__name__,helper)
+    with pytest.raises(RuntimeError,match='TIME_QUERY_PRIVATE_GATE_REJECTED'):
+        owner.require_native_direction_research_readiness(f['repo'],
+            window_path=Path(f['window_ref']['path']),window_file_sha256=f['window_ref']['sha256'])
+    assert calls==[(f['gate'],recipe)]
+
+
+def test_time_query_private_plan_requires_250w_policy(fixture,monkeypatch):
+    f=fixture
+    recipe={**f['recipe'],'run_scope':owner.TIME_QUERY_PRIVATE_SCOPE,'fold_id':1}
+    monkeypatch.setattr(owner,'require_research_launch_recipe',lambda *args,**kwargs:recipe)
+    plan=copy.deepcopy(f['plan'])
+    # The synthetic invocation has an old recipe, so stop after the physical policy gate.
+    class ReachedInvocation(Exception):
+        pass
+    def stop(*args,**kwargs):
+        raise ReachedInvocation
+    monkeypatch.setattr(campaign,'require_invocation',stop)
+    with pytest.raises(RuntimeError,match='PLAN_AUTHORITY'):
+        owner.require_research_plan(plan)
+    plan['policy']['physical_power_limit_w']=250
+    reseal(plan,'plan_sha256')
+    with pytest.raises(ReachedInvocation):
+        owner.require_research_plan(plan)

@@ -30,6 +30,7 @@ DENSE_PRIVATE_SCOPE = 'private_dense_b16_initial_resume_qualification'
 DECIMAL_PRIVATE_SCOPE = 'private_dense_decimal_b16_initial_resume_qualification'
 FAMILY_PRIVATE_SCOPE = 'private_m5_family_sign_b16_initial_resume_qualification'
 DYNAMIC_STATE_PRIVATE_SCOPE = 'private_dynamic_mtf_state_b16_initial_resume_qualification'
+TIME_QUERY_PRIVATE_SCOPE = 'market_state_time_query_private_4step_v1'
 FAMILY_EXTRA_SOURCE_PATHS = ('gx1/contracts/entry_direction_family_intervention_v1.py',)
 FAMILY_PROTOCOL_PATH = '/home/andre2/src/GX1_CURRENT/docs/DIRECTION_FAMILY_ADDED_VALUE_PROTOCOL_20261030.json'
 DECIMAL_INPUT_AUDIT = {'path':'/home/andre2/GX1_RUNS/INDEPENDENT_DIRECTION_EDGE_20261027_01a17d63/DIRECTION_DECIMAL_BOUND_INPUT_ACTUAL_20261028_001.json',
@@ -171,6 +172,10 @@ def require_research_launch_recipe(binding: Mapping[str, str], *, source_repo: P
     ref = campaign.require_binding(binding, label='direction research recipe', verify_file=verify_files)
     _require(verify_files, 'RECIPE_REQUIRES_PHYSICAL_METADATA')
     value = campaign.read_bound_json(Path(ref['path']), ref['sha256'])
+    if value.get('run_scope') == TIME_QUERY_PRIVATE_SCOPE:
+        from gx1.contracts.market_state_time_query_private_campaign_v1 import require_time_query_private_recipe
+        return require_time_query_private_recipe(value, source_repo=source_repo,
+            source_commit=source_commit, verify_files=verify_files)
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     if value.get('run_scope') == december.PRIVATE_SCOPE:
         _require(ref['path'] == str(december.PRIVATE_RECIPE_PATH), 'DECEMBER_RECIPE_PATH')
@@ -539,6 +544,13 @@ def guarded_research_power_limit(recipe):
     """Return the user-approved cap after the caller validates the bound recipe."""
     from gx1.contracts import entry_native_direction_prefix_fit_campaign_v1 as prefix
     _require(isinstance(recipe, Mapping), 'POWER_RECIPE')
+    if recipe.get('run_scope') == TIME_QUERY_PRIVATE_SCOPE:
+        _require(recipe.get('fold_id') == 1
+            and recipe.get('training_enabled') is True
+            and recipe.get('test_data_used') is False
+            and recipe.get('numerical_recipe', {}).get('batch_size') == 16,
+            'TIME_QUERY_PRIVATE_POWER_SCOPE')
+        return 250
     from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
     from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
     if recipe.get('run_scope') in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE, october.roles.PRIVATE_SCOPE):
@@ -635,7 +647,8 @@ def require_research_plan(value: Any, *, verify_files: bool = True) -> dict[str,
             source_repo=CANONICAL_REPO, source_commit=result['source_commit'])
         from gx1.contracts import entry_dynamic_mtf_december_native_v1 as december
         from gx1.contracts import entry_dynamic_m5_october_native_campaign_v1 as october
-        if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE, october.roles.PRIVATE_SCOPE):
+        if policy_recipe['run_scope'] in (DYNAMIC_STATE_PRIVATE_SCOPE, december.PRIVATE_SCOPE,
+                                          october.roles.PRIVATE_SCOPE, TIME_QUERY_PRIVATE_SCOPE):
             _require('family_same_boot' not in result, 'STATE_FRESH_BOOT_REQUIRED')
             expected_policy['physical_power_limit_w'] = 250
     _require(campaign.canonical_sha256(result['policy']) == campaign.canonical_sha256(expected_policy)
@@ -706,6 +719,9 @@ def require_native_direction_research_readiness(repo: Path, *, window_path: Path
         _require(gate.get('signed_bps_scale_fit_authorized') is True,'READINESS_BPS_SCALE')
     if recipe['run_scope'] == WEIGHT_SCOPE:
         _require(gate.get('magnitude_weight_scale_fit_authorized') is True,'READINESS_WEIGHT_SCALE')
+    if recipe['run_scope'] == TIME_QUERY_PRIVATE_SCOPE:
+        from gx1.contracts.market_state_time_query_private_campaign_v1 import require_time_query_private_gate
+        require_time_query_private_gate(gate, recipe)
     clock = campaign.require_binding(policy.get('gpu_clock_launcher'),label='existing GPU clock launcher')
     _require(clock == policy['gpu_clock_launcher'], 'READINESS_CLOCK')
     return {'decision':'READY_FOR_EXISTING_BOUND_CAMPAIGN_GATES','blocked_reasons':[],
@@ -765,6 +781,10 @@ def build_research_cursor(*, recipe_ref, outcome, optimizer_updates, parent_curs
 
 
 def require_research_cursor(value, *, expected_recipe, verify_files=True, batch_size=2) -> dict[str, Any]:
+    if isinstance(value, Mapping) and value.get('schema_version') == 'gx1_market_state_time_query_private_cursor_v1':
+        from gx1.contracts.market_state_time_query_private_campaign_v1 import require_time_query_private_cursor
+        return require_time_query_private_cursor(value, expected_recipe=expected_recipe,
+            verify_files=verify_files, batch_size=batch_size)
     fields = {'schema_version','recipe','outcome','optimizer_updates','parent_cursor',
         'parent_order_sha256','full_state','result','test_data_used'}
     _require(type(batch_size) is int and batch_size in (2,16),'CURSOR_BATCH_SIZE')
