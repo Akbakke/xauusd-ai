@@ -1,0 +1,102 @@
+{
+  "inputs": {
+    "full_masks": {
+      "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_MARKET_STATE_ENDPOINT_CANDIDATE_20261107_001/ROW_MASKS.npz",
+      "sha256": "ad0e7d56c58b463bdd3d61fe6b2fcf2b206afa56e899dfb36a850e63c5ec3020"
+    },
+    "full_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/FULL_TRAIN_MARKET_STATE_ENDPOINT_CANDIDATE_20261107_001.json",
+      "sha256": "c3c789f4e7ed3edba2880bfb9e51decc9efad779324351bbd19ac86d2a607ce2"
+    },
+    "full_result": {
+      "path": "/home/andre2/GX1_RUNS/FULL_TRAIN_MARKET_STATE_ENDPOINT_CANDIDATE_20261107_001/RESULT.json",
+      "sha256": "3a508ce45755c8db2ad8c078d56a6afef8b88a6af3e0a0b159ca388def38ebc5"
+    },
+    "gray_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_GRAY_PHYSICAL_20261107_001.json",
+      "sha256": "791ca45b5e6cda1b7785aeb2be3d6d41e24a9470460eb81396a27cca17954faf"
+    },
+    "gray_result": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GRAY_PHYSICAL_20261107_001/RESULT.json",
+      "sha256": "0b8392ed9713113c64a251edd8e1daa70521c0738a2995e85b17ef9de639581e"
+    },
+    "gray_terminal": {
+      "path": "/home/andre2/GX1_RUNS/MARKET_STATE_GRAY_PHYSICAL_20261107_001/TERMINAL.json",
+      "sha256": "8f83777d03c90794dbe5c534e1647d41ccb9137e3dcd0c9af1f2168105e871fb"
+    },
+    "single_masks": {
+      "path": "/home/andre2/GX1_RUNS/SINGLE_THRESHOLD_MARKET_STATE_CANDIDATE_20261107_001/ROW_MASKS_AND_RATIOS.npz",
+      "sha256": "35257429efa4ec553293e1b10bec0993c3c494f04e7f5be72d55877112e590e5"
+    },
+    "single_plan": {
+      "path": "/home/andre2/src/GX1_CURRENT/configs/research/SINGLE_THRESHOLD_MARKET_STATE_CANDIDATE_20261107_001.json",
+      "sha256": "9de70e39d0618ea579c4ccd95a8f7ba3e174511a8052befb3728d9f810d521a9"
+    },
+    "single_result": {
+      "path": "/home/andre2/GX1_RUNS/SINGLE_THRESHOLD_MARKET_STATE_CANDIDATE_20261107_001/RESULT.json",
+      "sha256": "1bad8a8a88d61a67ee2487e387c246da06f4f4ccf319e7edd8ce35d39d13eba1"
+    },
+    "single_terminal": {
+      "path": "/home/andre2/GX1_RUNS/SINGLE_THRESHOLD_MARKET_STATE_CANDIDATE_20261107_001/TERMINAL.json",
+      "sha256": "9ce11435f5be8174dd629c5f6c564f8a945cc432fb037afed14de47222798295"
+    }
+  },
+  "limits": {
+    "execution_class": "audit",
+    "memory_max": "4G",
+    "model_forwards": 0,
+    "optimizer_steps": 0,
+    "swap_max": "512M",
+    "wall_seconds": 1800
+  },
+  "output_dir": "/home/andre2/GX1_RUNS/MARKET_STATE_SELECTED_ACTIVITY_MASKS_20261107_001",
+  "schema_version": "gx1_market_state_selected_activity_plan_v1",
+  "scope": {
+    "gray_cells": 273200,
+    "lead_minutes": [
+      5,
+      15,
+      60,
+      240,
+      1440
+    ],
+    "m5_issues": 118706,
+    "selected_activity_rule": "complete_R_below_0.5ATR_FLAT_at_or_above_ACTIVE_side_only_if_separately_certified",
+    "test_data_used": false,
+    "train_end_utc_exclusive": "2026-01-01T00:00:00+00:00",
+    "train_start_utc": "2024-05-01T00:00:00+00:00"
+  },
+  "source_owners": {
+    "capped_contract": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/gx1_capped_execution_v1.py",
+      "sha256": "e8206a3d7bf6922b1c4f0fac85498c5a913270e96e94871d7f7a9c48c9611cb5"
+    },
+    "capped_runner": {
+      "path": "/home/andre2/src/GX1_CURRENT/scripts/gx1_capped_run.sh",
+      "sha256": "7749d3cd610535ae19ba33cdd8827c9f309ab64ccb39c7231d03151556bd7681"
+    },
+    "full_loader": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/build_full_train_market_state_endpoint_candidate_v1.py",
+      "sha256": "20fae20053070161ddfe69dde08b03846e94c3bdccaacb91bf8156695986de52"
+    },
+    "gray_worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_gray_physical_v1.py",
+      "sha256": "590606b011a1b845fb00feb98906aa3e74c085170d21c414899fc77c2926ea50"
+    },
+    "publication": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/contracts/immutable_event_authority_v1.py",
+      "sha256": "d3e9f17e71bd953894d2bf12e0358b3b43749d055bd6562b0bd5cb85aea5ed01"
+    },
+    "single_worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_single_threshold_market_state_candidate_v1.py",
+      "sha256": "6357fc07fd97d566dbbe10bc2b8744d40387077b048d8185d12fa068775e360d"
+    },
+    "worker": {
+      "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/verify_market_state_selected_activity_v1.py",
+      "sha256": "ed82f333857fe87b8a9d1457a534a50c5008ed0a35363b14479daf258fa863ce"
+    }
+  },
+  "stage": "market_state_selected_activity_masks_20261107_001",
+  "status": "PREPARED_NOT_ADMITTED",
+  "test_data_used": false
+}
