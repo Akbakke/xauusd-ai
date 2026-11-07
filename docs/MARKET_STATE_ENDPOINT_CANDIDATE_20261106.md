@@ -45,6 +45,8 @@ Den første radvise kontrollen over dekker May–Sep 2024. Den separate [full-TR
 | H4 | 53 967 | 45,46 % | 252 | 64 487 |
 | D1 | 39 042 | 32,89 % | 1 537 | 78 127 |
 
+Det meste av M5-UKJENT kommer fra **måldefinisjonens** gråsone `0,5 A ≤ R < 1,0 A`: 62 687 av 63 195 (99,2 %); bare 471 mangler eksakt endepunkt og 37 har annen ukjent støtte. På M15/H1/H4 utgjør gråsonen 57 992/56 316/54 197 ukjente rader. På D1 fordeler 78 127 UKJENT seg på 42 008 i gråsonen, 25 243 uten eksakt endepunkt og 10 876 med annen uavklart støtte. Dette er en mål- og observerbarhetskostnad, ikke mangel på indikatorer eller bevis på at markedet mangler retning. Tersklene flyttes ikke etter disse tallene uten et nytt forhåndsbundet målvedtak.
+
 D1-eksaktdekningen varierer fra 7,8 % i august 2025 til 64,2 % i oktober 2025; senere resultat kan derfor ikke tolkes uten månedlig dekning. En separat capped kontroll av bare TRAIN M1-tidskolonnen fant at alle 39 042 eksakte D1-vinduer inneholder allerede kjente barer ved `t`, typisk 64 av 1 440 (4,44 %). Typisk veggklokkespenn er 1 504 minutter, og 486 eksakte vinduer som krysser en dokumentert helg spenner typisk 4 448 minutter. Dette er **tilstand ved `v`**, ikke bevegelsen fra `t` til `v`; overlappen alene forklarer ikke 50/50-retning. Retningssiden i dagens måleier bruker et fortløpende anker som kan være eldre enn `W_TF` og nullstilles først ved ukjent gap eller manglende ATR. Ankeralder og verdi mot kausal nåtilstand må undersøkes før målet låses.
 
 Før fit forhåndsbindes disse fem ekspanderende TRAIN-foldene, alle med venstre grense inkludert og høyre ekskludert:
