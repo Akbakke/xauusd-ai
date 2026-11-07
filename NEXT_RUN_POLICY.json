@@ -44,15 +44,15 @@
     "workload_only_gpu_clock_profile"
   ],
   "gradient_clipping_policy": "separate_model_and_task_weights_v1",
-  "observed_utc": "2026-11-07T05:07:28.717674+00:00",
-  "status": "MARKET_STATE_PRIOR_ADMITTED_UNCLAIMED",
+  "observed_utc": "2026-11-07T05:10:50.383416+00:00",
+  "status": "MARKET_STATE_PRIOR_REFERENCE_COMPLETE_MODEL_OOF_PENDING",
   "market_state_five_endpoint_prior_20261107_001": {
-    "status": "ADMITTED_ONCE_UNCLAIMED",
+    "status": "CONSUMED_COMPLETE_TRAIN_PRIOR_REFERENCE",
     "plan": {
       "path": "/home/andre2/src/GX1_CURRENT/configs/research/MARKET_STATE_FIVE_ENDPOINT_PRIOR_20261107_001.json",
       "sha256": "7710bd98c7e14b1f2a6d4506f3f3499b02a0c04078f95c8b279b9cd033f00170"
     },
-    "decision": "ADMITTED",
+    "decision": "PASS_TRAIN_REFERENCE_ONLY",
     "scope": "One capped CPU audit for five predeclared chronological TRAIN fit-prefix priors and next-fold scores, corrected mature targets only. Laplace +1 activity and certified conditional side; always-ACTIVE/FLAT activity Brier references. No model, TEST, Entry, Exit or trade.",
     "worker": {
       "path": "/home/andre2/src/GX1_CURRENT/gx1/audit/measure_market_state_five_endpoint_prior_v1.py",
@@ -74,11 +74,11 @@
     "fold_ids": [1, 2, 3, 4, 5],
     "smoothing": "laplace_plus_one_separate_binary_activity_and_conditional_side",
     "max_invocations": 1,
-    "claimed_invocations": 0,
-    "completed_invocations": 0,
-    "execution_authorized": true,
-    "data_reads_authorized": true,
-    "baseline_estimation_authorized": true,
+    "claimed_invocations": 1,
+    "completed_invocations": 1,
+    "execution_authorized": false,
+    "data_reads_authorized": false,
+    "baseline_estimation_authorized": false,
     "model_forwards_authorized": 0,
     "optimizer_steps_authorized": 0,
     "training_authorized": false,
@@ -98,6 +98,24 @@
       "model_forwards": 0,
       "optimizer_steps": 0,
       "test_data_used": false
+    },
+    "terminal_evidence": {
+      "claim_sha256": "03e056e81fc6561a5c8fae9e8773cca832de7fe83611ab3b02284904465e86bd",
+      "result_sha256": "5304433c42b43ea2bdf593066e627c8904604a751aa27c6fa5dab6349efefa48",
+      "terminal_sha256": "8f9804b384baf0c1b3d5d321465f00424da17956c06ef39929f107767bc4e9a4",
+      "exit_code": 0,
+      "decision": "PASS_TRAIN_PRIOR_REFERENCE_ONLY",
+      "target_rows_joined": 118249,
+      "unjoined_target_rows": 457,
+      "chronological_score_rows": 88400,
+      "m5_activity_count": 88376,
+      "m5_activity_brier_mean": 0.062046565178039574,
+      "m5_certified_side_count": 29576,
+      "m5_certified_side_brier_mean": 0.24943786869923262,
+      "model_forwards": 0,
+      "optimizer_steps": 0,
+      "test_data_used": false,
+      "no_relaunch_under_this_plan": true
     },
     "standing_authorization_source": "no_cost_local_standing_authorization_20261105"
   },
@@ -343,8 +361,8 @@
   "training_enabled": false,
   "full_epoch_training_allowed": false,
   "full_val_allowed": false,
-  "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer, one real forward route, and a target-only batch bridge on two real TRAIN rows with synthetic logits are source-qualified; actual model-to-loss and optimizer skip, causal now-state references, chronological baselines and indicator usefulness remain unqualified. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
-  "next_action": "Plan003 is consumed technical source pass: one Oct24 TRAIN fit row, one fresh CUDA forward, output [1,5,3], zero optimizer and no TEST. The post-forward target-only bridge passed focused real-TRAIN-row tests with synthetic logits, including mature support and empty-support skip signal; no actual model-to-loss or optimizer skip has run. The predeclared five-fold prior and one-use capped CPU audit worker pass source/synthetic checks; exact plan passed read-only capped preclaim and is separately admitted once for baseline estimation only. Audit remaining indicator formulas/consumption, then qualify actual model-to-loss and skip before any model fit. Original 250W host profile is restored. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
+  "rule": "Operator-selected 0.5 ATR activity and conservative local side now have an immutable corrected five-TF TRAIN source mask. Exactly 273200 full-window gray cells became ACTIVE side-unknown, then seven measured H4/D1 old singleton sides were conservatively demoted; all other masks and axes preserved. Remaining certified sides match cold local replay in scoped audits. Pure five-endpoint output/loss/scorer, one real forward route, and a target-only batch bridge on two real TRAIN rows with synthetic logits are source-qualified; actual model-to-loss and optimizer skip, causal now-state references and indicator usefulness remain unqualified; one five-fold chronological TRAIN constant-prior reference is now measured. training_enabled=false; no model fit, TEST, Entry/Exit, broker, trading or spending.",
+  "next_action": "One capped five-fold TRAIN prior audit is complete and consumed, with independent reconstruction of exact mature fit prefixes and later score folds; no model/optimizer/TEST. M5 constant prior activity Brier is 0.062047 on 88376 cells; certified-side Brier is 0.249438 on 29576 cells. Next qualify residual indicator formulas and numerical consumption, beginning with scoped M5/M15/H1 trendline oracle reusing the H4/D1 method; then bind actual model-to-loss/skip and chronological OOF under fold-specific normalization. Compare activity, certified side and three-class on identical mature rows against this frozen prior before any model fit claim. training_enabled=false; TEST, Entry/Exit, broker and trading closed.",
   "required_evidence": {
     "risk_objective": {
       "path": "/home/andre2/src/GX1_CURRENT/docs/RISK_OBJECTIVE_20260914.json",
